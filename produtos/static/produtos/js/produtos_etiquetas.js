@@ -4,9 +4,29 @@
   var Core = window.AgroEtiquetasCore;
   if (!Core) return;
 
+  var CFG = window.AGRO_ETQ_CFG || {};
   var URL_BUSCAR = '/api/produtos/cadastro/';
+  var URL_FACETAS = CFG.facetasUrl || '/api/produtos/gestao/facetas/';
+  var URL_PRESETS = CFG.presetsUrl || '/api/compras/folha-saldo-presets/';
   var URL_HISTORICO = '/api/produtos/etiquetas/historico/';
   var HISTORICO_DIAS = 30;
+
+  var msFacetas = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msSelected = {
+    marca: [], categoria: [], subcategoria: [],
+    subcategoria_2: [], subcategoria_3: [], subcategoria_4: [],
+    fornecedor: [], unidade: [], modelo: []
+  };
+  var msLabels = {
+    marca: 'Marca', categoria: 'Categoria', subcategoria: 'Sub',
+    subcategoria_2: 'Sub 2', subcategoria_3: 'Sub 3', subcategoria_4: 'Sub 4',
+    fornecedor: 'Fornecedor', unidade: 'Unidade', modelo: 'Modelo'
+  };
+  var presetsFiltroCache = [];
 
   var state = {
     fila: [],
@@ -15,6 +35,7 @@
     buscaProdutos: [],
     buscaSelIdx: -1,
     buscaQuery: '',
+    buscaFiltrosKey: '',
   };
 
   function $(id) {
@@ -379,14 +400,26 @@
     });
   }
 
+  function syncBtnAddTodos() {
+    var btn = $('etq-btn-add-todos');
+    if (!btn) return;
+    var n = (state.buscaProdutos || []).length;
+    btn.disabled = n < 1;
+    btn.textContent = n > 1 ? ('Adicionar todos (' + n + ')') : 'Adicionar todos';
+  }
+
   function limparBuscaVisual() {
     state.buscaProdutos = [];
     state.buscaSelIdx = -1;
     state.buscaQuery = '';
+    state.buscaFiltrosKey = '';
     var box = $('etq-busca-resultados');
     if (box) {
-      box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres.</p>';
+      box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Digite ao menos 2 caracteres ou use os filtros.</p>';
     }
+    var meta = $('etq-busca-meta');
+    if (meta) meta.textContent = '';
+    syncBtnAddTodos();
   }
 
   function adicionarProdutoFila(prod, opts) {
@@ -398,13 +431,17 @@
     it.qtd = qtd > 0 ? qtd : 1;
     state.fila.push(it);
     renderFila();
-    if (opts.limparBusca !== false) {
+    /* FL-009: mantém lista da busca; só some em nova pesquisa */
+    if (opts.limparBusca === true) {
       limparBuscaVisual();
-      var inp = $('etq-busca-input');
-      if (inp) {
-        inp.value = '';
-        inp.focus();
+      var inpClear = $('etq-busca-input');
+      if (inpClear) {
+        inpClear.value = '';
+        inpClear.focus();
       }
+    } else {
+      var inp = $('etq-busca-input');
+      if (inp) inp.focus();
     }
     return true;
   }
@@ -451,11 +488,32 @@
     return false;
   }
 
+  function adicionarTodosBusca() {
+    var prods = state.buscaProdutos || [];
+    if (!prods.length) {
+      setStatus('Nada na busca para adicionar.', true);
+      return;
+    }
+    var qtdInp = $('etq-add-qtd');
+    var qtd = parseInt(qtdInp && qtdInp.value, 10) || 1;
+    if (qtd < 1) qtd = 1;
+    for (var i = 0; i < prods.length; i++) {
+      var it = produtoParaFilaItem(prods[i]);
+      it.qtd = qtd;
+      state.fila.push(it);
+    }
+    renderFila();
+    setStatus(prods.length + ' produto' + (prods.length === 1 ? '' : 's') + ' na fila.');
+    var inp = $('etq-busca-input');
+    if (inp) inp.focus();
+  }
+
   function renderBusca(produtos) {
     var box = $('etq-busca-resultados');
     if (!box) return;
-    state.buscaProdutos = (produtos || []).slice(0, 24);
+    state.buscaProdutos = (produtos || []).slice(0, 80);
     state.buscaSelIdx = -1;
+    syncBtnAddTodos();
     if (!state.buscaProdutos.length) {
       box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-500">Nenhum produto.</p>';
       return;
@@ -495,16 +553,343 @@
     });
   }
 
+
+  function escFiltro(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function normFiltro(s) {
+    return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  }
+  function appendMulti(params, key, vals) {
+    (vals || []).forEach(function (v) { if (v) params.append(key, v); });
+  }
+  function msToggle(key, val, on) {
+    var list = msSelected[key] || [];
+    var v = String(val || '').trim();
+    if (!v) return;
+    var i = list.indexOf(v);
+    if (on === true || (on == null && i < 0)) {
+      if (i < 0) list.push(v);
+    } else if (i >= 0) {
+      list.splice(i, 1);
+    }
+    msSelected[key] = list;
+    msRenderBtn(key);
+    msRenderChips();
+  }
+  function msRenderBtn(key) {
+    var root = document.querySelector('.etq-ms[data-ms="' + key + '"]');
+    if (!root) return;
+    var btn = root.querySelector('.etq-ms-btn');
+    if (!btn) return;
+    var n = (msSelected[key] || []).length;
+    var label = msLabels[key] || key;
+    btn.classList.toggle('is-on', n > 0);
+    btn.innerHTML = escFiltro(label) + (n ? ' <span class="etq-ms-count">' + n + '</span>' : '');
+  }
+  function msRenderChips() {
+    var box = $('etq-f-chips');
+    if (!box) return;
+    var html = '';
+    Object.keys(msSelected).forEach(function (key) {
+      (msSelected[key] || []).forEach(function (v) {
+        html +=
+          '<span class="etq-f-chip" data-ms-key="' + escFiltro(key) + '" data-ms-val="' + escFiltro(v) + '">' +
+          escFiltro((msLabels[key] || key) + ': ' + v) +
+          ' <button type="button" aria-label="Remover">×</button></span>';
+      });
+    });
+    box.innerHTML = html;
+  }
+  function msCloseAll() {
+    document.querySelectorAll('.etq-ms-panel').forEach(function (p) { p.classList.add('hidden'); });
+  }
+  function msFillPanel(root, q) {
+    var key = root.getAttribute('data-ms');
+    var panel = root.querySelector('.etq-ms-panel');
+    if (!panel || !key) return;
+    var selected = {};
+    (msSelected[key] || []).forEach(function (v) { selected[v] = true; });
+    var nq = normFiltro(q);
+    var opts = (msFacetas[key] || []).filter(function (x) {
+      if (!nq) return true;
+      return normFiltro(x).indexOf(nq) >= 0;
+    }).slice(0, 120);
+    var listHtml = opts.map(function (x) {
+      return (
+        '<label class="etq-ms-opt"><input type="checkbox" data-val="' + escFiltro(x) + '"' +
+        (selected[x] ? ' checked' : '') + '/><span>' + escFiltro(x) + '</span></label>'
+      );
+    }).join('');
+    if (!listHtml) {
+      listHtml = '<p class="px-2 py-2 text-xs font-semibold text-slate-500">' +
+        ((msFacetas[key] || []).length ? 'Nada encontrado.' : 'Aguarde carregar…') + '</p>';
+    }
+    var searchVal = panel.querySelector('input[type="search"]');
+    var keepQ = searchVal ? searchVal.value : (q || '');
+    panel.innerHTML =
+      '<input type="search" placeholder="Buscar…" value="' + escFiltro(keepQ) + '" autocomplete="off" />' +
+      '<div class="etq-ms-list">' + listHtml + '</div>';
+    var inp = panel.querySelector('input[type="search"]');
+    if (inp) {
+      inp.addEventListener('input', function () {
+        msFillPanel(root, inp.value);
+        var again = panel.querySelector('input[type="search"]');
+        if (again) {
+          again.focus();
+          try { var len = again.value.length; again.setSelectionRange(len, len); } catch (e) {}
+        }
+      });
+    }
+    panel.querySelectorAll('input[type="checkbox"]').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        msToggle(key, cb.getAttribute('data-val'), cb.checked);
+        scheduleBusca();
+      });
+    });
+  }
+  function msWire() {
+    document.querySelectorAll('.etq-ms').forEach(function (root) {
+      var btn = root.querySelector('.etq-ms-btn');
+      var panel = root.querySelector('.etq-ms-panel');
+      if (!btn || !panel) return;
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = !panel.classList.contains('hidden');
+        msCloseAll();
+        if (open) return;
+        panel.classList.remove('hidden');
+        msFillPanel(root, '');
+        var inp = panel.querySelector('input[type="search"]');
+        if (inp) setTimeout(function () { inp.focus(); }, 30);
+      });
+    });
+    var chips = $('etq-f-chips');
+    if (chips) {
+      chips.addEventListener('click', function (e) {
+        var btn = e.target.closest('button');
+        var chip = e.target.closest('.etq-f-chip');
+        if (!btn || !chip) return;
+        msToggle(chip.getAttribute('data-ms-key'), chip.getAttribute('data-ms-val'), false);
+        scheduleBusca();
+      });
+    }
+    document.addEventListener('mousedown', function (e) {
+      if (e.target && e.target.closest && e.target.closest('.etq-ms')) return;
+      msCloseAll();
+    });
+  }
+  function temFiltrosAtivos() {
+    var keys = Object.keys(msSelected);
+    for (var i = 0; i < keys.length; i++) {
+      if ((msSelected[keys[i]] || []).length) return true;
+    }
+    if ($('etq-f-estoque-sinal') && $('etq-f-estoque-sinal').value) return true;
+    if (($('etq-f-data-de') && $('etq-f-data-de').value) || ($('etq-f-data-ate') && $('etq-f-data-ate').value)) return true;
+    if ($('etq-omit-zero') && $('etq-omit-zero').checked) return true;
+    if ($('etq-f-custo-min') && $('etq-f-custo-min').value.trim()) return true;
+    if ($('etq-f-custo-max') && $('etq-f-custo-max').value.trim()) return true;
+    if ($('etq-f-venda-min') && $('etq-f-venda-min').value.trim()) return true;
+    if ($('etq-f-venda-max') && $('etq-f-venda-max').value.trim()) return true;
+    if ($('etq-f-ncm') && $('etq-f-ncm').value) return true;
+    if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) return true;
+    if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) return true;
+    if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) return true;
+    var c = !$('etq-loja-centro') || $('etq-loja-centro').checked;
+    var v = !$('etq-loja-vila') || $('etq-loja-vila').checked;
+    if (!(c && v)) return true;
+    if ($('etq-somente-ativos') && !$('etq-somente-ativos').checked) return true;
+    return false;
+  }
+  function estoqueLojaParam() {
+    var c = !$('etq-loja-centro') || $('etq-loja-centro').checked;
+    var v = !$('etq-loja-vila') || $('etq-loja-vila').checked;
+    if (c && v) return 'total';
+    if (c) return 'centro';
+    if (v) return 'vila';
+    return 'total';
+  }
+  function buildBuscaParams(q) {
+    var params = new URLSearchParams();
+    params.set('incluir_saldo', '1');
+    if (!($('etq-somente-ativos') && $('etq-somente-ativos').checked)) {
+      params.set('inativos', '1');
+    }
+    q = String(q || '').trim();
+    if (q) {
+      params.set('q', q);
+      params.set('limit', '80');
+    } else {
+      params.set('pagina', '1');
+      params.set('por_pagina', '80');
+    }
+    params.set('estoque_loja', estoqueLojaParam());
+    if ($('etq-f-estoque-sinal') && $('etq-f-estoque-sinal').value) {
+      params.set('estoque_sinal', $('etq-f-estoque-sinal').value);
+    }
+    if (($('etq-f-data-de') && $('etq-f-data-de').value) || ($('etq-f-data-ate') && $('etq-f-data-ate').value)) {
+      params.set('data_tipo', ($('etq-f-data-tipo') && $('etq-f-data-tipo').value) || 'cadastro');
+      if ($('etq-f-data-de') && $('etq-f-data-de').value) params.set('data_de', $('etq-f-data-de').value);
+      if ($('etq-f-data-ate') && $('etq-f-data-ate').value) params.set('data_ate', $('etq-f-data-ate').value);
+    }
+    appendMulti(params, 'marca', msSelected.marca);
+    appendMulti(params, 'categoria', msSelected.categoria);
+    appendMulti(params, 'subcategoria', msSelected.subcategoria);
+    appendMulti(params, 'subcategoria_2', msSelected.subcategoria_2);
+    appendMulti(params, 'subcategoria_3', msSelected.subcategoria_3);
+    appendMulti(params, 'subcategoria_4', msSelected.subcategoria_4);
+    appendMulti(params, 'fornecedor', msSelected.fornecedor);
+    appendMulti(params, 'unidade', msSelected.unidade);
+    appendMulti(params, 'modelo', msSelected.modelo);
+    if ($('etq-f-custo-min') && $('etq-f-custo-min').value.trim()) params.set('custo_min', $('etq-f-custo-min').value.trim());
+    if ($('etq-f-custo-max') && $('etq-f-custo-max').value.trim()) params.set('custo_max', $('etq-f-custo-max').value.trim());
+    if ($('etq-f-venda-min') && $('etq-f-venda-min').value.trim()) params.set('venda_min', $('etq-f-venda-min').value.trim());
+    if ($('etq-f-venda-max') && $('etq-f-venda-max').value.trim()) params.set('venda_max', $('etq-f-venda-max').value.trim());
+    if ($('etq-f-ncm') && $('etq-f-ncm').value) params.set('ncm', $('etq-f-ncm').value);
+    if ($('etq-f-sem-marca') && $('etq-f-sem-marca').checked) params.set('sem_marca', '1');
+    if ($('etq-f-sem-cat') && $('etq-f-sem-cat').checked) params.set('sem_categoria', '1');
+    if ($('etq-f-somente-agro') && $('etq-f-somente-agro').checked) params.set('somente_agro', '1');
+    return params;
+  }
+  function filtrarOmitZero(prods) {
+    if (!($('etq-omit-zero') && $('etq-omit-zero').checked)) return prods;
+    var loja = estoqueLojaParam();
+    return (prods || []).filter(function (p) {
+      var sc = Number(p.saldo_centro || 0);
+      var sv = Number(p.saldo_vila || 0);
+      var s = loja === 'centro' ? sc : (loja === 'vila' ? sv : sc + sv);
+      if (p.saldo_total != null && loja === 'total') s = Number(p.saldo_total);
+      return Math.abs(s) >= 1e-9;
+    });
+  }
+  function limparFiltrosBusca() {
+    Object.keys(msSelected).forEach(function (k) {
+      msSelected[k] = [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if ($('etq-loja-centro')) $('etq-loja-centro').checked = true;
+    if ($('etq-loja-vila')) $('etq-loja-vila').checked = true;
+    if ($('etq-omit-zero')) $('etq-omit-zero').checked = false;
+    if ($('etq-somente-ativos')) $('etq-somente-ativos').checked = true;
+    if ($('etq-f-estoque-sinal')) $('etq-f-estoque-sinal').value = '';
+    if ($('etq-f-data-tipo')) $('etq-f-data-tipo').value = 'cadastro';
+    if ($('etq-f-data-de')) $('etq-f-data-de').value = '';
+    if ($('etq-f-data-ate')) $('etq-f-data-ate').value = '';
+    ['etq-f-custo-min','etq-f-custo-max','etq-f-venda-min','etq-f-venda-max'].forEach(function (id) {
+      if ($(id)) $(id).value = '';
+    });
+    if ($('etq-f-ncm')) $('etq-f-ncm').value = '';
+    if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = false;
+    if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = false;
+    if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = false;
+    if ($('etq-preset-filtro-sel')) $('etq-preset-filtro-sel').value = '';
+    syncPresetFiltroBtns();
+  }
+  function applyFacetasPayload(j) {
+    if (!j) return 0;
+    msFacetas.marca = j.marcas || [];
+    msFacetas.categoria = j.categorias || [];
+    msFacetas.subcategoria = j.subcategorias || [];
+    msFacetas.subcategoria_2 = j.subcategorias_2 || [];
+    msFacetas.subcategoria_3 = j.subcategorias_3 || [];
+    msFacetas.subcategoria_4 = j.subcategorias_4 || [];
+    msFacetas.fornecedor = j.fornecedores || [];
+    msFacetas.unidade = j.unidades || [];
+    msFacetas.modelo = j.modelos || [];
+    var n = 0;
+    Object.keys(msFacetas).forEach(function (k) {
+      n += (msFacetas[k] || []).length;
+      msRenderBtn(k);
+    });
+    return n;
+  }
+  function carregarFacetas() {
+    if (!URL_FACETAS) return;
+    fetch(URL_FACETAS, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok !== false) applyFacetasPayload(j);
+      })
+      .catch(function () {});
+  }
+  function syncPresetFiltroBtns() {
+    var sel = $('etq-preset-filtro-sel');
+    var btn = $('etq-preset-filtro-aplicar');
+    if (btn) btn.disabled = !(sel && sel.value);
+  }
+  function carregarPresetsFiltro() {
+    if (!URL_PRESETS) return;
+    fetch(URL_PRESETS, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        presetsFiltroCache = (j && j.presets) || [];
+        var sel = $('etq-preset-filtro-sel');
+        if (!sel) return;
+        var cur = sel.value;
+        sel.innerHTML = '<option value="">— escolher —</option>';
+        presetsFiltroCache.forEach(function (p) {
+          var o = document.createElement('option');
+          o.value = String(p.id);
+          o.textContent = (p.nome || 'Filtro') + (p.is_padrao ? ' ★' : '');
+          sel.appendChild(o);
+        });
+        if (cur) sel.value = cur;
+        syncPresetFiltroBtns();
+      })
+      .catch(function () {});
+  }
+  function aplicarPayloadFiltro(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    limparFiltrosBusca();
+    if ($('etq-loja-centro')) $('etq-loja-centro').checked = payload.loja_centro !== false;
+    if ($('etq-loja-vila')) $('etq-loja-vila').checked = payload.loja_vila !== false;
+    if ($('etq-omit-zero')) $('etq-omit-zero').checked = !!payload.omit_zero;
+    if ($('etq-somente-ativos')) $('etq-somente-ativos').checked = payload.somente_ativos !== false;
+    if ($('etq-f-estoque-sinal')) $('etq-f-estoque-sinal').value = payload.estoque_sinal || '';
+    if ($('etq-f-data-tipo')) $('etq-f-data-tipo').value = payload.data_tipo || 'cadastro';
+    if ($('etq-f-data-de')) $('etq-f-data-de').value = payload.data_de || '';
+    if ($('etq-f-data-ate')) $('etq-f-data-ate').value = payload.data_ate || '';
+    if ($('etq-f-custo-min')) $('etq-f-custo-min').value = payload.custo_min || '';
+    if ($('etq-f-custo-max')) $('etq-f-custo-max').value = payload.custo_max || '';
+    if ($('etq-f-venda-min')) $('etq-f-venda-min').value = payload.venda_min || '';
+    if ($('etq-f-venda-max')) $('etq-f-venda-max').value = payload.venda_max || '';
+    if ($('etq-f-ncm')) $('etq-f-ncm').value = payload.ncm || '';
+    if ($('etq-f-sem-marca')) $('etq-f-sem-marca').checked = !!payload.sem_marca;
+    if ($('etq-f-sem-cat')) $('etq-f-sem-cat').checked = !!payload.sem_categoria;
+    if ($('etq-f-somente-agro')) $('etq-f-somente-agro').checked = !!payload.somente_agro;
+    Object.keys(msSelected).forEach(function (k) {
+      var arr = payload[k];
+      msSelected[k] = Array.isArray(arr) ? arr.slice() : [];
+      msRenderBtn(k);
+    });
+    msRenderChips();
+    if (payload.q && $('etq-busca-input')) $('etq-busca-input').value = payload.q;
+  }
+  function scheduleBusca() {
+    clearTimeout(state.buscaTimer);
+    state.buscaTimer = setTimeout(function () {
+      var inp = $('etq-busca-input');
+      buscarProdutos(inp ? inp.value.trim() : '');
+    }, 280);
+  }
+
   function buscarProdutos(q, opts) {
     opts = opts || {};
     var box = $('etq-busca-resultados');
-    q = String(q || '').trim();
-    if (!q || q.length < 2) {
+    var meta = $('etq-busca-meta');
+    q = String(q == null ? (($('etq-busca-input') && $('etq-busca-input').value) || '') : q).trim();
+    var filtrosOk = temFiltrosAtivos();
+    if ((!q || q.length < 2) && !filtrosOk) {
       limparBuscaVisual();
       return Promise.resolve([]);
     }
     if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-slate-400">…</p>';
-    return fetch(URL_BUSCAR + '?q=' + encodeURIComponent(q) + '&limit=24', { credentials: 'same-origin' })
+    var params = buildBuscaParams(q.length >= 2 ? q : '');
+    var fkey = params.toString();
+    return fetch(URL_BUSCAR + '?' + fkey, { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
@@ -513,12 +898,19 @@
           state.buscaProdutos = [];
           state.buscaSelIdx = -1;
           if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+          if (meta) meta.textContent = '';
           if (opts.onDone) opts.onDone([]);
           return [];
         }
-        var prods = (data && data.produtos) || [];
+        var prods = filtrarOmitZero((data && data.produtos) || []);
         state.buscaQuery = q;
+        state.buscaFiltrosKey = fkey;
         renderBusca(prods);
+        if (meta) {
+          meta.textContent = prods.length
+            ? (prods.length + ' resultado' + (prods.length === 1 ? '' : 's') + (data.has_more ? '+' : ''))
+            : '0 resultados';
+        }
         if (opts.onDone) opts.onDone(state.buscaProdutos);
         return state.buscaProdutos;
       })
@@ -526,10 +918,12 @@
         state.buscaProdutos = [];
         state.buscaSelIdx = -1;
         if (box) box.innerHTML = '<p class="px-3 py-3 text-sm text-red-400">Erro na busca.</p>';
+        if (meta) meta.textContent = '';
         if (opts.onDone) opts.onDone([]);
         return [];
       });
   }
+
 
   function setStatus(msg, isErr) {
     var el = $('etq-status');
@@ -815,10 +1209,7 @@
     var inpBusca = $('etq-busca-input');
     if (inpBusca) {
       inpBusca.addEventListener('input', function () {
-        clearTimeout(state.buscaTimer);
-        state.buscaTimer = setTimeout(function () {
-          buscarProdutos(inpBusca.value.trim());
-        }, 280);
+        scheduleBusca();
       });
       inpBusca.addEventListener('keydown', function (ev) {
         var q = inpBusca.value.trim();
@@ -835,8 +1226,8 @@
         if (ev.key === 'Enter') {
           ev.preventDefault();
           clearTimeout(state.buscaTimer);
-          if (q.length < 2) return;
-          if (state.buscaQuery === q && state.buscaProdutos.length) {
+          if (q.length < 2 && !temFiltrosAtivos()) return;
+          if (state.buscaProdutos.length && (state.buscaQuery === q || (!q && temFiltrosAtivos()))) {
             tentarAdicionarBuscaEnter();
             return;
           }
@@ -853,6 +1244,43 @@
       });
     }
 
+    msWire();
+    ['etq-loja-centro','etq-loja-vila','etq-omit-zero','etq-somente-ativos',
+     'etq-f-estoque-sinal','etq-f-data-tipo','etq-f-data-de','etq-f-data-ate',
+     'etq-f-custo-min','etq-f-custo-max','etq-f-venda-min','etq-f-venda-max',
+     'etq-f-ncm','etq-f-sem-marca','etq-f-sem-cat','etq-f-somente-agro'].forEach(function (id) {
+      var node = $(id);
+      if (!node) return;
+      var evName = (node.tagName === 'SELECT' || node.type === 'checkbox') ? 'change' : 'input';
+      node.addEventListener(evName, scheduleBusca);
+    });
+    $('etq-filtros-limpar') && $('etq-filtros-limpar').addEventListener('click', function () {
+      limparFiltrosBusca();
+      scheduleBusca();
+    });
+    $('etq-preset-filtro-sel') && $('etq-preset-filtro-sel').addEventListener('change', syncPresetFiltroBtns);
+    $('etq-preset-filtro-aplicar') && $('etq-preset-filtro-aplicar').addEventListener('click', function () {
+      var sel = $('etq-preset-filtro-sel');
+      if (!sel || !sel.value) return;
+      var p = presetsFiltroCache.find(function (x) { return String(x.id) === String(sel.value); });
+      if (!p) return;
+      if (p.payload) {
+        aplicarPayloadFiltro(p.payload);
+        scheduleBusca();
+        return;
+      }
+      fetch(URL_PRESETS.replace(/\/?$/, '/') + sel.value + '/', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var pr = (j && j.preset) || j;
+          if (pr && pr.payload) aplicarPayloadFiltro(pr.payload);
+          scheduleBusca();
+        })
+        .catch(function () {});
+    });
+
+    $('etq-btn-add-todos') &&
+      $('etq-btn-add-todos').addEventListener('click', adicionarTodosBusca);
     $('etq-btn-imprimir') && $('etq-btn-imprimir').addEventListener('click', imprimirFila);
     $('etq-btn-limpar') &&
       $('etq-btn-limpar').addEventListener('click', function () {
@@ -976,6 +1404,8 @@
     renderPresetForm();
     renderFila();
     bindEvents();
+    carregarFacetas();
+    carregarPresetsFiltro();
     var inp = $('etq-busca-input');
     if (inp) inp.focus();
   }
