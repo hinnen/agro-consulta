@@ -1089,15 +1089,21 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         lp.classList.add("hidden");
         document.body.classList.remove("modal-open");
     }
+    function pathFromHref(href) {
+        try {
+            return new URL(href, window.location.origin).pathname.toLowerCase();
+        } catch (_) {
+            return "";
+        }
+    }
+    function isAjusteMobileHref(href) {
+        var p = pathFromHref(href).replace(/\/+$/, "") || "/";
+        return p === "/ajuste-mobile" || p.indexOf("/ajuste-mobile/") === 0;
+    }
     function openInShellTab(href) {
         try {
             if (window.parent !== window) {
-                var path = "";
-                try {
-                    path = new URL(href, window.location.origin).pathname;
-                } catch (_) {
-                    path = "";
-                }
+                var path = pathFromHref(href);
                 var isPdv =
                     window.AgroDualWindow &&
                     window.AgroDualWindow.isPdvPath &&
@@ -1115,6 +1121,15 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         return false;
     }
     function go() {
+        /* Ajuste Mobile = tela cheia no celular; nunca iframe/aba do BI. */
+        if (isAjusteMobileHref(url)) {
+            try {
+                (window.top || window).location.assign(url);
+            } catch (_) {
+                window.location.assign(url);
+            }
+            return;
+        }
         if (openInShellTab(url)) return;
         if (window.tabManager && typeof window.tabManager.addTab === "function") {
             window.tabManager.addTab(titulo, url, icone);
