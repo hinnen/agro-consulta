@@ -1169,11 +1169,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### Deploy loja **v12.02** — Cadastro nomes ObjectId (`NOMES-OID` · 29/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` **`8214532`** · badge **12.02** · aguardar Live |
+| **O quê** | Scrub ObjectId na lista · `[NOME QUEBRADO]` + badge «Consertar nome» · sem Mongo N+1 / sem inferência por preço |
+| **Branch** | `deploy/cadastro-nomes-objectid-v12.02` |
+| **Arquivos** | `catalogo_nome_util.py` · `cadastro_erp_panel.js` · VERSION · banana |
+| **Migrate** | **NÃO** |
+| **Rollback** | `git push origin rollback/pre-nomes-objectid-v12.02:producao` (volta **v12.01**) |
+| **Validar** | Ctrl+F5 Cadastro · abrir sem busca → sem hex no nome · badge se quebrado · busca `ibiuna`/`milho` ainda rápida |
+
 ### 📦 PACOTE PRONTO LOJA — Cadastro nomes ObjectId (`NOMES-OID` · **v12.02**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · review + asserts OK · push `origin/deploy/cadastro-nomes-objectid-v12.02` @ **`7c15af4`** · **sem** push produção |
+| **Status** | ✅ **enviado loja** · ver bloco Deploy v12.02 acima |
 | **Branch** | `deploy/cadastro-nomes-objectid-v12.02` · base `origin/producao` @ **v12.01** |
 | **Por quê** | Pós BUSCA-CPU v12.01: abrir Cadastro mostra Id Mongo no nome · busca rápida OK |
 | **Inclui** | Scrub ObjectId na lista · rótulo **[NOME QUEBRADO]** + badge «Consertar nome» · detecta fantasma mesmo sem `produto_externo_id` · com leve_cpu **não** faz Mongo N+1 nem inferência por preço |
