@@ -220,6 +220,9 @@
       'etq-preset-largura': p.largura_mm,
       'etq-preset-altura': p.altura_mm,
       'etq-preset-nome-pt': p.nome_pt,
+      'etq-preset-nome-pt-1': p.nome_pt_1 != null ? p.nome_pt_1 : p.nome_pt || 11,
+      'etq-preset-nome-pt-2': p.nome_pt_2 != null ? p.nome_pt_2 : 9,
+      'etq-preset-nome-pt-3': p.nome_pt_3 != null ? p.nome_pt_3 : 7.5,
       'etq-preset-preco-pt': p.preco_pt,
       'etq-preset-rs-pt': p.rs_pt != null ? p.rs_pt : 11,
       'etq-preset-peso-pt': p.peso_pt != null ? p.peso_pt : 7,
@@ -269,6 +272,12 @@
     p.largura_mm = Number($('etq-preset-largura') && $('etq-preset-largura').value) || 40;
     p.altura_mm = Number($('etq-preset-altura') && $('etq-preset-altura').value) || 40;
     p.nome_pt = Number($('etq-preset-nome-pt') && $('etq-preset-nome-pt').value) || 8;
+    p.nome_pt_1 = Number($('etq-preset-nome-pt-1') && $('etq-preset-nome-pt-1').value) || 11;
+    p.nome_pt_2 = Number($('etq-preset-nome-pt-2') && $('etq-preset-nome-pt-2').value) || 9;
+    p.nome_pt_3 = Number($('etq-preset-nome-pt-3') && $('etq-preset-nome-pt-3').value) || 7.5;
+    if (($('etq-preset-estilo') && $('etq-preset-estilo').value) === 'gondola') {
+      p.nome_pt = p.nome_pt_1;
+    }
     p.preco_pt = Number($('etq-preset-preco-pt') && $('etq-preset-preco-pt').value) || 28;
     p.rs_pt = Number($('etq-preset-rs-pt') && $('etq-preset-rs-pt').value) || 11;
     p.peso_pt = Number($('etq-preset-peso-pt') && $('etq-preset-peso-pt').value) || 7;
@@ -894,6 +903,9 @@
       'etq-preset-largura',
       'etq-preset-altura',
       'etq-preset-nome-pt',
+      'etq-preset-nome-pt-1',
+      'etq-preset-nome-pt-2',
+      'etq-preset-nome-pt-3',
       'etq-preset-preco-pt',
       'etq-preset-rs-pt',
       'etq-preset-peso-pt',

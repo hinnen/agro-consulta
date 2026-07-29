@@ -592,7 +592,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - `/lancamentos/` â€” redirect â†’ **Contas a pagar padrÃ£o:** `/lancamentos/contas-pagar/` (**layout novo**) Â· `/classico/` â†’ redirect Â· `/teste/` â†’ redirect
 - Contas a receber: `/lancamentos/contas-receber/` (layout clÃ¡ssico)
 - PDF: `lancamentos_financeiro_pdf.py` (sem coluna observaÃ§Ãµes longas; forma pagamento; bruto destacado).
-- Busca na lista: termos com espaÃ§o; **valor** (bruto/pago/saldo); **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
+- Busca na lista: termos com espaÃ§o; **valor** (bruto/pago/saldo); **número da NF**; **data** digitada; boleto; parcela; CPF/CNPJ. Ajuda: `includes/lancamentos_help_agents.html`.
 - **Layout novo CP:** `lancamentos_contas_pagar_teste.html` â€” API `/api/lancamentos/`; filtros na URL; recarga in-place preserva scroll/filtros/pÃ¡ginas. **Filtro de data:** vencimento (padrÃ£o) Â· competÃªncia Â· pagamento (`ref` + `venc_*` / `comp_*` / `pag_*` na URL e na API).
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
@@ -1171,6 +1171,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Contas a pagar — busca por número da NF (29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | WIP local · validar no PC |
+| **Sintoma** | Digitar `013962` = 0 títulos · Ctrl+F achava na descrição |
+| **Causa** | Número puro 5–7 dígitos ia só como **valor** + `numero_documento` · NF fica em «NF 013962» na descrição |
+| **Fix** | Também casa descrição/obs (+ variante sem zero à esquerda) |
+| **Arquivo** | `lancamentos_financeiro_pg_util.py` · ajuda `?` / AGENTS §10 |
+| **Você** | Ctrl+F5 Contas a pagar · busca `013962` → deve listar as parcelas |
+
 ### Local — catálogo SQLite atualizado (29/07)
 
 | Item | Detalhe |
@@ -1224,6 +1235,22 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
 
+### PACOTE PRONTO LOJA — Folha polish + Etiquetas ajuste (`FOLHA-ETQ-V12` · 29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — espera pausa + frase + senha `99738595` |
+| **VERSION alvo loja** | **12.00** (loja hoje **11.99**) |
+| **Branch** | `deploy/folha-etq-v12.00` |
+| **Inclui** | 1) Folha saldo polish (fornecedor overlay · filtro no cupom · GM alinhado · saldo) 2) Etiquetas: borda 0,5 mm fora (91×31) · fonte nome 1/2/3 linhas · corte na 3ª |
+| **Arquivos** | `compras_relatorio_planilha.html` · `compras_relatorio_saldo.html` · `produtos_etiquetas.js` · `produtos_etiquetas_core.js` · `produtos_etiquetas.html` |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só Folha saldo/planilha + etiquetas · **zero** PDV carrinho/caixa/CP |
+| **Smoke** | `manage.py check` 0 · JS syntax OK · diffs só 5 arquivos vs `producao` |
+| **NÃO inclui** | DF-e · merge `teste` · transferência · Entrada NF · PDV |
+| **Próximo chat** | 1) lojas pausam vendas 2) *pode subir Folha+etiquetas / produção* + **99738595** 3) FF `deploy/folha-etq-v12.00` → `producao` · Ctrl+F5 |
+| **Rollback** | `rollback/pre-v1200-folha-etq` @ HEAD `producao` antes do push |
+
 ### PACOTE PRONTO LOJA — Etiqueta Gôndola A4 (`ETQ-GONDOLA` · 28/07)
 
 | Item | Detalhe |
@@ -1252,20 +1279,12 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 | **Autorizar** | *pode subir transferência forçada / produção* + **99738595** |
 | **Rollback** | `rollback/pre-v1197-transf-forcada` |
 
-### PACOTE PRONTO LOJA — PDV atalho «Estoque Vila» (`PDV-ESTOQUE-VILA` · 28/07)
+### PACOTE — Folha saldo polish → absorvido em **FOLHA-ETQ-V12** (29/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · branch `deploy/pdv-estoque-vila-v11.98` @ **`e792363`** · espera frase + senha |
-| **VERSION alvo loja** | **11.98** |
-| **O quê** | Botão **Estoque Vila** no PDV · 5 folhas no overlay · Folha saldo UX (Filtro salvo na 1ª tela · Mais opções = datas/preço/NCM) |
-| **Migrate** | **NÃO** |
-| **Fonte teste** | `2a6b5a3` |
-| **NÃO inclui** | Etiquetas · Transferência · DF-e · Entrada NF · migrate |
-| **Risco loja aberta** | **Baixo** — atalho + overlay |
-| **Autorizar** | *pode subir Estoque Vila / produção* + **99738595** |
-| **Rollback** | `rollback/pre-v1198-pdv-estoque-vila` |
-| **Smoke pós** | Ctrl+F5 PDV · 5 opções · Folha saldo · filtro salvo · imprimir A4 |
+| **Status** | ➡️ **absorvido** no pacote `FOLHA-ETQ-V12` (Folha + etiquetas juntos · loja **v12.00**) |
+| **Autorizar** | ver bloco **FOLHA-ETQ-V12** acima |
 
 ### PACOTE PRONTO LOJA — Entrada NF boleto + lista Concluída + Nova limpa (`ENTRADA-NF-UX` · 28/07)
 
@@ -3378,17 +3397,12 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Fila deploy** | **11.94→11.98** prontos (CHECKPOINT «FILA DEPLOY») · próximo chat: frase + **99738595** |
-| **PDV Pix** | Sicredi — 📦 deploy/pdv-pix-sicredi-v11.94 · loja **v11.94** |
-| **Entrada NF** | UX boleto+lista+Nova — 📦 deploy/entrada-nf-ux-v11.95 · loja **v11.95** |
-| **Etiquetas** | Gôndola A4 — 📦 deploy/etq-gondola-v11.96 · migrate **0067** |
-| **Transferência** | Forçada Vila↔C — 📦 deploy/transf-forcada-v11.97 |
-| **PDV** | Estoque Vila — 📦 deploy/pdv-estoque-vila-v11.98 |
-| **✅ MP auto** | **já na loja** (antigo «v10.89» era engano) |
-| **P0 agora** | Custo NF 77846 — depois de subir v11.54+: 
-eaplicar_custos_entrada_nf --nf=77846 --aplicar |
+| **Folha+Etq** | **FOLHA-ETQ-V12** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.00** · branch `deploy/folha-etq-v12.00` |
+| **Autorizar** | *«pode subir Folha+etiquetas / produção»* + **99738595** (pausa vendas antes) |
+| **✅ Loja v11.99** | PDV carrinho itens travados (FL-008) |
+| **✅ Loja v11.98** | lote 11.94–11.98 (Pix · Entrada NF · Gôndola · Transf · Estoque Vila base) |
+| **P0 agora** | Custo NF 77846 — depois de subir v11.54+: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` |
 | **P0,1 agora** | FL-057 PgBouncer loja (painel Render) |
-| **✅ Loja v11.93** | Folha saldo + transf sem saldo+ (28/07) |
 | **✅ Kardex 9.92** | **já na loja desde v10.63** — não sobe de novo |
 
 #### Fila aberta (por prioridade)
@@ -3399,6 +3413,7 @@ eaplicar_custos_entrada_nf --nf=77846 --aplicar |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
+| **P1** | **FOLHA-ETQ-V12** | Folha saldo polish + etiquetas (borda 0,5 · nome 1/2/3 linhas) | 📦 **pronto para envio à produção** · loja **v12.00** · `deploy/folha-etq-v12.00` |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
