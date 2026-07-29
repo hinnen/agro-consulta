@@ -1251,7 +1251,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — branch `deploy/etq-busca-filtros-v12.05` · espera pausa + frase + senha `99738595` |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — branch `deploy/etq-busca-filtros-v12.05 @ **30e79a9** · espera pausa + frase + senha 99738595 |
 | **VERSION alvo loja** | **12.05** (loja hoje **12.04**) |
 | **Inclui** | Filtros Folha na busca · lista **não some** ao add (FL-009) · **Adicionar todos** |
 | **Arquivos** | `produtos_etiquetas.html` · `produtos_etiquetas.js` · `produtos_etiquetas_view` (só contexto facetas/presets) |
