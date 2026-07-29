@@ -339,6 +339,8 @@ AGRO_FONTE_ESTOQUE = (config('AGRO_FONTE_ESTOQUE', default='legacy') or 'legacy'
 AGRO_FONTE_FINANCEIRO = (
     config('AGRO_FONTE_FINANCEIRO', default='legacy') or 'legacy'
 ).strip().lower()
+# Busca Cadastro/PG: mitiga CPU (sem loop fantasma/preço + OR largo). false = comportamento antigo.
+AGRO_BUSCA_LEVE_CPU = config('AGRO_BUSCA_LEVE_CPU', default=True, cast=bool)
 # Contas a pagar/receber: envio Agro → ERP (API Lancamentos/*). false = só grava no Mongo.
 AGRO_FINANCEIRO_ERP_SYNC_HABILITADO = config(
     'AGRO_FINANCEIRO_ERP_SYNC_HABILITADO', default=False, cast=bool

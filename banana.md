@@ -1169,6 +1169,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### Deploy loja **v12.01** — Busca Cadastro CPU leve (`BUSCA-CPU` · 29/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · push `producao` (aguarda Live) · badge **12.01** |
+| **O quê** | Flag `AGRO_BUSCA_LEVE_CPU` (default true) · sem loop fantasma×preço na API · busca texto sem OR 9 colunas se nome já achou |
+| **Arquivos** | `catalogo_nome_util.py` · `catalogo_agro.py` · `agro_fonte_config.py` · `settings.py` (+ VERSION + banana) |
+| **NÃO inclui** | bug report · DF-e · Entrada NF · Folha · merge `teste` |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — PDV cache igual · rollback = `AGRO_BUSCA_LEVE_CPU=false` no Render **ou** `git push origin rollback/pre-busca-leve-cpu-v12.01:producao` |
+| **Validar** | Ctrl+F5 Cadastro · `ibiuna` / `milho` / GM · CPU Postgres não deve flat 100% |
+
 ### Deploy loja **v11.99** — PDV carrinho itens travados (FL-008 · 28/07 · Renan frase+senha)
 
 | Item | Detalhe |
