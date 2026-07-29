@@ -463,8 +463,8 @@ def sincronizar_modelo_produto_de_overlay(
 ) -> Produto:
     """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``).
 
-    Nunca sobrescreve campo bom do ``Produto`` com vazio / «—» / ObjectId Mongo
-    (bug do lápis PDV: mandava GM/barras vazios e apagava o cadastro).
+    Com ``pdv_edicao_rapida``: nunca sobrescreve campo bom com vazio / «—» / ObjectId
+    (bug do lápis PDV). Cadastro modal completo continua podendo limpar campo de propósito.
     """
     import re
 
@@ -472,6 +472,14 @@ def sincronizar_modelo_produto_de_overlay(
     payload = payload or {}
     p = obter_produto_model(pid64)
     _re_oid = re.compile(r"^[0-9a-f]{24}$", re.I)
+    pdv_rapida = str(payload.get("pdv_edicao_rapida") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+        "sim",
+        "s",
+    )
 
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
@@ -484,12 +492,16 @@ def sincronizar_modelo_produto_de_overlay(
         return (not t) or t in ("—", "-", "–", "---", "...")
 
     def _manter(novo, antigo, *, mx: int | None = None, rejeitar_oid: bool = False):
-        """Prefere valor novo se útil; senão mantém o que já estava no Produto."""
+        """No lápis PDV: prefere manter o Produto se o novo vier vazio/ruim."""
         ns = str(novo if novo is not None else "").strip()
         ant = str(antigo if antigo is not None else "").strip()
         if mx is not None:
             ns = ns[:mx]
             ant = ant[:mx]
+        if not pdv_rapida:
+            if rejeitar_oid and _parece_oid(ns) and ant and not _parece_oid(ant):
+                return ant
+            return ns if ns or not rejeitar_oid else (ant or ns)
         if _vazio_ou_traco(ns):
             return ant if ant else (ns or None)
         if rejeitar_oid and _parece_oid(ns):
@@ -507,12 +519,26 @@ def sincronizar_modelo_produto_de_overlay(
         cod_interno_cand = str(p.codigo_interno or "").strip()[:50]
     if not cod_interno_cand and not _parece_oid(pid64):
         cod_interno_cand = pid64[:50]
-    codigo_interno = _manter(
-        cod_interno_cand,
-        p.codigo_interno if p is not None else "",
-        mx=50,
-        rejeitar_oid=True,
-    ) or ""
+    if pdv_rapida:
+        codigo_interno = (
+            _manter(
+                cod_interno_cand,
+                p.codigo_interno if p is not None else "",
+                mx=50,
+                rejeitar_oid=True,
+            )
+            or ""
+        )
+    else:
+        codigo_interno = (
+            cod_sys[:50]
+            if cod_sys
+            else (
+                _txt("codigo_nfe", 64)[:50]
+                or (str(p.codigo_interno or "").strip()[:50] if p is not None else "")
+                or ("" if _parece_oid(pid64) else pid64[:50])
+            )
+        )
 
     codigo_nfe_cand = (
         ov.codigo_nfe.strip()
@@ -520,20 +546,36 @@ def sincronizar_modelo_produto_de_overlay(
         or gm_sugerido_de_codigo_sistema(cod_sys)
         or ""
     )
-    codigo_nfe_val = _manter(
-        codigo_nfe_cand,
-        p.codigo_nfe if p is not None else "",
-        mx=64,
-        rejeitar_oid=True,
-    ) or ""
+    if pdv_rapida:
+        codigo_nfe_val = (
+            _manter(
+                codigo_nfe_cand,
+                p.codigo_nfe if p is not None else "",
+                mx=64,
+                rejeitar_oid=True,
+            )
+            or ""
+        )
+    else:
+        codigo_nfe_val = (
+            codigo_nfe_cand
+            or (str(p.codigo_nfe or "").strip() if p is not None else "")
+            or codigo_interno
+        )[:64]
 
     nome_cand = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or ""
-    nome = _manter(
-        nome_cand,
-        p.nome if p is not None else "",
-        mx=300,
-        rejeitar_oid=True,
-    ) or "—"
+    if pdv_rapida:
+        nome = (
+            _manter(
+                nome_cand,
+                p.nome if p is not None else "",
+                mx=300,
+                rejeitar_oid=True,
+            )
+            or "—"
+        )
+    else:
+        nome = nome_cand or (str(p.nome or "").strip() if p is not None else "") or "—"
 
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
@@ -561,68 +603,92 @@ def sincronizar_modelo_produto_de_overlay(
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
     cb_cand = ov.codigo_barras.strip() or None
-    defaults = {
-        "codigo_interno": codigo_interno[:50],
-        "codigo_nfe": codigo_nfe_val[:64],
-        "codigo_barras": _manter(
-            cb_cand,
-            p.codigo_barras if p is not None else None,
-            mx=50,
-            rejeitar_oid=True,
-        ),
-        "nome": nome[:300],
-        "marca": _manter(ov.marca.strip(), p.marca if p is not None else "", mx=120) or "",
-        "modelo": _manter(modelo_val, getattr(p, "modelo", None) if p is not None else "", mx=200)
-        or "",
-        "categoria": _manter(
-            ov.categoria.strip() or None,
-            p.categoria if p is not None else None,
-            mx=200,
-        ),
-        "subcategoria": _manter(
-            ov.subcategoria.strip(),
-            p.subcategoria if p is not None else "",
-            mx=200,
-        )
-        or "",
-        "subcategoria_2": _manter(
-            ov.subcategoria_2.strip(),
-            p.subcategoria_2 if p is not None else "",
-            mx=200,
-        )
-        or "",
-        "subcategoria_3": _manter(
-            ov.subcategoria_3.strip(),
-            p.subcategoria_3 if p is not None else "",
-            mx=200,
-        )
-        or "",
-        "subcategoria_4": _manter(
-            ov.subcategoria_4.strip(),
-            p.subcategoria_4 if p is not None else "",
-            mx=200,
-        )
-        or "",
-        "fornecedor_texto": _manter(
-            ov.fornecedor_texto.strip(),
-            p.fornecedor_texto if p is not None else "",
-            mx=300,
-        )
-        or "",
-        "unidade": (
-            _manter(ov.unidade.strip(), p.unidade if p is not None else "UN", mx=20) or "UN"
-        )[:20],
-        "descricao": _manter(
-            ov.descricao.strip(),
-            p.descricao if p is not None else "",
-            mx=16000,
-        )
-        or "",
-        "custo": custo,
-        "preco_venda": pv,
-        "ativo": ativo,
-        "cadastro_inativo": cad_inativo,
-    }
+    if pdv_rapida:
+        defaults = {
+            "codigo_interno": codigo_interno[:50],
+            "codigo_nfe": codigo_nfe_val[:64],
+            "codigo_barras": _manter(
+                cb_cand,
+                p.codigo_barras if p is not None else None,
+                mx=50,
+                rejeitar_oid=True,
+            ),
+            "nome": nome[:300],
+            "marca": _manter(ov.marca.strip(), p.marca if p is not None else "", mx=120) or "",
+            "modelo": _manter(
+                modelo_val, getattr(p, "modelo", None) if p is not None else "", mx=200
+            )
+            or "",
+            "categoria": _manter(
+                ov.categoria.strip() or None,
+                p.categoria if p is not None else None,
+                mx=200,
+            ),
+            "subcategoria": _manter(
+                ov.subcategoria.strip(),
+                p.subcategoria if p is not None else "",
+                mx=200,
+            )
+            or "",
+            "subcategoria_2": _manter(
+                ov.subcategoria_2.strip(),
+                p.subcategoria_2 if p is not None else "",
+                mx=200,
+            )
+            or "",
+            "subcategoria_3": _manter(
+                ov.subcategoria_3.strip(),
+                p.subcategoria_3 if p is not None else "",
+                mx=200,
+            )
+            or "",
+            "subcategoria_4": _manter(
+                ov.subcategoria_4.strip(),
+                p.subcategoria_4 if p is not None else "",
+                mx=200,
+            )
+            or "",
+            "fornecedor_texto": _manter(
+                ov.fornecedor_texto.strip(),
+                p.fornecedor_texto if p is not None else "",
+                mx=300,
+            )
+            or "",
+            "unidade": (
+                _manter(ov.unidade.strip(), p.unidade if p is not None else "UN", mx=20) or "UN"
+            )[:20],
+            "descricao": _manter(
+                ov.descricao.strip(),
+                p.descricao if p is not None else "",
+                mx=16000,
+            )
+            or "",
+            "custo": custo,
+            "preco_venda": pv,
+            "ativo": ativo,
+            "cadastro_inativo": cad_inativo,
+        }
+    else:
+        defaults = {
+            "codigo_interno": (codigo_interno or "")[:50],
+            "codigo_nfe": (codigo_nfe_val or "")[:64],
+            "codigo_barras": cb_cand,
+            "nome": nome[:300],
+            "marca": ov.marca.strip()[:120],
+            "modelo": modelo_val,
+            "categoria": ov.categoria.strip()[:200] or None,
+            "subcategoria": ov.subcategoria.strip()[:200],
+            "subcategoria_2": ov.subcategoria_2.strip()[:200],
+            "subcategoria_3": ov.subcategoria_3.strip()[:200],
+            "subcategoria_4": ov.subcategoria_4.strip()[:200],
+            "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
+            "unidade": (ov.unidade.strip() or "UN")[:20],
+            "descricao": ov.descricao.strip()[:16000],
+            "custo": custo,
+            "preco_venda": pv,
+            "ativo": ativo,
+            "cadastro_inativo": cad_inativo,
+        }
     if p is None:
         p = Produto.objects.create(produto_externo_id=pid64, **defaults)
     else:

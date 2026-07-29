@@ -1173,17 +1173,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · assert local OK (preço muda, nome/marca/GM ficam) · **sem** push produção |
+| **Status** | 📦 **PRONTO** · review 2ª passagem OK · asserts PDV+Cadastro · **sem** push produção |
 | **Branch** | `deploy/pdv-lapis-nao-apaga-v12.07` · base `origin/producao` @ **v12.06** |
 | **Por quê** | Lápis PDV ao mudar P.venda **apagava** nome/marca/cat/códigos (sync overlay→Produto com vazio) |
-| **Inclui** | 1) sync não sobrescreve campo bom com vazio/ObjectId 2) overlay PDV ignora string vazia 3) JS não manda GM/barras vazios |
+| **Inclui** | 1) sync: proteção **só** com `pdv_edicao_rapida` (Cadastro modal ainda pode limpar campo) 2) overlay PDV ignora string vazia 3) JS não manda GM/barras vazios |
 | **Arquivos** | `catalogo_agro.py` · `views.py` · `pdv_wizard.js` · VERSION · banana |
+| **NÃO inclui** | DF-e · bug report · etiquetas · merge `teste` · lote corrigir fantasmas |
 | **Migrate** | **NÃO** |
-| **Risco loja** | **Baixo** — só impede wipe; preço continua gravando |
-| **Smoke** | `check` 0 · simulação wipe: nome/marca OK · pv=32,50 |
-| **Rollback** | criar `rollback/pre-pdv-lapis-v12.07` no push loja |
-| **Próximo chat** | *pode subir PDV lápis / produção* + **99738595** |
-| **Obs** | Produtos **já quebrados** não voltam sozinhos — lote `corrigir_produto_nome_objectid_pg` depois |
+| **Risco loja aberta** | **Baixo** — só impede wipe no lápis; preço continua; venda/caixa/estoque iguais |
+| **Smoke** | `check` 0 · PDV: wipe simulado → nome/marca ficam · pv=32,50 · Cadastro: marca vazia **ainda limpa** |
+| **Rollback** | `rollback/pre-pdv-lapis-v12.07` (criar no push loja) |
+| **Próximo chat** | pausa · *pode subir PDV lápis / produção* + **99738595** |
+| **Obs** | Produtos **já quebrados** não voltam sozinhos — lote depois |
 
 ### Deploy loja **v12.03 + v12.04** — Folha+Etq + Entrada NF fin (29/07 · Renan frase+senha)
 
