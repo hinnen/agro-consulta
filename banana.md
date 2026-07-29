@@ -1170,28 +1170,23 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
 
-### FILA ENVIO LOJA — pausa + senha (prep 29/07 · loja hoje **v12.02**)
-
-Ordem no próximo chat (lojas **pausam vendas** → frase + `99738595`):
-
-| Ordem | Loja | Pacote | Branch | Migrate | Risco loja aberta | Rollback |
-| ----- | ---- | ------ | ------ | ------- | ----------------- | -------- |
-| **1** | **12.03** | **FOLHA-ETQ** — Folha polish + etiquetas | `deploy/folha-etq-v12.03` @ **`d7ec4ca`** | NÃO | **Baixo** — só Folha/etiquetas · zero PDV/caixa/CP | `rollback/pre-v1203-folha-etq` |
-| **2** | **12.04** | **ENTRADA-NF-FIN** — religar financeiro sem duplicar + busca NF + pg-backup leve | `deploy/entrada-nf-fin-v12.04` @ **`05da66f`** | NÃO | **Baixo–médio** — Entrada NF/CP leitura · **não apaga** título | `rollback/pre-v1204-entrada-nf-fin` |
+### Deploy loja **v12.03 + v12.04** — Folha+Etq + Entrada NF fin (29/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO** · branches no GitHub · smoke OK |
-| **Smoke** | Folha: `node --check` etiquetas JS · Entrada: `py_compile` utils/views · diffs só arquivos do pacote vs `producao` |
-| **NÃO sobe** | DF-e · bug report · merge `teste` |
-| **Backup CP** | Renan já baixou Excel antes do ENTRADA-NF-FIN |
-| **Autorizar** | 1) pausa vendas 2) *pode subir Folha+etiquetas / produção* + senha → FF 12.03 3) *pode subir Entrada NF financeiro / produção* + senha → FF 12.04 · Ctrl+F5 |
+| **Status** | ✅ **enviado** · `producao` @ **`727437c`** · badge alvo **12.04** (inclui 12.03) |
+| **v12.03** | FOLHA-ETQ · `d7ec4ca` · Folha polish + etiquetas |
+| **v12.04** | ENTRADA-NF-FIN · `727437c` · religar financeiro sem duplicar + busca NF + pg-backup leve |
+| **Migrate** | **NÃO** |
+| **Rollback Folha** | `git push origin rollback/pre-v1203-folha-etq:producao` → v12.02 |
+| **Rollback Entrada** | `git push origin rollback/pre-v1204-entrada-nf-fin:producao` → v12.03 (só Folha) |
+| **Validar agora** | Ctrl+F5 · badge **12.04** · Folha saldo/etiquetas · Entrada NF etapa 7 «Salvar + a pagar» religa · busca CP por nº NF |
 
 ### PACOTE PRONTO LOJA — Folha polish + Etiquetas (`FOLHA-ETQ` · **v12.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** |
+| **Status** | ✅ **enviado loja v12.03** (lote 12.03–12.04) |
 | **Branch** | `deploy/folha-etq-v12.03` @ **`d7ec4ca`** (base `producao` v12.02) |
 | **Inclui** | Folha saldo polish · planilha · etiquetas borda/fonte nome |
 | **Migrate** | **NÃO** |
@@ -1201,8 +1196,8 @@ Ordem no próximo chat (lojas **pausam vendas** → frase + `99738595`):
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** (depois do 12.03) |
-| **Branch** | `deploy/entrada-nf-fin-v12.04` @ **`05da66f`** (base `producao` v12.02) |
+| **Status** | ✅ **enviado loja v12.04** @ `727437c` |
+| **Branch** | `deploy/entrada-nf-fin-v12.04` @ **`727437c`** (base `producao` v12.02) |
 | **Inclui** | Religar «Salvar + a pagar» sem duplicar · busca CP por nº NF · pg-backup abre sem timeout |
 | **Migrate** | **NÃO** |
 | **Risco** | **Baixo–médio** · **não apaga** lançamento |
@@ -3377,10 +3372,9 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Loja hoje** | **v12.02** (BUSCA-CPU + NOMES-OID) |
-| **1º envio** | **FOLHA-ETQ** — 📦 **PRONTO** · loja **v12.03** · `deploy/folha-etq-v12.03` @ `d7ec4ca` |
-| **2º envio** | **ENTRADA-NF-FIN** — 📦 **PRONTO** · loja **v12.04** · `deploy/entrada-nf-fin-v12.04` @ `05da66f` |
-| **Autorizar** | pausa vendas · frase + **99738595** · **um pacote por vez** (Folha → Entrada) |
+| **Loja hoje** | **v12.04** (Folha+Etq + Entrada NF fin) — aguardar Live Render |
+| **✅ Loja v12.04** | ENTRADA-NF-FIN |
+| **✅ Loja v12.03** | FOLHA-ETQ |
 | **✅ Loja v12.02** | Cadastro nomes ObjectId |
 | **✅ Loja v12.01** | Busca Cadastro CPU leve |
 | **✅ Loja v11.99** | PDV carrinho itens travados |
@@ -3390,8 +3384,8 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | 📦 **pronto para envio à produção** · **v12.03** · `deploy/folha-etq-v12.03` |
-| **P1** | **ENTRADA-NF-FIN** | Religar financeiro NF + busca CP por NF + pg-backup leve | 📦 **pronto para envio à produção** · **v12.04** · `deploy/entrada-nf-fin-v12.04` |
+| **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
+| **P1** | **ENTRADA-NF-FIN** | Religar financeiro NF + busca CP por NF + pg-backup leve | ✅ **loja v12.04** |
 | **P1** | PDV · Pix · **FL-058** | Incluir máquina **Sicredi — Pix** no modal | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | 📋 **depois de subir pacote** · GM0025 75,58→~90,42 |
 | **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | ✅ **loja v11.98** (dentro ENTRADA-NF-UX) |
