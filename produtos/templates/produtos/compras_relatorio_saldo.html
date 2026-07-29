@@ -1303,49 +1303,106 @@
     return x.toLocaleString('pt-BR', { maximumFractionDigits: 3 });
   }
 
+  /** Largura fixa estilo GM0000-00 (9 chars) — alinha nome na coluna */
+  function fmtGm(code) {
+    var s = String(code == null ? '' : code).trim();
+    var W = 9;
+    if (s.length >= W) return s;
+    return s + Array(W - s.length + 1).join(' ');
+  }
+
+  function resumoFiltrosUsados() {
+    var parts = [];
+    var sinalMap = { positivo: 'estoque +', negativo: 'estoque −', zero: 'zerados' };
+    var sinal = el('saldo-f-estoque-sinal') && el('saldo-f-estoque-sinal').value;
+    if (sinal && sinalMap[sinal]) parts.push(sinalMap[sinal]);
+    if (el('saldo-omit-zero') && el('saldo-omit-zero').checked) parts.push('esconder zerados');
+    if (!(el('saldo-somente-ativos') && el('saldo-somente-ativos').checked)) parts.push('inclui inativos');
+    var q = el('saldo-q') ? el('saldo-q').value.trim() : '';
+    if (q) parts.push('busca «' + q + '»');
+    Object.keys(msSelected).forEach(function (key) {
+      var vals = msSelected[key] || [];
+      if (!vals.length) return;
+      var label = msLabels[key] || key;
+      parts.push(label + ': ' + vals.join(', '));
+    });
+    var de = el('saldo-f-data-de') && el('saldo-f-data-de').value;
+    var ate = el('saldo-f-data-ate') && el('saldo-f-data-ate').value;
+    if (de || ate) {
+      var tipoMap = { cadastro: 'cadastro', primeira_nf: '1ª NF', ultima_nf: 'últ. NF' };
+      var tipo = (el('saldo-f-data-tipo') && el('saldo-f-data-tipo').value) || 'cadastro';
+      parts.push('data ' + (tipoMap[tipo] || tipo) + ' ' + (de || '…') + '→' + (ate || '…'));
+    }
+    var cmin = el('saldo-f-custo-min') && el('saldo-f-custo-min').value.trim();
+    var cmax = el('saldo-f-custo-max') && el('saldo-f-custo-max').value.trim();
+    if (cmin || cmax) parts.push('custo ' + (cmin || '…') + '–' + (cmax || '…'));
+    var vmin = el('saldo-f-venda-min') && el('saldo-f-venda-min').value.trim();
+    var vmax = el('saldo-f-venda-max') && el('saldo-f-venda-max').value.trim();
+    if (vmin || vmax) parts.push('venda ' + (vmin || '…') + '–' + (vmax || '…'));
+    var ncm = el('saldo-f-ncm') && el('saldo-f-ncm').value;
+    if (ncm === 'com') parts.push('com NCM');
+    if (ncm === 'sem') parts.push('sem NCM');
+    if (el('saldo-f-sem-marca') && el('saldo-f-sem-marca').checked) parts.push('sem marca');
+    if (el('saldo-f-sem-cat') && el('saldo-f-sem-cat').checked) parts.push('sem categoria');
+    if (el('saldo-f-somente-agro') && el('saldo-f-somente-agro').checked) parts.push('só Agro');
+    var sel = el('saldo-preset-sel');
+    if (sel && sel.value) {
+      var opt = sel.options[sel.selectedIndex];
+      var nomePr = opt && opt.textContent ? String(opt.textContent).replace(/\s*★\s*$/, '').trim() : '';
+      if (nomePr && nomePr.indexOf('escolher') < 0) parts.push('filtro salvo: ' + nomePr);
+    }
+    return parts.length ? parts.join(' · ') : 'Sem filtro extra';
+  }
+
   function cssPapel(papel) {
     if (papel === '80mm') {
       /* Epson TM-T20X: 100%/90% ainda raspam saldo — 82% + saldo reservado */
       return '@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm;font-family:system-ui,sans-serif;font-size:10.5px;color:#000}' +
         '.wrap{width:82%;max-width:66mm;box-sizing:border-box;margin:0 auto;padding:1.5mm 0}' +
         '.tit{font-weight:900;font-size:12px;text-align:center;text-transform:uppercase;margin:0 0 3px}' +
-        '.meta{font-size:9px;text-align:center;margin:0 0 5px;font-weight:600}' +
-        '.row{display:flex;align-items:flex-start;gap:2px;border-bottom:1px dashed #999;padding:2px 0;page-break-inside:avoid}' +
-        '.gm{font-weight:800;font-family:ui-monospace,monospace;flex:0 0 auto;max-width:26%;word-break:break-all}' +
+        '.meta{font-size:9px;text-align:center;margin:0 0 2px;font-weight:600}' +
+        '.filtros{font-size:8px;text-align:center;margin:0 0 5px;font-weight:600;line-height:1.25;word-break:break-word}' +
+        '.row{display:flex;align-items:flex-start;gap:3px;border-bottom:1px dashed #999;padding:2px 0;page-break-inside:avoid}' +
+        '.gm{font-weight:800;font-family:ui-monospace,Consolas,monospace;flex:0 0 9ch;width:9ch;white-space:pre;overflow:hidden}' +
         '.nome{flex:1 1 auto;min-width:0;font-weight:700;line-height:1.12;overflow-wrap:anywhere}' +
-        '.saldo{font-weight:900;flex:0 0 3.2em;width:3.2em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}';
+        '.saldo{font-weight:900;flex:0 0 2.55em;width:2.55em;max-width:2.55em;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}';
     }
     if (papel === 'A5') {
       return '@page{size:A5;margin:8mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:11px;color:#111}' +
-        '.wrap{width:100%}.tit{font-weight:900;font-size:16px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:10px;margin:0 0 8px;font-weight:600}' +
+        '.wrap{width:100%}.tit{font-weight:900;font-size:16px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:10px;margin:0 0 3px;font-weight:600}' +
+        '.filtros{font-size:9px;margin:0 0 8px;font-weight:600;line-height:1.3;color:#334155}' +
         'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:4px 5px;text-align:left;vertical-align:top}' +
-        'th{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#475569}td.gm{font-family:ui-monospace,monospace;font-weight:800;white-space:nowrap;width:18%}' +
-        'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:16%}';
+        'th{font-size:9px;text-transform:uppercase;letter-spacing:.04em;color:#475569}' +
+        'td.gm{font-family:ui-monospace,Consolas,monospace;font-weight:800;white-space:pre;width:9ch;min-width:9ch}' +
+        'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:10%;font-variant-numeric:tabular-nums}';
     }
     return '@page{size:A4;margin:10mm}html,body{margin:0;font-family:system-ui,sans-serif;font-size:12px;color:#111}' +
-      '.wrap{width:100%}.tit{font-weight:900;font-size:18px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:11px;margin:0 0 10px;font-weight:600}' +
+      '.wrap{width:100%}.tit{font-weight:900;font-size:18px;text-transform:uppercase;margin:0 0 4px}.meta{font-size:11px;margin:0 0 3px;font-weight:600}' +
+      '.filtros{font-size:10px;margin:0 0 10px;font-weight:600;line-height:1.35;color:#334155}' +
       'table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #cbd5e1;padding:5px 6px;text-align:left;vertical-align:top}' +
-      'th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#475569}td.gm{font-family:ui-monospace,monospace;font-weight:800;white-space:nowrap;width:16%}' +
-      'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:14%}';
+      'th{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#475569}' +
+      'td.gm{font-family:ui-monospace,Consolas,monospace;font-weight:800;white-space:pre;width:9ch;min-width:9ch}' +
+      'td.saldo{text-align:right;font-weight:900;white-space:nowrap;width:9%;font-variant-numeric:tabular-nums}';
   }
 
   function montarHtml(j, papel) {
     var linhas = j.linhas || [];
     var meta = 'SisVale · ' + (j.loja_rotulo || 'Saldo') + ' · ' + (j.gerado_em || '') + ' · ' + linhas.length + ' itens' + (j.truncado ? ' (lista limitada)' : '');
+    var filtros = resumoFiltrosUsados();
     var body;
     if (papel === '80mm') {
       body = linhas.map(function (ln) {
-        return '<div class="row"><span class="gm">' + esc(ln.codigo_gm) + '</span><span class="nome">' + esc(ln.nome) + '</span><span class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</span></div>';
+        return '<div class="row"><span class="gm">' + esc(fmtGm(ln.codigo_gm)) + '</span><span class="nome">' + esc(ln.nome) + '</span><span class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</span></div>';
       }).join('');
     } else {
       body = '<table><thead><tr><th>Código GM</th><th>Produto</th><th>Saldo</th></tr></thead><tbody>' +
         linhas.map(function (ln) {
-          return '<tr><td class="gm">' + esc(ln.codigo_gm) + '</td><td>' + esc(ln.nome) + '</td><td class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</td></tr>';
+          return '<tr><td class="gm">' + esc(fmtGm(ln.codigo_gm)) + '</td><td>' + esc(ln.nome) + '</td><td class="saldo">' + esc(fmtSaldo(ln.saldo)) + '</td></tr>';
         }).join('') + '</tbody></table>';
     }
     return '<!DOCTYPE html><html lang="pt-br"><head><meta charset="utf-8"><title>Folha de saldo</title><style>' +
       cssPapel(papel) + '</style></head><body><div class="wrap"><p class="tit">Folha de saldo</p><p class="meta">' +
-      esc(meta) + '</p>' + body + '</div></body></html>';
+      esc(meta) + '</p><p class="filtros">Filtro: ' + esc(filtros) + '</p>' + body + '</div></body></html>';
   }
 
   function entregarPrint(html) {
