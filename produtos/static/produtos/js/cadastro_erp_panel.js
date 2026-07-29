@@ -1229,7 +1229,11 @@
       tr.className = 'border-b border-slate-100 cursor-pointer transition-colors' + rowHi;
       tr.innerHTML =
         '<td class="px-4 py-3">' +
-        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
+        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') +
+        (p.nome_quebrado
+          ? ' <span class="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900" title="Nome no banco está quebrado — abra o lápis e corrija">Consertar nome</span>'
+          : '') +
+        '</div>' +
         (String(cod).trim() !== '' ? '<div class="text-xs text-slate-400"> ' + escapeHtml(String(cod)) + '</div>' : '') +
         '</td>' +
         '<td data-coluna="marca" class="px-4 py-3 text-slate-700">' + escapeHtml(p.marca || '-') + '</td>' +

@@ -1169,17 +1169,35 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 📦 PACOTE PRONTO LOJA — Cadastro nomes ObjectId (`NOMES-OID` · **v12.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** · review + asserts OK · **sem** push produção ainda |
+| **Branch** | `deploy/cadastro-nomes-objectid-v12.02` · base `origin/producao` @ **v12.01** |
+| **Por quê** | Pós BUSCA-CPU v12.01: abrir Cadastro mostra Id Mongo no nome · busca rápida OK |
+| **Inclui** | Scrub ObjectId na lista · rótulo **[NOME QUEBRADO]** + badge «Consertar nome» · detecta fantasma mesmo sem `produto_externo_id` · com leve_cpu **não** faz Mongo N+1 nem inferência por preço |
+| **Arquivos** | só `catalogo_nome_util.py` · `cadastro_erp_panel.js` · `VERSION` · banana |
+| **NÃO inclui** | DF-e · bug report · Entrada NF · merge `teste` · alteração de busca CPU |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só exibição Cadastro/lista; **não** grava nome no banco; PDV/venda/caixa/estoque **iguais**; CPU leve **mantida** |
+| **Smoke feito aqui** | `manage.py check` 0 · asserts fantasma/scrub/`[NOME QUEBRADO]` · `py_compile` · diff só 3 arquivos vs producao |
+| **Não testado no Chrome** | Renan sem tempo local — validar na loja após Live: abrir Cadastro → ObjectId some · badge · busca `ibiuna`/`milho` ainda rápida |
+| **Rollback** | `git push origin rollback/pre-nomes-objectid-v12.02:producao` (criar no push loja) |
+| **Próximo chat** | pausa vendas · *pode subir hotfix nomes ObjectId / produção* + **99738595** · FF branch → `producao` |
+
 ### Deploy loja **v12.01** — Busca Cadastro CPU leve (`BUSCA-CPU` · 29/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · push `producao` (aguarda Live) · badge **12.01** |
+| **Status** | ✅ **enviado** · push `producao` **`8d23e85`** · badge **12.01** · Live |
 | **O quê** | Flag `AGRO_BUSCA_LEVE_CPU` (default true) · sem loop fantasma×preço na API · busca texto sem OR 9 colunas se nome já achou |
 | **Arquivos** | `catalogo_nome_util.py` · `catalogo_agro.py` · `agro_fonte_config.py` · `settings.py` (+ VERSION + banana) |
 | **NÃO inclui** | bug report · DF-e · Entrada NF · Folha · merge `teste` |
 | **Migrate** | **NÃO** |
 | **Risco** | **Baixo** — PDV cache igual · rollback = `AGRO_BUSCA_LEVE_CPU=false` no Render **ou** `git push origin rollback/pre-busca-leve-cpu-v12.01:producao` |
 | **Validar** | Ctrl+F5 Cadastro · `ibiuna` / `milho` / GM · CPU Postgres não deve flat 100% |
+| **Bug pós-Live** | ObjectId no nome ao abrir lista → pacote **v12.02** (`NOMES-OID`) |
 
 ### Deploy loja **v11.99** — PDV carrinho itens travados (FL-008 · 28/07 · Renan frase+senha)
 

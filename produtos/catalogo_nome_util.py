@@ -138,11 +138,12 @@ def _sufixo_gm_para_nome(suffix: str) -> str:
 
 def produto_fantasma_catalogo(p: Produto) -> bool:
     """Fantasma que quebra busca/cadastro: nome «—»/ObjectId ou GM = Id Mongo."""
-    pid = (p.produto_externo_id or "").strip()
-    if not _RE_OID.fullmatch(pid):
-        return False
+    pid = (p.produto_externo_id or getattr(p, "erp_produto_id", None) or "").strip()
+    # Nome ObjectId (24 hex) sempre fantasma — mesmo se produto_externo_id vazio/local.
     if nome_parece_objectid_corrupto(p.nome or "", pid):
         return True
+    if not _RE_OID.fullmatch(pid):
+        return False
     cn = (p.codigo_nfe or "").strip()
     if cn.lower() == pid.lower() or nome_parece_objectid_corrupto(cn, pid):
         return True
@@ -306,7 +307,7 @@ def resolver_campos_catalogo_produto(
     - True → força inferência (comandos de correção).
     - False → nunca inferir por preço.
     """
-    pid = (p.produto_externo_id or "").strip()
+    pid = (p.produto_externo_id or getattr(p, "erp_produto_id", None) or "").strip()
     out = {
         "nome": (p.nome or "").strip(),
         "marca": (p.marca or "").strip(),
@@ -338,7 +339,18 @@ def resolver_campos_catalogo_produto(
     if not produto_fantasma_catalogo(p) and not nome_parece_objectid_corrupto(out["nome"], pid):
         return out
 
-    if mongo_doc is None and pid:
+    if permitir_inferencia_preco is None:
+        from produtos.agro_fonte_config import agro_busca_leve_cpu
+
+        leve = agro_busca_leve_cpu()
+        fazer_infer = not leve
+    else:
+        leve = False
+        fazer_infer = bool(permitir_inferencia_preco)
+
+    # Com AGRO_BUSCA_LEVE_CPU: não buscar Mongo por produto (N+1 na lista do Cadastro).
+    # Comando de correção passa permitir_inferencia_preco=True e continua com Mongo.
+    if mongo_doc is None and pid and not leve:
         try:
             from produtos.views import _produto_mongo_por_id_externo, obter_conexao_mongo
 
@@ -354,6 +366,8 @@ def resolver_campos_catalogo_produto(
         cnfe_m = _codigo_nfe_mongo(mongo_doc)
         if cnfe_m:
             out = _enriquecer_out_com_inferencia(out, cnfe_m)
+        if nome_parece_objectid_corrupto(p.nome or "", pid):
+            out["nome_quebrado"] = "1"
         return out
 
     for cnfe in (_codigo_nfe_mongo(mongo_doc), out["codigo_nfe"]):
@@ -361,14 +375,9 @@ def resolver_campos_catalogo_produto(
             continue
         out = _enriquecer_out_com_inferencia(out, cnfe)
         if out.get("nome") and not nome_parece_objectid_corrupto(out["nome"], pid):
+            if nome_parece_objectid_corrupto(p.nome or "", pid):
+                out["nome_quebrado"] = "1"
             return out
-
-    if permitir_inferencia_preco is None:
-        from produtos.agro_fonte_config import agro_busca_leve_cpu
-
-        fazer_infer = not agro_busca_leve_cpu()
-    else:
-        fazer_infer = bool(permitir_inferencia_preco)
 
     if fazer_infer:
         inf = _inferir_por_preco_familia_25kg(p)
@@ -377,12 +386,16 @@ def resolver_campos_catalogo_produto(
                 vs = str(v or "").strip()
                 if vs:
                     out[k] = vs
+            if nome_parece_objectid_corrupto(p.nome or "", pid):
+                out["nome_quebrado"] = "1"
             return out
 
     if out["codigo_nfe"] and out["codigo_nfe"].upper().startswith("GM"):
-        out["nome"] = out["codigo_nfe"]
+        out["nome"] = f"[NOME QUEBRADO] {out['codigo_nfe']}"
+        out["nome_quebrado"] = "1"
     else:
-        out["nome"] = "—"
+        out["nome"] = "[NOME QUEBRADO]"
+        out["nome_quebrado"] = "1"
     return out
 
 
@@ -391,7 +404,12 @@ def aplicar_nome_resolvido_em_row(
     p: Produto,
     ov: ProdutoGestaoOverlayAgro | None = None,
 ) -> dict:
-    if not produto_fantasma_catalogo(p):
+    pid = (p.produto_externo_id or getattr(p, "erp_produto_id", None) or str(row.get("id") or "")).strip()
+    precisa = produto_fantasma_catalogo(p) or any(
+        nome_parece_objectid_corrupto(str(row.get(k) or ""), pid)
+        for k in ("nome", "codigo_nfe", "codigo", "codigo_barras")
+    )
+    if not precisa:
         return row
     patch = resolver_campos_catalogo_produto(p, ov)
     for row_k, patch_k in (
@@ -409,6 +427,21 @@ def aplicar_nome_resolvido_em_row(
         v = str(patch.get(patch_k) or "").strip()
         if v:
             row[row_k] = v
+    # Nunca deixar ObjectId vazando na lista (nome ou código sob o nome).
+    if nome_parece_objectid_corrupto(str(row.get("nome") or ""), pid):
+        row["nome"] = str(patch.get("nome") or "[NOME QUEBRADO]").strip() or "[NOME QUEBRADO]"
+        if nome_parece_objectid_corrupto(row["nome"], pid):
+            row["nome"] = "[NOME QUEBRADO]"
+    # PG com nome ObjectId = sempre avisar, mesmo se a tela mostrou nome resolvido.
+    if (
+        nome_parece_objectid_corrupto(p.nome or "", pid)
+        or str(patch.get("nome_quebrado") or "") == "1"
+        or str(row.get("nome") or "").startswith("[NOME QUEBRADO]")
+    ):
+        row["nome_quebrado"] = True
+    for k in ("codigo_nfe", "codigo", "codigo_barras", "codigo_interno"):
+        if nome_parece_objectid_corrupto(str(row.get(k) or ""), pid):
+            row[k] = ""
     if row.get("codigo_nfe") and not row.get("codigo"):
         row["codigo"] = row["codigo_nfe"]
     row["busca_texto"] = " ".join(
