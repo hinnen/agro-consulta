@@ -35,6 +35,9 @@
     largura_mm: 90,
     altura_mm: 30,
     nome_pt: 10,
+    nome_pt_1: 11,
+    nome_pt_2: 9,
+    nome_pt_3: 7.5,
     preco_pt: 20,
     rs_pt: 11,
     peso_pt: 7,
@@ -47,6 +50,7 @@
     show_logo: true,
     cols_folha: 2,
     rows_folha: 9,
+    borda_mm: 0.5,
     cores: {
       faixa_bg: '#1a4d2e',
       faixa_fg: '#ffffff',
@@ -251,6 +255,10 @@
       if (out.peso_pt == null) out.peso_pt = 7;
       if (out.rs_pt == null) out.rs_pt = 11;
       if (out.show_logo == null) out.show_logo = true;
+      if (out.borda_mm == null || !(Number(out.borda_mm) > 0)) out.borda_mm = 0.5;
+      if (out.nome_pt_1 == null) out.nome_pt_1 = Number(out.nome_pt) || 11;
+      if (out.nome_pt_2 == null) out.nome_pt_2 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.82 * 10) / 10);
+      if (out.nome_pt_3 == null) out.nome_pt_3 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.68 * 10) / 10);
       if (!out.nome || out.nome === 'Gôndola') out.nome = 'Gôndola A4';
     }
     return out;
@@ -447,13 +455,13 @@
   function cssGondolaSlots(preset, cores) {
     return (
       '.slot{position:absolute;box-sizing:border-box;overflow:hidden}' +
-      '.slot-nome{display:flex;align-items:center;justify-content:center;padding:0.4mm 1.2mm;background:' +
+      '.slot-nome{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;align-content:center;justify-content:center;padding:0.4mm 1.2mm;background:' +
       esc(cores.faixa_bg || '#1a4d2e') +
       ';color:' +
       esc(cores.faixa_fg || '#fff') +
       ';font-size:' +
-      (Number(preset.nome_pt) || 10) +
-      'pt;font-weight:800;line-height:1.05;text-align:center;text-transform:uppercase;letter-spacing:0.02em}' +
+      (Number(preset.nome_pt_1) || Number(preset.nome_pt) || 11) +
+      'pt;font-weight:800;line-height:1.08;text-align:center;text-transform:uppercase;letter-spacing:0.02em;overflow:hidden;word-break:break-word;overflow-wrap:anywhere}' +
       '.slot-rs{display:flex;align-items:flex-end;justify-content:flex-end;padding:0 0.4mm 1.2mm 0;color:' +
       esc(cores.rs_fg || cores.preco_fg || '#1a4d2e') +
       ';font-size:' +
@@ -475,16 +483,36 @@
     );
   }
 
+  function scriptFitNomeGondola(preset) {
+    var pt1 = Number(preset.nome_pt_1) || Number(preset.nome_pt) || 11;
+    var pt2 = Number(preset.nome_pt_2) || Math.max(4, pt1 * 0.82);
+    var pt3 = Number(preset.nome_pt_3) || Math.max(4, pt1 * 0.68);
+    return (
+      '<script>(function(){var P1=' +
+      pt1 +
+      ',P2=' +
+      pt2 +
+      ',P3=' +
+      pt3 +
+      ';function cabe(el,linhas,pt){el.style.fontSize=pt+"pt";el.style.webkitLineClamp=String(linhas);el.style.lineClamp=String(linhas);void el.offsetHeight;return el.scrollHeight<=el.clientHeight+1.5;}function fit(el){if(cabe(el,1,P1))return;if(cabe(el,2,P2))return;el.style.fontSize=P3+"pt";el.style.webkitLineClamp="3";el.style.lineClamp="3";}function go(){document.querySelectorAll(".slot-nome").forEach(fit);}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",go);else go();setTimeout(go,30);})();<\/script>'
+    );
+  }
+
   function montarHtmlGondola(preset, itens) {
     var w = Number(preset.largura_mm) || 90;
     var h = Number(preset.altura_mm) || 30;
+    var bordaMm = Number(preset.borda_mm);
+    if (!(bordaMm > 0)) bordaMm = 0.5;
+    /* Borda pra fora: total = útil + 2×borda (ex. 90×30 + 0,5 cada lado → 91×31). */
+    var outerW = w + 2 * bordaMm;
+    var outerH = h + 2 * bordaMm;
     var cols = Math.max(1, parseInt(preset.cols_folha, 10) || 2);
     var rows = Math.max(1, parseInt(preset.rows_folha, 10) || 9);
     var perPage = cols * rows;
     var pageW = 210;
     var pageH = 297;
-    var marginX = Math.max(0, (pageW - cols * w) / 2);
-    var marginY = Math.max(0, (pageH - rows * h) / 2);
+    var marginX = Math.max(0, (pageW - cols * outerW) / 2);
+    var marginY = Math.max(0, (pageH - rows * outerH) / 2);
     var cores = preset.cores || DEFAULT_GONDOLA_PRESET.cores;
     var layout = preset.layout || DEFAULT_GONDOLA_LAYOUT;
     var showLogo = preset.show_logo !== false;
@@ -515,12 +543,14 @@
       'mm;box-sizing:border-box;page-break-after:always;break-after:page;overflow:hidden}' +
       '.sheet:last-child{page-break-after:auto;break-after:auto}' +
       '.etq{position:absolute;width:' +
-      w +
+      outerW +
       'mm;height:' +
-      h +
+      outerH +
       'mm;box-sizing:border-box;overflow:hidden;background:' +
       esc(cores.fundo || '#fff') +
-      ';border:0.2mm solid ' +
+      ';border:' +
+      bordaMm +
+      'mm solid ' +
       esc(cores.borda || cores.faixa_bg || '#1a4d2e') +
       '}' +
       '.crop-layer{position:absolute;left:0;top:0;width:' +
@@ -539,9 +569,9 @@
         .map(function (lb, idx) {
           var col = idx % cols;
           var row = Math.floor(idx / cols);
-          var x = marginX + col * w;
-          var y = marginY + row * h;
-          marks.push(marcasCorteHtml(x, y, w, h, cores.marca_corte));
+          var x = marginX + col * outerW;
+          var y = marginY + row * outerH;
+          marks.push(marcasCorteHtml(x, y, outerW, outerH, cores.marca_corte));
           return (
             '<div class="etq" style="left:' +
             x +
@@ -557,7 +587,13 @@
         var gc = gi % cols;
         var gr = Math.floor(gi / cols);
         marks.push(
-          marcasCorteHtml(marginX + gc * w, marginY + gr * h, w, h, cores.marca_corte)
+          marcasCorteHtml(
+            marginX + gc * outerW,
+            marginY + gr * outerH,
+            outerW,
+            outerH,
+            cores.marca_corte
+          )
         );
       }
       pages.push(
@@ -579,6 +615,7 @@
       css +
       '</style></head><body>' +
       pages.join('') +
+      scriptFitNomeGondola(preset) +
       '</body></html>'
     );
   }
@@ -772,7 +809,7 @@
         .silentPrint({
           html: html,
           deviceName: preset.impressora || '',
-          waitMs: 900,
+          waitMs: ehGondola(preset) ? 1100 : 900,
           pageWidthMicrons: pageWMicrons,
           pageHeightMicrons: pageHMicrons,
         })
@@ -797,6 +834,7 @@
       idoc.open();
       idoc.write(html);
       idoc.close();
+      var waitPrint = ehGondola(preset) ? 850 : 650;
       setTimeout(function () {
         try {
           iframe.contentWindow.focus();
@@ -806,7 +844,7 @@
         } catch (e) {
           resolve({ ok: false, reason: String(e && e.message) });
         }
-      }, 650);
+      }, waitPrint);
     });
   }
 
