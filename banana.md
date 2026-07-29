@@ -565,7 +565,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Mudar produto (21/07):** trocar vÃ­nculo no Â«MudarÂ» **nÃ£o** troca o V. unit da NF (nem o rateio); sÃ³ cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
-- **Financeiro desync (2026-06-19):** tÃ­tulo jÃ¡ em Contas a pagar mas etapa 7 Â«Falta a pagarÂ» + Â«Falha ao salvarÂ» â€” rascunho sem `financeiro_lancado`. Fix local: sync ao abrir nota + Â«Salvar + a pagarÂ» idempotente (`sincronizar_financeiro_rascunho_entrada_nfe`). **Workaround atÃ© deploy:** F5 na nota ou ir etapa 8 (tÃ­tulo jÃ¡ existe).
+- **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 
 ### 4.8 Estoque Agro
 
@@ -1171,6 +1171,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### Entrada NF — Sem a pagar + botão morto + duplicata (29/07 · NF 39407344)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | WIP local · validar no PC |
+| **Sintoma** | Lista Concluída «Sem a pagar» · títulos existem no CP · etapa 7 laranja · Salvar+a pagar não clica · reabrir+confirmar duplica |
+| **Causa** | Flag `financeiro_lancado` sumiu · UI congelada (PIN) bloqueava o botão · gerar de novo sem achar o lote antigo |
+| **Fix** | Botão religa mesmo com PIN · sync por NF antes de inserir · Reabrir estorna títulos órfãos pela NF |
+| **Você** | Ctrl+F5 · abrir a nota · etapa 7 · **Salvar + a pagar** → deve religar (sem 2º lote). Na NF já com 6 linhas: apagar 3 duplicadas no CP |
+| **Não** | Reabrir e confirmar todas as etapas «só pra limpar o laranja» |
+
 ### Contas a pagar — busca por número da NF (29/07)
 
 | Item | Detalhe |
@@ -1241,7 +1253,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 | ---- | ------- |
 | **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — espera pausa + frase + senha `99738595` |
 | **VERSION alvo loja** | **12.00** (loja hoje **11.99**) |
-| **Branch** | `deploy/folha-etq-v12.00` |
+| **Branch** | `deploy/folha-etq-v12.00` @ **`0a4a386`** |
 | **Inclui** | 1) Folha saldo polish (fornecedor overlay · filtro no cupom · GM alinhado · saldo) 2) Etiquetas: borda 0,5 mm fora (91×31) · fonte nome 1/2/3 linhas · corte na 3ª |
 | **Arquivos** | `compras_relatorio_planilha.html` · `compras_relatorio_saldo.html` · `produtos_etiquetas.js` · `produtos_etiquetas_core.js` · `produtos_etiquetas.html` |
 | **Migrate** | **NÃO** |
