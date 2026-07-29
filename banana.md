@@ -1169,6 +1169,45 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+
+### FILA ENVIO LOJA — pausa + senha (prep 29/07 · loja hoje **v12.02**)
+
+Ordem no próximo chat (lojas **pausam vendas** → frase + `99738595`):
+
+| Ordem | Loja | Pacote | Branch | Migrate | Risco loja aberta | Rollback |
+| ----- | ---- | ------ | ------ | ------- | ----------------- | -------- |
+| **1** | **12.03** | **FOLHA-ETQ** — Folha polish + etiquetas | `deploy/folha-etq-v12.03` @ **`d7ec4ca`** | NÃO | **Baixo** — só Folha/etiquetas · zero PDV/caixa/CP | `rollback/pre-v1203-folha-etq` |
+| **2** | **12.04** | **ENTRADA-NF-FIN** — religar financeiro sem duplicar + busca NF + pg-backup leve | `deploy/entrada-nf-fin-v12.04` @ **`05da66f`** | NÃO | **Baixo–médio** — Entrada NF/CP leitura · **não apaga** título | `rollback/pre-v1204-entrada-nf-fin` |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO** · branches no GitHub · smoke OK |
+| **Smoke** | Folha: `node --check` etiquetas JS · Entrada: `py_compile` utils/views · diffs só arquivos do pacote vs `producao` |
+| **NÃO sobe** | DF-e · bug report · merge `teste` |
+| **Backup CP** | Renan já baixou Excel antes do ENTRADA-NF-FIN |
+| **Autorizar** | 1) pausa vendas 2) *pode subir Folha+etiquetas / produção* + senha → FF 12.03 3) *pode subir Entrada NF financeiro / produção* + senha → FF 12.04 · Ctrl+F5 |
+
+### PACOTE PRONTO LOJA — Folha polish + Etiquetas (`FOLHA-ETQ` · **v12.03**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** |
+| **Branch** | `deploy/folha-etq-v12.03` @ **`d7ec4ca`** (base `producao` v12.02) |
+| **Inclui** | Folha saldo polish · planilha · etiquetas borda/fonte nome |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** |
+
+### PACOTE PRONTO LOJA — Entrada NF financeiro (`ENTRADA-NF-FIN` · **v12.04**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** (depois do 12.03) |
+| **Branch** | `deploy/entrada-nf-fin-v12.04` @ **`05da66f`** (base `producao` v12.02) |
+| **Inclui** | Religar «Salvar + a pagar» sem duplicar · busca CP por nº NF · pg-backup abre sem timeout |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo–médio** · **não apaga** lançamento |
+
+
 ### Deploy loja **v12.02** — Cadastro nomes ObjectId (`NOMES-OID` · 29/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -3338,29 +3377,24 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
-| **PDV** | **Sicredi — Pix** — 📦 **PRONTO PARA ENVIO PARA O PDV** · branch `deploy/pdv-pix-sicredi-v11.94` · loja alvo **v11.94** |
-| **Autorizar Sicredi Pix** | *pode subir Sicredi Pix / PDV* + **99738595** |
-| **P0 agora** | **Custo NF 77846** — **depois** de subir pacote **v11.54+** (fix custo pós-PIN): `python manage.py reaplicar_custos_entrada_nf --nf=77846 --aplicar` · confere Cadastro GM0025 ~**90,42** (hoje **75,58**) |
-| **Entrada NF** | **«Nova» limpa XML/dados** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja alvo **v10.90** · commit `46add26` |
-| **Autorizar NF Nova** | *«pode subir para produção»* + **99738595** |
-| **P0,1 agora** | **FL-057** — Render loja: ligar **PgBouncer** no `agro-db` + `DATABASE_URL` porta **6432** + restart web (cinto pós-incidente slots) |
-| **Fecha** | **MP automático após abrir caixa** — 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v10.89** · **Obs.: testar em produção após subir** |
-| **Autorizar MP refresh** | *«pode subir MP automático após abrir caixa»* + **99738595** |
-| **✅ Loja v10.89** | Entrada NF V. unit no Mudar (21/07) |
-| **✅ Loja v10.61** | **Aba 9 histórico** — enviado 18/07 · testar na loja (1 centavo → 1 linha · DE = preço antigo) |
-| **Fecha** | **Kardex e-mail + Entrada NF Δcamada** — 📦 **pronto pra envio** · teste **v9.92** · **ainda NÃO na loja** (conferido 18/07 noite) |
-| **Autorizar kardex** | *«pode subir kardex e-mail / Entrada NF»* + **99738595** |
-| **✅ Loja v10.60** | **Compras UI etapa 1** — enviado 18/07 · validar `/compras/` |
-| **✅ Loja v9.91** | kardex Quem v1 (18/07) · v9.90 Fecha PDV/cadastro/NFC-e/relatórios (17/07) |
-| **Reverter v9.91** | `git push origin producao-backup-pre-v991-kardex-20260717:producao` |
+| **Loja hoje** | **v12.02** (BUSCA-CPU + NOMES-OID) |
+| **1º envio** | **FOLHA-ETQ** — 📦 **PRONTO** · loja **v12.03** · `deploy/folha-etq-v12.03` @ `d7ec4ca` |
+| **2º envio** | **ENTRADA-NF-FIN** — 📦 **PRONTO** · loja **v12.04** · `deploy/entrada-nf-fin-v12.04` @ `05da66f` |
+| **Autorizar** | pausa vendas · frase + **99738595** · **um pacote por vez** (Folha → Entrada) |
+| **✅ Loja v12.02** | Cadastro nomes ObjectId |
+| **✅ Loja v12.01** | Busca Cadastro CPU leve |
+| **✅ Loja v11.99** | PDV carrinho itens travados |
+| **✅ Loja v11.98** | lote Pix · Entrada NF UX · Gôndola · Transf · Estoque Vila |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | PDV · Pix · **FL-058** | Incluir máquina **Sicredi — Pix** no modal | 📦 **PRONTO PARA ENVIO PARA O PDV** · `deploy/pdv-pix-sicredi-v11.94` · **v11.94** |
+| **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | 📦 **pronto para envio à produção** · **v12.03** · `deploy/folha-etq-v12.03` |
+| **P1** | **ENTRADA-NF-FIN** | Religar financeiro NF + busca CP por NF + pg-backup leve | 📦 **pronto para envio à produção** · **v12.04** · `deploy/entrada-nf-fin-v12.04` |
+| **P1** | PDV · Pix · **FL-058** | Incluir máquina **Sicredi — Pix** no modal | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | 📋 **depois de subir pacote** · GM0025 75,58→~90,42 |
-| **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | 📦 **PRONTO PARA ENVIO PARA PRODUÇÃO** · teste **v11.38** · loja **v10.90** |
+| **P1** | Entrada NF | Botão **Nova** herdava XML/dados da nota anterior | ✅ **loja v11.98** (dentro ENTRADA-NF-UX) |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** · pós v10.88 |
 | **P1** | Kardex | E-mail no Quem + Entrada NF saída fantasma (Δcamada) | 📦 **pronto pra envio** · teste **v9.92** · **validar na loja após envio** |
 | **P1** | Aba 9 | Histórico lápis PDV: várias linhas DE=— · sem preço antigo | 📦 **pronto pra envio** · teste **v10.01** · **validar na loja após envio** |
