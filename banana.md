@@ -1247,11 +1247,19 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
 
+### ✅ Deploy loja **v12.05** — ETQ-BUSCA-FILTROS (29/07 · frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **HEAD** | `30e79a9` |
+| **Rollback** | `rollback/pre-v1205-etq-busca` @ `72b204b` |
+| **Validar** | Ctrl+F5 · badge **12.05** · filtros · add todos · lista não some |
+
 ### PACOTE PRONTO LOJA — Etiquetas busca filtros + add todos (`ETQ-BUSCA-FILTROS` · **v12.05**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — branch `deploy/etq-busca-filtros-v12.05 @ **30e79a9** · espera pausa + frase + senha 99738595 |
+| **Status** | ✅ **ENVIADO loja v12.05** · `producao` @ **`30e79a9`** · rollback `rollback/pre-v1205-etq-busca` @ `72b204b` |
 | **VERSION alvo loja** | **12.05** (loja hoje **12.04**) |
 | **Inclui** | Filtros Folha na busca · lista **não some** ao add (FL-009) · **Adicionar todos** |
 | **Arquivos** | `produtos_etiquetas.html` · `produtos_etiquetas.js` · `produtos_etiquetas_view` (só contexto facetas/presets) |
@@ -3424,8 +3432,7 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Etq busca** | **ETQ-BUSCA-FILTROS** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.05** · `deploy/etq-busca-filtros-v12.05` |
-| **Autorizar** | *«pode subir etiquetas busca / produção»* + **99738595** (pausa vendas antes) |
+| **✅ Loja v12.05** | ETQ-BUSCA-FILTROS · `30e79a9` · rollback `pre-v1205-etq-busca` |
 | **✅ Loja v12.04** | Entrada NF fin |
 | **✅ Loja v12.03** | FOLHA-ETQ |
 | **✅ Loja v11.99** | PDV carrinho itens travados (FL-008) |
@@ -3442,7 +3449,7 @@ iews.py (compras enrich) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
-| **P1** | **ETQ-BUSCA-FILTROS** | Etiquetas: filtros Folha + manter busca + Adicionar todos | 📦 **pronto para envio à produção** · loja **v12.05** · `deploy/etq-busca-filtros-v12.05` |
+| **P1** | **ETQ-BUSCA-FILTROS** | Etiquetas: filtros Folha + manter busca + Adicionar todos | ✅ **loja v12.05** |
 | **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
