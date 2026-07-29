@@ -21,7 +21,12 @@ from produtos.pg_backup_render_checklist import (
 )
 from produtos.pg_backup_disaster_kit import build_disaster_kit_zip
 from produtos.pg_backup_upload import upload_status_resumo
-from produtos.pg_backup_util import build_backup_zip, listar_categorias_stats, restore_backup_zip
+from produtos.pg_backup_util import (
+    build_backup_zip,
+    listar_categorias_leve,
+    listar_categorias_stats,
+    restore_backup_zip,
+)
 
 
 def _superuser_ok(user) -> bool:
@@ -40,8 +45,10 @@ def _verificar_senha_admin(request, senha: str) -> bool:
 @user_passes_test(_superuser_ok, login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def pg_backup_painel(request):
+    # Na loja, COUNT em todas as tabelas ao abrir o painel estoura timeout (500).
+    # Abertura = lista leve; contagens só após export/restore (quando o POST já rodou).
     ctx = {
-        "categories": listar_categorias_stats(),
+        "categories": listar_categorias_leve(),
         "all_slugs": PG_BACKUP_ALL_SLUGS,
         "restore_confirm_phrase": RESTORE_CONFIRM_PHRASE,
         "checklist_rev": CHECKLIST_REV,

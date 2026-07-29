@@ -148,7 +148,7 @@
               <input type="checkbox" name="categorias" value="{{ cat.slug }}" class="cat-cb" checked>
             </td>
             <td><strong>{{ cat.label }}</strong><br><span class="small">{{ cat.slug }}</span></td>
-            <td class="num">{{ cat.total_rows }}</td>
+            <td class="num">{% if cat.total_rows != None %}{{ cat.total_rows }}{% else %}—{% endif %}</td>
             <td class="small">{{ cat.warning }}</td>
           </tr>
           {% endfor %}

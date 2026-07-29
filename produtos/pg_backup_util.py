@@ -98,6 +98,22 @@ def listar_categorias_stats() -> list[dict[str, Any]]:
     return [_category_stats(c) for c in PG_BACKUP_CATEGORIES]
 
 
+def listar_categorias_leve() -> list[dict[str, Any]]:
+    """Só metadados — sem COUNT (evita timeout ao abrir o painel na loja)."""
+    out: list[dict[str, Any]] = []
+    for cat in PG_BACKUP_CATEGORIES:
+        out.append(
+            {
+                "slug": cat.slug,
+                "label": cat.label,
+                "warning": cat.warning,
+                "total_rows": None,
+                "models": [{"label": m, "count": None} for m in cat.models],
+            }
+        )
+    return out
+
+
 def _normalize_slugs(slugs: list[str] | None) -> list[str]:
     if not slugs:
         return list(PG_BACKUP_ALL_SLUGS)

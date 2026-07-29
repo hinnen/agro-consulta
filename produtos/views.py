@@ -15829,14 +15829,7 @@ def api_entrada_nota_financeiro(request):
     rid_up = str(_oid_up) if _oid_up and doc_nf else ""
     if rid_up and doc_nf:
         ex_nf = doc_nf.get("extra") if isinstance(doc_nf.get("extra"), dict) else {}
-        if str(ex_nf.get("aprovacao_wizard_em") or "").strip():
-            return JsonResponse(
-                {
-                    "ok": False,
-                    "erro": "Nota finalizada no assistente. Reabra na etapa 8 antes de gerar financeiro de novo.",
-                },
-                status=403,
-            )
+        wizard_finalizado = bool(str(ex_nf.get("aprovacao_wizard_em") or "").strip())
         if ex_nf.get("financeiro_lancado"):
             ids_exist = [
                 str(x).strip() for x in (ex_nf.get("financeiro_ids") or []) if str(x).strip()
@@ -15856,13 +15849,14 @@ def api_entrada_nota_financeiro(request):
                 },
                 status=200,
             )
+        # PIN já gravado mas flag perdido: religa títulos existentes (sem duplicar) antes de bloquear.
         sync_fin = sincronizar_financeiro_rascunho_entrada_nfe(
             db,
             rid_up,
             usuario=usuario,
             col_pessoa=col_pessoa,
         )
-        if sync_fin.get("ok") and sync_fin.get("sincronizado"):
+        if sync_fin.get("ok") and (sync_fin.get("sincronizado") or sync_fin.get("ja_marcado")):
             return JsonResponse(
                 {
                     "ok": True,
@@ -15870,7 +15864,8 @@ def api_entrada_nota_financeiro(request):
                     "financeiro": {
                         "ok": True,
                         "ids": sync_fin.get("ids") or [],
-                        "recuperado": True,
+                        "recuperado": bool(sync_fin.get("sincronizado")),
+                        "ja_existia": bool(sync_fin.get("ja_marcado")),
                         "lote": sync_fin.get("lote"),
                         "quitar_ao_salvar": bool(
                             fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada")
@@ -15878,6 +15873,18 @@ def api_entrada_nota_financeiro(request):
                     },
                 },
                 status=200,
+            )
+        if wizard_finalizado:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": (
+                        "Nota finalizada no assistente e não achei conta a pagar vinculada. "
+                        "Confira Contas a pagar pela NF; se os títulos existirem, use «Auditar financeiro». "
+                        "Só reabra na etapa 8 se for gerar de novo (risco de duplicar)."
+                    ),
+                },
+                status=403,
             )
         if _entrada_nfe_tipo_entrada(ex_nf) == "bonificacao":
             return JsonResponse(
@@ -16196,6 +16203,33 @@ def api_entrada_nota_financeiro(request):
 
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
     from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
+    # Nota reaberta / flag perdido: se já há título da NF, só religa — nunca gera 2º lote.
+    if rid_up:
+        sync_antes = sincronizar_financeiro_rascunho_entrada_nfe(
+            db,
+            rid_up,
+            usuario=usuario,
+            col_pessoa=col_pessoa,
+        )
+        if sync_antes.get("ok") and (
+            sync_antes.get("sincronizado") or sync_antes.get("ja_marcado")
+        ):
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "rascunho": r_rasc if isinstance(r_rasc, dict) else {"ok": True, "id": rid_up},
+                    "financeiro": {
+                        "ok": True,
+                        "ids": sync_antes.get("ids") or [],
+                        "recuperado": bool(sync_antes.get("sincronizado")),
+                        "ja_existia": bool(sync_antes.get("ja_marcado")),
+                        "lote": sync_antes.get("lote"),
+                        "quitar_ao_salvar": quitar_ao_salvar,
+                    },
+                },
+                status=200,
+            )
 
     resultado = inserir_lancamentos_manual_lote_dispatch(
         db,

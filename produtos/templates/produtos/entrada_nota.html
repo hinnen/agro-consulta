@@ -676,17 +676,18 @@
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] textarea,
-    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help),
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin),
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] summary,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] a[href] {
       pointer-events: none !important;
       opacity: 0.72;
     }
     /* Confirmações das etapas 1–5 / estoque / financeiro não congelam a UI — só a finalização (etapa 6). */
+    /* #btn-salvar-fin fica clicável p/ religar conta a pagar se o carimbo sumiu (sem reabrir a nota). */
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] select,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] textarea,
-    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help),
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin),
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] summary,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] a[href] {
       pointer-events: none !important;
@@ -10255,9 +10256,13 @@
   );
 
   async function salvarComFinanceiro(modo, extra) {
-    if (entradaNfeEditorCongeladoAtivo()) {
+    /* PIN gravado + flag financeiro perdido: deixa POST religar títulos existentes (sem reabrir). */
+    if (entradaNfeEditorCongeladoAtivo() && entradaNfeFinanceiroJaLancadoCliente()) {
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
+    }
+    if (entradaNfeEditorCongeladoAtivo() && !entradaNfeFinanceiroJaLancadoCliente()) {
+      showMsg('Religando conta a pagar já existente (sem duplicar)…', true);
     }
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = null;

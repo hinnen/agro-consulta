@@ -1584,15 +1584,31 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
     col = db[COL_DTO_LANCAMENTO]
     ch = str(cab.get("chave") or "").strip()
     nf = str(cab.get("numero") or "").strip()
-    ors: list[dict[str, Any]] = [{"Observacao": {"$regex": re.escape("Entrada NF-e Agro"), "$options": "i"}}]
-    if ch and len(ch) >= 12:
-        ors.append({"Observacao": {"$regex": re.escape(ch[-24:])}})
+    # Com número de NF: filtrar por ele (não misturar com as 8 entradas mais novas da loja).
+    and_parts: list[dict[str, Any]] = [{"Despesa": True}]
     if nf and nf not in ("", "0", "000"):
-        ors.append({"Descricao": {"$regex": re.escape(nf), "$options": "i"}})
-        ors.append({"Observacao": {"$regex": re.escape(nf)}})
+        and_parts.append(
+            {
+                "$or": [
+                    {"Descricao": {"$regex": re.escape(nf), "$options": "i"}},
+                    {"Observacao": {"$regex": re.escape(nf)}},
+                ]
+            }
+        )
+    elif ch and len(ch) >= 12:
+        and_parts.append(
+            {
+                "$or": [
+                    {"Observacao": {"$regex": re.escape(ch[-24:])}},
+                    {"Observacao": {"$regex": re.escape(ch)}},
+                ]
+            }
+        )
+    else:
+        and_parts.append({"Observacao": {"$regex": re.escape("Entrada NF-e Agro"), "$options": "i"}})
     try:
         cur = col.find(
-            {"$and": [{"Despesa": True}, {"$or": ors}]},
+            {"$and": and_parts},
             {
                 "_id": 1,
                 "Id": 1,
@@ -1603,7 +1619,7 @@ def _titulos_mongo_por_rastro_entrada_nfe(db, cab: dict) -> list[dict[str, Any]]
                 "NumeroDocumento": 1,
                 "Despesa": 1,
             },
-        ).limit(8).max_time_ms(4000)
+        ).limit(40).max_time_ms(4000)
         return [d for d in cur if isinstance(d, dict)]
     except Exception as exc:
         logger.warning("_titulos_mongo_por_rastro_entrada_nfe: %s", exc)
@@ -1663,13 +1679,16 @@ def _titulos_pg_por_rastro_entrada_nfe(cab: dict) -> list[dict[str, Any]]:
         return []
     ch = str(cab.get("chave") or "").strip()
     nf = str(cab.get("numero") or "").strip()
-    ors = Q(observacoes__icontains="Entrada NF-e Agro")
-    if ch and len(ch) >= 12:
-        ors = ors | Q(observacoes__icontains=ch[-24:])
+    q = Q(despesa=True)
+    # Prioriza número/chave da NF — evita perder a nota no «top 8» genérico de Entrada NF.
     if nf and nf not in ("", "0", "000"):
-        ors = ors | Q(descricao__icontains=nf) | Q(observacoes__icontains=nf)
+        q &= Q(descricao__icontains=nf) | Q(observacoes__icontains=nf)
+    elif ch and len(ch) >= 12:
+        q &= Q(observacoes__icontains=ch[-24:]) | Q(observacoes__icontains=ch)
+    else:
+        q &= Q(observacoes__icontains="Entrada NF-e Agro")
     try:
-        qs = TituloFinanceiroAgro.objects.filter(Q(despesa=True) & ors).order_by("-atualizado_em")[:8]
+        qs = TituloFinanceiroAgro.objects.filter(q).order_by("-atualizado_em")[:40]
         return [_titulo_pg_para_dict_entrada_nfe(t) for t in qs]
     except Exception as exc:
         logger.warning("_titulos_pg_por_rastro_entrada_nfe: %s", exc)
@@ -2692,23 +2711,25 @@ def _titulos_entrada_nfe_ids_do_rascunho(
     emit_nome = str(cab.get("emit_nome") or "").strip()
     nf = str(cab.get("numero") or "").strip()
     ch = str(cab.get("chave") or doc.get("xml_chave") or "").strip()
-    if col_pessoa:
+    if col_pessoa and db is not None:
         cab_can = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, dict(cab))
         emit_nome = str(cab_can.get("emit_nome") or emit_nome).strip()
 
     out: list[str] = []
     seen: set[str] = set()
     for t in titulos:
-        desc = str(t.get("Descricao") or "")
-        obs = str(t.get("Observacao") or "")
-        cliente = str(t.get("Cliente") or "").strip()
-        if nf and nf not in ("0", "000") and nf not in desc and nf not in obs:
+        desc = str(t.get("Descricao") or t.get("descricao") or "")
+        obs = str(t.get("Observacao") or t.get("observacoes") or "")
+        cliente = str(t.get("Cliente") or t.get("cliente") or "").strip()
+        nf_ok = bool(nf and nf not in ("0", "000") and (nf in desc or nf in obs))
+        if nf and nf not in ("0", "000") and not nf_ok:
             continue
         if ch and len(ch) >= 12:
             ch_tail = ch[-24:]
-            if ch not in obs and ch_tail not in obs and not (nf and nf in desc):
+            if ch not in obs and ch_tail not in obs and not nf_ok:
                 continue
-        if emit_nome and cliente and not _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente):
+        # Com NF clara na descrição, não exige match de fantasia×razão social.
+        if not nf_ok and emit_nome and cliente and not _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente):
             continue
         sid = _mongo_lancamento_id_str(t)
         if sid and sid not in seen:

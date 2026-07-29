@@ -495,9 +495,19 @@ def _q_token_busca_pg(tok: str) -> Q:
             return Q(pk__in=[])
         lo, hi, exato = faixa
         q = _q_valor_faixa(lo, hi, exato=exato)
-        # NF: só número puro com 5+ dígitos (evita «234» em documento/ID)
+        # NF na descrição («NF 013962») — número puro 5–7 dígitos também casa texto
+        # (antes só olhava numero_documento, e o doc Agro costuma ser AG…-01).
         if puro_curto and len(dig) >= 5:
-            q |= Q(numero_documento__icontains=dig)
+            variantes_nf = {dig}
+            stripped = dig.lstrip("0") or "0"
+            if stripped != dig and len(stripped) >= 4:
+                variantes_nf.add(stripped)
+            for v in variantes_nf:
+                q |= (
+                    Q(numero_documento__icontains=v)
+                    | Q(descricao__icontains=v)
+                    | Q(observacoes__icontains=v)
+                )
         return q
 
     # Texto livre — mongo_id só com termo longo
