@@ -565,6 +565,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Mudar produto (21/07):** trocar vÃ­nculo no Â«MudarÂ» **nÃ£o** troca o V. unit da NF (nem o rateio); sÃ³ cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
+- **Vínculo XML (29/07):** com catálogo Postgres, o 2º «Ler XML» relê overlay `entrada_nfe_c_prods` + histórico/rascunho (códigos tipo R0151). Grava vínculo no save mesmo sem Mongo / sem mudança de P.venda.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 
 ### 4.8 Estoque Agro
@@ -633,6 +634,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - `_agro_consulta_ui.html` â€” base visual.
 - `_agro_display_scale.html` + `agro_display_scale.js` â€” escala global.
 - `_agro_open_external.html` â€” links externos.
+- **Bug report (29/07):** botÃ£o **!** global (`agro_bug_report.js`) Â· lista `/gestao/bugs/` (F10 GestÃ£o) Â· print automÃ¡tico Â· UUID do PC.
 
 **Popups / modais (decisÃ£o 08/07 â€” Renan):** padrÃ£o do produto = **`<div>` + Tailwind + JavaScript puro** (MPA Django). Abrir/fechar = tirar/colocar classe `hidden` (+ `modal-open` no `body` quando precisar). **NÃ£o** usar biblioteca de modal (Bootstrap, SweetAlert, etc.). **`<dialog>` nativo:** avaliado â€” **nÃ£o** adotar em popup novo por padrÃ£o (dezenas de modais jÃ¡ no padrÃ£o `div`; operador nÃ£o ganha nada; CPU/memÃ³ria imperceptÃ­vel). **Regra:** popup novo numa tela que jÃ¡ tem modal â†’ **copiar o padrÃ£o da tela**; tela zerada / FOOD do zero â†’ pode usar `<dialog>` se padronizar a tela inteira. CanÃ´nico tambÃ©m em **`SISTVALE.md`** e **`FOOD.md`**.
 
@@ -1171,15 +1173,75 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Entrada NF — vínculo manual some no 2º Ler XML (29/07 · IBIUNA R0151)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | WIP local · **sem commit** · validar no PC |
+| **Sintoma** | Deu entrada XML · vínculo manual · Concluída · puxar **a mesma** XML → todos «SEM VÍNCULO» (ex. IBIUNA NF 15263 · R0151/R0057/R0352) |
+| **Causa** | Catálogo `agro_pg`: `casar_produtos_postgres` **não lia** histórico (overlay `entrada_nfe_c_prods` / Mongo / rascunho). Gravar vínculo às vezes **pulava** se Mongo off ou se só mudou produto (sem mudar P.venda) |
+| **Fix** | Casar PG: overlay → Mongo → rascunhos anteriores · persistir vínculo **sempre** (mesmo sem Mongo / sem mudança de preço) · cura overlay ao achar no rascunho |
+| **Arquivos** | `nfe_entrada_util.py` · `views.py` |
+| **Você** | Ctrl+F5 · **Nova** · Ler XML IBIUNA de novo → itens devem vir **Cadastro** (não Sem vínculo). Se ainda falhar: abrir a nota concluída 1× (autosave grava) e ler de novo |
+
+
+### 📦 PACOTE PRONTO LOJA — Busca Cadastro CPU leve (`BUSCA-CPU` · **v12.01**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** · Renan OK local (ibiuna 15 · milho 18 · gm1546 4) · espera pausa + frase + senha |
+| **Branch** | `deploy/busca-leve-cpu-v12.01` (criar no push) · commit no `teste` |
+| **Inclui** | Flag `AGRO_BUSCA_LEVE_CPU` default true · sem loop fantasma×preço na API · busca texto sem OR 9 colunas se nome já achou |
+| **Migrate** | **NÃO** |
+| **Risco loja** | **Baixo** — não apaga produto · PDV cache igual · rollback = `AGRO_BUSCA_LEVE_CPU=false` no Render **ou** revert commit |
+| **Próximo chat** | Lojas pausam vendas → Renan: frase + `99738595` → cherry/FF para `producao` |
+| **Não incluir** | bug report · DF-e · Entrada NF WIP · demais arquivos sujos do working tree |
+
+### 🩹 Busca Cadastro — CPU leve reversível (29/07 · local ✅)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ Renan local 29/07 — ibiuna/milho/GM ok e rápido |
+| **Flag** | `AGRO_BUSCA_LEVE_CPU` default **true** · voltar antigo: `false` no `.env` |
+| **Arquivos** | `catalogo_nome_util.py` · `catalogo_agro.py` · `agro_fonte_config.py` · `settings.py` |
+
+
+### 🚑 INCIDENTE — CPU 100% no agro-db (29/07 ~10:07–10:21)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Loja fora · PG CPU flat 0,5/0,5 · web 499/timeout |
+| **Recuperou** | ~10:21 sozinho (WORKER TIMEOUT matou worker) · **não** precisou Restart Database |
+| **Gatilho** | Entrada NF: `parse-xml` 10:08 → depois **POST `/api/produtos/gestao/overlay/`** a cada ~9–10 s (vários itens) |
+| **Não foi** | Slot esgotado (só ~3 conexões) · logs `postgres@10.27…` = health Render (3 s) |
+| **Crônico** | `produtos_produto` ~**1,0M seq_scan** vs ~159k idx · busca `UPPER`/`~*` no catálogo |
+| **Se voltar** | 1) pare Entrada NF / cadastro pesado 2) Restart web **Sistvale - Produção** 3) se não cair → Restart Database `agro-db` |
+| **Próximo fix** | Aliviar overlay/casamento NF (menos scan catálogo) · índices · PgBouncer FL-057 |
+
+
+
+### ✨ Bug report global — botão `!` + lista F10 (29/07 · WIP local)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Código local · migrate `0068` · **sem commit** · validar no PC |
+| **O quê** | **Gestão:** Bug no rodapé da barra lateral escura · **PDV:** Bug ao lado do `?` na topbar · sem FAB · print sempre · Postgres |
+| **Lista** | Menu **F10 → Gestão → Bugs / feedback** · `/gestao/bugs/` |
+| **PC** | UUID `agro_device_id_v1` + nome amigável (Caixa Centro / Notebook / Vila…) · tabela `DispositivoLojaAgro` |
+| **Avisos** | WhatsApp CallMeBot se `WHATSAPP_CALLMEBOT_PHONE`+`APIKEY` · e-mail só com `EMAIL_HOST` |
+| **Arquivos** | `agro_bug_report.js` · `bug_report_views.py` · `bug_report_util.py` · models · templates lista/detalhe · launchpad |
+| **Você** | `migrate` · Ctrl+F5 · clicar **!** · ver lista F10 · (opcional) ativar CallMeBot 1× no WhatsApp |
+| **Não** | wa.me (exigiria o operador enviar) — só CallMeBot automático |
+
 
 ### Entrada NF — Sem a pagar + botão morto + duplicata (29/07 · NF 39407344)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | WIP local · validar no PC |
+| **Status** | 📦 no pacote **ENTRADA-NF-FIN** (v12.01) |
 | **Sintoma** | Lista Concluída «Sem a pagar» · títulos existem no CP · etapa 7 laranja · Salvar+a pagar não clica · reabrir+confirmar duplica |
 | **Causa** | Flag `financeiro_lancado` sumiu · UI congelada (PIN) bloqueava o botão · gerar de novo sem achar o lote antigo |
-| **Fix** | Botão religa mesmo com PIN · sync por NF antes de inserir · Reabrir estorna títulos órfãos pela NF |
+| **Fix** | Botão religa mesmo com PIN · sync por NF antes de inserir (**não apaga** título existente) |
 | **Você** | Ctrl+F5 · abrir a nota · etapa 7 · **Salvar + a pagar** → deve religar (sem 2º lote). Na NF já com 6 linhas: apagar 3 duplicadas no CP |
 | **Não** | Reabrir e confirmar todas as etapas «só pra limpar o laranja» |
 
@@ -1187,7 +1249,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | WIP local · validar no PC |
+| **Status** | 📦 no pacote **ENTRADA-NF-FIN** (v12.01) |
 | **Sintoma** | Digitar `013962` = 0 títulos · Ctrl+F achava na descrição |
 | **Causa** | Número puro 5–7 dígitos ia só como **valor** + `numero_documento` · NF fica em «NF 013962» na descrição |
 | **Fix** | Também casa descrição/obs (+ variante sem zero à esquerda) |
@@ -1246,6 +1308,22 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 **Smoke 28/07:** `manage.py check` 0 · asserts pacote 10/10 · py_compile OK · DF-e **fora** de todos os deploys.
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
+
+
+### PACOTE PRONTO LOJA — Entrada NF religar financeiro + busca NF (`ENTRADA-NF-FIN` · 29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — **depois** de FOLHA-ETQ v12.00 · frase + senha `99738595` |
+| **VERSION alvo loja** | **12.01** (loja hoje **11.99** · ordem: 12.00 Folha → **12.01** este) |
+| **Branch** | `deploy/entrada-nf-fin-v12.01` @ **`d6840ca`** |
+| **Inclui** | 1) Entrada NF: «Sem a pagar» / botão Salvar+a pagar **religa** título existente (**não apaga**, **não duplica**) 2) Contas a pagar: busca por **número da NF** 3) `/interno/pg-backup/` abre sem timeout (lista leve) |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo–médio** — mexe Entrada NF financeiro + busca CP · **zero** delete de lançamento |
+| **Backup** | Renan já baixou Excel CP (`export-financeiro-xlsx`) antes |
+| **NÃO inclui** | DF-e · bug report · Folha/etiquetas · merge `teste` |
+| **Próximo chat** | 1) subir FOLHA v12.00 se ainda não 2) *pode subir Entrada NF financeiro / produção* + **99738595** 3) FF branch → `producao` · Ctrl+F5 |
+| **Rollback** | `rollback/pre-v1201-entrada-nf-fin` @ HEAD `producao` antes do push |
 
 ### PACOTE PRONTO LOJA — Folha polish + Etiquetas ajuste (`FOLHA-ETQ-V12` · 29/07)
 
@@ -3409,8 +3487,9 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Folha+Etq** | **FOLHA-ETQ-V12** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.00** · branch `deploy/folha-etq-v12.00` |
-| **Autorizar** | *«pode subir Folha+etiquetas / produção»* + **99738595** (pausa vendas antes) |
+| **1º Folha+Etq** | **FOLHA-ETQ-V12** — 📦 **PRONTO** · loja **v12.00** · `deploy/folha-etq-v12.00` |
+| **2º Entrada NF fin** | **ENTRADA-NF-FIN** — 📦 **PRONTO** · loja **v12.01** · `deploy/entrada-nf-fin-v12.01` |
+| **Autorizar** | pausa · frase + **99738595** (um pacote por vez: Folha → depois Entrada NF fin) |
 | **✅ Loja v11.99** | PDV carrinho itens travados (FL-008) |
 | **✅ Loja v11.98** | lote 11.94–11.98 (Pix · Entrada NF · Gôndola · Transf · Estoque Vila base) |
 | **P0 agora** | Custo NF 77846 — depois de subir v11.54+: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` |
@@ -3426,6 +3505,7 @@ iews.py (compras enrich) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
 | **P1** | **FOLHA-ETQ-V12** | Folha saldo polish + etiquetas (borda 0,5 · nome 1/2/3 linhas) | 📦 **pronto para envio à produção** · loja **v12.00** · `deploy/folha-etq-v12.00` |
+| **P1** | **ENTRADA-NF-FIN** | Religar financeiro NF (sem duplicar) + busca CP por NF + pg-backup leve | 📦 **pronto para envio à produção** · loja **v12.01** · `deploy/entrada-nf-fin-v12.01` |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |

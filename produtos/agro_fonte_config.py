@@ -217,6 +217,14 @@ def agro_compras_metricas_postgres() -> bool:
     return agro_pdv_catalogo_somente_postgres() or agro_catalogo_usa_postgres()
 
 
+def agro_busca_leve_cpu() -> bool:
+    """
+    Mitigação CPU Postgres na busca (Cadastro /api/buscar).
+    Default True. Voltar ao comportamento antigo: AGRO_BUSCA_LEVE_CPU=false no .env.
+    """
+    return bool(getattr(settings, "AGRO_BUSCA_LEVE_CPU", True))
+
+
 def agro_fonte_status_dict() -> dict:
     from produtos.agro_mongo_guard import agro_mongo_guard_status
 
@@ -233,6 +241,7 @@ def agro_fonte_status_dict() -> dict:
         "pdv_catalogo_somente_postgres": agro_pdv_catalogo_somente_postgres(),
         "gestao_somente_postgres": agro_gestao_usa_postgres(),
         "compras_metricas_postgres": agro_compras_metricas_postgres(),
+        "busca_leve_cpu": agro_busca_leve_cpu(),
         "pdv_venda_sem_mongo_erp": agro_pdv_venda_sem_mongo_erp(),
         "mongo_erp_desligado": agro_mongo_erp_desligado(),
         "pdv_nfce_assincrona": agro_pdv_nfce_assincrona(),

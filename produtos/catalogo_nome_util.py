@@ -298,7 +298,14 @@ def resolver_campos_catalogo_produto(
     ov: ProdutoGestaoOverlayAgro | None = None,
     *,
     mongo_doc: dict | None = None,
+    permitir_inferencia_preco: bool | None = None,
 ) -> dict[str, str]:
+    """
+    ``permitir_inferencia_preco``:
+    - None → segue ``AGRO_BUSCA_LEVE_CPU`` (leve=True = NÃO inferir por preço na API).
+    - True → força inferência (comandos de correção).
+    - False → nunca inferir por preço.
+    """
     pid = (p.produto_externo_id or "").strip()
     out = {
         "nome": (p.nome or "").strip(),
@@ -356,13 +363,21 @@ def resolver_campos_catalogo_produto(
         if out.get("nome") and not nome_parece_objectid_corrupto(out["nome"], pid):
             return out
 
-    inf = _inferir_por_preco_familia_25kg(p)
-    if inf:
-        for k, v in inf.items():
-            vs = str(v or "").strip()
-            if vs:
-                out[k] = vs
-        return out
+    if permitir_inferencia_preco is None:
+        from produtos.agro_fonte_config import agro_busca_leve_cpu
+
+        fazer_infer = not agro_busca_leve_cpu()
+    else:
+        fazer_infer = bool(permitir_inferencia_preco)
+
+    if fazer_infer:
+        inf = _inferir_por_preco_familia_25kg(p)
+        if inf:
+            for k, v in inf.items():
+                vs = str(v or "").strip()
+                if vs:
+                    out[k] = vs
+            return out
 
     if out["codigo_nfe"] and out["codigo_nfe"].upper().startswith("GM"):
         out["nome"] = out["codigo_nfe"]
@@ -418,7 +433,7 @@ def reparar_produto_nome_corrupto_persist(p: Produto, *, dry_run: bool = False) 
     if not produto_fantasma_catalogo(p):
         return None
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
-    patch = resolver_campos_catalogo_produto(p, ov)
+    patch = resolver_campos_catalogo_produto(p, ov, permitir_inferencia_preco=True)
     novo_nome = str(patch.get("nome") or "").strip()
     if not novo_nome or nome_parece_objectid_corrupto(novo_nome, pid):
         return None

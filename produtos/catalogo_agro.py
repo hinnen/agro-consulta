@@ -279,6 +279,9 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
     else:
+        from produtos.agro_fonte_config import agro_busca_leve_cpu
+
+        leve = agro_busca_leve_cpu()
         q_nome = q_nome_tokens_cadastro(termo)
         if q_nome is not None:
             _cadastro_pg_append_unicos(
@@ -287,9 +290,13 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        _append_overlay_modelo_matches(termo)
+        # Com AGRO_BUSCA_LEVE_CPU: se nome/marca/modelo já achou, não varre overlay+OR 9 colunas.
+        # false no .env = comportamento antigo (sempre modelo + OR se <3 hits).
+        if not leve or len(found) == 0:
+            _append_overlay_modelo_matches(termo)
         # Fallback icontains largo: só se quase vazio (OR em 8 colunas é caro).
-        if len(found) < min(3, lim):
+        limiar_or = 1 if leve else min(3, lim)
+        if len(found) < limiar_or:
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
