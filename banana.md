@@ -1171,6 +1171,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Local — catálogo SQLite atualizado (29/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fonte** | staging Oregon (dump Produto+overlay; sem coluna peso_etiqueta lá ainda) |
+| **Destino** | db.sqlite3 · **3361** produtos · **819** overlays |
+| **.env** | DATABASE_URL continua **comentado** (rápido) |
+| **Você** | reiniciar 
+unserver · Ctrl+F5 · limpar cache busca se precisar |
+
+
 ### ✅ PDV — carrinho itens travados (FL-008 · 28/07 · loja v11.99)
 
 | Item | Detalhe |
