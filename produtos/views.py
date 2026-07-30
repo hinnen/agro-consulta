@@ -13152,15 +13152,17 @@ def entrada_nota_view(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_sefaz_status(request):
-    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
-    cnpj = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cfg = _cfg_dist_dfe()
+    cnpj = cfg.get("cnpj") or ""
     return JsonResponse(
         {
             "configurada": distribuicao_dfe_configurada(),
-            "uf": (config("NFE_DIST_DFE_UF", default="") or "").strip().upper()[:2],
+            "uf": cfg.get("uf") or "",
             "cnpj_mascarado": _mascarar_cnpj(cnpj),
-            "tp_amb": config("NFE_DIST_DFE_TP_AMB", default="2"),
+            "tp_amb": str(cfg.get("tp_amb") or "2"),
+            "ult_nsu": obter_ult_nsu(None, cnpj) if len(cnpj) == 14 else "0",
         }
     )
 
@@ -16171,18 +16173,22 @@ def api_entrada_nota_financeiro(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
-    from produtos.sefaz_dfe_client import distribuicao_dfe_configurada, nfe_distribuicao_dfe_interesse
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        distribuicao_dfe_configurada,
+        nfe_distribuicao_dfe_interesse,
+    )
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    cnpj_cfg = re.sub(r"\D", "", config("NFE_DIST_DFE_CNPJ", default="") or "")[:14]
+    cnpj_cfg = (_cfg_dist_dfe().get("cnpj") or "")[:14]
     ult_pedido = payload.get("ult_nsu")
     client, db = obter_conexao_mongo()
     if ult_pedido is not None and str(ult_pedido).strip() != "":
         ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
-    elif db is not None and len(cnpj_cfg) == 14:
+    elif len(cnpj_cfg) == 14:
         ult = obter_ult_nsu(db, cnpj_cfg)
     else:
         ult = "0"
@@ -16191,9 +16197,9 @@ def api_entrada_nota_dist_dfe(request):
         return JsonResponse(
             {
                 "ok": False,
-                "erro": "Distribuição DF-e não configurada. Defina no .env: NFE_DIST_DFE_CERT_PATH, "
-                "NFE_DIST_DFE_CERT_PASSWORD, NFE_DIST_DFE_CNPJ, NFE_DIST_DFE_UF e opcionalmente "
-                "NFE_DIST_DFE_TP_AMB (1=produção, 2=homologação). Instale: pip install cryptography lxml signxml",
+                "erro": "Distribuição DF-e não configurada. Use NFE_DIST_DFE_* ou o mesmo certificado "
+                "NFC_E_* (CERT_PATH/BASE64 + PASSWORD + CNPJ + UF). Opcional: NFE_DIST_DFE_TP_AMB "
+                "ou NFC_E_TP_AMB (1=produção, 2=homologação). Instale: pip install cryptography lxml signxml",
                 "ult_nsu": ult,
             },
             status=400,
@@ -16221,7 +16227,7 @@ def api_entrada_nota_dist_dfe(request):
                 }
             )
 
-    if db is not None and len(cnpj_cfg) == 14 and res.get("ult_nsu"):
+    if len(cnpj_cfg) == 14 and res.get("ult_nsu"):
         gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
 
     res["previews"] = previews

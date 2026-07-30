@@ -877,6 +877,67 @@ class EntradaNotaRascunhoAgro(models.Model):
         return f"Entrada NF {nf} · {self.rascunho_id[:8]}…"
 
 
+class AgroNfeDistDfeCursor(models.Model):
+    """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — Postgres/SQLite multi-PC."""
+
+    cnpj = models.CharField(max_length=14, unique=True, db_index=True)
+    ult_nsu = models.CharField(max_length=15, default="000000000000000")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cursor Dist DF-e"
+        verbose_name_plural = "Cursores Dist DF-e"
+
+    def __str__(self):
+        return f"{self.cnpj} · NSU {self.ult_nsu}"
+
+
+class AgroNfeDistDfeDocumento(models.Model):
+    """Caixa de entrada Dist DF-e — notas puxadas da SEFAZ."""
+
+    class Schema(models.TextChoices):
+        NFE = "nfe", "NF-e completa"
+        RESUMO = "resumo", "Resumo"
+        OUTRO = "outro", "Outro"
+
+    class Status(models.TextChoices):
+        PENDENTE = "pendente", "Pendente"
+        CARREGADA = "carregada", "Carregada na grade"
+        PROCESSADA = "processada", "Entrada concluída"
+        IGNORADA = "ignorada", "Ignorada"
+
+    cnpj = models.CharField(max_length=14, db_index=True)
+    chave = models.CharField(max_length=44, db_index=True)
+    nsu = models.CharField(max_length=15, blank=True, default="", db_index=True)
+    schema = models.CharField(
+        max_length=16, choices=Schema.choices, default=Schema.NFE, db_index=True
+    )
+    xml = models.TextField(blank=True, default="")
+    emit_nome = models.CharField(max_length=300, blank=True, default="")
+    numero = models.CharField(max_length=20, blank=True, default="")
+    valor_total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    dh_emi = models.CharField(max_length=40, blank=True, default="")
+    status = models.CharField(
+        max_length=16, choices=Status.choices, default=Status.PENDENTE, db_index=True
+    )
+    rascunho_id = models.CharField(max_length=64, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Documento Dist DF-e"
+        verbose_name_plural = "Documentos Dist DF-e"
+        constraints = [
+            models.UniqueConstraint(fields=["cnpj", "chave"], name="uniq_dfe_doc_cnpj_chave"),
+        ]
+        indexes = [
+            models.Index(fields=["cnpj", "status", "-criado_em"]),
+        ]
+
+    def __str__(self):
+        return f"DF-e {self.numero or self.chave[:8]} · {self.status}"
+
+
 class EntradaNfeVinculoAgro(models.Model):
     """Vínculo cProd/descrição da NF → produto SisVale (Postgres, multi-PC).
 

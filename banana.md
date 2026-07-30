@@ -1344,6 +1344,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 no celular · rolar · buscar · 1 contagem · BI «Ajuste» deve sair do BI |
 | **Não** | Usar no PC / abrir pelo shell de abas |
 
+### ðŸ› Dist DF-e — certificado na branch `teste` (30/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Aba SEFAZ amarela de novo · ultNSU 0 (voltou para `teste` sem o fix) |
+| **Fix** | DF-e reusa `NFC_E_*` · cursor NSU PG **2086** · models + migrate `0071`/`0072` |
+| **Você** | Reiniciar runserver · Ctrl+F5 · **Atualizar status** → verde · se 656 não clicar |
+| **Push** | `origin teste` |
+
 ### ðŸ› Dist DF-e — certificado «não configurado» no local (29/07)
 
 | Item | Detalhe |

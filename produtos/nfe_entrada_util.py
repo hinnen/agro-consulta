@@ -3893,12 +3893,29 @@ def pipeline_acao_rascunho_entrada(
 
 def obter_ult_nsu(db, cnpj: str) -> str:
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
+    if not cnpj:
         return "0"
     try:
-        row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
-        if row and row.get("ult_nsu"):
-            return str(row["ult_nsu"]).zfill(15)
+        from produtos.models import AgroNfeDistDfeCursor
+
+        row = AgroNfeDistDfeCursor.objects.filter(cnpj=cnpj).only("ult_nsu").first()
+        if row and (row.ult_nsu or "").strip():
+            return str(row.ult_nsu).zfill(15)[:15]
+    except Exception as exc:
+        logger.warning("obter_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            row = db[COL_DFE_CURSOR].find_one({"cnpj": cnpj})
+            if row and row.get("ult_nsu"):
+                return str(row["ult_nsu"]).zfill(15)
+        except Exception:
+            pass
+    try:
+        from django.core.cache import cache
+
+        v = cache.get(f"agro_dfe_ult_nsu:{cnpj}")
+        if v:
+            return str(v).zfill(15)[:15]
     except Exception:
         pass
     return "0"
@@ -4218,16 +4235,33 @@ def buscar_fornecedores_entrada_nfe(
 
 def gravar_ult_nsu(db, cnpj: str, ult_nsu: str) -> None:
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
-    if not cnpj or db is None:
+    if not cnpj:
         return
+    ult = str(ult_nsu or "0").zfill(15)[:15]
     try:
-        db[COL_DFE_CURSOR].update_one(
-            {"cnpj": cnpj},
-            {"$set": {"ult_nsu": str(ult_nsu).zfill(15), "atualizado_em": datetime.now(timezone.utc)}},
-            upsert=True,
+        from produtos.models import AgroNfeDistDfeCursor
+
+        AgroNfeDistDfeCursor.objects.update_or_create(
+            cnpj=cnpj,
+            defaults={"ult_nsu": ult},
         )
     except Exception as exc:
-        logger.warning("gravar_ult_nsu: %s", exc)
+        logger.warning("gravar_ult_nsu pg: %s", exc)
+    if db is not None:
+        try:
+            db[COL_DFE_CURSOR].update_one(
+                {"cnpj": cnpj},
+                {"$set": {"ult_nsu": ult, "atualizado_em": datetime.now(timezone.utc)}},
+                upsert=True,
+            )
+        except Exception as exc:
+            logger.warning("gravar_ult_nsu mongo: %s", exc)
+    try:
+        from django.core.cache import cache
+
+        cache.set(f"agro_dfe_ult_nsu:{cnpj}", ult, timeout=60 * 60 * 24 * 120)
+    except Exception as exc:
+        logger.warning("gravar_ult_nsu cache: %s", exc)
 
 
 def propagar_precos_venda_catalogo_entrada_nota(
