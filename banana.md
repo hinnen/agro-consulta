@@ -1253,26 +1253,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
 | **Você** | validar local antes do envio |
 
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Somar+catálogo (`AJUSTE-MOBILE-SOMAR` · **v12.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK local · em `teste` |
+| **Commits teste** | **`767167b`** (Somar/Trocar) → **`f712e00`** (catálogo vazio) |
+| **VERSION alvo loja** | **12.11** (loja hoje **12.07** · sobe depois de 12.08/09/10 se ainda na fila, ou sozinho +0,01 se Renan pedir só este) |
+| **Arquivo** | **só** `produtos/templates/produtos/mobile_ajuste.html` |
+| **O quê** | Botões **Somar** (verde) / **Trocar** (laranja) · catálogo vazio: erro + rebaixar · Atualizar baixa lista se CAT 0 · grava cache |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — só tela `/ajuste-mobile/` · zero PDV/caixa/CP |
+| **NÃO incluir** | `dashboard_gerencial.html` (diff CSRF loja ≠ este pacote) · DF-e · merge `teste` inteiro |
+| **Teste local** | `manage.py check` 0 · API catálogo **3266** · busca Equestre ok · HTML: Somar/Trocar + retry catálogo |
+| **Autorizar** | *pode subir Ajuste Mobile Somar / produção* + **99738595** |
+
 ### 🐛 Ajuste Mobile — catálogo 0 no celular do funcionário (30/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · loja ainda com código antigo até cherry |
-| **Sintoma** | Link pro Vitor · PIN ok · busca «Equestre» · **CAT 0** · nenhum item |
-| **Causa** | Celular sem cache do PDV · baixada da lista falhou/vazia · tela mostrava «0 itens» sem erro claro |
-| **Fix** | Erro visível + **Tentar baixar de novo** · Atualizar baixa lista se vazia · grava cache após sucesso · timeout maior |
-| **Arquivo** | `mobile_ajuste.html` |
-| **Você** | No celular dele: Ctrl+F5 · se vazio, **Atualizar** ou **Tentar baixar de novo** · Wi‑Fi ajuda na 1ª vez |
+| **Status** | ✅ no pacote **AJUSTE-MOBILE-SOMAR** · pronto envio |
+| **Sintoma** | Link pro Vitor · PIN ok · **CAT 0** |
+| **Fix** | Erro + Tentar de novo · Atualizar baixa lista · cache após sucesso |
 
 ### UX — Ajuste Mobile Somar × Trocar (30/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | WIP local · validar no celular |
-| **Pedido** | Produto em 2 lugares (ex. Vila): contagem A depois B não pode apagar a do A |
-| **Fix** | Modal: botão **Somar** (verde = acrescenta) · **Trocar** (laranja = vira o saldo) · campo Quantidade vazio ao abrir |
-| **Arquivo** | `mobile_ajuste.html` |
-| **Você** | Ctrl+F5 `/ajuste-mobile/` · lugar A: digita qtd → **Somar** · lugar B: digita qtd → **Somar** de novo |
+| **Status** | ✅ no pacote **AJUSTE-MOBILE-SOMAR** · pronto envio |
+| **Fix** | Modal: **Somar** / **Trocar** · campo Quantidade vazio ao abrir |
 
 ### ✅ Deploy loja **v12.06** — AJUSTE-MOBILE-CEL (29/07 · Renan frase+senha)
 
@@ -3587,11 +3596,12 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
+| **📦 Pronto envio** | **AJUSTE-MOBILE-SOMAR** · **v12.11** · Somar/Trocar + catálogo vazio · só `mobile_ajuste.html` |
 | **📦 Pronto envio** | **ENTRADA-NF-VINCULO** · **v12.10** · vínculo XML no Postgres (multi-PC) · migrate `0069` |
 | **📦 Pronto envio** | **CAD-ESTOQUE-XLSX** · **v12.09** · Excel estoque Cadastro · migrate `0068` |
 | **📦 Pronto envio** | **PDV-CACHE-LAPIS** · **v12.08** · lápis não perde cache |
 | **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · V. unit custo cadastro |
-| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ · **v12.04/03** Folha/Etq |
+| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE layout · **v12.05** ETQ · **v12.04/03** Folha/Etq |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
 
@@ -3599,8 +3609,10 @@ iews.py (compras enrich) |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular do funcionário | 📦 **pronto para envio à produção** · **v12.11** · VERIFY_OK |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | 📦 **pronto para envio à produção** · **v12.10** · migrate `0069` |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | 📦 **pronto para envio à produção** · **v12.09** · migrate `0068` |
+| **P1** | **PDV-CACHE-LAPIS** | Lápis PDV não perde cache local | 📦 **pronto para envio à produção** · **v12.08** |
 | **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | ✅ **loja v11.98** (lote) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
