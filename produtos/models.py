@@ -951,6 +951,41 @@ class AgroNfeDistDfeCursor(models.Model):
     def __str__(self):
         return f"{self.cnpj} · NSU {self.ult_nsu}"
 
+class EntradaNfeVinculoAgro(models.Model):
+    """Vínculo cProd/descrição da NF → produto SisVale (Postgres, multi-PC).
+
+    Fonte da verdade do auto-casamento no «Ler XML». Mongo/overlay são espelho opcional.
+    """
+
+    class Tipo(models.TextChoices):
+        C_PROD = "c_prod", "Código fornecedor (cProd)"
+        X_PROD = "x_prod", "Descrição (xProd)"
+
+    tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)
+    chave = models.CharField(max_length=120, db_index=True)
+    emit_cnpj = models.CharField(max_length=14, blank=True, default="", db_index=True)
+    produto_externo_id = models.CharField(max_length=64, db_index=True)
+    nome_catalogo = models.CharField(max_length=300, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Vínculo Entrada NF Agro"
+        verbose_name_plural = "Vínculos Entrada NF Agro"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tipo", "chave", "emit_cnpj"],
+                name="entrada_nfe_vinculo_tipo_chave_cnpj_uq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["tipo", "chave"], name="entrada_nfe_vinculo_tipo_chave"),
+        ]
+
+    def __str__(self):
+        cnpj = self.emit_cnpj or "—"
+        return f"{self.tipo}:{self.chave} · {cnpj} → {self.produto_externo_id}"
+
 
 class PdvMercadoPagoPointOrder(models.Model):
     """Pedido Point criado a partir do PDV; após pagamento no terminal, dispara Pedidos/Salvar."""
@@ -1832,6 +1867,10 @@ class CadastroPlanilhaImportHistoricoAgro(models.Model):
         APLICADO = "aplicado", "Aplicado"
         REVERTIDO = "revertido", "Revertido"
 
+    class Tipo(models.TextChoices):
+        CADASTRO = "cadastro", "Cadastro (preços/dados)"
+        ESTOQUE = "estoque", "Estoque (saldos)"
+
     criado_em = models.DateTimeField(auto_now_add=True)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -1843,6 +1882,12 @@ class CadastroPlanilhaImportHistoricoAgro(models.Model):
     nome_arquivo = models.CharField(max_length=255, blank=True, default="")
     n_produtos = models.PositiveIntegerField(default=0)
     n_campos = models.PositiveIntegerField(default=0)
+    tipo = models.CharField(
+        max_length=16,
+        choices=Tipo.choices,
+        default=Tipo.CADASTRO,
+        db_index=True,
+    )
     status = models.CharField(
         max_length=16,
         choices=Status.choices,
@@ -1865,6 +1910,7 @@ class CadastroPlanilhaImportHistoricoAgro(models.Model):
         ordering = ["-criado_em"]
         indexes = [
             models.Index(fields=["-criado_em"], name="cad_plan_imp_criado_idx"),
+            models.Index(fields=["tipo", "-criado_em"], name="cad_plan_imp_tipo_idx"),
         ]
 
     def __str__(self):

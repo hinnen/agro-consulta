@@ -3131,4 +3131,434 @@
     if (btnHistFec) btnHistFec.addEventListener('click', fecharHistorico);
     if (backHist) backHist.addEventListener('click', fecharHistorico);
   })();
+
+  /** Excel estoque — botões Estoque ↓ / ↑ / Hist. estoque */
+  (function initCadastroEstoquePlanilha() {
+    if (CADASTRO_ERP_MODO === 'detalhe') return;
+    var btnExp = document.getElementById('cadastro-btn-estoque-export');
+    var btnImp = document.getElementById('cadastro-btn-estoque-import');
+    var btnHist = document.getElementById('cadastro-btn-estoque-historico');
+    if (!btnExp && !btnImp && !btnHist) return;
+
+    function csrfTok() {
+      return (U && U.csrf) ? U.csrf() : '';
+    }
+
+    function parseHttpJson(r) {
+      return r.text().then(function (text) {
+        var j = null;
+        try {
+          j = text ? JSON.parse(text) : null;
+        } catch (e) {
+          var msg = 'Resposta inválida do servidor';
+          if (r.status === 502 || r.status === 504) {
+            msg = 'Servidor demorou demais — aguarde ou tente de novo em instantes.';
+          } else if (r.status === 404) {
+            msg = 'Rota não encontrada — atualize a página (Ctrl+F5).';
+          } else if (r.status === 403 || r.status === 401) {
+            msg = 'Sessão expirada — faça login de novo.';
+          } else if (text && text.indexOf('<html') >= 0) {
+            msg = 'Erro no servidor (HTTP ' + r.status + '). Tente F5 ou login de novo.';
+          }
+          throw new Error(msg);
+        }
+        return { ok: r.ok, j: j };
+      });
+    }
+
+    function resumoFiltrosAtivos() {
+      var bits = [];
+      var loja = fEstoqueLojaEl && fEstoqueLojaEl.value;
+      var sinal = fEstoqueSinalEl && fEstoqueSinalEl.value;
+      if (loja && loja !== 'total') bits.push('Loja: ' + (loja === 'centro' ? 'Centro' : 'Vila'));
+      if (sinal === 'positivo') bits.push('Estoque: positivo');
+      else if (sinal === 'negativo') bits.push('Estoque: negativo');
+      else if (sinal === 'zero') bits.push('Estoque: zerado');
+      ['marca', 'categoria', 'subcategoria', 'fornecedor', 'unidade', 'modelo'].forEach(function (k) {
+        var vals = typeof cadastroMultiVals === 'function' ? cadastroMultiVals(k) : [];
+        if (vals && vals.length) bits.push(k + ': ' + vals.slice(0, 3).join(', ') + (vals.length > 3 ? '…' : ''));
+      });
+      var q = (buscaEl && buscaEl.value) ? buscaEl.value.trim() : '';
+      if (q) bits.push('Busca: «' + q + '»');
+      if (ativosEl && !ativosEl.checked) bits.push('Inclui inativos');
+      return bits;
+    }
+
+    // --- Export ---
+    var modalExp = document.getElementById('cadastro-estoque-export-modal');
+    var backExp = document.getElementById('cadastro-estoque-export-back');
+    var elFiltros = document.getElementById('cadastro-estoque-export-filtros');
+    var btnBaixar = document.getElementById('cadastro-estoque-export-baixar');
+    var btnExpFec = document.getElementById('cadastro-estoque-export-fechar');
+
+    function abrirExportEstoque() {
+      if (!modalExp || !backExp) return;
+      var bits = resumoFiltrosAtivos();
+      if (elFiltros) {
+        if (!bits.length) {
+          elFiltros.innerHTML = '<p class="text-amber-800">Nenhum filtro ativo — vai baixar <strong>muitos</strong> produtos. Melhor filtrar na tela (ex.: estoque negativo) e Aplicar.</p>';
+        } else {
+          elFiltros.innerHTML = '<p class="font-black text-slate-900 mb-1">Filtros que vão na planilha:</p><ul class="list-disc pl-5 space-y-0.5">' +
+            bits.map(function (b) { return '<li>' + escapeHtml(b) + '</li>'; }).join('') + '</ul>';
+        }
+      }
+      modalExp.classList.remove('hidden');
+      backExp.classList.remove('hidden');
+    }
+    function fecharExportEstoque() {
+      if (!modalExp || !backExp) return;
+      modalExp.classList.add('hidden');
+      backExp.classList.add('hidden');
+    }
+
+    if (btnExp) btnExp.addEventListener('click', abrirExportEstoque);
+    if (btnExpFec) btnExpFec.addEventListener('click', fecharExportEstoque);
+    if (backExp) backExp.addEventListener('click', fecharExportEstoque);
+    if (btnBaixar && C.URL_ESTOQUE_EXPORT_XLSX) {
+      btnBaixar.addEventListener('click', function () {
+        var params = typeof cadastroQueryParams === 'function'
+          ? cadastroQueryParams({ pagina: 1, porPagina: 1 })
+          : new URLSearchParams();
+        params.delete('pagina');
+        params.delete('por_pagina');
+        params.delete('limit');
+        params.set('incluir_saldo', '1');
+        var url = C.URL_ESTOQUE_EXPORT_XLSX + '?' + params.toString();
+        btnBaixar.disabled = true;
+        btnBaixar.textContent = 'Gerando…';
+        fetch(url, { credentials: 'same-origin' })
+          .then(function (r) {
+            if (!r.ok) {
+              return r.json().then(function (j) {
+                throw new Error((j && j.erro) || ('Erro ' + r.status));
+              }).catch(function (e) {
+                if (e && e.message && e.message.indexOf('Erro') === 0) throw e;
+                throw new Error('Falha ao gerar planilha (' + r.status + ').');
+              });
+            }
+            var trunc = r.headers.get('X-Agro-Export-Truncado') === '1';
+            var nRows = r.headers.get('X-Agro-Export-Rows') || '';
+            return r.blob().then(function (blob) {
+              return { blob: blob, trunc: trunc, nRows: nRows };
+            });
+          })
+          .then(function (x) {
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(x.blob);
+            a.download = 'Estoque_Produtos.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+            fecharExportEstoque();
+            var msg = 'Planilha baixada';
+            if (x.nRows) msg += ' (' + x.nRows + ' produto(s))';
+            if (x.trunc) msg += '. Atenção: lista truncada no limite do servidor.';
+            if (typeof alert !== 'undefined') alert(msg + '.');
+          })
+          .catch(function (e) {
+            if (typeof alert !== 'undefined') alert(e.message || 'Falha no download');
+          })
+          .finally(function () {
+            btnBaixar.disabled = false;
+            btnBaixar.textContent = 'Baixar Estoque';
+          });
+      });
+    }
+
+    // --- Import ---
+    var modalImp = document.getElementById('cadastro-estoque-import-modal');
+    var backImp = document.getElementById('cadastro-estoque-import-back');
+    var inpArq = document.getElementById('cadastro-estoque-import-arquivo');
+    var elResumo = document.getElementById('cadastro-estoque-import-resumo');
+    var elErros = document.getElementById('cadastro-estoque-import-erros');
+    var elPrev = document.getElementById('cadastro-estoque-import-preview');
+    var btnPrev = document.getElementById('cadastro-estoque-import-previa');
+    var btnApl = document.getElementById('cadastro-estoque-import-aplicar');
+    var btnImpFec = document.getElementById('cadastro-estoque-import-fechar');
+    var elProgWrap = document.getElementById('cadastro-estoque-import-progress-wrap');
+    var elProgBar = document.getElementById('cadastro-estoque-import-progress-bar');
+    var elProgPct = document.getElementById('cadastro-estoque-import-progress-pct');
+    var elProgLabel = document.getElementById('cadastro-estoque-import-progress-label');
+    var elProgDetail = document.getElementById('cadastro-estoque-import-progress-detail');
+    var ultimaPreviaOk = false;
+    var arquivoAtual = null;
+
+    function abrirImportEstoque() {
+      if (!modalImp || !backImp) return;
+      modalImp.classList.remove('hidden');
+      backImp.classList.remove('hidden');
+    }
+    function fecharImportEstoque() {
+      if (!modalImp || !backImp) return;
+      modalImp.classList.add('hidden');
+      backImp.classList.add('hidden');
+    }
+
+    function limparImportUi() {
+      ultimaPreviaOk = false;
+      if (btnApl) btnApl.disabled = true;
+      if (elResumo) { elResumo.classList.add('hidden'); elResumo.innerHTML = ''; }
+      if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
+      if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
+      if (elProgWrap) elProgWrap.classList.add('hidden');
+    }
+
+    function setProgress(pct, label, detail) {
+      if (elProgWrap) elProgWrap.classList.remove('hidden');
+      if (elProgBar) elProgBar.style.width = Math.max(0, Math.min(100, pct)) + '%';
+      if (elProgPct) elProgPct.textContent = Math.round(pct) + '%';
+      if (elProgLabel) elProgLabel.textContent = label || '';
+      if (elProgDetail) elProgDetail.textContent = detail || '';
+    }
+
+    function renderPrevia(j) {
+      ultimaPreviaOk = !!(j && j.n_alteracoes > 0);
+      if (btnApl) btnApl.disabled = !ultimaPreviaOk;
+      if (elResumo) {
+        elResumo.classList.remove('hidden');
+        elResumo.innerHTML =
+          '<strong>' + (j.n_alteracoes || 0) + '</strong> produto(s) com ajuste · ' +
+          '<strong>' + (j.n_ignoradas || 0) + '</strong> ignorado(s) · ' +
+          '<strong class="' + ((j.n_erros || 0) ? 'text-red-700' : '') + '">' + (j.n_erros || 0) + '</strong> erro(s)';
+      }
+      if (elErros) {
+        var errs = j.erros || [];
+        if (errs.length) {
+          elErros.classList.remove('hidden');
+          elErros.innerHTML = errs.slice(0, 40).map(function (e) {
+            return 'Linha ' + (e.linha || '?') + (e.id ? ' (' + escapeHtml(String(e.id)) + ')' : '') +
+              ': ' + escapeHtml(String(e.erro || ''));
+          }).join('<br>');
+        } else {
+          elErros.classList.add('hidden');
+          elErros.innerHTML = '';
+        }
+      }
+      if (elPrev) {
+        var alts = j.alteracoes || [];
+        if (alts.length) {
+          elPrev.classList.remove('hidden');
+          elPrev.innerHTML = '<table class="w-full text-left"><thead class="bg-slate-100 sticky top-0"><tr>' +
+            '<th class="p-2">Produto</th><th class="p-2">Depósito</th><th class="p-2">De</th><th class="p-2">Para</th><th class="p-2">Δ</th></tr></thead><tbody>' +
+            alts.slice(0, 80).map(function (a) {
+              return (a.campos || []).map(function (c) {
+                return '<tr class="border-t border-slate-100">' +
+                  '<td class="p-2 font-semibold">' + escapeHtml(String(a.nome || a.id || '')) + '</td>' +
+                  '<td class="p-2 uppercase">' + escapeHtml(String(c.campo || '')) + '</td>' +
+                  '<td class="p-2 tabular-nums">' + escapeHtml(String(c.de)) + '</td>' +
+                  '<td class="p-2 tabular-nums font-black">' + escapeHtml(String(c.para)) + '</td>' +
+                  '<td class="p-2 tabular-nums">' + escapeHtml(String(c.delta)) + '</td></tr>';
+              }).join('');
+            }).join('') + '</tbody></table>';
+        } else {
+          elPrev.classList.add('hidden');
+          elPrev.innerHTML = '';
+        }
+      }
+    }
+
+    function pollJob(jobId, onDone) {
+      var url = C.URL_IMPORT_PREVIEW_STATUS + '?job=' + encodeURIComponent(jobId);
+      var tries = 0;
+      function tick() {
+        tries += 1;
+        fetch(url, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(parseHttpJson)
+          .then(function (x) {
+            var j = x.j || {};
+            if (!j.done) {
+              var pct = Number(j.pct || 0);
+              setProgress(30 + pct * 0.65, j.phase || 'Analisando…', j.total_linhas ? (j.total_linhas + ' linha(s)') : '');
+              if (tries > 400) throw new Error('Demorou demais — tente de novo.');
+              setTimeout(tick, 600);
+              return;
+            }
+            if (!j.ok) throw new Error(j.erro || 'Falha na prévia');
+            setProgress(100, 'Concluído', '');
+            onDone(j);
+          })
+          .catch(function (e) {
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+            limparImportUi();
+          });
+      }
+      tick();
+    }
+
+    function enviarPlanilha(url, onOk) {
+      if (!inpArq || !inpArq.files || !inpArq.files[0]) {
+        if (typeof alert !== 'undefined') alert('Escolha o arquivo da planilha.');
+        return;
+      }
+      arquivoAtual = inpArq.files[0];
+      var fd = new FormData();
+      fd.append('arquivo', arquivoAtual);
+      fd.append('nome_arquivo', arquivoAtual.name || '');
+      setProgress(5, 'Enviando planilha…', arquivoAtual.name || '');
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrfTok() },
+        body: fd
+      }).then(parseHttpJson).then(function (x) {
+        var j = x.j || {};
+        if (!x.ok || !j.ok) throw new Error((j && j.erro) || 'Falha');
+        if (j.async && j.job_id) {
+          setProgress(25, 'Processando no servidor…', '');
+          pollJob(j.job_id, onOk);
+          return;
+        }
+        setProgress(100, 'Concluído', '');
+        onOk(j);
+      }).catch(function (e) {
+        if (typeof alert !== 'undefined') alert(e.message || 'Erro');
+        limparImportUi();
+      });
+    }
+
+    function rodarPrevia() {
+      if (!C.URL_ESTOQUE_IMPORT_PREVIEW) return;
+      limparImportUi();
+      enviarPlanilha(C.URL_ESTOQUE_IMPORT_PREVIEW, renderPrevia);
+    }
+
+    if (btnImp) btnImp.addEventListener('click', function () {
+      limparImportUi();
+      abrirImportEstoque();
+    });
+    if (btnImpFec) btnImpFec.addEventListener('click', fecharImportEstoque);
+    if (backImp) backImp.addEventListener('click', fecharImportEstoque);
+    if (inpArq) {
+      inpArq.addEventListener('change', function () {
+        limparImportUi();
+        if (inpArq.files && inpArq.files[0]) rodarPrevia();
+      });
+    }
+    if (btnPrev) btnPrev.addEventListener('click', function () {
+      limparImportUi();
+      rodarPrevia();
+    });
+    if (btnApl && C.URL_ESTOQUE_IMPORT_APLICAR) {
+      btnApl.addEventListener('click', function () {
+        function confirmar() {
+          if (!window.confirm('Gravar ajustes de estoque da planilha no SisVale?')) return;
+          enviarPlanilha(C.URL_ESTOQUE_IMPORT_APLICAR, function (j) {
+            fecharImportEstoque();
+            if (typeof alert !== 'undefined') {
+              var msg = 'Ajustes gravados: ' + (j.gravados || 0) + ' produto(s).';
+              if (j.historico_id) msg += ' Use «Hist. estoque» para desfazer se precisar.';
+              alert(msg);
+            }
+            if (typeof carregar === 'function') carregar();
+          });
+        }
+        if (ultimaPreviaOk) {
+          confirmar();
+          return;
+        }
+        enviarPlanilha(C.URL_ESTOQUE_IMPORT_PREVIEW, function (j) {
+          renderPrevia(j);
+          if (j.n_alteracoes > 0) confirmar();
+        });
+      });
+    }
+
+    // --- Histórico estoque ---
+    var modalHist = document.getElementById('cadastro-estoque-hist-modal');
+    var backHist = document.getElementById('cadastro-estoque-hist-back');
+    var elHistLista = document.getElementById('cadastro-estoque-hist-lista');
+    var btnHistFec = document.getElementById('cadastro-estoque-hist-fechar');
+
+    function fmtDataIso(iso) {
+      if (!iso) return '—';
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return iso;
+        return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      } catch (e) { return iso; }
+    }
+
+    function abrirHist() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.remove('hidden');
+      backHist.classList.remove('hidden');
+      carregarHist();
+    }
+    function fecharHist() {
+      if (!modalHist || !backHist) return;
+      modalHist.classList.add('hidden');
+      backHist.classList.add('hidden');
+    }
+
+    function carregarHist() {
+      if (!elHistLista || !C.URL_ESTOQUE_IMPORT_HISTORICO) return;
+      elHistLista.innerHTML = '<p class="text-slate-500 font-semibold">Carregando…</p>';
+      fetch(C.URL_ESTOQUE_IMPORT_HISTORICO, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(parseHttpJson)
+        .then(function (x) {
+          renderHist((x.j && x.j.historico) ? x.j.historico : []);
+        })
+        .catch(function () {
+          elHistLista.innerHTML = '<p class="text-red-700 font-semibold">Não foi possível carregar o histórico.</p>';
+        });
+    }
+
+    function renderHist(lista) {
+      if (!elHistLista) return;
+      if (!lista || !lista.length) {
+        elHistLista.innerHTML = '<p class="text-slate-600 font-semibold">Nenhuma importação de estoque ainda.</p>';
+        return;
+      }
+      elHistLista.innerHTML = lista.map(function (h) {
+        var statusCls = h.status === 'revertido' ? 'text-slate-500' : 'text-blue-800';
+        var statusTxt = h.status === 'revertido' ? 'Desfeita' : 'Aplicada';
+        var arq = h.nome_arquivo ? (' · ' + escapeHtml(h.nome_arquivo)) : '';
+        var resumoHtml = '';
+        (h.resumo || []).slice(0, 5).forEach(function (r) {
+          var linhas = (r.detalhes || []).map(function (d) {
+            return escapeHtml(String(d.campo || '')) + ': ' + escapeHtml(String(d.de)) + ' → ' + escapeHtml(String(d.para));
+          }).join('; ');
+          resumoHtml += '<div class="text-xs text-slate-600 mt-1 pl-2 border-l-2 border-slate-200">' +
+            escapeHtml(String(r.nome || r.id || '')) + (linhas ? ' — ' + linhas : '') + '</div>';
+        });
+        var btnRev = h.pode_reverter
+          ? '<button type="button" class="cadastro-estoque-hist-reverter min-h-[44px] px-4 rounded-xl bg-amber-600 text-white font-black uppercase text-xs border-2 border-amber-800" data-id="' + h.id + '">Desfazer</button>'
+          : '<span class="text-xs font-semibold text-slate-400">Desfeita em ' + escapeHtml(fmtDataIso(h.revertido_em)) + '</span>';
+        return '<article class="rounded-xl border-2 border-slate-200 p-4 bg-white">' +
+          '<div class="flex flex-wrap items-start justify-between gap-2">' +
+          '<div><p class="font-black text-slate-900">' + escapeHtml(fmtDataIso(h.criado_em)) + arq + '</p>' +
+          '<p class="text-xs font-semibold ' + statusCls + '">' + statusTxt + ' · ' + (h.n_produtos || 0) + ' produto(s) · ' + (h.usuario || '—') + '</p></div>' +
+          btnRev + '</div>' + resumoHtml + '</article>';
+      }).join('');
+
+      elHistLista.querySelectorAll('.cadastro-estoque-hist-reverter').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var hid = btn.getAttribute('data-id');
+          if (!hid || !C.URL_ESTOQUE_IMPORT_REVERTER) return;
+          if (!window.confirm('Desfazer estes ajustes de estoque? O saldo volta ao valor anterior.')) return;
+          btn.disabled = true;
+          fetch(C.URL_ESTOQUE_IMPORT_REVERTER, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfTok(), 'Accept': 'application/json' },
+            body: JSON.stringify({ historico_id: parseInt(hid, 10) })
+          }).then(parseHttpJson).then(function (x) {
+            if (!x.j || !x.j.ok) throw new Error((x.j && x.j.erro) || 'Falha ao desfazer');
+            if (typeof alert !== 'undefined') {
+              alert('Ajustes desfeitos: ' + (x.j.revertidos || 0) + ' produto(s).');
+            }
+            if (typeof carregar === 'function') carregar();
+            carregarHist();
+          }).catch(function (e) {
+            btn.disabled = false;
+            if (typeof alert !== 'undefined') alert(e.message || 'Erro ao desfazer');
+          });
+        });
+      });
+    }
+
+    if (btnHist) btnHist.addEventListener('click', abrirHist);
+    if (btnHistFec) btnHistFec.addEventListener('click', fecharHist);
+    if (backHist) backHist.addEventListener('click', fecharHist);
+  })();
 })();
