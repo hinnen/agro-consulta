@@ -757,7 +757,7 @@ function hydrateSaldosPositivosDeposito() {
   const url = MA_API_SALDOS
     + '?positivos=1&deposito=' + encodeURIComponent(dep)
     + '&contagem=1&limite=5000';
-  return fetch(url, { cache: 'no-store' })
+  return fetch(url, { cache: 'no-store', credentials: 'same-origin' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows && d.rows.length) {
@@ -781,7 +781,7 @@ function pollSaldosMobileUmaVez(idsOpcionais) {
     return hydrateSaldosPositivosDeposito();
   }
   const url = MA_API_SALDOS + '?ids=' + encodeURIComponent(ids.join(',')) + '&contagem=1';
-  return fetch(url, { cache: 'no-store' })
+  return fetch(url, { cache: 'no-store', credentials: 'same-origin' })
     .then((r) => r.json())
     .then((d) => {
       if (d.rows) {
@@ -817,30 +817,85 @@ function mobileAjusteAplicarProdutosDaLista(produtos) {
   buscar(document.getElementById('busca')?.value || '');
 }
 
-/** Baixa catálogo completo (só sob demanda / 1ª abertura sem cache). Sem poll automático. */
-function mobileAjusteBaixarListaApi() {
+function mobileAjusteGravarCacheCatalogo(produtos) {
+  if (!Array.isArray(produtos) || produtos.length < 50) return;
+  try {
+    const pack = {
+      produtos: produtos,
+      ts: Date.now(),
+      fonte: 'ajuste_mobile',
+    };
+    const raw = JSON.stringify(pack);
+    MA_CAT_KEYS.forEach((key) => {
+      try { localStorage.setItem(key, raw); } catch (_) {}
+    });
+  } catch (_) {}
+}
+
+function mobileAjusteMostrarErroCatalogo(msg) {
+  const listaDiv = document.getElementById('lista');
+  const resumo = document.getElementById('f-resumo');
+  const texto = String(msg || 'Não deu para baixar a lista de produtos.');
+  if (resumo) resumo.textContent = 'Catálogo vazio · toque em Atualizar';
+  if (!listaDiv) return;
+  listaDiv.innerHTML = `
+    <div class="bg-white border border-rose-200 rounded-2xl p-4 text-center space-y-3">
+      <p class="text-rose-600 font-black text-sm leading-snug">${texto.replace(/</g, '&lt;')}</p>
+      <p class="text-slate-500 text-xs font-bold leading-snug">Celular novo / sem PDV precisa baixar a lista uma vez. Rede fraca? Tente de novo no Wi‑Fi.</p>
+      <button type="button" id="ma-btn-retry-cat" class="w-full min-h-[2.75rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Tentar baixar de novo</button>
+    </div>`;
+  document.getElementById('ma-btn-retry-cat')?.addEventListener('click', () => {
+    mobileAjusteBaixarListaApi(true).then((n) => {
+      if (n > 0) hydrateSaldosPositivosDeposito();
+    });
+  });
+}
+
+/** Baixa catálogo completo. Sem poll automático. */
+function mobileAjusteBaixarListaApi(forcar) {
   if (maListaInFlight) return Promise.resolve(0);
   maListaInFlight = true;
   const listaDiv = document.getElementById('lista');
+  const resumo = document.getElementById('f-resumo');
+  if (resumo) resumo.textContent = 'Baixando catálogo…';
+  if (listaDiv && (!baseProdutos.length || forcar)) {
+    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Baixando lista de produtos…</div>';
+  }
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 90000);
-  return fetch(MA_API_CATALOGO, { cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
-    .then((res) => res.json())
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 120000);
+  return fetch(MA_API_CATALOGO, {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    signal: ctrl ? ctrl.signal : undefined,
+  })
+    .then(async (res) => {
+      let data = null;
+      try { data = await res.json(); } catch (_) { data = null; }
+      if (!res.ok) {
+        const er = (data && (data.erro || data.error)) || ('HTTP ' + res.status);
+        throw new Error(er);
+      }
+      return data || {};
+    })
     .then((data) => {
-      const produtos = data.produtos || [];
-      if (!produtos.length && data.erro) {
-        throw new Error(data.erro);
+      const produtos = Array.isArray(data.produtos) ? data.produtos : [];
+      if (!produtos.length) {
+        throw new Error(data.erro || 'Lista veio vazia do servidor.');
       }
       mobileAjusteAplicarProdutosDaLista(produtos);
+      mobileAjusteGravarCacheCatalogo(produtos);
       marcarMobileSaldosFresh();
       return produtos.length;
     })
-    .catch(() => {
+    .catch((err) => {
+      const msg = (err && err.name === 'AbortError')
+        ? 'Demorou demais (rede lenta). Tente de novo.'
+        : (err && err.message) || 'Falha ao baixar produtos.';
       if (!baseProdutos.length) {
-        listaDiv.innerHTML = '<div class="text-center text-red-500 font-bold p-8">Erro ao carregar produtos.</div>';
+        mobileAjusteMostrarErroCatalogo(msg);
       } else {
-        alert('Não deu para baixar a lista completa. Mantive o que já estava na tela.');
+        alert('Não deu para baixar a lista completa. Mantive o que já estava na tela.\n' + msg);
       }
       return 0;
     })
@@ -851,11 +906,13 @@ function mobileAjusteBaixarListaApi() {
     });
 }
 
-/** Atualizar = saldos dos itens na tela + positivos do depósito (leve). Sem baixar catálogo de novo. */
+/** Atualizar = se não tem catálogo, baixa lista; senão só saldos. */
 function mobileAjusteAtualizarSaldosVisiveis() {
   if (maListaInFlight) return;
-  if (!maUltimosIdsExibidos.length && !baseProdutos.length) {
-    mobileAjusteBaixarListaApi();
+  if (!baseProdutos.length) {
+    mobileAjusteBaixarListaApi(true).then((n) => {
+      if (n > 0) hydrateSaldosPositivosDeposito();
+    });
     return;
   }
   if (window.gmLoadingBar) window.gmLoadingBar.show();
@@ -883,17 +940,18 @@ window.addEventListener('load', () => {
 
   const fromLs = mobileLerProdutosDoCacheUnificado();
   const depoisLista = () => {
-    /* Sempre hidrata positivos do depósito — cache do PDV costuma vir com saldo 0. */
+    if (!baseProdutos.length) return;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     hydrateSaldosPositivosDeposito().finally(() => { maResetLoading(); });
   };
   if (fromLs && fromLs.length >= 50) {
-    /* Cache do PDV já tem catálogo — usa e não trava o worker com download + poll. */
     mobileAjusteAplicarProdutosDaLista(fromLs);
     marcarMobileSaldosFresh();
     depoisLista();
   } else {
-    mobileAjusteBaixarListaApi().then(() => { depoisLista(); });
+    mobileAjusteBaixarListaApi(true).then((n) => {
+      if (n > 0) depoisLista();
+    });
   }
 });
 
