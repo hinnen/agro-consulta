@@ -4462,11 +4462,22 @@
             });
     }
 
+    function nomeClienteEntregaPendenteCache(pk) {
+        var itens = entregasPendentesCache.itens || [];
+        for (var i = 0; i < itens.length; i++) {
+            if (Number(itens[i].id) === Number(pk)) {
+                return String(itens[i].cliente_nome || '').trim();
+            }
+        }
+        return '';
+    }
+
     function cancelarEntregaPendente(pk) {
         var motivo = window.prompt('Motivo do cancelamento (opcional):', 'Cancelado no PDV');
         if (motivo === null) return;
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteCancelar, pk);
         if (!url) return;
+        var nomeCli = nomeClienteEntregaPendenteCache(pk) || currentClientName(State.getState());
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         jsonPost(url, { motivo: motivo || 'Cancelado no PDV' })
             .then(function (res) {
@@ -4476,6 +4487,7 @@
                             'Não foi possível cancelar.'
                     );
                 }
+                limparLembretesEntregaWizard(nomeCli);
                 return refreshEntregasPendentesUi(false);
             })
             .then(function () {
@@ -4493,9 +4505,11 @@
     function finalizarEntregaPendenteAposVenda(pendenteId, vendaId) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteFinalizar, pendenteId);
         if (!url) return Promise.resolve({ ok: true, data: { ok: true } });
+        var nomeCli =
+            nomeClienteEntregaPendenteCache(pendenteId) || currentClientName(State.getState());
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null }).then(function (res) {
             if (res.ok && res.data && res.data.ok) {
-                limparLembretesEntregaWizard();
+                limparLembretesEntregaWizard(nomeCli);
                 return res;
             }
             var msg = String((res.data && (res.data.erro || res.data.mensagem)) || '').trim();
@@ -4505,7 +4519,7 @@
                 msg === 'Entrega pendente não encontrada.' ||
                 (res.data && res.data.ja_fechada)
             ) {
-                limparLembretesEntregaWizard();
+                limparLembretesEntregaWizard(nomeCli);
                 return { ok: true, data: { ok: true, ja_fechada: true } };
             }
             return res;
@@ -11306,13 +11320,20 @@
         );
     }
 
-    function limparLembretesEntregaWizard() {
+    /** Apaga lembretes de entrega ao finalizar/entregue/cancelar (não pelo dia). */
+    function limparLembretesEntregaWizard(nomeCliente) {
+        var n = String(nomeCliente || '').trim().toLowerCase();
         var lista = obterLembretesLocal();
         var filtrada = lista.filter(function (x) {
-            return String(x.id || '').indexOf('pdv_wiz_ent_') !== 0;
+            if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+            if (!n) return false;
+            var cli = String(x.cliente || '').trim().toLowerCase();
+            if (cli) return cli !== n;
+            return String(x.texto || '').toLowerCase().indexOf(n) === -1;
         });
         if (filtrada.length !== lista.length) salvarLembretesLocal(filtrada);
     }
+    window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaWizard;
 
     function verificarLembretesWizardTick() {
         var agora = new Date();
@@ -11321,37 +11342,19 @@
         var mm = String(agora.getMinutes()).padStart(2, '0');
         var horaAtual = hh + ':' + mm;
         var lista = obterLembretesLocal();
-        var nova = [];
         var alterou = false;
         lista.forEach(function (item) {
-            var dataItem = String(item.data || '');
-            // Dia anterior: não repete no dia seguinte (bug Kátia Freitas 30/07).
-            if (dataItem && dataItem < hoje) {
-                alterou = true;
-                if (String(item.id || '').indexOf('pdv_wiz_ent_') === 0) return;
-                if (!item.concluido) {
-                    item.concluido = true;
-                    item.disparado = false;
-                }
-                nova.push(item);
-                return;
-            }
-            if (dataItem && dataItem > hoje) {
-                nova.push(item);
-                return;
-            }
-            if (!dataItem) {
-                item.data = hoje;
-                alterou = true;
-            }
-            if (!item.concluido && !item.disparado && String(item.hora || '') <= horaAtual) {
+            if (item.concluido) return;
+            var dataItem = String(item.data || hoje);
+            // Só dispara no dia marcado; apagar = entregue/finalizado/cancelado.
+            if (dataItem !== hoje) return;
+            if (!item.disparado && String(item.hora || '') <= horaAtual) {
                 item.disparado = true;
                 alterou = true;
                 exibirAlertaLembreteWizard(item);
             }
-            nova.push(item);
         });
-        if (alterou) salvarLembretesLocal(nova);
+        if (alterou) salvarLembretesLocal(lista);
     }
 
     function wizardSyncLembretesFromEntregaHorario() {
@@ -11370,6 +11373,7 @@
             lista.push({
                 id: 'pdv_wiz_ent_warn_' + horarioVal,
                 texto: 'Entrega — ' + nome + ' (faltam 20 min)',
+                cliente: nome,
                 hora: h20,
                 disparado: false,
                 data: d,
@@ -11379,6 +11383,7 @@
         lista.push({
             id: 'pdv_wiz_ent_at_' + horarioVal,
             texto: 'Entrega — ' + nome + ' (horário)',
+            cliente: nome,
             hora: horarioVal,
             disparado: false,
             data: d,

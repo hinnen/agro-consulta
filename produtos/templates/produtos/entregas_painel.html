@@ -1284,6 +1284,42 @@
     }).then(function (r) { return r.json(); });
   }
 
+  /** Apaga lembrete do PDV quando entrega vira entregue/cancelado (mesmo PC). */
+  function limparLembreteCaixaEntrega(nomeCliente) {
+    if (typeof window.agroLimparLembretesEntregaCaixa === 'function') {
+      window.agroLimparLembretesEntregaCaixa(nomeCliente);
+      return;
+    }
+    var n = String(nomeCliente || '').trim().toLowerCase();
+    if (!n) return;
+    var lista;
+    try {
+      lista = JSON.parse(localStorage.getItem('gmLembretesCaixa') || '[]');
+    } catch (e0) {
+      lista = [];
+    }
+    if (!Array.isArray(lista) || !lista.length) return;
+    var filtrada = lista.filter(function (x) {
+      if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+      var cli = String(x.cliente || '').trim().toLowerCase();
+      if (cli) return cli !== n;
+      return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+    });
+    if (filtrada.length !== lista.length) {
+      try {
+        localStorage.setItem('gmLembretesCaixa', JSON.stringify(filtrada));
+      } catch (e1) {}
+    }
+  }
+
+  function aposAtualizarEntregaStatus(payload, j, nomeCliente) {
+    if (!j || !j.ok) return;
+    var st = String((payload && payload.status) || '').trim();
+    if (st === 'entregue' || st === 'cancelado') {
+      limparLembreteCaixaEntrega(nomeCliente);
+    }
+  }
+
   var cacheEntregas = [];
   var impContext = null;
   var editLocalCtx = null;
@@ -1518,12 +1554,20 @@
       postAtualizar({ id: e.id, hora_saida_now: true }).then(function (j) { if (j.ok) carregar(); });
     };
     tr.querySelector('.ent-btn-ent').onclick = function () {
-      postAtualizar({ id: e.id, hora_entrega_now: true, status: 'entregue' }).then(function (j) { if (j.ok) carregar(); });
+      var nome = String(e.cliente_nome || '').trim();
+      postAtualizar({ id: e.id, hora_entrega_now: true, status: 'entregue' }).then(function (j) {
+        aposAtualizarEntregaStatus({ status: 'entregue' }, j, nome);
+        if (j.ok) carregar();
+      });
     };
 
     tr.querySelector('.ent-status').onchange = function () {
       var v = this.value;
-      postAtualizar({ id: e.id, status: v }).then(function (j) { if (!j.ok) alert('Falha ao salvar status'); });
+      var nome = String(e.cliente_nome || '').trim();
+      postAtualizar({ id: e.id, status: v }).then(function (j) {
+        aposAtualizarEntregaStatus({ status: v }, j, nome);
+        if (!j.ok) alert('Falha ao salvar status');
+      });
     };
 
     tr.querySelector('.ent-btn-salvar-maps').onclick = function () {

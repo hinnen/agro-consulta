@@ -1741,6 +1741,23 @@ function dataLocalHojeLembrete() {
     );
 }
 
+function limparLembretesEntregaCaixa(nomeCliente) {
+    const n = String(nomeCliente || '').trim().toLowerCase();
+    const lista = obterLembretes();
+    const filtrada = lista.filter((x) => {
+        if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+        if (!n) return false;
+        const cli = String(x.cliente || '').trim().toLowerCase();
+        if (cli) return cli !== n;
+        return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+    });
+    if (filtrada.length !== lista.length) {
+        salvarListaLembretes(filtrada);
+        renderizarLembretes();
+    }
+}
+window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaCaixa;
+
 function verificarLembretes() {
     const agora = new Date();
     const hoje = dataLocalHojeLembrete();
@@ -1748,39 +1765,21 @@ function verificarLembretes() {
     const mm = String(agora.getMinutes()).padStart(2, '0');
     const horaAtual = `${hh}:${mm}`;
     const lista = obterLembretes();
-    const nova = [];
     let alterou = false;
 
     lista.forEach((item) => {
-        const dataItem = String(item.data || '');
-        if (dataItem && dataItem < hoje) {
-            alterou = true;
-            if (String(item.id || '').indexOf('pdv_wiz_ent_') === 0) return;
-            if (!item.concluido) {
-                item.concluido = true;
-                item.disparado = false;
-            }
-            nova.push(item);
-            return;
-        }
-        if (dataItem && dataItem > hoje) {
-            nova.push(item);
-            return;
-        }
-        if (!dataItem) {
-            item.data = hoje;
-            alterou = true;
-        }
-        if (!item.concluido && !item.disparado && item.hora <= horaAtual) {
+        if (item.concluido) return;
+        const dataItem = String(item.data || hoje);
+        if (dataItem !== hoje) return;
+        if (!item.disparado && item.hora <= horaAtual) {
             item.disparado = true;
             alterou = true;
             exibirAlertaLembrete(item);
         }
-        nova.push(item);
     });
 
     if (alterou) {
-        salvarListaLembretes(nova);
+        salvarListaLembretes(lista);
         renderizarLembretes();
     }
 }

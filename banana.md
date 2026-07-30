@@ -1195,12 +1195,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Entrega já finalizada ontem · PDV ainda mostra «Lembrete do caixa — Entrega — KATIA FREITAS (horário)» |
-| **Causa** | `verificarLembretes` reiniciava `data`/`disparado` todo dia se não marcado «feito» · lista Entregas (pendente=0) OK |
-| **Fix** | Dia anterior não repete · apaga `pdv_wiz_ent_*` · limpa lembrete ao finalizar entrega no PDV |
-| **Arquivos** | `pdv_wizard.js` · `consulta_produtos.js` · `consulta_produtos_pre_layout_pdv.html` |
-| **Alívio agora (loja sem deploy)** | No PDV: Lembretes do caixa → marcar feito · ou console: `localStorage.removeItem('gmLembretesCaixa')` |
-| **Você** | Ctrl+F5 no PDV (após subir) · não deve repetir amanhã |
+| **Sintoma** | Entrega já finalizada · PDV ainda mostra «Lembrete do caixa — Entrega — …» |
+| **Causa** | Lembrete no `localStorage` do PDV reiniciava todo dia; não apagava ao finalizar |
+| **Regra certa** | **Apagar** ao **entregue / finalizado / cancelado** (PDV + painel `/entregas/`) · dia só evita disparar de novo |
+| **Arquivos** | `pdv_wizard.js` · `consulta_produtos.js` · `consulta_produtos_pre_layout_pdv.html` · `entregas_painel.html` |
+| **Alívio agora (loja sem deploy)** | Lembretes do caixa → marcar feito · ou `localStorage.removeItem('gmLembretesCaixa')` |
+| **Você** | Ctrl+F5 · finalizar/entregue → lembrete some |
 
 
 ### 📦 PACOTE PRONTO LOJA — Excel estoque Cadastro (`CAD-ESTOQUE-XLSX` · **v12.09**)
