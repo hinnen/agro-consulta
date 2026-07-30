@@ -24,13 +24,16 @@
 
 **Não vale como autorização:** *«faça»*, *«segue»*, *«ok no teste»*, *«banana.md faça»* — **mesmo em português**. Renan **não fala inglês**; respostas do assistente **sempre em português (BR)** (ver linha acima).
 
-**Ordem:** commit na branch `teste` (histórico) → Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
+**Ordem:** ao **fechar entrega** → commit na branch `teste` + **`git push origin teste`** (backup GitHub, **sem** pedir autorização) → Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
 **Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
 
-**Teste (regra nova — 2026-07-22, Renan · opção B):** validação padrão = **local no PC** (`runserver` + Chrome `http://127.0.0.1:8000`). Ver **`docs/TESTE-LOCAL.md`**.  
-**Render staging (free) NÃO é gate:** dorme minutos/horas — não confiar nele para liberar loja.  
-**Assistente:** **não** fazer `git push origin teste` automático. Commit local (e push remoto **só** se Renan pedir). Produção continua **só** com frase + senha **depois** de Renan testar local.
+**Teste / backup GitHub (regra — 2026-07-30, Renan · substitui 22/07 «não push sozinho»):**  
+**Validação** = **local no PC** (`runserver` + Chrome `http://127.0.0.1:8000`). Ver **`docs/TESTE-LOCAL.md`**.  
+**Render staging (free) NÃO é gate:** dorme — não confiar nele para liberar loja.  
+**Assistente — ao fechar entrega (fix/feature/pacote):** **sempre** `git commit` na branch `teste` **e** `git push origin teste` — **sem perguntar** e **sem** frase/senha. Motivo: se o PC estragar, o código já está no GitHub.  
+**Não** push a cada meio caminho quebrado (só entrega fechada / checkpoint útil). Bug no `teste` **não** quebra a loja — histórico Git permite voltar.  
+**Produção:** continua **só** com frase + senha **depois** de Renan testar local. **Dois repos Git não são necessários** — `teste` (rascunho+backup) e `producao` (loja) bastam.
 
 **Registro no banana (regra — 2026-06-22):** **Toda alteração** que mude o sistema (fix, feature, deploy teste ou produção) → **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quê mudou, commits, versão `VERSION`, teste OK ou pendente). Serve para **contexto do próximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **não pergunta** se deve registrar — faz sempre que entregar código ou deploy. Detalhe passageiro ou chat só explicativo: não inflar o doc.
 
@@ -44,7 +47,7 @@
 | **Produto**                  | **SisVale** / **Agro Consulta** — sistema web da **GM Agro** (loja agropecuária, Jacupiranga-SP)                                                                     |
 | **Usuários**                 | Operadores de loja (PDV, caixa), gestão, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
-| **Branch dia a dia**         | `**teste`** (commits) · validação = **local PC** · `**producao**` = loja só com senha após teste local |
+| **Branch dia a dia**         | `**teste`** = commit + **push GitHub ao fechar entrega** (backup) · validação = **local PC** · `**producao**` = loja **só** frase+senha |
 | **Tela inicial**             | `/` = BI gerencial · PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro não devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
@@ -69,7 +72,7 @@
 
 **Operadores:** muitos são idosos — botões grandes, poucos cliques, sem textos longos na tela (ajuda em «?» ou modal).
 
-**Renan (dono/dev):** valida no **PC local** (`docs/TESTE-LOCAL.md`). Assistente **não** push automático no Render teste; **produção só** com frase + senha **após** teste local (ver topo).
+**Renan (dono/dev):** valida no **PC local** (`docs/TESTE-LOCAL.md`). Assistente **sempre** push `origin teste` ao **fechar entrega** (backup GitHub); **produção só** com frase + senha **após** teste local (ver topo · §0.2 roteiro).
 
 **Como acessa o SisVale:** **Chrome** (loja e local). **Electron** descartado na loja — performance ruim. UX/perf validar no Chrome.
 
@@ -1117,7 +1120,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 4. **Escopo:** pedir arquivos ou módulo; assistente não amplia sem autorização.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
-7. **Commits / teste:** commit na branch `teste`; **não** push automático no Render. Renan valida no **PC local** (`docs/TESTE-LOCAL.md`). Bump de `VERSION` no commit. Push `origin teste` **só se Renan pedir**. **Produção:** só item 8, **depois** do teste local.
+7. **Commits / teste (30/07):** ao **fechar entrega** → commit na branch `teste` + **`git push origin teste` sempre** (backup GitHub, **sem** pedir). Bump de `VERSION`. Renan valida no **PC local** (`docs/TESTE-LOCAL.md`). Render free **não** é gate. **Produção:** só item 8, **depois** do teste local + frase/senha.
 8. **Produção:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explícita **+ senha** (topo do banana) **e** sem Renan ter testado local. **2026-06-22:** assistente subiu PDV×cadastro em produção sem pedido — **não repetir**.
 9. **Modo econômico:** permanente — rule `modo-economico.mdc`; detalhe só se Renan pedir.
 10. **Cliente:** Renan usa **Chrome** (loja e local) — não perguntar Electron vs browser.
@@ -1168,6 +1171,32 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO LOJA — PDV cache lápis (`PDV-CACHE-LAPIS` · **v12.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO** · review cuidadosa · `node --check` OK · **sem** push produção |
+| **Branch** | `deploy/pdv-cache-lapis-v12.08` · base `origin/producao` @ **v12.07** |
+| **Por quê** | Lápis PDV gravava no servidor, mas ao fechar o PDV o cache local velho voltava nome/preço |
+| **Inclui** | Ao salvar lápis: grava **shared LS + session + fila completa** · reaplica fila no boot · usa `produto` da resposta do servidor |
+| **Arquivos** | só `pdv_wizard.js` · VERSION · banana |
+| **Migrate** | **NÃO** |
+| **Risco loja** | **Baixo** — só persiste o que já salvou no banco; não mexe venda/caixa |
+| **Validar local** | Ctrl+F5 PDV · lápis muda nome/preço · **fecha aba** · reabre PDV · busca produto → deve manter |
+| **Rollback** | `rollback/pre-pdv-cache-lapis-v12.08` no push loja |
+| **Próximo** | Renan valida local · depois frase + **99738595** |
+
+### Regra Git — push `teste` ao fechar entrega (30/07 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Decisão** | Ao **fechar entrega**: commit + **`git push origin teste` sempre** · **sem** pedir autorização |
+| **Por quê** | PC estragar ≠ perder código — backup no GitHub |
+| **Não** | Push a cada WIP quebrado · **nunca** push `producao` sem frase+senha |
+| **2 repos?** | **Não** — `teste` (rascunho+backup) + `producao` (loja) |
+| **Onde está canônico** | Topo banana · `banana-roteiro.md` **§0.2** · `.cursor/rules/agro-consulta.mdc` (TESTE vs PRODUÇÃO) |
+| **Substitui** | Regra 22/07 «não push `teste` sozinho» |
 
 ### 📦 PACOTE PRONTO LOJA — PDV lápis não apaga cadastro (`PDV-LAPIS` · **v12.07**)
 
@@ -1529,7 +1558,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 | Item | Detalhe |
 | ---- | ------- |
 | **Gate** | Chrome em `http://127.0.0.1:8000` — ver `docs/TESTE-LOCAL.md` |
-| **Render teste** | Free dorme — **não** usar como validação; assistente **não** push `origin teste` sozinho |
+| **Render teste** | Free dorme — **não** usar como validação; ao fechar entrega **sim** push `origin teste` (backup) |
 | **Produção** | Só após Renan testar local + frase + senha (ele não sobe sem testar) |
 | **Confiança** | Renan: não enviar à loja sem teste local; assistente respeita |
 

@@ -655,8 +655,10 @@
             for (var i = 0; i < wizardProductCatalog.length; i++) {
                 var row = wizardProductCatalog[i];
                 if (String(row.id || row.Id || '') === pid) {
-                    if (patch.saldo_centro != null) row.saldo_centro = patch.saldo_centro;
-                    if (patch.saldo_vila != null) row.saldo_vila = patch.saldo_vila;
+                    Object.keys(patch).forEach(function (k) {
+                        if (k === 'id' || k === 'Id') return;
+                        if (patch[k] !== undefined) row[k] = patch[k];
+                    });
                 }
             }
         });
@@ -1197,10 +1199,20 @@
             });
         if (!patches.length) return false;
         var ok = aplicarWizardPatchesProdutos(patches);
-        if (ok && clearQueue) {
+        if (ok) {
             try {
-                localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+                var shared = lerWizardCatalogSharedCache();
+                salvarWizardCatalogSharedCache({
+                    produtos: wizardProductCatalog,
+                    catalog_version: (shared && shared.catalog_version) || '',
+                    catalog_updated_at: (shared && shared.catalog_updated_at) || '',
+                });
             } catch (_) {}
+            if (clearQueue) {
+                try {
+                    localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+                } catch (_) {}
+            }
         }
         return ok;
     }
@@ -1295,6 +1307,7 @@
                 var parsed = JSON.parse(raw);
                 if (parsed && Array.isArray(parsed.produtos) && parsed.produtos.length) {
                     if (aplicarWizardCatalogRows(parsed.produtos, true)) {
+                        agroWizardAplicarFilaPatchLocal(true);
                         var shared = lerWizardCatalogSharedCache();
                         syncWizardCatalogDelta(shared && shared.catalog_version ? shared.catalog_version : '');
                         return Promise.resolve();
@@ -1306,6 +1319,7 @@
         var sharedCache = lerWizardCatalogSharedCache();
         if (sharedCache && sharedCache.produtos.length) {
             aplicarWizardCatalogRows(sharedCache.produtos, true);
+            agroWizardAplicarFilaPatchLocal(true);
             syncWizardCatalogDelta(sharedCache.catalog_version || '');
             return Promise.resolve();
         }
@@ -8382,24 +8396,40 @@
             if (saldos.saldo_centro != null) patch.saldo_centro = saldos.saldo_centro;
             if (saldos.saldo_vila != null) patch.saldo_vila = saldos.saldo_vila;
         }
+        // Remove undefined — não apagar campo bom no Object.assign / fila.
+        Object.keys(patch).forEach(function (k) {
+            if (patch[k] === undefined) delete patch[k];
+        });
         for (var i = 0; i < wizardProductCatalog.length; i++) {
             var row = wizardProductCatalog[i];
             if (String(row.id || row.Id || '') === pid) {
                 Object.keys(patch).forEach(function (k) {
-                    if (patch[k] !== undefined) row[k] = patch[k];
+                    if (k === 'id') return;
+                    row[k] = patch[k];
                 });
                 break;
             }
         }
+        // Fila completa (não só saldo) — sobrevive foco / outra aba.
         agroPdvEnqueuePatchesRespostaVenda({
-            pdv_catalog_patches: [
-                {
-                    id: pid,
-                    saldo_centro: saldos && saldos.saldo_centro,
-                    saldo_vila: saldos && saldos.saldo_vila
-                }
-            ]
+            pdv_catalog_patches: [patch]
         });
+        // Persiste no cache do PC — senão fechar o PDV volta nome/preço antigo.
+        try {
+            var shared = lerWizardCatalogSharedCache();
+            salvarWizardCatalogSharedCache({
+                produtos: wizardProductCatalog,
+                catalog_version: (shared && shared.catalog_version) || '',
+                catalog_updated_at: (shared && shared.catalog_updated_at) || '',
+            });
+        } catch (_) {}
+        try {
+            if (typeof window.agroCadastroMergeProdutoCacheLocal === 'function') {
+                window.agroCadastroMergeProdutoCacheLocal(
+                    Object.assign({ id: pid }, patch)
+                );
+            }
+        } catch (_) {}
     }
 
     function saveQuickProductEditOverlay() {
@@ -8576,13 +8606,23 @@
                     });
                 }
                 return chain.then(function (pack) {
+                    var serverProd = res.data && res.data.produto ? res.data.produto : null;
                     var cadastroPatch = {
-                        nome: payload.nome,
-                        codigo_nfe: payload.codigo_nfe,
-                        codigo_barras: payload.codigo_barras,
-                        unidade: payload.unidade,
-                        preco_custo: payload.preco_custo,
-                        preco_venda: payload.preco_venda,
+                        nome: (serverProd && serverProd.nome) || payload.nome,
+                        codigo_nfe:
+                            (serverProd && (serverProd.codigo_nfe || serverProd.codigo_gm)) ||
+                            payload.codigo_nfe,
+                        codigo_barras:
+                            (serverProd && serverProd.codigo_barras) || payload.codigo_barras,
+                        unidade: (serverProd && serverProd.unidade) || payload.unidade,
+                        preco_custo:
+                            serverProd && serverProd.preco_custo != null
+                                ? serverProd.preco_custo
+                                : payload.preco_custo,
+                        preco_venda:
+                            serverProd && serverProd.preco_venda != null
+                                ? serverProd.preco_venda
+                                : payload.preco_venda,
                         precos_modo: payload.precos_modo,
                         precos_grupos: payload.precos_grupos
                     };
@@ -8590,7 +8630,10 @@
                         State.patchItemCadastro(itemIdSaved, cadastroPatch);
                     }
                     patchWizardCatalogFromQuickEdit(
-                        Object.assign({ id: quickProductEditProdutoId, preco_custo: payload.preco_custo }, cadastroPatch),
+                        Object.assign(
+                            { id: quickProductEditProdutoId, preco_custo: cadastroPatch.preco_custo },
+                            cadastroPatch
+                        ),
                         pack.saldos
                     );
                     closeQuickProductEditOverlay();
