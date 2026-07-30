@@ -1175,6 +1175,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — PDV cache lápis (PDV-CACHE-LAPIS · **v12.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · código em deploy/pdv-cache-lapis-v12.08 @ **d14a10** (+ banana 0b34a9) · backup 	este @ **44be6d2** |
+| **CHECKLIST** | 1º subir · autorizar: *pode subir PDV cache lápis / produção* + **99738595** |
+| **Loja hoje** | **v12.07** (PDV-LAPIS já enviado) |
+
+
 ### PACOTE PRONTO LOJA — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · **v12.06**)
 
 | Item | Detalhe |
