@@ -6,11 +6,36 @@
 
 ---
 
+## 0. Regras duras (ler sempre) · atualizado 30/07/2026
+
+### 0.1 Dados no Postgres (multi-PC)
+
+- Loja = **vários PCs**. Nada operacional pode viver **só** num PC, no browser ou só no Mongo.
+- **Postgres = fonte da verdade** (vínculo NF, rascunho, preço/overlay, estoque Agro, financeiro quando já migrado). PC local = prova rápida; Mongo = espelho legado — **não** é seguro para vínculo NF.
+- Assistente: gravar no **PG**, commit das correções importantes; **nunca** deixar vínculo / nota / preço / estoque / financeiro só no PC, localStorage ou Mongo.
+- Exemplo: `EntradaNfeVinculoAgro` (cProd tipo R0151 → produto SisVale) — multi-PC.
+
+### 0.2 Git — push `teste` ao fechar entrega · produção só com senha (30/07/2026)
+
+| Ação | Regra |
+| ---- | ----- |
+| **Fechar entrega** (fix/feature/pacote) | `commit` em `teste` + **`git push origin teste`** — **sempre**, **sem** pedir autorização |
+| **Meio de tarefa / WIP quebrado** | **Não** push obrigatório (evita lixo no remoto) |
+| **Validar** | PC local (`docs/TESTE-LOCAL.md`) — Render free **não** é gate |
+| **Loja / `producao`** | **Só** frase explícita + senha `99738595` na **mesma** mensagem |
+| **2 repositórios Git?** | **Não** — `teste` (backup+rascunho) e `producao` (loja) bastam; histórico reverte bug |
+
+**Por quê:** se o PC estragar, o código já está no GitHub. Bug no `teste` **não** quebra a loja.
+
+Detalhe no topo do `banana.md` (bloco **Teste / backup GitHub**).
+
+---
+
 ## 1. Todo chat — ordem fixa
 
 ```
-1. Ler ESTE arquivo inteiro (banana-roteiro.md)
-2. Ler banana.md linhas 1–41 (regras duras: produção, teste, registro)
+1. Ler ESTE arquivo inteiro (banana-roteiro.md) — incluir §0 (§0.1 Postgres · §0.2 push teste / produção)
+2. Ler banana.md linhas 1–45 (regras duras: produção, teste/backup GitHub, registro)
 3. Ler banana.md §0 TL;DR (seção «## 0.»)
 4. CHECKPOINT: grep no banana.md pela palavra-chave do módulo (tabela §3)
    → ler só os blocos ### que baterem + a linha de versão (teste/loja)
@@ -36,13 +61,14 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
 | **Clientes / fiado** | `### 4.5` + trecho fiado em `### 4.2` se PDV | CHECKPOINT: `fiado`, `cliente`, `F8` |
-| **Entrada NF** | `### 4.7` | `AGENTS.md` §7 entrada NF se XML/modal |
+| **Entrada NF** | `### 4.7` | vínculo cProd → **PG** (`EntradaNfeVinculoAgro`) · `AGENTS.md` §7 se XML/modal |
 | **Estoque / ajuste / sync** | `### 4.8` | `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md` |
 | **Compras** | `### 4.9` | `AGENTS.md` §7 compras se relatório/planilha |
 | **Lançamentos / CP / CR / DRE** | `### 4.10` | Se corte Mongo/PG: `### WIP` lançamentos (~L771–1020) · CHECKPOINT: `Lançamentos`, `CP`, `Postgres` |
 | **Caixa** — abrir, fechar, sangria, gaveta | `### 4.11` | CHECKPOINT: `caixa`, `Caixa` |
 | **RH** — folha, vale, ficha | `### 4.12` | `AGENTS.md` §9 · CHECKPOINT: `RH`, `folha` |
 | **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
+| **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar |
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
 
 ### 2.2 Tipo de mudança (somar ao ramo acima)
@@ -51,8 +77,8 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | ------- | ---------- |
 | **Layout / visual / fonte / botão** | `### 4.14` · `AGENTS.md` §5 e **§11** (Display Scale) |
 | **Só backend / API / bug dados** | § do módulo (§2.1) — **não** precisa §4.14 |
-| **Deploy teste** (push `teste`) | Topo · **só se Renan pedir** · gate real = local `docs/TESTE-LOCAL.md` |
-| **Deploy produção / cherry loja** | Topo L22–31 · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan · **depois** de teste local |
+| **Deploy teste** (push `teste`) | Roteiro **§0.2** + topo banana · ao **fechar entrega**: push **sempre** (sem pedir) · gate = local `docs/TESTE-LOCAL.md` |
+| **Deploy produção / cherry loja** | Topo banana · `## 3` até `### 3.2` · CHECKPOINT deploy loja · **parar e confirmar** com Renan · **depois** de teste local · senha obrigatória |
 | **Desvinculação Mongo / corte ERP** | `### 4.15` + `### Checklist — corte total` · escada §5 (ler muito) |
 | **Variável `.env`** | `## 5` |
 | **Dúvida «como usar o Cursor»** | `## 6` |
@@ -61,7 +87,8 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 
 ```
 Tarefa
- ├─ Deploy produção? → topo L22-31 + §3.2 + CHECKPOINT deploy → §5 se conflito
+ ├─ Deploy produção? → topo banana + §3.2 + CHECKPOINT deploy → §5 se conflito
+ ├─ Fechou entrega código? → §0.2 → commit + push origin teste (sem pedir)
  ├─ Módulo conhecido? → tabela §2.1 → (+ §2.2 se visual/deploy)
  ├─ Só pergunta / explicar? → §0 + CHECKPOINT grep → fim
  └─ Não sei o módulo → §4 inteiro (### 4.1–4.14) + CHECKPOINT → ainda falta? → §5
@@ -73,7 +100,7 @@ Tarefa
 
 Usar **Grep** em `banana.md`, seção `## CHECKPOINT`, com 1–3 termos:
 
-`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome` · `checklist` · `FL-` · `Zap`
+`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `vinculo` · `Postgres` · `compras` · `estoque` · `relatórios` · `relatorio` · `deploy` · `loja` · `teste` · `push` · `Git` · `v6` · `Mongo` · `overlay` · `Chrome` · `checklist` · `FL-` · `Zap`
 
 Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
@@ -108,5 +135,8 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 | Nova palavra CHECKPOINT recorrente | §3 |
 | Mudança na regra de leitura | Este arquivo + `.cursor/rules/agro-consulta.mdc` §0 |
 | WIP / deploy / decisão | `banana.md` CHECKPOINT (como hoje) |
+| **Fechou entrega código** | Commit + **push `origin teste`** (§0.2) + CHECKPOINT |
+| **Deploy loja concluído** | No `banana.md`: registrar Live **e limpar** badges «pronto para envio / aguarda senha» do que **já subiu** (vira ✅ enviado). Renan 23/07 |
+| Dado novo multi-PC → confirm §0.1 | Gravar no **Postgres**; não só PC/browser/Mongo |
 
 *Não* duplicar WIP aqui — só o **mapa de leitura**.

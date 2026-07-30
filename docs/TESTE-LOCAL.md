@@ -114,10 +114,10 @@ location.reload();
 
 ## 5. Fluxo com o assistente
 
-1. Assistente **implementa** e deixa commit na branch `teste` (ou worktree).  
-2. **Você** roda local e valida.  
+1. Assistente **implementa**, faz commit na branch `teste` e **`git push origin teste`** ao fechar a entrega (backup GitHub — **sem** pedir).  
+2. **Você** roda local e valida (`docs/TESTE-LOCAL.md`).  
 3. Só então: *«pode subir para produção»* + senha — se quiser loja.  
-4. Push no Render **teste** = **opcional** e **só se você pedir** (não é mais o gate padrão).
+4. Render staging free **não** é gate de validação (dorme).
 
 ## 6. Se o local «parecer ok» e a loja diferente
 

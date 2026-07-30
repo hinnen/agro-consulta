@@ -24,13 +24,16 @@
 
 **NÃ£o vale como autorizaÃ§Ã£o:** *Â«faÃ§aÂ»*, *Â«segueÂ»*, *Â«ok no testeÂ»*, *Â«banana.md faÃ§aÂ»* â€” **mesmo em portuguÃªs**. Renan **nÃ£o fala inglÃªs**; respostas do assistente **sempre em portuguÃªs (BR)** (ver linha acima).
 
-**Ordem:** commit na branch `teste` (histÃ³rico) â†’ Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) â†’ **sÃ³ entÃ£o** produÃ§Ã£o, se ele pedir com frase + senha. Corrigir bug â‰  autorizaÃ§Ã£o para loja. Loja operando = **zero** push produÃ§Ã£o por iniciativa do assistente.
+**Ordem:** ao **fechar entrega** → commit na branch `teste` + **`git push origin teste`** (backup GitHub, **sem** pedir autorização) → Renan valida no **PC local** (`docs/TESTE-LOCAL.md`) → **só então** produção, se ele pedir com frase + senha. Corrigir bug ≠ autorização para loja. Loja operando = **zero** push produção por iniciativa do assistente.
 
-**ProduÃ§Ã£o â€” chat canÃ´nico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **sÃ³ neste chat** daqui pra frente. Renan pode ter subido produÃ§Ã£o em **outro chat** ou **post** â€” o `banana.md` e o CHECKPOINT sÃ£o a **fonte da verdade**; ao abrir este chat, o assistente **relÃª o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **NÃ£o** assumir que Â«Ãºltimo commit deste chatÂ» = produÃ§Ã£o.
+**Produção — chat canônico (2026-06-22, Renan):** Push na loja (**SistVale** / branch `producao`) **só neste chat** daqui pra frente. Renan pode ter subido produção em **outro chat** ou **post** — o `banana.md` e o CHECKPOINT são a **fonte da verdade**; ao abrir este chat, o assistente **relê o CHECKPOINT** e **pergunta** se algo mudou antes de cherry-pick. **Não** assumir que «último commit deste chat» = produção.
 
-**Teste (regra nova â€” 2026-07-22, Renan Â· opÃ§Ã£o B):** validaÃ§Ã£o padrÃ£o = **local no PC** (`runserver` + Chrome `http://127.0.0.1:8000`). Ver **`docs/TESTE-LOCAL.md`**.  
-**Render staging (free) NÃƒO Ã© gate:** dorme minutos/horas â€” nÃ£o confiar nele para liberar loja.  
-**Assistente:** **nÃ£o** fazer `git push origin teste` automÃ¡tico. Commit local (e push remoto **sÃ³** se Renan pedir). ProduÃ§Ã£o continua **sÃ³** com frase + senha **depois** de Renan testar local.
+**Teste / backup GitHub (regra — 2026-07-30, Renan · substitui 22/07 «não push sozinho»):**  
+**Validação** = **local no PC** (`runserver` + Chrome `http://127.0.0.1:8000`). Ver **`docs/TESTE-LOCAL.md`**.  
+**Render staging (free) NÃO é gate:** dorme — não confiar nele para liberar loja.  
+**Assistente — ao fechar entrega (fix/feature/pacote):** **sempre** `git commit` na branch `teste` **e** `git push origin teste` — **sem perguntar** e **sem** frase/senha. Motivo: se o PC estragar, o código já está no GitHub.  
+**Não** push a cada meio caminho quebrado (só entrega fechada / checkpoint útil). Bug no `teste` **não** quebra a loja — histórico Git permite voltar.  
+**Produção:** continua **só** com frase + senha **depois** de Renan testar local. **Dois repos Git não são necessários** — `teste` (rascunho+backup) e `producao` (loja) bastam.
 
 **Registro no banana (regra â€” 2026-06-22):** **Toda alteraÃ§Ã£o** que mude o sistema (fix, feature, deploy teste ou produÃ§Ã£o) â†’ **registrar no `banana.md`** ao fechar a tarefa (CHECKPOINT: o quÃª mudou, commits, versÃ£o `VERSION`, teste OK ou pendente). Serve para **contexto do prÃ³ximo chat**, **diagnosticar problema** e **saber o que reverter**. Assistente **nÃ£o pergunta** se deve registrar â€” faz sempre que entregar cÃ³digo ou deploy. Detalhe passageiro ou chat sÃ³ explicativo: nÃ£o inflar o doc.
 
@@ -44,7 +47,7 @@
 | **Produto**                  | **SisVale** / **Agro Consulta** â€” sistema web da **GM Agro** (loja agropecuÃ¡ria, Jacupiranga-SP)                                                                     |
 | **UsuÃ¡rios**                 | Operadores de loja (PDV, caixa), gestÃ£o, financeiro, RH, compras                                                                                                     |
 | **Stack**                    | Django + Postgres (Agro) + Mongo (espelho ERP) + Render + Electron opcional                                                                                          |
-| **Branch dia a dia**         | `**teste`** (commits) Â· validaÃ§Ã£o = **local PC** Â· `**producao**` = loja sÃ³ com senha apÃ³s teste local |
+| **Branch dia a dia**         | `**teste`** = commit + **push GitHub ao fechar entrega** (backup) · validação = **local PC** · `**producao**` = loja **só** frase+senha |
 | **Tela inicial**             | `/` = BI gerencial Â· PDV principal em `/consulta/` e wizard `/pdv/checkout/`                                                                                         |
 | **Regra de ouro**            | Operador usa **saldo do Agro**; ERP alimenta Mongo; Agro nÃ£o devolve estoque ao ERP                                                                                  |
 | **UX loja**                  | Compacto, alto contraste, teclado/scanner primeiro, paleta emerald/orange/slate                                                                                      |
@@ -69,7 +72,7 @@
 
 **Operadores:** muitos sÃ£o idosos â€” botÃµes grandes, poucos cliques, sem textos longos na tela (ajuda em Â«?Â» ou modal).
 
-**Renan (dono/dev):** valida no **PC local** (`docs/TESTE-LOCAL.md`). Assistente **nÃ£o** push automÃ¡tico no Render teste; **produÃ§Ã£o sÃ³** com frase + senha **apÃ³s** teste local (ver topo).
+**Renan (dono/dev):** valida no **PC local** (`docs/TESTE-LOCAL.md`). Assistente **sempre** push `origin teste` ao **fechar entrega** (backup GitHub); **produção só** com frase + senha **após** teste local (ver topo · §0.2 roteiro).
 
 **Como acessa o SisVale:** **Chrome** (loja e local). **Electron** descartado na loja â€” performance ruim. UX/perf validar no Chrome.
 
@@ -1119,7 +1122,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 4. **Escopo:** pedir arquivos ou mÃ³dulo; assistente nÃ£o amplia sem autorizaÃ§Ã£o.
 5. **Antes de editar:** assistente deve dar **uma linha de plano**.
 6. **Entrega:** um patch coeso por tarefa.
-7. **Commits / teste:** commit na branch `teste`; **nÃ£o** push automÃ¡tico no Render. Renan valida no **PC local** (`docs/TESTE-LOCAL.md`). Bump de `VERSION` no commit. Push `origin teste` **sÃ³ se Renan pedir**. **ProduÃ§Ã£o:** sÃ³ item 8, **depois** do teste local.
+7. **Commits / teste (30/07):** ao **fechar entrega** → commit na branch `teste` + **`git push origin teste` sempre** (backup GitHub, **sem** pedir). Bump de `VERSION`. Renan valida no **PC local** (`docs/TESTE-LOCAL.md`). Render free **não** é gate. **Produção:** só item 8, **depois** do teste local + frase/senha.
 8. **ProduÃ§Ã£o:** **nunca** push/merge/deploy na loja (Render **SistVale**) sem frase explÃ­cita **+ senha** (topo do banana) **e** sem Renan ter testado local. **2026-06-22:** assistente subiu PDVÃ—cadastro em produÃ§Ã£o sem pedido â€” **nÃ£o repetir**.
 9. **Modo econÃ´mico:** permanente â€” rule `modo-economico.mdc`; detalhe sÃ³ se Renan pedir.
 10. **Cliente:** Renan usa **Chrome** (loja e local) â€” nÃ£o perguntar Electron vs browser.
