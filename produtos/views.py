@@ -13447,15 +13447,21 @@ def _entrada_nota_propagar_precos_e_invalidar_catalogo(
     user_pk: int | None = None,
     emit_cnpj: str = "",
 ) -> None:
-    """P. venda da grade → Mongo + overlay; invalida cache do catálogo PDV quando houver alteração."""
-    if not linhas or db is None or client is None:
+    """P. venda da grade → Mongo + overlay; vínculo cProd **sempre no Postgres**."""
+    if not linhas:
         return
+    col_p = "DtoProduto"
+    if client is not None:
+        col_p = getattr(client, "col_p", None) or "DtoProduto"
     try:
+        # Postgres primeiro — não depende de Mongo estar ligado.
         persistir_vinculos_c_prod_entrada_nfe_linhas(
-            db, client.col_p, linhas, emit_cnpj=emit_cnpj
+            db, col_p, linhas, emit_cnpj=emit_cnpj
         )
     except Exception:
         logger.warning("_entrada_nota_propagar: vinculos cProd NF", exc_info=True)
+    if db is None or client is None:
+        return
     pr = propagar_precos_venda_catalogo_entrada_nota(db, client, linhas, _usuario_label=usuario)
     if (pr.get("atualizados_mongo") or 0) > 0 or (pr.get("atualizados_overlay") or 0) > 0:
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
@@ -13477,6 +13483,17 @@ def _entrada_nota_propagar_precos_se_mudou(
     user_pk: int | None = None,
     emit_cnpj: str = "",
 ) -> None:
+    # Vínculo cProd precisa gravar no PG mesmo sem mudança de P.venda.
+    if linhas_novas:
+        col_p = "DtoProduto"
+        if client is not None:
+            col_p = getattr(client, "col_p", None) or "DtoProduto"
+        try:
+            persistir_vinculos_c_prod_entrada_nfe_linhas(
+                db, col_p, linhas_novas, emit_cnpj=emit_cnpj
+            )
+        except Exception:
+            logger.warning("_entrada_nota_propagar_se_mudou: vinculos cProd NF", exc_info=True)
     if not entrada_nfe_linhas_precos_catalogo_mudaram(linhas_prev, linhas_novas):
         return
     _entrada_nota_propagar_precos_e_invalidar_catalogo(
@@ -22413,6 +22430,283 @@ def api_produtos_cadastro_import_reverter(request):
         return JsonResponse({"ok": False, "erro": "Informe o ID do histórico."}, status=400)
     try:
         r = reverter_importacao_cadastro(hid_int, request.user)
+        return JsonResponse({"ok": True, **r})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+# --- Excel estoque (planilha só de saldos) ---------------------------------
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_cadastro_estoque_export_xlsx(request):
+    """Exporta planilha de estoque com os mesmos filtros da lista do cadastro."""
+    from produtos.cadastro_estoque_planilha_util import (
+        coletar_linhas_export_estoque,
+        montar_xlsx_estoque,
+    )
+    from produtos.cadastro_filtros_util import parse_filtros_cadastro
+
+    inativos = request.GET.get("inativos") in ("1", "true", "yes")
+    q = str(request.GET.get("q") or "").strip()
+    filtros = parse_filtros_cadastro(request)
+    try:
+        rows, truncado = coletar_linhas_export_estoque(
+            filtros=filtros,
+            inativos=inativos,
+            q=q,
+        )
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=503)
+    blob = montar_xlsx_estoque(rows)
+    nome = f"Estoque_Produtos_{timezone.localdate().strftime('%Y%m%d')}.xlsx"
+    resp = HttpResponse(
+        blob,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+    if truncado:
+        resp["X-Agro-Export-Truncado"] = "1"
+    resp["X-Agro-Export-Rows"] = str(len(rows))
+    return resp
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_estoque_import_preview(request):
+    """Prévia da importação Excel de estoque — assíncrona (job_id) ou ?sync=1."""
+    import secrets
+    import threading
+
+    from produtos.cadastro_estoque_planilha_util import preview_importacao_estoque
+
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    sync = request.GET.get("sync") in ("1", "true", "yes")
+    tmp_path = None
+    try:
+        tmp_path = _cadastro_planilha_tmp_upload(upload)
+        if sync:
+            try:
+                prev = preview_importacao_estoque(tmp_path)
+                return JsonResponse({"ok": True, **prev})
+            except ValueError as exc:
+                return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+        job_id = secrets.token_hex(12)
+        path_for_thread = tmp_path
+        tmp_path = None
+
+        def work() -> None:
+            total_linhas = 0
+
+            def on_progress(pct: int, phase: str) -> None:
+                nonlocal total_linhas
+                if phase.startswith("total:"):
+                    try:
+                        total_linhas = int(phase.split(":", 1)[1])
+                    except (TypeError, ValueError):
+                        pass
+                    return
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": min(99, max(0, int(pct))),
+                        "phase": phase,
+                        "total_linhas": total_linhas,
+                        "done": False,
+                        "kind": "estoque_preview",
+                    },
+                )
+
+            try:
+                prev = preview_importacao_estoque(path_for_thread, on_progress=on_progress)
+                total_linhas = int(prev.get("total_linhas") or total_linhas)
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "phase": "Concluído",
+                        "total_linhas": total_linhas,
+                        "done": True,
+                        "ok": True,
+                        "kind": "estoque_preview",
+                        "result": prev,
+                    },
+                )
+            except Exception as exc:
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "done": True,
+                        "ok": False,
+                        "kind": "estoque_preview",
+                        "erro": str(exc) or "Falha na prévia.",
+                    },
+                )
+            finally:
+                try:
+                    path_for_thread.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+        _cadastro_import_job_set(
+            job_id,
+            {
+                "pct": 0,
+                "phase": "Iniciando análise…",
+                "total_linhas": 0,
+                "done": False,
+                "kind": "estoque_preview",
+            },
+        )
+        threading.Thread(target=work, daemon=True).start()
+        return JsonResponse({"ok": True, "job_id": job_id, "async": True})
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_estoque_import_aplicar(request):
+    """Aplica ajustes de estoque da planilha — assíncrona."""
+    import secrets
+    import threading
+
+    from produtos.cadastro_estoque_planilha_util import aplicar_importacao_estoque
+
+    upload = request.FILES.get("arquivo")
+    if not upload:
+        return JsonResponse({"ok": False, "erro": "Envie um arquivo CSV ou XLSX."}, status=400)
+    sync = request.GET.get("sync") in ("1", "true", "yes")
+    tmp_path = None
+    try:
+        tmp_path = _cadastro_planilha_tmp_upload(upload)
+        nome = (request.POST.get("nome_arquivo") or upload.name or "")[:255]
+        if sync:
+            try:
+                r = aplicar_importacao_estoque(tmp_path, request.user, nome_arquivo=nome)
+                return JsonResponse({"ok": True, **r})
+            except ValueError as exc:
+                return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+        job_id = secrets.token_hex(12)
+        path_for_thread = tmp_path
+        user = request.user
+        tmp_path = None
+
+        def work() -> None:
+            total_linhas = 0
+
+            def on_progress(pct: int, phase: str) -> None:
+                nonlocal total_linhas
+                if phase.startswith("total:"):
+                    try:
+                        total_linhas = int(phase.split(":", 1)[1])
+                    except (TypeError, ValueError):
+                        pass
+                    return
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": min(99, max(0, int(pct))),
+                        "phase": phase,
+                        "total_linhas": total_linhas,
+                        "done": False,
+                        "kind": "estoque_apply",
+                    },
+                )
+
+            try:
+                result = aplicar_importacao_estoque(
+                    path_for_thread,
+                    user,
+                    nome_arquivo=nome,
+                    on_progress=on_progress,
+                )
+                total_linhas = int(result.get("n_alteracoes") or total_linhas)
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "phase": "Concluído",
+                        "total_linhas": total_linhas,
+                        "done": True,
+                        "ok": True,
+                        "kind": "estoque_apply",
+                        "result": result,
+                    },
+                )
+            except Exception as exc:
+                _cadastro_import_job_set(
+                    job_id,
+                    {
+                        "pct": 100,
+                        "done": True,
+                        "ok": False,
+                        "kind": "estoque_apply",
+                        "erro": str(exc) or "Falha ao gravar ajustes.",
+                    },
+                )
+            finally:
+                try:
+                    path_for_thread.unlink(missing_ok=True)
+                except Exception:
+                    pass
+
+        _cadastro_import_job_set(
+            job_id,
+            {
+                "pct": 0,
+                "phase": "Iniciando gravação…",
+                "total_linhas": 0,
+                "done": False,
+                "kind": "estoque_apply",
+            },
+        )
+        threading.Thread(target=work, daemon=True).start()
+        return JsonResponse({"ok": True, "job_id": job_id, "async": True})
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_produtos_cadastro_estoque_import_historico(request):
+    from produtos.cadastro_estoque_planilha_util import listar_historico_import_estoque
+
+    return JsonResponse({"ok": True, "historico": listar_historico_import_estoque()})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_produtos_cadastro_estoque_import_reverter(request):
+    import json
+
+    from produtos.cadastro_estoque_planilha_util import reverter_importacao_estoque
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        body = {}
+    hid = body.get("historico_id") or request.POST.get("historico_id")
+    try:
+        hid_int = int(hid)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Informe o ID do histórico."}, status=400)
+    try:
+        r = reverter_importacao_estoque(hid_int, request.user)
         return JsonResponse({"ok": True, **r})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)

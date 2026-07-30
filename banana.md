@@ -568,6 +568,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Mudar produto (21/07):** trocar vÃ­nculo no Â«MudarÂ» **nÃ£o** troca o V. unit da NF (nem o rateio); sÃ³ cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
+- **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 
 ### 4.8 Estoque Agro
@@ -1175,6 +1176,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+
+
+### PACOTE PRONTO LOJA — Entrada NF vínculo Postgres (`ENTRADA-NF-VINCULO` · **v12.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · em `teste` · VERIFY_OK · 558+ vínculos PG |
+| **O quê** | Vínculo cProd (R0151…) no Postgres multi-PC · 2º Ler XML casa sozinho |
+| **Migrate** | **SIM** — `0069_entrada_nfe_vinculo_agro` (+ backfill opcional) |
+| **Arquivos** | `models` · `nfe_entrada_util` · `views` · `agro_backfill_c_prod_nf_entrada` · roteiro §0 |
+| **Risco** | **Baixo** — só casamento XML · não mexe estoque/CP |
+| **Você** | migrate · Ctrl+F5 · XML IBIUNA 2× → Cadastro |
+| **Autorizar** | *pode subir vínculo NF / produção* + **99738595** |
+
+
 ### 🐛 Fix — Lembrete entrega repete no dia seguinte (30/07 · Kátia Freitas)
 
 | Item | Detalhe |
@@ -1191,7 +1207,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · código em `teste` (local) · smoke OK · **sem commit** até Renan pedir |
+| **Status** | 📦 **pronto para envio à produção** · commit `teste` · migrate `0068` |
 | **VERSION alvo loja** | **12.09** (depois de **v12.08** PDV-CACHE-LAPIS se ainda pendente) |
 | **O quê** | Cadastro: **Estoque ↓ / ↑ / Hist. estoque** · filtros da tela (saldo +/−/zero…) · Saldo absoluto **ou** Ajuste +/− (**Ajuste ignora Saldo**) · prévia · desfazer |
 | **Migrate** | **SIM** — `0068_cadastro_planilha_historico_tipo` |
@@ -3548,24 +3564,21 @@ iews.py (compras enrich) |
 
 #### Agora
 
-> Também pronto: **CAD-ESTOQUE-XLSX** (**v12.09**).
-
 | Quando | O quê |
 | ------ | ----- |
-| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · custo cadastro na etapa 2 (V. unit 0) |
-| **✅ Loja v12.05** | ETQ-BUSCA-FILTROS · `30e79a9` · rollback `pre-v1205-etq-busca` |
-| **✅ Loja v12.04** | Entrada NF fin |
-| **✅ Loja v12.03** | FOLHA-ETQ |
-| **✅ Loja v11.99** | PDV carrinho itens travados (FL-008) |
-| **✅ Loja v11.98** | lote 11.94–11.98 (Pix · Entrada NF · Gôndola · Transf · Estoque Vila base) |
-| **P0 agora** | Custo NF 77846 — depois de subir v11.54+: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` |
-| **P0,1 agora** | FL-057 PgBouncer loja (painel Render) |
-| **✅ Kardex 9.92** | **já na loja desde v10.63** — não sobe de novo |
+| **📦 Pronto envio** | **ENTRADA-NF-VINCULO** · **v12.10** · vínculo XML no Postgres (multi-PC) · migrate `0069` |
+| **📦 Pronto envio** | **CAD-ESTOQUE-XLSX** · **v12.09** · Excel estoque Cadastro · migrate `0068` |
+| **📦 Pronto envio** | **PDV-CACHE-LAPIS** · **v12.08** · lápis não perde cache |
+| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · V. unit custo cadastro |
+| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ · **v12.04/03** Folha/Etq |
+| **P0,1** | FL-057 PgBouncer loja (painel Render) |
+
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | 📦 **pronto para envio à produção** · **v12.10** · migrate `0069` |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | 📦 **pronto para envio à produção** · **v12.09** · migrate `0068` |
 | **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | ✅ **loja v11.98** (lote) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
