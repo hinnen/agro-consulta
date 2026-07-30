@@ -1253,6 +1253,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
 | **Você** | validar local antes do envio |
 
+### UX — Ajuste Mobile Somar × Trocar (30/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | WIP local · validar no celular |
+| **Pedido** | Produto em 2 lugares (ex. Vila): contagem A depois B não pode apagar a do A |
+| **Fix** | Modal: botão **Somar** (verde = acrescenta) · **Trocar** (laranja = vira o saldo) · campo Quantidade vazio ao abrir |
+| **Arquivo** | `mobile_ajuste.html` |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · lugar A: digita qtd → **Somar** · lugar B: digita qtd → **Somar** de novo |
+
 ### ✅ Deploy loja **v12.06** — AJUSTE-MOBILE-CEL (29/07 · Renan frase+senha)
 
 | Item | Detalhe |
