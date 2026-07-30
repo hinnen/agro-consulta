@@ -4494,7 +4494,10 @@
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteFinalizar, pendenteId);
         if (!url) return Promise.resolve({ ok: true, data: { ok: true } });
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null }).then(function (res) {
-            if (res.ok && res.data && res.data.ok) return res;
+            if (res.ok && res.data && res.data.ok) {
+                limparLembretesEntregaWizard();
+                return res;
+            }
             var msg = String((res.data && (res.data.erro || res.data.mensagem)) || '').trim();
             // Idempotente: retomada dupla ou rede lenta.
             if (
@@ -4502,6 +4505,7 @@
                 msg === 'Entrega pendente não encontrada.' ||
                 (res.data && res.data.ja_fechada)
             ) {
+                limparLembretesEntregaWizard();
                 return { ok: true, data: { ok: true, ja_fechada: true } };
             }
             return res;
@@ -11291,18 +11295,53 @@
         }
     }
 
+    function dataLocalHojeLembrete() {
+        var agora = new Date();
+        return (
+            String(agora.getFullYear()) +
+            '-' +
+            String(agora.getMonth() + 1).padStart(2, '0') +
+            '-' +
+            String(agora.getDate()).padStart(2, '0')
+        );
+    }
+
+    function limparLembretesEntregaWizard() {
+        var lista = obterLembretesLocal();
+        var filtrada = lista.filter(function (x) {
+            return String(x.id || '').indexOf('pdv_wiz_ent_') !== 0;
+        });
+        if (filtrada.length !== lista.length) salvarLembretesLocal(filtrada);
+    }
+
     function verificarLembretesWizardTick() {
         var agora = new Date();
-        var hoje = agora.toISOString().slice(0, 10);
+        var hoje = dataLocalHojeLembrete();
         var hh = String(agora.getHours()).padStart(2, '0');
         var mm = String(agora.getMinutes()).padStart(2, '0');
         var horaAtual = hh + ':' + mm;
         var lista = obterLembretesLocal();
+        var nova = [];
         var alterou = false;
         lista.forEach(function (item) {
-            if (item.data !== hoje) {
+            var dataItem = String(item.data || '');
+            // Dia anterior: não repete no dia seguinte (bug Kátia Freitas 30/07).
+            if (dataItem && dataItem < hoje) {
+                alterou = true;
+                if (String(item.id || '').indexOf('pdv_wiz_ent_') === 0) return;
+                if (!item.concluido) {
+                    item.concluido = true;
+                    item.disparado = false;
+                }
+                nova.push(item);
+                return;
+            }
+            if (dataItem && dataItem > hoje) {
+                nova.push(item);
+                return;
+            }
+            if (!dataItem) {
                 item.data = hoje;
-                item.disparado = false;
                 alterou = true;
             }
             if (!item.concluido && !item.disparado && String(item.hora || '') <= horaAtual) {
@@ -11310,8 +11349,9 @@
                 alterou = true;
                 exibirAlertaLembreteWizard(item);
             }
+            nova.push(item);
         });
-        if (alterou) salvarLembretesLocal(lista);
+        if (alterou) salvarLembretesLocal(nova);
     }
 
     function wizardSyncLembretesFromEntregaHorario() {
@@ -11325,7 +11365,7 @@
         }
         var nome = currentClientName(State.getState());
         var h20 = hhmmMinusMinutes(horarioVal, 20);
-        var d = new Date().toISOString().slice(0, 10);
+        var d = dataLocalHojeLembrete();
         if (h20 && h20 !== horarioVal) {
             lista.push({
                 id: 'pdv_wiz_ent_warn_' + horarioVal,

@@ -2802,7 +2802,7 @@ function salvarLembrete() {
         return;
     }
     const lista = obterLembretes();
-    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: new Date().toISOString().slice(0, 10) });
+    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: dataLocalHojeLembrete() });
     salvarListaLembretes(lista);
     textoInput.value = '';
     horaInput.value = '';
@@ -2864,19 +2864,46 @@ function dispensarAlertaLembrete() {
     alertaLembreteAtual = null;
 }
 
+function dataLocalHojeLembrete() {
+    const agora = new Date();
+    return (
+        String(agora.getFullYear()) +
+        '-' +
+        String(agora.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(agora.getDate()).padStart(2, '0')
+    );
+}
+
 function verificarLembretes() {
     const agora = new Date();
-    const hoje = agora.toISOString().slice(0, 10);
+    const hoje = dataLocalHojeLembrete();
     const hh = String(agora.getHours()).padStart(2, '0');
     const mm = String(agora.getMinutes()).padStart(2, '0');
     const horaAtual = `${hh}:${mm}`;
     const lista = obterLembretes();
+    const nova = [];
     let alterou = false;
 
-    lista.forEach(item => {
-        if (item.data !== hoje) {
+    lista.forEach((item) => {
+        const dataItem = String(item.data || '');
+        // Dia anterior: não reinicia no dia seguinte (lembrete de entrega já feita).
+        if (dataItem && dataItem < hoje) {
+            alterou = true;
+            if (String(item.id || '').indexOf('pdv_wiz_ent_') === 0) return;
+            if (!item.concluido) {
+                item.concluido = true;
+                item.disparado = false;
+            }
+            nova.push(item);
+            return;
+        }
+        if (dataItem && dataItem > hoje) {
+            nova.push(item);
+            return;
+        }
+        if (!dataItem) {
             item.data = hoje;
-            item.disparado = false;
             alterou = true;
         }
         if (!item.concluido && !item.disparado && item.hora <= horaAtual) {
@@ -2884,10 +2911,11 @@ function verificarLembretes() {
             alterou = true;
             exibirAlertaLembrete(item);
         }
+        nova.push(item);
     });
 
     if (alterou) {
-        salvarListaLembretes(lista);
+        salvarListaLembretes(nova);
         renderizarLembretes();
     }
 }

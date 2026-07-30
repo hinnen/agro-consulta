@@ -1175,6 +1175,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🐛 Fix — Lembrete entrega repete no dia seguinte (30/07 · Kátia Freitas)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Entrega já finalizada ontem · PDV ainda mostra «Lembrete do caixa — Entrega — KATIA FREITAS (horário)» |
+| **Causa** | `verificarLembretes` reiniciava `data`/`disparado` todo dia se não marcado «feito» · lista Entregas (pendente=0) OK |
+| **Fix** | Dia anterior não repete · apaga `pdv_wiz_ent_*` · limpa lembrete ao finalizar entrega no PDV |
+| **Arquivos** | `pdv_wizard.js` · `consulta_produtos.js` · `consulta_produtos_pre_layout_pdv.html` |
+| **Alívio agora (loja sem deploy)** | No PDV: Lembretes do caixa → marcar feito · ou console: `localStorage.removeItem('gmLembretesCaixa')` |
+| **Você** | Ctrl+F5 no PDV (após subir) · não deve repetir amanhã |
+
+
+### 📦 PACOTE PRONTO LOJA — Excel estoque Cadastro (`CAD-ESTOQUE-XLSX` · **v12.09**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · código em `teste` (local) · smoke OK · **sem commit** até Renan pedir |
+| **VERSION alvo loja** | **12.09** (depois de **v12.08** PDV-CACHE-LAPIS se ainda pendente) |
+| **O quê** | Cadastro: **Estoque ↓ / ↑ / Hist. estoque** · filtros da tela (saldo +/−/zero…) · Saldo absoluto **ou** Ajuste +/− (**Ajuste ignora Saldo**) · prévia · desfazer |
+| **Migrate** | **SIM** — `0068_cadastro_planilha_historico_tipo` |
+| **Arquivos** | `cadastro_estoque_planilha_util.py` · `views`/`urls` · `produtos_cadastro_erp.html` · `cadastro_erp_panel.js` `?v=29` · `models` · `cadastro_planilha_util` (ID AGRO) |
+| **Risco loja aberta** | **Médio** — mexe saldo · preferir **Ajuste +/-** · apagar linhas não alteradas |
+| **Teste** | ID AGRO · preview/apply/revert · export filtro negativo · origem `planilha` |
+| **Você** | Ctrl+F5 cadastro · filtro · Estoque ↓ · Ajuste +1 · Estoque ↑ · prévia → Confirmar |
+| **Autorizar** | *pode subir Excel estoque / produção* + **99738595** (depois validar local) |
+
+
 ### 📦 PACOTE PRONTO LOJA — PDV cache lápis (PDV-CACHE-LAPIS · **v12.08**)
 
 | Item | Detalhe |
@@ -3521,6 +3548,8 @@ iews.py (compras enrich) |
 
 #### Agora
 
+> Também pronto: **CAD-ESTOQUE-XLSX** (**v12.09**).
+
 | Quando | O quê |
 | ------ | ----- |
 | **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · custo cadastro na etapa 2 (V. unit 0) |
@@ -3537,6 +3566,7 @@ iews.py (compras enrich) |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | 📦 **pronto para envio à produção** · **v12.09** · migrate `0068` |
 | **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | ✅ **loja v11.98** (lote) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
