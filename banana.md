@@ -1176,16 +1176,22 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · review cuidadosa · `node --check` OK · **sem** push produção |
-| **Branch** | `deploy/pdv-cache-lapis-v12.08` · base `origin/producao` @ **v12.07** |
-| **Por quê** | Lápis PDV gravava no servidor, mas ao fechar o PDV o cache local velho voltava nome/preço |
-| **Inclui** | Ao salvar lápis: grava **shared LS + session + fila completa** · reaplica fila no boot · usa `produto` da resposta do servidor |
-| **Arquivos** | só `pdv_wizard.js` · VERSION · banana |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · review OK · `node --check` OK · push `origin/deploy/pdv-cache-lapis-v12.08` @ **`fd14a10`** |
+| **Branch** | `deploy/pdv-cache-lapis-v12.08` · base loja **v12.07** |
+| **O quê** | Lápis PDV: ao salvar, grava também no cache do PC (fecha/reabre mantém nome/preço) |
+| **Arquivos** | `pdv_wizard.js` · VERSION · banana |
 | **Migrate** | **NÃO** |
-| **Risco loja** | **Baixo** — só persiste o que já salvou no banco; não mexe venda/caixa |
-| **Validar local** | Ctrl+F5 PDV · lápis muda nome/preço · **fecha aba** · reabre PDV · busca produto → deve manter |
-| **Rollback** | `rollback/pre-pdv-cache-lapis-v12.08` no push loja |
-| **Próximo** | Renan valida local · depois frase + **99738595** |
+| **Risco** | **Baixo** — só cache local; banco já gravava |
+| **Validar** | Ctrl+F5 · lápis muda nome/preço · fecha aba · reabre · busca = igual |
+| **Autorizar** | *pode subir PDV cache lápis / produção* + **99738595** |
+| **Rollback** | `rollback/pre-pdv-cache-lapis-v12.08` (criar no push) |
+
+### Deploy loja **v12.07** — PDV lápis não apaga (`PDV-LAPIS` · 30/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · `producao` **`adcb750`** · badge **12.07** |
+| **Rollback** | `rollback/pre-pdv-lapis-v12.07` → v12.06 |
 
 ### Regra Git — push `teste` ao fechar entrega (30/07 · Renan)
 
@@ -1202,18 +1208,7 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · review 2ª passagem OK · asserts PDV+Cadastro · **sem** push produção |
-| **Branch** | `deploy/pdv-lapis-nao-apaga-v12.07` · base `origin/producao` @ **v12.06** |
-| **Por quê** | Lápis PDV ao mudar P.venda **apagava** nome/marca/cat/códigos (sync overlay→Produto com vazio) |
-| **Inclui** | 1) sync: proteção **só** com `pdv_edicao_rapida` (Cadastro modal ainda pode limpar campo) 2) overlay PDV ignora string vazia 3) JS não manda GM/barras vazios |
-| **Arquivos** | `catalogo_agro.py` · `views.py` · `pdv_wizard.js` · VERSION · banana |
-| **NÃO inclui** | DF-e · bug report · etiquetas · merge `teste` · lote corrigir fantasmas |
-| **Migrate** | **NÃO** |
-| **Risco loja aberta** | **Baixo** — só impede wipe no lápis; preço continua; venda/caixa/estoque iguais |
-| **Smoke** | `check` 0 · PDV: wipe simulado → nome/marca ficam · pv=32,50 · Cadastro: marca vazia **ainda limpa** |
-| **Rollback** | `rollback/pre-pdv-lapis-v12.07` (criar no push loja) |
-| **Próximo chat** | pausa · *pode subir PDV lápis / produção* + **99738595** |
-| **Obs** | Produtos **já quebrados** não voltam sozinhos — lote depois |
+| **Status** | ✅ **enviado loja** · ver Deploy v12.07 acima |
 
 ### Deploy loja **v12.03 + v12.04** — Folha+Etq + Entrada NF fin (29/07 · Renan frase+senha)
 
@@ -3417,18 +3412,23 @@ ollback/pre-fl024-picklist-v10.56 @ **c030d07** |
 
 | Quando | O quê |
 | ------ | ----- |
-| **Loja hoje** | **v12.04** (Folha+Etq + Entrada NF fin) — aguardar Live Render |
+| **1º subir** | **PDV-CACHE-LAPIS** — 📦 **PRONTO PARA ENVIO À PRODUÇÃO** · loja **v12.08** · `deploy/pdv-cache-lapis-v12.08` @ `fd14a10` |
+| **Autorizar** | *pode subir PDV cache lápis / produção* + **99738595** |
+| **Loja hoje** | **v12.07** (PDV-LAPIS — não apaga cadastro no lápis) |
+| **✅ Loja v12.07** | PDV-LAPIS |
+| **✅ Loja v12.06** | AJUSTE-MOBILE-CEL |
 | **✅ Loja v12.04** | ENTRADA-NF-FIN |
 | **✅ Loja v12.03** | FOLHA-ETQ |
-| **✅ Loja v12.02** | Cadastro nomes ObjectId |
-| **✅ Loja v12.01** | Busca Cadastro CPU leve |
-| **✅ Loja v11.99** | PDV carrinho itens travados |
-| **✅ Loja v11.98** | lote Pix · Entrada NF UX · Gôndola · Transf · Estoque Vila |
+| **✅ Loja v12.02** | NOMES-OID |
+| **✅ Loja v12.01** | BUSCA-CPU |
+| **Depois** | Lote dry-run fantasmas `[NOME QUEBRADO]` (não sobe código — comando Shell) |
 
 #### Fila aberta (por prioridade)
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
+| **P1** | **PDV-CACHE-LAPIS** | Lápis: cache local mantém nome/preço ao fechar PDV | 📦 **pronto para envio à produção** · **v12.08** · `fd14a10` |
+| **P1** | **PDV-LAPIS** | Lápis não apaga nome/marca/códigos | ✅ **loja v12.07** |
 | **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
 | **P1** | **ENTRADA-NF-FIN** | Religar financeiro NF + busca CP por NF + pg-backup leve | ✅ **loja v12.04** |
 | **P1** | PDV · Pix · **FL-058** | Incluir máquina **Sicredi — Pix** no modal | ✅ **loja v11.98** (lote) |
