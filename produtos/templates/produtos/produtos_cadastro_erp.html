@@ -281,6 +281,9 @@
           <button type="button" id="cadastro-btn-export-xlsx" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-800 shadow-sm shrink-0" title="Baixar catálogo em Excel">Excel ↓</button>
           <button type="button" id="cadastro-btn-import-xlsx" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-emerald-50 text-emerald-900 border-2 border-emerald-500 shadow-sm shrink-0" title="Importar alterações da planilha">Excel ↑</button>
           <button type="button" id="cadastro-btn-import-historico" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-300 shadow-sm shrink-0" title="Ver importações e desfazer">Histórico</button>
+          <button type="button" id="cadastro-btn-estoque-export" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-800 shadow-sm shrink-0" title="Baixar planilha só de estoque (usa filtros da tela)">Estoque ↓</button>
+          <button type="button" id="cadastro-btn-estoque-import" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-blue-50 text-blue-900 border-2 border-blue-500 shadow-sm shrink-0" title="Subir planilha de ajuste de estoque">Estoque ↑</button>
+          <button type="button" id="cadastro-btn-estoque-historico" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-300 shadow-sm shrink-0" title="Histórico de importações de estoque">Hist. estoque</button>
           <div class="relative">
             <button type="button" id="btn-colunas" class="border border-slate-300 px-3 py-2 rounded-xl bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 min-h-[44px]">☰ Colunas</button>
             <div id="menu-colunas" class="hidden absolute right-0 mt-2 z-30 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-3 space-y-2 text-sm text-slate-800">
@@ -529,6 +532,11 @@
     URL_IMPORT_APLICAR: "{% url 'api_produtos_cadastro_import_aplicar' %}",
     URL_IMPORT_HISTORICO: "{% url 'api_produtos_cadastro_import_historico' %}",
     URL_IMPORT_REVERTER: "{% url 'api_produtos_cadastro_import_reverter' %}",
+    URL_ESTOQUE_EXPORT_XLSX: "{% url 'api_produtos_cadastro_estoque_export_xlsx' %}",
+    URL_ESTOQUE_IMPORT_PREVIEW: "{% url 'api_produtos_cadastro_estoque_import_preview' %}",
+    URL_ESTOQUE_IMPORT_APLICAR: "{% url 'api_produtos_cadastro_estoque_import_aplicar' %}",
+    URL_ESTOQUE_IMPORT_HISTORICO: "{% url 'api_produtos_cadastro_estoque_import_historico' %}",
+    URL_ESTOQUE_IMPORT_REVERTER: "{% url 'api_produtos_cadastro_estoque_import_reverter' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
     CADASTRO_ERP_SYNC_HABILITADO: {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %},
     CSRF_TOKEN: "{{ csrf_token|escapejs }}",
@@ -647,6 +655,69 @@
     </div>
   </div>
 
+  <!-- Excel estoque: export -->
+  <div id="cadastro-estoque-export-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
+  <div id="cadastro-estoque-export-modal" class="fixed left-1/2 top-1/2 z-[190] hidden w-[min(96vw,36rem)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-blue-600 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="cadastro-estoque-export-titulo">
+    <div class="px-5 py-4 border-b border-blue-100 bg-blue-50 shrink-0">
+      <h2 id="cadastro-estoque-export-titulo" class="text-lg font-black uppercase text-slate-900">Baixar planilha de estoque</h2>
+      <p class="text-sm font-semibold text-slate-700 mt-1">Usa os <strong>filtros da tela</strong> (saldo +/−/zero, marca, categoria…). Ajuste os filtros e clique em Aplicar antes de baixar.</p>
+    </div>
+    <div class="p-5 overflow-y-auto min-h-0 flex-1 space-y-3">
+      <div id="cadastro-estoque-export-filtros" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800"></div>
+      <p class="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded-xl p-3">Colunas amarelas: Saldo (final) e Ajuste +/−. Com Ajuste preenchido, o Saldo daquela loja é ignorado. «Últ. alt.» e «Quem» são só leitura. Apague linhas que não for mexer.</p>
+    </div>
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
+      <button type="button" id="cadastro-estoque-export-baixar" class="min-h-[48px] px-5 rounded-xl bg-blue-600 text-white font-black uppercase text-sm border-2 border-blue-800">Baixar Estoque</button>
+      <button type="button" id="cadastro-estoque-export-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto">Cancelar</button>
+    </div>
+  </div>
+
+  <!-- Excel estoque: import -->
+  <div id="cadastro-estoque-import-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
+  <div id="cadastro-estoque-import-modal" class="fixed left-1/2 top-1/2 z-[190] hidden w-[min(96vw,42rem)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-blue-600 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="cadastro-estoque-import-titulo">
+    <div class="px-5 py-4 border-b border-blue-100 bg-blue-50 shrink-0">
+      <h2 id="cadastro-estoque-import-titulo" class="text-lg font-black uppercase text-slate-900">Importar estoque Excel</h2>
+      <p class="text-sm font-semibold text-amber-900 mt-2">Mais fácil: deixe o Saldo e digite só o <strong>Ajuste (+/−)</strong> — o sistema ignora o Saldo nesse caso. Ou apague o Ajuste e mude só o Saldo (quantidade final). Célula vazia nos dois = não mexe. Confira a prévia antes de confirmar.</p>
+    </div>
+    <div class="p-5 overflow-y-auto min-h-0 flex-1 space-y-3">
+      <label class="block text-sm font-bold text-slate-700">
+        Arquivo
+        <input type="file" id="cadastro-estoque-import-arquivo" accept=".xlsx,.xls,.csv" class="mt-1 block w-full min-h-[48px] rounded-xl border-2 border-slate-200 px-3 text-sm font-semibold" />
+      </label>
+      <div id="cadastro-estoque-import-progress-wrap" class="hidden rounded-xl border-2 border-blue-300 bg-blue-50 p-4 space-y-2" aria-live="polite">
+        <div class="flex items-center justify-between gap-2">
+          <span id="cadastro-estoque-import-progress-label" class="text-sm font-black uppercase text-blue-900">Enviando arquivo…</span>
+          <span id="cadastro-estoque-import-progress-pct" class="text-xl font-black tabular-nums text-blue-800">0%</span>
+        </div>
+        <div class="h-3 rounded-full bg-blue-100 overflow-hidden">
+          <div id="cadastro-estoque-import-progress-bar" class="h-full bg-blue-600 transition-[width] duration-200 ease-out" style="width:0%"></div>
+        </div>
+        <p id="cadastro-estoque-import-progress-detail" class="text-xs font-semibold text-slate-600"></p>
+      </div>
+      <div id="cadastro-estoque-import-resumo" class="hidden text-sm font-semibold text-slate-700"></div>
+      <div id="cadastro-estoque-import-erros" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3 max-h-32 overflow-y-auto"></div>
+      <div id="cadastro-estoque-import-preview" class="hidden border border-slate-200 rounded-xl overflow-hidden max-h-52 overflow-y-auto text-xs"></div>
+    </div>
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 flex flex-wrap gap-2 shrink-0">
+      <button type="button" id="cadastro-estoque-import-previa" class="min-h-[48px] px-5 rounded-xl bg-slate-700 text-white font-black uppercase text-sm">Ver prévia</button>
+      <button type="button" id="cadastro-estoque-import-aplicar" class="min-h-[48px] px-5 rounded-xl bg-blue-600 text-white font-black uppercase text-sm border-2 border-blue-800 disabled:opacity-40" disabled>Confirmar ajustes</button>
+      <button type="button" id="cadastro-estoque-import-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Excel estoque: histórico -->
+  <div id="cadastro-estoque-hist-back" class="fixed inset-0 z-[180] hidden bg-slate-900/55" aria-hidden="true"></div>
+  <div id="cadastro-estoque-hist-modal" class="fixed left-1/2 top-1/2 z-[190] hidden w-[min(96vw,46rem)] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-slate-400 bg-white shadow-2xl flex flex-col overflow-hidden" role="dialog" aria-labelledby="cadastro-estoque-hist-titulo">
+    <div class="px-5 py-4 border-b border-slate-200 bg-slate-50 shrink-0">
+      <h2 id="cadastro-estoque-hist-titulo" class="text-lg font-black uppercase text-slate-900">Histórico Excel estoque</h2>
+      <p class="text-sm text-slate-600 mt-1"><strong>Desfazer</strong> volta o saldo anterior (cria novo ajuste com o valor de antes).</p>
+    </div>
+    <div id="cadastro-estoque-hist-lista" class="p-5 overflow-y-auto min-h-0 flex-1 space-y-3 text-sm"></div>
+    <div class="px-5 py-4 border-t border-slate-200 bg-slate-50 shrink-0">
+      <button type="button" id="cadastro-estoque-hist-fechar" class="min-h-[48px] px-5 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600 ml-auto block">Fechar</button>
+    </div>
+  </div>
+
   <div id="cad-etq-back" class="fixed inset-0 z-[200] hidden bg-slate-900/55" aria-hidden="true"></div>
   <div id="cad-etq-modal" class="fixed left-1/2 top-1/2 z-[210] hidden w-[min(58vw,28rem)] max-w-[95vw] -translate-x-1/2 -translate-y-1/2 rounded-2xl border-2 border-emerald-600 bg-white p-6 shadow-2xl" role="dialog" aria-labelledby="cad-etq-titulo">
     <h2 id="cad-etq-titulo" class="text-base font-black uppercase text-slate-900">Imprimir etiqueta</h2>
@@ -670,7 +741,7 @@
 
   <script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=3"></script>
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=2"></script>
-  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=28"></script>
+  <script src="{% static 'produtos/js/cadastro_erp_panel.js' %}?v=29"></script>
   <script src="{% static 'produtos/js/cadastro_erp_grupos.js' %}?v=4"></script>
 
 </body>

@@ -858,6 +858,74 @@ def _emit_cnpj_entrada_norm(emit_cnpj: Any) -> str:
     return re.sub(r"\D", "", str(emit_cnpj or ""))[:14]
 
 
+def _upsert_vinculo_entrada_nfe_pg(
+    *,
+    tipo: str,
+    chave: str,
+    produto_id: str,
+    nome_catalogo: str,
+    emit_cnpj: str = "",
+) -> bool:
+    """Grava vínculo no Postgres (fonte da verdade multi-PC)."""
+    chave = str(chave or "").strip()[:120]
+    produto_id = str(produto_id or "").strip()[:64]
+    if not chave or not produto_id or produto_id.lower().startswith("local:"):
+        return False
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNfeVinculoAgro
+
+        obj, _created = EntradaNfeVinculoAgro.objects.update_or_create(
+            tipo=tipo[:16],
+            chave=chave,
+            emit_cnpj=cnpj,
+            defaults={
+                "produto_externo_id": produto_id,
+                "nome_catalogo": str(nome_catalogo or "")[:300],
+            },
+        )
+        return bool(obj and obj.pk)
+    except Exception as exc:
+        logger.warning("_upsert_vinculo_entrada_nfe_pg %s/%s: %s", tipo, chave, exc)
+        return False
+
+
+def _buscar_vinculo_entrada_nfe_pg(
+    *,
+    tipo: str,
+    chave: str,
+    emit_cnpj: str = "",
+) -> dict | None:
+    """Lê vínculo no Postgres (prioridade sobre Mongo)."""
+    chave = str(chave or "").strip()[:120]
+    if not chave:
+        return None
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNfeVinculoAgro
+
+        qs = EntradaNfeVinculoAgro.objects.filter(tipo=tipo, chave=chave)
+        row = None
+        if cnpj:
+            row = qs.filter(emit_cnpj=cnpj).order_by("-atualizado_em").first()
+        if row is None:
+            row = qs.filter(emit_cnpj="").order_by("-atualizado_em").first()
+        if row is None and not cnpj:
+            row = qs.order_by("-atualizado_em").first()
+        if row is None:
+            return None
+        return {
+            "tipo": row.tipo,
+            "chave": row.chave,
+            "emit_cnpj": row.emit_cnpj,
+            "produto_id": row.produto_externo_id,
+            "nome_catalogo": row.nome_catalogo,
+        }
+    except Exception as exc:
+        logger.warning("_buscar_vinculo_entrada_nfe_pg: %s", exc)
+        return None
+
+
 def _upsert_vinculo_entrada_nfe(
     db,
     *,
@@ -867,8 +935,16 @@ def _upsert_vinculo_entrada_nfe(
     nome_catalogo: str,
     emit_cnpj: str = "",
 ) -> bool:
+    """Persiste vínculo: **sempre Postgres**; Mongo só espelho se ``db`` disponível."""
+    ok_pg = _upsert_vinculo_entrada_nfe_pg(
+        tipo=tipo,
+        chave=chave,
+        produto_id=produto_id,
+        nome_catalogo=nome_catalogo,
+        emit_cnpj=emit_cnpj,
+    )
     if db is None or not chave or not produto_id:
-        return False
+        return ok_pg
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
     try:
         db[COL_ENTRADA_VINCULO].update_one(
@@ -882,13 +958,16 @@ def _upsert_vinculo_entrada_nfe(
             },
             upsert=True,
         )
-        return True
     except Exception as exc:
-        logger.warning("_upsert_vinculo_entrada_nfe %s/%s: %s", tipo, chave, exc)
-        return False
+        logger.warning("_upsert_vinculo_entrada_nfe mongo %s/%s: %s", tipo, chave, exc)
+    return ok_pg
 
 
 def _buscar_vinculo_entrada_nfe(db, *, tipo: str, chave: str, emit_cnpj: str = "") -> dict | None:
+    """Prioridade Postgres; fallback Mongo legado."""
+    doc_pg = _buscar_vinculo_entrada_nfe_pg(tipo=tipo, chave=chave, emit_cnpj=emit_cnpj)
+    if doc_pg:
+        return doc_pg
     if db is None or not chave:
         return None
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
@@ -948,9 +1027,7 @@ def resolver_vinculo_historico_entrada_nfe(
     x_prod: str,
     emit_cnpj: str = "",
 ) -> tuple[dict | None, str | None]:
-    """Fallback: vínculos gravados em notas anteriores (cProd fornecedor ou descrição + CNPJ)."""
-    if db is None:
-        return None, None
+    """Fallback: vínculos gravados (Postgres primeiro; Mongo espelho) → doc Mongo ou dict PG."""
     from .mongo_index_codigos import normalizar_c_prod_nf_entrada
 
     cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
@@ -962,9 +1039,13 @@ def resolver_vinculo_historico_entrada_nfe(
         ):
             if doc_v:
                 pid = str(doc_v.get("produto_id") or "").strip()
-                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
-                if doc:
-                    return doc, "vinculo_c_prod"
+                if db is not None:
+                    doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                    if doc:
+                        return doc, "vinculo_c_prod"
+                synth = _produto_dict_pg_por_pid(pid)
+                if synth:
+                    return synth, "vinculo_c_prod"
     xp = normalizar_x_prod_entrada_nfe(x_prod)
     if xp:
         for doc_v in (
@@ -973,10 +1054,218 @@ def resolver_vinculo_historico_entrada_nfe(
         ):
             if doc_v:
                 pid = str(doc_v.get("produto_id") or "").strip()
-                doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
-                if doc:
-                    return doc, "vinculo_desc"
+                if db is not None:
+                    doc = _produto_mongo_por_pid_entrada(db, col_p, pid)
+                    if doc:
+                        return doc, "vinculo_desc"
+                synth = _produto_dict_pg_por_pid(pid)
+                if synth:
+                    return synth, "vinculo_desc"
     return None, None
+
+
+def _produto_pg_por_pid(pid: str):
+    from produtos.models import Produto
+
+    pid = str(pid or "").strip()
+    if not pid or pid.lower().startswith("local:"):
+        return None
+    try:
+        p = Produto.objects.filter(produto_externo_id__iexact=pid).order_by("pk").first()
+        if p:
+            return p
+        if pid.isdigit():
+            return Produto.objects.filter(pk=int(pid)).order_by("pk").first()
+    except Exception as exc:
+        logger.warning("_produto_pg_por_pid %s: %s", pid, exc)
+    return None
+
+
+def _produto_dict_pg_por_pid(pid: str) -> dict | None:
+    """Formato compatível com casar_produtos_mongo (Id/Nome/preço)."""
+    p = _produto_pg_por_pid(pid)
+    if not p:
+        return None
+    pid_out = str(
+        (getattr(p, "produto_externo_id", None) or "").strip()
+        or (getattr(p, "erp_produto_id", None) or "").strip()
+        or p.pk
+    )
+    out: dict[str, Any] = {
+        "Id": pid_out,
+        "_id": pid_out,
+        "Nome": str(p.nome or "")[:300],
+        "CodigoNFe": str(p.codigo_nfe or p.codigo_interno or "")[:64],
+        "Codigo": str(p.codigo_interno or "")[:64],
+        "CodigoBarras": str(p.codigo_barras or "")[:20],
+    }
+    try:
+        if p.preco_venda is not None:
+            out["ValorVenda"] = float(p.preco_venda)
+    except (TypeError, ValueError):
+        pass
+    return out
+
+
+def _produto_pg_por_c_prod_overlay(c_prod: str):
+    from produtos.models import ProdutoGestaoOverlayAgro
+    from .mongo_index_codigos import (
+        _c_prods_nf_de_cadastro_extras,
+        normalizar_c_prod_nf_entrada,
+    )
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if not cp:
+        return None, None
+    try:
+        ov = (
+            ProdutoGestaoOverlayAgro.objects.filter(
+                cadastro_extras__entrada_nfe_c_prods__contains=[cp]
+            )
+            .order_by("pk")
+            .first()
+        )
+        if ov and (ov.produto_externo_id or "").strip():
+            p = _produto_pg_por_pid(ov.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
+        for cand in (
+            ProdutoGestaoOverlayAgro.objects.filter(cadastro_extras__has_key="entrada_nfe_c_prods")
+            .only("produto_externo_id", "cadastro_extras")
+            .order_by("pk")[:400]
+        ):
+            if cp not in _c_prods_nf_de_cadastro_extras(cand.cadastro_extras):
+                continue
+            p = _produto_pg_por_pid(cand.produto_externo_id)
+            if p:
+                return p, "vinculo_c_prod_overlay"
+    except Exception as exc:
+        logger.warning("_produto_pg_por_c_prod_overlay: %s", exc)
+    return None, None
+
+
+def _produto_pg_por_c_prod_rascunho(c_prod: str, *, emit_cnpj: str = ""):
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if not cp:
+        return None, None
+    cnpj = _emit_cnpj_entrada_norm(emit_cnpj)
+    try:
+        from produtos.models import EntradaNotaRascunhoAgro
+    except Exception:
+        return None, None
+    try:
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .order_by("-atualizado_em", "-criado_em")
+            .only("cabecalho", "linhas")[:120]
+        )
+    except Exception as exc:
+        logger.warning("_produto_pg_por_c_prod_rascunho qs: %s", exc)
+        return None, None
+    for r in qs:
+        cab = r.cabecalho if isinstance(r.cabecalho, dict) else {}
+        if cnpj and _emit_cnpj_entrada_norm(cab.get("emit_cnpj")) != cnpj:
+            continue
+        for ln in (r.linhas if isinstance(r.linhas, list) else []):
+            if not isinstance(ln, dict):
+                continue
+            pid = str(ln.get("produto_id") or "").strip()
+            if not entrada_nfe_produto_id_valido(pid):
+                continue
+            cforn = codigo_fornecedor_linha_entrada_nfe(ln)
+            if normalizar_c_prod_nf_entrada(cforn) == cp or normalizar_c_prod_nf_entrada(
+                ln.get("c_prod")
+            ) == cp:
+                p = _produto_pg_por_pid(pid)
+                if p:
+                    return p, "vinculo_c_prod_rascunho"
+    return None, None
+
+
+def resolver_vinculo_historico_entrada_nfe_pg(
+    *,
+    c_prod: str,
+    x_prod: str = "",
+    emit_cnpj: str = "",
+    db=None,
+):
+    """Histórico no caminho Postgres: tabela PG → overlay → rascunhos."""
+    from .mongo_index_codigos import normalizar_c_prod_nf_entrada
+
+    cp = normalizar_c_prod_nf_entrada(c_prod)
+    if cp:
+        doc_v = _buscar_vinculo_entrada_nfe_pg(tipo="c_prod", chave=cp, emit_cnpj=emit_cnpj)
+        if not doc_v:
+            doc_v = _buscar_vinculo_entrada_nfe(db, tipo="c_prod", chave=cp, emit_cnpj=emit_cnpj)
+        if doc_v:
+            p = _produto_pg_por_pid(str(doc_v.get("produto_id") or ""))
+            if p:
+                return p, "vinculo_c_prod"
+        p, mtipo = _produto_pg_por_c_prod_overlay(cp)
+        if p:
+            return p, mtipo
+        p, mtipo = _produto_pg_por_c_prod_rascunho(cp, emit_cnpj=emit_cnpj)
+        if p:
+            return p, mtipo
+    xp = normalizar_x_prod_entrada_nfe(x_prod)
+    if xp:
+        doc_v = _buscar_vinculo_entrada_nfe_pg(tipo="x_prod", chave=xp, emit_cnpj=emit_cnpj)
+        if not doc_v:
+            doc_v = _buscar_vinculo_entrada_nfe(db, tipo="x_prod", chave=xp, emit_cnpj=emit_cnpj)
+        if doc_v:
+            p = _produto_pg_por_pid(str(doc_v.get("produto_id") or ""))
+            if p:
+                return p, "vinculo_desc"
+    return None, None
+
+
+def _enriquecer_item_casado_pg(it: dict, p, mtipo: str | None) -> None:
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    pid = str(
+        (getattr(p, "produto_externo_id", None) or "").strip()
+        or (getattr(p, "erp_produto_id", None) or "").strip()
+        or p.pk
+    )
+    it["produto_id"] = pid
+    it["nome_catalogo"] = str(p.nome or "")[:300]
+    it["match_tipo"] = mtipo or "pg"
+    try:
+        ov2 = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+    except Exception:
+        ov2 = None
+    gm = ""
+    if ov2 and (ov2.codigo_nfe or "").strip():
+        gm = str(ov2.codigo_nfe).strip()
+    elif (p.codigo_nfe or "").strip():
+        gm = str(p.codigo_nfe).strip()
+    elif (p.codigo_interno or "").strip():
+        gm = str(p.codigo_interno).strip()
+    if gm:
+        it["codigo_nfe"] = gm[:64]
+    ean_cat = ""
+    if ov2 and (getattr(ov2, "codigo_barras", None) or "").strip():
+        ean_cat = re.sub(r"\D", "", str(ov2.codigo_barras))[:14]
+    if not ean_cat and (getattr(p, "codigo_barras", None) or "").strip():
+        ean_cat = re.sub(r"\D", "", str(p.codigo_barras))[:14]
+    if len(ean_cat) >= 8:
+        it["codigo_barras_catalogo"] = ean_cat
+        it["ean_catalogo"] = ean_cat
+    pv = None
+    if ov2 and ov2.preco_venda is not None:
+        try:
+            pv = float(ov2.preco_venda)
+        except (TypeError, ValueError):
+            pv = None
+    if pv is None and p.preco_venda is not None:
+        try:
+            pv = float(p.preco_venda)
+        except (TypeError, ValueError):
+            pv = None
+    if pv is not None and pv > 0:
+        it["preco_venda"] = pv
 
 
 def _float_preco_doc_mongo(doc: dict | None) -> float | None:
@@ -1131,8 +1420,9 @@ def casar_produtos_postgres(
     itens: list[dict],
     *,
     emit_cnpj: str = "",
+    db=None,
 ) -> list[dict]:
-    """Casa itens da NF no catálogo Postgres (ERP/Mongo morto)."""
+    """Casa itens da NF no catálogo Postgres + histórico de vínculo (tabela PG)."""
     if not itens:
         return itens
     from django.db.models import Q
@@ -1200,53 +1490,46 @@ def casar_produtos_postgres(
                         )
                         if p:
                             mtipo = "codigo_overlay"
+            if not p:
+                p, mtipo = resolver_vinculo_historico_entrada_nfe_pg(
+                    c_prod=cprod,
+                    x_prod=str(it.get("x_prod") or ""),
+                    emit_cnpj=emit_cnpj,
+                    db=db,
+                )
+                # Cura/grava na tabela PG se veio de overlay/rascunho legado.
+                if p and mtipo in (
+                    "vinculo_c_prod_rascunho",
+                    "vinculo_c_prod_overlay",
+                    "vinculo_c_prod",
+                    "vinculo_desc",
+                ):
+                    try:
+                        pid_heal = str(
+                            (getattr(p, "produto_externo_id", None) or "").strip() or p.pk
+                        )
+                        persistir_vinculos_c_prod_entrada_nfe_linhas(
+                            db,
+                            "DtoProduto",
+                            [
+                                {
+                                    "produto_id": pid_heal,
+                                    "nome_catalogo": str(p.nome or ""),
+                                    "c_prod": cprod,
+                                    "c_prod_fornecedor": cprod,
+                                    "x_prod": str(it.get("x_prod") or ""),
+                                }
+                            ],
+                            emit_cnpj=emit_cnpj,
+                        )
+                    except Exception:
+                        pass
         except Exception as exc:
             logger.warning("casar_produtos_postgres: %s", exc)
             continue
         if not p:
             continue
-        pid = str(
-            (getattr(p, "produto_externo_id", None) or "").strip()
-            or (getattr(p, "erp_produto_id", None) or "").strip()
-            or p.pk
-        )
-        it["produto_id"] = pid
-        it["nome_catalogo"] = str(p.nome or "")[:300]
-        it["match_tipo"] = mtipo or "pg"
-        try:
-            ov2 = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
-        except Exception:
-            ov2 = None
-        gm = ""
-        if ov2 and (ov2.codigo_nfe or "").strip():
-            gm = str(ov2.codigo_nfe).strip()
-        elif (p.codigo_nfe or "").strip():
-            gm = str(p.codigo_nfe).strip()
-        elif (p.codigo_interno or "").strip():
-            gm = str(p.codigo_interno).strip()
-        if gm:
-            it["codigo_nfe"] = gm[:64]
-        ean_cat = ""
-        if ov2 and (getattr(ov2, "codigo_barras", None) or "").strip():
-            ean_cat = re.sub(r"\D", "", str(ov2.codigo_barras))[:14]
-        if not ean_cat and (getattr(p, "codigo_barras", None) or "").strip():
-            ean_cat = re.sub(r"\D", "", str(p.codigo_barras))[:14]
-        if len(ean_cat) >= 8:
-            it["codigo_barras_catalogo"] = ean_cat
-            it["ean_catalogo"] = ean_cat
-        pv = None
-        if ov2 and ov2.preco_venda is not None:
-            try:
-                pv = float(ov2.preco_venda)
-            except (TypeError, ValueError):
-                pv = None
-        if pv is None and p.preco_venda is not None:
-            try:
-                pv = float(p.preco_venda)
-            except (TypeError, ValueError):
-                pv = None
-        if pv is not None and pv > 0:
-            it["preco_venda"] = pv
+        _enriquecer_item_casado_pg(it, p, mtipo)
     return itens
 
 
@@ -1261,7 +1544,7 @@ def casar_produtos_entrada_nfe(
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_mongo_erp_desligado
 
     if agro_mongo_erp_desligado() or agro_catalogo_usa_postgres() or db is None:
-        return casar_produtos_postgres(itens, emit_cnpj=emit_cnpj)
+        return casar_produtos_postgres(itens, emit_cnpj=emit_cnpj, db=db)
     return casar_produtos_mongo(db, col_p, itens, emit_cnpj=emit_cnpj)
 
 
@@ -1273,7 +1556,8 @@ def persistir_vinculos_c_prod_entrada_nfe_linhas(
     emit_cnpj: str = "",
 ) -> int:
     """
-    Grava vínculos cProd/descrição da NF (overlay + coleção histórica) para o próximo parse XML.
+    Grava vínculos cProd/descrição da NF no **Postgres** (``EntradaNfeVinculoAgro``)
+    + overlay; Mongo só espelho se ``db`` disponível. Multi-PC.
     """
     if not linhas:
         return 0

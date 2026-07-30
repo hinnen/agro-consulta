@@ -646,14 +646,20 @@ def _cel_opt_str(val) -> str | None:
 
 
 def _id_produto_planilha_valido(pid: str) -> bool:
-    """ID exportado: ObjectId Mongo (24 hex) ou Id numérico ERP."""
+    """ID exportado: ObjectId Mongo, Id numérico ERP ou id Postgres Agro (AGRO…)."""
     s = str(pid or "").strip()
     if not s or len(s) > 64:
         return False
     low = s.lower()
     if re.fullmatch(r"[0-9a-f]{24}", low):
         return True
-    return bool(s.isdigit() and 1 <= len(s) <= 12)
+    if s.isdigit() and 1 <= len(s) <= 12:
+        return True
+    if re.fullmatch(r"AGRO[0-9A-Fa-f]{8,48}", s):
+        return True
+    if low.startswith("local:") and low[6:].isdigit():
+        return True
+    return False
 
 
 def _id_planilha_resumo(pid: str, max_len: int = 28) -> str:
@@ -1707,9 +1713,10 @@ def _historico_import_resumo_item(item: dict) -> dict:
 
 def listar_historico_import_cadastro(*, limite: int = HISTORICO_IMPORT_LISTA_LIMITE) -> list[dict]:
     out: list[dict] = []
-    qs = CadastroPlanilhaImportHistoricoAgro.objects.select_related("usuario", "revertido_por").order_by(
-        "-criado_em"
-    )[:limite]
+    qs = CadastroPlanilhaImportHistoricoAgro.objects.select_related("usuario", "revertido_por")
+    if hasattr(CadastroPlanilhaImportHistoricoAgro, "tipo"):
+        qs = qs.filter(tipo=CadastroPlanilhaImportHistoricoAgro.Tipo.CADASTRO)
+    qs = qs.order_by("-criado_em")[:limite]
     for h in qs:
         items = (h.backup or {}).get("items") or []
         out.append(
@@ -1736,6 +1743,8 @@ def reverter_importacao_cadastro(historico_id: int, user) -> dict[str, Any]:
     hist = CadastroPlanilhaImportHistoricoAgro.objects.filter(pk=historico_id).first()
     if not hist:
         raise ValueError("Histórico não encontrado.")
+    if getattr(hist, "tipo", "cadastro") == "estoque" or (hist.backup or {}).get("tipo") == "estoque":
+        raise ValueError("Use o histórico de Excel estoque para desfazer esta importação.")
     if hist.status != CadastroPlanilhaImportHistoricoAgro.Status.APLICADO:
         raise ValueError("Esta importação já foi desfeita.")
 
@@ -2019,6 +2028,11 @@ def aplicar_importacao_cadastro(
             n_produtos=ok,
             n_campos=n_campos_total,
             backup={"items": backups, "permitir_novos": bool(permitir_novos)},
+            **(
+                {"tipo": CadastroPlanilhaImportHistoricoAgro.Tipo.CADASTRO}
+                if hasattr(CadastroPlanilhaImportHistoricoAgro, "tipo")
+                else {}
+            ),
         )
 
     if ok:

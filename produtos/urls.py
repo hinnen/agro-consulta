@@ -505,6 +505,31 @@ urlpatterns = [
         views.api_produtos_cadastro_import_reverter,
         name='api_produtos_cadastro_import_reverter',
     ),
+    path(
+        'api/produtos/cadastro/estoque/export-xlsx/',
+        views.api_produtos_cadastro_estoque_export_xlsx,
+        name='api_produtos_cadastro_estoque_export_xlsx',
+    ),
+    path(
+        'api/produtos/cadastro/estoque/import-preview/',
+        views.api_produtos_cadastro_estoque_import_preview,
+        name='api_produtos_cadastro_estoque_import_preview',
+    ),
+    path(
+        'api/produtos/cadastro/estoque/import-aplicar/',
+        views.api_produtos_cadastro_estoque_import_aplicar,
+        name='api_produtos_cadastro_estoque_import_aplicar',
+    ),
+    path(
+        'api/produtos/cadastro/estoque/import-historico/',
+        views.api_produtos_cadastro_estoque_import_historico,
+        name='api_produtos_cadastro_estoque_import_historico',
+    ),
+    path(
+        'api/produtos/cadastro/estoque/import-reverter/',
+        views.api_produtos_cadastro_estoque_import_reverter,
+        name='api_produtos_cadastro_estoque_import_reverter',
+    ),
     path('api/agro/fonte-status/', views.api_agro_fonte_status, name='api_agro_fonte_status'),
     path('api/produtos/gestao/lista/', views.api_produtos_gestao_lista, name='api_produtos_gestao_lista'),
     path('api/produtos/gestao/facetas/', views.api_produtos_gestao_facetas, name='api_produtos_gestao_facetas'),
