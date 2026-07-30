@@ -1668,7 +1668,7 @@ function salvarLembrete() {
         return;
     }
     const lista = obterLembretes();
-    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: new Date().toISOString().slice(0, 10) });
+    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: dataLocalHojeLembrete() });
     salvarListaLembretes(lista);
     textoInput.value = '';
     horaInput.value = '';
@@ -1730,22 +1730,48 @@ function dispensarAlertaLembrete() {
     alertaLembreteAtual = null;
 }
 
+function dataLocalHojeLembrete() {
+    const agora = new Date();
+    return (
+        String(agora.getFullYear()) +
+        '-' +
+        String(agora.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(agora.getDate()).padStart(2, '0')
+    );
+}
+
+function limparLembretesEntregaCaixa(nomeCliente) {
+    const n = String(nomeCliente || '').trim().toLowerCase();
+    const lista = obterLembretes();
+    const filtrada = lista.filter((x) => {
+        if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+        if (!n) return false;
+        const cli = String(x.cliente || '').trim().toLowerCase();
+        if (cli) return cli !== n;
+        return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+    });
+    if (filtrada.length !== lista.length) {
+        salvarListaLembretes(filtrada);
+        renderizarLembretes();
+    }
+}
+window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaCaixa;
+
 function verificarLembretes() {
     const agora = new Date();
-    const hoje = agora.toISOString().slice(0, 10);
+    const hoje = dataLocalHojeLembrete();
     const hh = String(agora.getHours()).padStart(2, '0');
     const mm = String(agora.getMinutes()).padStart(2, '0');
     const horaAtual = `${hh}:${mm}`;
     const lista = obterLembretes();
     let alterou = false;
 
-    lista.forEach(item => {
-        if (item.data !== hoje) {
-            item.data = hoje;
-            item.disparado = false;
-            alterou = true;
-        }
-        if (!item.concluido && !item.disparado && item.hora <= horaAtual) {
+    lista.forEach((item) => {
+        if (item.concluido) return;
+        const dataItem = String(item.data || hoje);
+        if (dataItem !== hoje) return;
+        if (!item.disparado && item.hora <= horaAtual) {
             item.disparado = true;
             alterou = true;
             exibirAlertaLembrete(item);
