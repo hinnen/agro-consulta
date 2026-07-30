@@ -4475,11 +4475,22 @@
             });
     }
 
+    function nomeClienteEntregaPendenteCache(pk) {
+        var itens = entregasPendentesCache.itens || [];
+        for (var i = 0; i < itens.length; i++) {
+            if (Number(itens[i].id) === Number(pk)) {
+                return String(itens[i].cliente_nome || '').trim();
+            }
+        }
+        return '';
+    }
+
     function cancelarEntregaPendente(pk) {
         var motivo = window.prompt('Motivo do cancelamento (opcional):', 'Cancelado no PDV');
         if (motivo === null) return;
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteCancelar, pk);
         if (!url) return;
+        var nomeCli = nomeClienteEntregaPendenteCache(pk) || currentClientName(State.getState());
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         jsonPost(url, { motivo: motivo || 'Cancelado no PDV' })
             .then(function (res) {
@@ -4489,6 +4500,7 @@
                             'Não foi possível cancelar.'
                     );
                 }
+                limparLembretesEntregaWizard(nomeCli);
                 return refreshEntregasPendentesUi(false);
             })
             .then(function () {
@@ -4506,8 +4518,13 @@
     function finalizarEntregaPendenteAposVenda(pendenteId, vendaId) {
         var url = entregaPendenteApiUrl(urls.apiPdvEntregaPendenteFinalizar, pendenteId);
         if (!url) return Promise.resolve({ ok: true, data: { ok: true } });
+        var nomeCli =
+            nomeClienteEntregaPendenteCache(pendenteId) || currentClientName(State.getState());
         return jsonPost(url, { venda_id: vendaId != null ? vendaId : null }).then(function (res) {
-            if (res.ok && res.data && res.data.ok) return res;
+            if (res.ok && res.data && res.data.ok) {
+                limparLembretesEntregaWizard(nomeCli);
+                return res;
+            }
             var msg = String((res.data && (res.data.erro || res.data.mensagem)) || '').trim();
             // Idempotente: retomada dupla ou rede lenta.
             if (
@@ -4515,6 +4532,7 @@
                 msg === 'Entrega pendente não encontrada.' ||
                 (res.data && res.data.ja_fechada)
             ) {
+                limparLembretesEntregaWizard(nomeCli);
                 return { ok: true, data: { ok: true, ja_fechada: true } };
             }
             return res;
@@ -11286,21 +11304,62 @@
         }
     }
 
+    function dataLocalHojeLembrete() {
+        var agora = new Date();
+        return (
+            String(agora.getFullYear()) +
+            '-' +
+            String(agora.getMonth() + 1).padStart(2, '0') +
+            '-' +
+            String(agora.getDate()).padStart(2, '0')
+        );
+    }
+
+    function slugClienteLembreteEntrega(nome) {
+        return String(nome || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')
+            .slice(0, 40);
+    }
+
+    /** Remove só lembretes pdv_wiz_ent_* deste cliente (não apaga outras entregas). */
+    function filtrarForaLembretesEntregaCliente(lista, nomeCliente) {
+        var n = String(nomeCliente || '').trim().toLowerCase();
+        return (lista || []).filter(function (x) {
+            if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+            if (!n) return false;
+            var cli = String(x.cliente || '').trim().toLowerCase();
+            if (cli) return cli !== n;
+            return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+        });
+    }
+
+    /** Apaga lembretes de entrega ao finalizar/entregue/cancelar (não pelo dia). */
+    function limparLembretesEntregaWizard(nomeCliente) {
+        var lista = obterLembretesLocal();
+        var filtrada = filtrarForaLembretesEntregaCliente(lista, nomeCliente);
+        if (filtrada.length !== lista.length) salvarLembretesLocal(filtrada);
+    }
+    window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaWizard;
+
     function verificarLembretesWizardTick() {
         var agora = new Date();
-        var hoje = agora.toISOString().slice(0, 10);
+        var hoje = dataLocalHojeLembrete();
         var hh = String(agora.getHours()).padStart(2, '0');
         var mm = String(agora.getMinutes()).padStart(2, '0');
         var horaAtual = hh + ':' + mm;
         var lista = obterLembretesLocal();
         var alterou = false;
         lista.forEach(function (item) {
-            if (item.data !== hoje) {
-                item.data = hoje;
-                item.disparado = false;
-                alterou = true;
-            }
-            if (!item.concluido && !item.disparado && String(item.hora || '') <= horaAtual) {
+            if (item.concluido) return;
+            var dataItem = String(item.data || hoje);
+            // Só dispara no dia marcado; apagar = entregue/finalizado/cancelado.
+            if (dataItem !== hoje) return;
+            if (!item.disparado && String(item.hora || '') <= horaAtual) {
                 item.disparado = true;
                 alterou = true;
                 exibirAlertaLembreteWizard(item);
@@ -11311,20 +11370,20 @@
 
     function wizardSyncLembretesFromEntregaHorario() {
         var horarioVal = dom.entregaHorario ? dom.entregaHorario.value : '';
-        var lista = obterLembretesLocal().filter(function (x) {
-            return String(x.id || '').indexOf('pdv_wiz_ent_') !== 0;
-        });
+        var nome = currentClientName(State.getState());
+        var lista = filtrarForaLembretesEntregaCliente(obterLembretesLocal(), nome);
         if (!horarioVal) {
             salvarLembretesLocal(lista);
             return;
         }
-        var nome = currentClientName(State.getState());
         var h20 = hhmmMinusMinutes(horarioVal, 20);
-        var d = new Date().toISOString().slice(0, 10);
+        var d = dataLocalHojeLembrete();
+        var slug = slugClienteLembreteEntrega(nome) || 'cli';
         if (h20 && h20 !== horarioVal) {
             lista.push({
-                id: 'pdv_wiz_ent_warn_' + horarioVal,
+                id: 'pdv_wiz_ent_warn_' + slug + '_' + horarioVal,
                 texto: 'Entrega — ' + nome + ' (faltam 20 min)',
+                cliente: nome,
                 hora: h20,
                 disparado: false,
                 data: d,
@@ -11332,8 +11391,9 @@
             });
         }
         lista.push({
-            id: 'pdv_wiz_ent_at_' + horarioVal,
+            id: 'pdv_wiz_ent_at_' + slug + '_' + horarioVal,
             texto: 'Entrega — ' + nome + ' (horário)',
+            cliente: nome,
             hora: horarioVal,
             disparado: false,
             data: d,
