@@ -2887,7 +2887,7 @@ function limparLembretesEntregaCaixa(nomeCliente) {
     });
     if (filtrada.length !== lista.length) {
         salvarListaLembretes(filtrada);
-        renderizarLembretes();
+        if (typeof renderizarLembretes === 'function') renderizarLembretes();
     }
 }
 window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaCaixa;

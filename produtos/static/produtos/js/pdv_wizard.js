@@ -11320,17 +11320,33 @@
         );
     }
 
-    /** Apaga lembretes de entrega ao finalizar/entregue/cancelar (não pelo dia). */
-    function limparLembretesEntregaWizard(nomeCliente) {
+    function slugClienteLembreteEntrega(nome) {
+        return String(nome || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')
+            .slice(0, 40);
+    }
+
+    /** Remove só lembretes pdv_wiz_ent_* deste cliente (não apaga outras entregas). */
+    function filtrarForaLembretesEntregaCliente(lista, nomeCliente) {
         var n = String(nomeCliente || '').trim().toLowerCase();
-        var lista = obterLembretesLocal();
-        var filtrada = lista.filter(function (x) {
+        return (lista || []).filter(function (x) {
             if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
             if (!n) return false;
             var cli = String(x.cliente || '').trim().toLowerCase();
             if (cli) return cli !== n;
             return String(x.texto || '').toLowerCase().indexOf(n) === -1;
         });
+    }
+
+    /** Apaga lembretes de entrega ao finalizar/entregue/cancelar (não pelo dia). */
+    function limparLembretesEntregaWizard(nomeCliente) {
+        var lista = obterLembretesLocal();
+        var filtrada = filtrarForaLembretesEntregaCliente(lista, nomeCliente);
         if (filtrada.length !== lista.length) salvarLembretesLocal(filtrada);
     }
     window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaWizard;
@@ -11359,19 +11375,18 @@
 
     function wizardSyncLembretesFromEntregaHorario() {
         var horarioVal = dom.entregaHorario ? dom.entregaHorario.value : '';
-        var lista = obterLembretesLocal().filter(function (x) {
-            return String(x.id || '').indexOf('pdv_wiz_ent_') !== 0;
-        });
+        var nome = currentClientName(State.getState());
+        var lista = filtrarForaLembretesEntregaCliente(obterLembretesLocal(), nome);
         if (!horarioVal) {
             salvarLembretesLocal(lista);
             return;
         }
-        var nome = currentClientName(State.getState());
         var h20 = hhmmMinusMinutes(horarioVal, 20);
         var d = dataLocalHojeLembrete();
+        var slug = slugClienteLembreteEntrega(nome) || 'cli';
         if (h20 && h20 !== horarioVal) {
             lista.push({
-                id: 'pdv_wiz_ent_warn_' + horarioVal,
+                id: 'pdv_wiz_ent_warn_' + slug + '_' + horarioVal,
                 texto: 'Entrega — ' + nome + ' (faltam 20 min)',
                 cliente: nome,
                 hora: h20,
@@ -11381,7 +11396,7 @@
             });
         }
         lista.push({
-            id: 'pdv_wiz_ent_at_' + horarioVal,
+            id: 'pdv_wiz_ent_at_' + slug + '_' + horarioVal,
             texto: 'Entrega — ' + nome + ' (horário)',
             cliente: nome,
             hora: horarioVal,

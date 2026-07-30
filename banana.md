@@ -1178,6 +1178,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (30/07)
+
+**Loja hoje:** **v12.07**. Autorizar: frase + **99738595** na mesma mensagem.
+
+| Ordem | Pacote | VERSION | O quê | Migrate |
+| ----- | ------ | ------- | ----- | ------- |
+| 1 | **PDV-CACHE-LAPIS** | **12.08** | Lápis PDV não perde cache | Não |
+| 2 | **CAD-ESTOQUE-XLSX** | **12.09** | Excel estoque no Cadastro | **0068** |
+| 3 | **ENTRADA-NF-VINCULO** | **12.10** | Vínculo XML Postgres multi-PC | **0069** |
+| 4 | **AJUSTE-MOBILE-SOMAR** | **12.11** | Somar/Trocar + catálogo celular | Não |
+| 5 | **PDV-LEMBRETE-ENTREGA** | **12.12** | Lembrete some ao entregue/finalizar | Não |
+| 6 | **ENTRADA-NF-CUSTO** | **12.06** | V. unit custo cadastro (se ainda faltar) | Não |
+
+
+### 📦 PACOTE PRONTO LOJA — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · 	este · VERIFY_OK |
+| **Sintoma** | Entrega finalizada ainda avisava no PDV (ex. Kátia) |
+| **Regra** | Apaga ao **entregue / finalizado PDV / cancelado** · dia só evita disparar de novo · sync por cliente |
+| **Arquivos** | pdv_wizard.js · consulta_produtos.js · consulta_produtos_pre_layout_pdv.html · entregas_painel.html |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** |
+| **Você** | Ctrl+F5 PDV · horário → finalizar/entregue → lembrete some |
+| **Autorizar** | *pode subir PDV lembrete / produção* + **99738595** |
+
+
 ### PACOTE PRONTO LOJA — Entrada NF vínculo Postgres (`ENTRADA-NF-VINCULO` · **v12.10**)
 
 | Item | Detalhe |
@@ -1191,16 +1219,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Autorizar** | *pode subir vínculo NF / produção* + **99738595** |
 
 
-### 🐛 Fix — Lembrete entrega repete no dia seguinte (30/07 · Kátia Freitas)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Entrega já finalizada · PDV ainda mostra «Lembrete do caixa — Entrega — …» |
-| **Causa** | Lembrete no `localStorage` do PDV reiniciava todo dia; não apagava ao finalizar |
-| **Regra certa** | **Apagar** ao **entregue / finalizado / cancelado** (PDV + painel `/entregas/`) · dia só evita disparar de novo |
-| **Arquivos** | `pdv_wizard.js` · `consulta_produtos.js` · `consulta_produtos_pre_layout_pdv.html` · `entregas_painel.html` |
-| **Alívio agora (loja sem deploy)** | Lembretes do caixa → marcar feito · ou `localStorage.removeItem('gmLembretesCaixa')` |
-| **Você** | Ctrl+F5 · finalizar/entregue → lembrete some |
+### 🐛 Fix — Lembrete entrega (30/07) → ver pacote **PDV-LEMBRETE-ENTREGA** v12.12 acima
 
 
 ### 📦 PACOTE PRONTO LOJA — Excel estoque Cadastro (`CAD-ESTOQUE-XLSX` · **v12.09**)
@@ -3596,12 +3615,13 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **📦 Pronto envio** | **AJUSTE-MOBILE-SOMAR** · **v12.11** · Somar/Trocar + catálogo vazio · só `mobile_ajuste.html` |
-| **📦 Pronto envio** | **ENTRADA-NF-VINCULO** · **v12.10** · vínculo XML no Postgres (multi-PC) · migrate `0069` |
-| **📦 Pronto envio** | **CAD-ESTOQUE-XLSX** · **v12.09** · Excel estoque Cadastro · migrate `0068` |
 | **📦 Pronto envio** | **PDV-CACHE-LAPIS** · **v12.08** · lápis não perde cache |
-| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · V. unit custo cadastro |
-| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE layout · **v12.05** ETQ · **v12.04/03** Folha/Etq |
+| **📦 Pronto envio** | **CAD-ESTOQUE-XLSX** · **v12.09** · Excel estoque Cadastro · migrate `0068` |
+| **📦 Pronto envio** | **ENTRADA-NF-VINCULO** · **v12.10** · vínculo XML PG · migrate `0069` |
+| **📦 Pronto envio** | **AJUSTE-MOBILE-SOMAR** · **v12.11** · Somar/Trocar + catálogo celular |
+| **📦 Pronto envio** | **PDV-LEMBRETE-ENTREGA** · **v12.12** · lembrete some ao entregue/finalizar |
+| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · V. unit custo (se ainda faltar na loja) |
+| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE layout · **v12.05** ETQ |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
 
@@ -3609,7 +3629,8 @@ iews.py (compras enrich) |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular do funcionário | 📦 **pronto para envio à produção** · **v12.11** · VERIFY_OK |
+| **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | 📦 **pronto para envio à produção** · **v12.12** · VERIFY_OK |
+| **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | 📦 **pronto para envio à produção** · **v12.11** |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | 📦 **pronto para envio à produção** · **v12.10** · migrate `0069` |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | 📦 **pronto para envio à produção** · **v12.09** · migrate `0068` |
 | **P1** | **PDV-CACHE-LAPIS** | Lápis PDV não perde cache local | 📦 **pronto para envio à produção** · **v12.08** |
