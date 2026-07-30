@@ -1271,15 +1271,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK local · em `teste` |
-| **Commits teste** | **`767167b`** (Somar/Trocar) → **`f712e00`** (catálogo vazio) |
-| **VERSION alvo loja** | **12.11** (loja hoje **12.07** · sobe depois de 12.08/09/10 se ainda na fila, ou sozinho +0,01 se Renan pedir só este) |
+| **Status** | 📦 **pronto** · **`deploy/ajuste-mobile-somar-v12.11` @ 2c5f66c** (base producao) |
+| **Origem teste** | **`767167b`** + **`f712e00`** (só HTML portado) |
+| **VERSION alvo loja** | **12.11** (depois de 12.08→12.10 na fila) |
 | **Arquivo** | **só** `produtos/templates/produtos/mobile_ajuste.html` |
-| **O quê** | Botões **Somar** (verde) / **Trocar** (laranja) · catálogo vazio: erro + rebaixar · Atualizar baixa lista se CAT 0 · grava cache |
+| **O quê** | Botões **Somar** / **Trocar** · catálogo vazio: erro + rebaixar |
 | **Migrate** | **NÃO** |
-| **Risco loja aberta** | **Baixo** — só tela `/ajuste-mobile/` · zero PDV/caixa/CP |
-| **NÃO incluir** | `dashboard_gerencial.html` (diff CSRF loja ≠ este pacote) · DF-e · merge `teste` inteiro |
-| **Teste local** | `manage.py check` 0 · API catálogo **3266** · busca Equestre ok · HTML: Somar/Trocar + retry catálogo |
+| **Risco loja aberta** | **Baixo** — só `/ajuste-mobile/` · zero PDV/caixa/CP |
 | **Autorizar** | *pode subir Ajuste Mobile Somar / produção* + **99738595** |
 
 ### 🐛 Ajuste Mobile — catálogo 0 no celular do funcionário (30/07)
