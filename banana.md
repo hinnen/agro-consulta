@@ -1253,6 +1253,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
 | **Você** | validar local antes do envio |
 
+### 🐛 Ajuste Mobile — catálogo 0 no celular do funcionário (30/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · loja ainda com código antigo até cherry |
+| **Sintoma** | Link pro Vitor · PIN ok · busca «Equestre» · **CAT 0** · nenhum item |
+| **Causa** | Celular sem cache do PDV · baixada da lista falhou/vazia · tela mostrava «0 itens» sem erro claro |
+| **Fix** | Erro visível + **Tentar baixar de novo** · Atualizar baixa lista se vazia · grava cache após sucesso · timeout maior |
+| **Arquivo** | `mobile_ajuste.html` |
+| **Você** | No celular dele: Ctrl+F5 · se vazio, **Atualizar** ou **Tentar baixar de novo** · Wi‑Fi ajuda na 1ª vez |
+
 ### UX — Ajuste Mobile Somar × Trocar (30/07)
 
 | Item | Detalhe |
