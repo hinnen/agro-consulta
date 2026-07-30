@@ -1178,85 +1178,66 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
-### 📦 CHECKLIST ÚNICO — pronto para envio à produção (30/07 · prep 12:30)
-
-**Loja hoje:** **v12.07** @ `adcb750`. **NÃO** merge `teste` inteiro. **Só** FF das branches `deploy/*` abaixo (base = `producao`).
-
-**Próximo chat (com loja pausada + frase + senha):** subir **na ordem** 1→4. Autorizar: frase + **99738595**.
-
-| Ordem | Pacote | VERSION | Branch deploy | Migrate | Risco PDV/caixa |
-| ----- | ------ | ------- | ------------- | ------- | --------------- |
-| 1 | **PDV-CACHE-LAPIS** | **12.08** | `deploy/pdv-cache-lapis-v12.08` @ **fd14a10** | Não | PDV (lápis) — pausar vendas |
-| 2 | **CAD-ESTOQUE + NF-VINCULO** | **12.10** (inclui 12.09) | `deploy/entrada-nf-vinculo-estoque-xlsx-v12.10` @ **9f60fea** | **0068+0069** | Baixo PDV · Excel estoque **médio** (só Cadastro) |
-| 3 | **AJUSTE-MOBILE-SOMAR** | **12.11** | `deploy/ajuste-mobile-somar-v12.11` @ **2c5f66c** | Não | Zero PDV — só `/ajuste-mobile/` |
-| 4 | **PDV-LEMBRETE-ENTREGA** | **12.12** | `deploy/pdv-lembrete-entrega-v12.12` @ **ffdf13e** | Não | PDV/entregas — pausar vendas |
-
-**FORA da fila:** **ENTRADA-NF-CUSTO** (etiqueta v12.06 obsoleta — loja já **12.07**; overlay custo já na loja; JS `> 0` nunca fechou separado).
-
-**Prova local (30/07):** `manage.py check` 0 · `node --check` pdv_wizard + consulta + cadastro_erp_panel · AST utils OK · branches deploy **não** usam cherry cego do `teste` (PDV divergiu).
-
-**Backup `teste`:** `f896dd6` (código completo) — **não** FF direto em `producao`.
-
-
-### 📦 PACOTE PRONTO LOJA — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
+### ✅ Deploy loja **v12.12** — lote 12.08–12.12 (30/07 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** · branch **`deploy/pdv-lembrete-entrega-v12.12` @ ffdf13e** (base producao) |
-| **Sintoma** | Entrega finalizada ainda avisava no PDV (ex. Kátia) |
-| **Regra** | Apaga ao **entregue / finalizado PDV / cancelado** · dia só evita disparar de novo · sync por cliente |
-| **Arquivos** | pdv_wizard.js · consulta_produtos.js · consulta_produtos_pre_layout_pdv.html · entregas_painel.html |
-| **Migrate** | **NÃO** |
-| **Risco** | **Baixo** (só lembrete) · **pausar vendas** no restart |
-| **Você** | Ctrl+F5 PDV · horário → finalizar/entregue → lembrete some |
-| **Autorizar** | *pode subir PDV lembrete / produção* + **99738595** |
-| **NÃO** | Cherry dos commits do `teste` (PDV divergiu) — usar a branch deploy |
+| **Status** | ✅ **enviado · Live** Render `dep-d9lmqg4s728c739fsgo0` · badge **12.12** |
+| **Base** | loja **v12.07** @ `adcb750` |
+| **Lote** | `deploy/lote-v12.08-12.12-30jul` @ **`9d65e31`** → `producao` (1 restart) |
+| **Inclui** | 12.08 lápis cache · 12.09+12.10 Excel estoque + vínculo NF PG · 12.11 Somar/Trocar · 12.12 lembrete entrega |
+| **Migrate** | **SIM** — `0068` + `0069` (no build Render) |
+| **NÃO inclui** | Dist DF-e · merge `teste` · ENTRADA-NF-CUSTO |
+| **Rollback** | `git push origin rollback/pre-v1212-lote-30jul:producao` (@ **`adcb750`** / v12.07) |
+| **Você agora** | Ctrl+F5 PDVs · badge **12.12** · smoke: lápis preço · lembrete some ao finalizar · Ajuste Somar no celular |
+
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (30/07)
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| 1–4 | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** · ver bloco Deploy acima |
+| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
-### PACOTE PRONTO LOJA — Entrada NF vínculo + Excel estoque (`ENTRADA-NF-VINCULO` + `CAD-ESTOQUE-XLSX` · **v12.10**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto** · **`deploy/entrada-nf-vinculo-estoque-xlsx-v12.10` @ 9f60fea** (conflitos com producao já resolvidos) |
-| **O quê** | (1) Vínculo cProd no Postgres multi-PC · (2) Excel estoque no Cadastro |
-| **Migrate** | **SIM** — `0068` + `0069` no deploy |
-| **Risco** | Vínculo **baixo** · Excel estoque **médio** (saldo) — preferir Ajuste +/- · não mexer PDV venda |
-| **Você** | migrate · Ctrl+F5 Cadastro + Entrada NF · XML 2× |
-| **Autorizar** | *pode subir vínculo NF + Excel estoque / produção* + **99738595** |
-
-
-### 🐛 Fix — Lembrete entrega (30/07) → ver pacote **PDV-LEMBRETE-ENTREGA** v12.12 acima
-
-
-### 📦 PACOTE PRONTO LOJA — Excel estoque Cadastro (`CAD-ESTOQUE-XLSX` · **v12.09**)
+### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **incluso no deploy v12.10** @ **9f60fea** (não sobe sozinho) |
-| **VERSION alvo loja** | sobe como **12.10** junto com vínculo NF |
-| **O quê** | Cadastro: **Estoque ↓ / ↑ / Hist. estoque** · Saldo absoluto **ou** Ajuste +/− · prévia · desfazer |
-| **Migrate** | **0068** (com 0069 no mesmo deploy) |
-| **Risco loja aberta** | **Médio** — mexe saldo · preferir **Ajuste +/-** |
-| **Autorizar** | ver pacote conjunto **v12.10** acima |
+| **Status** | ✅ **enviado loja v12.12** · no lote `9d65e31` |
+| **Branch** | `deploy/pdv-lembrete-entrega-v12.12` @ ffdf13e (incluída no lote) |
 
 
-### 📦 PACOTE PRONTO LOJA — PDV cache lápis (PDV-CACHE-LAPIS · **v12.08**)
+### PACOTE — Entrada NF vínculo + Excel estoque (**v12.10**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO** · `deploy/pdv-cache-lapis-v12.08` @ **fd14a10** (+ banana `b0b34a9`) |
-| **CHECKLIST** | 1º subir · *pode subir PDV cache lápis / produção* + **99738595** |
-| **Loja hoje** | **v12.07** |
-| **NÃO** | Usar `44be6d2` do `teste` (catálogo PDV divergiu) |
+| **Status** | ✅ **enviado loja v12.12** · no lote `9d65e31` · migrate 0068+0069 |
+| **Branch** | `deploy/entrada-nf-vinculo-estoque-xlsx-v12.10` @ 9f60fea |
 
 
-### PACOTE — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · era v12.06)
+### 🐛 Fix — Lembrete entrega (30/07) → ✅ loja v12.12
+
+
+### 📦 PACOTE — Excel estoque Cadastro (**v12.09**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⛔ **FORA da fila 30/07** — loja já **12.07**; `preco_custo_overlay` já em `producao` |
-| **Nota** | Etiqueta v12.06 conflita com AJUSTE-MOBILE-CEL já enviado · não cherry |
-| **Se voltar sintoma** | abrir pacote novo com badge **12.13+** · não reusar 12.06 |
+| **Status** | ✅ **enviado** no lote v12.12 (com vínculo NF) |
+
+
+### 📦 PACOTE — PDV cache lápis (**v12.08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado loja v12.12** · no lote `9d65e31` |
+| **Branch** | `deploy/pdv-cache-lapis-v12.08` @ fd14a10 |
+
+
+### PACOTE — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⛔ **não enviado** (fora da fila) · overlay já na loja antes |
 
 ### Entrada NF — custo cadastro não puxa (29/07)
 
@@ -1267,18 +1248,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
 | **Você** | validar local antes do envio |
 
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Somar+catálogo (`AJUSTE-MOBILE-SOMAR` · **v12.11**)
+### 📦 PACOTE — Ajuste Mobile Somar+catálogo (`AJUSTE-MOBILE-SOMAR` · **v12.11**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · **`deploy/ajuste-mobile-somar-v12.11` @ 2c5f66c** (base producao) |
-| **Origem teste** | **`767167b`** + **`f712e00`** (só HTML portado) |
-| **VERSION alvo loja** | **12.11** (depois de 12.08→12.10 na fila) |
-| **Arquivo** | **só** `produtos/templates/produtos/mobile_ajuste.html` |
-| **O quê** | Botões **Somar** / **Trocar** · catálogo vazio: erro + rebaixar |
-| **Migrate** | **NÃO** |
-| **Risco loja aberta** | **Baixo** — só `/ajuste-mobile/` · zero PDV/caixa/CP |
-| **Autorizar** | *pode subir Ajuste Mobile Somar / produção* + **99738595** |
+| **Status** | ✅ **enviado loja v12.12** · no lote `9d65e31` |
+| **Branch** | `deploy/ajuste-mobile-somar-v12.11` @ 2c5f66c |
+| **Arquivo** | **só** `mobile_ajuste.html` |
 
 ### 🐛 Ajuste Mobile — catálogo 0 no celular do funcionário (30/07)
 
