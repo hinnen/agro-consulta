@@ -16227,9 +16227,26 @@ def api_entrada_nota_dist_dfe(request):
                 }
             )
 
-    if len(cnpj_cfg) == 14 and res.get("ult_nsu"):
+    # Só avança o fio (ultNSU salvo) em 137 (nada novo) ou 138 (com XML).
+    # Em 656 a Receita devolve outro número — gravar isso pulava NSU sem puxar nota.
+    try:
+        c_stat_i = int(res.get("c_stat")) if res.get("c_stat") is not None else None
+    except (TypeError, ValueError):
+        c_stat_i = None
+    ult_salvo = obter_ult_nsu(db, cnpj_cfg) if len(cnpj_cfg) == 14 else ult
+    if len(cnpj_cfg) == 14 and res.get("ult_nsu") and c_stat_i in (137, 138):
         gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
+        ult_salvo = str(res["ult_nsu"]).zfill(15)[:15]
+    elif c_stat_i == 656:
+        res["ult_nsu_sefaz"] = res.get("ult_nsu")
+        res["ult_nsu"] = ult_salvo
+        aviso = (res.get("x_motivo") or res.get("erro") or "").strip()
+        res["x_motivo"] = (
+            f"{aviso} Cursor da loja permanece {ult_salvo.lstrip('0') or '0'} "
+            "(não avançamos no 656)."
+        ).strip()
 
+    res["ult_nsu_salvo"] = ult_salvo
     res["previews"] = previews
     if not res.get("ok") and res.get("erro"):
         return JsonResponse(res, status=502)

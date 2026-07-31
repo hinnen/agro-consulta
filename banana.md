@@ -561,7 +561,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 ### 4.7 Entrada de nota fiscal
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
-- **Dist DF-e (29/07):** certificado = `NFE_DIST_DFE_*` **ou** o mesmo A1 da NFC-e (`NFC_E_*`). Cursor ultNSU no Postgres/SQLite (local **2086**). **Nunca** pular NSU. Caixa de entrada salva = WIP parcial. **XML** se SEFAZ 656.
+- **Dist DF-e (31/07):** certificado = `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor ultNSU no PG — **só avança em 137/138**; **656 não grava** (evita pular NSU). Local parked **2086**. **Nunca** digitar NSU maior «na mão». **XML** se nota ficou pra trás.
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
 - **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
@@ -1312,6 +1312,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | ver pacote **AJUSTE-MOBILE-CEL** |
 | **Você** | Ctrl+F5 no celular · rolar · buscar · 1 contagem · BI «Ajuste» deve sair do BI |
 | **Não** | Usar no PC / abrir pelo shell de abas |
+
+### ðŸ› Dist DF-e — 656 avançava o NSU sem puxar nota (31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Cursor ia 2086→2090 no **656** · sem XML · fio da meada perdido |
+| **Causa** | API gravava `ult_nsu` da resposta SEFAZ em qualquer cStat |
+| **Fix** | Só grava cursor em **137/138** · no **656** mantém o salvo · UI mostra «Cursor loja» |
+| **Local** | Cursor resetado para **2086** |
+| **Você** | Ctrl+F5 · Atualizar status → 2086 · **não** Consultar até passar 1h do 656 · nota atrasada → Ler XML |
 
 ### ðŸ› Dist DF-e — certificado na branch `teste` (30/07)
 

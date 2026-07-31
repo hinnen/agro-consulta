@@ -10580,7 +10580,9 @@
         body: JSON.stringify(ult ? { ult_nsu: ult } : {}),
       });
       const j = await r.json();
-      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">ultNSU: ${j.ult_nsu} · maxNSU: ${j.max_nsu ?? '—'}</div>`;
+      const nsuLoja = j.ult_nsu_salvo || j.ult_nsu;
+      const nsuSefaz = j.ult_nsu_sefaz ? ` · SEFAZ devolveu ${j.ult_nsu_sefaz}` : '';
+      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">Cursor loja (ultNSU): ${nsuLoja} · maxNSU: ${j.max_nsu ?? '—'}${nsuSefaz}</div>`;
       if (Array.isArray(j.previews) && j.previews.length) {
         j.previews.forEach((pv, idx) => {
           const div = document.createElement('div');
