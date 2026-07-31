@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · `7abe5bb` · **v12.49** · espera frase + senha |
 | **O quê** | Botão 🐞 flutuante · Alt+B · print automático · lista F10 Gestão → Bugs · PG |
 | **Safe-zone** | Empurra rodapés (Voltar) · overlay → canto direito · z-index acima do iframe Gestão |
 | **Migrate** | SIM — `produtos.0074` (`BugReportAgro` + `DispositivoLojaAgro`) |
