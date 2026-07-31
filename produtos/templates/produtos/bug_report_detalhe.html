@@ -1,0 +1,77 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Bug #{{ report.pk }} | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-6{% endblock %}
+
+{% block pdv_header %}
+<header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 px-3 py-4 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-red-400">Bug report</p>
+      <h1 class="mt-0.5 text-2xl font-black tracking-tight text-white">#{{ report.pk }}</h1>
+      <p class="mt-1 text-sm text-slate-400">{{ report.criado_em|date:"d/m/Y H:i" }} · v{{ report.versao_app|default:"?" }}</p>
+    </div>
+    <a href="{% url 'bug_reports_lista' %}" class="inline-flex min-h-[44px] items-center rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 hover:border-orange-500">← Lista</a>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="space-y-4">
+  <section class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 sm:p-5">
+    <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
+      <div><dt class="text-[10px] font-black uppercase text-slate-500">Quem</dt><dd class="font-bold text-white">{{ report.usuario_nome|default:"—" }}</dd></div>
+      <div><dt class="text-[10px] font-black uppercase text-slate-500">Computador</dt><dd class="font-bold text-white">{{ report.dispositivo_nome|default:"—" }}</dd></div>
+      <div><dt class="text-[10px] font-black uppercase text-slate-500">Ponto caixa</dt><dd class="text-slate-200">{{ report.ponto_caixa|default:"—" }}</dd></div>
+      <div class="sm:col-span-2"><dt class="text-[10px] font-black uppercase text-slate-500">URL</dt><dd class="text-orange-300 text-xs break-all">{{ report.url_pagina|default:"—" }}</dd></div>
+    </dl>
+  </section>
+  <section class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 sm:p-5 space-y-3">
+    <div>
+      <h2 class="text-[10px] font-black uppercase tracking-wider text-slate-500">O que aconteceu</h2>
+      <p class="mt-1 whitespace-pre-wrap text-base font-medium text-white">{{ report.o_que_aconteceu }}</p>
+    </div>
+    <div>
+      <h2 class="text-[10px] font-black uppercase tracking-wider text-slate-500">O que esperava</h2>
+      <p class="mt-1 whitespace-pre-wrap text-slate-200">{{ report.o_que_esperava|default:"—" }}</p>
+    </div>
+  </section>
+  {% if report.print_base64 %}
+  <section class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 sm:p-5">
+    <h2 class="mb-3 text-[10px] font-black uppercase tracking-wider text-slate-500">Print da tela</h2>
+    <a href="{% url 'bug_report_print' report.pk %}" target="_blank" rel="noopener">
+      <img src="data:{{ report.print_mime|default:'image/jpeg' }};base64,{{ report.print_base64 }}" alt="Print #{{ report.pk }}" class="max-w-full rounded-xl border border-slate-700" />
+    </a>
+  </section>
+  {% endif %}
+  <section class="rounded-2xl border border-slate-700 bg-slate-900/80 p-4 sm:p-5">
+    <h2 class="mb-2 text-[10px] font-black uppercase tracking-wider text-slate-500">Status</h2>
+    <div class="flex flex-wrap gap-2" id="bug-status-btns" data-pk="{{ report.pk }}" data-csrf="{{ csrf_token }}">
+      <button type="button" data-st="novo" class="min-h-[44px] rounded-xl border-2 px-3 py-2 text-xs font-black uppercase {% if report.status == 'novo' %}border-red-400 bg-red-500/20 text-red-200{% else %}border-slate-600 text-slate-300{% endif %}">Novo</button>
+      <button type="button" data-st="visto" class="min-h-[44px] rounded-xl border-2 px-3 py-2 text-xs font-black uppercase {% if report.status == 'visto' %}border-amber-400 bg-amber-500/20 text-amber-200{% else %}border-slate-600 text-slate-300{% endif %}">Visto</button>
+      <button type="button" data-st="feito" class="min-h-[44px] rounded-xl border-2 px-3 py-2 text-xs font-black uppercase {% if report.status == 'feito' %}border-emerald-400 bg-emerald-500/20 text-emerald-200{% else %}border-slate-600 text-slate-300{% endif %}">Feito</button>
+    </div>
+  </section>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('bug-status-btns');
+  if (!box) return;
+  box.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('button[data-st]');
+    if (!btn) return;
+    fetch('/api/bug-report/' + box.getAttribute('data-pk') + '/status/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': box.getAttribute('data-csrf') },
+      body: JSON.stringify({ status: btn.getAttribute('data-st') }),
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.ok) location.reload();
+      else alert((j && j.erro) || 'Falha');
+    }).catch(function () { alert('Falha de rede'); });
+  });
+})();
+</script>
+{% endblock %}

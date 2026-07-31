@@ -12,12 +12,18 @@ from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
+from . import bug_report_views
 
 urlpatterns = [
     # --- PÁGINAS ---
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
+    path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
+    path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),
+    path("gestao/bugs/<int:pk>/print/", bug_report_views.bug_report_print_view, name="bug_report_print"),
+    path("api/bug-report/", bug_report_views.api_bug_report_criar, name="api_bug_report_criar"),
+    path("api/bug-report/<int:pk>/status/", bug_report_views.api_bug_report_status, name="api_bug_report_status"),
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('entregas/', views.entregas_painel_view, name='entregas_painel'),

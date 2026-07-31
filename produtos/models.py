@@ -2308,3 +2308,74 @@ class UsoLojaRetiradaItemAgro(models.Model):
 
     def __str__(self):
         return f"{self.nome_produto[:40]} × {self.quantidade}"
+
+
+class DispositivoLojaAgro(models.Model):
+    """PC/navegador da loja — UUID estável no Chrome + nome amigável."""
+
+    device_id = models.CharField(max_length=64, unique=True, db_index=True)
+    nome = models.CharField(max_length=80, blank=True, default="")
+    ponto_caixa_ultimo = models.CharField(max_length=32, blank=True, default="")
+    user_agent = models.CharField(max_length=400, blank=True, default="")
+    tela = models.CharField(max_length=40, blank=True, default="")
+    ultimo_visto_em = models.DateTimeField(auto_now=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-ultimo_visto_em"]
+        verbose_name = "Dispositivo loja"
+        verbose_name_plural = "Dispositivos loja"
+
+    def __str__(self):
+        rotulo = (self.nome or "").strip() or self.device_id[:8]
+        return f"{rotulo} ({self.device_id[:8]})"
+
+
+class BugReportAgro(models.Model):
+    """Reporte de bug / feedback — online (Postgres)."""
+
+    STATUS_NOVO = "novo"
+    STATUS_VISTO = "visto"
+    STATUS_FEITO = "feito"
+    STATUS_CHOICES = (
+        (STATUS_NOVO, "Novo"),
+        (STATUS_VISTO, "Visto"),
+        (STATUS_FEITO, "Feito"),
+    )
+
+    o_que_aconteceu = models.TextField()
+    o_que_esperava = models.TextField(blank=True, default="")
+    usuario_nome = models.CharField(max_length=120, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="bug_reports_agro",
+    )
+    device_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    dispositivo_nome = models.CharField(max_length=80, blank=True, default="")
+    ponto_caixa = models.CharField(max_length=32, blank=True, default="")
+    url_pagina = models.CharField(max_length=500, blank=True, default="")
+    versao_app = models.CharField(max_length=32, blank=True, default="")
+    user_agent = models.CharField(max_length=400, blank=True, default="")
+    tela = models.CharField(max_length=40, blank=True, default="")
+    print_base64 = models.TextField(blank=True, default="")
+    print_mime = models.CharField(max_length=40, blank=True, default="image/jpeg")
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_NOVO,
+        db_index=True,
+    )
+    notificado_whatsapp = models.BooleanField(default=False)
+    notificado_email = models.BooleanField(default=False)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Bug report"
+        verbose_name_plural = "Bug reports"
+
+    def __str__(self):
+        return f"#{self.pk} {self.usuario_nome or '?'} — {(self.o_que_aconteceu or '')[:40]}"

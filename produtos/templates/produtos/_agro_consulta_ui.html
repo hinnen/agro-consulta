@@ -287,9 +287,15 @@
   }
 </style>
 {% if agro_display_scale_habilitado %}{% include "produtos/_agro_display_scale.html" %}{% endif %}
+<meta name="agro-app-version" content="{{ agro_build.version|default:'' }}">
+{% if user.is_authenticated %}
+<meta name="agro-user-display" content="{{ user.get_full_name|default:user.username }}">
+{% endif %}
+<script>window.AGRO_APP_VERSION = "{{ agro_build.version|default:''|escapejs }}";</script>
+<script src="{% static 'produtos/js/agro_bug_report.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-bug7" defer></script>
 <script src="{% static 'produtos/js/agro_perf_fx.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_tab_economy.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_perf_config.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_dual_window.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+<script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}-bug5"></script>
 {% include "produtos/_agro_open_external.html" %}

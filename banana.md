@@ -1178,15 +1178,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### Bug report — barra Gestão + PDV topbar (31/07 · WIP local teste)
+### Bug report — todos os popups/overlays (31/07 · teste)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | Código na teste · migrate 0074 · sem commit · validar local Ctrl+F5 |
-| **Gestão** | Botão vermelho Bug no rodapé da barra lateral escura |
-| **PDV** | Botão Bug ao lado do ? na topbar (HTML fixo) |
-| **Lista** | F10 → Gestão → Bugs / feedback · /gestao/bugs/ |
-| **Causa sumiço** | Trabalho anterior ficou em branch descartada — refeito na teste |
+| **Status** | Entrega · validar local Ctrl+F5 |
+| **Gestão** | Bug no rodapé da barra lateral |
+| **PDV** | Bug ao lado do ? · Bug na barra do overlay Caixa |
+| **Sempre na frente** | Botão Bug canto inferior esquerdo (fora da Gestão) · **Alt+B** / Ctrl+Shift+B |
+| **Print** | Captura com popup/overlay aberto; some só o UI do Bug |
+| **Lista** | F10 → Gestão → Bugs / feedback · `/gestao/bugs/` |
+| **Migrate** | `0074_bug_report_dispositivo_loja` |
 
 ### ✅ Uso loja — quem levou grade RH (**v12.31** · 31/07)
 
@@ -1206,20 +1208,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | NÃO |
 | **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
 
-### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.23**)
+### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.31**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · espera frase + senha · **v12.31** quem = grade RH |
-| **O quê** | Botão **Uso loja** no PDV · baixa estoque PG · PIN · histórico/estorno · pop quem/motivo |
+| **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
+| **O quê** | Uso loja · quem = grade RH (toque avança) · Outros digita · motivo · PIN · histórico/estorno |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` |
-| **Base** | v12.18–12.24 (inclui autocomplete flutuante) |
+| **Base** | v12.18–12.31 |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.24** |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.31** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
