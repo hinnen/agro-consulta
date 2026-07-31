@@ -29,6 +29,8 @@
   var busy = false;
   var draft = { quem: '', motivo: '', pin: '' };
   var stepName = null; // quem | motivo | pin
+  var hitList = [];
+  var hitSelectionIndex = -1;
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-uso-loja-btn'),
@@ -256,6 +258,8 @@
     dom.hits.classList.add('hidden');
     dom.hits.style.top = '';
     dom.hits.style.bottom = '';
+    hitList = [];
+    hitSelectionIndex = -1;
   }
 
   function positionHits() {
@@ -274,27 +278,54 @@
     dom.hits.style.maxHeight = 'none';
   }
 
+  function syncHitSelection() {
+    if (!dom.hits) return;
+    var rows = dom.hits.querySelectorAll('tbody tr[data-ul-add]');
+    rows.forEach(function (row, i) {
+      row.classList.toggle('ul-hit-selected', i === hitSelectionIndex);
+    });
+    if (hitSelectionIndex >= 0 && rows[hitSelectionIndex]) {
+      try {
+        rows[hitSelectionIndex].scrollIntoView({ block: 'nearest' });
+      } catch (e) {}
+    }
+  }
+
+  function pickHitByIndex(idx) {
+    if (idx < 0 || idx >= hitList.length) return;
+    addProduct(hitList[idx]);
+  }
+
   function renderHits(lista) {
     if (!dom.hits) return;
-    if (!lista || !lista.length) {
+    hitList = Array.isArray(lista) ? lista.slice(0, 50) : [];
+    if (!hitList.length) {
+      hitSelectionIndex = -1;
       dom.hits.innerHTML =
         '<div class="ul-hits-scroll"><p class="text-sm font-semibold text-slate-700 px-2 py-2">Nenhum produto.</p></div>';
       dom.hits.classList.remove('hidden');
       positionHits();
       return;
     }
-    var rows = lista
-      .slice(0, 50)
-      .map(function (p) {
+    if (hitSelectionIndex < 0 || hitSelectionIndex >= hitList.length) {
+      hitSelectionIndex = 0;
+    }
+    var rows = hitList
+      .map(function (p, i) {
         var pid = String(p.id || '').trim();
         var nome = String(p.nome || pid).trim();
         var cod =
           String(p.codigo_gm || p.codigo_nfe || p.codigo || '').trim() || '—';
         var preco = fmtMoney(precoProduto(p));
+        var sel = i === hitSelectionIndex ? ' ul-hit-selected' : '';
         return (
           '<tr data-ul-add="' +
           escapeHtml(pid) +
-          '" tabindex="0" role="option">' +
+          '" data-ul-idx="' +
+          i +
+          '" tabindex="-1" role="option" class="' +
+          sel.trim() +
+          '">' +
           '<td class="ul-td-gm">' +
           escapeHtml(cod) +
           '</td>' +
@@ -331,24 +362,17 @@
       '</tbody></table></div>';
     dom.hits.classList.remove('hidden');
     positionHits();
+    syncHitSelection();
     dom.hits.querySelectorAll('[data-ul-add]').forEach(function (row) {
-      function pick() {
-        var id = row.getAttribute('data-ul-add');
-        var match = null;
-        for (var i = 0; i < lista.length; i++) {
-          if (String(lista[i].id || '') === id) {
-            match = lista[i];
-            break;
-          }
-        }
-        if (match) addProduct(match);
-      }
-      row.addEventListener('click', pick);
-      row.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter' || ev.key === ' ') {
-          ev.preventDefault();
-          pick();
-        }
+      row.addEventListener('click', function () {
+        var i = parseInt(row.getAttribute('data-ul-idx'), 10);
+        if (!isNaN(i)) pickHitByIndex(i);
+      });
+      row.addEventListener('mouseenter', function () {
+        var i = parseInt(row.getAttribute('data-ul-idx'), 10);
+        if (isNaN(i)) return;
+        hitSelectionIndex = i;
+        syncHitSelection();
       });
     });
   }
@@ -791,16 +815,46 @@
   if (dom.busca) {
     dom.busca.addEventListener('input', function () {
       clearTimeout(searchTimer);
+      hitSelectionIndex = -1;
       var q = dom.busca.value;
       searchTimer = setTimeout(function () {
         buscar(q);
       }, 220);
     });
     dom.busca.addEventListener('keydown', function (ev) {
+      var hitsOpen = dom.hits && !dom.hits.classList.contains('hidden') && hitList.length;
+      if (ev.key === 'ArrowDown') {
+        if (!hitsOpen) return;
+        ev.preventDefault();
+        hitSelectionIndex = Math.min(
+          (hitSelectionIndex < 0 ? -1 : hitSelectionIndex) + 1,
+          hitList.length - 1
+        );
+        syncHitSelection();
+        return;
+      }
+      if (ev.key === 'ArrowUp') {
+        if (!hitsOpen) return;
+        ev.preventDefault();
+        hitSelectionIndex = Math.max(hitSelectionIndex - 1, 0);
+        syncHitSelection();
+        return;
+      }
       if (ev.key === 'Enter') {
         ev.preventDefault();
         clearTimeout(searchTimer);
+        if (hitsOpen && hitSelectionIndex >= 0) {
+          pickHitByIndex(hitSelectionIndex);
+          return;
+        }
         buscar(dom.busca.value);
+        return;
+      }
+      if (ev.key === 'Escape') {
+        if (hitsOpen) {
+          ev.preventDefault();
+          hideHits();
+        }
       }
     });
   }
