@@ -867,6 +867,24 @@
       cart.splice(idx, 1);
       renderCart();
     });
+    dom.cart.addEventListener('focusin', function (ev) {
+      var inp = ev.target.closest('[data-ul-qtd]');
+      if (!inp) return;
+      setTimeout(function () {
+        try {
+          inp.select();
+        } catch (e) {}
+      }, 0);
+    });
+    dom.cart.addEventListener('click', function (ev) {
+      var inp = ev.target.closest('[data-ul-qtd]');
+      if (!inp) return;
+      setTimeout(function () {
+        try {
+          inp.select();
+        } catch (e) {}
+      }, 0);
+    });
     dom.cart.addEventListener('change', function (ev) {
       var inp = ev.target.closest('[data-ul-qtd]');
       if (!inp) return;
