@@ -1220,20 +1220,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | NÃO |
 | **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
 
-### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.34**)
+### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.36**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
-| **O quê** | Uso loja · quem grade RH · Enter confirma saída · motivo · PIN · histórico/estorno |
+| **O quê** | Uso loja · quem grade RH · Enter confirma · Voltar nos pops · motivo · PIN · histórico |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` |
-| **Base** | v12.18–12.34 |
+| **Base** | v12.18–12.36 |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.34** |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.36** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
