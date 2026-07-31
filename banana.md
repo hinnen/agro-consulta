@@ -1243,9 +1243,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
 | **Kardex** | Aparece como «Uso loja» / «Estorno uso loja» |
-| **Migrate** | `estoque.0014` + `produtos.0073` |
+| **Migrate** | `estoque.0014` + `produtos.0073` + `0074` + `0075` |
 | **Arquivos** | `uso_loja_util.py` · `views_uso_loja.py` · `pdv_uso_loja.js` · `uso_loja_overlay.html` · topbar PDV |
-| **Testar** | Ctrl+F5 PDV · Uso loja · buscar produto · confirmar PIN · Histórico · estornar · ver aba Estoque do produto |
+| **Testar** | Ctrl+F5 PDV · Uso loja · quem/motivo toque · PIN · Histórico totais · estornar · kardex |
 
 
 ### ✅ Consertar nomes quebrados cadastro (31/07)
