@@ -304,13 +304,51 @@
   #pdv-uso-loja-overlay .ul-hist-row {
     border: 1.5px solid #e2e8f0;
     border-radius: 0.75rem;
-    padding: 0.55rem 0.7rem;
+    padding: 0.4rem 0.55rem;
     background: #fff;
   }
   #pdv-uso-loja-overlay .ul-hist-row.is-estornado {
     opacity: 0.65;
     border-color: #fecaca;
     background: #fef2f2;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row-inner {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.35;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row-main .ul-hist-id {
+    font-weight: 900;
+    color: #0f172a;
+    text-transform: uppercase;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row-main .ul-hist-muted {
+    font-weight: 600;
+    color: #64748b;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row-act {
+    flex: 0 0 auto;
+  }
+  @media (max-width: 40rem) {
+    #pdv-uso-loja-overlay .ul-hist-row-inner {
+      flex-wrap: wrap;
+    }
+    #pdv-uso-loja-overlay .ul-hist-row-main {
+      white-space: normal;
+    }
   }
   #pdv-uso-loja-overlay .ul-hist-totais {
     display: grid;

@@ -837,39 +837,58 @@
                   fmtQtd(it.quantidade)
                 );
               })
-              .join('<br>');
+              .join(' · ');
+            var quem = escapeHtml(r.quem_levou || '—');
+            var motivo = r.motivo_label
+              ? ' · ' + escapeHtml(r.motivo_label)
+              : '';
+            var linha =
+              '#' +
+              r.id +
+              ' · ' +
+              escapeHtml(r.deposito_label || r.deposito) +
+              ' · ' +
+              fmtData(r.criado_em) +
+              ' · Quem: ' +
+              quem +
+              motivo +
+              (itensTxt ? ' · ' + itensTxt : '') +
+              ' · PIN: ' +
+              escapeHtml(r.operador_pin || '—');
+            var titlePlain = linha
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"');
             var est = r.estornado
               ? '<span class="text-[10px] font-black uppercase text-red-700">Estornada</span>'
-              : '<button type="button" class="inline-flex min-h-[2.25rem] items-center rounded-lg border border-amber-300 bg-amber-50 px-2 text-[10px] font-black uppercase text-amber-950" data-ul-estornar="' +
+              : '<button type="button" class="inline-flex min-h-[2.1rem] items-center rounded-lg border border-amber-300 bg-amber-50 px-2 text-[10px] font-black uppercase text-amber-950" data-ul-estornar="' +
                 r.id +
                 '">Estornar</button>';
             return (
               '<div class="ul-hist-row' +
               (r.estornado ? ' is-estornado' : '') +
               '">' +
-              '<div class="flex flex-wrap items-start justify-between gap-2">' +
-              '<div class="min-w-0">' +
-              '<div class="text-xs font-black uppercase text-slate-800">#' +
+              '<div class="ul-hist-row-inner">' +
+              '<div class="ul-hist-row-main" title="' +
+              escapeHtml(titlePlain) +
+              '">' +
+              '<span class="ul-hist-id">#' +
               r.id +
+              '</span>' +
               ' · ' +
               escapeHtml(r.deposito_label || r.deposito) +
               ' · ' +
               fmtData(r.criado_em) +
-              '</div>' +
-              '<div class="mt-0.5 text-sm font-bold text-slate-700">Quem: ' +
-              escapeHtml(r.quem_levou || '—') +
-              (r.motivo_label
-                ? ' · ' + escapeHtml(r.motivo_label)
-                : '') +
-              '</div>' +
-              '<div class="mt-1 text-sm font-semibold text-slate-600 leading-snug">' +
-              itensTxt +
-              '</div>' +
-              '<div class="mt-0.5 text-[11px] font-semibold text-slate-400">PIN: ' +
+              ' · Quem: ' +
+              quem +
+              motivo +
+              (itensTxt ? ' · ' + itensTxt : '') +
+              ' <span class="ul-hist-muted">· PIN: ' +
               escapeHtml(r.operador_pin || '—') +
+              '</span>' +
               '</div>' +
-              '</div>' +
-              '<div class="shrink-0">' +
+              '<div class="ul-hist-row-act">' +
               est +
               '</div>' +
               '</div>' +
