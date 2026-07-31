@@ -450,6 +450,7 @@
     stepName = name;
     if (!dom.stepPop) return;
     dom.stepPop.classList.remove('hidden');
+    dom.stepPop.setAttribute('data-step', name);
     if (dom.bodyQuem) dom.bodyQuem.classList.toggle('hidden', name !== 'quem');
     if (dom.bodyMotivo) dom.bodyMotivo.classList.toggle('hidden', name !== 'motivo');
     if (dom.bodyPin) dom.bodyPin.classList.toggle('hidden', name !== 'pin');
@@ -457,6 +458,8 @@
     var isPin = name === 'pin';
     if (dom.stepPular) {
       dom.stepPular.classList.toggle('hidden', isPin);
+      dom.stepPular.style.display = isPin ? 'none' : '';
+      dom.stepPular.setAttribute('aria-hidden', isPin ? 'true' : 'false');
       if (!isPin) {
         dom.stepPular.innerHTML =
           'Pular <kbd class="ml-1 rounded border border-slate-300 bg-slate-50 px-1 font-mono text-[10px] normal-case tracking-normal">Enter</kbd>';
@@ -464,12 +467,7 @@
     }
     if (dom.stepOk) {
       dom.stepOk.textContent = isPin ? 'Confirmar PIN' : 'Confirmar';
-      if (isPin) {
-        dom.stepOk.classList.remove('flex-[1]');
-        dom.stepOk.style.flex = '1 1 100%';
-      } else {
-        dom.stepOk.style.flex = '';
-      }
+      dom.stepOk.style.flex = isPin ? '1 1 100%' : '';
     }
     if (dom.stepPinErr) {
       dom.stepPinErr.classList.add('hidden');
@@ -498,7 +496,7 @@
     } else if (name === 'pin') {
       if (dom.stepEyebrow) dom.stepEyebrow.textContent = '3 de 3 · obrigatório';
       if (dom.stepTitle) dom.stepTitle.textContent = 'PIN para confirmar';
-      if (dom.stepHint) dom.stepHint.textContent = 'Digite o PIN e confirme a saída';
+      if (dom.stepHint) dom.stepHint.textContent = 'Digite o PIN e confirme a saída — obrigatório';
       if (dom.stepPin) {
         dom.stepPin.value = '';
         try {
@@ -643,6 +641,7 @@
   }
 
   function onStepPular() {
+    if (stepName === 'pin') return;
     if (stepName === 'quem') advanceFromQuem(true);
     else if (stepName === 'motivo') advanceFromMotivo(true);
   }
