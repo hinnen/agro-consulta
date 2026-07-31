@@ -2245,7 +2245,7 @@ class UsoLojaRetiradaAgro(models.Model):
 
     deposito = models.CharField(max_length=20, db_index=True)
     quem_levou = models.CharField(max_length=120)
-    motivo = models.CharField(max_length=40, blank=True, default="")
+    motivo = models.CharField(max_length=120, blank=True, default="")
     operador_pin = models.CharField(max_length=120)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -95,9 +95,15 @@ def confirmar_retirada_uso_loja(
         return None, "Depósito inválido."
     if not itens:
         return None, "Adicione ao menos um produto."
-    mot = (motivo or "").strip().lower()
-    if mot and mot not in MOTIVOS_VALIDOS:
-        return None, "Motivo inválido."
+    mot_raw = (motivo or "").strip()
+    mot_key = mot_raw.lower()
+    if not mot_raw:
+        mot = ""
+    elif mot_key in MOTIVOS_VALIDOS:
+        mot = mot_key
+    else:
+        # Texto livre do «Outros»
+        mot = mot_raw[:120]
     quem = (quem_levou or "").strip() or (operador_label or "").strip()
     if not quem:
         return None, "Informe quem levou ou use o PIN."
@@ -323,7 +329,9 @@ def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
         "deposito_label": rotulo_deposito(r.deposito),
         "quem_levou": r.quem_levou,
         "motivo": r.motivo,
-        "motivo_label": MOTIVO_LABEL.get(r.motivo, "") if r.motivo else "",
+        "motivo_label": (
+            MOTIVO_LABEL.get(r.motivo, r.motivo or "") if r.motivo else ""
+        ),
         "operador_pin": r.operador_pin,
         "criado_em": r.criado_em.isoformat() if r.criado_em else "",
         "estornado": bool(r.estornado),

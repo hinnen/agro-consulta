@@ -554,7 +554,7 @@
     color: #0c4a6e;
   }
   #pdv-uso-loja-step-pop[data-step="quem"]:not([data-quem-outros="1"]) #pdv-uso-loja-step-ok,
-  #pdv-uso-loja-step-pop[data-step="motivo"] #pdv-uso-loja-step-ok {
+  #pdv-uso-loja-step-pop[data-step="motivo"]:not([data-motivo-outros="1"]) #pdv-uso-loja-step-ok {
     display: none !important;
   }
 </style>
@@ -685,6 +685,9 @@
             <button type="button" class="ul-step-motivo-btn" data-motivo="consumo">Consumo interno</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="amostra">Amostra</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="outros">Outros</button>
+          </div>
+          <div id="pdv-uso-loja-step-motivo-outros-wrap" class="hidden px-4 pt-2 pb-1">
+            <input type="text" id="pdv-uso-loja-step-motivo-txt" class="ul-field" placeholder="Descreva o motivo" autocomplete="off" maxlength="120" />
           </div>
         </div>
         <div id="pdv-uso-loja-step-body-pin" class="hidden px-4 pt-3">
