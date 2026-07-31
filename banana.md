@@ -1224,7 +1224,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | NÃO |
 | **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
 
-### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.46**)
+### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.47**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1232,13 +1232,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Uso loja no PDV · quem grade RH · motivo toque avança · Enter confirma · Voltar · hist. em linha · totais custo/venda por loja (Centro azul / Vila laranja) · PIN · estorno · kardex PG |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` + `0074` (cadeia) + `0075` (preços item) |
 | **Prova** | URLs/meta/hist/totais OK · itens com ajuste · motivos alinhados · `{}` → pede PIN |
-| **Base** | v12.18–12.46 |
+| **Base** | v12.18–12.47 |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.46** |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.47** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.46** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.47** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
 | — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
