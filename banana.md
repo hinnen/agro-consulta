@@ -1182,33 +1182,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
-| **O quê** | Na Gestão o 🐞 fica **centrado na barra azul** (não cobre o conteúdo) · PDV sem barra = igual |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Na Gestão o 🐞 fica centrado na barra azul · PDV sem barra = igual |
 | **Migrate** | NÃO |
-| **Commits** | `6905682` (+ docs) |
-| **Prova** | CSS `insideRail` · clique abre form · API criar/lista/status OK · z-index 3637 |
-| **Base loja** | v12.51 (já tem BUG-REPORT) → este é o ajuste fino |
+| **Commits** | `6905682` |
+| **Base loja** | v12.51 (já tem BUG-REPORT) |
 
-### 📦 PACOTE PRONTO LOJA — Uso loja Brinde + F8 Bônus (`PDV-USO-LOJA-BRINDE` · **v12.57**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · migrate `0077` · VERIFY_OK |
-| **O quê** | Motivo **Brinde cliente** → busca cliente cadastrado · grava no PG · F8 aba **Bônus** (no lugar de Métricas) |
-| **Migrate** | SIM — `produtos.0077` (`cliente_brinde` FK) |
-| **Commits** | `8e8c5f4` |
-| **Prova** | Local: migrate OK · `brinde` em MOTIVOS · F8 lista `bonus` |
-| **Base loja** | v12.51+ (uso loja) · ideal após UX v12.55 |
-
-### 📦 PACOTE PRONTO LOJA — Uso loja bip + motivo Outros (`PDV-USO-LOJA-UX` · **v12.55**)
+### 📦 PACOTE PRONTO LOJA — Uso loja bip + Outros (`PDV-USO-LOJA-UX` · **v12.55**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
-| **O quê** | Bip/código adiciona direto na lista · **Outros** no motivo abre campo pra digitar |
-| **Migrate** | SIM — `produtos.0076` (motivo livre até 120) |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Bip adiciona direto na lista · motivo **Outros** com campo livre |
+| **Migrate** | SIM — `produtos.0076` |
 | **Commits** | `b0645b0` · `ecc1adc` |
 | **Base loja** | v12.51 (já tem PDV-USO-LOJA) |
+
+### 📦 PACOTE PRONTO LOJA — Brinde cliente + F8 Bônus (`PDV-USO-LOJA-BRINDE` · **v12.57**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Motivo **Brinde cliente** → busca cliente · grava no PG · F8 aba **Bônus** (sai Métricas) |
+| **Migrate** | SIM — `produtos.0077` |
+| **Commits** | `8e8c5f4` (+ docs `fc61102`) |
+| **Base loja** | v12.51+ · ideal após **PDV-USO-LOJA-UX** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e caixa de entrada (`DFE-INBOX` · **v12.51**)
 
@@ -1333,17 +1331,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.57** · `teste` (brinde + F8 Bônus)  
-**NÃO merge `teste`→`producao`:** diff grande — **só lote cherry**.
+**Teste hoje:** badge **v12.58** · `teste` @ `fc61102`  
+**NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | — | Lote **v12.51** (marca · uso loja · bugs · DF-e) | ✅ **enviado loja v12.51** |
-| 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · sem migrate |
-| 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · migrate `0076` |
-| 3 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · VERIFY_OK · migrate `0077` |
-| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
+| 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
+| 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
+| 3 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
