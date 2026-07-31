@@ -1178,6 +1178,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Dist DF-e caixa de entrada (`DFE-INBOX` · **v12.51**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Buscar notas novas grava XML no PG · Pendentes (antiga→nova) / Concluídas · ~80 · cursor só 137/138 · NFC_E fallback · baixar por chave |
+| **Migrate** | SIM — `produtos.0071` + `0072` (tabelas cursor/documento) |
+| **Commits chave** | `07d9973` · `96629a1` · `cde8d0e` (+ docs banana) |
+| **Prova local** | config OK · 2 pendentes FIFO · status/inbox/detalhe HTTP · trava 656 · cursor 2090 estável |
+| **Loja após deploy** | migrate · Ctrl+F5 Entrada NF→SEFAZ · Buscar **ou** recuperar pelas chaves (Saframil/Astúrias) — local **não** copia pra loja |
+| **NÃO** | Pular NSU · spam Consultar |
+
 ### 📦 PACOTE PRONTO LOJA — Bug report flutuante (`BUG-REPORT` · **v12.49**)
 
 | Item | Detalhe |
@@ -1281,7 +1293,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
 | 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0075` (cadeia via `0074`) |
 | 3 | **BUG-REPORT** | 📦 **pronto para envio à produção** · **v12.49** · VERIFY_OK · migrate `produtos.0074` |
-| — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
+| 4 | **DFE-INBOX** | 📦 **pronto para envio à produção** · **v12.51** · VERIFY_OK · migrate `0071`+`0072` |
+| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
@@ -1402,11 +1415,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | «Buscar notas novas» grava XML no PG · lista Pendentes (antigas primeiro) / Concluídas · limite ~80 |
-| **Cursor** | Só avança em 137/138 · fica em **2090** (fim da fila agora) |
-| **Recuperado** | Saframil 11902 + Astúrias 112549 salvas como pendentes |
-| **Você** | Ctrl+F5 · aba SEFAZ · Pendentes · **Carregar na grade** (mais antiga primeiro) · próximas notas = Buscar quando houver nova |
-| **Não** | Digitar NSU maior · Consultar várias vezes |
+| **Status** | ✅ VERIFY_OK · pacote **DFE-INBOX v12.51** no checklist · aguarda produção |
+| **O quê** | Lista PG · Buscar grava · Pendentes FIFO · cursor 137/138 |
+| **Você** | Produção: frase+senha · depois Buscar/chave na loja |
 
 ### ðŸ› Dist DF-e — 656 avançava o NSU sem puxar nota (31/07)
 
