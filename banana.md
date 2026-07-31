@@ -1180,29 +1180,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
-### 📦 PACOTE — Relatório vendas por marca (**v12.22** · 31/07)
+### 📦 PACOTE PRONTO LOJA — Relatório vendas por marca (`RELAT-VENDAS-MARCA` · **v12.22**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · validar local |
-| **O quê** | Card **Vendas por marca** na Central · ordenar **valor total** ou **quantidade** · Excel ↓ |
-| **Fonte** | `VendaAgro` / itens + marca do cadastro Agro (overlay) / Mongo fallback |
-| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_hub.html` · `relatorios_generico.html` · `relatorios_help_agents.html` · `urls.py` |
-| **Validar** | Ctrl+F5 · BI → Relatórios → Vendas por marca · trocar ordenar · Excel |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Card **Vendas por marca** · ordenar **valor total** / **quantidade** · Excel ↓ · ajuda ? |
+| **Prova** | Totais = vendas por grupo · ordenar valor≠qtd · view/xlsx/hub OK |
+| **Migrate** | NÃO |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
 
-### 📦 PACOTE — PDV Uso loja (**v12.19** · 31/07)
+### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · validar local |
-| **UX** | Após lista → pop quem → pop motivo → pop PIN (Enter/Pular nos opcionais) |
-| **Base** | v12.18 + polish pop-ups etapa 4 |
+| **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
+| **O quê** | Botão **Uso loja** no PDV · baixa estoque PG · PIN · histórico/estorno · pop quem/motivo |
+| **Migrate** | SIM — `estoque.0014` + `produtos.0073` |
+| **Base** | v12.18–12.23 (inclui autocomplete flutuante) |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · validar local · produção só frase+senha |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.23** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou (vazio = dono do PIN) · motivo |
@@ -1235,12 +1236,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | `git push origin rollback/pre-v1212-lote-30jul:producao` (@ **`adcb750`** / v12.07) |
 | **Você agora** | Ctrl+F5 PDVs · badge **12.12** · smoke: lápis preço · lembrete some ao finalizar · Ajuste Somar no celular |
 
-### 📦 CHECKLIST ÚNICO — pronto para envio à produção (30/07)
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| 1–4 | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** · ver bloco Deploy acima |
-| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
+| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
+| 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.23** · migrate `estoque.0014`+`produtos.0073` |
+| — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
