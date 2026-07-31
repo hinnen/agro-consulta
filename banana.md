@@ -1197,13 +1197,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
 | **O quê** | Botão **Uso loja** no PDV · baixa estoque PG · PIN · histórico/estorno · pop quem/motivo |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` |
-| **Base** | v12.18–12.23 (inclui autocomplete flutuante) |
+| **Base** | v12.18–12.24 (inclui autocomplete flutuante) |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.23** |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.24** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou (vazio = dono do PIN) · motivo |
@@ -1242,7 +1242,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.23** · migrate `estoque.0014`+`produtos.0073` |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.24** · migrate `estoque.0014`+`produtos.0073` |
 | — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
