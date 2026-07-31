@@ -424,7 +424,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
 
-**Uso loja (31/07 · v12.18):** botão topbar → overlay (padrão Folha saldo) · saída estoque PG · caixa aberto herda depósito · caixa fechado escolhe Centro/Vila · PIN · histórico/estorno · não mexe no carrinho da venda.
+**Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1178,7 +1178,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### Bug report — barra Gestão + PDV topbar (31/07 · WIP local teste)
 
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | Código na teste · migrate 0074 · sem commit · validar local Ctrl+F5 |
+| **Gestão** | Botão vermelho Bug no rodapé da barra lateral escura |
+| **PDV** | Botão Bug ao lado do ? na topbar (HTML fixo) |
+| **Lista** | F10 → Gestão → Bugs / feedback · /gestao/bugs/ |
+| **Causa sumiço** | Trabalho anterior ficou em branch descartada — refeito na teste |
+
+### ✅ Uso loja — quem levou grade RH (**v12.31** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Pop «Quem levou?» = botões de todos os funcionários ativos (RH) · **Outros** abre campo · toque no nome **avança sozinho** |
+| **API** | `meta` devolve `funcionarios` |
+| **Prova** | Ctrl+F5 PDV · Uso loja · Confirmar saída · ver grade · clicar nome → motivo |
 
 ### 📦 PACOTE PRONTO LOJA — Relatório vendas por marca (`RELAT-VENDAS-MARCA` · **v12.22**)
 
@@ -1194,7 +1210,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
+| **Status** | 📦 **pronto para envio à produção** · espera frase + senha · **v12.31** quem = grade RH |
 | **O quê** | Botão **Uso loja** no PDV · baixa estoque PG · PIN · histórico/estorno · pop quem/motivo |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` |
 | **Base** | v12.18–12.24 (inclui autocomplete flutuante) |
@@ -1206,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.24** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
-| **Opcional** | Quem levou (vazio = dono do PIN) · motivo |
+| **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
 | **Kardex** | Aparece como «Uso loja» / «Estorno uso loja» |
 | **Migrate** | `estoque.0014` + `produtos.0073` |
 | **Arquivos** | `uso_loja_util.py` · `views_uso_loja.py` · `pdv_uso_loja.js` · `uso_loja_overlay.html` · topbar PDV |

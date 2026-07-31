@@ -328,18 +328,26 @@
   }
   #pdv-uso-loja-step-pop .ul-step-panel {
     width: min(28rem, 100%);
+    max-height: min(90dvh, 40rem);
+    display: flex;
+    flex-direction: column;
     border-radius: 1rem;
     border: 3px solid #10b981;
     background: #fff;
     box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
     overflow: hidden;
   }
+  #pdv-uso-loja-step-pop[data-step="quem"] .ul-step-panel {
+    width: min(36rem, 100%);
+  }
   #pdv-uso-loja-step-pop .ul-step-head {
+    flex-shrink: 0;
     padding: 0.85rem 1rem 0.65rem;
     background: linear-gradient(180deg, #ecfdf5, #fff);
     border-bottom: 2px solid #d1fae5;
   }
   #pdv-uso-loja-step-pop .ul-step-actions {
+    flex-shrink: 0;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -371,13 +379,22 @@
   #pdv-uso-loja-step-pop[data-step="pin"] #pdv-uso-loja-step-ok {
     flex: 1 1 100%;
   }
-  #pdv-uso-loja-step-pop .ul-step-motivo-grid {
+  #pdv-uso-loja-step-pop .ul-step-motivo-grid,
+  #pdv-uso-loja-step-pop .ul-step-quem-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.45rem;
     padding: 0.75rem 1rem 0;
   }
-  #pdv-uso-loja-step-pop .ul-step-motivo-btn {
+  #pdv-uso-loja-step-pop .ul-step-quem-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(52dvh, 22rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  #pdv-uso-loja-step-pop .ul-step-motivo-btn,
+  #pdv-uso-loja-step-pop .ul-step-quem-btn {
     min-height: 2.75rem;
     border-radius: 0.75rem;
     border: 2px solid #cbd5e1;
@@ -386,11 +403,17 @@
     font-weight: 800;
     color: #334155;
     cursor: pointer;
+    padding: 0.35rem 0.5rem;
+    line-height: 1.15;
   }
-  #pdv-uso-loja-step-pop .ul-step-motivo-btn.is-on {
+  #pdv-uso-loja-step-pop .ul-step-motivo-btn.is-on,
+  #pdv-uso-loja-step-pop .ul-step-quem-btn.is-on {
     border-color: #0284c7;
     background: #e0f2fe;
     color: #0c4a6e;
+  }
+  #pdv-uso-loja-step-pop[data-step="quem"]:not([data-quem-outros="1"]) #pdv-uso-loja-step-ok {
+    display: none !important;
   }
 </style>
 
@@ -409,7 +432,7 @@
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
           <p>Monte a lista e toque em <strong>Confirmar saída</strong> — depois vêm pop-ups de quem levou, motivo e PIN.</p>
           <p>Com <strong>caixa aberto</strong>, sai do estoque do turno. Com caixa fechado, escolha Centro ou Vila.</p>
-          <p><strong>Quem levou</strong> e <strong>motivo</strong> são opcionais (Enter ou Pular). PIN é o último passo.</p>
+          <p><strong>Quem levou</strong>: toque o funcionário (avança sozinho) ou <strong>Outros</strong> para digitar. Motivo opcional. PIN no final.</p>
           <p>No <strong>Histórico</strong> dá para estornar (devolve o estoque).</p>
         </div>
       </details>
@@ -476,8 +499,13 @@
           <h3 id="pdv-uso-loja-step-title" class="text-lg font-black uppercase text-slate-900">Quem levou?</h3>
           <p id="pdv-uso-loja-step-hint" class="mt-0.5 text-sm font-semibold text-slate-500">Opcional — Enter pula</p>
         </div>
-        <div id="pdv-uso-loja-step-body-quem" class="hidden px-4 pt-3">
-          <input type="text" id="pdv-uso-loja-step-quem" class="ul-field" placeholder="Nome de quem levou" autocomplete="off" />
+        <div id="pdv-uso-loja-step-body-quem" class="hidden min-h-0 flex flex-col">
+          <div class="ul-step-quem-scroll">
+            <div class="ul-step-quem-grid" id="pdv-uso-loja-step-quem-grid" role="group" aria-label="Quem levou"></div>
+          </div>
+          <div id="pdv-uso-loja-step-quem-outros-wrap" class="hidden px-4 pt-2 pb-1">
+            <input type="text" id="pdv-uso-loja-step-quem" class="ul-field" placeholder="Digite o nome" autocomplete="off" />
+          </div>
         </div>
         <div id="pdv-uso-loja-step-body-motivo" class="hidden">
           <div class="ul-step-motivo-grid" id="pdv-uso-loja-step-motivo-grid" role="group" aria-label="Motivo">

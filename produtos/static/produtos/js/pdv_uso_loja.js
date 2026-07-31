@@ -31,6 +31,8 @@
   var stepName = null; // quem | motivo | pin
   var hitList = [];
   var hitSelectionIndex = -1;
+  var funcionarios = [];
+  var quemOutrosMode = false;
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-uso-loja-btn'),
@@ -57,6 +59,8 @@
     bodyMotivo: document.getElementById('pdv-uso-loja-step-body-motivo'),
     bodyPin: document.getElementById('pdv-uso-loja-step-body-pin'),
     stepQuem: document.getElementById('pdv-uso-loja-step-quem'),
+    stepQuemOutrosWrap: document.getElementById('pdv-uso-loja-step-quem-outros-wrap'),
+    quemGrid: document.getElementById('pdv-uso-loja-step-quem-grid'),
     stepPin: document.getElementById('pdv-uso-loja-step-pin'),
     stepPinErr: document.getElementById('pdv-uso-loja-step-pin-err'),
     stepPular: document.getElementById('pdv-uso-loja-step-pular'),
@@ -421,6 +425,8 @@
         if (data && data.ok) {
           deposito = data.deposito === 'vila' ? 'vila' : 'centro';
           depositoTravado = !!data.deposito_travado;
+          funcionarios = Array.isArray(data.funcionarios) ? data.funcionarios : [];
+          renderQuemGrid();
           syncDepBtns();
         }
         if (typeof cb === 'function') cb();
@@ -433,7 +439,11 @@
 
   function hideStepPop() {
     stepName = null;
-    if (dom.stepPop) dom.stepPop.classList.add('hidden');
+    quemOutrosMode = false;
+    if (dom.stepPop) {
+      dom.stepPop.classList.add('hidden');
+      dom.stepPop.removeAttribute('data-quem-outros');
+    }
   }
 
   function syncMotivoBtns() {
@@ -446,11 +456,78 @@
     });
   }
 
+  function renderQuemGrid() {
+    if (!dom.quemGrid) return;
+    var html = funcionarios
+      .map(function (f) {
+        var nome = String((f && f.nome) || '').trim();
+        if (!nome) return '';
+        return (
+          '<button type="button" class="ul-step-quem-btn" data-quem-nome="' +
+          escapeHtml(nome) +
+          '">' +
+          escapeHtml(nome) +
+          '</button>'
+        );
+      })
+      .join('');
+    html +=
+      '<button type="button" class="ul-step-quem-btn" data-quem-outros="1">Outros</button>';
+    if (!funcionarios.length) {
+      html =
+        '<p class="col-span-2 px-1 py-2 text-sm font-semibold text-slate-500">Nenhum funcionário ativo no RH — use Outros ou Pular.</p>' +
+        html;
+    }
+    dom.quemGrid.innerHTML = html;
+    syncQuemBtns();
+  }
+
+  function syncQuemBtns() {
+    if (!dom.quemGrid) return;
+    dom.quemGrid.querySelectorAll('.ul-step-quem-btn').forEach(function (btn) {
+      var isOutros = btn.getAttribute('data-quem-outros') === '1';
+      var on = isOutros
+        ? quemOutrosMode
+        : !quemOutrosMode &&
+          btn.getAttribute('data-quem-nome') === draft.quem;
+      btn.classList.toggle('is-on', on);
+    });
+  }
+
+  function setQuemOutrosMode(on) {
+    quemOutrosMode = !!on;
+    if (dom.stepPop) {
+      if (quemOutrosMode) dom.stepPop.setAttribute('data-quem-outros', '1');
+      else dom.stepPop.removeAttribute('data-quem-outros');
+    }
+    if (dom.stepQuemOutrosWrap) {
+      dom.stepQuemOutrosWrap.classList.toggle('hidden', !quemOutrosMode);
+    }
+    syncQuemBtns();
+    if (quemOutrosMode && dom.stepQuem) {
+      try {
+        dom.stepQuem.focus();
+        dom.stepQuem.select();
+      } catch (e) {}
+    }
+  }
+
+  function pickQuemFuncionario(nome) {
+    draft.quem = String(nome || '').trim();
+    setQuemOutrosMode(false);
+    if (dom.stepQuem) dom.stepQuem.value = '';
+    showStep('motivo');
+  }
+
   function showStep(name) {
     stepName = name;
     if (!dom.stepPop) return;
     dom.stepPop.classList.remove('hidden');
     dom.stepPop.setAttribute('data-step', name);
+    if (name !== 'quem') {
+      quemOutrosMode = false;
+      dom.stepPop.removeAttribute('data-quem-outros');
+    }
     if (dom.bodyQuem) dom.bodyQuem.classList.toggle('hidden', name !== 'quem');
     if (dom.bodyMotivo) dom.bodyMotivo.classList.toggle('hidden', name !== 'motivo');
     if (dom.bodyPin) dom.bodyPin.classList.toggle('hidden', name !== 'pin');
@@ -468,6 +545,10 @@
     if (dom.stepOk) {
       dom.stepOk.textContent = isPin ? 'Confirmar PIN' : 'Confirmar';
       dom.stepOk.style.flex = isPin ? '1 1 100%' : '';
+      dom.stepOk.classList.toggle(
+        'hidden',
+        name === 'quem' && !quemOutrosMode
+      );
     }
     if (dom.stepPinErr) {
       dom.stepPinErr.classList.add('hidden');
@@ -477,18 +558,21 @@
     if (name === 'quem') {
       if (dom.stepEyebrow) dom.stepEyebrow.textContent = '1 de 3 · opcional';
       if (dom.stepTitle) dom.stepTitle.textContent = 'Quem levou?';
-      if (dom.stepHint) dom.stepHint.textContent = 'Em branco = dono do PIN · Enter pula';
-      if (dom.stepQuem) {
-        dom.stepQuem.value = draft.quem || '';
-        try {
-          dom.stepQuem.focus();
-          dom.stepQuem.select();
-        } catch (e) {}
-      }
+      if (dom.stepHint)
+        dom.stepHint.textContent =
+          'Toque o nome (avança) · Outros digita · Enter pula';
+      setQuemOutrosMode(false);
+      if (dom.stepQuem) dom.stepQuem.value = '';
+      if (dom.stepOk) dom.stepOk.classList.add('hidden');
+      renderQuemGrid();
+      try {
+        if (dom.stepPular) dom.stepPular.focus();
+      } catch (e) {}
     } else if (name === 'motivo') {
       if (dom.stepEyebrow) dom.stepEyebrow.textContent = '2 de 3 · opcional';
       if (dom.stepTitle) dom.stepTitle.textContent = 'Motivo?';
       if (dom.stepHint) dom.stepHint.textContent = 'Toque um motivo ou Pular · Enter pula';
+      if (dom.stepOk) dom.stepOk.classList.remove('hidden');
       syncMotivoBtns();
       try {
         if (dom.stepPular) dom.stepPular.focus();
@@ -497,6 +581,7 @@
       if (dom.stepEyebrow) dom.stepEyebrow.textContent = '3 de 3 · obrigatório';
       if (dom.stepTitle) dom.stepTitle.textContent = 'PIN para confirmar';
       if (dom.stepHint) dom.stepHint.textContent = 'Digite o PIN e confirme a saída — obrigatório';
+      if (dom.stepOk) dom.stepOk.classList.remove('hidden');
       if (dom.stepPin) {
         dom.stepPin.value = '';
         try {
@@ -544,7 +629,12 @@
   }
 
   function advanceFromQuem(skip) {
-    draft.quem = skip ? '' : String((dom.stepQuem && dom.stepQuem.value) || '').trim();
+    if (skip) {
+      draft.quem = '';
+    } else if (quemOutrosMode) {
+      draft.quem = String((dom.stepQuem && dom.stepQuem.value) || '').trim();
+    }
+    setQuemOutrosMode(false);
     showStep('motivo');
   }
 
@@ -913,11 +1003,31 @@
       syncMotivoBtns();
     });
   }
+  if (dom.quemGrid) {
+    dom.quemGrid.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('.ul-step-quem-btn');
+      if (!btn) return;
+      if (btn.getAttribute('data-quem-outros') === '1') {
+        draft.quem = '';
+        setQuemOutrosMode(true);
+        if (dom.stepOk) dom.stepOk.classList.remove('hidden');
+        if (dom.stepHint)
+          dom.stepHint.textContent = 'Digite o nome e Confirmar · Enter pula';
+        if (dom.stepQuem) dom.stepQuem.value = '';
+        return;
+      }
+      pickQuemFuncionario(btn.getAttribute('data-quem-nome') || '');
+    });
+  }
   if (dom.stepQuem) {
     dom.stepQuem.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter') {
         ev.preventDefault();
-        onStepPular();
+        if (quemOutrosMode && String(dom.stepQuem.value || '').trim()) {
+          advanceFromQuem(false);
+        } else {
+          onStepPular();
+        }
       }
     });
   }
@@ -936,10 +1046,8 @@
       if (t && (t.id === 'pdv-uso-loja-step-quem' || t.id === 'pdv-uso-loja-step-pin')) {
         return;
       }
-      if (stepName === 'motivo') {
-        ev.preventDefault();
-        onStepPular();
-      }
+      ev.preventDefault();
+      onStepPular();
       return;
     }
     if (ev.key === 'Escape') {

@@ -36,11 +36,25 @@ def _payload(request) -> dict:
 @require_GET
 def api_pdv_uso_loja_meta(request):
     from produtos.pdv_deposito_util import bootstrap_deposito, trava_loja_por_caixa
+    from rh.models import Funcionario
 
     boot = bootstrap_deposito(request)
     trava = trava_loja_por_caixa(request)
     caixa = obter_sessao_caixa_aberta_request(request)
     motivos = [{"value": k, "label": v} for k, v in MOTIVO_LABEL.items()]
+    funcionarios = []
+    qs = (
+        Funcionario.objects.filter(ativo=True)
+        .select_related("cliente_agro", "empresa")
+        .order_by("nome_cache", "id")[:200]
+    )
+    for f in qs:
+        nome = (f.nome_exibicao or "").strip()
+        if not nome:
+            continue
+        ap = (f.apelido_interno or "").strip()
+        label = f"{nome} ({ap})" if ap else nome
+        funcionarios.append({"id": f.pk, "nome": label})
     return JsonResponse(
         {
             "ok": True,
@@ -51,6 +65,7 @@ def api_pdv_uso_loja_meta(request):
             or boot.get("depositoLabel")
             or "Centro",
             "motivos": motivos,
+            "funcionarios": funcionarios,
         }
     )
 
