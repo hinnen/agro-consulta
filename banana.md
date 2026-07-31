@@ -1196,7 +1196,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **enviado loja v12.51** · Live |
 | **O quê** | Botão 🐞 flutuante · Alt+B · print automático · lista F10 Gestão → Bugs · PG |
-| **Safe-zone** | Empurra rodapés (Voltar) · overlay → canto direito · z-index acima do iframe Gestão |
+| **Safe-zone** | Empurra rodapés (Voltar) · overlay → canto direito · **Gestão:** 🐞 centrado na barra azul · PDV sem barra = canto livre |
 | **Migrate** | SIM — `produtos.0074` (`BugReportAgro` + `DispositivoLojaAgro`) |
 | **Prova** | URLs/API criar+status+print+lista OK · form abre no shell · WhatsApp CallMeBot se configurado |
 | **Base** | v12.32–12.49 |
