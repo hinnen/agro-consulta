@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.47** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
 | — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
