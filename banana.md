@@ -1287,14 +1287,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
-| Ordem | Pacote | Status |
-| ----- | ------ | ------ |
-| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
-| 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0075` (cadeia via `0074`) |
-| 3 | **BUG-REPORT** | 📦 **pronto para envio à produção** · **v12.49** · VERIFY_OK · migrate `produtos.0074` |
-| 4 | **DFE-INBOX** | 📦 **pronto para envio à produção** · **v12.51** · VERIFY_OK · migrate `0071`+`0072` |
-| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
+**Loja hoje:** badge **v12.12** · healthz OK · branch `producao` @ `9d65e31`  
+**Teste hoje:** badge **v12.51** · `origin/teste` @ `99eefa4`  
+**NÃO merge `teste`→`producao`:** diff ~283 arquivos (dispenser, catálogo delivery, compras…) — **só lote cherry**.
+
+| Ordem | Pacote | Status | Risco loja aberta |
+| ----- | ------ | ------ | ----------------- |
+| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** | — |
+| 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto** · **v12.22** · VERIFY_OK | Baixo (só Relatórios) |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`0073`+`0075` | Médio (botão PDV; **não** mexe Finalizar se lote limpo) |
+| 3 | **BUG-REPORT** | 📦 **pronto** · **v12.49** · VERIFY_OK · migrate `0074` | Médio-baixo (JS global · safe-zone OK no teste) |
+| 4 | **DFE-INBOX** | 📦 **pronto** · **v12.51** · VERIFY_OK · migrate `0071`+`0072` | Médio (Entrada NF/SEFAZ; PDV venda intacto) |
+| — | ENTRADA-NF-CUSTO | ⛔ fora da fila | — |
+
+#### Prep deploy (31/07 b · assistente) — próximo chat com senha
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fila = 1 lote** | Os 4 pacotes **juntos** → badge loja alvo **v12.51** (1 restart) |
+| **Por quê juntos** | Cadeia migrate: `0071→0072→0073→0074→0075` (+ `estoque.0014`). USO precisa DFE; BUG precisa USO |
+| **Prova local (PC)** | URLs reverse OK · migrates `[X]` no SQLite · VERIFY_OK nos 4 (31/07) · runserver **não** estava no ar nesta sessão |
+| **Branch deploy** | ⏳ montar no chat do deploy: `deploy/lote-v12.22-12.51-31jul` a partir de `origin/producao` (cherry/cirúrgico — patches do `teste` **não** aplicam direto) |
+| **Rollback** | Tag `rollback/pre-v1251-lote-31jul` @ HEAD `producao` **antes** do push |
+| **Loja aberta** | **Pausa vendas** (Zap + rotina §3.2) **antes** do push · migrate no build · Ctrl+F5 · smoke PDV 1 venda |
+| **Frase próxima** | *«pode subir para produção o lote v12.51»* + senha `99738595` **na mesma mensagem** |
+| **Fora** | Kardex v11.68 (já loja) · ENTRADA-NF-CUSTO · merge inteiro `teste` |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
@@ -1808,7 +1825,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸ“¦ **pronto para envio Ã  produÃ§Ã£o** â€” espera frase + senha `99738595` na **mesma mensagem** |
+| **Status** | ✅ **já na loja** (~v10.63+) · **não** entra no lote v12.51 · «pronto» antigo invalidado 31/07 |
 | **Caso** | Venda **#3747** Â· 1 un. ibiuna Â· aba Estoque mostrou saÃ­da **~39,463** (bug em **qualquer** produto com ledger) |
 | **O que Ã©** | Kardex com ledger = Î” `saldo_informado` (nÃ£o Î” camada Mongo) Â· baixa/estorno venda usa snapshot ledger + congela `erp_ref` |
 | **VERSION** | **11.68** Â· commit teste **`fddc5a2`** |
@@ -3709,13 +3726,9 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **📦 Pronto envio** | **PDV-CACHE-LAPIS** · **v12.08** · lápis não perde cache |
-| **📦 Pronto envio** | **CAD-ESTOQUE-XLSX** · **v12.09** · Excel estoque Cadastro · migrate `0068` |
-| **📦 Pronto envio** | **ENTRADA-NF-VINCULO** · **v12.10** · vínculo XML PG · migrate `0069` |
-| **📦 Pronto envio** | **AJUSTE-MOBILE-SOMAR** · **v12.11** · Somar/Trocar + catálogo celular |
-| **📦 Pronto envio** | **PDV-LEMBRETE-ENTREGA** · **v12.12** · lembrete some ao entregue/finalizar |
-| **📦 Pronto envio** | **ENTRADA-NF-CUSTO** · v12.06 · V. unit custo (se ainda faltar na loja) |
-| **✅ Loja** | **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE layout · **v12.05** ETQ |
+| **📦 Pronto envio** | Ver **CHECKLIST ÚNICO** topo (~L1288) — lote **v12.22–12.51** (4 pacotes) |
+| **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
+| **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
 
@@ -3723,18 +3736,22 @@ iews.py (compras enrich) |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | 📦 **pronto para envio à produção** · **v12.12** · VERIFY_OK |
-| **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | 📦 **pronto para envio à produção** · **v12.11** |
-| **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | 📦 **pronto para envio à produção** · **v12.10** · migrate `0069` |
-| **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | 📦 **pronto para envio à produção** · **v12.09** · migrate `0068` |
-| **P1** | **PDV-CACHE-LAPIS** | Lápis PDV não perde cache local | 📦 **pronto para envio à produção** · **v12.08** |
+| **P1** | **RELAT-VENDAS-MARCA** | Vendas por marca (ordenar valor/qtd + Excel) | 📦 **pronto** · **v12.22** · ver CHECKLIST ÚNICO |
+| **P1** | **PDV-USO-LOJA** | Uso loja PDV + PIN + histórico + totais | 📦 **pronto** · **v12.48** · ver CHECKLIST ÚNICO |
+| **P1** | **BUG-REPORT** | Joaninha flutuante + lista Gestão | 📦 **pronto** · **v12.49** · ver CHECKLIST ÚNICO |
+| **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | 📦 **pronto** · **v12.51** · ver CHECKLIST ÚNICO |
+| **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | ✅ **loja v12.12** |
+| **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | ✅ **loja v12.12** |
+| **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | ✅ **loja v12.12** |
+| **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | ✅ **loja v12.12** |
+| **P1** | **PDV-CACHE-LAPIS** | Lápis PDV não perde cache local | ✅ **loja v12.12** |
 | **P1** | **PDV-PIX-SICREDI** | Pix máquina Sicredi no PDV | ✅ **loja v11.98** (lote) |
 | **P1** | **ENTRADA-NF-UX** | Boleto 44→47 + lista Concluída + Nova limpa | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-GONDOLA** | Etiqueta gôndola A4 | ✅ **loja v11.98** (lote · migrate 0067) |
 | **P1** | **TRANSF-FORCADA** | Transferência forçada Vila↔Centro | ✅ **loja v11.98** (lote) |
 | **P1** | **ETQ-BUSCA-FILTROS** | Etiquetas: filtros Folha + manter busca + Adicionar todos | ✅ **loja v12.05** |
 | **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
-| **P1** | **ENTRADA-NF-CUSTO** | Entrada NF: puxar custo cadastrado (V. unit 0) | 📦 **pronto para envio** · v12.06 |
+| **P1** | **ENTRADA-NF-CUSTO** | Entrada NF: puxar custo cadastrado (V. unit 0) | ⛔ **fora da fila** |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
