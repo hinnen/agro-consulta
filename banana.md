@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | Entrega · validar local Ctrl+F5 |
+| **Status** | `teste` **v12.32** · commit `b437d6a` · validar local Ctrl+F5 |
 | **Gestão** | Bug no rodapé da barra lateral |
 | **PDV** | Bug ao lado do ? · Bug na barra do overlay Caixa |
 | **Sempre na frente** | Botão Bug canto inferior esquerdo (fora da Gestão) · **Alt+B** / Ctrl+Shift+B |
