@@ -1178,6 +1178,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Bug 🐞 na barra Gestão (`BUG-FAB-BARRA` · **v12.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Na Gestão o 🐞 fica **centrado na barra azul** (não cobre o conteúdo) · PDV sem barra = igual |
+| **Migrate** | NÃO |
+| **Commits** | `6905682` (+ docs) |
+| **Prova** | CSS `insideRail` · clique abre form · API criar/lista/status OK · z-index 3637 |
+| **Base loja** | v12.51 (já tem BUG-REPORT) → este é o ajuste fino |
+
+### 📦 PACOTE PRONTO LOJA — Uso loja bip + motivo Outros (`PDV-USO-LOJA-UX` · **v12.55**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Bip/código adiciona direto na lista · **Outros** no motivo abre campo pra digitar |
+| **Migrate** | SIM — `produtos.0076` (motivo livre até 120) |
+| **Commits** | `b0645b0` · `ecc1adc` |
+| **Base loja** | v12.51 (já tem PDV-USO-LOJA) |
+
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e caixa de entrada (`DFE-INBOX` · **v12.51**)
 
 | Item | Detalhe |
@@ -1300,31 +1321,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
-**Loja hoje:** badge **v12.51** · healthz OK · Live `dep-d9mbqn8jo6nc73bkhrl0` · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.51** · branch `teste`  
+**Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
+**Teste hoje:** badge **v12.55** · `teste` @ `89dd7fa`  
 **NÃO merge `teste`→`producao`:** diff grande — **só lote cherry**.
 
-| Ordem | Pacote | Status | Risco loja aberta |
-| ----- | ------ | ------ | ----------------- |
-| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** | — |
-| 1 | **RELAT-VENDAS-MARCA** | ✅ **enviado loja v12.51** | — |
-| 2 | **PDV-USO-LOJA** | ✅ **enviado loja v12.51** | — |
-| 3 | **BUG-REPORT** | ✅ **enviado loja v12.51** | — |
-| 4 | **DFE-INBOX** | ✅ **enviado loja v12.51** | — |
-| — | ENTRADA-NF-CUSTO | ⛔ fora da fila | — |
-
-#### Prep deploy (31/07 b) → ✅ enviado
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Fila = 1 lote** | Os 4 pacotes **juntos** → badge loja alvo **v12.51** (1 restart) |
-| **Por quê juntos** | Cadeia migrate: `0071→0072→0073→0074→0075` (+ `estoque.0014`). USO precisa DFE; BUG precisa USO |
-| **Prova local (PC)** | URLs reverse OK · migrates `[X]` no SQLite · VERIFY_OK nos 4 (31/07) · runserver **não** estava no ar nesta sessão |
-| **Branch deploy** | ⏳ montar no chat do deploy: `deploy/lote-v12.22-12.51-31jul` a partir de `origin/producao` (cherry/cirúrgico — patches do `teste` **não** aplicam direto) |
-| **Rollback** | Tag `rollback/pre-v1251-lote-31jul` @ HEAD `producao` **antes** do push |
-| **Loja aberta** | **Pausa vendas** (Zap + rotina §3.2) **antes** do push · migrate no build · Ctrl+F5 · smoke PDV 1 venda |
-| **Frase próxima** | *«pode subir para produção o lote v12.51»* + senha `99738595` **na mesma mensagem** |
-| **Fora** | Kardex v11.68 (já loja) · ENTRADA-NF-CUSTO · merge inteiro `teste` |
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
+| — | Lote **v12.51** (marca · uso loja · bugs · DF-e) | ✅ **enviado loja v12.51** |
+| 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · sem migrate |
+| 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · migrate `0076` |
+| — | ENTRADA-NF-CUSTO / brinde WIP | ⛔ fora da fila |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
