@@ -397,7 +397,65 @@
     });
   }
 
-  function buscar(q) {
+  function onlyDigits(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function pareceBipCodigo(q) {
+    var s = String(q || '').trim();
+    if (!s) return false;
+    var compact = s.replace(/\s/g, '');
+    var d = onlyDigits(compact);
+    // EAN/UPC / código só dígitos (leitor)
+    if (d.length >= 8 && d === compact) return true;
+    return false;
+  }
+
+  function produtoBateCodigo(p, q) {
+    if (!p) return false;
+    var qt = String(q || '').trim().toLowerCase();
+    var qd = onlyDigits(q);
+    var ean = String(p.codigo_barras || p.ean || '').trim();
+    var eanD = onlyDigits(ean);
+    var nfe = String(
+      p.codigo_nfe || p.codigo_gm || p.codigo || p.gm || ''
+    )
+      .trim()
+      .toLowerCase();
+    var id = String(p.id || p.produto_id || '').trim();
+    if (ean && ean.toLowerCase() === qt) return true;
+    if (qd.length >= 8 && eanD && eanD === qd) return true;
+    if (nfe && nfe === qt) return true;
+    if (id && (id === qt || onlyDigits(id) === qd)) return true;
+    return false;
+  }
+
+  function escolherHitBip(lista, q, exactFlag, allowSingle) {
+    if (!lista || !lista.length) return null;
+    if (exactFlag) return lista[0];
+    var i;
+    for (i = 0; i < lista.length; i++) {
+      if (produtoBateCodigo(lista[i], q)) return lista[i];
+    }
+    if (allowSingle && pareceBipCodigo(q) && lista.length === 1) return lista[0];
+    return null;
+  }
+
+  function addProductFromBip(p) {
+    if (!p) return false;
+    addProduct(p);
+    hideHits();
+    if (dom.busca) {
+      dom.busca.value = '';
+      try {
+        dom.busca.focus();
+      } catch (e) {}
+    }
+    return true;
+  }
+
+  function buscar(q, opts) {
+    opts = opts || {};
     var query = String(q || '').trim();
     if (query.length < 1) {
       hideHits();
@@ -418,6 +476,18 @@
           (data && (data.produtos || data.results || data.items)) || [];
         if (!Array.isArray(lista) && data && Array.isArray(data.data)) {
           lista = data.data;
+        }
+        var exact = !!(data && data.exact_barcode_match);
+        var fromEnter = !!opts.fromEnter || !!opts.forceAutoAdd;
+        // Bip: match exato (servidor ou EAN) · no Enter aceita 1 resultado
+        if (exact || pareceBipCodigo(query) || fromEnter) {
+          var hit = escolherHitBip(
+            lista,
+            query,
+            exact,
+            fromEnter || !!opts.forceAutoAdd
+          );
+          if (hit && addProductFromBip(hit)) return;
         }
         renderHits(lista);
       })
@@ -1011,11 +1081,20 @@
       if (ev.key === 'Enter') {
         ev.preventDefault();
         clearTimeout(searchTimer);
+        var qEnter = String(dom.busca.value || '').trim();
         if (hitsOpen && hitSelectionIndex >= 0) {
           pickHitByIndex(hitSelectionIndex);
           return;
         }
-        buscar(dom.busca.value);
+        if (hitsOpen && pareceBipCodigo(qEnter)) {
+          var hitOpen = escolherHitBip(hitList, qEnter, false);
+          if (hitOpen && addProductFromBip(hitOpen)) return;
+          if (hitList.length === 1 && addProductFromBip(hitList[0])) return;
+        }
+        buscar(qEnter, {
+          fromEnter: true,
+          forceAutoAdd: pareceBipCodigo(qEnter),
+        });
         return;
       }
       if (ev.key === 'Escape') {
