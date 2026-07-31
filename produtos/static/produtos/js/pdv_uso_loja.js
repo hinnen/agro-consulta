@@ -563,7 +563,7 @@
       dom.stepOk.style.flex = isPin ? '1 1 100%' : '';
       dom.stepOk.classList.toggle(
         'hidden',
-        name === 'quem' && !quemOutrosMode
+        (name === 'quem' && !quemOutrosMode) || name === 'motivo'
       );
     }
     if (dom.stepPinErr) {
@@ -587,8 +587,9 @@
     } else if (name === 'motivo') {
       if (dom.stepEyebrow) dom.stepEyebrow.textContent = '2 de 3 · opcional';
       if (dom.stepTitle) dom.stepTitle.textContent = 'Motivo?';
-      if (dom.stepHint) dom.stepHint.textContent = 'Toque um motivo ou Pular · Enter pula';
-      if (dom.stepOk) dom.stepOk.classList.remove('hidden');
+      if (dom.stepHint)
+        dom.stepHint.textContent = 'Toque o motivo (avança) · Enter pula';
+      if (dom.stepOk) dom.stepOk.classList.add('hidden');
       syncMotivoBtns();
       try {
         if (dom.stepPular) dom.stepPular.focus();
@@ -1080,6 +1081,7 @@
       if (!btn) return;
       draft.motivo = btn.getAttribute('data-motivo') || '';
       syncMotivoBtns();
+      advanceFromMotivo(false);
     });
   }
   if (dom.quemGrid) {
