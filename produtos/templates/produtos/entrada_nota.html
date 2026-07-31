@@ -1856,13 +1856,20 @@
       </div>
       <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-700" data-nfe-sefaz-lazy="1">Ao abrir esta aba pela primeira vez, o servidor consulta certificado DF-e — pode levar alguns segundos. Use «Atualizar status» quando quiser repetir.</div>
       <div class="flex flex-wrap gap-3 items-end">
-        <label class="block"><span class="text-xs font-black uppercase text-slate-600">ultNSU (opcional)</span>
-          <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[48px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
-        <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Consultar SEFAZ</button>
-        <p class="w-full text-[10px] font-semibold text-slate-500 leading-snug">Regra SEFAZ: mínimo ~60s entre cliques · se não houver nota nova (137) ou já no fim do NSU, aguarde <strong>1 hora</strong> (senão bloqueio 656).</p>
+        <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Buscar notas novas</button>
+        <p class="w-full text-[10px] font-semibold text-slate-500 leading-snug">Lista <strong>salva no banco</strong> (até ~80). Processar as <strong>mais antigas primeiro</strong>. Botão só puxa notas <strong>novas</strong> (pra frente do cursor). Se 656/137 → aguarde 1h.</p>
+        <details class="w-full rounded-xl border border-slate-200 bg-slate-50/80 p-2">
+          <summary class="cursor-pointer text-[10px] font-black uppercase text-slate-600">Avançado · ultNSU</summary>
+          <label class="mt-2 block"><span class="text-[10px] font-black uppercase text-slate-600">ultNSU (opcional)</span>
+            <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
+        </details>
       </div>
       <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 p-4 space-y-2 text-sm"></div>
-      <div id="sefaz-previews" class="space-y-2"></div>
+      <div class="flex flex-wrap gap-2" role="tablist" aria-label="Caixa de entrada DF-e">
+        <button type="button" id="btn-dfe-aba-pendentes" class="dfe-inbox-aba min-h-[40px] px-4 rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-[11px] font-black uppercase" data-aba="pendentes">Pendentes</button>
+        <button type="button" id="btn-dfe-aba-concluidas" class="dfe-inbox-aba min-h-[40px] px-4 rounded-xl border-2 border-slate-300 bg-white text-slate-800 text-[11px] font-black uppercase" data-aba="concluidas">Concluídas</button>
+      </div>
+      <div id="sefaz-previews" class="space-y-2" aria-live="polite"></div>
     </section>
 
       </div>
@@ -2161,6 +2168,9 @@
   const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
   const URL_AUDITORIA_FIN = "{% url 'api_entrada_nota_auditoria_financeiro' %}";
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
+  const URL_DFE_INBOX = "{% url 'api_entrada_nota_dfe_inbox' %}";
+  const URL_DFE_INBOX_DETALHE_TMPL = "{% url 'api_entrada_nota_dfe_inbox_detalhe' doc_id=999999999 %}".replace('999999999', '__ID__');
+  const URL_DFE_INBOX_IGNORAR_TMPL = "{% url 'api_entrada_nota_dfe_inbox_ignorar' doc_id=999999999 %}".replace('999999999', '__ID__');
   const URL_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const URL_BUSCA = "{% url 'api_buscar_mobile' %}";
   const URL_RASC_OBTER = "{% url 'api_entrada_nota_rascunho_obter' %}";
@@ -10681,7 +10691,7 @@
     if (liberado) {
       btn.disabled = false;
       btn.classList.remove('opacity-50', 'cursor-not-allowed');
-      btn.textContent = 'Consultar SEFAZ';
+      btn.textContent = 'Buscar notas novas';
       entradaNfeSefazCooldownAte = 0;
       if (entradaNfeSefazCooldownTimer) {
         clearInterval(entradaNfeSefazCooldownTimer);
@@ -10721,10 +10731,165 @@
     }
   }
 
+  let entradaNfeDfeAba = 'pendentes';
+
+  function entradaNfeDfeSyncAbasUi() {
+    document.querySelectorAll('.dfe-inbox-aba').forEach((b) => {
+      const on = b.getAttribute('data-aba') === entradaNfeDfeAba;
+      b.classList.toggle('bg-emerald-600', on);
+      b.classList.toggle('text-white', on);
+      b.classList.toggle('border-emerald-600', on);
+      b.classList.toggle('bg-white', !on);
+      b.classList.toggle('text-slate-800', !on);
+      b.classList.toggle('border-slate-300', !on);
+    });
+  }
+
+  function entradaNfeDfeUrlId(tmpl, id) {
+    return String(tmpl || '').replace('__ID__', String(id));
+  }
+
+  function entradaNfeDfeAplicarNotaNaGrade(n) {
+    if (!n) return;
+    ultimaNotaParse = n;
+    setEntradaNfeRascunhoEdit(null);
+    entradaNfeExtraUltimo = null;
+    entradaNfeDepositoDefinir('', true);
+    aplicarCabecalho(n);
+    tbodyClear();
+    const incluirSefaz = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
+    (n.itens || []).forEach((it) => {
+      const base = { ...linhaFromItem(it), preservar_custo_nf: true };
+      const calc = entradaNfeCalcularVUnComComRateio(base, n, incluirSefaz);
+      if (calc) {
+        base.v_un_com_base_nf = calc.base;
+        base.v_un_com = calc.unit;
+      }
+      addLinhaRow(base);
+    });
+    entradaNfeEnsureTrailingCompactRow();
+    atualizarPainelTotalNfe();
+    entradaNfeAtualizarUiRateioAcrescimos(n);
+    const finXml = entradaNfeAplicarFinanceiroDoXml(n);
+    const finHint = finXml ? ' Parcelas do XML preenchidas no Financeiro.' : '';
+    showMsg(`Nota carregada na grade (aba manual).${finHint}`, true);
+    document.querySelector('.tab-btn[data-tab="manual"]')?.click();
+  }
+
+  function entradaNfeDfeRenderInbox(itens) {
+    const prevBox = document.getElementById('sefaz-previews');
+    if (!prevBox) return;
+    prevBox.innerHTML = '';
+    const list = Array.isArray(itens) ? itens : [];
+    if (!list.length) {
+      prevBox.innerHTML =
+        '<p class="text-xs font-semibold text-slate-600">'
+        + (entradaNfeDfeAba === 'concluidas'
+          ? 'Nenhuma nota concluída ainda.'
+          : 'Caixa vazia. Use «Buscar notas novas» ou Ler XML.')
+        + '</p>';
+      return;
+    }
+    list.forEach((pv) => {
+      const div = document.createElement('div');
+      div.className = 'rounded-lg border border-slate-200 p-3 bg-slate-50';
+      const valor = Number(pv.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const pode = !!pv.pode_carregar;
+      const statusLbl = String(pv.status || '');
+      let acoes = '';
+      if (entradaNfeDfeAba === 'pendentes') {
+        if (pode) {
+          acoes += `<button type="button" class="mt-2 mr-2 min-h-[40px] px-3 rounded-lg border-2 border-orange-600 bg-orange-500 text-white text-[10px] font-black uppercase btn-dfe-carregar" data-id="${pv.id}">Carregar na grade</button>`;
+        } else {
+          acoes += `<p class="mt-2 text-[10px] font-bold text-amber-900">Só resumo da Receita — use Ler XML do arquivo.</p>`;
+        }
+        acoes += `<button type="button" class="mt-2 min-h-[40px] px-3 rounded-lg border-2 border-slate-300 bg-white text-slate-800 text-[10px] font-black uppercase btn-dfe-ignorar" data-id="${pv.id}">Ignorar</button>`;
+      } else {
+        acoes += `<p class="mt-2 text-[10px] font-bold text-slate-600">Status: ${statusLbl || '—'}</p>`;
+      }
+      div.innerHTML =
+        `<div class="font-black text-slate-800">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
+        + `<div class="text-xs text-slate-600 break-all">Chave ${pv.chave || '—'}</div>`
+        + acoes;
+      const btnLoad = div.querySelector('.btn-dfe-carregar');
+      if (btnLoad) {
+        btnLoad.addEventListener('click', async () => {
+          if (entradaNfeEditorCongeladoAtivo()) {
+            showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
+            return;
+          }
+          const id = btnLoad.getAttribute('data-id');
+          btnLoad.disabled = true;
+          try {
+            const r = await fetch(entradaNfeDfeUrlId(URL_DFE_INBOX_DETALHE_TMPL, id), { credentials: 'same-origin' });
+            const j = await r.json();
+            if (!j.ok || !j.nota) {
+              showMsg(j.erro || 'Não foi possível carregar a nota.', false);
+              return;
+            }
+            entradaNfeDfeAplicarNotaNaGrade(j.nota);
+            void carregarDfeInbox();
+          } catch (_) {
+            showMsg('Erro de rede ao carregar a nota.', false);
+          } finally {
+            btnLoad.disabled = false;
+          }
+        });
+      }
+      const btnIgn = div.querySelector('.btn-dfe-ignorar');
+      if (btnIgn) {
+        btnIgn.addEventListener('click', async () => {
+          const id = btnIgn.getAttribute('data-id');
+          btnIgn.disabled = true;
+          try {
+            const r = await fetch(entradaNfeDfeUrlId(URL_DFE_INBOX_IGNORAR_TMPL, id), {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            });
+            const j = await r.json();
+            if (!j.ok) {
+              showMsg(j.erro || 'Não foi possível ignorar.', false);
+              return;
+            }
+            showMsg('Nota movida para Concluídas (ignorada).', true);
+            void carregarDfeInbox();
+          } catch (_) {
+            showMsg('Erro de rede.', false);
+          } finally {
+            btnIgn.disabled = false;
+          }
+        });
+      }
+      prevBox.appendChild(div);
+    });
+  }
+
+  async function carregarDfeInbox() {
+    const prevBox = document.getElementById('sefaz-previews');
+    if (!prevBox) return;
+    entradaNfeDfeSyncAbasUi();
+    prevBox.innerHTML = '<p class="text-xs font-bold text-slate-600">Carregando lista salva…</p>';
+    try {
+      const u = new URL(URL_DFE_INBOX, window.location.origin);
+      u.searchParams.set('aba', entradaNfeDfeAba);
+      const r = await fetch(u.toString(), { credentials: 'same-origin' });
+      const j = await r.json();
+      if (!j.ok) {
+        prevBox.innerHTML = `<p class="text-xs font-bold text-amber-900">${j.erro || 'Não foi possível ler a caixa de entrada.'}</p>`;
+        return;
+      }
+      entradaNfeDfeRenderInbox(j.itens || []);
+    } catch (_) {
+      prevBox.innerHTML = '<p class="text-xs font-bold text-red-800">Erro de rede ao ler a caixa de entrada.</p>';
+    }
+  }
+
   function entradaNfeTentarCarregarSefazAoAbrirPainel() {
     if (entradaNfeSefazPrimeiraAberturaFeita) return;
     entradaNfeSefazPrimeiraAberturaFeita = true;
     carregarSefazStatus();
+    void carregarDfeInbox();
   }
 
   async function carregarSefazStatus() {
@@ -10742,7 +10907,7 @@
       const r = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
       const s = await r.json();
       if (s.configurada) {
-        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto para consulta na Receita.</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb}</span>`;
+        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto · lista salva no banco (todos os PCs).</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
       } else {
         el.innerHTML = `<span class="text-amber-900 font-bold">Certificado e dados fiscais ainda não estão configurados no servidor.</span> <span class="text-[10px] font-semibold text-amber-800/90">Peça suporte à equipe técnica.</span>`;
       }
@@ -10764,6 +10929,13 @@
     }
   }
 
+  document.querySelectorAll('.dfe-inbox-aba').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      entradaNfeDfeAba = btn.getAttribute('data-aba') || 'pendentes';
+      void carregarDfeInbox();
+    });
+  });
+
   document.getElementById('btn-dist-dfe').addEventListener('click', async () => {
     if (entradaNfeEditorCongeladoAtivo()) {
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
@@ -10784,12 +10956,10 @@
         return;
       }
     } catch (_) {}
-    const ult = document.getElementById('sefaz-ult').value.trim();
+    const ult = document.getElementById('sefaz-ult')?.value.trim() || '';
     const resBox = document.getElementById('sefaz-result');
-    const prevBox = document.getElementById('sefaz-previews');
     resBox.classList.remove('hidden');
     resBox.textContent = 'Consultando…';
-    prevBox.innerHTML = '';
     if (btn) {
       btn.disabled = true;
       btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -10805,7 +10975,10 @@
         body: JSON.stringify(ult ? { ult_nsu: ult } : {}),
       }, 120000);
       const j = await r.json();
-      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${j.x_motivo || j.erro || ''}</div><div class="text-xs mt-1">ultNSU: ${j.ult_nsu} · maxNSU: ${j.max_nsu ?? '—'}</div>`;
+      const nsuLoja = j.ult_nsu_salvo || j.ult_nsu;
+      const nsuSefaz = j.ult_nsu_sefaz ? ` · SEFAZ devolveu ${j.ult_nsu_sefaz}` : '';
+      const msg = j.msg_ui || j.x_motivo || j.erro || '';
+      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${msg}</div><div class="text-xs mt-1">Cursor loja (ultNSU): ${nsuLoja} · maxNSU: ${j.max_nsu ?? '—'}${nsuSefaz}</div>`;
       const ultElAfter = document.getElementById('sefaz-ult');
       if (ultElAfter && j.ult_nsu != null) {
         const dig = String(j.ult_nsu).replace(/\D/g, '');
@@ -10818,51 +10991,14 @@
           configurada: true,
           consulta_liberada: false,
           aguardar_segundos: j.aguardar_segundos,
-          limite_motivo: j.erro || j.x_motivo || '',
+          limite_motivo: msg,
         });
       } else {
         void carregarSefazStatus();
       }
-      if (Array.isArray(j.previews) && j.previews.length) {
-        j.previews.forEach((pv, idx) => {
-          const div = document.createElement('div');
-          div.className = 'rounded-lg border border-slate-200 p-3 bg-slate-50';
-          div.innerHTML = `<div class="font-black text-slate-800">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${Number(pv.valor_total || 0).toFixed(2)}</div>
-            <div class="text-xs text-slate-600">Chave ${pv.chave || '—'} · ${pv.n_itens} itens</div>
-            <button type="button" class="mt-2 text-[10px] font-black uppercase text-orange-700 btn-import-dfe" data-idx="${idx}">Carregar na grade</button>`;
-          div.querySelector('.btn-import-dfe').addEventListener('click', () => {
-            if (entradaNfeEditorCongeladoAtivo()) {
-              showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
-              return;
-            }
-            const n = j.previews[idx].nota;
-            ultimaNotaParse = n;
-            setEntradaNfeRascunhoEdit(null);
-            entradaNfeExtraUltimo = null;
-            entradaNfeDepositoDefinir('', true);
-            aplicarCabecalho(n);
-            tbodyClear();
-            const incluirSefaz = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
-            (n.itens || []).forEach((it) => {
-              const base = { ...linhaFromItem(it), preservar_custo_nf: true };
-              const calc = entradaNfeCalcularVUnComComRateio(base, n, incluirSefaz);
-              if (calc) {
-                base.v_un_com_base_nf = calc.base;
-                base.v_un_com = calc.unit;
-              }
-              addLinhaRow(base);
-            });
-            entradaNfeEnsureTrailingCompactRow();
-            atualizarPainelTotalNfe();
-            entradaNfeAtualizarUiRateioAcrescimos(n);
-            const finXml = entradaNfeAplicarFinanceiroDoXml(n);
-            const finHint = finXml ? ' Parcelas do XML preenchidas no Financeiro.' : '';
-            showMsg(`Nota carregada na grade (aba manual).${finHint}`, true);
-            document.querySelector('.tab-btn[data-tab="manual"]').click();
-          });
-          prevBox.appendChild(div);
-        });
-      }
+      entradaNfeDfeAba = 'pendentes';
+      if (Array.isArray(j.itens)) entradaNfeDfeRenderInbox(j.itens);
+      else void carregarDfeInbox();
     } catch (e) {
       resBox.textContent = 'Erro de rede.';
     } finally {
