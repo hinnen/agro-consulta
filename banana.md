@@ -1182,10 +1182,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | `teste` **v12.41** · `df7eace` · só flutuante 🐞 · Alt+B · validar Ctrl+F5 |
-| **Acesso** | Um por janela (top) — evita duplicar no iframe do overlay |
-| **Lista** | F10 → Gestão → Bugs / feedback · `/gestao/bugs/` |
-| **Migrate** | `0074_bug_report_dispositivo_loja` |
+| **Status** | Só 🐞 flutuante · Alt+B · safe-zone: empurra rodapés · overlay → canto direito |
+| **PDV** | `#pdv-main-footer` ganha padding-left — Voltar não fica atrás |
+| **Varredura** | CSS barras conhecidas + `elementsFromPoint` empurra se ainda colidir |
+| **Lista** | F10 → Gestão → Bugs / feedback |
 
 ### ✅ Uso loja — quem levou grade RH (**v12.31** · 31/07)
 

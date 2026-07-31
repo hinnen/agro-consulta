@@ -124,17 +124,40 @@
     var st = document.createElement('style');
     st.id = 'agro-bug-report-css';
     st.textContent =
+      'html.agro-bug-fab-on{--agro-bug-safe-left:3.55rem}' +
+      /* Flutuante: fora da barra Gestão; com overlay Caixa vai para a direita (canto livre). */
       '#' +
       REACH_ID +
-      '{position:fixed;left:max(.55rem,env(safe-area-inset-left,0px));bottom:max(.55rem,env(safe-area-inset-bottom,0px));z-index:' +
+      '{position:fixed;left:max(.55rem,env(safe-area-inset-left,0px));right:auto;bottom:max(.55rem,env(safe-area-inset-bottom,0px));z-index:' +
       Z_REACH +
       ';width:2.85rem;height:2.85rem;padding:0;border-radius:999px;border:2px solid #f87171;background:#7f1d1d;color:#fecaca;font-size:1.35rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(15,23,42,.28);touch-action:manipulation}' +
+      'body.agro-has-inapp-tabbar #' +
+      REACH_ID +
+      '{left:calc(var(--agro-inapp-side-w,48px) + .55rem)}' +
+      'html.agro-pdv-overlay-open #' +
+      REACH_ID +
+      '{left:auto;right:max(.55rem,env(safe-area-inset-right,0px))}' +
       '#' +
       REACH_ID +
       ':hover{background:#991b1b;color:#fff;border-color:#ef4444}' +
       '#' +
       REACH_ID +
       '[hidden]{display:none!important}' +
+      /* Empurra barras inferiores / docks para não ficarem sob o 🐞 */
+      'html.agro-bug-fab-on #pdv-main-footer,' +
+      'html.agro-bug-fab-on #compra-mobile-nav,' +
+      'html.agro-bug-fab-on #barra-carrinho,' +
+      'html.agro-bug-fab-on .cf-dinheiro-footer,' +
+      'html.agro-bug-fab-on footer.shrink-0.border-t,' +
+      'html.agro-bug-fab-on [data-agro-bug-safe-bar="1"]' +
+      '{padding-left:max(0.75rem,var(--agro-bug-safe-left))!important;box-sizing:border-box}' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on #pdv-main-footer,' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on #compra-mobile-nav,' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on #barra-carrinho,' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on .cf-dinheiro-footer,' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on footer.shrink-0.border-t,' +
+      'html.agro-pdv-overlay-open.agro-bug-fab-on [data-agro-bug-safe-bar="1"]' +
+      '{padding-left:revert-layer;padding-left:initial}' +
       '.agro-bug-overlay{position:fixed;inset:0;z-index:' +
       Z_FORM +
       ';display:flex;align-items:center;justify-content:center;padding:1rem;background:rgba(15,23,42,.48);backdrop-filter:blur(2px);font-family:system-ui,sans-serif}' +
@@ -154,6 +177,125 @@
       '.agro-bug-ok{margin:0;font-size:1.05rem;font-weight:900;color:#047857;text-align:center}' +
       '.agro-bug-err{margin:.35rem 0 0;font-size:.82rem;font-weight:700;color:#b91c1c}';
     document.head.appendChild(st);
+  }
+
+  var SAFE_BAR_SEL =
+    '#pdv-main-footer,#compra-mobile-nav,#barra-carrinho,.cf-dinheiro-footer,#pdv-step1-subtotal-dock,footer.shrink-0.border-t,[class*="footer"][class*="fixed"],nav.fixed.bottom-0,div.fixed.bottom-0';
+
+  function markKnownSafeBars() {
+    try {
+      var nodes = document.querySelectorAll(SAFE_BAR_SEL);
+      for (var i = 0; i < nodes.length; i++) {
+        nodes[i].setAttribute('data-agro-bug-safe-bar', '1');
+      }
+    } catch (e) {}
+  }
+
+  /** Se ainda houver botão/campo sob o 🐞, empurra a barra mais próxima. */
+  function dodgeFabCollisions() {
+    if (!isTopWindow()) return;
+    var fab = document.getElementById(REACH_ID);
+    if (!fab || fab.hasAttribute('hidden') || open) return;
+    var rect;
+    try {
+      rect = fab.getBoundingClientRect();
+    } catch (e) {
+      return;
+    }
+    if (!rect || rect.width < 4) return;
+    var pts = [
+      [rect.left + rect.width * 0.5, rect.top + rect.height * 0.5],
+      [rect.left + 4, rect.top + rect.height * 0.5],
+      [rect.right - 4, rect.top + rect.height * 0.5],
+      [rect.left + rect.width * 0.5, rect.top + 4],
+      [rect.left + rect.width * 0.5, rect.bottom - 4],
+    ];
+    var overlayOpen = false;
+    try {
+      overlayOpen = document.documentElement.classList.contains('agro-pdv-overlay-open');
+    } catch (e2) {}
+    for (var p = 0; p < pts.length; p++) {
+      var hits;
+      try {
+        hits = document.elementsFromPoint(pts[p][0], pts[p][1]) || [];
+      } catch (e3) {
+        continue;
+      }
+      for (var i = 0; i < hits.length; i++) {
+        var el = hits[i];
+        if (!el || el === fab || (fab.contains && fab.contains(el))) continue;
+        if (el.id === ROOT_ID || (el.closest && el.closest('#' + ROOT_ID))) continue;
+        if (el.id === 'agro-display-scale-fab') continue;
+        if (el.id === 'agro-inapp-sidebar-rail' || (el.closest && el.closest('#agro-inapp-sidebar-rail'))) continue;
+        if (el.tagName === 'IFRAME' || el.tagName === 'HTML' || el.tagName === 'BODY') continue;
+        var interactive =
+          el.closest &&
+          el.closest(
+            'button, a, input, select, textarea, label, summary, [role="button"], [role="tab"], [role="menuitem"]'
+          );
+        if (!interactive) continue;
+        var bar =
+          interactive.closest &&
+          interactive.closest(
+            'footer, nav, #pdv-main-footer, #compra-mobile-nav, #barra-carrinho, .cf-dinheiro-footer, #pdv-step1-subtotal-dock, [data-agro-bug-safe-bar="1"], .agro-pdv-overlay-head, .agro-pdv-overlay-actions'
+          );
+        var target = bar || interactive;
+        if (overlayOpen && target && target.closest && target.closest('.agro-pdv-overlay-panel')) {
+          /* FAB já foi para a direita no overlay — se ainda colidir, sobe um pouco */
+          fab.style.bottom = '4.25rem';
+          return;
+        }
+        var need = Math.ceil(rect.width + 14);
+        try {
+          var cs = global.getComputedStyle(target);
+          var pl = parseFloat(cs.paddingLeft) || 0;
+          if (pl < need) {
+            target.style.paddingLeft = need + 'px';
+            target.setAttribute('data-agro-bug-safe-bar', '1');
+          }
+        } catch (e4) {}
+        return;
+      }
+    }
+    try {
+      fab.style.bottom = '';
+    } catch (e5) {}
+  }
+
+  function applySafeZones() {
+    if (!isTopWindow()) return;
+    ensureCss();
+    try {
+      document.documentElement.classList.add('agro-bug-fab-on');
+    } catch (e) {}
+    markKnownSafeBars();
+    dodgeFabCollisions();
+  }
+
+  function wireSafeZones() {
+    if (global.__agroBugSafeZones) return;
+    global.__agroBugSafeZones = true;
+    var t = null;
+    function schedule() {
+      if (t) clearTimeout(t);
+      t = setTimeout(function () {
+        t = null;
+        applySafeZones();
+      }, 80);
+    }
+    try {
+      global.addEventListener('resize', schedule);
+      document.addEventListener('visibilitychange', schedule);
+      var mo = new MutationObserver(schedule);
+      mo.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'data-pdv-step'],
+      });
+      if (document.body) {
+        mo.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-pdv-step'] });
+      }
+    } catch (e) {}
+    schedule();
   }
 
   function ensureReachButton() {
@@ -181,6 +323,7 @@
     }
     if (open) btn.setAttribute('hidden', '');
     else btn.removeAttribute('hidden');
+    applySafeZones();
     return btn;
   }
 
@@ -453,6 +596,7 @@
       deviceId();
       wireOpenMessage();
       wireHotkey();
+      wireSafeZones();
       ensureReachButton();
       global.AgroBugReport = { open: requestOpen, close: closeModal, deviceId: deviceId };
       setTimeout(ensureReachButton, 400);
