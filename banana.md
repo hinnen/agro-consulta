@@ -1189,6 +1189,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | CSS `insideRail` · clique abre form · API criar/lista/status OK · z-index 3637 |
 | **Base loja** | v12.51 (já tem BUG-REPORT) → este é o ajuste fino |
 
+### 📦 PACOTE PRONTO LOJA — Uso loja Brinde + F8 Bônus (`PDV-USO-LOJA-BRINDE` · **v12.57**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · migrate `0077` · VERIFY_OK |
+| **O quê** | Motivo **Brinde cliente** → busca cliente cadastrado · grava no PG · F8 aba **Bônus** (no lugar de Métricas) |
+| **Migrate** | SIM — `produtos.0077` (`cliente_brinde` FK) |
+| **Prova** | Local: migrate OK · `brinde` em MOTIVOS · F8 lista `bonus` |
+| **Base loja** | v12.51+ (uso loja) · ideal após UX v12.55 |
+
 ### 📦 PACOTE PRONTO LOJA — Uso loja bip + motivo Outros (`PDV-USO-LOJA-UX` · **v12.55**)
 
 | Item | Detalhe |
@@ -1322,7 +1332,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.55** · `teste` @ `89dd7fa`  
+**Teste hoje:** badge **v12.57** · `teste` (brinde + F8 Bônus)  
 **NÃO merge `teste`→`producao`:** diff grande — **só lote cherry**.
 
 | Ordem | Pacote | Status |
@@ -1331,7 +1341,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | — | Lote **v12.51** (marca · uso loja · bugs · DF-e) | ✅ **enviado loja v12.51** |
 | 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · sem migrate |
 | 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · VERIFY_OK · migrate `0076` |
-| — | ENTRADA-NF-CUSTO / brinde WIP | ⛔ fora da fila |
+| 3 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · VERIFY_OK · migrate `0077` |
+| — | ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)

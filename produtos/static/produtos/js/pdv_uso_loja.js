@@ -27,13 +27,22 @@
   var depositoTravado = false;
   var searchTimer = null;
   var busy = false;
-  var draft = { quem: '', motivo: '', pin: '' };
+  var draft = {
+    quem: '',
+    motivo: '',
+    pin: '',
+    cliente_brinde_id: null,
+    cliente_brinde_nome: '',
+  };
   var stepName = null; // quem | motivo | pin
   var hitList = [];
   var hitSelectionIndex = -1;
   var funcionarios = [];
   var quemOutrosMode = false;
   var motivoOutrosMode = false;
+  var motivoBrindeMode = false;
+  var brindeSearchTimer = null;
+  var brindeSearchSeq = 0;
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-uso-loja-btn'),
@@ -76,7 +85,23 @@
     stepMotivoOutrosWrap: document.getElementById(
       'pdv-uso-loja-step-motivo-outros-wrap'
     ),
+    stepMotivoBrindeWrap: document.getElementById(
+      'pdv-uso-loja-step-motivo-brinde-wrap'
+    ),
+    stepBrindeBusca: document.getElementById('pdv-uso-loja-step-brinde-busca'),
+    stepBrindeHits: document.getElementById('pdv-uso-loja-step-brinde-hits'),
+    stepBrindeSel: document.getElementById('pdv-uso-loja-step-brinde-sel'),
   };
+
+  function emptyDraft() {
+    return {
+      quem: '',
+      motivo: '',
+      pin: '',
+      cliente_brinde_id: null,
+      cliente_brinde_nome: '',
+    };
+  }
 
   function csrf() {
     if (bootstrap.csrfToken) return bootstrap.csrfToken;
@@ -532,10 +557,12 @@
     stepName = null;
     quemOutrosMode = false;
     motivoOutrosMode = false;
+    motivoBrindeMode = false;
     if (dom.stepPop) {
       dom.stepPop.classList.add('hidden');
       dom.stepPop.removeAttribute('data-quem-outros');
       dom.stepPop.removeAttribute('data-motivo-outros');
+      dom.stepPop.removeAttribute('data-motivo-brinde');
     }
   }
 
@@ -543,15 +570,48 @@
     if (!dom.motivoGrid) return;
     dom.motivoGrid.querySelectorAll('[data-motivo]').forEach(function (btn) {
       var val = btn.getAttribute('data-motivo') || '';
-      var on = motivoOutrosMode
-        ? val === 'outros'
-        : !motivoOutrosMode && val === draft.motivo;
+      var on = false;
+      if (motivoOutrosMode) on = val === 'outros';
+      else if (motivoBrindeMode) on = val === 'brinde';
+      else on = val === draft.motivo;
       btn.classList.toggle('is-on', on);
     });
   }
 
+  function clearBrindeHits() {
+    if (dom.stepBrindeHits) {
+      dom.stepBrindeHits.innerHTML = '';
+      dom.stepBrindeHits.classList.add('hidden');
+    }
+  }
+
+  function syncBrindeSel() {
+    if (!dom.stepBrindeSel) return;
+    var nome = String(draft.cliente_brinde_nome || '').trim();
+    if (nome && draft.cliente_brinde_id) {
+      dom.stepBrindeSel.textContent = 'Cliente: ' + nome;
+      dom.stepBrindeSel.classList.remove('hidden');
+    } else {
+      dom.stepBrindeSel.textContent = '';
+      dom.stepBrindeSel.classList.add('hidden');
+    }
+  }
+
   function setMotivoOutrosMode(on) {
     motivoOutrosMode = !!on;
+    if (motivoOutrosMode) {
+      motivoBrindeMode = false;
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
+      if (dom.stepPop) {
+        dom.stepPop.removeAttribute('data-motivo-brinde');
+      }
+      if (dom.stepMotivoBrindeWrap) {
+        dom.stepMotivoBrindeWrap.classList.add('hidden');
+      }
+      clearBrindeHits();
+      syncBrindeSel();
+    }
     if (dom.stepPop) {
       if (motivoOutrosMode) dom.stepPop.setAttribute('data-motivo-outros', '1');
       else dom.stepPop.removeAttribute('data-motivo-outros');
@@ -566,6 +626,107 @@
         dom.stepMotivoTxt.select();
       } catch (e) {}
     }
+  }
+
+  function setMotivoBrindeMode(on) {
+    motivoBrindeMode = !!on;
+    if (motivoBrindeMode) {
+      motivoOutrosMode = false;
+      if (dom.stepPop) {
+        dom.stepPop.removeAttribute('data-motivo-outros');
+      }
+      if (dom.stepMotivoOutrosWrap) {
+        dom.stepMotivoOutrosWrap.classList.add('hidden');
+      }
+    }
+    if (dom.stepPop) {
+      if (motivoBrindeMode) dom.stepPop.setAttribute('data-motivo-brinde', '1');
+      else dom.stepPop.removeAttribute('data-motivo-brinde');
+    }
+    if (dom.stepMotivoBrindeWrap) {
+      dom.stepMotivoBrindeWrap.classList.toggle('hidden', !motivoBrindeMode);
+    }
+    syncMotivoBtns();
+    if (motivoBrindeMode && dom.stepBrindeBusca) {
+      try {
+        dom.stepBrindeBusca.focus();
+        dom.stepBrindeBusca.select();
+      } catch (e) {}
+    }
+  }
+
+  function pickBrindeCliente(cli) {
+    if (!cli) return;
+    var pk = cli.cliente_agro_pk != null ? cli.cliente_agro_pk : cli.id;
+    pk = parseInt(pk, 10);
+    if (!isFinite(pk) || pk <= 0) return;
+    draft.cliente_brinde_id = pk;
+    draft.cliente_brinde_nome = String(cli.nome || '').trim() || 'Cliente #' + pk;
+    draft.motivo = 'brinde';
+    if (dom.stepBrindeBusca) {
+      dom.stepBrindeBusca.value = draft.cliente_brinde_nome;
+    }
+    clearBrindeHits();
+    syncBrindeSel();
+    if (dom.stepOk) dom.stepOk.classList.remove('hidden');
+    if (dom.stepHint) {
+      dom.stepHint.textContent =
+        'Cliente ok — Confirmar para PIN · Enter pula';
+    }
+  }
+
+  function buscarClientesBrinde(q) {
+    var termo = String(q || '').trim();
+    if (termo.length < 2) {
+      clearBrindeHits();
+      return;
+    }
+    var seq = ++brindeSearchSeq;
+    var url =
+      (urls.apiBuscarClientes || '/api/buscar-clientes/') +
+      '?q=' +
+      encodeURIComponent(termo);
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (res) {
+        return res.json();
+      })
+      .then(function (data) {
+        if (seq !== brindeSearchSeq) return;
+        if (!motivoBrindeMode || !dom.stepBrindeHits) return;
+        var list = (data && data.clientes) || [];
+        if (!list.length) {
+          dom.stepBrindeHits.innerHTML =
+            '<p class="px-3 py-2 text-sm font-semibold text-slate-500">Nenhum cliente encontrado.</p>';
+          dom.stepBrindeHits.classList.remove('hidden');
+          return;
+        }
+        dom.stepBrindeHits.innerHTML = list
+          .slice(0, 20)
+          .map(function (c) {
+            var pk = c.cliente_agro_pk != null ? c.cliente_agro_pk : c.id;
+            var nome = String(c.nome || '').trim() || 'Sem nome';
+            var doc = String(c.cpf || c.documento || c.cnpj || '').trim();
+            var sub = doc ? ' · ' + doc : '';
+            return (
+              '<button type="button" class="ul-brinde-hit" data-brinde-pk="' +
+              escapeHtml(String(pk)) +
+              '" data-brinde-nome="' +
+              escapeHtml(nome) +
+              '">' +
+              escapeHtml(nome) +
+              (sub ? '<span class="font-semibold text-slate-500">' + escapeHtml(sub) + '</span>' : '') +
+              '</button>'
+            );
+          })
+          .join('');
+        dom.stepBrindeHits.classList.remove('hidden');
+      })
+      .catch(function () {
+        if (seq !== brindeSearchSeq || !dom.stepBrindeHits) return;
+        dom.stepBrindeHits.innerHTML =
+          '<p class="px-3 py-2 text-sm font-bold text-red-600">Falha ao buscar clientes.</p>';
+        dom.stepBrindeHits.classList.remove('hidden');
+      });
   }
 
   function renderQuemGrid() {
@@ -642,7 +803,9 @@
     }
     if (name !== 'motivo') {
       motivoOutrosMode = false;
+      motivoBrindeMode = false;
       dom.stepPop.removeAttribute('data-motivo-outros');
+      dom.stepPop.removeAttribute('data-motivo-brinde');
     }
     if (dom.bodyQuem) dom.bodyQuem.classList.toggle('hidden', name !== 'quem');
     if (dom.bodyMotivo) dom.bodyMotivo.classList.toggle('hidden', name !== 'motivo');
@@ -663,7 +826,7 @@
       dom.stepOk.style.flex = isPin ? '1 1 100%' : '';
       var hideOk =
         (name === 'quem' && !quemOutrosMode) ||
-        (name === 'motivo' && !motivoOutrosMode);
+        (name === 'motivo' && !motivoOutrosMode && !motivoBrindeMode);
       dom.stepOk.classList.toggle('hidden', hideOk);
     }
     if (dom.stepPinErr) {
@@ -689,9 +852,15 @@
       if (dom.stepTitle) dom.stepTitle.textContent = 'Motivo?';
       if (dom.stepHint)
         dom.stepHint.textContent =
-          'Toque o motivo (avança) · Outros digita · Enter pula';
+          'Toque o motivo (avança) · Brinde busca cliente · Enter pula';
       setMotivoOutrosMode(false);
+      setMotivoBrindeMode(false);
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
       if (dom.stepMotivoTxt) dom.stepMotivoTxt.value = '';
+      if (dom.stepBrindeBusca) dom.stepBrindeBusca.value = '';
+      clearBrindeHits();
+      syncBrindeSel();
       if (dom.stepOk) dom.stepOk.classList.add('hidden');
       syncMotivoBtns();
       try {
@@ -733,7 +902,7 @@
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
-    draft = { quem: '', motivo: '', pin: '' };
+    draft = emptyDraft();
   }
 
   function startWizard() {
@@ -743,7 +912,7 @@
       return;
     }
     hideHits();
-    draft = { quem: '', motivo: '', pin: '' };
+    draft = emptyDraft();
     setStatus('');
     showStep('quem');
   }
@@ -761,13 +930,32 @@
   function advanceFromMotivo(skip) {
     if (skip) {
       draft.motivo = '';
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
     } else if (motivoOutrosMode) {
       var txt = String(
         (dom.stepMotivoTxt && dom.stepMotivoTxt.value) || ''
       ).trim();
       draft.motivo = txt || 'outros';
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
+    } else if (motivoBrindeMode) {
+      if (!draft.cliente_brinde_id) {
+        if (dom.stepHint) {
+          dom.stepHint.textContent =
+            'Busque e toque o cliente do brinde · ou Pular';
+        }
+        if (dom.stepBrindeBusca) {
+          try {
+            dom.stepBrindeBusca.focus();
+          } catch (e) {}
+        }
+        return;
+      }
+      draft.motivo = 'brinde';
     }
     setMotivoOutrosMode(false);
+    setMotivoBrindeMode(false);
     showStep('pin');
   }
 
@@ -810,6 +998,9 @@
         };
       }),
     };
+    if (draft.motivo === 'brinde' && draft.cliente_brinde_id) {
+      payload.cliente_brinde_id = draft.cliente_brinde_id;
+    }
     var url = urls.apiPdvUsoLojaConfirmar || '/api/pdv/uso-loja/confirmar/';
     fetch(url, {
       method: 'POST',
@@ -839,7 +1030,7 @@
         }
         cart = [];
         renderCart();
-        draft = { quem: '', motivo: '', pin: '' };
+        draft = emptyDraft();
         hideStepPop();
         setStatus(j.mensagem || 'Saída registrada.');
       })
@@ -954,6 +1145,9 @@
             var motivo = r.motivo_label
               ? ' · ' + escapeHtml(r.motivo_label)
               : '';
+            if (r.cliente_brinde_nome) {
+              motivo += ' · ' + escapeHtml(r.cliente_brinde_nome);
+            }
             var linha =
               '#' +
               r.id +
@@ -1202,6 +1396,9 @@
       var val = btn.getAttribute('data-motivo') || '';
       if (val === 'outros') {
         draft.motivo = '';
+        draft.cliente_brinde_id = null;
+        draft.cliente_brinde_nome = '';
+        setMotivoBrindeMode(false);
         setMotivoOutrosMode(true);
         if (dom.stepOk) dom.stepOk.classList.remove('hidden');
         if (dom.stepHint)
@@ -1210,8 +1407,26 @@
         if (dom.stepMotivoTxt) dom.stepMotivoTxt.value = '';
         return;
       }
+      if (val === 'brinde') {
+        draft.motivo = 'brinde';
+        draft.cliente_brinde_id = null;
+        draft.cliente_brinde_nome = '';
+        setMotivoOutrosMode(false);
+        setMotivoBrindeMode(true);
+        if (dom.stepOk) dom.stepOk.classList.add('hidden');
+        if (dom.stepHint)
+          dom.stepHint.textContent =
+            'Busque o cliente do brinde · Confirmar com cliente · Enter pula';
+        if (dom.stepBrindeBusca) dom.stepBrindeBusca.value = '';
+        clearBrindeHits();
+        syncBrindeSel();
+        return;
+      }
       draft.motivo = val;
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
       setMotivoOutrosMode(false);
+      setMotivoBrindeMode(false);
       if (dom.stepMotivoTxt) dom.stepMotivoTxt.value = '';
       syncMotivoBtns();
       advanceFromMotivo(false);
@@ -1257,6 +1472,39 @@
       }
     });
   }
+  if (dom.stepBrindeBusca) {
+    dom.stepBrindeBusca.addEventListener('input', function () {
+      draft.cliente_brinde_id = null;
+      draft.cliente_brinde_nome = '';
+      syncBrindeSel();
+      if (dom.stepOk) dom.stepOk.classList.add('hidden');
+      if (brindeSearchTimer) clearTimeout(brindeSearchTimer);
+      var q = dom.stepBrindeBusca.value || '';
+      brindeSearchTimer = setTimeout(function () {
+        buscarClientesBrinde(q);
+      }, 220);
+    });
+    dom.stepBrindeBusca.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        if (motivoBrindeMode && draft.cliente_brinde_id) {
+          advanceFromMotivo(false);
+        } else {
+          onStepPular();
+        }
+      }
+    });
+  }
+  if (dom.stepBrindeHits) {
+    dom.stepBrindeHits.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-brinde-pk]');
+      if (!btn) return;
+      pickBrindeCliente({
+        cliente_agro_pk: btn.getAttribute('data-brinde-pk'),
+        nome: btn.getAttribute('data-brinde-nome') || '',
+      });
+    });
+  }
   if (dom.stepPin) {
     dom.stepPin.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter') {
@@ -1273,6 +1521,7 @@
         t &&
         (t.id === 'pdv-uso-loja-step-quem' ||
           t.id === 'pdv-uso-loja-step-motivo-txt' ||
+          t.id === 'pdv-uso-loja-step-brinde-busca' ||
           t.id === 'pdv-uso-loja-step-pin')
       ) {
         return;

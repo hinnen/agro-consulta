@@ -680,6 +680,12 @@ def montar_secao_relacionamento_cliente(
     return {"ok": False, "erro": "Seção inválida."}
 
 
+def _bonus_brindes_cliente(cli: ClienteAgro) -> list[dict[str, Any]]:
+    from produtos.uso_loja_util import listar_brindes_cliente
+
+    return listar_brindes_cliente(cli.pk, limit=40)
+
+
 def montar_painel_relacionamento_cliente(
     cliente_agro_pk: int,
     *,
@@ -719,5 +725,6 @@ def montar_painel_relacionamento_cliente(
             "cashback": float(cli.saldo_cashback or 0),
             "vale_credito": float(cli.saldo_vale_credito or 0),
         },
+        "bonus": _bonus_brindes_cliente(cli),
         "extras": ler_relacionamento_extras_cliente(cli),
     }

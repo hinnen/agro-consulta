@@ -2241,11 +2241,20 @@ class UsoLojaRetiradaAgro(models.Model):
         MANUTENCAO = "manutencao", "Manutenção"
         CONSUMO = "consumo", "Consumo interno"
         AMOSTRA = "amostra", "Amostra"
+        BRINDE = "brinde", "Brinde cliente"
         OUTROS = "outros", "Outros"
 
     deposito = models.CharField(max_length=20, db_index=True)
     quem_levou = models.CharField(max_length=120)
     motivo = models.CharField(max_length=120, blank=True, default="")
+    cliente_brinde = models.ForeignKey(
+        "ClienteAgro",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uso_loja_brindes",
+        verbose_name="Cliente do brinde",
+    )
     operador_pin = models.CharField(max_length=120)
     usuario = models.ForeignKey(
         settings.AUTH_USER_MODEL,
