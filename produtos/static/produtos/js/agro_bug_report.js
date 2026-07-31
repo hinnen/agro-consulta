@@ -1,6 +1,6 @@
 /**
  * Bug report — formulário + print automático.
- * Acesso: barra Gestão · PDV topbar · barra overlay Caixa · botão sempre-na-frente · Alt+B
+ * Acesso: botão flutuante 🐞 (só janela top) · Alt+B
  */
 (function (global) {
   'use strict';
@@ -9,6 +9,7 @@
   var DEVICE_LABEL_KEY = 'agro_device_label_v1';
   var ROOT_ID = 'agro-bug-report-root';
   var REACH_ID = 'agro-bug-reach';
+  var BUG_ICON = '\uD83D\uDC1E'; /* 🐞 */
   var HTML2CANVAS_SRC = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
   /** Acima de overlays PDV (2147483000); abaixo do PIN screensaver (2147483646). */
   var Z_FORM = 2147483645;
@@ -17,6 +18,14 @@
   var open = false;
   var sending = false;
   var html2canvasLoading = null;
+
+  function isTopWindow() {
+    try {
+      return global === global.top;
+    } catch (e) {
+      return true;
+    }
+  }
 
   function csrfToken() {
     try {
@@ -115,16 +124,14 @@
     var st = document.createElement('style');
     st.id = 'agro-bug-report-css';
     st.textContent =
-      '#pdv-topbar-bug{box-sizing:border-box;min-height:2.15rem;padding:0 .7rem;border-radius:.5rem;border:2px solid rgba(248,113,113,.75);background:#fef2f2;color:#b91c1c;font:800 .75rem/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;flex-shrink:0;margin-left:.25rem}' +
-      '#pdv-topbar-bug:hover{border-color:#ef4444;background:#fee2e2}' +
       '#' +
       REACH_ID +
       '{position:fixed;left:max(.55rem,env(safe-area-inset-left,0px));bottom:max(.55rem,env(safe-area-inset-bottom,0px));z-index:' +
       Z_REACH +
-      ';min-height:2.4rem;padding:0 .85rem;border-radius:.7rem;border:2px solid #f87171;background:#b91c1c;color:#fff;font:900 .78rem/1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;box-shadow:0 4px 16px rgba(15,23,42,.28);touch-action:manipulation}' +
+      ';width:2.85rem;height:2.85rem;padding:0;border-radius:999px;border:2px solid #f87171;background:#7f1d1d;color:#fecaca;font-size:1.35rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(15,23,42,.28);touch-action:manipulation}' +
       '#' +
       REACH_ID +
-      ':hover{background:#991b1b}' +
+      ':hover{background:#991b1b;color:#fff;border-color:#ef4444}' +
       '#' +
       REACH_ID +
       '[hidden]{display:none!important}' +
@@ -149,17 +156,11 @@
     document.head.appendChild(st);
   }
 
-  /** Shell Gestão já tem Bug na barra — não duplica. */
-  function needsReachButton() {
-    if (document.getElementById('agro-inapp-bug-btn')) return false;
-    return true;
-  }
-
   function ensureReachButton() {
     ensureCss();
     var btn = document.getElementById(REACH_ID);
-    if (!needsReachButton()) {
-      if (btn) btn.setAttribute('hidden', '');
+    if (!isTopWindow()) {
+      if (btn) btn.remove();
       return null;
     }
     if (!btn) {
@@ -168,38 +169,29 @@
       btn.id = REACH_ID;
       btn.title = 'Bug — enviar feedback (também Alt+B)';
       btn.setAttribute('aria-label', 'Bug — enviar feedback');
-      btn.textContent = 'Bug';
+      btn.textContent = BUG_ICON;
       document.body.appendChild(btn);
       btn.addEventListener('click', function (ev) {
         ev.preventDefault();
         ev.stopPropagation();
-        openModal();
+        requestOpen();
       });
+    } else {
+      btn.textContent = BUG_ICON;
     }
     if (open) btn.setAttribute('hidden', '');
     else btn.removeAttribute('hidden');
     return btn;
   }
 
-  function wireButtons() {
-    ensureCss();
-    ensureReachButton();
-    var pdvBtn = document.getElementById('pdv-topbar-bug');
-    if (pdvBtn && !pdvBtn.__agroBugWired) {
-      pdvBtn.__agroBugWired = true;
-      pdvBtn.addEventListener('click', function (ev) {
-        ev.preventDefault();
-        openModal();
-      });
+  function requestOpen() {
+    if (!isTopWindow()) {
+      try {
+        global.top.postMessage({ type: 'agro-bug-report-open' }, global.location.origin);
+        return;
+      } catch (e) {}
     }
-    var sideBtn = document.getElementById('agro-inapp-bug-btn');
-    if (sideBtn && !sideBtn.__agroBugWired) {
-      sideBtn.__agroBugWired = true;
-      sideBtn.addEventListener('click', function (ev) {
-        ev.preventDefault();
-        openModal();
-      });
-    }
+    openModal();
   }
 
   function wireHotkey() {
@@ -212,7 +204,7 @@
           ev.ctrlKey && ev.shiftKey && !ev.altKey && String(ev.key || '').toLowerCase() === 'b';
         if (!altB && !ctrlShiftB) return;
         ev.preventDefault();
-        openModal();
+        requestOpen();
       } catch (e) {}
     });
   }
@@ -261,7 +253,7 @@
     var restore = maskSensitive();
     var overlay = document.getElementById(ROOT_ID);
     var hide = [];
-    ['pdv-topbar-bug', 'agro-inapp-bug-btn', 'agro-pdv-overlay-bug', REACH_ID].forEach(function (id) {
+    [REACH_ID].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) {
         hide.push(el);
@@ -451,7 +443,7 @@
       try {
         if (ev.origin !== global.location.origin) return;
         var d = ev.data || {};
-        if (d && d.type === 'agro-bug-report-open') openModal();
+        if (d && d.type === 'agro-bug-report-open') requestOpen();
       } catch (e) {}
     });
   }
@@ -461,10 +453,10 @@
       deviceId();
       wireOpenMessage();
       wireHotkey();
-      wireButtons();
-      global.AgroBugReport = { open: openModal, close: closeModal, deviceId: deviceId };
-      setTimeout(wireButtons, 400);
-      setTimeout(wireButtons, 1500);
+      ensureReachButton();
+      global.AgroBugReport = { open: requestOpen, close: closeModal, deviceId: deviceId };
+      setTimeout(ensureReachButton, 400);
+      setTimeout(ensureReachButton, 1500);
     } catch (e) {}
   }
 

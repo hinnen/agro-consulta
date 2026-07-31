@@ -94,8 +94,7 @@
   }
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-sidebar-expand-btn,
   body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) button.agro-inapp-tab,
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap,
-  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) #agro-inapp-bug-btn {
+  body.agro-has-inapp-tabbar:not(.agro-sidebar-expanded) span.agro-inapp-user-tab-wrap {
     width: 40px;
     min-width: 40px;
     max-width: 40px;
@@ -284,19 +283,6 @@
     border-style: dashed;
     color: #94a3b8;
     background: rgba(248, 250, 252, 0.06);
-  }
-  #agro-inapp-bug-btn {
-    flex-shrink: 0 !important;
-    margin-top: auto !important;
-    min-height: 48px !important;
-    border-color: rgba(248, 113, 113, 0.75) !important;
-    background: rgba(127, 29, 29, 0.55) !important;
-    color: #fecaca !important;
-  }
-  #agro-inapp-bug-btn:hover {
-    border-color: #f87171 !important;
-    background: rgba(185, 28, 28, 0.65) !important;
-    color: #fff !important;
   }
   span.agro-inapp-user-tab-wrap {
     display: flex;
@@ -1349,25 +1335,6 @@
     return null;
   }
 
-  function openBugReportFromShell() {
-    var ifr = activeShellIframe();
-    try {
-      if (ifr && ifr.contentWindow) {
-        ifr.contentWindow.postMessage({ type: 'agro-bug-report-open' }, location.origin);
-        return;
-      }
-    } catch (_) {}
-    try {
-      if (window.AgroBugReport && typeof window.AgroBugReport.open === 'function') {
-        window.AgroBugReport.open();
-        return;
-      }
-    } catch (_) {}
-    try {
-      window.location.assign('/gestao/bugs/');
-    } catch (_) {}
-  }
-
   function ensurePresetMarkup() {
     if (shell.presetBackdrop) return;
     var bd = document.createElement('div');
@@ -1764,20 +1731,6 @@
     shell.stackEl.appendChild(shell.dashBtn);
     shell.stackEl.appendChild(shell.plusBtn);
     shell.bar.appendChild(shell.stackEl);
-
-    shell.bugBtn = document.createElement('button');
-    shell.bugBtn.type = 'button';
-    shell.bugBtn.id = 'agro-inapp-bug-btn';
-    shell.bugBtn.className = 'agro-inapp-tab';
-    fillTabButton(shell.bugBtn, '🐞', 'Bug');
-    shell.bugBtn.title = 'Bug — enviar feedback';
-    shell.bugBtn.setAttribute('aria-label', 'Bug — enviar feedback');
-    shell.bugBtn.onclick = function (ev) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      openBugReportFromShell();
-    };
-    shell.bar.appendChild(shell.bugBtn);
 
     shell.rail = document.createElement('div');
     shell.rail.id = 'agro-inapp-sidebar-rail';

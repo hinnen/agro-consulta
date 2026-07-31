@@ -1178,15 +1178,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### Bug report — todos os popups/overlays (31/07 · teste)
+### Bug report — flutuante 🐞 (31/07 · teste)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | `teste` **v12.32** · commit `b437d6a` · validar local Ctrl+F5 |
-| **Gestão** | Bug no rodapé da barra lateral |
-| **PDV** | Bug ao lado do ? · Bug na barra do overlay Caixa |
-| **Sempre na frente** | Botão Bug canto inferior esquerdo (fora da Gestão) · **Alt+B** / Ctrl+Shift+B |
-| **Print** | Captura com popup/overlay aberto; some só o UI do Bug |
+| **Status** | Só botão flutuante 🐞 canto inferior esquerdo · Alt+B · sem Bug em barras |
+| **Acesso** | Um por janela (top) — evita duplicar no iframe do overlay |
 | **Lista** | F10 → Gestão → Bugs / feedback · `/gestao/bugs/` |
 | **Migrate** | `0074_bug_report_dispositivo_loja` |
 

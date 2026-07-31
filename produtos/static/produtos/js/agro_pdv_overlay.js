@@ -98,8 +98,6 @@
       '#agro-pdv-overlay-help{flex-shrink:0;width:2.65rem;height:2.65rem;border-radius:999px;border:2px solid #cbd5e1;background:#fff;color:#0f172a;font-size:1rem;font-weight:900;cursor:pointer;touch-action:manipulation;display:none;align-items:center;justify-content:center;padding:0}' +
       '#agro-pdv-overlay-help:hover{background:#f8fafc;border-color:#94a3b8}' +
       '#agro-pdv-overlay-help.is-visible{display:inline-flex}' +
-      '#agro-pdv-overlay-bug{flex-shrink:0;min-height:2.65rem;padding:0 .75rem;border-radius:.75rem;border:2px solid #f87171;background:#fef2f2;color:#b91c1c;font-size:.75rem;font-weight:900;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;touch-action:manipulation}' +
-      '#agro-pdv-overlay-bug:hover{background:#fee2e2;border-color:#ef4444}' +
       '#agro-pdv-overlay-help-panel{display:none;position:absolute;right:0;top:calc(100% + .35rem);z-index:5;width:min(92vw,22rem);max-height:min(70vh,24rem);overflow:auto;padding:.75rem .9rem;border-radius:.85rem;border:2px solid #cbd5e1;background:#fff;box-shadow:0 16px 40px rgba(15,23,42,.22);font-size:.85rem;font-weight:600;line-height:1.35;color:#1e293b}' +
       '#agro-pdv-overlay-help-panel.is-open{display:block}' +
       '#agro-pdv-overlay-help-panel p{margin:0 0 .55rem}' +
@@ -112,54 +110,6 @@
       '#agro-pdv-overlay-frame{flex:1;min-height:0;width:100%;border:0;background:#fff}' +
       'html.agro-pdv-overlay-open,html.agro-pdv-overlay-open body{overflow:hidden!important}';
     document.head.appendChild(st);
-  }
-
-  function wireBug(root) {
-    var bugBtn = root.querySelector('#agro-pdv-overlay-bug');
-    if (!bugBtn || bugBtn.getAttribute('data-wired') === '1') return;
-    bugBtn.setAttribute('data-wired', '1');
-    bugBtn.addEventListener('click', function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      var frame = root.querySelector('#agro-pdv-overlay-frame');
-      try {
-        if (frame && frame.contentWindow) {
-          frame.contentWindow.postMessage({ type: 'agro-bug-report-open' }, location.origin);
-          return;
-        }
-      } catch (_) {}
-      try {
-        if (window.AgroBugReport && typeof window.AgroBugReport.open === 'function') {
-          window.AgroBugReport.open();
-        }
-      } catch (_) {}
-    });
-  }
-
-  function ensureBugUi(root) {
-    if (!root) return;
-    var actions = root.querySelector('.agro-pdv-overlay-actions');
-    if (!actions) return;
-    if (!root.querySelector('#agro-pdv-overlay-bug')) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.id = 'agro-pdv-overlay-bug';
-      btn.setAttribute('aria-label', 'Bug — enviar feedback');
-      btn.setAttribute('title', 'Bug — enviar feedback');
-      btn.textContent = 'Bug';
-      var help = root.querySelector('#agro-pdv-overlay-help');
-      var menu = root.querySelector('#agro-pdv-overlay-menu');
-      if (help && help.nextSibling) {
-        actions.insertBefore(btn, help.nextSibling);
-      } else if (help) {
-        actions.appendChild(btn);
-      } else if (menu) {
-        actions.insertBefore(btn, menu);
-      } else {
-        actions.insertBefore(btn, actions.firstChild);
-      }
-    }
-    wireBug(root);
   }
 
   function wireHelp(root) {
@@ -208,7 +158,6 @@
       }
     }
     wireHelp(root);
-    ensureBugUi(root);
   }
 
   function ensureRoot() {
@@ -216,7 +165,8 @@
     var root = document.getElementById(ROOT_ID);
     if (root) {
       ensureHelpUi(root);
-      ensureBugUi(root);
+      var staleBug = root.querySelector('#agro-pdv-overlay-bug');
+      if (staleBug) staleBug.remove();
       return root;
     }
     root = document.createElement('div');
@@ -236,7 +186,6 @@
       '<div class="agro-pdv-overlay-actions">' +
       '<button type="button" id="agro-pdv-overlay-help" aria-label="Ajuda" title="Ajuda" aria-expanded="false">?</button>' +
       '<div id="agro-pdv-overlay-help-panel" role="region" aria-label="Orientação"></div>' +
-      '<button type="button" id="agro-pdv-overlay-bug" aria-label="Bug — enviar feedback" title="Bug — enviar feedback">Bug</button>' +
       '<a href="#" id="agro-pdv-overlay-menu" hidden>← Menu</a>' +
       '<button type="button" id="agro-pdv-overlay-close">Fechar</button>' +
       '</div>' +
@@ -247,7 +196,6 @@
     root.querySelector('#agro-pdv-overlay-close').addEventListener('click', close);
     root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', close);
     wireHelp(root);
-    wireBug(root);
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     if (menuBtn) {
       menuBtn.addEventListener('click', function (e) {
