@@ -1331,7 +1331,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.58** · `teste` @ `fc61102`  
+**Teste hoje:** badge **v12.59** · `teste` @ `d0b7a5c`  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
