@@ -11,9 +11,9 @@
   var REACH_ID = 'agro-bug-reach';
   var BUG_ICON = '\uD83D\uDC1E'; /* 🐞 */
   var HTML2CANVAS_SRC = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-  /** Acima do stack de iframes Gestão (2147483620); abaixo da barra lateral (3634) e PIN. */
+  /** Acima do pane Gestão (3620) e da barra lateral (3634); abaixo do PIN. */
   var Z_FORM = 2147483645;
-  var Z_REACH = 2147483633;
+  var Z_REACH = 2147483637;
 
   var open = false;
   var sending = false;
@@ -133,7 +133,7 @@
       ';width:2.85rem;height:2.85rem;padding:0;border-radius:999px;border:2px solid #f87171;background:#7f1d1d;color:#fecaca;font-size:1.35rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(15,23,42,.28);touch-action:manipulation}' +
       'body.agro-has-inapp-tabbar #' +
       REACH_ID +
-      '{left:calc(var(--agro-inapp-side-w,48px) + .55rem)}' +
+      '{left:max(.2rem,calc((var(--agro-inapp-side-w,48px) - 2.85rem) / 2));right:auto}' +
       'html.agro-pdv-overlay-open #' +
       REACH_ID +
       '{left:auto;right:max(.55rem,env(safe-area-inset-right,0px))}' +
