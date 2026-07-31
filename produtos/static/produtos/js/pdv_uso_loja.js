@@ -1050,6 +1050,24 @@
       onStepPular();
       return;
     }
+    if (ev.key === 'Enter' && !stepName) {
+      var view = overlay.getAttribute('data-ul-view') || 'saida';
+      if (view !== 'saida') return;
+      var tgt = ev.target;
+      if (tgt && (tgt.id === 'pdv-uso-loja-busca' || tgt.closest('#pdv-uso-loja-hits'))) {
+        return;
+      }
+      var hitsOpen = dom.hits && !dom.hits.classList.contains('hidden');
+      if (hitsOpen) return;
+      ev.preventDefault();
+      if (tgt && tgt.blur) {
+        try {
+          tgt.blur();
+        } catch (e) {}
+      }
+      startWizard();
+      return;
+    }
     if (ev.key === 'Escape') {
       if (stepName) {
         ev.preventDefault();

@@ -1198,6 +1198,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **API** | `meta` devolve `funcionarios` |
 | **Prova** | Ctrl+F5 PDV · Uso loja · Confirmar saída · ver grade · clicar nome → motivo |
 
+### ✅ Uso loja — Enter = Confirmar saída (**v12.34** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Na lista da saída, **Enter** dispara Confirmar saída (exceto busca / autocomplete / pops) |
+
 ### 📦 PACOTE PRONTO LOJA — Relatório vendas por marca (`RELAT-VENDAS-MARCA` · **v12.22**)
 
 | Item | Detalhe |
