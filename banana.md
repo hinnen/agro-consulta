@@ -1180,11 +1180,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
+### 📦 PACOTE — Relatório vendas por marca (**v12.20** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar local |
+| **O quê** | Card **Vendas por marca** na Central · ordenar **valor total** ou **quantidade** · Excel ↓ |
+| **Fonte** | `VendaAgro` / itens + marca do cadastro Agro (overlay) / Mongo fallback |
+| **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · `relatorios_hub.html` · `relatorios_generico.html` · `relatorios_help_agents.html` · `urls.py` |
+| **Validar** | Ctrl+F5 · BI → Relatórios → Vendas por marca · trocar ordenar · Excel |
+
 ### 📦 PACOTE — PDV Uso loja (**v12.19** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push 	este · validar local |
+| **Status** | ✅ push `teste` · validar local |
 | **UX** | Após lista → pop quem → pop motivo → pop PIN (Enter/Pular nos opcionais) |
 | **Base** | v12.18 + polish pop-ups etapa 4 |
 

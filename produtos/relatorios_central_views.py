@@ -144,6 +144,55 @@ def relatorios_vendas_grupo(request):
 
 
 @require_GET
+def relatorios_vendas_marca(request):
+    f = _periodo_filtros(request)
+    ordenar = (request.GET.get("ordenar") or "valor").strip().lower()
+    if ordenar not in ("valor", "qtd"):
+        ordenar = "valor"
+    rows = ru.vendas_por_marca(f["desde"], f["ate_dt"], ordenar=ordenar)
+    headers = ["#", "Marca", "SKUs", "Qtd", "Total R$", "%"]
+    if request.GET.get("export") == "xlsx":
+        data = [
+            [r["pos"], r["marca"], r["skus"], r["qtd"], r["valor"], r["pct"]]
+            for r in rows
+        ]
+        return ru.xlsx_http_response(
+            "vendas-por-marca.xlsx",
+            ru.montar_xlsx("Vendas por marca", headers, data, subtitulo=f["label"]),
+        )
+    total_qtd = round(sum(r["qtd"] for r in rows), 3)
+    total_rs = round(sum(r["valor"] for r in rows), 2)
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Vendas por marca",
+            "eyebrow": "Marcas",
+            "subtitulo": "Ordene por valor total ou quantidade. Marca do cadastro Agro.",
+            "filtros": f,
+            "extra_filtros": {"ordenar": ordenar},
+            "filtro_parcial": "vendas_marca",
+            "rel_help": "vendas_marca",
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["marca"],
+                    r["skus"],
+                    f'{r["qtd"]:.3f}'.rstrip("0").rstrip("."),
+                    ru.fmt_brl(r["valor"]),
+                    f'{r["pct"]}%',
+                ]
+                for r in rows
+            ],
+            "totais": [f"Qtd {total_qtd}", ru.fmt_brl(total_rs)],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nenhuma venda neste período.",
+        },
+    )
+
+
+@require_GET
 def relatorios_curva_abc(request):
     f = _periodo_filtros(request)
     todos = (request.GET.get("todos") or "").strip() in ("1", "sim", "true", "yes")

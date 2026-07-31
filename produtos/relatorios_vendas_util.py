@@ -198,7 +198,7 @@ def _codigo_gm_preferido(*candidatos: object) -> str:
 
 
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
-    """nome, codigo (GM), categoria, custo, comissao_% e comissao_R$."""
+    """nome, codigo (GM), categoria, marca, custo, comissao_% e comissao_R$."""
     from produtos.catalogo_agro import produto_agro_para_row
     from produtos.models import Produto
 
@@ -221,6 +221,7 @@ def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
                     p.codigo_interno,
                 ),
                 "categoria": (row.get("categoria") or p.categoria or "").strip() or "Sem categoria",
+                "marca": (row.get("marca") or p.marca or "").strip() or "Sem marca",
                 "custo": float(row.get("preco_custo") or p.custo or 0),
                 "comissao_pct": None,
                 "comissao_rs": None,
@@ -255,6 +256,8 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     "CodigoGM": 1,
                     "Categoria": 1,
                     "NomeCategoria": 1,
+                    "Marca": 1,
+                    "NomeMarca": 1,
                     "PrecoCusto": 1,
                     "ValorCusto": 1,
                     "ComissaoVendedor": 1,
@@ -297,6 +300,10 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     doc.get("Categoria") or doc.get("NomeCategoria") or "Sem categoria"
                 ).strip()
                 or "Sem categoria",
+                "marca": (
+                    doc.get("Marca") or doc.get("NomeMarca") or "Sem marca"
+                ).strip()
+                or "Sem marca",
                 "custo": custo,
                 "comissao_pct": pct_f,
                 "comissao_rs": rs_f,
@@ -366,6 +373,46 @@ def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
                 "valor": round(r["valor"], 2),
                 "skus": r["itens"],
                 "pct": round(100.0 * r["valor"] / total, 1),
+            }
+        )
+    return out
+
+
+def vendas_por_marca(
+    desde: datetime,
+    ate: datetime,
+    *,
+    ordenar: str = "valor",
+) -> list[dict]:
+    """Faturamento e quantidade agrupados pela marca do cadastro (Agro/overlay/Mongo)."""
+    agg = _agg_itens_por_produto(desde, ate)
+    pids = [str(r["produto_id_externo"]) for r in agg]
+    meta = mapa_produtos_meta(pids)
+    buckets: dict[str, dict] = {}
+    for r in agg:
+        pid = str(r["produto_id_externo"])
+        marca_raw = (meta.get(pid) or {}).get("marca") or "Sem marca"
+        marca = str(marca_raw).strip() or "Sem marca"
+        key = marca.casefold()
+        b = buckets.setdefault(
+            key, {"marca": marca, "qtd": 0.0, "valor": 0.0, "itens": 0}
+        )
+        b["qtd"] += float(r["qtd"] or 0)
+        b["valor"] += float(r["valor"] or 0)
+        b["itens"] += 1
+    sort_key = "qtd" if ordenar == "qtd" else "valor"
+    rows = sorted(buckets.values(), key=lambda x: x[sort_key], reverse=True)
+    total_valor = sum(x["valor"] for x in rows) or 1.0
+    out = []
+    for i, r in enumerate(rows, start=1):
+        out.append(
+            {
+                "pos": i,
+                "marca": r["marca"],
+                "qtd": round(r["qtd"], 3),
+                "valor": round(r["valor"], 2),
+                "skus": r["itens"],
+                "pct": round(100.0 * r["valor"] / total_valor, 1),
             }
         )
     return out

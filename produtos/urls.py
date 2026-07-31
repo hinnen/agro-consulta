@@ -196,6 +196,7 @@ urlpatterns = [
     path('relatorios/validade/', views.relatorios_validade, name='relatorios_validade'),
     path('relatorios/mais-vendidos/', relatorios_views.relatorios_mais_vendidos, name='relatorios_mais_vendidos'),
     path('relatorios/vendas-grupo/', relatorios_views.relatorios_vendas_grupo, name='relatorios_vendas_grupo'),
+    path('relatorios/vendas-marca/', relatorios_views.relatorios_vendas_marca, name='relatorios_vendas_marca'),
     path('relatorios/curva-abc/', relatorios_views.relatorios_curva_abc, name='relatorios_curva_abc'),
     path('relatorios/giro-estoque/', relatorios_views.relatorios_giro_estoque, name='relatorios_giro_estoque'),
     path('relatorios/margem/', relatorios_views.relatorios_margem, name='relatorios_margem'),
