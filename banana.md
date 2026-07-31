@@ -1180,6 +1180,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
+### 📦 PACOTE — PDV Uso loja (**v12.19** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push 	este · validar local |
+| **UX** | Após lista → pop quem → pop motivo → pop PIN (Enter/Pular nos opcionais) |
+| **Base** | v12.18 + polish pop-ups etapa 4 |
+
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |

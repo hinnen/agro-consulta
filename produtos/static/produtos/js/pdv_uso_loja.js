@@ -1,6 +1,7 @@
 /**
  * PDV — overlay Uso loja (saída estoque consumo interno).
  * Independente do carrinho de venda.
+ * Fluxo: lista → Confirmar → pop quem → pop motivo → pop PIN.
  */
 (function () {
   'use strict';
@@ -26,6 +27,8 @@
   var depositoTravado = false;
   var searchTimer = null;
   var busy = false;
+  var draft = { quem: '', motivo: '', pin: '' };
+  var stepName = null; // quem | motivo | pin
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-uso-loja-btn'),
@@ -39,15 +42,24 @@
     busca: document.getElementById('pdv-uso-loja-busca'),
     hits: document.getElementById('pdv-uso-loja-hits'),
     cart: document.getElementById('pdv-uso-loja-cart'),
-    cartEmpty: document.getElementById('pdv-uso-loja-cart-empty'),
     limpar: document.getElementById('pdv-uso-loja-limpar'),
-    quem: document.getElementById('pdv-uso-loja-quem'),
-    motivo: document.getElementById('pdv-uso-loja-motivo'),
-    pin: document.getElementById('pdv-uso-loja-pin'),
     confirmar: document.getElementById('pdv-uso-loja-confirmar'),
     status: document.getElementById('pdv-uso-loja-status'),
     histList: document.getElementById('pdv-uso-loja-hist-list'),
     histStatus: document.getElementById('pdv-uso-loja-hist-status'),
+    stepPop: document.getElementById('pdv-uso-loja-step-pop'),
+    stepEyebrow: document.getElementById('pdv-uso-loja-step-eyebrow'),
+    stepTitle: document.getElementById('pdv-uso-loja-step-title'),
+    stepHint: document.getElementById('pdv-uso-loja-step-hint'),
+    bodyQuem: document.getElementById('pdv-uso-loja-step-body-quem'),
+    bodyMotivo: document.getElementById('pdv-uso-loja-step-body-motivo'),
+    bodyPin: document.getElementById('pdv-uso-loja-step-body-pin'),
+    stepQuem: document.getElementById('pdv-uso-loja-step-quem'),
+    stepPin: document.getElementById('pdv-uso-loja-step-pin'),
+    stepPinErr: document.getElementById('pdv-uso-loja-step-pin-err'),
+    stepPular: document.getElementById('pdv-uso-loja-step-pular'),
+    stepOk: document.getElementById('pdv-uso-loja-step-ok'),
+    motivoGrid: document.getElementById('pdv-uso-loja-step-motivo-grid'),
   };
 
   function csrf() {
@@ -115,6 +127,14 @@
     }
   }
 
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function renderCart() {
     if (!dom.cart) return;
     var rows = cart.slice();
@@ -149,14 +169,6 @@
         );
       })
       .join('');
-  }
-
-  function escapeHtml(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
   }
 
   function addProduct(p) {
@@ -284,10 +296,88 @@
       });
   }
 
+  function hideStepPop() {
+    stepName = null;
+    if (dom.stepPop) dom.stepPop.classList.add('hidden');
+  }
+
+  function syncMotivoBtns() {
+    if (!dom.motivoGrid) return;
+    dom.motivoGrid.querySelectorAll('[data-motivo]').forEach(function (btn) {
+      btn.classList.toggle(
+        'is-on',
+        btn.getAttribute('data-motivo') === draft.motivo
+      );
+    });
+  }
+
+  function showStep(name) {
+    stepName = name;
+    if (!dom.stepPop) return;
+    dom.stepPop.classList.remove('hidden');
+    if (dom.bodyQuem) dom.bodyQuem.classList.toggle('hidden', name !== 'quem');
+    if (dom.bodyMotivo) dom.bodyMotivo.classList.toggle('hidden', name !== 'motivo');
+    if (dom.bodyPin) dom.bodyPin.classList.toggle('hidden', name !== 'pin');
+
+    var isPin = name === 'pin';
+    if (dom.stepPular) {
+      dom.stepPular.classList.toggle('hidden', isPin);
+      if (!isPin) {
+        dom.stepPular.innerHTML =
+          'Pular <kbd class="ml-1 rounded border border-slate-300 bg-slate-50 px-1 font-mono text-[10px] normal-case tracking-normal">Enter</kbd>';
+      }
+    }
+    if (dom.stepOk) {
+      dom.stepOk.textContent = isPin ? 'Confirmar PIN' : 'Confirmar';
+      if (isPin) {
+        dom.stepOk.classList.remove('flex-[1]');
+        dom.stepOk.style.flex = '1 1 100%';
+      } else {
+        dom.stepOk.style.flex = '';
+      }
+    }
+    if (dom.stepPinErr) {
+      dom.stepPinErr.classList.add('hidden');
+      dom.stepPinErr.textContent = '';
+    }
+
+    if (name === 'quem') {
+      if (dom.stepEyebrow) dom.stepEyebrow.textContent = '1 de 3 · opcional';
+      if (dom.stepTitle) dom.stepTitle.textContent = 'Quem levou?';
+      if (dom.stepHint) dom.stepHint.textContent = 'Em branco = dono do PIN · Enter pula';
+      if (dom.stepQuem) {
+        dom.stepQuem.value = draft.quem || '';
+        try {
+          dom.stepQuem.focus();
+          dom.stepQuem.select();
+        } catch (e) {}
+      }
+    } else if (name === 'motivo') {
+      if (dom.stepEyebrow) dom.stepEyebrow.textContent = '2 de 3 · opcional';
+      if (dom.stepTitle) dom.stepTitle.textContent = 'Motivo?';
+      if (dom.stepHint) dom.stepHint.textContent = 'Toque um motivo ou Pular · Enter pula';
+      syncMotivoBtns();
+      try {
+        if (dom.stepPular) dom.stepPular.focus();
+      } catch (e2) {}
+    } else if (name === 'pin') {
+      if (dom.stepEyebrow) dom.stepEyebrow.textContent = '3 de 3 · obrigatório';
+      if (dom.stepTitle) dom.stepTitle.textContent = 'PIN para confirmar';
+      if (dom.stepHint) dom.stepHint.textContent = 'Digite o PIN e confirme a saída';
+      if (dom.stepPin) {
+        dom.stepPin.value = '';
+        try {
+          dom.stepPin.focus();
+        } catch (e3) {}
+      }
+    }
+  }
+
   function openOverlay() {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
+    hideStepPop();
     setView('saida');
     setStatus('');
     loadMeta(function () {
@@ -300,32 +390,63 @@
   }
 
   function closeOverlay() {
+    hideStepPop();
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
     if (dom.hits) dom.hits.innerHTML = '';
-    if (dom.pin) dom.pin.value = '';
+    draft = { quem: '', motivo: '', pin: '' };
   }
 
-  function confirmar() {
+  function startWizard() {
     if (busy) return;
     if (!cart.length) {
       setStatus('Adicione ao menos um produto.', true);
       return;
     }
-    var pin = (dom.pin && dom.pin.value) || '';
-    if (!String(pin).trim()) {
-      setStatus('Informe o PIN.', true);
-      if (dom.pin) dom.pin.focus();
+    draft = { quem: '', motivo: '', pin: '' };
+    setStatus('');
+    showStep('quem');
+  }
+
+  function advanceFromQuem(skip) {
+    draft.quem = skip ? '' : String((dom.stepQuem && dom.stepQuem.value) || '').trim();
+    showStep('motivo');
+  }
+
+  function advanceFromMotivo(skip) {
+    if (skip) draft.motivo = '';
+    showStep('pin');
+  }
+
+  function gravarSaida() {
+    if (busy) return;
+    var pin = String((dom.stepPin && dom.stepPin.value) || draft.pin || '').trim();
+    if (!pin) {
+      if (dom.stepPinErr) {
+        dom.stepPinErr.textContent = 'Informe o PIN.';
+        dom.stepPinErr.classList.remove('hidden');
+      }
+      if (dom.stepPin) {
+        try {
+          dom.stepPin.focus();
+        } catch (e) {}
+      }
       return;
     }
+    draft.pin = pin;
     busy = true;
+    if (dom.stepOk) dom.stepOk.disabled = true;
+    if (dom.stepPinErr) {
+      dom.stepPinErr.classList.add('hidden');
+      dom.stepPinErr.textContent = '';
+    }
     setStatus('Gravando saída…');
     var payload = {
-      pin: String(pin).trim(),
+      pin: pin,
       deposito: deposito,
-      quem_levou: (dom.quem && dom.quem.value) || '',
-      motivo: (dom.motivo && dom.motivo.value) || '',
+      quem_levou: draft.quem || '',
+      motivo: draft.motivo || '',
       itens: cart.map(function (it) {
         return {
           produto_id: it.produto_id,
@@ -352,22 +473,42 @@
       })
       .then(function (pack) {
         busy = false;
+        if (dom.stepOk) dom.stepOk.disabled = false;
         var j = pack.j || {};
         if (!j.ok) {
+          if (dom.stepPinErr) {
+            dom.stepPinErr.textContent = j.erro || 'Não foi possível gravar.';
+            dom.stepPinErr.classList.remove('hidden');
+          }
           setStatus(j.erro || 'Não foi possível gravar.', true);
           return;
         }
         cart = [];
         renderCart();
-        if (dom.pin) dom.pin.value = '';
-        if (dom.quem) dom.quem.value = '';
-        if (dom.motivo) dom.motivo.value = '';
+        draft = { quem: '', motivo: '', pin: '' };
+        hideStepPop();
         setStatus(j.mensagem || 'Saída registrada.');
       })
       .catch(function () {
         busy = false;
+        if (dom.stepOk) dom.stepOk.disabled = false;
+        if (dom.stepPinErr) {
+          dom.stepPinErr.textContent = 'Falha de rede ao gravar.';
+          dom.stepPinErr.classList.remove('hidden');
+        }
         setStatus('Falha de rede ao gravar.', true);
       });
+  }
+
+  function onStepOk() {
+    if (stepName === 'quem') advanceFromQuem(false);
+    else if (stepName === 'motivo') advanceFromMotivo(false);
+    else if (stepName === 'pin') gravarSaida();
+  }
+
+  function onStepPular() {
+    if (stepName === 'quem') advanceFromQuem(true);
+    else if (stepName === 'motivo') advanceFromMotivo(true);
   }
 
   function fmtData(iso) {
@@ -516,6 +657,7 @@
   });
   if (dom.btnHist) {
     dom.btnHist.addEventListener('click', function () {
+      hideStepPop();
       setView('historico');
       loadHistorico();
     });
@@ -577,11 +719,55 @@
       setStatus('Lista limpa.');
     });
   }
-  if (dom.confirmar) dom.confirmar.addEventListener('click', confirmar);
+  if (dom.confirmar) dom.confirmar.addEventListener('click', startWizard);
+  if (dom.stepPular) dom.stepPular.addEventListener('click', onStepPular);
+  if (dom.stepOk) dom.stepOk.addEventListener('click', onStepOk);
+  if (dom.motivoGrid) {
+    dom.motivoGrid.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-motivo]');
+      if (!btn) return;
+      draft.motivo = btn.getAttribute('data-motivo') || '';
+      syncMotivoBtns();
+    });
+  }
+  if (dom.stepQuem) {
+    dom.stepQuem.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        onStepPular();
+      }
+    });
+  }
+  if (dom.stepPin) {
+    dom.stepPin.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        gravarSaida();
+      }
+    });
+  }
   document.addEventListener('keydown', function (ev) {
-    if (ev.key !== 'Escape') return;
     if (overlay.classList.contains('hidden')) return;
-    closeOverlay();
+    if (stepName && (stepName === 'quem' || stepName === 'motivo') && ev.key === 'Enter') {
+      var t = ev.target;
+      if (t && (t.id === 'pdv-uso-loja-step-quem' || t.id === 'pdv-uso-loja-step-pin')) {
+        return;
+      }
+      if (stepName === 'motivo') {
+        ev.preventDefault();
+        onStepPular();
+      }
+      return;
+    }
+    if (ev.key === 'Escape') {
+      if (stepName) {
+        ev.preventDefault();
+        hideStepPop();
+        setStatus('Confirmação cancelada.');
+        return;
+      }
+      closeOverlay();
+    }
   });
 
   window.AgroPdvUsoLoja = {

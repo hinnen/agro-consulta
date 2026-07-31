@@ -123,6 +123,78 @@
   }
   #pdv-uso-loja-overlay[data-ul-view="historico"] .ul-view-saida { display: none !important; }
   #pdv-uso-loja-overlay[data-ul-view="saida"] .ul-view-historico { display: none !important; }
+  #pdv-uso-loja-step-pop.hidden { display: none !important; }
+  #pdv-uso-loja-step-pop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+  }
+  #pdv-uso-loja-step-pop .ul-step-panel {
+    width: min(28rem, 100%);
+    border-radius: 1rem;
+    border: 3px solid #10b981;
+    background: #fff;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
+  }
+  #pdv-uso-loja-step-pop .ul-step-head {
+    padding: 0.85rem 1rem 0.65rem;
+    background: linear-gradient(180deg, #ecfdf5, #fff);
+    border-bottom: 2px solid #d1fae5;
+  }
+  #pdv-uso-loja-step-pop .ul-step-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+  }
+  #pdv-uso-loja-step-pop .ul-step-btn {
+    flex: 1 1 8rem;
+    min-height: 3rem;
+    border-radius: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-step-pop .ul-step-btn--skip {
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+  }
+  #pdv-uso-loja-step-pop .ul-step-btn--ok {
+    border: 2px solid #0d9488;
+    background: #0d9488;
+    color: #fff;
+  }
+  #pdv-uso-loja-step-pop .ul-step-motivo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    padding: 0.75rem 1rem 0;
+  }
+  #pdv-uso-loja-step-pop .ul-step-motivo-btn {
+    min-height: 2.75rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #334155;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-step-pop .ul-step-motivo-btn.is-on {
+    border-color: #0284c7;
+    background: #e0f2fe;
+    color: #0c4a6e;
+  }
 </style>
 
 <div id="pdv-uso-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-uso-loja-title" data-ul-view="saida">
@@ -137,9 +209,9 @@
       <details class="relative">
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-lg font-black text-emerald-900 hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
-          <p>Busque o produto, monte a lista e confirme com <strong>PIN</strong>.</p>
+          <p>Monte a lista e toque em <strong>Confirmar saída</strong> — depois vêm pop-ups de quem levou, motivo e PIN.</p>
           <p>Com <strong>caixa aberto</strong>, sai do estoque do turno. Com caixa fechado, escolha Centro ou Vila.</p>
-          <p><strong>Quem levou</strong> e <strong>motivo</strong> são opcionais — em branco, quem levou = dono do PIN.</p>
+          <p><strong>Quem levou</strong> e <strong>motivo</strong> são opcionais (Enter ou Pular). PIN é o último passo.</p>
           <p>No <strong>Histórico</strong> dá para estornar (devolve o estoque).</p>
         </div>
       </details>
@@ -180,41 +252,10 @@
             <p id="pdv-uso-loja-cart-empty" class="py-4 text-center text-sm font-semibold text-slate-500">Nenhum item — busque acima.</p>
           </div>
         </section>
-
-        <section class="ul-card" aria-label="Quem e motivo">
-          <div class="ul-card-h">
-            <span class="ul-card-num" aria-hidden="true">4</span>
-            <span class="ul-card-title">Quem levou e motivo</span>
-            <span class="ul-card-hint">opcional</span>
-          </div>
-          <div class="grid gap-2 sm:grid-cols-2">
-            <label class="block min-w-0">
-              <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">Quem levou</span>
-              <input type="text" id="pdv-uso-loja-quem" class="ul-field" placeholder="Em branco = dono do PIN" autocomplete="off" />
-            </label>
-            <label class="block min-w-0">
-              <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">Motivo</span>
-              <select id="pdv-uso-loja-motivo" class="ul-field">
-                <option value="">— opcional —</option>
-                <option value="limpeza">Limpeza</option>
-                <option value="manutencao">Manutenção</option>
-                <option value="consumo">Consumo interno</option>
-                <option value="amostra">Amostra</option>
-                <option value="outros">Outros</option>
-              </select>
-            </label>
-          </div>
-        </section>
       </div>
 
       <footer class="flex shrink-0 flex-col gap-2 border-t-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4">
-        <div class="flex flex-wrap items-end gap-2">
-          <label class="min-w-[8rem] flex-1">
-            <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">PIN para confirmar</span>
-            <input type="password" id="pdv-uso-loja-pin" class="ul-field" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
-          </label>
-          <button type="button" id="pdv-uso-loja-confirmar" class="inline-flex min-h-[3.1rem] flex-[2] items-center justify-center rounded-[0.9rem] bg-teal-600 px-4 text-[1.05rem] font-black uppercase tracking-wide text-white shadow-md hover:bg-teal-700">Confirmar saída</button>
-        </div>
+        <button type="button" id="pdv-uso-loja-confirmar" class="inline-flex min-h-[3.1rem] w-full items-center justify-center rounded-[0.9rem] bg-teal-600 px-4 text-[1.05rem] font-black uppercase tracking-wide text-white shadow-md hover:bg-teal-700">Confirmar saída</button>
         <p id="pdv-uso-loja-status" class="text-sm font-bold text-slate-600" role="status"></p>
       </footer>
     </div>
@@ -224,6 +265,37 @@
       <footer class="shrink-0 border-t-2 border-emerald-100 bg-white px-3 py-2 sm:px-4">
         <p id="pdv-uso-loja-hist-status" class="text-sm font-bold text-slate-600" role="status"></p>
       </footer>
+    </div>
+
+    {# Pop-ups em sequência: quem → motivo → PIN #}
+    <div id="pdv-uso-loja-step-pop" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-uso-loja-step-title">
+      <div class="ul-step-panel" role="document">
+        <div class="ul-step-head">
+          <p id="pdv-uso-loja-step-eyebrow" class="text-[0.72rem] font-extrabold uppercase tracking-widest text-emerald-800">Passo</p>
+          <h3 id="pdv-uso-loja-step-title" class="text-lg font-black uppercase text-slate-900">Quem levou?</h3>
+          <p id="pdv-uso-loja-step-hint" class="mt-0.5 text-sm font-semibold text-slate-500">Opcional — Enter pula</p>
+        </div>
+        <div id="pdv-uso-loja-step-body-quem" class="hidden px-4 pt-3">
+          <input type="text" id="pdv-uso-loja-step-quem" class="ul-field" placeholder="Nome de quem levou" autocomplete="off" />
+        </div>
+        <div id="pdv-uso-loja-step-body-motivo" class="hidden">
+          <div class="ul-step-motivo-grid" id="pdv-uso-loja-step-motivo-grid" role="group" aria-label="Motivo">
+            <button type="button" class="ul-step-motivo-btn" data-motivo="limpeza">Limpeza</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="manutencao">Manutenção</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="consumo">Consumo interno</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="amostra">Amostra</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="outros">Outros</button>
+          </div>
+        </div>
+        <div id="pdv-uso-loja-step-body-pin" class="hidden px-4 pt-3">
+          <input type="password" id="pdv-uso-loja-step-pin" class="ul-field text-center text-xl tracking-[0.35em]" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
+          <p id="pdv-uso-loja-step-pin-err" class="mt-2 hidden text-sm font-bold text-red-700" role="alert"></p>
+        </div>
+        <div class="ul-step-actions">
+          <button type="button" id="pdv-uso-loja-step-pular" class="ul-step-btn ul-step-btn--skip">Pular <kbd class="ml-1 rounded border border-slate-300 bg-slate-50 px-1 font-mono text-[10px] normal-case tracking-normal">Enter</kbd></button>
+          <button type="button" id="pdv-uso-loja-step-ok" class="ul-step-btn ul-step-btn--ok">Confirmar</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
