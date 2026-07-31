@@ -1202,6 +1202,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Testar** | Ctrl+F5 PDV · Uso loja · buscar produto · confirmar PIN · Histórico · estornar · ver aba Estoque do produto |
 
 
+### ✅ Consertar nomes quebrados cadastro (31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **gravado loja** · **41/41** · `broken_left=0` |
+| **O quê** | Nome/marca/categoria/GM/EAN em PG (+ overlay) · **não** mexeu custo/venda |
+| **Fonte** | Mesmo `produto_externo_id` no staging (cópia boa) |
+| **Você** | Ctrl+F5 Cadastro · sumiu «NOME QUEBRADO» / «Consertar nome» |
+
+
 ### ✅ Deploy loja **v12.12** — lote 12.08–12.12 (30/07 · Renan frase+senha)
 
 | Item | Detalhe |
