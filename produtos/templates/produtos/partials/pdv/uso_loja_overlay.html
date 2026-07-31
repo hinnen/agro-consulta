@@ -1,0 +1,229 @@
+{# Overlay Uso loja — padrão visual Folha de saldo (cards numerados · emerald) #}
+<style>
+  #pdv-uso-loja-overlay .ul-card {
+    border: 2px solid #d1fae5;
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.55rem 0.75rem 0.65rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    flex-shrink: 0;
+  }
+  #pdv-uso-loja-overlay .ul-card-h {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.45rem;
+  }
+  #pdv-uso-loja-overlay .ul-card-num {
+    flex-shrink: 0;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 999px;
+    background: #059669;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #pdv-uso-loja-overlay .ul-card-title {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0f172a;
+  }
+  #pdv-uso-loja-overlay .ul-card-hint {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-left: auto;
+  }
+  #pdv-uso-loja-overlay .ul-loja-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.75rem;
+    padding: 0.4rem 0.95rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #334155;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-overlay .ul-loja-btn.is-on {
+    border-color: #0284c7;
+    background: #e0f2fe;
+    color: #0c4a6e;
+  }
+  #pdv-uso-loja-overlay .ul-loja-btn.is-on::before {
+    content: "✓";
+    font-weight: 900;
+    color: #0369a1;
+  }
+  #pdv-uso-loja-overlay .ul-loja-btn:disabled {
+    opacity: 0.85;
+    cursor: default;
+  }
+  #pdv-uso-loja-overlay .ul-field {
+    min-height: 2.75rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid #cbd5e1;
+    background: #fff;
+    padding: 0.4rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    width: 100%;
+  }
+  #pdv-uso-loja-overlay .ul-field:focus {
+    outline: none;
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+  }
+  #pdv-uso-loja-overlay .ul-hit {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-overlay .ul-hit:hover {
+    border-color: #34d399;
+    background: #ecfdf5;
+  }
+  #pdv-uso-loja-overlay .ul-cart-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.45rem;
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid #e2e8f0;
+    background: #f8fafc;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.7rem;
+    background: #fff;
+  }
+  #pdv-uso-loja-overlay .ul-hist-row.is-estornado {
+    opacity: 0.65;
+    border-color: #fecaca;
+    background: #fef2f2;
+  }
+  #pdv-uso-loja-overlay[data-ul-view="historico"] .ul-view-saida { display: none !important; }
+  #pdv-uso-loja-overlay[data-ul-view="saida"] .ul-view-historico { display: none !important; }
+</style>
+
+<div id="pdv-uso-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-uso-loja-title" data-ul-view="saida">
+  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50/90 via-white to-white shadow-2xl" role="document">
+    <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <h2 id="pdv-uso-loja-title" class="text-[clamp(1rem,1.2vw+0.85rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Uso loja</h2>
+        <p id="pdv-uso-loja-sub" class="text-sm font-semibold text-emerald-800">Saída de produto para uso interno</p>
+      </div>
+      <button type="button" id="pdv-uso-loja-btn-historico" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-sky-300 bg-sky-50 px-3 text-[11px] font-black uppercase text-sky-950 hover:bg-sky-100">Histórico</button>
+      <button type="button" id="pdv-uso-loja-btn-voltar-saida" class="hidden inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-emerald-400 bg-emerald-50 px-3 text-[11px] font-black uppercase text-emerald-950 hover:bg-emerald-100">Nova saída</button>
+      <details class="relative">
+        <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-lg font-black text-emerald-900 hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+        <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-emerald-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+          <p>Busque o produto, monte a lista e confirme com <strong>PIN</strong>.</p>
+          <p>Com <strong>caixa aberto</strong>, sai do estoque do turno. Com caixa fechado, escolha Centro ou Vila.</p>
+          <p><strong>Quem levou</strong> e <strong>motivo</strong> são opcionais — em branco, quem levou = dono do PIN.</p>
+          <p>No <strong>Histórico</strong> dá para estornar (devolve o estoque).</p>
+        </div>
+      </details>
+      <button type="button" id="pdv-uso-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
+    </header>
+
+    <div class="ul-view-saida flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-3 py-2.5 sm:px-4 sm:py-3">
+        <section class="ul-card" aria-label="Qual estoque">
+          <div class="ul-card-h">
+            <span class="ul-card-num" aria-hidden="true">1</span>
+            <span class="ul-card-title">Qual estoque?</span>
+            <span id="pdv-uso-loja-dep-hint" class="ul-card-hint">conforme o caixa</span>
+          </div>
+          <div class="flex flex-wrap gap-2.5 items-center">
+            <button type="button" id="pdv-uso-loja-dep-centro" class="ul-loja-btn" data-dep="centro">Centro</button>
+            <button type="button" id="pdv-uso-loja-dep-vila" class="ul-loja-btn" data-dep="vila">Vila Elias</button>
+          </div>
+        </section>
+
+        <section class="ul-card" aria-label="Buscar produto">
+          <div class="ul-card-h">
+            <span class="ul-card-num" aria-hidden="true">2</span>
+            <span class="ul-card-title">Buscar produto</span>
+            <span class="ul-card-hint">mesmo motor do PDV</span>
+          </div>
+          <input type="search" id="pdv-uso-loja-busca" class="ul-field" placeholder="Nome, GM, EAN ou código de barras." autocomplete="off" />
+          <div id="pdv-uso-loja-hits" class="mt-2 max-h-[9rem] space-y-1.5 overflow-y-auto empty:hidden" role="listbox" aria-label="Resultados"></div>
+        </section>
+
+        <section class="ul-card flex min-h-0 flex-1 flex-col" aria-label="Lista da saída">
+          <div class="ul-card-h">
+            <span class="ul-card-num" aria-hidden="true">3</span>
+            <span class="ul-card-title">Lista da saída</span>
+            <button type="button" id="pdv-uso-loja-limpar" class="ul-card-hint underline decoration-slate-300 hover:text-red-700">Limpar</button>
+          </div>
+          <div id="pdv-uso-loja-cart" class="min-h-[4rem] flex-1 space-y-1.5 overflow-y-auto">
+            <p id="pdv-uso-loja-cart-empty" class="py-4 text-center text-sm font-semibold text-slate-500">Nenhum item — busque acima.</p>
+          </div>
+        </section>
+
+        <section class="ul-card" aria-label="Quem e motivo">
+          <div class="ul-card-h">
+            <span class="ul-card-num" aria-hidden="true">4</span>
+            <span class="ul-card-title">Quem levou e motivo</span>
+            <span class="ul-card-hint">opcional</span>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            <label class="block min-w-0">
+              <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">Quem levou</span>
+              <input type="text" id="pdv-uso-loja-quem" class="ul-field" placeholder="Em branco = dono do PIN" autocomplete="off" />
+            </label>
+            <label class="block min-w-0">
+              <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">Motivo</span>
+              <select id="pdv-uso-loja-motivo" class="ul-field">
+                <option value="">— opcional —</option>
+                <option value="limpeza">Limpeza</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="consumo">Consumo interno</option>
+                <option value="amostra">Amostra</option>
+                <option value="outros">Outros</option>
+              </select>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <footer class="flex shrink-0 flex-col gap-2 border-t-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4">
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="min-w-[8rem] flex-1">
+            <span class="mb-1 block text-[0.72rem] font-extrabold uppercase tracking-wide text-slate-500">PIN para confirmar</span>
+            <input type="password" id="pdv-uso-loja-pin" class="ul-field" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
+          </label>
+          <button type="button" id="pdv-uso-loja-confirmar" class="inline-flex min-h-[3.1rem] flex-[2] items-center justify-center rounded-[0.9rem] bg-teal-600 px-4 text-[1.05rem] font-black uppercase tracking-wide text-white shadow-md hover:bg-teal-700">Confirmar saída</button>
+        </div>
+        <p id="pdv-uso-loja-status" class="text-sm font-bold text-slate-600" role="status"></p>
+      </footer>
+    </div>
+
+    <div class="ul-view-historico hidden min-h-0 flex-1 flex-col overflow-hidden">
+      <div id="pdv-uso-loja-hist-list" class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4"></div>
+      <footer class="shrink-0 border-t-2 border-emerald-100 bg-white px-3 py-2 sm:px-4">
+        <p id="pdv-uso-loja-hist-status" class="text-sm font-bold text-slate-600" role="status"></p>
+      </footer>
+    </div>
+  </div>
+</div>

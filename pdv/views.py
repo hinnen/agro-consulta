@@ -176,6 +176,12 @@ def pdv_home(request):
                 "apiComprasRelatorioDim": reverse("api_compras_relatorio_dim_sugestao"),
                 "apiProdutosCadastroFacetaNova": reverse("api_produtos_cadastro_faceta_nova"),
                 "apiPdvDeposito": reverse("api_pdv_deposito"),
+                "apiPdvUsoLojaMeta": reverse("api_pdv_uso_loja_meta"),
+                "apiPdvUsoLojaConfirmar": reverse("api_pdv_uso_loja_confirmar"),
+                "apiPdvUsoLojaHistorico": reverse("api_pdv_uso_loja_historico"),
+                "apiPdvUsoLojaEstornarPattern": reverse(
+                    "api_pdv_uso_loja_estornar", args=[0]
+                ).replace("/0/", "/__pk__/"),
             },
             "search": {
                 "mode": "wizard",

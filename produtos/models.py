@@ -2231,3 +2231,80 @@ class DispenserDocumentoAgro(models.Model):
 
     def __str__(self):
         return f"{self.tipo}:{self.nome}"
+
+
+class UsoLojaRetiradaAgro(models.Model):
+    """Saída de produto para uso interno da loja (PDV · Postgres)."""
+
+    class Motivo(models.TextChoices):
+        LIMPEZA = "limpeza", "Limpeza"
+        MANUTENCAO = "manutencao", "Manutenção"
+        CONSUMO = "consumo", "Consumo interno"
+        AMOSTRA = "amostra", "Amostra"
+        OUTROS = "outros", "Outros"
+
+    deposito = models.CharField(max_length=20, db_index=True)
+    quem_levou = models.CharField(max_length=120)
+    motivo = models.CharField(max_length=40, blank=True, default="")
+    operador_pin = models.CharField(max_length=120)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uso_loja_retiradas",
+    )
+    sessao_caixa = models.ForeignKey(
+        "SessaoCaixa",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uso_loja_retiradas",
+    )
+    observacao = models.TextField(blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    estornado = models.BooleanField(default=False, db_index=True)
+    estornado_em = models.DateTimeField(null=True, blank=True)
+    estornado_por = models.CharField(max_length=120, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Uso loja · retirada"
+        verbose_name_plural = "Uso loja · retiradas"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Uso loja #{self.pk} · {self.deposito} · {self.quem_levou}"
+
+
+class UsoLojaRetiradaItemAgro(models.Model):
+    retirada = models.ForeignKey(
+        UsoLojaRetiradaAgro,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    codigo_interno = models.CharField(max_length=100, blank=True, default="")
+    nome_produto = models.CharField(max_length=255, blank=True, default="")
+    quantidade = models.DecimalField(max_digits=12, decimal_places=3)
+    ajuste = models.ForeignKey(
+        "estoque.AjusteRapidoEstoque",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uso_loja_itens",
+    )
+    ajuste_estorno = models.ForeignKey(
+        "estoque.AjusteRapidoEstoque",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="uso_loja_itens_estorno",
+    )
+
+    class Meta:
+        verbose_name = "Uso loja · item"
+        verbose_name_plural = "Uso loja · itens"
+        ordering = ["pk"]
+
+    def __str__(self):
+        return f"{self.nome_produto[:40]} × {self.quantidade}"

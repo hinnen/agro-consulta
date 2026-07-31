@@ -11,6 +11,7 @@ from . import fiado_gestao_views as fiado_views
 from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
+from . import views_uso_loja
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -463,6 +464,26 @@ urlpatterns = [
     path('api/login-mobile/', views.api_login_mobile, name='api_login_mobile'),
     path('api/pdv/operador/', views.api_pdv_registrar_operador, name='api_pdv_registrar_operador'),
     path('api/pdv/deposito/', views.api_pdv_deposito, name='api_pdv_deposito'),
+    path(
+        'api/pdv/uso-loja/meta/',
+        views_uso_loja.api_pdv_uso_loja_meta,
+        name='api_pdv_uso_loja_meta',
+    ),
+    path(
+        'api/pdv/uso-loja/confirmar/',
+        views_uso_loja.api_pdv_uso_loja_confirmar,
+        name='api_pdv_uso_loja_confirmar',
+    ),
+    path(
+        'api/pdv/uso-loja/historico/',
+        views_uso_loja.api_pdv_uso_loja_historico,
+        name='api_pdv_uso_loja_historico',
+    ),
+    path(
+        'api/pdv/uso-loja/estornar/<int:pk>/',
+        views_uso_loja.api_pdv_uso_loja_estornar,
+        name='api_pdv_uso_loja_estornar',
+    ),
     path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
     path(
         'api/produtos/cadastro/export-xlsx/',

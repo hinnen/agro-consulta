@@ -18,6 +18,8 @@ _ORIGEM_LABEL = {
     OrigemAjusteEstoque.AJUSTE_PIN: "Ajuste PIN",
     OrigemAjusteEstoque.OUTRO: "Ajuste gestão",
     OrigemAjusteEstoque.VENCIMENTO_EM_LOJA: "Vencimento",
+    OrigemAjusteEstoque.USO_LOJA: "Uso loja",
+    OrigemAjusteEstoque.ESTORNO_USO_LOJA: "Estorno uso loja",
     OrigemAjusteEstoque.PLANILHA: "Planilha",
 }
 
@@ -226,6 +228,10 @@ def _documento_e_venda(row: AjusteRapidoEstoque) -> tuple[str, int | None, str]:
         return (obs[:80] if obs else "Ajuste gestão"), None, ""
     if origem == OrigemAjusteEstoque.VENCIMENTO_EM_LOJA:
         return "Vencimento em loja", None, ""
+    if origem == OrigemAjusteEstoque.USO_LOJA:
+        return "Uso loja", None, ""
+    if origem == OrigemAjusteEstoque.ESTORNO_USO_LOJA:
+        return "Estorno uso loja", None, ""
     return (str(row.observacao or "").strip()[:80] or "—"), None, ""
 
 

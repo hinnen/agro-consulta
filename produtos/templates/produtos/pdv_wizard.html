@@ -3504,6 +3504,7 @@
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
               <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
+              <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" title="Saída de produto para uso interno da loja">Uso loja</button>
               <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
@@ -3550,6 +3551,7 @@
 </div>
 
 {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
+{% include "produtos/partials/pdv/uso_loja_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
   <div id="pdv-quick-client-picker" class="pdv-client-picker-16x9 relative flex flex-col overflow-hidden rounded-2xl border-2 border-sky-400 bg-white shadow-2xl" role="document">
@@ -4160,6 +4162,7 @@
 <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
 <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% with sspin_pedir_pin_ao_abrir=True %}
 {% include "produtos/_screensaver_pin.html" %}
 {% endwith %}

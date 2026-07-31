@@ -424,6 +424,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
 
+**Uso loja (31/07 · v12.18):** botão topbar → overlay (padrão Folha saldo) · saída estoque PG · caixa aberto herda depósito · caixa fechado escolhe Centro/Vila · PIN · histórico/estorno · não mexe no carrinho da venda.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -1176,6 +1178,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+
+
+### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar local · produção só frase+senha |
+| **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
+| **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
+| **Opcional** | Quem levou (vazio = dono do PIN) · motivo |
+| **Kardex** | Aparece como «Uso loja» / «Estorno uso loja» |
+| **Migrate** | `estoque.0014` + `produtos.0073` |
+| **Arquivos** | `uso_loja_util.py` · `views_uso_loja.py` · `pdv_uso_loja.js` · `uso_loja_overlay.html` · topbar PDV |
+| **Testar** | Ctrl+F5 PDV · Uso loja · buscar produto · confirmar PIN · Histórico · estornar · ver aba Estoque do produto |
 
 
 ### ✅ Deploy loja **v12.12** — lote 12.08–12.12 (30/07 · Renan frase+senha)
