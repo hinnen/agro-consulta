@@ -143,32 +143,58 @@
         '<p id="pdv-uso-loja-cart-empty" class="py-4 text-center text-sm font-semibold text-slate-500">Nenhum item — busque acima.</p>';
       return;
     }
-    dom.cart.innerHTML = rows
+    var body = rows
       .map(function (it, idx) {
         return (
-          '<div class="ul-cart-row" data-idx="' +
+          '<tr data-idx="' +
           idx +
           '">' +
-          '<div class="min-w-0">' +
-          '<div class="truncate text-sm font-black text-slate-900">' +
+          '<td class="ul-td-gm">' +
+          escapeHtml(it.codigo || '—') +
+          '</td>' +
+          '<td class="ul-td-nome" title="' +
           escapeHtml(it.nome || it.produto_id) +
-          '</div>' +
-          '<div class="truncate text-[11px] font-bold text-slate-500">' +
-          escapeHtml(it.codigo || it.produto_id) +
-          '</div>' +
-          '</div>' +
-          '<input type="number" min="0.001" step="any" class="ul-field w-[5.5rem] text-center tabular-nums" data-ul-qtd="' +
+          '">' +
+          escapeHtml(it.nome || it.produto_id) +
+          '</td>' +
+          '<td class="ul-td-preco">' +
+          escapeHtml(fmtMoney(it.preco_venda)) +
+          '</td>' +
+          '<td class="ul-td-qtd">' +
+          '<input type="number" min="0.001" step="any" class="ul-field tabular-nums" data-ul-qtd="' +
           idx +
           '" value="' +
           fmtQtd(it.quantidade) +
           '" />' +
-          '<button type="button" class="inline-flex min-h-[2.5rem] min-w-[2.5rem] items-center justify-center rounded-lg border border-red-200 bg-red-50 text-sm font-black text-red-700" data-ul-rm="' +
+          '</td>' +
+          '<td class="ul-td-rm">' +
+          '<button type="button" class="ul-cart-rm" data-ul-rm="' +
           idx +
           '" title="Remover">×</button>' +
-          '</div>'
+          '</td>' +
+          '</tr>'
         );
       })
       .join('');
+    dom.cart.innerHTML =
+      '<table class="ul-cart-table">' +
+      '<colgroup>' +
+      '<col class="ul-col-gm" />' +
+      '<col class="ul-col-nome" />' +
+      '<col class="ul-col-preco" />' +
+      '<col class="ul-col-qtd" />' +
+      '<col class="ul-col-rm" />' +
+      '</colgroup>' +
+      '<thead><tr>' +
+      '<th scope="col">Código GM</th>' +
+      '<th scope="col">Nome produto</th>' +
+      '<th scope="col" class="ul-th-preco">Preço</th>' +
+      '<th scope="col" class="ul-th-qtd">Qtd</th>' +
+      '<th scope="col"></th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      body +
+      '</tbody></table>';
   }
 
   function addProduct(p) {
@@ -176,6 +202,7 @@
     if (!pid) return;
     var nome = String(p.nome || p.name || pid).trim();
     var codigo = String(p.codigo_gm || p.codigo_nfe || p.codigo || p.gm || '').trim();
+    var preco = precoProduto(p);
     var found = null;
     for (var i = 0; i < cart.length; i++) {
       if (cart[i].produto_id === pid) {
@@ -185,11 +212,14 @@
     }
     if (found) {
       found.quantidade = Number(found.quantidade || 0) + 1;
+      if (found.preco_venda == null && preco != null) found.preco_venda = preco;
+      if (!found.codigo && codigo) found.codigo = codigo;
     } else {
       cart.push({
         produto_id: pid,
         nome: nome,
         codigo: codigo,
+        preco_venda: preco,
         quantidade: 1,
       });
     }

@@ -205,15 +205,97 @@
     flex-shrink: 0;
   }
 
-  #pdv-uso-loja-overlay .ul-cart-row {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 0.45rem;
-    align-items: center;
-    padding: 0.45rem 0.55rem;
-    border-radius: 0.65rem;
-    border: 1.5px solid #e2e8f0;
+  #pdv-uso-loja-overlay .ul-cart-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.35rem;
+    table-layout: fixed;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table col.ul-col-gm { width: 6.75rem; }
+  #pdv-uso-loja-overlay .ul-cart-table col.ul-col-nome { width: auto; }
+  #pdv-uso-loja-overlay .ul-cart-table col.ul-col-preco { width: 6.25rem; }
+  #pdv-uso-loja-overlay .ul-cart-table col.ul-col-qtd { width: 5.5rem; }
+  #pdv-uso-loja-overlay .ul-cart-table col.ul-col-rm { width: 2.6rem; }
+  #pdv-uso-loja-overlay .ul-cart-table thead th {
+    padding: 0.4rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    text-align: left;
+    border-bottom: 1.5px solid #e2e8f0;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table thead th.ul-th-preco,
+  #pdv-uso-loja-overlay .ul-cart-table thead th.ul-th-qtd {
+    text-align: right;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table tbody td {
+    padding: 0.45rem 0.45rem;
     background: #f8fafc;
+    border-top: 1.5px solid #e2e8f0;
+    border-bottom: 1.5px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table tbody td:first-child {
+    border-left: 1.5px solid #e2e8f0;
+    border-radius: 0.55rem 0 0 0.55rem;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table tbody td:last-child {
+    border-right: 1.5px solid #e2e8f0;
+    border-radius: 0 0.55rem 0.55rem 0;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-gm {
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-nome {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-preco {
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #065f46;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-qtd {
+    text-align: right;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-qtd .ul-field {
+    min-height: 2.35rem;
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    padding: 0.25rem 0.35rem;
+  }
+  #pdv-uso-loja-overlay .ul-cart-table .ul-td-rm {
+    text-align: center;
+  }
+  #pdv-uso-loja-overlay .ul-cart-rm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.35rem;
+    min-width: 2.35rem;
+    border-radius: 0.55rem;
+    border: 1.5px solid #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 1rem;
+    font-weight: 900;
+    cursor: pointer;
   }
   #pdv-uso-loja-overlay .ul-hist-row {
     border: 1.5px solid #e2e8f0;
