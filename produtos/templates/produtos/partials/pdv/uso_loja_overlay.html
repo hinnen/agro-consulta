@@ -85,13 +85,14 @@
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
   }
   #pdv-uso-loja-overlay .ul-hit {
-    display: flex;
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) 5.5rem 2.35rem;
     align-items: center;
-    gap: 0.55rem;
+    column-gap: 0.55rem;
     width: 100%;
     text-align: left;
-    padding: 0.55rem 0.65rem;
-    border-radius: 0.65rem;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.55rem;
     border: 1.5px solid #e2e8f0;
     background: #fff;
     cursor: pointer;
@@ -99,6 +100,69 @@
   #pdv-uso-loja-overlay .ul-hit:hover {
     border-color: #34d399;
     background: #ecfdf5;
+  }
+  #pdv-uso-loja-overlay .ul-hit-gm {
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pdv-uso-loja-overlay .ul-hit-nome {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #0f172a;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  #pdv-uso-loja-overlay .ul-hit-preco {
+    font-size: 0.9rem;
+    font-weight: 900;
+    color: #065f46;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  #pdv-uso-loja-overlay .ul-hit-plus {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: #059669;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  #pdv-uso-loja-overlay .ul-hits-head {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) 5.5rem 2.35rem;
+    column-gap: 0.55rem;
+    align-items: center;
+    padding: 0.4rem 0.55rem 0.45rem;
+    margin-bottom: 0.25rem;
+    border-bottom: 2px solid #38bdf8;
+    background: #7dd3fc;
+    border-radius: 0.45rem 0.45rem 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  #pdv-uso-loja-overlay .ul-hits-head span {
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0c4a6e;
+  }
+  #pdv-uso-loja-overlay .ul-hits-head span:nth-child(3) {
+    text-align: right;
   }
   #pdv-uso-loja-overlay .ul-busca-wrap {
     position: relative;
@@ -110,22 +174,21 @@
     right: 0;
     top: calc(100% + 0.35rem);
     z-index: 30;
-    max-height: min(14rem, 38dvh);
+    /* desce até cobrir o botão Confirmar saída */
+    height: min(28rem, calc(100dvh - 14rem));
+    max-height: min(28rem, calc(100dvh - 14rem));
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 0.4rem;
+    padding: 0.35rem;
     border-radius: 0.85rem;
     border: 2px solid #0ea5e9;
-    background: #e0f2fe;
-    box-shadow: 0 18px 48px rgba(14, 116, 144, 0.22);
+    background: #bfdbfe;
+    box-shadow: 0 18px 48px rgba(14, 116, 144, 0.28);
   }
   #pdv-uso-loja-hits:empty,
   #pdv-uso-loja-hits.hidden {
     display: none !important;
-  }
-  #pdv-uso-loja-overlay .ul-hit {
-    background: #fff;
   }
   #pdv-uso-loja-overlay .ul-card--busca {
     overflow: visible;

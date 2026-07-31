@@ -199,6 +199,27 @@
     setStatus(nome + ' adicionado.');
   }
 
+  function fmtMoney(v) {
+    var n = Number(v);
+    if (!isFinite(n)) return '—';
+    try {
+      return n.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      });
+    } catch (e) {
+      return 'R$ ' + n.toFixed(2).replace('.', ',');
+    }
+  }
+
+  function precoProduto(p) {
+    if (!p) return null;
+    if (p.preco_venda != null && p.preco_venda !== '') return p.preco_venda;
+    if (p.preco != null && p.preco !== '') return p.preco;
+    if (p.PrecoVenda != null && p.PrecoVenda !== '') return p.PrecoVenda;
+    return null;
+  }
+
   function hideHits() {
     if (!dom.hits) return;
     dom.hits.innerHTML = '';
@@ -209,33 +230,42 @@
     if (!dom.hits) return;
     if (!lista || !lista.length) {
       dom.hits.innerHTML =
-        '<p class="text-sm font-semibold text-slate-600 px-1 py-1">Nenhum produto.</p>';
+        '<p class="text-sm font-semibold text-slate-700 px-2 py-2">Nenhum produto.</p>';
       dom.hits.classList.remove('hidden');
       return;
     }
-    dom.hits.innerHTML = lista
-      .slice(0, 12)
+    var head =
+      '<div class="ul-hits-head" aria-hidden="true">' +
+      '<span>Código GM</span><span>Nome produto</span><span>Preço</span><span></span>' +
+      '</div>';
+    var rows = lista
+      .slice(0, 40)
       .map(function (p) {
         var pid = String(p.id || '').trim();
         var nome = String(p.nome || pid).trim();
-        var cod = String(p.codigo_gm || p.codigo_nfe || p.codigo || '').trim();
+        var cod = String(p.codigo_gm || p.codigo_nfe || p.codigo || '').trim() || '—';
+        var preco = fmtMoney(precoProduto(p));
         return (
           '<button type="button" class="ul-hit" data-ul-add="' +
           escapeHtml(pid) +
           '">' +
-          '<span class="min-w-0 flex-1">' +
-          '<span class="block truncate text-sm font-black text-slate-900">' +
+          '<span class="ul-hit-gm">' +
+          escapeHtml(cod) +
+          '</span>' +
+          '<span class="ul-hit-nome" title="' +
+          escapeHtml(nome) +
+          '">' +
           escapeHtml(nome) +
           '</span>' +
-          '<span class="block truncate text-[11px] font-bold text-slate-500">' +
-          escapeHtml(cod || pid) +
+          '<span class="ul-hit-preco">' +
+          escapeHtml(preco) +
           '</span>' +
-          '</span>' +
-          '<span class="shrink-0 rounded-lg bg-emerald-600 px-2 py-1 text-[10px] font-black uppercase text-white">+</span>' +
+          '<span class="ul-hit-plus" aria-hidden="true">+</span>' +
           '</button>'
         );
       })
       .join('');
+    dom.hits.innerHTML = head + '<div class="space-y-1.5">' + rows + '</div>';
     dom.hits.classList.remove('hidden');
     dom.hits.querySelectorAll('[data-ul-add]').forEach(function (btn) {
       btn.addEventListener('click', function () {
