@@ -1210,6 +1210,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **O quê** | Botão **← Voltar** em quem/motivo/PIN · Esc = mesmo (passo anterior; no 1º fecha o pop) |
 
+### ✅ Uso loja — totais custo/venda no histórico (**v12.38** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Rodapé Histórico: tags **Centro** e **Vila** com total custo + total venda (saídas não estornadas) |
+| **Migrate** | `produtos.0075` (preço snapshot no item) |
+
 ### 📦 PACOTE PRONTO LOJA — Relatório vendas por marca (`RELAT-VENDAS-MARCA` · **v12.22**)
 
 | Item | Detalhe |

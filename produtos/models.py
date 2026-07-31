@@ -2286,6 +2286,20 @@ class UsoLojaRetiradaItemAgro(models.Model):
     codigo_interno = models.CharField(max_length=100, blank=True, default="")
     nome_produto = models.CharField(max_length=255, blank=True, default="")
     quantidade = models.DecimalField(max_digits=12, decimal_places=3)
+    preco_custo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Custo unitário no momento da saída (snapshot).",
+    )
+    preco_venda = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Preço de venda unitário no momento da saída (snapshot).",
+    )
     ajuste = models.ForeignKey(
         "estoque.AjusteRapidoEstoque",
         on_delete=models.SET_NULL,

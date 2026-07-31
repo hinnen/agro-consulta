@@ -20,6 +20,7 @@ from produtos.uso_loja_util import (
     estornar_retirada_uso_loja,
     resolver_deposito_uso_loja,
     serializar_retirada,
+    totais_uso_loja_por_deposito,
 )
 
 logger = logging.getLogger(__name__)
@@ -139,6 +140,7 @@ def api_pdv_uso_loja_historico(request):
         {
             "ok": True,
             "itens": [serializar_retirada(r) for r in qs],
+            "totais": totais_uso_loja_por_deposito(),
         }
     )
 

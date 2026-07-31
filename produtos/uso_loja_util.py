@@ -118,10 +118,16 @@ def confirmar_retirada_uso_loja(
                 "quantidade": qtd,
                 "nome": str(raw.get("nome") or raw.get("nome_produto") or "")[:255],
                 "codigo": str(raw.get("codigo") or raw.get("codigo_interno") or "")[:100],
+                "preco_custo": raw.get("preco_custo"),
+                "preco_venda": raw.get("preco_venda")
+                if raw.get("preco_venda") is not None
+                else raw.get("preco"),
             }
         )
     if not linhas_ok:
         return None, "Nenhum item com quantidade válida."
+
+    precos_ov = _precos_overlay_por_ids([ln["produto_id"] for ln in linhas_ok])
 
     retirada = UsoLojaRetiradaAgro.objects.create(
         deposito=dep,
@@ -140,6 +146,9 @@ def confirmar_retirada_uso_loja(
         saldo_depois = (saldo_antes - qtd).quantize(Decimal("0.001"))
         erp_ref = _erp_ref_congelado(pid, dep)
         nome = ln["nome"] or pid
+        oc, ov = precos_ov.get(pid, (Decimal("0.00"), Decimal("0.00")))
+        pc = _money(ln["preco_custo"]) if ln.get("preco_custo") is not None else oc
+        pv = _money(ln["preco_venda"]) if ln.get("preco_venda") is not None else ov
         obs = (
             f"Uso loja #{retirada.pk} · {quem[:60]} · {rotulo_deposito(dep)}"
             + (f" · {MOTIVO_LABEL.get(mot, mot)}" if mot else "")
@@ -163,6 +172,8 @@ def confirmar_retirada_uso_loja(
             codigo_interno=ln["codigo"],
             nome_produto=nome[:255],
             quantidade=qtd,
+            preco_custo=pc,
+            preco_venda=pv,
             ajuste=adj,
         )
     return retirada, ""
@@ -216,6 +227,82 @@ def estornar_retirada_uso_loja(
     return True, ""
 
 
+def _money(v) -> Decimal:
+    try:
+        return Decimal(str(v).replace(",", ".").strip()).quantize(Decimal("0.01"))
+    except Exception:
+        return Decimal("0.00")
+
+
+def _precos_overlay_por_ids(pids: list[str]) -> dict[str, tuple[Decimal, Decimal]]:
+    """Mapa produto_id → (custo, venda) a partir do overlay PG."""
+    from produtos.models import ProdutoGestaoOverlayAgro
+
+    ids = [str(p or "").strip()[:100] for p in pids if str(p or "").strip()]
+    if not ids:
+        return {}
+    out: dict[str, tuple[Decimal, Decimal]] = {}
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids).only(
+        "produto_externo_id", "preco_venda", "cadastro_extras"
+    ):
+        pid = str(ov.produto_externo_id or "").strip()
+        if not pid:
+            continue
+        venda = _money(ov.preco_venda) if ov.preco_venda is not None else Decimal("0.00")
+        custo = Decimal("0.00")
+        ce = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else {}
+        if ce.get("preco_custo_overlay") is not None:
+            custo = _money(ce.get("preco_custo_overlay"))
+        out[pid] = (custo, venda)
+    return out
+
+
+def totais_uso_loja_por_deposito() -> dict[str, dict[str, float]]:
+    """
+    Soma custo e venda de todas as saídas NÃO estornadas, por depósito.
+    Usa snapshot do item; se faltar, cai no overlay atual.
+    """
+    base = {
+        DEPOSITO_CENTRO: {"custo": Decimal("0.00"), "venda": Decimal("0.00")},
+        DEPOSITO_VILA: {"custo": Decimal("0.00"), "venda": Decimal("0.00")},
+    }
+    itens = list(
+        UsoLojaRetiradaItemAgro.objects.filter(retirada__estornado=False)
+        .select_related("retirada")
+        .only(
+            "quantidade",
+            "preco_custo",
+            "preco_venda",
+            "produto_externo_id",
+            "retirada__deposito",
+            "retirada__estornado",
+        )
+    )
+    missing = [
+        str(it.produto_externo_id or "").strip()
+        for it in itens
+        if it.preco_custo is None or it.preco_venda is None
+    ]
+    lookup = _precos_overlay_por_ids(missing) if missing else {}
+    for it in itens:
+        dep = normalizar_deposito(it.retirada.deposito)
+        if dep not in base:
+            continue
+        qtd = _dec(it.quantidade)
+        if qtd <= 0:
+            continue
+        pid = str(it.produto_externo_id or "").strip()
+        oc, ov = lookup.get(pid, (Decimal("0.00"), Decimal("0.00")))
+        custo_u = _money(it.preco_custo) if it.preco_custo is not None else oc
+        venda_u = _money(it.preco_venda) if it.preco_venda is not None else ov
+        base[dep]["custo"] += (custo_u * qtd).quantize(Decimal("0.01"))
+        base[dep]["venda"] += (venda_u * qtd).quantize(Decimal("0.01"))
+    return {
+        k: {"custo": float(v["custo"]), "venda": float(v["venda"])}
+        for k, v in base.items()
+    }
+
+
 def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
     itens = []
     for it in r.itens.all():
@@ -226,6 +313,8 @@ def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
                 "codigo": it.codigo_interno,
                 "nome": it.nome_produto,
                 "quantidade": float(it.quantidade),
+                "preco_custo": float(it.preco_custo) if it.preco_custo is not None else None,
+                "preco_venda": float(it.preco_venda) if it.preco_venda is not None else None,
             }
         )
     return {

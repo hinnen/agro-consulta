@@ -51,6 +51,10 @@
     status: document.getElementById('pdv-uso-loja-status'),
     histList: document.getElementById('pdv-uso-loja-hist-list'),
     histStatus: document.getElementById('pdv-uso-loja-hist-status'),
+    totCentroCusto: document.getElementById('pdv-uso-loja-tot-centro-custo'),
+    totCentroVenda: document.getElementById('pdv-uso-loja-tot-centro-venda'),
+    totVilaCusto: document.getElementById('pdv-uso-loja-tot-vila-custo'),
+    totVilaVenda: document.getElementById('pdv-uso-loja-tot-vila-venda'),
     stepPop: document.getElementById('pdv-uso-loja-step-pop'),
     stepEyebrow: document.getElementById('pdv-uso-loja-step-eyebrow'),
     stepTitle: document.getElementById('pdv-uso-loja-step-title'),
@@ -210,6 +214,7 @@
     var nome = String(p.nome || p.name || pid).trim();
     var codigo = String(p.codigo_gm || p.codigo_nfe || p.codigo || p.gm || '').trim();
     var preco = precoProduto(p);
+    var custo = custoProduto(p);
     var found = null;
     for (var i = 0; i < cart.length; i++) {
       if (cart[i].produto_id === pid) {
@@ -220,6 +225,7 @@
     if (found) {
       found.quantidade = Number(found.quantidade || 0) + 1;
       if (found.preco_venda == null && preco != null) found.preco_venda = preco;
+      if (found.preco_custo == null && custo != null) found.preco_custo = custo;
       if (!found.codigo && codigo) found.codigo = codigo;
     } else {
       cart.push({
@@ -227,6 +233,7 @@
         nome: nome,
         codigo: codigo,
         preco_venda: preco,
+        preco_custo: custo,
         quantidade: 1,
       });
     }
@@ -254,6 +261,14 @@
     if (p.preco_venda != null && p.preco_venda !== '') return p.preco_venda;
     if (p.preco != null && p.preco !== '') return p.preco;
     if (p.PrecoVenda != null && p.PrecoVenda !== '') return p.PrecoVenda;
+    return null;
+  }
+
+  function custoProduto(p) {
+    if (!p) return null;
+    if (p.preco_custo != null && p.preco_custo !== '') return p.preco_custo;
+    if (p.custo != null && p.custo !== '') return p.custo;
+    if (p.PrecoCusto != null && p.PrecoCusto !== '') return p.PrecoCusto;
     return null;
   }
 
@@ -678,6 +693,8 @@
           nome: it.nome,
           codigo: it.codigo,
           quantidade: it.quantidade,
+          preco_venda: it.preco_venda,
+          preco_custo: it.preco_custo,
         };
       }),
     };
@@ -769,6 +786,29 @@
     }
   }
 
+  function fmtTotMoney(v) {
+    var n = Number(v);
+    if (!isFinite(n)) n = 0;
+    try {
+      return n.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    } catch (e) {
+      return n.toFixed(2).replace('.', ',');
+    }
+  }
+
+  function renderHistTotais(totais) {
+    var t = totais || {};
+    var c = t.centro || {};
+    var v = t.vila || {};
+    if (dom.totCentroCusto) dom.totCentroCusto.textContent = fmtTotMoney(c.custo);
+    if (dom.totCentroVenda) dom.totCentroVenda.textContent = fmtTotMoney(c.venda);
+    if (dom.totVilaCusto) dom.totVilaCusto.textContent = fmtTotMoney(v.custo);
+    if (dom.totVilaVenda) dom.totVilaVenda.textContent = fmtTotMoney(v.venda);
+  }
+
   function loadHistorico() {
     setHistStatus('Carregando…');
     var url = urls.apiPdvUsoLojaHistorico || '/api/pdv/uso-loja/historico/';
@@ -779,11 +819,12 @@
         return r.json();
       })
       .then(function (data) {
+        renderHistTotais((data && data.totais) || {});
         var itens = (data && data.itens) || [];
         if (!itens.length) {
           dom.histList.innerHTML =
             '<p class="py-6 text-center text-sm font-semibold text-slate-500">Nenhuma saída ainda.</p>';
-          setHistStatus('');
+          setHistStatus('0 registro(s)');
           return;
         }
         dom.histList.innerHTML = itens
@@ -845,6 +886,7 @@
         });
       })
       .catch(function () {
+        renderHistTotais({});
         setHistStatus('Falha ao carregar histórico.', true);
       });
   }

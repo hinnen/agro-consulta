@@ -312,6 +312,37 @@
     border-color: #fecaca;
     background: #fef2f2;
   }
+  #pdv-uso-loja-overlay .ul-hist-totais {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag {
+    border: 2px solid #99f6e4;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #f0fdfa, #fff);
+    padding: 0.55rem 0.7rem;
+    min-height: 4.25rem;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-loja {
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0f766e;
+    margin-bottom: 0.2rem;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-line {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #475569;
+    line-height: 1.35;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-line strong {
+    font-weight: 900;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
+  }
   #pdv-uso-loja-overlay[data-ul-view="historico"] .ul-view-saida { display: none !important; }
   #pdv-uso-loja-overlay[data-ul-view="saida"] .ul-view-historico { display: none !important; }
   #pdv-uso-loja-step-pop.hidden { display: none !important; }
@@ -512,8 +543,20 @@
 
     <div class="ul-view-historico hidden min-h-0 flex-1 flex-col overflow-hidden">
       <div id="pdv-uso-loja-hist-list" class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4"></div>
-      <footer class="shrink-0 border-t-2 border-emerald-100 bg-white px-3 py-2 sm:px-4">
-        <p id="pdv-uso-loja-hist-status" class="text-sm font-bold text-slate-600" role="status"></p>
+      <footer class="ul-hist-footer shrink-0 border-t-2 border-emerald-100 bg-white px-3 py-2 sm:px-4">
+        <div class="ul-hist-totais" aria-label="Totais por loja">
+          <div class="ul-hist-total-tag" data-dep="centro">
+            <div class="ul-hist-total-loja">Centro</div>
+            <div class="ul-hist-total-line">total custo: <strong id="pdv-uso-loja-tot-centro-custo">0,00</strong></div>
+            <div class="ul-hist-total-line">total venda: <strong id="pdv-uso-loja-tot-centro-venda">0,00</strong></div>
+          </div>
+          <div class="ul-hist-total-tag" data-dep="vila">
+            <div class="ul-hist-total-loja">Vila Elias</div>
+            <div class="ul-hist-total-line">total custo: <strong id="pdv-uso-loja-tot-vila-custo">0,00</strong></div>
+            <div class="ul-hist-total-line">total venda: <strong id="pdv-uso-loja-tot-vila-venda">0,00</strong></div>
+          </div>
+        </div>
+        <p id="pdv-uso-loja-hist-status" class="mt-1.5 text-sm font-bold text-slate-600" role="status"></p>
       </footer>
     </div>
 
