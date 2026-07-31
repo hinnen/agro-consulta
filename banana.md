@@ -1196,6 +1196,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📦 **pronto para envio à produção** · migrate `0077` · VERIFY_OK |
 | **O quê** | Motivo **Brinde cliente** → busca cliente cadastrado · grava no PG · F8 aba **Bônus** (no lugar de Métricas) |
 | **Migrate** | SIM — `produtos.0077` (`cliente_brinde` FK) |
+| **Commits** | `8e8c5f4` |
 | **Prova** | Local: migrate OK · `brinde` em MOTIVOS · F8 lista `bonus` |
 | **Base loja** | v12.51+ (uso loja) · ideal após UX v12.55 |
 
