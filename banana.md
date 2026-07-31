@@ -563,7 +563,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 ### 4.7 Entrada de nota fiscal
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
-- **Dist DF-e (31/07):** certificado = `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor ultNSU no PG — **só avança em 137/138**; **656 não grava** (evita pular NSU). Local parked **2086**. **Nunca** digitar NSU maior «na mão». **XML** se nota ficou pra trás.
+- **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
 - **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
@@ -1397,6 +1397,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | ver pacote **AJUSTE-MOBILE-CEL** |
 | **Você** | Ctrl+F5 no celular · rolar · buscar · 1 contagem · BI «Ajuste» deve sair do BI |
 | **Não** | Usar no PC / abrir pelo shell de abas |
+
+### ðŸ› Dist DF-e — caixa de entrada salva (~80) (31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | «Buscar notas novas» grava XML no PG · lista Pendentes (antigas primeiro) / Concluídas · limite ~80 |
+| **Cursor** | Só avança em 137/138 · fica em **2090** (fim da fila agora) |
+| **Recuperado** | Saframil 11902 + Astúrias 112549 salvas como pendentes |
+| **Você** | Ctrl+F5 · aba SEFAZ · Pendentes · **Carregar na grade** (mais antiga primeiro) · próximas notas = Buscar quando houver nova |
+| **Não** | Digitar NSU maior · Consultar várias vezes |
 
 ### ðŸ› Dist DF-e — 656 avançava o NSU sem puxar nota (31/07)
 

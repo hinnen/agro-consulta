@@ -1003,6 +1003,26 @@ urlpatterns = [
         name='api_entrada_nota_dist_dfe',
     ),
     path(
+        'api/entrada-nota/dfe-inbox/',
+        views.api_entrada_nota_dfe_inbox,
+        name='api_entrada_nota_dfe_inbox',
+    ),
+    path(
+        'api/entrada-nota/dfe-inbox/<int:doc_id>/',
+        views.api_entrada_nota_dfe_inbox_detalhe,
+        name='api_entrada_nota_dfe_inbox_detalhe',
+    ),
+    path(
+        'api/entrada-nota/dfe-inbox/<int:doc_id>/ignorar/',
+        views.api_entrada_nota_dfe_inbox_ignorar,
+        name='api_entrada_nota_dfe_inbox_ignorar',
+    ),
+    path(
+        'api/cron/dfe-consultar-inbox/',
+        views.api_cron_dfe_consultar_inbox,
+        name='api_cron_dfe_consultar_inbox',
+    ),
+    path(
         'api/entrada-nota/produto-margem/',
         views.api_entrada_nota_produto_margem,
         name='api_entrada_nota_produto_margem',

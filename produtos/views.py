@@ -13152,17 +13152,27 @@ def entrada_nota_view(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_sefaz_status(request):
-    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        dfe_checar_limite_consulta,
+        distribuicao_dfe_configurada,
+    )
 
     cfg = _cfg_dist_dfe()
     cnpj = cfg.get("cnpj") or ""
+    configurada = distribuicao_dfe_configurada()
+    bloqueio = dfe_checar_limite_consulta(cnpj) if configurada and len(cnpj) == 14 else None
+    aguardar = int((bloqueio or {}).get("aguardar_segundos") or 0)
     return JsonResponse(
         {
-            "configurada": distribuicao_dfe_configurada(),
+            "configurada": configurada,
             "uf": cfg.get("uf") or "",
             "cnpj_mascarado": _mascarar_cnpj(cnpj),
             "tp_amb": str(cfg.get("tp_amb") or "2"),
             "ult_nsu": obter_ult_nsu(None, cnpj) if len(cnpj) == 14 else "0",
+            "consulta_liberada": not bool(bloqueio),
+            "aguardar_segundos": aguardar,
+            "limite_motivo": str((bloqueio or {}).get("erro") or (bloqueio or {}).get("x_motivo") or ""),
         }
     )
 
@@ -16173,84 +16183,181 @@ def api_entrada_nota_financeiro(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
-    from produtos.sefaz_dfe_client import (
-        _cfg_dist_dfe,
-        distribuicao_dfe_configurada,
-        nfe_distribuicao_dfe_interesse,
-    )
+    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         payload = {}
-    cnpj_cfg = (_cfg_dist_dfe().get("cnpj") or "")[:14]
+    cfg = _cfg_dist_dfe()
+    cnpj_cfg = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
     ult_pedido = payload.get("ult_nsu")
-    client, db = obter_conexao_mongo()
-    if ult_pedido is not None and str(ult_pedido).strip() != "":
-        ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
-    elif len(cnpj_cfg) == 14:
-        ult = obter_ult_nsu(db, cnpj_cfg)
-    else:
-        ult = "0"
 
     if not distribuicao_dfe_configurada():
         return JsonResponse(
             {
                 "ok": False,
-                "erro": "Distribuição DF-e não configurada. Use NFE_DIST_DFE_* ou o mesmo certificado "
-                "NFC_E_* (CERT_PATH/BASE64 + PASSWORD + CNPJ + UF). Opcional: NFE_DIST_DFE_TP_AMB "
-                "ou NFC_E_TP_AMB (1=produção, 2=homologação). Instale: pip install cryptography lxml signxml",
-                "ult_nsu": ult,
+                "erro": (
+                    "Certificado DF-e/NFC-e incompleto. Use NFC_E_* (mesmo A1 da NFC-e) "
+                    "ou NFE_DIST_DFE_*. Instale: pip install cryptography lxml signxml"
+                ),
+                "ult_nsu": ult_pedido or "",
+                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
             },
             status=400,
         )
 
-    res = nfe_distribuicao_dfe_interesse(ult)
-    previews: list[dict] = []
-    for xml_txt in res.get("notas_xml") or []:
-        p = parse_nfe_xml_bytes(xml_txt.encode("utf-8"))
-        if p.get("ok"):
-            p["itens"] = casar_produtos_entrada_nfe(
-                p.get("itens") or [],
-                emit_cnpj=str(p.get("emit_cnpj") or ""),
-                db=db,
-                col_p=getattr(client, "col_p", None) or "DtoProduto",
-            )
-            previews.append(
-                {
-                    "chave": p.get("chave"),
-                    "numero": p.get("numero"),
-                    "emit_nome": p.get("emit_nome"),
-                    "valor_total": p.get("valor_total"),
-                    "n_itens": len(p.get("itens") or []),
-                    "nota": p,
-                }
-            )
+    ult = None
+    if ult_pedido is not None and str(ult_pedido).strip() != "":
+        ult = re.sub(r"\D", "", str(ult_pedido))[:15] or "0"
+    res = dfe_executar_consulta_e_gravar(ult_nsu=ult, origem="manual")
+    inbox = res.get("inbox") or {}
+    novas = int(inbox.get("novas") or 0)
+    if res.get("c_stat") == 137 or (res.get("ok") and novas == 0 and not res.get("n_docs_retorno")):
+        msg_ui = "Nenhuma nota nova na Receita. A lista salva continua igual."
+    elif novas:
+        msg_ui = f"{novas} nota(s) nova(s) gravada(s) na caixa de entrada."
+    else:
+        msg_ui = str(res.get("x_motivo") or res.get("erro") or "")
+    resumos = int(inbox.get("resumos") or 0)
+    if resumos and novas:
+        msg_ui += " Algumas só vieram como resumo — use Ler XML se não der para carregar."
+    elif resumos and not novas:
+        msg_ui += " Receita mandou só resumo (sem XML completo) — use Ler XML para dar entrada."
 
-    # Só avança o fio (ultNSU salvo) em 137 (nada novo) ou 138 (com XML).
-    # Em 656 a Receita devolve outro número — gravar isso pulava NSU sem puxar nota.
+    out = {
+        "ok": bool(res.get("ok")),
+        "c_stat": res.get("c_stat"),
+        "x_motivo": res.get("x_motivo") or "",
+        "ult_nsu": res.get("ult_nsu"),
+        "ult_nsu_salvo": res.get("ult_nsu_salvo"),
+        "ult_nsu_sefaz": res.get("ult_nsu_sefaz"),
+        "max_nsu": res.get("max_nsu"),
+        "aguardar_segundos": res.get("aguardar_segundos"),
+        "erro": res.get("erro"),
+        "msg_ui": msg_ui,
+        "inbox": inbox,
+        "itens": res.get("itens_pendentes") or dfe_inbox_listar(cnpj_cfg, aba="pendentes"),
+        "previews": [],
+    }
+    if not out["ok"] and out.get("erro"):
+        return JsonResponse(out, status=429 if out.get("aguardar_segundos") else 502)
+    return JsonResponse(out)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_dfe_inbox(request):
+    """Lista caixa de entrada DF-e do Postgres (sem falar com a SEFAZ)."""
+    from produtos.dfe_inbox_util import dfe_inbox_listar
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe
+
+    cfg = _cfg_dist_dfe()
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    aba = (request.GET.get("aba") or "pendentes").strip().lower()
     try:
-        c_stat_i = int(res.get("c_stat")) if res.get("c_stat") is not None else None
-    except (TypeError, ValueError):
-        c_stat_i = None
-    ult_salvo = obter_ult_nsu(db, cnpj_cfg) if len(cnpj_cfg) == 14 else ult
-    if len(cnpj_cfg) == 14 and res.get("ult_nsu") and c_stat_i in (137, 138):
-        gravar_ult_nsu(db, cnpj_cfg, str(res["ult_nsu"]))
-        ult_salvo = str(res["ult_nsu"]).zfill(15)[:15]
-    elif c_stat_i == 656:
-        res["ult_nsu_sefaz"] = res.get("ult_nsu")
-        res["ult_nsu"] = ult_salvo
-        aviso = (res.get("x_motivo") or res.get("erro") or "").strip()
-        res["x_motivo"] = (
-            f"{aviso} Cursor da loja permanece {ult_salvo.lstrip('0') or '0'} "
-            "(não avançamos no 656)."
-        ).strip()
+        lim = min(int(request.GET.get("limit") or 80), 120)
+    except ValueError:
+        lim = 80
+    if len(cnpj) != 14:
+        return JsonResponse({"ok": False, "erro": "CNPJ DF-e não configurado.", "itens": []}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "aba": aba,
+            "itens": dfe_inbox_listar(cnpj, aba=aba, limit=lim),
+        }
+    )
 
-    res["ult_nsu_salvo"] = ult_salvo
-    res["previews"] = previews
-    if not res.get("ok") and res.get("erro"):
-        return JsonResponse(res, status=502)
-    return JsonResponse(res)
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
+    """Parseia XML salvo no PG para «Carregar na grade»."""
+    from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe
+
+    cfg = _cfg_dist_dfe()
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    if not row:
+        return JsonResponse({"ok": False, "erro": "Nota não encontrada na caixa de entrada."}, status=404)
+    if row.schema != "nfe" or not (row.xml or "").strip():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Esta nota veio só como resumo da Receita (sem XML completo). "
+                    "Use a aba XML · Ler XML do arquivo do fornecedor/e-mail."
+                ),
+                "chave": row.chave,
+                "schema": row.schema,
+            },
+            status=400,
+        )
+    parsed = parse_nfe_xml_bytes(row.xml.encode("utf-8"))
+    if not parsed.get("ok"):
+        return JsonResponse(
+            {"ok": False, "erro": parsed.get("erro") or "XML salvo inválido."},
+            status=400,
+        )
+    client, db = obter_conexao_mongo()
+    col_p = getattr(client, "col_p", None) or "DtoProduto"
+    parsed["itens"] = casar_produtos_entrada_nfe(
+        parsed.get("itens") or [],
+        emit_cnpj=str(parsed.get("emit_cnpj") or ""),
+        db=db,
+        col_p=col_p,
+    )
+    if row.status == "pendente":
+        dfe_inbox_marcar(doc_id=row.pk, status="carregada")
+    return JsonResponse(
+        {
+            "ok": True,
+            "id": row.pk,
+            "chave": row.chave,
+            "nota": parsed,
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
+    from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe
+
+    cfg = _cfg_dist_dfe()
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    if not row:
+        return JsonResponse({"ok": False, "erro": "Nota não encontrada."}, status=404)
+    r = dfe_inbox_marcar(doc_id=row.pk, status="ignorada")
+    return JsonResponse(r, status=200 if r.get("ok") else 400)
+
+
+@require_GET
+def api_cron_dfe_consultar_inbox(request):
+    """Cron 1×/dia: consulta Dist DF-e e grava caixa de entrada."""
+    if not _token_cron_alerta_valido(request):
+        return JsonResponse({"ok": False, "erro": "token"}, status=403)
+    from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar
+
+    force = str(request.GET.get("force") or "").strip() in ("1", "true", "yes")
+    if force:
+        from produtos.sefaz_dfe_client import _cfg_dist_dfe
+
+        cnpj = re.sub(r"\D", "", str(_cfg_dist_dfe().get("cnpj") or ""))[:14]
+        if len(cnpj) == 14:
+            from datetime import date as _date
+
+            from django.core.cache import cache
+
+            cache.delete(f"agro_dfe_cron_day:{cnpj}:{_date.today().isoformat()}")
+    res = dfe_executar_consulta_e_gravar(origem="cron")
+    st = 200 if res.get("ok") or res.get("pulado") else (429 if res.get("aguardar_segundos") else 502)
+    return JsonResponse(res, status=st)
 
 
 @login_required(login_url="/admin/login/")
