@@ -353,33 +353,79 @@
   #pdv-uso-loja-overlay .ul-hist-totais {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.55rem;
+    gap: 0.65rem;
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag {
-    border: 2px solid #99f6e4;
-    border-radius: 0.75rem;
-    background: linear-gradient(180deg, #f0fdfa, #fff);
-    padding: 0.55rem 0.7rem;
-    min-height: 4.25rem;
+    border-radius: 0.9rem;
+    border-width: 3px;
+    border-style: solid;
+    padding: 0.7rem 0.85rem 0.75rem;
+    min-height: 6.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="centro"] {
+    border-color: #0284c7;
+    background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 55%, #f0f9ff 100%);
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="vila"] {
+    border-color: #ea580c;
+    background: linear-gradient(180deg, #fed7aa 0%, #ffedd5 55%, #fff7ed 100%);
   }
   #pdv-uso-loja-overlay .ul-hist-total-loja {
-    font-size: 0.72rem;
+    font-size: 0.95rem;
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #0f766e;
-    margin-bottom: 0.2rem;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
   }
-  #pdv-uso-loja-overlay .ul-hist-total-line {
-    font-size: 0.82rem;
-    font-weight: 700;
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="centro"] .ul-hist-total-loja {
+    color: #075985;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="vila"] .ul-hist-total-loja {
+    color: #9a3412;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.45rem;
+    flex: 1 1 auto;
+    align-items: stretch;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-metric {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: lowercase;
     color: #475569;
-    line-height: 1.35;
+    line-height: 1.2;
+    margin-bottom: 0.15rem;
   }
-  #pdv-uso-loja-overlay .ul-hist-total-line strong {
+  #pdv-uso-loja-overlay .ul-hist-total-val {
+    font-size: clamp(1.35rem, 2.2vw + 0.85rem, 1.85rem);
     font-weight: 900;
-    color: #0f172a;
     font-variant-numeric: tabular-nums;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: #0f172a;
+    word-break: break-all;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="centro"] .ul-hist-total-val {
+    color: #0c4a6e;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="vila"] .ul-hist-total-val {
+    color: #7c2d12;
+  }
+  #pdv-uso-loja-overlay .ul-hist-footer {
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
   }
   #pdv-uso-loja-overlay[data-ul-view="historico"] .ul-view-saida { display: none !important; }
   #pdv-uso-loja-overlay[data-ul-view="saida"] .ul-view-historico { display: none !important; }
@@ -586,13 +632,29 @@
         <div class="ul-hist-totais" aria-label="Totais por loja">
           <div class="ul-hist-total-tag" data-dep="centro">
             <div class="ul-hist-total-loja">Centro</div>
-            <div class="ul-hist-total-line">total custo: <strong id="pdv-uso-loja-tot-centro-custo">0,00</strong></div>
-            <div class="ul-hist-total-line">total venda: <strong id="pdv-uso-loja-tot-centro-venda">0,00</strong></div>
+            <div class="ul-hist-total-metrics">
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total custo</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-centro-custo">0,00</strong>
+              </div>
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total venda</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-centro-venda">0,00</strong>
+              </div>
+            </div>
           </div>
           <div class="ul-hist-total-tag" data-dep="vila">
             <div class="ul-hist-total-loja">Vila Elias</div>
-            <div class="ul-hist-total-line">total custo: <strong id="pdv-uso-loja-tot-vila-custo">0,00</strong></div>
-            <div class="ul-hist-total-line">total venda: <strong id="pdv-uso-loja-tot-vila-venda">0,00</strong></div>
+            <div class="ul-hist-total-metrics">
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total custo</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-vila-custo">0,00</strong>
+              </div>
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total venda</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-vila-venda">0,00</strong>
+              </div>
+            </div>
           </div>
         </div>
         <p id="pdv-uso-loja-hist-status" class="mt-1.5 text-sm font-bold text-slate-600" role="status"></p>
