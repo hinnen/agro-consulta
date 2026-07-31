@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | Só 🐞 flutuante · Alt+B · safe-zone: empurra rodapés · overlay → canto direito |
+| **Status** | `teste` **v12.45** · `ad5c2db` · safe-zone rodapés · overlay → direita · Ctrl+F5 |
 | **PDV** | `#pdv-main-footer` ganha padding-left — Voltar não fica atrás |
 | **Varredura** | CSS barras conhecidas + `elementsFromPoint` empurra se ainda colidir |
 | **Lista** | F10 → Gestão → Bugs / feedback |
@@ -1224,20 +1224,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | NÃO |
 | **Arquivos** | `relatorios_vendas_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
 
-### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.38**)
+### 📦 PACOTE PRONTO LOJA — PDV Uso loja (`PDV-USO-LOJA` · **v12.46**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · espera frase + senha |
-| **O quê** | Uso loja · quem grade · Enter · Voltar · histórico com totais custo/venda por loja |
-| **Migrate** | SIM — `estoque.0014` + `produtos.0073` + `0075` |
-| **Base** | v12.18–12.38 |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Uso loja no PDV · quem grade RH · motivo toque avança · Enter confirma · Voltar · hist. em linha · totais custo/venda por loja (Centro azul / Vila laranja) · PIN · estorno · kardex PG |
+| **Migrate** | SIM — `estoque.0014` + `produtos.0073` + `0074` (cadeia) + `0075` (preços item) |
+| **Prova** | URLs/meta/hist/totais OK · itens com ajuste · motivos alinhados · `{}` → pede PIN |
+| **Base** | v12.18–12.46 |
 
 ### 📦 PACOTE — PDV Uso loja (**v12.18** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.38** |
+| **Status** | ver **PACOTE PRONTO PDV-USO-LOJA v12.46** |
 | **O que é** | Botão **Uso loja** no PDV · overlay (padrão Folha saldo) · busca = motor PDV · lista própria · PIN · histórico + estorno |
 | **Estoque** | Baixa no **Postgres** (`AjusteRapidoEstoque` origem `uso_loja`) · caixa aberto = depósito do turno · caixa fechado = operador escolhe Centro/Vila |
 | **Opcional** | Quem levou = grade RH (toque avança) · Outros digita · motivo · vazio = dono do PIN |
@@ -1276,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.24** · migrate `estoque.0014`+`produtos.0073` |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.46** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
 | — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 

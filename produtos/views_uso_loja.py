@@ -26,11 +26,13 @@ from produtos.uso_loja_util import (
 logger = logging.getLogger(__name__)
 
 
-def _payload(request) -> dict:
+def _payload(request) -> dict | None:
     try:
-        return json.loads(request.body.decode("utf-8") or "{}")
+        raw = (request.body or b"").decode("utf-8") or "{}"
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else None
     except Exception:
-        return {}
+        return None
 
 
 @login_required(login_url="/admin/login/")
@@ -75,7 +77,7 @@ def api_pdv_uso_loja_meta(request):
 @require_POST
 def api_pdv_uso_loja_confirmar(request):
     payload = _payload(request)
-    if not payload:
+    if payload is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
 
     pin = str(payload.get("pin") or "").strip()
