@@ -194,16 +194,23 @@
       });
     }
     if (dom.busca) dom.busca.value = '';
-    if (dom.hits) dom.hits.innerHTML = '';
+    hideHits();
     renderCart();
     setStatus(nome + ' adicionado.');
+  }
+
+  function hideHits() {
+    if (!dom.hits) return;
+    dom.hits.innerHTML = '';
+    dom.hits.classList.add('hidden');
   }
 
   function renderHits(lista) {
     if (!dom.hits) return;
     if (!lista || !lista.length) {
       dom.hits.innerHTML =
-        '<p class="text-sm font-semibold text-slate-500 px-1">Nenhum produto.</p>';
+        '<p class="text-sm font-semibold text-slate-600 px-1 py-1">Nenhum produto.</p>';
+      dom.hits.classList.remove('hidden');
       return;
     }
     dom.hits.innerHTML = lista
@@ -229,6 +236,7 @@
         );
       })
       .join('');
+    dom.hits.classList.remove('hidden');
     dom.hits.querySelectorAll('[data-ul-add]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id = btn.getAttribute('data-ul-add');
@@ -247,7 +255,7 @@
   function buscar(q) {
     var query = String(q || '').trim();
     if (query.length < 1) {
-      if (dom.hits) dom.hits.innerHTML = '';
+      hideHits();
       return;
     }
     var base = urls.apiBuscarProdutos || '/api/buscar/';
@@ -271,7 +279,8 @@
       .catch(function () {
         if (dom.hits) {
           dom.hits.innerHTML =
-            '<p class="text-sm font-semibold text-red-600 px-1">Falha na busca.</p>';
+            '<p class="text-sm font-semibold text-red-600 px-1 py-1">Falha na busca.</p>';
+          dom.hits.classList.remove('hidden');
         }
       });
   }
@@ -391,10 +400,10 @@
 
   function closeOverlay() {
     hideStepPop();
+    hideHits();
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
-    if (dom.hits) dom.hits.innerHTML = '';
     draft = { quem: '', motivo: '', pin: '' };
   }
 
@@ -404,6 +413,7 @@
       setStatus('Adicione ao menos um produto.', true);
       return;
     }
+    hideHits();
     draft = { quem: '', motivo: '', pin: '' };
     setStatus('');
     showStep('quem');

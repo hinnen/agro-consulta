@@ -100,6 +100,39 @@
     border-color: #34d399;
     background: #ecfdf5;
   }
+  #pdv-uso-loja-overlay .ul-busca-wrap {
+    position: relative;
+    z-index: 20;
+  }
+  #pdv-uso-loja-hits {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.35rem);
+    z-index: 30;
+    max-height: min(14rem, 38dvh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.4rem;
+    border-radius: 0.85rem;
+    border: 2px solid #0ea5e9;
+    background: #e0f2fe;
+    box-shadow: 0 18px 48px rgba(14, 116, 144, 0.22);
+  }
+  #pdv-uso-loja-hits:empty,
+  #pdv-uso-loja-hits.hidden {
+    display: none !important;
+  }
+  #pdv-uso-loja-overlay .ul-hit {
+    background: #fff;
+  }
+  #pdv-uso-loja-overlay .ul-card--busca {
+    overflow: visible;
+    position: relative;
+    z-index: 15;
+    flex-shrink: 0;
+  }
   #pdv-uso-loja-overlay .ul-cart-row {
     display: grid;
     grid-template-columns: 1fr auto auto;
@@ -219,7 +252,7 @@
     </header>
 
     <div class="ul-view-saida flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div class="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto overscroll-contain px-3 py-2.5 sm:px-4 sm:py-3">
+      <div class="flex shrink-0 flex-col gap-2.5 px-3 pt-2.5 sm:px-4 sm:pt-3">
         <section class="ul-card" aria-label="Qual estoque">
           <div class="ul-card-h">
             <span class="ul-card-num" aria-hidden="true">1</span>
@@ -232,16 +265,20 @@
           </div>
         </section>
 
-        <section class="ul-card" aria-label="Buscar produto">
+        <section class="ul-card ul-card--busca" aria-label="Buscar produto">
           <div class="ul-card-h">
             <span class="ul-card-num" aria-hidden="true">2</span>
             <span class="ul-card-title">Buscar produto</span>
             <span class="ul-card-hint">mesmo motor do PDV</span>
           </div>
-          <input type="search" id="pdv-uso-loja-busca" class="ul-field" placeholder="Nome, GM, EAN ou código de barras." autocomplete="off" />
-          <div id="pdv-uso-loja-hits" class="mt-2 max-h-[9rem] space-y-1.5 overflow-y-auto empty:hidden" role="listbox" aria-label="Resultados"></div>
+          <div class="ul-busca-wrap">
+            <input type="search" id="pdv-uso-loja-busca" class="ul-field" placeholder="Nome, GM, EAN ou código de barras." autocomplete="off" />
+            <div id="pdv-uso-loja-hits" class="hidden space-y-1.5" role="listbox" aria-label="Resultados"></div>
+          </div>
         </section>
+      </div>
 
+      <div class="flex min-h-0 flex-1 flex-col px-3 pb-2.5 pt-2.5 sm:px-4 sm:pb-3">
         <section class="ul-card flex min-h-0 flex-1 flex-col" aria-label="Lista da saída">
           <div class="ul-card-h">
             <span class="ul-card-num" aria-hidden="true">3</span>
