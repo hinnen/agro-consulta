@@ -11,9 +11,9 @@
   var REACH_ID = 'agro-bug-reach';
   var BUG_ICON = '\uD83D\uDC1E'; /* 🐞 */
   var HTML2CANVAS_SRC = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
-  /** Acima de overlays PDV (2147483000); abaixo do PIN screensaver (2147483646). */
+  /** Acima do stack de iframes Gestão (2147483620); abaixo da barra lateral (3634) e PIN. */
   var Z_FORM = 2147483645;
-  var Z_REACH = 2147483600;
+  var Z_REACH = 2147483633;
 
   var open = false;
   var sending = false;
@@ -557,7 +557,27 @@
         });
       })
       .then(function (r) {
-        return r.json().then(function (j) {
+        return r.text().then(function (t) {
+          var j = null;
+          try {
+            j = JSON.parse(t);
+          } catch (e) {
+            j = null;
+          }
+          if (!j) {
+            var login =
+              r.status === 401 ||
+              r.status === 403 ||
+              /Acessar|login|entrar/i.test(String(t || '').slice(0, 800));
+            return {
+              j: {
+                ok: false,
+                erro: login
+                  ? 'Sessão expirada — entre de novo no sistema e tente outra vez.'
+                  : 'Resposta inválida do servidor (' + r.status + ').',
+              },
+            };
+          }
           return { j: j };
         });
       })

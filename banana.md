@@ -1178,14 +1178,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### Bug report — flutuante 🐞 (31/07 · teste)
+### 📦 PACOTE PRONTO LOJA — Bug report flutuante (`BUG-REPORT` · **v12.49**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | `teste` **v12.45** · `ad5c2db` · safe-zone rodapés · overlay → direita · Ctrl+F5 |
-| **PDV** | `#pdv-main-footer` ganha padding-left — Voltar não fica atrás |
-| **Varredura** | CSS barras conhecidas + `elementsFromPoint` empurra se ainda colidir |
-| **Lista** | F10 → Gestão → Bugs / feedback |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **O quê** | Botão 🐞 flutuante · Alt+B · print automático · lista F10 Gestão → Bugs · PG |
+| **Safe-zone** | Empurra rodapés (Voltar) · overlay → canto direito · z-index acima do iframe Gestão |
+| **Migrate** | SIM — `produtos.0074` (`BugReportAgro` + `DispositivoLojaAgro`) |
+| **Prova** | URLs/API criar+status+print+lista OK · form abre no shell · WhatsApp CallMeBot se configurado |
+| **Base** | v12.32–12.49 |
 
 ### ✅ Uso loja — quem levou grade RH (**v12.31** · 31/07)
 
@@ -1277,7 +1279,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** |
 | 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto para envio à produção** · **v12.22** · VERIFY_OK |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0074`+`0075` |
+| 2 | **PDV-USO-LOJA** | 📦 **pronto para envio à produção** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`produtos.0073`+`0075` (cadeia via `0074`) |
+| 3 | **BUG-REPORT** | 📦 **pronto para envio à produção** · **v12.49** · VERIFY_OK · migrate `produtos.0074` |
 | — | Dist DF-e / ENTRADA-NF-CUSTO | ⛔ fora da fila |
 
 
