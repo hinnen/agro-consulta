@@ -1180,7 +1180,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
-### 📦 PACOTE — Relatório vendas por marca (**v12.21** · 31/07)
+### 📦 PACOTE — Relatório vendas por marca (**v12.22** · 31/07)
 
 | Item | Detalhe |
 | ---- | ------- |
