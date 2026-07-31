@@ -1288,7 +1288,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
 **Loja hoje:** badge **v12.12** · healthz OK · branch `producao` @ `9d65e31`  
-**Teste hoje:** badge **v12.51** · `origin/teste` @ `99eefa4`  
+**Teste hoje:** badge **v12.51** · `origin/teste` @ `00a3f2e`  
 **NÃO merge `teste`→`producao`:** diff ~283 arquivos (dispenser, catálogo delivery, compras…) — **só lote cherry**.
 
 | Ordem | Pacote | Status | Risco loja aberta |
