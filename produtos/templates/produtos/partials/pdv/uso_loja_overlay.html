@@ -554,8 +554,27 @@
     color: #0c4a6e;
   }
   #pdv-uso-loja-step-pop[data-step="quem"]:not([data-quem-outros="1"]) #pdv-uso-loja-step-ok,
-  #pdv-uso-loja-step-pop[data-step="motivo"]:not([data-motivo-outros="1"]) #pdv-uso-loja-step-ok {
+  #pdv-uso-loja-step-pop[data-step="motivo"]:not([data-motivo-outros="1"]):not([data-motivo-brinde="1"]) #pdv-uso-loja-step-ok {
     display: none !important;
+  }
+  #pdv-uso-loja-step-pop .ul-brinde-hit {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid #ede9fe;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #334155;
+    background: #fff;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-step-pop .ul-brinde-hit:hover {
+    background: #f5f3ff;
+    color: #5b21b6;
+  }
+  #pdv-uso-loja-step-pop .ul-brinde-hit:last-child {
+    border-bottom: 0;
   }
 </style>
 
@@ -685,9 +704,15 @@
             <button type="button" class="ul-step-motivo-btn" data-motivo="consumo">Consumo interno</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="amostra">Amostra</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="outros">Outros</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="brinde">Brinde cliente</button>
           </div>
           <div id="pdv-uso-loja-step-motivo-outros-wrap" class="hidden px-4 pt-2 pb-1">
             <input type="text" id="pdv-uso-loja-step-motivo-txt" class="ul-field" placeholder="Descreva o motivo" autocomplete="off" maxlength="120" />
+          </div>
+          <div id="pdv-uso-loja-step-motivo-brinde-wrap" class="hidden px-4 pt-2 pb-1 space-y-2">
+            <input type="search" id="pdv-uso-loja-step-brinde-busca" class="ul-field" placeholder="Buscar cliente (nome, CPF…)" autocomplete="off" />
+            <div id="pdv-uso-loja-step-brinde-hits" class="hidden max-h-[10rem] overflow-y-auto rounded-xl border-2 border-violet-200 bg-white"></div>
+            <p id="pdv-uso-loja-step-brinde-sel" class="hidden text-sm font-bold text-violet-900"></p>
           </div>
         </div>
         <div id="pdv-uso-loja-step-body-pin" class="hidden px-4 pt-3">

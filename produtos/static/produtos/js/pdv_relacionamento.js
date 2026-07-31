@@ -14,7 +14,7 @@
         { id: 'cross_sell', label: 'Cross-sell', labelTab: 'Cross' },
         { id: 'fiado', label: 'Fiado' },
         { id: 'fidelidade', label: 'Cashback', labelTab: 'Cash' },
-        { id: 'metricas', label: 'Métricas' },
+        { id: 'bonus', label: 'Bônus' },
         { id: 'pets', label: 'Pets' },
         { id: 'saude', label: 'Saúde' },
         { id: 'anotacoes', label: 'Anotações', labelTab: 'Anot.' },
@@ -738,6 +738,82 @@
         );
     }
 
+    function renderBonus(d) {
+        var rows = (d && d.bonus) || [];
+        if (!rows.length) {
+            return (
+                '<p class="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm font-bold text-slate-500">' +
+                'Nenhum brinde registrado ainda. Saídas «Brinde cliente» no Uso loja aparecem aqui.' +
+                '</p>'
+            );
+        }
+        function fmtQtd(n) {
+            var x = Number(n);
+            if (!isFinite(x)) return '0';
+            if (Math.abs(x - Math.round(x)) < 0.0005) return String(Math.round(x));
+            return x.toFixed(3).replace(/\.?0+$/, '');
+        }
+        function fmtData(iso) {
+            if (!iso) return '—';
+            try {
+                var dt = new Date(iso);
+                if (isNaN(dt.getTime())) return iso;
+                var dd = String(dt.getDate()).padStart(2, '0');
+                var mm = String(dt.getMonth() + 1).padStart(2, '0');
+                var yy = String(dt.getFullYear()).slice(-2);
+                return dd + '/' + mm + '/' + yy;
+            } catch (e) {
+                return iso;
+            }
+        }
+        var html =
+            '<div class="space-y-2">' +
+            '<p class="text-xs font-bold text-slate-600">Brindes / uso loja vinculados a este cliente.</p>';
+        rows.forEach(function (r) {
+            var itens = (r.itens || [])
+                .map(function (it) {
+                    return esc(it.nome || it.produto_id) + ' × ' + fmtQtd(it.quantidade);
+                })
+                .join(' · ');
+            var totV = 0;
+            (r.itens || []).forEach(function (it) {
+                var pv = Number(it.preco_venda);
+                var q = Number(it.quantidade);
+                if (isFinite(pv) && isFinite(q)) totV += pv * q;
+            });
+            html +=
+                '<div class="rounded-xl border-2 ' +
+                (r.estornado ? 'border-red-200 bg-red-50 opacity-75' : 'border-violet-200 bg-violet-50') +
+                ' px-3 py-2.5">' +
+                '<div class="flex flex-wrap items-start justify-between gap-2">' +
+                '<div class="min-w-0 text-sm font-bold text-slate-800">' +
+                '<span class="font-black">#' +
+                esc(String(r.id)) +
+                '</span> · ' +
+                esc(fmtData(r.criado_em)) +
+                ' · ' +
+                esc(r.deposito_label || r.deposito || '') +
+                (r.estornado
+                    ? ' <span class="text-[10px] font-black uppercase text-red-700">Estornado</span>'
+                    : '') +
+                '<div class="mt-0.5 text-sm font-semibold text-slate-700 leading-snug">' +
+                (itens || '—') +
+                '</div>' +
+                '<div class="mt-0.5 text-[11px] font-semibold text-slate-500">Quem: ' +
+                esc(r.quem_levou || '—') +
+                ' · PIN: ' +
+                esc(r.operador_pin || '—') +
+                '</div>' +
+                '</div>' +
+                '<div class="shrink-0 text-right text-sm font-black text-violet-950">' +
+                money(totV) +
+                '</div>' +
+                '</div></div>';
+        });
+        html += '</div>';
+        return html;
+    }
+
     function renderMetricas(d) {
         var m = d.metricas || {};
         return (
@@ -860,7 +936,7 @@
             cross_sell: renderCross,
             fiado: renderFiado,
             fidelidade: renderFidelidade,
-            metricas: renderMetricas,
+            bonus: renderBonus,
             pets: function () {
                 return renderPets(extra);
             },

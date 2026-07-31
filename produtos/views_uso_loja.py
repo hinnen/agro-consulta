@@ -98,6 +98,7 @@ def api_pdv_uso_loja_confirmar(request):
     quem = str(payload.get("quem_levou") or "").strip()
     motivo = str(payload.get("motivo") or "").strip()
     obs = str(payload.get("observacao") or "").strip()
+    cliente_brinde_id = payload.get("cliente_brinde_id") or payload.get("cliente_agro_pk")
 
     try:
         retirada, err = confirmar_retirada_uso_loja(
@@ -109,6 +110,7 @@ def api_pdv_uso_loja_confirmar(request):
             usuario_django=user_dj,
             sessao_caixa=sessao,
             observacao=obs,
+            cliente_brinde_id=cliente_brinde_id,
         )
     except Exception as exc:
         logger.exception("api_pdv_uso_loja_confirmar")
@@ -134,7 +136,8 @@ def api_pdv_uso_loja_historico(request):
     except (TypeError, ValueError):
         limit = 40
     qs = (
-        UsoLojaRetiradaAgro.objects.prefetch_related("itens")
+        UsoLojaRetiradaAgro.objects.select_related("cliente_brinde")
+        .prefetch_related("itens")
         .all()
         .order_by("-criado_em", "-pk")[:limit]
     )

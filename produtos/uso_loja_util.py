@@ -89,7 +89,10 @@ def confirmar_retirada_uso_loja(
     usuario_django=None,
     sessao_caixa=None,
     observacao: str = "",
+    cliente_brinde_id=None,
 ) -> tuple[UsoLojaRetiradaAgro | None, str]:
+    from produtos.models import ClienteAgro
+
     dep = normalizar_deposito(deposito)
     if dep not in (DEPOSITO_CENTRO, DEPOSITO_VILA):
         return None, "Depósito inválido."
@@ -109,6 +112,18 @@ def confirmar_retirada_uso_loja(
         return None, "Informe quem levou ou use o PIN."
     op = (operador_label or quem)[:120]
     empresa, loja = _empresa_loja(dep)
+
+    cli_brinde = None
+    if mot == "brinde":
+        try:
+            cid = int(cliente_brinde_id)
+        except (TypeError, ValueError):
+            cid = 0
+        if not cid:
+            return None, "Selecione o cliente do brinde."
+        cli_brinde = ClienteAgro.objects.filter(pk=cid, ativo=True).first()
+        if cli_brinde is None:
+            return None, "Cliente do brinde não encontrado."
 
     linhas_ok: list[dict[str, Any]] = []
     for raw in itens:
@@ -135,14 +150,21 @@ def confirmar_retirada_uso_loja(
 
     precos_ov = _precos_overlay_por_ids([ln["produto_id"] for ln in linhas_ok])
 
+    obs_extra = (observacao or "").strip()
+    if cli_brinde is not None:
+        nome_cli = (cli_brinde.nome or "").strip() or f"Cliente #{cli_brinde.pk}"
+        tag = f"Brinde → {nome_cli}"
+        obs_extra = f"{tag} · {obs_extra}".strip(" ·") if obs_extra else tag
+
     retirada = UsoLojaRetiradaAgro.objects.create(
         deposito=dep,
         quem_levou=quem[:120],
         motivo=mot,
+        cliente_brinde=cli_brinde,
         operador_pin=op,
         usuario=usuario_django if usuario_django is not None else None,
         sessao_caixa=sessao_caixa,
-        observacao=(observacao or "")[:2000],
+        observacao=obs_extra[:2000],
     )
 
     for ln in linhas_ok:
@@ -323,6 +345,7 @@ def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
                 "preco_venda": float(it.preco_venda) if it.preco_venda is not None else None,
             }
         )
+    cli = getattr(r, "cliente_brinde", None)
     return {
         "id": r.pk,
         "deposito": r.deposito,
@@ -332,6 +355,8 @@ def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
         "motivo_label": (
             MOTIVO_LABEL.get(r.motivo, r.motivo or "") if r.motivo else ""
         ),
+        "cliente_brinde_id": r.cliente_brinde_id,
+        "cliente_brinde_nome": (cli.nome if cli else "") or "",
         "operador_pin": r.operador_pin,
         "criado_em": r.criado_em.isoformat() if r.criado_em else "",
         "estornado": bool(r.estornado),
@@ -340,3 +365,13 @@ def serializar_retirada(r: UsoLojaRetiradaAgro) -> dict:
         "itens": itens,
         "itens_count": len(itens),
     }
+
+
+def listar_brindes_cliente(cliente_agro_pk: int, *, limit: int = 40) -> list[dict]:
+    """Histórico de brindes (uso loja) para a aba Bônus do F8."""
+    qs = (
+        UsoLojaRetiradaAgro.objects.filter(cliente_brinde_id=cliente_agro_pk)
+        .prefetch_related("itens")
+        .order_by("-criado_em", "-pk")[: max(1, min(int(limit or 40), 100))]
+    )
+    return [serializar_retirada(r) for r in qs]
