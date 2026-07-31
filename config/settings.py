@@ -373,6 +373,14 @@ AGRO_PDV_CATALOGO_SOMENTE_POSTGRES = config(
 AGRO_DISPLAY_SCALE_HABILITADO = config(
     'AGRO_DISPLAY_SCALE_HABILITADO', default=False, cast=bool
 )
+# Bug report — e-mail automático só se EMAIL_HOST estiver ok.
+AGRO_BUG_REPORT_EMAIL = (config("AGRO_BUG_REPORT_EMAIL", default="renanhinnen@gmail.com") or "").strip()
+EMAIL_HOST = (config("EMAIL_HOST", default="") or "").strip()
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = (config("EMAIL_HOST_USER", default="") or "").strip()
+EMAIL_HOST_PASSWORD = (config("EMAIL_HOST_PASSWORD", default="") or "").strip()
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+DEFAULT_FROM_EMAIL = (config("DEFAULT_FROM_EMAIL", default="") or EMAIL_HOST_USER or "noreply@sistvale.com.br").strip()
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP

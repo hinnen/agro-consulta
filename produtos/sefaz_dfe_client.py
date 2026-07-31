@@ -488,3 +488,155 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         out["erro"] = f"cStat={c_stat} {x_motivo}".strip()
 
     return out
+
+
+def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
+    """
+    Baixa documento pela chave de acesso (consChNFe).
+    Não altera o cursor ultNSU da loja — uso para recuperar nota já “passada” na fila.
+    """
+    import os
+
+    out: dict[str, Any] = {
+        "ok": False,
+        "c_stat": None,
+        "x_motivo": "",
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "erro": None,
+    }
+    cfg = _cfg_dist_dfe()
+    if not distribuicao_dfe_configurada():
+        out["erro"] = "Certificado DF-e/NFC-e incompleto."
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
+    if bloqueio:
+        out.update(bloqueio)
+        return out
+
+    ch = re.sub(r"\D", "", str(chave or ""))[:44]
+    if len(ch) != 44:
+        out["erro"] = "Chave NF-e inválida (44 dígitos)."
+        return out
+
+    c_uf = UF_PARA_COD.get(cfg["uf"])
+    if not c_uf:
+        out["erro"] = "UF inválida."
+        return out
+
+    tp_amb = 1 if cfg["tp_amb"] == 1 else 2
+    url = URL_DIST_DFE.get(tp_amb, URL_DIST_DFE[2])
+    xml_body = (
+        f'<distDFeInt xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.01">'
+        f"<tpAmb>{tp_amb}</tpAmb>"
+        f"<cUFAutor>{c_uf}</cUFAutor>"
+        f"<CNPJ>{cfg['cnpj']}</CNPJ>"
+        f"<consChNFe><chNFe>{ch}</chNFe></consChNFe>"
+        f"</distDFeInt>"
+    )
+
+    from produtos.sefaz_soap_util import normalizar_xml_envio
+
+    wsdl = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeDistribuicaoDFe"
+    inner = normalizar_xml_envio(xml_body)
+    soap = (
+        '<?xml version="1.0" encoding="utf-8"?>'
+        '<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+        'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+        'xmlns:soap="http://www.w3.org/2003/05/soap-envelope">'
+        "<soap:Body>"
+        f'<nfeDistDFeInteresse xmlns="{wsdl}">'
+        f'<nfeDadosMsg xmlns="{wsdl}">{inner}</nfeDadosMsg>'
+        "</nfeDistDFeInteresse>"
+        "</soap:Body></soap:Envelope>"
+    )
+    headers = {
+        "Content-Type": f'application/soap+xml;charset=utf-8;action="{wsdl}/nfeDistDFeInteresse"',
+        "Accept": "application/soap+xml; charset=utf-8;",
+    }
+
+    cleanup: list[str] = []
+    text = ""
+    try:
+        from produtos.nfce_sp_emissao_util import _cert_pem_temporario
+
+        cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
+        dfe_registrar_consulta_enviada(cfg["cnpj"])
+        r = requests.post(
+            url,
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
+        text = r.text or ""
+        if r.status_code >= 400:
+            out["erro"] = f"HTTP {r.status_code}: {text[:400]}"
+            return out
+    except Exception as exc:
+        logger.exception("nfe_distribuicao_dfe_por_chave")
+        out["erro"] = str(exc)[:400]
+        return out
+    finally:
+        for p in cleanup:
+            try:
+                if p and os.path.isfile(p):
+                    os.remove(p)
+            except OSError:
+                pass
+
+    c_stat = None
+    x_motivo = ""
+    max_nsu = None
+    ult_nsu_ret = None
+    notas: list[str] = []
+    try:
+        root = ET.fromstring(text)
+        for ch_el in root.iter():
+            tag = ch_el.tag.split("}")[-1] if "}" in ch_el.tag else ch_el.tag
+            if tag == "cStat" and ch_el.text and c_stat is None:
+                try:
+                    c_stat = int(ch_el.text.strip())
+                except ValueError:
+                    c_stat = ch_el.text.strip()
+            elif tag == "xMotivo" and ch_el.text and not x_motivo:
+                x_motivo = ch_el.text.strip()
+            elif tag == "maxNSU" and ch_el.text:
+                max_nsu = ch_el.text.strip()
+            elif tag == "ultNSU" and ch_el.text:
+                ult_nsu_ret = ch_el.text.strip()
+            elif tag == "docZip" and ch_el.text:
+                xml_doc = decodificar_doc_zip_base64(ch_el.text.strip())
+                if xml_doc:
+                    notas.append(xml_doc)
+    except ET.ParseError:
+        out["erro"] = "Resposta SEFAZ inválida."
+        return out
+
+    out["c_stat"] = c_stat
+    out["x_motivo"] = x_motivo
+    out["max_nsu"] = max_nsu
+    out["ult_nsu"] = ult_nsu_ret
+    out["notas_xml"] = notas
+
+    dfe_aplicar_cooldown_apos_resposta(
+        cfg["cnpj"],
+        c_stat=c_stat,
+        ult_nsu=str(ult_nsu_ret or ""),
+        max_nsu=str(max_nsu or ""),
+        x_motivo=x_motivo,
+    )
+
+    if c_stat == 656:
+        out["ok"] = False
+        out["erro"] = x_motivo or "Rejeição 656 — aguarde 1 hora."
+        out["aguardar_segundos"] = 3600
+    elif c_stat in (137, 138):
+        out["ok"] = True
+    else:
+        out["ok"] = False
+        out["erro"] = f"cStat={c_stat} {x_motivo}".strip()
+    return out

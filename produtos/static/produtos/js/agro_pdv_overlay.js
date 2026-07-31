@@ -165,6 +165,8 @@
     var root = document.getElementById(ROOT_ID);
     if (root) {
       ensureHelpUi(root);
+      var staleBug = root.querySelector('#agro-pdv-overlay-bug');
+      if (staleBug) staleBug.remove();
       return root;
     }
     root = document.createElement('div');

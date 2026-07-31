@@ -90,6 +90,16 @@
     </div>
     {% endif %}
 
+    {% if filtro_parcial == 'vendas_marca' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Ordenar</label>
+      <select name="ordenar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white">
+        <option value="valor" {% if extra_filtros.ordenar == 'valor' %}selected{% endif %}>Valor total</option>
+        <option value="qtd" {% if extra_filtros.ordenar == 'qtd' %}selected{% endif %}>Quantidade</option>
+      </select>
+    </div>
+    {% endif %}
+
     {% if filtro_parcial == 'vendas_grupo' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar por</label>

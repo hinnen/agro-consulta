@@ -303,7 +303,7 @@ def _norm_filtros_kwargs(**kwargs: object) -> dict[str, list[str] | None]:
 
 
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
-    """nome, codigo (GM), categoria, sub 1–4, custo, comissao_% e comissao_R$."""
+    """nome, codigo (GM), categoria, marca, sub 1–4, custo, comissao_% e comissao_R$."""
     from produtos.catalogo_agro import produto_agro_para_row
     from produtos.models import Produto
 
@@ -327,6 +327,10 @@ def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
                 ),
                 "categoria": _rotulo_sem(
                     row.get("categoria") or p.categoria, "Sem categoria"
+                ),
+                "marca": _rotulo_sem(
+                    row.get("marca") or getattr(p, "marca", None),
+                    "Sem marca",
                 ),
                 "subcategoria": _rotulo_sem(
                     row.get("subcategoria") or getattr(p, "subcategoria", None),
@@ -378,6 +382,8 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     "CodigoGM": 1,
                     "Categoria": 1,
                     "NomeCategoria": 1,
+                    "Marca": 1,
+                    "NomeMarca": 1,
                     "SubGrupo": 1,
                     "Subcategoria": 1,
                     "NomeSubGrupo": 1,
@@ -422,6 +428,10 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                 "categoria": _rotulo_sem(
                     doc.get("Categoria") or doc.get("NomeCategoria"),
                     "Sem categoria",
+                ),
+                "marca": _rotulo_sem(
+                    doc.get("Marca") or doc.get("NomeMarca"),
+                    "Sem marca",
                 ),
                 "subcategoria": _rotulo_sem(
                     doc.get("SubGrupo")
@@ -621,6 +631,46 @@ def vendas_por_grupo(
         **listas,
         **ativos,
     }
+
+
+def vendas_por_marca(
+    desde: datetime,
+    ate: datetime,
+    *,
+    ordenar: str = "valor",
+) -> list[dict]:
+    """Faturamento e quantidade agrupados pela marca do cadastro (Agro/overlay/Mongo)."""
+    agg = _agg_itens_por_produto(desde, ate)
+    pids = [str(r["produto_id_externo"]) for r in agg]
+    meta = mapa_produtos_meta(pids)
+    buckets: dict[str, dict] = {}
+    for r in agg:
+        pid = str(r["produto_id_externo"])
+        marca_raw = (meta.get(pid) or {}).get("marca") or "Sem marca"
+        marca = str(marca_raw).strip() or "Sem marca"
+        key = marca.casefold()
+        b = buckets.setdefault(
+            key, {"marca": marca, "qtd": 0.0, "valor": 0.0, "itens": 0}
+        )
+        b["qtd"] += float(r["qtd"] or 0)
+        b["valor"] += float(r["valor"] or 0)
+        b["itens"] += 1
+    sort_key = "qtd" if ordenar == "qtd" else "valor"
+    rows = sorted(buckets.values(), key=lambda x: x[sort_key], reverse=True)
+    total_valor = sum(x["valor"] for x in rows) or 1.0
+    out = []
+    for i, r in enumerate(rows, start=1):
+        out.append(
+            {
+                "pos": i,
+                "marca": r["marca"],
+                "qtd": round(r["qtd"], 3),
+                "valor": round(r["valor"], 2),
+                "skus": r["itens"],
+                "pct": round(100.0 * r["valor"] / total_valor, 1),
+            }
+        )
+    return out
 
 
 def curva_abc(

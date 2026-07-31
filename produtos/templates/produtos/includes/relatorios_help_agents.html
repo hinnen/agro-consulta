@@ -24,7 +24,7 @@
     {% if rel_help == "hub" %}
     <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Aqui ficam os <span class="text-emerald-300">números da loja</span> em formato de lista. Cada cartão abre um tipo de análise. Use o período (quando tiver) e o botão <span class="text-orange-300">Atualizar</span>.</p>
     <div class="space-y-2 text-[12px] font-semibold leading-snug">
-      <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, margem, comparativo e formas de pagamento.</div>
+      <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, marcas, margem, comparativo e formas de pagamento.</div>
       <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura e etiquetas.</div>
       <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes e comissão estimada.</div>
     </div>
@@ -64,6 +64,16 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade total vendida no grupo.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Dinheiro que o grupo gerou.</span></li>
       <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Quanto esse grupo representa do faturamento total do período.</span></li>
+    </ul>
+
+    {% elif rel_help == "vendas_marca" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o que cada <span class="text-fuchsia-300">marca</span> vendeu no período. Dá para ordenar por <strong class="text-white">valor total</strong> (R$) ou por <strong class="text-white">quantidade</strong>.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-fuchsia-500/30 px-1.5 py-0.5 text-[10px] font-black text-fuchsia-200">MARCA</span><span>Nome da marca no cadastro (sem marca = “Sem marca”).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">SKUs</span><span>Quantos produtos diferentes daquela marca venderam.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade total vendida da marca.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Dinheiro que a marca gerou.</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia dessa marca no faturamento total do período.</span></li>
     </ul>
 
     {% elif rel_help == "margem" %}
