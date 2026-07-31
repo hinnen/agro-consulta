@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **Status** | ✅ **enviado loja v12.51** · Live `dep-d9mbqn8jo6nc73bkhrl0` |
 | **O quê** | Buscar notas novas grava XML no PG · Pendentes (antiga→nova) / Concluídas · ~80 · cursor só 137/138 · NFC_E fallback · baixar por chave |
 | **Migrate** | SIM — `produtos.0071` + `0072` (tabelas cursor/documento) |
 | **Commits chave** | `07d9973` · `96629a1` · `cde8d0e` (+ docs banana) |
@@ -1194,7 +1194,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · `7abe5bb` · **v12.49** · espera frase + senha |
+| **Status** | ✅ **enviado loja v12.51** · Live |
 | **O quê** | Botão 🐞 flutuante · Alt+B · print automático · lista F10 Gestão → Bugs · PG |
 | **Safe-zone** | Empurra rodapés (Voltar) · overlay → canto direito · z-index acima do iframe Gestão |
 | **Migrate** | SIM — `produtos.0074` (`BugReportAgro` + `DispositivoLojaAgro`) |
@@ -1232,7 +1232,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **Status** | ✅ **enviado loja v12.51** · Live |
 | **O quê** | Card **Vendas por marca** · ordenar **valor total** / **quantidade** · Excel ↓ · ajuda ? |
 | **Prova** | Totais = vendas por grupo · ordenar valor≠qtd · view/xlsx/hub OK |
 | **Migrate** | NÃO |
@@ -1242,7 +1242,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 31/07 · espera frase + senha |
+| **Status** | ✅ **enviado loja v12.51** · Live |
 | **O quê** | Uso loja no PDV · quem grade RH · motivo toque avança · Enter confirma · Voltar · hist. em linha · totais custo/venda por loja (Centro azul / Vila laranja) · PIN · estorno · kardex PG |
 | **Migrate** | SIM — `estoque.0014` + `produtos.0073` + `0074` (cadeia) + `0075` (preços item) |
 | **Prova** | URLs/meta/hist/totais OK · itens com ajuste · motivos alinhados · `{}` → pede PIN |
@@ -1272,6 +1272,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Cadastro · sumiu «NOME QUEBRADO» / «Consertar nome» |
 
 
+### ✅ Deploy loja **v12.51** — lote marca + uso loja + bugs + DF-e (31/07 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado · Live** Render `dep-d9mbqn8jo6nc73bkhrl0` · badge **12.51** |
+| **Base** | loja **v12.12** @ `9d65e31` |
+| **Lote** | `deploy/lote-v12.22-12.51-31jul` @ **`b977c9b`** → `producao` (1 restart) |
+| **Inclui** | RELAT-VENDAS-MARCA · PDV-USO-LOJA · BUG-REPORT · DFE-INBOX (API+UI) |
+| **Migrate** | **SIM** — `estoque.0014` + `produtos.0071`→`0075` (no build Render) |
+| **NÃO inclui** | merge `teste` · ENTRADA-NF-CUSTO · dispenser/catálogo delivery |
+| **Rollback** | `git push origin rollback/pre-v1251-lote-31jul:producao` (@ **`9d65e31`** / v12.12) |
+| **Você agora** | Ctrl+F5 PDVs · badge **12.51** · smoke: 1 venda · Uso loja · 🐞 · Relatórios marca · Entrada NF→SEFAZ inbox |
+
 ### ✅ Deploy loja **v12.12** — lote 12.08–12.12 (30/07 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1287,20 +1300,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
 
-**Loja hoje:** badge **v12.12** · healthz OK · branch `producao` @ `9d65e31`  
-**Teste hoje:** badge **v12.51** · `origin/teste` @ `00a3f2e`  
-**NÃO merge `teste`→`producao`:** diff ~283 arquivos (dispenser, catálogo delivery, compras…) — **só lote cherry**.
+**Loja hoje:** badge **v12.51** · healthz OK · Live `dep-d9mbqn8jo6nc73bkhrl0` · `producao` @ `b977c9b`  
+**Teste hoje:** badge **v12.51** · branch `teste`  
+**NÃO merge `teste`→`producao`:** diff grande — **só lote cherry**.
 
 | Ordem | Pacote | Status | Risco loja aberta |
 | ----- | ------ | ------ | ----------------- |
 | — | Lote **v12.08–12.12** | ✅ **enviado loja v12.12** | — |
-| 1 | **RELAT-VENDAS-MARCA** | 📦 **pronto** · **v12.22** · VERIFY_OK | Baixo (só Relatórios) |
-| 2 | **PDV-USO-LOJA** | 📦 **pronto** · **v12.48** · VERIFY_OK · migrate `estoque.0014`+`0073`+`0075` | Médio (botão PDV; **não** mexe Finalizar se lote limpo) |
-| 3 | **BUG-REPORT** | 📦 **pronto** · **v12.49** · VERIFY_OK · migrate `0074` | Médio-baixo (JS global · safe-zone OK no teste) |
-| 4 | **DFE-INBOX** | 📦 **pronto** · **v12.51** · VERIFY_OK · migrate `0071`+`0072` | Médio (Entrada NF/SEFAZ; PDV venda intacto) |
+| 1 | **RELAT-VENDAS-MARCA** | ✅ **enviado loja v12.51** | — |
+| 2 | **PDV-USO-LOJA** | ✅ **enviado loja v12.51** | — |
+| 3 | **BUG-REPORT** | ✅ **enviado loja v12.51** | — |
+| 4 | **DFE-INBOX** | ✅ **enviado loja v12.51** | — |
 | — | ENTRADA-NF-CUSTO | ⛔ fora da fila | — |
 
-#### Prep deploy (31/07 b · assistente) — próximo chat com senha
+#### Prep deploy (31/07 b) → ✅ enviado
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -3726,7 +3739,7 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **📦 Pronto envio** | Ver **CHECKLIST ÚNICO** topo (~L1288) — lote **v12.22–12.51** (4 pacotes) |
+| **✅ Loja** | **v12.51** lote marca+uso+bugs+DF-e · ver CHECKLIST ÚNICO |
 | **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
@@ -3736,10 +3749,10 @@ iews.py (compras enrich) |
 
 | P | Ref | Pedido | Status |
 | - | --- | ------ | ------ |
-| **P1** | **RELAT-VENDAS-MARCA** | Vendas por marca (ordenar valor/qtd + Excel) | 📦 **pronto** · **v12.22** · ver CHECKLIST ÚNICO |
-| **P1** | **PDV-USO-LOJA** | Uso loja PDV + PIN + histórico + totais | 📦 **pronto** · **v12.48** · ver CHECKLIST ÚNICO |
-| **P1** | **BUG-REPORT** | Joaninha flutuante + lista Gestão | 📦 **pronto** · **v12.49** · ver CHECKLIST ÚNICO |
-| **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | 📦 **pronto** · **v12.51** · ver CHECKLIST ÚNICO |
+| **P1** | **RELAT-VENDAS-MARCA** | Vendas por marca (ordenar valor/qtd + Excel) | ✅ **loja v12.51** |
+| **P1** | **PDV-USO-LOJA** | Uso loja PDV + PIN + histórico + totais | ✅ **loja v12.51** |
+| **P1** | **BUG-REPORT** | Joaninha flutuante + lista Gestão | ✅ **loja v12.51** |
+| **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | ✅ **loja v12.51** |
 | **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | ✅ **loja v12.12** |
 | **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | ✅ **loja v12.12** |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | ✅ **loja v12.12** |
