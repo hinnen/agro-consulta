@@ -224,52 +224,86 @@
     if (!dom.hits) return;
     dom.hits.innerHTML = '';
     dom.hits.classList.add('hidden');
+    dom.hits.style.top = '';
+    dom.hits.style.bottom = '';
+  }
+
+  function positionHits() {
+    if (!dom.hits || dom.hits.classList.contains('hidden')) return;
+    var panel =
+      document.getElementById('pdv-uso-loja-panel') ||
+      (overlay && overlay.querySelector('[role="document"]'));
+    var wrap = overlay && overlay.querySelector('.ul-busca-wrap');
+    if (!panel || !wrap) return;
+    var pr = panel.getBoundingClientRect();
+    var wr = wrap.getBoundingClientRect();
+    var topPx = Math.max(0, wr.bottom - pr.top + 6);
+    dom.hits.style.top = topPx + 'px';
+    dom.hits.style.bottom = '0.45rem';
+    dom.hits.style.height = 'auto';
+    dom.hits.style.maxHeight = 'none';
   }
 
   function renderHits(lista) {
     if (!dom.hits) return;
     if (!lista || !lista.length) {
       dom.hits.innerHTML =
-        '<p class="text-sm font-semibold text-slate-700 px-2 py-2">Nenhum produto.</p>';
+        '<div class="ul-hits-scroll"><p class="text-sm font-semibold text-slate-700 px-2 py-2">Nenhum produto.</p></div>';
       dom.hits.classList.remove('hidden');
+      positionHits();
       return;
     }
-    var head =
-      '<div class="ul-hits-head" aria-hidden="true">' +
-      '<span>Código GM</span><span>Nome produto</span><span>Preço</span><span></span>' +
-      '</div>';
     var rows = lista
-      .slice(0, 40)
+      .slice(0, 50)
       .map(function (p) {
         var pid = String(p.id || '').trim();
         var nome = String(p.nome || pid).trim();
-        var cod = String(p.codigo_gm || p.codigo_nfe || p.codigo || '').trim() || '—';
+        var cod =
+          String(p.codigo_gm || p.codigo_nfe || p.codigo || '').trim() || '—';
         var preco = fmtMoney(precoProduto(p));
         return (
-          '<button type="button" class="ul-hit" data-ul-add="' +
+          '<tr data-ul-add="' +
           escapeHtml(pid) +
-          '">' +
-          '<span class="ul-hit-gm">' +
+          '" tabindex="0" role="option">' +
+          '<td class="ul-td-gm">' +
           escapeHtml(cod) +
-          '</span>' +
-          '<span class="ul-hit-nome" title="' +
+          '</td>' +
+          '<td class="ul-td-nome" title="' +
           escapeHtml(nome) +
           '">' +
           escapeHtml(nome) +
-          '</span>' +
-          '<span class="ul-hit-preco">' +
+          '</td>' +
+          '<td class="ul-td-preco">' +
           escapeHtml(preco) +
-          '</span>' +
-          '<span class="ul-hit-plus" aria-hidden="true">+</span>' +
-          '</button>'
+          '</td>' +
+          '<td class="ul-td-add"><span class="ul-hit-plus" aria-hidden="true">+</span></td>' +
+          '</tr>'
         );
       })
       .join('');
-    dom.hits.innerHTML = head + '<div class="space-y-1.5">' + rows + '</div>';
+    dom.hits.innerHTML =
+      '<div class="ul-hits-scroll">' +
+      '<table class="ul-hits-table">' +
+      '<colgroup>' +
+      '<col class="ul-col-gm" />' +
+      '<col class="ul-col-nome" />' +
+      '<col class="ul-col-preco" />' +
+      '<col class="ul-col-add" />' +
+      '</colgroup>' +
+      '<thead><tr>' +
+      '<th scope="col">Código GM</th>' +
+      '<th scope="col">Nome produto</th>' +
+      '<th scope="col" class="ul-th-preco">Preço</th>' +
+      '<th scope="col"></th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      rows +
+      '</tbody></table></div>';
     dom.hits.classList.remove('hidden');
-    dom.hits.querySelectorAll('[data-ul-add]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var id = btn.getAttribute('data-ul-add');
+    positionHits();
+    dom.hits.querySelectorAll('[data-ul-add]').forEach(function (row) {
+      function pick() {
+        var id = row.getAttribute('data-ul-add');
         var match = null;
         for (var i = 0; i < lista.length; i++) {
           if (String(lista[i].id || '') === id) {
@@ -278,6 +312,13 @@
           }
         }
         if (match) addProduct(match);
+      }
+      row.addEventListener('click', pick);
+      row.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          pick();
+        }
       });
     });
   }
@@ -309,8 +350,9 @@
       .catch(function () {
         if (dom.hits) {
           dom.hits.innerHTML =
-            '<p class="text-sm font-semibold text-red-600 px-1 py-1">Falha na busca.</p>';
+            '<div class="ul-hits-scroll"><p class="text-sm font-semibold text-red-600 px-2 py-2">Falha na busca.</p></div>';
           dom.hits.classList.remove('hidden');
+          positionHits();
         }
       });
   }
@@ -808,6 +850,10 @@
       }
       closeOverlay();
     }
+  });
+
+  window.addEventListener('resize', function () {
+    positionHits();
   });
 
   window.AgroPdvUsoLoja = {

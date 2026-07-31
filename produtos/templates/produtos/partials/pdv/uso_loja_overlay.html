@@ -84,25 +84,83 @@
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
   }
-  #pdv-uso-loja-overlay .ul-hit {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr) 5.5rem 2.35rem;
-    align-items: center;
-    column-gap: 0.55rem;
-    width: 100%;
-    text-align: left;
-    padding: 0.5rem 0.55rem;
-    border-radius: 0.55rem;
-    border: 1.5px solid #e2e8f0;
-    background: #fff;
-    cursor: pointer;
+  #pdv-uso-loja-overlay .ul-busca-wrap {
+    position: relative;
+    z-index: 20;
   }
-  #pdv-uso-loja-overlay .ul-hit:hover {
+  /* Resultados no painel raiz; top/bottom via JS (cobre Confirmar) */
+  #pdv-uso-loja-hits {
+    position: absolute;
+    z-index: 45;
+    left: 0.75rem;
+    right: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    border-radius: 0.85rem;
+    border: 2px solid #0ea5e9;
+    background: #bfdbfe;
+    box-shadow: 0 18px 48px rgba(14, 116, 144, 0.28);
+  }
+  #pdv-uso-loja-hits.hidden {
+    display: none !important;
+  }
+  #pdv-uso-loja-hits .ul-hits-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.35rem;
+  }
+  #pdv-uso-loja-hits .ul-hits-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.35rem;
+    table-layout: fixed;
+  }
+  #pdv-uso-loja-hits .ul-hits-table col.ul-col-gm { width: 6.75rem; }
+  #pdv-uso-loja-hits .ul-hits-table col.ul-col-nome { width: auto; }
+  #pdv-uso-loja-hits .ul-hits-table col.ul-col-preco { width: 6.25rem; }
+  #pdv-uso-loja-hits .ul-hits-table col.ul-col-add { width: 2.6rem; }
+  #pdv-uso-loja-hits .ul-hits-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0c4a6e;
+    background: #7dd3fc;
+    border-bottom: 2px solid #38bdf8;
+    text-align: left;
+  }
+  #pdv-uso-loja-hits .ul-hits-table thead th.ul-th-preco { text-align: right; }
+  #pdv-uso-loja-hits .ul-hits-table tbody tr { cursor: pointer; }
+  #pdv-uso-loja-hits .ul-hits-table tbody td {
+    padding: 0.55rem 0.5rem;
+    background: #fff;
+    border-top: 1.5px solid #e2e8f0;
+    border-bottom: 1.5px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  #pdv-uso-loja-hits .ul-hits-table tbody td:first-child {
+    border-left: 1.5px solid #e2e8f0;
+    border-radius: 0.55rem 0 0 0.55rem;
+  }
+  #pdv-uso-loja-hits .ul-hits-table tbody td:last-child {
+    border-right: 1.5px solid #e2e8f0;
+    border-radius: 0 0.55rem 0.55rem 0;
+  }
+  #pdv-uso-loja-hits .ul-hits-table tbody tr:hover td {
     border-color: #34d399;
     background: #ecfdf5;
   }
-  #pdv-uso-loja-overlay .ul-hit-gm {
-    font-size: 0.78rem;
+  #pdv-uso-loja-hits .ul-td-gm {
+    font-size: 0.8rem;
     font-weight: 900;
     color: #0f172a;
     font-variant-numeric: tabular-nums;
@@ -110,16 +168,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  #pdv-uso-loja-overlay .ul-hit-nome {
+  #pdv-uso-loja-hits .ul-td-nome {
     font-size: 0.9rem;
     font-weight: 800;
     color: #0f172a;
-    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  #pdv-uso-loja-overlay .ul-hit-preco {
+  #pdv-uso-loja-hits .ul-td-preco {
     font-size: 0.9rem;
     font-weight: 900;
     color: #065f46;
@@ -127,12 +184,13 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  #pdv-uso-loja-overlay .ul-hit-plus {
+  #pdv-uso-loja-hits .ul-td-add { text-align: center; }
+  #pdv-uso-loja-hits .ul-hit-plus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2rem;
-    height: 2rem;
+    width: 1.85rem;
+    height: 1.85rem;
     border-radius: 999px;
     background: #059669;
     color: #fff;
@@ -140,62 +198,13 @@
     font-weight: 900;
     line-height: 1;
   }
-  #pdv-uso-loja-overlay .ul-hits-head {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr) 5.5rem 2.35rem;
-    column-gap: 0.55rem;
-    align-items: center;
-    padding: 0.4rem 0.55rem 0.45rem;
-    margin-bottom: 0.25rem;
-    border-bottom: 2px solid #38bdf8;
-    background: #7dd3fc;
-    border-radius: 0.45rem 0.45rem 0 0;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-  #pdv-uso-loja-overlay .ul-hits-head span {
-    font-size: 0.68rem;
-    font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #0c4a6e;
-  }
-  #pdv-uso-loja-overlay .ul-hits-head span:nth-child(3) {
-    text-align: right;
-  }
-  #pdv-uso-loja-overlay .ul-busca-wrap {
-    position: relative;
-    z-index: 20;
-  }
-  #pdv-uso-loja-hits {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: calc(100% + 0.35rem);
-    z-index: 30;
-    /* desce até cobrir o botão Confirmar saída */
-    height: min(28rem, calc(100dvh - 14rem));
-    max-height: min(28rem, calc(100dvh - 14rem));
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    padding: 0.35rem;
-    border-radius: 0.85rem;
-    border: 2px solid #0ea5e9;
-    background: #bfdbfe;
-    box-shadow: 0 18px 48px rgba(14, 116, 144, 0.28);
-  }
-  #pdv-uso-loja-hits:empty,
-  #pdv-uso-loja-hits.hidden {
-    display: none !important;
-  }
   #pdv-uso-loja-overlay .ul-card--busca {
     overflow: visible;
     position: relative;
     z-index: 15;
     flex-shrink: 0;
   }
+
   #pdv-uso-loja-overlay .ul-cart-row {
     display: grid;
     grid-template-columns: 1fr auto auto;
@@ -294,7 +303,8 @@
 </style>
 
 <div id="pdv-uso-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-uso-loja-title" data-ul-view="saida">
-  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50/90 via-white to-white shadow-2xl" role="document">
+  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50/90 via-white to-white shadow-2xl" role="document" id="pdv-uso-loja-panel">
+    <div id="pdv-uso-loja-hits" class="hidden" role="listbox" aria-label="Resultados"></div>
     <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
       <div class="min-w-0 flex-1">
         <h2 id="pdv-uso-loja-title" class="text-[clamp(1rem,1.2vw+0.85rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Uso loja</h2>
@@ -336,7 +346,6 @@
           </div>
           <div class="ul-busca-wrap">
             <input type="search" id="pdv-uso-loja-busca" class="ul-field" placeholder="Nome, GM, EAN ou código de barras." autocomplete="off" />
-            <div id="pdv-uso-loja-hits" class="hidden space-y-1.5" role="listbox" aria-label="Resultados"></div>
           </div>
         </section>
       </div>
