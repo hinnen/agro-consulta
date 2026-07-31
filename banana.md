@@ -1204,6 +1204,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **O quê** | Na lista da saída, **Enter** dispara Confirmar saída (exceto busca / autocomplete / pops) |
 
+### ✅ Uso loja — Voltar nos pops (**v12.36** · 31/07)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **← Voltar** em quem/motivo/PIN · Esc = mesmo (passo anterior; no 1º fecha o pop) |
+
 ### 📦 PACOTE PRONTO LOJA — Relatório vendas por marca (`RELAT-VENDAS-MARCA` · **v12.22**)
 
 | Item | Detalhe |

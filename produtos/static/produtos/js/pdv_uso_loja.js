@@ -65,6 +65,7 @@
     stepPinErr: document.getElementById('pdv-uso-loja-step-pin-err'),
     stepPular: document.getElementById('pdv-uso-loja-step-pular'),
     stepOk: document.getElementById('pdv-uso-loja-step-ok'),
+    stepVoltar: document.getElementById('pdv-uso-loja-step-voltar'),
     motivoGrid: document.getElementById('pdv-uso-loja-step-motivo-grid'),
   };
 
@@ -736,6 +737,22 @@
     else if (stepName === 'motivo') advanceFromMotivo(true);
   }
 
+  function onStepVoltar() {
+    if (!stepName) return;
+    if (stepName === 'quem') {
+      hideStepPop();
+      setStatus('Voltou à lista.');
+      return;
+    }
+    if (stepName === 'motivo') {
+      showStep('quem');
+      return;
+    }
+    if (stepName === 'pin') {
+      showStep('motivo');
+    }
+  }
+
   function fmtData(iso) {
     if (!iso) return '—';
     try {
@@ -995,6 +1012,7 @@
   if (dom.confirmar) dom.confirmar.addEventListener('click', startWizard);
   if (dom.stepPular) dom.stepPular.addEventListener('click', onStepPular);
   if (dom.stepOk) dom.stepOk.addEventListener('click', onStepOk);
+  if (dom.stepVoltar) dom.stepVoltar.addEventListener('click', onStepVoltar);
   if (dom.motivoGrid) {
     dom.motivoGrid.addEventListener('click', function (ev) {
       var btn = ev.target.closest('[data-motivo]');
@@ -1071,8 +1089,7 @@
     if (ev.key === 'Escape') {
       if (stepName) {
         ev.preventDefault();
-        hideStepPop();
-        setStatus('Confirmação cancelada.');
+        onStepVoltar();
         return;
       }
       closeOverlay();

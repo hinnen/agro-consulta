@@ -341,10 +341,36 @@
     width: min(36rem, 100%);
   }
   #pdv-uso-loja-step-pop .ul-step-head {
+    position: relative;
     flex-shrink: 0;
-    padding: 0.85rem 1rem 0.65rem;
+    padding: 0.85rem 3.25rem 0.65rem 1rem;
     background: linear-gradient(180deg, #ecfdf5, #fff);
     border-bottom: 2px solid #d1fae5;
+  }
+  #pdv-uso-loja-step-pop .ul-step-voltar {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.55rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.4rem;
+    min-width: 2.4rem;
+    padding: 0 0.65rem;
+    border-radius: 0.7rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #334155;
+    cursor: pointer;
+  }
+  #pdv-uso-loja-step-pop .ul-step-voltar:hover {
+    border-color: #0d9488;
+    background: #ecfdf5;
+    color: #0f766e;
   }
   #pdv-uso-loja-step-pop .ul-step-actions {
     flex-shrink: 0;
@@ -495,6 +521,7 @@
     <div id="pdv-uso-loja-step-pop" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-uso-loja-step-title">
       <div class="ul-step-panel" role="document">
         <div class="ul-step-head">
+          <button type="button" id="pdv-uso-loja-step-voltar" class="ul-step-voltar" title="Voltar" aria-label="Voltar">← Voltar</button>
           <p id="pdv-uso-loja-step-eyebrow" class="text-[0.72rem] font-extrabold uppercase tracking-widest text-emerald-800">Passo</p>
           <h3 id="pdv-uso-loja-step-title" class="text-lg font-black uppercase text-slate-900">Quem levou?</h3>
           <p id="pdv-uso-loja-step-hint" class="mt-0.5 text-sm font-semibold text-slate-500">Opcional — Enter pula</p>
