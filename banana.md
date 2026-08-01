@@ -1178,18 +1178,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.03**)
+### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · 01/08 · espera frase + senha |
-| **Sintoma** | Loja presa em **2086** · Buscar sempre **656** · «nunca funciona» |
-| **Causa** | Código **não** gravava NSU no 656 · Receita já pedia **2090** |
-| **Fix** | No 656, se SEFAZ devolver NSU **maior**, grava e usa na próxima (nunca anda pra trás) |
-| **Arquivo** | `dfe_inbox_util.py` |
+| **Status** | 📦 **pronto para envio à produção** · 01/08 · frase + senha |
+| **Sintoma** | Loja presa em **2086** · Buscar sempre **656** |
+| **Fix** | No 656 **da SEFAZ**, se ultNSU **maior** → grava · **nunca** maxNSU · **nunca** pra trás · Aguarde local **não** grava NSU |
+| **Arquivos** | `dfe_inbox_util.py` · `sefaz_dfe_client.py` · `scripts/verify_dfe_nsu_656.py` |
 | **Migrate** | NÃO |
-| **Você** | deploy · 1 Buscar (pode 656) → cursor sobe → espera 1h → Buscar de novo |
-| **Nota** | Chave continua pra nota avulsa · Washington 2175 = Carregar na grade |
+| **Prova** | `verify_dfe_nsu_656.py` → **12/12 VERIFY_OK** |
+| **Você** | deploy · 1 Buscar (pode 656) → cursor sobe se SEFAZ mandar · 1h · Buscar de novo · buraco → chave |
+| **Zap** | *Atualização rápida Entrada NF / SEFAZ (~1 min)* |
 
 ### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.03**)
 
@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` · Live `dep-d9n2huht0dsc738q0m60`  
-**Teste hoje:** branch `teste` · badge **v13.03**  
+**Teste hoje:** branch `teste` · badge **v13.04**  
 **Rollback BI:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
 | 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
 | 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.03** · `006f871` |
-| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.03** · `e4b34d4` · sem migrate |
+| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.04** · sem migrate · prova 12/12 |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
