@@ -1189,7 +1189,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0079_etiqueta_preset_agro` |
 | **Arquivos** | `models` · `0079` · `views`/`urls` · `produtos_etiquetas*.js` · template · `banana-roteiro` §0.1 |
 | **Você** | No PC que tem «box ração»: login · abrir `/produtos/etiquetas/` · Ctrl+F5 · deve subir sozinho · outros PCs passam a ver |
-| **Loja** | **ainda não** — só `teste` até frase+senha (migrate no Render) |
+| **Teste** | `9fbafdc` · badge **13.10** · push `origin/teste` |
+| **Loja** | **ainda não** — frase+senha (migrate `0079` no Render) |
 
 ### 🔧 DF-e — faixa verde Cursor desatualizada após Buscar (01/08)
 
