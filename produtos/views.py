@@ -7526,6 +7526,86 @@ def _dashboard_bounds_mes_anterior_para_dia(d: date) -> tuple[date, date]:
     return first_prev, last_prev
 
 
+_DASH_WEEKDAY_LABEL = ("seg", "ter", "qua", "qui", "sex", "sáb", "dom")
+_DASH_WEEKDAY_LABEL_LONG = (
+    "segunda",
+    "terça",
+    "quarta",
+    "quinta",
+    "sexta",
+    "sábado",
+    "domingo",
+)
+_DASH_MES_ABREV = (
+    "",
+    "jan",
+    "fev",
+    "mar",
+    "abr",
+    "mai",
+    "jun",
+    "jul",
+    "ago",
+    "set",
+    "out",
+    "nov",
+    "dez",
+)
+
+
+def _dashboard_ocorrencia_weekday_no_mes(d: date) -> int:
+    """1 = 1ª ocorrência do weekday no mês, 2 = 2ª, etc."""
+    return ((d.day - 1) // 7) + 1
+
+
+def _dashboard_mesmo_weekday_mes_anterior(d: date) -> date | None:
+    """
+    Mesma ocorrência do dia da semana no mês civil anterior.
+    Ex.: 1º sábado de agosto → 1º sábado de julho.
+    Se o mês anterior não tiver essa ocorrência (ex. 5ª sexta), usa a última do mesmo weekday.
+    """
+    wd = d.weekday()
+    ocorrencia_idx = _dashboard_ocorrencia_weekday_no_mes(d)
+    first_prev, last_prev = _dashboard_bounds_mes_anterior_para_dia(d)
+    same: list[date] = []
+    cur = first_prev
+    while cur <= last_prev:
+        if cur.weekday() == wd:
+            same.append(cur)
+        cur += timedelta(days=1)
+    if not same:
+        return None
+    if 1 <= ocorrencia_idx <= len(same):
+        return same[ocorrencia_idx - 1]
+    return same[-1]
+
+
+def _dashboard_label_mesmo_weekday_mes_ant(d: date, ref: date | None) -> dict[str, str]:
+    """Rótulos curtos/longos para o comparativo do card Vendas."""
+    if ref is None:
+        return {
+            "trend_suffix": "vs mês ant.",
+            "trend_short_hint": "mês ant.",
+            "contexto": "mesmo dia da semana do mês anterior",
+            "data_fmt": "",
+        }
+    ord_n = _dashboard_ocorrencia_weekday_no_mes(d)
+    wd = d.weekday()
+    ord_txt = f"{ord_n}º"
+    dia_curto = _DASH_WEEKDAY_LABEL[wd]
+    dia_longo = _DASH_WEEKDAY_LABEL_LONG[wd]
+    mes_abrev = _DASH_MES_ABREV[ref.month]
+    data_fmt = ref.strftime("%d/%m")
+    return {
+        "trend_suffix": f"vs {ord_txt} {dia_curto}.",
+        "trend_short_hint": f"{ord_txt} {dia_curto}",
+        "contexto": (
+            f"{ord_txt} {dia_longo} de {mes_abrev} ({data_fmt})"
+        ),
+        "data_fmt": data_fmt,
+    }
+
+
 def _dashboard_meta_c_um_mes(
     wd: int, ocorrencia_idx: int, por_dia: dict, first_m: date, last_m: date
 ) -> float | None:
@@ -9042,6 +9122,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     hoje = timezone.localdate()
     ontem = hoje - timedelta(days=1)
     mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
+    dia_cmp_mes_ant = _dashboard_mesmo_weekday_mes_anterior(hoje)
+    labels_cmp_mes_ant = _dashboard_label_mesmo_weekday_mes_ant(hoje, dia_cmp_mes_ant)
 
     from produtos.pdv_deposito_util import (
         ROTULO_DEPOSITO,
@@ -9075,12 +9157,13 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             _contagem_validade_dashboard_lotes_agro,
             deposito_filtro,
         )
-        fut["vendas_ontem"] = ex.submit(
-            _dashboard_worker,
-            _dashboard_mongo_total_por_dia_vendas_agro,
-            ontem,
-            deposito_filtro,
-        )
+        if dia_cmp_mes_ant is not None:
+            fut["vendas_cmp_mes_ant"] = ex.submit(
+                _dashboard_worker,
+                _dashboard_mongo_total_por_dia_vendas_agro,
+                dia_cmp_mes_ant,
+                deposito_filtro,
+            )
         fut["novos_clientes"] = ex.submit(
             _dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje, deposito_filtro
         )
@@ -9143,7 +9226,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
 
     atual = blk["atual"]
     anterior = blk["anterior"]
-    vendas_ontem = blk["vendas_ontem"]
+    vendas_cmp_mes_ant = (
+        blk["vendas_cmp_mes_ant"] if "vendas_cmp_mes_ant" in blk else 0.0
+    )
     # Garante série filtrada pela loja do aparelho (cache antigo / caminho sem filtro).
     if (atual.get("filtro_loja") or "").strip().lower() != deposito_filtro:
         try:
@@ -9158,12 +9243,13 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             )
         except Exception:
             pass
-        try:
-            vendas_ontem = _dashboard_mongo_total_por_dia_vendas_agro(
-                ontem, deposito_filtro
-            )
-        except Exception:
-            pass
+        if dia_cmp_mes_ant is not None:
+            try:
+                vendas_cmp_mes_ant = _dashboard_mongo_total_por_dia_vendas_agro(
+                    dia_cmp_mes_ant, deposito_filtro
+                )
+            except Exception:
+                pass
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
@@ -9238,7 +9324,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         n = int(qtd_map.get(chave) or 0)
         ticket_por_dia.append(round((soma / n), 2) if n > 0 else 0.0)
 
-    variacao_dia = ((vendas_hoje / vendas_ontem) - 1) * 100 if vendas_ontem > 0 else 0.0
+    variacao_dia = (
+        ((vendas_hoje / vendas_cmp_mes_ant) - 1) * 100 if vendas_cmp_mes_ant > 0 else 0.0
+    )
 
     qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
     total_ticket = _dashboard_float(atual.get("total"))
@@ -9309,9 +9397,17 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "qtd_vendas": qtd_vendas_hoje,
             "devolucoes_hoje_qtd": int(devolucoes_hoje.get("quantidade") or 0),
             "devolucoes_hoje_valor": float(devolucoes_hoje.get("valor") or 0),
-            "trend": f"{variacao_dia:+.1f}% vs ont.",
+            "trend": f"{variacao_dia:+.1f}% {labels_cmp_mes_ant['trend_suffix']}",
             "trend_short": f"{variacao_dia:+.1f}%",
-            "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
+            "trend_class": (
+                "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
+                if vendas_cmp_mes_ant > 0 and variacao_dia >= 0
+                else (
+                    "text-red-800 bg-red-200 ring-1 ring-red-300"
+                    if vendas_cmp_mes_ant > 0
+                    else "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
+                )
+            ),
             "context_lines": [
                 (
                     f"Hoje na loja {loja_filtro_label}: "
@@ -9327,7 +9423,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                     )
                 ),
                 "Não inclui a outra unidade — use «Faturamento por unidade» para comparar Centro × Vila.",
-                f"Variação {variacao_dia:+.1f}% vs ontem ({_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}).",
+                (
+                    f"Variação {variacao_dia:+.1f}% vs {labels_cmp_mes_ant['contexto']} "
+                    f"({_format_moeda_br(Decimal(str(round(vendas_cmp_mes_ant, 2))))})."
+                    if vendas_cmp_mes_ant > 0 and dia_cmp_mes_ant is not None
+                    else "Sem base no mês anterior para o mesmo dia da semana (ex.: 1º sábado)."
+                ),
                 (
                     f"Devoluções registradas hoje: {int(devolucoes_hoje.get('quantidade') or 0)} "
                     f"({_format_moeda_br(Decimal(str(round(float(devolucoes_hoje.get('valor') or 0), 2))))}) "

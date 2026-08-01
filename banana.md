@@ -1178,6 +1178,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 BI — Vendas % vs mesmo dia da semana do mês ant. (01/08 · **teste v12.91**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Antes** | Card Vendas: % vs **ontem** |
+| **Agora** | % vs **mesma ocorrência** do dia da semana no mês anterior (ex. 01/08 1º sáb. → 1º sáb. de jul) |
+| **Você** | Ctrl+F5 · badge do card Vendas tipo «vs 1º sáb.» · tooltip com data (ex. 04/07) |
+
 ### 🔧 BI — Vendas/Performance filtrados pela loja (01/08 · **teste v12.90**)
 
 | Item | Detalhe |
@@ -1201,9 +1209,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
-**Loja hoje:** badge **v12.88** · `producao` @ `941446d` (deploy em andamento / Live)  
+**Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
 **Teste hoje:** branch `teste`  
-**Rollback:** `rollback/pre-lote-checklist`
+**Rollback:** `rollback/pre-lote-checklist`  
+**Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
@@ -3699,7 +3708,8 @@ iews.py (compras enrich) |
 | ---- | ------ |
 | Merge inteiro `teste`â†’`producao` | Outras coisas do teste fora do pacote |
 | **#7** notebook impressÃ£o | Ainda ðŸ”´ aberto |
-| FL-008 / 016 / 029 / 052 / 030 / 019 / 054 / 049 / 024 / 031 / 034 / 053 / 033 | Ainda na fila |
+| FL-008 / 016 / 024 / 049 / Aba 9 | ✅ já na loja (pente fino 01/08) — não listar como pendente |
+| FL-029 crédito · 052 · 030 · 019 · 054 · 031 · 034? · 053 · 033 · Zap #7 | Ainda aberto / confirmar |
 
 #### Checklist validar depois do deploy (Ctrl+F5 Â· badge **v9.16**)
 
@@ -3808,9 +3818,9 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila** | *(vazia — lote v12.88 enviado)* |
+| **📦 Fila pacotes** | *(vazia — lote v12.88 enviado)* |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
-| **P0,1** | FL-057 PgBouncer loja (painel Render) |
+| **Pente fino 01/08** | Checklist mentia: FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver abaixo) |
 
 
 #### Fila aberta (por prioridade)
@@ -3835,31 +3845,31 @@ iews.py (compras enrich) |
 | **P1** | **FOLHA-ETQ** | Folha polish + etiquetas | ✅ **loja v12.03** |
 | **P1** | **ENTRADA-NF-CUSTO** | Entrada NF: puxar custo cadastrado (V. unit 0) | ⛔ **fora da fila** |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
-| **P0** | Entrada NF Â· custo | PÃ³s-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` (custo Cadastro NF 21/07) | ðŸ“‹ **depois de subir pacote** Â· GM0025 75,58â†’~90,42 |
-| **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | ðŸ“‹ **vocÃª no painel** Â· pÃ³s v10.88 |
-| **P1** | Kardex | E-mail no Quem + Entrada NF Δcamada | ✅ **já loja v10.63** (era v9.92 — não sobe) |
-| **P1** | Aba 9 | HistÃ³rico lÃ¡pis PDV: vÃ¡rias linhas DE=â€” Â· sem preÃ§o antigo | ðŸ“¦ **pronto pra envio** Â· teste **v10.01** Â· **validar na loja apÃ³s envio** |
-| **P2** | Cadastro modal | Modal editar: UX Â· kardex Â· aba AlteraÃ§Ãµes Â· origem PDV | âœ… **loja v9.90** |
-| **P1** | PDV lÃ¡pis | Editor rÃ¡pido + histÃ³rico aba 9 (origem PDV) | âœ… **loja v9.90** |
-| **P2** | PDVâ†’aba 9 | LÃ¡pis registra em AlteraÃ§Ãµes | âœ… **loja v9.90** |
-| **P0** | **FL-056** | NFC-e **963** (fiado+card) + **225** (CFOP/CEST) â€” vendas #2812/#3347 | âœ… **loja v9.90** |
-| **P2** | PDV Enviar Zap | BotÃ£o Enviar orÃ§amento WhatsApp Â· Agromais Â· grava OrÃ§amentos Â· Ã­cone Zap | âœ… **loja v9.90** |
-| **P2** | RelatÃ³rios | Ajuda **?** leiga (todas as telas) | âœ… **loja v9.90** |
-| **P1** | **Zap #7** | Notebook demora impressÃ£o | ðŸ”´ |
-| **P1** | **FL-008** | Carrinho trava (qtd/preÃ§o/remover) | ðŸ“‹ |
-| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | ðŸ“‹ |
-| **P1,1** | **FL-029** | Baixa parcial fiado + crÃ©dito | ðŸ“‹ |
-| **P1,1** | **FL-052** | NFC-e na baixa fiado | ðŸ“‹ (apÃ³s FL-051 âœ…) |
-| **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | ðŸ“‹ |
-| **P1,5** | **FL-019** | Recibo pagamento fiado | ðŸ“‹ |
-| **P1,5** | **Zap #20** Â· **FL-054** | Reimprimir papÃ©is entrega (separaÃ§Ã£o / entregador / cliente) | ðŸ“‹ Â· foto Word |
-| **P1,5** | **FL-049** | CPF no cliente PDV â†’ NFC-e | ðŸ§ª teste |
-| **P1,6** | **Zap #22** Â· **FL-024** | Cadastro: cat/sub/marca sÃ³ selecionar existentes Â· popup Food se novo Â· PIN + log Â· busca sem acento/caixa | ðŸ“‹ |
-| **P1,6** | **FL-031** | Terminar tela `/entregas/` | ðŸ“‹ |
-| **P1,9** | **FL-034** | HistÃ³rico F8 filtra cliente | ðŸ”„ teste |
-| **P2** | **Zap #19** Â· **FL-053** | HistÃ³rico de custo (Ãºlt. pedidos) tick **2Ã—** (fim etapa 2 + finalizar NF) | ðŸ“‹ Â· foto Word |
-| **P3** | **Zap #21** Â· **FL-033** | BI comparativo: N-Ã©simo dia da semana vs mÃªs anterior (ex. 3Âª terÃ§a) | ðŸ“‹ Â· foto Word |
-| **P2+** | FL-005â€¦ | Resto P2/P3 na Â«Fila lojaÂ» completa | ðŸ“‹ |
+| **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` | 📋 **ops** · GM0025 |
+| **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** |
+| **P1** | Kardex | E-mail no Quem + Entrada NF Δcamada | ✅ **já loja v10.63** |
+| **P1** | Aba 9 | Histórico lápis PDV DE=— | ✅ **loja v10.61** (`e38df10`) — checklist mentia «pronto envio» |
+| **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
+| **P1** | PDV lápis | Editor rápido + histórico aba 9 (origem PDV) | ✅ **loja v9.90** |
+| **P2** | PDV→aba 9 | Lápis registra em Alterações | ✅ **loja v9.90** |
+| **P0** | **FL-056** | NFC-e **963** + **225** — vendas #2812/#3347 | ✅ **loja v9.90** |
+| **P2** | PDV Enviar Zap | Enviar orçamento WhatsApp | ✅ **loja v9.90** |
+| **P2** | Relatórios | Ajuda **?** leiga | ✅ **loja v9.90** |
+| **P1** | **Zap #7** | Notebook demora impressão | 🔴 **ainda aberto** |
+| **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | ✅ **loja v11.99** (`8f7610d`) — checklist mentia |
+| **P1** | **FL-016** | Reset contagem caixa (dia anterior) | ✅ **loja v6.75** — checklist mentia |
+| **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · **falta** opção crédito |
+| **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
+| **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 **ainda aberto** |
+| **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega | 📋 **ainda aberto** |
+| **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | ✅ **código na loja** (`6af5cac`) — checklist mentia «teste» |
+| **P1,6** | **Zap #22** · **FL-024** | Cadastro cat/sub/marca só lista + PIN | ✅ **loja v10.57** — checklist mentia |
+| **P1,6** | **FL-031** | Terminar tela `/entregas/` | 📋 **ainda aberto** |
+| **P1,9** | **FL-034** | Histórico F8 filtra cliente | ⚠️ **código filtro na loja** — confirmar se fecha o pedido |
+| **P2** | **Zap #19** · **FL-053** | Histórico de custo tick 2× | 📋 **ainda aberto** |
+| **P3** | **Zap #21** · **FL-033** | BI comparativo N-ésimo dia semana | 📋 **ainda aberto** |
+| **P2+** | FL-005… | Resto P2/P3 na «Fila loja» completa | 📋 |
 
 #### Checklist concluÃ­do (jÃ¡ na loja)
 
@@ -6318,7 +6328,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-005** | **P2** | Entrega / impressÃ£o | Na impressÃ£o (separaÃ§Ã£o/entrega): **valor em R$ do troco a levar** na ida â€” **conferir antes** (hoje sÃ³ Â«troco: sim/nÃ£oÂ») | ðŸ“‹ Pendente Â· ðŸ” conferir | 29/06 |
 | **FL-006** | **P2** | PDV / Entregas | **Ligar PDV** ao painel de entregas + **revisÃ£o visual** da tela `/entregas/` | ðŸ“‹ Pendente | 29/06 |
 | **FL-007** | **P2** | UX geral | Revisar **tamanhos de layout** (Agro Display Scale) â€” **comeÃ§ar por** `/vendas/` (consulta de vendas) | ðŸ“‹ Pendente | 29/06 |
-| **FL-008** | **P1** | PDV | Itens no carrinho **travam** â€” nÃ£o altera qtd, preÃ§o nem remove (sÃ³ limpando carrinho inteiro) Â· ex. loja: **GM6083** | ðŸ“‹ Pendente | 29/06 |
+| **FL-008** | **P1** | PDV | Itens no carrinho **travam** — não altera qtd, preço nem remove · ex. **GM6083** | ✅ **loja v11.99** | 28/07 |
 | **FL-009** | **P2** | Etiquetas | Na tela de **impressÃ£o de etiquetas**: ao adicionar item, **nÃ£o fechar** o autocomplete (manter busca aberta para bipar/digitar o prÃ³ximo) | ðŸ“‹ Pendente | 29/06 |
 | **FL-010** | **P2** | Vendas | **Consulta de vendas** (`/vendas/`): buscador e **filtros completos** (perÃ­odo, cliente, forma, status, textoâ€¦) | ðŸ“‹ Pendente | 29/06 |
 | **FL-011** | **P3** | Cashback | Revisar tela de **cashback** â€” melhorar usabilidade | ðŸ“‹ Pendente | 29/06 |
@@ -6326,7 +6336,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-013** | **P2** | Etiquetas / impressÃ£o | CÃ³digo de barras em **PNG** (tipografia atual dificulta bip **1D e 2D**) | ðŸ“‹ Pendente | 29/06 |
 | **FL-014** | **P3** | PDV | Projetar forma **mais prÃ¡tica** de alterar **quantidade** no carrinho | ðŸ“‹ Pendente | 29/06 |
 | **FL-015** | **P2** | Etiquetas / PDV | **Regra bipagem etiqueta granel** â€” PDV nÃ£o leu direito; Renan fez **poucos testes** ainda | ðŸ“‹ Pendente Â· ðŸ” validar | 29/06 |
-| **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (valor do **dia anterior** nÃ£o zera / confunde fechamento) | ðŸ“‹ Pendente | 29/06 |
+| **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (dia anterior) | ✅ **loja v6.75** | 03/07 |
 | **FL-017** | **P1** | Caixa / devoluÃ§Ã£o | **DevoluÃ§Ã£o duplicada** no caixa â€” apaga venda e ainda registra **saÃ­da** (dobra o efeito) | **âœ… loja v5.22** Â· validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | âœ… parcial 12/07 | 29/06 |
 | **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ðŸ“‹ Pendente | 29/06 |
@@ -6334,12 +6344,12 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-021** | **P1,1** | CP | BotÃ£o **NF** nÃ£o aparece na lista â€” ex.: tÃ­tulo **RBS R$ 781,64** | âœ… **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / nÃ£o acha) | âœ… **#17** Renan testou Â· ðŸ“¦ pronto produÃ§Ã£o (fecha) | 29/06 |
 | **FL-023** | **P1,2** | CP | Ao **buscar** na lista: **limpar filtros de data** | âœ… 12/07 | 29/06 16:20 |
-| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca â€” buscar e **sÃ³ selecionar** se existir; se nÃ£o, **popup Food** + **PIN** + **log**; busca **sem acento / caixa** | âœ… teste v10.19 | 18/07 |
+| **FL-024** | **P1,6** | Cadastro | **Zap #22:** cat/sub/marca — só selecionar se existir · Food+PIN+log · busca sem acento | ✅ **loja v10.57** | 18/07 |
 | **FL-025** | **P0,9** | Cadastro ERP | **SequÃªncia cÃ³digo interno** 9000+ â†’ **4010â€“5999** | âœ… 12/07 | 29/06 16:20 |
 | **FL-026** | **P2** | Entrada NF | Add produto novo perde barras/lote | âœ… 12/07 | 29/06 16:20 |
 | **FL-027** | **P2** | Entrada NF | XML forma boleto â†’ **Boleto BancÃ¡rio CN** | âœ… 12/07 | 29/06 16:20 |
 | **FL-028** | **P1** | Fiado | BotÃ£o **Baixa** manda quitar **total de notas** de uma vez e **dÃ¡ erro** | âœ… TolerÃ¢ncia centavos v7.36 | 29/06 16:20 |
-| **FL-029** | **P1,1** | Fiado | Conferir **baixa parcial** no fiado + opÃ§Ã£o de deixar valor em **crÃ©dito** | ðŸ“‹ Pendente | 29/06 16:20 |
+| **FL-029** | **P1,1** | Fiado | Baixa parcial ✅ loja v7.61 · **falta** opção deixar em **crédito** | ⚠️ parcial | 11/07 |
 | **FL-030** | **P1,3** | Fiado / PDV | Forma de **ignorar bloqueio** por cliente com **notinhas fiado vencidas** â€” **PIN Geraldo / Geraldinho** | ðŸ“‹ Pendente | 29/06 16:20 |
 | **FL-031** | **P1,6** | Entregas | **Terminar** de arrumar tela **`/entregas/`** | ðŸ“‹ Pendente | 29/06 16:20 |
 | **FL-032** | **P1,5** | PDV | BotÃ£o **reset** no PDV â€” zerar pedido e **comeÃ§ar nova venda** | **âœ… loja v7.27** | 29/06 16:20 |
@@ -6362,7 +6372,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-046** | **P2** | PDV / Clientes | **2 janelas Chrome** (PDV + gestÃ£o) Â· atalhos Â· foco sem 2Âº PDV | âœ… loja **v6.00** | 01/07 |
 | **FL-047** | **P2** | UX gestÃ£o | **Sidebar abas:** recolhida **~48px** sÃ³ Ã­cones Â· clique troca Â· seta expande | âœ… loja **v6.00** | 01/07 |
 | **FL-048** | **P2** | Ops / Postgres | **Painel backup Postgres** â€” ZIP+Excel+restore Â· `/interno/pg-backup/` Â· Admin | ðŸ§ª **teste** 03/07 | 03/07 |
-| **FL-049** | **P1,5** | PDV / Clientes / fiscal | **Cadastrar CPF** do cliente no PDV Â· na **NFC-e** usar o **CPF jÃ¡ salvo** no cliente (doc fiscal) | ðŸ§ª **teste** 04/07 | 03/07 |
+| **FL-049** | **P1,5** | PDV / Clientes / fiscal | CPF no PDV + NFC-e usa CPF salvo | ✅ **na loja** (`6af5cac`) | 04/07 |
 | **FL-050** | **P2** | Vendas / fiscal | **`/vendas/`** â€” apÃ³s venda, **nÃ£o forÃ§ar** reemissÃ£o ao clicar cupom fiscal enquanto NFC-e roda em **background** Â· avisar *aguarde* Â· rÃ³tulo do botÃ£o muda (emitindo â†’ **reimprimir** quando OK) | ðŸ§ª **teste** 04/07 | 03/07 |
 | **FL-042** | **P2** | PDV / Clientes | **HistÃ³rico ERP no F8** â€” **v5.46 teste** Â· import 1Ã— Â· corte ERP **â‰¤26/05** Â· SisVale **â‰¥27/05** | ðŸ§ª Render teste Â· dry-run â†’ import | 30/06 |
 | **FL-043** | **P2,8** | Fiado | BotÃ£o **desconto** na **baixa** do fiado | ðŸ“‹ Pendente | 30/06 |
