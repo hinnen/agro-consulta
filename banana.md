@@ -1178,14 +1178,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ Ajuste Mobile — popup de carga no meio (`AJUSTE-MOBILE-LOAD` · **v12.83**)
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile completo (`AJUSTE-MOBILE` · **v12.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · Ctrl+F5 local |
-| **O quê** | Sem botão Atualizar · ao baixar lista: **popup no centro** («só carrega assim · 1ª abertura demora») · baixa **depois** de escolher Centro/Vila |
-| **Arquivo** | `mobile_ajuste.html` |
-| **Pacotes loja** | SLIM + BIP1 ainda pendentes; este é polish em cima |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 01/08 |
+| **O quê** | Lista **slim** (freio loja) · **Bip +1** · fila códigos órfãos PG · popup carga no meio · sem botão Atualizar · pede Centro/Vila a cada PIN |
+| **Migrate** | SIM — `produtos.0078` |
+| **Arquivos** | `mobile_ajuste.html` · `ajuste_codigo_pendente_views.py` · lista códigos · `models`/`urls` · `0078` · `catalogo_agro.listar_slim_rows_pdv` · `api_pdv_catalogo_slim` |
+| **Prova** | check 0 · slim local 3266 · HTML loading/BIP1/SESSAO · API 403/400/cria · match 1/0 · migrate `[X]` |
+| **Base loja** | v12.51 (slim API já na loja; HTML+BIP1+0078 faltam) |
+| **Você** | frase + senha · migrate · Ctrl+F5 `/ajuste-mobile/` · PIN · loja · popup · busca · 1 Bip +1 |
+| **Substitui** | pacotes soltos SLIM / BIP1 / LOAD |
+
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
+
+**Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
+**Teste hoje:** badge **v12.84** · branch `teste`  
+**NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | Lote **v12.51** | ✅ **enviado loja** |
+| 1 | **AJUSTE-MOBILE** | 📦 **pronto para envio à produção** · **v12.84** · migrate `0078` |
+| 2 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
+| 3 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
+| 4 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+| 5 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · sem migrate |
+| 6 | **ETQ-GM-CAMPOS** | 📦 **pronto para envio à produção** · **v12.52** · sem migrate · só etiquetas |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -1200,30 +1220,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | `views.py` · `urls.py` · `entrada_nota.html` · `sefaz_dfe_client.py` · `dfe_inbox_util.py` |
 | **Você** | deploy · fim do Aguarde 1h · colar chave · Baixar · Carregar na grade |
 | **NÃO** | Usar no meio do timer 656 |
-
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 |
-| **O quê** | Modo Bip +1 · sons · flash/Ajustar · multi-match → Somar/Trocar · fila PG códigos órfãos |
-| **Migrate** | SIM — `produtos.0078` |
-| **Commits** | `66465a5` (+ docs `cf193ac`) |
-| **Arquivos** | `mobile_ajuste.html` · model/API/lista · migration `0078` |
-| **Prova** | check 0 · URLs · API cria c/ sessão (403 sem) · match 1/0/N · template BIP1+slim+SESSAO |
-| **Depende** | **AJUSTE-MOBILE-SLIM** na loja (lista no celular) |
-| **Risco** | Baixo — só Ajuste Mobile + fila gestão; não mexe PDV/caixa |
-
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 |
-| **O quê** | Celular baixa `/api/pdv/catalogo-slim/` (freio full-off na loja) |
-| **Migrate** | NÃO |
-| **Arquivo** | **só** `mobile_ajuste.html` |
-| **Commits** | `55c89a8` |
-| **Base loja** | v12.51 (slim API já existe; falta o HTML) |
 
 ### 📦 PACOTE PRONTO LOJA — Bug 🐞 na barra Gestão (`BUG-FAB-BARRA` · **v12.55**)
 
@@ -1388,52 +1384,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Smoke** | check 0 · JS OK · fmtGmCurto cases OK · preset antigo não mostra GM |
 | **Autorizar** | *pode subir etiquetas GM / produção* + **99738595** |
 | **Rollback** | `rollback/pre-v1252-etq-gm` @ HEAD `producao` antes do push |
-
-### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
-
-**Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.80** · branch `teste`  
-**NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
-
-| Ordem | Pacote | Status |
-| ----- | ------ | ------ |
-| — | Lote **v12.51** | ✅ **enviado loja** |
-| 1 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** HTML |
-| 2 | **AJUSTE-MOBILE-BIP1** | 📦 **pronto para envio à produção** · **v12.66** · migrate `0078` · com/depois do SLIM |
-| 3 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
-| 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
-| 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
-| 6 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · VERIFY_OK · `1cf3a2b` · sem migrate |
-| 7 | **ETQ-GM-CAMPOS** | 📦 **pronto para envio à produção** · **v12.52** · `49080d2` · sem migrate · só etiquetas |
-
-### 📦 PACOTE PRONTO — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 · **ainda NÃO na loja** |
-| **Commit** | `66465a5` |
-| **Migrate** | `0078` |
-| **Depende** | SLIM na loja |
-| **Você** | frase + senha · migrate · Ctrl+F5 `/ajuste-mobile/` · Bip +1 |
-
-### 📦 PACOTE PRONTO — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 · **ainda NÃO na loja** |
-| **Commit** | `55c89a8` (fix) · docs `7df5a4d` · branch `teste` |
-| **Arquivo** | **só** `mobile_ajuste.html` |
-| **Migrate** | Não |
-| **Problema** | Celular: «Lista veio vazia» — loja com freio; `/api/todos-produtos/` = 0 (`catalogo-full-off`) |
-| **Fix** | Baixa `/api/pdv/catalogo-slim/` primeiro (~3371) · fallback full |
-| **Prova API loja** | full=0 · slim=3371 · busca GM/EAN ok · saldos por ids + positivos ok |
-| **Risco** | Baixo — não mexe PDV/caixa · não desliga freio |
-| **Rollback** | reverter só o HTML do ajuste na `producao` |
-| **Você na loja** | frase + senha · Ctrl+F5 `/ajuste-mobile/` · catálogo com milhares · 1 contagem |
-
-### 🐛 Ajuste Mobile — «Lista veio vazia» (01/08) → pacote **AJUSTE-MOBILE-SLIM**
-
-
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
 
@@ -3850,7 +3800,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.51** lote marca+uso+bugs+DF-e · ver CHECKLIST ÚNICO |
 | **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
-| **📦 Fila** | **AJUSTE-MOBILE-SLIM** · **AJUSTE-MOBILE-BIP1** · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE |
+| **📦 Fila** | **AJUSTE-MOBILE** · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE · DFE-CHAVE · ETQ-GM-CAMPOS |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
@@ -3864,8 +3814,7 @@ iews.py (compras enrich) |
 | **P1** | **BUG-REPORT** | Joaninha flutuante + lista Gestão | ✅ **loja v12.51** |
 | **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | ✅ **loja v12.51** |
 | **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | ✅ **loja v12.12** |
-| **P1** | **AJUSTE-MOBILE-SLIM** | Lista no celular (freio full-off → slim) | 📦 **pronto envio** · v12.61 |
-| **P1** | **AJUSTE-MOBILE-BIP1** | Bip +1 · sons · flash · fila códigos PG | 📦 **pronto envio** · v12.66 · migrate 0078 |
+| **P1** | **AJUSTE-MOBILE** | Slim + Bip +1 + popup carga + fila códigos | 📦 **pronto envio** · v12.84 · migrate 0078 |
 | **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | ✅ **loja v12.12** |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | ✅ **loja v12.12** |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | ✅ **loja v12.12** |

@@ -26324,6 +26324,39 @@ def _catalogo_pdv_entry_atual(db, client):
 
 
 @require_GET
+def api_pdv_catalogo_slim(request):
+    """Plano B: catálogo SLIM Postgres p/ busca local do PDV (GM/EAN/nome).
+
+    NÃO é bloqueado pelo freio ``catalogo-full-off`` — é propositalmente leve
+    (sem saldo/Mongo/N+1) e cacheado ~30 min.
+    """
+    from django.core.cache import cache
+    from produtos import catalogo_agro as cat_agro
+
+    hoje = timezone.localdate().isoformat()
+    # v2: inclui precos_grupos / precos_modo (PDV forma A/B).
+    ck = f"pdv_catalogo_slim_v2:{hoje}"
+    hit = cache.get(ck)
+    if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
+        return JsonResponse(hit)
+
+    try:
+        produtos = cat_agro.listar_slim_rows_pdv()
+    except Exception as e:
+        return JsonResponse({"erro": str(e), "produtos": []}, status=500)
+
+    body = {
+        "ok": True,
+        "slim": True,
+        "produtos": produtos,
+        "catalog_version": f"slim-v2-{hoje}-{len(produtos)}",
+        "catalog_updated_at": timezone.now().isoformat(),
+    }
+    cache.set(ck, body, timeout=1800)
+    return JsonResponse(body)
+
+
+@require_GET
 def api_todos_produtos_local(request):
     from estoque.sync_health import registrar_ping_mongo
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_pdv_catalogo_somente_postgres
