@@ -1346,7 +1346,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ fix **teste v12.61** · pacote **AJUSTE-MOBILE-SLIM** · **ainda NÃO na loja** |
+| **Status** | ✅ fix **teste v12.61** @ `55c89a8` · pacote **AJUSTE-MOBILE-SLIM** · **ainda NÃO na loja** |
 | **Causa** | Loja com freio `AGRO_PDV_CATALOGO_FULL_OFF` → `/api/todos-produtos/` devolve `catalogo-full-off` + `produtos:[]` (PDV vende por busca). Celular do ajuste baixava essa API vazia. |
 | **Prova** | `GET /api/todos-produtos/` → 0 · `GET /api/pdv/catalogo-slim/` → ~3371 (já na loja) |
 | **Fix** | `mobile_ajuste.html` baixa **slim** primeiro; se falhar, tenta full |
