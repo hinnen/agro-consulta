@@ -1178,34 +1178,61 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🚀 LOTE PREP — próximo chat (loja pausa + frase + senha) · **01/08**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Loja agora** | **v12.51** @ `b977c9b` · **abertas** — **não** subir sem pausa + autorização |
+| **Teste** | **v12.84** @ `f63124e` |
+| **Regra dura** | **NÃO** `merge teste→producao` · `models`/`views`/`urls` no teste têm **milhares** de linhas a mais — só **cherry / cópia de arquivo** do lote |
+| **Smoke 01/08** | check rotas OK · slim local 3266 · ajuste HTML loading/BIP1/sem Atualizar · API códigos 403 · migs `0076`–`0078` no disco · marcadores ETQ/Uso/DFE/🐞 OK |
+| **Próximo chat** | 1) lojas **pausam vendas** · 2) frase explícita + senha `99738595` · 3) assistente monta branch `deploy/lote-checklist-…` a partir de `producao` |
+
+#### Checklist único — o que sobe (revisado)
+
+| # | Pacote | Mexe venda PDV? | Risco loja aberta | Migrate | Commits / como |
+| - | ------ | --------------- | ----------------- | ------- | -------------- |
+| 1 | **AJUSTE-MOBILE** v12.84 | **Não** (só `/ajuste-mobile/`) | **Baixo** p/ venda | `0078` | **Arquivos** do teste: `mobile_ajuste.html` · `ajuste_codigo_pendente_*` · `0078` · model + urls do pendente · **NÃO** reescrever `views` slim (loja já tem) |
+| 2 | **BUG-FAB-BARRA** v12.55 | Não | **Muito baixo** | não | `6905682` |
+| 3 | **PDV-USO-LOJA-UX** v12.55 | **Sim** (overlay Uso loja) | **Médio** — precisa pausa | `0076` | `b0645b0` → `ecc1adc` |
+| 4 | **PDV-USO-LOJA-BRINDE** v12.57 | **Sim** (Uso + F8) | **Médio** — precisa pausa | `0077` | `8e8c5f4` (depois do UX) |
+| 5 | **DFE-CHAVE** v12.71 | Não (Entrada NF) | **Baixo** p/ venda · **não** usar no meio do 656 | não | `1cf3a2b` |
+| 6 | **ETQ-GM-CAMPOS** v12.52 | Não | **Muito baixo** | não | `49080d2` |
+
+**Ordem sugerida no deploy (pause):** ETQ → BUG-FAB → USO-UX (`0076`) → BRINDE (`0077`) → DFE-CHAVE → AJUSTE (`0078`) · migrate no build · Ctrl+F5 PDVs + 1 venda smoke + ajuste mobile.
+
+**Com loja aberta agora:** **não subir.** PDV-USO (3–4) toca caminho da venda; lote completo = **pausa**.
+
+**Rollback:** branch `rollback/pre-lote-checklist` = HEAD `producao` **antes** do push.
+
 ### 📦 PACOTE PRONTO LOJA — Ajuste Mobile completo (`AJUSTE-MOBILE` · **v12.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 01/08 |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 01/08 · no LOTE PREP |
 | **O quê** | Lista **slim** (freio loja) · **Bip +1** · fila códigos órfãos PG · popup carga no meio · sem botão Atualizar · pede Centro/Vila a cada PIN |
 | **Migrate** | SIM — `produtos.0078` |
-| **Arquivos** | `mobile_ajuste.html` · `ajuste_codigo_pendente_views.py` · lista códigos · `models`/`urls` · `0078` · `catalogo_agro.listar_slim_rows_pdv` · `api_pdv_catalogo_slim` |
+| **Arquivos** | `mobile_ajuste.html` · `ajuste_codigo_pendente_views.py` · lista códigos · `models`/`urls` · `0078` · (slim API **já na loja**) |
 | **Prova** | check 0 · slim local 3266 · HTML loading/BIP1/SESSAO · API 403/400/cria · match 1/0 · migrate `[X]` |
-| **Base loja** | v12.51 (slim API já na loja; HTML+BIP1+0078 faltam) |
-| **Você** | frase + senha · migrate · Ctrl+F5 `/ajuste-mobile/` · PIN · loja · popup · busca · 1 Bip +1 |
+| **Base loja** | v12.51 |
+| **Você** | no lote · migrate · Ctrl+F5 `/ajuste-mobile/` |
 | **Substitui** | pacotes soltos SLIM / BIP1 / LOAD |
 
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.84** · branch `teste`  
-**NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
+**Teste hoje:** badge **v12.84** · branch `teste` @ `f63124e`  
+**NÃO merge `teste`→`producao`:** só lote cherry · frase + senha · ver **LOTE PREP** acima.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lote **v12.51** | ✅ **enviado loja** |
-| 1 | **AJUSTE-MOBILE** | 📦 **pronto para envio à produção** · **v12.84** · migrate `0078` |
-| 2 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
-| 3 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
-| 4 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
-| 5 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · sem migrate |
-| 6 | **ETQ-GM-CAMPOS** | 📦 **pronto para envio à produção** · **v12.52** · sem migrate · só etiquetas |
+| 1 | **AJUSTE-MOBILE** | 📦 **pronto** · **v12.84** · migrate `0078` · risco venda **baixo** |
+| 2 | **BUG-FAB-BARRA** | 📦 **pronto** · **v12.55** · sem migrate · risco **muito baixo** |
+| 3 | **PDV-USO-LOJA-UX** | 📦 **pronto** · **v12.55** · migrate `0076` · **pausa** (toca PDV) |
+| 4 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto** · **v12.57** · migrate `0077` · **pausa** (toca PDV) |
+| 5 | **DFE-CHAVE** | 📦 **pronto** · **v12.71** · sem migrate · risco venda **baixo** |
+| 6 | **ETQ-GM-CAMPOS** | 📦 **pronto** · **v12.52** · sem migrate · risco **muito baixo** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
