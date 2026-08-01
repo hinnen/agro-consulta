@@ -1296,8 +1296,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` · Live `dep-d9n2huht0dsc738q0m60`  
-**Teste hoje:** branch `teste`  
-**Rollback:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
+**Teste hoje:** branch `teste` · badge **v13.00**  
+**Rollback BI:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
 | Ordem | Pacote | Status |
@@ -1309,7 +1309,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
-| 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` · `dep-d9n2huht0dsc738q0m60` |
+| 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
+| 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.00** · commit `006f871` |
+| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.00** · `e4b34d4` · sem migrate |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
