@@ -1178,6 +1178,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · 01/08 · espera frase + senha |
+| **O quê** | Aba SEFAZ: campo chave 44 + **Baixar pela chave** · grava Pendentes · **não** mexe no ultNSU |
+| **API** | `POST /api/entrada-nota/dfe-por-chave/` |
+| **Migrate** | NÃO (usa tabelas `0071`/`0072` já na loja) |
+| **Base loja** | v12.51+ (DFE-INBOX) |
+| **Você** | Depois do deploy: esperar fim do Aguarde 1h · colar chave Saframil/Astúrias · Baixar · Carregar na grade |
+| **NÃO** | Usar no meio do timer 656 |
+
 ### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
 
 | Item | Detalhe |
