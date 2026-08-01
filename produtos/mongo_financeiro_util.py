@@ -1509,6 +1509,8 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
     """Um termo: texto/ID (regex) ou valor monetário (bruto, pago, saldo em aberto, líquido)."""
     esc = re.escape(tok[:120])
     rx = re.compile(esc, re.IGNORECASE)
+    # Sem CriadoPor/ModificadoPor no texto livre — e-mail tipo renanhinnen@… fazia
+    # «Renan Hinnen» casar quase todos os títulos (mesmo bug do caminho PG).
     str_fields = (
         "Descricao",
         "Cliente",
@@ -1521,11 +1523,12 @@ def _lancamentos_um_token_busca_or(tok: str) -> dict[str, Any]:
         "Empresa",
         "CentroDeCusto",
         "CategoriaLancamento",
-        "CriadoPor",
-        "ModificadoPor",
         AGRO_BOLETO_CODIGO_BARRAS,
     )
     or_list: list[dict[str, Any]] = [{f: rx} for f in str_fields]
+    if "@" in (tok or ""):
+        or_list.append({"CriadoPor": rx})
+        or_list.append({"ModificadoPor": rx})
     # Data digitada (venc. / competência / pagamento) — alinhado à busca PG
     try:
         from produtos.lancamentos_financeiro_pg_util import _parse_data_busca_pg

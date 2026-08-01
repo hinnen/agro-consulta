@@ -292,7 +292,7 @@ Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fi
 
 ### 10.0 Busca na lista
 
-- Separe termos com **espaço**; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs, **valor** (bruto, pago ou saldo; com ou sem vírgula / R$), **número da NF** (ex. `013962` na descrição), **data** (vencimento, competência ou pagamento, ex. `15/07/2026`), **boleto** (código de barras / linha digitável), **parcela** (`2/6` ou «parcela 2») e **CPF/CNPJ** com ou sem pontuação.
+- Separe termos com **espaço**; cada termo pode cair em favorecido (inclui código no nome, ex. `Renan Hinnen 1403`), descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs, **valor** (bruto, pago ou saldo; com ou sem vírgula / R$; número puro também casa no texto), **número da NF** (ex. `013962` na descrição), **data** (vencimento, competência ou pagamento, ex. `15/07/2026`), **boleto** (código de barras / linha digitável), **parcela** (`2/6` ou «parcela 2») e **CPF/CNPJ** com ou sem pontuação. Quem lançou: só com **e-mail** (com `@`).
 
 ---
 
