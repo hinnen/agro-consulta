@@ -1178,17 +1178,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ Deploy loja **v12.95** — BI-KPI-LOJA (01/08 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado · Live** Render `dep-d9n2huht0dsc738q0m60` · badge **12.95** · `producao` @ **`87aa52b`** |
+| **Base** | loja **v12.88** @ `941446d` |
+| **Branch** | `deploy/bi-kpi-loja-v12.95` |
+| **Rollback** | `git push origin rollback/pre-bi-kpi-loja-v12.95:producao` (@ **`941446d`** / v12.88) |
+| **Inclui** | KPIs por loja · % vs mesmo dia da semana · Validade alinhada ao relatório |
+| **Migrate** | **NÃO** |
+| **NÃO** | merge `teste` · PDV/caixa · FL-058 |
+| **Você agora** | Ctrl+F5 home · badge **12.95** · Centro/Vila · Validade · selos «vs 1º …» |
+
 ### ⏭ PRÓXIMO CHAT — deploy loja **BI-KPI-LOJA v12.95** (preparado 01/08)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | ✅ **enviado** — ver bloco Deploy loja **v12.95** acima |
 | **O quê** | Só BI home: loja nos KPIs · % vs mesmo dia da semana · Validade alinhada |
 | **Branch** | `deploy/bi-kpi-loja-v12.95` @ **`87aa52b`** → `producao` |
 | **Rollback** | `git push origin rollback/pre-bi-kpi-loja-v12.95:producao` |
 | **Migrate** | NÃO |
 | **Risco PDV/caixa** | **Não piora** — pacote **não** toca venda/caixa/NF/estoque |
 | **Provas** | Validade **15/15 VERIFY_OK** · cherry só BI · compile OK |
-| **Você autoriza** | Lojas pausam · *pode subir BI-KPI-LOJA / produção* + **99738595** |
+| **Você autoriza** | ~~Lojas pausam · frase+senha~~ ✅ **autorizado 01/08** |
 | **Depois** | Ctrl+F5 · badge **12.95** · home Centro/Vila · Validade |
 
 ### 🔧 BI — card Validade 0/0 com lotes no relatório (01/08 · **teste v12.93** · VERIFY_OK)
@@ -1205,7 +1219,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO** · review+cherry OK · **aguarda pausa vendas + frase + senha** |
+| **Status** | ✅ **enviado · Live** `dep-d9n2huht0dsc738q0m60` · `producao` @ **`87aa52b`** |
 | **VERSION** | **12.95** (loja hoje **12.88**) |
 | **Branch deploy** | `deploy/bi-kpi-loja-v12.95` @ **`87aa52b`** |
 | **Rollback** | `rollback/pre-bi-kpi-loja-v12.95` @ **`941446d`** (v12.88) |
@@ -1257,8 +1271,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
-**Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
-**Teste hoje:** branch `teste` · badge **v12.95** · **BI-KPI-LOJA** pronto envio (`deploy/bi-kpi-loja-v12.95` @ `87aa52b`)  
+**Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` (deploy Render em andamento)  
+**Teste hoje:** branch `teste`  
 **Rollback:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1271,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
-| 7 | **BI-KPI-LOJA** | 📦 **pronto** · `deploy/bi-kpi-loja-v12.95` @ `87aa52b` · Validade VERIFY_OK · **aguarda pausa + senha** |
+| 7 | **BI-KPI-LOJA** | ✅ **enviado loja v12.95** · `87aa52b` · Render `dep-d9n2huht0dsc738q0m60` |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3867,7 +3881,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.95 · `deploy/bi-kpi-loja-v12.95` @ `87aa52b` · **aguarda pausa + senha** |
+| **📦 Fila pacotes** | *(vazia — BI-KPI-LOJA v12.95 enviado)* |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | **FL-057** PgBouncer (painel Render) |
 | **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
