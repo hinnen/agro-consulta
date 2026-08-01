@@ -1178,6 +1178,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ Ajuste Mobile — popup de carga no meio (`AJUSTE-MOBILE-LOAD` · **v12.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · Ctrl+F5 local |
+| **O quê** | Sem botão Atualizar · ao baixar lista: **popup no centro** («só carrega assim · 1ª abertura demora») · baixa **depois** de escolher Centro/Vila |
+| **Arquivo** | `mobile_ajuste.html` |
+| **Pacotes loja** | SLIM + BIP1 ainda pendentes; este é polish em cima |
+
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
 | Item | Detalhe |

@@ -219,43 +219,38 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: right;
     }
-    #ma-btn-saldos {
-      flex: 0 0 auto;
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      min-height: 2.4rem;
-      padding: 0.35rem 0.75rem 0.35rem 0.45rem;
-      border-radius: 0.75rem;
-      border: 2px solid rgba(16, 185, 129, 0.45);
-      background: linear-gradient(180deg, #059669, #047857);
-      color: #fff;
-      font-size: 0.6875rem !important;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      line-height: 1 !important;
-      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
-      overflow: hidden;
-    }
-    #ma-btn-saldos .agro-termo-track {
+    .ma-loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      width: 0.35rem;
-      height: 1.35rem;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      overflow: hidden;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(15, 23, 42, 0.55);
     }
-    #ma-btn-saldos .agro-termo-fil {
-      width: 100%;
-      border-radius: 0 0 999px 999px;
-      transition: height 0.4s ease-out;
-      min-height: 0;
+    .ma-loading-overlay.hidden { display: none !important; }
+    .ma-loading-card {
+      width: min(22rem, 100%);
+      border-radius: 1.25rem;
+      background: #fff;
+      padding: 1.35rem 1.25rem;
+      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.35);
+      text-align: center;
+    }
+    .ma-loading-spin {
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 0 auto 0.85rem;
+      border-radius: 999px;
+      border: 3px solid #d1fae5;
+      border-top-color: #059669;
+      animation: ma-spin 0.8s linear infinite;
+    }
+    @keyframes ma-spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Resumo da busca: 1 linha só. */
@@ -594,6 +589,14 @@
     <p id="ma-toast-txt" class="text-sm font-black leading-snug text-white"></p>
   </div>
 
+  <div id="ma-loading" class="ma-loading-overlay hidden" aria-hidden="true" role="dialog" aria-live="polite" aria-labelledby="ma-loading-title">
+    <div class="ma-loading-card">
+      <div class="ma-loading-spin" aria-hidden="true"></div>
+      <p id="ma-loading-title" class="text-base font-black text-slate-900 leading-snug">Baixando a lista de produtos…</p>
+      <p class="mt-2 text-xs font-bold text-slate-500 leading-snug">Só carrega assim. Na <span class="text-emerald-700">primeira abertura</span> demora um pouco — nas próximas fica mais rápido.</p>
+    </div>
+  </div>
+
   <div id="ma-pick" class="ma-pick-overlay hidden" aria-hidden="true">
     <div class="ma-pick-panel">
       <p class="text-xs font-black uppercase text-slate-500 mb-2">Vários produtos · escolha um</p>
@@ -667,6 +670,8 @@ function mobileLerProdutosDoCacheUnificado() {
 }
 let maThermoTimer = null;
 let maListaInFlight = false;
+/** Depois do PIN de loja na 1ª abertura, dispara o download da lista. */
+let maBootListaPendente = false;
 let maUltimosIdsExibidos = [];
 let maContagemTimer = null;
 let maContagemSkipAgendar = false;
@@ -887,6 +892,10 @@ function maTrocarDepositoPara(dep) {
             maAplicarDepositoUI(d, j.depositoLabel || (d === 'vila' ? 'Vila Elias' : 'Centro'));
             if (typeof maMostrarToast === 'function') {
               maMostrarToast('Estoque: ' + (d === 'vila' ? 'Vila Elias' : 'Centro'), true);
+            }
+            if (maBootListaPendente) {
+              maBootListaPendente = false;
+              mobileAjusteAtualizarSaldosVisiveis();
             }
             return;
           }
@@ -1146,6 +1155,13 @@ function mobileAjusteFetchCatalogoUrl(url, signal) {
   });
 }
 
+function maMostrarLoadingLista(show) {
+  const ov = document.getElementById('ma-loading');
+  if (!ov) return;
+  ov.classList.toggle('hidden', !show);
+  ov.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
 /** Baixa lista: slim (loja com freio) → full. Sem poll automático. */
 function mobileAjusteBaixarListaApi(forcar) {
   if (maListaInFlight) return Promise.resolve(0);
@@ -1154,9 +1170,9 @@ function mobileAjusteBaixarListaApi(forcar) {
   const resumo = document.getElementById('f-resumo');
   if (resumo) resumo.textContent = 'Baixando catálogo…';
   if (listaDiv && (!baseProdutos.length || forcar)) {
-    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Baixando lista de produtos…</div>';
+    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Aguarde o carregamento…</div>';
   }
-  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maMostrarLoadingLista(true);
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 120000);
   const signal = ctrl ? ctrl.signal : undefined;
@@ -1181,14 +1197,15 @@ function mobileAjusteBaixarListaApi(forcar) {
         : (err && err.message) || 'Falha ao baixar produtos.';
       if (!baseProdutos.length) {
         mobileAjusteMostrarErroCatalogo(msg);
-      } else {
-        alert('Não deu para baixar a lista. Mantive o que já estava na tela.\n' + msg);
+      } else if (typeof maMostrarToast === 'function') {
+        maMostrarToast('Não deu para baixar a lista. Mantive a da tela.', false);
       }
       return 0;
     })
     .finally(() => {
       clearTimeout(to);
       maListaInFlight = false;
+      maMostrarLoadingLista(false);
       maResetLoading();
     });
 }
@@ -1208,16 +1225,22 @@ window.addEventListener('load', () => {
   maResetLoading();
   try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
   maBip1SyncBtn();
-  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
-    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
-  }
 
   /* Cache local só pra aparecer algo na hora; em seguida sempre baixa de novo. */
   const fromLs = mobileLerProdutosDoCacheUnificado();
   if (fromLs && fromLs.length >= 50) {
     mobileAjusteAplicarProdutosDaLista(fromLs);
   }
-  mobileAjusteAtualizarSaldosVisiveis();
+
+  /* Com pedido de loja: baixa depois do Centro/Vila (popup de carga no meio). */
+  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
+    maBootListaPendente = true;
+    const lab = document.getElementById('ma-saldos-ultima');
+    if (lab) lab.textContent = 'Escolha a loja…';
+    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
+  } else {
+    mobileAjusteAtualizarSaldosVisiveis();
+  }
 });
 
 function maBip1SyncBtn() {
