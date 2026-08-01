@@ -13,6 +13,7 @@ from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
 from . import bug_report_views
+from . import ajuste_codigo_pendente_views
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -24,6 +25,21 @@ urlpatterns = [
     path("gestao/bugs/<int:pk>/print/", bug_report_views.bug_report_print_view, name="bug_report_print"),
     path("api/bug-report/", bug_report_views.api_bug_report_criar, name="api_bug_report_criar"),
     path("api/bug-report/<int:pk>/status/", bug_report_views.api_bug_report_status, name="api_bug_report_status"),
+    path(
+        "gestao/codigos-pendentes-ajuste/",
+        ajuste_codigo_pendente_views.ajuste_codigos_pendentes_lista_view,
+        name="ajuste_codigos_pendentes_lista",
+    ),
+    path(
+        "api/ajuste-mobile/codigo-pendente/",
+        ajuste_codigo_pendente_views.api_ajuste_codigo_pendente_criar,
+        name="api_ajuste_codigo_pendente_criar",
+    ),
+    path(
+        "api/ajuste-mobile/codigo-pendente/<int:pk>/status/",
+        ajuste_codigo_pendente_views.api_ajuste_codigo_pendente_status,
+        name="api_ajuste_codigo_pendente_status",
+    ),
     path('historico/', views.historico_ajustes, name='historico_ajustes'),
     path('transferencias/', views.sugestao_transferencia, name='sugestao_transferencia'),
     path('entregas/', views.entregas_painel_view, name='entregas_painel'),

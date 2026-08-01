@@ -352,6 +352,64 @@
       opacity: 0.55;
       pointer-events: none;
     }
+
+    /* Bip +1 */
+    .ma-btn-bip1 {
+      border: 2px solid #94a3b8;
+      background: #fff;
+      color: #475569;
+    }
+    .ma-btn-bip1.is-on {
+      border-color: #047857;
+      background: linear-gradient(180deg, #10b981, #047857);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(4, 120, 87, 0.35);
+    }
+    .ma-flash {
+      position: fixed;
+      left: 50%;
+      bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+      transform: translateX(-50%);
+      z-index: 140;
+      width: min(22rem, calc(100vw - 1.5rem));
+      border-radius: 1rem;
+      background: #064e3b;
+      color: #ecfdf5;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 12px 40px rgba(6, 78, 59, 0.45);
+    }
+    .ma-flash.hidden { display: none !important; }
+    .ma-pick-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 130;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0.75rem;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    .ma-pick-overlay.hidden { display: none !important; }
+    .ma-pick-panel {
+      width: min(28rem, 100%);
+      max-height: min(70dvh, 28rem);
+      overflow: auto;
+      background: #fff;
+      border-radius: 1.25rem;
+      padding: 0.85rem;
+    }
+    .ma-offer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 145;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .ma-offer-overlay.hidden { display: none !important; }
   </style>
 </head>
 <body class="ma-page bg-slate-100 touch-manipulation">
@@ -361,6 +419,8 @@
     <div class="ma-head-row">
       <h1 class="ma-head-title-txt">Ajuste <span>Mobile</span></h1>
       <div class="ma-head-actions">
+        <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
+        <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
         <a href="/historico/" class="ma-head-btn ma-head-btn--hist">Hist.</a>
         <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
       </div>
@@ -514,6 +574,32 @@
     </div>
   </div>
 
+  <div id="ma-flash" class="ma-flash hidden" role="status" aria-live="polite">
+    <p id="ma-flash-nome" class="text-sm font-black leading-snug"></p>
+    <p class="mt-1 text-xs font-bold text-emerald-100">Saldo <span id="ma-flash-saldo">0</span> · +1 gravado</p>
+    <button type="button" id="ma-flash-ajustar" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white text-emerald-900 text-xs font-black uppercase">Ajustar</button>
+  </div>
+
+  <div id="ma-pick" class="ma-pick-overlay hidden" aria-hidden="true">
+    <div class="ma-pick-panel">
+      <p class="text-xs font-black uppercase text-slate-500 mb-2">Vários produtos · escolha um</p>
+      <div id="ma-pick-list" class="space-y-2"></div>
+      <button type="button" id="ma-pick-cancel" class="mt-3 w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase">Cancelar</button>
+    </div>
+  </div>
+
+  <div id="ma-offer" class="ma-offer-overlay hidden" aria-hidden="true">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
+      <p class="text-sm font-black text-slate-900 leading-snug">Guardar este código neste produto pra cadastro depois?</p>
+      <p id="ma-offer-codigo" class="font-mono text-base font-black text-emerald-700 break-all"></p>
+      <p id="ma-offer-produto" class="text-xs font-bold text-slate-500 leading-snug"></p>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" id="ma-offer-nao" class="min-h-[3rem] rounded-xl border border-slate-200 text-slate-600 text-xs font-black uppercase">Não</button>
+        <button type="button" id="ma-offer-sim" class="min-h-[3rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Sim, guardar</button>
+      </div>
+    </div>
+  </div>
+
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script src="{% static 'js/agro_estoque_sync.js' %}"></script>
 <script>
@@ -528,6 +614,17 @@ const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
 /* Loja: freio AGRO_PDV_CATALOGO_FULL_OFF → /api/todos-produtos/ vem vazio (catalogo-full-off). Slim não é freiado. */
 const MA_API_CATALOGO_SLIM = '/api/pdv/catalogo-slim/';
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
+const MA_API_CODIGO_PENDENTE = "{% url 'api_ajuste_codigo_pendente_criar' %}";
+const MA_CSRF = '{{ csrf_token }}';
+const MA_BIP1_KEY = 'ma_bip1_on_v1';
+
+let maBip1On = false;
+let maCodigoOrfao = null;
+let maBipBusy = false;
+let maBipLastCode = '';
+let maBipLastAt = 0;
+let maFlashTimer = null;
+let maFlashProduto = null;
 
 function mobileLerProdutosDoCacheUnificado() {
   for (let i = 0; i < MA_CAT_KEYS.length; i++) {
@@ -942,8 +1039,263 @@ document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
   mobileAjusteAtualizarSaldosVisiveis();
 });
 
+function maBip1SyncBtn() {
+  const btn = document.getElementById('ma-btn-bip1');
+  if (!btn) return;
+  btn.classList.toggle('is-on', !!maBip1On);
+  btn.setAttribute('aria-pressed', maBip1On ? 'true' : 'false');
+  btn.textContent = maBip1On ? 'Bip +1 ON' : 'Bip +1';
+}
+
+function maBip1Toggle() {
+  maBip1On = !maBip1On;
+  try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
+  maBip1SyncBtn();
+  if (maBip1On && !scanningActive) {
+    startScan();
+  }
+}
+
+document.getElementById('ma-btn-bip1')?.addEventListener('click', maBip1Toggle);
+
+function maTocarSom(tipo) {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (tipo === 'ok') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1240, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240, ctx.currentTime);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.16);
+    }
+  } catch (_) {}
+}
+
+function maNormCodigo(s) {
+  return String(s || '').trim();
+}
+
+function maDigits(s) {
+  return String(s || '').replace(/\D/g, '');
+}
+
+/** Match exato EAN / GM / index — só para Bip +1. */
+function maMatchCodigoExato(codigo) {
+  const c = maNormCodigo(codigo);
+  if (!c || !baseProdutos.length) return [];
+  const dig = maDigits(c);
+  const cLow = c.toLowerCase();
+  const seen = new Set();
+  const out = [];
+  baseProdutos.forEach((p) => {
+    const id = String(p.id || '');
+    if (!id || seen.has(id)) return;
+    const cand = [];
+    if (p.codigo_barras) cand.push(p.codigo_barras);
+    if (p.codigo) cand.push(p.codigo);
+    if (p.codigo_nfe) cand.push(p.codigo_nfe);
+    if (p.codigo_interno) cand.push(p.codigo_interno);
+    if (Array.isArray(p.index_codigos)) {
+      p.index_codigos.forEach((x) => cand.push(x));
+    }
+    const hit = cand.some((x) => {
+      const s = maNormCodigo(x);
+      if (!s) return false;
+      if (s === c || s.toLowerCase() === cLow) return true;
+      const sd = maDigits(s);
+      return dig.length >= 8 && sd === dig;
+    });
+    if (hit) {
+      seen.add(id);
+      out.push(p);
+    }
+  });
+  return out;
+}
+
+function maMostrarFlash(p, novoSaldo) {
+  maFlashProduto = p;
+  const el = document.getElementById('ma-flash');
+  const nome = document.getElementById('ma-flash-nome');
+  const sal = document.getElementById('ma-flash-saldo');
+  if (nome) nome.textContent = p.nome || '';
+  if (sal) sal.textContent = Number(novoSaldo).toFixed(1);
+  if (el) el.classList.remove('hidden');
+  clearTimeout(maFlashTimer);
+  maFlashTimer = setTimeout(() => {
+    if (el) el.classList.add('hidden');
+  }, 2800);
+}
+
+document.getElementById('ma-flash-ajustar')?.addEventListener('click', () => {
+  const el = document.getElementById('ma-flash');
+  if (el) el.classList.add('hidden');
+  clearTimeout(maFlashTimer);
+  if (maFlashProduto) {
+    pSel = maFlashProduto;
+    abrir();
+  }
+});
+
+function maFecharPick() {
+  const ov = document.getElementById('ma-pick');
+  if (ov) {
+    ov.classList.add('hidden');
+    ov.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function maAbrirPick(lista) {
+  const ov = document.getElementById('ma-pick');
+  const box = document.getElementById('ma-pick-list');
+  if (!ov || !box) return;
+  box.innerHTML = '';
+  lista.forEach((p) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'w-full text-left rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 active:bg-emerald-50';
+    b.innerHTML = `<div class="text-sm font-black text-slate-900 leading-snug">${String(p.nome || '').replace(/</g, '&lt;')}</div>
+      <div class="text-[10px] font-bold text-slate-500 mt-0.5">GM ${String(p.codigo_nfe || p.codigo || '').replace(/</g, '&lt;')} · saldo ${Number(getSaldoAtual(p)).toFixed(1)}</div>`;
+    b.addEventListener('click', () => {
+      maFecharPick();
+      pSel = p;
+      abrir();
+    });
+    box.appendChild(b);
+  });
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+document.getElementById('ma-pick-cancel')?.addEventListener('click', maFecharPick);
+
+function maPreencherBuscaOrfao(codigo) {
+  maCodigoOrfao = maNormCodigo(codigo);
+  const inp = document.getElementById('busca');
+  if (!inp) return;
+  inp.value = maCodigoOrfao;
+  buscar(maCodigoOrfao);
+  inp.focus({ preventScroll: true });
+  try {
+    inp.setSelectionRange(0, inp.value.length);
+  } catch (_) {
+    inp.select();
+  }
+}
+
+function maPostAjuste(produto, novoSaldo, opts) {
+  opts = opts || {};
+  const fd = new FormData();
+  fd.append('produto_id', produto.id);
+  fd.append('nome_produto', produto.nome || '');
+  const deposito = getDepositoSelecionado();
+  fd.append('saldo_atual', getSaldoErpAtual(produto));
+  fd.append('novo_saldo', String(novoSaldo));
+  fd.append('deposito', deposito);
+  fd.append('pin', 'SESSAO');
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
+  return fetch("{% url 'api_ajustar_estoque' %}", {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-CSRFToken': MA_CSRF },
+    signal: ctrl ? ctrl.signal : undefined,
+  })
+    .then((res) => res.json())
+    .then((d) => {
+      if (!d || !d.ok) {
+        throw new Error((d && d.erro) || 'Erro ao salvar ajuste.');
+      }
+      const dep = d.deposito || deposito;
+      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
+        ? Number(d.novo_saldo)
+        : Number(novoSaldo);
+      aplicarSaldoLocalAposPin(produto, dep, novo);
+      marcarMobileSaldosFresh();
+      return { deposito: dep, novo_saldo: novo, data: d };
+    })
+    .finally(() => clearTimeout(to));
+}
+
+function maSalvarBipMaisUm(p) {
+  if (!p || maBipBusy) return Promise.resolve(false);
+  maBipBusy = true;
+  const saldoAgora = Number(getSaldoAtual(p) || 0);
+  const novoSaldo = saldoAgora + 1;
+  return maPostAjuste(p, novoSaldo)
+    .then((r) => {
+      maTocarSom('ok');
+      maMostrarFlash(p, r.novo_saldo);
+      buscar(document.getElementById('busca')?.value || '');
+      return true;
+    })
+    .catch((err) => {
+      maTocarSom('erro');
+      alert((err && err.message) || 'Falha ao somar +1.');
+      return false;
+    })
+    .finally(() => { maBipBusy = false; });
+}
+
+function maProcessarCodigoBipado(codigo) {
+  const c = maNormCodigo(codigo);
+  if (!c) return;
+  const now = Date.now();
+  if (c === maBipLastCode && (now - maBipLastAt) < 1200) return;
+  maBipLastCode = c;
+  maBipLastAt = now;
+
+  if (!maBip1On) {
+    document.getElementById('busca').value = c;
+    buscar(c);
+    stopScan();
+    return;
+  }
+
+  if (!baseProdutos.length) {
+    maTocarSom('erro');
+    alert('Catálogo ainda não carregou. Toque em Atualizar.');
+    return;
+  }
+
+  const hits = maMatchCodigoExato(c);
+  if (hits.length === 1) {
+    maCodigoOrfao = null;
+    maSalvarBipMaisUm(hits[0]);
+    return;
+  }
+  if (hits.length === 0) {
+    maTocarSom('erro');
+    stopScan();
+    maPreencherBuscaOrfao(c);
+    return;
+  }
+  maTocarSom('erro');
+  stopScan();
+  maAbrirPick(hits.slice(0, 40));
+}
+
 window.addEventListener('load', () => {
   maResetLoading();
+  try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
+  maBip1SyncBtn();
   if (maThermoTimer) clearInterval(maThermoTimer);
   maThermoTimer = setInterval(() => {
     const lab = document.getElementById('ma-saldos-ultima');
@@ -973,7 +1325,6 @@ window.addEventListener('load', () => {
 function startScan() {
   if (scanningActive) return;
   const reader = document.getElementById('reader');
-  const readerBox = document.getElementById('reader-box');
   reader.classList.remove('hidden');
   scanner = new Html5Qrcode("reader-box");
   scanningActive = true;
@@ -984,9 +1335,7 @@ function startScan() {
     { facingMode: "environment" },
     { fps: 10, qrbox: qrbox },
     (txt) => {
-      document.getElementById('busca').value = txt;
-      buscar(txt);
-      stopScan();
+      maProcessarCodigoBipado(txt);
     }
   ).catch(() => {
     stopScan();
@@ -1225,6 +1574,113 @@ window.addEventListener('load', () => setTimeout(syncMaKeyboardInset, 100));
   }
 })();
 
+function maFecharOffer() {
+  const ov = document.getElementById('ma-offer');
+  if (ov) {
+    ov.classList.add('hidden');
+    ov.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function maProdutoJaTemCodigo(p, codigo) {
+  const c = maNormCodigo(codigo);
+  if (!p || !c) return true;
+  const dig = maDigits(c);
+  const cand = [p.codigo_barras, p.codigo, p.codigo_nfe, p.codigo_interno]
+    .concat(Array.isArray(p.index_codigos) ? p.index_codigos : []);
+  return cand.some((x) => {
+    const s = maNormCodigo(x);
+    if (!s) return false;
+    if (s === c || s.toLowerCase() === c.toLowerCase()) return true;
+    return dig && maDigits(s) === dig;
+  });
+}
+
+function maAbrirOfferGuardar(codigo, produto) {
+  const ov = document.getElementById('ma-offer');
+  const cEl = document.getElementById('ma-offer-codigo');
+  const pEl = document.getElementById('ma-offer-produto');
+  if (!ov || !cEl || !pEl) return;
+  cEl.textContent = codigo;
+  pEl.textContent = (produto.nome || '') + ' · GM ' + (produto.codigo_nfe || produto.codigo || '');
+  ov.dataset.codigo = codigo;
+  ov.dataset.pid = String(produto.id || '');
+  ov.dataset.nome = produto.nome || '';
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+function maGuardarCodigoPendente(codigo, produto) {
+  return fetch(MA_API_CODIGO_PENDENTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': MA_CSRF,
+    },
+    body: JSON.stringify({
+      codigo_bipado: codigo,
+      produto_externo_id: String(produto.id || ''),
+      nome_produto: produto.nome || '',
+    }),
+  }).then(async (res) => {
+    let d = null;
+    try { d = await res.json(); } catch (_) { d = null; }
+    if (!res.ok || !d || !d.ok) {
+      throw new Error((d && d.erro) || ('HTTP ' + res.status));
+    }
+    return d;
+  });
+}
+
+document.getElementById('ma-offer-nao')?.addEventListener('click', () => {
+  maCodigoOrfao = null;
+  maFecharOffer();
+});
+document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
+  const ov = document.getElementById('ma-offer');
+  const codigo = ov && ov.dataset.codigo;
+  const pid = ov && ov.dataset.pid;
+  const nome = ov && ov.dataset.nome;
+  if (!codigo || !pid) {
+    maFecharOffer();
+    return;
+  }
+  const btn = document.getElementById('ma-offer-sim');
+  if (btn) btn.disabled = true;
+  maGuardarCodigoPendente(codigo, { id: pid, nome: nome })
+    .then(() => {
+      maCodigoOrfao = null;
+      maFecharOffer();
+      alert('Código guardado na fila pra cadastro.');
+    })
+    .catch((err) => {
+      alert((err && err.message) || 'Não deu para guardar o código.');
+    })
+    .finally(() => {
+      if (btn) btn.disabled = false;
+    });
+});
+
+document.getElementById('busca')?.addEventListener('focus', () => {
+  const inp = document.getElementById('busca');
+  if (!inp || !maCodigoOrfao) return;
+  if (maNormCodigo(inp.value) !== maNormCodigo(maCodigoOrfao)) return;
+  setTimeout(() => {
+    try { inp.setSelectionRange(0, inp.value.length); } catch (_) { try { inp.select(); } catch (__) {} }
+  }, 0);
+});
+
+document.getElementById('busca')?.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter') return;
+  if (!maBip1On) return;
+  const c = maNormCodigo(document.getElementById('busca')?.value);
+  if (!c) return;
+  /* Leitor USB / Enter: no modo Bip+1 trata como bip. */
+  ev.preventDefault();
+  maProcessarCodigoBipado(c);
+});
+
 function salvar(modo) {
   if (!pSel) return;
   const modoOk = modo === 'somar' ? 'somar' : 'trocar';
@@ -1240,15 +1696,9 @@ function salvar(modo) {
 
   const saldoAgora = Number(getSaldoAtual(pSel) || 0);
   const novoSaldo = modoOk === 'somar' ? (saldoAgora + qtd) : qtd;
-
-  const fd = new FormData();
-  fd.append('produto_id', pSel.id);
-  fd.append('nome_produto', pSel.nome || '');
-  const deposito = getDepositoSelecionado();
-  fd.append('saldo_atual', getSaldoErpAtual(pSel));
-  fd.append('novo_saldo', String(novoSaldo));
-  fd.append('deposito', deposito);
-  fd.append('pin', 'SESSAO');
+  const orfaoParaOferta = maCodigoOrfao && !maProdutoJaTemCodigo(pSel, maCodigoOrfao)
+    ? maNormCodigo(maCodigoOrfao)
+    : null;
 
   const btnSomar = document.getElementById('ma-btn-somar');
   const btnTrocar = document.getElementById('ma-btn-trocar');
@@ -1256,36 +1706,24 @@ function salvar(modo) {
   if (btnTrocar) btnTrocar.disabled = true;
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
-  fetch("{% url 'api_ajustar_estoque' %}", {
-    method: 'POST',
-    body: fd,
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-    signal: ctrl ? ctrl.signal : undefined,
-  })
-  .then(res => res.json())
-  .then(d => {
-    if (d.ok) {
-      const dep = d.deposito || getDepositoSelecionado();
-      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
-        ? Number(d.novo_saldo)
-        : novoSaldo;
-      aplicarSaldoLocalAposPin(pSel, dep, novo);
+  maPostAjuste(pSel, novoSaldo)
+    .then(() => {
       fechar();
       buscar(document.getElementById('busca').value);
-      marcarMobileSaldosFresh();
-    } else {
-      alert(d.erro || 'Erro ao salvar ajuste.');
-    }
-  })
-  .catch(() => alert('Falha na comunicação com o servidor.'))
-  .finally(() => {
-    clearTimeout(to);
-    maResetLoading();
-    if (btnSomar) btnSomar.disabled = false;
-    if (btnTrocar) btnTrocar.disabled = false;
-  });
+      if (orfaoParaOferta) {
+        maAbrirOfferGuardar(orfaoParaOferta, pSel);
+      } else {
+        maCodigoOrfao = null;
+      }
+    })
+    .catch((err) => {
+      alert((err && err.message) || 'Erro ao salvar ajuste.');
+    })
+    .finally(() => {
+      maResetLoading();
+      if (btnSomar) btnSomar.disabled = false;
+      if (btnTrocar) btnTrocar.disabled = false;
+    });
 }
 </script>
 </body>

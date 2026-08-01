@@ -1178,6 +1178,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Modo Bip +1 · sons · flash/Ajustar · multi-match → Somar/Trocar · fila PG códigos órfãos |
+| **Migrate** | SIM — `produtos.0078` |
+| **Arquivos** | `mobile_ajuste.html` · model/API/lista códigos · migration |
+| **Depende** | **AJUSTE-MOBILE-SLIM** na loja (lista no celular) |
+| **Risco** | Baixo — só Ajuste Mobile + fila gestão; não mexe PDV/caixa |
+
 ### 📦 PACOTE PRONTO LOJA — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
 
 | Item | Detalhe |
@@ -1342,16 +1353,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.62** · `teste` @ `7df5a4d`  
+**Teste hoje:** badge **v12.66** (após push BIP1)  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lote **v12.51** | ✅ **enviado loja** |
 | 1 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** `mobile_ajuste.html` |
-| 2 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
-| 3 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
-| 4 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+| 2 | **AJUSTE-MOBILE-BIP1** | 📦 **pronto para envio à produção** · **v12.66** · migrate `0078` · sobe **depois** do SLIM (ou junto) |
+| 3 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
+| 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
+| 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+
+### 📦 PACOTE PRONTO — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · **ainda NÃO na loja** |
+| **Modo Bip +1** | Liga no topo · bip = Somar +1 (PIN sessão) · som OK · flash + Ajustar |
+| **0 / N matches** | Som erro · código selecionado na busca · ou lista → Somar/Trocar |
+| **Fila códigos** | Pergunta após salvar manual · PG · `/gestao/codigos-pendentes-ajuste/` |
+| **Migrate** | `0078` |
+| **Você** | Local: PIN → Bip +1 → bip produto · loja = frase + senha (com SLIM) |
 
 ### 📦 PACOTE PRONTO — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
 
@@ -3786,7 +3809,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.51** lote marca+uso+bugs+DF-e · ver CHECKLIST ÚNICO |
 | **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
-| **📦 Fila** | **AJUSTE-MOBILE-SLIM** v12.61 · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE |
+| **📦 Fila** | **AJUSTE-MOBILE-SLIM** · **AJUSTE-MOBILE-BIP1** · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
