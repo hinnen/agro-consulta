@@ -622,8 +622,8 @@
 
   <div id="ma-dep-modal" class="ma-offer-overlay hidden" aria-hidden="true">
     <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
-      <p class="text-sm font-black text-slate-900 leading-snug">Qual estoque / loja você está?</p>
-      <p class="text-[10px] font-bold text-slate-500 leading-snug">Depois vai pedir para digitar <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span> — igual no BI e no PDV.</p>
+      <p class="text-sm font-black text-slate-900 leading-snug" id="ma-dep-modal-title">Qual estoque / loja você está?</p>
+      <p class="text-[10px] font-bold text-slate-500 leading-snug" id="ma-dep-modal-hint">Depois vai pedir para digitar <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span> — igual no BI e no PDV.</p>
       <button type="button" id="ma-dep-pick-centro" class="w-full min-h-[3.25rem] rounded-xl bg-emerald-600 text-white text-sm font-black uppercase">Centro</button>
       <button type="button" id="ma-dep-pick-vila" class="w-full min-h-[3.25rem] rounded-xl bg-slate-800 text-white text-sm font-black uppercase">Vila Elias</button>
       <button type="button" id="ma-dep-pick-cancel" class="w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase">Cancelar</button>
@@ -640,6 +640,8 @@ let debounceTimer = null;
 let baseProdutos = [];
 const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
 const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
+const MA_PEDIR_LOJA = {% if ajuste_pedir_loja %}true{% else %}false{% endif %};
+let maDepObrigatorio = false;
 const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
 const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
 /* Loja: freio AGRO_PDV_CATALOGO_FULL_OFF → /api/todos-produtos/ vem vazio (catalogo-full-off). Slim não é freiado. */
@@ -778,20 +780,38 @@ function getNomeDepositoSelecionado() {
 }
 
 function maFecharDepModal() {
+  if (maDepObrigatorio) {
+    /* Primeira abertura: não deixa fechar sem escolher. */
+    return;
+  }
   const ov = document.getElementById('ma-dep-modal');
   if (!ov) return;
   ov.classList.add('hidden');
   ov.setAttribute('aria-hidden', 'true');
 }
 
-function maAbrirDepModal() {
+function maAbrirDepModal(opts) {
+  opts = opts || {};
   if (MA_DEPOSITO_TRAVADO) {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Loja travada pelo caixa. Feche o caixa para trocar.', false);
     }
     return;
   }
+  maDepObrigatorio = !!opts.obrigatorio;
   const ov = document.getElementById('ma-dep-modal');
+  const cancel = document.getElementById('ma-dep-pick-cancel');
+  const title = document.getElementById('ma-dep-modal-title');
+  const hint = document.getElementById('ma-dep-modal-hint');
+  if (cancel) cancel.classList.toggle('hidden', maDepObrigatorio);
+  if (title && maDepObrigatorio) {
+    title.textContent = 'Antes de contar: qual estoque / loja?';
+  } else if (title) {
+    title.textContent = 'Qual estoque / loja você está?';
+  }
+  if (hint && maDepObrigatorio) {
+    hint.innerHTML = 'Obrigatório nesta abertura. Depois digite <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span>.';
+  }
   if (!ov) return;
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
@@ -814,8 +834,22 @@ function maAplicarDepositoUI(dep, label) {
 function maTrocarDepositoPara(dep) {
   const alvo = dep === 'vila' ? 'vila' : 'centro';
   const atual = getDepositoSelecionado();
-  maFecharDepModal();
-  if (alvo === atual) {
+  const forcar = maDepObrigatorio || MA_PEDIR_LOJA;
+  /* Fecha visual só se não for obrigatório; senão some depois do OK. */
+  if (!maDepObrigatorio) {
+    const ov = document.getElementById('ma-dep-modal');
+    if (ov) {
+      ov.classList.add('hidden');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  } else {
+    const ov = document.getElementById('ma-dep-modal');
+    if (ov) {
+      ov.classList.add('hidden');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  }
+  if (alvo === atual && !forcar) {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Já está em ' + getNomeDepositoSelecionado(), true);
     }
@@ -825,11 +859,14 @@ function maTrocarDepositoPara(dep) {
     if (typeof maMostrarToast === 'function') {
       maMostrarToast('Confirmação de loja indisponível. Recarregue a página.', false);
     }
+    if (maDepObrigatorio) maAbrirDepModal({ obrigatorio: true });
     return;
   }
   window.AgroLojaConfirm.pedir({
     esperado: alvo,
-    onCancel: function () {},
+    onCancel: function () {
+      if (maDepObrigatorio) maAbrirDepModal({ obrigatorio: true });
+    },
     onOk: function (texto) {
       fetch(MA_API_DEPOSITO, {
         method: 'POST',
@@ -847,6 +884,7 @@ function maTrocarDepositoPara(dep) {
         })
         .then(({ res, j }) => {
           if (j.ok) {
+            maDepObrigatorio = false;
             const d = j.deposito === 'vila' ? 'vila' : 'centro';
             maAplicarDepositoUI(d, j.depositoLabel || (d === 'vila' ? 'Vila Elias' : 'Centro'));
             if (typeof maMostrarToast === 'function') {
@@ -857,11 +895,13 @@ function maTrocarDepositoPara(dep) {
           if (typeof maMostrarToast === 'function') {
             maMostrarToast(j.erro || ('Não deu para trocar (HTTP ' + res.status + ').'), false);
           }
+          if (maDepObrigatorio || forcar) maAbrirDepModal({ obrigatorio: true });
         })
         .catch(() => {
           if (typeof maMostrarToast === 'function') {
             maMostrarToast('Falha na rede ao trocar loja.', false);
           }
+          if (maDepObrigatorio || forcar) maAbrirDepModal({ obrigatorio: true });
         });
     },
   });
@@ -1438,6 +1478,9 @@ window.addEventListener('load', () => {
   maResetLoading();
   try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
   maBip1SyncBtn();
+  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
+    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
+  }
   if (maThermoTimer) clearInterval(maThermoTimer);
   maThermoTimer = setInterval(() => {
     const lab = document.getElementById('ma-saldos-ultima');

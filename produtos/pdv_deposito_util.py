@@ -78,6 +78,20 @@ def resolver_deposito_request(request: HttpRequest | None) -> str:
         return cookie_raw
     return deposito_padrao_env()
 
+
+def deposito_escolhido_explicitamente(request: HttpRequest | None) -> bool:
+    """True se o aparelho já gravou Centro/Vila (sessão ou cookie) — não só o padrão env."""
+    if request is None:
+        return False
+    raw_sess = str(request.session.get(SESSION_KEY) or "").strip().lower()
+    if raw_sess in DEPOSITOS_VALIDOS:
+        return True
+    try:
+        cookie_raw = str(request.COOKIES.get(COOKIE_NAME) or "").strip().lower()
+    except Exception:
+        cookie_raw = ""
+    return cookie_raw in DEPOSITOS_VALIDOS
+
 def gravar_deposito_request(request: HttpRequest, deposito: str) -> str:
     dep = normalizar_deposito(deposito)
     request.session[SESSION_KEY] = dep

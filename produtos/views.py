@@ -18735,12 +18735,18 @@ def ajuste_mobile_view(request):
     O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
     Depósito inicial = loja/estoque travado no PDV deste aparelho (Centro × Vila).
     """
-    from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
+    from produtos.pdv_deposito_util import (
+        bootstrap_deposito,
+        deposito_escolhido_explicitamente,
+        rotulo_deposito,
+    )
 
     dep_boot = bootstrap_deposito(request)
     dep = str(dep_boot.get("deposito") or "centro").strip().lower()
     if dep not in ("centro", "vila"):
         dep = "centro"
+    travado = bool(dep_boot.get("caixaTravado"))
+    pedir_loja = (not travado) and (not deposito_escolhido_explicitamente(request))
     if not request.session.pop("ajuste_mobile_gate", None):
         request.session.pop("ajuste_mobile_operador", None)
         request.session.pop("ajuste_mobile_user_id", None)
@@ -18754,7 +18760,8 @@ def ajuste_mobile_view(request):
             "ajuste_operador": operador,
             "ajuste_deposito_inicial": dep,
             "ajuste_deposito_inicial_label": rotulo_deposito(dep),
-            "ajuste_deposito_travado": bool(dep_boot.get("caixaTravado")),
+            "ajuste_deposito_travado": travado,
+            "ajuste_pedir_loja": pedir_loja,
         },
     )
 
@@ -23117,15 +23124,18 @@ def api_login_mobile(request):
     return JsonResponse({"ok": True, "operador": operador})
 
 
-@login_required(login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def api_pdv_deposito(request):
-    """GET/POST depósito operacional do PDV neste aparelho (Centro × Vila Elias)."""
+    """GET/POST depósito operacional do PDV neste aparelho (Centro × Vila Elias).
+
+    Autenticado Django **ou** sessão do Ajuste Mobile (PIN).
+    """
     from produtos.pdv_deposito_util import (
         anexar_cookie_deposito,
         bootstrap_deposito,
         confirmacao_loja_bate,
         deposito_de_loja_id,
+        deposito_escolhido_explicitamente,
         gravar_deposito_request,
         normalizar_deposito,
         palavra_confirmacao_loja,
@@ -23133,6 +23143,18 @@ def api_pdv_deposito(request):
         rotulo_deposito,
         trava_loja_por_caixa,
     )
+
+    u = getattr(request, "user", None)
+    autenticado = bool(u is not None and getattr(u, "is_authenticated", False))
+    sessao_ajuste = bool(
+        str(request.session.get("ajuste_mobile_operador") or "").strip()
+        or request.session.get("ajuste_mobile_user_id")
+    )
+    if not autenticado and not sessao_ajuste:
+        return JsonResponse(
+            {"ok": False, "erro": "Faça login ou entre no Ajuste Mobile com PIN."},
+            status=403,
+        )
 
     if request.method == "GET":
         boot = bootstrap_deposito(request)
@@ -23179,7 +23201,9 @@ def api_pdv_deposito(request):
         )
 
     atual = resolver_deposito_request(request)
-    if dep != atual:
+    escolhido = deposito_escolhido_explicitamente(request)
+    # Primeira escolha do aparelho (sem cookie/sessão) também exige digitar centro/vila.
+    if dep != atual or not escolhido:
         conf = data.get("confirmacao") or data.get("confirmacao_loja") or ""
         if not confirmacao_loja_bate(conf, dep):
             palavra = palavra_confirmacao_loja(dep)
