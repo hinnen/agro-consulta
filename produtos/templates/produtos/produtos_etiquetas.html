@@ -520,12 +520,13 @@
 <script>
 window.AGRO_ETQ_CFG = {
   facetasUrl: "{{ api_facetas_url|default:'/api/produtos/gestao/facetas/'|escapejs }}",
-  presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}"
+  presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}",
+  etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=13"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=14"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=13" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=14" defer></script>
 
 {% endblock %}
 

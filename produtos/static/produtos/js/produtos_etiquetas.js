@@ -60,6 +60,45 @@
     Core.saveStorage(state.storage);
   }
 
+  function syncPresetToServer(p, opts) {
+    opts = opts || {};
+    return Core.upsertPresetToServer(p)
+      .then(function () {
+        if (!opts.silent) setStatus('Preset gravado na loja.');
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Faça login para gravar o preset em todos os PCs.', true);
+        } else {
+          setStatus('Não gravou no servidor — tente de novo (login).', true);
+        }
+      });
+  }
+
+  function carregarPresetsDaLoja() {
+    return Core.fetchPresetsFromServer()
+      .then(function (serverList) {
+        state.storage.presets = Core.mergeServerPresets(state.storage.presets, serverList);
+        persistStorage();
+        return Core.migrateLocalPresetsToServerOnce(state.storage.presets).then(function (mig) {
+          if (mig && mig.migrated > 0) {
+            return Core.fetchPresetsFromServer().then(function (again) {
+              state.storage.presets = Core.mergeServerPresets(state.storage.presets, again);
+              persistStorage();
+              setStatus(mig.migrated + ' preset(s) deste PC enviados para a loja.');
+            });
+          }
+        });
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Login necessário para ver presets de outros PCs.', true);
+        } else {
+          setStatus('Usando presets locais — servidor indisponível.', true);
+        }
+      });
+  }
+
   function getPresetAtivo() {
     return Core.normalizarPreset(Core.getPresetAtivo(state.storage));
   }
@@ -150,6 +189,10 @@
     persistStorage();
     togglePresetFields(p.estilo || 'termica');
     syncLayoutStageSize(p);
+    clearTimeout(state._presetSaveTimer);
+    state._presetSaveTimer = setTimeout(function () {
+      syncPresetToServer(p, { silent: true });
+    }, 600);
   }
 
   function renderPresetOptions(selectEl, activeId) {
@@ -1014,7 +1057,7 @@
     state.storage.preset_ativo = p.id;
     persistStorage();
     renderPresetSelect();
-    setStatus('Preset salvo.');
+    syncPresetToServer(p);
   }
 
   function criarNovoPreset() {
@@ -1028,7 +1071,7 @@
     persistStorage();
     renderPresetSelect();
     renderPresetForm();
-    setStatus('Preset criado.');
+    syncPresetToServer(np);
   }
 
   function excluirPresetAtual() {
@@ -1037,14 +1080,26 @@
       return;
     }
     var p = getPresetAtivo();
-    if (!confirm('Excluir «' + p.nome + '»?')) return;
+    if (!confirm('Excluir «' + p.nome + '» em todos os PCs da loja?')) return;
+    var delId = p.id;
     state.storage.presets = state.storage.presets.filter(function (x) {
-      return x.id !== p.id;
+      return x.id !== delId;
     });
     state.storage.preset_ativo = state.storage.presets[0].id;
     persistStorage();
     renderPresetSelect();
     renderPresetForm();
+    Core.deletePresetFromServer(delId)
+      .then(function () {
+        setStatus('Preset excluído na loja.');
+      })
+      .catch(function (err) {
+        if (err && err.code === 'auth') {
+          setStatus('Faça login para excluir na loja.', true);
+        } else {
+          setStatus('Excluiu neste PC; falha ao apagar no servidor.', true);
+        }
+      });
   }
 
   function carregarImpressoras(atual) {
@@ -1453,6 +1508,10 @@
     bindEvents();
     carregarFacetas();
     carregarPresetsFiltro();
+    carregarPresetsDaLoja().then(function () {
+      renderPresetSelect();
+      renderPresetForm();
+    });
     var inp = $('etq-busca-input');
     if (inp) inp.focus();
   }

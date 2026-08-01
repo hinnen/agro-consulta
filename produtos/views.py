@@ -177,6 +177,7 @@ from .models import (
     ProdutoGrupoVarianteAgro,
     ProdutoMarcaVariacaoAgro,
     EtiquetaImpressaoHistoricoAgro,
+    EtiquetaPresetAgro,
     MovimentoCaixa,
     SessaoCaixa,
     VendaAgro,
@@ -12451,8 +12452,105 @@ def produtos_etiquetas_view(request):
         {
             "api_facetas_url": reverse("api_produtos_gestao_facetas"),
             "api_presets_url": reverse("api_compras_folha_saldo_presets"),
+            "api_etq_presets_url": reverse("api_etiquetas_presets"),
         },
     )
+
+
+def _serializar_etiqueta_preset(obj: EtiquetaPresetAgro) -> dict:
+    payload = obj.payload if isinstance(obj.payload, dict) else {}
+    out = dict(payload)
+    out["id"] = obj.client_key
+    out["nome"] = obj.nome or out.get("nome") or obj.client_key
+    out["_pg_id"] = obj.pk
+    out["_atualizado_em"] = obj.atualizado_em.isoformat() if obj.atualizado_em else ""
+    return out
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET", "POST"])
+def api_etiquetas_presets(request):
+    """Lista / cria presets de etiqueta (compartilhados na loja — Postgres)."""
+    if request.method == "GET":
+        rows = list(EtiquetaPresetAgro.objects.all()[:120])
+        return JsonResponse(
+            {
+                "ok": True,
+                "presets": [_serializar_etiqueta_preset(r) for r in rows],
+            }
+        )
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    payload = body.get("payload") if isinstance(body.get("payload"), dict) else body
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "erro": "payload inválido"}, status=400)
+    client_key = str(body.get("client_key") or payload.get("id") or "").strip()[:64]
+    if not client_key:
+        return JsonResponse({"ok": False, "erro": "Informe client_key / id do preset."}, status=400)
+    nome = str(body.get("nome") or payload.get("nome") or client_key).strip()[:120]
+    if not nome:
+        nome = client_key
+    # payload limpo: sem metadados internos
+    clean = dict(payload)
+    clean["id"] = client_key
+    clean["nome"] = nome
+    clean.pop("_pg_id", None)
+    clean.pop("_atualizado_em", None)
+    with transaction.atomic():
+        obj = EtiquetaPresetAgro.objects.filter(client_key=client_key).first()
+        created = False
+        if obj:
+            obj.nome = nome
+            obj.payload = clean
+            obj.save()
+        else:
+            created = True
+            obj = EtiquetaPresetAgro.objects.create(
+                client_key=client_key,
+                nome=nome,
+                payload=clean,
+                criado_por=request.user if request.user.is_authenticated else None,
+            )
+    return JsonResponse(
+        {"ok": True, "created": created, "preset": _serializar_etiqueta_preset(obj)}
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["POST", "DELETE", "PUT", "PATCH"])
+def api_etiquetas_preset_detail(request, client_key: str):
+    """Atualiza ou exclui preset por client_key."""
+    key = str(client_key or "").strip()[:64]
+    if not key:
+        return JsonResponse({"ok": False, "erro": "chave inválida"}, status=400)
+    try:
+        obj = EtiquetaPresetAgro.objects.get(client_key=key)
+    except EtiquetaPresetAgro.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Preset não encontrado"}, status=404)
+
+    if request.method == "DELETE":
+        obj.delete()
+        return JsonResponse({"ok": True})
+
+    try:
+        body = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    payload = body.get("payload") if isinstance(body.get("payload"), dict) else body
+    if not isinstance(payload, dict):
+        return JsonResponse({"ok": False, "erro": "payload inválido"}, status=400)
+    nome = str(body.get("nome") or payload.get("nome") or obj.nome).strip()[:120] or obj.nome
+    clean = dict(payload)
+    clean["id"] = key
+    clean["nome"] = nome
+    clean.pop("_pg_id", None)
+    clean.pop("_atualizado_em", None)
+    obj.nome = nome
+    obj.payload = clean
+    obj.save()
+    return JsonResponse({"ok": True, "preset": _serializar_etiqueta_preset(obj)})
 
 
 def _etiquetas_historico_dias_param(request, default: int = 30) -> int:

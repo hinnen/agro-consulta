@@ -6,6 +6,34 @@
 
 ---
 
+---
+
+## 0. Regras duras (ler sempre) · atualizado 30/07/2026
+
+### 0.1 Dados no Postgres (multi-PC)
+
+- Loja = **vários PCs** (duas lojas). Nada operacional pode viver **só** num PC, no browser (`localStorage`) ou só no Mongo.
+- **Postgres = fonte da verdade** (vínculo NF, rascunho, preço/overlay, estoque Agro, **presets de etiquetas**, filtros Folha saldo, financeiro quando já migrado). PC local = prova rápida; Mongo = espelho legado — **não** é seguro para vínculo NF.
+- Assistente: gravar no **PG**, commit das correções importantes; **nunca** deixar vínculo / nota / preço / estoque / financeiro / **preset / filtro salvo da loja** só no PC, localStorage ou Mongo.
+- Exemplos: `EntradaNfeVinculoAgro` · `EtiquetaPresetAgro` · `ComprasFolhaSaldoFiltroPreset`.
+- **Erro já cometido:** presets de etiquetas em `localStorage` → sumiam nos outros PCs. **Corrigido** → Postgres (`ETQ-PRESET-PG`).
+
+### 0.2 Git — push `teste` ao fechar entrega · produção só com senha (30/07/2026)
+
+| Ação | Regra |
+| ---- | ----- |
+| **Fechar entrega** (fix/feature/pacote) | `commit` em `teste` + **`git push origin teste`** — **sempre**, **sem** pedir autorização |
+| **Meio de tarefa / WIP quebrado** | **Não** push obrigatório (evita lixo no remoto) |
+| **Validar** | PC local (`docs/TESTE-LOCAL.md`) — Render free **não** é gate |
+| **Loja / `producao`** | **Só** frase explícita + senha `99738595` na **mesma** mensagem |
+| **2 repositórios Git?** | **Não** — `teste` (backup+rascunho) e `producao` (loja) bastam; histórico reverte bug |
+
+**Por quê:** se o PC estragar, o código já está no GitHub. Bug no `teste` **não** quebra a loja.
+
+Detalhe no topo do `banana.md` (bloco **Teste / backup GitHub**).
+
+---
+
 ## 1. Todo chat — ordem fixa
 
 ```

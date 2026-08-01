@@ -517,6 +517,8 @@ Cada bloco: **o que é · rotas · arquivos-chave · armadilhas**.
 
 ### 4.6 Cadastro / gestão de produtos
 
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé.
+
 **Duas telas — não confundir:**
 
 
@@ -1171,6 +1173,18 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### ✅ Deploy loja **v13.10** — Etiquetas presets Postgres (`ETQ-PRESET-PG` · 01/08 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **enviando** · badge **13.10** · branch `deploy/etq-preset-pg-v13.10` |
+| **Base** | loja **v13.04** @ `72c6b6c` |
+| **Rollback** | `git push origin rollback/pre-v1310-etq-preset:producao` (@ **`72c6b6c`** / v13.04) |
+| **Inclui** | Presets de etiqueta no Postgres · migrate `0079` · multi-PC |
+| **Migrate** | **SIM** `0079_etiqueta_preset_agro` |
+| **NÃO** | merge `teste` · PDV/caixa |
+| **Você agora** | Ctrl+F5 etiquetas · no PC do «box ração» abrir logado 1× · outros PCs devem ver |
 
 ### 📦 PACOTE PRONTO LOJA — PDV cache lápis (`PDV-CACHE-LAPIS` · **v12.08**)
 
