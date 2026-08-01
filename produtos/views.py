@@ -7788,7 +7788,8 @@ def _dashboard_vendas_serie_pdv(
 ) -> dict:
     """Série diária e faturamento por unidade só a partir do PDV (``VendaAgro``)."""
     dep_key = _dashboard_deposito_filtro_key(deposito)
-    ck = f"dash:mvs:v5:pdv:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    # v6: alinhado ao meta v8 (comparativo por unidade sempre absoluto).
+    ck = f"dash:mvs:v6:pdv:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -7810,7 +7811,7 @@ def _dashboard_vendas_serie_pdv(
         qtd_por_dia[chave] = int(row.get("n") or 0)
         total += v
 
-    # Comparativo Centro × Vila sempre com o total (sem filtro de loja do aparelho).
+    # Comparativo Centro × Vila sempre absoluto (sem filtro de loja do aparelho).
     loja_acc = [0.0, 0.0]
     try:
         qs_dep = _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=None)
@@ -8746,7 +8747,13 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
             f"dash:mvs:v5:pdv:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
         )
         cache.delete(
+            f"dash:mvs:v6:pdv:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
+        cache.delete(
             f"dash:mvs:v7:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        )
+        cache.delete(
+            f"dash:mvs:v8:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
         )
     cache.delete(f"dash:mvs:v8:hibrido:{data_ini.isoformat()}:{data_fim.isoformat()}")
     cache.delete(f"dash:mvs:v4:pdv:{data_ini.isoformat()}:{data_fim.isoformat()}")
@@ -8757,8 +8764,10 @@ def _dashboard_invalidar_cache_vendas_serie(data_ini: date, data_fim: date) -> N
     cache.delete(f"dash:mvs:v4:pdv:{hoje.isoformat()}:{hoje.isoformat()}")
     for dep in ("todas", "centro", "vila"):
         cache.delete(f"dash:mvs:v5:pdv:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
+        cache.delete(f"dash:mvs:v6:pdv:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
         cache.delete(f"dash:mvs:v9:hibrido:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
         cache.delete(f"dash:mvs:v8:erp:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
+        cache.delete(f"dash:mvs:v8:meta:{dep}:{hoje.isoformat()}:{hoje.isoformat()}")
 
 
 def _dashboard_invalidar_cache_apos_venda_agro(venda: VendaAgro | None = None) -> None:
@@ -9034,10 +9043,15 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     ontem = hoje - timedelta(days=1)
     mes_ant_ini, mes_ant_fim = _dashboard_bounds_mes_anterior_para_dia(data_fim)
 
-    from produtos.pdv_deposito_util import bootstrap_deposito, normalizar_deposito
+    from produtos.pdv_deposito_util import (
+        ROTULO_DEPOSITO,
+        bootstrap_deposito,
+        normalizar_deposito,
+    )
 
     dep_boot = bootstrap_deposito(request)
     deposito_filtro = normalizar_deposito(dep_boot.get("deposito"))
+    loja_filtro_label = ROTULO_DEPOSITO.get(deposito_filtro, "Centro")
 
     max_workers = 4
     fut = {}
@@ -9130,6 +9144,26 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     atual = blk["atual"]
     anterior = blk["anterior"]
     vendas_ontem = blk["vendas_ontem"]
+    # Garante série filtrada pela loja do aparelho (cache antigo / caminho sem filtro).
+    if (atual.get("filtro_loja") or "").strip().lower() != deposito_filtro:
+        try:
+            atual = _dashboard_mongo_vendas_serie(
+                data_ini, data_fim, deposito=deposito_filtro
+            )
+        except Exception:
+            pass
+        try:
+            anterior = _dashboard_mongo_vendas_serie(
+                prev_ini, prev_fim, deposito=deposito_filtro
+            )
+        except Exception:
+            pass
+        try:
+            vendas_ontem = _dashboard_mongo_total_por_dia_vendas_agro(
+                ontem, deposito_filtro
+            )
+        except Exception:
+            pass
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
@@ -9159,11 +9193,37 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     top_clientes_mes_anterior = (top_cli_blk or {}).get("itens") or []
     top_clientes_mes_anterior_label = (top_cli_blk or {}).get("mes_label") or ""
     top_clientes_mes_anterior_fonte = (top_cli_blk or {}).get("fonte") or ""
-    vpl = atual.get("vendas_por_loja")
+    # Comparativo por unidade: sempre absoluto (Centro + Vila), mesmo com KPI filtrado.
+    try:
+        vpl = _dashboard_vendas_serie_pdv(
+            data_ini, data_fim, deposito=None
+        ).get("vendas_por_loja")
+    except Exception:
+        vpl = atual.get("vendas_por_loja")
     if isinstance(vpl, list) and len(vpl) >= 2:
         vendas_por_loja = vpl
     else:
         vendas_por_loja = _dashboard_vendas_por_loja(data_ini, data_fim)
+
+    # Fonte da verdade do total exibido: agregação filtrada (não confiar só no cache da série).
+    if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
+        total_periodo_filtrado = _dashboard_float(
+            _dashboard_vendas_qs_pdv_periodo(
+                data_ini, data_fim, deposito=deposito_filtro
+            )
+            .aggregate(soma=Sum("total"))
+            .get("soma")
+        )
+        if abs(total_periodo_filtrado - _dashboard_float(atual.get("total"))) > 0.02:
+            try:
+                atual = _dashboard_mongo_vendas_serie(
+                    data_ini, data_fim, deposito=deposito_filtro
+                )
+            except Exception:
+                pass
+            atual = {**atual, "total": round(total_periodo_filtrado, 2)}
+    else:
+        total_periodo_filtrado = _dashboard_float(atual.get("total"))
 
     dias = (data_fim - data_ini).days + 1
     labels = [(data_ini + timedelta(days=i)).strftime("%d/%m") for i in range(dias)]
@@ -9254,7 +9314,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if variacao_dia >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
             "context_lines": [
                 (
-                    f"Hoje: {_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · {qtd_vendas_hoje} venda(s) "
+                    f"Hoje na loja {loja_filtro_label}: "
+                    f"{_format_moeda_br(Decimal(str(round(vendas_hoje, 2))))} · {qtd_vendas_hoje} venda(s) "
                     + (
                         "(somente PDV local — VendaAgro)."
                         if _dashboard_vendas_fonte_pdv()
@@ -9265,6 +9326,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                         )
                     )
                 ),
+                "Não inclui a outra unidade — use «Faturamento por unidade» para comparar Centro × Vila.",
                 f"Variação {variacao_dia:+.1f}% vs ontem ({_format_moeda_br(Decimal(str(round(vendas_ontem, 2))))}).",
                 (
                     f"Devoluções registradas hoje: {int(devolucoes_hoje.get('quantidade') or 0)} "
@@ -9380,7 +9442,11 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "chart_weekday_initials": json.dumps(weekday_initials),
         "chart_data": json.dumps(serie_atual),
         "chart_compare_data": json.dumps(serie_compare),
-        "chart_total_periodo": _format_moeda_br(Decimal(str(round(_dashboard_float(atual.get("total")), 2)))),
+        "chart_total_periodo": _format_moeda_br(
+            Decimal(str(round(total_periodo_filtrado, 2)))
+        ),
+        "dashboard_loja_filtro": deposito_filtro,
+        "dashboard_loja_filtro_label": loja_filtro_label,
         "ticket_por_dia": json.dumps(ticket_por_dia),
         "top_produtos": top_produtos,
         "ranking_vendedores": ranking_vendedores,

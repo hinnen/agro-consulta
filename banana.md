@@ -1178,6 +1178,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 BI — Vendas/Performance filtrados pela loja (01/08 · **teste v12.90**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Com Loja=Centro, card Vendas e Total da Performance somavam Centro+Vila |
+| **Fix** | Total/KPI pela loja do aparelho · «por unidade» continua comparando as duas · cache meta/pdv v8/v6 · selo «· Centro» no Total |
+| **Você** | Local Ctrl+F5 · Loja Centro → Vendas ≈ barra Centro · Total Performance ≈ mesma · barras ao lado ainda mostram as duas |
+
 ### ✅ Deploy loja **v12.88** — lote checklist (01/08 · Renan frase+senha)
 
 | Item | Detalhe |
@@ -1225,7 +1233,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **enviado loja v12.88** · no lote `941446d` |
 | **O quê** | Na Gestão o 🐞 fica centrado na barra azul · PDV sem barra = igual |
 | **Migrate** | NÃO |
 | **Commits** | `6905682` |
@@ -1235,7 +1243,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **enviado loja v12.88** · no lote `941446d` · migrate `0076` |
 | **O quê** | Bip adiciona direto na lista · motivo **Outros** com campo livre |
 | **Migrate** | SIM — `produtos.0076` |
 | **Commits** | `b0645b0` · `ecc1adc` |
@@ -1245,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **enviado loja v12.88** · no lote `941446d` · migrate `0077` |
 | **O quê** | Motivo **Brinde cliente** → busca cliente · grava no PG · F8 aba **Bônus** (sai Métricas) |
 | **Migrate** | SIM — `produtos.0077` |
 | **Commits** | `8e8c5f4` (+ docs `fc61102`) |
@@ -1375,7 +1383,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — `deploy/etq-gm-campos-v12.52` @ **`49080d2`** · espera frase + senha `99738595` |
+| **Status** | ✅ **enviado loja v12.88** · no lote `941446d` |
 | **VERSION alvo** | **12.52** (loja **12.51**) |
 | **Inclui** | GM curto (GM0050-1→GM50) · checkboxes Nome/R$/Preço/Peso/Logo/GM · fonte/cor/layout GM |
 | **Arquivos** | `produtos_etiquetas.html` · `produtos_etiquetas.js` · `produtos_etiquetas_core.js` · VERSION |
@@ -3798,9 +3806,9 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
-| **✅ Loja** | **v12.51** lote marca+uso+bugs+DF-e · ver CHECKLIST ÚNICO |
-| **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
-| **📦 Fila** | **AJUSTE-MOBILE** · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE · DFE-CHAVE · ETQ-GM-CAMPOS |
+| **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
+| **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
+| **📦 Fila** | *(vazia — lote v12.88 enviado)* |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
@@ -3814,7 +3822,7 @@ iews.py (compras enrich) |
 | **P1** | **BUG-REPORT** | Joaninha flutuante + lista Gestão | ✅ **loja v12.51** |
 | **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | ✅ **loja v12.51** |
 | **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | ✅ **loja v12.12** |
-| **P1** | **AJUSTE-MOBILE** | Slim + Bip +1 + popup carga + fila códigos | 📦 **pronto envio** · v12.84 · migrate 0078 |
+| **P1** | **AJUSTE-MOBILE** | Slim + Bip +1 + popup carga + fila códigos | ✅ **loja v12.88** · migrate 0078 |
 | **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | ✅ **loja v12.12** |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | ✅ **loja v12.12** |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | ✅ **loja v12.12** |

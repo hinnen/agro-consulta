@@ -36,12 +36,14 @@ def dashboard_vendas_serie_meta_merged(
     """
     Série diária merge planilha + PDV: usa o **maior** dos dois no dia (evita venda teste
     PDV apagar histórico da planilha). Jun+ só tem PDV. Usada na meta C e no gráfico.
-    ``deposito=vila``: só PDV Vila (planilha histórica é do Centro).
+    ``deposito=centro|vila``: filtra total/série/qtd dessa loja.
+    ``vendas_por_loja``: sempre comparativo Centro × Vila (sem filtro do aparelho).
     """
     dep_key = "todas"
     if deposito in ("centro", "vila"):
         dep_key = deposito
-    ck = f"dash:mvs:v7:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    # v8: corrige vendas_por_loja (não usar total_filtrado − vila).
+    ck = f"dash:mvs:v8:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -51,6 +53,11 @@ def dashboard_vendas_serie_meta_merged(
     # Vila: planilha é do Centro — não misturar.
     if deposito == "vila":
         out = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito="vila")
+        # Comparativo por unidade sempre sem filtro do aparelho.
+        pdv_all = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=None)
+        vpl = pdv_all.get("vendas_por_loja")
+        if isinstance(vpl, list) and len(vpl) >= 2:
+            out = {**out, "vendas_por_loja": vpl, "filtro_loja": "vila"}
         cache.set(ck, {**out, "_t": "mvs"}, timeout=120)
         return out
 
@@ -61,23 +68,21 @@ def dashboard_vendas_serie_meta_merged(
     for k in set(plan) | set(pdv_por_dia):
         vp = float(plan.get(k) or 0)
         vd = float(pdv_por_dia.get(k) or 0)
-        # Com filtro Centro: planilha entra; com todas também.
-        if deposito == "centro":
-            por_dia[k] = round(max(vp, vd), 2)
-        else:
-            por_dia[k] = round(max(vp, vd), 2)
+        por_dia[k] = round(max(vp, vd), 2)
 
     qtd_por_dia = dict(pdv.get("qtd_por_dia") or {})
     total = round(sum(float(v or 0) for v in por_dia.values()), 2)
 
+    # Comparativo Centro × Vila: totais absolutos (não misturar com total filtrado).
     pdv_all = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=None)
     pdv_lojas = pdv_all.get("vendas_por_loja") or []
-    pdv_vila = 0.0
-    for row in pdv_lojas:
-        if "Vila" in str(row.get("loja") or ""):
-            pdv_vila = round(float(row.get("total") or 0), 2)
-            break
-    centro_total = round(max(total - pdv_vila, 0.0), 2)
+    if isinstance(pdv_lojas, list) and len(pdv_lojas) >= 2:
+        vendas_por_loja = pdv_lojas
+    else:
+        vendas_por_loja = [
+            {"loja": "Centro", "total": total if dep_key != "vila" else 0.0, "color": "#00BFFF"},
+            {"loja": "Vila Elias", "total": 0.0, "color": "#64748b"},
+        ]
 
     out = {
         "ok": True,
@@ -85,10 +90,7 @@ def dashboard_vendas_serie_meta_merged(
         "total": total,
         "por_dia": por_dia,
         "qtd_por_dia": qtd_por_dia,
-        "vendas_por_loja": [
-            {"loja": "Centro", "total": centro_total, "color": "#00BFFF"},
-            {"loja": "Vila Elias", "total": pdv_vila, "color": "#64748b"},
-        ],
+        "vendas_por_loja": vendas_por_loja,
         "fonte": "pdv+planilha",
         "filtro_loja": dep_key,
     }
@@ -99,9 +101,17 @@ def dashboard_vendas_serie_meta_merged(
 def dashboard_invalidar_cache_meta_merged(
     data_ini: date | None = None, data_fim: date | None = None
 ) -> None:
-    """Limpa cache v6 da meta C (intervalo ou últimos ~18 meses civis)."""
+    """Limpa cache meta C (v6 legado + v7/v8 por loja)."""
+    deps = ("todas", "centro", "vila")
     if data_ini and data_fim:
         cache.delete(f"dash:mvs:v6:meta:{data_ini.isoformat()}:{data_fim.isoformat()}")
+        for dep in deps:
+            cache.delete(
+                f"dash:mvs:v7:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+            )
+            cache.delete(
+                f"dash:mvs:v8:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+            )
         return
     hoje = timezone.localdate()
     cur = hoje.replace(day=1)
@@ -109,6 +119,9 @@ def dashboard_invalidar_cache_meta_merged(
         fp = cur
         lp = (cur.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
         cache.delete(f"dash:mvs:v6:meta:{fp.isoformat()}:{lp.isoformat()}")
+        for dep in deps:
+            cache.delete(f"dash:mvs:v7:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
+            cache.delete(f"dash:mvs:v8:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
         cur = fp - timedelta(days=1)
         cur = cur.replace(day=1)
 
