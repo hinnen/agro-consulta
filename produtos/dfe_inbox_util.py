@@ -473,18 +473,35 @@ def dfe_executar_consulta_e_gravar(
     except (TypeError, ValueError):
         c_stat_i = None
     ult_salvo = obter_ult_nsu(None, cnpj)
-    # Só avança cursor em 137/138 — 656 não grava (evita pular fio sem XML).
+    # 137/138: avança com o retorno da SEFAZ.
+    # 656: se a Receita devolver NSU *maior* que o da loja, adota (texto oficial:
+    # «use o ultNSU nas solicitações subsequentes»). Sem isso o cursor fica preso
+    # (ex. 2086) e toda Buscar volta 656. Nunca anda pra trás no 656.
     if res.get("ult_nsu") and c_stat_i in (137, 138):
         gravar_ult_nsu(None, cnpj, str(res["ult_nsu"]))
         ult_salvo = str(res["ult_nsu"]).zfill(15)[:15]
     elif c_stat_i == 656:
+        sefaz_u = re.sub(r"\D", "", str(res.get("ult_nsu") or ""))[:15]
+        try:
+            n_salvo = int(ult_salvo or "0")
+            n_sefaz = int(sefaz_u or "0") if sefaz_u else 0
+        except ValueError:
+            n_salvo, n_sefaz = 0, 0
         out["ult_nsu_sefaz"] = res.get("ult_nsu")
+        if sefaz_u and n_sefaz > n_salvo:
+            gravar_ult_nsu(None, cnpj, sefaz_u)
+            ult_salvo = sefaz_u.zfill(15)[:15]
+            aviso = (out.get("x_motivo") or out.get("erro") or "").strip()
+            out["x_motivo"] = (
+                f"{aviso} Cursor da loja atualizado para {ult_salvo.lstrip('0') or '0'} "
+                "(ordem da Receita no 656). Aguarde 1h e Buscar de novo."
+            ).strip()
+        else:
+            aviso = (out.get("x_motivo") or out.get("erro") or "").strip()
+            out["x_motivo"] = (
+                f"{aviso} Cursor da loja permanece {ult_salvo.lstrip('0') or '0'}."
+            ).strip()
         out["ult_nsu"] = ult_salvo
-        aviso = (out.get("x_motivo") or out.get("erro") or "").strip()
-        out["x_motivo"] = (
-            f"{aviso} Cursor da loja permanece {ult_salvo.lstrip('0') or '0'} "
-            "(não avançamos no 656)."
-        ).strip()
     out["ult_nsu_salvo"] = ult_salvo
     if res.get("ok"):
         inbox = dfe_inbox_upsert_xmls(

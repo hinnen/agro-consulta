@@ -1178,6 +1178,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.00**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · 01/08 · espera frase + senha |
+| **Sintoma** | Loja presa em **2086** · Buscar sempre **656** · «nunca funciona» |
+| **Causa** | Código **não** gravava NSU no 656 · Receita já pedia **2090** |
+| **Fix** | No 656, se SEFAZ devolver NSU **maior**, grava e usa na próxima (nunca anda pra trás) |
+| **Arquivo** | `dfe_inbox_util.py` |
+| **Migrate** | NÃO |
+| **Você** | deploy · 1 Buscar (pode 656) → cursor sobe → espera 1h → Buscar de novo |
+| **Nota** | Chave continua pra nota avulsa · Washington 2175 = Carregar na grade |
+
 ### Contas a pagar — busca fornecedor bugada (01/08)
 
 | Item | Detalhe |
