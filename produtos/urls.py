@@ -197,6 +197,16 @@ urlpatterns = [
     path('produtos/gestao/', views.produtos_gestao_view, name='produtos_gestao'),
     path('produtos/etiquetas/', views.produtos_etiquetas_view, name='produtos_etiquetas'),
     path(
+        'api/produtos/etiquetas/presets/',
+        views.api_etiquetas_presets,
+        name='api_etiquetas_presets',
+    ),
+    path(
+        'api/produtos/etiquetas/presets/<str:client_key>/',
+        views.api_etiquetas_preset_detail,
+        name='api_etiquetas_preset_detail',
+    ),
+    path(
         'api/produtos/etiquetas/historico/',
         views.api_etiquetas_historico_lista,
         name='api_etiquetas_historico_lista',

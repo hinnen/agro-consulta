@@ -1847,6 +1847,34 @@ class EtiquetaImpressaoHistoricoAgro(models.Model):
         return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.total_etiquetas} etq."
 
 
+class EtiquetaPresetAgro(models.Model):
+    """
+    Presets de layout de etiquetas — compartilhados por toda a loja (Postgres / multi-PC).
+    ``client_key`` = id estável no front (ex. preset-xxx); payload = JSON completo do preset.
+    """
+
+    client_key = models.CharField(max_length=64, unique=True, db_index=True)
+    nome = models.CharField(max_length=120)
+    payload = models.JSONField(default=dict, blank=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="etiqueta_presets",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Preset etiqueta"
+        verbose_name_plural = "Presets etiquetas"
+        ordering = ["nome", "pk"]
+
+    def __str__(self):
+        return self.nome[:60]
+
+
 class CadastroPlanilhaImportHistoricoAgro(models.Model):
     """Backup e histórico de importações Excel do cadastro (permite desfazer)."""
 

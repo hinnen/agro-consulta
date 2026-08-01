@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -519,6 +519,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 
 ### 4.6 Cadastro / gestÃ£o de produtos
+
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1177,6 +1179,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🔧 Etiquetas — presets no Postgres multi-PC (`ETQ-PRESET-PG` · 01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Preset «box ração» (e qualquer novo) ficava **só no PC** (`localStorage`) — viola roteiro §0.1 |
+| **Fix** | Tabela `EtiquetaPresetAgro` · API `/api/produtos/etiquetas/presets/` · JS grava/lê PG · migrate **1×** o que já estava no browser |
+| **Migrate** | **SIM** `0079_etiqueta_preset_agro` |
+| **Arquivos** | `models` · `0079` · `views`/`urls` · `produtos_etiquetas*.js` · template · `banana-roteiro` §0.1 |
+| **Você** | No PC que tem «box ração»: login · abrir `/produtos/etiquetas/` · Ctrl+F5 · deve subir sozinho · outros PCs passam a ver |
+| **Loja** | **ainda não** — só `teste` até frase+senha (migrate no Render) |
 
 ### 🔧 DF-e — faixa verde Cursor desatualizada após Buscar (01/08)
 

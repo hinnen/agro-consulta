@@ -10,10 +10,11 @@
 
 ### 0.1 Dados no Postgres (multi-PC)
 
-- Loja = **vários PCs**. Nada operacional pode viver **só** num PC, no browser ou só no Mongo.
-- **Postgres = fonte da verdade** (vínculo NF, rascunho, preço/overlay, estoque Agro, financeiro quando já migrado). PC local = prova rápida; Mongo = espelho legado — **não** é seguro para vínculo NF.
-- Assistente: gravar no **PG**, commit das correções importantes; **nunca** deixar vínculo / nota / preço / estoque / financeiro só no PC, localStorage ou Mongo.
-- Exemplo: `EntradaNfeVinculoAgro` (cProd tipo R0151 → produto SisVale) — multi-PC.
+- Loja = **vários PCs** (duas lojas). Nada operacional pode viver **só** num PC, no browser (`localStorage`) ou só no Mongo.
+- **Postgres = fonte da verdade** (vínculo NF, rascunho, preço/overlay, estoque Agro, **presets de etiquetas**, filtros Folha saldo, financeiro quando já migrado). PC local = prova rápida; Mongo = espelho legado — **não** é seguro para vínculo NF.
+- Assistente: gravar no **PG**, commit das correções importantes; **nunca** deixar vínculo / nota / preço / estoque / financeiro / **preset / filtro salvo da loja** só no PC, localStorage ou Mongo.
+- Exemplos: `EntradaNfeVinculoAgro` · `EtiquetaPresetAgro` · `ComprasFolhaSaldoFiltroPreset`.
+- **Erro já cometido:** presets de etiquetas em `localStorage` → sumiam nos outros PCs. **Corrigido** → Postgres (`ETQ-PRESET-PG`).
 
 ### 0.2 Git — push `teste` ao fechar entrega · produção só com senha (30/07/2026)
 

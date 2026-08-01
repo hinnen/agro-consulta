@@ -2,6 +2,8 @@
   'use strict';
 
   var LS_KEY = 'agro_etiquetas_presets_v1';
+  var LS_MIGRATE_FLAG = 'agro_etiquetas_presets_pg_v1';
+  var BUILTIN_IDS = { 'padrao-4x4': 1, gondola: 1 };
 
   var DEFAULT_PRESET = {
     id: 'padrao-4x4',
@@ -280,6 +282,194 @@
     return out;
   }
 
+  function csrfToken() {
+    var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function presetsApiUrl() {
+    var cfg = global.AGRO_ETQ_CFG || {};
+    return cfg.etqPresetsUrl || '/api/produtos/etiquetas/presets/';
+  }
+
+  function presetDetailUrl(clientKey) {
+    var base = presetsApiUrl().replace(/\/?$/, '/');
+    return base + encodeURIComponent(String(clientKey || '')) + '/';
+  }
+
+  function loadPrefs() {
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (!raw) {
+        return {
+          preset_ativo: DEFAULT_PRESET.id,
+          texto_rodape_global: DEFAULT_PRESET.texto_rodape,
+        };
+      }
+      var data = JSON.parse(raw);
+      return {
+        preset_ativo: data.preset_ativo || DEFAULT_PRESET.id,
+        texto_rodape_global: data.texto_rodape_global || DEFAULT_PRESET.texto_rodape || '',
+      };
+    } catch (e) {
+      return {
+        preset_ativo: DEFAULT_PRESET.id,
+        texto_rodape_global: DEFAULT_PRESET.texto_rodape,
+      };
+    }
+  }
+
+  function savePrefs(data) {
+    var prev = {};
+    try {
+      prev = JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {};
+    } catch (e) {
+      prev = {};
+    }
+    localStorage.setItem(
+      LS_KEY,
+      JSON.stringify({
+        /* presets só como cache; fonte da verdade = Postgres */
+        presets: Array.isArray(data.presets) ? data.presets : prev.presets || [],
+        preset_ativo: data.preset_ativo || prev.preset_ativo || DEFAULT_PRESET.id,
+        texto_rodape_global: data.texto_rodape_global != null ? data.texto_rodape_global : prev.texto_rodape_global || '',
+      })
+    );
+  }
+
+  function loadStorage() {
+    var prefs = loadPrefs();
+    var cached = [];
+    try {
+      var raw = localStorage.getItem(LS_KEY);
+      if (raw) {
+        var data = JSON.parse(raw);
+        cached = Array.isArray(data.presets) ? data.presets : [];
+      }
+    } catch (e) {
+      cached = [];
+    }
+    return {
+      presets: ensureSeedPresets(cached),
+      preset_ativo: prefs.preset_ativo,
+      texto_rodape_global: prefs.texto_rodape_global,
+    };
+  }
+
+  function saveStorage(data) {
+    savePrefs(data || {});
+  }
+
+  function mergeServerPresets(localList, serverList) {
+    var byId = {};
+    ensureSeedPresets(localList || []).forEach(function (p) {
+      byId[p.id] = normalizarPreset(p);
+    });
+    (serverList || []).forEach(function (p) {
+      if (!p || !p.id) return;
+      byId[p.id] = normalizarPreset(p);
+    });
+    var out = Object.keys(byId).map(function (k) {
+      return byId[k];
+    });
+    return ensureSeedPresets(out);
+  }
+
+  function fetchPresetsFromServer() {
+    return fetch(presetsApiUrl(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    })
+      .then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          var err = new Error('login');
+          err.code = 'auth';
+          throw err;
+        }
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha ao listar presets');
+        return (j.presets || []).map(normalizarPreset);
+      });
+  }
+
+  function upsertPresetToServer(preset) {
+    var p = normalizarPreset(preset);
+    if (!p.id) return Promise.reject(new Error('preset sem id'));
+    return fetch(presetsApiUrl(), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken(),
+      },
+      body: JSON.stringify({ client_key: p.id, nome: p.nome, payload: p }),
+    }).then(function (r) {
+      if (r.status === 401 || r.status === 403) {
+        var err = new Error('Faça login para gravar preset na loja.');
+        err.code = 'auth';
+        throw err;
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function deletePresetFromServer(clientKey) {
+    return fetch(presetDetailUrl(clientKey), {
+      method: 'DELETE',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json', 'X-CSRFToken': csrfToken() },
+    }).then(function (r) {
+      if (r.status === 404) return { ok: true };
+      if (r.status === 401 || r.status === 403) {
+        var err = new Error('Faça login para excluir preset na loja.');
+        err.code = 'auth';
+        throw err;
+      }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function migrateLocalPresetsToServerOnce(presets) {
+    if (typeof localStorage === 'undefined') return Promise.resolve({ migrated: 0, skipped: true });
+    if (localStorage.getItem(LS_MIGRATE_FLAG) === '1') {
+      return Promise.resolve({ migrated: 0, skipped: true });
+    }
+    var list = (presets || []).filter(function (p) {
+      return p && p.id;
+    });
+    if (!list.length) {
+      localStorage.setItem(LS_MIGRATE_FLAG, '1');
+      return Promise.resolve({ migrated: 0 });
+    }
+    var i = 0;
+    var ok = 0;
+    var fail = 0;
+    function next() {
+      if (i >= list.length) {
+        /* Só marca migrado se tudo subiu — senão tenta de novo no próximo login/PC. */
+        if (fail === 0) localStorage.setItem(LS_MIGRATE_FLAG, '1');
+        return Promise.resolve({ migrated: ok, failed: fail });
+      }
+      var p = list[i++];
+      return upsertPresetToServer(p)
+        .then(function () {
+          ok += 1;
+        })
+        .catch(function () {
+          fail += 1;
+        })
+        .then(next);
+    }
+    return next();
+  }
+
   function ensureSeedPresets(presets) {
     var list = Array.isArray(presets) ? presets.map(normalizarPreset) : [];
     if (!list.length) list = [clonePreset(DEFAULT_PRESET)];
@@ -287,45 +477,14 @@
       return p.id === 'gondola' || ehGondola(p);
     });
     if (!hasGondola) list.push(clonePreset(DEFAULT_GONDOLA_PRESET));
+    var hasPadrao = list.some(function (p) {
+      return p.id === 'padrao-4x4';
+    });
+    if (!hasPadrao) list.unshift(clonePreset(DEFAULT_PRESET));
     return list;
   }
 
-  function loadStorage() {
-    try {
-      var raw = localStorage.getItem(LS_KEY);
-      if (!raw) {
-        return {
-          presets: [clonePreset(DEFAULT_PRESET), clonePreset(DEFAULT_GONDOLA_PRESET)],
-          preset_ativo: DEFAULT_PRESET.id,
-          texto_rodape_global: DEFAULT_PRESET.texto_rodape,
-        };
-      }
-      var data = JSON.parse(raw);
-      var presets = ensureSeedPresets(data.presets);
-      return {
-        presets: presets,
-        preset_ativo: data.preset_ativo || presets[0].id,
-        texto_rodape_global: data.texto_rodape_global || presets[0].texto_rodape || '',
-      };
-    } catch (e) {
-      return {
-        presets: [clonePreset(DEFAULT_PRESET), clonePreset(DEFAULT_GONDOLA_PRESET)],
-        preset_ativo: DEFAULT_PRESET.id,
-        texto_rodape_global: DEFAULT_PRESET.texto_rodape,
-      };
-    }
-  }
-
-  function saveStorage(data) {
-    localStorage.setItem(
-      LS_KEY,
-      JSON.stringify({
-        presets: data.presets,
-        preset_ativo: data.preset_ativo,
-        texto_rodape_global: data.texto_rodape_global || '',
-      })
-    );
-  }
+  /* loadStorage/saveStorage definidos acima (prefs + cache) — stubs antigos removidos */
 
   function getPresetById(presets, id) {
     return presets.find(function (x) {
@@ -950,6 +1109,11 @@
     ehGondola: ehGondola,
     loadStorage: loadStorage,
     saveStorage: saveStorage,
+    fetchPresetsFromServer: fetchPresetsFromServer,
+    upsertPresetToServer: upsertPresetToServer,
+    deletePresetFromServer: deletePresetFromServer,
+    migrateLocalPresetsToServerOnce: migrateLocalPresetsToServerOnce,
+    mergeServerPresets: mergeServerPresets,
     getPresetAtivo: getPresetAtivo,
     getPresetById: getPresetById,
     produtoParaItem: produtoParaItem,
