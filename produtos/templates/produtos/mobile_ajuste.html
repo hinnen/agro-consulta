@@ -1055,8 +1055,20 @@ function maBip1Toggle() {
   maBip1On = !maBip1On;
   try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
   maBip1SyncBtn();
-  if (maBip1On && !scanningActive) {
-    startScan();
+  if (maBip1On) {
+    /* Só liga o modo — não abre câmera sozinha (PC fica tela preta).
+       Câmera = botão Scan · leitor USB = digita no campo + Enter. */
+    if (scanningActive) stopScan();
+    const busca = document.getElementById('busca');
+    if (busca) {
+      busca.focus({ preventScroll: true });
+      try { busca.select(); } catch (_) {}
+    }
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Bip +1 ligado · Scan ou bipador no campo', true);
+    }
+  } else if (scanningActive) {
+    stopScan();
   }
 }
 
