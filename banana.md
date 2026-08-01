@@ -3786,6 +3786,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.51** lote marca+uso+bugs+DF-e · ver CHECKLIST ÚNICO |
 | **✅ Loja** | **v12.12** lote 12.08–12.12 · **v12.07** PDV-LAPIS · **v12.06** AJUSTE-MOBILE · **v12.05** ETQ |
+| **📦 Fila** | **AJUSTE-MOBILE-SLIM** v12.61 · BUG-FAB-BARRA · PDV-USO-LOJA-UX · PDV-USO-LOJA-BRINDE |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | FL-057 PgBouncer loja (painel Render) |
 
