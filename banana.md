@@ -1178,6 +1178,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ⏭ PRÓXIMO CHAT — deploy loja **BI-KPI-LOJA v12.95** (preparado 01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Só BI home: loja nos KPIs · % vs mesmo dia da semana · Validade alinhada |
+| **Branch** | `deploy/bi-kpi-loja-v12.95` @ **`87aa52b`** → `producao` |
+| **Rollback** | `git push origin rollback/pre-bi-kpi-loja-v12.95:producao` |
+| **Migrate** | NÃO |
+| **Risco PDV/caixa** | **Não piora** — pacote **não** toca venda/caixa/NF/estoque |
+| **Provas** | Validade **15/15 VERIFY_OK** · cherry só BI · compile OK |
+| **Você autoriza** | Lojas pausam · *pode subir BI-KPI-LOJA / produção* + **99738595** |
+| **Depois** | Ctrl+F5 · badge **12.95** · home Centro/Vila · Validade |
+
 ### 🔧 BI — card Validade 0/0 com lotes no relatório (01/08 · **teste v12.93** · VERIFY_OK)
 
 | Item | Detalhe |
@@ -1192,14 +1205,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
-| **VERSION** | **12.95** (loja **12.88**) |
+| **Status** | 📦 **PRONTO PARA ENVIO** · review+cherry OK · **aguarda pausa vendas + frase + senha** |
+| **VERSION** | **12.95** (loja hoje **12.88**) |
+| **Branch deploy** | `deploy/bi-kpi-loja-v12.95` @ **`87aa52b`** |
+| **Rollback** | `rollback/pre-bi-kpi-loja-v12.95` @ **`941446d`** (v12.88) |
 | **Inclui** | Filtro Centro/Vila em Vendas/Performance · % Vendas/Ticket/Novos vs **mesmo dia da semana do mês ant.** · Novos = **hoje** · card Validade por loja alinhado ao relatório (lote qtd + todas as datas) · «por unidade» compara as duas |
-| **Migrate** | NÃO |
-| **Commits** | `07cd457` · `e0f99da` · `dd505c5` · `fea48c9` (+ docs/prova) |
-| **Prova** | `scripts/verify_validade_bi.py` → **VERIFY_OK** 15/15 · script KPI loja/% dia semana |
-| **Você** | Ctrl+F5 · Centro → Vendas≈barra · selos «vs 1º sáb.» · Validade ≠ 0 se relatório tem · frase+senha |
-| **NÃO** | merge inteiro `teste` |
+| **Arquivos** | `views.py` (só dashboard) · `dashboard_vendas_historico_util.py` · `dashboard_gerencial_body.html` · `tests_validade_dashboard.py` · `scripts/verify_validade_bi.py` · VERSION |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo** — **só BI `/`** · **não** mexe PDV · caixa · Entrada NF · estoque · venda · finalize |
+| **Prova 01/08** | `scripts/verify_validade_bi.py` → **15/15 VERIFY_OK** · compile views OK · cherry limpo (só conflito banana/VERSION resolvido) |
+| **NÃO** | merge inteiro `teste` · FL-058 (ainda não feito) · ENTRADA-NF-CUSTO |
+| **Próximo chat** | 1) lojas **pausam vendas** 2) *pode subir BI-KPI-LOJA / produção* + **99738595** 3) FF `deploy/bi-kpi-loja-v12.95` → `producao` · Ctrl+F5 home · badge **12.95** · Validade ≠ 0 se relatório tem · selos «vs 1º …» |
+| **Zap loja** | *Atualização ~2 min — não finalize venda agora* |
 
 ### 🔧 BI — Ticket + Novos Clientes vs mesmo dia semana (01/08 · **teste v12.92**)
 
@@ -1241,8 +1258,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
-**Teste hoje:** branch `teste` · badge **v12.95** · **BI-KPI-LOJA** pronto envio  
-**Rollback:** `rollback/pre-lote-checklist`  
+**Teste hoje:** branch `teste` · badge **v12.95** · **BI-KPI-LOJA** pronto envio (`deploy/bi-kpi-loja-v12.95` @ `87aa52b`)  
+**Rollback:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
 | Ordem | Pacote | Status |
@@ -1254,7 +1271,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
-| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.95** · Validade VERIFY_OK |
+| 7 | **BI-KPI-LOJA** | 📦 **pronto** · `deploy/bi-kpi-loja-v12.95` @ `87aa52b` · Validade VERIFY_OK · **aguarda pausa + senha** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3850,7 +3867,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.94 pronto envio |
+| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.95 · `deploy/bi-kpi-loja-v12.95` @ `87aa52b` · **aguarda pausa + senha** |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | **FL-057** PgBouncer (painel Render) |
 | **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
