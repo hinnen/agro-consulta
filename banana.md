@@ -1638,6 +1638,15 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
 
+### WIP — Etiquetas GM curto + toggles campos (01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | no 	este · Ctrl+F5 |
+| **O quê** | Campo **GM curto** (GM0050-1→GM50) · checkboxes liga/desliga Nome/R$/Preço/Peso/Logo/GM · preset antigo **inalterado** (GM off) |
+| **Arquivos** | produtos_etiquetas_core.js · produtos_etiquetas.js · produtos_etiquetas.html |
+| **Como usar** | Presets → Novo → marcar **GM curto** · arrastar caixa GM · Salvar |
+
 ### ✅ Deploy loja **v12.05** — ETQ-BUSCA-FILTROS (29/07 · frase+senha)
 
 | Item | Detalhe |
