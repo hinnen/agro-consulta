@@ -1182,10 +1182,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 |
 | **O quê** | Modo Bip +1 · sons · flash/Ajustar · multi-match → Somar/Trocar · fila PG códigos órfãos |
 | **Migrate** | SIM — `produtos.0078` |
-| **Arquivos** | `mobile_ajuste.html` · model/API/lista códigos · migration |
+| **Commits** | `66465a5` (+ docs `cf193ac`) |
+| **Arquivos** | `mobile_ajuste.html` · model/API/lista · migration `0078` |
+| **Prova** | check 0 · URLs · API cria c/ sessão (403 sem) · match 1/0/N · template BIP1+slim+SESSAO |
 | **Depende** | **AJUSTE-MOBILE-SLIM** na loja (lista no celular) |
 | **Risco** | Baixo — só Ajuste Mobile + fila gestão; não mexe PDV/caixa |
 
