@@ -1369,7 +1369,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.69** · `teste` @ `2960e9c`  
+**Teste hoje:** badge **v12.73** · branch `teste`  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
@@ -1380,7 +1380,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
 | 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
 | 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
-| 6 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · sem migrate · base DFE-INBOX loja |
+| 6 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · VERIFY_OK · `1cf3a2b` · sem migrate |
 
 ### 📦 PACOTE PRONTO — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
 
