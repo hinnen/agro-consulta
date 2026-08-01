@@ -1178,6 +1178,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 BI — card Validade 0/0 com lotes no relatório (01/08 · **teste v12.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Relatório validade mostra vencidos / no mês; card BI Centro **e** Vila ficavam **0 / 0** |
+| **Causa** | Contagem por loja exigia só saldo operacional e pegava **1 data** por produto; ignorava lote com qtd (relatório usa o lote quando C+V operacional = 0) |
+| **Fix** | `_contagem_validade_dashboard_por_loja` · cache `validade_dashboard_lotes_v4` · conta lote qtd>0 + todas as datas |
+| **Você** | Local Ctrl+F5 · badge **12.93** · BI Centro e Vila → card Validade deve espelhar o relatório |
+
 ### 🔧 BI — Ticket + Novos Clientes vs mesmo dia semana (01/08 · **teste v12.92**)
 
 | Item | Detalhe |
@@ -3717,7 +3726,7 @@ iews.py (compras enrich) |
 | Merge inteiro `teste`â†’`producao` | Outras coisas do teste fora do pacote |
 | **#7** notebook impressÃ£o | Ainda ðŸ”´ aberto |
 | FL-008 / 016 / 024 / 049 / Aba 9 | ✅ já na loja (pente fino 01/08) — não listar como pendente |
-| FL-029 crédito · 052 · 030 · 019 · 054 · 031 · 034? · 053 · 033 · Zap #7 | Ainda aberto / confirmar |
+| FL-029 crédito · **FL-058** vale crédito PDV · 052 · 030 · 019 · 054 · 031 · 034? · 053 · 033 · Zap #7 | Ainda aberto / confirmar |
 
 #### Checklist validar depois do deploy (Ctrl+F5 Â· badge **v9.16**)
 
@@ -3828,6 +3837,8 @@ iews.py (compras enrich) |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
 | **📦 Fila pacotes** | *(vazia — lote v12.88 enviado)* |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
+| **P0,1** | **FL-057** PgBouncer (painel Render) |
+| **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
 | **Pente fino 01/08** | Checklist mentia: FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver abaixo) |
 
 
@@ -3855,6 +3866,7 @@ iews.py (compras enrich) |
 | **P1** | **PDV-ESTOQUE-VILA** | Atalho PDV Estoque Vila + Folha saldo UX | ✅ **loja v11.98** (lote) |
 | **P0** | Entrada NF · custo | Pós-deploy **v11.54+**: `reaplicar_custos_entrada_nf --nf=77846 --aplicar` | 📋 **ops** · GM0025 |
 | **P0,1** | **FL-057** | Render loja: **PgBouncer** `agro-db` + `DATABASE_URL` **6432** + restart web | 📋 **você no painel** |
+| **P0,2** | **FL-058** | **Vale crédito** — adicionar crédito ao cliente **pelo PDV** | 📋 **novo 01/08** · ligado a FL-029 crédito |
 | **P1** | Kardex | E-mail no Quem + Entrada NF Δcamada | ✅ **já loja v10.63** |
 | **P1** | Aba 9 | Histórico lápis PDV DE=— | ✅ **loja v10.61** (`e38df10`) — checklist mentia «pronto envio» |
 | **P2** | Cadastro modal | Modal editar: UX · kardex · aba Alterações · origem PDV | ✅ **loja v9.90** |
@@ -3866,7 +3878,7 @@ iews.py (compras enrich) |
 | **P1** | **Zap #7** | Notebook demora impressão | 🔴 **ainda aberto** |
 | **P1** | **FL-008** | Carrinho trava (qtd/preço/remover) | ✅ **loja v11.99** (`8f7610d`) — checklist mentia |
 | **P1** | **FL-016** | Reset contagem caixa (dia anterior) | ✅ **loja v6.75** — checklist mentia |
-| **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · **falta** opção crédito |
+| **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · crédito → ver **FL-058 P0,2** |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
 | **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 **ainda aberto** |
@@ -6368,7 +6380,8 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-054** | **P1,5** | Entregas / impressÃ£o | **Zap #20:** reimprimir papÃ©is (separaÃ§Ã£o Â· entregador Â· cliente) | ðŸ“‹ Pendente Â· foto Word | 16/07 |
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeiÃ§Ã£o **535** â€” frete no total sem `vFrete` nos itens | âœ… **loja v9.16** | 16/07 |
 | **FL-056** | **P0** | NFC-e / SEFAZ | RejeiÃ§Ãµes **963** (fiado+card) + **225** (CFOP/CEST pontuaÃ§Ã£o) â€” vendas #2812/#3347 | ðŸ“¦ **pronto pra envio** Â· teste **v9.21** | 17/07 |
-| **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja â€” `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web (reforÃ§o slots; cÃ³digo v10.88 jÃ¡ fecha leak) | ðŸ“‹ Pendente Â· Renan no painel | 21/07 |
+| **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web | 📋 Pendente · Renan no painel | 21/07 |
+| **FL-058** | **P0,2** | PDV / Clientes / crédito | **Adicionar vale crédito** ao cliente **pelo PDV** (lançar crédito na conta do cliente na loja) · liga FL-029 crédito | 📋 Novo | 01/08 |
 | **FL-034** | **P1,9** | PDV / Clientes | BotÃ£o **HistÃ³rico** nÃ£o filtra vendas do **cliente selecionado** â€” deve filtrar (relacionamento / devoluÃ§Ã£o) | ðŸ”„ **F8 modal rascunho** teste Â· fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | DevoluÃ§Ã£o | **DevoluÃ§Ã£o parcial** da venda â€” ou **itens especÃ­ficos** | ðŸ“¦ **#12** pronto loja (fecha) Â· âœ… teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opÃ§Ã£o visual 2) | ðŸ“‹ Pendente | 29/06 |
@@ -6427,7 +6440,8 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | FL-054 | `entregas-reimprimir-papeis` | **#20:** reimpressÃ£o separaÃ§Ã£o / entregador / cliente no painel entregas |
 | FL-055 | `nfce-frete-vfrete-itens-535` | **#23:** `det/prod/vFrete` = `ICMSTot/vFrete` (535) |
 | FL-056 | `nfce-963-card-fiado-225-fiscal-digitos` | **963:** sem `card` em tPag 05 Â· **225:** NCM/CFOP/CEST sÃ³ dÃ­gitos |
-| FL-057 | `render-pgbouncer-agro-db-6432` | Render: Info do Postgres â†’ Connection pooling Â· web loja `DATABASE_URL` pooled **:6432** Â· redeploy Â· conferir healthz |
+| FL-057 | `render-pgbouncer-agro-db-6432` | Render: Info do Postgres → Connection pooling · web loja `DATABASE_URL` pooled **:6432** · redeploy · conferir healthz |
+| FL-058 | `pdv-vale-credito-cliente` | PDV: lançar / adicionar **vale crédito** ao cliente selecionado (Postgres) · uso depois na venda · overlap FL-029 crédito |
 | FL-034 | `pdv-historico-cliente-filtro` | HistÃ³rico vendas deve respeitar **cliente selecionado** no PDV |
 | FL-035 | `devolucao-parcial-itens` | DevoluÃ§Ã£o por itens / parcial â€” hoje provavelmente venda inteira |
 | FL-036 | `pdv-mix-selo-faixa-vertical` | Faixa/chaves CSS ligando coluna promo entre linhas do mesmo mix (opÃ§Ã£o 2) |

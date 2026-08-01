@@ -29116,7 +29116,7 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     return a, b
 
 
-VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v3"
+VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v4"
 VALIDADE_DASHBOARD_CACHE_TTL = 180
 
 
@@ -29128,7 +29128,8 @@ def _contagem_validade_dashboard_lotes_agro(
     - com saldo (lote qtd>0 ou centro+vila>0): vencidos / vencendo_mes
     - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
 
-    Com filtro de loja: só conta produto com saldo naquela loja (saldo_centro / saldo_vila).
+    Com filtro de loja: saldo da loja **ou** lote com qtd>0 quando o C+V operacional
+    está zerado / mapa falhou (mesmo critério do relatório de validade).
 
     Cache curto (3 min) + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
     """
@@ -29234,22 +29235,46 @@ def _contagem_validade_dashboard_empresa(hoje: date) -> dict[str, int]:
 
 
 def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str, int]:
-    """Validade só com saldo operacional da loja filtrada (Centro ou Vila)."""
+    """
+    Validade por loja (Centro/Vila), alinhada ao relatório:
+    - lote com qtd>0 conta se há saldo nesta loja;
+    - se o estoque operacional C+V está zerado (ou o mapa falhou), o lote com qtd
+      ainda entra no card — o relatório mostra esse C+V via quantidade do lote;
+    - «Conferir» (estoque furado) fica só na visão empresa.
+    """
     _, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
 
-    candidatos: list[tuple[int, str, date]] = []
-    for el in EstoqueLote.objects.all().values(
+    # (overlay_id, produto_id, data_validade, tem_lote_com_qtd)
+    candidatos: list[tuple[int, str, date, bool]] = []
+
+    base_qtd = EstoqueLote.objects.filter(quantidade_atual__gt=0)
+    for el in base_qtd.values(
         "overlay_id", "data_validade", "overlay__produto_externo_id"
     ):
         oid = int(el["overlay_id"])
         pid = str(el["overlay__produto_externo_id"] or "").strip()
         dv = el["data_validade"]
         if pid and dv is not None:
-            candidatos.append((oid, pid, dv))
+            candidatos.append((oid, pid, dv, True))
 
-    overlays_com_lote = {c[0] for c in candidatos}
+    overlays_com_lote_qty = {c[0] for c in candidatos}
+
+    for el in EstoqueLote.objects.filter(quantidade_atual__lte=0).values(
+        "overlay_id", "data_validade", "overlay__produto_externo_id"
+    ):
+        oid = int(el["overlay_id"])
+        if oid in overlays_com_lote_qty:
+            continue
+        pid = str(el["overlay__produto_externo_id"] or "").strip()
+        dv = el["data_validade"]
+        if pid and dv is not None:
+            candidatos.append((oid, pid, dv, False))
+
+    overlays_com_lote = set(
+        EstoqueLote.objects.values_list("overlay_id", flat=True).distinct()
+    )
     for ov in ProdutoGestaoOverlayAgro.objects.filter(
         cadastro_extras__has_key="validade"
     ).only("pk", "produto_externo_id", "cadastro_extras"):
@@ -29265,7 +29290,7 @@ def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str
             continue
         pid = str(ov.produto_externo_id or "").strip()
         if pid:
-            candidatos.append((ov.pk, pid, dv))
+            candidatos.append((ov.pk, pid, dv, False))
 
     if not candidatos:
         return {
@@ -29279,22 +29304,40 @@ def _contagem_validade_dashboard_por_loja(hoje: date, deposito: str) -> dict[str
     from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
 
     client, db = obter_conexao_mongo()
-    saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client)
+    try:
+        saldos = mapa_saldos_operacionais_agro(pids, db=db, client=client) or {}
+    except Exception:
+        saldos = {}
+    saldos_ok = bool(saldos)
     chave = "saldo_vila" if deposito == "vila" else "saldo_centro"
 
-    vistos: set[int] = set()
-    for oid, pid, dv in candidatos:
-        if oid in vistos or dv is None:
+    for oid, pid, dv, tem_lote_qtd in candidatos:
+        if dv is None:
             continue
-        vistos.add(oid)
         s = saldos.get(pid) or {}
-        saldo_loja = float(s.get(chave) or 0)
-        # Só o que tem saldo nesta loja. «Conferir» (estoque furado) fica na visão empresa.
+        try:
+            saldo_loja = float(s.get(chave) or 0)
+            saldo_c = float(s.get("saldo_centro") or 0)
+            saldo_v = float(s.get("saldo_vila") or 0)
+        except (TypeError, ValueError):
+            saldo_loja = 0.0
+            saldo_c = 0.0
+            saldo_v = 0.0
+        total_op = saldo_c + saldo_v
+        # Saldo nesta loja; ou lote com qtd quando C+V operacional sumiu / mapa falhou
+        # (mesmo fallback do relatório de validade).
         if saldo_loja > 0:
-            if dv < hoje:
-                overlay_vencidos.add(oid)
-            elif hoje <= dv <= fim_mes:
-                overlay_mes.add(oid)
+            passa = True
+        elif tem_lote_qtd and (not saldos_ok or total_op <= 0):
+            passa = True
+        else:
+            passa = False
+        if not passa:
+            continue
+        if dv < hoje:
+            overlay_vencidos.add(oid)
+        elif hoje <= dv <= fim_mes:
+            overlay_mes.add(oid)
 
     return {
         "vencidos": len(overlay_vencidos),
