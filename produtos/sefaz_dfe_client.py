@@ -321,7 +321,12 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
 
     bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
     if bloqueio:
+        # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
+        # (senão o Buscar no Aguarde podia gravar NSU digitado à toa).
         out.update(bloqueio)
+        out["bloqueio_local"] = True
+        out["ult_nsu"] = None
+        out["max_nsu"] = None
         return out
 
     c_uf = UF_PARA_COD.get(cfg["uf"])
@@ -514,6 +519,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
     bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
     if bloqueio:
         out.update(bloqueio)
+        out["bloqueio_local"] = True
         return out
 
     ch = re.sub(r"\D", "", str(chave or ""))[:44]
