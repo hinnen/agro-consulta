@@ -1191,7 +1191,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | deploy · 1 Buscar (pode 656) → cursor sobe → espera 1h → Buscar de novo |
 | **Nota** | Chave continua pra nota avulsa · Washington 2175 = Carregar na grade |
 
-### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.00**)
+### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
