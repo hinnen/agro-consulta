@@ -1481,22 +1481,6 @@ function maProcessarCodigoBipado(codigo) {
   maAbrirPick(hits.slice(0, 40));
 }
 
-window.addEventListener('load', () => {
-  maResetLoading();
-  try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
-  maBip1SyncBtn();
-  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
-    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
-  }
-
-  /* Cache local só pra aparecer algo na hora; em seguida sempre baixa de novo. */
-  const fromLs = mobileLerProdutosDoCacheUnificado();
-  if (fromLs && fromLs.length >= 50) {
-    mobileAjusteAplicarProdutosDaLista(fromLs);
-  }
-  mobileAjusteAtualizarSaldosVisiveis();
-});
-
 function startScan() {
   if (scanningActive) return;
   const reader = document.getElementById('reader');
