@@ -1182,12 +1182,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · 01/08 · espera frase + senha |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK 01/08 · `1cf3a2b` · espera frase + senha |
 | **O quê** | Aba SEFAZ: campo chave 44 + **Baixar pela chave** · grava Pendentes · **não** mexe no ultNSU |
 | **API** | `POST /api/entrada-nota/dfe-por-chave/` |
 | **Migrate** | NÃO (usa tabelas `0071`/`0072` já na loja) |
 | **Base loja** | v12.51+ (DFE-INBOX) |
-| **Você** | Depois do deploy: esperar fim do Aguarde 1h · colar chave Saframil/Astúrias · Baixar · Carregar na grade |
+| **Prova** | rota · consChNFe · upsert sem gravar NSU · POST 400 chave curta · detalhe inbox · cursor estável |
+| **Arquivos** | `views.py` · `urls.py` · `entrada_nota.html` · `sefaz_dfe_client.py` · `dfe_inbox_util.py` |
+| **Você** | deploy · fim do Aguarde 1h · colar chave · Baixar · Carregar na grade |
 | **NÃO** | Usar no meio do timer 656 |
 
 ### 📦 PACOTE PRONTO LOJA — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
