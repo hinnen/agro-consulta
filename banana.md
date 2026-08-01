@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1178,11 +1178,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ⏭ PRÓXIMO CHAT — deploy loja **CP + DFE lote v13.04** (preparado 01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | **CP-BUSCA-FORN** + **DFE-NSU-656** (um restart) |
+| **Branch** | `deploy/cp-dfe-lote-v13.04` @ **`72c6b6c`** → `producao` |
+| **Rollback** | `git push origin rollback/pre-cp-dfe-lote-v13.04:producao` (@ **`87aa52b`** / v12.95) |
+| **Migrate** | **NÃO** |
+| **Risco PDV/caixa** | **Baixo** — CP só busca lista · DFE só cursor NSU no 656 · **não** mexe venda/caixa/finalize |
+| **Provas** | DFE `verify_dfe_nsu_656.py` **12/12 VERIFY_OK** · CP smoke Q `1403`+e-mail · compile OK · cherry só 8 arquivos |
+| **Você autoriza** | Lojas pausam · *pode subir CP+DFE lote / produção* + **99738595** |
+| **Depois** | Ctrl+F5 · badge **13.04** · CP `Renan Hinnen 1403` · Entrada NF SEFAZ 1 Buscar |
+
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · 01/08 · frase + senha |
+| **Status** | 📦 **PRONTO PARA ENVIO** · no lote `deploy/cp-dfe-lote-v13.04` · **aguarda pausa + senha** |
 | **Sintoma** | Loja presa em **2086** · Buscar sempre **656** |
 | **Fix** | No 656 **da SEFAZ**, se ultNSU **maior** → grava · **nunca** maxNSU · **nunca** pra trás · Aguarde local **não** grava NSU |
 | **Arquivos** | `dfe_inbox_util.py` · `sefaz_dfe_client.py` · `scripts/verify_dfe_nsu_656.py` |
@@ -1195,15 +1208,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
-| **VERSION** | **13.03** (loja hoje **12.95**) · commit fix `006f871` |
+| **Status** | 📦 **PRONTO PARA ENVIO** · no lote `deploy/cp-dfe-lote-v13.04` · **aguarda pausa + senha** |
+| **VERSION** | **13.03** (no lote sobe como **13.04** com DFE) · commit origem `006f871` |
 | **Inclui** | Número no nome (`Renan Hinnen 1403`) · quem lançou só com `@` · ajuda `?` |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · `lancamentos_help_agents.html` · AGENTS §10 |
 | **Migrate** | **NÃO** |
 | **Risco** | **Baixo** — só busca lista CP · não mexe pagar/PDV/caixa |
-| **Prova 01/08** | unit+DB ALL PASS · API `q=Renan Hinnen 1403` só esse fornecedor · 0 Detran |
-| **NÃO** | merge inteiro `teste` sem olhar |
-| **Próximo chat** | *pode subir CP-BUSCA-FORN / produção* + **99738595** · Ctrl+F5 CP |
+| **Prova 01/08** | smoke Q `1403` casa cliente · Renan sem @ não polui · e-mail com @ ok |
+| **NÃO** | merge inteiro `teste` |
 | **Zap loja** | *Atualização rápida Contas a pagar (~1–2 min)* |
 
 ### ✅ Deploy loja **v12.95** — BI-KPI-LOJA (01/08 · Renan frase+senha)
@@ -1299,9 +1311,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
-**Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` · Live `dep-d9n2huht0dsc738q0m60`  
+**Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` · Live  
 **Teste hoje:** branch `teste` · badge **v13.04**  
-**Rollback BI:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
+**Lote pronto:** `deploy/cp-dfe-lote-v13.04` @ **`72c6b6c`** · rollback `rollback/pre-cp-dfe-lote-v13.04`  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
 | Ordem | Pacote | Status |
@@ -1314,8 +1326,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
 | 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
-| 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.03** · `006f871` |
-| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.04** · `ed58d84` · sem migrate · prova 12/12 |
+| 8 | **CP-BUSCA-FORN** | 📦 **pronto** · no lote v13.04 @ `72c6b6c` · **aguarda pausa + senha** |
+| 9 | **DFE-NSU-656** | 📦 **pronto** · no lote v13.04 @ `72c6b6c` · VERIFY 12/12 · **aguarda pausa + senha** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3912,7 +3924,7 @@ iews.py (compras enrich) |
 | **✅ Loja** | **v12.95** BI-KPI-LOJA · KPIs por loja · % dia semana · Validade |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila pacotes** | *(vazia — BI-KPI-LOJA v12.95 enviado)* |
+| **📦 Fila pacotes** | **CP-BUSCA-FORN** + **DFE-NSU-656** · `deploy/cp-dfe-lote-v13.04` @ `72c6b6c` · **aguarda pausa + senha** |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | **FL-057** PgBouncer (painel Render) |
 | **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
