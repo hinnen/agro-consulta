@@ -1187,6 +1187,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | `_contagem_validade_dashboard_por_loja` · cache `validade_dashboard_lotes_v4` · conta lote qtd>0 + todas as datas |
 | **Você** | Local Ctrl+F5 · badge **12.93** · BI Centro e Vila → card Validade deve espelhar o relatório |
 
+### 📦 PACOTE PRONTO LOJA — BI loja + KPIs + Validade (`BI-KPI-LOJA` · **v12.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **VERSION** | **12.93** (loja **12.88**) |
+| **Inclui** | Filtro Centro/Vila em Vendas/Performance · % Vendas/Ticket/Novos vs **mesmo dia da semana do mês ant.** · Novos = **hoje** · card Validade por loja alinhado ao relatório (lote qtd) · «por unidade» compara as duas |
+| **Migrate** | NÃO |
+| **Commits** | `07cd457` · `e0f99da` · `dd505c5` · `fea48c9` |
+| **Prova** | script: filtro centro total≠soma barras · 01/08→04/07 · KPIs «vs 1º sáb.» · chart Total filtrado |
+| **Você** | Ctrl+F5 · Loja Centro → Vendas≈barra Centro · selos «vs 1º sáb.» · Validade ≠ 0 se relatório tem · depois frase+senha |
+| **NÃO** | merge inteiro `teste` |
+
 ### 🔧 BI — Ticket + Novos Clientes vs mesmo dia semana (01/08 · **teste v12.92**)
 
 | Item | Detalhe |
@@ -1227,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
-**Teste hoje:** branch `teste`  
+**Teste hoje:** branch `teste` · badge **v12.93** · inclui **BI-KPI-LOJA** pronto envio  
 **Rollback:** `rollback/pre-lote-checklist`  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1240,6 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
+| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.93** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3835,7 +3849,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila pacotes** | *(vazia — lote v12.88 enviado)* |
+| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.93 pronto envio |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | **FL-057** PgBouncer (painel Render) |
 | **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
