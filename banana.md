@@ -1183,7 +1183,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Loja agora** | **v12.51** @ `b977c9b` · **abertas** — **não** subir sem pausa + autorização |
-| **Teste** | **v12.84** @ `f63124e` |
+| **Teste** | **v12.87** @ `255eed2` |
 | **Regra dura** | **NÃO** `merge teste→producao` · `models`/`views`/`urls` no teste têm **milhares** de linhas a mais — só **cherry / cópia de arquivo** do lote |
 | **Smoke 01/08** | check rotas OK · slim local 3266 · ajuste HTML loading/BIP1/sem Atualizar · API códigos 403 · migs `0076`–`0078` no disco · marcadores ETQ/Uso/DFE/🐞 OK |
 | **Próximo chat** | 1) lojas **pausam vendas** · 2) frase explícita + senha `99738595` · 3) assistente monta branch `deploy/lote-checklist-…` a partir de `producao` |
