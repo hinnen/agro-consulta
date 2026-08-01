@@ -1209,7 +1209,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado loja v13.04** · no lote `72c6b6c` · aguardar Live |
+| **Status** | ✅ **enviado · Live** loja v13.04 · `72c6b6c` · `dep-d9n49nvlk1mc738vjmng` |
 | **Fix** | No 656 **da SEFAZ**, se ultNSU **maior** → grava · **nunca** maxNSU · **nunca** pra trás · Aguarde local **não** grava NSU |
 | **Arquivos** | `dfe_inbox_util.py` · `sefaz_dfe_client.py` · `scripts/verify_dfe_nsu_656.py` |
 | **Migrate** | NÃO |
