@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1178,7 +1178,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.00**)
+### 📦 PACOTE PRONTO LOJA — Dist DF-e cursor 656 adota NSU maior (`DFE-NSU-656` · **v13.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1191,12 +1191,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | deploy · 1 Buscar (pode 656) → cursor sobe → espera 1h → Buscar de novo |
 | **Nota** | Chave continua pra nota avulsa · Washington 2175 = Carregar na grade |
 
-### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.01**)
+### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** (frase + senha) |
-| **VERSION** | **13.01** (loja hoje **12.95**) · commit fix `006f871` |
+| **VERSION** | **13.03** (loja hoje **12.95**) · commit fix `006f871` |
 | **Inclui** | Número no nome (`Renan Hinnen 1403`) · quem lançou só com `@` · ajuda `?` |
 | **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · `lancamentos_help_agents.html` · AGENTS §10 |
 | **Migrate** | **NÃO** |
@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.95** · `producao` @ `87aa52b` · Live `dep-d9n2huht0dsc738q0m60`  
-**Teste hoje:** branch `teste` · badge **v13.01**  
+**Teste hoje:** branch `teste` · badge **v13.03**  
 **Rollback BI:** `rollback/pre-bi-kpi-loja-v12.95` (@ v12.88 / `941446d`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1314,8 +1314,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
 | 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
-| 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.01** · `006f871` |
-| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.01** · `e4b34d4` · sem migrate |
+| 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.03** · `006f871` |
+| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.03** · `e4b34d4` · sem migrate |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
