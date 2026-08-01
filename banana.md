@@ -1178,26 +1178,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 BI — card Validade 0/0 com lotes no relatório (01/08 · **teste v12.93**)
+### 🔧 BI — card Validade 0/0 com lotes no relatório (01/08 · **teste v12.93** · VERIFY_OK)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Problema** | Relatório validade mostra vencidos / no mês; card BI Centro **e** Vila ficavam **0 / 0** |
-| **Causa** | Contagem por loja exigia só saldo operacional e pegava **1 data** por produto; ignorava lote com qtd (relatório usa o lote quando C+V operacional = 0) |
-| **Fix** | `_contagem_validade_dashboard_por_loja` · cache `validade_dashboard_lotes_v4` · conta lote qtd>0 + todas as datas |
-| **Você** | Local Ctrl+F5 · badge **12.93** · BI Centro e Vila → card Validade deve espelhar o relatório |
+| **Causa** | Contagem por loja exigia só saldo operacional e pegava **1 data** por produto; ignorava lote com qtd |
+| **Fix** | `_contagem_validade_dashboard_por_loja` · cache `v4` · lote qtd>0 + todas as datas |
+| **Prova** | `scripts/verify_validade_bi.py` **15/15 VERIFY_OK** (01/08) |
+| **Você** | Ctrl+F5 · badge **12.95** · Validade deve espelhar o relatório |
 
-### 📦 PACOTE PRONTO LOJA — BI loja + KPIs + Validade (`BI-KPI-LOJA` · **v12.93**)
+### 📦 PACOTE PRONTO LOJA — BI loja + KPIs + Validade (`BI-KPI-LOJA` · **v12.95**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
-| **VERSION** | **12.94** (loja **12.88**) |
-| **Inclui** | Filtro Centro/Vila em Vendas/Performance · % Vendas/Ticket/Novos vs **mesmo dia da semana do mês ant.** · Novos = **hoje** · card Validade por loja alinhado ao relatório (lote qtd) · «por unidade» compara as duas |
+| **VERSION** | **12.95** (loja **12.88**) |
+| **Inclui** | Filtro Centro/Vila em Vendas/Performance · % Vendas/Ticket/Novos vs **mesmo dia da semana do mês ant.** · Novos = **hoje** · card Validade por loja alinhado ao relatório (lote qtd + todas as datas) · «por unidade» compara as duas |
 | **Migrate** | NÃO |
-| **Commits** | `07cd457` · `e0f99da` · `dd505c5` · `fea48c9` |
-| **Prova** | script: filtro centro total≠soma barras · 01/08→04/07 · KPIs «vs 1º sáb.» · chart Total filtrado |
-| **Você** | Ctrl+F5 · Loja Centro → Vendas≈barra Centro · selos «vs 1º sáb.» · Validade ≠ 0 se relatório tem · depois frase+senha |
+| **Commits** | `07cd457` · `e0f99da` · `dd505c5` · `fea48c9` (+ docs/prova) |
+| **Prova** | `scripts/verify_validade_bi.py` → **VERIFY_OK** 15/15 · script KPI loja/% dia semana |
+| **Você** | Ctrl+F5 · Centro → Vendas≈barra · selos «vs 1º sáb.» · Validade ≠ 0 se relatório tem · frase+senha |
 | **NÃO** | merge inteiro `teste` |
 
 ### 🔧 BI — Ticket + Novos Clientes vs mesmo dia semana (01/08 · **teste v12.92**)
@@ -1240,7 +1241,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
-**Teste hoje:** branch `teste` · badge **v12.94** · inclui **BI-KPI-LOJA** pronto envio  
+**Teste hoje:** branch `teste` · badge **v12.95** · **BI-KPI-LOJA** pronto envio  
 **Rollback:** `rollback/pre-lote-checklist`  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1253,7 +1254,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
-| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.94** |
+| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.95** · Validade VERIFY_OK |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
