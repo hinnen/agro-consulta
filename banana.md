@@ -1191,16 +1191,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | deploy · 1 Buscar (pode 656) → cursor sobe → espera 1h → Buscar de novo |
 | **Nota** | Chave continua pra nota avulsa · Washington 2175 = Carregar na grade |
 
-### Contas a pagar — busca fornecedor bugada (01/08)
+### 📦 PACOTE PRONTO LOJA — Contas a pagar busca fornecedor (`CP-BUSCA-FORN` · **v13.00**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🔧 **teste v12.99** @ `006f871` — validar local Ctrl+F5 |
-| **Sintoma** | `Renan Hinnen 1403` = 0 · `Renan Hinnen` listava Detran/Geraldo (~560) |
-| **Causa** | (1) `1403` ia **só** como valor R$ · (2) termos casavam e-mail `renanhinnen@…` em quem lançou |
-| **Fix** | Número puro também casa texto (fornecedor/NF) · quem lançou só com `@` |
-| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · ajuda `?` / AGENTS §10 |
-| **Você** | Contas a pagar · busca `Renan Hinnen 1403` → só esse fornecedor |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **VERSION** | **13.00** (loja hoje **12.95**) · commit fix `006f871` |
+| **Inclui** | Número no nome (`Renan Hinnen 1403`) · quem lançou só com `@` · ajuda `?` |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · `lancamentos_help_agents.html` · AGENTS §10 |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — só busca lista CP · não mexe pagar/PDV/caixa |
+| **Prova 01/08** | unit+DB ALL PASS · API `q=Renan Hinnen 1403` só esse fornecedor · 0 Detran |
+| **NÃO** | merge inteiro `teste` sem olhar |
+| **Próximo chat** | *pode subir CP-BUSCA-FORN / produção* + **99738595** · Ctrl+F5 CP |
+| **Zap loja** | *Atualização rápida Contas a pagar (~1–2 min)* |
 
 ### ✅ Deploy loja **v12.95** — BI-KPI-LOJA (01/08 · Renan frase+senha)
 
