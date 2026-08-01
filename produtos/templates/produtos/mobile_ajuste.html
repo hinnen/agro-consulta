@@ -869,7 +869,11 @@ function maTrocarDepositoPara(dep) {
           'Content-Type': 'application/json',
           'X-CSRFToken': MA_CSRF,
         },
-        body: JSON.stringify({ deposito: alvo, confirmacao: texto }),
+        body: JSON.stringify({
+          deposito: alvo,
+          confirmacao: texto,
+          forcar_confirmacao: !!(maDepObrigatorio || forcar),
+        }),
       })
         .then(async (res) => {
           let j = null;

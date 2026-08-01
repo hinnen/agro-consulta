@@ -18737,7 +18737,6 @@ def ajuste_mobile_view(request):
     """
     from produtos.pdv_deposito_util import (
         bootstrap_deposito,
-        deposito_escolhido_explicitamente,
         rotulo_deposito,
     )
 
@@ -18746,7 +18745,9 @@ def ajuste_mobile_view(request):
     if dep not in ("centro", "vila"):
         dep = "centro"
     travado = bool(dep_boot.get("caixaTravado"))
-    pedir_loja = (not travado) and (not deposito_escolhido_explicitamente(request))
+    # Sempre pedir loja a cada entrada com PIN (mesmo funcionário pode ir à outra loja).
+    # Só não pede se o caixa do aparelho já travou Centro/Vila.
+    pedir_loja = not travado
     if not request.session.pop("ajuste_mobile_gate", None):
         request.session.pop("ajuste_mobile_operador", None)
         request.session.pop("ajuste_mobile_user_id", None)
@@ -23202,8 +23203,15 @@ def api_pdv_deposito(request):
 
     atual = resolver_deposito_request(request)
     escolhido = deposito_escolhido_explicitamente(request)
-    # Primeira escolha do aparelho (sem cookie/sessão) também exige digitar centro/vila.
-    if dep != atual or not escolhido:
+    forcar = str(data.get("forcar_confirmacao") or data.get("force") or "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "sim",
+        "on",
+    )
+    # Troca, 1ª gravação do aparelho, ou forçar (ex.: Ajuste Mobile a cada PIN).
+    if forcar or dep != atual or not escolhido:
         conf = data.get("confirmacao") or data.get("confirmacao_loja") or ""
         if not confirmacao_loja_bate(conf, dep):
             palavra = palavra_confirmacao_loja(dep)
