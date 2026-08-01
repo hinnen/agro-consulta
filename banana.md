@@ -1180,6 +1180,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ Deploy loja **v13.10** — Etiquetas presets Postgres (`ETQ-PRESET-PG` · 01/08 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · `producao` @ **`ac5dfb3`** · badge **13.10** · Render auto |
+| **Base** | loja **v13.04** @ `72c6b6c` |
+| **Branch** | `deploy/etq-preset-pg-v13.10` |
+| **Rollback** | `git push origin rollback/pre-v1310-etq-preset:producao` (@ **`72c6b6c`** / v13.04) |
+| **Inclui** | Presets etiqueta no Postgres · multi-PC · migrate `0079` |
+| **Migrate** | **SIM** `0079_etiqueta_preset_agro` (Render no boot) |
+| **NÃO** | merge `teste` · PDV/caixa |
+| **Você agora** | Esperar deploy Live · Ctrl+F5 · badge **13.10** · no PC do «box ração» abrir etiquetas **logado** 1× · outros PCs devem ver |
+
 ### 🔧 Etiquetas — presets no Postgres multi-PC (`ETQ-PRESET-PG` · 01/08)
 
 | Item | Detalhe |
@@ -1190,7 +1203,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | `models` · `0079` · `views`/`urls` · `produtos_etiquetas*.js` · template · `banana-roteiro` §0.1 |
 | **Você** | No PC que tem «box ração»: login · abrir `/produtos/etiquetas/` · Ctrl+F5 · deve subir sozinho · outros PCs passam a ver |
 | **Teste** | `9fbafdc` · badge **13.10** · push `origin/teste` |
-| **Loja** | **ainda não** — frase+senha (migrate `0079` no Render) |
+| **Loja** | ✅ **v13.10** @ `ac5dfb3` · rollback `rollback/pre-v1310-etq-preset` |
 
 ### 🔧 DF-e — faixa verde Cursor desatualizada após Buscar (01/08)
 
