@@ -1324,7 +1324,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
-**Loja hoje:** badge **v13.04** · `producao` @ `72c6b6c` (deploy Render)  
+**Loja hoje:** badge **v13.04** · `producao` @ `72c6b6c` · Live `dep-d9n49nvlk1mc738vjmng`  
 **Teste hoje:** branch `teste`  
 **Rollback:** `rollback/pre-cp-dfe-lote-v13.04` (@ v12.95 / `87aa52b`)  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
@@ -1339,8 +1339,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
 | 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
-| 8 | **CP-BUSCA-FORN** | ✅ **enviado loja v13.04** · `72c6b6c` |
-| 9 | **DFE-NSU-656** | ✅ **enviado loja v13.04** · `72c6b6c` |
+| 8 | **CP-BUSCA-FORN** | ✅ **enviado · Live** loja v13.04 · `72c6b6c` |
+| 9 | **DFE-NSU-656** | ✅ **enviado · Live** loja v13.04 · `72c6b6c` |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3934,6 +3934,7 @@ iews.py (compras enrich) |
 
 | Quando | O quê |
 | ------ | ----- |
+| **✅ Loja** | **v13.04** CP-BUSCA-FORN + DFE-NSU-656 |
 | **✅ Loja** | **v12.95** BI-KPI-LOJA · KPIs por loja · % dia semana · Validade |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
