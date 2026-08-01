@@ -1178,6 +1178,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 |
+| **O quê** | Celular baixa `/api/pdv/catalogo-slim/` (freio full-off na loja) |
+| **Migrate** | NÃO |
+| **Arquivo** | **só** `mobile_ajuste.html` |
+| **Commits** | `55c89a8` |
+| **Base loja** | v12.51 (slim API já existe; falta o HTML) |
+
 ### 📦 PACOTE PRONTO LOJA — Bug 🐞 na barra Gestão (`BUG-FAB-BARRA` · **v12.55**)
 
 | Item | Detalhe |
@@ -1328,31 +1339,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | `git push origin rollback/pre-v1212-lote-30jul:producao` (@ **`adcb750`** / v12.07) |
 | **Você agora** | Ctrl+F5 PDVs · badge **12.12** · smoke: lápis preço · lembrete some ao finalizar · Ajuste Somar no celular |
 
-### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07 · atual. 01/08)
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.61** · Ajuste Mobile slim (após push)  
+**Teste hoje:** badge **v12.62** · `teste` @ `7df5a4d`  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | Lote **v12.51** (marca · uso loja · bugs · DF-e) | ✅ **enviado loja v12.51** |
-| 0 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** `mobile_ajuste.html` |
-| 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
-| 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
-| 3 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+| — | Lote **v12.51** | ✅ **enviado loja** |
+| 1 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** `mobile_ajuste.html` |
+| 2 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
+| 3 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
+| 4 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
 
-### 🐛 Ajuste Mobile — «Lista veio vazia» em todos celulares (01/08)
+### 📦 PACOTE PRONTO — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ fix **teste v12.61** @ `55c89a8` · pacote **AJUSTE-MOBILE-SLIM** · **ainda NÃO na loja** |
-| **Causa** | Loja com freio `AGRO_PDV_CATALOGO_FULL_OFF` → `/api/todos-produtos/` devolve `catalogo-full-off` + `produtos:[]` (PDV vende por busca). Celular do ajuste baixava essa API vazia. |
-| **Prova** | `GET /api/todos-produtos/` → 0 · `GET /api/pdv/catalogo-slim/` → ~3371 (já na loja) |
-| **Fix** | `mobile_ajuste.html` baixa **slim** primeiro; se falhar, tenta full |
+| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 · **ainda NÃO na loja** |
+| **Commit** | `55c89a8` (fix) · docs `7df5a4d` · branch `teste` |
 | **Arquivo** | **só** `mobile_ajuste.html` |
-| **Risco** | Baixo — não mexe PDV/caixa; não desliga o freio |
-| **Você** | Validar local se quiser · loja = frase + senha · Ctrl+F5 `/ajuste-mobile/` · catálogo com milhares |
+| **Migrate** | Não |
+| **Problema** | Celular: «Lista veio vazia» — loja com freio; `/api/todos-produtos/` = 0 (`catalogo-full-off`) |
+| **Fix** | Baixa `/api/pdv/catalogo-slim/` primeiro (~3371) · fallback full |
+| **Prova API loja** | full=0 · slim=3371 · busca GM/EAN ok · saldos por ids + positivos ok |
+| **Risco** | Baixo — não mexe PDV/caixa · não desliga freio |
+| **Rollback** | reverter só o HTML do ajuste na `producao` |
+| **Você na loja** | frase + senha · Ctrl+F5 `/ajuste-mobile/` · catálogo com milhares · 1 contagem |
+
+### 🐛 Ajuste Mobile — «Lista veio vazia» (01/08) → pacote **AJUSTE-MOBILE-SLIM**
+
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
