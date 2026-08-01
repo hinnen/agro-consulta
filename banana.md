@@ -1355,14 +1355,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.66** (após push BIP1)  
+**Teste hoje:** badge **v12.67** · `teste` @ `cf193ac`  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lote **v12.51** | ✅ **enviado loja** |
-| 1 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** `mobile_ajuste.html` |
-| 2 | **AJUSTE-MOBILE-BIP1** | 📦 **pronto para envio à produção** · **v12.66** · migrate `0078` · sobe **depois** do SLIM (ou junto) |
+| 1 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** HTML |
+| 2 | **AJUSTE-MOBILE-BIP1** | 📦 **pronto para envio à produção** · **v12.66** · migrate `0078` · com/depois do SLIM |
 | 3 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
 | 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
 | 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
@@ -1371,12 +1371,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · **ainda NÃO na loja** |
-| **Modo Bip +1** | Liga no topo · bip = Somar +1 (PIN sessão) · som OK · flash + Ajustar |
-| **0 / N matches** | Som erro · código selecionado na busca · ou lista → Somar/Trocar |
-| **Fila códigos** | Pergunta após salvar manual · PG · `/gestao/codigos-pendentes-ajuste/` |
+| **Status** | 📦 **pronto para envio à produção** · verificado 01/08 · **ainda NÃO na loja** |
+| **Commit** | `66465a5` |
 | **Migrate** | `0078` |
-| **Você** | Local: PIN → Bip +1 → bip produto · loja = frase + senha (com SLIM) |
+| **Depende** | SLIM na loja |
+| **Você** | frase + senha · migrate · Ctrl+F5 `/ajuste-mobile/` · Bip +1 |
 
 ### 📦 PACOTE PRONTO — Ajuste Mobile lista slim (`AJUSTE-MOBILE-SLIM` · **v12.61**)
 
