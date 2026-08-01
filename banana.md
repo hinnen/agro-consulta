@@ -3824,6 +3824,7 @@ iews.py (compras enrich) |
 | **P1** | **DFE-INBOX** | Caixa entrada Dist DF-e no PG | ✅ **loja v12.51** |
 | **P1** | **PDV-LEMBRETE-ENTREGA** | Lembrete caixa some ao entregue/finalizar/cancelar | ✅ **loja v12.12** |
 | **P1** | **AJUSTE-MOBILE-SLIM** | Lista no celular (freio full-off → slim) | 📦 **pronto envio** · v12.61 |
+| **P1** | **AJUSTE-MOBILE-BIP1** | Bip +1 · sons · flash · fila códigos PG | 📦 **pronto envio** · v12.66 · migrate 0078 |
 | **P1** | **AJUSTE-MOBILE-SOMAR** | Contagem 2 lugares (Somar/Trocar) + catálogo no celular | ✅ **loja v12.12** |
 | **P1** | **ENTRADA-NF-VINCULO** | Vínculo XML cProd no Postgres (multi-PC) | ✅ **loja v12.12** |
 | **P1** | **CAD-ESTOQUE-XLSX** | Excel estoque no Cadastro (filtros + Ajuste +/- + prévia) | ✅ **loja v12.12** |
