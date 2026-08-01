@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1177,6 +1177,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🔧 DF-e — faixa verde Cursor desatualizada após Buscar (01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Avançado dizia **2092** · faixa verde ainda **2086** |
+| **Fix** | Após Buscar, atualiza Cursor na faixa verde |
+| **Arquivo** | `entrada_nota.html` |
 
 ### ✅ Deploy loja **v13.04** — CP-BUSCA-FORN + DFE-NSU-656 (01/08 · Renan frase+senha)
 

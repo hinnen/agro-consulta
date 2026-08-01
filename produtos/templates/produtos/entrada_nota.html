@@ -10752,6 +10752,18 @@
     void carregarDfeInbox();
   }
 
+  function entradaNfeSefazAtualizarCursorNaFaixa(nsu) {
+    const el = document.getElementById('sefaz-status');
+    const n = String(nsu || '').replace(/\D/g, '').slice(0, 15);
+    if (!el || !n) return;
+    const html = el.innerHTML || '';
+    if (/Cursor\s+[0-9]+/i.test(html)) {
+      el.innerHTML = html.replace(/Cursor\s+[0-9]+/i, `Cursor ${n}`);
+    }
+    const inp = document.getElementById('sefaz-ult');
+    if (inp && inp.value.trim()) inp.value = '';
+  }
+
   async function carregarSefazStatus() {
     const el = document.getElementById('sefaz-status');
     if (!el) return;
@@ -10817,6 +10829,7 @@
       const nsuSefaz = j.ult_nsu_sefaz ? ` · SEFAZ devolveu ${j.ult_nsu_sefaz}` : '';
       const msg = j.msg_ui || j.x_motivo || j.erro || '';
       resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${msg}</div><div class="text-xs mt-1">Cursor loja (ultNSU): ${nsuLoja} · maxNSU: ${j.max_nsu ?? '—'}${nsuSefaz}</div>`;
+      if (nsuLoja) entradaNfeSefazAtualizarCursorNaFaixa(nsuLoja);
       entradaNfeDfeAba = 'pendentes';
       if (Array.isArray(j.itens)) entradaNfeDfeRenderInbox(j.itens);
       else void carregarDfeInbox();
