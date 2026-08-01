@@ -1366,10 +1366,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | `git push origin rollback/pre-v1212-lote-30jul:producao` (@ **`adcb750`** / v12.07) |
 | **Você agora** | Ctrl+F5 PDVs · badge **12.12** · smoke: lápis preço · lembrete some ao finalizar · Ajuste Somar no celular |
 
+### 📦 PACOTE PRONTO LOJA — Etiquetas GM curto + toggles (`ETQ-GM-CAMPOS` · **v12.52**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **PRONTO PARA ENVIO À PRODUÇÃO** — `deploy/etq-gm-campos-v12.52` @ **`49080d2`** · espera frase + senha `99738595` |
+| **VERSION alvo** | **12.52** (loja **12.51**) |
+| **Inclui** | GM curto (GM0050-1→GM50) · checkboxes Nome/R$/Preço/Peso/Logo/GM · fonte/cor/layout GM |
+| **Arquivos** | `produtos_etiquetas.html` · `produtos_etiquetas.js` · `produtos_etiquetas_core.js` · VERSION |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — só `/produtos/etiquetas/` · preset antigo **igual** (GM off) · zero PDV/caixa |
+| **Smoke** | check 0 · JS OK · fmtGmCurto cases OK · preset antigo não mostra GM |
+| **Autorizar** | *pode subir etiquetas GM / produção* + **99738595** |
+| **Rollback** | `rollback/pre-v1252-etq-gm` @ HEAD `producao` antes do push |
+
 ### 📦 CHECKLIST ÚNICO — pronto para envio à produção (01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.73** · branch `teste`  
+**Teste hoje:** badge **v12.80** · branch `teste`  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
@@ -1381,6 +1395,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
 | 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
 | 6 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · VERIFY_OK · `1cf3a2b` · sem migrate |
+| 7 | **ETQ-GM-CAMPOS** | 📦 **pronto para envio à produção** · **v12.52** · `49080d2` · sem migrate · só etiquetas |
 
 ### 📦 PACOTE PRONTO — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
 
@@ -1638,14 +1653,6 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 **Autorizar (próximo chat):** pausa vendas se quiser · *«pode subir … / produção»* + **99738595** · FF da branch `deploy/…` → `producao` · Ctrl+F5.
 
-### WIP — Etiquetas GM curto + toggles campos (01/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | no 	este · Ctrl+F5 |
-| **O quê** | Campo **GM curto** (GM0050-1→GM50) · checkboxes liga/desliga Nome/R$/Preço/Peso/Logo/GM · preset antigo **inalterado** (GM off) |
-| **Arquivos** | produtos_etiquetas_core.js · produtos_etiquetas.js · produtos_etiquetas.html |
-| **Como usar** | Presets → Novo → marcar **GM curto** · arrastar caixa GM · Salvar |
 
 ### ✅ Deploy loja **v12.05** — ETQ-BUSCA-FILTROS (29/07 · frase+senha)
 
