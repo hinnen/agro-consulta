@@ -525,6 +525,8 @@ const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% el
 const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
 const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
 const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
+/* Loja: freio AGRO_PDV_CATALOGO_FULL_OFF → /api/todos-produtos/ vem vazio (catalogo-full-off). Slim não é freiado. */
+const MA_API_CATALOGO_SLIM = '/api/pdv/catalogo-slim/';
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 
 function mobileLerProdutosDoCacheUnificado() {
@@ -841,7 +843,7 @@ function mobileAjusteMostrarErroCatalogo(msg) {
   listaDiv.innerHTML = `
     <div class="bg-white border border-rose-200 rounded-2xl p-4 text-center space-y-3">
       <p class="text-rose-600 font-black text-sm leading-snug">${texto.replace(/</g, '&lt;')}</p>
-      <p class="text-slate-500 text-xs font-bold leading-snug">Celular novo / sem PDV precisa baixar a lista uma vez. Rede fraca? Tente de novo no Wi‑Fi.</p>
+      <p class="text-slate-500 text-xs font-bold leading-snug">Rede fraca? Wi‑Fi da loja. Se continuar vazio, avise o suporte (lista do servidor).</p>
       <button type="button" id="ma-btn-retry-cat" class="w-full min-h-[2.75rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Tentar baixar de novo</button>
     </div>`;
   document.getElementById('ma-btn-retry-cat')?.addEventListener('click', () => {
@@ -851,7 +853,28 @@ function mobileAjusteMostrarErroCatalogo(msg) {
   });
 }
 
-/** Baixa catálogo completo. Sem poll automático. */
+/** GET JSON de uma URL de catálogo; devolve {produtos} ou null se vazio/freio/erro. */
+function mobileAjusteFetchCatalogoUrl(url, signal) {
+  return fetch(url, {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    signal: signal,
+  }).then(async (res) => {
+    let data = null;
+    try { data = await res.json(); } catch (_) { data = null; }
+    if (!res.ok) {
+      const er = (data && (data.erro || data.error)) || ('HTTP ' + res.status);
+      throw new Error(er);
+    }
+    data = data || {};
+    const produtos = Array.isArray(data.produtos) ? data.produtos : [];
+    const ver = String(data.catalog_version || '');
+    if (!produtos.length || ver === 'catalogo-full-off') return null;
+    return { produtos: produtos, data: data };
+  });
+}
+
+/** Baixa lista: slim (loja com freio) → full. Sem poll automático. */
 function mobileAjusteBaixarListaApi(forcar) {
   if (maListaInFlight) return Promise.resolve(0);
   maListaInFlight = true;
@@ -864,29 +887,21 @@ function mobileAjusteBaixarListaApi(forcar) {
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 120000);
-  return fetch(MA_API_CATALOGO, {
-    cache: 'no-store',
-    credentials: 'same-origin',
-    signal: ctrl ? ctrl.signal : undefined,
-  })
-    .then(async (res) => {
-      let data = null;
-      try { data = await res.json(); } catch (_) { data = null; }
-      if (!res.ok) {
-        const er = (data && (data.erro || data.error)) || ('HTTP ' + res.status);
-        throw new Error(er);
-      }
-      return data || {};
+  const signal = ctrl ? ctrl.signal : undefined;
+  return mobileAjusteFetchCatalogoUrl(MA_API_CATALOGO_SLIM, signal)
+    .catch(() => null)
+    .then((hit) => {
+      if (hit && hit.produtos && hit.produtos.length) return hit;
+      return mobileAjusteFetchCatalogoUrl(MA_API_CATALOGO, signal);
     })
-    .then((data) => {
-      const produtos = Array.isArray(data.produtos) ? data.produtos : [];
-      if (!produtos.length) {
-        throw new Error(data.erro || 'Lista veio vazia do servidor.');
+    .then((hit) => {
+      if (!hit || !hit.produtos || !hit.produtos.length) {
+        throw new Error('Lista veio vazia do servidor.');
       }
-      mobileAjusteAplicarProdutosDaLista(produtos);
-      mobileAjusteGravarCacheCatalogo(produtos);
+      mobileAjusteAplicarProdutosDaLista(hit.produtos);
+      mobileAjusteGravarCacheCatalogo(hit.produtos);
       marcarMobileSaldosFresh();
-      return produtos.length;
+      return hit.produtos.length;
     })
     .catch((err) => {
       const msg = (err && err.name === 'AbortError')
@@ -895,7 +910,7 @@ function mobileAjusteBaixarListaApi(forcar) {
       if (!baseProdutos.length) {
         mobileAjusteMostrarErroCatalogo(msg);
       } else {
-        alert('Não deu para baixar a lista completa. Mantive o que já estava na tela.\n' + msg);
+        alert('Não deu para baixar a lista. Mantive o que já estava na tela.\n' + msg);
       }
       return 0;
     })

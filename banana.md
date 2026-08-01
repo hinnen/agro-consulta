@@ -1328,18 +1328,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | `git push origin rollback/pre-v1212-lote-30jul:producao` (@ **`adcb750`** / v12.07) |
 | **Você agora** | Ctrl+F5 PDVs · badge **12.12** · smoke: lápis preço · lembrete some ao finalizar · Ajuste Somar no celular |
 
-### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07)
+### 📦 CHECKLIST ÚNICO — pronto para envio à produção (31/07 · atual. 01/08)
 
 **Loja hoje:** badge **v12.51** · `producao` @ `b977c9b`  
-**Teste hoje:** badge **v12.59** · `teste` @ `d0b7a5c`  
+**Teste hoje:** badge **v12.61** · Ajuste Mobile slim (após push)  
 **NÃO merge `teste`→`producao`:** só lote cherry · frase + senha.
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lote **v12.51** (marca · uso loja · bugs · DF-e) | ✅ **enviado loja v12.51** |
+| 0 | **AJUSTE-MOBILE-SLIM** | 📦 **pronto para envio à produção** · **v12.61** · sem migrate · **só** `mobile_ajuste.html` |
 | 1 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
 | 2 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
 | 3 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+
+### 🐛 Ajuste Mobile — «Lista veio vazia» em todos celulares (01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ fix **teste v12.61** · pacote **AJUSTE-MOBILE-SLIM** · **ainda NÃO na loja** |
+| **Causa** | Loja com freio `AGRO_PDV_CATALOGO_FULL_OFF` → `/api/todos-produtos/` devolve `catalogo-full-off` + `produtos:[]` (PDV vende por busca). Celular do ajuste baixava essa API vazia. |
+| **Prova** | `GET /api/todos-produtos/` → 0 · `GET /api/pdv/catalogo-slim/` → ~3371 (já na loja) |
+| **Fix** | `mobile_ajuste.html` baixa **slim** primeiro; se falhar, tenta full |
+| **Arquivo** | **só** `mobile_ajuste.html` |
+| **Risco** | Baixo — não mexe PDV/caixa; não desliga o freio |
+| **Você** | Validar local se quiser · loja = frase + senha · Ctrl+F5 `/ajuste-mobile/` · catálogo com milhares |
 
 
 ### 📦 PACOTE — Lembrete entrega (PDV-LEMBRETE-ENTREGA · **v12.12**)
