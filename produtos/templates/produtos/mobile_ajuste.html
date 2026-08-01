@@ -42,6 +42,8 @@
       overflow-x: hidden;
       overflow-y: auto;
       scroll-padding-bottom: calc(1.5rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
+      /* PC: fundo cinza; a coluna do app fica no centro tipo celular. */
+      background: #94a3b8;
     }
     /* Esta tela: tipografia real (UI global infla text-[10px] e corta/sobreponte). */
     body.ma-page :is(
@@ -54,7 +56,9 @@
       line-height: revert !important;
     }
     body.ma-page {
-      margin: 0;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 28rem; /* ~448px — sempre “modo celular”, mesmo no PC */
       min-height: 100dvh;
       height: auto !important;
       max-height: none !important;
@@ -64,6 +68,15 @@
       padding-bottom: calc(1.25rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
       touch-action: manipulation;
       -webkit-overflow-scrolling: touch;
+      background: #f1f5f9;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 16px 48px rgba(15, 23, 42, 0.18);
+    }
+    @media (max-width: 28rem) {
+      html { background: #f1f5f9; }
+      body.ma-page {
+        max-width: 100%;
+        box-shadow: none;
+      }
     }
     body.ma-page.ma-modal-open {
       overflow: hidden !important;
@@ -206,43 +219,38 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      text-align: right;
     }
-    #ma-btn-saldos {
-      flex: 0 0 auto;
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      min-height: 2.4rem;
-      padding: 0.35rem 0.75rem 0.35rem 0.45rem;
-      border-radius: 0.75rem;
-      border: 2px solid rgba(16, 185, 129, 0.45);
-      background: linear-gradient(180deg, #059669, #047857);
-      color: #fff;
-      font-size: 0.6875rem !important;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      line-height: 1 !important;
-      box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
-      overflow: hidden;
-    }
-    #ma-btn-saldos .agro-termo-track {
+    .ma-loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
       display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      width: 0.35rem;
-      height: 1.35rem;
-      border-radius: 999px;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      overflow: hidden;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(15, 23, 42, 0.55);
     }
-    #ma-btn-saldos .agro-termo-fil {
-      width: 100%;
-      border-radius: 0 0 999px 999px;
-      transition: height 0.4s ease-out;
-      min-height: 0;
+    .ma-loading-overlay.hidden { display: none !important; }
+    .ma-loading-card {
+      width: min(22rem, 100%);
+      border-radius: 1.25rem;
+      background: #fff;
+      padding: 1.35rem 1.25rem;
+      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.35);
+      text-align: center;
+    }
+    .ma-loading-spin {
+      width: 2.5rem;
+      height: 2.5rem;
+      margin: 0 auto 0.85rem;
+      border-radius: 999px;
+      border: 3px solid #d1fae5;
+      border-top-color: #059669;
+      animation: ma-spin 0.8s linear infinite;
+    }
+    @keyframes ma-spin {
+      to { transform: rotate(360deg); }
     }
 
     /* Resumo da busca: 1 linha só. */
@@ -352,6 +360,64 @@
       opacity: 0.55;
       pointer-events: none;
     }
+
+    /* Bip +1 */
+    .ma-btn-bip1 {
+      border: 2px solid #94a3b8;
+      background: #fff;
+      color: #475569;
+    }
+    .ma-btn-bip1.is-on {
+      border-color: #047857;
+      background: linear-gradient(180deg, #10b981, #047857);
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(4, 120, 87, 0.35);
+    }
+    .ma-flash {
+      position: fixed;
+      left: 50%;
+      bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+      transform: translateX(-50%);
+      z-index: 140;
+      width: min(22rem, calc(100vw - 1.5rem));
+      border-radius: 1rem;
+      background: #064e3b;
+      color: #ecfdf5;
+      padding: 0.85rem 1rem;
+      box-shadow: 0 12px 40px rgba(6, 78, 59, 0.45);
+    }
+    .ma-flash.hidden { display: none !important; }
+    .ma-pick-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 130;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0.75rem;
+      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+    }
+    .ma-pick-overlay.hidden { display: none !important; }
+    .ma-pick-panel {
+      width: min(28rem, 100%);
+      max-height: min(70dvh, 28rem);
+      overflow: auto;
+      background: #fff;
+      border-radius: 1.25rem;
+      padding: 0.85rem;
+    }
+    .ma-offer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 145;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .ma-offer-overlay.hidden { display: none !important; }
   </style>
 </head>
 <body class="ma-page bg-slate-100 touch-manipulation">
@@ -361,6 +427,8 @@
     <div class="ma-head-row">
       <h1 class="ma-head-title-txt">Ajuste <span>Mobile</span></h1>
       <div class="ma-head-actions">
+        <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
+        <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
         <a href="/historico/" class="ma-head-btn ma-head-btn--hist">Hist.</a>
         <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
       </div>
@@ -372,17 +440,14 @@
     </div>
     {% endif %}
     <div class="ma-head-row ma-head-row--sync">
-      <div class="ma-head-dep" title="Depósito igual ao PDV deste aparelho">
-        Estoque: {% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}{% if ajuste_deposito_travado %} · travado{% endif %}
+      <div class="ma-head-dep" title="Depósito deste aparelho (igual PDV/BI)">
+        <span>Estoque: <span id="ma-dep-label">{% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}</span>{% if ajuste_deposito_travado %} · travado{% endif %}</span>
+        {% if not ajuste_deposito_travado %}
+        <button type="button" id="ma-btn-trocar-dep" class="ma-head-op-link ml-1">Trocar</button>
+        {% endif %}
       </div>
       <div class="ma-head-sync-line">
-        <span id="ma-saldos-ultima" title="Última leitura dos saldos na lista">—</span>
-        <button type="button" id="ma-btn-saldos" title="Baixar lista completa + saldos (Postgres)">
-          <span class="agro-termo-track" aria-hidden="true">
-            <span class="agro-termo-fil" style="height:0%"></span>
-          </span>
-          <span>Atualizar</span>
-        </button>
+        <span id="ma-saldos-ultima" title="Última atualização automática">Atualizando…</span>
       </div>
     </div>
   </header>
@@ -514,6 +579,55 @@
     </div>
   </div>
 
+  <div id="ma-flash" class="ma-flash hidden" role="status" aria-live="polite">
+    <p id="ma-flash-nome" class="text-sm font-black leading-snug"></p>
+    <p class="mt-1 text-xs font-bold text-emerald-100">Saldo <span id="ma-flash-saldo">0</span> · +1 gravado</p>
+    <button type="button" id="ma-flash-ajustar" class="mt-2 w-full min-h-[2.5rem] rounded-xl bg-white text-emerald-900 text-xs font-black uppercase">Ajustar</button>
+  </div>
+
+  <div id="ma-toast" class="ma-flash hidden" role="status" aria-live="polite" style="background:#0f172a;">
+    <p id="ma-toast-txt" class="text-sm font-black leading-snug text-white"></p>
+  </div>
+
+  <div id="ma-loading" class="ma-loading-overlay hidden" aria-hidden="true" role="dialog" aria-live="polite" aria-labelledby="ma-loading-title">
+    <div class="ma-loading-card">
+      <div class="ma-loading-spin" aria-hidden="true"></div>
+      <p id="ma-loading-title" class="text-base font-black text-slate-900 leading-snug">Baixando a lista de produtos…</p>
+      <p class="mt-2 text-xs font-bold text-slate-500 leading-snug">Só carrega assim. Na <span class="text-emerald-700">primeira abertura</span> demora um pouco — nas próximas fica mais rápido.</p>
+    </div>
+  </div>
+
+  <div id="ma-pick" class="ma-pick-overlay hidden" aria-hidden="true">
+    <div class="ma-pick-panel">
+      <p class="text-xs font-black uppercase text-slate-500 mb-2">Vários produtos · escolha um</p>
+      <div id="ma-pick-list" class="space-y-2"></div>
+      <button type="button" id="ma-pick-cancel" class="mt-3 w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase">Cancelar</button>
+    </div>
+  </div>
+
+  <div id="ma-offer" class="ma-offer-overlay hidden" aria-hidden="true">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
+      <p class="text-sm font-black text-slate-900 leading-snug">Guardar este código neste produto pra cadastro depois?</p>
+      <p id="ma-offer-codigo" class="font-mono text-base font-black text-emerald-700 break-all"></p>
+      <p id="ma-offer-produto" class="text-xs font-bold text-slate-500 leading-snug"></p>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <button type="button" id="ma-offer-nao" class="min-h-[3rem] rounded-xl border border-slate-200 text-slate-600 text-xs font-black uppercase">Não</button>
+        <button type="button" id="ma-offer-sim" class="min-h-[3rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Sim, guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ma-dep-modal" class="ma-offer-overlay hidden" aria-hidden="true">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
+      <p class="text-sm font-black text-slate-900 leading-snug" id="ma-dep-modal-title">Qual estoque / loja você está?</p>
+      <p class="text-[10px] font-bold text-slate-500 leading-snug" id="ma-dep-modal-hint">Depois vai pedir para digitar <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span> — igual no BI e no PDV.</p>
+      <button type="button" id="ma-dep-pick-centro" class="w-full min-h-[3.25rem] rounded-xl bg-emerald-600 text-white text-sm font-black uppercase">Centro</button>
+      <button type="button" id="ma-dep-pick-vila" class="w-full min-h-[3.25rem] rounded-xl bg-slate-800 text-white text-sm font-black uppercase">Vila Elias</button>
+      <button type="button" id="ma-dep-pick-cancel" class="w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase">Cancelar</button>
+    </div>
+  </div>
+
+{% include "produtos/includes/agro_loja_confirm.html" %}
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script src="{% static 'js/agro_estoque_sync.js' %}"></script>
 <script>
@@ -523,9 +637,25 @@ let debounceTimer = null;
 let baseProdutos = [];
 const MA_DEPOSITO_INICIAL = '{% if ajuste_deposito_inicial == "vila" %}vila{% else %}centro{% endif %}';
 const MA_DEPOSITO_TRAVADO = {% if ajuste_deposito_travado %}true{% else %}false{% endif %};
+const MA_PEDIR_LOJA = {% if ajuste_pedir_loja %}true{% else %}false{% endif %};
+let maDepObrigatorio = false;
 const MA_API_SALDOS = "{% url 'api_pdv_saldos' %}";
 const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
+/* Loja: freio AGRO_PDV_CATALOGO_FULL_OFF → /api/todos-produtos/ vem vazio (catalogo-full-off). Slim não é freiado. */
+const MA_API_CATALOGO_SLIM = '/api/pdv/catalogo-slim/';
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
+const MA_API_CODIGO_PENDENTE = "{% url 'api_ajuste_codigo_pendente_criar' %}";
+const MA_API_DEPOSITO = "{% url 'api_pdv_deposito' %}";
+const MA_CSRF = '{{ csrf_token }}';
+const MA_BIP1_KEY = 'ma_bip1_on_v1';
+
+let maBip1On = false;
+let maCodigoOrfao = null;
+let maBipBusy = false;
+let maBipLastCode = '';
+let maBipLastAt = 0;
+let maFlashTimer = null;
+let maFlashProduto = null;
 
 function mobileLerProdutosDoCacheUnificado() {
   for (let i = 0; i < MA_CAT_KEYS.length; i++) {
@@ -540,6 +670,8 @@ function mobileLerProdutosDoCacheUnificado() {
 }
 let maThermoTimer = null;
 let maListaInFlight = false;
+/** Depois do PIN de loja na 1ª abertura, dispara o download da lista. */
+let maBootListaPendente = false;
 let maUltimosIdsExibidos = [];
 let maContagemTimer = null;
 let maContagemSkipAgendar = false;
@@ -646,6 +778,150 @@ function getNomeDepositoSelecionado() {
   return getDepositoSelecionado() === 'vila' ? 'Vila Elias' : 'Centro';
 }
 
+function maFecharDepModal() {
+  if (maDepObrigatorio) {
+    /* Primeira abertura: não deixa fechar sem escolher. */
+    return;
+  }
+  const ov = document.getElementById('ma-dep-modal');
+  if (!ov) return;
+  ov.classList.add('hidden');
+  ov.setAttribute('aria-hidden', 'true');
+}
+
+function maAbrirDepModal(opts) {
+  opts = opts || {};
+  if (MA_DEPOSITO_TRAVADO) {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Loja travada pelo caixa. Feche o caixa para trocar.', false);
+    }
+    return;
+  }
+  maDepObrigatorio = !!opts.obrigatorio;
+  const ov = document.getElementById('ma-dep-modal');
+  const cancel = document.getElementById('ma-dep-pick-cancel');
+  const title = document.getElementById('ma-dep-modal-title');
+  const hint = document.getElementById('ma-dep-modal-hint');
+  if (cancel) cancel.classList.toggle('hidden', maDepObrigatorio);
+  if (title && maDepObrigatorio) {
+    title.textContent = 'Antes de contar: qual estoque / loja?';
+  } else if (title) {
+    title.textContent = 'Qual estoque / loja você está?';
+  }
+  if (hint && maDepObrigatorio) {
+    hint.innerHTML = 'Obrigatório nesta abertura. Depois digite <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span>.';
+  }
+  if (!ov) return;
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+function maAplicarDepositoUI(dep, label) {
+  const d = dep === 'vila' ? 'vila' : 'centro';
+  filtrosAplicados.deposito = d;
+  const sel = document.getElementById('f-deposito');
+  if (sel) sel.value = d;
+  const lab = document.getElementById('ma-dep-label');
+  if (lab) lab.textContent = label || (d === 'vila' ? 'Vila Elias' : 'Centro');
+  const q = document.getElementById('busca')?.value || '';
+  buscar(q);
+  hydrateSaldosPositivosDeposito().then((ok) => {
+    if (ok) buscar(q);
+  });
+}
+
+function maTrocarDepositoPara(dep) {
+  const alvo = dep === 'vila' ? 'vila' : 'centro';
+  const atual = getDepositoSelecionado();
+  const forcar = maDepObrigatorio || MA_PEDIR_LOJA;
+  /* Fecha visual só se não for obrigatório; senão some depois do OK. */
+  if (!maDepObrigatorio) {
+    const ov = document.getElementById('ma-dep-modal');
+    if (ov) {
+      ov.classList.add('hidden');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  } else {
+    const ov = document.getElementById('ma-dep-modal');
+    if (ov) {
+      ov.classList.add('hidden');
+      ov.setAttribute('aria-hidden', 'true');
+    }
+  }
+  if (alvo === atual && !forcar) {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Já está em ' + getNomeDepositoSelecionado(), true);
+    }
+    return;
+  }
+  if (!window.AgroLojaConfirm || typeof window.AgroLojaConfirm.pedir !== 'function') {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Confirmação de loja indisponível. Recarregue a página.', false);
+    }
+    if (maDepObrigatorio) maAbrirDepModal({ obrigatorio: true });
+    return;
+  }
+  window.AgroLojaConfirm.pedir({
+    esperado: alvo,
+    onCancel: function () {
+      if (maDepObrigatorio) maAbrirDepModal({ obrigatorio: true });
+    },
+    onOk: function (texto) {
+      fetch(MA_API_DEPOSITO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': MA_CSRF,
+        },
+        body: JSON.stringify({
+          deposito: alvo,
+          confirmacao: texto,
+          forcar_confirmacao: !!(maDepObrigatorio || forcar),
+        }),
+      })
+        .then(async (res) => {
+          let j = null;
+          try { j = await res.json(); } catch (_) { j = null; }
+          return { res: res, j: j || {} };
+        })
+        .then(({ res, j }) => {
+          if (j.ok) {
+            maDepObrigatorio = false;
+            const d = j.deposito === 'vila' ? 'vila' : 'centro';
+            maAplicarDepositoUI(d, j.depositoLabel || (d === 'vila' ? 'Vila Elias' : 'Centro'));
+            if (typeof maMostrarToast === 'function') {
+              maMostrarToast('Estoque: ' + (d === 'vila' ? 'Vila Elias' : 'Centro'), true);
+            }
+            if (maBootListaPendente) {
+              maBootListaPendente = false;
+              mobileAjusteAtualizarSaldosVisiveis();
+            }
+            return;
+          }
+          if (typeof maMostrarToast === 'function') {
+            maMostrarToast(j.erro || ('Não deu para trocar (HTTP ' + res.status + ').'), false);
+          }
+          if (maDepObrigatorio || forcar) maAbrirDepModal({ obrigatorio: true });
+        })
+        .catch(() => {
+          if (typeof maMostrarToast === 'function') {
+            maMostrarToast('Falha na rede ao trocar loja.', false);
+          }
+          if (maDepObrigatorio || forcar) maAbrirDepModal({ obrigatorio: true });
+        });
+    },
+  });
+}
+
+document.getElementById('ma-btn-trocar-dep')?.addEventListener('click', maAbrirDepModal);
+document.getElementById('ma-dep-pick-centro')?.addEventListener('click', () => maTrocarDepositoPara('centro'));
+document.getElementById('ma-dep-pick-vila')?.addEventListener('click', () => maTrocarDepositoPara('vila'));
+document.getElementById('ma-dep-pick-cancel')?.addEventListener('click', maFecharDepModal);
+document.getElementById('ma-dep-modal')?.addEventListener('click', (ev) => {
+  if (ev.target === ev.currentTarget) maFecharDepModal();
+});
+
 function getSaldoAtual(p) {
   if (!p) return 0;
   return getDepositoSelecionado() === 'vila'
@@ -699,10 +975,17 @@ function aplicarFiltrosDaUI() {
 
 function marcarMobileSaldosFresh() {
   const lab = document.getElementById('ma-saldos-ultima');
-  const btn = document.getElementById('ma-btn-saldos');
-  if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
-    AgroEstoqueSync.markFresh(lab, undefined, btn);
-  }
+  if (!lab) return;
+  try {
+    if (typeof AgroEstoqueSync !== 'undefined' && typeof AgroEstoqueSync.markFresh === 'function') {
+      AgroEstoqueSync.markFresh(lab, undefined, null);
+    }
+  } catch (_) {}
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  lab.textContent = 'Atualizado ' + hh + ':' + mm + ':' + ss;
 }
 
 function parseDecimalBr(s) {
@@ -836,12 +1119,12 @@ function mobileAjusteMostrarErroCatalogo(msg) {
   const listaDiv = document.getElementById('lista');
   const resumo = document.getElementById('f-resumo');
   const texto = String(msg || 'Não deu para baixar a lista de produtos.');
-  if (resumo) resumo.textContent = 'Catálogo vazio · toque em Atualizar';
+  if (resumo) resumo.textContent = 'Catálogo vazio · baixando de novo…';
   if (!listaDiv) return;
   listaDiv.innerHTML = `
     <div class="bg-white border border-rose-200 rounded-2xl p-4 text-center space-y-3">
       <p class="text-rose-600 font-black text-sm leading-snug">${texto.replace(/</g, '&lt;')}</p>
-      <p class="text-slate-500 text-xs font-bold leading-snug">Celular novo / sem PDV precisa baixar a lista uma vez. Rede fraca? Tente de novo no Wi‑Fi.</p>
+      <p class="text-slate-500 text-xs font-bold leading-snug">Rede fraca? Wi‑Fi da loja. Se continuar vazio, avise o suporte.</p>
       <button type="button" id="ma-btn-retry-cat" class="w-full min-h-[2.75rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Tentar baixar de novo</button>
     </div>`;
   document.getElementById('ma-btn-retry-cat')?.addEventListener('click', () => {
@@ -851,7 +1134,35 @@ function mobileAjusteMostrarErroCatalogo(msg) {
   });
 }
 
-/** Baixa catálogo completo. Sem poll automático. */
+/** GET JSON de uma URL de catálogo; devolve {produtos} ou null se vazio/freio/erro. */
+function mobileAjusteFetchCatalogoUrl(url, signal) {
+  return fetch(url, {
+    cache: 'no-store',
+    credentials: 'same-origin',
+    signal: signal,
+  }).then(async (res) => {
+    let data = null;
+    try { data = await res.json(); } catch (_) { data = null; }
+    if (!res.ok) {
+      const er = (data && (data.erro || data.error)) || ('HTTP ' + res.status);
+      throw new Error(er);
+    }
+    data = data || {};
+    const produtos = Array.isArray(data.produtos) ? data.produtos : [];
+    const ver = String(data.catalog_version || '');
+    if (!produtos.length || ver === 'catalogo-full-off') return null;
+    return { produtos: produtos, data: data };
+  });
+}
+
+function maMostrarLoadingLista(show) {
+  const ov = document.getElementById('ma-loading');
+  if (!ov) return;
+  ov.classList.toggle('hidden', !show);
+  ov.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+/** Baixa lista: slim (loja com freio) → full. Sem poll automático. */
 function mobileAjusteBaixarListaApi(forcar) {
   if (maListaInFlight) return Promise.resolve(0);
   maListaInFlight = true;
@@ -859,34 +1170,26 @@ function mobileAjusteBaixarListaApi(forcar) {
   const resumo = document.getElementById('f-resumo');
   if (resumo) resumo.textContent = 'Baixando catálogo…';
   if (listaDiv && (!baseProdutos.length || forcar)) {
-    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Baixando lista de produtos…</div>';
+    listaDiv.innerHTML = '<div class="text-center text-slate-400 font-bold py-10 px-4 text-sm">Aguarde o carregamento…</div>';
   }
-  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maMostrarLoadingLista(true);
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 120000);
-  return fetch(MA_API_CATALOGO, {
-    cache: 'no-store',
-    credentials: 'same-origin',
-    signal: ctrl ? ctrl.signal : undefined,
-  })
-    .then(async (res) => {
-      let data = null;
-      try { data = await res.json(); } catch (_) { data = null; }
-      if (!res.ok) {
-        const er = (data && (data.erro || data.error)) || ('HTTP ' + res.status);
-        throw new Error(er);
-      }
-      return data || {};
+  const signal = ctrl ? ctrl.signal : undefined;
+  return mobileAjusteFetchCatalogoUrl(MA_API_CATALOGO_SLIM, signal)
+    .catch(() => null)
+    .then((hit) => {
+      if (hit && hit.produtos && hit.produtos.length) return hit;
+      return mobileAjusteFetchCatalogoUrl(MA_API_CATALOGO, signal);
     })
-    .then((data) => {
-      const produtos = Array.isArray(data.produtos) ? data.produtos : [];
-      if (!produtos.length) {
-        throw new Error(data.erro || 'Lista veio vazia do servidor.');
+    .then((hit) => {
+      if (!hit || !hit.produtos || !hit.produtos.length) {
+        throw new Error('Lista veio vazia do servidor.');
       }
-      mobileAjusteAplicarProdutosDaLista(produtos);
-      mobileAjusteGravarCacheCatalogo(produtos);
+      mobileAjusteAplicarProdutosDaLista(hit.produtos);
+      mobileAjusteGravarCacheCatalogo(hit.produtos);
       marcarMobileSaldosFresh();
-      return produtos.length;
+      return hit.produtos.length;
     })
     .catch((err) => {
       const msg = (err && err.name === 'AbortError')
@@ -894,71 +1197,320 @@ function mobileAjusteBaixarListaApi(forcar) {
         : (err && err.message) || 'Falha ao baixar produtos.';
       if (!baseProdutos.length) {
         mobileAjusteMostrarErroCatalogo(msg);
-      } else {
-        alert('Não deu para baixar a lista completa. Mantive o que já estava na tela.\n' + msg);
+      } else if (typeof maMostrarToast === 'function') {
+        maMostrarToast('Não deu para baixar a lista. Mantive a da tela.', false);
       }
       return 0;
     })
     .finally(() => {
       clearTimeout(to);
       maListaInFlight = false;
+      maMostrarLoadingLista(false);
       maResetLoading();
     });
 }
 
-/** Atualizar = se não tem catálogo, baixa lista; senão só saldos. */
+/** Ao abrir: baixa lista + saldos (substitui o botão Atualizar). */
 function mobileAjusteAtualizarSaldosVisiveis() {
   if (maListaInFlight) return;
-  if (!baseProdutos.length) {
-    mobileAjusteBaixarListaApi(true).then((n) => {
-      if (n > 0) hydrateSaldosPositivosDeposito();
-    });
-    return;
-  }
-  if (window.gmLoadingBar) window.gmLoadingBar.show();
-  const idsVis = (maUltimosIdsExibidos || []).slice();
-  Promise.resolve()
-    .then(() => (idsVis.length ? pollSaldosMobileUmaVez(idsVis) : Promise.resolve(false)))
-    .then(() => hydrateSaldosPositivosDeposito())
-    .finally(() => { maResetLoading(); });
+  const lab = document.getElementById('ma-saldos-ultima');
+  if (lab) lab.textContent = 'Atualizando…';
+  mobileAjusteBaixarListaApi(true).then((n) => {
+    if (n > 0) return hydrateSaldosPositivosDeposito();
+    return false;
+  });
 }
-
-document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
-  mobileAjusteAtualizarSaldosVisiveis();
-});
 
 window.addEventListener('load', () => {
   maResetLoading();
-  if (maThermoTimer) clearInterval(maThermoTimer);
-  maThermoTimer = setInterval(() => {
-    const lab = document.getElementById('ma-saldos-ultima');
-    const btn = document.getElementById('ma-btn-saldos');
-    if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
-      AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
-    }
-  }, 15000);
+  try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
+  maBip1SyncBtn();
 
+  /* Cache local só pra aparecer algo na hora; em seguida sempre baixa de novo. */
   const fromLs = mobileLerProdutosDoCacheUnificado();
-  const depoisLista = () => {
-    if (!baseProdutos.length) return;
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
-    hydrateSaldosPositivosDeposito().finally(() => { maResetLoading(); });
-  };
   if (fromLs && fromLs.length >= 50) {
     mobileAjusteAplicarProdutosDaLista(fromLs);
-    marcarMobileSaldosFresh();
-    depoisLista();
+  }
+
+  /* Com pedido de loja: baixa depois do Centro/Vila (popup de carga no meio). */
+  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
+    maBootListaPendente = true;
+    const lab = document.getElementById('ma-saldos-ultima');
+    if (lab) lab.textContent = 'Escolha a loja…';
+    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
   } else {
-    mobileAjusteBaixarListaApi(true).then((n) => {
-      if (n > 0) depoisLista();
-    });
+    mobileAjusteAtualizarSaldosVisiveis();
   }
 });
+
+function maBip1SyncBtn() {
+  const btn = document.getElementById('ma-btn-bip1');
+  if (!btn) return;
+  btn.classList.toggle('is-on', !!maBip1On);
+  btn.setAttribute('aria-pressed', maBip1On ? 'true' : 'false');
+  btn.textContent = maBip1On ? 'Bip +1 ON' : 'Bip +1';
+}
+
+function maBip1Toggle() {
+  maBip1On = !maBip1On;
+  try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
+  maBip1SyncBtn();
+  if (maBip1On) {
+    /* Só liga o modo — não abre câmera sozinha (PC fica tela preta).
+       Câmera = botão Scan · leitor USB = digita no campo + Enter. */
+    if (scanningActive) stopScan();
+    const busca = document.getElementById('busca');
+    if (busca) {
+      busca.focus({ preventScroll: true });
+      try { busca.select(); } catch (_) {}
+    }
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Bip +1 ligado · Scan ou bipador no campo', true);
+    }
+  } else if (scanningActive) {
+    stopScan();
+  }
+}
+
+document.getElementById('ma-btn-bip1')?.addEventListener('click', maBip1Toggle);
+
+function maTocarSom(tipo) {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (tipo === 'ok') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1240, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.12);
+    } else {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(240, ctx.currentTime);
+      gain.gain.setValueAtTime(0.001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.16);
+    }
+  } catch (_) {}
+}
+
+function maNormCodigo(s) {
+  return String(s || '').trim();
+}
+
+function maDigits(s) {
+  return String(s || '').replace(/\D/g, '');
+}
+
+/** Match exato EAN / GM / index — só para Bip +1. */
+function maMatchCodigoExato(codigo) {
+  const c = maNormCodigo(codigo);
+  if (!c || !baseProdutos.length) return [];
+  const dig = maDigits(c);
+  const cLow = c.toLowerCase();
+  const seen = new Set();
+  const out = [];
+  baseProdutos.forEach((p) => {
+    const id = String(p.id || '');
+    if (!id || seen.has(id)) return;
+    const cand = [];
+    if (p.codigo_barras) cand.push(p.codigo_barras);
+    if (p.codigo) cand.push(p.codigo);
+    if (p.codigo_nfe) cand.push(p.codigo_nfe);
+    if (p.codigo_interno) cand.push(p.codigo_interno);
+    if (Array.isArray(p.index_codigos)) {
+      p.index_codigos.forEach((x) => cand.push(x));
+    }
+    const hit = cand.some((x) => {
+      const s = maNormCodigo(x);
+      if (!s) return false;
+      if (s === c || s.toLowerCase() === cLow) return true;
+      const sd = maDigits(s);
+      return dig.length >= 8 && sd === dig;
+    });
+    if (hit) {
+      seen.add(id);
+      out.push(p);
+    }
+  });
+  return out;
+}
+
+function maMostrarFlash(p, novoSaldo) {
+  maFlashProduto = p;
+  const el = document.getElementById('ma-flash');
+  const nome = document.getElementById('ma-flash-nome');
+  const sal = document.getElementById('ma-flash-saldo');
+  if (nome) nome.textContent = p.nome || '';
+  if (sal) sal.textContent = Number(novoSaldo).toFixed(1);
+  if (el) el.classList.remove('hidden');
+  clearTimeout(maFlashTimer);
+  maFlashTimer = setTimeout(() => {
+    if (el) el.classList.add('hidden');
+  }, 2800);
+}
+
+document.getElementById('ma-flash-ajustar')?.addEventListener('click', () => {
+  const el = document.getElementById('ma-flash');
+  if (el) el.classList.add('hidden');
+  clearTimeout(maFlashTimer);
+  if (maFlashProduto) {
+    pSel = maFlashProduto;
+    abrir();
+  }
+});
+
+function maFecharPick() {
+  const ov = document.getElementById('ma-pick');
+  if (ov) {
+    ov.classList.add('hidden');
+    ov.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function maAbrirPick(lista) {
+  const ov = document.getElementById('ma-pick');
+  const box = document.getElementById('ma-pick-list');
+  if (!ov || !box) return;
+  box.innerHTML = '';
+  lista.forEach((p) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'w-full text-left rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 active:bg-emerald-50';
+    b.innerHTML = `<div class="text-sm font-black text-slate-900 leading-snug">${String(p.nome || '').replace(/</g, '&lt;')}</div>
+      <div class="text-[10px] font-bold text-slate-500 mt-0.5">GM ${String(p.codigo_nfe || p.codigo || '').replace(/</g, '&lt;')} · saldo ${Number(getSaldoAtual(p)).toFixed(1)}</div>`;
+    b.addEventListener('click', () => {
+      maFecharPick();
+      pSel = p;
+      abrir();
+    });
+    box.appendChild(b);
+  });
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+document.getElementById('ma-pick-cancel')?.addEventListener('click', maFecharPick);
+
+function maPreencherBuscaOrfao(codigo) {
+  maCodigoOrfao = maNormCodigo(codigo);
+  const inp = document.getElementById('busca');
+  if (!inp) return;
+  inp.value = maCodigoOrfao;
+  buscar(maCodigoOrfao);
+  inp.focus({ preventScroll: true });
+  try {
+    inp.setSelectionRange(0, inp.value.length);
+  } catch (_) {
+    inp.select();
+  }
+}
+
+function maPostAjuste(produto, novoSaldo, opts) {
+  opts = opts || {};
+  const fd = new FormData();
+  fd.append('produto_id', produto.id);
+  fd.append('nome_produto', produto.nome || '');
+  const deposito = getDepositoSelecionado();
+  fd.append('saldo_atual', getSaldoErpAtual(produto));
+  fd.append('novo_saldo', String(novoSaldo));
+  fd.append('deposito', deposito);
+  fd.append('pin', 'SESSAO');
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
+  return fetch("{% url 'api_ajustar_estoque' %}", {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-CSRFToken': MA_CSRF },
+    signal: ctrl ? ctrl.signal : undefined,
+  })
+    .then((res) => res.json())
+    .then((d) => {
+      if (!d || !d.ok) {
+        throw new Error((d && d.erro) || 'Erro ao salvar ajuste.');
+      }
+      const dep = d.deposito || deposito;
+      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
+        ? Number(d.novo_saldo)
+        : Number(novoSaldo);
+      aplicarSaldoLocalAposPin(produto, dep, novo);
+      marcarMobileSaldosFresh();
+      return { deposito: dep, novo_saldo: novo, data: d };
+    })
+    .finally(() => clearTimeout(to));
+}
+
+function maSalvarBipMaisUm(p) {
+  if (!p || maBipBusy) return Promise.resolve(false);
+  maBipBusy = true;
+  const saldoAgora = Number(getSaldoAtual(p) || 0);
+  const novoSaldo = saldoAgora + 1;
+  return maPostAjuste(p, novoSaldo)
+    .then((r) => {
+      maTocarSom('ok');
+      maMostrarFlash(p, r.novo_saldo);
+      buscar(document.getElementById('busca')?.value || '');
+      return true;
+    })
+    .catch((err) => {
+      maTocarSom('erro');
+      alert((err && err.message) || 'Falha ao somar +1.');
+      return false;
+    })
+    .finally(() => { maBipBusy = false; });
+}
+
+function maProcessarCodigoBipado(codigo) {
+  const c = maNormCodigo(codigo);
+  if (!c) return;
+  const now = Date.now();
+  if (c === maBipLastCode && (now - maBipLastAt) < 1200) return;
+  maBipLastCode = c;
+  maBipLastAt = now;
+
+  if (!maBip1On) {
+    document.getElementById('busca').value = c;
+    buscar(c);
+    stopScan();
+    return;
+  }
+
+  if (!baseProdutos.length) {
+    maTocarSom('erro');
+    alert('Catálogo ainda não carregou. Aguarde a atualização automática.');
+    return;
+  }
+
+  const hits = maMatchCodigoExato(c);
+  if (hits.length === 1) {
+    maCodigoOrfao = null;
+    maSalvarBipMaisUm(hits[0]);
+    return;
+  }
+  if (hits.length === 0) {
+    maTocarSom('erro');
+    stopScan();
+    maPreencherBuscaOrfao(c);
+    return;
+  }
+  maTocarSom('erro');
+  stopScan();
+  maAbrirPick(hits.slice(0, 40));
+}
 
 function startScan() {
   if (scanningActive) return;
   const reader = document.getElementById('reader');
-  const readerBox = document.getElementById('reader-box');
   reader.classList.remove('hidden');
   scanner = new Html5Qrcode("reader-box");
   scanningActive = true;
@@ -969,13 +1521,15 @@ function startScan() {
     { facingMode: "environment" },
     { fps: 10, qrbox: qrbox },
     (txt) => {
-      document.getElementById('busca').value = txt;
-      buscar(txt);
-      stopScan();
+      maProcessarCodigoBipado(txt);
     }
   ).catch(() => {
     stopScan();
-    alert('Não foi possível iniciar a câmera.');
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Câmera indisponível neste aparelho. Use o bipador no campo.', false);
+    } else {
+      alert('Não foi possível iniciar a câmera.');
+    }
   });
 }
 
@@ -1210,6 +1764,124 @@ window.addEventListener('load', () => setTimeout(syncMaKeyboardInset, 100));
   }
 })();
 
+function maMostrarToast(texto, ok) {
+  const el = document.getElementById('ma-toast');
+  const txt = document.getElementById('ma-toast-txt');
+  if (!el || !txt) return;
+  txt.textContent = String(texto || '');
+  el.style.background = ok === false ? '#9f1239' : '#064e3b';
+  el.classList.remove('hidden');
+  clearTimeout(maMostrarToast._t);
+  maMostrarToast._t = setTimeout(() => el.classList.add('hidden'), 2200);
+}
+
+function maFecharOffer() {
+  const ov = document.getElementById('ma-offer');
+  if (ov) {
+    ov.classList.add('hidden');
+    ov.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function maProdutoJaTemCodigo(p, codigo) {
+  const c = maNormCodigo(codigo);
+  if (!p || !c) return true;
+  const dig = maDigits(c);
+  const cand = [p.codigo_barras, p.codigo, p.codigo_nfe, p.codigo_interno]
+    .concat(Array.isArray(p.index_codigos) ? p.index_codigos : []);
+  return cand.some((x) => {
+    const s = maNormCodigo(x);
+    if (!s) return false;
+    if (s === c || s.toLowerCase() === c.toLowerCase()) return true;
+    return dig && maDigits(s) === dig;
+  });
+}
+
+function maAbrirOfferGuardar(codigo, produto) {
+  const ov = document.getElementById('ma-offer');
+  const cEl = document.getElementById('ma-offer-codigo');
+  const pEl = document.getElementById('ma-offer-produto');
+  if (!ov || !cEl || !pEl) return;
+  cEl.textContent = codigo;
+  pEl.textContent = (produto.nome || '') + ' · GM ' + (produto.codigo_nfe || produto.codigo || '');
+  ov.dataset.codigo = codigo;
+  ov.dataset.pid = String(produto.id || '');
+  ov.dataset.nome = produto.nome || '';
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+function maGuardarCodigoPendente(codigo, produto) {
+  return fetch(MA_API_CODIGO_PENDENTE, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': MA_CSRF,
+    },
+    body: JSON.stringify({
+      codigo_bipado: codigo,
+      produto_externo_id: String(produto.id || ''),
+      nome_produto: produto.nome || '',
+    }),
+  }).then(async (res) => {
+    let d = null;
+    try { d = await res.json(); } catch (_) { d = null; }
+    if (!res.ok || !d || !d.ok) {
+      throw new Error((d && d.erro) || ('HTTP ' + res.status));
+    }
+    return d;
+  });
+}
+
+document.getElementById('ma-offer-nao')?.addEventListener('click', () => {
+  maCodigoOrfao = null;
+  maFecharOffer();
+});
+document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
+  const ov = document.getElementById('ma-offer');
+  const codigo = ov && ov.dataset.codigo;
+  const pid = ov && ov.dataset.pid;
+  const nome = ov && ov.dataset.nome;
+  if (!codigo || !pid) {
+    maFecharOffer();
+    return;
+  }
+  const btn = document.getElementById('ma-offer-sim');
+  if (btn) btn.disabled = true;
+  maGuardarCodigoPendente(codigo, { id: pid, nome: nome })
+    .then(() => {
+      maCodigoOrfao = null;
+      maFecharOffer();
+      maMostrarToast('Código guardado na fila pra cadastro.', true);
+    })
+    .catch((err) => {
+      maMostrarToast((err && err.message) || 'Não deu para guardar o código.', false);
+    })
+    .finally(() => {
+      if (btn) btn.disabled = false;
+    });
+});
+
+document.getElementById('busca')?.addEventListener('focus', () => {
+  const inp = document.getElementById('busca');
+  if (!inp || !maCodigoOrfao) return;
+  if (maNormCodigo(inp.value) !== maNormCodigo(maCodigoOrfao)) return;
+  setTimeout(() => {
+    try { inp.setSelectionRange(0, inp.value.length); } catch (_) { try { inp.select(); } catch (__) {} }
+  }, 0);
+});
+
+document.getElementById('busca')?.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter') return;
+  if (!maBip1On) return;
+  const c = maNormCodigo(document.getElementById('busca')?.value);
+  if (!c) return;
+  /* Leitor USB / Enter: no modo Bip+1 trata como bip. */
+  ev.preventDefault();
+  maProcessarCodigoBipado(c);
+});
+
 function salvar(modo) {
   if (!pSel) return;
   const modoOk = modo === 'somar' ? 'somar' : 'trocar';
@@ -1225,15 +1897,9 @@ function salvar(modo) {
 
   const saldoAgora = Number(getSaldoAtual(pSel) || 0);
   const novoSaldo = modoOk === 'somar' ? (saldoAgora + qtd) : qtd;
-
-  const fd = new FormData();
-  fd.append('produto_id', pSel.id);
-  fd.append('nome_produto', pSel.nome || '');
-  const deposito = getDepositoSelecionado();
-  fd.append('saldo_atual', getSaldoErpAtual(pSel));
-  fd.append('novo_saldo', String(novoSaldo));
-  fd.append('deposito', deposito);
-  fd.append('pin', 'SESSAO');
+  const orfaoParaOferta = maCodigoOrfao && !maProdutoJaTemCodigo(pSel, maCodigoOrfao)
+    ? maNormCodigo(maCodigoOrfao)
+    : null;
 
   const btnSomar = document.getElementById('ma-btn-somar');
   const btnTrocar = document.getElementById('ma-btn-trocar');
@@ -1241,36 +1907,24 @@ function salvar(modo) {
   if (btnTrocar) btnTrocar.disabled = true;
 
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const to = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 25000);
-  fetch("{% url 'api_ajustar_estoque' %}", {
-    method: 'POST',
-    body: fd,
-    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-    signal: ctrl ? ctrl.signal : undefined,
-  })
-  .then(res => res.json())
-  .then(d => {
-    if (d.ok) {
-      const dep = d.deposito || getDepositoSelecionado();
-      const novo = (d.novo_saldo != null && Number.isFinite(Number(d.novo_saldo)))
-        ? Number(d.novo_saldo)
-        : novoSaldo;
-      aplicarSaldoLocalAposPin(pSel, dep, novo);
+  maPostAjuste(pSel, novoSaldo)
+    .then(() => {
       fechar();
       buscar(document.getElementById('busca').value);
-      marcarMobileSaldosFresh();
-    } else {
-      alert(d.erro || 'Erro ao salvar ajuste.');
-    }
-  })
-  .catch(() => alert('Falha na comunicação com o servidor.'))
-  .finally(() => {
-    clearTimeout(to);
-    maResetLoading();
-    if (btnSomar) btnSomar.disabled = false;
-    if (btnTrocar) btnTrocar.disabled = false;
-  });
+      if (orfaoParaOferta) {
+        maAbrirOfferGuardar(orfaoParaOferta, pSel);
+      } else {
+        maCodigoOrfao = null;
+      }
+    })
+    .catch((err) => {
+      alert((err && err.message) || 'Erro ao salvar ajuste.');
+    })
+    .finally(() => {
+      maResetLoading();
+      if (btnSomar) btnSomar.disabled = false;
+      if (btnTrocar) btnTrocar.disabled = false;
+    });
 }
 </script>
 </body>

@@ -2461,3 +2461,44 @@ class BugReportAgro(models.Model):
 
     def __str__(self):
         return f"#{self.pk} {self.usuario_nome or '?'} — {(self.o_que_aconteceu or '')[:40]}"
+
+
+class AjusteCodigoPendenteAgro(models.Model):
+    """Código bipado sem cadastro — fila para conferir no cadastro (Postgres multi-PC)."""
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_FEITO = "feito"
+    STATUS_DESCARTADO = "descartado"
+    STATUS_CHOICES = (
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_FEITO, "Feito"),
+        (STATUS_DESCARTADO, "Descartado"),
+    )
+
+    codigo_bipado = models.CharField(max_length=64, db_index=True)
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    nome_produto = models.CharField(max_length=255, blank=True, default="")
+    operador = models.CharField(max_length=120, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ajuste_codigos_pendentes",
+    )
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDENTE,
+        db_index=True,
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Código pendente (ajuste)"
+        verbose_name_plural = "Códigos pendentes (ajuste)"
+
+    def __str__(self):
+        return f"#{self.pk} {self.codigo_bipado} → {self.nome_produto or self.produto_externo_id}"
+
