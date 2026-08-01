@@ -1178,6 +1178,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 BI — Ticket + Novos Clientes vs mesmo dia semana (01/08 · **teste v12.92**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Ticket** | % Mês e Hoje vs ticket do mesmo dia da semana do mês ant. |
+| **Novos Clientes** | Número = **hoje** · % vs cadastros no mesmo dia da semana do mês ant. (30d só no «?») |
+| **Você** | Ctrl+F5 · selos «vs 1º sáb.» nos 3 cards |
+
 ### 🔧 BI — Vendas % vs mesmo dia da semana do mês ant. (01/08 · **teste v12.91**)
 
 | Item | Detalhe |

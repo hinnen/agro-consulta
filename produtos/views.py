@@ -9029,6 +9029,13 @@ def _dashboard_capri_novos_clientes_counts(
     return novos_30, ref_media_90_em_30
 
 
+def _dashboard_novos_clientes_no_dia(dia: date, deposito: str | None = None) -> int:
+    """Novos cadastros ClienteAgro no dia (empresa). Vila zera — mesma regra do card."""
+    if deposito == "vila":
+        return 0
+    return ClienteAgro.objects.filter(criado_em__date=dia).count()
+
+
 def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
     contas_receber: list = []
     contas_pagar: list = []
@@ -9164,6 +9171,25 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                 dia_cmp_mes_ant,
                 deposito_filtro,
             )
+            fut["tkt_cmp_mes_ant"] = ex.submit(
+                _dashboard_worker,
+                _dashboard_ticket_medio_intervalo,
+                dia_cmp_mes_ant,
+                dia_cmp_mes_ant,
+                deposito_filtro,
+            )
+            fut["novos_cmp_mes_ant"] = ex.submit(
+                _dashboard_worker,
+                _dashboard_novos_clientes_no_dia,
+                dia_cmp_mes_ant,
+                deposito_filtro,
+            )
+        fut["novos_hoje"] = ex.submit(
+            _dashboard_worker,
+            _dashboard_novos_clientes_no_dia,
+            hoje,
+            deposito_filtro,
+        )
         fut["novos_clientes"] = ex.submit(
             _dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje, deposito_filtro
         )
@@ -9250,6 +9276,22 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                 )
             except Exception:
                 pass
+            try:
+                blk["tkt_cmp_mes_ant"] = _dashboard_ticket_medio_intervalo(
+                    dia_cmp_mes_ant, dia_cmp_mes_ant, deposito_filtro
+                )
+            except Exception:
+                pass
+            try:
+                blk["novos_cmp_mes_ant"] = _dashboard_novos_clientes_no_dia(
+                    dia_cmp_mes_ant, deposito_filtro
+                )
+            except Exception:
+                pass
+        try:
+            blk["novos_hoje"] = _dashboard_novos_clientes_no_dia(hoje, deposito_filtro)
+        except Exception:
+            pass
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
@@ -9269,6 +9311,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         + validade_mes_conf_n
     )
     novos_clientes_30, ref_clientes_media_90 = blk["novos_clientes"]
+    novos_clientes_hoje = int(blk.get("novos_hoje") or 0)
+    novos_cmp_mes_ant = int(blk.get("novos_cmp_mes_ant") or 0)
+    ticket_cmp_mes_ant = _dashboard_float(blk.get("tkt_cmp_mes_ant") or 0)
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
     ticket_medio_mes_civil_anterior = blk["tkt_mes_ant"]
@@ -9342,8 +9387,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     # Faturamento por unidade: sempre Centro + Vila (comparativo), mesmo com loja filtrada nos KPIs.
 
     tendencia_clientes = (
-        ((novos_clientes_30 / ref_clientes_media_90) - 1) * 100
-        if ref_clientes_media_90 > 0
+        ((novos_clientes_hoje / novos_cmp_mes_ant) - 1) * 100
+        if novos_cmp_mes_ant > 0
         else 0.0
     )
 
@@ -9354,9 +9399,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     media_tkt_7d = (
         round(sum(t7_com_venda) / max(len(t7_com_venda), 1), 2) if t7_com_venda else 0.0
     )
-    if ticket_medio_mes_civil_anterior > 0 and ticket_medio > 0:
-        var_tkt_vs_mes_ant = ((ticket_medio / ticket_medio_mes_civil_anterior) - 1) * 100
-        tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% vs mês"
+    if ticket_cmp_mes_ant > 0 and ticket_medio > 0:
+        var_tkt_vs_mes_ant = ((ticket_medio / ticket_cmp_mes_ant) - 1) * 100
+        tkt_trend = f"{var_tkt_vs_mes_ant:+.1f}% {labels_cmp_mes_ant['trend_suffix']}"
         tkt_trend_short = f"{var_tkt_vs_mes_ant:+.1f}%"
         tkt_trend_class = (
             "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
@@ -9364,7 +9409,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             else "text-red-800 bg-red-200 ring-1 ring-red-300"
         )
     else:
-        tkt_trend = "Sem ref. mês"
+        tkt_trend = "Sem ref."
         tkt_trend_short = "S/ ref."
         tkt_trend_class = "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
     qtd_vendas_hoje = int((atual.get("qtd_por_dia") or {}).get(hoje.isoformat()) or 0)
@@ -9375,8 +9420,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             hoje, hoje, deposito=deposito_filtro
         ).count()
     ticket_hoje = (vendas_hoje / qtd_vendas_hoje) if qtd_vendas_hoje > 0 else 0.0
-    if ticket_medio_mes_civil_anterior > 0 and ticket_hoje > 0:
-        tkt_hoje_var = ((ticket_hoje / ticket_medio_mes_civil_anterior) - 1) * 100
+    if ticket_cmp_mes_ant > 0 and ticket_hoje > 0:
+        tkt_hoje_var = ((ticket_hoje / ticket_cmp_mes_ant) - 1) * 100
         tkt_hoje_trend_short = f"{tkt_hoje_var:+.1f}%"
         tkt_hoje_trend_class = (
             "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
@@ -9456,7 +9501,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "variant": "ticket_duplo",
             "context_lines": [
                 "Número grande: ticket médio do período filtrado (faturamento ÷ nº de vendas).",
-                f"O % do selo compara com o mês civil anterior completo ({mes_ant_ini.strftime('%d/%m/%Y')} a {mes_ant_fim.strftime('%d/%m/%Y')}: ticket {_format_moeda_br(Decimal(str(round(ticket_medio_mes_civil_anterior, 2))))}).",
+                (
+                    f"O % compara com o ticket de {labels_cmp_mes_ant['contexto']} "
+                    f"({_format_moeda_br(Decimal(str(round(ticket_cmp_mes_ant, 2))))})."
+                    if ticket_cmp_mes_ant > 0 and dia_cmp_mes_ant is not None
+                    else "Sem base no mês anterior para o mesmo dia da semana."
+                ),
                 f"Ticket do dia usa vendas de hoje dividido por {qtd_vendas_hoje} venda(s).",
                 f"Referência 7d (últ. dias do gráfico, só dia com venda): {_format_moeda_br(Decimal(str(round(media_tkt_7d, 2))))}.",
                 f"Volume do período: {qtd_total_periodo} venda(s) e total {_format_moeda_br(Decimal(str(round(total_ticket, 2))))}.",
@@ -9482,15 +9532,33 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         },
         {
             "label": "Novos Clientes",
-            "value": str(novos_clientes_30),
+            "value": str(novos_clientes_hoje),
             "prefix": "",
-            "trend": f"{tendencia_clientes:+.1f}% vs 30d",
-            "trend_short": f"{tendencia_clientes:+.1f}%",
-            "trend_class": "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300" if tendencia_clientes >= 0 else "text-red-800 bg-red-200 ring-1 ring-red-300",
+            "trend": (
+                f"{tendencia_clientes:+.1f}% {labels_cmp_mes_ant['trend_suffix']}"
+                if novos_cmp_mes_ant > 0
+                else "S/ ref."
+            ),
+            "trend_short": (
+                f"{tendencia_clientes:+.1f}%" if novos_cmp_mes_ant > 0 else "S/ ref."
+            ),
+            "trend_class": (
+                "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
+                if novos_cmp_mes_ant > 0 and tendencia_clientes >= 0
+                else (
+                    "text-red-800 bg-red-200 ring-1 ring-red-300"
+                    if novos_cmp_mes_ant > 0
+                    else "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
+                )
+            ),
             "context_lines": [
-                "Cadastros com data de criação nos últimos 30 dias.",
-                f"Janela atual: {novos_clientes_30} novo(s) cliente(s).",
-                f"Referência: média até 90 dias (início em 20/04) normalizada p/ 30 dias = {ref_clientes_media_90} cliente(s).",
+                f"Número grande: cadastros de cliente **hoje** ({novos_clientes_hoje}).",
+                (
+                    f"O % compara com {labels_cmp_mes_ant['contexto']} ({novos_cmp_mes_ant} cadastro(s))."
+                    if dia_cmp_mes_ant is not None
+                    else "Sem base no mês anterior para o mesmo dia da semana."
+                ),
+                f"Últimos 30 dias (informação): {novos_clientes_30} novo(s).",
             ],
         },
         {
