@@ -1378,6 +1378,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **BUG-FAB-BARRA** | 📦 **pronto para envio à produção** · **v12.55** · sem migrate |
 | 4 | **PDV-USO-LOJA-UX** | 📦 **pronto para envio à produção** · **v12.55** · migrate `0076` |
 | 5 | **PDV-USO-LOJA-BRINDE** | 📦 **pronto para envio à produção** · **v12.57** · migrate `0077` |
+| 6 | **DFE-CHAVE** | 📦 **pronto para envio à produção** · **v12.71** · sem migrate · base DFE-INBOX loja |
 
 ### 📦 PACOTE PRONTO — Ajuste Mobile Bip +1 (`AJUSTE-MOBILE-BIP1` · **v12.66**)
 
