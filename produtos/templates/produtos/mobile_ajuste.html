@@ -432,8 +432,11 @@
     </div>
     {% endif %}
     <div class="ma-head-row ma-head-row--sync">
-      <div class="ma-head-dep" title="Depósito igual ao PDV deste aparelho">
-        Estoque: {% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}{% if ajuste_deposito_travado %} · travado{% endif %}
+      <div class="ma-head-dep" title="Depósito deste aparelho (igual PDV/BI)">
+        <span>Estoque: <span id="ma-dep-label">{% if ajuste_deposito_inicial == 'vila' %}Vila Elias{% else %}Centro{% endif %}</span>{% if ajuste_deposito_travado %} · travado{% endif %}</span>
+        {% if not ajuste_deposito_travado %}
+        <button type="button" id="ma-btn-trocar-dep" class="ma-head-op-link ml-1">Trocar</button>
+        {% endif %}
       </div>
       <div class="ma-head-sync-line">
         <span id="ma-saldos-ultima" title="Última leitura dos saldos na lista">—</span>
@@ -604,6 +607,17 @@
     </div>
   </div>
 
+  <div id="ma-dep-modal" class="ma-offer-overlay hidden" aria-hidden="true">
+    <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
+      <p class="text-sm font-black text-slate-900 leading-snug">Qual estoque / loja você está?</p>
+      <p class="text-[10px] font-bold text-slate-500 leading-snug">Depois vai pedir para digitar <span class="text-emerald-700">centro</span> ou <span class="text-emerald-700">vila</span> — igual no BI e no PDV.</p>
+      <button type="button" id="ma-dep-pick-centro" class="w-full min-h-[3.25rem] rounded-xl bg-emerald-600 text-white text-sm font-black uppercase">Centro</button>
+      <button type="button" id="ma-dep-pick-vila" class="w-full min-h-[3.25rem] rounded-xl bg-slate-800 text-white text-sm font-black uppercase">Vila Elias</button>
+      <button type="button" id="ma-dep-pick-cancel" class="w-full min-h-[2.75rem] text-slate-500 font-bold text-sm uppercase">Cancelar</button>
+    </div>
+  </div>
+
+{% include "produtos/includes/agro_loja_confirm.html" %}
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script src="{% static 'js/agro_estoque_sync.js' %}"></script>
 <script>
@@ -619,6 +633,7 @@ const MA_API_CATALOGO = "{% url 'api_todos_produtos_local' %}";
 const MA_API_CATALOGO_SLIM = '/api/pdv/catalogo-slim/';
 const MA_CAT_KEYS = ['agro_pdv_catalog_cache_v2', 'agro_compra_catalog_cache_v2'];
 const MA_API_CODIGO_PENDENTE = "{% url 'api_ajuste_codigo_pendente_criar' %}";
+const MA_API_DEPOSITO = "{% url 'api_pdv_deposito' %}";
 const MA_CSRF = '{{ csrf_token }}';
 const MA_BIP1_KEY = 'ma_bip1_on_v1';
 
@@ -748,6 +763,104 @@ function getDepositoSelecionado() {
 function getNomeDepositoSelecionado() {
   return getDepositoSelecionado() === 'vila' ? 'Vila Elias' : 'Centro';
 }
+
+function maFecharDepModal() {
+  const ov = document.getElementById('ma-dep-modal');
+  if (!ov) return;
+  ov.classList.add('hidden');
+  ov.setAttribute('aria-hidden', 'true');
+}
+
+function maAbrirDepModal() {
+  if (MA_DEPOSITO_TRAVADO) {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Loja travada pelo caixa. Feche o caixa para trocar.', false);
+    }
+    return;
+  }
+  const ov = document.getElementById('ma-dep-modal');
+  if (!ov) return;
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+}
+
+function maAplicarDepositoUI(dep, label) {
+  const d = dep === 'vila' ? 'vila' : 'centro';
+  filtrosAplicados.deposito = d;
+  const sel = document.getElementById('f-deposito');
+  if (sel) sel.value = d;
+  const lab = document.getElementById('ma-dep-label');
+  if (lab) lab.textContent = label || (d === 'vila' ? 'Vila Elias' : 'Centro');
+  const q = document.getElementById('busca')?.value || '';
+  buscar(q);
+  hydrateSaldosPositivosDeposito().then((ok) => {
+    if (ok) buscar(q);
+  });
+}
+
+function maTrocarDepositoPara(dep) {
+  const alvo = dep === 'vila' ? 'vila' : 'centro';
+  const atual = getDepositoSelecionado();
+  maFecharDepModal();
+  if (alvo === atual) {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Já está em ' + getNomeDepositoSelecionado(), true);
+    }
+    return;
+  }
+  if (!window.AgroLojaConfirm || typeof window.AgroLojaConfirm.pedir !== 'function') {
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Confirmação de loja indisponível. Recarregue a página.', false);
+    }
+    return;
+  }
+  window.AgroLojaConfirm.pedir({
+    esperado: alvo,
+    onCancel: function () {},
+    onOk: function (texto) {
+      fetch(MA_API_DEPOSITO, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': MA_CSRF,
+        },
+        body: JSON.stringify({ deposito: alvo, confirmacao: texto }),
+      })
+        .then(async (res) => {
+          let j = null;
+          try { j = await res.json(); } catch (_) { j = null; }
+          return { res: res, j: j || {} };
+        })
+        .then(({ res, j }) => {
+          if (j.ok) {
+            const d = j.deposito === 'vila' ? 'vila' : 'centro';
+            maAplicarDepositoUI(d, j.depositoLabel || (d === 'vila' ? 'Vila Elias' : 'Centro'));
+            if (typeof maMostrarToast === 'function') {
+              maMostrarToast('Estoque: ' + (d === 'vila' ? 'Vila Elias' : 'Centro'), true);
+            }
+            return;
+          }
+          if (typeof maMostrarToast === 'function') {
+            maMostrarToast(j.erro || ('Não deu para trocar (HTTP ' + res.status + ').'), false);
+          }
+        })
+        .catch(() => {
+          if (typeof maMostrarToast === 'function') {
+            maMostrarToast('Falha na rede ao trocar loja.', false);
+          }
+        });
+    },
+  });
+}
+
+document.getElementById('ma-btn-trocar-dep')?.addEventListener('click', maAbrirDepModal);
+document.getElementById('ma-dep-pick-centro')?.addEventListener('click', () => maTrocarDepositoPara('centro'));
+document.getElementById('ma-dep-pick-vila')?.addEventListener('click', () => maTrocarDepositoPara('vila'));
+document.getElementById('ma-dep-pick-cancel')?.addEventListener('click', maFecharDepModal);
+document.getElementById('ma-dep-modal')?.addEventListener('click', (ev) => {
+  if (ev.target === ev.currentTarget) maFecharDepModal();
+});
 
 function getSaldoAtual(p) {
   if (!p) return 0;
@@ -1355,7 +1468,11 @@ function startScan() {
     }
   ).catch(() => {
     stopScan();
-    alert('Não foi possível iniciar a câmera.');
+    if (typeof maMostrarToast === 'function') {
+      maMostrarToast('Câmera indisponível neste aparelho. Use o bipador no campo.', false);
+    } else {
+      alert('Não foi possível iniciar a câmera.');
+    }
   });
 }
 
