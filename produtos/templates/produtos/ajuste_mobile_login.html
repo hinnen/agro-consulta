@@ -26,7 +26,11 @@
   {% include "produtos/_agro_consulta_ui.html" %}
     <style>
       body { font-family: 'Inter', sans-serif; }
-      html { zoom: 1 !important; }
+      html {
+        zoom: 1 !important;
+        background: #94a3b8;
+        min-height: 100dvh;
+      }
       #agro-pdv-fab-wrap,
       #agro-display-scale-fab,
       #agro-display-scale-modal,
@@ -34,9 +38,22 @@
       #agro-inapp-pane-stack {
         display: none !important;
       }
+      /* Coluna celular também na tela do PIN. */
+      body.ma-login-shell {
+        width: 100%;
+        max-width: 28rem;
+        margin-left: auto;
+        margin-right: auto;
+        min-height: 100dvh;
+        box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 16px 48px rgba(15, 23, 42, 0.18);
+      }
+      @media (max-width: 28rem) {
+        html { background: #0f172a; }
+        body.ma-login-shell { max-width: 100%; box-shadow: none; }
+      }
     </style>
 </head>
-<body class="bg-slate-900 flex items-center justify-center min-h-[100dvh] p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] touch-manipulation">
+<body class="ma-login-shell bg-slate-900 flex items-center justify-center min-h-[100dvh] p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] touch-manipulation">
 {% include "produtos/_gm_loading_bar.html" %}
     <div class="w-full max-w-sm text-center">
         <h1 class="text-white text-2xl font-black mb-2 italic uppercase tracking-tight">Ajuste <span class="text-emerald-500">Mobile</span></h1>

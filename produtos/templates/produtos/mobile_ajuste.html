@@ -42,6 +42,8 @@
       overflow-x: hidden;
       overflow-y: auto;
       scroll-padding-bottom: calc(1.5rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
+      /* PC: fundo cinza; a coluna do app fica no centro tipo celular. */
+      background: #94a3b8;
     }
     /* Esta tela: tipografia real (UI global infla text-[10px] e corta/sobreponte). */
     body.ma-page :is(
@@ -54,7 +56,9 @@
       line-height: revert !important;
     }
     body.ma-page {
-      margin: 0;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 28rem; /* ~448px — sempre “modo celular”, mesmo no PC */
       min-height: 100dvh;
       height: auto !important;
       max-height: none !important;
@@ -64,6 +68,15 @@
       padding-bottom: calc(1.25rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
       touch-action: manipulation;
       -webkit-overflow-scrolling: touch;
+      background: #f1f5f9;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 16px 48px rgba(15, 23, 42, 0.18);
+    }
+    @media (max-width: 28rem) {
+      html { background: #f1f5f9; }
+      body.ma-page {
+        max-width: 100%;
+        box-shadow: none;
+      }
     }
     body.ma-page.ma-modal-open {
       overflow: hidden !important;
