@@ -13,7 +13,12 @@
       <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-slate-900">Códigos pendentes (ajuste)</h1>
       <p class="mt-1 text-sm font-medium text-slate-500">{{ total_pendente }} pendente(s) · Postgres · conferir no cadastro</p>
     </div>
-    {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black uppercase text-slate-800 shadow-sm hover:border-emerald-500" %}
+    <div class="flex flex-wrap items-center gap-2 shrink-0">
+      <a href="{% url 'ajuste_mobile' %}" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-2 text-xs font-black uppercase text-white shadow-sm hover:bg-emerald-700">
+        ← Voltar ao Ajuste
+      </a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black uppercase text-slate-800 shadow-sm hover:border-emerald-500" %}
+    </div>
   </div>
 </header>
 {% endblock %}
@@ -24,6 +29,7 @@
   <a href="?status=feito" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase {% if status_filtro == 'feito' %}bg-emerald-600 text-white{% else %}bg-white border border-slate-200 text-slate-700{% endif %}">Feitos</a>
   <a href="?status=descartado" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase {% if status_filtro == 'descartado' %}bg-emerald-600 text-white{% else %}bg-white border border-slate-200 text-slate-700{% endif %}">Descartados</a>
   <a href="{% url 'produtos_cadastro_erp' %}" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase bg-white border border-orange-300 text-orange-800">Abrir cadastro</a>
+  <a href="{% url 'ajuste_mobile' %}" class="min-h-[2.5rem] rounded-xl px-3 py-2 text-xs font-black uppercase bg-emerald-50 border border-emerald-300 text-emerald-800 sm:hidden">← Ajuste Mobile</a>
 </div>
 
 <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
