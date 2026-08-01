@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
 | 7 | **BI-KPI-LOJA** | ✅ **enviado · Live** loja v12.95 · `87aa52b` |
 | 8 | **CP-BUSCA-FORN** | 📦 **pronto para envio à produção** · teste **v13.03** · `006f871` |
-| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.04** · sem migrate · prova 12/12 |
+| 9 | **DFE-NSU-656** | 📦 **pronto para envio à produção** · teste **v13.04** · `ed58d84` · sem migrate · prova 12/12 |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
