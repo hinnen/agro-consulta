@@ -25,6 +25,8 @@
     preco: { x: 26, y: 36, w: 58, h: 42 },
     logo: { x: 2, y: 74, w: 14, h: 22 },
     peso: { x: 20, y: 78, w: 78, h: 18 },
+    /* Novo: GM curto — fora do caminho do preset clássico; só imprime se show_gm */
+    gm: { x: 2, y: 55, w: 18, h: 16 },
   };
 
   var DEFAULT_GONDOLA_PRESET = {
@@ -41,6 +43,7 @@
     preco_pt: 20,
     rs_pt: 11,
     peso_pt: 7,
+    gm_pt: 8,
     codigo_pt: 7,
     rodape_pt: 8,
     barcode_height: 26,
@@ -48,6 +51,11 @@
     texto_rodape: '',
     impressora: '',
     show_logo: true,
+    show_nome: true,
+    show_rs: true,
+    show_preco: true,
+    show_peso: true,
+    show_gm: false,
     cols_folha: 2,
     rows_folha: 9,
     borda_mm: 0.5,
@@ -58,6 +66,7 @@
       preco_fg: '#1a4d2e',
       rs_fg: '#1a4d2e',
       peso_fg: '#1a4d2e',
+      gm_fg: '#1a4d2e',
       borda: '#1a4d2e',
       marca_corte: '#94a3b8',
     },
@@ -254,7 +263,14 @@
       }
       if (out.peso_pt == null) out.peso_pt = 7;
       if (out.rs_pt == null) out.rs_pt = 11;
+      if (out.gm_pt == null) out.gm_pt = 8;
       if (out.show_logo == null) out.show_logo = true;
+      /* Presets antigos: campos clássicos ligados; GM desligado (não muda o visual salvo) */
+      if (out.show_nome == null) out.show_nome = true;
+      if (out.show_rs == null) out.show_rs = true;
+      if (out.show_preco == null) out.show_preco = true;
+      if (out.show_peso == null) out.show_peso = true;
+      if (out.show_gm == null) out.show_gm = false;
       if (out.borda_mm == null || !(Number(out.borda_mm) > 0)) out.borda_mm = 0.5;
       if (out.nome_pt_1 == null) out.nome_pt_1 = Number(out.nome_pt) || 11;
       if (out.nome_pt_2 == null) out.nome_pt_2 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.82 * 10) / 10);
@@ -346,6 +362,27 @@
     return t.toUpperCase();
   }
 
+  /**
+   * GM curto na etiqueta gôndola:
+   * GM0050-1 → GM50 · GM0123-10 → GM123 · GM0090-55 → GM90
+   * (tira zeros à esquerda do número e o sufixo após o hífen)
+   */
+  function fmtGmCurto(code) {
+    var s = String(code || '').trim().toUpperCase();
+    if (!s) return '';
+    var m = s.match(/^GM0*(\d+)(?:[-:].*)?$/i);
+    if (m && m[1]) return 'GM' + String(parseInt(m[1], 10));
+    m = s.match(/^GM(\d+)$/i);
+    if (m && m[1]) return 'GM' + String(parseInt(m[1], 10));
+    return s;
+  }
+
+  function campoVisivel(preset, key, defaultOn) {
+    var k = 'show_' + key;
+    if (preset && preset[k] == null) return defaultOn !== false;
+    return !!(preset && preset[k]);
+  }
+
   function splitPrecoParts(v) {
     var s = fmtPreco(v);
     var i = s.indexOf(',');
@@ -412,27 +449,42 @@
     return parts.join('');
   }
 
-  function montarConteudoEtiquetaGondola(lb, layout, showLogo) {
+  function montarConteudoEtiquetaGondola(lb, layout, preset) {
+    var showNome = campoVisivel(preset, 'nome', true);
+    var showRs = campoVisivel(preset, 'rs', true);
+    var showPreco = campoVisivel(preset, 'preco', true);
+    var showPeso = campoVisivel(preset, 'peso', true);
+    var showLogo = campoVisivel(preset, 'logo', true);
+    var showGm = campoVisivel(preset, 'gm', false);
     var precoHtml =
       '<span class="preco-int">' +
       esc(lb.inteiro) +
       '</span><span class="preco-cent">' +
       esc(lb.centavos) +
       '</span>';
-    var html =
-      '<div class="slot slot-nome" style="' +
-      boxCss(layout.nome) +
-      '">' +
-      esc(lb.nome) +
-      '</div>' +
-      '<div class="slot slot-rs" style="' +
-      boxCss(layout.rs) +
-      '">R$</div>' +
-      '<div class="slot slot-preco" style="' +
-      boxCss(layout.preco) +
-      '">' +
-      precoHtml +
-      '</div>';
+    var html = '';
+    if (showNome) {
+      html +=
+        '<div class="slot slot-nome" style="' +
+        boxCss(layout.nome) +
+        '">' +
+        esc(lb.nome) +
+        '</div>';
+    }
+    if (showRs) {
+      html +=
+        '<div class="slot slot-rs" style="' +
+        boxCss(layout.rs) +
+        '">R$</div>';
+    }
+    if (showPreco) {
+      html +=
+        '<div class="slot slot-preco" style="' +
+        boxCss(layout.preco) +
+        '">' +
+        precoHtml +
+        '</div>';
+    }
     if (showLogo) {
       html +=
         '<div class="slot slot-logo" style="' +
@@ -441,12 +493,20 @@
         logoImgMarkup() +
         '</div>';
     }
-    if (lb.peso) {
+    if (showPeso && lb.peso) {
       html +=
         '<div class="slot slot-peso" style="' +
         boxCss(layout.peso) +
         '">' +
         esc(lb.peso) +
+        '</div>';
+    }
+    if (showGm && lb.gm) {
+      html +=
+        '<div class="slot slot-gm" style="' +
+        boxCss(layout.gm) +
+        '">' +
+        esc(lb.gm) +
         '</div>';
     }
     return html;
@@ -479,6 +539,11 @@
       ';font-size:' +
       (Number(preset.peso_pt) || 7) +
       'pt;font-weight:800;line-height:1.1;text-transform:uppercase}' +
+      '.slot-gm{display:flex;align-items:center;justify-content:center;padding:0 0.8mm;color:' +
+      esc(cores.gm_fg || cores.peso_fg || '#1a4d2e') +
+      ';font-size:' +
+      (Number(preset.gm_pt) || 8) +
+      'pt;font-weight:900;line-height:1.1;letter-spacing:0.02em;white-space:nowrap}' +
       '.slot-logo{display:flex;align-items:center;justify-content:center;padding:0.2mm}'
     );
   }
@@ -515,7 +580,6 @@
     var marginY = Math.max(0, (pageH - rows * outerH) / 2);
     var cores = preset.cores || DEFAULT_GONDOLA_PRESET.cores;
     var layout = preset.layout || DEFAULT_GONDOLA_LAYOUT;
-    var showLogo = preset.show_logo !== false;
     var labels = [];
     itens.forEach(function (it) {
       var qtd = Math.max(1, parseInt(it.qtd, 10) || 1);
@@ -526,6 +590,7 @@
           inteiro: parts.inteiro,
           centavos: parts.centavos,
           peso: fmtPesoEtiqueta(it.peso_etiqueta),
+          gm: fmtGmCurto(it.codigo_gm || it.codigo_nfe || ''),
         });
       }
     });
@@ -578,7 +643,7 @@
             'mm;top:' +
             y +
             'mm">' +
-            montarConteudoEtiquetaGondola(lb, layout, showLogo) +
+            montarConteudoEtiquetaGondola(lb, layout, preset) +
             '</div>'
           );
         })
@@ -877,6 +942,7 @@
     esc: esc,
     fmtPreco: fmtPreco,
     fmtPesoEtiqueta: fmtPesoEtiqueta,
+    fmtGmCurto: fmtGmCurto,
     logoImgMarkup: logoImgMarkup,
     LOGO_AGRO_URL: LOGO_AGRO_URL,
     clonePreset: clonePreset,

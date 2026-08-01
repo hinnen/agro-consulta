@@ -41,7 +41,9 @@
     .etq-lay-item[data-lay="preco"] .etq-lay-label,
     .etq-lay-item[data-lay="rs"] .etq-lay-label,
     .etq-lay-item[data-lay="peso"] .etq-lay-label,
+    .etq-lay-item[data-lay="gm"] .etq-lay-label,
     .etq-lay-item[data-lay="logo"] .etq-lay-label { color: #1a4d2e; text-shadow: none; }
+    .etq-lay-item.is-off { opacity: 0.28; }
     .etq-lay-handle {
       position: absolute; right: 0; bottom: 0; width: 12px; height: 12px;
       background: #f97316; cursor: nwse-resize; border-radius: 2px 0 0 0;
@@ -422,6 +424,8 @@
 
         <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte peso pt</span><input id="etq-preset-peso-pt" type="number" min="4" max="24" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-gm-pt" type="number" min="4" max="24" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" title="Ex.: GM0050-1 vira GM50 na etiqueta" /></label>
+
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte GM pt</span><input id="etq-preset-codigo-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
 
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Fonte rodapé pt</span><input id="etq-preset-rodape-pt" type="number" min="4" max="20" step="0.5" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
@@ -437,13 +441,19 @@
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Preço</span><input id="etq-cor-preco" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">R$</span><input id="etq-cor-rs" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Peso</span><input id="etq-cor-peso" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
+          <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">GM</span><input id="etq-cor-gm" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Borda</span><input id="etq-cor-borda" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
           <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Marca corte</span><input id="etq-cor-corte" type="color" class="h-9 w-full cursor-pointer rounded border border-slate-600 bg-slate-950" /></label>
-          <label class="col-span-2 flex items-center gap-2 sm:col-span-3 lg:col-span-6">
-            <input id="etq-preset-show-logo" type="checkbox" class="h-4 w-4 rounded border-slate-500" />
-            <span class="text-xs font-bold uppercase text-slate-300">Mostrar logo Agro Mais</span>
-          </label>
-          <p class="col-span-2 sm:col-span-3 lg:col-span-6 text-[11px] font-semibold text-slate-400">Impressão: folha <strong class="text-slate-200">A4</strong> · área útil <strong class="text-slate-200">9×3 cm</strong> · borda <strong class="text-slate-200">0,5 mm pra fora</strong> (total <strong class="text-slate-200">91×31 mm</strong>) · grade <strong class="text-slate-200">2×9 = 18</strong> · marcas de corte nos cantos. No Chrome: margens «Nenhuma» + marcar «Gráficos de segundo plano».</p>
+          <div class="col-span-2 sm:col-span-3 lg:col-span-6 flex flex-wrap gap-x-4 gap-y-2 rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2">
+            <span class="w-full text-[10px] font-black uppercase text-slate-500">Campos na etiqueta (liga/desliga)</span>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-nome" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Nome</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-rs" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> R$</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-preco" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Preço</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-show-peso" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Peso</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-slate-300"><input id="etq-preset-show-logo" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> Logo</label>
+            <label class="inline-flex items-center gap-1.5 text-xs font-bold uppercase text-emerald-300"><input id="etq-show-gm" type="checkbox" class="h-4 w-4 rounded border-slate-500" /> GM curto <span class="font-semibold normal-case text-slate-500">(GM0050-1 → GM50)</span></label>
+          </div>
+          <p class="col-span-2 sm:col-span-3 lg:col-span-6 text-[11px] font-semibold text-slate-400">Impressão: folha <strong class="text-slate-200">A4</strong> · área útil <strong class="text-slate-200">9×3 cm</strong> · borda <strong class="text-slate-200">0,5 mm pra fora</strong> (total <strong class="text-slate-200">91×31 mm</strong>) · grade <strong class="text-slate-200">2×9 = 18</strong> · marcas de corte nos cantos. No Chrome: margens «Nenhuma» + marcar «Gráficos de segundo plano». Preset antigo continua igual — GM vem <strong class="text-slate-200">desligado</strong>; crie um preset novo para usar.</p>
         </div>
 
         <div class="sm:col-span-2 lg:col-span-3 etq-field-gondola">
@@ -458,6 +468,7 @@
               <div class="etq-lay-item" data-lay="preco" style="left:26%;top:36%;width:58%;height:42%"><span class="etq-lay-label">PREÇO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
               <div class="etq-lay-item" data-lay="logo" style="left:2%;top:74%;width:14%;height:22%"><span class="etq-lay-label">LOGO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
               <div class="etq-lay-item" data-lay="peso" style="left:20%;top:78%;width:78%;height:18%"><span class="etq-lay-label">PESO</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
+              <div class="etq-lay-item" data-lay="gm" style="left:2%;top:55%;width:18%;height:16%"><span class="etq-lay-label">GM</span><i class="etq-lay-handle" aria-hidden="true"></i></div>
             </div>
           </div>
         </div>
@@ -512,9 +523,9 @@ window.AGRO_ETQ_CFG = {
   presetsUrl: "{{ api_presets_url|default:'/api/compras/folha-saldo-presets/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=11"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=13"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=12" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=13" defer></script>
 
 {% endblock %}
 
