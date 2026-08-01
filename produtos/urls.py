@@ -1035,6 +1035,11 @@ urlpatterns = [
         name='api_entrada_nota_dist_dfe',
     ),
     path(
+        'api/entrada-nota/dfe-por-chave/',
+        views.api_entrada_nota_dfe_por_chave,
+        name='api_entrada_nota_dfe_por_chave',
+    ),
+    path(
         'api/entrada-nota/dfe-inbox/',
         views.api_entrada_nota_dfe_inbox,
         name='api_entrada_nota_dfe_inbox',

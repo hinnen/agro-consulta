@@ -16553,6 +16553,64 @@ def api_entrada_nota_dist_dfe(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_dfe_por_chave(request):
+    """Baixa XML pela chave (44 dígitos) e grava na caixa — não mexe no ultNSU."""
+    from produtos.dfe_inbox_util import dfe_executar_download_por_chave, dfe_inbox_listar
+    from produtos.sefaz_dfe_client import _cfg_dist_dfe, distribuicao_dfe_configurada
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+    chave = re.sub(r"\D", "", str(payload.get("chave") or ""))[:44]
+    cfg = _cfg_dist_dfe()
+    cnpj_cfg = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+
+    if not distribuicao_dfe_configurada():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Certificado DF-e/NFC-e incompleto no servidor.",
+                "itens": dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else [],
+            },
+            status=400,
+        )
+    if len(chave) != 44:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe a chave da NF-e com 44 dígitos.", "itens": []},
+            status=400,
+        )
+
+    res = dfe_executar_download_por_chave(chave)
+    inbox = res.get("inbox") or {}
+    novas = int(inbox.get("novas") or 0)
+    atualizadas = int(inbox.get("atualizadas") or 0)
+    if res.get("ok") and (novas or atualizadas):
+        msg_ui = "Nota gravada na caixa de entrada (Pendentes)."
+    elif res.get("ok"):
+        msg_ui = "Receita respondeu OK, mas não veio XML completo — tente Ler XML."
+    else:
+        msg_ui = str(res.get("x_motivo") or res.get("erro") or "Falha ao baixar pela chave.")
+
+    out = {
+        "ok": bool(res.get("ok")),
+        "c_stat": res.get("c_stat"),
+        "x_motivo": res.get("x_motivo") or "",
+        "erro": res.get("erro"),
+        "aguardar_segundos": res.get("aguardar_segundos"),
+        "msg_ui": msg_ui,
+        "inbox": inbox,
+        "itens": res.get("itens_pendentes")
+        or (dfe_inbox_listar(cnpj_cfg, aba="pendentes") if len(cnpj_cfg) == 14 else []),
+        "chave": chave,
+    }
+    if not out["ok"] and out.get("erro"):
+        return JsonResponse(out, status=429 if out.get("aguardar_segundos") else 502)
+    return JsonResponse(out)
+
+
+@login_required(login_url="/admin/login/")
 @require_GET
 def api_entrada_nota_dfe_inbox(request):
     """Lista caixa de entrada DF-e do Postgres (sem falar com a SEFAZ)."""

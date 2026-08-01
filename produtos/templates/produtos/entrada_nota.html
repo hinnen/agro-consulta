@@ -1858,6 +1858,12 @@
       <div class="flex flex-wrap gap-3 items-end">
         <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Buscar notas novas</button>
         <p class="w-full text-[10px] font-semibold text-slate-500 leading-snug">Lista <strong>salva no banco</strong> (até ~80). Processar as <strong>mais antigas primeiro</strong>. Botão só puxa notas <strong>novas</strong> (pra frente do cursor). Se 656/137 → aguarde 1h.</p>
+        <div class="w-full flex flex-wrap gap-2 items-end rounded-xl border-2 border-orange-200 bg-orange-50/60 p-3">
+          <label class="block flex-1 min-w-[14rem]"><span class="text-[10px] font-black uppercase text-orange-950">Chave NF-e (44 dígitos)</span>
+            <input type="text" id="sefaz-chave" inputmode="numeric" maxlength="54" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-orange-300 px-3 py-2 text-sm font-mono bg-white" placeholder="Cole a chave da nota (portal / XML / fornecedor)"></label>
+          <button type="button" id="btn-dfe-chave" class="min-h-[48px] px-5 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-sm border-2 border-orange-800">Baixar pela chave</button>
+          <p class="w-full text-[10px] font-semibold text-orange-950/80 leading-snug">Recupera nota que o «Buscar» já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita (não use no meio do Aguarde 1h).</p>
+        </div>
         <details class="w-full rounded-xl border border-slate-200 bg-slate-50/80 p-2">
           <summary class="cursor-pointer text-[10px] font-black uppercase text-slate-600">Avançado · ultNSU</summary>
           <label class="mt-2 block"><span class="text-[10px] font-black uppercase text-slate-600">ultNSU (opcional)</span>
@@ -2168,6 +2174,7 @@
   const URL_RASC = "{% url 'api_entrada_nota_rascunhos' %}";
   const URL_AUDITORIA_FIN = "{% url 'api_entrada_nota_auditoria_financeiro' %}";
   const URL_DFE = "{% url 'api_entrada_nota_dist_dfe' %}";
+  const URL_DFE_CHAVE = "{% url 'api_entrada_nota_dfe_por_chave' %}";
   const URL_DFE_INBOX = "{% url 'api_entrada_nota_dfe_inbox' %}";
   const URL_DFE_INBOX_DETALHE_TMPL = "{% url 'api_entrada_nota_dfe_inbox_detalhe' doc_id=999999999 %}".replace('999999999', '__ID__');
   const URL_DFE_INBOX_IGNORAR_TMPL = "{% url 'api_entrada_nota_dfe_inbox_ignorar' doc_id=999999999 %}".replace('999999999', '__ID__');
@@ -11001,6 +11008,60 @@
       else void carregarDfeInbox();
     } catch (e) {
       resBox.textContent = 'Erro de rede.';
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  });
+
+  document.getElementById('btn-dfe-chave')?.addEventListener('click', async () => {
+    if (entradaNfeEditorCongeladoAtivo()) {
+      showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
+      return;
+    }
+    const btnBuscar = document.getElementById('btn-dist-dfe');
+    if (btnBuscar && btnBuscar.disabled) {
+      showMsg('Aguarde o intervalo da SEFAZ antes de baixar pela chave.', false);
+      return;
+    }
+    const chaveRaw = document.getElementById('sefaz-chave')?.value || '';
+    const chave = String(chaveRaw).replace(/\D/g, '').slice(0, 44);
+    const resBox = document.getElementById('sefaz-result');
+    if (chave.length !== 44) {
+      showMsg('Cole a chave com 44 dígitos.', false);
+      return;
+    }
+    resBox.classList.remove('hidden');
+    resBox.textContent = 'Baixando pela chave…';
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const r = await fetch(URL_DFE_CHAVE, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ chave }),
+      });
+      const j = await r.json();
+      const msg = j.msg_ui || j.x_motivo || j.erro || '';
+      resBox.innerHTML = `<div class="font-black">cStat: ${j.c_stat ?? '—'}</div><div>${msg}</div><div class="text-xs mt-1">Chave ${j.chave || chave}</div>`;
+      entradaNfeDfeAba = 'pendentes';
+      if (Array.isArray(j.itens)) entradaNfeDfeRenderInbox(j.itens);
+      else void carregarDfeInbox();
+      if (j.ok) showMsg(msg || 'Nota na caixa de entrada.', true);
+      else showMsg(msg || 'Falha ao baixar.', false);
+      if (j.aguardar_segundos) {
+        entradaNfeSefazAplicarLimiteUi({
+          configurada: true,
+          consulta_liberada: false,
+          aguardar_segundos: j.aguardar_segundos,
+          limite_motivo: msg,
+        });
+      }
+    } catch (_) {
+      resBox.textContent = 'Erro de rede.';
+      showMsg('Erro de rede ao baixar pela chave.', false);
     } finally {
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
