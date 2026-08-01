@@ -425,6 +425,7 @@ def _variantes_doc_cpf_cnpj(dig: str) -> list[str]:
 
 
 def _q_texto_basico(tok: str, *, incluir_mongo_id: bool = True) -> Q:
+    """Campos de título — sem quem lançou (e-mail tipo renanhinnen@… poluía busca de nome)."""
     q = (
         Q(cliente__icontains=tok)
         | Q(descricao__icontains=tok)
@@ -437,9 +438,10 @@ def _q_texto_basico(tok: str, *, incluir_mongo_id: bool = True) -> Q:
         | Q(observacoes__icontains=tok)
         | Q(centro_custo__icontains=tok)
         | Q(boleto_codigo_barras__icontains=tok)
-        | Q(criado_por__icontains=tok)
-        | Q(usuario_lancou__icontains=tok)
     )
+    # Quem lançou: só se parecer e-mail (evita «Renan»/«Hinnen» no login casar tudo)
+    if "@" in (tok or ""):
+        q |= Q(criado_por__icontains=tok) | Q(usuario_lancou__icontains=tok)
     if incluir_mongo_id:
         q |= Q(mongo_id__icontains=tok)
     return q
@@ -482,16 +484,21 @@ def _q_token_busca_pg(tok: str) -> Q:
         return q
 
     # Valor: inteiro curto OU vírgula/R$ — faixa progressiva (234 → acha 234,78)
+    # Número puro também casa texto (código no fornecedor «Renan Hinnen 1403», NF na descrição)
     puro_curto = bool(dig and dig == tok and 1 <= len(dig) <= 7)
     if puro_curto or _parece_valor_monetario_token(tok):
         faixa = _faixa_valor_digitacao(tok)
         if faixa is None:
-            return Q(pk__in=[])
+            return _q_texto_basico(tok, incluir_mongo_id=False) if puro_curto else Q(pk__in=[])
         lo, hi, exato = faixa
         q = _q_valor_faixa(lo, hi, exato=exato)
-        # NF: só número puro com 5+ dígitos (evita «234» em documento/ID)
-        if puro_curto and len(dig) >= 5:
-            q |= Q(numero_documento__icontains=dig)
+        if puro_curto:
+            q |= _q_texto_basico(dig, incluir_mongo_id=False)
+            # NF com zero à esquerda: «013962» na descrição também casa «13962»
+            if len(dig) >= 5:
+                z = dig.lstrip("0")
+                if z and z != dig:
+                    q |= _q_texto_basico(z, incluir_mongo_id=False)
         return q
 
     # Texto livre — mongo_id só com termo longo

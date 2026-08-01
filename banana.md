@@ -1178,6 +1178,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### Contas a pagar — busca fornecedor bugada (01/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🔧 **teste** — validar local Ctrl+F5 |
+| **Sintoma** | `Renan Hinnen 1403` = 0 · `Renan Hinnen` listava Detran/Geraldo (~560) |
+| **Causa** | (1) `1403` ia **só** como valor R$ · (2) termos casavam e-mail `renanhinnen@…` em quem lançou |
+| **Fix** | Número puro também casa texto (fornecedor/NF) · quem lançou só com `@` |
+| **Arquivos** | `lancamentos_financeiro_pg_util.py` · `mongo_financeiro_util.py` · ajuda `?` / AGENTS §10 |
+| **Você** | Contas a pagar · busca `Renan Hinnen 1403` → só esse fornecedor |
+
 ### ✅ Deploy loja **v12.95** — BI-KPI-LOJA (01/08 · Renan frase+senha)
 
 | Item | Detalhe |
