@@ -19050,12 +19050,19 @@ def ajuste_mobile_view(request):
     O gate ``ajuste_mobile_gate`` é consumido no GET após o login — F5 ou reentrada pedem PIN de novo.
     Depósito inicial = loja/estoque travado no PDV deste aparelho (Centro × Vila).
     """
-    from produtos.pdv_deposito_util import bootstrap_deposito, rotulo_deposito
+    from produtos.pdv_deposito_util import (
+        bootstrap_deposito,
+        rotulo_deposito,
+    )
 
     dep_boot = bootstrap_deposito(request)
     dep = str(dep_boot.get("deposito") or "centro").strip().lower()
     if dep not in ("centro", "vila"):
         dep = "centro"
+    travado = bool(dep_boot.get("caixaTravado"))
+    # Sempre pedir loja a cada entrada com PIN (mesmo funcionário pode ir à outra loja).
+    # Só não pede se o caixa do aparelho já travou Centro/Vila.
+    pedir_loja = not travado
     if not request.session.pop("ajuste_mobile_gate", None):
         request.session.pop("ajuste_mobile_operador", None)
         request.session.pop("ajuste_mobile_user_id", None)
@@ -19069,7 +19076,8 @@ def ajuste_mobile_view(request):
             "ajuste_operador": operador,
             "ajuste_deposito_inicial": dep,
             "ajuste_deposito_inicial_label": rotulo_deposito(dep),
-            "ajuste_deposito_travado": bool(dep_boot.get("caixaTravado")),
+            "ajuste_deposito_travado": travado,
+            "ajuste_pedir_loja": pedir_loja,
         },
     )
 
