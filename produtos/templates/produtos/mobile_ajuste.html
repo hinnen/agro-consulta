@@ -452,13 +452,7 @@
         {% endif %}
       </div>
       <div class="ma-head-sync-line">
-        <span id="ma-saldos-ultima" title="Última leitura dos saldos na lista">—</span>
-        <button type="button" id="ma-btn-saldos" title="Baixar lista completa + saldos (Postgres)">
-          <span class="agro-termo-track" aria-hidden="true">
-            <span class="agro-termo-fil" style="height:0%"></span>
-          </span>
-          <span>Atualizar</span>
-        </button>
+        <span id="ma-saldos-ultima" title="Última atualização automática">Atualizando…</span>
       </div>
     </div>
   </header>
@@ -968,10 +962,17 @@ function aplicarFiltrosDaUI() {
 
 function marcarMobileSaldosFresh() {
   const lab = document.getElementById('ma-saldos-ultima');
-  const btn = document.getElementById('ma-btn-saldos');
-  if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
-    AgroEstoqueSync.markFresh(lab, undefined, btn);
-  }
+  if (!lab) return;
+  try {
+    if (typeof AgroEstoqueSync !== 'undefined' && typeof AgroEstoqueSync.markFresh === 'function') {
+      AgroEstoqueSync.markFresh(lab, undefined, null);
+    }
+  } catch (_) {}
+  const d = new Date();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  lab.textContent = 'Atualizado ' + hh + ':' + mm + ':' + ss;
 }
 
 function parseDecimalBr(s) {
@@ -1105,12 +1106,12 @@ function mobileAjusteMostrarErroCatalogo(msg) {
   const listaDiv = document.getElementById('lista');
   const resumo = document.getElementById('f-resumo');
   const texto = String(msg || 'Não deu para baixar a lista de produtos.');
-  if (resumo) resumo.textContent = 'Catálogo vazio · toque em Atualizar';
+  if (resumo) resumo.textContent = 'Catálogo vazio · baixando de novo…';
   if (!listaDiv) return;
   listaDiv.innerHTML = `
     <div class="bg-white border border-rose-200 rounded-2xl p-4 text-center space-y-3">
       <p class="text-rose-600 font-black text-sm leading-snug">${texto.replace(/</g, '&lt;')}</p>
-      <p class="text-slate-500 text-xs font-bold leading-snug">Rede fraca? Wi‑Fi da loja. Se continuar vazio, avise o suporte (lista do servidor).</p>
+      <p class="text-slate-500 text-xs font-bold leading-snug">Rede fraca? Wi‑Fi da loja. Se continuar vazio, avise o suporte.</p>
       <button type="button" id="ma-btn-retry-cat" class="w-full min-h-[2.75rem] rounded-xl bg-emerald-600 text-white text-xs font-black uppercase">Tentar baixar de novo</button>
     </div>`;
   document.getElementById('ma-btn-retry-cat')?.addEventListener('click', () => {
@@ -1188,24 +1189,30 @@ function mobileAjusteBaixarListaApi(forcar) {
     });
 }
 
-/** Atualizar = se não tem catálogo, baixa lista; senão só saldos. */
+/** Ao abrir: baixa lista + saldos (substitui o botão Atualizar). */
 function mobileAjusteAtualizarSaldosVisiveis() {
   if (maListaInFlight) return;
-  if (!baseProdutos.length) {
-    mobileAjusteBaixarListaApi(true).then((n) => {
-      if (n > 0) hydrateSaldosPositivosDeposito();
-    });
-    return;
-  }
-  if (window.gmLoadingBar) window.gmLoadingBar.show();
-  const idsVis = (maUltimosIdsExibidos || []).slice();
-  Promise.resolve()
-    .then(() => (idsVis.length ? pollSaldosMobileUmaVez(idsVis) : Promise.resolve(false)))
-    .then(() => hydrateSaldosPositivosDeposito())
-    .finally(() => { maResetLoading(); });
+  const lab = document.getElementById('ma-saldos-ultima');
+  if (lab) lab.textContent = 'Atualizando…';
+  mobileAjusteBaixarListaApi(true).then((n) => {
+    if (n > 0) return hydrateSaldosPositivosDeposito();
+    return false;
+  });
 }
 
-document.getElementById('ma-btn-saldos')?.addEventListener('click', () => {
+window.addEventListener('load', () => {
+  maResetLoading();
+  try { maBip1On = sessionStorage.getItem(MA_BIP1_KEY) === '1'; } catch (_) { maBip1On = false; }
+  maBip1SyncBtn();
+  if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
+    setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
+  }
+
+  /* Cache local só pra aparecer algo na hora; em seguida sempre baixa de novo. */
+  const fromLs = mobileLerProdutosDoCacheUnificado();
+  if (fromLs && fromLs.length >= 50) {
+    mobileAjusteAplicarProdutosDaLista(fromLs);
+  }
   mobileAjusteAtualizarSaldosVisiveis();
 });
 
@@ -1453,7 +1460,7 @@ function maProcessarCodigoBipado(codigo) {
 
   if (!baseProdutos.length) {
     maTocarSom('erro');
-    alert('Catálogo ainda não carregou. Toque em Atualizar.');
+    alert('Catálogo ainda não carregou. Aguarde a atualização automática.');
     return;
   }
 
@@ -1481,30 +1488,13 @@ window.addEventListener('load', () => {
   if (MA_PEDIR_LOJA && !MA_DEPOSITO_TRAVADO) {
     setTimeout(() => maAbrirDepModal({ obrigatorio: true }), 120);
   }
-  if (maThermoTimer) clearInterval(maThermoTimer);
-  maThermoTimer = setInterval(() => {
-    const lab = document.getElementById('ma-saldos-ultima');
-    const btn = document.getElementById('ma-btn-saldos');
-    if (typeof AgroEstoqueSync !== 'undefined' && lab && btn) {
-      AgroEstoqueSync.paintThermo(btn, lab, AgroEstoqueSync.staleMsDefault);
-    }
-  }, 15000);
 
+  /* Cache local só pra aparecer algo na hora; em seguida sempre baixa de novo. */
   const fromLs = mobileLerProdutosDoCacheUnificado();
-  const depoisLista = () => {
-    if (!baseProdutos.length) return;
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
-    hydrateSaldosPositivosDeposito().finally(() => { maResetLoading(); });
-  };
   if (fromLs && fromLs.length >= 50) {
     mobileAjusteAplicarProdutosDaLista(fromLs);
-    marcarMobileSaldosFresh();
-    depoisLista();
-  } else {
-    mobileAjusteBaixarListaApi(true).then((n) => {
-      if (n > 0) depoisLista();
-    });
   }
+  mobileAjusteAtualizarSaldosVisiveis();
 });
 
 function startScan() {
