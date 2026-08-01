@@ -1192,7 +1192,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
-| **VERSION** | **12.93** (loja **12.88**) |
+| **VERSION** | **12.94** (loja **12.88**) |
 | **Inclui** | Filtro Centro/Vila em Vendas/Performance · % Vendas/Ticket/Novos vs **mesmo dia da semana do mês ant.** · Novos = **hoje** · card Validade por loja alinhado ao relatório (lote qtd) · «por unidade» compara as duas |
 | **Migrate** | NÃO |
 | **Commits** | `07cd457` · `e0f99da` · `dd505c5` · `fea48c9` |
@@ -1240,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
 
 **Loja hoje:** badge **v12.88** · `producao` @ `941446d`  
-**Teste hoje:** branch `teste` · badge **v12.93** · inclui **BI-KPI-LOJA** pronto envio  
+**Teste hoje:** branch `teste` · badge **v12.94** · inclui **BI-KPI-LOJA** pronto envio  
 **Rollback:** `rollback/pre-lote-checklist`  
 **Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
 
@@ -1253,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | **PDV-USO-LOJA-BRINDE** | ✅ **enviado loja v12.88** · migrate `0077` |
 | 5 | **DFE-CHAVE** | ✅ **enviado loja v12.88** |
 | 6 | **ETQ-GM-CAMPOS** | ✅ **enviado loja v12.88** |
-| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.93** |
+| 7 | **BI-KPI-LOJA** | 📦 **pronto para envio à produção** · teste **v12.94** |
 
 ### 📦 PACOTE PRONTO LOJA — Dist DF-e baixar pela chave (`DFE-CHAVE` · **v12.71**)
 
@@ -3849,7 +3849,7 @@ iews.py (compras enrich) |
 | ------ | ----- |
 | **✅ Loja** | **v12.88** lote checklist · AJUSTE-MOBILE · BUG-FAB · PDV-USO-UX · BRINDE · DFE-CHAVE · ETQ-GM |
 | **✅ Loja** | **v12.51** marca+uso+bugs+DF-e · **v12.12** 12.08–12.12 · **v12.06** AJUSTE-MOBILE-CEL · **v12.05** ETQ |
-| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.93 pronto envio |
+| **📦 Fila pacotes** | **BI-KPI-LOJA** v12.94 pronto envio |
 | **⛔ Fora** | **ENTRADA-NF-CUSTO** |
 | **P0,1** | **FL-057** PgBouncer (painel Render) |
 | **P0,2** | **FL-058** Vale crédito no cliente pelo PDV *(novo 01/08)* |
