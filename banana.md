@@ -1182,7 +1182,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🔧 **teste** — validar local Ctrl+F5 |
+| **Status** | 🔧 **teste v12.99** @ `006f871` — validar local Ctrl+F5 |
 | **Sintoma** | `Renan Hinnen 1403` = 0 · `Renan Hinnen` listava Detran/Geraldo (~560) |
 | **Causa** | (1) `1403` ia **só** como valor R$ · (2) termos casavam e-mail `renanhinnen@…` em quem lançou |
 | **Fix** | Número puro também casa texto (fornecedor/NF) · quem lançou só com `@` |
