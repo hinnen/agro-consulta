@@ -361,6 +361,35 @@
       pointer-events: none;
     }
 
+    /* Numpad no modal — contagem manual com leitor Bluetooth (sem soft keyboard). */
+    .ma-numpad .ma-np {
+      min-height: 3rem;
+      border-radius: 0.9rem;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      color: #0f172a;
+      font-size: 1.35rem;
+      font-weight: 900;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .ma-numpad .ma-np:active {
+      background: #ecfdf5;
+      border-color: #10b981;
+      transform: scale(0.97);
+    }
+    .ma-numpad .ma-np-sec {
+      background: #f1f5f9;
+      color: #334155;
+      font-size: 1.05rem;
+    }
+    .ma-numpad .ma-np-wide {
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+    }
+
     /* Bip +1 */
     .ma-btn-bip1 {
       border: 2px solid #94a3b8;
@@ -551,15 +580,34 @@
           <input
             id="m-novo"
             type="text"
-            inputmode="decimal"
+            inputmode="none"
+            readonly
             enterkeyhint="done"
             placeholder="0"
-            class="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-3xl font-black tabular-nums text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400"
+            class="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-3xl font-black tabular-nums text-slate-900 outline-none bg-slate-50"
+            aria-describedby="ma-numpad-hint"
           >
-          <p class="text-[10px] font-bold text-slate-400 leading-snug">
-            <span class="text-emerald-700">Somar</span> = acrescenta no saldo ·
-            <span class="text-orange-700">Trocar</span> = vira o saldo novo
+          <p id="ma-numpad-hint" class="text-[10px] font-bold text-slate-400 leading-snug">
+            Use os botões abaixo (leitor Bluetooth some o teclado do celular).
+            <span class="text-emerald-700">Somar</span> = acrescenta ·
+            <span class="text-orange-700">Trocar</span> = saldo novo
           </p>
+          {# Teclado na tela — BT HID = teclado físico; Android esconde o soft keyboard. #}
+          <div id="ma-numpad" class="ma-numpad grid grid-cols-3 gap-2 pt-1" role="group" aria-label="Teclado numérico">
+            <button type="button" class="ma-np" data-np="1">1</button>
+            <button type="button" class="ma-np" data-np="2">2</button>
+            <button type="button" class="ma-np" data-np="3">3</button>
+            <button type="button" class="ma-np" data-np="4">4</button>
+            <button type="button" class="ma-np" data-np="5">5</button>
+            <button type="button" class="ma-np" data-np="6">6</button>
+            <button type="button" class="ma-np" data-np="7">7</button>
+            <button type="button" class="ma-np" data-np="8">8</button>
+            <button type="button" class="ma-np" data-np="9">9</button>
+            <button type="button" class="ma-np ma-np-sec" data-np=".">.</button>
+            <button type="button" class="ma-np" data-np="0">0</button>
+            <button type="button" class="ma-np ma-np-sec" data-np="bk" aria-label="Apagar">⌫</button>
+            <button type="button" class="ma-np ma-np-wide ma-np-sec col-span-3" data-np="clr">Limpar</button>
+          </div>
         </div>
       </div>
 
@@ -1747,21 +1795,55 @@ function abrir() {
   document.getElementById('m-nome').innerText = pSel.nome || '';
   document.getElementById('m-saldo-label').innerText = `Saldo atual (${getNomeDepositoSelecionado()})`;
   document.getElementById('m-saldo').innerText = getSaldoAtual(pSel).toFixed(1);
-  /* Campo vazio: operador digita a qtd deste lugar (Somar) ou o total (Trocar). */
+  /* Campo vazio: operador digita no numpad (Somar) ou o total (Trocar). */
   document.getElementById('m-novo').value = '';
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('ma-modal-open');
   syncMaKeyboardInset();
-  requestAnimationFrame(() => {
-    const inp = document.getElementById('m-novo');
-    if (inp) {
-      inp.focus({ preventScroll: true });
-      setTimeout(() => maScrollCampoVisivel(inp), 300);
-    }
-  });
+  /* Não foca o input: leitor Bluetooth = teclado físico e some o soft keyboard;
+     quantidade entra pelo numpad na tela. */
+  try {
+    const ae = document.activeElement;
+    if (ae && typeof ae.blur === 'function') ae.blur();
+  } catch (_) {}
 }
+
+function maNovoQtd() {
+  return document.getElementById('m-novo');
+}
+
+function maNumpadTecla(key) {
+  const inp = maNovoQtd();
+  if (!inp) return;
+  let v = String(inp.value || '');
+  if (key === 'clr') {
+    inp.value = '';
+    return;
+  }
+  if (key === 'bk') {
+    inp.value = v.slice(0, -1);
+    return;
+  }
+  if (key === '.') {
+    if (v.includes('.') || v.includes(',')) return;
+    inp.value = v ? (v + '.') : '0.';
+    return;
+  }
+  if (!/^[0-9]$/.test(key)) return;
+  /* Evita zeros à esquerda tipo 0012 (permite 0.x). */
+  if (v === '0' && key !== '.') v = '';
+  if (v.length >= 12) return;
+  inp.value = v + key;
+}
+
+document.getElementById('ma-numpad')?.addEventListener('click', (ev) => {
+  const btn = ev.target && ev.target.closest ? ev.target.closest('[data-np]') : null;
+  if (!btn) return;
+  ev.preventDefault();
+  maNumpadTecla(String(btn.getAttribute('data-np') || ''));
+});
 
 function fechar() {
   const modal = document.getElementById('modal');
