@@ -1180,6 +1180,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ⏭ PRÓXIMO CHAT — deploy loja **AJUSTE-HIST-UX** (preparado 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto** — **não** subir até Renan: pausa contagem/ajuste + frase + senha `99738595` |
+| **Loja hoje** | **v13.26** @ `c3ec890` |
+| **Branch deploy** | `deploy/ajuste-hist-ux-v13` @ **`87a5a78`** · badge alvo **v13.35** |
+| **Rollback** | `git push origin rollback/pre-ajuste-hist-ux-v13:producao` (@ **`c3ec890`** / v13.26) |
+| **Como subir (só com senha)** | `git push origin deploy/ajuste-hist-ux-v13:producao` → Render auto · **NÃO** merge `teste` |
+| **Arquivos** | `mobile_ajuste.html` · `historico_ajustes.html` · `_agro_open_external.html` · `dashboard_gerencial.html` · `views.py` (Hist. + GM no PIN) · VERSION · banana |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo no PDV/caixa** — só `/ajuste-mobile/` + `/historico/` (+ shell não engolir Hist.) |
+| **Provas 02/08** | `check` 0 · markers Bip+1/numpad/Hist cards/breakout/GM · views = 2 hunks · **zero** arquivo PDV/caixa |
+| **Você no chat** | 1) pausar contagem no celular 2) *pode subir…* + `99738595` 3) Ctrl+F5 badge **13.35** · Bip+1 card fica · Hist. sem barra · GM no card |
+
+### 📦 PACOTE PRONTO LOJA — Ajuste + Histórico UX (`AJUSTE-HIST-UX` · **v13.35**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto para envio** · branch deploy **já no GitHub** |
+| **Base loja** | **v13.26** @ `c3ec890` |
+| **Deploy** | `deploy/ajuste-hist-ux-v13` @ `87a5a78` |
+| **Rollback** | `rollback/pre-ajuste-hist-ux-v13` |
+| **O quê** | (1) Bip+1 mantém card · (2) Hist. cards celular · (3) Hist. sem barra BI · (4) GM no Hist. (não AGROE) |
+| **Migrate** | **NÃO** |
+| **NÃO** | merge `teste`→`producao` · PDV/caixa · DF-e local |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (02/08 tarde)
+
+**Loja hoje:** badge **v13.26** · `producao` @ `c3ec890`  
+**Deploy pronto:** `deploy/ajuste-hist-ux-v13` · **v13.35**  
+**Migrate:** NÃO
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | **AJUSTE-MOBILE-UX** (**v13.26**) | ✅ **já na loja** |
+| **1** | **AJUSTE-HIST-UX** (**v13.35**) | 🟢 **pronto** — aguarda pausa + frase + senha |
+
 ### 🔧 Histórico — GM no card (não ID AGROE) (**v13.33** · 02/08)
 
 | Item | Detalhe |
