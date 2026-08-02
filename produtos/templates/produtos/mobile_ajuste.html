@@ -742,6 +742,8 @@ let maBipLastAt = 0;
 let maBuscaLimparNoProximoChar = false;
 let maFlashTimer = null;
 let maFlashProduto = null;
+/** Após Bip+1: mantém o card do produto na lista (campo busca limpo pro próximo bip). */
+let maUltimoBipadoId = null;
 
 function mobileLerProdutosDoCacheUnificado() {
   for (let i = 0; i < MA_CAT_KEYS.length; i++) {
@@ -834,7 +836,16 @@ function aplicarSaldosMobile(rows) {
   if (mudou) {
     const q = document.getElementById('busca').value;
     maContagemSkipAgendar = true;
-    buscar(q);
+    if (maUltimoBipadoId && !String(q || '').trim()) {
+      const p = baseProdutos.find((x) => String(x.id) === String(maUltimoBipadoId));
+      if (p) maMostrarUltimoBipado(p);
+      else {
+        maUltimoBipadoId = null;
+        buscar(q);
+      }
+    } else {
+      buscar(q);
+    }
     maContagemSkipAgendar = false;
     const modal = document.getElementById('modal');
     if (pSel && modal && !modal.classList.contains('hidden')) {
@@ -1598,7 +1609,8 @@ function maSalvarBipMaisUm(p) {
       maTocarSom('ok');
       maMostrarFlash(p, r.novo_saldo);
       maPrepCampoProximoBip();
-      buscar('');
+      /* Não zera a lista (buscar'') — card fica pra clicar se perder o aviso verde. */
+      maMostrarUltimoBipado(p);
       return true;
     })
     .catch((err) => {
@@ -1607,6 +1619,14 @@ function maSalvarBipMaisUm(p) {
       return false;
     })
     .finally(() => { maBipBusy = false; });
+}
+
+/** Lista só o último produto bipado (+1), com saldo já atualizado. */
+function maMostrarUltimoBipado(p) {
+  if (!p) return;
+  maUltimoBipadoId = String(p.id);
+  const fresh = baseProdutos.find((x) => String(x.id) === maUltimoBipadoId) || p;
+  maPintarResultados([fresh], 'Último bip');
 }
 
 function maProcessarCodigoBipado(codigo) {
@@ -1742,7 +1762,7 @@ function stopScan() {
 function buscar(q) {
   const termoOriginal = String(q || '').trim();
   const termoN = normalizarBuscaLocal(termoOriginal);
-  const l = document.getElementById('lista');
+  if (termoN.length >= 2) maUltimoBipadoId = null;
   const saldoFiltro = filtrosAplicados.saldo || 'all';
   const extraFiltro = filtrosAplicados.extra || 'all';
   const ordem = filtrosAplicados.ordem || 'nome';
@@ -1769,17 +1789,22 @@ function buscar(q) {
     });
   const limite = termoN.length >= 2 ? 80 : 400;
   const resultados = filtrados.slice(0, limite);
-  maUltimosIdsExibidos = resultados.map((p) => String(p.id || '')).filter(Boolean);
+  const modo = termoN.length >= 2 ? 'Busca' : 'Filtros';
+  const extra = filtrados.length > resultados.length ? ' · +' : '';
+  maPintarResultados(resultados, `${modo} · ${filtrados.length} · cat ${baseProdutos.length}${extra}`);
+}
+
+function maPintarResultados(resultados, resumoTxt) {
+  const l = document.getElementById('lista');
+  if (!l) return;
+  const lista = Array.isArray(resultados) ? resultados : [];
+  maUltimosIdsExibidos = lista.map((p) => String(p.id || '')).filter(Boolean);
+
+  const resumo = document.getElementById('f-resumo');
+  if (resumo) resumo.textContent = resumoTxt || '—';
 
   l.innerHTML = '';
-  const resumo = document.getElementById('f-resumo');
-  if (resumo) {
-    const modo = termoN.length >= 2 ? 'Busca' : 'Filtros';
-    const extra = filtrados.length > resultados.length ? ' · +' : '';
-    resumo.textContent = `${modo} · ${filtrados.length} · cat ${baseProdutos.length}${extra}`;
-  }
-
-  if (!resultados.length) {
+  if (!lista.length) {
     l.innerHTML = '<div class="text-center text-slate-400 font-bold p-8 text-sm">Nenhum item para os filtros atuais.</div>';
     return;
   }
@@ -1792,7 +1817,7 @@ function buscar(q) {
       .replace(/"/g, '&quot;');
   }
 
-  resultados.forEach(p => {
+  lista.forEach((p) => {
     const saldoN = getSaldoAtual(p);
     const contagem = getContagemAtual(p);
     const d = document.createElement('div');
@@ -1820,10 +1845,12 @@ function buscar(q) {
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
+  if (String(e.target.value || '').trim()) maUltimoBipadoId = null;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => buscar(e.target.value), 120);
 });
 document.getElementById('btn-aplicar-filtros').addEventListener('click', () => {
+  maUltimoBipadoId = null;
   aplicarFiltrosDaUI();
   const q = document.getElementById('busca').value;
   buscar(q);
@@ -1835,6 +1862,7 @@ document.getElementById('btn-aplicar-filtros').addEventListener('click', () => {
   }
 });
 document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+  maUltimoBipadoId = null;
   document.getElementById('f-deposito').value = MA_DEPOSITO_INICIAL;
   document.getElementById('f-saldo').value = 'all';
   document.getElementById('f-ordem').value = 'nome';
