@@ -12017,8 +12017,24 @@ def api_venda_agro_devolver(request, pk):
 
 
 def historico_ajustes(request):
-    ajustes = AjusteRapidoEstoque.objects.all().order_by("-criado_em")
-    return render(request, "produtos/historico_ajustes.html", {"ajustes": ajustes})
+    """Últimos ajustes — limite duro (lista completa travava o Chrome no celular)."""
+    limite = 200
+    try:
+        raw = int(request.GET.get("limite") or limite)
+        limite = max(50, min(raw, 500))
+    except (TypeError, ValueError):
+        limite = 200
+    ajustes = list(AjusteRapidoEstoque.objects.order_by("-criado_em")[:limite])
+    return render(
+        request,
+        "produtos/historico_ajustes.html",
+        {
+            "ajustes": ajustes,
+            "historico_limite": limite,
+            "voltar_ajuste": str(request.GET.get("from") or "").strip().lower()
+            in ("ajuste", "ajuste-mobile", "mobile", "1"),
+        },
+    )
 
 
 def sugestao_transferencia(request):

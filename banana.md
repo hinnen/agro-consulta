@@ -1172,7 +1172,61 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 
 
 
+<<<<<<< HEAD
 ## CHECKPOINT DE ATUALIZAÇÃO
+=======
+## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+
+### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Hist.** | `/historico/` carregava **todos** os ajustes → Chrome travava · agora **últimos 200** + botão Voltar ao Ajuste |
+| **Scan** | Limpa câmera ao fechar/reabrir · evita double-start · lib pinada 2.3.8 · mensagem se sem permissão |
+| **Arquivos** | `views.py` · `historico_ajustes.html` · `mobile_ajuste.html` |
+| **Migrate** | NÃO |
+| **Loja** | **ainda não** |
+
+### 🔧 Ajuste Mobile — teclado numérico na tela (Bluetooth · **v13.16** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Leitor BT = teclado físico → celular **não abre** teclado na hora de digitar qtd |
+| **Fix** | Numpad grande no modal (1–9 · 0 · . · ⌫ · Limpar) · campo qtd só leitura |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Teste** | `teste` **v13.18** (texto explicativo do numpad **removido**) |
+| **Loja** | **ainda não** — frase + senha |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · abrir produto · digitar qtd nos botões · Somar/Trocar |
+| **Dica Android** | Ajustes → Teclado físico → **mostrar teclado na tela** (se quiser soft keyboard em outros campos) |
+
+### 🔧 Ajuste Mobile — «Conferir» apaga data logo após contar (**v13.14** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Contou há minutos · lista laranja **Conferir** (deveria ser `dd/mm/aa`) |
+| **Causa** | Refresh de saldos vinha **sem** data e **zerava** a data local; catálogo slim também sobrescrevia |
+| **Fix** | API vazia **não** apaga data boa · ao trocar catálogo **mantém** contagem da sessão |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Teste** | `teste` v**13.14** · push `origin/teste` |
+| **Loja** | **ainda não** — falta frase + senha |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · 1 contagem · deve ficar **data de hoje**, não Conferir · confira se a loja (Centro/Vila) é a mesma da contagem |
+
+### ✅ Ajuste Mobile — bip não cola 2 EANs (**v13.11** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado loja v13.11** · `producao` @ **`8d7f38b`** · Render auto |
+| **O quê** | 2º bip **apaga** o código anterior no campo (não fica EAN+EAN) |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Branch** | `deploy/ajuste-bip-clear-v13.11` |
+| **Rollback** | `git push origin rollback/pre-v1311-ajuste-bip:producao` (@ **`ac5dfb3`** / v13.10) |
+| **Risco** | **Muito baixo** — só Ajuste Mobile · PDV/caixa intactos |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · bip 1 · bip 2 · campo só com o 2º |
+>>>>>>> d259824 (fix(ajuste-mobile): histórico limitado + scan câmera estável)
 
 ### ✅ Deploy loja **v13.10** — Etiquetas presets Postgres (`ETQ-PRESET-PG` · 01/08 · Renan frase+senha)
 
