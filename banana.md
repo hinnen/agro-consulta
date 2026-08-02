@@ -1180,15 +1180,49 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ⏭ PRÓXIMO CHAT — deploy loja **HIST-REVERTER-PIN** (preparado 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto** — **não** subir até frase + senha `99738595` |
+| **Loja hoje** | **v13.35** @ `87a5a78` |
+| **Branch deploy** | `deploy/hist-reverter-pin-v13` @ **`7cb3695`** · badge **v13.36** |
+| **Rollback** | `git push origin rollback/pre-hist-reverter-pin-v13:producao` (@ **`87a5a78`** / v13.35) |
+| **Como subir** | `git push origin deploy/hist-reverter-pin-v13:producao` · **NÃO** merge `teste` |
+| **O quê** | ✕ reverte contagem · PIN real / SESSAO · API que faltava |
+| **Arquivos** | `historico_ajustes.html` · `views.py` · `urls.py` · VERSION · banana |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo PDV/caixa — só Hist. · não apaga baixa de venda |
+| **Provas** | check 0 · PIN errado 403 · SESSAO ok · PIN RH ok · bloqueia venda · saldo volta |
+| **Você** | frase + senha → Ctrl+F5 badge **13.36** · ✕ no Hist.
+
+### 📦 PACOTE PRONTO LOJA — Histórico reverter PIN (`HIST-REVERTER-PIN` · **v13.36**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto** · branch no GitHub |
+| **Base** | **v13.35** @ `87a5a78` |
+| **Deploy** | `deploy/hist-reverter-pin-v13` @ `7cb3695` |
+| **Rollback** | `rollback/pre-hist-reverter-pin-v13` |
+| **Migrate** | **NÃO** |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
+
+**Loja:** **v13.35** · Deploy: **v13.36** `HIST-REVERTER-PIN`
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | **AJUSTE-HIST-UX** (**v13.35**) | ✅ na loja |
+| **1** | **HIST-REVERTER-PIN** (**v13.36**) | 🟢 pronto — aguarda frase + senha |
+
 ### 🔧 Histórico — X reverte contagem (PIN) (**teste** · 02/08)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | ✕ pedia PIN `1234` e a API `/api/deletar-ajuste/` **não existia** |
-| **Fix** | PIN real (RH) ou `SESSAO` do Ajuste · API cria/apaga · saldo volta ao anterior · só origem `ajuste_pin` |
+| **Fix** | PIN real (RH) ou `SESSAO` · API · saldo volta · só `ajuste_pin` |
 | **Arquivos** | `historico_ajustes.html` · `views.py` · `urls.py` |
-| **Você** | Local: Hist. → ✕ → confirma → se veio do Ajuste pode sem digitar PIN; senão digita o PIN da loja · card some · saldo volta |
-| **Loja** | **ainda não** — aguarda frase + senha |
+| **Loja** | pacote **v13.36** pronto |
 
 ### ✅ LOJA — **AJUSTE-HIST-UX** (**v13.35** · 02/08)
 
