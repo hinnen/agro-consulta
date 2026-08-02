@@ -1199,13 +1199,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
 
 **Loja hoje:** badge **v13.11** · `producao` @ `8d7f38b`  
-**Teste hoje:** badge **v13.22** · `teste` @ tip  
+**Teste hoje:** badge **v13.23** · `teste`  
 **Migrate neste pacote:** NÃO
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lotes até **v13.11** (bip clear + ETQ-PRESET-PG + CP/DFE…) | ✅ **já na loja** |
-| **1** | **AJUSTE-MOBILE-UX** (**v13.22**) | 🟢 **pronto para envio à produção** |
+| **1** | **AJUSTE-MOBILE-UX** (**v13.23**) | 🟢 **pronto para envio à produção** |
 
 ### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
 
