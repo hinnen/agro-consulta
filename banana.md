@@ -1180,32 +1180,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.23**)
+### ⏭ PRÓXIMO CHAT — deploy loja **AJUSTE-MOBILE-UX** (preparado 02/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟢 **pronto para envio à produção** (Renan: frase + senha) |
+| **Status** | 🟢 **pronto** — **não** subir até Renan: lojas pausam contagem/ajuste + frase + senha `99738595` |
+| **Loja hoje** | **v13.11** @ `8d7f38b` |
+| **Branch deploy** | `deploy/ajuste-mobile-ux-v13` @ **`c3ec890`** · badge alvo **v13.26** |
+| **Rollback** | `git push origin rollback/pre-ajuste-mobile-ux-v13:producao` (@ **`8d7f38b`** / v13.11) |
+| **Como subir (só com senha)** | `git push origin deploy/ajuste-mobile-ux-v13:producao` → Render auto · **NÃO** merge `teste` |
+| **Arquivos na loja** | `mobile_ajuste.html` · `historico_ajustes.html` · `views.py` (**só** `historico_ajustes`) · VERSION · banana |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | **Baixo no PDV/caixa** — paths **não** mexem venda · só `/ajuste-mobile/` + `/historico/` |
+| **Piora?** | Hist. fica **mais leve** · Scan mais estável · numpad novo · data contagem não some |
+| **Provas** | check 0 · diff views = 1 hunk historico · markers numpad/scan/dcApi · cherry 5 commits OK |
+| **Você no chat** | 1) pausar contagem no celular 2) *pode subir…* + `99738595` 3) Ctrl+F5 badge **13.26** · 1 contagem · Hist · Scan |
+
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto para envio** · branch deploy **já no GitHub** |
 | **Base loja** | **v13.11** @ `8d7f38b` |
-| **Teste** | branch `teste` · badge **v13.23** · código pacote desde `d259824` |
-| **O quê** | (1) data contagem não vira «Conferir» · (2) numpad BT · (3) modal compacto sem scroll · (4) Hist. só últimos 200 · (5) Scan câmera estável |
-| **Arquivos** | `mobile_ajuste.html` · `historico_ajustes.html` · `views.py` (**só** `historico_ajustes`) · VERSION |
+| **Deploy** | `deploy/ajuste-mobile-ux-v13` @ `c3ec890` |
+| **Rollback** | `rollback/pre-ajuste-mobile-ux-v13` |
+| **O quê** | (1) «Conferir» não apaga data · (2) numpad BT · (3) modal compacto · (4) Hist. últimos 200 · (5) Scan estável |
 | **Migrate** | **NÃO** |
 | **NÃO** | merge `teste`→`producao` · PDV/caixa |
-| **Como subir** | cherry-pick commits pós-`8d7f38b` deste pacote (ou branch deploy a partir de `producao` + cherry) |
-| **Rollback** | voltar `producao` ao pre-tag do deploy (criar `rollback/pre-…` no envio) |
-| **Prova local 02/08** | `manage.py check` 0 · Hist. 200/cap 500 · markers template (numpad/scan/dcApi/hist?from) OK · lógica contagem+numpad OK |
-| **Você após loja** | Ctrl+F5 `/ajuste-mobile/` · 1 contagem (data) · numpad Somar · Hist. abre · Scan abre/fecha |
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
 
 **Loja hoje:** badge **v13.11** · `producao` @ `8d7f38b`  
-**Teste hoje:** badge **v13.23** · `teste`  
-**Migrate neste pacote:** NÃO
+**Deploy pronto:** `deploy/ajuste-mobile-ux-v13` · **v13.26**  
+**Migrate:** NÃO
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | Lotes até **v13.11** (bip clear + ETQ-PRESET-PG + CP/DFE…) | ✅ **já na loja** |
-| **1** | **AJUSTE-MOBILE-UX** (**v13.23**) | 🟢 **pronto para envio à produção** |
+| — | Lotes até **v13.11** | ✅ **já na loja** |
+| **1** | **AJUSTE-MOBILE-UX** (**v13.26**) | 🟢 **pronto** — aguarda pausa + frase + senha |
 
 ### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
 
