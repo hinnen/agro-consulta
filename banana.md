@@ -1180,13 +1180,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.22**)
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🟢 **pronto para envio à produção** (Renan: frase + senha) |
 | **Base loja** | **v13.11** @ `8d7f38b` |
-| **Teste** | branch `teste` · badge **v13.22** @ **`c198262`** (+ código @ `d259824`) |
+| **Teste** | branch `teste` · badge **v13.23** · código pacote desde `d259824` |
 | **O quê** | (1) data contagem não vira «Conferir» · (2) numpad BT · (3) modal compacto sem scroll · (4) Hist. só últimos 200 · (5) Scan câmera estável |
 | **Arquivos** | `mobile_ajuste.html` · `historico_ajustes.html` · `views.py` (**só** `historico_ajustes`) · VERSION |
 | **Migrate** | **NÃO** |
@@ -1199,13 +1199,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
 
 **Loja hoje:** badge **v13.11** · `producao` @ `8d7f38b`  
-**Teste hoje:** badge **v13.21** · `teste` @ `d259824`  
+**Teste hoje:** badge **v13.22** · `teste` @ tip  
 **Migrate neste pacote:** NÃO
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | Lotes até **v13.11** (bip clear + ETQ-PRESET-PG + CP/DFE…) | ✅ **já na loja** |
-| **1** | **AJUSTE-MOBILE-UX** (**v13.21**) | 🟢 **pronto para envio à produção** |
+| **1** | **AJUSTE-MOBILE-UX** (**v13.22**) | 🟢 **pronto para envio à produção** |
 
 ### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
 
