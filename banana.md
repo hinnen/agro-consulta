@@ -1180,6 +1180,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Histórico — sem barra azul do BI (**teste** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Hist. cobria com sidebar do BI — não dava pra ler |
+| **Fix** | `/historico/` = tela cheia (igual Ajuste) · não monta shell · link `target=_top` |
+| **Arquivos** | `historico_ajustes.html` · `_agro_open_external.html` · `dashboard_gerencial.html` · `mobile_ajuste.html` |
+| **Migrate** | NÃO |
+| **Você** | Ctrl+F5 · Hist. · **sem** barra azul · cards legíveis |
+
 ### 🔧 Histórico de ajustes — layout celular (**teste** · 02/08)
 
 | Item | Detalhe |

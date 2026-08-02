@@ -1101,6 +1101,10 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         var p = pathFromHref(href).replace(/\/+$/, "") || "/";
         return p === "/ajuste-mobile" || p.indexOf("/ajuste-mobile/") === 0;
     }
+    function isHistoricoAjustesHref(href) {
+        var p = pathFromHref(href).replace(/\/+$/, "") || "/";
+        return p === "/historico" || p.indexOf("/historico/") === 0;
+    }
     function openInShellTab(href) {
         try {
             if (window.parent !== window) {
@@ -1122,8 +1126,8 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         return false;
     }
     function go() {
-        /* Ajuste Mobile = tela cheia no celular; nunca iframe/aba do BI. */
-        if (isAjusteMobileHref(url)) {
+        /* Ajuste Mobile / Histórico = tela cheia; nunca iframe/aba do BI. */
+        if (isAjusteMobileHref(url) || isHistoricoAjustesHref(url)) {
             try {
                 (window.top || window).location.assign(url);
             } catch (_) {
