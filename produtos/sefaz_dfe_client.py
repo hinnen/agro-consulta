@@ -120,6 +120,40 @@ def distribuicao_dfe_configurada() -> bool:
     )
 
 
+def dfe_ambiente_permite_consulta_sefaz() -> bool:
+    """
+    Consulta Dist DF-e na Receita só no Render (loja/staging).
+    No runserver local fica desligada — mesmo CNPJ/certificado compete com a loja (656).
+    Exceção explícita: NFE_DIST_DFE_PERMITIR_LOCAL=true no .env.
+    """
+    import os
+
+    if str(os.environ.get("NFE_DIST_DFE_PERMITIR_LOCAL", "")).lower() in ("1", "true", "yes"):
+        return True
+    return str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+
+
+def dfe_bloqueio_pc_local() -> dict[str, Any] | None:
+    """Retorna dict de erro se a consulta SEFAZ estiver desligada neste ambiente."""
+    if dfe_ambiente_permite_consulta_sefaz():
+        return None
+    return {
+        "ok": False,
+        "erro": (
+            "Consulta SEFAZ Dist DF-e desligada no PC local — não compete com a loja. "
+            "Use a produção online."
+        ),
+        "bloqueio_pc_local": True,
+        "bloqueio_local": True,
+        "c_stat": None,
+        "aguardar_segundos": 0,
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "x_motivo": "",
+    }
+
+
 def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str) -> tuple[str | None, str | None]:
     try:
         from cryptography.hazmat.backends import default_backend
@@ -319,6 +353,11 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         )
         return out
 
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
     bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
     if bloqueio:
         # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
@@ -514,6 +553,11 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
     cfg = _cfg_dist_dfe()
     if not distribuicao_dfe_configurada():
         out["erro"] = "Certificado DF-e/NFC-e incompleto."
+        return out
+
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
         return out
 
     bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])

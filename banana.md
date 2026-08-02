@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1179,6 +1179,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🔧 DF-e — consulta SEFAZ off no runserver local (02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Buscar / chave Dist **não** falam com a Receita no PC local |
+| **Por quê** | Mesmo CNPJ da loja → 656 |
+| **Loja** | Continua normal (RENDER) |
+| **Exceção** | `NFE_DIST_DFE_PERMITIR_LOCAL=true` no `.env` |
+| **Arquivos** | `sefaz_dfe_client.py` · status API · `entrada_nota.html` |
 
 ### ✅ Deploy loja **v13.26** — AJUSTE-MOBILE-UX (02/08 · Renan frase+senha)
 

@@ -13503,6 +13503,8 @@ def entrada_nota_view(request):
 def api_entrada_nota_sefaz_status(request):
     from produtos.sefaz_dfe_client import (
         _cfg_dist_dfe,
+        dfe_ambiente_permite_consulta_sefaz,
+        dfe_bloqueio_pc_local,
         dfe_checar_limite_consulta,
         distribuicao_dfe_configurada,
     )
@@ -13510,8 +13512,17 @@ def api_entrada_nota_sefaz_status(request):
     cfg = _cfg_dist_dfe()
     cnpj = cfg.get("cnpj") or ""
     configurada = distribuicao_dfe_configurada()
-    bloqueio = dfe_checar_limite_consulta(cnpj) if configurada and len(cnpj) == 14 else None
+    permite_sefaz = dfe_ambiente_permite_consulta_sefaz()
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    bloqueio = None
+    if permite_sefaz and configurada and len(cnpj) == 14:
+        bloqueio = dfe_checar_limite_consulta(cnpj)
     aguardar = int((bloqueio or {}).get("aguardar_segundos") or 0)
+    motivo = ""
+    if bloqueio_pc:
+        motivo = str(bloqueio_pc.get("erro") or "")
+    elif bloqueio:
+        motivo = str(bloqueio.get("erro") or bloqueio.get("x_motivo") or "")
     return JsonResponse(
         {
             "configurada": configurada,
@@ -13519,9 +13530,11 @@ def api_entrada_nota_sefaz_status(request):
             "cnpj_mascarado": _mascarar_cnpj(cnpj),
             "tp_amb": str(cfg.get("tp_amb") or "2"),
             "ult_nsu": obter_ult_nsu(None, cnpj) if len(cnpj) == 14 else "0",
-            "consulta_liberada": not bool(bloqueio),
+            "consulta_sefaz_habilitada": permite_sefaz,
+            "consulta_liberada": bool(permite_sefaz and not bloqueio),
             "aguardar_segundos": aguardar,
-            "limite_motivo": str((bloqueio or {}).get("erro") or (bloqueio or {}).get("x_motivo") or ""),
+            "limite_motivo": motivo,
+            "bloqueio_pc_local": bool(bloqueio_pc),
         }
     )
 

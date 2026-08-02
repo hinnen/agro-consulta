@@ -10559,13 +10559,34 @@
 
   function entradaNfeSefazAplicarLimiteUi(s) {
     const btn = document.getElementById('btn-dist-dfe');
+    const btnChave = document.getElementById('btn-dfe-chave');
     if (!btn) return;
-    const liberado = s && s.configurada && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const pcLocalOff = !!(s && (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false));
+    const liberado = s && s.configurada && !pcLocalOff && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
     const falta = Math.max(0, Math.floor(Number(s && s.aguardar_segundos) || 0));
+    const setChave = (on) => {
+      if (!btnChave) return;
+      btnChave.disabled = !on;
+      btnChave.classList.toggle('opacity-50', !on);
+      btnChave.classList.toggle('cursor-not-allowed', !on);
+    };
+    if (pcLocalOff) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      btn.textContent = 'Só na loja (local off)';
+      setChave(false);
+      entradaNfeSefazDataAte = 0;
+      if (entradaNfeSefazDataTimer) {
+        clearInterval(entradaNfeSefazDataTimer);
+        entradaNfeSefazDataTimer = null;
+      }
+      return;
+    }
     if (liberado) {
       btn.disabled = false;
       btn.classList.remove('opacity-50', 'cursor-not-allowed');
       btn.textContent = 'Buscar notas novas';
+      setChave(true);
       entradaNfeSefazDataAte = 0;
       if (entradaNfeSefazDataTimer) {
         clearInterval(entradaNfeSefazDataTimer);
@@ -10576,6 +10597,7 @@
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
     btn.textContent = falta > 0 ? ('Aguarde ' + entradaNfeSefazFmtEspera(falta)) : 'Consulta bloqueada';
+    setChave(false);
     if (falta > 0) {
       entradaNfeSefazDataAte = Date.now() + falta * 1000;
       if (entradaNfeSefazDataTimer) clearInterval(entradaNfeSefazDataTimer);
@@ -10779,7 +10801,11 @@
       const r = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
       const s = await r.json();
       if (s.configurada) {
-        el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto · lista salva no banco (todos os PCs).</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
+        if (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false) {
+          el.innerHTML = `<span class="text-amber-950 font-black">PC local: consulta SEFAZ desligada</span><span class="block text-[10px] font-semibold text-amber-900/90 mt-0.5">Não compete com a loja. Use a produção online. Lista salva / XML manual ok. · Cursor ${s.ult_nsu || '—'}</span>`;
+        } else {
+          el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto · lista salva no banco (todos os PCs).</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
+        }
       } else {
         el.innerHTML = `<span class="text-amber-900 font-bold">Certificado e dados fiscais ainda não estão configurados no servidor.</span> <span class="text-[10px] font-semibold text-amber-800/90">Peça suporte à equipe técnica.</span>`;
       }
