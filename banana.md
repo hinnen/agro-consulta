@@ -1180,6 +1180,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Histórico — GM no card (não ID AGROE) (**v13.33** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Card do Hist. mostrava `AGROE…` em vez do GM |
+| **Fix** | Grava GM no ajuste PIN · Hist. busca GM no catálogo se antigo · nunca mostra ID longo |
+| **Arquivos** | `views.py` · `historico_ajustes.html` · `mobile_ajuste.html` |
+| **Você** | Ctrl+F5 Hist. · deve aparecer **GM4000** (etc.) |
+
 ### 🔧 Histórico — sem barra azul do BI (**teste** · 02/08)
 
 | Item | Detalhe |
