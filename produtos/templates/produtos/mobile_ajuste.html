@@ -717,8 +717,11 @@ function aplicarSaldosMobile(rows) {
     const nv = Number(row[2]);
     const nec = Number(row[3]);
     const nev = Number(row[4]);
-    const dc = row.length >= 7 ? String(row[5] || '').trim() : '';
-    const dv = row.length >= 7 ? String(row[6] || '').trim() : '';
+    /* API vazia NÃO apaga data local (após PIN a tela já tem dd/mm/aa — senão vira «Conferir»). */
+    const dcApi = row.length >= 7 ? String(row[5] || '').trim() : '';
+    const dvApi = row.length >= 7 ? String(row[6] || '').trim() : '';
+    const dc = dcApi || String(p.contagem_centro || '').trim();
+    const dv = dvApi || String(p.contagem_vila || '').trim();
     if (
       Number(p.saldo_centro) !== nc ||
       Number(p.saldo_vila) !== nv ||
@@ -734,8 +737,8 @@ function aplicarSaldosMobile(rows) {
     p.saldo_erp_centro = nec;
     p.saldo_erp_vila = nev;
     if (row.length >= 7) {
-      p.contagem_centro = dc;
-      p.contagem_vila = dv;
+      if (dcApi) p.contagem_centro = dcApi;
+      if (dvApi) p.contagem_vila = dvApi;
       p._contagemOk = true;
     }
   });
@@ -1010,6 +1013,7 @@ function aplicarSaldoLocalAposPin(p, deposito, novoSaldo) {
       x.saldo_centro = novoSaldo;
       x.contagem_centro = hoje;
     }
+    x._contagemOk = true;
   });
   /* Espelha no cache do PDV deste aparelho — home/consulta veem o saldo novo sem F5 estoque. */
   try {
@@ -1096,7 +1100,28 @@ function agendarFetchContagemVisivel() {
 }
 
 function mobileAjusteAplicarProdutosDaLista(produtos) {
+  const prev = new Map();
+  (baseProdutos || []).forEach((x) => {
+    if (!x || x.id == null) return;
+    prev.set(String(x.id), {
+      contagem_centro: String(x.contagem_centro || '').trim(),
+      contagem_vila: String(x.contagem_vila || '').trim(),
+      _contagemOk: !!x._contagemOk,
+    });
+  });
   baseProdutos = produtos || [];
+  /* Catálogo novo (slim/cache) vem sem data — não perde contagem feita nesta sessão. */
+  baseProdutos.forEach((p) => {
+    const old = prev.get(String(p.id));
+    if (!old) return;
+    if (!String(p.contagem_centro || '').trim() && old.contagem_centro) {
+      p.contagem_centro = old.contagem_centro;
+    }
+    if (!String(p.contagem_vila || '').trim() && old.contagem_vila) {
+      p.contagem_vila = old.contagem_vila;
+    }
+    if (old._contagemOk) p._contagemOk = true;
+  });
   atualizarOpcoesFiltros();
   aplicarFiltrosDaUI();
   buscar(document.getElementById('busca')?.value || '');
