@@ -1544,6 +1544,8 @@ function maPostAjuste(produto, novoSaldo, opts) {
   const fd = new FormData();
   fd.append('produto_id', produto.id);
   fd.append('nome_produto', produto.nome || '');
+  const codigoGm = String(produto.codigo_nfe || produto.codigo || produto.codigo_interno || '').trim();
+  if (codigoGm) fd.append('codigo_interno', codigoGm);
   const deposito = getDepositoSelecionado();
   fd.append('saldo_atual', getSaldoErpAtual(produto));
   fd.append('novo_saldo', String(novoSaldo));

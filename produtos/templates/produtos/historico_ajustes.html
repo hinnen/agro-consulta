@@ -93,8 +93,12 @@
         <p class="text-sm font-black uppercase text-slate-900 leading-snug">
           {{ ajuste.nome_produto|default:"—" }}
         </p>
-        <p class="text-[10px] font-bold text-slate-400 mt-0.5 font-mono">
-          {{ ajuste.codigo_interno|default:ajuste.produto_externo_id }}
+        <p class="text-[10px] font-bold text-slate-500 mt-0.5 tabular-nums">
+          {% if ajuste.codigo_interno %}
+            {% if ajuste.codigo_interno|length > 20 %}—{% else %}{{ ajuste.codigo_interno }}{% endif %}
+          {% else %}
+            —
+          {% endif %}
         </p>
       </div>
       <button type="button" onclick="deletarAjuste('{{ ajuste.id }}')" class="shrink-0 min-h-[2.5rem] min-w-[2.5rem] rounded-xl text-rose-300 hover:text-rose-600 hover:bg-rose-50 font-black text-lg leading-none" aria-label="Apagar">✕</button>
