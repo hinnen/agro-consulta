@@ -1180,6 +1180,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Ajuste Mobile — teclado numérico na tela (Bluetooth · **v13.16** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Problema** | Leitor BT = teclado físico → celular **não abre** teclado na hora de digitar qtd |
+| **Fix** | Numpad grande no modal (1–9 · 0 · . · ⌫ · Limpar) · campo qtd só leitura |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Teste** | push `origin/teste` |
+| **Loja** | **ainda não** — frase + senha |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · abrir produto · digitar qtd nos botões · Somar/Trocar |
+| **Dica Android** | Ajustes → Teclado físico → **mostrar teclado na tela** (se quiser soft keyboard em outros campos) |
+
 ### 🔧 Ajuste Mobile — «Conferir» apaga data logo após contar (**v13.14** · 02/08)
 
 | Item | Detalhe |
