@@ -1180,6 +1180,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Ajuste Mobile — Bip+1 mantém produto na tela (**v13.29** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após +1 o card sumia — só dava pra Ajustar pelo verde |
+| **Fix** | Campo limpo (anti-cola EAN) · lista mostra **último bipado** clicável |
+| **Arquivo** | **só** `mobile_ajuste.html` |
+| **Migrate** | NÃO |
+| **Teste** | `1ca5de9` · badge **13.29** |
+| **Loja** | **ainda não** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · Bip+1 ON · bip · card fica · clique no card · 2º bip sem cola |
+
 ### 🔧 DF-e — consulta SEFAZ off no runserver local (02/08)
 
 | Item | Detalhe |
