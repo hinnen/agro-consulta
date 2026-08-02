@@ -585,13 +585,7 @@
             enterkeyhint="done"
             placeholder="0"
             class="w-full border-2 border-slate-200 rounded-2xl px-4 py-4 text-3xl font-black tabular-nums text-slate-900 outline-none bg-slate-50"
-            aria-describedby="ma-numpad-hint"
           >
-          <p id="ma-numpad-hint" class="text-[10px] font-bold text-slate-400 leading-snug">
-            Use os botões abaixo (leitor Bluetooth some o teclado do celular).
-            <span class="text-emerald-700">Somar</span> = acrescenta ·
-            <span class="text-orange-700">Trocar</span> = saldo novo
-          </p>
           {# Teclado na tela — BT HID = teclado físico; Android esconde o soft keyboard. #}
           <div id="ma-numpad" class="ma-numpad grid grid-cols-3 gap-2 pt-1" role="group" aria-label="Teclado numérico">
             <button type="button" class="ma-np" data-np="1">1</button>
