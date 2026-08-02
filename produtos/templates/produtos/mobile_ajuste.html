@@ -26,7 +26,7 @@
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
     :root {
       --ma-kb-inset: 0px;
@@ -499,7 +499,7 @@
       <div class="ma-head-actions">
         <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
         <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
-        <a href="/historico/" class="ma-head-btn ma-head-btn--hist">Hist.</a>
+        <a href="/historico/?from=ajuste" class="ma-head-btn ma-head-btn--hist">Hist.</a>
         <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
       </div>
     </div>
@@ -762,6 +762,7 @@ let maUltimosIdsExibidos = [];
 let maContagemTimer = null;
 let maContagemSkipAgendar = false;
 let scanningActive = false;
+let maScanBusy = false;
 let filtrosAplicados = {
   deposito: MA_DEPOSITO_INICIAL,
   saldo: 'all',
@@ -1655,46 +1656,87 @@ function maProcessarCodigoBipado(codigo) {
 }
 
 function startScan() {
-  if (scanningActive) return;
-  const reader = document.getElementById('reader');
-  reader.classList.remove('hidden');
-  scanner = new Html5Qrcode("reader-box");
-  scanningActive = true;
-  const w = Math.min(window.innerWidth || 360, 360);
-  const qrbox = Math.max(140, Math.min(250, Math.floor(w * 0.72)));
-
-  scanner.start(
-    { facingMode: "environment" },
-    { fps: 10, qrbox: qrbox },
-    (txt) => {
-      maProcessarCodigoBipado(txt);
-    }
-  ).catch(() => {
-    stopScan();
+  if (scanningActive || maScanBusy) return;
+  if (typeof Html5Qrcode === 'undefined') {
     if (typeof maMostrarToast === 'function') {
-      maMostrarToast('Câmera indisponível neste aparelho. Use o bipador no campo.', false);
+      maMostrarToast('Câmera não carregou. Use o bipador no campo.', false);
     } else {
-      alert('Não foi possível iniciar a câmera.');
+      alert('Câmera não disponível.');
     }
+    return;
+  }
+  maScanBusy = true;
+  stopScan().then(() => {
+    const reader = document.getElementById('reader');
+    const box = document.getElementById('reader-box');
+    if (!reader || !box) {
+      maScanBusy = false;
+      return;
+    }
+    try { box.innerHTML = ''; } catch (_) {}
+    reader.classList.remove('hidden');
+    try {
+      scanner = new Html5Qrcode('reader-box');
+    } catch (_) {
+      maScanBusy = false;
+      reader.classList.add('hidden');
+      if (typeof maMostrarToast === 'function') {
+        maMostrarToast('Falha ao abrir câmera. Feche e tente de novo.', false);
+      }
+      return;
+    }
+    scanningActive = true;
+    const side = Math.max(160, Math.min(240, Math.floor(Math.min(window.innerWidth || 360, 360) * 0.7)));
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 8, qrbox: { width: side, height: side } },
+      (txt) => {
+        if (!scanningActive) return;
+        scanningActive = false;
+        const codigo = String(txt || '').trim();
+        stopScan().then(() => {
+          if (codigo) maProcessarCodigoBipado(codigo);
+        });
+      }
+    ).then(() => {
+      maScanBusy = false;
+    }).catch((err) => {
+      stopScan().then(() => {
+        const negado = err && (err.name === 'NotAllowedError' || /Permission|NotAllowed/i.test(String(err.message || err)));
+        const msg = negado
+          ? 'Permissão de câmera negada. Libere no Chrome e tente de novo.'
+          : 'Câmera indisponível neste aparelho. Use o bipador no campo.';
+        if (typeof maMostrarToast === 'function') maMostrarToast(msg, false);
+        else alert(msg);
+      });
+    });
   });
 }
 
 function stopScan() {
   const reader = document.getElementById('reader');
-  const done = () => {
+  const finish = () => {
     scanningActive = false;
-    reader.classList.add('hidden');
+    maScanBusy = false;
+    if (reader) reader.classList.add('hidden');
+    const box = document.getElementById('reader-box');
+    if (box) {
+      try { box.innerHTML = ''; } catch (_) {}
+    }
     scanner = null;
   };
   if (!scanner) {
-    done();
-    return;
+    finish();
+    return Promise.resolve();
   }
-  scanner.stop()
+  const s = scanner;
+  scanner = null;
+  return Promise.resolve()
+    .then(() => s.stop())
     .catch(() => {})
-    .finally(() => {
-      scanner.clear().catch(() => {}).finally(done);
-    });
+    .then(() => s.clear())
+    .catch(() => {})
+    .then(finish, finish);
 }
 
 function buscar(q) {

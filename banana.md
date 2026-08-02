@@ -1180,6 +1180,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Hist.** | `/historico/` carregava **todos** os ajustes → Chrome travava · agora **últimos 200** + botão Voltar ao Ajuste |
+| **Scan** | Limpa câmera ao fechar/reabrir · evita double-start · lib pinada 2.3.8 · mensagem se sem permissão |
+| **Arquivos** | `views.py` · `historico_ajustes.html` · `mobile_ajuste.html` |
+| **Migrate** | NÃO |
+| **Loja** | **ainda não** |
+
 ### 🔧 Ajuste Mobile — teclado numérico na tela (Bluetooth · **v13.16** · 02/08)
 
 | Item | Detalhe |
