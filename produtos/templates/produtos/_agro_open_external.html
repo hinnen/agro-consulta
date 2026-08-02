@@ -537,6 +537,10 @@
     var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
     return p === '/ajuste-mobile' || p.indexOf('/ajuste-mobile/') === 0;
   }
+  function pathLookLikeHistoricoAjustes(pathStr) {
+    var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
+    return p === '/historico' || p.indexOf('/historico/') === 0;
+  }
   window.__agroPathLookLikeFolhaPlanilha = pathLookLikeFolhaPlanilha;
   window.__agroIsPaginaAuxiliarSemShell = function () {
     try {
@@ -546,6 +550,7 @@
     } catch (_) {}
     var path = (location.pathname || '').split('?')[0];
     if (pathLookLikeAjusteMobile(path)) return true;
+    if (pathLookLikeHistoricoAjustes(path)) return true;
     return pathLookLikeFolhaPlanilha(path);
   };
 })();
@@ -1869,6 +1874,14 @@
         } catch (_) {
           p = '';
         }
+        /* Histórico de ajustes = tela cheia (como Ajuste Mobile); nunca aba do BI. */
+        try {
+          var pNorm = String(p || '').toLowerCase().replace(/\/+$/, '') || '/';
+          if (pNorm === '/historico' || pNorm.indexOf('/historico/') === 0) {
+            (window.top || window).location.assign(href);
+            return;
+          }
+        } catch (_) {}
         if (dualWindowMode() && pathLookLikePDV(p)) {
           if (window.AgroDualWindow && window.AgroDualWindow.focusPdv) {
             window.AgroDualWindow.focusPdv(href);

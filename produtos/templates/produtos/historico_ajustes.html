@@ -3,6 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <script>
+  /* Fora do shell/BI: Histórico em tela cheia (barra azul cobria os cards). */
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete('agro_inapp_embed');
+      u.searchParams.delete('embed');
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = '/historico/?from=ajuste'; } catch (_) {}
+    }
+  })();
+  </script>
   {% include "produtos/_head_perf_mpa.html" %}
   <title>SisVale | Histórico</title>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,6 +28,16 @@
       margin: 0;
       padding: 0;
       padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+    /* Se o shell do BI ainda montar, some a barra azul. */
+    body.ha-page.agro-has-inapp-tabbar {
+      padding-left: 0 !important;
+    }
+    body.ha-page #agro-inapp-sidebar-rail,
+    body.ha-page #agro-inapp-tabs-bar,
+    body.ha-page #agro-inapp-pane-stack,
+    body.ha-page #agro-inapp-primary-wrap {
+      display: none !important;
     }
     .ha-head {
       position: sticky;
