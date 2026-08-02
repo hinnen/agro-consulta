@@ -1180,6 +1180,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Histórico de ajustes — layout celular (**teste** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | `/historico/` em **cards** (não tabela larga) · Voltar ao Ajuste em destaque |
+| **Arquivo** | `historico_ajustes.html` (+ select_related no view) |
+| **Migrate** | NÃO |
+| **Loja** | **ainda não** |
+| **Você** | Ctrl+F5 Hist. no celular · lista legível · Voltar |
+
 ### 🔧 Ajuste Mobile — Bip+1 mantém produto na tela (**v13.29** · 02/08)
 
 | Item | Detalhe |

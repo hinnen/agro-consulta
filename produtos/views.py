@@ -11915,7 +11915,9 @@ def historico_ajustes(request):
         limite = max(50, min(raw, 500))
     except (TypeError, ValueError):
         limite = 200
-    ajustes = list(AjusteRapidoEstoque.objects.order_by("-criado_em")[:limite])
+    ajustes = list(
+        AjusteRapidoEstoque.objects.select_related("usuario").order_by("-criado_em")[:limite]
+    )
     return render(
         request,
         "produtos/historico_ajustes.html",

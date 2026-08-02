@@ -1,125 +1,173 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" {% if voltar_ajuste %}data-agro-hide-pdv="1"{% endif %}>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% include "produtos/_head_perf_mpa.html" %}
-    <title>SisVale | Histórico</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>SisVale | Histórico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
-    <style>body { font-family: 'Inter', sans-serif; }</style>
+  <style>
+    body.ha-page {
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      background: #f1f5f9;
+      margin: 0;
+      padding: 0;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+    .ha-head {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+      padding: max(0.55rem, env(safe-area-inset-top)) 0.75rem 0.65rem;
+    }
+    .ha-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 1rem;
+      padding: 0.85rem 0.9rem;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .ha-diff-pos { color: #059669; }
+    .ha-diff-neg { color: #e11d48; }
+    .ha-diff-zero { color: #cbd5e1; }
+    .ha-pill-centro { background: #dbeafe; color: #1d4ed8; }
+    .ha-pill-vila { background: #f3e8ff; color: #7e22ce; }
+  </style>
 </head>
-<body class="bg-slate-100 p-4 md:p-10">
+<body class="ha-page">
 {% include "produtos/_gm_loading_bar.html" %}
-    <div class="max-w-6xl mx-auto">
-        <div class="flex justify-between items-center mb-8">
-            <div>
-                <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Histórico de Ajustes</h1>
-                <p class="text-slate-400 text-sm font-black uppercase tracking-widest">Últimos {{ ajustes|length }} (máx. {{ historico_limite }})</p>
-            </div>
-            <div class="flex gap-4 flex-wrap justify-end">
-                {% if voltar_ajuste %}
-                <a href="{% url 'ajuste_mobile' %}" class="inline-flex items-center justify-center min-h-[44px] text-sm font-black uppercase px-4 py-2.5 rounded-2xl border-2 border-emerald-600 bg-emerald-600 text-white shadow-lg shrink-0">Voltar ao Ajuste</a>
-                {% endif %}
-                <button onclick="limparTudo()" class="bg-red-50 text-red-600 border border-red-200 px-5 py-3 rounded-2xl font-black text-sm hover:bg-red-600 hover:text-white transition-all uppercase shadow-sm">Apagar Tudo</button>
-                {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-sm font-black uppercase px-4 py-2.5 rounded-2xl border-2 border-slate-700 bg-slate-800 text-white shadow-lg hover:bg-slate-900 shrink-0" %}
-            </div>
-        </div>
 
-        <div class="bg-white rounded-[40px] shadow-2xl overflow-hidden border-4 border-white">
-            <table class="w-full text-left">
-                <thead>
-                    <tr class="bg-slate-50 border-b">
-                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Data/Hora</th>
-                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest">Produto</th>
-                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-center">Depósito</th>
-                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Diferença</th>
-                        <th class="p-5 text-xs font-black text-slate-400 uppercase tracking-widest text-right">Saldo Final</th>
-                        <th class="p-5 text-center"></th>
-                    </tr>
-                </thead>
-                <tbody id="corpo-tabela" class="divide-y divide-slate-100">
-                    {% for ajuste in ajustes %}
-                    <tr id="ajuste-{{ ajuste.id }}" class="hover:bg-slate-50/50 transition-colors">
-                        <td class="p-5 whitespace-nowrap">
-                            <div class="text-slate-900 font-black text-base">{{ ajuste.criado_em|date:"d/m" }}</div>
-                            <div class="text-slate-400 text-xs font-bold">{{ ajuste.criado_em|date:"H:i" }}</div>
-                        </td>
-                        <td class="p-5">
-                            <div class="font-black text-slate-700 uppercase text-base leading-tight">{{ ajuste.nome_produto }}</div>
-                            <div class="text-xs text-slate-400 font-mono mt-1 tracking-tighter">{{ ajuste.codigo_interno }}</div>
-                        </td>
-                        <td class="p-5 text-center">
-                            <span class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase {% if ajuste.deposito == 'centro' %}bg-blue-100 text-blue-600{% else %}bg-purple-100 text-purple-600{% endif %}">
-                                {{ ajuste.deposito }}
-                            </span>
-                        </td>
-                        <td class="p-5 text-right font-black text-lg">
-                            {% if ajuste.diferenca_saldo > 0 %} <span class="text-green-500">+{{ ajuste.diferenca_saldo }}</span>
-                            {% elif ajuste.diferenca_saldo < 0 %} <span class="text-red-500">{{ ajuste.diferenca_saldo }}</span>
-                            {% else %} <span class="text-slate-300">0.000</span> {% endif %}
-                        </td>
-                        <td class="p-5 text-right font-black text-slate-900 text-2xl">{{ ajuste.saldo_informado }}</td>
-                        <td class="p-5 text-center">
-                            <button onclick="deletarAjuste('{{ ajuste.id }}')" class="text-red-300 hover:text-red-600 font-black text-xl transition-colors p-2">✕</button>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr><td colspan="6" class="p-20 text-center font-black text-slate-300 uppercase italic tracking-widest text-base">Nenhum ajuste registrado.</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+<header class="ha-head">
+  <div class="flex items-start justify-between gap-2">
+    <div class="min-w-0">
+      <h1 class="text-base font-black uppercase text-slate-900 tracking-tight leading-tight">Histórico</h1>
+      <p class="text-[10px] font-bold uppercase text-slate-400 mt-0.5 tracking-wide">
+        Últimos {{ ajustes|length }} · máx. {{ historico_limite|default:200 }}
+      </p>
     </div>
+    <div class="flex flex-col items-stretch gap-1.5 shrink-0">
+      {% if voltar_ajuste %}
+      <a href="{% url 'ajuste_mobile' %}" class="inline-flex items-center justify-center min-h-[2.5rem] px-3 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase">
+        Voltar ao Ajuste
+      </a>
+      {% else %}
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center min-h-[2.5rem] px-3 rounded-xl bg-slate-800 text-white text-[11px] font-black uppercase" %}
+      {% endif %}
+    </div>
+  </div>
+</header>
 
-    <script>
-        // Salva o PIN na memória da aba para não pedir toda hora
-        let pinSessao = null;
+<main class="px-3 pt-3 space-y-2 max-w-2xl mx-auto">
+  {% for ajuste in ajustes %}
+  <article id="ajuste-{{ ajuste.id }}" class="ha-card">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-black uppercase text-slate-900 leading-snug">
+          {{ ajuste.nome_produto|default:"—" }}
+        </p>
+        <p class="text-[10px] font-bold text-slate-400 mt-0.5 font-mono">
+          {{ ajuste.codigo_interno|default:ajuste.produto_externo_id }}
+        </p>
+      </div>
+      <button type="button" onclick="deletarAjuste('{{ ajuste.id }}')" class="shrink-0 min-h-[2.5rem] min-w-[2.5rem] rounded-xl text-rose-300 hover:text-rose-600 hover:bg-rose-50 font-black text-lg leading-none" aria-label="Apagar">✕</button>
+    </div>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <span class="text-[11px] font-black text-slate-700 tabular-nums">
+        {{ ajuste.criado_em|date:"d/m/y" }} · {{ ajuste.criado_em|date:"H:i" }}
+      </span>
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase {% if ajuste.deposito == 'centro' %}ha-pill-centro{% else %}ha-pill-vila{% endif %}">
+        {% if ajuste.deposito == 'centro' %}Centro{% elif ajuste.deposito == 'vila' %}Vila{% else %}{{ ajuste.deposito }}{% endif %}
+      </span>
+    </div>
+    <div class="mt-2 flex items-end justify-between gap-3">
+      <div>
+        <p class="text-[9px] font-black uppercase text-slate-400 tracking-wide">Diferença</p>
+        <p class="text-lg font-black tabular-nums {% if ajuste.diferenca_saldo > 0 %}ha-diff-pos{% elif ajuste.diferenca_saldo < 0 %}ha-diff-neg{% else %}ha-diff-zero{% endif %}">
+          {% if ajuste.diferenca_saldo > 0 %}+{% endif %}{{ ajuste.diferenca_saldo }}
+        </p>
+      </div>
+      <div class="text-right">
+        <p class="text-[9px] font-black uppercase text-slate-400 tracking-wide">Saldo final</p>
+        <p class="text-2xl font-black text-emerald-600 tabular-nums leading-none">{{ ajuste.saldo_informado }}</p>
+      </div>
+    </div>
+  </article>
+  {% empty %}
+  <div class="ha-card text-center py-10">
+    <p class="text-sm font-black uppercase text-slate-300 italic tracking-wide">Nenhum ajuste registrado</p>
+  </div>
+  {% endfor %}
 
-        function obterPin() {
-            if (pinSessao === "1234") return pinSessao;
-            const p = prompt("Digite o PIN (1234):");
-            if (p === "1234") {
-                pinSessao = p;
-                return p;
-            }
-            alert("PIN Incorreto!");
-            return null;
-        }
+  <details class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2">
+    <summary class="text-[10px] font-black uppercase text-slate-400 cursor-pointer select-none py-1">Opções avançadas</summary>
+    <button type="button" onclick="limparTudo()" class="mt-2 w-full min-h-[2.75rem] rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-black uppercase">
+      Apagar todo o histórico
+    </button>
+    {% if not voltar_ajuste %}
+    <p class="mt-2 text-[10px] font-bold text-slate-400 leading-snug">Use com cuidado — remove todos os registros de ajuste.</p>
+    {% else %}
+    <div class="mt-2">
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex w-full items-center justify-center min-h-[2.5rem] rounded-xl border border-slate-200 text-slate-600 text-[11px] font-black uppercase" %}
+    </div>
+    {% endif %}
+  </details>
+</main>
 
-        async function deletarAjuste(id) {
-            const pin = obterPin();
-            if (!pin) return;
+<script>
+  let pinSessao = null;
 
-            const fd = new FormData();
-            fd.append('pin', pin);
-            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+  function obterPin() {
+    if (pinSessao === "1234") return pinSessao;
+    const p = prompt("Digite o PIN (1234):");
+    if (p === "1234") {
+      pinSessao = p;
+      return p;
+    }
+    alert("PIN Incorreto!");
+    return null;
+  }
 
-            try {
-                if (window.gmLoadingBar) window.gmLoadingBar.show();
-                const res = await fetch(`/api/deletar-ajuste/${id}/`, { method: 'POST', body: fd });
-                if (res.ok) document.getElementById(`ajuste-${id}`).remove();
-            } catch (e) { alert("Erro de conexão."); }
-            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
-        }
+  async function deletarAjuste(id) {
+    const pin = obterPin();
+    if (!pin) return;
+    const fd = new FormData();
+    fd.append('pin', pin);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    try {
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      const res = await fetch(`/api/deletar-ajuste/${id}/`, { method: 'POST', body: fd });
+      if (res.ok) {
+        const el = document.getElementById(`ajuste-${id}`);
+        if (el) el.remove();
+      }
+    } catch (e) {
+      alert("Erro de conexão.");
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
 
-        async function limparTudo() {
-            if (!confirm("Isso apagará TODO o histórico. Confirmar?")) return;
-            const pin = obterPin();
-            if (!pin) return;
-
-            const fd = new FormData();
-            fd.append('pin', pin);
-            fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            try {
-                if (window.gmLoadingBar) window.gmLoadingBar.show();
-                const res = await fetch('/api/limpar-historico/', { method: 'POST', body: fd });
-                if (res.ok) window.location.reload();
-            } catch (e) { alert("Erro ao limpar."); }
-            finally { if (window.gmLoadingBar) window.gmLoadingBar.hide(); }
-        }
-    </script>
+  async function limparTudo() {
+    if (!confirm("Isso apagará TODO o histórico. Confirmar?")) return;
+    const pin = obterPin();
+    if (!pin) return;
+    const fd = new FormData();
+    fd.append('pin', pin);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    try {
+      if (window.gmLoadingBar) window.gmLoadingBar.show();
+      const res = await fetch('/api/limpar-historico/', { method: 'POST', body: fd });
+      if (res.ok) window.location.reload();
+    } catch (e) {
+      alert("Erro ao limpar.");
+    } finally {
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
+</script>
 </body>
 </html>
