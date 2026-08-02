@@ -1180,6 +1180,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Ajuste Mobile — «Conferir» apaga data logo após contar (**v13.14** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Contou há minutos · lista laranja **Conferir** (deveria ser `dd/mm/aa`) |
+| **Causa** | Refresh de saldos vinha **sem** data e **zerava** a data local; catálogo slim também sobrescrevia |
+| **Fix** | API vazia **não** apaga data boa · ao trocar catálogo **mantém** contagem da sessão |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Teste** | `teste` v**13.14** · push `origin/teste` |
+| **Loja** | **ainda não** — falta frase + senha |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · 1 contagem · deve ficar **data de hoje**, não Conferir · confira se a loja (Centro/Vila) é a mesma da contagem |
+
 ### ✅ Ajuste Mobile — bip não cola 2 EANs (**v13.11** · 02/08)
 
 | Item | Detalhe |
