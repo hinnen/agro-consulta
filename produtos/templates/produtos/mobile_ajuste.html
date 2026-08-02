@@ -654,6 +654,8 @@ let maCodigoOrfao = null;
 let maBipBusy = false;
 let maBipLastCode = '';
 let maBipLastAt = 0;
+/** Depois de um bip/Enter: próximo caractere do leitor apaga o código antigo (não cola EAN+EAN). */
+let maBuscaLimparNoProximoChar = false;
 let maFlashTimer = null;
 let maFlashProduto = null;
 
@@ -1450,6 +1452,32 @@ function maPostAjuste(produto, novoSaldo, opts) {
     .finally(() => clearTimeout(to));
 }
 
+function maSelecionarTodoBusca() {
+  const inp = document.getElementById('busca');
+  if (!inp) return;
+  try {
+    inp.setSelectionRange(0, String(inp.value || '').length);
+  } catch (_) {
+    try { inp.select(); } catch (__) {}
+  }
+}
+
+/** Deixa o campo pronto pro próximo bip: vazio + foco (leitor USB não cola 2 EANs). */
+function maPrepCampoProximoBip() {
+  const inp = document.getElementById('busca');
+  if (!inp) return;
+  /* Órfão: mantém o código na busca (pra achar produto), mas selecionado. */
+  if (maCodigoOrfao && maNormCodigo(inp.value) === maNormCodigo(maCodigoOrfao)) {
+    maBuscaLimparNoProximoChar = true;
+    inp.focus({ preventScroll: true });
+    maSelecionarTodoBusca();
+    return;
+  }
+  inp.value = '';
+  maBuscaLimparNoProximoChar = true;
+  inp.focus({ preventScroll: true });
+}
+
 function maSalvarBipMaisUm(p) {
   if (!p || maBipBusy) return Promise.resolve(false);
   maBipBusy = true;
@@ -1459,7 +1487,8 @@ function maSalvarBipMaisUm(p) {
     .then((r) => {
       maTocarSom('ok');
       maMostrarFlash(p, r.novo_saldo);
-      buscar(document.getElementById('busca')?.value || '');
+      maPrepCampoProximoBip();
+      buscar('');
       return true;
     })
     .catch((err) => {
@@ -1479,7 +1508,13 @@ function maProcessarCodigoBipado(codigo) {
   maBipLastAt = now;
 
   if (!maBip1On) {
-    document.getElementById('busca').value = c;
+    const inp = document.getElementById('busca');
+    if (inp) {
+      inp.value = c;
+      maBuscaLimparNoProximoChar = true;
+      inp.focus({ preventScroll: true });
+      maSelecionarTodoBusca();
+    }
     buscar(c);
     stopScan();
     return;
@@ -1501,11 +1536,13 @@ function maProcessarCodigoBipado(codigo) {
     maTocarSom('erro');
     stopScan();
     maPreencherBuscaOrfao(c);
+    maBuscaLimparNoProximoChar = true;
     return;
   }
   maTocarSom('erro');
   stopScan();
   maAbrirPick(hits.slice(0, 40));
+  maPrepCampoProximoBip();
 }
 
 function startScan() {
@@ -1865,19 +1902,37 @@ document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
 
 document.getElementById('busca')?.addEventListener('focus', () => {
   const inp = document.getElementById('busca');
-  if (!inp || !maCodigoOrfao) return;
-  if (maNormCodigo(inp.value) !== maNormCodigo(maCodigoOrfao)) return;
+  if (!inp) return;
   setTimeout(() => {
-    try { inp.setSelectionRange(0, inp.value.length); } catch (_) { try { inp.select(); } catch (__) {} }
+    maSelecionarTodoBusca();
   }, 0);
 });
 
 document.getElementById('busca')?.addEventListener('keydown', (ev) => {
+  const inp = document.getElementById('busca');
+  /* Novo bip: apaga o EAN anterior antes da 1ª letra do leitor. */
+  if (
+    maBuscaLimparNoProximoChar
+    && inp
+    && ev.key
+    && ev.key.length === 1
+    && !ev.ctrlKey
+    && !ev.metaKey
+    && !ev.altKey
+  ) {
+    maBuscaLimparNoProximoChar = false;
+    inp.value = '';
+  }
   if (ev.key !== 'Enter') return;
-  if (!maBip1On) return;
-  const c = maNormCodigo(document.getElementById('busca')?.value);
+  if (!maBip1On) {
+    /* Sem Bip+1: Enter só prepara o campo pro próximo bip (não cola códigos). */
+    maBuscaLimparNoProximoChar = true;
+    maSelecionarTodoBusca();
+    return;
+  }
+  const c = maNormCodigo(inp?.value);
   if (!c) return;
-  /* Leitor USB / Enter: no modo Bip+1 trata como bip. */
+  /* Leitor USB / Enter: no modo Bip +1 trata como bip. */
   ev.preventDefault();
   maProcessarCodigoBipado(c);
 });
