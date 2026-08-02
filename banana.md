@@ -1188,7 +1188,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Numpad grande no modal (1–9 · 0 · . · ⌫ · Limpar) · campo qtd só leitura |
 | **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
 | **Migrate** | NÃO |
-| **Teste** | push `origin/teste` |
+| **Teste** | `teste` **v13.18** (texto explicativo do numpad **removido**) |
 | **Loja** | **ainda não** — frase + senha |
 | **Você** | Ctrl+F5 `/ajuste-mobile/` · abrir produto · digitar qtd nos botões · Somar/Trocar |
 | **Dica Android** | Ajustes → Teclado físico → **mostrar teclado na tela** (se quiser soft keyboard em outros campos) |
