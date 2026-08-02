@@ -24067,6 +24067,101 @@ def api_ajustar_estoque(request):
     return JsonResponse({"ok": False, "erro": "PIN INCORRETO"}, status=403)
 
 
+def _autorizar_pin_ajuste_request(request) -> tuple[bool, str]:
+    """PIN de operador (RH) ou sessão aberta do ajuste mobile (`SESSAO`)."""
+    pin = str(request.POST.get("pin") or "").strip()
+    if not pin:
+        return False, "Informe o PIN."
+    sessao_ajuste = bool(
+        str(request.session.get("ajuste_mobile_operador") or "").strip()
+        or request.session.get("ajuste_mobile_user_id")
+    )
+    if pin == "SESSAO":
+        if sessao_ajuste:
+            return True, ""
+        return False, "Sessão de ajuste expirada. Digite o PIN."
+    perfil = (
+        PerfilUsuario.objects.filter(senha_rapida=pin).only("id").first()
+    )
+    if perfil is not None:
+        return True, ""
+    return False, "PIN incorreto."
+
+
+def _saldo_catalogo_apos_remover_ajuste(pid: str, dep: str, saldo_erp_fallback) -> Decimal:
+    """Saldo operacional depois de apagar um ajuste PIN (último restante ou ERP da época)."""
+    pid = str(pid or "").strip()
+    dep = str(dep or "centro").strip().lower() or "centro"
+    if pid:
+        prev = (
+            AjusteRapidoEstoque.objects.filter(produto_externo_id=pid[:100], deposito=dep)
+            .order_by("-criado_em")
+            .only("saldo_informado")
+            .first()
+        )
+        if prev is not None:
+            return Decimal(str(prev.saldo_informado or 0))
+    try:
+        return Decimal(str(saldo_erp_fallback or 0))
+    except Exception:
+        return Decimal("0")
+
+
+@require_POST
+def api_deletar_ajuste(request, id):
+    """Reverte uma contagem PIN: remove o registro e o saldo volta ao anterior."""
+    ok_pin, err_pin = _autorizar_pin_ajuste_request(request)
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+    try:
+        aj_id = int(id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Ajuste inválido."}, status=400)
+    aj = AjusteRapidoEstoque.objects.filter(pk=aj_id).first()
+    if aj is None:
+        return JsonResponse({"ok": False, "erro": "Ajuste não encontrado."}, status=404)
+    origem = str(aj.origem or "").strip()
+    if origem and origem != OrigemAjusteEstoque.AJUSTE_PIN:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Só dá para reverter contagem manual (PIN). Este registro é de outra origem.",
+            },
+            status=400,
+        )
+    pid = str(aj.produto_externo_id or "").strip()
+    dep = str(aj.deposito or "centro").strip().lower() or "centro"
+    erp_ref = aj.saldo_erp_referencia
+    try:
+        aj.delete()
+        _invalidar_caches_apos_ajuste_pin()
+        if pid:
+            novo = _saldo_catalogo_apos_remover_ajuste(pid, dep, erp_ref)
+            try:
+                _patch_catalogo_pdv_saldo_apos_ajuste(pid, dep, novo)
+            except Exception:
+                pass
+        return JsonResponse({"ok": True})
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+
+@require_POST
+def api_limpar_historico_ajustes(request):
+    """Apaga só contagens PIN do histórico (não apaga baixa de venda / NF / etc.)."""
+    ok_pin, err_pin = _autorizar_pin_ajuste_request(request)
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
+    try:
+        n, _ = AjusteRapidoEstoque.objects.filter(
+            origem=OrigemAjusteEstoque.AJUSTE_PIN
+        ).delete()
+        _invalidar_caches_apos_ajuste_pin()
+        return JsonResponse({"ok": True, "apagados": int(n or 0)})
+    except Exception as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=500)
+
+
 def _json_legivel(val):
     if isinstance(val, (dict, list)):
         return json.dumps(val, ensure_ascii=False)

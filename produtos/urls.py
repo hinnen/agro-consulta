@@ -890,6 +890,16 @@ urlpatterns = [
         name='api_lancamentos_contas_pagar',
     ),
     path('api/ajustar/', views.api_ajustar_estoque, name='api_ajustar_estoque'),
+    path(
+        'api/deletar-ajuste/<int:id>/',
+        views.api_deletar_ajuste,
+        name='api_deletar_ajuste',
+    ),
+    path(
+        'api/limpar-historico/',
+        views.api_limpar_historico_ajustes,
+        name='api_limpar_historico_ajustes',
+    ),
     path('api/todos-produtos/', views.api_todos_produtos_local, name='api_todos_produtos_local'),
     path('api/todos-produtos/delta/', views.api_todos_produtos_delta, name='api_todos_produtos_delta'),
     path('api/pdv/catalogo-slim/', views.api_pdv_catalogo_slim, name='api_pdv_catalogo_slim'),
