@@ -1184,10 +1184,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · Ctrl+F5 `/ajuste-mobile/` |
+| **Status** | ✅ **enviado loja v13.11** · `producao` @ **`8d7f38b`** · Render auto |
 | **O quê** | 2º bip **apaga** o código anterior no campo (não fica EAN+EAN) |
-| **Arquivo** | `mobile_ajuste.html` |
-| **Commit** | `44e2abf` |
+| **Arquivo** | **só** `mobile_ajuste.html` (+ VERSION) |
+| **Migrate** | NÃO |
+| **Branch** | `deploy/ajuste-bip-clear-v13.11` |
+| **Rollback** | `git push origin rollback/pre-v1311-ajuste-bip:producao` (@ **`ac5dfb3`** / v13.10) |
+| **Risco** | **Muito baixo** — só Ajuste Mobile · PDV/caixa intactos |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · bip 1 · bip 2 · campo só com o 2º |
 
 ### ✅ Deploy loja **v13.10** — Etiquetas presets Postgres (`ETQ-PRESET-PG` · 01/08 · Renan frase+senha)
 
