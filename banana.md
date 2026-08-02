@@ -1180,6 +1180,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.21**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **pronto para envio à produção** (Renan: frase + senha) |
+| **Base loja** | **v13.11** @ `8d7f38b` |
+| **Teste** | branch `teste` · badge **v13.21** @ **`d259824`** |
+| **O quê** | (1) data contagem não vira «Conferir» · (2) numpad BT · (3) modal compacto sem scroll · (4) Hist. só últimos 200 · (5) Scan câmera estável |
+| **Arquivos** | `mobile_ajuste.html` · `historico_ajustes.html` · `views.py` (**só** `historico_ajustes`) · VERSION |
+| **Migrate** | **NÃO** |
+| **NÃO** | merge `teste`→`producao` · PDV/caixa |
+| **Como subir** | cherry-pick commits pós-`8d7f38b` deste pacote (ou branch deploy a partir de `producao` + cherry) |
+| **Rollback** | voltar `producao` ao pre-tag do deploy (criar `rollback/pre-…` no envio) |
+| **Prova local 02/08** | `manage.py check` 0 · Hist. 200/cap 500 · markers template (numpad/scan/dcApi/hist?from) OK · lógica contagem+numpad OK |
+| **Você após loja** | Ctrl+F5 `/ajuste-mobile/` · 1 contagem (data) · numpad Somar · Hist. abre · Scan abre/fecha |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
+
+**Loja hoje:** badge **v13.11** · `producao` @ `8d7f38b`  
+**Teste hoje:** badge **v13.21** · `teste` @ `d259824`  
+**Migrate neste pacote:** NÃO
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | Lotes até **v13.11** (bip clear + ETQ-PRESET-PG + CP/DFE…) | ✅ **já na loja** |
+| **1** | **AJUSTE-MOBILE-UX** (**v13.21**) | 🟢 **pronto para envio à produção** |
+
 ### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
 
 | Item | Detalhe |
@@ -1188,7 +1215,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Scan** | Limpa câmera ao fechar/reabrir · evita double-start · lib pinada 2.3.8 · mensagem se sem permissão |
 | **Arquivos** | `views.py` · `historico_ajustes.html` · `mobile_ajuste.html` |
 | **Migrate** | NÃO |
-| **Loja** | **ainda não** |
+| **Pacote** | incluso em **AJUSTE-MOBILE-UX** |
 
 ### 🔧 Ajuste Mobile — teclado numérico na tela (Bluetooth · **v13.16** · 02/08)
 
