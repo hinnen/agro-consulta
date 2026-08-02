@@ -1178,6 +1178,82 @@ Rotas: `backup-completo.xlsx` · `backup-abertos.zip` · `congelamento-status/` 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+<<<<<<< HEAD
+=======
+### 🔧 Histórico de ajustes — layout celular (**teste** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | `/historico/` em **cards** (não tabela larga) · Voltar ao Ajuste em destaque |
+| **Arquivo** | `historico_ajustes.html` (+ select_related no view) |
+| **Migrate** | NÃO |
+| **Loja** | **ainda não** |
+| **Você** | Ctrl+F5 Hist. no celular · lista legível · Voltar |
+
+### 🔧 Ajuste Mobile — Bip+1 mantém produto na tela (**v13.29** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Após +1 o card sumia — só dava pra Ajustar pelo verde |
+| **Fix** | Campo limpo (anti-cola EAN) · lista mostra **último bipado** clicável |
+| **Arquivo** | **só** `mobile_ajuste.html` |
+| **Migrate** | NÃO |
+| **Teste** | `1ca5de9` · badge **13.29** |
+| **Loja** | **ainda não** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · Bip+1 ON · bip · card fica · clique no card · 2º bip sem cola |
+
+### 🔧 DF-e — consulta SEFAZ off no runserver local (02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Buscar / chave Dist **não** falam com a Receita no PC local |
+| **Por quê** | Mesmo CNPJ da loja → 656 |
+| **Loja** | Continua normal (RENDER) |
+| **Exceção** | `NFE_DIST_DFE_PERMITIR_LOCAL=true` no `.env` |
+| **Arquivos** | `sefaz_dfe_client.py` · status API · `entrada_nota.html` |
+
+### ✅ Deploy loja **v13.26** — AJUSTE-MOBILE-UX (02/08 · Renan frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · `producao` @ **`c3ec890`** · Render auto |
+| **Base** | loja **v13.11** @ `8d7f38b` |
+| **Branch** | `deploy/ajuste-mobile-ux-v13` |
+| **Rollback** | `git push origin rollback/pre-ajuste-mobile-ux-v13:producao` (@ **`8d7f38b`** / v13.11) |
+| **Inclui** | Conferir/data · numpad BT · modal compacto · Hist. 200 · Scan estável |
+| **Migrate** | **NÃO** |
+| **NÃO** | merge `teste` · PDV/caixa |
+| **Você agora** | Esperar Live · Ctrl+F5 `/ajuste-mobile/` · badge **13.26** · 1 contagem · Hist. · Scan |
+
+### ⏭ PRÓXIMO CHAT — deploy loja **AJUSTE-MOBILE-UX** (preparado 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** — ver bloco Deploy loja **v13.26** acima |
+| **Rollback** | `git push origin rollback/pre-ajuste-mobile-ux-v13:producao` |
+
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado ·** `producao` @ `c3ec890` |
+| **Base loja** | era **v13.11** @ `8d7f38b` |
+| **Deploy** | `deploy/ajuste-mobile-ux-v13` @ `c3ec890` |
+| **Rollback** | `rollback/pre-ajuste-mobile-ux-v13` |
+| **O quê** | (1) «Conferir» não apaga data · (2) numpad BT · (3) modal compacto · (4) Hist. últimos 200 · (5) Scan estável |
+| **Migrate** | **NÃO** |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
+
+**Loja hoje:** badge **v13.26** · `producao` @ `c3ec890` (Render a finalizar)  
+**Migrate:** NÃO
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | Lotes até **v13.11** | ✅ **já na loja** |
+| **1** | **AJUSTE-MOBILE-UX** (**v13.26**) | ✅ **enviado** `c3ec890` |
+
+>>>>>>> bdeb3aa (fix(historico): layout em cards para celular no Hist. do ajuste)
 ### 🔧 Ajuste Mobile — Hist. trava + Scan câmera (**v13.21** · 02/08)
 
 | Item | Detalhe |
