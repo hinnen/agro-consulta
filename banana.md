@@ -1180,6 +1180,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ Ajuste Mobile — bip não cola 2 EANs (**v13.11** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · Ctrl+F5 `/ajuste-mobile/` |
+| **O quê** | 2º bip **apaga** o código anterior no campo (não fica EAN+EAN) |
+| **Arquivo** | `mobile_ajuste.html` |
+| **Commit** | `44e2abf` |
+
 ### ✅ Deploy loja **v13.10** — Etiquetas presets Postgres (`ETQ-PRESET-PG` · 01/08 · Renan frase+senha)
 
 | Item | Detalhe |
