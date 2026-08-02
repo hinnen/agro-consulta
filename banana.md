@@ -1180,40 +1180,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ⏭ PRÓXIMO CHAT — deploy loja **HIST-REVERTER-PIN** (preparado 02/08)
+### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟢 **pronto** — **não** subir até frase + senha `99738595` |
-| **Loja hoje** | **v13.35** @ `87a5a78` |
-| **Branch deploy** | `deploy/hist-reverter-pin-v13` @ **`7cb3695`** · badge **v13.36** |
-| **Rollback** | `git push origin rollback/pre-hist-reverter-pin-v13:producao` (@ **`87a5a78`** / v13.35) |
-| **Como subir** | `git push origin deploy/hist-reverter-pin-v13:producao` · **NÃO** merge `teste` |
-| **O quê** | ✕ reverte contagem · PIN real / SESSAO · API que faltava |
-| **Arquivos** | `historico_ajustes.html` · `views.py` · `urls.py` · VERSION · banana |
+| **Status** | ✅ **na loja** · `producao` @ **`7cb3695`** · badge **v13.36** |
+| **Antes** | **v13.35** @ `87a5a78` |
+| **Push** | `deploy/hist-reverter-pin-v13:producao` (autorizado frase + senha) |
+| **Rollback** | `git push origin rollback/pre-hist-reverter-pin-v13:producao` → volta **v13.35** |
+| **O quê** | ✕ reverte contagem · PIN real / SESSAO · API `/api/deletar-ajuste/` |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo PDV/caixa — só Hist. · não apaga baixa de venda |
-| **Provas** | check 0 · PIN errado 403 · SESSAO ok · PIN RH ok · bloqueia venda · saldo volta |
-| **Você** | frase + senha → Ctrl+F5 badge **13.36** · ✕ no Hist.
+| **Você** | Ctrl+F5 · badge **13.36** · Hist. ✕ com PIN da loja · card some · saldo volta |
 
-### 📦 PACOTE PRONTO LOJA — Histórico reverter PIN (`HIST-REVERTER-PIN` · **v13.36**)
+### 📦 CHECKLIST ÚNICO — após envio (02/08)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟢 **pronto** · branch no GitHub |
-| **Base** | **v13.35** @ `87a5a78` |
-| **Deploy** | `deploy/hist-reverter-pin-v13` @ `7cb3695` |
-| **Rollback** | `rollback/pre-hist-reverter-pin-v13` |
-| **Migrate** | **NÃO** |
-
-### 📦 CHECKLIST ÚNICO — pronto envio (02/08)
-
-**Loja:** **v13.35** · Deploy: **v13.36** `HIST-REVERTER-PIN`
+**Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
+**Migrate:** NÃO
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | **AJUSTE-HIST-UX** (**v13.35**) | ✅ na loja |
-| **1** | **HIST-REVERTER-PIN** (**v13.36**) | 🟢 pronto — aguarda frase + senha |
+| — | **AJUSTE-HIST-UX** (**v13.35**) | ✅ absorvido |
+| **1** | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
 
 ### 🔧 Histórico — X reverte contagem (PIN) (**teste** · 02/08)
 
