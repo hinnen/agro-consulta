@@ -11918,6 +11918,38 @@ def historico_ajustes(request):
     ajustes = list(
         AjusteRapidoEstoque.objects.select_related("usuario").order_by("-criado_em")[:limite]
     )
+    # Preenche GM na tela quando o ajuste antigo não gravou codigo_interno.
+    pids_sem_gm = [
+        str(a.produto_externo_id or "").strip()
+        for a in ajustes
+        if a and not str(getattr(a, "codigo_interno", None) or "").strip()
+        and str(a.produto_externo_id or "").strip()
+    ]
+    gm_por_pid: dict[str, str] = {}
+    if pids_sem_gm:
+        try:
+            from produtos.models import Produto as ProdutoCat
+
+            for row in (
+                ProdutoCat.objects.filter(produto_externo_id__in=list(set(pids_sem_gm)))
+                .only("produto_externo_id", "codigo_nfe", "codigo_interno")
+                .iterator(chunk_size=200)
+            ):
+                pid = str(row.produto_externo_id or "").strip()
+                gm = (
+                    str(row.codigo_nfe or "").strip()
+                    or str(row.codigo_interno or "").strip()
+                )
+                if pid and gm:
+                    gm_por_pid[pid] = gm[:100]
+        except Exception:
+            gm_por_pid = {}
+    for a in ajustes:
+        if str(getattr(a, "codigo_interno", None) or "").strip():
+            continue
+        pid = str(a.produto_externo_id or "").strip()
+        if pid and pid in gm_por_pid:
+            a.codigo_interno = gm_por_pid[pid]
     return render(
         request,
         "produtos/historico_ajustes.html",
@@ -23681,9 +23713,31 @@ def api_ajustar_estoque(request):
             saldo_ref = _decimal_br_post(request.POST.get("saldo_atual", "0"))
             pid = str(request.POST.get("produto_id") or "").strip()
             dep = str(request.POST.get("deposito") or "centro").strip().lower() or "centro"
+            codigo_gm = (
+                str(request.POST.get("codigo_interno") or "").strip()
+                or str(request.POST.get("codigo_nfe") or "").strip()
+                or str(request.POST.get("codigo") or "").strip()
+            )[:100]
+            if not codigo_gm and pid:
+                try:
+                    from produtos.models import Produto as ProdutoCat
+
+                    row_cat = (
+                        ProdutoCat.objects.filter(produto_externo_id=pid[:100])
+                        .only("codigo_nfe", "codigo_interno")
+                        .first()
+                    )
+                    if row_cat is not None:
+                        codigo_gm = (
+                            str(row_cat.codigo_nfe or "").strip()
+                            or str(row_cat.codigo_interno or "").strip()
+                        )[:100]
+                except Exception:
+                    codigo_gm = ""
             AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
                 produto_externo_id=pid,
+                codigo_interno=codigo_gm,
                 deposito=dep,
                 nome_produto=nome_base[:255],
                 saldo_erp_referencia=saldo_ref,
