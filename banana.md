@@ -1180,6 +1180,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Histórico — X reverte contagem (PIN) (**teste** · 02/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | ✕ pedia PIN `1234` e a API `/api/deletar-ajuste/` **não existia** |
+| **Fix** | PIN real (RH) ou `SESSAO` do Ajuste · API cria/apaga · saldo volta ao anterior · só origem `ajuste_pin` |
+| **Arquivos** | `historico_ajustes.html` · `views.py` · `urls.py` |
+| **Você** | Local: Hist. → ✕ → confirma → se veio do Ajuste pode sem digitar PIN; senão digita o PIN da loja · card some · saldo volta |
+| **Loja** | **ainda não** — aguarda frase + senha |
+
 ### ✅ LOJA — **AJUSTE-HIST-UX** (**v13.35** · 02/08)
 
 | Item | Detalhe |

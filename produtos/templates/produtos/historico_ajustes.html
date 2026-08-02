@@ -101,7 +101,9 @@
           {% endif %}
         </p>
       </div>
-      <button type="button" onclick="deletarAjuste('{{ ajuste.id }}')" class="shrink-0 min-h-[2.5rem] min-w-[2.5rem] rounded-xl text-rose-300 hover:text-rose-600 hover:bg-rose-50 font-black text-lg leading-none" aria-label="Apagar">✕</button>
+      {% if ajuste.origem == "ajuste_pin" or not ajuste.origem %}
+      <button type="button" onclick="deletarAjuste('{{ ajuste.id }}')" class="shrink-0 min-h-[2.5rem] min-w-[2.5rem] rounded-xl text-rose-300 hover:text-rose-600 hover:bg-rose-50 font-black text-lg leading-none" title="Reverter esta contagem" aria-label="Reverter contagem">✕</button>
+      {% endif %}
     </div>
     <div class="mt-2 flex flex-wrap items-center gap-2">
       <span class="text-[11px] font-black text-slate-700 tabular-nums">
@@ -133,10 +135,10 @@
   <details class="mt-4 rounded-xl border border-slate-200 bg-white px-3 py-2">
     <summary class="text-[10px] font-black uppercase text-slate-400 cursor-pointer select-none py-1">Opções avançadas</summary>
     <button type="button" onclick="limparTudo()" class="mt-2 w-full min-h-[2.75rem] rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-black uppercase">
-      Apagar todo o histórico
+      Apagar contagens PIN do histórico
     </button>
     {% if not voltar_ajuste %}
-    <p class="mt-2 text-[10px] font-bold text-slate-400 leading-snug">Use com cuidado — remove todos os registros de ajuste.</p>
+    <p class="mt-2 text-[10px] font-bold text-slate-400 leading-snug">Remove só contagens manuais (PIN). Não apaga baixa de venda nem entrada de nota.</p>
     {% else %}
     <div class="mt-2">
       {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex w-full items-center justify-center min-h-[2.5rem] rounded-xl border border-slate-200 text-slate-600 text-[11px] font-black uppercase" %}
@@ -148,30 +150,59 @@
 <script>
   let pinSessao = null;
 
-  function obterPin() {
-    if (pinSessao === "1234") return pinSessao;
-    const p = prompt("Digite o PIN (1234):");
-    if (p === "1234") {
-      pinSessao = p;
-      return p;
+  function pedirPinDigitado() {
+    const p = prompt("PIN do operador para reverter:");
+    if (p == null) return null;
+    const t = String(p).trim();
+    if (!t) {
+      alert("Informe o PIN.");
+      return null;
     }
-    alert("PIN Incorreto!");
-    return null;
+    return t;
+  }
+
+  /** Sessão do Ajuste (sem digitar de novo) → senão PIN digitado. */
+  function obterPinPreferido() {
+    if (pinSessao) return pinSessao;
+    return "SESSAO";
+  }
+
+  async function postAjustePin(url, pin) {
+    const fd = new FormData();
+    fd.append("pin", pin);
+    fd.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+    const res = await fetch(url, { method: "POST", body: fd, credentials: "same-origin" });
+    let j = null;
+    try { j = await res.json(); } catch (e) { j = null; }
+    return { res, j };
+  }
+
+  async function comPinAutorizado(url) {
+    let pin = obterPinPreferido();
+    let out = await postAjustePin(url, pin);
+    if (out.res.status === 403 && pin === "SESSAO") {
+      pin = pedirPinDigitado();
+      if (!pin) return null;
+      out = await postAjustePin(url, pin);
+    }
+    if (!out.res.ok || !(out.j && out.j.ok)) {
+      const msg = (out.j && out.j.erro) || "Não foi possível concluir.";
+      if (/pin/i.test(msg)) pinSessao = null;
+      alert(msg);
+      return null;
+    }
+    if (pin && pin !== "SESSAO") pinSessao = pin;
+    return out;
   }
 
   async function deletarAjuste(id) {
-    const pin = obterPin();
-    if (!pin) return;
-    const fd = new FormData();
-    fd.append('pin', pin);
-    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    if (!confirm("Reverter esta contagem?\n\nO saldo do produto volta ao valor anterior.")) return;
     try {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
-      const res = await fetch(`/api/deletar-ajuste/${id}/`, { method: 'POST', body: fd });
-      if (res.ok) {
-        const el = document.getElementById(`ajuste-${id}`);
-        if (el) el.remove();
-      }
+      const out = await comPinAutorizado(`/api/deletar-ajuste/${id}/`);
+      if (!out) return;
+      const el = document.getElementById(`ajuste-${id}`);
+      if (el) el.remove();
     } catch (e) {
       alert("Erro de conexão.");
     } finally {
@@ -180,16 +211,12 @@
   }
 
   async function limparTudo() {
-    if (!confirm("Isso apagará TODO o histórico. Confirmar?")) return;
-    const pin = obterPin();
-    if (!pin) return;
-    const fd = new FormData();
-    fd.append('pin', pin);
-    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    if (!confirm("Apagar TODAS as contagens manuais (PIN) do histórico?\n\nBaixas de venda e entradas de nota NÃO são apagadas.")) return;
     try {
       if (window.gmLoadingBar) window.gmLoadingBar.show();
-      const res = await fetch('/api/limpar-historico/', { method: 'POST', body: fd });
-      if (res.ok) window.location.reload();
+      const out = await comPinAutorizado("/api/limpar-historico/");
+      if (!out) return;
+      window.location.reload();
     } catch (e) {
       alert("Erro ao limpar.");
     } finally {
