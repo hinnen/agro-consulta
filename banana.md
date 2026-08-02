@@ -1180,13 +1180,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.21**)
+### 📦 PACOTE PRONTO LOJA — Ajuste Mobile UX (`AJUSTE-MOBILE-UX` · **v13.22**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🟢 **pronto para envio à produção** (Renan: frase + senha) |
 | **Base loja** | **v13.11** @ `8d7f38b` |
-| **Teste** | branch `teste` · badge **v13.21** @ **`d259824`** |
+| **Teste** | branch `teste` · badge **v13.22** @ **`c198262`** (+ código @ `d259824`) |
 | **O quê** | (1) data contagem não vira «Conferir» · (2) numpad BT · (3) modal compacto sem scroll · (4) Hist. só últimos 200 · (5) Scan câmera estável |
 | **Arquivos** | `mobile_ajuste.html` · `historico_ajustes.html` · `views.py` (**só** `historico_ajustes`) · VERSION |
 | **Migrate** | **NÃO** |
@@ -1433,12 +1433,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **NÃO** | merge `teste` · slim API (já na loja) |
 | **Você agora** | Ctrl+F5 PDVs · badge **12.88** · 1 venda · Uso loja · `/ajuste-mobile/` PIN+lista · etiquetas |
 
-### 📦 CHECKLIST ÚNICO — pós-deploy (01/08)
+### 📦 CHECKLIST ÚNICO — pós-deploy (01/08) · **substituído**
 
-**Loja hoje:** badge **v13.04** · `producao` @ `72c6b6c` · Live `dep-d9n49nvlk1mc738vjmng`  
-**Teste hoje:** branch `teste`  
-**Rollback:** `rollback/pre-cp-dfe-lote-v13.04` (@ v12.95 / `87aa52b`)  
-**Pente fino 01/08:** checklist antigo mentia — FL-008 · 016 · 024 · 049 · Aba 9 **já na loja** (ver fila aberta).
+> **Vigente:** bloco **CHECKLIST ÚNICO — pronto envio (02/08)** no topo do CHECKPOINT (pacote **AJUSTE-MOBILE-UX**).
+
+**Loja na época:** badge **v13.04** · depois subiu **v13.10** / **v13.11**.  
+Fila 1–9 abaixo = **já enviada** (arquivo histórico).
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
