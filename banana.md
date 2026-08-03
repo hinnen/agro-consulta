@@ -1191,21 +1191,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | `agro_bug_report.js` · `_agro_consulta_ui.html` |
 | **Você** | Ctrl+F5 no PDV · conferir ENVIAR/SUBTOTAL largura total |
 
-### ⏭ PRÓXIMO CHAT — deploy loja **LOTE CHECKLIST v13.38** (preparado 03/08)
+### ⏭ PRÓXIMO CHAT — deploy loja **LOTE CHECKLIST v13.39** (preparado 03/08)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **branch pronta** · aguarda pausa + frase + senha |
-| **Inclui (os 3 do checklist)** | **BUGS-F10-FRETE** · **ETQ-LOTE-A4** · **RELAT-INVENTARIO** |
-| **Branch** | `deploy/lote-checklist-v13.38` @ **`190c29d`** → `producao` |
+| **Inclui (4 paths)** | **BUGS-F10-FRETE** · **BUG-FAB-PDV** · **ETQ-LOTE-A4** · **RELAT-INVENTARIO** |
+| **Branch** | `deploy/lote-checklist-v13.38` @ **`94112a8`** → `producao` (badge **v13.39**) |
 | **Rollback** | `git push origin rollback/pre-lote-checklist-v13.38:producao` (@ **`7cb3695`** / v13.36) |
 | **Migrate** | **SIM** `0080_etiqueta_lote_agro` (no build Render) |
-| **Diff** | 15 arquivos · **sem** merge `teste` · base loja + cirúrgico |
-| **Risco PDV/caixa** | **Baixo** — não mexe finalizar venda/caixa/NF · frete só digitação · inventário só `/relatorios/` · ETQ só etiquetas |
+| **Diff** | 17 arquivos · **sem** merge `teste` · base loja + cirúrgico |
+| **Risco PDV/caixa** | **Baixo** — não mexe finalizar · + fix 🐞 não encolhe ENVIAR/SUBTOTAL |
 | **Loja aberta** | **Pausar** (migrate + Ctrl+F5 PDVs) |
-| **Prova** | BUGS ALL PASS · **RELAT VERIFY_OK** (saldos/custos/5 URLs/Excel · 0 negativos) · frete+F10 no lote |
+| **Prova** | BUGS ALL PASS · RELAT VERIFY_OK · frete+F10 · 🐞 dock no lote |
 | **Você autoriza** | 1) pausam vendas 2) *pode subir LOTE CHECKLIST / produção* + **99738595** |
-| **Depois** | Ctrl+F5 · badge **13.38** · F10 Bugs · frete 20 · `/relatorios/inventario/` · lote A4 |
+| **Depois** | Ctrl+F5 · badge **13.39** · F10 Bugs · frete 20 · ENVIAR/SUBTOTAL ok · inventário · lote A4 |
 | **Zap** | *Atualização ~3–5 min (migrate) — pause venda, depois Ctrl+F5* |
 | **Alt. menor** | Só bugs: `deploy/bugs-f10-frete-v13.37` @ `d10f08b` (sem migrate) |
 
@@ -1213,23 +1213,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
 **Teste hoje:** badge **v13.50** · branch `teste`  
-**Lote único:** `deploy/lote-checklist-v13.38` @ `190c29d` · migrate **0080**
+**Lote único:** `deploy/lote-checklist-v13.38` @ `94112a8` · badge **v13.39** · migrate **0080**
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
-| **1–3** | **LOTE** Bugs+ETQ+Inventário (**v13.38**) | 📦 **pronto para envio à produção** · branch acima |
+| **1–4** | **LOTE** Bugs+🐞PDV+ETQ+Inventário (**v13.39**) | 📦 **pronto para envio à produção** · `94112a8` |
 
-### 📦 PACOTE PRONTO LOJA — Lote checklist (`LOTE-CHECKLIST` · **v13.38**)
+### 📦 PACOTE PRONTO LOJA — Lote checklist (`LOTE-CHECKLIST` · **v13.39**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
-| **Branch** | `deploy/lote-checklist-v13.38` @ **`190c29d`** |
+| **Branch** | `deploy/lote-checklist-v13.38` @ **`94112a8`** |
 | **Rollback** | `rollback/pre-lote-checklist-v13.38` |
 | **1** | F10 Bugs + frete digitável |
-| **2** | Etiquetas lote A4 · migrate `0080` |
-| **3** | Relatórios inventário (só positivo no «com saldo») |
+| **2** | 🐞 não encolhe ENVIAR/SUBTOTAL (`agro_bug_report.js`) |
+| **3** | Etiquetas lote A4 · migrate `0080` |
+| **4** | Relatórios inventário (só positivo no «com saldo») |
 | **Autorizar** | ver **PRÓXIMO CHAT** |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
