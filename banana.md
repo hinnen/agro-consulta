@@ -1181,12 +1181,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✨ Dispenser — Mix Sabores + criar sabor (`DSP-MIX-CRIAR` · 03/08)
+### ✨ Dispenser — Mix Sabores + criar sabor (`DSP-MIX-CRIAR` · 03/08 · **teste v13.59**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Sabor **Mix Sabores** no catálogo (ícone SVG+PNG) · aba Sabores: **criar sabor** (nome + descrição + PNG) |
 | **Persistência** | Postgres — doc tipo `sabor` + mídia `flavor_ico` (multi-PC) · migrate **0081** (só choices) |
+| **Commit** | `96c7ed7` · **teste v13.59** · push `origin/teste` |
 | **Arquivos** | `flavor_lib.js` · `dispenser_cloud.js` · `dispenser_a6_studio.html` · `dispenser.css` · ícones · `models` · `0081` · `dispenser_a6_util` |
 | **URL** | `/interno/dispenser-a6/` → Sabores |
 | **Você** | Ctrl+F5 · ver Mix Sabores na grade · criar 1 sabor teste · abrir noutro PC/login e conferir |
