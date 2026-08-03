@@ -1223,7 +1223,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commits** | `5a84b83` + harden json_script/`reverse` (este push) |
+| **Commits** | `5a84b83` · harden **`19004d8`** (**teste v13.62**) |
 | **Inclui** | Copiar prompt Cursor · guia · JSON seguro (`json_script`) · URL print via `reverse` |
 | **Prova** | Client Django 200 · escape `</script>` · lista · print_url · estorno helper vazio OK |
 | **Migrate** | **NÃO** |
