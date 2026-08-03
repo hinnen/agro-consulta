@@ -229,6 +229,10 @@ def q_icontains_cadastro(termo: str) -> Q:
 
 def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     from produtos.models import ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import (
+        _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
 
     termo = (termo or "").strip()
     if not termo:
@@ -257,35 +261,66 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
             _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
+        _or(Q(cadastro_extras__codigos_barras_opcionais__contains=[digits]))
+        _or(Q(cadastro_extras__entrada_nfe_ean_embalagem=digits))
+        _or(Q(cadastro_extras__ean_embalagem_nf=digits))
     else:
         _or(Q(codigo_nfe__icontains=termo) | Q(codigo_barras__icontains=termo))
         if digits and len(digits) >= 4:
             _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits))
+            if digits.isdigit() and len(digits) >= 8:
+                _or(Q(cadastro_extras__codigos_barras_opcionais__contains=[digits]))
 
     if q_obj is None:
         return []
     out: list[str] = []
     seen: set[str] = set()
-    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only("produto_externo_id", "codigo_nfe", "codigo_barras")[: max(limit * 3, 120)]:
+
+    def _considerar(ov) -> bool:
         pid = str(ov.produto_externo_id or "").strip()
         if not pid or pid in seen:
-            continue
-        # Família GM0024: o Q já restringiu prefixo; não derrubar com match “exato” estrito.
+            return False
+        ce = getattr(ov, "cadastro_extras", None)
+        extras = tuple(
+            list(codigos_barras_opcionais_de_cadastro_extras(ce))
+            + list(_eans_embalagem_nf_de_cadastro_extras(ce))
+        )
         base = gm_base_familia(termo)
         if base:
             cn = str(ov.codigo_nfe or "").strip().upper()
             cb = str(ov.codigo_barras or "").strip().upper()
             ok_fam = cn.startswith(base) or cb.startswith(base) or termo_bate_codigos_produto(
-                termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras
+                termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
             )
             if not ok_fam:
-                continue
-        elif not termo_bate_codigos_produto(termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras):
-            continue
+                return False
+        elif not termo_bate_codigos_produto(
+            termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
+        ):
+            return False
         seen.add(pid)
         out.append(pid)
+        return True
+
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
+        "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
+    )[: max(limit * 3, 120)]:
+        _considerar(ov)
         if len(out) >= limit:
             break
+
+    # Fallback: JSON contains pode falhar no SQLite — varre quem tem a chave.
+    if digits.isdigit() and len(digits) >= 8 and len(out) < limit:
+        for ov in (
+            ProdutoGestaoOverlayAgro.objects.filter(cadastro_extras__has_key="codigos_barras_opcionais")
+            .only("produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras")[:800]
+        ):
+            if digits not in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+                continue
+            _considerar(ov)
+            if len(out) >= limit:
+                break
+
     return out
 
 
@@ -295,16 +330,16 @@ def index_codigos_de_campos(
     codigo_nfe: str | None = None,
     codigo_barras: str | None = None,
     cadastro_extras: dict | None = None,
-    extras: list[str] | None = None,
+    extras: list[str] | tuple[str, ...] | None = None,
 ) -> list[str]:
     """
     Códigos para busca (PDV / Entrada NF).
-    Inclui EAN da embalagem NF + cProd do fornecedor gravados no overlay
-    (``entrada_nfe_ean_embalagem`` / ``entrada_nfe_c_prods``) — 2º código.
+    Inclui EAN da embalagem NF + cProd do fornecedor + barras opcionais do overlay.
     """
     from produtos.mongo_index_codigos import (
         _c_prods_nf_de_cadastro_extras,
         _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
         extrair_index_codigos_de_documento_mongo,
         somente_alnum,
     )
@@ -317,11 +352,12 @@ def index_codigos_de_campos(
     out = list(extrair_index_codigos_de_documento_mongo(doc) or [])
     seen = {somente_alnum(str(x)).lower() for x in out if x}
     extras_list: list[str] = []
-    if isinstance(extras, list):
+    if isinstance(extras, (list, tuple)):
         extras_list.extend(str(x) for x in extras if x is not None and str(x).strip())
     if isinstance(cadastro_extras, dict):
         extras_list.extend(_eans_embalagem_nf_de_cadastro_extras(cadastro_extras))
         extras_list.extend(_c_prods_nf_de_cadastro_extras(cadastro_extras))
+        extras_list.extend(codigos_barras_opcionais_de_cadastro_extras(cadastro_extras))
     for raw in extras_list:
         s = str(raw or "").strip()
         if not s:
