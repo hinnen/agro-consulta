@@ -1200,12 +1200,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **push `producao`** @ **`6996fca`** · badge **13.64** · aguarda Render Live + Ctrl+F5 |
+| **Status** | ✅ **Live** Render · `producao` @ **`6996fca`** · badge **13.64** · deploy `dep-d9odlmhsrm7s73fth000` |
 | **Autorização** | *pode enviar para produção* + **99738595** (03/08) |
 | **Cherry** | `96c7ed7` → `0057e69` → `7db7675` → `be3715e`* → `5a84b83` → `19004d8` → `0e65ecb` → `e4c1828` |
 | **\*** | `views.py` reabrir: manteve `_entrada_nfe_conexao` + `usuario_django` |
 | **Diff** | 21 arquivos · **zero** PDV/caixa/checkout |
 | **Rollback** | `rollback/pre-lote-checklist-03ago-v13.39` |
+| **Loja** | **Ctrl+F5** nos PCs · badge BI deve mostrar **13.64** |
 
 ### 🚀 PREP deploy loja — lote 03/08 (**feito**)
 
