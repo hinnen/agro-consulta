@@ -1186,7 +1186,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste hoje:** badge **v13.78**  
+**Teste hoje:** badge **v13.79**  
 **Como subir:** pausar vendas → frase + senha · **NÃO** merge `teste` inteiro  
 **Rollback:** `git push origin 6996fca:producao`  
 **Migrate novo:** **NÃO** (nenhum destes pacotes)
@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Autorizar CAD/NF:** *pode subir lote cad/nf para produção* + **99738595** → `git push origin prep/lote-cad-nf-v13.75:producao`  
 **Autorizar Dispenser:** *pode subir dispenser PNG / produção* + **99738595**
 
-### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.78**)
+### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.79**)
 
 | Item | Detalhe |
 | ---- | ------- |
