@@ -1184,7 +1184,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · `producao` @ **`94112a8`** · badge **13.39** · aguardar Live + migrate `0080` |
+| **Status** | ✅ **Live** · `producao` @ **`94112a8`** · badge **13.39** · migrate `0080` no build · dep Render `dep-d9obfd0ae00c73fttnk0` |
 | **Base** | loja **v13.36** @ `7cb3695` |
 | **Branch** | `deploy/lote-checklist-v13.38` |
 | **Rollback** | `git push origin rollback/pre-lote-checklist-v13.38:producao` (@ **`7cb3695`** / v13.36) |
