@@ -1023,8 +1023,12 @@
     </div>
 
     <div class="px-4 sm:px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 shrink-0 sm:justify-between">
-      <button type="button" id="btn-excluir-somente-agro" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-red-600 text-white border-2 border-red-800 hover:bg-red-700 shadow-sm transition-colors order-last sm:order-first"
-        title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
+      <div class="flex flex-col sm:flex-row flex-wrap gap-3 order-last sm:order-first">
+        <button type="button" id="btn-excluir-somente-agro" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-red-600 text-white border-2 border-red-800 hover:bg-red-700 shadow-sm transition-colors"
+          title="Remove só cadastros criados no SisVale; não use em produtos espelhados do ERP.">Excluir (só SisVale)</button>
+        <button type="button" id="btn-duplicar-cadastro" class="hidden min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white text-violet-900 border-2 border-violet-300 hover:bg-violet-50 shadow-sm transition-colors"
+          title="Abre um produto novo com os mesmos dados (códigos e barras novos; sem estoque). Confirme com Salvar no Agro.">Duplicar</button>
+      </div>
       <div class="flex flex-col sm:flex-row justify-end gap-3 flex-1 min-w-0">
         <button type="button" id="btn-cancelar-edit" class="min-h-[52px] px-6 rounded-xl text-base font-black uppercase bg-white border-2 border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors">Cancelar</button>
         {% if cadastro_produto_erp_sync_habilitado %}
@@ -2611,6 +2615,12 @@
       if (mostrarEx) btnExcluirSomenteAgro.classList.remove('hidden');
       else btnExcluirSomenteAgro.classList.add('hidden');
     }
+    var btnDup = document.getElementById('btn-duplicar-cadastro');
+    if (btnDup) {
+      var pidDup = String(produto.id || '').trim();
+      if (pidDup && pidDup.toLowerCase() !== '__novo__') btnDup.classList.remove('hidden');
+      else btnDup.classList.add('hidden');
+    }
   }
 
   var historicoMovTimer = null;
@@ -2968,6 +2978,22 @@
   bindClick('btn-sync-erp-edit', function () {
     if (!(window.AgroCadastroErpLista || {}).CADASTRO_ERP_SYNC_HABILITADO) return;
     salvarCadastroModalAgro(true);
+  });
+  bindClick('btn-duplicar-cadastro', function () {
+    var pid = String(modalEdit.getAttribute('data-produto-id') || '').trim();
+    if (!pid || pid.toLowerCase() === '__novo__') {
+      if (typeof alert !== 'undefined') alert('Abra um produto já cadastrado para duplicar.');
+      return;
+    }
+    var snap = coletarSnapshotDuplicarCadastro();
+    if (!String(snap.nome || '').trim()) {
+      if (typeof alert !== 'undefined') alert('Produto sem nome — não dá para duplicar.');
+      return;
+    }
+    modalEdit._pendenteDuplicata = snap;
+    if (typeof window.abrirModalProduto === 'function') {
+      window.abrirModalProduto({ id: '__novo__' });
+    }
   });
 
   (function bindDeliveryFoto() {
@@ -3522,6 +3548,272 @@
     return base;
   }
 
+  function gvForm(id) {
+    var el = document.getElementById(id);
+    return el ? String(el.value || '') : '';
+  }
+
+  function chkForm(id) {
+    var el = document.getElementById(id);
+    return !!(el && el.checked);
+  }
+
+  /** Gera EAN loja (230…) no campo barras; Promise resolve quando terminar. */
+  function gerarCodigoBarrasLojaCadastro() {
+    var cfgCb = window.AgroCadastroErpLista || {};
+    var urlCb = cfgCb.URL_PROXIMO_CB_LOJA || '';
+    if (!urlCb) return Promise.resolve(false);
+    var btnCb = document.getElementById('btn-gerar-cb-loja');
+    if (btnCb) {
+      btnCb.disabled = true;
+      btnCb.classList.add('opacity-60');
+    }
+    return fetch(urlCb, { credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (!j || !j.ok || !j.codigo_barras) return false;
+        setVal('edit-cb', String(j.codigo_barras));
+        return true;
+      })
+      .catch(function () { return false; })
+      .finally(function () {
+        if (btnCb) {
+          btnCb.disabled = false;
+          btnCb.classList.remove('opacity-60');
+        }
+      });
+  }
+
+  function coletarSnapshotDuplicarCadastro() {
+    if (typeof syncVariacoesFromDom === 'function') {
+      try { syncVariacoesFromDom(); } catch (eSync) { /* ignore */ }
+    }
+    var nome = gvForm('edit-nome').trim();
+    if (nome && !/\(c[oó]pia\)$/i.test(nome)) nome = nome + ' (cópia)';
+    var snap = {
+      nome: nome,
+      descricao: gvForm('edit-desc'),
+      marca: gvForm('edit-marca'),
+      modelo: gvForm('edit-modelo'),
+      categoria: gvForm('edit-categoria'),
+      subcategoria: gvForm('edit-subcategoria'),
+      subcategoria_2: gvForm('edit-subcategoria-2'),
+      subcategoria_3: gvForm('edit-subcategoria-3'),
+      subcategoria_4: gvForm('edit-subcategoria-4'),
+      unidade: gvForm('edit-unidade'),
+      peso_etiqueta: gvForm('edit-peso-etiqueta'),
+      fornecedor: gvForm('edit-fornecedor'),
+      imagem: gvForm('edit-img'),
+      ncm: gvForm('edit-ncm'),
+      origem_mercadoria: gvForm('edit-origem'),
+      cfop_padrao: gvForm('edit-cfop'),
+      csosn: gvForm('edit-csosn'),
+      cest: gvForm('edit-cest'),
+      cst_pis_cofins: gvForm('edit-pis-cofins'),
+      ean_embalagem_nf: gvForm('edit-ean-embalagem-nf'),
+      preco_custo: gvForm('edit-custo'),
+      preco_custo_com_acrescimos: gvForm('edit-custo-acrescimo'),
+      mva_lucro_reais: gvForm('edit-mva-rs'),
+      mva_lucro_percentual: gvForm('edit-mva-pct'),
+      preco_venda: gvForm('edit-venda'),
+      estoque_minimo: gvForm('edit-est-min'),
+      estoque_maximo: gvForm('edit-est-max'),
+      prateleira: gvForm('edit-prateleira'),
+      permite_venda_estoque_negativo: chkForm('edit-permite-negativo'),
+      comissao_vendedor_reais: gvForm('edit-comissao-rs'),
+      comissao_vendedor_percentual: gvForm('edit-comissao-pct'),
+      ativo_exibicao: chkForm('edit-ativo-exibicao'),
+      inativo: false,
+      cadastro_inativo: false,
+      eh_kit: !!(modalEdit._snapshot && modalEdit._snapshot.eh_kit),
+      composicao: [],
+      lotes: [],
+      similares: [],
+      variacoes_marca: (Array.isArray(modalEdit._variacoes) ? modalEdit._variacoes : []).map(function (x) {
+        return {
+          codigo_interno: '',
+          marca: x.marca || '',
+          codigo_barras: '',
+          codigo_fornecedor: x.codigo_fornecedor || '',
+          estoque: 0,
+          custo_unitario: x.custo_unitario != null ? x.custo_unitario : 0
+        };
+      }),
+      delivery: {
+        ativo: chkForm('edit-delivery-ativo'),
+        titulo: gvForm('edit-delivery-titulo'),
+        descricao: gvForm('edit-delivery-desc'),
+        peso_texto: gvForm('edit-delivery-peso'),
+        ordem: gvForm('edit-delivery-ordem') || '0',
+        destaque: chkForm('edit-delivery-destaque'),
+        permitir_estoque_negativo: (function () {
+          var r = document.getElementById('edit-delivery-estoque-regra');
+          return r && r.value === 'forcar';
+        })(),
+        categoria_id: modalEdit._deliveryCatId || '',
+        subcategoria_id: modalEdit._deliverySubId || '',
+        subcategoria2_id: modalEdit._deliverySub2Id || '',
+        embalagens: [],
+        imagem_base64: (function () {
+          var el = document.getElementById('edit-delivery-imagem-b64');
+          return el ? String(el.value || '') : '';
+        })(),
+        imagem_mime: (function () {
+          var el = document.getElementById('edit-delivery-imagem-mime');
+          return el ? String(el.value || 'image/jpeg') : 'image/jpeg';
+        })()
+      },
+      kit: {
+        baixa_componentes: chkForm('comp-baixa-auto'),
+        deposito: (function () {
+          var sd = document.getElementById('comp-deposito');
+          return sd ? String(sd.value || '') : '';
+        })()
+      },
+      precos_por_forma: typeof window.agroCadastroObterPrecosPorFormaPayload === 'function'
+        ? window.agroCadastroObterPrecosPorFormaPayload()
+        : null,
+      precos_modo: typeof window.agroCadastroObterPrecosModoPayload === 'function'
+        ? window.agroCadastroObterPrecosModoPayload()
+        : null,
+      precos_grupos: typeof window.agroCadastroObterPrecosGruposPayload === 'function'
+        ? window.agroCadastroObterPrecosGruposPayload()
+        : null
+    };
+    return snap;
+  }
+
+  function aplicarSnapshotDuplicarCadastro(snap) {
+    snap = snap || {};
+    var titModal = document.getElementById('cadastro-modal-titulo');
+    if (titModal) {
+      titModal.innerHTML = 'Novo produto (cópia) · <span class="text-emerald-600">SisVale</span>';
+    }
+    setVal('edit-nome', snap.nome || '');
+    setVal('edit-desc', snap.descricao || '');
+    setVal('edit-marca', snap.marca || '');
+    setVal('edit-modelo', snap.modelo || '');
+    setVal('edit-categoria', snap.categoria || '');
+    setVal('edit-subcategoria', snap.subcategoria || '');
+    setVal('edit-subcategoria-2', snap.subcategoria_2 || '');
+    setVal('edit-subcategoria-3', snap.subcategoria_3 || '');
+    setVal('edit-subcategoria-4', snap.subcategoria_4 || '');
+    setVal('edit-unidade', snap.unidade || '');
+    setVal('edit-peso-etiqueta', snap.peso_etiqueta || '');
+    setVal('edit-fornecedor', snap.fornecedor || '');
+    setVal('edit-img', snap.imagem || '');
+    setVal('edit-ncm', snap.ncm || '');
+    setVal('edit-origem', snap.origem_mercadoria || '');
+    setVal('edit-cfop', snap.cfop_padrao || '');
+    setVal('edit-csosn', snap.csosn || '');
+    setVal('edit-cest', snap.cest || '');
+    setVal('edit-pis-cofins', snap.cst_pis_cofins || '');
+    setVal('edit-ean-embalagem-nf', snap.ean_embalagem_nf || '');
+    setVal('edit-custo', snap.preco_custo || '');
+    setVal('edit-custo-acrescimo', snap.preco_custo_com_acrescimos || '');
+    setVal('edit-mva-rs', snap.mva_lucro_reais || '');
+    setVal('edit-mva-pct', snap.mva_lucro_percentual || '');
+    setVal('edit-venda', snap.preco_venda || '');
+    setVal('edit-est-min', snap.estoque_minimo || '');
+    setVal('edit-est-max', snap.estoque_maximo || '');
+    setVal('edit-prateleira', snap.prateleira || '');
+    setChk('edit-permite-negativo', snap.permite_venda_estoque_negativo !== false);
+    setVal('edit-comissao-rs', snap.comissao_vendedor_reais || '');
+    setVal('edit-comissao-pct', snap.comissao_vendedor_percentual || '');
+    setChk('edit-ativo-exibicao', snap.ativo_exibicao !== false);
+    setChk('edit-inativo', false);
+    setVal('edit-cb', '');
+    setVal('edit-ean-embalagem-nf', snap.ean_embalagem_nf || '');
+
+    var chkComp = document.getElementById('comp-baixa-auto');
+    if (chkComp && snap.kit) chkComp.checked = snap.kit.baixa_componentes !== false;
+    var sd = document.getElementById('comp-deposito');
+    if (sd && snap.kit) {
+      var kd = String(snap.kit.deposito != null ? snap.kit.deposito : '');
+      sd.value = ['', '1', '2', '3'].indexOf(kd) >= 0 ? kd : '';
+    }
+
+    modalEdit._variacoes = Array.isArray(snap.variacoes_marca) ? snap.variacoes_marca.slice() : [];
+    modalEdit._lotes = [];
+    modalEdit._snapshot = {
+      id: '__novo__',
+      eh_kit: !!snap.eh_kit,
+      composicao: [],
+      custo_medio_variacoes: null,
+      custo_kit_composicao: null,
+      cadastro_somente_agro: true
+    };
+
+    var del = snap.delivery || {};
+    setChk('edit-delivery-ativo', !!del.ativo);
+    setVal('edit-delivery-titulo', del.titulo || '');
+    setVal('edit-delivery-desc', del.descricao || '');
+    setVal('edit-delivery-peso', del.peso_texto || '');
+    setVal('edit-delivery-ordem', del.ordem != null ? String(del.ordem) : '0');
+    setChk('edit-delivery-destaque', !!del.destaque);
+    var regraEl = document.getElementById('edit-delivery-estoque-regra');
+    if (regraEl) regraEl.value = del.permitir_estoque_negativo ? 'forcar' : 'positivo';
+    modalEdit._deliveryCatId = del.categoria_id ? String(del.categoria_id) : '';
+    modalEdit._deliverySubId = del.subcategoria_id ? String(del.subcategoria_id) : '';
+    modalEdit._deliverySub2Id = del.subcategoria2_id ? String(del.subcategoria2_id) : '';
+    modalEdit._deliveryEmbalagens = [];
+    if (typeof carregarDeliveryCategorias === 'function') {
+      carregarDeliveryCategorias(modalEdit._deliveryCatId, modalEdit._deliverySubId, false, modalEdit._deliverySub2Id);
+    }
+    if (typeof renderDeliveryEmbalagens === 'function') renderDeliveryEmbalagens();
+    var b64El = document.getElementById('edit-delivery-imagem-b64');
+    var mimeEl = document.getElementById('edit-delivery-imagem-mime');
+    var prevEl = document.getElementById('edit-delivery-foto-preview');
+    var limparFoto = document.getElementById('edit-delivery-foto-limpar');
+    if (b64El) b64El.value = del.imagem_base64 || '';
+    if (mimeEl) mimeEl.value = del.imagem_mime || 'image/jpeg';
+    if (prevEl) {
+      if (del.imagem_base64) {
+        prevEl.src = 'data:' + (del.imagem_mime || 'image/jpeg') + ';base64,' + del.imagem_base64;
+        prevEl.classList.remove('hidden');
+        if (limparFoto) limparFoto.classList.remove('hidden');
+      } else {
+        prevEl.removeAttribute('src');
+        prevEl.classList.add('hidden');
+        if (limparFoto) limparFoto.classList.add('hidden');
+      }
+    }
+    var saldoTxt = document.getElementById('edit-delivery-saldo-txt');
+    if (saldoTxt) saldoTxt.textContent = '— (produto novo)';
+
+    var ceFake = {};
+    if (snap.precos_por_forma || snap.precos_modo || snap.precos_grupos) {
+      ceFake.precos_por_forma = snap.precos_por_forma;
+      ceFake.precos_modo = snap.precos_modo;
+      ceFake.precos_grupos = snap.precos_grupos;
+    }
+    if (typeof window.agroCadastroCarregarPrecosPorForma === 'function') {
+      window.agroCadastroCarregarPrecosPorForma(
+        {
+          preco_venda: snap.preco_venda,
+          precos_por_forma: snap.precos_por_forma,
+          precos_modo: snap.precos_modo,
+          precos_grupos: snap.precos_grupos
+        },
+        ceFake
+      );
+    }
+
+    renderLotesTabela();
+    renderSimilaresErpModal([]);
+    renderVariacoes();
+    renderComposicao([]);
+    syncCustoMestre();
+    atualizarMargemLivre();
+
+    var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
+    if (btnExcluirSomenteAgro) btnExcluirSomenteAgro.classList.add('hidden');
+    var btnDup = document.getElementById('btn-duplicar-cadastro');
+    if (btnDup) btnDup.classList.add('hidden');
+
+    gerarCodigoBarrasLojaCadastro();
+  }
+
   /** Produto novo: só códigos + fiscal padrão — sem repintar o modal (evita piscada). */
   function aplicarDetalheNovoProdutoSemPiscar(produto) {
     produto = produto || {};
@@ -3557,6 +3849,8 @@
     });
     var btnExcluirSomenteAgro = document.getElementById('btn-excluir-somente-agro');
     if (btnExcluirSomenteAgro) btnExcluirSomenteAgro.classList.add('hidden');
+    var btnDup = document.getElementById('btn-duplicar-cadastro');
+    if (btnDup) btnDup.classList.add('hidden');
   }
 
   window.abrirModalProduto = function (produto) {
@@ -3567,11 +3861,17 @@
       try { modalDetAbort.abort(); } catch (e) { /* ignore */ }
     }
     modalDetAbort = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    modalEdit._variacoes = [];
+    var snapDup = modalEdit._pendenteDuplicata || null;
+    if (!snapDup) modalEdit._variacoes = [];
     resetTabs();
-    preencherForm(produtoParaFormCadastro(rowAbertura, null));
-    if (Array.isArray(produto.similares) && produto.similares.length) {
-      renderSimilaresErpModal(produto.similares);
+    if (snapDup) {
+      // Abertura «novo» para cópia: form limpo; snapshot aplica depois dos códigos.
+      preencherForm({ id: '__novo__' });
+    } else {
+      preencherForm(produtoParaFormCadastro(rowAbertura, null));
+      if (Array.isArray(produto.similares) && produto.similares.length) {
+        renderSimilaresErpModal(produto.similares);
+      }
     }
     modalEdit.classList.remove('hidden');
     loadFacetasDatalists();
@@ -3581,7 +3881,12 @@
     var tmpl = cfg.API_DETALHE_TMPL || '';
     var isNovoAbertura = pid.toLowerCase() === '__novo__';
     if (!pid || !tmpl) {
-      if (!Array.isArray(produto.similares)) renderSimilaresErpModal([]);
+      if (snapDup) {
+        aplicarSnapshotDuplicarCadastro(snapDup);
+        modalEdit._pendenteDuplicata = null;
+      } else if (!Array.isArray(produto.similares)) {
+        renderSimilaresErpModal([]);
+      }
       return;
     }
 
@@ -3594,18 +3899,33 @@
         if (data && data.ok && data.produto) {
           if (isNovoAbertura) {
             aplicarDetalheNovoProdutoSemPiscar(data.produto);
-            renderSimilaresErpModal([]);
+            if (snapDup) {
+              aplicarSnapshotDuplicarCadastro(snapDup);
+              modalEdit._pendenteDuplicata = null;
+            } else {
+              renderSimilaresErpModal([]);
+            }
           } else {
             preencherForm(produtoParaFormCadastro(rowAbertura, data.produto));
             renderSimilaresErpModal((data.produto && data.produto.similares) ? data.produto.similares : []);
           }
         } else {
-          renderSimilaresErpModal([]);
+          if (snapDup) {
+            aplicarSnapshotDuplicarCadastro(snapDup);
+            modalEdit._pendenteDuplicata = null;
+          } else {
+            renderSimilaresErpModal([]);
+          }
         }
       })
       .catch(function (err) {
         if (err && err.name === 'AbortError') return;
-        renderSimilaresErpModal([]);
+        if (snapDup) {
+          aplicarSnapshotDuplicarCadastro(snapDup);
+          modalEdit._pendenteDuplicata = null;
+        } else {
+          renderSimilaresErpModal([]);
+        }
       });
   };
 
@@ -3890,36 +4210,14 @@
     });
   });
   bindClick('btn-gerar-cb-loja', function () {
-    var cfgCb = window.AgroCadastroErpLista || {};
-    var urlCb = cfgCb.URL_PROXIMO_CB_LOJA || '';
-    if (!urlCb) {
-      if (typeof alert !== 'undefined') alert('Geração de código de barras indisponível.');
-      return;
-    }
-    var btnCb = document.getElementById('btn-gerar-cb-loja');
-    if (btnCb) {
-      btnCb.disabled = true;
-      btnCb.classList.add('opacity-60');
-    }
-    fetch(urlCb, { credentials: 'same-origin' })
-      .then(function (r) { return r.json().catch(function () { return {}; }); })
-      .then(function (j) {
-        if (!j || !j.ok || !j.codigo_barras) {
-          throw new Error((j && j.erro) || 'Não foi possível gerar o código de barras.');
-        }
-        setVal('edit-cb', String(j.codigo_barras));
-        var cbEl = document.getElementById('edit-cb');
-        if (cbEl) try { cbEl.focus(); cbEl.select(); } catch (eCb) { /* ignore */ }
-      })
-      .catch(function (e) {
-        if (typeof alert !== 'undefined') alert(e.message || 'Erro ao gerar código de barras.');
-      })
-      .finally(function () {
-        if (btnCb) {
-          btnCb.disabled = false;
-          btnCb.classList.remove('opacity-60');
-        }
-      });
+    gerarCodigoBarrasLojaCadastro().then(function (ok) {
+      if (!ok) {
+        if (typeof alert !== 'undefined') alert('Não foi possível gerar o código de barras.');
+        return;
+      }
+      var cbEl = document.getElementById('edit-cb');
+      if (cbEl) try { cbEl.focus(); cbEl.select(); } catch (eCb) { /* ignore */ }
+    });
   });
 
   bindClick('btn-var-marca-nova', function () {

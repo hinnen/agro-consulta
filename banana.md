@@ -1183,6 +1183,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✨ Cadastro — Duplicar produto (`CAD-DUP` · **teste v13.72**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · Ctrl+F5 cadastro · **não** loja |
+| **O quê** | Botão **Duplicar** no modal do Cadastro de produtos |
+| **Comportamento** | Copia nome ( + « (cópia)»), marca, cat, preços, fiscal, prateleira… · **novos** código 4 dígitos + GM + barras 230 · **sem** estoque/lotes/similares/kit |
+| **Você** | Abrir produto → Duplicar → ajustar marca/nome → **Salvar no Agro** |
+| **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` |
+
 ### 🔧 Entrada NF — V. unit puxa custo do cadastro (`ENTRADA-NF-CUSTO` · **teste v13.71**)
 
 | Item | Detalhe |
