@@ -574,6 +574,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
+- **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 
 ### 4.8 Estoque Agro
 
@@ -1179,6 +1180,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🐛 Entrada NF — reabrir e estoque não entra de novo (03/08 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Reabrir nota concluída/encerrada e fechar de novo → botão «Estoque já registrado» / saldo não sobe |
+| **Causa** | Estorno só se `status=estoque_aplicado`; carimbo `estoque_aplicado_em` ficava; autosave podia trazer `estoque_agro_*` de volta |
+| **Fix** | `reverter_integracao…` detecta carimbo/IDs · limpa top-level · autosave não ressuscita carimbo · lista reabrir = mesmo estorno |
+| **Arquivo** | `produtos/nfe_entrada_util.py` |
+| **Você** | Ctrl+F5 · reabrir uma nota de teste · conferir mensagem «ajuste(s) de estoque» · registrar estoque de novo · PIN |
 
 ### ✨ Bugs — Copiar prompt Cursor (03/08 · **teste**)
 
