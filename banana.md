@@ -1180,7 +1180,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ⏭ PRÓXIMO CHAT — deploy loja **HIST-REVERTER-PIN** (preparado 02/08)
+### 🚀 PREP deploy loja — lote CAD/NF (`prep/lote-cad-nf-v13.75` · 03/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **PRONTO** — aguarda pausa vendas + frase + senha |
+| **Loja hoje** | **v13.64** @ `6996fca` |
+| **Branch deploy** | `prep/lote-cad-nf-v13.75` · badge **v13.75** |
+| **Como subir** | `git push origin prep/lote-cad-nf-v13.75:producao` · **NÃO** merge `teste` |
+| **Rollback** | `git push origin 6996fca:producao` (ou tag se criar no deploy) |
+| **Migrate** | **NÃO** |
+| **Risco loja aberta** | Baixo — **zero** PDV wizard / caixa / checkout no diff |
+| **Provas** | cherry dry-run · conflitos resolvidos · testes CB **7/7** · helpers OK |
+| **Inclui** | ① ENTRADA-NF-CUSTO · ② CAD-DUP · ③ CAD-CB-OPC (+ fallback busca) |
+| **Arquivos** | `entrada_nota` · `views` · modal cadastro · `mongo_index_codigos` · `cadastro_busca_codigo_util` · `catalogo_agro` · historico · teste |
+| **Você no próximo chat** | pausar vendas → *pode subir lote cad/nf / produção* + **99738595** → Ctrl+F5 badge **13.75** |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · lote CAD/NF)
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto** (no prep) |
+| **2** | **CAD-DUP** | 📋 **pronto** (no prep) |
+| **3** | **CAD-CB-OPC** | 📋 **pronto** · VERIFY_OK (no prep) |
+
+### ⏭ PRÓXIMO CHAT — deploy loja **HIST-REVERTER-PIN** (preparado 02/08) · **superado / histórico**
 
 | Item | Detalhe |
 | ---- | ------- |
