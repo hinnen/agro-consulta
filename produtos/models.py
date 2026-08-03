@@ -1875,6 +1875,51 @@ class EtiquetaPresetAgro(models.Model):
         return self.nome[:60]
 
 
+class EtiquetaLoteAgro(models.Model):
+    """
+    Lote provisório A4 gôndola (18/folha) — progresso multi-PC no Postgres.
+    Usado p.ex. abertura da Vila: lista completa + cursor do próximo a imprimir.
+    """
+
+    class Status(models.TextChoices):
+        ABERTO = "aberto", "Aberto"
+        CONCLUIDO = "concluido", "Concluído"
+        CANCELADO = "cancelado", "Cancelado"
+
+    nome = models.CharField(max_length=160, blank=True, default="")
+    loja = models.CharField(max_length=16, blank=True, default="vila")  # vila|centro|total
+    filtros_json = models.JSONField(default=dict, blank=True)
+    preset_id = models.CharField(max_length=64, blank=True, default="gondola")
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.ABERTO,
+        db_index=True,
+    )
+    itens_json = models.JSONField(default=list, blank=True)
+    cursor = models.PositiveIntegerField(default=0)
+    ultima_folha_qtd = models.PositiveSmallIntegerField(default=0)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Lote etiquetas A4"
+        verbose_name_plural = "Lotes etiquetas A4"
+        ordering = ["-criado_em"]
+        indexes = [
+            models.Index(fields=["status", "-criado_em"], name="etq_lote_status_criado_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.nome or 'Lote'} · {self.status} · cursor {self.cursor}"
+
+    @property
+    def total_itens(self) -> int:
+        itens = self.itens_json if isinstance(self.itens_json, list) else []
+        return len(itens)
+
+
 class CadastroPlanilhaImportHistoricoAgro(models.Model):
     """Backup e histórico de importações Excel do cadastro (permite desfazer)."""
 
