@@ -65,11 +65,49 @@ window.DspFlavorLib = (function () {
     banana: { ico: "ico-banana", img: "icons/banana.png", desc: "Potássio e energia natural" },
     couve: { ico: "ico-couve", img: "icons/couve.png", desc: "Folhas verdes e vitaminas" },
     inhame: { ico: "ico-inhame", img: "icons/inhame.png", desc: "Carboidrato de raiz suave" },
-    alecrim: { ico: "ico-alecrim", img: "icons/alecrim.png", desc: "Aroma natural e antioxidante" }
+    alecrim: { ico: "ico-alecrim", img: "icons/alecrim.png", desc: "Aroma natural e antioxidante" },
+    "mix sabores": { ico: "ico-mix-sabores", img: "icons/mix-sabores.png", desc: "Combinação de sabores selecionados" },
+    mix: { ico: "ico-mix-sabores", img: "icons/mix-sabores.png", desc: "Combinação de sabores selecionados" }
   };
+
+  /** Sabores criados na loja (Postgres) — chave normalizada → { label, desc, ico?, img? } */
+  var CUSTOM = {};
+
+  function registerCustoms(map) {
+    CUSTOM = {};
+    if (!map || typeof map !== "object") return;
+    Object.keys(map).forEach(function (k) {
+      var it = map[k];
+      if (!it) return;
+      var key = norm(k || it.label || "");
+      if (!key) return;
+      CUSTOM[key] = {
+        label: String(it.label || k || "").trim() || key,
+        desc: String(it.desc || it.descricao || "").trim(),
+        ico: it.ico || "ico-generico",
+        img: it.img || ""
+      };
+    });
+  }
+
+  function customsList() {
+    return Object.keys(CUSTOM).map(function (k) {
+      return { key: k, label: CUSTOM[k].label, custom: true };
+    });
+  }
 
   function lookup(name) {
     var key = norm(name);
+    var custom = CUSTOM[key];
+    if (custom) {
+      return {
+        title: custom.label || String(name || "").trim(),
+        desc: custom.desc || "Sabor personalizado",
+        ico: custom.ico || "ico-generico",
+        img: custom.img || "",
+        custom: true
+      };
+    }
     var hit = META[key];
     if (hit) {
       return {
@@ -181,7 +219,8 @@ window.DspFlavorLib = (function () {
     { key: "ovelha", label: "Ovelha" },
     { key: "camarao", label: "Camarão" },
     { key: "ovo", label: "Ovo" },
-    { key: "leite", label: "Leite" }
+    { key: "leite", label: "Leite" },
+    { key: "mix sabores", label: "Mix Sabores" }
   ];
 
   /** Lista canônica — acompanhamentos */
@@ -218,7 +257,7 @@ window.DspFlavorLib = (function () {
   var INDIVIDUALS = PROTEINS.concat(SIDES);
 
   function individuals() {
-    return INDIVIDUALS.slice();
+    return INDIVIDUALS.concat(customsList());
   }
 
   return {
@@ -230,6 +269,8 @@ window.DspFlavorLib = (function () {
     PROTEINS: PROTEINS,
     SIDES: SIDES,
     INDIVIDUALS: INDIVIDUALS,
-    individuals: individuals
+    individuals: individuals,
+    registerCustoms: registerCustoms,
+    customsList: customsList
   };
 })();
