@@ -1183,34 +1183,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 FIX — Dispenser PNG fundo aleatório (`DSP-PNG-BG` · 03/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · validar local Ctrl+F5 `/interno/dispenser-a6/` |
-| **Sintoma** | PNG «sem fundo» na prévia/biblioteca com cinza/preto/branco aleatório |
-| **Causa** | JS amostrava cantos da imagem e pintava a moldura; no upload JPEG colava RGB do pixel transparente (preto) |
-| **Fix** | Moldura sempre branca · upload ingrediente em PNG + limpa fundo branco/preto/cinza da borda |
-| **Arquivo** | `dispenser_a6_studio.html` |
-| **Você** | Ctrl+F5 Dispenser → Ingredientes → escolher foto transparente · fundo da moldura deve ser **branco** |
-| **Obs** | Foto já salva na biblioteca com fundo «queimado» → apagar e subir de novo |
-
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Branch deploy (já no GitHub):** `prep/lote-cad-nf-v13.75` · badge **v13.75**  
-**Como subir (próximo chat):** pausar vendas → frase + senha → `git push origin prep/lote-cad-nf-v13.75:producao` · **NÃO** merge `teste`  
+**Teste hoje:** badge **v13.78**  
+**Como subir:** pausar vendas → frase + senha · **NÃO** merge `teste` inteiro  
 **Rollback:** `git push origin 6996fca:producao`  
-**Migrate novo:** **NÃO**  
-**Risco loja aberta:** Baixo — diff do prep **sem** PDV wizard / caixa / checkout  
+**Migrate novo:** **NÃO** (nenhum destes pacotes)
 
-| Ordem | Pacote | Status |
-| ----- | ------ | ------ |
-| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto para envio** · VERIFY_OK |
-| **2** | **CAD-DUP** | 📋 **pronto para envio** |
-| **3** | **CAD-CB-OPC** | 📋 **pronto para envio** · VERIFY_OK |
+| Ordem | Pacote | Status | Como |
+| ----- | ------ | ------ | ---- |
+| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto para envio** · VERIFY_OK | `prep/lote-cad-nf-v13.75` |
+| **2** | **CAD-DUP** | 📋 **pronto para envio** | `prep/lote-cad-nf-v13.75` |
+| **3** | **CAD-CB-OPC** | 📋 **pronto para envio** · VERIFY_OK | `prep/lote-cad-nf-v13.75` |
+| **4** | **DSP-PNG-BG** | 📋 **pronto para envio** · VERIFY_OK | cherry `teste` (Dispenser) |
 
-**Autorizar:** *pode subir lote cad/nf para produção* + **99738595**
+**Autorizar CAD/NF:** *pode subir lote cad/nf para produção* + **99738595** → `git push origin prep/lote-cad-nf-v13.75:producao`  
+**Autorizar Dispenser:** *pode subir dispenser PNG / produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | Moldura ingredientes sempre branca · upload PNG + limpa fundo branco/preto da borda |
+| **Prova** | `python scripts/verify_dsp_png_bg.py` → **VERIFY_OK** (46 stock · synth · sardinha OK · Django check 0) |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
+| **Arquivo** | `dispenser_a6_studio.html` |
+| **Autorizar** | *pode subir dispenser PNG / produção* + **99738595** |
+| **Você** | Ctrl+F5 Dispenser → Ingredientes → PNG transparente · moldura **branca** · foto antiga «queimada» → apagar e subir de novo |
 
 ### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`)
 

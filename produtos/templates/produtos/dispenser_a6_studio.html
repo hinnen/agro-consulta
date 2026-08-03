@@ -1499,7 +1499,8 @@ Batata-Doce</textarea>
       knockEdgeMatteToDataUrl(img, maxSide, cb);
     }
 
-    /* Remove fundo sólido ligado à borda (branco, preto ou cinza chapado — comum em PNG de IA). */
+    /* Remove fundo sólido ligado à borda (branco ou preto — comum em PNG de IA).
+       Não remove cinza médio: peixe/arroz prateado virava «comido» (sardinha). */
     function knockEdgeMatteToDataUrl(img, maxSide, cb) {
       var w = img.naturalWidth || img.width;
       var h = img.naturalHeight || img.height;
@@ -1524,8 +1525,6 @@ Batata-Doce</textarea>
         var mn = r < g ? (r < b ? r : b) : (g < b ? g : b);
         if (mn >= 228) return true; /* branco */
         if (mx <= 36) return true; /* preto */
-        /* cinza chapado (pouca saturação) — só tons médios de «chão» de estúdio */
-        if (mx - mn <= 14 && mx >= 70 && mx <= 190) return true;
         return false;
       }
       function push(x, y) {
@@ -1553,7 +1552,6 @@ Batata-Doce</textarea>
           } else if (mx <= 36) {
             d[o + 3] = Math.max(0, Math.min(255, mx * 6));
           } else {
-            /* cinza: some por completo (chão uniforme) */
             d[o + 3] = 0;
           }
         }
