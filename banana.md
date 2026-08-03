@@ -576,6 +576,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
+- **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 
 ### 4.8 Estoque Agro
 
@@ -1181,6 +1182,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🔧 Entrada NF — V. unit puxa custo do cadastro (`ENTRADA-NF-CUSTO` · **teste v13.71**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · aguarda Ctrl+F5 local · **não** enviado loja |
+| **Sintoma** | Cadastro R$ 27 · etapa 2 V. unit **0,00** (ex. sal fino GM1821) · P. venda ok |
+| **Causa** | Mongo `preco_custo_final=0` ganhava do overlay; JS aceitava `>= 0` |
+| **Fix** | JS ignora custo 0 · overlay sync final/acréscimo · `buscar-produto-id` + PG |
+| **Arquivos** | `entrada_nota.html` · `views.py` |
+| **Você** | Entrada NF → buscar/incluir produto com custo no cadastro → V. unit = custo |
 
 ### 📦 CHECKLIST ÚNICO — após envio (03/08 · lote v13.64)
 
@@ -1874,16 +1886,16 @@ Fila 1–9 abaixo = **já enviada** (arquivo histórico).
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⛔ **não enviado** (fora da fila) · overlay já na loja antes |
+| **Status** | ✅ **teste v13.71** (reaberto 03/08) · aguarda validação local · **não** loja |
 
-### Entrada NF — custo cadastro não puxa (29/07)
+### Entrada NF — custo cadastro não puxa (29/07 · reaberto 03/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 no pacote **ENTRADA-NF-CUSTO** (v12.06) |
+| **Status** | ✅ fix **v13.71** no `teste` |
 | **Sintoma** | Busca mostra venda ok · V. unit 0,00 ao incluir |
-| **Fix** | overlay `preco_custo_overlay` na `/api/buscar/` · JS ignora custo 0 |
-| **Você** | validar local antes do envio |
+| **Fix** | overlay sync final · JS ignora custo 0 · PG em `buscar-produto-id` |
+| **Você** | Ctrl+F5 Entrada NF · incluir produto com custo no Cadastro |
 
 ### 📦 PACOTE — Ajuste Mobile Somar+catálogo (`AJUSTE-MOBILE-SOMAR` · **v12.11**)
 

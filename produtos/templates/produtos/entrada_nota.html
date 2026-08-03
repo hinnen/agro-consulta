@@ -2212,15 +2212,16 @@
     return Number.isFinite(n) ? n : null;
   }
 
-  /** Preferência para pré-preencher V. unit: custo final (com acréscimos), senão custo base. */
+  /** Preferência para pré-preencher V. unit: custo final (com acréscimos), senão custo base.
+   * Ignora 0 — Mongo costuma mandar final=0 enquanto o cadastro (overlay/PG) tem o custo real. */
   function entradaNfeValorCustoProduto(p) {
     if (!p || typeof p !== 'object') return null;
     const fin = entradaNfeParseDecimalApi(p.preco_custo_final);
     const acr = entradaNfeParseDecimalApi(p.preco_custo_acrescimo);
     const base = entradaNfeParseDecimalApi(p.preco_custo);
-    if (fin != null && fin >= 0) return fin;
-    if (acr != null && acr >= 0) return acr;
-    if (base != null && base >= 0) return base;
+    if (fin != null && fin > 0) return fin;
+    if (acr != null && acr > 0) return acr;
+    if (base != null && base > 0) return base;
     return null;
   }
 
@@ -9170,7 +9171,7 @@
       const vunInp = tr.querySelector('.in-vun');
       if (det && vunInp && tr.dataset.nfeCustNfPreservado !== '1') {
         const custo = entradaNfeValorCustoProduto(det);
-        if (custo != null && custo >= 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
+        if (custo != null && custo > 0) entradaNfeDefinirInputMoedaBr2(vunInp, custo);
       }
       entradaNfeLinhaRecalcMargemDisplay(tr);
       entradaNfeLinhaApplyMargemCor(tr);
