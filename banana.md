@@ -1180,72 +1180,46 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ⏭ PRÓXIMO CHAT — deploy loja **BUGS-F10-FRETE v13.37** (preparado 03/08)
+### ⏭ PRÓXIMO CHAT — deploy loja **LOTE CHECKLIST v13.38** (preparado 03/08)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **branch pronta** · aguarda pausa + frase + senha |
-| **Loja aberta agora** | **Não subir ainda** — PDV precisa Ctrl+F5 após o push |
-| **O quê** | Só F10 **Bugs / feedback** + frete digitável (taxa/horário) |
-| **Branch** | `deploy/bugs-f10-frete-v13.37` @ **`d10f08b`** → `producao` |
-| **Rollback** | `git push origin rollback/pre-bugs-f10-frete-v13.37:producao` (@ **`7cb3695`** / v13.36) |
-| **Migrate** | **NÃO** |
-| **Diff** | **3 arquivos** · +12/−5 · **sem** merge `teste` |
-| **Risco PDV/caixa** | **Baixo** — não mexe finalizar venda · caixa · estoque · NF · só JS digitação frete + 1 botão F10 |
-| **Prova** | worktree ALL PASS · helpers já na loja · URL `/gestao/bugs/` já existe |
-| **Você autoriza** | 1) lojas **pausam vendas** 2) *pode subir BUGS-F10-FRETE / produção* + **99738595** |
-| **Depois** | Ctrl+F5 PDVs · F10 → Bugs · digitar frete 20 na entrega |
-| **Zap** | *Atualização ~1–2 min — pause venda, depois Ctrl+F5* |
-| **NÃO neste push** | ETQ-LOTE-A4 · RELAT-INVENTARIO · merge `teste` |
+| **Inclui (os 3 do checklist)** | **BUGS-F10-FRETE** · **ETQ-LOTE-A4** · **RELAT-INVENTARIO** |
+| **Branch** | `deploy/lote-checklist-v13.38` @ **`190c29d`** → `producao` |
+| **Rollback** | `git push origin rollback/pre-lote-checklist-v13.38:producao` (@ **`7cb3695`** / v13.36) |
+| **Migrate** | **SIM** `0080_etiqueta_lote_agro` (no build Render) |
+| **Diff** | 15 arquivos · **sem** merge `teste` · base loja + cirúrgico |
+| **Risco PDV/caixa** | **Baixo** — não mexe finalizar venda/caixa/NF · frete só digitação · inventário só `/relatorios/` · ETQ só etiquetas |
+| **Loja aberta** | **Pausar** (migrate + Ctrl+F5 PDVs) |
+| **Prova** | BUGS ALL PASS · util inventário `sal_rel<=0` · py/ast OK · frete+F10 no lote |
+| **Você autoriza** | 1) pausam vendas 2) *pode subir LOTE CHECKLIST / produção* + **99738595** |
+| **Depois** | Ctrl+F5 · badge **13.38** · F10 Bugs · frete 20 · `/relatorios/inventario/` · lote A4 |
+| **Zap** | *Atualização ~3–5 min (migrate) — pause venda, depois Ctrl+F5* |
+| **Alt. menor** | Só bugs: `deploy/bugs-f10-frete-v13.37` @ `d10f08b` (sem migrate) |
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Teste hoje:** badge **v13.49** · branch `teste`  
-**Migrate:** **SIM** `0080` só se subir **ETQ-LOTE-A4**
+**Teste hoje:** badge **v13.50** · branch `teste`  
+**Lote único:** `deploy/lote-checklist-v13.38` @ `190c29d` · migrate **0080**
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
-| **1** | **BUGS-F10-FRETE** (**v13.37**) | 📦 **pronto envio** · branch `deploy/bugs-f10-frete-v13.37` @ `d10f08b` · **sem migrate** |
-| **2** | **ETQ-LOTE-A4** (**v13.41**) | 📦 **pronto envio** · migrate `0080` · **pacote separado** |
-| **3** | **RELAT-INVENTARIO** (**v13.49**) | 📦 **pronto envio** · sem migrate · **pacote separado** |
+| **1–3** | **LOTE** Bugs+ETQ+Inventário (**v13.38**) | 📦 **pronto para envio à produção** · branch acima |
 
-### 📦 PACOTE PRONTO LOJA — Bugs F10 + frete digitável (`BUGS-F10-FRETE` · **v13.37**)
+### 📦 PACOTE PRONTO LOJA — Lote checklist (`LOTE-CHECKLIST` · **v13.38**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · deploy branch pronta |
-| **Branch** | `deploy/bugs-f10-frete-v13.37` @ **`d10f08b`** (cirúrgico em cima da loja) |
-| **Rollback** | `rollback/pre-bugs-f10-frete-v13.37` @ v13.36 |
-| **Prova 03/08** | ALL PASS (F10 + frete path) · lista bugs já na loja · **não** FF `teste` |
-| **Inclui** | F10 → Gestão → **Bugs / feedback** · valor frete digita sem travar |
-| **Arquivos** | `dashboard_gerencial.html` (+1 botão) · `pdv_wizard.js` (só taxa frete) · VERSION |
-| **Migrate** | **NÃO** |
-| **Risco loja aberta** | Baixo se **pausar + Ctrl+F5** · sem isso PDV pode ficar com JS velho em cache |
-| **NÃO** | merge `teste` · ETQ · inventário |
-| **Autorizar** | ver **PRÓXIMO CHAT** acima |
-
-### 📦 PACOTE PRONTO LOJA — Etiquetas lote A4 gôndola (`ETQ-LOTE-A4` · **v13.41**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio** · **depois** do BUGS (ou chat separado) |
-| **O quê** | `/produtos/etiquetas/lote/` · 18/folha A4 · progresso PG |
-| **Migrate** | **SIM** `0080` |
-| **Risco PDV** | Não mexe venda — mas migrate = restart · **pausar** |
-| **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
-
-### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.49**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio** · chat separado (só leitura) |
-| **O quê** | Inventário valorizado · resumos · mín/máx · sem custo · zerados |
-| **Fix** | «Só com saldo» = só **positivo** |
-| **Migrate** | **NÃO** |
-| **Risco PDV** | **Não piora** venda/caixa — só `/relatorios/` |
-| **Autorizar** | *pode subir RELAT-INVENTARIO / produção* + **99738595** |
+| **Status** | 📦 **pronto para envio à produção** |
+| **Branch** | `deploy/lote-checklist-v13.38` @ **`190c29d`** |
+| **Rollback** | `rollback/pre-lote-checklist-v13.38` |
+| **1** | F10 Bugs + frete digitável |
+| **2** | Etiquetas lote A4 · migrate `0080` |
+| **3** | Relatórios inventário (só positivo no «com saldo») |
+| **Autorizar** | ver **PRÓXIMO CHAT** |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
