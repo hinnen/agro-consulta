@@ -97,7 +97,8 @@ class OverlayCustoSyncTests(SimpleTestCase):
         ), patch(
             "produtos.cashback_venda_util.cashback_percentual_de_overlay", return_value=0.0
         ), patch(
-            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row"
+            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row",
+            create=True,
         ):
             out = _aplicar_produto_gestao_overlay_em_dict(row, ov)
         self.assertEqual(out["preco_custo"], 27.0)
@@ -134,7 +135,8 @@ class OverlayCustoSyncTests(SimpleTestCase):
         ), patch(
             "produtos.cashback_venda_util.cashback_percentual_de_overlay", return_value=0.0
         ), patch(
-            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row"
+            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row",
+            create=True,
         ):
             out = _aplicar_produto_gestao_overlay_em_dict(row, ov)
         self.assertEqual(out["preco_custo"], 27.0)
@@ -145,7 +147,8 @@ class OverlayCustoSyncTests(SimpleTestCase):
         with patch(
             "produtos.cashback_venda_util.cashback_percentual_de_overlay", return_value=0.0
         ), patch("produtos.views._overlay_subcategorias_para_row"), patch(
-            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row"
+            "produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row",
+            create=True,
         ):
             out = _aplicar_produto_gestao_overlay_em_dict(row, None)
         self.assertEqual(out["preco_custo"], 0.0)

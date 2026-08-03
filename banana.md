@@ -1183,43 +1183,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64)
+### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste hoje:** badge **v13.79**  
-**Como subir:** pausar vendas → frase + senha · **NÃO** merge `teste` inteiro  
-**Rollback:** `git push origin 6996fca:producao`  
-**Migrate novo:** **NÃO** (nenhum destes pacotes)
+**Pacote:** badge **v13.80** · branch `deploy/lote-cad-nf-dsp-v13.80`  
+**Como subir (próximo chat):** 1) lojas pausam vendas 2) *pode enviar lote cad/nf/dsp para produção* + **99738595** 3) `git push origin deploy/lote-cad-nf-dsp-v13.80:producao`  
+**Rollback:** `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80`  
+**Migrate novo:** **NÃO**  
+**NÃO usar:** `prep/lote-cad-nf-v13.75` — tinha `catalogo_agro.py` com encoding quebrado (lápis PDV / travessão). **Este deploy NÃO toca** `catalogo_agro.py`.
 
-| Ordem | Pacote | Status | Como |
-| ----- | ------ | ------ | ---- |
-| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto para envio** · VERIFY_OK | `prep/lote-cad-nf-v13.75` |
-| **2** | **CAD-DUP** | 📋 **pronto para envio** | `prep/lote-cad-nf-v13.75` |
-| **3** | **CAD-CB-OPC** | 📋 **pronto para envio** · VERIFY_OK | `prep/lote-cad-nf-v13.75` |
-| **4** | **DSP-PNG-BG** | 📋 **pronto para envio** · VERIFY_OK | cherry `teste` (Dispenser) |
+| Ordem | Pacote | Status | Risco loja aberta |
+| ----- | ------ | ------ | ----------------- |
+| **1** | **ENTRADA-NF-CUSTO** | ✅ no deploy · VERIFY 10/10 | Baixo — Entrada NF etapa 2 |
+| **2** | **CAD-DUP** | ✅ no deploy | Baixo — modal Cadastro |
+| **3** | **CAD-CB-OPC** | ✅ no deploy · VERIFY 7/7 | Baixo — overlay + busca código (não mexe carrinho/caixa) |
+| **4** | **DSP-PNG-BG** | ✅ no deploy · VERIFY_OK | Baixo — só `/interno/dispenser-a6*` |
 
-**Autorizar CAD/NF:** *pode subir lote cad/nf para produção* + **99738595** → `git push origin prep/lote-cad-nf-v13.75:producao`  
-**Autorizar Dispenser:** *pode subir dispenser PNG / produção* + **99738595**
+**Provas (03/08 remonte limpo):** encoding OK · AST views/utils OK · Django check 0 · `tests_codigos_barras_opcionais` **7/7** · `tests_entrada_nf_custo_cadastro` **10/10** · `verify_dsp_png_bg.py` **VERIFY_OK** · diff **sem** `consulta_produtos` / `pdv_wizard` / `caixa_*`  
+**Arquivos:** hist · busca código · mongo_index · modal cadastro · entrada_nota · views(+59) · dispenser studio · verify script · 2 test files · VERSION  
+**Autorizar:** *pode enviar lote cad/nf/dsp para produção* + **99738595**  
+**Pós-Live:** Ctrl+F5 · badge **13.80** · Entrada NF custo · Cadastro Duplicar/barras · Dispenser PNG branco · 1 bip PDV smoke
 
-### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.79**)
+### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64) · **substituído**
+
+Absorvido no **`deploy/lote-cad-nf-dsp-v13.80`** acima. Prep antigo `prep/lote-cad-nf-v13.75` = **NÃO usar**.
+
+### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.80**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ no deploy v13.80 · VERIFY_OK · **não** loja ainda |
 | **Inclui** | Moldura ingredientes sempre branca · upload PNG + limpa fundo branco/preto da borda |
-| **Prova** | `python scripts/verify_dsp_png_bg.py` → **VERIFY_OK** (46 stock · synth · sardinha OK · Django check 0) |
+| **Prova** | `python scripts/verify_dsp_png_bg.py` → **VERIFY_OK** |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
 | **Arquivo** | `dispenser_a6_studio.html` |
-| **Autorizar** | *pode subir dispenser PNG / produção* + **99738595** |
+| **Autorizar** | junto no lote · frase acima + **99738595** |
 | **Você** | Ctrl+F5 Dispenser → Ingredientes → PNG transparente · moldura **branca** · foto antiga «queimada» → apagar e subir de novo |
 
-### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`)
+### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`) · **OBSOLETO**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟢 **PRONTO no GitHub** · tip `b9488ef` |
-| **Provas** | cherry sobre `6996fca` · conflitos cProd+CB resolvidos · CAD-CB 7/7 · **ENTRADA-NF-CUSTO 10/10** · PDV/caixa fora do diff |
+| **Status** | ❌ **NÃO usar** — `catalogo_agro.py` mojibake · substituído por `deploy/lote-cad-nf-dsp-v13.80` |
+| **Provas** | (antigas) cherry sobre `6996fca` · CAD-CB 7/7 · ENTRADA-NF-CUSTO — **remonte limpo no deploy** |
 | **Inclui** | NF custo · Duplicar · Barras opcionais (+ fallback busca) |
 
 ### 📦 PACOTE PRONTO LOJA — Barras opcionais (`CAD-CB-OPC` · **v13.75**)
