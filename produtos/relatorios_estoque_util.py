@@ -206,7 +206,8 @@ def coletar_linhas_inventario(
         line["valor_custo"] = round(sal_rel * line["custo"], 2)
         line["valor_venda"] = round(sal_rel * line["preco_venda"], 2)
 
-        if so_saldo and abs(sal_rel) < 0.0001:
+        # «Só com saldo» = saldo positivo (valor de estoque não mistura negativo).
+        if so_saldo and sal_rel <= 0.0001:
             continue
         linhas.append(line)
 
