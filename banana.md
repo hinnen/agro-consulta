@@ -1185,111 +1185,64 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
-**Rollback base:** `rollback/pre-lote-checklist-v13.38` (@ v13.36)  
-**VERSION alvo loja:** **13.60** · migrate **SIM** `0081` (item 1) + `0015` estoque (item 2)
+**VERSION alvo loja:** **13.62** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | **LOTE CHECKLIST** (**v13.39**) | ✅ já na loja |
-| **1** | **DSP-MIX-CRIAR** (**v13.59**) | 📦 **pronto para envio** · VERIFY_OK |
-| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio** · kardex estorno |
-| **3** | **BUGS-PROMPT** (**v13.56**) | 📦 **pronto para envio** |
+| — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
+| **1** | **DSP-MIX-CRIAR** (**v13.59**) | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** |
+| **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 
-**Autorizar loja:** frase + **99738595** · cherry **só** os commits dos pacotes · **nunca** merge `teste`→`producao`
+**Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser Mix + criar sabor (`DSP-MIX-CRIAR` · **v13.59**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** · VERIFY_OK (static+AST+PG upsert/list/delete) |
-| **Commit teste** | **`96c7ed7`** |
-| **VERSION loja alvo** | **13.59** |
-| **Inclui** | Mix Sabores no catálogo · criar sabor (nome/desc/PNG) · Postgres `sabor` + `flavor_ico` |
-| **Arquivos** | `flavor_lib.js` · `dispenser_cloud.js` · studio · ícones · `models` · `0081` · util |
-| **Migrate** | **SIM** `0081_dispenser_documento_tipo_sabor` |
-| **NÃO inclui** | PDV · caixa · CP · merge `teste` |
-| **Risco loja aberta** | **Baixo** — só `/interno/dispenser-a6*` |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **Commit** | `96c7ed7` |
+| **Inclui** | Mix Sabores · criar sabor (nome/desc/PNG) · PG |
+| **Migrate** | **SIM** `0081` |
+| **Risco** | Baixo — só Dispenser |
 | **Autorizar** | *pode subir dispenser mix / produção* + **99738595** |
-| **Você antes** | Ctrl+F5 Dispenser → Sabores → Mix Sabores · criar 1 sabor teste |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.60**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** |
-| **Commit teste** | (este push) · base fix `7db7675` + kardex estorno |
-| **VERSION loja alvo** | **13.60** |
-| **Inclui** | Reabrir estorna carimbo · **kardex:** saída «Estorno NF (reabrir)» sem apagar Entrada · `nf_qtd=` |
-| **Arquivos** | `nfe_entrada_util.py` · `estoque/models.py` · `0015` · kardex · modal · `entrada_nota.html` · `views.py` |
-| **Migrate** | **SIM** `estoque.0015_estorno_entrada_nf_origem` |
-| **Risco** | **Médio** — Entrada NF + saldo · testar reabrir → ver saída no histórico → registrar de novo |
+| **Status** | 📦 **pronto para envio à produção** |
+| **Commits** | `7db7675` · `be3715e` |
+| **Inclui** | Reabrir estorna carimbo · kardex saída estorno (não apaga entrada) |
+| **Migrate** | **SIM** `estoque.0015` |
+| **Risco** | Médio — Entrada NF + saldo |
 | **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
 
-### ✨ Entrada NF — estorno no kardex ao reabrir (03/08 · **teste v13.60**)
+### 📦 PACOTE PRONTO LOJA — Bugs Copiar prompt Cursor (`BUGS-PROMPT` · **v13.62**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Reabrir → saída no Histórico (não some a entrada) · fechar de novo → nova Entrada NF |
-| **Pacote** | ver **PACOTE PRONTO NF-REOPEN-ESTOQUE** acima |
-
-### 📦 PACOTE PRONTO LOJA — Bugs Copiar prompt Cursor (`BUGS-PROMPT` · **v13.56**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📦 **pronto para envio** |
-| **Commit teste** | **`5a84b83`** |
-| **VERSION loja alvo** | **13.56** (ou lote **13.59**) |
-| **Inclui** | Botão Copiar prompt Cursor na ficha do bug |
-| **Arquivos** | `bug_report_detalhe.html` · `bug_report_views.py` |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **Commits** | `5a84b83` + harden json_script/`reverse` (este push) |
+| **Inclui** | Copiar prompt Cursor · guia · JSON seguro (`json_script`) · URL print via `reverse` |
+| **Prova** | Client Django 200 · escape `</script>` · lista · print_url · estorno helper vazio OK |
 | **Migrate** | **NÃO** |
-| **Risco** | **Baixo** — só tela Bugs |
+| **Risco** | Baixo — só tela Bugs |
 | **Autorizar** | *pode subir bugs prompt / produção* + **99738595** |
-
-### ✨ Dispenser — Mix Sabores + criar sabor (`DSP-MIX-CRIAR` · 03/08 · **teste v13.59**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Sabor **Mix Sabores** · criar sabor (nome + descrição + PNG) no Postgres |
-| **Verify** | ✅ **PASS** 03/08 — static · AST · PG upsert/list/delete sabor+ico |
-| **Commit** | `96c7ed7` · **teste v13.59** · push `origin/teste` |
-| **Pacote** | ver **PACOTE PRONTO DSP-MIX-CRIAR** acima |
-
-### 🐛 Entrada NF — reabrir e estoque não entra de novo (03/08 · **teste v13.57**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Reabrir nota concluída/encerrada e fechar de novo → botão «Estoque já registrado» / saldo não sobe |
-| **Causa** | Estorno só se `status=estoque_aplicado`; carimbo `estoque_aplicado_em` ficava; autosave podia trazer `estoque_agro_*` de volta |
-| **Fix** | `reverter_integracao…` detecta carimbo/IDs · limpa top-level · autosave não ressuscita carimbo · lista reabrir = mesmo estorno |
-| **Commit** | `7db7675` · **teste v13.57** · push `origin/teste` |
-| **Arquivo** | `produtos/nfe_entrada_util.py` |
-| **Pacote** | ver **PACOTE PRONTO NF-REOPEN-ESTOQUE** acima |
-
-### ✨ Bugs — Copiar prompt Cursor (03/08 · **teste**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Na ficha do bug: botão **Copiar prompt Cursor** + mini guia |
-| **Commit** | `5a84b83` |
-| **Pacote** | ver **PACOTE PRONTO BUGS-PROMPT** acima |
 
 ### ✅ Deploy loja **v13.39** — LOTE CHECKLIST (03/08 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** · `producao` @ **`94112a8`** · badge **13.39** · migrate `0080` no build · dep Render `dep-d9obfd0ae00c73fttnk0` |
-| **Base** | loja **v13.36** @ `7cb3695` |
-| **Branch** | `deploy/lote-checklist-v13.38` |
-| **Rollback** | `git push origin rollback/pre-lote-checklist-v13.38:producao` (@ **`7cb3695`** / v13.36) |
+| **Status** | ✅ **Live** · `producao` @ **`94112a8`** · badge **13.39** |
 | **Inclui** | F10 Bugs + frete · 🐞 ENVIAR/SUBTOTAL · ETQ lote A4 · inventário |
-| **Migrate** | **SIM** `0080_etiqueta_lote_agro` (no build Render) |
-| **NÃO** | merge `teste` |
+| **Rollback** | `rollback/pre-lote-checklist-v13.38` (@ v13.36) |
 
 ### 📦 CHECKLIST ÚNICO — após envio v13.39 (histórico curto)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| **1–4** | **LOTE CHECKLIST** (**v13.39**) | ✅ **enviado** · `94112a8` · migrate `0080` |
+| **1–4** | **LOTE CHECKLIST** (**v13.39**) | ✅ **enviado** · `94112a8` |
 
 ### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · ✅ loja v13.39)
 
