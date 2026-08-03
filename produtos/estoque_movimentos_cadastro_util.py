@@ -355,9 +355,9 @@ def montar_movimentos_produto(
     qs = AjusteRapidoEstoque.objects.filter(produto_externo_id__in=pids).select_related(
         "usuario"
     )
-    dep = (deposito or "").strip().lower()
-    if dep in ("centro", "vila"):
-        qs = qs.filter(deposito=dep)
+    dep_filtro = (deposito or "").strip().lower()
+    # Não filtra depósito no QS: precisa das duas lojas p/ colunas Centro|Vila|Total.
+    # Filtro de depósito aplica-se só nas linhas exibidas, depois do cálculo.
     origem_f = (origem or "").strip()
     if origem_f:
         qs = qs.filter(origem=origem_f)
@@ -381,12 +381,16 @@ def montar_movimentos_produto(
 
     prev_marcador: dict[tuple[str, str], Decimal] = {}
     running_saldo: dict[tuple[str, str], Decimal] = {}
+    # Último saldo conhecido por depósito (para colunas Centro/Vila/Total na mesma linha).
+    last_saldo_dep: dict[tuple[str, str], Decimal] = {}
     enriched: list[dict] = []
     compras = list(compras_linhas or [])
     venda_ids: list[int] = []
 
     for row in crono:
         dep_k = str(row.deposito or "centro").lower()
+        if dep_k not in ("centro", "vila"):
+            dep_k = "centro"
         pid_k = str(row.produto_externo_id or "").strip()
         chave = (pid_k, dep_k)
         informado = _dec(row.saldo_informado)
@@ -420,6 +424,14 @@ def montar_movimentos_produto(
                     Decimal("0.001")
                 )
             saldo_exibe = running_saldo[chave]
+
+        last_saldo_dep[chave] = saldo_exibe
+        sc = last_saldo_dep.get((pid_k, "centro"))
+        sv = last_saldo_dep.get((pid_k, "vila"))
+        if sc is None and sv is None:
+            st_tot: float | None = None
+        else:
+            st_tot = float((sc or Decimal("0")) + (sv or Decimal("0")))
 
         doc, venda_id, nf_digits = _documento_e_venda(row)
         if venda_id:
@@ -458,6 +470,9 @@ def montar_movimentos_produto(
                 "qtd_entrada": qtd_ent,
                 "qtd_saida": qtd_sai,
                 "saldo_depois": float(saldo_exibe),
+                "saldo_centro": float(sc) if sc is not None else None,
+                "saldo_vila": float(sv) if sv is not None else None,
+                "saldo_total": st_tot,
                 "operador": _operador_sem_pin(row),
             }
         )
@@ -486,6 +501,8 @@ def montar_movimentos_produto(
 
     # Mais recente primeiro
     enriched.reverse()
+    if dep_filtro in ("centro", "vila"):
+        enriched = [e for e in enriched if str(e.get("deposito") or "") == dep_filtro]
     total = len(enriched)
     page = enriched[offset : offset + limit]
     tem_mais = (offset + limit) < min(total, teto)

@@ -258,7 +258,8 @@
     #modal-editar-produto #tab-config:not(.hidden) span {
       font-size: 1.2rem !important;
     }
-    /* Alterações / estoque: lista ocupa o resto até o rodapé */
+    # Alterações / estoque: lista ocupa o resto até o rodapé
+    # overflow só na tabela — filtros fora do clip (select nativo quebra com zoom Agro).
     #modal-editar-produto #tab-alteracoes:not(.hidden),
     #modal-editar-produto #tab-estoque:not(.hidden) {
       display: flex !important;
@@ -270,6 +271,50 @@
     #modal-editar-produto #tab-estoque .estoque-hist-wrap {
       flex: 1 1 auto;
       min-height: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #modal-editar-produto #tab-estoque .estoque-mov-filtros {
+      position: relative;
+      z-index: 40;
+      overflow: visible;
+      flex-shrink: 0;
+    }
+    #modal-editar-produto #tab-estoque .estoque-mov-chip {
+      min-height: 2.5rem;
+      padding: 0.35rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border: 2px solid rgb(226 232 240);
+      background: #fff;
+      color: rgb(51 65 85);
+      cursor: pointer;
+    }
+    #modal-editar-produto #tab-estoque .estoque-mov-chip.is-on {
+      border-color: rgb(5 150 105);
+      background: rgb(236 253 245);
+      color: rgb(6 95 70);
+    }
+    #modal-editar-produto #tab-estoque .estoque-mov-chip-group {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      border-radius: 0.75rem;
+    }
+    #modal-editar-produto #tab-estoque .estoque-mov-tipo-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.25rem);
+      z-index: 50;
+      min-width: 14rem;
+      max-height: 16rem;
+      overflow-y: auto;
+      background: #fff;
+      border: 2px solid rgb(226 232 240);
+      border-radius: 0.75rem;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
     }
     #modal-editar-produto #tab-estoque .cadastro-modal-hist-scroll,
     #modal-editar-produto #tab-alteracoes .cadastro-modal-hist-scroll {
@@ -537,48 +582,52 @@
         </div>
 
         <div class="estoque-hist-wrap flex flex-col min-h-0 flex-1 gap-2">
-          <div class="flex flex-wrap items-end justify-between gap-2 shrink-0">
+          <div class="estoque-mov-filtros flex flex-wrap items-end justify-between gap-2">
             <div class="min-w-0">
               <span class="text-base font-black uppercase text-slate-600 block tracking-widest">Histórico de movimentação</span>
-              <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes deste produto.</p>
-              <p id="mov-hint-saldo-deposito" class="text-xs font-semibold text-amber-800 mt-1 max-w-xl">Saldo é <strong>por depósito</strong> (Centro ou Vila). Com «Todos», a coluna Saldo alterna entre as duas lojas — filtre Centro ou Vila para acompanhar a conta.</p>
+              <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes · saldo Centro, Vila e Total em cada linha.</p>
             </div>
-            <div class="flex flex-wrap items-center gap-2">
-              <label class="flex flex-col gap-0.5">
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="flex flex-col gap-0.5">
                 <span class="text-[10px] font-bold uppercase text-slate-500">Depósito</span>
-                <select id="mov-filtro-deposito" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
-                  <option value="">Todos</option>
-                  <option value="centro">Centro</option>
-                  <option value="vila">Vila</option>
-                </select>
-              </label>
-              <label class="flex flex-col gap-0.5">
+                <div class="estoque-mov-chip-group" role="group" aria-label="Filtro depósito">
+                  <button type="button" class="estoque-mov-chip is-on rounded-lg" data-mov-dep="">Todos</button>
+                  <button type="button" class="estoque-mov-chip rounded-lg" data-mov-dep="centro">Centro</button>
+                  <button type="button" class="estoque-mov-chip rounded-lg" data-mov-dep="vila">Vila</button>
+                </div>
+                <input type="hidden" id="mov-filtro-deposito" value="" />
+              </div>
+              <div class="flex flex-col gap-0.5 relative">
                 <span class="text-[10px] font-bold uppercase text-slate-500">Tipo</span>
-                <select id="mov-filtro-origem" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
-                  <option value="">Todos</option>
-                  <option value="baixa_venda_pdv">Venda</option>
-                  <option value="devolucao_venda_pdv">Devolução</option>
-                  <option value="entrada_nf_agro">Entrada NF</option>
-                  <option value="estorno_entrada_nf_agro">Estorno NF (reabrir)</option>
-                  <option value="transferencia_ui">Transferência</option>
-                  <option value="ajuste_pin">Ajuste PIN</option>
-                  <option value="outro">Ajuste gestão</option>
-                  <option value="vencimento_em_loja">Vencimento</option>
-                </select>
-              </label>
-              <label class="flex flex-col gap-0.5">
+                <button type="button" id="mov-filtro-origem-btn" class="estoque-mov-chip rounded-lg min-w-[8.5rem] text-left">Todos</button>
+                <input type="hidden" id="mov-filtro-origem" value="" />
+                <div id="mov-filtro-origem-menu" class="estoque-mov-tipo-menu hidden" role="listbox">
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="" role="option">Todos</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="baixa_venda_pdv" role="option">Venda</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="devolucao_venda_pdv" role="option">Devolução</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="entrada_nf_agro" role="option">Entrada NF</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="estorno_entrada_nf_agro" role="option">Estorno NF (reabrir)</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="transferencia_ui" role="option">Transferência</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="ajuste_pin" role="option">Ajuste PIN</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="outro" role="option">Ajuste gestão</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="vencimento_em_loja" role="option">Vencimento</button>
+                  <button type="button" class="w-full text-left px-3 py-2.5 text-sm font-bold hover:bg-emerald-50" data-mov-ori="uso_loja" role="option">Uso loja</button>
+                </div>
+              </div>
+              <div class="flex flex-col gap-0.5">
                 <span class="text-[10px] font-bold uppercase text-slate-500">Período</span>
-                <select id="mov-filtro-dias" class="min-h-[40px] rounded-lg border-2 border-slate-200 px-2 text-sm font-semibold bg-white">
-                  <option value="30">30 dias</option>
-                  <option value="90" selected>90 dias</option>
-                  <option value="365">1 ano</option>
-                  <option value="0">Tudo (até 200)</option>
-                </select>
-              </label>
+                <div class="estoque-mov-chip-group" role="group" aria-label="Filtro período">
+                  <button type="button" class="estoque-mov-chip rounded-lg" data-mov-dias="30">30 d</button>
+                  <button type="button" class="estoque-mov-chip is-on rounded-lg" data-mov-dias="90">90 d</button>
+                  <button type="button" class="estoque-mov-chip rounded-lg" data-mov-dias="365">1 ano</button>
+                  <button type="button" class="estoque-mov-chip rounded-lg" data-mov-dias="0">Tudo</button>
+                </div>
+                <input type="hidden" id="mov-filtro-dias" value="90" />
+              </div>
             </div>
           </div>
           <div class="border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] cadastro-modal-hist-scroll">
-            <table class="w-full text-sm min-w-[720px]">
+            <table class="w-full text-sm min-w-[860px]">
               <thead class="bg-slate-50 text-xs font-black uppercase text-slate-600 sticky top-0 z-[1]">
                 <tr>
                   <th class="px-3 py-2.5 text-left">Quando</th>
@@ -588,12 +637,14 @@
                   <th class="px-3 py-2.5 text-left">Depósito</th>
                   <th class="px-3 py-2.5 text-right">Entrada</th>
                   <th class="px-3 py-2.5 text-right">Saída</th>
-                  <th class="px-3 py-2.5 text-right">Saldo</th>
+                  <th class="px-3 py-2.5 text-right" title="Saldo Centro após esta linha">Centro</th>
+                  <th class="px-3 py-2.5 text-right" title="Saldo Vila após esta linha">Vila</th>
+                  <th class="px-3 py-2.5 text-right" title="Centro + Vila">Total</th>
                   <th class="px-3 py-2.5 text-left">Quem</th>
                 </tr>
               </thead>
               <tbody id="lista-estoque-movimentos" class="divide-y divide-slate-100">
-                <tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>
+                <tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>
               </tbody>
             </table>
           </div>
@@ -1844,6 +1895,7 @@
 
   /** Saldo depois: mostra 0 (não «—») e deixa negativo visível. */
   function fmtSaldoMov(n) {
+    if (n == null || n === '') return '—';
     var x = Number(n);
     if (!isFinite(x)) return '—';
     if (x === 0) return '0';
@@ -1851,8 +1903,9 @@
   }
 
   function classeSaldoMov(n) {
+    if (n == null || n === '') return 'text-slate-400';
     var x = Number(n);
-    if (!isFinite(x)) return 'text-slate-900';
+    if (!isFinite(x)) return 'text-slate-400';
     if (x < 0) return 'text-rose-700';
     if (x === 0) return 'text-slate-500';
     return 'text-slate-900';
@@ -1888,13 +1941,19 @@
     if (!tb) return;
     if (!append) tb.innerHTML = '';
     if ((!linhas || !linhas.length) && !append) {
-      tb.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 font-semibold">Nenhuma movimentação neste período.</td></tr>';
       return;
     }
     if ((!linhas || !linhas.length) && append) return;
     var h = '';
     (linhas || []).forEach(function (ln) {
       var dep = String(ln.deposito || '').toLowerCase() === 'vila' ? 'Vila' : 'Centro';
+      var sc = ln.saldo_centro != null ? ln.saldo_centro : (dep === 'Centro' ? ln.saldo_depois : null);
+      var sv = ln.saldo_vila != null ? ln.saldo_vila : (dep === 'Vila' ? ln.saldo_depois : null);
+      var st = ln.saldo_total;
+      if (st == null && (sc != null || sv != null)) {
+        st = Number(sc || 0) + Number(sv || 0);
+      }
       h += '<tr class="hover:bg-slate-50/80">' +
         '<td class="px-3 py-2.5 text-slate-700 font-semibold whitespace-nowrap">' + esc(ln.quando || '—') + '</td>' +
         '<td class="px-3 py-2.5">' + seloTipoMov(ln.origem, ln.tipo_label) + '</td>' +
@@ -1903,7 +1962,9 @@
         '<td class="px-3 py-2.5 font-semibold text-slate-700">' + esc(dep) + '</td>' +
         '<td class="px-3 py-2.5 text-right font-bold text-emerald-700">' + esc(fmtQtdMov(ln.qtd_entrada)) + '</td>' +
         '<td class="px-3 py-2.5 text-right font-bold text-rose-700">' + esc(fmtQtdMov(ln.qtd_saida)) + '</td>' +
-        '<td class="px-3 py-2.5 text-right font-black ' + classeSaldoMov(ln.saldo_depois) + '">' + esc(fmtSaldoMov(ln.saldo_depois)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black ' + classeSaldoMov(sc) + '">' + esc(fmtSaldoMov(sc)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black ' + classeSaldoMov(sv) + '">' + esc(fmtSaldoMov(sv)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black ' + classeSaldoMov(st) + '">' + esc(fmtSaldoMov(st)) + '</td>' +
         '<td class="px-3 py-2.5 text-slate-700 font-semibold">' + esc(ln.operador || '—') + '</td>' +
         '</tr>';
     });
@@ -1929,7 +1990,7 @@
       _movOffset = 0;
       renderEstoqueMovimentos([], false);
       var tb0 = document.getElementById('lista-estoque-movimentos');
-      if (tb0) tb0.innerHTML = '<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
+      if (tb0) tb0.innerHTML = '<tr><td colspan="11" class="px-4 py-6 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
     }
     var params = new URLSearchParams();
     params.set('produto_id', pid);
@@ -1967,23 +2028,68 @@
   }
 
   (function bindFiltrosMovimentos() {
-    function atualizarHintSaldoDep() {
-      var elDep = document.getElementById('mov-filtro-deposito');
-      var hint = document.getElementById('mov-hint-saldo-deposito');
-      if (!hint) return;
-      var v = elDep ? String(elDep.value || '').trim() : '';
-      hint.classList.toggle('hidden', v === 'centro' || v === 'vila');
+    var ORIGEM_LABEL = {
+      '': 'Todos',
+      baixa_venda_pdv: 'Venda',
+      devolucao_venda_pdv: 'Devolução',
+      entrada_nf_agro: 'Entrada NF',
+      estorno_entrada_nf_agro: 'Estorno NF',
+      transferencia_ui: 'Transferência',
+      ajuste_pin: 'Ajuste PIN',
+      outro: 'Ajuste gestão',
+      vencimento_em_loja: 'Vencimento',
+      uso_loja: 'Uso loja',
+    };
+    function setChipGroup(attr, value) {
+      document.querySelectorAll('[' + attr + ']').forEach(function (btn) {
+        var on = String(btn.getAttribute(attr) || '') === String(value || '');
+        btn.classList.toggle('is-on', on);
+      });
     }
-    ['mov-filtro-deposito', 'mov-filtro-origem', 'mov-filtro-dias'].forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) el.addEventListener('change', function () {
-        if (id === 'mov-filtro-deposito') atualizarHintSaldoDep();
+    function fecharMenuTipo() {
+      var menu = document.getElementById('mov-filtro-origem-menu');
+      if (menu) menu.classList.add('hidden');
+    }
+    document.querySelectorAll('[data-mov-dep]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var v = String(btn.getAttribute('data-mov-dep') || '');
+        var hid = document.getElementById('mov-filtro-deposito');
+        if (hid) hid.value = v;
+        setChipGroup('data-mov-dep', v);
         carregarHistoricoMovimentos({ append: false });
       });
     });
+    document.querySelectorAll('[data-mov-dias]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var v = String(btn.getAttribute('data-mov-dias') || '90');
+        var hid = document.getElementById('mov-filtro-dias');
+        if (hid) hid.value = v;
+        setChipGroup('data-mov-dias', v);
+        carregarHistoricoMovimentos({ append: false });
+      });
+    });
+    var btnOri = document.getElementById('mov-filtro-origem-btn');
+    var menuOri = document.getElementById('mov-filtro-origem-menu');
+    if (btnOri && menuOri) {
+      btnOri.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        menuOri.classList.toggle('hidden');
+      });
+      menuOri.querySelectorAll('[data-mov-ori]').forEach(function (opt) {
+        opt.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var v = String(opt.getAttribute('data-mov-ori') || '');
+          var hid = document.getElementById('mov-filtro-origem');
+          if (hid) hid.value = v;
+          btnOri.textContent = ORIGEM_LABEL[v] || opt.textContent || 'Todos';
+          fecharMenuTipo();
+          carregarHistoricoMovimentos({ append: false });
+        });
+      });
+      document.addEventListener('click', function () { fecharMenuTipo(); });
+    }
     var btnMais = document.getElementById('mov-btn-mais');
     if (btnMais) btnMais.addEventListener('click', function () { carregarHistoricoMovimentos({ append: true }); });
-    atualizarHintSaldoDep();
   })();
 
   var _altOffset = 0;
