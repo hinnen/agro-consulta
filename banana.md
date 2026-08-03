@@ -1180,13 +1180,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · **teste**)
+### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · **teste v13.52**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Depois do botão reportar bug, card ENVIAR + SUBTOTAL na coluna direita ficava estreito (espaço branco à esquerda) |
 | **Causa** | Safe-zone do 🐞 aplicava `padding-left` em `#pdv-step1-subtotal-dock` (longe do FAB) |
 | **Fix** | Tirar o dock da safe-zone · CSS força padding 0 · cache `bug13` |
+| **Commit** | `69b7049` · **teste v13.52** · push `origin/teste` |
 | **Arquivos** | `agro_bug_report.js` · `_agro_consulta_ui.html` |
 | **Você** | Ctrl+F5 no PDV · conferir ENVIAR/SUBTOTAL largura total |
 
