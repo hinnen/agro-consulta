@@ -1,5 +1,5 @@
 /* Dispenser A6 — sync biblioteca com Postgres (Centro + Vila).
-   Fotos grandes ficam na NUVEM + memória da página — NÃO no bolso do Chrome (localStorage). */
+   Fotos/folhas grandes: NUVEM + RAM da página — NÃO no bolso do Chrome (localStorage). */
 (function (global) {
   var KEYS = {
     logos: "dsp_logos_custom_v1",
@@ -18,7 +18,8 @@
     pets: null,
     ings: null,
     flavorIcos: null,
-    customFlavors: null
+    customFlavors: null,
+    folhas: null
   };
 
   function csrf() {
@@ -79,18 +80,25 @@
       localStorage.removeItem(KEYS.ings);
       localStorage.removeItem(KEYS.flavorIcos);
       localStorage.removeItem(KEYS.customFlavors);
+      localStorage.removeItem(KEYS.folhas);
     } catch (e) {}
   }
 
   function ensureMemSeeded() {
-    if (mem.logos != null) return;
-    mem.logos = Array.isArray(readLocal(KEYS.logos, [])) ? readLocal(KEYS.logos, []) : [];
-    mem.pets = Array.isArray(readLocal(KEYS.pets, [])) ? readLocal(KEYS.pets, []) : [];
-    mem.ings = Array.isArray(readLocal(KEYS.ings, [])) ? readLocal(KEYS.ings, []) : [];
-    var icos = readLocal(KEYS.flavorIcos, {});
-    mem.flavorIcos = icos && typeof icos === "object" ? icos : {};
-    var cf = readLocal(KEYS.customFlavors, {});
-    mem.customFlavors = cf && typeof cf === "object" ? cf : {};
+    if (mem.logos == null) {
+      mem.logos = Array.isArray(readLocal(KEYS.logos, [])) ? readLocal(KEYS.logos, []) : [];
+      mem.pets = Array.isArray(readLocal(KEYS.pets, [])) ? readLocal(KEYS.pets, []) : [];
+      mem.ings = Array.isArray(readLocal(KEYS.ings, [])) ? readLocal(KEYS.ings, []) : [];
+      var icos = readLocal(KEYS.flavorIcos, {});
+      mem.flavorIcos = icos && typeof icos === "object" ? icos : {};
+      var cf = readLocal(KEYS.customFlavors, {});
+      mem.customFlavors = cf && typeof cf === "object" ? cf : {};
+    }
+    if (mem.folhas == null) {
+      /* 1ª carga: herda residual do Chrome só para migrar; depois fica só RAM + Postgres */
+      var fl = readLocal(KEYS.folhas, {});
+      mem.folhas = fl && typeof fl === "object" ? Object.assign({}, fl) : {};
+    }
   }
 
   function getLogos() {
@@ -153,6 +161,20 @@
     }
   }
 
+  function getFolhas() {
+    ensureMemSeeded();
+    return Object.assign({}, mem.folhas);
+  }
+  function setFolhas(obj) {
+    ensureMemSeeded();
+    mem.folhas = obj && typeof obj === "object" ? Object.assign({}, obj) : {};
+    /* não grava folhas no Chrome — evita «memória cheia» e não pesa o PDV */
+    try {
+      localStorage.removeItem(KEYS.folhas);
+    } catch (e) {}
+    return true;
+  }
+
   function localMidiaHasContent() {
     ensureMemSeeded();
     if (mem.logos.length || mem.pets.length || mem.ings.length) return true;
@@ -171,6 +193,8 @@
 
   function localHasContent() {
     if (localMidiaHasContent()) return true;
+    ensureMemSeeded();
+    if (Object.keys(mem.folhas || {}).length) return true;
     var folhas = readLocal(KEYS.folhas, {});
     var layouts = readLocal(KEYS.layouts, {});
     if (folhas && typeof folhas === "object" && Object.keys(folhas).length) return true;
@@ -202,14 +226,18 @@
         dataUrl: mem.flavorIcos[name]
       });
     });
-    var folhas = readLocal(KEYS.folhas, {});
-    var layouts = readLocal(KEYS.layouts, {});
-    var docs = { folha: {}, layout: {}, sabor: {} };
-    if (folhas && typeof folhas === "object") {
-      Object.keys(folhas).forEach(function (n) {
-        docs.folha[n] = folhas[n];
+    var folhasMem = Object.assign({}, mem.folhas || {});
+    var folhasLs = readLocal(KEYS.folhas, {});
+    if (folhasLs && typeof folhasLs === "object") {
+      Object.keys(folhasLs).forEach(function (n) {
+        if (!folhasMem[n]) folhasMem[n] = folhasLs[n];
       });
     }
+    var layouts = readLocal(KEYS.layouts, {});
+    var docs = { folha: {}, layout: {}, sabor: {} };
+    Object.keys(folhasMem).forEach(function (n) {
+      docs.folha[n] = folhasMem[n];
+    });
     if (layouts && typeof layouts === "object") {
       Object.keys(layouts).forEach(function (n) {
         var m = layouts[n];
@@ -240,11 +268,13 @@
       if (it && it.id && it.dataUrl) icos[it.id] = it.dataUrl;
     });
     mem.flavorIcos = icos;
-    /* libera o bolso do Chrome (fotos não ficam mais no localStorage) */
-    clearMidiaLocalStorage();
 
     var docs = data.documentos || {};
-    writeLocal(KEYS.folhas, docs.folha && typeof docs.folha === "object" ? docs.folha : {});
+    mem.folhas =
+      docs.folha && typeof docs.folha === "object" ? Object.assign({}, docs.folha) : {};
+
+    /* libera o bolso do Chrome (fotos + folhas pesadas) */
+    clearMidiaLocalStorage();
 
     var layoutsLocal = readLocal(KEYS.layouts, {});
     var cleaned = {};
@@ -254,6 +284,13 @@
     var serverLayouts = docs.layout && typeof docs.layout === "object" ? docs.layout : {};
     Object.keys(serverLayouts).forEach(function (n) {
       cleaned[n] = serverLayouts[n];
+    });
+    /* layouts leves podem ficar no Chrome; folhas kind=folha sobem pro mem se ainda não vieram */
+    Object.keys(cleaned).forEach(function (n) {
+      if (cleaned[n] && cleaned[n].kind === "folha" && !mem.folhas[n]) {
+        mem.folhas[n] = cleaned[n];
+        delete cleaned[n];
+      }
     });
     writeLocal(KEYS.layouts, cleaned);
 
@@ -375,6 +412,8 @@
     setFlavorIcos: setFlavorIcos,
     getCustomFlavors: getCustomFlavors,
     setCustomFlavors: setCustomFlavors,
-    syncFlavorLibCustoms: syncFlavorLibCustoms
+    syncFlavorLibCustoms: syncFlavorLibCustoms,
+    getFolhas: getFolhas,
+    setFolhas: setFolhas
   };
 })(window);
