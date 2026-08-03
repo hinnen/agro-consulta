@@ -25,7 +25,7 @@
     <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Aqui ficam os <span class="text-emerald-300">números da loja</span> em formato de lista. Cada cartão abre um tipo de análise. Use o período (quando tiver) e o botão <span class="text-orange-300">Atualizar</span>.</p>
     <div class="space-y-2 text-[12px] font-semibold leading-snug">
       <div class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-emerald-100"><span class="font-black text-emerald-300">Vendas</span> — o que mais saiu, curva ABC, grupos, marcas, margem, comparativo e formas de pagamento.</div>
-      <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura e etiquetas.</div>
+      <div class="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-amber-100"><span class="font-black text-amber-300">Estoque</span> — validade, giro/parado, ruptura, inventário valorizado, resumo, mín/máx, sem custo, zerados e etiquetas.</div>
       <div class="rounded-xl border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 text-cyan-100"><span class="font-black text-cyan-300">Equipe e clientes</span> — operador, ranking de clientes e comissão estimada.</div>
     </div>
 
@@ -40,14 +40,14 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">#</span><span>Posição no ranking (1 = quem mais faturou).</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">CLASSE</span><span>A, B ou C — conforme a fatia acumulada do faturamento.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO GM</span><span>Código interno do produto na loja.</span></li>
-      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / CATEGORIA / SUB</span><span>Nome, categoria e subcategoria do cadastro.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">PRODUTO / CATEGORIA</span><span>Nome e grupo do cadastro.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Quanto esse produto vendeu no período (em reais).</span></li>
-      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia <strong>só deste produto</strong> no total do período (ou da categoria/subcategoria filtrada).</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">%</span><span>Fatia <strong>só deste produto</strong> no total do período (ou da categoria filtrada).</span></li>
       <li class="flex gap-2 rounded-lg border border-pink-500/40 bg-pink-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-pink-500/40 px-1.5 py-0.5 text-[10px] font-black text-pink-100">% ACUM.</span><span>Soma deste + todos os de cima. Quando chega perto de 80%, termina a classe A.</span></li>
     </ul>
 
     {% elif rel_help == "mais_vendidos" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que <span class="text-emerald-300">mais</span> (ou menos) saiu no período. Dá para ordenar por dinheiro ou por quantidade. <span class="text-sky-300">Marque várias</span> categorias ou subcategorias (ex.: Gato + Cachorro) e clique em Atualizar.</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que <span class="text-emerald-300">mais</span> (ou menos) saiu no período. Dá para ordenar por dinheiro ou por quantidade.</p>
     <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">#</span><span>Colocação no ranking.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">CÓDIGO GM / PRODUTO</span><span>Identificação do item.</span></li>
@@ -57,9 +57,9 @@
     </ul>
 
     {% elif rel_help == "vendas_grupo" %}
-    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria ou subcategoria (1–4)</span> — dá para <strong>combinar</strong> os filtros (ex.: Rações + gato + granel).</p>
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o faturamento <span class="text-sky-300">por categoria</span> (ex.: Rações, Sacaria) — útil para ver qual prateleira puxa a loja.</p>
     <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
-      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>O que você escolheu em <strong>Agrupar por</strong> (categoria ou sub 1–4).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">GRUPO</span><span>Categoria do cadastro.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">SKUs</span><span>Quantos produtos diferentes daquele grupo venderam.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">QTD</span><span>Quantidade total vendida no grupo.</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">TOTAL R$</span><span>Dinheiro que o grupo gerou.</span></li>
@@ -167,6 +167,48 @@
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">VENCIMENTO</span><span>Data em que o lote vence.</span></li>
       <li class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/40 px-1.5 py-0.5 text-[10px] font-black text-amber-100">SIT.</span><span>Situação (próximo / vencido etc.).</span></li>
       <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/30 px-1.5 py-0.5 text-[10px] font-black text-emerald-200">BAIXA / GRAVAR</span><span>Ações para dar baixa ou salvar ajuste (quando liberado).</span></li>
+    </ul>
+
+    {% elif rel_help == "inventario" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200"><span class="text-lime-300">Inventário valorizado</span> = cada produto com saldo da loja e o <strong class="text-white">dinheiro</strong> que isso representa.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg border border-lime-500/40 bg-lime-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/40 px-1.5 py-0.5 text-[10px] font-black text-lime-100">VALOR CUSTO</span><span>Saldo × custo do cadastro — quanto a loja <strong>investiu</strong> nesse estoque.</span></li>
+      <li class="flex gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-emerald-500/40 px-1.5 py-0.5 text-[10px] font-black text-emerald-100">VALOR VENDA</span><span>Saldo × preço de venda — quanto valeria se vendesse tudo.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">SALDO C / V</span><span>Estoque Centro e Vila (saldo Agro).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">DEPÓSITO</span><span>Filtro: valoriza só Centro, só Vila ou os dois somados. «Só com saldo» = saldo <strong>positivo</strong> (negativo fica no relatório Zerados).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-violet-500/30 px-1.5 py-0.5 text-[10px] font-black text-violet-200">EXCEL</span><span>Baixa a lista completa do filtro (a tela pode mostrar só os 500 primeiros).</span></li>
+    </ul>
+
+    {% elif rel_help == "estoque_min_max" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Mostra o que está <span class="text-orange-300">fora da meta</span> de estoque (mínimo ou máximo) cadastrada no produto.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/30 px-1.5 py-0.5 text-[10px] font-black text-orange-200">ABAIXO</span><span>Saldo menor que o mínimo — falta comprar / repor.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/30 px-1.5 py-0.5 text-[10px] font-black text-red-200">ACIMA</span><span>Saldo maior que o máximo — excesso parado.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-slate-500/40 px-1.5 py-0.5 text-[10px] font-black text-slate-200">ALERTA</span><span>Texto explicando Centro e/ou Vila.</span></li>
+      <li class="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/40 px-1.5 py-0.5 text-[10px] font-black text-amber-100">SEM META</span><span>Produto sem mínimo/máximo cadastrado <strong>não</strong> aparece aqui.</span></li>
+    </ul>
+
+    {% elif rel_help == "estoque_resumo" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Soma o estoque <span class="text-sky-300">por grupo</span> (categoria, marca ou unidade) — visão rápida de onde está o dinheiro.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">SKUs / SALDO</span><span>Quantos produtos e quanto de quantidade no grupo.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-lime-500/30 px-1.5 py-0.5 text-[10px] font-black text-lime-200">VALOR CUSTO / VENDA</span><span>Dinheiro investido e potencial de venda do grupo.</span></li>
+      <li class="flex gap-2 rounded-lg border border-orange-500/40 bg-orange-500/10 px-2.5 py-2"><span class="shrink-0 rounded bg-orange-500/40 px-1.5 py-0.5 text-[10px] font-black text-orange-100">% VENDA</span><span>Fatia do potencial de venda total.</span></li>
+    </ul>
+
+    {% elif rel_help == "estoque_sem_custo" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200"><span class="text-fuchsia-300">Buracos no cadastro</span>: tem saldo na loja, mas o custo está zerado — o valor do inventário a custo fica errado.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-fuchsia-500/30 px-1.5 py-0.5 text-[10px] font-black text-fuchsia-200">O QUE FAZER</span><span>Abrir o cadastro e preencher o custo (ou conferir última NF).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-sky-500/30 px-1.5 py-0.5 text-[10px] font-black text-sky-200">SALDO</span><span>Só entram produtos com saldo no depósito filtrado.</span></li>
+    </ul>
+
+    {% elif rel_help == "estoque_zerados" %}
+    <p class="mb-3 text-sm font-semibold leading-relaxed text-slate-200">Lista o que está <span class="text-rose-300">zerado</span> ou <span class="text-red-300">negativo</span> no depósito escolhido — útil para conferência e ajuste.</p>
+    <ul class="space-y-2 text-[12px] font-semibold leading-snug text-slate-200">
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-rose-500/30 px-1.5 py-0.5 text-[10px] font-black text-rose-200">ZERADOS</span><span>Saldo exatamente zero.</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-red-500/30 px-1.5 py-0.5 text-[10px] font-black text-red-200">NEGATIVOS</span><span>Saldo abaixo de zero (erro de baixa / ajuste).</span></li>
+      <li class="flex gap-2 rounded-lg bg-slate-800/80 px-2.5 py-2"><span class="shrink-0 rounded bg-amber-500/30 px-1.5 py-0.5 text-[10px] font-black text-amber-200">DEPÓSITO</span><span>Filtro Centro / Vila / C+V muda o que conta como zero.</span></li>
     </ul>
 
     {% else %}

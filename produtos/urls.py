@@ -192,6 +192,11 @@ urlpatterns = [
     path('produtos/gestao/', views.produtos_gestao_view, name='produtos_gestao'),
     path('produtos/etiquetas/', views.produtos_etiquetas_view, name='produtos_etiquetas'),
     path(
+        'produtos/etiquetas/lote/',
+        views.produtos_etiquetas_lote_view,
+        name='produtos_etiquetas_lote',
+    ),
+    path(
         'api/produtos/etiquetas/presets/',
         views.api_etiquetas_presets,
         name='api_etiquetas_presets',
@@ -216,6 +221,36 @@ urlpatterns = [
         views.api_etiquetas_historico_detalhe,
         name='api_etiquetas_historico_detalhe',
     ),
+    path(
+        'api/produtos/etiquetas/lote/',
+        views.api_etiquetas_lote,
+        name='api_etiquetas_lote',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/',
+        views.api_etiquetas_lote_detalhe,
+        name='api_etiquetas_lote_detalhe',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/proxima-folha/',
+        views.api_etiquetas_lote_proxima_folha,
+        name='api_etiquetas_lote_proxima_folha',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/confirmar-folha/',
+        views.api_etiquetas_lote_confirmar_folha,
+        name='api_etiquetas_lote_confirmar_folha',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/desfazer-folha/',
+        views.api_etiquetas_lote_desfazer_folha,
+        name='api_etiquetas_lote_desfazer_folha',
+    ),
+    path(
+        'api/produtos/etiquetas/lote/<int:pk>/cancelar/',
+        views.api_etiquetas_lote_cancelar,
+        name='api_etiquetas_lote_cancelar',
+    ),
     path('relatorios/', views.relatorios_hub, name='relatorios_hub'),
     path('contabilidade/login/', views_nfce.contabilidade_login, name='contabilidade_login'),
     path('contabilidade/logout/', views_nfce.contabilidade_logout, name='contabilidade_logout'),
@@ -233,6 +268,11 @@ urlpatterns = [
     path('relatorios/formas-pagamento/', relatorios_views.relatorios_formas_pagamento, name='relatorios_formas_pagamento'),
     path('relatorios/ruptura/', relatorios_views.relatorios_ruptura, name='relatorios_ruptura'),
     path('relatorios/comissao/', relatorios_views.relatorios_comissao, name='relatorios_comissao'),
+    path('relatorios/inventario/', relatorios_views.relatorios_inventario, name='relatorios_inventario'),
+    path('relatorios/estoque-min-max/', relatorios_views.relatorios_estoque_min_max, name='relatorios_estoque_min_max'),
+    path('relatorios/estoque-resumo/', relatorios_views.relatorios_estoque_resumo, name='relatorios_estoque_resumo'),
+    path('relatorios/estoque-sem-custo/', relatorios_views.relatorios_estoque_sem_custo, name='relatorios_estoque_sem_custo'),
+    path('relatorios/estoque-zerados/', relatorios_views.relatorios_estoque_zerados, name='relatorios_estoque_zerados'),
 
     path(
         'entrada-nota/',

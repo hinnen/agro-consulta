@@ -52,7 +52,7 @@
 {% block pdv_content %}
 <div class="print-root min-w-0 p-1 sm:p-2">
   <form method="get" id="form-relatorio-filtros" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4">
-    {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' %}
+    {% if filtro_parcial != 'giro' and filtro_parcial != 'ruptura' and filtro_parcial != 'inventario' and filtro_parcial != 'estoque_min_max' and filtro_parcial != 'estoque_resumo' and filtro_parcial != 'estoque_sem_custo' and filtro_parcial != 'estoque_zerados' %}
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Período</label>
       <select name="periodo" id="filtro-periodo" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white focus:border-orange-500 focus:outline-none" onchange="this.form.submit()">
@@ -70,6 +70,86 @@
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Até</label>
       <input type="date" name="ate" id="filtro-ate" value="{{ filtros.ate }}" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-2 text-sm font-bold text-white" />
+    </div>
+    {% endif %}
+
+    {% if filtro_parcial == 'inventario' or filtro_parcial == 'estoque_min_max' or filtro_parcial == 'estoque_resumo' or filtro_parcial == 'estoque_sem_custo' or filtro_parcial == 'estoque_zerados' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Depósito</label>
+      <select name="deposito" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="ambos" {% if extra_filtros.deposito == 'ambos' %}selected{% endif %}>Centro + Vila</option>
+        <option value="centro" {% if extra_filtros.deposito == 'centro' %}selected{% endif %}>Só Centro</option>
+        <option value="vila" {% if extra_filtros.deposito == 'vila' %}selected{% endif %}>Só Vila</option>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Categoria</label>
+      <select name="categoria" class="min-h-[44px] min-w-[10rem] max-w-[16rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="" {% if not extra_filtros.categoria %}selected{% endif %}>Todas</option>
+        {% for cat in extra_filtros.categorias %}
+        <option value="{{ cat }}" {% if extra_filtros.categoria == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Marca</label>
+      <select name="marca" class="min-h-[44px] min-w-[10rem] max-w-[14rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="" {% if not extra_filtros.marca %}selected{% endif %}>Todas</option>
+        {% for m in extra_filtros.marcas %}
+        <option value="{{ m }}" {% if extra_filtros.marca == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Cadastro</label>
+      <select name="ativos" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="ativos" {% if extra_filtros.ativos == 'ativos' %}selected{% endif %}>Ativos</option>
+        <option value="inativos" {% if extra_filtros.ativos == 'inativos' %}selected{% endif %}>Inativos</option>
+        <option value="todos" {% if extra_filtros.ativos == 'todos' %}selected{% endif %}>Todos</option>
+      </select>
+    </div>
+    {% if filtro_parcial == 'inventario' or filtro_parcial == 'estoque_resumo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Saldo</label>
+      <select name="so_saldo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="1" {% if extra_filtros.so_saldo == '1' %}selected{% endif %}>Só com saldo</option>
+        <option value="0" {% if extra_filtros.so_saldo == '0' %}selected{% endif %}>Com e sem saldo</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_min_max' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Modo</label>
+      <select name="modo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="abaixo" {% if extra_filtros.modo == 'abaixo' %}selected{% endif %}>Abaixo do mínimo</option>
+        <option value="acima" {% if extra_filtros.modo == 'acima' %}selected{% endif %}>Acima do máximo</option>
+        <option value="ambos" {% if extra_filtros.modo == 'ambos' %}selected{% endif %}>Abaixo e acima</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_resumo' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Agrupar</label>
+      <select name="agrupar" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="categoria" {% if extra_filtros.agrupar == 'categoria' %}selected{% endif %}>Categoria</option>
+        <option value="marca" {% if extra_filtros.agrupar == 'marca' %}selected{% endif %}>Marca</option>
+        <option value="unidade" {% if extra_filtros.agrupar == 'unidade' %}selected{% endif %}>Unidade</option>
+      </select>
+    </div>
+    {% endif %}
+    {% if filtro_parcial == 'estoque_zerados' %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Lista</label>
+      <select name="modo" class="min-h-[44px] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" onchange="this.form.submit()">
+        <option value="zerados" {% if extra_filtros.modo == 'zerados' %}selected{% endif %}>Zerados</option>
+        <option value="negativos" {% if extra_filtros.modo == 'negativos' %}selected{% endif %}>Negativos</option>
+        <option value="ambos" {% if extra_filtros.modo == 'ambos' %}selected{% endif %}>Zerados e negativos</option>
+      </select>
+    </div>
+    {% endif %}
+    <div>
+      <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Busca</label>
+      <input type="search" name="q" value="{{ extra_filtros.q }}" placeholder="GM, nome…" class="min-h-[44px] min-w-[10rem] rounded-xl border-2 border-slate-600 bg-slate-900 px-3 text-sm font-bold text-white" />
     </div>
     {% endif %}
 
