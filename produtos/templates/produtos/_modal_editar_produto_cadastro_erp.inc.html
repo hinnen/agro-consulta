@@ -558,6 +558,7 @@
                   <option value="baixa_venda_pdv">Venda</option>
                   <option value="devolucao_venda_pdv">Devolução</option>
                   <option value="entrada_nf_agro">Entrada NF</option>
+                  <option value="estorno_entrada_nf_agro">Estorno NF (reabrir)</option>
                   <option value="transferencia_ui">Transferência</option>
                   <option value="ajuste_pin">Ajuste PIN</option>
                   <option value="outro">Ajuste gestão</option>
@@ -1827,7 +1828,7 @@
   function seloTipoMov(origem, label) {
     var o = String(origem || '');
     var base = 'inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black uppercase tracking-wide ';
-    if (o === 'baixa_venda_pdv') return '<span class="' + base + 'bg-rose-100 text-rose-800 border border-rose-200">' + esc(label) + '</span>';
+    if (o === 'baixa_venda_pdv' || o === 'estorno_entrada_nf_agro') return '<span class="' + base + 'bg-rose-100 text-rose-800 border border-rose-200">' + esc(label) + '</span>';
     if (o === 'devolucao_venda_pdv' || o === 'entrada_nf_agro') return '<span class="' + base + 'bg-emerald-100 text-emerald-900 border border-emerald-200">' + esc(label) + '</span>';
     if (o === 'transferencia_ui') return '<span class="' + base + 'bg-sky-100 text-sky-900 border border-sky-200">' + esc(label) + '</span>';
     if (o === 'ajuste_pin' || o === 'outro') return '<span class="' + base + 'bg-amber-100 text-amber-900 border border-amber-200">' + esc(label) + '</span>';

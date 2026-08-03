@@ -3413,20 +3413,173 @@ def marcar_rascunho_estoque_aplicado(
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _dec_ajuste_estoque(v) -> Decimal:
+    try:
+        return Decimal(str(v or 0).replace(",", ".").strip()).quantize(Decimal("0.001"))
+    except Exception:
+        return Decimal("0.000")
+
+
+def _qtd_entrada_nf_do_ajuste(adj) -> Decimal:
+    """
+    Quantidade que a entrada NF somou no saldo (para estornar ao reabrir).
+    Prefere ``nf_qtd=`` na observação; senão Δ ledger/clássico vs ajuste anterior.
+    """
+    from django.db.models import Q
+
+    from estoque.models import AjusteRapidoEstoque
+
+    obs = str(getattr(adj, "observacao", "") or "")
+    m = re.search(r"nf_qtd=([0-9]+(?:[.,][0-9]+)?)", obs, re.I)
+    if m:
+        try:
+            q = _dec_ajuste_estoque(m.group(1))
+            if q > 0:
+                return q
+        except Exception:
+            pass
+
+    pid = str(getattr(adj, "produto_externo_id", "") or "").strip()[:100]
+    dep = str(getattr(adj, "deposito", "") or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    prev = (
+        AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito=dep)
+        .filter(Q(criado_em__lt=adj.criado_em) | Q(criado_em=adj.criado_em, pk__lt=adj.pk))
+        .order_by("-criado_em", "-id")
+        .only("saldo_informado", "saldo_erp_referencia")
+        .first()
+    )
+    try:
+        from produtos.estoque_agro_util import agro_estoque_ledger_ativo
+
+        ledger = bool(agro_estoque_ledger_ativo())
+    except Exception:
+        ledger = False
+
+    informado = _dec_ajuste_estoque(adj.saldo_informado)
+    if ledger:
+        if prev is not None:
+            return (informado - _dec_ajuste_estoque(prev.saldo_informado)).quantize(Decimal("0.001"))
+        return max(
+            informado - _dec_ajuste_estoque(adj.saldo_erp_referencia),
+            Decimal("0.000"),
+        ).quantize(Decimal("0.001"))
+
+    camada = informado - _dec_ajuste_estoque(adj.saldo_erp_referencia)
+    if prev is not None:
+        camada_prev = _dec_ajuste_estoque(prev.saldo_informado) - _dec_ajuste_estoque(
+            prev.saldo_erp_referencia
+        )
+        return (camada - camada_prev).quantize(Decimal("0.001"))
+    return camada.quantize(Decimal("0.001"))
+
+
+def estornar_ajustes_entrada_nf_por_reabertura(
+    ajuste_ids: list[int],
+    *,
+    usuario_label: str = "",
+    usuario_django=None,
+) -> dict[str, Any]:
+    """
+    Ao reabrir nota: **não apaga** as entradas no kardex.
+    Cria saídas ``estorno_entrada_nf_agro`` (saldo volta; histórico fica rastreável).
+    """
+    from django.db import transaction
+
+    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    ids = [int(x) for x in (ajuste_ids or []) if x is not None]
+    if not ids:
+        return {"ok": True, "estornados": 0, "ajuste_ids_estorno": []}
+
+    op = (usuario_label or "Agro")[:80]
+    criados: list[int] = []
+    try:
+        with transaction.atomic():
+            qs = list(
+                AjusteRapidoEstoque.objects.filter(
+                    pk__in=ids,
+                    origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+                ).order_by("criado_em", "id")
+            )
+            for adj in qs:
+                pid = str(adj.produto_externo_id or "").strip()[:100]
+                if not pid:
+                    continue
+                dep = str(adj.deposito or "centro").strip().lower()
+                if dep not in ("centro", "vila"):
+                    dep = "centro"
+                qtd = _qtd_entrada_nf_do_ajuste(adj)
+                if qtd <= 0:
+                    continue
+                info = (mapa_saldos_operacionais_agro([pid], db=None, client=None) or {}).get(pid) or {}
+                if dep == "vila":
+                    saldo_antes = _dec_ajuste_estoque(info.get("saldo_vila", 0))
+                else:
+                    saldo_antes = _dec_ajuste_estoque(info.get("saldo_centro", 0))
+                saldo_depois = (saldo_antes - qtd).quantize(Decimal("0.001"))
+                erp_ref = _dec_ajuste_estoque(adj.saldo_erp_referencia)
+                ult = (
+                    AjusteRapidoEstoque.objects.filter(produto_externo_id=pid, deposito=dep)
+                    .order_by("-criado_em", "-id")
+                    .only("saldo_erp_referencia")
+                    .first()
+                )
+                if ult is not None:
+                    erp_ref = _dec_ajuste_estoque(ult.saldo_erp_referencia)
+                nome_base = str(adj.nome_produto or "").split("·")[0].strip() or pid
+                ref_txt = ""
+                mref = re.search(r"Entrada NF-e Agro\s*\(([^)]*)\)", str(adj.nome_produto or ""), re.I)
+                if mref:
+                    ref_txt = (mref.group(1) or "").strip()[:80]
+                rotulo = f"Estorno reabrir NF ({ref_txt})" if ref_txt else "Estorno reabrir entrada NF"
+                obs_bits = [
+                    f"estorno_entrada_nf_id={adj.pk}",
+                    f"nf_qtd={qtd}",
+                ]
+                if str(adj.observacao or "").strip():
+                    for part in str(adj.observacao).split("|"):
+                        p = part.strip()
+                        if p.lower().startswith("nf_forn=") or p.lower().startswith("nf_custo="):
+                            obs_bits.append(p)
+                novo = AjusteRapidoEstoque.objects.create(
+                    empresa=adj.empresa,
+                    loja=adj.loja,
+                    produto_externo_id=pid,
+                    codigo_interno=str(adj.codigo_interno or "")[:100],
+                    nome_produto=(f"{nome_base} · {rotulo} · {op}")[:255],
+                    deposito=dep,
+                    saldo_erp_referencia=erp_ref,
+                    saldo_informado=saldo_depois,
+                    origem=OrigemAjusteEstoque.ESTORNO_ENTRADA_NF_AGRO,
+                    observacao=(" | ".join(obs_bits))[:2000],
+                    usuario=usuario_django if usuario_django is not None else None,
+                )
+                criados.append(int(novo.pk))
+    except Exception as exc:
+        logger.exception("estornar_ajustes_entrada_nf_por_reabertura")
+        return {"ok": False, "erro": str(exc)[:500], "estornados": 0, "ajuste_ids_estorno": []}
+    return {"ok": True, "estornados": len(criados), "ajuste_ids_estorno": criados}
+
+
 def reverter_integracao_entrada_nota_para_reabertura(
     db,
     oid: str,
     *,
     usuario: str = "",
+    usuario_django=None,
 ) -> dict[str, Any]:
     """
     Remove carimbo ``aprovacao_wizard_*``, flags de etapa do assistente e estorna o que for rastreável:
 
     - Títulos em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
       ``excluir_lancamento_dispatch`` (Postgres no teste; Mongo na loja legado).
-    - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` quando há estoque
-      aplicado (status ``estoque_aplicado``, carimbo ``estoque_aplicado_em`` /
-      ``estoque_agro_registrado_em``, ou lista de IDs), origem ``entrada_nf_agro``.
+    - Ajustes ``AjusteRapidoEstoque`` de entrada NF: **cria saída** ``estorno_entrada_nf_agro``
+      (não apaga a entrada — kardex fica rastreável). Detecta estoque por status
+      ``estoque_aplicado``, carimbo ``estoque_aplicado_em`` / ``estoque_agro_registrado_em``,
+      ou lista ``estoque_agro_ajuste_ids``.
 
     Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa1/2/3_confirmada_em``)
     ou integrações já lançadas — assim «Reabrir nota» desfaz duplicidade antes de novo envio.
@@ -3439,7 +3592,6 @@ def reverter_integracao_entrada_nota_para_reabertura(
     _id = _object_id_rascunho(oid)
     if _id is None:
         return {"ok": False, "erro": "ID inválido."}
-    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
 
     from produtos.lancamentos_financeiro_pg_write_util import excluir_lancamento_dispatch
 
@@ -3464,8 +3616,6 @@ def reverter_integracao_entrada_nota_para_reabertura(
             except (TypeError, ValueError):
                 continue
         # Estoque aplicado: status, carimbo top-level, flag em extra ou lista de ajustes.
-        # Antes só olhava ``estoque_aplicado`` — nota ``encerrada``/concluída com carimbo residual
-        # não estornava e a UI ficava em «Estoque já registrado» (não entrava de novo).
         had_estoque = (
             st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
             or bool(doc.get("estoque_aplicado_em"))
@@ -3530,17 +3680,19 @@ def reverter_integracao_entrada_nota_para_reabertura(
                 "financeiro_falhas": fin_falhas,
             }
 
-        n_estoque_del = 0
+        n_estoque_est = 0
         if ajuste_ids:
-            try:
-                qs = AjusteRapidoEstoque.objects.filter(
-                    pk__in=ajuste_ids,
-                    origem=OrigemAjusteEstoque.ENTRADA_NF_AGRO,
-                )
-                n_estoque_del, _ = qs.delete()
-            except Exception as exc:
-                logger.exception("reverter_integracao_entrada_nota_para_reabertura estoque")
-                return {"ok": False, "erro": f"Falha ao estornar ajustes de estoque: {exc}"[:500]}
+            er = estornar_ajustes_entrada_nf_por_reabertura(
+                ajuste_ids,
+                usuario_label=usuario,
+                usuario_django=usuario_django,
+            )
+            if not er.get("ok"):
+                return {
+                    "ok": False,
+                    "erro": f"Falha ao estornar ajustes de estoque: {er.get('erro') or 'erro'}"[:500],
+                }
+            n_estoque_est = int(er.get("estornados") or 0)
 
         linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
         novo_status = entrada_nfe_status_derivado_linhas(linhas)
@@ -3566,7 +3718,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         agora = datetime.now(timezone.utc)
         unset_doc: dict[str, str] = {}
-        if had_estoque or n_estoque_del:
+        if had_estoque or n_estoque_est:
             unset_doc["estoque_aplicado_em"] = ""
             unset_doc["usuario_estoque_aplicado"] = ""
 
@@ -3586,7 +3738,9 @@ def reverter_integracao_entrada_nota_para_reabertura(
             "ok": True,
             "id": str(_id),
             "status": novo_status,
-            "estoque_ajustes_removidos": int(n_estoque_del),
+            # Compat UI antiga: «removidos» = quantidade de estornos criados (não apaga mais).
+            "estoque_ajustes_removidos": int(n_estoque_est),
+            "estoque_ajustes_estornados": int(n_estoque_est),
             "financeiro_titulos_removidos": len(fin_ids),
         }
     except Exception as exc:

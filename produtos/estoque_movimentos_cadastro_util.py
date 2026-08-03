@@ -14,6 +14,7 @@ _ORIGEM_LABEL = {
     OrigemAjusteEstoque.BAIXA_VENDA_PDV: "Venda",
     OrigemAjusteEstoque.DEVOLUCAO_VENDA_PDV: "Devolução",
     OrigemAjusteEstoque.ENTRADA_NF_AGRO: "Entrada NF",
+    OrigemAjusteEstoque.ESTORNO_ENTRADA_NF_AGRO: "Estorno NF (reabrir)",
     OrigemAjusteEstoque.TRANSFERENCIA_UI: "Transferência",
     OrigemAjusteEstoque.AJUSTE_PIN: "Ajuste PIN",
     OrigemAjusteEstoque.OUTRO: "Ajuste gestão",
@@ -147,12 +148,15 @@ def _operador_sem_pin(row: AjusteRapidoEstoque) -> str:
             if op:
                 return op
 
-    if origem == OrigemAjusteEstoque.ENTRADA_NF_AGRO:
-        # "nome · Entrada NF-e Agro (NF 123) · Operador"
+    if origem in (
+        OrigemAjusteEstoque.ENTRADA_NF_AGRO,
+        OrigemAjusteEstoque.ESTORNO_ENTRADA_NF_AGRO,
+    ):
+        # "nome · Entrada NF-e Agro (NF 123) · Operador" / Estorno reabrir NF
         parts = [p.strip() for p in texto.split("·") if p.strip()]
         if parts:
             cand = parts[-1]
-            if not cand.upper().startswith("ENTRADA") and not re.match(r"^NF\b", cand, re.I):
+            if not cand.upper().startswith("ENTRADA") and not cand.upper().startswith("ESTORNO") and not re.match(r"^NF\b", cand, re.I):
                 op = _normalizar_operador_label(cand)
                 if op:
                     return op
@@ -219,6 +223,18 @@ def _documento_e_venda(row: AjusteRapidoEstoque) -> tuple[str, int | None, str]:
         ref_clean = re.sub(r"^NF\s*", "", ref, flags=re.I).strip()
         digits = _numero_nf_digits(ref_clean)
         return (f"NF {ref_clean}" if ref_clean else "Entrada NF"), None, digits
+    if origem == OrigemAjusteEstoque.ESTORNO_ENTRADA_NF_AGRO:
+        ref = ""
+        mref = re.search(r"Estorno reabrir NF\s*\(([^)]*)\)", texto, re.I)
+        if mref:
+            ref = (mref.group(1) or "").strip()
+        ref_clean = re.sub(r"^NF\s*", "", ref, flags=re.I).strip()
+        digits = _numero_nf_digits(ref_clean)
+        return (
+            (f"Estorno NF {ref_clean}" if ref_clean else "Estorno entrada NF"),
+            None,
+            digits,
+        )
     if origem == OrigemAjusteEstoque.TRANSFERENCIA_UI:
         return "Transferência", None, ""
     if origem == OrigemAjusteEstoque.AJUSTE_PIN:

@@ -5764,7 +5764,8 @@
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeWizardAgendarAtualizarCores();
       const det = [];
-      if (Number(j.estoque_ajustes_removidos) > 0) det.push(`${j.estoque_ajustes_removidos} ajuste(s) de estoque Agro`);
+      const nEst = Number(j.estoque_ajustes_estornados || j.estoque_ajustes_removidos) || 0;
+      if (nEst > 0) det.push(`${nEst} saída(s) de estorno no estoque (histórico mantém a entrada)`);
       if (Number(j.financeiro_titulos_removidos) > 0) det.push(`${j.financeiro_titulos_removidos} título(s) a pagar`);
       showMsg(
         'Nota reaberta para edição.'
