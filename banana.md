@@ -1181,16 +1181,70 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
+
+**Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
+**Rollback base:** `rollback/pre-lote-checklist-v13.38` (@ v13.36)  
+**VERSION alvo loja:** **13.59** · migrate **SIM** `0081` (só no item 1)
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | **LOTE CHECKLIST** (**v13.39**) | ✅ já na loja |
+| **1** | **DSP-MIX-CRIAR** (**v13.59**) | 📦 **pronto para envio** · VERIFY_OK |
+| **2** | **NF-REOPEN-ESTOQUE** (**v13.57**) | 📦 **pronto para envio** |
+| **3** | **BUGS-PROMPT** (**v13.56**) | 📦 **pronto para envio** |
+
+**Autorizar loja:** frase + **99738595** · cherry **só** os commits dos pacotes · **nunca** merge `teste`→`producao`
+
+### 📦 PACOTE PRONTO LOJA — Dispenser Mix + criar sabor (`DSP-MIX-CRIAR` · **v13.59**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** · VERIFY_OK (static+AST+PG upsert/list/delete) |
+| **Commit teste** | **`96c7ed7`** |
+| **VERSION loja alvo** | **13.59** |
+| **Inclui** | Mix Sabores no catálogo · criar sabor (nome/desc/PNG) · Postgres `sabor` + `flavor_ico` |
+| **Arquivos** | `flavor_lib.js` · `dispenser_cloud.js` · studio · ícones · `models` · `0081` · util |
+| **Migrate** | **SIM** `0081_dispenser_documento_tipo_sabor` |
+| **NÃO inclui** | PDV · caixa · CP · merge `teste` |
+| **Risco loja aberta** | **Baixo** — só `/interno/dispenser-a6*` |
+| **Autorizar** | *pode subir dispenser mix / produção* + **99738595** |
+| **Você antes** | Ctrl+F5 Dispenser → Sabores → Mix Sabores · criar 1 sabor teste |
+
+### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.57**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** |
+| **Commit teste** | **`7db7675`** |
+| **VERSION loja alvo** | **13.57** (ou lote **13.59**) |
+| **Inclui** | Ao reabrir nota, estorna estoque se houver carimbo/IDs · autosave não ressuscita carimbo |
+| **Arquivo** | `produtos/nfe_entrada_util.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | **Médio** — Entrada NF · testar reabrir + registrar estoque de novo |
+| **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Bugs Copiar prompt Cursor (`BUGS-PROMPT` · **v13.56**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio** |
+| **Commit teste** | **`5a84b83`** |
+| **VERSION loja alvo** | **13.56** (ou lote **13.59**) |
+| **Inclui** | Botão Copiar prompt Cursor na ficha do bug |
+| **Arquivos** | `bug_report_detalhe.html` · `bug_report_views.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — só tela Bugs |
+| **Autorizar** | *pode subir bugs prompt / produção* + **99738595** |
+
 ### ✨ Dispenser — Mix Sabores + criar sabor (`DSP-MIX-CRIAR` · 03/08 · **teste v13.59**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Sabor **Mix Sabores** no catálogo (ícone SVG+PNG) · aba Sabores: **criar sabor** (nome + descrição + PNG) |
-| **Persistência** | Postgres — doc tipo `sabor` + mídia `flavor_ico` (multi-PC) · migrate **0081** (só choices) |
+| **O quê** | Sabor **Mix Sabores** · criar sabor (nome + descrição + PNG) no Postgres |
+| **Verify** | ✅ **PASS** 03/08 — static · AST · PG upsert/list/delete sabor+ico |
 | **Commit** | `96c7ed7` · **teste v13.59** · push `origin/teste` |
-| **Arquivos** | `flavor_lib.js` · `dispenser_cloud.js` · `dispenser_a6_studio.html` · `dispenser.css` · ícones · `models` · `0081` · `dispenser_a6_util` |
-| **URL** | `/interno/dispenser-a6/` → Sabores |
-| **Você** | Ctrl+F5 · ver Mix Sabores na grade · criar 1 sabor teste · abrir noutro PC/login e conferir |
+| **Pacote** | ver **PACOTE PRONTO DSP-MIX-CRIAR** acima |
 
 ### 🐛 Entrada NF — reabrir e estoque não entra de novo (03/08 · **teste v13.57**)
 
@@ -1201,15 +1255,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | `reverter_integracao…` detecta carimbo/IDs · limpa top-level · autosave não ressuscita carimbo · lista reabrir = mesmo estorno |
 | **Commit** | `7db7675` · **teste v13.57** · push `origin/teste` |
 | **Arquivo** | `produtos/nfe_entrada_util.py` |
-| **Você** | Ctrl+F5 · reabrir uma nota de teste · conferir mensagem «ajuste(s) de estoque» · registrar estoque de novo · PIN |
+| **Pacote** | ver **PACOTE PRONTO NF-REOPEN-ESTOQUE** acima |
 
 ### ✨ Bugs — Copiar prompt Cursor (03/08 · **teste**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Na ficha do bug: botão **Copiar prompt Cursor** + mini guia (colar no chat + anexar print) |
-| **Arquivos** | `bug_report_detalhe.html` · `bug_report_views.py` |
-| **Você** | Abrir um bug → Copiar → colar no Cursor |
+| **O quê** | Na ficha do bug: botão **Copiar prompt Cursor** + mini guia |
+| **Commit** | `5a84b83` |
+| **Pacote** | ver **PACOTE PRONTO BUGS-PROMPT** acima |
 
 ### ✅ Deploy loja **v13.39** — LOTE CHECKLIST (03/08 · Renan frase+senha)
 
@@ -1222,16 +1276,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Inclui** | F10 Bugs + frete · 🐞 ENVIAR/SUBTOTAL · ETQ lote A4 · inventário |
 | **Migrate** | **SIM** `0080_etiqueta_lote_agro` (no build Render) |
 | **NÃO** | merge `teste` |
-| **Você agora** | Esperar Live · Ctrl+F5 PDVs · badge **13.39** · F10 Bugs · frete · ENVIAR ok · inventário · lote A4 |
 
-### 📦 CHECKLIST ÚNICO — após envio (03/08)
-
-**Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
-**Rollback:** `rollback/pre-lote-checklist-v13.38` (@ v13.36)
+### 📦 CHECKLIST ÚNICO — após envio v13.39 (histórico curto)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ enviado antes |
 | **1–4** | **LOTE CHECKLIST** (**v13.39**) | ✅ **enviado** · `94112a8` · migrate `0080` |
 
 ### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · ✅ loja v13.39)
