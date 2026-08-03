@@ -1192,7 +1192,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Diff** | 15 arquivos · **sem** merge `teste` · base loja + cirúrgico |
 | **Risco PDV/caixa** | **Baixo** — não mexe finalizar venda/caixa/NF · frete só digitação · inventário só `/relatorios/` · ETQ só etiquetas |
 | **Loja aberta** | **Pausar** (migrate + Ctrl+F5 PDVs) |
-| **Prova** | BUGS ALL PASS · util inventário `sal_rel<=0` · py/ast OK · frete+F10 no lote |
+| **Prova** | BUGS ALL PASS · **RELAT VERIFY_OK** (saldos/custos/5 URLs/Excel · 0 negativos) · frete+F10 no lote |
 | **Você autoriza** | 1) pausam vendas 2) *pode subir LOTE CHECKLIST / produção* + **99738595** |
 | **Depois** | Ctrl+F5 · badge **13.38** · F10 Bugs · frete 20 · `/relatorios/inventario/` · lote A4 |
 | **Zap** | *Atualização ~3–5 min (migrate) — pause venda, depois Ctrl+F5* |
