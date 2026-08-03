@@ -1220,7 +1220,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | *pode subir BUGS-F10-FRETE / produção* + **99738595** · Ctrl+F5 · F10 Bugs · digitar frete 20 |
 | **Zap** | *Atualização rápida PDV/menu (~1–2 min)* |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08) · ETQ (legado bloco)
+### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
 | Item | Detalhe |
 | ---- | ------- |
