@@ -96,6 +96,10 @@ def produto_agro_para_row(
         "fonte": "agro_pg",
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+    from produtos.mongo_index_codigos import (
+        _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
 
     # Batch (_rows_de_produtos) já monta ov_map: NÃO reconsultar overlay por produto
     # (N+1 derruba /api/todos-produtos/delta/ e trava o PDV).
@@ -103,10 +107,15 @@ def produto_agro_para_row(
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
     # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
+    extras_ix: list[str] = []
+    if ov is not None and isinstance(getattr(ov, "cadastro_extras", None), dict):
+        extras_ix.extend(codigos_barras_opcionais_de_cadastro_extras(ov.cadastro_extras))
+        extras_ix.extend(_eans_embalagem_nf_de_cadastro_extras(ov.cadastro_extras))
     row["index_codigos"] = index_codigos_de_campos(
         codigo=row.get("codigo"),
         codigo_nfe=row.get("codigo_nfe"),
         codigo_barras=row.get("codigo_barras"),
+        extras=extras_ix,
     )
     row["busca_texto"] = " ".join(
         x
@@ -117,6 +126,7 @@ def produto_agro_para_row(
             row.get("codigo"),
             row.get("codigo_nfe"),
             row.get("codigo_barras"),
+            *extras_ix,
             row.get("categoria"),
             row.get("subcategoria"),
             row.get("fornecedor"),
@@ -1459,12 +1469,23 @@ def listar_slim_rows_pdv() -> list[dict]:
         marca = (r.get("marca") or "").strip()
         modelo = (r.get("modelo") or "").strip()
         ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
+        from produtos.mongo_index_codigos import (
+            _eans_embalagem_nf_de_cadastro_extras,
+            codigos_barras_opcionais_de_cadastro_extras,
+        )
+
+        extras_ix = list(codigos_barras_opcionais_de_cadastro_extras(ce)) + list(
+            _eans_embalagem_nf_de_cadastro_extras(ce)
+        )
         ix = index_codigos_de_campos(
             codigo=codigo,
             codigo_nfe=codigo_nfe,
             codigo_barras=codigo_barras,
+            extras=extras_ix,
         )
-        busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
+        busca = " ".join(
+            x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras, *extras_ix) if x
+        ).strip()
         # PreÃ§os A/B / por forma â€” sem isso o PDV adiciona do cache slim e a forma nÃ£o muda o valor.
         from produtos.precos_forma_pagamento_util import (
             extrair_precos_grupos_cadastro_extras,

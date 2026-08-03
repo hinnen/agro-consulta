@@ -2537,6 +2537,23 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             dig_ean_embalagem_payload = dig_nf
         elif not raw_nf:
             ex.pop("entrada_nfe_ean_embalagem", None)
+    if "codigos_barras_opcionais" in payload:
+        from produtos.mongo_index_codigos import normalizar_codigos_barras_opcionais
+
+        principal_cb = (
+            ov.codigo_barras.strip()
+            if getattr(ov, "codigo_barras", None)
+            else ""
+        ) or _txt("codigo_barras", 80)
+        lista_op = normalizar_codigos_barras_opcionais(
+            payload.get("codigos_barras_opcionais"),
+            excluir=principal_cb,
+        )
+        if lista_op:
+            ex["codigos_barras_opcionais"] = lista_op
+        else:
+            ex.pop("codigos_barras_opcionais", None)
+            ex.pop("codigos_barras_alternativos", None)
     desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
     c_prod_nf_payload: str | None = None
     if "c_prod_nf" in payload:

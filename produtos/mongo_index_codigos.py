@@ -23,6 +23,12 @@ _CAD_EXTRAS_EAN_EMBALAGEM_KEYS = ("entrada_nfe_ean_embalagem", "ean_embalagem_nf
 _MIN_EAN_EMBALAGEM_NF = 8
 _MAX_EAN_EMBALAGEM_NF = 20
 
+# EANs / barras extras do mesmo SKU (marca trocou o código; bip antigo ainda acha o produto).
+_CAD_EXTRAS_CB_OPCIONAIS_KEYS = ("codigos_barras_opcionais", "codigos_barras_alternativos")
+_MIN_CB_OPCIONAL = 8
+_MAX_CB_OPCIONAL = 20
+_MAX_CB_OPCIONAIS_LIST = 20
+
 # cProd do fornecedor na NF-e (ex.: R0151) — distinto do código GM no catálogo.
 _CAD_EXTRAS_C_PROD_NF_KEYS = ("entrada_nfe_c_prods", "entrada_nfe_c_prod")
 _MIN_C_PROD_NF_ALNUM = 2
@@ -350,6 +356,51 @@ def _eans_embalagem_nf_de_cadastro_extras(cadastro_extras: dict | None) -> list[
     return out
 
 
+def normalizar_codigos_barras_opcionais(
+    raw: Any,
+    *,
+    excluir: str | None = None,
+) -> list[str]:
+    """Lista limpa só-dígitos (8–20), sem duplicata, sem o EAN principal."""
+    partes: list[str]
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        partes = [str(x) for x in raw]
+    elif isinstance(raw, str):
+        partes = re.split(r"[\s,;|/]+", raw)
+    else:
+        partes = [str(raw)]
+    excl = "".join(ch for ch in str(excluir or "") if ch.isdigit())
+    out: list[str] = []
+    seen: set[str] = set()
+    for s in partes:
+        d = "".join(ch for ch in str(s) if ch.isdigit())
+        if not (_MIN_CB_OPCIONAL <= len(d) <= _MAX_CB_OPCIONAL):
+            continue
+        if excl and d == excl:
+            continue
+        if d in seen:
+            continue
+        seen.add(d)
+        out.append(d)
+        if len(out) >= _MAX_CB_OPCIONAIS_LIST:
+            break
+    return out
+
+
+def codigos_barras_opcionais_de_cadastro_extras(cadastro_extras: dict | None) -> list[str]:
+    """Barras alternativas do mesmo produto (overlay ``cadastro_extras``)."""
+    if not isinstance(cadastro_extras, dict):
+        return []
+    raw: Any = None
+    for k in _CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+        if k in cadastro_extras:
+            raw = cadastro_extras.get(k)
+            break
+    return normalizar_codigos_barras_opcionais(raw)
+
+
 def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     """
     Códigos cadastrados no Agro que entram no mesmo ``index_codigos`` do ERP:
@@ -372,6 +423,7 @@ def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
             if s:
                 out.append(s)
         out.extend(_eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
+        out.extend(codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
         out.extend(_c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)))
     for row in ProdutoMarcaVariacaoAgro.objects.filter(produto_externo_id=pid[:64]).only(
         "codigo_barras",
@@ -406,6 +458,8 @@ def mapa_extras_agro_por_produto_externo_id() -> dict[str, list[str]]:
             if s:
                 out[pid].append(s)
         for d in _eans_embalagem_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+            out[pid].append(d)
+        for d in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(d)
         for c in _c_prods_nf_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
             out[pid].append(c)
