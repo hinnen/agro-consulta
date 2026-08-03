@@ -1183,6 +1183,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 FIX — Dispenser PNG fundo aleatório (`DSP-PNG-BG` · 03/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar local Ctrl+F5 `/interno/dispenser-a6/` |
+| **Sintoma** | PNG «sem fundo» na prévia/biblioteca com cinza/preto/branco aleatório |
+| **Causa** | JS amostrava cantos da imagem e pintava a moldura; no upload JPEG colava RGB do pixel transparente (preto) |
+| **Fix** | Moldura sempre branca · upload ingrediente em PNG + limpa fundo branco/preto/cinza da borda |
+| **Arquivo** | `dispenser_a6_studio.html` |
+| **Você** | Ctrl+F5 Dispenser → Ingredientes → escolher foto transparente · fundo da moldura deve ser **branco** |
+| **Obs** | Foto já salva na biblioteca com fundo «queimado» → apagar e subir de novo |
+
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
