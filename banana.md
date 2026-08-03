@@ -1180,19 +1180,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 Etiquetas — lote A4 gôndola 18/folha (`ETQ-LOTE-A4` · **teste** · 03/08)
+### 📦 PACOTE PRONTO LOJA — Etiquetas lote A4 gôndola (`ETQ-LOTE-A4` · **v13.41**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no **teste** · **v13.40** · migrate **0080** · validar local |
-| **Para quê** | Abertura Vila: ~343 etiquetas sem travar · pacotes de **18** (1 folha A4) · progresso no **Postgres** |
-| **Tela** | `/produtos/etiquetas/lote/` · atalho **Lote A4** na tela de etiquetas |
-| **Uso** | Montar lista (Vila + positivo) → Imprimir próxima folha → confirmar «saiu ok?» → desfazer se falhou |
-| **Migrate** | **SIM** `0080_etiqueta_lote_agro` (`EtiquetaLoteAgro`) |
-| **Arquivos** | `models` · `0080` · `views`/`urls` · `produtos_etiquetas_lote.html` · `.js` · link em `produtos_etiquetas.html` |
-| **Não mexe** | Limite **80** da tela normal de etiquetas |
-| **Você** | `migrate` local · Ctrl+F5 · montar lote Vila · 1–2 folhas · fechar/reabrir (cursor mantido) |
-| **Loja** | **não** sobe sem frase + senha |
+| **Status** | 🟡 **pronto para envio** · aguarda frase + senha |
+| **VERSION teste** | **13.41** (loja hoje **13.36**) |
+| **O quê** | Tela `/produtos/etiquetas/lote/` · monta lista completa · imprime **18/folha** (A4 gôndola) · progresso no **Postgres** · desfazer última · atalho **Lote A4** |
+| **Migrate** | **SIM** `0080_etiqueta_lote_agro` |
+| **Arquivos** | `models` · `0080` · `views`/`urls` · `produtos_etiquetas_lote.*` · link em `produtos_etiquetas.html` |
+| **Risco loja aberta** | **Baixo** — só etiquetas lote · **não** mexe PDV/caixa/limite 80 |
+| **Prova** | VERIFY_OK (343→20 folhas · confirmar/desfazer/cancelar · preço BR · URLs) · coletar real OK |
+| **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
+| **Você antes** | Ctrl+F5 local · montar Vila+positivo · 1–2 folhas |
+
+
+### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
+
+**Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
+**Migrate no próximo envio:** **SIM** `0080`
+
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
+| **1** | **ETQ-LOTE-A4** (**v13.41**) | 🟡 **pronto para envio** · aguarda senha |
 
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
