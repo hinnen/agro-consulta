@@ -1182,41 +1182,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
+### 📦 CHECKLIST ÚNICO — após envio (03/08 · lote v13.64)
 
-**Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
-**VERSION alvo loja:** **13.64** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
+**Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
+**Rollback:** tag `rollback/pre-lote-checklist-03ago-v13.39` (@ `94112a8` / v13.39)  
+**Migrate:** `0081` (dispenser) · `estoque.0015` (estorno NF) — Render roda no boot
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
-| **1** | **DSP-MIX** + **DSP-FOLHA-CLOUD** (**v13.63**) | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** · PREP cherry OK |
-| **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **4** | **KARDEX-SALDO-COLS** (**v13.64**) | 📦 **pronto para envio à produção** · VERIFY_OK · **só tela** |
+| — | **LOTE CHECKLIST** (**v13.39**) | ✅ absorvido |
+| **1** | **DSP-MIX** + **DSP-FOLHA-CLOUD** | ✅ **enviado** / Live (no lote) |
+| **2** | **NF-REOPEN-ESTOQUE** | ✅ **enviado** / Live (no lote) |
+| **3** | **BUGS-PROMPT** | ✅ **enviado** / Live (no lote) |
+| **4** | **KARDEX-SALDO-COLS** | ✅ **enviado** / Live (no lote) |
 
-**Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
-
-### 🚀 PREP deploy loja — lote 03/08 (aguarda pausa + senha)
+### ✅ Deploy loja **v13.64** — lote checklist 03/08 (frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **PREP OK** · **não subir ainda** — lojas abertas |
-| **Cherry (ordem)** | `96c7ed7` → `0057e69` → `7db7675` → `be3715e` → `5a84b83` → `19004d8` → `0e65ecb` → `e4c1828` |
-| **Conflito soft** | `VERSION` + `banana.md` em quase todos — resolver: **theirs** VERSION · **ours** banana (ou ignorar banana na loja) |
-| **Conflito único código** | `be3715e` em `produtos/views.py` (reabrir) |
-| **Resolve reabrir** | Manter loja `_entrada_nfe_conexao()` + `_entrada_nfe_rascunho_db_ok` · **só** acrescentar `usuario_django=request.user…` · **não** voltar `obter_conexao_mongo()` |
-| **Migrate na loja** | `0081_dispenser…` · `estoque.0015` (estorno NF) |
-| **Prova PREP** | worktree dry-run cherry OK · migrations import OK · kardex AST/count estável · URLs PDV/checkout/entrada OK · **diff sem** pdv/caixa/checkout |
-| **Risco loja aberta** | **DSP / Bugs / Kardex** = baixo (zero PDV / só tela). **NF-REOPEN** = médio **só se alguém reabrir nota** (estorno de propósito) — PDV venda não é o path |
-| **Próximo chat** | Lojas pausam vendas → *pode subir lote checklist 03/08 / produção* + **99738595** |
+| **Status** | ✅ **push `producao`** @ **`6996fca`** · badge **13.64** · aguarda Render Live + Ctrl+F5 |
+| **Autorização** | *pode enviar para produção* + **99738595** (03/08) |
+| **Cherry** | `96c7ed7` → `0057e69` → `7db7675` → `be3715e`* → `5a84b83` → `19004d8` → `0e65ecb` → `e4c1828` |
+| **\*** | `views.py` reabrir: manteve `_entrada_nfe_conexao` + `usuario_django` |
+| **Diff** | 21 arquivos · **zero** PDV/caixa/checkout |
+| **Rollback** | `rollback/pre-lote-checklist-03ago-v13.39` |
+
+### 🚀 PREP deploy loja — lote 03/08 (**feito**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** — ver bloco Deploy v13.64 acima |
 
 ### 📦 PACOTE PRONTO LOJA — Kardex Centro/Vila/Total (`KARDEX-SALDO-COLS` · **v13.64**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commits** | `0e65ecb` · **`e4c1828`** |
+| **Status** | ✅ **enviado** / Live (lote **v13.64** @ `6996fca`) |
 | **Inclui** | Colunas **Centro · Vila · Total** · filtros chip · saldo 0 legível |
 | **Prova** | AST zero write · API GET · count ajustes inalterado · math mock |
 | **Saldo atual** | **NÃO altera** — só leitura/exibição |
@@ -1228,8 +1229,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commits** | Mix `96c7ed7` · folhas nuvem **`0057e69`** (**teste v13.63**) |
+| **Status** | ✅ **enviado** / Live (lote **v13.64** @ `6996fca`) |
 | **Inclui** | Mix Sabores · criar sabor · folhas **só Postgres/RAM** (sem «memória cheia») |
 | **Prova** | PG upsert/list/delete folha · cloud sem `writeLocal(folhas)` · saveFolhas sem Quota · Mix PNG OK |
 | **Migrate** | **SIM** `0081` |
@@ -1240,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · PREP cherry OK (conflito views resolvido na receita) |
+| **Status** | ✅ **enviado** / Live (lote **v13.64** @ `6996fca`) |
 | **Commits** | `7db7675` · `be3715e` |
 | **Inclui** | Reabrir estorna carimbo · kardex saída estorno (ao **reabrir** nota — mexe saldo de propósito) |
 | **Migrate** | **SIM** `estoque.0015` |
@@ -1251,8 +1251,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commits** | `5a84b83` · `19004d8` |
+| **Status** | ✅ **enviado** / Live (lote **v13.64** @ `6996fca`) |
 | **Inclui** | Copiar prompt Cursor · JSON seguro · print via `reverse` |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só tela Bugs |
