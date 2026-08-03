@@ -1180,6 +1180,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✨ Bugs — Copiar prompt Cursor (03/08 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Na ficha do bug: botão **Copiar prompt Cursor** + mini guia (colar no chat + anexar print) |
+| **Arquivos** | `bug_report_detalhe.html` · `bug_report_views.py` |
+| **Você** | Abrir um bug → Copiar → colar no Cursor |
+
 ### ✅ Deploy loja **v13.39** — LOTE CHECKLIST (03/08 · Renan frase+senha)
 
 | Item | Detalhe |
