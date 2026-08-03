@@ -1180,60 +1180,51 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ Relatórios inventário estoque (`RELAT-INVENTARIO` · **teste v13.44** · 03/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no **teste** · prova local OK (smoke util) |
-| **VERSION** | **13.44** |
-| **O quê** | Central `/relatorios/`: inventário valorizado (custo+venda) · resumo cat/marca/UN · mín/máx · sem custo · zerados/negativos |
-| **URLs** | `/relatorios/inventario/` · `estoque-resumo/` · `estoque-min-max/` · `estoque-sem-custo/` · `estoque-zerados/` |
-| **Arquivos** | `relatorios_estoque_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | reverse URLs OK · coletar inventário local (28 c/ saldo · totais custo/venda) |
-| **Você** | Ctrl+F5 · Central Relatórios → Estoque → abrir inventário · conferir totais · Excel ↓ |
-| **Loja** | **não** sobe sem frase + senha |
-
-
-### 📦 PACOTE PRONTO LOJA — Etiquetas lote A4 gôndola (`ETQ-LOTE-A4` · **v13.41**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio** · aguarda frase + senha |
-| **VERSION teste** | **13.41** (loja hoje **13.36**) |
-| **O quê** | Tela `/produtos/etiquetas/lote/` · monta lista completa · imprime **18/folha** (A4 gôndola) · progresso no **Postgres** · desfazer última · atalho **Lote A4** |
-| **Migrate** | **SIM** `0080_etiqueta_lote_agro` |
-| **Arquivos** | `models` · `0080` · `views`/`urls` · `produtos_etiquetas_lote.*` · link em `produtos_etiquetas.html` |
-| **Risco loja aberta** | **Baixo** — só etiquetas lote · **não** mexe PDV/caixa/limite 80 |
-| **Prova** | VERIFY_OK (343→20 folhas · confirmar/desfazer/cancelar · preço BR · URLs) · coletar real OK |
-| **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
-| **Você antes** | Ctrl+F5 local · montar Vila+positivo · 1–2 folhas |
-
-
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Migrate no próximo envio:** **SIM** `0080` (só se incluir ETQ-LOTE-A4)
+**Teste hoje:** badge **v13.44** · branch `teste`  
+**Migrate:** **SIM** `0080` só se subir **ETQ-LOTE-A4**
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
-| **1** | **ETQ-LOTE-A4** (**v13.41**) | 🟡 **pronto para envio** · aguarda senha |
-| **2** | **BUGS-F10 + PDV-FRETE-DIGITA** | 🟡 **pronto para envio** · aguarda senha · **sem migrate** |
+| **1** | **BUGS-F10-FRETE** (**v13.42+**) | 📦 **pronto para envio à produção** · sem migrate · `328fa28` |
+| **2** | **ETQ-LOTE-A4** (**v13.41**) | 📦 **pronto para envio à produção** · migrate `0080` |
+| **3** | **RELAT-INVENTARIO** (**v13.44**) | 📦 **pronto para envio à produção** · sem migrate · `7d6fc66` |
 
 ### 📦 PACOTE PRONTO LOJA — Bugs F10 + frete digitável (`BUGS-F10-FRETE` · **v13.42**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** (frase + senha) |
-| **Inclui** | (1) F10 → Gestão → **Bugs / feedback** (lista) · (2) valor do frete digitável sem travar |
-| **Causa frete** | A cada tecla o campo era reescrito com `20,00` (notify → render) |
-| **Arquivos** | `dashboard_gerencial.html` (já no teste) · `pdv_wizard.js` |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **Prova 03/08** | path JS **ALL PASS** · lista `/gestao/bugs/` HTTP 200 · loja **sem** botão F10 / **sem** fix frete |
+| **Inclui** | F10 → Gestão → **Bugs / feedback** · valor frete digita sem travar |
+| **Commit** | `328fa28` (+ botão F10 já no `teste`) |
+| **Arquivos** | `dashboard_gerencial.html` · `pdv_wizard.js` |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo — atalho F10 + digitação frete na entrega |
-| **NÃO** | merge inteiro `teste` · ETQ-LOTE-A4 (pacote separado) |
-| **Você** | *pode subir BUGS-F10-FRETE / produção* + **99738595** · Ctrl+F5 · F10 Bugs · digitar frete 20 |
-| **Zap** | *Atualização rápida PDV/menu (~1–2 min)* |
+| **Risco** | Baixo — menu + digitação frete |
+| **NÃO** | merge inteiro `teste` · ETQ · inventário |
+| **Autorizar** | *pode subir BUGS-F10-FRETE / produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Etiquetas lote A4 gôndola (`ETQ-LOTE-A4` · **v13.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **O quê** | `/produtos/etiquetas/lote/` · 18/folha A4 · progresso PG · desfazer |
+| **Migrate** | **SIM** `0080` |
+| **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.44**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** (frase + senha) |
+| **Commit** | `7d6fc66` |
+| **O quê** | Central Relatórios → Estoque: inventário valorizado · resumos · mín/máx · sem custo · zerados |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir RELAT-INVENTARIO / produção* + **99738595** |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
