@@ -275,18 +275,16 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         return []
     out: list[str] = []
     seen: set[str] = set()
-    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
-        "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
-    )[: max(limit * 3, 120)]:
+
+    def _considerar(ov) -> bool:
         pid = str(ov.produto_externo_id or "").strip()
         if not pid or pid in seen:
-            continue
+            return False
         ce = getattr(ov, "cadastro_extras", None)
         extras = tuple(
             list(codigos_barras_opcionais_de_cadastro_extras(ce))
             + list(_eans_embalagem_nf_de_cadastro_extras(ce))
         )
-        # Família GM0024: o Q já restringiu prefixo; não derrubar com match “exato” estrito.
         base = gm_base_familia(termo)
         if base:
             cn = str(ov.codigo_nfe or "").strip().upper()
@@ -295,15 +293,34 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
                 termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
             )
             if not ok_fam:
-                continue
+                return False
         elif not termo_bate_codigos_produto(
             termo, codigo_nfe=ov.codigo_nfe, codigo_barras=ov.codigo_barras, extras=extras
         ):
-            continue
+            return False
         seen.add(pid)
         out.append(pid)
+        return True
+
+    for ov in ProdutoGestaoOverlayAgro.objects.filter(q_obj).only(
+        "produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras"
+    )[: max(limit * 3, 120)]:
+        _considerar(ov)
         if len(out) >= limit:
             break
+
+    # Fallback: JSON contains pode falhar no SQLite / engines sem GIN — varre quem tem a chave.
+    if digits.isdigit() and len(digits) >= 8 and len(out) < limit:
+        for ov in (
+            ProdutoGestaoOverlayAgro.objects.filter(cadastro_extras__has_key="codigos_barras_opcionais")
+            .only("produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras")[:800]
+        ):
+            if digits not in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):
+                continue
+            _considerar(ov)
+            if len(out) >= limit:
+                break
+
     return out
 
 
