@@ -832,7 +832,17 @@ def _aplicar_produto_gestao_overlay_em_dict(
     ce_pc = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
     if isinstance(ce_pc, dict) and ce_pc.get("preco_custo_overlay") is not None:
         try:
-            row["preco_custo"] = round(float(ce_pc["preco_custo_overlay"]), 2)
+            pc_ov = round(float(ce_pc["preco_custo_overlay"]), 2)
+            row["preco_custo"] = pc_ov
+            # Cadastro SisVale: se Mongo mandou final/acréscimo 0, espelha o custo do overlay
+            # (Entrada NF / busca preferem preco_custo_final e ignorariam o base).
+            for _k in ("preco_custo_final", "preco_custo_acrescimo", "preco_custo_com_acrescimos"):
+                try:
+                    _cur = float(row.get(_k) or 0)
+                except (TypeError, ValueError):
+                    _cur = 0.0
+                if _cur <= 0:
+                    row[_k] = pc_ov
         except (TypeError, ValueError):
             pass
     if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
@@ -21050,6 +21060,14 @@ def api_buscar_produtos(request):
                     row["preco_custo"] = round(custo_pg, 2)
                     row["preco_custo_acrescimo"] = round(custo_pg, 2)
                     row["preco_custo_final"] = round(custo_pg, 2)
+                else:
+                    # Overlay/base já setaram custo, mas final Mongo ficou 0 — alinhamos.
+                    pc_now = _float_api_json(row.get("preco_custo") or 0)
+                    if pc_now > 0:
+                        fin_now = _float_api_json(row.get("preco_custo_final") or 0)
+                        if fin_now <= 0:
+                            row["preco_custo_final"] = round(pc_now, 2)
+                            row["preco_custo_acrescimo"] = round(pc_now, 2)
             if contexto_cadastro:
                 if "inativo" not in row:
                     row["inativo"] = bool(p.get("CadastroInativo"))
@@ -29388,6 +29406,29 @@ def api_buscar_produto_id(request, id):
         res["preco_custo_acrescimo"] = res["preco_custo_final"]
         ov_id = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=str(id)[:64]).first()
         _aplicar_produto_gestao_overlay_em_dict(res, ov_id)
+        # Fallback Cadastro PG (Produto.custo) quando Mongo/overlay ainda zerados.
+        try:
+            pc_res = _float_api_json(res.get("preco_custo") or 0)
+        except (TypeError, ValueError):
+            pc_res = 0.0
+        if pc_res <= 0:
+            try:
+                from produtos.catalogo_agro import obter_produto_model
+
+                p_pg = obter_produto_model(str(id)[:64])
+                if p_pg is not None and p_pg.custo is not None:
+                    custo_pg = float(p_pg.custo or 0)
+                    if custo_pg > 0:
+                        res["preco_custo"] = round(custo_pg, 2)
+                        res["preco_custo_final"] = round(custo_pg, 2)
+                        res["preco_custo_acrescimo"] = round(custo_pg, 2)
+            except Exception:
+                logger.warning("api_buscar_produto_id: custo PG %s", id, exc_info=True)
+        else:
+            fin_res = _float_api_json(res.get("preco_custo_final") or 0)
+            if fin_res <= 0:
+                res["preco_custo_final"] = round(pc_res, 2)
+                res["preco_custo_acrescimo"] = round(pc_res, 2)
         pv_res = _float_api_json(res.get("preco_venda") or 0)
         m_lm = _margem_percentual_produto_pv(p, float(pv_res))
         if m_lm is not None:
