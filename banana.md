@@ -1240,11 +1240,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | 📦 **pronto para envio à produção** · PREP cherry OK (conflito views resolvido na receita) |
 | **Commits** | `7db7675` · `be3715e` |
 | **Inclui** | Reabrir estorna carimbo · kardex saída estorno (ao **reabrir** nota — mexe saldo de propósito) |
 | **Migrate** | **SIM** `estoque.0015` |
-| **Risco** | Médio — Entrada NF + saldo |
+| **Risco** | Médio — **só ao reabrir** Entrada NF (não é path de venda PDV) |
 | **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Bugs Copiar prompt Cursor (`BUGS-PROMPT` · **v13.62**)
