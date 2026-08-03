@@ -143,7 +143,8 @@
       '#' +
       REACH_ID +
       '[hidden]{display:none!important}' +
-      /* Empurra barras inferiores / docks para não ficarem sob o 🐞 */
+      /* Empurra barras inferiores / docks para não ficarem sob o 🐞.
+         NÃO incluir #pdv-step1-subtotal-dock (coluna direita — longe do FAB). */
       'html.agro-bug-fab-on #pdv-main-footer,' +
       'html.agro-bug-fab-on #compra-mobile-nav,' +
       'html.agro-bug-fab-on #barra-carrinho,' +
@@ -151,6 +152,9 @@
       'html.agro-bug-fab-on footer.shrink-0.border-t,' +
       'html.agro-bug-fab-on [data-agro-bug-safe-bar="1"]' +
       '{padding-left:max(0.75rem,var(--agro-bug-safe-left))!important;box-sizing:border-box}' +
+      'html.agro-bug-fab-on #pdv-step1-subtotal-dock,' +
+      'html.agro-bug-fab-on #pdv-step1-subtotal-dock[data-agro-bug-safe-bar]' +
+      '{padding-left:0!important}' +
       'html.agro-pdv-overlay-open.agro-bug-fab-on #pdv-main-footer,' +
       'html.agro-pdv-overlay-open.agro-bug-fab-on #compra-mobile-nav,' +
       'html.agro-pdv-overlay-open.agro-bug-fab-on #barra-carrinho,' +
@@ -180,13 +184,17 @@
   }
 
   var SAFE_BAR_SEL =
-    '#pdv-main-footer,#compra-mobile-nav,#barra-carrinho,.cf-dinheiro-footer,#pdv-step1-subtotal-dock,footer.shrink-0.border-t,[class*="footer"][class*="fixed"],nav.fixed.bottom-0,div.fixed.bottom-0';
+    '#pdv-main-footer,#compra-mobile-nav,#barra-carrinho,.cf-dinheiro-footer,footer.shrink-0.border-t,[class*="footer"][class*="fixed"],nav.fixed.bottom-0,div.fixed.bottom-0';
 
   function markKnownSafeBars() {
     try {
       var nodes = document.querySelectorAll(SAFE_BAR_SEL);
       for (var i = 0; i < nodes.length; i++) {
-        nodes[i].setAttribute('data-agro-bug-safe-bar', '1');
+        var n = nodes[i];
+        /* Coluna direita do PDV (ENVIAR/SUBTOTAL) — não compete com o 🐞. */
+        if (n.id === 'pdv-step1-subtotal-dock') continue;
+        if (n.closest && n.closest('#pdv-step1-subtotal-dock')) continue;
+        n.setAttribute('data-agro-bug-safe-bar', '1');
       }
     } catch (e) {}
   }
@@ -237,9 +245,12 @@
         var bar =
           interactive.closest &&
           interactive.closest(
-            'footer, nav, #pdv-main-footer, #compra-mobile-nav, #barra-carrinho, .cf-dinheiro-footer, #pdv-step1-subtotal-dock, [data-agro-bug-safe-bar="1"], .agro-pdv-overlay-head, .agro-pdv-overlay-actions'
+            'footer, nav, #pdv-main-footer, #compra-mobile-nav, #barra-carrinho, .cf-dinheiro-footer, [data-agro-bug-safe-bar="1"], .agro-pdv-overlay-head, .agro-pdv-overlay-actions'
           );
         var target = bar || interactive;
+        if (target && target.closest && target.closest('#pdv-step1-subtotal-dock')) {
+          continue;
+        }
         if (overlayOpen && target && target.closest && target.closest('.agro-pdv-overlay-panel')) {
           /* FAB já foi para a direita no overlay — se ainda colidir, sobe um pouco */
           fab.style.bottom = '4.25rem';
