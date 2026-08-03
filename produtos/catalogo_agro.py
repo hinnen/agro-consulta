@@ -1,4 +1,4 @@
-"""Catálogo PostgreSQL (``Produto``) — ``AGRO_FONTE_CATALOGO=agro_pg``."""
+﻿"""CatÃ¡logo PostgreSQL (``Produto``) â€” ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
 import re
@@ -97,13 +97,13 @@ def produto_agro_para_row(
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
 
-    # Batch (_rows_de_produtos) já monta ov_map: NÃO reconsultar overlay por produto
+    # Batch (_rows_de_produtos) jÃ¡ monta ov_map: NÃƒO reconsultar overlay por produto
     # (N+1 derruba /api/todos-produtos/delta/ e trava o PDV).
     if resolver_overlay_faltante and ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
-    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay;
-    # inclui 2º código (EAN/cProd da NF) gravado em cadastro_extras.
+    # index/busca_texto depois do overlay â€” GM da loja costuma estar sÃ³ no overlay;
+    # inclui 2Âº cÃ³digo (EAN/cProd da NF) + barras opcionais em cadastro_extras.
     ce = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else None
     row["index_codigos"] = index_codigos_de_campos(
         codigo=row.get("codigo"),
@@ -235,7 +235,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         if not partes:
             partes = [termo_txt]
         try:
-            # Começa filtrado (não objects.all()) — JSON icontains no overlay inteiro era lento.
+            # ComeÃ§a filtrado (nÃ£o objects.all()) â€” JSON icontains no overlay inteiro era lento.
             ovs = ProdutoGestaoOverlayAgro.objects.filter(
                 cadastro_extras__modelo__icontains=partes[0][:120]
             )
@@ -298,8 +298,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
-        # Fallback: token mais longo (≥4) — costuma ser a marca/linha (estima, milho…).
+        # Frase longa (ex. "raÃ§Ã£o estima carne"): AND de todos os tokens pode zerar.
+        # Fallback: token mais longo (â‰¥4) â€” costuma ser a marca/linha (estima, milhoâ€¦).
         if not found:
             partes_fb = [p.strip() for p in termo.split() if len(p.strip()) >= 4]
             if len(partes_fb) >= 2:
@@ -312,7 +312,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                         qs.filter(q_fb).order_by("nome", "pk")[:lim],
                         lim,
                     )
-        # Com AGRO_BUSCA_LEVE_CPU: se nome/marca/modelo já achou, não varre overlay+OR 9 colunas.
+        # Com AGRO_BUSCA_LEVE_CPU: se nome/marca/modelo jÃ¡ achou, nÃ£o varre overlay+OR 9 colunas.
         # false no .env = comportamento antigo (overlay se <3 + OR se <min(8,lim)).
         if leve:
             if len(found) == 0:
@@ -333,7 +333,7 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
     if found:
         rows = _rows_de_produtos(found[: lim * 2 if lim < 80 else lim])
         if termo_eh_codigo_gm(termo):
-            # Filtrar depois do overlay: código GM costuma estar no overlay, não só em Produto.
+            # Filtrar depois do overlay: cÃ³digo GM costuma estar no overlay, nÃ£o sÃ³ em Produto.
             rows = [
                 r
                 for r in rows
@@ -415,12 +415,12 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     ov = None
     if pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
-    # Coluna Produto.modelo + overlay — nunca sumir ao reabrir o modal
+    # Coluna Produto.modelo + overlay â€” nunca sumir ao reabrir o modal
     if not str(row.get("modelo") or "").strip():
         if ov and isinstance(ov.cadastro_extras, dict):
             row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
     row["modelo"] = str(row.get("modelo") or "").strip()[:200]
-    # Fiscal do overlay (NFC-e) + padrão SP/SN se ainda vazio (modal não fica em branco).
+    # Fiscal do overlay (NFC-e) + padrÃ£o SP/SN se ainda vazio (modal nÃ£o fica em branco).
     try:
         from produtos.views import _merge_fiscal_overlay_sobre_row_cadastro
 
@@ -442,7 +442,7 @@ def produto_model_para_detalhe(p: Produto) -> dict:
 
 
 def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro | None = None) -> dict:
-    """JSON compatível com ``agroCadastroMergeProdutoCacheLocal`` após salvar overlay."""
+    """JSON compatÃ­vel com ``agroCadastroMergeProdutoCacheLocal`` apÃ³s salvar overlay."""
     row = produto_agro_para_row(p, ov=ov)
     row["codigo_gm"] = row.get("codigo_nfe") or row.get("codigo") or ""
     row["preco_custo_final"] = row.get("preco_custo")
@@ -463,8 +463,8 @@ def sincronizar_modelo_produto_de_overlay(
 ) -> Produto:
     """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``).
 
-    Com ``pdv_edicao_rapida``: nunca sobrescreve campo bom com vazio / «—» / ObjectId
-    (bug do lápis PDV). Cadastro modal completo continua podendo limpar campo de propósito.
+    Com ``pdv_edicao_rapida``: nunca sobrescreve campo bom com vazio / Â«â€”Â» / ObjectId
+    (bug do lÃ¡pis PDV). Cadastro modal completo continua podendo limpar campo de propÃ³sito.
     """
     import re
 
@@ -489,10 +489,10 @@ def sincronizar_modelo_produto_de_overlay(
 
     def _vazio_ou_traco(s: str | None) -> bool:
         t = str(s or "").strip()
-        return (not t) or t in ("—", "-", "–", "---", "...")
+        return (not t) or t in ("â€”", "-", "â€“", "---", "...")
 
     def _manter(novo, antigo, *, mx: int | None = None, rejeitar_oid: bool = False):
-        """No lápis PDV: prefere manter o Produto se o novo vier vazio/ruim."""
+        """No lÃ¡pis PDV: prefere manter o Produto se o novo vier vazio/ruim."""
         ns = str(novo if novo is not None else "").strip()
         ant = str(antigo if antigo is not None else "").strip()
         if mx is not None:
@@ -513,7 +513,7 @@ def sincronizar_modelo_produto_de_overlay(
     from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
 
     cod_sys = _txt("codigo", 50)
-    # Nunca usar o Id Mongo (pid) como codigo_interno se o Produto já tem código bom.
+    # Nunca usar o Id Mongo (pid) como codigo_interno se o Produto jÃ¡ tem cÃ³digo bom.
     cod_interno_cand = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or "")
     if not cod_interno_cand and p is not None:
         cod_interno_cand = str(p.codigo_interno or "").strip()[:50]
@@ -572,10 +572,10 @@ def sincronizar_modelo_produto_de_overlay(
                 mx=300,
                 rejeitar_oid=True,
             )
-            or "—"
+            or "â€”"
         )
     else:
-        nome = nome_cand or (str(p.nome or "").strip() if p is not None else "") or "—"
+        nome = nome_cand or (str(p.nome or "").strip() if p is not None else "") or "â€”"
 
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
@@ -699,7 +699,7 @@ def sincronizar_modelo_produto_de_overlay(
 
 
 def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None, str | None]:
-    """Cria ``Produto`` mínimo (somente SisVale). Retorna (erro_json, None) ou (None, novo_id)."""
+    """Cria ``Produto`` mÃ­nimo (somente SisVale). Retorna (erro_json, None) ou (None, novo_id)."""
     from django.http import JsonResponse
 
     def pt(key: str, mx: int = 300) -> str:
@@ -709,7 +709,7 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
     if len(nome) < 2:
         return (
             JsonResponse(
-                {"ok": False, "erro": "Informe o nome do produto (mínimo 2 caracteres)."},
+                {"ok": False, "erro": "Informe o nome do produto (mÃ­nimo 2 caracteres)."},
                 status=400,
             ),
             None,
@@ -734,7 +734,7 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
         if err_al is not None:
             return (
                 JsonResponse(
-                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar cÃ³digo.")},
                     status=int(err_al.get("status") or 400),
                 ),
                 None,
@@ -753,7 +753,7 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
             JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Informe código interno, código NFe/GM ou código de barras.",
+                    "erro": "Informe cÃ³digo interno, cÃ³digo NFe/GM ou cÃ³digo de barras.",
                 },
                 status=400,
             ),
@@ -766,13 +766,13 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
             novo_id = cand
             break
     else:
-        return JsonResponse({"ok": False, "erro": "Não foi possível gerar Id único."}, status=500), None
+        return JsonResponse({"ok": False, "erro": "NÃ£o foi possÃ­vel gerar Id Ãºnico."}, status=500), None
 
     try:
         pv = _dec_opt(payload.get("preco_venda")) or Decimal("0")
         pc = _dec_opt(payload.get("preco_custo")) or Decimal("0")
     except Exception:
-        return JsonResponse({"ok": False, "erro": "Preço inválido."}, status=400), None
+        return JsonResponse({"ok": False, "erro": "PreÃ§o invÃ¡lido."}, status=400), None
 
     codigo_interno_salvar = (cod_int or cod_cb or novo_id)[:50]
     codigo_nfe_salvar = (cod_nfe or cod_int or cod_cb or novo_id)[:64]
@@ -799,7 +799,7 @@ def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None,
 
 
 def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
-    """Mescla overlay local no dict de import Mongo→PG (preço da loja prevalece)."""
+    """Mescla overlay local no dict de import Mongoâ†’PG (preÃ§o da loja prevalece)."""
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     if not ov:
         return defaults
@@ -836,7 +836,7 @@ def defaults_import_com_overlay(pid: str, defaults: dict) -> dict:
 
 
 def _queryset_gestao_status(status_q: str):
-    """Queryset ``Produto`` conforme filtro status da gestão operacional."""
+    """Queryset ``Produto`` conforme filtro status da gestÃ£o operacional."""
     status_q = (status_q or "ativos").strip().lower()
     if status_q == "inativos":
         return Produto.objects.filter(Q(cadastro_inativo=True) | Q(ativo=False))
@@ -902,7 +902,7 @@ def listar_gestao_paginado(
     categoria: str = "",
     fornecedor: str = "",
 ) -> tuple[list[dict], bool, int | None]:
-    """Lista paginada gestão operacional (Postgres + overlay)."""
+    """Lista paginada gestÃ£o operacional (Postgres + overlay)."""
     qs = _queryset_gestao_status(status_q)
     qs = _gestao_aplicar_filtros_qs(qs, marca=marca, categoria=categoria, fornecedor=fornecedor)
     skip = max(0, (pagina - 1) * por_pagina)
@@ -943,9 +943,9 @@ def buscar_gestao(
     fornecedor: str = "",
     filtros: dict | None = None,
 ) -> list[dict]:
-    """Busca gestão com filtros (Postgres)."""
+    """Busca gestÃ£o com filtros (Postgres)."""
     include_inactive = status_q in ("todos", "inativos")
-    # Com filtros avançados (estoque/data/multi), amplia o pool da busca e filtra depois.
+    # Com filtros avanÃ§ados (estoque/data/multi), amplia o pool da busca e filtra depois.
     lim_busca = limit
     if filtros:
         from produtos.cadastro_filtros_util import filtros_cadastro_ativos
@@ -960,7 +960,7 @@ def buscar_gestao(
         if filtros:
             from produtos.cadastro_filtros_util import row_passa_filtros_cadastro
 
-            # Estoque precisa de saldo — aplica dims sem estoque aqui; estoque depois do enrich.
+            # Estoque precisa de saldo â€” aplica dims sem estoque aqui; estoque depois do enrich.
             f_sem_est = dict(filtros)
             f_sem_est["estoque_sinal"] = ""
             if not row_passa_filtros_cadastro(row, f_sem_est):
@@ -997,7 +997,7 @@ def compras_dimensoes_relatorio(
     completa: bool = False,
     limit: int = 40,
 ) -> list[str]:
-    """Categorias ou unidades distintas (Postgres + overlay) — relatórios Compras sem Mongo."""
+    """Categorias ou unidades distintas (Postgres + overlay) â€” relatÃ³rios Compras sem Mongo."""
     tipo = (tipo or "").strip().lower()
     if tipo not in ("categoria", "unidade"):
         return []
@@ -1110,7 +1110,7 @@ def doc_pedido_erp_por_externo_id(pid: str) -> dict | None:
 
 
 def produtos_docs_relatorio_por_externo_ids(p_ids: list[str]) -> list[dict]:
-    """Documentos estilo Mongo para planilhas Compras (categoria/unidade) sem catálogo Mongo."""
+    """Documentos estilo Mongo para planilhas Compras (categoria/unidade) sem catÃ¡logo Mongo."""
     ids: list[str] = []
     seen: set[str] = set()
     pk_cand: list[int] = []
@@ -1160,9 +1160,9 @@ def lista_produto_externo_ids_por_fornecedor(
     *,
     limit: int = 800,
 ) -> tuple[list[str], dict[str, str]]:
-    """IDs ativos cujo fornecedor no catálogo/overlay casa com nome (folha Compras sem Mongo)."""
+    """IDs ativos cujo fornecedor no catÃ¡logo/overlay casa com nome (folha Compras sem Mongo)."""
     fn = str(fornecedor_nome or "").strip()
-    _fid = str(fornecedor_id or "").strip()  # reservado — catálogo PG não tem id ERP de fornecedor
+    _fid = str(fornecedor_id or "").strip()  # reservado â€” catÃ¡logo PG nÃ£o tem id ERP de fornecedor
     if not fn and not _fid:
         return [], {}
     lim = max(1, min(int(limit or 800), 1200))
@@ -1323,20 +1323,20 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
 
 
 def listar_todos_rows_ativos() -> list[dict]:
-    """Todos os produtos ativos do Postgres (catálogo ``agro_pg``).
+    """Todos os produtos ativos do Postgres (catÃ¡logo ``agro_pg``).
 
-    Uma query (sem OFFSET paginado) — montar o cache diário do PDV com N páginas
-    ``ORDER BY … OFFSET`` sobrecarregava o agro-db na 1ª abertura do dia.
+    Uma query (sem OFFSET paginado) â€” montar o cache diÃ¡rio do PDV com N pÃ¡ginas
+    ``ORDER BY â€¦ OFFSET`` sobrecarregava o agro-db na 1Âª abertura do dia.
     """
     qs = queryset_catalogo_ativos(inativos=False).order_by("nome", "pk")
     return _rows_de_produtos(list(qs))
 
 
 def listar_slim_rows_pdv() -> list[dict]:
-    """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
+    """CatÃ¡logo SLIM sÃ³ Postgres p/ busca local do PDV (Plano B).
 
     Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos, busca_texto.
-    Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
+    Sem saldo, sem Mongo, sem N+1, sem hidratar modelos â€” ``values()`` + 1 batch de overlay.
     """
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
 
@@ -1407,7 +1407,7 @@ def listar_slim_rows_pdv() -> list[dict]:
             cadastro_extras=ce,
         )
         busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
-        # Preços A/B / por forma — sem isso o PDV adiciona do cache slim e a forma não muda o valor.
+        # PreÃ§os A/B / por forma â€” sem isso o PDV adiciona do cache slim e a forma nÃ£o muda o valor.
         from produtos.precos_forma_pagamento_util import (
             extrair_precos_grupos_cadastro_extras,
             extrair_precos_modo_cadastro_extras,
@@ -1428,7 +1428,7 @@ def listar_slim_rows_pdv() -> list[dict]:
             "preco_venda": _dec(preco),
             "index_codigos": ix if isinstance(ix, list) else [],
             "busca_texto": busca,
-            # campos mínimos que o PDV espera em normalize
+            # campos mÃ­nimos que o PDV espera em normalize
             "marca": marca,
             "preco_custo": 0.0,
             "preco_custo_final": 0.0,
@@ -1495,7 +1495,7 @@ def _chaves_codigo_doc_busca_pdv(doc: dict) -> set[str]:
 
 
 def _dedupe_prods_busca_preferir_com_nome(prods: list) -> list:
-    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/código.
+    """Remove fantasma Mongo (sem nome) quando Postgres trouxe o mesmo GM/cÃ³digo.
 
     Dois produtos **com nome** e mesmo GM (ex. GM9503 shampoo + teste) **permanecem**.
     """
@@ -1577,7 +1577,7 @@ def prods_mongo_style_busca_pdv(
     wizard_catalog: bool = False,
     limit: int = 80,
 ) -> list[dict]:
-    """Documentos estilo Mongo a partir do catálogo Postgres (PDV sem espelho)."""
+    """Documentos estilo Mongo a partir do catÃ¡logo Postgres (PDV sem espelho)."""
     if wizard_catalog:
         rows = listar_todos_rows_ativos()
     else:
@@ -1627,7 +1627,7 @@ def mesclar_prods_busca_pdv(
 
 
 def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
-    """Mescla catálogo local do PDV (``api_todos_produtos_local``) com Postgres."""
+    """Mescla catÃ¡logo local do PDV (``api_todos_produtos_local``) com Postgres."""
     from produtos.agro_fonte_config import agro_pdv_merge_catalogo_postgres
 
     if not agro_pdv_merge_catalogo_postgres():

@@ -50,6 +50,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("precos_grupos", "Preços grupos A/B"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
+    ("codigos_barras_opcionais", "Barras opcionais"),
     ("variacoes", "Marcas / códigos"),
 ]
 
@@ -128,6 +129,7 @@ def snapshot_overlay(ov) -> dict[str, Any]:
         out["c_prods_nf"] = ", ".join(str(x).strip() for x in _cps if str(x or "").strip())
     else:
         out["c_prods_nf"] = str(ex.get("entrada_nfe_c_prod") or "").strip()
+    out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
     return out
 
 
