@@ -1183,7 +1183,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Teste hoje:** badge **v13.44** · branch `teste`  
+**Teste hoje:** badge **v13.47** · branch `teste`  
 **Migrate:** **SIM** `0080` só se subir **ETQ-LOTE-A4**
 
 | Ordem | Pacote | Status |
@@ -1191,7 +1191,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
 | **1** | **BUGS-F10-FRETE** (**v13.42+**) | 📦 **pronto para envio à produção** · sem migrate · `328fa28` |
 | **2** | **ETQ-LOTE-A4** (**v13.41**) | 📦 **pronto para envio à produção** · migrate `0080` |
-| **3** | **RELAT-INVENTARIO** (**v13.44**) | 📦 **pronto para envio à produção** · sem migrate · `7d6fc66` |
+| **3** | **RELAT-INVENTARIO** (**v13.47**) | 📦 **pronto para envio à produção** · sem migrate · VERIFY_OK |
 
 ### 📦 PACOTE PRONTO LOJA — Bugs F10 + frete digitável (`BUGS-F10-FRETE` · **v13.42**)
 
@@ -1216,15 +1216,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0080` |
 | **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.44**)
+### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.47**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** (frase + senha) |
-| **Commit** | `7d6fc66` |
-| **O quê** | Central Relatórios → Estoque: inventário valorizado · resumos · mín/máx · sem custo · zerados |
+| **VERSION** | **13.47** |
+| **O quê** | Inventário valorizado (custo+venda) · resumo · mín/máx · sem custo · zerados/negativos |
+| **Fix precisão** | «Só com saldo» = **só positivo** (negativo não entra no valor do estoque) |
+| **Prova** | VERIFY_OK — saldos/custos cruzados Agro · totais · 5 URLs 200 · Excel OK |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir RELAT-INVENTARIO / produção* + **99738595** |
+| **Você** | Ctrl+F5 · `/relatorios/` → Inventário · conferir totais |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
