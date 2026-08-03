@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0080` |
 | **Autorizar** | *pode subir etiquetas lote A4 / produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.47**)
+### 📦 PACOTE PRONTO LOJA — Relatórios inventário estoque (`RELAT-INVENTARIO` · **v13.48**)
 
 | Item | Detalhe |
 | ---- | ------- |
