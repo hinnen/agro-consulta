@@ -115,7 +115,39 @@ def bug_reports_lista_view(request):
 @require_GET
 def bug_report_detalhe_view(request, pk: int):
     report = get_object_or_404(BugReportAgro, pk=pk)
-    return render(request, "produtos/bug_report_detalhe.html", {"report": report})
+    print_url = ""
+    if (report.print_base64 or "").strip():
+        try:
+            print_url = request.build_absolute_uri(f"/gestao/bugs/{report.pk}/print/")
+        except Exception:
+            print_url = f"/gestao/bugs/{report.pk}/print/"
+    quando = ""
+    try:
+        quando = report.criado_em.strftime("%d/%m/%Y %H:%M") if report.criado_em else ""
+    except Exception:
+        quando = ""
+    prompt_payload = {
+        "pk": report.pk,
+        "aconteceu": (report.o_que_aconteceu or "").strip(),
+        "esperava": (report.o_que_esperava or "").strip(),
+        "quem": (report.usuario_nome or "").strip(),
+        "pc": (report.dispositivo_nome or "").strip(),
+        "ponto": (report.ponto_caixa or "").strip(),
+        "url": (report.url_pagina or "").strip(),
+        "versao": (report.versao_app or "").strip(),
+        "quando": quando,
+        "status": (report.status or "").strip(),
+        "tela": (report.tela or "").strip(),
+        "print_url": print_url,
+    }
+    return render(
+        request,
+        "produtos/bug_report_detalhe.html",
+        {
+            "report": report,
+            "bug_cursor_prompt_json": json.dumps(prompt_payload, ensure_ascii=False),
+        },
+    )
 
 
 @login_required(login_url="/admin/login/")
