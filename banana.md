@@ -1198,15 +1198,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Migrate no próximo envio:** **SIM** `0080`
+**Migrate no próximo envio:** **SIM** `0080` (só se incluir ETQ-LOTE-A4)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
 | **1** | **ETQ-LOTE-A4** (**v13.41**) | 🟡 **pronto para envio** · aguarda senha |
+| **2** | **BUGS-F10 + PDV-FRETE-DIGITA** | 🟡 **pronto para envio** · aguarda senha · **sem migrate** |
 
+### 📦 PACOTE PRONTO LOJA — Bugs F10 + frete digitável (`BUGS-F10-FRETE` · **v13.42**)
 
-### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** (frase + senha) |
+| **Inclui** | (1) F10 → Gestão → **Bugs / feedback** (lista) · (2) valor do frete digitável sem travar |
+| **Causa frete** | A cada tecla o campo era reescrito com `20,00` (notify → render) |
+| **Arquivos** | `dashboard_gerencial.html` (já no teste) · `pdv_wizard.js` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — atalho F10 + digitação frete na entrega |
+| **NÃO** | merge inteiro `teste` · ETQ-LOTE-A4 (pacote separado) |
+| **Você** | *pode subir BUGS-F10-FRETE / produção* + **99738595** · Ctrl+F5 · F10 Bugs · digitar frete 20 |
+| **Zap** | *Atualização rápida PDV/menu (~1–2 min)* |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (03/08) · ETQ (legado bloco)
 
 | Item | Detalhe |
 | ---- | ------- |

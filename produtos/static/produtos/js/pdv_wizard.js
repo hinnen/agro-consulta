@@ -6373,6 +6373,7 @@
             if (cur <= 0.009) State.setPagamentoField('frete', 10);
             return;
         }
+        // Confirmar: número final. Durante digitação usa bindMoneyInputField (raw).
         State.setPagamentoField('frete', State.toNumber(raw));
     }
 
@@ -6390,9 +6391,10 @@
         if (wrap) wrap.classList.toggle('hidden', modo !== 'sim');
         var campos = document.getElementById('pdv-ed-detalhes-campos');
         if (campos) campos.classList.toggle('pdv-ed-detalhes-campos--so-horario', modo !== 'sim');
+        // Não reescrever enquanto digita (antes: toFixed a cada tecla → campo «travava»).
         if (inpVal && modo === 'sim') {
-            var display = frete > 0.009 ? String(frete.toFixed(2)).replace('.', ',') : '10,00';
-            setInputValue(inpVal, display);
+            var display = frete > 0.009 ? moneyFieldDisplay(frete) : '10,00';
+            setInputValueUnlessFocused(inpVal, display);
         }
     }
 
@@ -13144,8 +13146,13 @@
         });
         var inpTaxaValor = document.getElementById('pdv-entrega-taxa-valor');
         if (inpTaxaValor) {
-            inpTaxaValor.addEventListener('input', commitEntregaTaxaValorInput);
-            inpTaxaValor.addEventListener('blur', commitEntregaTaxaValorInput);
+            // Mesmo padrão do frete no pagamento: sanitiza digitação, formata só no blur.
+            bindMoneyInputField(inpTaxaValor, function (raw) {
+                var st = State.getState();
+                if (entregaTaxaModoEfetivo(st) !== 'sim') return;
+                if (!String(raw || '').trim()) return;
+                State.setPagamentoField('frete', raw);
+            });
         }
 
         var btnReiniciarFluxoPagamento = document.getElementById('pdv-entrega-reiniciar-fluxo-pagamento');
