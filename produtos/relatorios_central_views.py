@@ -798,3 +798,546 @@ def relatorios_comissao(request):
             "vazio_msg": "Nenhuma venda neste período.",
         },
     )
+
+
+def _filtros_inv_label(f: dict) -> str:
+    partes = []
+    dep = f.get("deposito") or "ambos"
+    if dep == "centro":
+        partes.append("Depósito Centro")
+    elif dep == "vila":
+        partes.append("Depósito Vila")
+    else:
+        partes.append("Centro + Vila")
+    if f.get("categoria"):
+        partes.append(f"Cat. {f['categoria']}")
+    if f.get("marca"):
+        partes.append(f"Marca {f['marca']}")
+    if f.get("q"):
+        partes.append(f"Busca «{f['q']}»")
+    ativos = f.get("ativos") or "ativos"
+    if ativos == "inativos":
+        partes.append("Só inativos")
+    elif ativos == "todos":
+        partes.append("Ativos e inativos")
+    if f.get("so_saldo"):
+        partes.append("Só com saldo")
+    else:
+        partes.append("Com e sem saldo")
+    return " · ".join(partes)
+
+
+def _pacote_inventario(request, *, so_saldo_override: bool | None = None):
+    from produtos import relatorios_estoque_util as reu
+
+    f = reu.parse_filtros_inventario(request.GET)
+    if so_saldo_override is not None:
+        f["so_saldo"] = so_saldo_override
+    pacote = reu.coletar_linhas_inventario(
+        deposito=f["deposito"],
+        categoria=f["categoria"],
+        marca=f["marca"],
+        ativos=f["ativos"],
+        so_saldo=f["so_saldo"],
+        q=f["q"],
+    )
+    return f, pacote
+
+
+def _ver_mais_inv(request, n_total: int, n_tela: int):
+    from urllib.parse import urlencode
+
+    from produtos.relatorios_estoque_util import TELA_LIMITE
+
+    if n_total <= TELA_LIMITE:
+        return None
+    q = request.GET.copy()
+    todos = (request.GET.get("todos") or "") == "1"
+    if not todos:
+        q["todos"] = "1"
+        return {
+            "truncado": True,
+            "n_total": n_total,
+            "n_tela": n_tela,
+            "ver_todos_qs": "?" + urlencode(q, doseq=True),
+        }
+    q.pop("todos", None)
+    return {
+        "truncado": False,
+        "todos": True,
+        "n_total": n_total,
+        "n_tela": n_tela,
+        "ver_menos_qs": "?" + urlencode(q, doseq=True),
+    }
+
+
+def _slice_tela(request, linhas: list) -> tuple[list, dict | None]:
+    from produtos.relatorios_estoque_util import TELA_LIMITE
+
+    todos = (request.GET.get("todos") or "") == "1"
+    n = len(linhas)
+    if todos or n <= TELA_LIMITE:
+        return linhas, _ver_mais_inv(request, n, n)
+    slice_rows = linhas[:TELA_LIMITE]
+    return slice_rows, _ver_mais_inv(request, n, len(slice_rows))
+
+
+@require_GET
+def relatorios_inventario(request):
+    from produtos import relatorios_estoque_util as reu
+
+    f, pacote = _pacote_inventario(request)
+    linhas = pacote["linhas"]
+    t = pacote["totais"]
+    headers = [
+        "#",
+        "Código GM",
+        "Produto",
+        "Cód. sistema",
+        "Barras",
+        "Categoria",
+        "Marca",
+        "UN",
+        "Saldo C",
+        "Saldo V",
+        "Total",
+        "Mín C",
+        "Mín V",
+        "Custo",
+        "Valor custo",
+        "P.venda",
+        "Valor venda",
+        "Ativo",
+    ]
+
+    def _row_data(r):
+        return [
+            r["pos"],
+            r["codigo_gm"],
+            r["nome"],
+            r["codigo_sistema"],
+            r["codigo_barras"],
+            r["categoria"],
+            r["marca"],
+            r["unidade"],
+            r["saldo_centro"],
+            r["saldo_vila"],
+            r["saldo_total"],
+            r["estoque_min_centro"] if r["estoque_min_centro"] is not None else "",
+            r["estoque_min_vila"] if r["estoque_min_vila"] is not None else "",
+            r["custo"],
+            r["valor_custo"],
+            r["preco_venda"],
+            r["valor_venda"],
+            "Sim" if r["ativo"] else "Não",
+        ]
+
+    if request.GET.get("export") == "xlsx":
+        return ru.xlsx_http_response(
+            "inventario-valorizado.xlsx",
+            ru.montar_xlsx(
+                "Inventário valorizado",
+                headers,
+                [_row_data(r) for r in linhas],
+                subtitulo=_filtros_inv_label(f),
+            ),
+        )
+
+    tela, ver_mais = _slice_tela(request, linhas)
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Inventário valorizado",
+            "eyebrow": "Estoque · cadastro",
+            "subtitulo": "Saldo Agro + valor no custo e no preço de venda. Excel traz todas as linhas do filtro.",
+            "filtros": {"periodo": "", "de": "", "ate": "", "label": _filtros_inv_label(f)},
+            "filtro_parcial": "inventario",
+            "rel_help": "inventario",
+            "extra_filtros": {
+                **f,
+                "categorias": pacote["categorias"],
+                "marcas": pacote["marcas"],
+                "so_saldo": "1" if f["so_saldo"] else "0",
+            },
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["codigo_gm"],
+                    r["nome"],
+                    r["codigo_sistema"],
+                    r["codigo_barras"] or "—",
+                    r["categoria"],
+                    r["marca"],
+                    r["unidade"],
+                    reu.fmt_num(r["saldo_centro"], 3),
+                    reu.fmt_num(r["saldo_vila"], 3),
+                    reu.fmt_num(r["saldo_total"], 3),
+                    reu.fmt_num(r["estoque_min_centro"], 3),
+                    reu.fmt_num(r["estoque_min_vila"], 3),
+                    ru.fmt_brl(r["custo"]),
+                    ru.fmt_brl(r["valor_custo"]),
+                    ru.fmt_brl(r["preco_venda"]),
+                    ru.fmt_brl(r["valor_venda"]),
+                    "Sim" if r["ativo"] else "Não",
+                ]
+                for r in tela
+            ],
+            "totais": [
+                f"{t['skus']} SKUs",
+                f"{t['com_saldo']} com saldo",
+                f"Estoque (custo) {ru.fmt_brl(t['valor_custo'])}",
+                f"Potencial (venda) {ru.fmt_brl(t['valor_venda'])}",
+                f"Margem pot. {ru.fmt_brl(t['margem_rs'])} ({t['margem_pct']}%)",
+            ],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nenhum produto no filtro.",
+            "ver_mais": ver_mais,
+        },
+    )
+
+
+@require_GET
+def relatorios_estoque_min_max(request):
+    from produtos import relatorios_estoque_util as reu
+
+    f, pacote = _pacote_inventario(request, so_saldo_override=False)
+    modo = (request.GET.get("modo") or "abaixo").strip().lower()
+    if modo not in ("abaixo", "acima", "ambos"):
+        modo = "abaixo"
+    linhas = reu.inventario_min_max(pacote, modo=modo)
+    headers = [
+        "#",
+        "Código GM",
+        "Produto",
+        "Saldo C",
+        "Mín C",
+        "Máx C",
+        "Saldo V",
+        "Mín V",
+        "Máx V",
+        "Alerta",
+        "Valor custo",
+    ]
+    if request.GET.get("export") == "xlsx":
+        data = [
+            [
+                r["pos"],
+                r["codigo_gm"],
+                r["nome"],
+                r["saldo_centro"],
+                r.get("min_centro") if r.get("min_centro") is not None else "",
+                r.get("max_centro") if r.get("max_centro") is not None else "",
+                r["saldo_vila"],
+                r.get("min_vila") if r.get("min_vila") is not None else "",
+                r.get("max_vila") if r.get("max_vila") is not None else "",
+                r["alerta"],
+                r["valor_custo"],
+            ]
+            for r in linhas
+        ]
+        return ru.xlsx_http_response(
+            "estoque-min-max.xlsx",
+            ru.montar_xlsx(
+                "Estoque mínimo / máximo",
+                headers,
+                data,
+                subtitulo=_filtros_inv_label(f) + f" · modo {modo}",
+            ),
+        )
+    tela, ver_mais = _slice_tela(request, linhas)
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Estoque mínimo / máximo",
+            "eyebrow": "Estoque · meta",
+            "subtitulo": "Itens fora da meta cadastrada (mínimo ou máximo) no Centro e/ou Vila.",
+            "filtros": {
+                "periodo": "",
+                "de": "",
+                "ate": "",
+                "label": _filtros_inv_label(f) + f" · {modo}",
+            },
+            "filtro_parcial": "estoque_min_max",
+            "rel_help": "estoque_min_max",
+            "extra_filtros": {
+                **f,
+                "modo": modo,
+                "categorias": pacote["categorias"],
+                "marcas": pacote["marcas"],
+                "so_saldo": "0",
+            },
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["codigo_gm"],
+                    r["nome"],
+                    reu.fmt_num(r["saldo_centro"], 3),
+                    reu.fmt_num(r.get("min_centro"), 3),
+                    reu.fmt_num(r.get("max_centro"), 3),
+                    reu.fmt_num(r["saldo_vila"], 3),
+                    reu.fmt_num(r.get("min_vila"), 3),
+                    reu.fmt_num(r.get("max_vila"), 3),
+                    r["alerta"],
+                    ru.fmt_brl(r["valor_custo"]),
+                ]
+                for r in tela
+            ],
+            "totais": [f"{len(linhas)} produtos fora da meta"],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nenhum produto fora da meta (ou meta não cadastrada).",
+            "ver_mais": ver_mais,
+        },
+    )
+
+
+@require_GET
+def relatorios_estoque_resumo(request):
+    from produtos import relatorios_estoque_util as reu
+
+    f, pacote = _pacote_inventario(request)
+    agrupar = (request.GET.get("agrupar") or "categoria").strip().lower()
+    if agrupar not in ("categoria", "marca", "unidade"):
+        agrupar = "categoria"
+    linhas = reu.inventario_resumo(pacote, agrupar=agrupar)
+    label_g = {"categoria": "Categoria", "marca": "Marca", "unidade": "Unidade"}[agrupar]
+    headers = ["#", label_g, "SKUs", "Saldo", "Valor custo", "Valor venda", "% venda"]
+    if request.GET.get("export") == "xlsx":
+        data = [
+            [
+                r["pos"],
+                r["grupo"],
+                r["skus"],
+                r["saldo"],
+                r["valor_custo"],
+                r["valor_venda"],
+                r["pct"],
+            ]
+            for r in linhas
+        ]
+        return ru.xlsx_http_response(
+            "estoque-resumo.xlsx",
+            ru.montar_xlsx(
+                f"Resumo estoque por {label_g.lower()}",
+                headers,
+                data,
+                subtitulo=_filtros_inv_label(f),
+            ),
+        )
+    t = pacote["totais"]
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Resumo do estoque",
+            "eyebrow": "Estoque · agregado",
+            "subtitulo": "Totais de saldo e valor agrupados por categoria, marca ou unidade.",
+            "filtros": {"periodo": "", "de": "", "ate": "", "label": _filtros_inv_label(f)},
+            "filtro_parcial": "estoque_resumo",
+            "rel_help": "estoque_resumo",
+            "extra_filtros": {
+                **f,
+                "agrupar": agrupar,
+                "categorias": pacote["categorias"],
+                "marcas": pacote["marcas"],
+                "so_saldo": "1" if f["so_saldo"] else "0",
+            },
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["grupo"],
+                    r["skus"],
+                    reu.fmt_num(r["saldo"], 3),
+                    ru.fmt_brl(r["valor_custo"]),
+                    ru.fmt_brl(r["valor_venda"]),
+                    f'{r["pct"]}%',
+                ]
+                for r in linhas
+            ],
+            "totais": [
+                f"{len(linhas)} grupos",
+                f"Estoque (custo) {ru.fmt_brl(t['valor_custo'])}",
+                f"Potencial (venda) {ru.fmt_brl(t['valor_venda'])}",
+            ],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nada para agregar no filtro.",
+        },
+    )
+
+
+@require_GET
+def relatorios_estoque_sem_custo(request):
+    from produtos import relatorios_estoque_util as reu
+
+    f, pacote = _pacote_inventario(request, so_saldo_override=True)
+    linhas = reu.inventario_sem_custo(pacote)
+    headers = [
+        "#",
+        "Código GM",
+        "Produto",
+        "Categoria",
+        "Saldo C",
+        "Saldo V",
+        "Total",
+        "P.venda",
+        "Valor venda",
+    ]
+    if request.GET.get("export") == "xlsx":
+        data = [
+            [
+                r["pos"],
+                r["codigo_gm"],
+                r["nome"],
+                r["categoria"],
+                r["saldo_centro"],
+                r["saldo_vila"],
+                r["saldo_total"],
+                r["preco_venda"],
+                r["valor_venda"],
+            ]
+            for r in linhas
+        ]
+        return ru.xlsx_http_response(
+            "estoque-sem-custo.xlsx",
+            ru.montar_xlsx(
+                "Estoque sem custo cadastrado",
+                headers,
+                data,
+                subtitulo=_filtros_inv_label(f),
+            ),
+        )
+    tela, ver_mais = _slice_tela(request, linhas)
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Estoque sem custo",
+            "eyebrow": "Cadastro · buracos",
+            "subtitulo": "Tem saldo na loja e o custo está zerado — inventário a custo fica incompleto.",
+            "filtros": {"periodo": "", "de": "", "ate": "", "label": _filtros_inv_label(f)},
+            "filtro_parcial": "estoque_sem_custo",
+            "rel_help": "estoque_sem_custo",
+            "extra_filtros": {
+                **f,
+                "categorias": pacote["categorias"],
+                "marcas": pacote["marcas"],
+                "so_saldo": "1",
+            },
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["codigo_gm"],
+                    r["nome"],
+                    r["categoria"],
+                    reu.fmt_num(r["saldo_centro"], 3),
+                    reu.fmt_num(r["saldo_vila"], 3),
+                    reu.fmt_num(r["saldo_total"], 3),
+                    ru.fmt_brl(r["preco_venda"]),
+                    ru.fmt_brl(r["valor_venda"]),
+                ]
+                for r in tela
+            ],
+            "totais": [f"{len(linhas)} produtos com saldo e sem custo"],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nenhum buraco de custo com saldo.",
+            "ver_mais": ver_mais,
+        },
+    )
+
+
+@require_GET
+def relatorios_estoque_zerados(request):
+    from produtos import relatorios_estoque_util as reu
+
+    f, pacote = _pacote_inventario(request, so_saldo_override=False)
+    modo = (request.GET.get("modo") or "zerados").strip().lower()
+    if modo not in ("zerados", "negativos", "ambos"):
+        modo = "zerados"
+    linhas = reu.inventario_zerados(pacote, modo=modo)
+    headers = [
+        "#",
+        "Código GM",
+        "Produto",
+        "Categoria",
+        "Saldo C",
+        "Saldo V",
+        "Total",
+        "Custo",
+        "P.venda",
+        "Ativo",
+    ]
+    if request.GET.get("export") == "xlsx":
+        data = [
+            [
+                r["pos"],
+                r["codigo_gm"],
+                r["nome"],
+                r["categoria"],
+                r["saldo_centro"],
+                r["saldo_vila"],
+                r["saldo_relevante"],
+                r["custo"],
+                r["preco_venda"],
+                "Sim" if r["ativo"] else "Não",
+            ]
+            for r in linhas
+        ]
+        return ru.xlsx_http_response(
+            "estoque-zerados.xlsx",
+            ru.montar_xlsx(
+                "Estoque zerado / negativo",
+                headers,
+                data,
+                subtitulo=_filtros_inv_label(f) + f" · {modo}",
+            ),
+        )
+    tela, ver_mais = _slice_tela(request, linhas)
+    return render(
+        request,
+        "produtos/relatorios_generico.html",
+        {
+            "titulo": "Zerados e negativos",
+            "eyebrow": "Estoque · conferência",
+            "subtitulo": "Saldo do depósito filtrado zerado ou negativo (Centro, Vila ou C+V).",
+            "filtros": {
+                "periodo": "",
+                "de": "",
+                "ate": "",
+                "label": _filtros_inv_label(f) + f" · {modo}",
+            },
+            "filtro_parcial": "estoque_zerados",
+            "rel_help": "estoque_zerados",
+            "extra_filtros": {
+                **f,
+                "modo": modo,
+                "categorias": pacote["categorias"],
+                "marcas": pacote["marcas"],
+                "so_saldo": "0",
+            },
+            "headers": headers,
+            "rows": [
+                [
+                    r["pos"],
+                    r["codigo_gm"],
+                    r["nome"],
+                    r["categoria"],
+                    reu.fmt_num(r["saldo_centro"], 3),
+                    reu.fmt_num(r["saldo_vila"], 3),
+                    reu.fmt_num(r["saldo_relevante"], 3),
+                    ru.fmt_brl(r["custo"]),
+                    ru.fmt_brl(r["preco_venda"]),
+                    "Sim" if r["ativo"] else "Não",
+                ]
+                for r in tela
+            ],
+            "totais": [f"{len(linhas)} produtos"],
+            "export_qs": _qs_export(request),
+            "vazio_msg": "Nenhum zerado/negativo no filtro.",
+            "ver_mais": ver_mais,
+        },
+    )

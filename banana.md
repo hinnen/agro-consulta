@@ -1180,6 +1180,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ Relatórios inventário estoque (`RELAT-INVENTARIO` · **teste v13.44** · 03/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no **teste** · prova local OK (smoke util) |
+| **VERSION** | **13.44** |
+| **O quê** | Central `/relatorios/`: inventário valorizado (custo+venda) · resumo cat/marca/UN · mín/máx · sem custo · zerados/negativos |
+| **URLs** | `/relatorios/inventario/` · `estoque-resumo/` · `estoque-min-max/` · `estoque-sem-custo/` · `estoque-zerados/` |
+| **Arquivos** | `relatorios_estoque_util.py` · `relatorios_central_views.py` · hub/generico/help · `urls.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | reverse URLs OK · coletar inventário local (28 c/ saldo · totais custo/venda) |
+| **Você** | Ctrl+F5 · Central Relatórios → Estoque → abrir inventário · conferir totais · Excel ↓ |
+| **Loja** | **não** sobe sem frase + senha |
+
+
 ### 📦 PACOTE PRONTO LOJA — Etiquetas lote A4 gôndola (`ETQ-LOTE-A4` · **v13.41**)
 
 | Item | Detalhe |

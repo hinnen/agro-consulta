@@ -273,6 +273,11 @@ urlpatterns = [
     path('relatorios/formas-pagamento/', relatorios_views.relatorios_formas_pagamento, name='relatorios_formas_pagamento'),
     path('relatorios/ruptura/', relatorios_views.relatorios_ruptura, name='relatorios_ruptura'),
     path('relatorios/comissao/', relatorios_views.relatorios_comissao, name='relatorios_comissao'),
+    path('relatorios/inventario/', relatorios_views.relatorios_inventario, name='relatorios_inventario'),
+    path('relatorios/estoque-min-max/', relatorios_views.relatorios_estoque_min_max, name='relatorios_estoque_min_max'),
+    path('relatorios/estoque-resumo/', relatorios_views.relatorios_estoque_resumo, name='relatorios_estoque_resumo'),
+    path('relatorios/estoque-sem-custo/', relatorios_views.relatorios_estoque_sem_custo, name='relatorios_estoque_sem_custo'),
+    path('relatorios/estoque-zerados/', relatorios_views.relatorios_estoque_zerados, name='relatorios_estoque_zerados'),
 
     path(
         'entrada-nota/',

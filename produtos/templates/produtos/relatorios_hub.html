@@ -186,6 +186,76 @@
         <div class="mt-4 flex items-center text-sm font-bold text-red-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
       </a>
 
+      <a href="{% url 'relatorios_inventario' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-lime-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-lime-500/20 text-lime-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-boxes-stacked text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Inventário valorizado</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-lime-400">Valor total</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Cadastro + saldo C/V + valor no custo e no preço de venda.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-lime-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_resumo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-sky-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-chart-pie text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Resumo do estoque</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400">Por grupo</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Totais por categoria, marca ou unidade.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-sky-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_min_max' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-orange-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-500/20 text-orange-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-sliders text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Mínimo / máximo</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-orange-400">Meta</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Abaixo do mínimo ou acima do máximo cadastrado.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-orange-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_sem_custo' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-fuchsia-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fuchsia-500/20 text-fuchsia-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-circle-exclamation text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Sem custo</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-fuchsia-400">Buracos</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Tem saldo e o custo do cadastro está zerado.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-fuchsia-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
+      <a href="{% url 'relatorios_estoque_zerados' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-rose-500/50 hover:bg-slate-700/50">
+        <div class="mb-3 flex items-center gap-3">
+          <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 transition-transform group-hover:scale-110">
+            <i class="fas fa-ban text-xl" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <h3 class="text-lg font-bold text-white leading-tight">Zerados / negativos</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-rose-400">Conferência</span>
+          </div>
+        </div>
+        <p class="text-sm leading-snug text-slate-400">Saldo C+V zerado ou negativo.</p>
+        <div class="mt-4 flex items-center text-sm font-bold text-rose-400"><span>ABRIR</span><i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-2" aria-hidden="true"></i></div>
+      </a>
+
       <a href="{% url 'produtos_etiquetas' %}" class="group rounded-2xl border border-slate-700 bg-slate-800/90 p-5 transition-all hover:border-emerald-500/50 hover:bg-slate-700/50">
         <div class="mb-3 flex items-center gap-3">
           <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-500 transition-transform group-hover:scale-110">
