@@ -5,10 +5,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=11.76" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=11.76"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=11.76"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=11.76"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.20" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=13.20"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=13.20"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=13.20"></script>
 </head>
 <body>
   {% csrf_token %}
@@ -135,10 +135,25 @@
         <div class="dsp-tab-panel" id="dspTab-sabores" role="tabpanel" data-tab="sabores" hidden>
           <details class="dsp-help">
             <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Sabores</summary>
-            <div class="dsp-help-body">Clique para ligar/desligar (máx. 5). PNG do ícone com fundo transparente fica neste computador.</div>
+            <div class="dsp-help-body">Clique para ligar/desligar (máx. 5). Em <b>Criar sabor</b> informe nome, descrição e PNG — grava no <b>sistema</b> (Centro e Vila veem). Trocar PNG de um sabor da lista fica no sistema também.</div>
           </details>
           <div class="dsp-gal-label">Sabores na folha (máx. 5)</div>
           <div class="dsp-gal dsp-gal--flavor-icos" id="dspFlavorIcoGal" role="listbox" aria-label="Sabores e ícones"></div>
+          <div class="dsp-gal-add no-print dsp-flavor-create" id="dspFlavorCreateBox">
+            <div class="dsp-gal-label">Criar sabor novo</div>
+            <label class="dsp-field" style="margin:0 0 0.35rem">
+              <span>Nome</span>
+              <input id="dspFlavorNewName" type="text" maxlength="60" placeholder="Ex.: Mix Especial" autocomplete="off" />
+            </label>
+            <label class="dsp-field" style="margin:0 0 0.35rem">
+              <span>Descrição do sabor</span>
+              <input id="dspFlavorNewDesc" type="text" maxlength="120" placeholder="Texto curto na etiqueta" autocomplete="off" />
+            </label>
+            <label class="dsp-gal-add-btn" for="dspFlavorNewIcoFile">+ PNG do ícone</label>
+            <input id="dspFlavorNewIcoFile" type="file" accept="image/png,image/webp,image/*" hidden />
+            <div class="dsp-gal-add-hint" id="dspFlavorNewIcoHint">Nenhum ícone ainda</div>
+            <button type="button" class="dsp-gal-add-btn" id="dspFlavorNewSave" style="margin-top:0.35rem">Salvar sabor</button>
+          </div>
           <div class="dsp-gal-add no-print">
             <label class="dsp-field" style="margin:0 0 0.35rem">
               <span class="dsp-gal-label" style="display:block;margin:0 0 0.25rem">Trocar PNG do sabor</span>
@@ -370,6 +385,12 @@ Batata-Doce</textarea>
     var flavorIcoGal = document.getElementById("dspFlavorIcoGal");
     var flavorIcoTarget = document.getElementById("dspFlavorIcoTarget");
     var flavorIcoFile = document.getElementById("dspFlavorIcoFile");
+    var flavorNewName = document.getElementById("dspFlavorNewName");
+    var flavorNewDesc = document.getElementById("dspFlavorNewDesc");
+    var flavorNewIcoFile = document.getElementById("dspFlavorNewIcoFile");
+    var flavorNewIcoHint = document.getElementById("dspFlavorNewIcoHint");
+    var flavorNewSave = document.getElementById("dspFlavorNewSave");
+    var flavorNewIcoDataUrl = "";
     var petId = "chihuahua";
     var logoId = ""; // vazio = só texto
     var ingId = "frango-carne";
@@ -757,6 +778,9 @@ Batata-Doce</textarea>
     }
 
     function refreshAfterCloudPull() {
+      if (window.DspCloud && window.DspCloud.syncFlavorLibCustoms) {
+        window.DspCloud.syncFlavorLibCustoms();
+      }
       buildLogoGal();
       buildPetGal();
       buildIngGal();
@@ -1607,16 +1631,40 @@ Batata-Doce</textarea>
       setFlavorLines(lines);
     }
 
-    function fillFlavorIcoTarget() {
-      if (!flavorIcoTarget) return;
+    function loadCustomFlavorsMeta() {
+      if (window.DspCloud && window.DspCloud.getCustomFlavors) return window.DspCloud.getCustomFlavors();
+      return {};
+    }
+
+    function saveCustomFlavorsMeta(obj) {
+      if (window.DspCloud && window.DspCloud.setCustomFlavors) return window.DspCloud.setCustomFlavors(obj);
+      return false;
+    }
+
+    function flavorIndividuals() {
+      var lib = window.DspFlavorLib || {};
+      if (lib.individuals) return lib.individuals();
+      return (lib.INDIVIDUALS || []).slice();
+    }
+
+    function isBuiltinFlavorKey(key) {
       var lib = window.DspFlavorLib || {};
       var list = lib.INDIVIDUALS || [];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].key === key || (lib.norm && lib.norm(list[i].label) === key)) return true;
+      }
+      return false;
+    }
+
+    function fillFlavorIcoTarget() {
+      if (!flavorIcoTarget) return;
+      var list = flavorIndividuals();
       var cur = flavorIcoTarget.value;
       flavorIcoTarget.innerHTML = "";
       list.forEach(function (it) {
         var opt = document.createElement("option");
         opt.value = it.label;
-        opt.textContent = it.label;
+        opt.textContent = it.custom ? it.label + " (criado)" : it.label;
         flavorIcoTarget.appendChild(opt);
       });
       if (cur) flavorIcoTarget.value = cur;
@@ -1625,21 +1673,25 @@ Batata-Doce</textarea>
     function buildFlavorIcoGal() {
       if (!flavorIcoGal) return;
       var lib = window.DspFlavorLib || {};
-      var list = lib.INDIVIDUALS || [];
+      var list = flavorIndividuals();
       var customs = loadCustomFlavorIcos();
+      var customMeta = loadCustomFlavorsMeta();
       var normFn = lib.norm || function (s) { return String(s || "").toLowerCase(); };
       var on = {};
       flavorLines().forEach(function (n) { on[normFn(n)] = true; });
       flavorIcoGal.innerHTML = "";
       list.forEach(function (it) {
         var meta = lib.lookup ? lib.lookup(it.label) : {};
-        var custom = customs[normFn(it.label)];
+        var key = it.key || normFn(it.label);
+        var customIco = customs[key] || customs[normFn(it.label)];
+        var isUserFlavor = !!(it.custom || customMeta[key]);
         var btn = document.createElement("button");
         btn.type = "button";
-        btn.className = "dsp-gal-item" + (custom ? " is-custom" : "") + (on[it.key] || on[normFn(it.label)] ? " is-on" : "");
-        btn.title = it.label + (custom ? " (PNG próprio)" : "") + " — clique para incluir na folha";
+        btn.className = "dsp-gal-item" + (customIco || isUserFlavor ? " is-custom" : "") + (on[key] || on[normFn(it.label)] ? " is-on" : "");
+        btn.title = it.label + (isUserFlavor ? " (criado na loja)" : customIco ? " (PNG próprio)" : "") + " — clique para incluir na folha";
         btn.dataset.label = it.label;
-        var src = custom || (meta.img ? STATIC + meta.img : "");
+        btn.dataset.key = key;
+        var src = customIco || (meta.img ? STATIC + meta.img : "");
         if (src) {
           btn.innerHTML = '<img src="' + src + '" alt="" /><span class="dsp-gal-cap"></span>';
           btn.querySelector(".dsp-gal-cap").textContent = it.label;
@@ -1650,17 +1702,34 @@ Batata-Doce</textarea>
           if (flavorIcoTarget) flavorIcoTarget.value = it.label;
           toggleFlavorLabel(it.label);
         });
-        if (custom) {
+        if (customIco || isUserFlavor) {
           var del = document.createElement("button");
           del.type = "button";
           del.className = "dsp-gal-del";
-          del.title = "Remover PNG próprio";
+          del.title = isUserFlavor ? "Apagar sabor criado" : "Remover PNG próprio";
           del.textContent = "×";
           del.addEventListener("click", function (ev) {
             ev.stopPropagation();
+            if (isUserFlavor) {
+              if (!window.confirm("Apagar o sabor «" + it.label + "»? Sai da grade em todos os PCs.")) return;
+              var metaAll = loadCustomFlavorsMeta();
+              delete metaAll[key];
+              saveCustomFlavorsMeta(metaAll);
+              var icos = loadCustomFlavorIcos();
+              delete icos[key];
+              saveCustomFlavorIcos(icos);
+              if (window.DspCloud) {
+                window.DspCloud.deleteDocumento("sabor", key);
+                window.DspCloud.deleteMidia("flavor_ico", key);
+              }
+              var lines = flavorLines().filter(function (n) { return normFn(n) !== key; });
+              setFlavorLines(lines);
+              return;
+            }
             var all = loadCustomFlavorIcos();
-            delete all[normFn(it.label)];
+            delete all[key];
             saveCustomFlavorIcos(all);
+            if (window.DspCloud) window.DspCloud.deleteMidia("flavor_ico", key);
             buildFlavorIcoGal();
             renderFlavors();
           });
@@ -2664,6 +2733,9 @@ Batata-Doce</textarea>
     buildPetGal();
     buildLogoGal();
     buildIngGal();
+    if (window.DspCloud && window.DspCloud.syncFlavorLibCustoms) {
+      window.DspCloud.syncFlavorLibCustoms();
+    }
     fillFlavorIcoTarget();
     buildFlavorIcoGal();
     if (ingImg) {
@@ -2782,6 +2854,82 @@ Batata-Doce</textarea>
         };
         reader.onerror = function () { window.alert("Não deu para ler o arquivo."); };
         reader.readAsDataURL(file);
+      });
+    }
+
+    if (flavorNewIcoFile) {
+      flavorNewIcoFile.addEventListener("change", function (ev) {
+        var file = ev.target.files && ev.target.files[0];
+        ev.target.value = "";
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var img = new Image();
+          img.onload = function () {
+            resizeImageToDataUrl(img, 512, function (dataUrl) {
+              if (!dataUrl) {
+                window.alert("Não deu para processar essa imagem.");
+                return;
+              }
+              flavorNewIcoDataUrl = dataUrl;
+              if (flavorNewIcoHint) flavorNewIcoHint.textContent = "Ícone pronto ✓";
+            });
+          };
+          img.onerror = function () { window.alert("Não deu para ler a imagem."); };
+          img.src = String(reader.result || "");
+        };
+        reader.onerror = function () { window.alert("Não deu para ler o arquivo."); };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    if (flavorNewSave) {
+      flavorNewSave.addEventListener("click", function () {
+        var nome = String(flavorNewName && flavorNewName.value || "").trim();
+        var desc = String(flavorNewDesc && flavorNewDesc.value || "").trim();
+        if (!nome) {
+          window.alert("Digite o nome do sabor.");
+          return;
+        }
+        if (nome.length < 2) {
+          window.alert("Nome muito curto.");
+          return;
+        }
+        if (!desc) {
+          window.alert("Digite a descrição do sabor (texto na etiqueta).");
+          return;
+        }
+        if (!flavorNewIcoDataUrl) {
+          window.alert("Suba o PNG do ícone.");
+          return;
+        }
+        var key = window.DspFlavorLib.norm(nome);
+        if (!key) {
+          window.alert("Nome inválido.");
+          return;
+        }
+        if (isBuiltinFlavorKey(key)) {
+          window.alert("Esse nome já existe na lista padrão. Escolha outro ou só troque o PNG.");
+          return;
+        }
+        var metaAll = loadCustomFlavorsMeta();
+        metaAll[key] = { label: nome, desc: desc };
+        saveCustomFlavorsMeta(metaAll);
+        var icos = loadCustomFlavorIcos();
+        icos[key] = flavorNewIcoDataUrl;
+        saveCustomFlavorIcos(icos);
+        cloudPushMidia("flavor_ico", { id: key, label: nome, dataUrl: flavorNewIcoDataUrl });
+        if (window.DspCloud && window.DspCloud.upsertDocumento) {
+          window.DspCloud.upsertDocumento("sabor", key, { v: 1, label: nome, desc: desc }, "");
+        }
+        if (flavorNewName) flavorNewName.value = "";
+        if (flavorNewDesc) flavorNewDesc.value = "";
+        flavorNewIcoDataUrl = "";
+        if (flavorNewIcoHint) flavorNewIcoHint.textContent = "Nenhum ícone ainda";
+        fillFlavorIcoTarget();
+        buildFlavorIcoGal();
+        if (flavorIcoTarget) flavorIcoTarget.value = nome;
+        window.alert("Sabor «" + nome + "» salvo. Clique na grade para colocar na folha.");
       });
     }
 

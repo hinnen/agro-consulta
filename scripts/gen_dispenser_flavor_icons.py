@@ -248,6 +248,15 @@ def icon_alecrim():
     save("alecrim", im)
 
 
+def icon_mix_sabores():
+    im = new_canvas()
+    d = ImageDraw.Draw(im)
+    circle_outline(d, 9.2, 10.2, 4.1, (230, 126, 34, 255))  # #e67e22
+    circle_outline(d, 14.8, 10.2, 4.1, (192, 57, 43, 255))  # #c0392b
+    circle_outline(d, 12, 15.2, 4.1, (39, 174, 96, 255))  # #27ae60
+    save("mix-sabores", im)
+
+
 def main():
     icon_leite()
     icon_ovo()
@@ -262,6 +271,7 @@ def main():
     icon_couve()
     icon_inhame()
     icon_alecrim()
+    icon_mix_sabores()
     print("done →", OUT)
 
 

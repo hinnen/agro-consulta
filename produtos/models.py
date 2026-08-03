@@ -2277,9 +2277,11 @@ class DispenserDocumentoAgro(models.Model):
 
     TIPO_FOLHA = "folha"
     TIPO_LAYOUT = "layout"
+    TIPO_SABOR = "sabor"
     TIPO_CHOICES = (
         (TIPO_FOLHA, "Folha pronta"),
         (TIPO_LAYOUT, "Modelo de layout"),
+        (TIPO_SABOR, "Sabor customizado"),
     )
 
     tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, db_index=True)

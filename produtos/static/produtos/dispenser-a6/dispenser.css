@@ -460,6 +460,19 @@ html, body {
   position: relative;
 }
 
+.dsp-flavor-create {
+  margin-top: 0.55rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid #e2e8f0;
+}
+.dsp-flavor-create .dsp-field span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #475569;
+  margin-bottom: 0.2rem;
+}
+
 .dsp-gal-add-btn {
   display: inline-flex;
   align-items: center;

@@ -267,6 +267,12 @@
     <path stroke="#16a085" stroke-width="1.5" stroke-linecap="round" d="M12 8 8.8 6.5M12 8l3.2-1.5M12 11.2 8.6 9.6M12 11.2l3.4-1.6M12 14.5 9 13M12 14.5l3 1.5"/>
   </symbol>
 
+  <symbol id="ico-mix-sabores" viewBox="0 0 24 24" fill="none">
+    <circle stroke="#e67e22" stroke-width="1.65" cx="9.2" cy="10.2" r="4.1"/>
+    <circle stroke="#c0392b" stroke-width="1.65" cx="14.8" cy="10.2" r="4.1"/>
+    <circle stroke="#27ae60" stroke-width="1.65" cx="12" cy="15.2" r="4.1"/>
+  </symbol>
+
   <symbol id="ico-generico" viewBox="0 0 24 24" fill="none">
     <circle stroke="#7f8c8d" stroke-width="1.65" cx="12" cy="12" r="6"/>
     <circle fill="#7f8c8d" cx="12" cy="12" r="1.6"/>

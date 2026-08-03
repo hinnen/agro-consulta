@@ -6,6 +6,7 @@
     pets: "dsp_pets_custom_v1",
     ings: "dsp_ings_custom_v1",
     flavorIcos: "dsp_flavor_icos_v1",
+    customFlavors: "dsp_custom_flavors_v1",
     folhas: "dsp_folhas_v1",
     layouts: "dsp_layouts_v1",
     migrateDone: "dsp_cloud_migrate_done_v1"
@@ -16,7 +17,8 @@
     logos: null,
     pets: null,
     ings: null,
-    flavorIcos: null
+    flavorIcos: null,
+    customFlavors: null
   };
 
   function csrf() {
@@ -76,6 +78,7 @@
       localStorage.removeItem(KEYS.pets);
       localStorage.removeItem(KEYS.ings);
       localStorage.removeItem(KEYS.flavorIcos);
+      localStorage.removeItem(KEYS.customFlavors);
     } catch (e) {}
   }
 
@@ -86,6 +89,8 @@
     mem.ings = Array.isArray(readLocal(KEYS.ings, [])) ? readLocal(KEYS.ings, []) : [];
     var icos = readLocal(KEYS.flavorIcos, {});
     mem.flavorIcos = icos && typeof icos === "object" ? icos : {};
+    var cf = readLocal(KEYS.customFlavors, {});
+    mem.customFlavors = cf && typeof cf === "object" ? cf : {};
   }
 
   function getLogos() {
@@ -128,16 +133,39 @@
     return true;
   }
 
+  function getCustomFlavors() {
+    ensureMemSeeded();
+    return Object.assign({}, mem.customFlavors);
+  }
+  function setCustomFlavors(obj) {
+    ensureMemSeeded();
+    mem.customFlavors = obj && typeof obj === "object" ? Object.assign({}, obj) : {};
+    if (global.DspFlavorLib && global.DspFlavorLib.registerCustoms) {
+      global.DspFlavorLib.registerCustoms(mem.customFlavors);
+    }
+    return true;
+  }
+
+  function syncFlavorLibCustoms() {
+    ensureMemSeeded();
+    if (global.DspFlavorLib && global.DspFlavorLib.registerCustoms) {
+      global.DspFlavorLib.registerCustoms(mem.customFlavors || {});
+    }
+  }
+
   function localMidiaHasContent() {
     ensureMemSeeded();
     if (mem.logos.length || mem.pets.length || mem.ings.length) return true;
     if (Object.keys(mem.flavorIcos).length) return true;
+    if (Object.keys(mem.customFlavors || {}).length) return true;
     /* residual no Chrome (antes do purge) */
     if ((readLocal(KEYS.logos, []) || []).length) return true;
     if ((readLocal(KEYS.pets, []) || []).length) return true;
     if ((readLocal(KEYS.ings, []) || []).length) return true;
     var icos = readLocal(KEYS.flavorIcos, {});
     if (icos && typeof icos === "object" && Object.keys(icos).length) return true;
+    var cf = readLocal(KEYS.customFlavors, {});
+    if (cf && typeof cf === "object" && Object.keys(cf).length) return true;
     return false;
   }
 
@@ -176,7 +204,7 @@
     });
     var folhas = readLocal(KEYS.folhas, {});
     var layouts = readLocal(KEYS.layouts, {});
-    var docs = { folha: {}, layout: {} };
+    var docs = { folha: {}, layout: {}, sabor: {} };
     if (folhas && typeof folhas === "object") {
       Object.keys(folhas).forEach(function (n) {
         docs.folha[n] = folhas[n];
@@ -189,6 +217,15 @@
         docs.layout[n] = m;
       });
     }
+    Object.keys(mem.customFlavors || {}).forEach(function (k) {
+      var it = mem.customFlavors[k];
+      if (!it) return;
+      docs.sabor[String(k).slice(0, 80)] = {
+        v: 1,
+        label: it.label || k,
+        desc: it.desc || ""
+      };
+    });
     return { midias: midias, documentos: docs };
   }
 
@@ -219,6 +256,19 @@
       cleaned[n] = serverLayouts[n];
     });
     writeLocal(KEYS.layouts, cleaned);
+
+    var cf = {};
+    var serverSabores = docs.sabor && typeof docs.sabor === "object" ? docs.sabor : {};
+    Object.keys(serverSabores).forEach(function (k) {
+      var entry = serverSabores[k];
+      if (!entry || typeof entry !== "object") return;
+      cf[k] = {
+        label: String(entry.label || k).trim() || k,
+        desc: String(entry.desc || entry.descricao || "").trim()
+      };
+    });
+    mem.customFlavors = cf;
+    syncFlavorLibCustoms();
   }
 
   function getBiblioteca() {
@@ -322,6 +372,9 @@
     getIngs: getIngs,
     setIngs: setIngs,
     getFlavorIcos: getFlavorIcos,
-    setFlavorIcos: setFlavorIcos
+    setFlavorIcos: setFlavorIcos,
+    getCustomFlavors: getCustomFlavors,
+    setCustomFlavors: setCustomFlavors,
+    syncFlavorLibCustoms: syncFlavorLibCustoms
   };
 })(window);

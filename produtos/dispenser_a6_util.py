@@ -16,6 +16,7 @@ MAX_POR_TIPO = {
 MAX_DOCS = {
     DispenserDocumentoAgro.TIPO_FOLHA: 40,
     DispenserDocumentoAgro.TIPO_LAYOUT: 40,
+    DispenserDocumentoAgro.TIPO_SABOR: 80,
 }
 
 TIPOS_MIDIA = {c[0] for c in DispenserMidiaAgro.TIPO_CHOICES}
