@@ -1182,40 +1182,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 Dispenser — folhas sem «memória cheia» (`DSP-FOLHA-CLOUD` · 03/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Causa** | Salvar folha ainda exigia `localStorage` (QuotaExceeded) antes da nuvem |
-| **Fix** | Folhas só **RAM + Postgres** · apaga `dsp_folhas_v1` do Chrome · save espera a API |
-| **Escopo** | **só** Dispenser A6 · **zero** PDV |
-| **Arquivos** | `dispenser_cloud.js` · `dispenser_a6_studio.html` |
-| **Você** | Ctrl+F5 Dispenser · Salvar em cima / como nova · sem alerta de memória cheia |
-
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
-**VERSION alvo loja:** **13.62** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
+**VERSION alvo loja:** **13.63** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
-| **1** | **DSP-MIX-CRIAR** + **DSP-FOLHA-CLOUD** | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **1** | **DSP-MIX-CRIAR** + **DSP-FOLHA-CLOUD** (**v13.63**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 | **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** |
 | **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 
 **Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
 
-### 📦 PACOTE PRONTO LOJA — Dispenser Mix + folhas nuvem (`DSP-MIX-CRIAR` + `DSP-FOLHA-CLOUD`)
+### 📦 PACOTE PRONTO LOJA — Dispenser Mix + folhas nuvem (`DSP-MIX` · **v13.63**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **Commits** | Mix `96c7ed7` · folhas nuvem **`0057e69`** (**teste v13.63**) |
 | **Inclui** | Mix Sabores · criar sabor · folhas **só Postgres/RAM** (sem «memória cheia») |
+| **Prova** | PG upsert/list/delete folha · cloud sem `writeLocal(folhas)` · saveFolhas sem Quota · Mix PNG OK |
 | **Migrate** | **SIM** `0081` |
 | **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
-| **Autorizar** | *pode subir dispenser mix / produção* + **99738595** |
-| **Você** | Ctrl+F5 · Salvar folha · sem alerta de memória |
+| **Autorizar** | *pode subir dispenser / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.60**)
 
@@ -1223,7 +1214,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
 | **Commits** | `7db7675` · `be3715e` |
-| **Inclui** | Reabrir estorna carimbo · kardex saída estorno (não apaga entrada) |
+| **Inclui** | Reabrir estorna carimbo · kardex saída estorno |
 | **Migrate** | **SIM** `estoque.0015` |
 | **Risco** | Médio — Entrada NF + saldo |
 | **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
@@ -1233,33 +1224,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commits** | `5a84b83` · harden **`19004d8`** (**teste v13.62**) |
-| **Inclui** | Copiar prompt Cursor · guia · JSON seguro (`json_script`) · URL print via `reverse` |
-| **Prova** | Client Django 200 · escape `</script>` · lista · print_url · estorno helper vazio OK |
+| **Commits** | `5a84b83` · `19004d8` |
+| **Inclui** | Copiar prompt Cursor · JSON seguro · print via `reverse` |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só tela Bugs |
 | **Autorizar** | *pode subir bugs prompt / produção* + **99738595** |
+
+### 🔧 Dispenser — folhas sem «memória cheia» (`DSP-FOLHA-CLOUD` · **teste v13.63**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Verify** | ✅ **PASS** · commit **`0057e69`** |
+| **Fix** | Folhas só RAM + Postgres · apaga `dsp_folhas_v1` · save espera API |
+| **Pacote** | ver **DSP-MIX** acima |
 
 ### ✅ Deploy loja **v13.39** — LOTE CHECKLIST (03/08 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **Live** · `producao` @ **`94112a8`** · badge **13.39** |
-| **Inclui** | F10 Bugs + frete · 🐞 ENVIAR/SUBTOTAL · ETQ lote A4 · inventário |
 | **Rollback** | `rollback/pre-lote-checklist-v13.38` (@ v13.36) |
-
-### 📦 CHECKLIST ÚNICO — após envio v13.39 (histórico curto)
-
-| Ordem | Pacote | Status |
-| ----- | ------ | ------ |
-| **1–4** | **LOTE CHECKLIST** (**v13.39**) | ✅ **enviado** · `94112a8` |
-
-### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · ✅ loja v13.39)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **enviado loja v13.39** · no lote `94112a8` |
-| **Fix** | Safe-zone não mexe `#pdv-step1-subtotal-dock` |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
