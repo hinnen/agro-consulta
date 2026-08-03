@@ -9234,7 +9234,7 @@
     const vunInp = tr.querySelector('.in-vun');
     const pvInp = tr.querySelector('.in-pvenda');
     const custoLista = entradaNfeValorCustoProduto(p);
-    if (vunInp && custoLista != null && tr.dataset.nfeCustNfPreservado !== '1') {
+    if (vunInp && custoLista != null && custoLista > 0 && tr.dataset.nfeCustNfPreservado !== '1') {
       entradaNfeDefinirInputMoedaBr2(vunInp, custoLista);
     }
     const pv = entradaNfeParseDecimalApi(p.preco_venda);

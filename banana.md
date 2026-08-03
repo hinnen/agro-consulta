@@ -1194,9 +1194,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto** (no prep) |
-| **2** | **CAD-DUP** | 📋 **pronto** (no prep) |
-| **3** | **CAD-CB-OPC** | 📋 **pronto** · VERIFY_OK (no prep) |
+| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto para envio** · VERIFY_OK |
+| **2** | **CAD-DUP** | 📋 **pronto para envio** |
+| **3** | **CAD-CB-OPC** | 📋 **pronto para envio** · VERIFY_OK |
 
 **Autorizar:** *pode subir lote cad/nf para produção* + **99738595**
 
@@ -1205,7 +1205,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🟢 **PRONTO no GitHub** · tip `b9488ef` |
-| **Provas** | cherry sobre `6996fca` · conflitos cProd+CB resolvidos · testes **7/7** · PDV/caixa fora do diff |
+| **Provas** | cherry sobre `6996fca` · conflitos cProd+CB resolvidos · CAD-CB 7/7 · **ENTRADA-NF-CUSTO 10/10** · PDV/caixa fora do diff |
 | **Inclui** | NF custo · Duplicar · Barras opcionais (+ fallback busca) |
 
 ### 📦 PACOTE PRONTO LOJA — Barras opcionais (`CAD-CB-OPC` · **v13.75**)
@@ -1214,10 +1214,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
 | **Inclui** | Lista barras opcionais no cadastro · grava PG · bip PDV acha qualquer EAN |
-| **Prova** | `manage.py test produtos.tests_codigos_barras_opcionais` **7/7 OK** · smoke helpers/modal · fallback `has_key` na busca |
+| **Prova** | `manage.py test produtos.tests_codigos_barras_opcionais` **7/7 OK** |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só overlay JSON + busca código |
-| **Cherry** | `9ec0296` + commit verify tip · arquivos: `mongo_index_codigos` · `cadastro_busca_codigo_util` · `catalogo_agro` · `views` · modal · teste |
+| **Cherry** | `9ec0296` + verify · no prep |
 | **Autorizar** | *pode subir barras opcionais / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Duplicar cadastro (`CAD-DUP` · **v13.72**)
@@ -1228,19 +1228,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Inclui** | Botão **Duplicar** no modal Cadastro · códigos/barras novos · sem estoque |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — UI modal + mesmo POST overlay |
-| **Cherry** | `9894c1f` |
+| **Cherry** | `9894c1f` · no prep |
 | **Autorizar** | *pode subir duplicar cadastro / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · **v13.71**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · **não** loja |
-| **Inclui** | V. unit na etapa 2 puxa custo do Cadastro (ignora custo 0 Mongo) |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | V. unit etapa 2 puxa custo do Cadastro (JS ignora 0 · overlay sync · PG fallback) |
+| **Prova** | `manage.py test produtos.tests_entrada_nf_custo_cadastro` **10/10 OK** · PG local GM1821 custo **27** (overlay sem custo → path PG) |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo — Entrada NF etapa 2 |
-| **Cherry** | `0b024a3` |
+| **Risco** | Baixo — Entrada NF etapa 2 · linha XML com custo preservado não sobrescreve |
+| **Cherry** | `0b024a3` / prep `c6c6bca` |
 | **Autorizar** | *pode subir entrada NF custo / produção* + **99738595** |
+
+### ✅ VERIFY — ENTRADA-NF-CUSTO (03/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Resultado** | **VERIFY_OK** · **v13.77** |
+| **Testes** | 10/10 `tests_entrada_nf_custo_cadastro` |
+| **Path** | Mongo final=0 → overlay OU `Produto.custo` PG → JS `> 0` → V. unit |
+| **Caso real** | sal fino GM1821 · Cadastro R$ 27 · overlay sem `preco_custo_overlay` · depende fallback PG |
+| **Você** | Ctrl+F5 Entrada NF · incluir sal fino → V. unit **27,00** |
 
 ### ✅ VERIFY — CAD-CB-OPC (03/08)
 
@@ -1248,27 +1259,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Resultado** | **VERIFY_OK** |
 | **Testes** | 7/7 `tests_codigos_barras_opcionais` |
-| **Path** | save `cadastro_extras` → `overlay_pids` (+ fallback) → `index_codigos` → modal Fiscal |
 | **Você** | Ctrl+F5 cadastro: gravar EAN opcional → bip no PDV |
-
-### ✨ Cadastro — barras opcionais (`CAD-CB-OPC`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ver **PACOTE PRONTO CAD-CB-OPC v13.75** |
-| **O quê** | Aba Fiscal · Barras opcionais (até 20) · mesmo SKU |
-
-### ✨ Cadastro — Duplicar produto (`CAD-DUP`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ver **PACOTE PRONTO CAD-DUP v13.72** |
-
-### 🔧 Entrada NF — V. unit custo cadastro (`ENTRADA-NF-CUSTO`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ver **PACOTE PRONTO ENTRADA-NF-CUSTO v13.71** |
 
 ### 📦 CHECKLIST ÚNICO — após envio (03/08 · lote v13.64) · **histórico**
 
