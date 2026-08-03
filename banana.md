@@ -1180,80 +1180,51 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · **teste v13.52**)
+### ✅ Deploy loja **v13.39** — LOTE CHECKLIST (03/08 · Renan frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Depois do botão reportar bug, card ENVIAR + SUBTOTAL na coluna direita ficava estreito (espaço branco à esquerda) |
-| **Causa** | Safe-zone do 🐞 aplicava `padding-left` em `#pdv-step1-subtotal-dock` (longe do FAB) |
-| **Fix** | Tirar o dock da safe-zone · CSS força padding 0 · cache `bug13` |
-| **Commit** | `69b7049` · **teste v13.52** · push `origin/teste` |
-| **Arquivos** | `agro_bug_report.js` · `_agro_consulta_ui.html` |
-| **Você** | Ctrl+F5 no PDV · conferir ENVIAR/SUBTOTAL largura total |
-
-### ⏭ PRÓXIMO CHAT — deploy loja **LOTE CHECKLIST v13.39** (preparado 03/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **branch pronta** · aguarda pausa + frase + senha |
-| **Inclui (4 paths)** | **BUGS-F10-FRETE** · **BUG-FAB-PDV** · **ETQ-LOTE-A4** · **RELAT-INVENTARIO** |
-| **Branch** | `deploy/lote-checklist-v13.38` @ **`94112a8`** → `producao` (badge **v13.39**) |
+| **Status** | ✅ **enviado** · `producao` @ **`94112a8`** · badge **13.39** · aguardar Live + migrate `0080` |
+| **Base** | loja **v13.36** @ `7cb3695` |
+| **Branch** | `deploy/lote-checklist-v13.38` |
 | **Rollback** | `git push origin rollback/pre-lote-checklist-v13.38:producao` (@ **`7cb3695`** / v13.36) |
+| **Inclui** | F10 Bugs + frete · 🐞 ENVIAR/SUBTOTAL · ETQ lote A4 · inventário |
 | **Migrate** | **SIM** `0080_etiqueta_lote_agro` (no build Render) |
-| **Diff** | 17 arquivos · **sem** merge `teste` · base loja + cirúrgico |
-| **Risco PDV/caixa** | **Baixo** — não mexe finalizar · + fix 🐞 não encolhe ENVIAR/SUBTOTAL |
-| **Loja aberta** | **Pausar** (migrate + Ctrl+F5 PDVs) |
-| **Prova** | BUGS ALL PASS · RELAT VERIFY_OK · frete+F10 · 🐞 dock no lote |
-| **Você autoriza** | 1) pausam vendas 2) *pode subir LOTE CHECKLIST / produção* + **99738595** |
-| **Depois** | Ctrl+F5 · badge **13.39** · F10 Bugs · frete 20 · ENVIAR/SUBTOTAL ok · inventário · lote A4 |
-| **Zap** | *Atualização ~3–5 min (migrate) — pause venda, depois Ctrl+F5* |
-| **Alt. menor** | Só bugs: `deploy/bugs-f10-frete-v13.37` @ `d10f08b` (sem migrate) |
+| **NÃO** | merge `teste` |
+| **Você agora** | Esperar Live · Ctrl+F5 PDVs · badge **13.39** · F10 Bugs · frete · ENVIAR ok · inventário · lote A4 |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
+### 📦 CHECKLIST ÚNICO — após envio (03/08)
 
-**Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Teste hoje:** badge **v13.50** · branch `teste`  
-**Lote único:** `deploy/lote-checklist-v13.38` @ `94112a8` · badge **v13.39** · migrate **0080**
+**Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
+**Rollback:** `rollback/pre-lote-checklist-v13.38` (@ v13.36)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
-| — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
-| **1–4** | **LOTE** Bugs+🐞PDV+ETQ+Inventário (**v13.39**) | 📦 **pronto para envio à produção** · `94112a8` |
+| — | **HIST-REVERTER-PIN** (**v13.36**) | ✅ enviado antes |
+| **1–4** | **LOTE CHECKLIST** (**v13.39**) | ✅ **enviado** · `94112a8` · migrate `0080` |
 
-### 📦 PACOTE PRONTO LOJA — Lote checklist (`LOTE-CHECKLIST` · **v13.39**)
+### 🔧 PDV — ENVIAR/SUBTOTAL encolhido pelo 🐞 (03/08 · ✅ loja v13.39)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
-| **Branch** | `deploy/lote-checklist-v13.38` @ **`94112a8`** |
-| **Rollback** | `rollback/pre-lote-checklist-v13.38` |
-| **1** | F10 Bugs + frete digitável |
-| **2** | 🐞 não encolhe ENVIAR/SUBTOTAL (`agro_bug_report.js`) |
-| **3** | Etiquetas lote A4 · migrate `0080` |
-| **4** | Relatórios inventário (só positivo no «com saldo») |
-| **Autorizar** | ver **PRÓXIMO CHAT** |
+| **Status** | ✅ **enviado loja v13.39** · no lote `94112a8` |
+| **Fix** | Safe-zone não mexe `#pdv-step1-subtotal-dock` |
 
 ### ✅ LOJA — **HIST-REVERTER-PIN** (**v13.36** · 02/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **na loja** · `producao` @ **`7cb3695`** · badge **v13.36** |
+| **Status** | ✅ **absorvido** · loja agora **v13.39** · (este pacote foi **v13.36** @ `7cb3695`) |
 | **Antes** | **v13.35** @ `87a5a78` |
 | **Push** | `deploy/hist-reverter-pin-v13:producao` (autorizado frase + senha) |
-| **Rollback** | `git push origin rollback/pre-hist-reverter-pin-v13:producao` → volta **v13.35** |
 | **O quê** | ✕ reverte contagem · PIN real / SESSAO · API `/api/deletar-ajuste/` |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · badge **13.36** · Hist. ✕ com PIN da loja · card some · saldo volta |
 
-### 📦 CHECKLIST ÚNICO — após envio (02/08)
-
-**Loja hoje:** badge **v13.36** · `producao` @ `7cb3695`  
-**Migrate:** NÃO
+### 📦 CHECKLIST ÚNICO — histórico (02/08 · superado por v13.39)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **AJUSTE-HIST-UX** (**v13.35**) | ✅ absorvido |
-| **1** | **HIST-REVERTER-PIN** (**v13.36**) | ✅ **na loja** |
+| **1** | **HIST-REVERTER-PIN** (**v13.36**) | ✅ absorvido · loja **v13.39** |
 
 ### 🔧 Histórico — X reverte contagem (PIN) (**teste** · 02/08)
 
