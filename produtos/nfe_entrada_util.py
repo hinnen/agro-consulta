@@ -3213,7 +3213,39 @@ def atualizar_rascunho_entrada(
             dst.pop("financeiro_ids", None)
             dst.pop("financeiro_lancado_em", None)
 
+        def _entrada_nfe_mesclar_carimbo_estoque(dst: dict[str, Any]) -> None:
+            """
+            Carimbos de estoque Agro só o servidor grava (marcar/reverter).
+            Autosave do browser não pode ressuscitar ``estoque_agro_*`` após «Reabrir nota»
+            (senão o botão fica em «Estoque já registrado» e o saldo não entra de novo).
+            """
+            fresh_mini = col.find_one({"_id": _id}, projection={"extra": 1, "status": 1}) or {}
+            fresh_ex = fresh_mini.get("extra") if isinstance(fresh_mini.get("extra"), dict) else {}
+            st_fresh = str(fresh_mini.get("status") or "").strip().lower()
+            src = fresh_ex if fresh_ex else prev_ex
+            st_src = st_fresh or str(atual.get("status") or "").strip().lower()
+            tem_stamp = bool(
+                st_src == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+                or str(src.get("estoque_agro_registrado_em") or "").strip()
+                or (
+                    isinstance(src.get("estoque_agro_ajuste_ids"), list)
+                    and any(str(x).strip() for x in (src.get("estoque_agro_ajuste_ids") or []))
+                )
+            )
+            for k in ("estoque_agro_ajuste_ids", "estoque_agro_registrado_em", "estoque_agro_lock"):
+                dst.pop(k, None)
+            if not tem_stamp:
+                return
+            if str(src.get("estoque_agro_registrado_em") or "").strip():
+                dst["estoque_agro_registrado_em"] = src["estoque_agro_registrado_em"]
+            ids_e = src.get("estoque_agro_ajuste_ids")
+            if isinstance(ids_e, list) and any(str(x).strip() for x in ids_e):
+                dst["estoque_agro_ajuste_ids"] = list(ids_e)
+            if src.get("estoque_agro_lock"):
+                dst["estoque_agro_lock"] = src["estoque_agro_lock"]
+
         _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+        _entrada_nfe_mesclar_carimbo_estoque(merged_extra)
 
         modo_in = str(modo or "manual").strip()[:40] or "manual"
         modo_prev = str(atual.get("modo") or "manual").strip()[:40] or "manual"
@@ -3235,6 +3267,7 @@ def atualizar_rascunho_entrada(
         if novo_status is not None:
             set_doc["status"] = novo_status
         _entrada_nfe_mesclar_carimbo_financeiro(merged_extra)
+        _entrada_nfe_mesclar_carimbo_estoque(merged_extra)
         set_doc["extra"] = merged_extra
         col.update_one(
             {"_id": _id},
@@ -3391,8 +3424,9 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
     - Títulos em ``extra.financeiro_ids`` (só se ``financeiro_lancado``), via
       ``excluir_lancamento_dispatch`` (Postgres no teste; Mongo na loja legado).
-    - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` (só se o status
-      do rascunho é ``estoque_aplicado``), origem ``entrada_nf_agro``.
+    - Ajustes ``AjusteRapidoEstoque`` em ``extra.estoque_agro_ajuste_ids`` quando há estoque
+      aplicado (status ``estoque_aplicado``, carimbo ``estoque_aplicado_em`` /
+      ``estoque_agro_registrado_em``, ou lista de IDs), origem ``entrada_nf_agro``.
 
     Pode ser chamado **sem** PIN final na nota quando há só travas de etapa (``wizard_etapa1/2/3_confirmada_em``)
     ou integrações já lançadas — assim «Reabrir nota» desfaz duplicidade antes de novo envio.
@@ -3422,8 +3456,25 @@ def reverter_integracao_entrada_nota_para_reabertura(
         had_lote_pul = bool(str(ex.get("wizard_lote_pular_em") or "").strip())
 
         st_doc = str(doc.get("status") or "").strip().lower()
-        had_estoque = st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
-        had_fin = bool(ex.get("financeiro_lancado"))
+        raw_aj = ex.get("estoque_agro_ajuste_ids") or []
+        ajuste_ids: list[int] = []
+        for x in raw_aj:
+            try:
+                ajuste_ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        # Estoque aplicado: status, carimbo top-level, flag em extra ou lista de ajustes.
+        # Antes só olhava ``estoque_aplicado`` — nota ``encerrada``/concluída com carimbo residual
+        # não estornava e a UI ficava em «Estoque já registrado» (não entrava de novo).
+        had_estoque = (
+            st_doc == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+            or bool(doc.get("estoque_aplicado_em"))
+            or bool(str(ex.get("estoque_agro_registrado_em") or "").strip())
+            or bool(ajuste_ids)
+        )
+        had_fin = bool(ex.get("financeiro_lancado")) or bool(
+            [str(x).strip() for x in (ex.get("financeiro_ids") or []) if str(x).strip()]
+        )
 
         if not (
             had_pin
@@ -3439,14 +3490,6 @@ def reverter_integracao_entrada_nota_para_reabertura(
                 "ok": False,
                 "erro": "Nada para reabrir: assistente sem etapas confirmadas nem estoque/financeiro registrado.",
             }
-
-        raw_aj = ex.get("estoque_agro_ajuste_ids") or []
-        ajuste_ids: list[int] = []
-        for x in raw_aj:
-            try:
-                ajuste_ids.append(int(x))
-            except (TypeError, ValueError):
-                continue
 
         fin_raw = ex.get("financeiro_ids") or []
         fin_ids = [str(x).strip() for x in fin_raw if str(x).strip()]
@@ -3488,7 +3531,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
             }
 
         n_estoque_del = 0
-        if had_estoque and ajuste_ids:
+        if ajuste_ids:
             try:
                 qs = AjusteRapidoEstoque.objects.filter(
                     pk__in=ajuste_ids,
@@ -3523,7 +3566,7 @@ def reverter_integracao_entrada_nota_para_reabertura(
 
         agora = datetime.now(timezone.utc)
         unset_doc: dict[str, str] = {}
-        if had_estoque:
+        if had_estoque or n_estoque_del:
             unset_doc["estoque_aplicado_em"] = ""
             unset_doc["usuario_estoque_aplicado"] = ""
 
@@ -4026,7 +4069,15 @@ def pipeline_acao_rascunho_entrada(
         elif ac == "reabrir":
             if st not in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA):
                 return {"ok": False, "erro": "Só é possível reabrir notas encerradas ou descartadas."}
-            novo = entrada_nfe_status_derivado_linhas(linhas)
+            # Não basta mudar o status: precisa estornar estoque/financeiro (igual «Reabrir nota» do assistente).
+            rr = reverter_integracao_entrada_nota_para_reabertura(db, str(_id), usuario=usuario)
+            if rr.get("ok"):
+                return rr
+            err_rr = str(rr.get("erro") or "")
+            if "Nada para reabrir" in err_rr:
+                novo = entrada_nfe_status_derivado_linhas(linhas)
+            else:
+                return rr
         elif ac in ("correcao_sistemica_on", "correcao_sistemica_off"):
             ex0 = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
             if str(ex0.get("aprovacao_wizard_em") or "").strip():
