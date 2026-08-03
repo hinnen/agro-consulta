@@ -1191,11 +1191,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ------ | ------ |
 | — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
 | **1** | **DSP-MIX** + **DSP-FOLHA-CLOUD** (**v13.63**) | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** |
+| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** · PREP cherry OK |
 | **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 | **4** | **KARDEX-SALDO-COLS** (**v13.64**) | 📦 **pronto para envio à produção** · VERIFY_OK · **só tela** |
 
 **Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
+
+### 🚀 PREP deploy loja — lote 03/08 (aguarda pausa + senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **PREP OK** · **não subir ainda** — lojas abertas |
+| **Cherry (ordem)** | `96c7ed7` → `0057e69` → `7db7675` → `be3715e` → `5a84b83` → `19004d8` → `0e65ecb` → `e4c1828` |
+| **Conflito soft** | `VERSION` + `banana.md` em quase todos — resolver: **theirs** VERSION · **ours** banana (ou ignorar banana na loja) |
+| **Conflito único código** | `be3715e` em `produtos/views.py` (reabrir) |
+| **Resolve reabrir** | Manter loja `_entrada_nfe_conexao()` + `_entrada_nfe_rascunho_db_ok` · **só** acrescentar `usuario_django=request.user…` · **não** voltar `obter_conexao_mongo()` |
+| **Migrate na loja** | `0081_dispenser…` · `estoque.0015` (estorno NF) |
+| **Prova PREP** | worktree dry-run cherry OK · migrations import OK · kardex AST/count estável · URLs PDV/checkout/entrada OK · **diff sem** pdv/caixa/checkout |
+| **Risco loja aberta** | **DSP / Bugs / Kardex** = baixo (zero PDV / só tela). **NF-REOPEN** = médio **só se alguém reabrir nota** (estorno de propósito) — PDV venda não é o path |
+| **Próximo chat** | Lojas pausam vendas → *pode subir lote checklist 03/08 / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Kardex Centro/Vila/Total (`KARDEX-SALDO-COLS` · **v13.64**)
 
