@@ -1184,7 +1184,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no **teste** · migrate **0080** · validar local |
+| **Status** | ✅ no **teste** · **v13.40** · migrate **0080** · validar local |
 | **Para quê** | Abertura Vila: ~343 etiquetas sem travar · pacotes de **18** (1 folha A4) · progresso no **Postgres** |
 | **Tela** | `/produtos/etiquetas/lote/` · atalho **Lote A4** na tela de etiquetas |
 | **Uso** | Montar lista (Vila + positivo) → Imprimir próxima folha → confirmar «saiu ok?» → desfazer se falhou |
