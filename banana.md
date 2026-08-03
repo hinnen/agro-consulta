@@ -1212,18 +1212,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Autorizar** | *pode subir dispenser mix / produção* + **99738595** |
 | **Você antes** | Ctrl+F5 Dispenser → Sabores → Mix Sabores · criar 1 sabor teste |
 
-### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.57**)
+### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.60**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio** |
-| **Commit teste** | **`7db7675`** |
-| **VERSION loja alvo** | **13.57** (ou lote **13.59**) |
-| **Inclui** | Ao reabrir nota, estorna estoque se houver carimbo/IDs · autosave não ressuscita carimbo |
-| **Arquivo** | `produtos/nfe_entrada_util.py` |
-| **Migrate** | **NÃO** |
-| **Risco** | **Médio** — Entrada NF · testar reabrir + registrar estoque de novo |
+| **Commit teste** | (este push) · base fix `7db7675` + kardex estorno |
+| **VERSION loja alvo** | **13.60** |
+| **Inclui** | Reabrir estorna carimbo · **kardex:** saída «Estorno NF (reabrir)» sem apagar Entrada · `nf_qtd=` |
+| **Arquivos** | `nfe_entrada_util.py` · `estoque/models.py` · `0015` · kardex · modal · `entrada_nota.html` · `views.py` |
+| **Migrate** | **SIM** `estoque.0015_estorno_entrada_nf_origem` |
+| **Risco** | **Médio** — Entrada NF + saldo · testar reabrir → ver saída no histórico → registrar de novo |
 | **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
+
+### ✨ Entrada NF — estorno no kardex ao reabrir (03/08 · **teste v13.60**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Reabrir → saída no Histórico (não some a entrada) · fechar de novo → nova Entrada NF |
+| **Pacote** | ver **PACOTE PRONTO NF-REOPEN-ESTOQUE** acima |
 
 ### 📦 PACOTE PRONTO LOJA — Bugs Copiar prompt Cursor (`BUGS-PROMPT` · **v13.56**)
 
