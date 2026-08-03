@@ -12645,6 +12645,27 @@ def _etiquetas_lote_usuario(request) -> str:
     return (u.get_username() or getattr(u, "email", "") or str(u.pk))[:150]
 
 
+def _etiquetas_lote_preco(raw) -> float:
+    if raw is None or raw == "":
+        return 0.0
+    if isinstance(raw, (int, float)):
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            return 0.0
+    s = str(raw).strip().replace("R$", "").replace(" ", "")
+    if not s:
+        return 0.0
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def _etiquetas_lote_item_de_prod(p: dict) -> dict:
     return {
         "id": str(p.get("id") or "")[:64],
@@ -12653,7 +12674,7 @@ def _etiquetas_lote_item_de_prod(p: dict) -> dict:
             p.get("codigo_gm") or p.get("codigo_nfe") or p.get("codigo_interno") or p.get("codigo") or ""
         )[:80],
         "codigo_barras": str(p.get("codigo_barras") or p.get("ean") or p.get("gtin") or "")[:80],
-        "preco_venda": float(p.get("preco_venda") or 0) if p.get("preco_venda") is not None else 0.0,
+        "preco_venda": _etiquetas_lote_preco(p.get("preco_venda")),
         "peso_etiqueta": str(p.get("peso_etiqueta") or "")[:40],
         "qtd": 1,
     }
