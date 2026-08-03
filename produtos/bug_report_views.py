@@ -114,13 +114,15 @@ def bug_reports_lista_view(request):
 @never_cache
 @require_GET
 def bug_report_detalhe_view(request, pk: int):
+    from django.urls import reverse
+
     report = get_object_or_404(BugReportAgro, pk=pk)
     print_url = ""
     if (report.print_base64 or "").strip():
         try:
-            print_url = request.build_absolute_uri(f"/gestao/bugs/{report.pk}/print/")
+            print_url = request.build_absolute_uri(reverse("bug_report_print", kwargs={"pk": report.pk}))
         except Exception:
-            print_url = f"/gestao/bugs/{report.pk}/print/"
+            print_url = reverse("bug_report_print", kwargs={"pk": report.pk})
     quando = ""
     try:
         quando = report.criado_em.strftime("%d/%m/%Y %H:%M") if report.criado_em else ""
@@ -145,7 +147,7 @@ def bug_report_detalhe_view(request, pk: int):
         "produtos/bug_report_detalhe.html",
         {
             "report": report,
-            "bug_cursor_prompt_json": json.dumps(prompt_payload, ensure_ascii=False),
+            "bug_cursor_prompt": prompt_payload,
         },
     )
 

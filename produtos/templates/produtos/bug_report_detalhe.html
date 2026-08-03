@@ -66,7 +66,7 @@
     </div>
   </section>
 </div>
-<script type="application/json" id="bug-cursor-prompt-data">{{ bug_cursor_prompt_json|safe }}</script>
+{{ bug_cursor_prompt|json_script:"bug-cursor-prompt-data" }}
 <script>
 (function () {
   var box = document.getElementById('bug-status-btns');
