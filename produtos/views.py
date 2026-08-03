@@ -14649,6 +14649,7 @@ def aplicar_entrada_nota_estoque_agro(
                 obs_bits.append("nf_forn=" + forn_cab.replace("|", "/"))
             if custo_ln is not None:
                 obs_bits.append(f"nf_custo={custo_ln:.4f}".rstrip("0").rstrip("."))
+            obs_bits.append(f"nf_qtd={qtd}")
             obs_txt = " | ".join(obs_bits)
             adj = AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
@@ -15594,7 +15595,12 @@ def api_entrada_nota_reabrir_nota(request):
             {"ok": False, "erro": "Armazenamento de rascunho indisponível"},
             status=503,
         )
-    rr = reverter_integracao_entrada_nota_para_reabertura(db, oid, usuario=usuario)
+    rr = reverter_integracao_entrada_nota_para_reabertura(
+        db,
+        oid,
+        usuario=usuario,
+        usuario_django=request.user if request.user.is_authenticated else None,
+    )
     if not rr.get("ok"):
         return JsonResponse(rr, status=400)
     try:

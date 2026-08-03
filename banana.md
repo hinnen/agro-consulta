@@ -575,6 +575,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
+- **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 
 ### 4.8 Estoque Agro
 
@@ -1185,13 +1186,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
 **Rollback base:** `rollback/pre-lote-checklist-v13.38` (@ v13.36)  
-**VERSION alvo loja:** **13.59** · migrate **SIM** `0081` (só no item 1)
+**VERSION alvo loja:** **13.60** · migrate **SIM** `0081` (item 1) + `0015` estoque (item 2)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **LOTE CHECKLIST** (**v13.39**) | ✅ já na loja |
 | **1** | **DSP-MIX-CRIAR** (**v13.59**) | 📦 **pronto para envio** · VERIFY_OK |
-| **2** | **NF-REOPEN-ESTOQUE** (**v13.57**) | 📦 **pronto para envio** |
+| **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio** · kardex estorno |
 | **3** | **BUGS-PROMPT** (**v13.56**) | 📦 **pronto para envio** |
 
 **Autorizar loja:** frase + **99738595** · cherry **só** os commits dos pacotes · **nunca** merge `teste`→`producao`
