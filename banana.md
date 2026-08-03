@@ -1186,17 +1186,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste:** **v13.75** · tip `teste` (CAD-CB-OPC VERIFY + fallback busca)  
-**Rollback base loja:** tag `rollback/pre-lote-checklist-03ago-v13.39`  
-**Migrate novo:** **NÃO** (só JSON em `cadastro_extras`)
+**Branch deploy (já no GitHub):** `prep/lote-cad-nf-v13.75` · badge **v13.75**  
+**Como subir (próximo chat):** pausar vendas → frase + senha → `git push origin prep/lote-cad-nf-v13.75:producao` · **NÃO** merge `teste`  
+**Rollback:** `git push origin 6996fca:producao`  
+**Migrate novo:** **NÃO**  
+**Risco loja aberta:** Baixo — diff do prep **sem** PDV wizard / caixa / checkout  
 
-| Ordem | Pacote | Commits | Status |
-| ----- | ------ | ------- | ------ |
-| **1** | **ENTRADA-NF-CUSTO** | `0b024a3` | 📋 **pronto para envio** |
-| **2** | **CAD-DUP** | `9894c1f` | 📋 **pronto para envio** |
-| **3** | **CAD-CB-OPC** | `9ec0296` + tip (verify/fallback) | 📋 **pronto para envio** · VERIFY_OK |
+| Ordem | Pacote | Status |
+| ----- | ------ | ------ |
+| **1** | **ENTRADA-NF-CUSTO** | 📋 **pronto** (no prep) |
+| **2** | **CAD-DUP** | 📋 **pronto** (no prep) |
+| **3** | **CAD-CB-OPC** | 📋 **pronto** · VERIFY_OK (no prep) |
 
-**Autorizar loja:** frase + senha na mesma mensagem · preferir cherry dos 3 (não merge inteiro `teste`).
+**Autorizar:** *pode subir lote cad/nf para produção* + **99738595**
+
+### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟢 **PRONTO no GitHub** · tip `b9488ef` |
+| **Provas** | cherry sobre `6996fca` · conflitos cProd+CB resolvidos · testes **7/7** · PDV/caixa fora do diff |
+| **Inclui** | NF custo · Duplicar · Barras opcionais (+ fallback busca) |
 
 ### 📦 PACOTE PRONTO LOJA — Barras opcionais (`CAD-CB-OPC` · **v13.75**)
 
