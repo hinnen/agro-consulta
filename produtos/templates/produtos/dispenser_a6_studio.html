@@ -5,10 +5,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dispenser A6 · GM Agro Mais</title>
-  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.20" />
-  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=13.20"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=13.20"></script>
-  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=13.20"></script>
+  <link rel="stylesheet" href="{% static 'produtos/dispenser-a6/dispenser.css' %}?v=13.60" />
+  <script src="{% static 'produtos/dispenser-a6/js/flavor_lib.js' %}?v=13.60"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/layout_edit.js' %}?v=13.60"></script>
+  <script src="{% static 'produtos/dispenser-a6/js/dispenser_cloud.js' %}?v=13.60"></script>
 </head>
 <body>
   {% csrf_token %}
@@ -220,7 +220,7 @@ Batata-Doce</textarea>
         <div class="dsp-tab-panel" id="dspTab-prontas" role="tabpanel" data-tab="prontas" hidden>
           <details class="dsp-help">
             <summary><span class="dsp-help-q" aria-hidden="true">?</span> Ajuda · Prontas</summary>
-            <div class="dsp-help-body">Salva a prévia inteira (categoria, marca/logo, fotos, sabores, proteína, letras e layout) <b>com as imagens dentro da folha</b>. Clique na miniatura para usar. <b>Salvar em cima</b> atualiza a aberta · <b>Salvar como nova</b> cria outra. Grava no <b>sistema</b> — Centro e Vila veem as mesmas folhas.</div>
+            <div class="dsp-help-body">Salva a prévia no <b>sistema</b> (Postgres) — Centro e Vila veem iguais. Não usa o bolso do Chrome (evita «memória cheia»). Clique na miniatura para usar. <b>Salvar em cima</b> atualiza a aberta · <b>Salvar como nova</b> cria outra.</div>
           </details>
           <div class="dsp-gal-label">Folhas prontas</div>
           <div class="dsp-gal dsp-gal--folhas" id="dspFolhaGal" role="listbox" aria-label="Folhas salvas"></div>
@@ -2258,6 +2258,8 @@ Batata-Doce</textarea>
     var FOLHA_ACTIVE_KEY = "dsp_folha_active_v1";
     var FOLHA_MAX = 40;
     var folhaGal = document.getElementById("dspFolhaGal");
+    var folhaSaveBtn = document.getElementById("dspFolhaSave");
+    var folhaSaveAsBtn = document.getElementById("dspFolhaSaveAs");
     var folhaActive = "";
     try {
       folhaActive = localStorage.getItem(FOLHA_ACTIVE_KEY) || "";
@@ -2275,6 +2277,7 @@ Batata-Doce</textarea>
     };
 
     function loadFolhas() {
+      if (window.DspCloud && window.DspCloud.getFolhas) return window.DspCloud.getFolhas();
       try {
         var raw = localStorage.getItem(FOLHA_KEY);
         var obj = raw ? JSON.parse(raw) : {};
@@ -2285,13 +2288,17 @@ Batata-Doce</textarea>
     }
 
     function saveFolhas(obj) {
+      /* Folhas ficam na RAM + Postgres — nunca no localStorage (QuotaExceeded). */
+      if (window.DspCloud && window.DspCloud.setFolhas) {
+        return window.DspCloud.setFolhas(obj);
+      }
       try {
         localStorage.setItem(FOLHA_KEY, JSON.stringify(obj));
         return true;
       } catch (e) {
         window.alert(
-          "Não deu para salvar a folha (memória do navegador cheia).\n" +
-          "Apague folhas ou fotos antigas em Bicho / Logos / Ingredientes e tente de novo."
+          "Não deu para salvar a folha neste PC.\n" +
+          "Abra o Dispenser logado para gravar no sistema."
         );
         return false;
       }
@@ -2356,9 +2363,7 @@ Batata-Doce</textarea>
         }
       });
       if (changed) {
-        try {
-          localStorage.setItem(FOLHA_KEY, JSON.stringify(next));
-        } catch (e2) {}
+        saveFolhas(next);
       }
     }
 
@@ -2683,39 +2688,51 @@ Batata-Doce</textarea>
           savedAt: Date.now()
         });
         all[name] = entry;
-        if (!saveFolhas(all)) {
-          entry.thumb = "";
-          all[name] = entry;
-          if (!saveFolhas(all)) return;
-        }
+        saveFolhas(all);
         folhaActive = name;
         try {
           localStorage.setItem(FOLHA_ACTIVE_KEY, name);
         } catch (e6) {}
-        if (window.DspCloud) {
-          var cloudEntry = leanFolhaModel(entry);
-          if (cloudEntry && cloudEntry.sheet) {
-            var sh = Object.assign({}, cloudEntry.sheet);
-            delete sh.logoDataUrl;
-            delete sh.petDataUrl;
-            delete sh.ingDataUrl;
-            cloudEntry.sheet = sh;
-          }
-          var thumbCloud = (cloudEntry && cloudEntry.thumb) || thumb || "";
-          if (cloudEntry) delete cloudEntry.thumb;
-          window.DspCloud.upsertDocumento("folha", name, cloudEntry || entry, thumbCloud);
+
+        function afterSaveOk() {
+          buildFolhaGal();
+          window.alert(
+            asNew
+              ? "Nova folha «" + name + "» criada — no sistema (duas lojas)."
+              : "Folha «" + name + "» atualizada — no sistema (duas lojas)."
+          );
         }
-        buildFolhaGal();
-        window.alert(
-          asNew
-            ? "Nova folha «" + name + "» criada — no sistema (duas lojas)."
-            : "Folha «" + name + "» atualizada — no sistema (duas lojas)."
-        );
+
+        if (!window.DspCloud || !window.DspCloud.upsertDocumento) {
+          buildFolhaGal();
+          window.alert("Folha guardada só nesta página.\nAbra logado para gravar no sistema.");
+          return;
+        }
+
+        var cloudEntry = leanFolhaModel(entry);
+        if (cloudEntry && cloudEntry.sheet) {
+          var sh = Object.assign({}, cloudEntry.sheet);
+          delete sh.logoDataUrl;
+          delete sh.petDataUrl;
+          delete sh.ingDataUrl;
+          cloudEntry.sheet = sh;
+        }
+        var thumbCloud = (cloudEntry && cloudEntry.thumb) || thumb || "";
+        if (cloudEntry) delete cloudEntry.thumb;
+        if (folhaSaveBtn) folhaSaveBtn.disabled = true;
+        if (folhaSaveAsBtn) folhaSaveAsBtn.disabled = true;
+        window.DspCloud
+          .upsertDocumento("folha", name, cloudEntry || entry, thumbCloud)
+          .then(function (res) {
+            if (folhaSaveBtn) folhaSaveBtn.disabled = !folhaActive;
+            if (folhaSaveAsBtn) folhaSaveAsBtn.disabled = false;
+            syncFolhaSaveUi();
+            if (!res) return;
+            afterSaveOk();
+          });
       });
     }
 
-    var folhaSaveBtn = document.getElementById("dspFolhaSave");
-    var folhaSaveAsBtn = document.getElementById("dspFolhaSaveAs");
     if (folhaSaveBtn) {
       folhaSaveBtn.addEventListener("click", function () {
         saveCurrentFolha(false);

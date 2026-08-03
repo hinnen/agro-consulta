@@ -1182,6 +1182,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### 🔧 Dispenser — folhas sem «memória cheia» (`DSP-FOLHA-CLOUD` · 03/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Salvar folha ainda exigia `localStorage` (QuotaExceeded) antes da nuvem |
+| **Fix** | Folhas só **RAM + Postgres** · apaga `dsp_folhas_v1` do Chrome · save espera a API |
+| **Escopo** | **só** Dispenser A6 · **zero** PDV |
+| **Arquivos** | `dispenser_cloud.js` · `dispenser_a6_studio.html` |
+| **Você** | Ctrl+F5 Dispenser · Salvar em cima / como nova · sem alerta de memória cheia |
+
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
@@ -1190,22 +1200,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
-| **1** | **DSP-MIX-CRIAR** (**v13.59**) | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **1** | **DSP-MIX-CRIAR** + **DSP-FOLHA-CLOUD** | 📦 **pronto para envio à produção** · VERIFY_OK |
 | **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** |
 | **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 
 **Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
 
-### 📦 PACOTE PRONTO LOJA — Dispenser Mix + criar sabor (`DSP-MIX-CRIAR` · **v13.59**)
+### 📦 PACOTE PRONTO LOJA — Dispenser Mix + folhas nuvem (`DSP-MIX-CRIAR` + `DSP-FOLHA-CLOUD`)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
-| **Commit** | `96c7ed7` |
-| **Inclui** | Mix Sabores · criar sabor (nome/desc/PNG) · PG |
+| **Inclui** | Mix Sabores · criar sabor · folhas **só Postgres/RAM** (sem «memória cheia») |
 | **Migrate** | **SIM** `0081` |
-| **Risco** | Baixo — só Dispenser |
+| **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
 | **Autorizar** | *pode subir dispenser mix / produção* + **99738595** |
+| **Você** | Ctrl+F5 · Salvar folha · sem alerta de memória |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF reabrir estoque (`NF-REOPEN-ESTOQUE` · **v13.60**)
 
