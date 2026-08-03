@@ -1579,7 +1579,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pós-deploy (01/08) · **substituído**
 
-> **Vigente:** bloco **CHECKLIST ÚNICO — pronto envio (02/08)** no topo do CHECKPOINT (pacote **AJUSTE-MOBILE-UX**).
+> **Vigente:** bloco **CHECKLIST ÚNICO — pronto envio (03/08)** no topo do CHECKPOINT (pacote **ETQ-LOTE-A4**).
 
 **Loja na época:** badge **v13.04** · depois subiu **v13.10** / **v13.11**.  
 Fila 1–9 abaixo = **já enviada** (arquivo histórico).
