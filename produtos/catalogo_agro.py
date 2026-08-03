@@ -1,4 +1,4 @@
-﻿"""CatÃ¡logo PostgreSQL (``Produto``) â€” ``AGRO_FONTE_CATALOGO=agro_pg``."""
+"""CatÃ¡logo PostgreSQL (``Produto``) â€” ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
 import re
