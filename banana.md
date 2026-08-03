@@ -1185,16 +1185,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (03/08)
 
 **Loja hoje:** badge **v13.39** · `producao` @ `94112a8`  
-**VERSION alvo loja:** **13.63** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
+**VERSION alvo loja:** **13.64** · migrate **SIM** `0081` (1) + `estoque.0015` (2)
 
 | Ordem | Pacote | Status |
 | ----- | ------ | ------ |
 | — | **LOTE CHECKLIST** (**v13.39**) | ✅ na loja |
-| **1** | **DSP-MIX-CRIAR** + **DSP-FOLHA-CLOUD** (**v13.63**) | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **1** | **DSP-MIX** + **DSP-FOLHA-CLOUD** (**v13.63**) | 📦 **pronto para envio à produção** · VERIFY_OK |
 | **2** | **NF-REOPEN-ESTOQUE** (**v13.60**) | 📦 **pronto para envio à produção** |
 | **3** | **BUGS-PROMPT** (**v13.62**) | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **4** | **KARDEX-SALDO-COLS** (**v13.64**) | 📦 **pronto para envio à produção** · VERIFY_OK · **só tela** |
 
 **Autorizar:** frase + **99738595** · cherry só estes pacotes · **nunca** merge `teste`→`producao`
+
+### 📦 PACOTE PRONTO LOJA — Kardex Centro/Vila/Total (`KARDEX-SALDO-COLS` · **v13.64**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK |
+| **Commits** | `0e65ecb` · **`e4c1828`** |
+| **Inclui** | Colunas **Centro · Vila · Total** · filtros chip · saldo 0 legível |
+| **Prova** | AST zero write · API GET · count ajustes inalterado · math mock |
+| **Saldo atual** | **NÃO altera** — só leitura/exibição |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — modal cadastro aba Estoque |
+| **Autorizar** | *pode subir kardex saldos / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser Mix + folhas nuvem (`DSP-MIX` · **v13.63**)
 
@@ -1214,7 +1228,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
 | **Commits** | `7db7675` · `be3715e` |
-| **Inclui** | Reabrir estorna carimbo · kardex saída estorno |
+| **Inclui** | Reabrir estorna carimbo · kardex saída estorno (ao **reabrir** nota — mexe saldo de propósito) |
 | **Migrate** | **SIM** `estoque.0015` |
 | **Risco** | Médio — Entrada NF + saldo |
 | **Autorizar** | *pode subir NF reabrir estoque / produção* + **99738595** |
