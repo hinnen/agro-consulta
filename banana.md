@@ -1181,13 +1181,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🐛 Entrada NF — reabrir e estoque não entra de novo (03/08 · **teste**)
+### 🐛 Entrada NF — reabrir e estoque não entra de novo (03/08 · **teste v13.57**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Sintoma** | Reabrir nota concluída/encerrada e fechar de novo → botão «Estoque já registrado» / saldo não sobe |
 | **Causa** | Estorno só se `status=estoque_aplicado`; carimbo `estoque_aplicado_em` ficava; autosave podia trazer `estoque_agro_*` de volta |
 | **Fix** | `reverter_integracao…` detecta carimbo/IDs · limpa top-level · autosave não ressuscita carimbo · lista reabrir = mesmo estorno |
+| **Commit** | `7db7675` · **teste v13.57** · push `origin/teste` |
 | **Arquivo** | `produtos/nfe_entrada_util.py` |
 | **Você** | Ctrl+F5 · reabrir uma nota de teste · conferir mensagem «ajuste(s) de estoque» · registrar estoque de novo · PIN |
 
