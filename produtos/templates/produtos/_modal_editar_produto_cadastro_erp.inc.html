@@ -537,6 +537,7 @@
             <div class="min-w-0">
               <span class="text-base font-black uppercase text-slate-600 block tracking-widest">Histórico de movimentação</span>
               <p class="text-sm font-semibold text-slate-500 mt-0.5">Entradas, saídas, compras e ajustes deste produto.</p>
+              <p id="mov-hint-saldo-deposito" class="text-xs font-semibold text-amber-800 mt-1 max-w-xl">Saldo é <strong>por depósito</strong> (Centro ou Vila). Com «Todos», a coluna Saldo alterna entre as duas lojas — filtre Centro ou Vila para acompanhar a conta.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <label class="flex flex-col gap-0.5">
@@ -1853,6 +1854,22 @@
     return String(x.toFixed(3)).replace(/\.?0+$/, '').replace('.', ',');
   }
 
+  /** Saldo depois: mostra 0 (não «—») e deixa negativo visível. */
+  function fmtSaldoMov(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    if (x === 0) return '0';
+    return String(x.toFixed(3)).replace(/\.?0+$/, '').replace('.', ',');
+  }
+
+  function classeSaldoMov(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return 'text-slate-900';
+    if (x < 0) return 'text-rose-700';
+    if (x === 0) return 'text-slate-500';
+    return 'text-slate-900';
+  }
+
   function linkDocMov(ln) {
     var doc = ln.documento || '—';
     var vid = ln.venda_id;
@@ -1898,7 +1915,7 @@
         '<td class="px-3 py-2.5 font-semibold text-slate-700">' + esc(dep) + '</td>' +
         '<td class="px-3 py-2.5 text-right font-bold text-emerald-700">' + esc(fmtQtdMov(ln.qtd_entrada)) + '</td>' +
         '<td class="px-3 py-2.5 text-right font-bold text-rose-700">' + esc(fmtQtdMov(ln.qtd_saida)) + '</td>' +
-        '<td class="px-3 py-2.5 text-right font-black text-slate-900">' + esc(fmtQtdMov(ln.saldo_depois)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right font-black ' + classeSaldoMov(ln.saldo_depois) + '">' + esc(fmtSaldoMov(ln.saldo_depois)) + '</td>' +
         '<td class="px-3 py-2.5 text-slate-700 font-semibold">' + esc(ln.operador || '—') + '</td>' +
         '</tr>';
     });
@@ -1962,12 +1979,23 @@
   }
 
   (function bindFiltrosMovimentos() {
+    function atualizarHintSaldoDep() {
+      var elDep = document.getElementById('mov-filtro-deposito');
+      var hint = document.getElementById('mov-hint-saldo-deposito');
+      if (!hint) return;
+      var v = elDep ? String(elDep.value || '').trim() : '';
+      hint.classList.toggle('hidden', v === 'centro' || v === 'vila');
+    }
     ['mov-filtro-deposito', 'mov-filtro-origem', 'mov-filtro-dias'].forEach(function (id) {
       var el = document.getElementById(id);
-      if (el) el.addEventListener('change', function () { carregarHistoricoMovimentos({ append: false }); });
+      if (el) el.addEventListener('change', function () {
+        if (id === 'mov-filtro-deposito') atualizarHintSaldoDep();
+        carregarHistoricoMovimentos({ append: false });
+      });
     });
     var btnMais = document.getElementById('mov-btn-mais');
     if (btnMais) btnMais.addEventListener('click', function () { carregarHistoricoMovimentos({ append: true }); });
+    atualizarHintSaldoDep();
   })();
 
   var _altOffset = 0;
