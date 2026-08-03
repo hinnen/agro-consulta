@@ -1183,6 +1183,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✨ Cadastro — barras opcionais no mesmo produto (`CAD-CB-OPC` · **teste v13.73**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · Ctrl+F5 cadastro + bip PDV · **não** loja |
+| **O quê** | Aba Fiscal: lista **Barras opcionais** (até 20) no mesmo cadastro |
+| **Uso** | Marca mudou o EAN → cadastra o antigo aqui → bip acha o produto |
+| **Grava** | Postgres `cadastro_extras.codigos_barras_opcionais` |
+| **Busca** | `overlay_pids_por_codigo` + `index_codigos` (PDV/cache) |
+| **Arquivos** | modal cadastro · `mongo_index_codigos` · `cadastro_busca_codigo_util` · `catalogo_agro` · `views` |
+
 ### ✨ Cadastro — Duplicar produto (`CAD-DUP` · **teste v13.72**)
 
 | Item | Detalhe |
