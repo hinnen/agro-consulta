@@ -1221,7 +1221,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
-| 2 | **CUSTO-FAMILIA** (saco→pacote) | 🧪 **só no teste** v14.02 |
+| 2 | **CUSTO-FAMILIA** (saco→pacote) | 🧪 **só no teste** v14.03 |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (PDV-CAD-RAPIDO · **v13.81**)
