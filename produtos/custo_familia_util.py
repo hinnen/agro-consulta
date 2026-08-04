@@ -90,6 +90,23 @@ def normalizar_custo_familia(
         "kg_filho": float(kg_filho.quantize(_Q4, rounding=ROUND_HALF_UP)),
         "auto_sync": auto_sync,
     }
+    # Padrão: junto com o custo, baixa o saco na venda (qtd = kg_filho/kg_pai).
+    bs = raw.get("baixa_estoque_saco")
+    if bs is None:
+        baixa_estoque = True
+    elif isinstance(bs, bool):
+        baixa_estoque = bs
+    else:
+        baixa_estoque = str(bs).strip().lower() not in (
+            "0",
+            "false",
+            "no",
+            "off",
+            "nao",
+            "não",
+            "n",
+        )
+    out["baixa_estoque_saco"] = baixa_estoque
     if raw.get("ultimo_custo_calculado") is not None:
         uc = _dec(raw.get("ultimo_custo_calculado"))
         if uc is not None:
@@ -138,6 +155,66 @@ def mesclar_custo_familia_no_extras(
     if prev.get("atualizado_em") and "atualizado_em" not in norm:
         norm["atualizado_em"] = prev.get("atualizado_em")
     ex["custo_familia"] = norm
+    return ex
+
+
+def qtd_baixa_saco_por_unidade(kg_pai: Any, kg_filho: Any) -> Decimal | None:
+    """Unidades do saco a baixar por 1 unidade vendida do pacote/granel."""
+    kp = _dec(kg_pai)
+    kf = _dec(kg_filho)
+    if kp is None or kf is None or kp <= 0 or kf <= 0:
+        return None
+    return (kf / kp).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+def aplicar_vinculo_saco_na_composicao(ex: dict) -> dict:
+    """
+    Junta custo+estoque: se ``baixa_estoque_saco``, grava o saco na composição
+    (qtd = kg_filho/kg_pai) e liga ``kit.baixa_componentes``.
+    Linhas com ``origem=custo_familia`` são gerenciadas por este vínculo.
+    """
+    if not isinstance(ex, dict):
+        return ex
+    raw_comp = ex.get("composicao") if isinstance(ex.get("composicao"), list) else []
+    outros: list[dict] = []
+    for it in raw_comp:
+        if not isinstance(it, dict):
+            continue
+        if str(it.get("origem") or "").strip() == "custo_familia":
+            continue
+        outros.append(it)
+
+    cf = extrair_custo_familia(ex)
+    if not cf or not cf.get("baixa_estoque_saco", True):
+        if "composicao" in ex or raw_comp:
+            ex["composicao"] = outros
+        return ex
+
+    q = qtd_baixa_saco_por_unidade(cf.get("kg_pai"), cf.get("kg_filho"))
+    if q is None:
+        ex["composicao"] = outros
+        return ex
+
+    # Evita duplicar o mesmo pai se o usuário já colocou manual no kit.
+    outros = [
+        it
+        for it in outros
+        if _pid(it.get("produto_id")) != _pid(cf.get("pai_produto_id"))
+    ]
+    outros.append(
+        {
+            "produto_id": cf["pai_produto_id"],
+            "nome": cf.get("pai_nome") or cf["pai_produto_id"],
+            "codigo": "",
+            "quantidade": float(q),
+            "deposito": "",
+            "origem": "custo_familia",
+        }
+    )
+    ex["composicao"] = outros
+    kit = dict(ex.get("kit") or {}) if isinstance(ex.get("kit"), dict) else {}
+    kit["baixa_componentes"] = True
+    ex["kit"] = kit
     return ex
 
 

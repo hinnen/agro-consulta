@@ -1184,15 +1184,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.05**)
+### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.07**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Aba **5. Composição**: bloco **1 · Custo do saco** (custo R$) + bloco **2 · Kit** (baixa estoque) — **não são a mesma ferramenta** |
-| **UX** | v14.05 — layout com divisão forte · buscas iguais · kit editável no Agro (antes Add estava travado «só ERP») |
-| **Kit** | Grava `cadastro_extras.composicao` · PDV baixa/estorno lê overlay primeiro |
-| **Cálculo saco** | `custo = custo_saco × (kg_produto ÷ kg_saco)` |
-| **Você** | Ctrl+F5 Cadastro · Composição · conferir 2 blocos · testar Add no kit · Salvar |
+| **O quê** | Bloco **1 · Saco (custo + estoque)** — junta as duas coisas; kit (bloco 2) só p/ combo multi-insumo |
+| **Junto** | Opção **«Na venda, baixar estoque do saco»** (ligado por padrão) → baixa `kg_filho/kg_pai` do saco |
+| **Você** | Ctrl+F5 · Composição · ligar saco + kg · Salvar · vender 1 pacote e conferir estoque do saco |
 | **Loja** | **só no teste** |
 
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)

@@ -662,18 +662,19 @@
       <div id="tab-composicao" class="tab-content tab-fill-stack hidden flex flex-col gap-4 font-['Inter']">
 
         <p class="text-sm text-slate-600 shrink-0 px-0.5">
-          Esta aba tem <strong>duas ferramentas diferentes</strong>: em cima calcula o <strong>preço de custo</strong> a partir do saco; embaixo monta o <strong>kit</strong> (baixa estoque dos insumos na venda).
+          <strong>Bloco 1 (saco):</strong> calcula o custo e, se quiser, já baixa o estoque do saco na venda.
+          <strong>Bloco 2 (kit):</strong> só para produto com vários insumos / combo.
         </p>
 
-        <!-- BLOCO 1 — Custo do saco -->
+        <!-- BLOCO 1 — Saco (custo + estoque) -->
         <section id="edit-custo-familia-box" class="w-full rounded-xl border-2 border-amber-300 bg-amber-50/40 shadow-sm p-4 space-y-3 shrink-0" aria-labelledby="cf-titulo">
           <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span id="cf-titulo" class="text-base font-black uppercase text-amber-950 tracking-tight">1 · Custo vem do saco</span>
+              <span id="cf-titulo" class="text-base font-black uppercase text-amber-950 tracking-tight">1 · Saco (custo + estoque)</span>
               <details class="relative shrink-0">
                 <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-white border border-amber-300 text-sm font-black text-amber-900 select-none">?</summary>
                 <div class="absolute left-0 top-full mt-2 z-30 w-80 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
-                  Só o <strong>custo em R$</strong>. Ex.: saco 47&nbsp;kg a R$&nbsp;94 → pacote 5&nbsp;kg = R$&nbsp;10. Granel: kg deste produto = 1. <strong>Não baixa estoque</strong> do saco — isso é o bloco 2.
+                  Ex.: saco 47&nbsp;kg → pacote 5&nbsp;kg. Calcula o <strong>custo</strong> e, com a opção ligada, na venda baixa <strong>5/47 do saco</strong> do estoque. Granel: kg deste produto = 1.
                 </div>
               </details>
             </div>
@@ -684,7 +685,7 @@
           </div>
           <div id="edit-cf-campos" class="hidden space-y-3">
             <div class="relative">
-              <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Buscar saco (origem do custo)</span>
+              <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Buscar saco</span>
               <div class="flex gap-2">
                 <input type="text" id="edit-cf-pai-busca" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold bg-white focus:border-amber-500 outline-none" placeholder="Nome ou código…" autocomplete="off" />
                 <button type="button" id="edit-cf-pai-buscar-btn" class="min-h-[50px] px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-black uppercase shrink-0">Buscar</button>
@@ -716,8 +717,13 @@
             </div>
             <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none">
               <input type="checkbox" id="edit-cf-auto" class="w-6 h-6 rounded border-slate-300 text-amber-600 focus:ring-amber-500" checked />
-              <span class="text-base font-bold text-slate-800">Atualizar sozinho quando o saco mudar</span>
+              <span class="text-base font-bold text-slate-800">Atualizar custo sozinho quando o saco mudar</span>
             </label>
+            <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none bg-white rounded-lg border-2 border-amber-300 px-3 py-1">
+              <input type="checkbox" id="edit-cf-baixa-estoque" class="w-6 h-6 rounded border-slate-300 text-amber-600 focus:ring-amber-500" checked />
+              <span class="text-base font-bold text-slate-800">Na venda, baixar estoque do saco</span>
+            </label>
+            <p id="edit-cf-baixa-hint" class="text-xs text-amber-900/90 font-semibold hidden">Baixa por unidade vendida = kg deste produto ÷ kg do saco (ex.: 5÷47).</p>
           </div>
           <div id="edit-cf-filhos-box" class="hidden border-t border-amber-200 pt-3 space-y-2">
             <div class="text-sm font-black uppercase text-slate-600">Pacotes/granel que usam este saco</div>
@@ -2399,13 +2405,19 @@
       var subTxt = isFinite(sub) ? fmtMoneyPt(sub) : '—';
       var depRaw = String(it.deposito || '').trim().toLowerCase();
       var depTxt = !depRaw ? 'Dinâmico (PDV)' : (depRaw === 'centro' || depRaw === '1' ? 'Centro' : (depRaw === 'vila' || depRaw === '2' ? 'Vila' : depRaw));
+      var isSaco = String(it.origem || '') === 'custo_familia';
+      var nomeCell = esc(it.nome || it.produto_id || '—') +
+        (isSaco ? ' <span class="ml-1 text-[10px] font-black uppercase text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">saco</span>' : '');
       h += '<tr class="comp-linha" data-comp-i="' + ix + '">' +
-        '<td class="px-3 py-2.5 text-base font-semibold text-slate-800">' + esc(it.nome || it.produto_id || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-base font-semibold text-slate-800">' + nomeCell + '</td>' +
         '<td class="px-3 py-2.5 text-slate-600 text-sm font-semibold">' + esc(depTxt) + '</td>' +
         '<td class="px-3 py-2.5 text-right text-base text-slate-700 font-bold tabular-nums">' + esc(cuTxt) + '</td>' +
         '<td class="px-3 py-2.5 text-right text-base font-bold tabular-nums">' + esc(fmtQtd(it.quantidade)) + '</td>' +
         '<td class="px-3 py-2.5 text-right text-base text-emerald-800 font-bold tabular-nums">' + esc(subTxt) + '</td>' +
-        '<td class="px-2 py-2"><button type="button" class="comp-btn-rem min-h-[40px] min-w-[40px] rounded-lg border-2 border-red-200 text-lg text-red-700 font-black" data-i="' + ix + '" title="Remover">×</button></td></tr>';
+        '<td class="px-2 py-2">' + (isSaco
+          ? '<span class="text-[10px] font-bold text-slate-400" title="Gerenciado pelo bloco Saco">auto</span>'
+          : '<button type="button" class="comp-btn-rem min-h-[40px] min-w-[40px] rounded-lg border-2 border-red-200 text-lg text-red-700 font-black" data-i="' + ix + '" title="Remover">×</button>') +
+        '</td></tr>';
     });
     tb.innerHTML = h;
     if (totEl) totEl.textContent = fmtMoneyPt(tot);
@@ -3019,7 +3031,8 @@
           nome: String(it.nome || '').trim(),
           codigo: String(it.codigo || '').trim(),
           quantidade: it.quantidade != null ? String(it.quantidade) : '1',
-          deposito: String(it.deposito || '').trim()
+          deposito: String(it.deposito || '').trim(),
+          origem: String(it.origem || '').trim()
         };
       }),
       delivery: {
@@ -3530,7 +3543,9 @@
     var prev = document.getElementById('edit-cf-preview');
     var ativo = !!(document.getElementById('edit-cf-ativo') || {}).checked;
     var campos = document.getElementById('edit-cf-campos');
+    var hint = document.getElementById('edit-cf-baixa-hint');
     if (campos) campos.classList.toggle('hidden', !ativo);
+    if (hint) hint.classList.toggle('hidden', !ativo || !(document.getElementById('edit-cf-baixa-estoque') || {}).checked);
     var editCusto = document.getElementById('edit-custo');
     if (!ativo) {
       if (prev) prev.textContent = '—';
@@ -3589,10 +3604,12 @@
     var cf = (produto && produto.custo_familia) || null;
     var chk = document.getElementById('edit-cf-ativo');
     var auto = document.getElementById('edit-cf-auto');
+    var baixa = document.getElementById('edit-cf-baixa-estoque');
     var kgP = document.getElementById('edit-cf-kg-pai');
     var kgF = document.getElementById('edit-cf-kg-filho');
     if (chk) chk.checked = !!(cf && cf.ativo !== false && cf.pai_produto_id);
     if (auto) auto.checked = !cf || cf.auto_sync !== false;
+    if (baixa) baixa.checked = !cf || cf.baixa_estoque_saco !== false;
     if (kgP) kgP.value = cf && cf.kg_pai != null ? String(cf.kg_pai).replace('.', ',') : '';
     if (kgF) kgF.value = cf && cf.kg_filho != null ? String(cf.kg_filho).replace('.', ',') : '';
     if (cf && cf.pai_produto_id) {
@@ -3636,7 +3653,8 @@
       pai_nome: String((document.getElementById('edit-cf-pai-nome') || {}).textContent || '').trim(),
       kg_pai: String((document.getElementById('edit-cf-kg-pai') || {}).value || '').trim(),
       kg_filho: String((document.getElementById('edit-cf-kg-filho') || {}).value || '').trim(),
-      auto_sync: !!(document.getElementById('edit-cf-auto') || {}).checked
+      auto_sync: !!(document.getElementById('edit-cf-auto') || {}).checked,
+      baixa_estoque_saco: !!(document.getElementById('edit-cf-baixa-estoque') || {}).checked
     };
   }
 
@@ -3697,6 +3715,7 @@
   (function bindCustoFamiliaUi() {
     var chk = document.getElementById('edit-cf-ativo');
     var auto = document.getElementById('edit-cf-auto');
+    var baixa = document.getElementById('edit-cf-baixa-estoque');
     var kgP = document.getElementById('edit-cf-kg-pai');
     var kgF = document.getElementById('edit-cf-kg-filho');
     var btnBusca = document.getElementById('edit-cf-pai-buscar-btn');
@@ -3705,6 +3724,7 @@
     var propBtn = document.getElementById('edit-cf-propagar-btn');
     if (chk) chk.addEventListener('change', atualizarCustoFamiliaPreview);
     if (auto) auto.addEventListener('change', atualizarCustoFamiliaPreview);
+    if (baixa) baixa.addEventListener('change', atualizarCustoFamiliaPreview);
     [kgP, kgF].forEach(function (el) {
       if (el) el.addEventListener('input', atualizarCustoFamiliaPreview);
     });

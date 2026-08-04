@@ -41,6 +41,9 @@ def normalizar_item_composicao(raw: Any) -> dict[str, Any] | None:
         "quantidade": _qtd(raw.get("quantidade") or raw.get("qtd") or 1),
         "deposito": dep,
     }
+    origem = str(raw.get("origem") or "").strip()[:40]
+    if origem:
+        out["origem"] = origem
     for k in ("custo_unitario_agro", "custo_unitario"):
         if raw.get(k) is not None:
             try:
@@ -105,6 +108,11 @@ def mesclar_composicao_no_extras(ex: dict, raw: Any) -> dict:
                     "codigo": it.get("codigo") or "",
                     "quantidade": it.get("quantidade") or 1,
                     "deposito": it.get("deposito") or "",
+                    **(
+                        {"origem": str(it.get("origem") or "").strip()[:40]}
+                        if str(it.get("origem") or "").strip()
+                        else {}
+                    ),
                 }
             )
         ex["composicao"] = slim

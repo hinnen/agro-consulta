@@ -2832,10 +2832,6 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if "deposito" in k_in:
             k_prev["deposito"] = str(k_in.get("deposito") or "").strip()[:16]
         ex["kit"] = k_prev
-    if "composicao" in payload:
-        from produtos.composicao_kit_util import mesclar_composicao_no_extras
-
-        mesclar_composicao_no_extras(ex, payload.get("composicao"))
     if "permite_venda_estoque_negativo" in payload:
         pvneg = payload.get("permite_venda_estoque_negativo")
         if isinstance(pvneg, bool):
@@ -2905,6 +2901,15 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         calc_cf = custo_filho_desde_familia(ex)
         if calc_cf is not None:
             custo_payload = calc_cf
+    if "composicao" in payload:
+        from produtos.composicao_kit_util import mesclar_composicao_no_extras
+
+        mesclar_composicao_no_extras(ex, payload.get("composicao"))
+    # Depois do kit manual: saco pode injetar/atualizar a linha de estoque automática.
+    if "custo_familia" in payload or "composicao" in payload:
+        from produtos.custo_familia_util import aplicar_vinculo_saco_na_composicao
+
+        aplicar_vinculo_saco_na_composicao(ex)
     if "preco_custo" in payload or (
         "custo_familia" in payload and custo_payload is not None
     ):
