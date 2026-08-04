@@ -2827,8 +2827,25 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if "kit" in payload and isinstance(payload.get("kit"), dict):
         k_in = payload["kit"]
         k_prev = dict(ex.get("kit") or {}) if isinstance(ex.get("kit"), dict) else {}
-        if "baixa_componentes" in k_in:
+        if "usar" in k_in or "ativo" in k_in:
+            usar_raw = k_in.get("usar") if "usar" in k_in else k_in.get("ativo")
+            if isinstance(usar_raw, bool):
+                usar = usar_raw
+            else:
+                usar = str(usar_raw or "").strip().lower() in (
+                    "1",
+                    "true",
+                    "yes",
+                    "on",
+                    "sim",
+                    "s",
+                )
+            k_prev["usar"] = usar
+            # Ferramenta ligada = baixa automática dos componentes.
+            k_prev["baixa_componentes"] = usar
+        elif "baixa_componentes" in k_in:
             k_prev["baixa_componentes"] = bool(k_in.get("baixa_componentes"))
+            k_prev["usar"] = bool(k_in.get("baixa_componentes"))
         if "deposito" in k_in:
             k_prev["deposito"] = str(k_in.get("deposito") or "").strip()[:16]
         ex["kit"] = k_prev

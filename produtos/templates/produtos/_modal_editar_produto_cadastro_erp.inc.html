@@ -740,24 +740,25 @@
         </div>
 
         <!-- BLOCO 2 — Kit / componentes -->
-        <section id="edit-kit-composicao-box" class="w-full rounded-xl border-2 border-sky-300 bg-sky-50/40 shadow-sm p-4 space-y-3 flex flex-col min-h-0 flex-1" aria-labelledby="kit-titulo">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 pb-2 shrink-0">
+        <section id="edit-kit-composicao-box" class="w-full rounded-xl border-2 border-sky-300 bg-sky-50/40 shadow-sm p-4 space-y-3 shrink-0" aria-labelledby="kit-titulo">
+          <div class="flex flex-wrap items-center justify-between gap-2 shrink-0" id="edit-kit-header">
             <div class="flex items-center gap-2 min-w-0">
               <span id="kit-titulo" class="text-base font-black uppercase text-sky-950 tracking-tight">2 · Kit / componentes</span>
               <details class="relative shrink-0">
                 <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-white border border-sky-300 text-sm font-black text-sky-900 select-none">?</summary>
                 <div class="absolute left-0 top-full mt-2 z-30 w-80 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
-                  Lista de <strong>insumos</strong> deste produto. Na venda, com a opção ligada, o sistema <strong>baixa o estoque dos componentes</strong> (não do produto mestre). Ideal para kits e combos. <strong>Não substitui</strong> o «Custo vem do saco».
+                  Para kits/combos com <strong>vários insumos</strong>. Ao ativar, na venda o estoque dos componentes é baixado <strong>automaticamente</strong>. Não substitui o bloco Saco.
                 </div>
               </details>
             </div>
             <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none bg-white rounded-lg border border-sky-200 px-3">
-              <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
-              <span class="text-base font-bold text-slate-800">Baixar estoque dos componentes na venda</span>
+              <input type="checkbox" id="edit-kit-ativo" class="w-6 h-6 rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
+              <span class="text-base font-bold text-slate-800">Usar neste produto</span>
             </label>
           </div>
 
-          <div class="space-y-3 shrink-0">
+          <div id="edit-kit-campos" class="hidden space-y-3 border-t border-sky-200 pt-3">
+            <p class="text-xs font-semibold text-sky-900/80">Com o kit ativo, a baixa de estoque dos componentes na venda é automática.</p>
             <div class="relative">
               <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Buscar componente / insumo</span>
               <div class="flex gap-2">
@@ -790,29 +791,29 @@
               </label>
               <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-sky-600 hover:bg-sky-700 text-white border-2 border-sky-700 shrink-0">Adicionar</button>
             </div>
-          </div>
 
-          <div class="cadastro-tab-grow border-2 border-sky-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] min-h-[8rem]">
-            <table class="w-full text-base min-w-[720px]">
-              <thead class="bg-sky-50 text-sm font-black uppercase text-slate-600 sticky top-0 z-[1]">
-                <tr>
-                  <th class="px-3 py-2.5 text-left">Produto</th>
-                  <th class="px-3 py-2.5 text-left">Depósito</th>
-                  <th class="px-3 py-2.5 text-right">Custo unit.</th>
-                  <th class="px-3 py-2.5 text-right">Qtd</th>
-                  <th class="px-3 py-2.5 text-right">Subtotal</th>
-                  <th class="w-14"></th>
-                </tr>
-              </thead>
-              <tbody id="lista-composicao" class="divide-y divide-slate-100"></tbody>
-              <tfoot class="bg-sky-50 border-t border-sky-200">
-                <tr>
-                  <td colspan="4" class="px-3 py-3 text-right text-sm font-black uppercase text-slate-600">Custo total do kit:</td>
-                  <td id="edit-comp-custo-total" class="px-3 py-3 text-right text-lg font-black text-emerald-700 tabular-nums">R$ 0,00</td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+            <div class="border-2 border-sky-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] max-h-[16rem]">
+              <table class="w-full text-base min-w-[720px]">
+                <thead class="bg-sky-50 text-sm font-black uppercase text-slate-600 sticky top-0 z-[1]">
+                  <tr>
+                    <th class="px-3 py-2.5 text-left">Produto</th>
+                    <th class="px-3 py-2.5 text-left">Depósito</th>
+                    <th class="px-3 py-2.5 text-right">Custo unit.</th>
+                    <th class="px-3 py-2.5 text-right">Qtd</th>
+                    <th class="px-3 py-2.5 text-right">Subtotal</th>
+                    <th class="w-14"></th>
+                  </tr>
+                </thead>
+                <tbody id="lista-composicao" class="divide-y divide-slate-100"></tbody>
+                <tfoot class="bg-sky-50 border-t border-sky-200">
+                  <tr>
+                    <td colspan="4" class="px-3 py-3 text-right text-sm font-black uppercase text-slate-600">Custo total do kit:</td>
+                    <td id="edit-comp-custo-total" class="px-3 py-3 text-right text-lg font-black text-emerald-700 tabular-nums">R$ 0,00</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </section>
       </div>
@@ -2628,14 +2629,19 @@
 
     var ce = produto.cadastro_extras && typeof produto.cadastro_extras === 'object' ? produto.cadastro_extras : {};
     var kit = ce.kit && typeof ce.kit === 'object' ? ce.kit : {};
-    var chkComp = document.getElementById('comp-baixa-auto');
-    if (chkComp) {
-      chkComp.checked = kit.baixa_componentes !== false && kit.baixa_componentes !== 0;
-    }
+    var manuaisKit = (Array.isArray(produto.composicao) ? produto.composicao : []).filter(function (it) {
+      return it && String(it.origem || '') !== 'custo_familia';
+    });
+    var kitAtivo = !!(kit.usar || kit.ativo) || manuaisKit.length > 0;
+    var chkKit = document.getElementById('edit-kit-ativo');
+    if (chkKit) chkKit.checked = kitAtivo;
+    if (typeof atualizarKitCamposVisivel === 'function') atualizarKitCamposVisivel();
     var sd = document.getElementById('comp-deposito');
     if (sd) {
       var kd = String(kit.deposito != null ? kit.deposito : '');
-      sd.value = ['', '1', '2', '3'].indexOf(kd) >= 0 ? kd : '';
+      if (kd === '1') kd = 'centro';
+      if (kd === '2') kd = 'vila';
+      sd.value = (kd === 'centro' || kd === 'vila') ? kd : '';
     }
 
     modalEdit._lotes = Array.isArray(produto.lotes) ? produto.lotes.slice() : [];
@@ -2984,8 +2990,25 @@
     }
     var chkEx = document.getElementById('edit-ativo-exibicao');
     var chkInativoErp = document.getElementById('edit-inativo');
-    var chkComp = document.getElementById('comp-baixa-auto');
+    var chkKit = document.getElementById('edit-kit-ativo');
+    var kitUsar = !!(chkKit && chkKit.checked);
     var depComp = document.getElementById('comp-deposito');
+    var compPayload = (modalEdit._composicao || []).map(function (it) {
+      return {
+        produto_id: String(it.produto_id || '').trim(),
+        nome: String(it.nome || '').trim(),
+        codigo: String(it.codigo || '').trim(),
+        quantidade: it.quantidade != null ? String(it.quantidade) : '1',
+        deposito: String(it.deposito || '').trim(),
+        origem: String(it.origem || '').trim()
+      };
+    });
+    // Kit desligado: não manda insumos manuais (saco automático o servidor reinsere).
+    if (!kitUsar) {
+      compPayload = compPayload.filter(function (it) {
+        return it.origem === 'custo_familia';
+      });
+    }
     var body = {
       produto_id: pid,
       nome: gv('edit-nome'),
@@ -3022,19 +3045,11 @@
         cst_pis_cofins: gv('edit-pis-cofins')
       },
       kit: {
-        baixa_componentes: chkComp ? !!chkComp.checked : false,
+        usar: kitUsar,
+        baixa_componentes: kitUsar,
         deposito: depComp ? String(depComp.value || '') : ''
       },
-      composicao: (modalEdit._composicao || []).map(function (it) {
-        return {
-          produto_id: String(it.produto_id || '').trim(),
-          nome: String(it.nome || '').trim(),
-          codigo: String(it.codigo || '').trim(),
-          quantidade: it.quantidade != null ? String(it.quantidade) : '1',
-          deposito: String(it.deposito || '').trim(),
-          origem: String(it.origem || '').trim()
-        };
-      }),
+      composicao: compPayload,
       delivery: {
         ativo: !!(document.getElementById('edit-delivery-ativo') || {}).checked,
         titulo: gv('edit-delivery-titulo'),
@@ -4114,7 +4129,8 @@
         })()
       },
       kit: {
-        baixa_componentes: chkForm('comp-baixa-auto'),
+        usar: chkForm('edit-kit-ativo'),
+        baixa_componentes: chkForm('edit-kit-ativo'),
         deposito: (function () {
           var sd = document.getElementById('comp-deposito');
           return sd ? String(sd.value || '') : '';
@@ -4177,8 +4193,13 @@
     modalEdit._cbOpcionais = [];
     renderCbOpcionais();
 
-    var chkComp = document.getElementById('comp-baixa-auto');
-    if (chkComp && snap.kit) chkComp.checked = snap.kit.baixa_componentes !== false;
+    var chkKit = document.getElementById('edit-kit-ativo');
+    if (chkKit && snap.kit) {
+      chkKit.checked = !!(snap.kit.usar || snap.kit.ativo || snap.kit.baixa_componentes);
+    } else if (chkKit) {
+      chkKit.checked = false;
+    }
+    if (typeof atualizarKitCamposVisivel === 'function') atualizarKitCamposVisivel();
     var sd = document.getElementById('comp-deposito');
     if (sd && snap.kit) {
       var kd = String(snap.kit.deposito != null ? snap.kit.deposito : '');
@@ -4810,11 +4831,20 @@
     if (busca) busca.value = '';
   }
 
+  function atualizarKitCamposVisivel() {
+    var chk = document.getElementById('edit-kit-ativo');
+    var campos = document.getElementById('edit-kit-campos');
+    var on = !!(chk && chk.checked);
+    if (campos) campos.classList.toggle('hidden', !on);
+  }
+
   (function bindComposicaoKitUi() {
     var btnBusca = document.getElementById('comp-btn-buscar');
     var inp = document.getElementById('comp-busca');
     var btnAdd = document.getElementById('comp-btn-adicionar');
     var limpar = document.getElementById('comp-sel-limpar');
+    var chkKit = document.getElementById('edit-kit-ativo');
+    if (chkKit) chkKit.addEventListener('change', atualizarKitCamposVisivel);
     if (btnBusca) btnBusca.addEventListener('click', buscarComponenteKit);
     if (inp) {
       inp.addEventListener('keydown', function (e) {
@@ -4823,6 +4853,7 @@
     }
     if (btnAdd) btnAdd.addEventListener('click', adicionarComponenteKit);
     if (limpar) limpar.addEventListener('click', function () { setCompPendente(null); });
+    atualizarKitCamposVisivel();
   })();
 
   setTimeout(function () {
