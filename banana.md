@@ -426,6 +426,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
+**Cadastro rápido PDV (04/08 · v13.81):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional → cria Agro (UN) · card **PDV conferir** no Cadastro ERP.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -1182,6 +1184,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🆕 PDV — cadastro rápido de produto (`PDV-CAD-RAPIDO` · **teste v13.81** · 04/08)
+
+**O quê:** botão **+ Produto** no PDV → bipar barras → checa se já existe → tenta Open Food Facts → formulário mínimo (nome, GM auto, barras, custo, venda, estoque do depósito) → salva no Postgres + marca **pendente conferência**. Card **PDV conferir** no Cadastro ERP (filtra fila). Salvar no Cadastro limpa a fila.
+
+**Prova local:** `/pdv/checkout/` → + Produto · `/produtos/cadastro-erp/` → card laranja.
+
+**Arquivos:** `pdv_cadastro_rapido_util.py` · `views.py` (APIs) · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py`
+
+**Migrate:** não · **Produção:** só com frase + senha depois de prova local.
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
 

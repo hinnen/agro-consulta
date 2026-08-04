@@ -632,6 +632,31 @@ urlpatterns = [
         name='api_pdv_produto_ajuste_estoque',
     ),
     path(
+        'api/produtos/pdv-cadastro-rapido/checar/',
+        views.api_pdv_cadastro_rapido_checar,
+        name='api_pdv_cadastro_rapido_checar',
+    ),
+    path(
+        'api/produtos/pdv-cadastro-rapido/gm-preview/',
+        views.api_pdv_cadastro_rapido_gm_preview,
+        name='api_pdv_cadastro_rapido_gm_preview',
+    ),
+    path(
+        'api/produtos/pdv-cadastro-rapido/criar/',
+        views.api_pdv_cadastro_rapido_criar,
+        name='api_pdv_cadastro_rapido_criar',
+    ),
+    path(
+        'api/produtos/cadastro/pendentes-pdv/',
+        views.api_cadastro_pendentes_pdv,
+        name='api_cadastro_pendentes_pdv',
+    ),
+    path(
+        'api/produtos/cadastro/pendentes-pdv/marcar-conferido/',
+        views.api_cadastro_pendente_pdv_marcar_conferido,
+        name='api_cadastro_pendente_pdv_marcar_conferido',
+    ),
+    path(
         'api/produtos/gestao/overlay/',
         views.api_produtos_gestao_overlay_salvar,
         name='api_produtos_gestao_overlay_salvar',

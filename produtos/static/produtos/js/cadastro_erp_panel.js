@@ -19,12 +19,17 @@
   var URL_FACETA_NOVA = C.URL_FACETA_NOVA || '';
   var URL_ERP_PENDENTES = C.URL_ERP_PENDENTES || '';
   var URL_ERP_SYNC_PENDENTES = C.URL_ERP_SYNC_PENDENTES || '';
+  var URL_PENDENTES_PDV = C.URL_PENDENTES_PDV || '';
+  var URL_PENDENTES_PDV_CONFERIDO = C.URL_PENDENTES_PDV_CONFERIDO || '';
   var PODE_EDITAR_OVERLAY = !!C.PODE_EDITAR_OVERLAY;
   var ERP_SYNC_HABILITADO = !!C.CADASTRO_ERP_SYNC_HABILITADO;
   var LOGIN_OVERLAY_HREF = C.LOGIN_OVERLAY_HREF || '';
   var btnErpPend = document.getElementById('cadastro-btn-erp-pendentes');
   var btnErpForcarTodos = document.getElementById('cadastro-btn-erp-forcar-todos');
   var lblErpPendN = document.getElementById('cadastro-erp-pend-n');
+  var btnPendentesPdv = document.getElementById('cadastro-card-pendentes-pdv');
+  var lblPendentesPdvN = document.getElementById('cadastro-pendentes-pdv-n');
+  var filtroPendentePdvAtivo = false;
 
   function csrfTokErp() {
     return (U && U.csrf) ? U.csrf() : ((document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '');
@@ -56,6 +61,40 @@
     fetchPendentesBadgePromise();
   }
   window.agroCadastroErpRefreshPendentesBadge = refreshPendentesBadge;
+
+  function aplicarRespostaPendentesPdv(j) {
+    var n = (j && j.ok && typeof j.n === 'number') ? j.n : 0;
+    if (lblPendentesPdvN) lblPendentesPdvN.textContent = '(' + n + ')';
+    if (!btnPendentesPdv) return;
+    if (n > 0 || filtroPendentePdvAtivo) {
+      btnPendentesPdv.classList.remove('hidden');
+      if (n > 0) btnPendentesPdv.classList.add('animate-pulse');
+      else btnPendentesPdv.classList.remove('animate-pulse');
+    } else {
+      btnPendentesPdv.classList.add('hidden');
+    }
+    if (filtroPendentePdvAtivo) {
+      btnPendentesPdv.classList.add('ring-4', 'ring-orange-200');
+      btnPendentesPdv.title = 'Filtro ativo — clique de novo para limpar';
+    } else {
+      btnPendentesPdv.classList.remove('ring-4', 'ring-orange-200');
+      btnPendentesPdv.title = 'Produtos criados no PDV que precisam conferência';
+    }
+  }
+
+  function fetchPendentesPdvPromise(opt) {
+    var sig = opt && opt.signal;
+    if (!URL_PENDENTES_PDV || !btnPendentesPdv) return Promise.resolve();
+    return fetch(URL_PENDENTES_PDV, { credentials: 'same-origin', signal: sig })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(aplicarRespostaPendentesPdv)
+      .catch(function () { /* ignore */ });
+  }
+
+  function refreshPendentesPdv() {
+    fetchPendentesPdvPromise();
+  }
+  window.agroCadastroErpRefreshPendentesPdv = refreshPendentesPdv;
 
   function jsonOuErroHumano(response) {
     return response.text().then(function (text) {
@@ -379,6 +418,7 @@
     if (fSemMarcaEl && fSemMarcaEl.checked) n += 1;
     if (fSemCatEl && fSemCatEl.checked) n += 1;
     if (fSomenteAgroEl && fSomenteAgroEl.checked) n += 1;
+    if (filtroPendentePdvAtivo) n += 1;
     fResumoEl.textContent = n ? (n + ' ativo(s)') : '';
   }
 
@@ -429,6 +469,7 @@
     if (fSemMarcaEl && fSemMarcaEl.checked) params.set('sem_marca', '1');
     if (fSemCatEl && fSemCatEl.checked) params.set('sem_categoria', '1');
     if (fSomenteAgroEl && fSomenteAgroEl.checked) params.set('somente_agro', '1');
+    if (filtroPendentePdvAtivo) params.set('pendente_pdv', '1');
     return params;
   }
 
@@ -845,6 +886,8 @@
         } else {
           carregarDetalheProduto(String(p.id || ''));
         }
+        refreshPendentesPdv();
+        if (filtroPendentePdvAtivo) carregar();
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -1496,7 +1539,8 @@
             ncm: params.get('ncm') || '',
             sem_marca: params.get('sem_marca') || '',
             sem_categoria: params.get('sem_categoria') || '',
-            somente_agro: params.get('somente_agro') || ''
+            somente_agro: params.get('somente_agro') || '',
+            pendente_pdv: params.get('pendente_pdv') || ''
           },
           signal: sig,
         })
@@ -2076,6 +2120,8 @@
     if (fSemMarcaEl) fSemMarcaEl.checked = false;
     if (fSemCatEl) fSemCatEl.checked = false;
     if (fSomenteAgroEl) fSomenteAgroEl.checked = false;
+    filtroPendentePdvAtivo = false;
+    refreshPendentesPdv();
     cadastroAtualizarResumoFiltros();
   }
 
@@ -2095,6 +2141,18 @@
       carregar();
     });
   }
+
+  if (btnPendentesPdv) {
+    btnPendentesPdv.addEventListener('click', function () {
+      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
+      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      refreshPendentesPdv();
+      carregar();
+    });
+  }
+  refreshPendentesPdv();
 
   document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
     det.addEventListener('toggle', function () {
