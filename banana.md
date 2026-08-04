@@ -426,7 +426,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
-**Cadastro rápido PDV (04/08 · v13.81):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional → cria Agro (UN) · card **PDV conferir** no Cadastro ERP.
+**Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1184,40 +1184,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🆕 PDV — cadastro rápido de produto (`PDV-CAD-RAPIDO` · **teste v13.81** · 04/08)
+### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.64)
 
-**O quê:** botão **+ Produto** no PDV → bipar barras → checa se já existe → tenta Open Food Facts → formulário mínimo (nome, GM auto, barras, custo, venda, estoque do depósito) → salva no Postgres + marca **pendente conferência**. Card **PDV conferir** no Cadastro ERP (filtra fila). Salvar no Cadastro limpa a fila.
+**Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
+**Teste:** badge **v13.82** · `teste` @ HEAD  
 
-**Prova local:** `/pdv/checkout/` → + Produto · `/produtos/cadastro-erp/` → card laranja.
+| # | Pacote | Versão | Status | Risco |
+| - | ------ | ------ | ------ | ----- |
+| 1 | **ENTRADA-NF-CUSTO** | v13.71 | 📋 **pronto para envio** · VERIFY 10/10 | Baixo — Entrada NF |
+| 2 | **CAD-DUP** | v13.72 | 📋 **pronto para envio** | Baixo — Cadastro |
+| 3 | **CAD-CB-OPC** | v13.75 | 📋 **pronto para envio** · VERIFY 7/7 | Baixo — barras |
+| 4 | **DSP-PNG-BG** | v13.80 | 📋 **pronto para envio** · VERIFY_OK | Baixo — Dispenser |
+| 5 | **PDV-CAD-RAPIDO** | v13.82 | 📋 **pronto para envio** · VERIFY_OK · 19/19 | Médio — PDV (+ Produto) |
 
-**Arquivos:** `pdv_cadastro_rapido_util.py` · `views.py` (APIs) · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py`
+**Lote já empacotado (1–4):** branch `deploy/lote-cad-nf-dsp-v13.80` · *pode enviar lote cad/nf/dsp para produção* + **99738595**  
+**PDV-CAD-RAPIDO (5):** só no `teste` v13.82 — subir **depois** do lote 1–4 (ou cherry separado). **Migrate:** não.  
+**Pós-Live:** Ctrl+F5 · badge · smoke Entrada NF / Cadastro / Dispenser / PDV **+ Produto**.
 
-**Migrate:** não · **Produção:** só com frase + senha depois de prova local.
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | `+ Produto` no PDV · bipar → checa EAN → Open Food Facts opcional · cria Agro (UN) · card **PDV conferir** no Cadastro |
+| **Fix verificação** | GM sem código sistema deriva 4 dígitos (não quebra criar) |
+| **Prova** | `manage.py test produtos.tests_pdv_cadastro_rapido` **19/19** · `python scripts/verify_pdv_cadastro_rapido.py` → **VERIFY_OK** · `manage.py check` 0 |
+| **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
+| **Commit** | `6b24480` (+ este VERIFY/fix) · branch `teste` |
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
 
-**Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Pacote:** badge **v13.80** · branch `deploy/lote-cad-nf-dsp-v13.80`  
-**Como subir (próximo chat):** 1) lojas pausam vendas 2) *pode enviar lote cad/nf/dsp para produção* + **99738595** 3) `git push origin deploy/lote-cad-nf-dsp-v13.80:producao`  
-**Rollback:** `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80`  
-**Migrate novo:** **NÃO**  
-**NÃO usar:** `prep/lote-cad-nf-v13.75` — tinha `catalogo_agro.py` com encoding quebrado (lápis PDV / travessão). **Este deploy NÃO toca** `catalogo_agro.py`.
-
-| Ordem | Pacote | Status | Risco loja aberta |
-| ----- | ------ | ------ | ----------------- |
-| **1** | **ENTRADA-NF-CUSTO** | ✅ no deploy · VERIFY 10/10 | Baixo — Entrada NF etapa 2 |
-| **2** | **CAD-DUP** | ✅ no deploy | Baixo — modal Cadastro |
-| **3** | **CAD-CB-OPC** | ✅ no deploy · VERIFY 7/7 | Baixo — overlay + busca código (não mexe carrinho/caixa) |
-| **4** | **DSP-PNG-BG** | ✅ no deploy · VERIFY_OK | Baixo — só `/interno/dispenser-a6*` |
-
-**Provas (03/08 remonte limpo):** encoding OK · AST views/utils OK · Django check 0 · `tests_codigos_barras_opcionais` **7/7** · `tests_entrada_nf_custo_cadastro` **10/10** · `verify_dsp_png_bg.py` **VERIFY_OK** · diff **sem** `consulta_produtos` / `pdv_wizard` / `caixa_*`  
-**Arquivos:** hist · busca código · mongo_index · modal cadastro · entrada_nota · views(+59) · dispenser studio · verify script · 2 test files · VERSION  
-**Autorizar:** *pode enviar lote cad/nf/dsp para produção* + **99738595**  
-**Pós-Live:** Ctrl+F5 · badge **13.80** · Entrada NF custo · Cadastro Duplicar/barras · Dispenser PNG branco · 1 bip PDV smoke
-
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64) · **substituído**
-
-Absorvido no **`deploy/lote-cad-nf-dsp-v13.80`** acima. Prep antigo `prep/lote-cad-nf-v13.75` = **NÃO usar**.
+**Itens 1–4 do CHECKLIST** · ver tabela acima. **Não inclui** PDV-CAD-RAPIDO.  
+**Autorizar:** *pode enviar lote cad/nf/dsp para produção* + **99738595** · `git push origin deploy/lote-cad-nf-dsp-v13.80:producao`  
+**Rollback:** `git push origin 6996fca:producao`
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.80**)
 

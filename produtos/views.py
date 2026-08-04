@@ -1805,6 +1805,26 @@ def api_pdv_cadastro_rapido_criar(request):
 
     cod_sys = str(payload.get("codigo") or "").strip()
     cod_gm = str(payload.get("codigo_nfe") or payload.get("codigo_gm") or "").strip()
+    # Se o vendedor mandou só GM (ex. GM4522), deriva o código sistema — senão try_criar exige 4 dígitos.
+    if cod_gm and not cod_sys:
+        import re as _re
+
+        m_gm = _re.match(r"^GM\s*(\d{4})$", cod_gm, flags=_re.IGNORECASE)
+        if m_gm:
+            cod_sys = m_gm.group(1)
+            cod_gm = f"GM{cod_sys}"
+        else:
+            from produtos.cadastro_codigo_sequencial_util import (
+                alocar_codigo_sequencial_novo_cadastro,
+            )
+
+            err_al, c_sys, _c_gm_ign = alocar_codigo_sequencial_novo_cadastro(None, None)
+            if err_al is not None:
+                return JsonResponse(
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    status=int(err_al.get("status") or 400),
+                )
+            cod_sys = str(c_sys or "").strip()
     create_payload = {
         "nome": nome,
         "codigo": cod_sys,
