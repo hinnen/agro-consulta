@@ -1191,6 +1191,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Bloco **1 · Saco (custo + estoque)** — junta as duas coisas; kit (bloco 2) só p/ combo multi-insumo |
 | **Junto** | Opção **«Na venda, baixar estoque do saco»** (ligado por padrão) → baixa `kg_filho/kg_pai` do saco |
 | **Você** | Ctrl+F5 · Composição · ligar saco + kg · Salvar · vender 1 pacote e conferir estoque do saco |
+| **UX kit** | v14.09 — bloco 2 recolhido · «Usar neste produto» expande · baixa automática se ativo |
 | **Loja** | **só no teste** |
 
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
