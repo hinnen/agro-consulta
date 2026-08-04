@@ -1196,7 +1196,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Autorizar loja:** *pode subir cadastro rápido PDV / PDV-CAD-RAPIDO para produção* + **99738595**  
 **Migrate:** **NÃO** · **Pós-Live:** Ctrl+F5 PDV · + Novo Produto · bipar · Cadastro card **PDV conferir**
 
-### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.96**)
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.97**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1207,7 +1207,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — PDV balcão · não mexe fechamento/NFC-e |
 | **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `agro_busca_catalogo.js` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
-| **Commit** | `bdbbe23` · branch `teste` |
+| **Commit** | HEAD `teste` |
 | **Autorizar** | frase acima + **99738595** |
 
 ### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP (04/08 · frase+senha)
@@ -1228,7 +1228,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.90**) · **substituído**
 
-> Substituído pelo pacote **v13.96** no topo do CHECKPOINT.
+> Substituído pelo pacote **v13.97** no topo do CHECKPOINT.
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
 
