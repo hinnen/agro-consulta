@@ -1040,6 +1040,19 @@
   }
   .agro-pacote-chip-wrap .agro-pacote-chip-tip {
     visibility: hidden;
+    white-space: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    width: min(18.5rem, 78vw) !important;
+    max-width: 18.5rem;
+    line-height: 1.35;
+    font-weight: 600;
+  }
+  .agro-pacote-chip-wrap .agro-pacote-chip-tip [data-pacote-tip-title] {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
   .agro-pacote-chip-wrap:hover .agro-pacote-chip-tip,
   .agro-pacote-chip-wrap:focus-within .agro-pacote-chip-tip {

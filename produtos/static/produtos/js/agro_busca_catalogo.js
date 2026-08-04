@@ -82,13 +82,22 @@
                           : 'Só servidor';
             }
             if (tipBody) {
-                var extra =
-                    st.level === 'green'
-                        ? ' A busca no PDV usa essa cópia rápida. Não é a lista de vendas do dia.'
-                        : st.level === 'yellow'
-                          ? ' Ainda dá pra buscar local; o servidor atualiza quando puder. Não é a lista de vendas do dia.'
-                          : ' Busca depende da internet/servidor. Não é a lista de vendas do dia.';
-                tipBody.textContent = (st.hint || '') + extra;
+                var n = typeof st.n === 'number' ? st.n : 0;
+                var nTxt = n > 0 ? n.toLocaleString('pt-BR') + ' produtos neste PC.' : '';
+                if (st.level === 'green') {
+                    tipBody.textContent =
+                        'Catálogo local atualizado hoje. ' +
+                        nTxt +
+                        ' A busca usa essa cópia rápida. Não é a lista de vendas do dia.';
+                } else if (st.level === 'yellow') {
+                    tipBody.textContent =
+                        'Catálogo local de outro dia. ' +
+                        nTxt +
+                        ' Ainda busca rápido; o servidor atualiza quando puder. Não é vendas do dia.';
+                } else {
+                    tipBody.textContent =
+                        'Sem lista salva neste PC — a busca depende do servidor/internet. Não é vendas do dia.';
+                }
             }
         }
     }
