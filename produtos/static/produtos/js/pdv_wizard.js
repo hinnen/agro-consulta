@@ -12040,6 +12040,429 @@
                 if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
             });
         }
+            /* ——— Cadastro rápido PDV ——— */
+    var cadastroRapidoExistente = null;
+    var cadastroRapidoCodigoSys = '';
+
+    function cadastroRapidoEls() {
+        return {
+            overlay: document.getElementById('pdv-cadastro-rapido-overlay'),
+            stepEan: document.getElementById('pdv-cadastro-rapido-step-ean'),
+            stepForm: document.getElementById('pdv-cadastro-rapido-step-form'),
+            stepExiste: document.getElementById('pdv-cadastro-rapido-step-existe'),
+            ean: document.getElementById('pdv-cadastro-rapido-ean'),
+            eanStatus: document.getElementById('pdv-cadastro-rapido-ean-status'),
+            nome: document.getElementById('pdv-cadastro-rapido-nome'),
+            gm: document.getElementById('pdv-cadastro-rapido-gm'),
+            cb: document.getElementById('pdv-cadastro-rapido-cb'),
+            custo: document.getElementById('pdv-cadastro-rapido-custo'),
+            venda: document.getElementById('pdv-cadastro-rapido-venda'),
+            estoque: document.getElementById('pdv-cadastro-rapido-estoque'),
+            depLbl: document.getElementById('pdv-cadastro-rapido-dep-lbl'),
+            sugestao: document.getElementById('pdv-cadastro-rapido-sugestao'),
+            erro: document.getElementById('pdv-cadastro-rapido-erro'),
+            existeMsg: document.getElementById('pdv-cadastro-rapido-existe-msg'),
+            preview: document.getElementById('pdv-cadastro-rapido-preview'),
+            foto: document.getElementById('pdv-cadastro-rapido-foto'),
+            ncm: document.getElementById('pdv-cadastro-rapido-ncm'),
+        };
+    }
+
+    function cadastroRapidoLimparPreview() {
+        var el = cadastroRapidoEls();
+        if (el.preview) el.preview.classList.add('hidden');
+        if (el.foto) {
+            el.foto.removeAttribute('src');
+            el.foto.hidden = true;
+            el.foto.onload = null;
+            el.foto.onerror = null;
+        }
+        if (el.ncm) el.ncm.value = '';
+    }
+
+    function cadastroRapidoAplicarPreview(opts) {
+        opts = opts || {};
+        var el = cadastroRapidoEls();
+        var ncmTxt = String(opts.ncm || opts.ncmExibicao || '').trim();
+        var fotoUrl = String(opts.fotoUrl || '').trim();
+        if (el.ncm) el.ncm.value = ncmTxt;
+        if (!fotoUrl || !el.foto || !el.preview) {
+            if (el.preview) el.preview.classList.add('hidden');
+            if (el.foto) {
+                el.foto.hidden = true;
+                el.foto.removeAttribute('src');
+            }
+            return;
+        }
+        el.foto.onerror = function () {
+            el.foto.hidden = true;
+            el.foto.removeAttribute('src');
+            el.preview.classList.add('hidden');
+        };
+        el.foto.onload = function () {
+            el.foto.hidden = false;
+            el.preview.classList.remove('hidden');
+        };
+        el.foto.src = fotoUrl;
+    }
+
+    function closeCadastroRapidoOverlay() {
+        var el = cadastroRapidoEls();
+        if (!el.overlay) return;
+        el.overlay.classList.add('hidden');
+        el.overlay.classList.remove('flex');
+        cadastroRapidoExistente = null;
+        cadastroRapidoCodigoSys = '';
+        cadastroRapidoLimparPreview();
+    }
+
+    function cadastroRapidoShowStep(step) {
+        var el = cadastroRapidoEls();
+        if (el.stepEan) el.stepEan.classList.toggle('hidden', step !== 'ean');
+        if (el.stepForm) el.stepForm.classList.toggle('hidden', step !== 'form');
+        if (el.stepExiste) el.stepExiste.classList.toggle('hidden', step !== 'existe');
+    }
+
+    function openCadastroRapidoOverlay() {
+        var el = cadastroRapidoEls();
+        if (!el.overlay) return;
+        cadastroRapidoExistente = null;
+        cadastroRapidoCodigoSys = '';
+        cadastroRapidoLimparPreview();
+        if (el.ean) el.ean.value = '';
+        if (el.eanStatus) {
+            el.eanStatus.textContent = '';
+            el.eanStatus.classList.add('hidden');
+        }
+        if (el.erro) {
+            el.erro.textContent = '';
+            el.erro.classList.add('hidden');
+        }
+        if (el.sugestao) {
+            el.sugestao.textContent = '';
+        }
+        if (el.nome) el.nome.value = '';
+        if (el.gm) el.gm.value = '';
+        if (el.cb) el.cb.value = '';
+        if (el.custo) el.custo.value = '';
+        if (el.venda) el.venda.value = '';
+        if (el.estoque) el.estoque.value = '';
+        if (el.ncm) el.ncm.value = '';
+        var dep = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : 'centro';
+        if (el.depLbl) el.depLbl.textContent = dep === 'vila' ? 'Vila' : 'Centro';
+        cadastroRapidoShowStep('ean');
+        el.overlay.classList.remove('hidden');
+        el.overlay.classList.add('flex');
+        window.setTimeout(function () {
+            if (el.ean) el.ean.focus();
+        }, 40);
+    }
+
+    function cadastroRapidoIrFormulario(opts) {
+        opts = opts || {};
+        var el = cadastroRapidoEls();
+        cadastroRapidoShowStep('form');
+        if (el.cb && opts.ean) el.cb.value = opts.ean;
+        if (el.nome && opts.nome) el.nome.value = opts.nome;
+        if (el.gm && opts.gm) el.gm.value = opts.gm;
+        if (opts.codigo) cadastroRapidoCodigoSys = String(opts.codigo);
+        cadastroRapidoAplicarPreview({
+            ncm: opts.ncm || opts.ncmExibicao || '',
+            fotoUrl: opts.fotoUrl,
+        });
+        if (el.sugestao) {
+            el.sugestao.textContent = opts.sugestaoMsg || '';
+        }
+        if (el.erro) el.erro.classList.add('hidden');
+        window.setTimeout(function () {
+            if (el.nome) el.nome.focus();
+        }, 40);
+        if (!opts.gm) {
+            var urlGm = String(urls.apiPdvCadastroRapidoGmPreview || '').trim();
+            if (urlGm) {
+                jsonGet(urlGm).then(function (res) {
+                    if (!res.ok || !res.data || !res.data.ok) return;
+                    if (el.gm && !String(el.gm.value || '').trim()) {
+                        el.gm.value = String(res.data.codigo_nfe || '').trim();
+                    }
+                    cadastroRapidoCodigoSys = String(res.data.codigo || '').trim();
+                });
+            }
+        }
+    }
+
+    function cadastroRapidoChecarEan() {
+        var el = cadastroRapidoEls();
+        var raw = el.ean ? String(el.ean.value || '').trim() : '';
+        if (!raw) {
+            if (el.eanStatus) {
+                el.eanStatus.textContent = 'Bipe ou digite o código de barras.';
+                el.eanStatus.className = 'text-sm font-bold text-amber-800';
+                el.eanStatus.classList.remove('hidden');
+            }
+            return;
+        }
+        var url = String(urls.apiPdvCadastroRapidoChecar || '').trim();
+        if (!url) {
+            if (el.eanStatus) {
+                el.eanStatus.textContent = 'Rota de checagem não configurada.';
+                el.eanStatus.className = 'text-sm font-bold text-red-600';
+                el.eanStatus.classList.remove('hidden');
+            }
+            return;
+        }
+        if (el.eanStatus) {
+            el.eanStatus.textContent = 'Conferindo…';
+            el.eanStatus.className = 'text-sm font-bold text-slate-600';
+            el.eanStatus.classList.remove('hidden');
+        }
+        jsonGet(url + (url.indexOf('?') >= 0 ? '&' : '?') + 'ean=' + encodeURIComponent(raw))
+            .then(function (res) {
+                if (!res.ok || !res.data || !res.data.ok) {
+                    if (el.eanStatus) {
+                        el.eanStatus.textContent =
+                            (res.data && res.data.erro) || 'Não deu para conferir o código.';
+                        el.eanStatus.className = 'text-sm font-bold text-red-600';
+                    }
+                    return;
+                }
+                var data = res.data;
+                if (data.existe && data.produto) {
+                    cadastroRapidoExistente = data.produto;
+                    cadastroRapidoShowStep('existe');
+                    if (el.existeMsg) {
+                        el.existeMsg.textContent =
+                            'Já cadastrado: ' +
+                            (data.produto.nome || data.produto.id) +
+                            (data.produto.codigo_nfe ? ' · ' + data.produto.codigo_nfe : '');
+                    }
+                    return;
+                }
+                var sug = data.sugestao || {};
+                var gmPrev = data.gm_preview || {};
+                var msgSug = '';
+                if (sug.achou) {
+                    msgSug = 'Sugestão ' + (sug.fonte || 'internet');
+                } else if (sug.motivo === 'sem_cosmos') {
+                    msgSug = 'Sem nome automático — digite o nome.';
+                } else {
+                    msgSug = 'Código novo — digite o nome.';
+                }
+                cadastroRapidoIrFormulario({
+                    ean: data.ean || raw,
+                    nome: sug.achou ? sug.nome : '',
+                    gm: gmPrev.codigo_nfe || '',
+                    codigo: gmPrev.codigo || '',
+                    ncm: sug.ncm || '',
+                    fotoUrl: sug.foto_url || '',
+                    sugestaoMsg: msgSug,
+                });
+            })
+            .catch(function () {
+                if (el.eanStatus) {
+                    el.eanStatus.textContent = 'Falha de rede ao conferir.';
+                    el.eanStatus.className = 'text-sm font-bold text-red-600';
+                }
+            });
+    }
+
+    function cadastroRapidoUsarExistente() {
+        var p = cadastroRapidoExistente;
+        closeCadastroRapidoOverlay();
+        if (!p || !p.id) return;
+        var row = {
+            id: p.id,
+            nome: p.nome,
+            codigo: p.codigo,
+            codigo_nfe: p.codigo_nfe,
+            codigo_barras: p.codigo_barras,
+            preco: p.preco_venda,
+            preco_venda: p.preco_venda,
+            unidade: 'UN',
+        };
+        tryAutoAddBarcodeHit(row, 'Produto já cadastrado — adicionado ao carrinho.');
+    }
+
+    function cadastroRapidoSalvar() {
+        var el = cadastroRapidoEls();
+        var url = String(urls.apiPdvCadastroRapidoCriar || '').trim();
+        if (!url) {
+            if (el.erro) {
+                el.erro.textContent = 'Rota de criar não configurada.';
+                el.erro.classList.remove('hidden');
+            }
+            return;
+        }
+        var nome = el.nome ? String(el.nome.value || '').trim() : '';
+        if (nome.length < 2) {
+            if (el.erro) {
+                el.erro.textContent = 'Informe o nome do produto.';
+                el.erro.classList.remove('hidden');
+            }
+            if (el.nome) el.nome.focus();
+            return;
+        }
+        var vendaN = parseMoneyEdit(el.venda && el.venda.value);
+        if (vendaN == null || vendaN < 0) {
+            if (el.erro) {
+                el.erro.textContent = 'Informe o preço de venda.';
+                el.erro.classList.remove('hidden');
+            }
+            if (el.venda) el.venda.focus();
+            return;
+        }
+        var custoN = parseMoneyEdit(el.custo && el.custo.value);
+        var estoqueN = parseMoneyEdit(el.estoque && el.estoque.value);
+        var dep = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : 'centro';
+        var payload = {
+            nome: nome,
+            codigo_barras: el.cb ? String(el.cb.value || '').trim() : '',
+            codigo_nfe: el.gm ? String(el.gm.value || '').trim() : '',
+            codigo: cadastroRapidoCodigoSys || '',
+            preco_venda: vendaN,
+            unidade: 'UN',
+        };
+        var ncmRaw = el.ncm ? String(el.ncm.value || '').trim() : '';
+        if (ncmRaw) payload.ncm = ncmRaw;
+        if (custoN != null) payload.preco_custo = custoN;
+        if (estoqueN != null) {
+            if (dep === 'vila') payload.saldo_vila = estoqueN;
+            else payload.saldo_centro = estoqueN;
+        }
+        var btn = document.getElementById('pdv-cadastro-rapido-salvar');
+        if (btn) btn.disabled = true;
+        if (el.erro) el.erro.classList.add('hidden');
+        jsonPost(url, payload)
+            .then(function (res) {
+                if (btn) btn.disabled = false;
+                if (!res.ok || !res.data || !res.data.ok || !res.data.produto) {
+                    if (el.erro) {
+                        el.erro.textContent =
+                            (res.data && res.data.erro) || 'Não deu para salvar o produto.';
+                        el.erro.classList.remove('hidden');
+                    }
+                    if (res.data && res.data.existe && res.data.produto) {
+                        cadastroRapidoExistente = res.data.produto;
+                        cadastroRapidoShowStep('existe');
+                        if (el.existeMsg) {
+                            el.existeMsg.textContent =
+                                'Já cadastrado: ' + (res.data.produto.nome || res.data.produto.id);
+                        }
+                    }
+                    return;
+                }
+                var prod = res.data.produto;
+                patchWizardCatalogFromQuickEdit(prod, {
+                    saldo_centro: prod.saldo_centro,
+                    saldo_vila: prod.saldo_vila,
+                });
+                // Garante na lista local se era produto novo.
+                var pid = String(prod.id || '');
+                var found = false;
+                for (var i = 0; i < wizardProductCatalog.length; i++) {
+                    if (String(wizardProductCatalog[i].id || '') === pid) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && pid) {
+                    wizardProductCatalog.unshift({
+                        id: pid,
+                        nome: prod.nome,
+                        codigo: prod.codigo,
+                        codigo_nfe: prod.codigo_nfe,
+                        codigo_barras: prod.codigo_barras,
+                        unidade: prod.unidade || 'UN',
+                        preco: prod.preco_venda,
+                        preco_venda: prod.preco_venda,
+                        preco_custo: prod.preco_custo,
+                        saldo_centro: prod.saldo_centro,
+                        saldo_vila: prod.saldo_vila,
+                    });
+                }
+                closeCadastroRapidoOverlay();
+                var row = {
+                    id: prod.id,
+                    nome: prod.nome,
+                    codigo: prod.codigo,
+                    codigo_nfe: prod.codigo_nfe,
+                    codigo_barras: prod.codigo_barras,
+                    unidade: prod.unidade || 'UN',
+                    preco: prod.preco_venda,
+                    preco_venda: prod.preco_venda,
+                    preco_custo: prod.preco_custo,
+                    saldo_centro: prod.saldo_centro,
+                    saldo_vila: prod.saldo_vila,
+                };
+                tryAutoAddBarcodeHit(row, 'Produto novo cadastrado e adicionado ao carrinho.');
+            })
+            .catch(function () {
+                if (btn) btn.disabled = false;
+                if (el.erro) {
+                    el.erro.textContent = 'Falha de rede ao salvar.';
+                    el.erro.classList.remove('hidden');
+                }
+            });
+    }
+
+    function wireCadastroRapidoUi() {
+        var btnOpen = document.getElementById('pdv-btn-cadastro-rapido');
+        if (btnOpen) btnOpen.addEventListener('click', openCadastroRapidoOverlay);
+        var el = cadastroRapidoEls();
+        var fechar = document.getElementById('pdv-cadastro-rapido-fechar');
+        if (fechar) fechar.addEventListener('click', closeCadastroRapidoOverlay);
+        if (el.overlay) {
+            el.overlay.addEventListener('click', function (ev) {
+                if (ev.target === el.overlay) closeCadastroRapidoOverlay();
+            });
+        }
+        var eanOk = document.getElementById('pdv-cadastro-rapido-ean-ok');
+        if (eanOk) eanOk.addEventListener('click', cadastroRapidoChecarEan);
+        var semEan = document.getElementById('pdv-cadastro-rapido-sem-ean');
+        if (semEan) {
+            semEan.addEventListener('click', function () {
+                cadastroRapidoIrFormulario({});
+            });
+        }
+        if (el.ean) {
+            el.ean.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Enter') {
+                    ev.preventDefault();
+                    cadastroRapidoChecarEan();
+                }
+            });
+        }
+        var voltar = document.getElementById('pdv-cadastro-rapido-voltar');
+        if (voltar) {
+            voltar.addEventListener('click', function () {
+                cadastroRapidoShowStep('ean');
+                window.setTimeout(function () {
+                    if (el.ean) el.ean.focus();
+                }, 30);
+            });
+        }
+        var salvar = document.getElementById('pdv-cadastro-rapido-salvar');
+        if (salvar) salvar.addEventListener('click', cadastroRapidoSalvar);
+        var usar = document.getElementById('pdv-cadastro-rapido-usar-existente');
+        if (usar) usar.addEventListener('click', cadastroRapidoUsarExistente);
+        var exVoltar = document.getElementById('pdv-cadastro-rapido-existe-voltar');
+        if (exVoltar) {
+            exVoltar.addEventListener('click', function () {
+                cadastroRapidoShowStep('ean');
+                if (el.ean) {
+                    el.ean.value = '';
+                    el.ean.focus();
+                }
+            });
+        }
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Escape') return;
+            if (!el.overlay || el.overlay.classList.contains('hidden')) return;
+            closeCadastroRapidoOverlay();
+        });
+    }
+
+
         if (dom.quickProductEditSalvar) {
             dom.quickProductEditSalvar.addEventListener('click', saveQuickProductEditOverlay);
         }
@@ -12049,6 +12472,7 @@
         if (dom.quickProductEditFechar) {
             dom.quickProductEditFechar.addEventListener('click', closeQuickProductEditOverlay);
         }
+        wireCadastroRapidoUi();
         if (dom.quickProductEditOverlay) {
             dom.quickProductEditOverlay.addEventListener('click', function (event) {
                 if (event.target === dom.quickProductEditOverlay) closeQuickProductEditOverlay();

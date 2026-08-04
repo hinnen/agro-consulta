@@ -64,11 +64,41 @@
             w.dispatchEvent(new CustomEvent('agro-pacote-status', { detail: st }));
         } catch (e2) {}
         var chip = document.getElementById('agro-pacote-chip');
+        var chipWrap = document.getElementById('agro-pacote-chip-wrap');
         if (chip) {
             chip.textContent = st.label;
-            chip.className = st.chipClass;
-            chip.title = st.hint;
+            chip.className = st.chipClass + ' cursor-help';
+            chip.removeAttribute('title');
             chip.hidden = false;
+            if (chipWrap) chipWrap.hidden = false;
+            var tipTitle = chipWrap && chipWrap.querySelector('[data-pacote-tip-title]');
+            var tipBody = chipWrap && chipWrap.querySelector('[data-pacote-tip-body]');
+            if (tipTitle) {
+                tipTitle.textContent =
+                    st.level === 'green'
+                        ? 'Lista de hoje'
+                        : st.level === 'yellow'
+                          ? 'Lista antiga'
+                          : 'Só servidor';
+            }
+            if (tipBody) {
+                var n = typeof st.n === 'number' ? st.n : 0;
+                var nTxt = n > 0 ? n.toLocaleString('pt-BR') + ' produtos neste PC.' : '';
+                if (st.level === 'green') {
+                    tipBody.textContent =
+                        'Catálogo local atualizado hoje. ' +
+                        nTxt +
+                        ' A busca usa essa cópia rápida. Não é a lista de vendas do dia.';
+                } else if (st.level === 'yellow') {
+                    tipBody.textContent =
+                        'Catálogo local de outro dia. ' +
+                        nTxt +
+                        ' Ainda busca rápido; o servidor atualiza quando puder. Não é vendas do dia.';
+                } else {
+                    tipBody.textContent =
+                        'Sem lista salva neste PC — a busca depende do servidor/internet. Não é vendas do dia.';
+                }
+            }
         }
     }
 

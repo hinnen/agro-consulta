@@ -172,6 +172,9 @@ def pdv_home(request):
                     "api_pdv_produto_edicao_rapida", args=["__PID__"]
                 ),
                 "apiPdvProdutoAjusteEstoque": reverse("api_pdv_produto_ajuste_estoque"),
+                "apiPdvCadastroRapidoChecar": reverse("api_pdv_cadastro_rapido_checar"),
+                "apiPdvCadastroRapidoGmPreview": reverse("api_pdv_cadastro_rapido_gm_preview"),
+                "apiPdvCadastroRapidoCriar": reverse("api_pdv_cadastro_rapido_criar"),
                 "apiProdutosGestaoOverlaySalvar": reverse("api_produtos_gestao_overlay_salvar"),
                 "apiComprasRelatorioDim": reverse("api_compras_relatorio_dim_sugestao"),
                 "apiProdutosCadastroFacetaNova": reverse("api_produtos_cadastro_faceta_nova"),

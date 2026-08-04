@@ -1672,6 +1672,368 @@ def api_pdv_produto_ajuste_estoque(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_http_methods(["GET"])
+def api_pdv_cadastro_rapido_checar(request):
+    """Passo 1 do cadastro rápido: EAN já existe? + sugestão internet (opcional)."""
+    from produtos.pdv_cadastro_rapido_util import (
+        alocar_gm_preview,
+        buscar_produto_por_codigo,
+        consultar_ean_internet,
+        ean_parece_valido,
+        normalizar_ean,
+    )
+
+    raw = str(request.GET.get("ean") or request.GET.get("codigo") or "").strip()
+    ean = normalizar_ean(raw) if raw.isdigit() or normalizar_ean(raw) else raw
+    if not ean and raw:
+        ean = raw
+    if not ean:
+        return JsonResponse({"ok": False, "erro": "Informe o código de barras."}, status=400)
+
+    existente = buscar_produto_por_codigo(ean) or (
+        buscar_produto_por_codigo(raw) if raw != ean else None
+    )
+    if existente:
+        return JsonResponse(
+            {
+                "ok": True,
+                "existe": True,
+                "produto": existente,
+                "sugestao": {"achou": False},
+                "gm_preview": {"codigo": "", "codigo_nfe": ""},
+            }
+        )
+
+    sugestao = {"ok": True, "achou": False, "nome": "", "marca": "", "fonte": ""}
+    if ean_parece_valido(normalizar_ean(ean)):
+        try:
+            sugestao = consultar_ean_internet(ean)
+        except Exception:
+            logger.info("api_pdv_cadastro_rapido_checar lookup", exc_info=True)
+
+    err_gm, c_sys, c_gm = alocar_gm_preview()
+    return JsonResponse(
+        {
+            "ok": True,
+            "existe": False,
+            "produto": None,
+            "ean": normalizar_ean(ean) or ean,
+            "sugestao": sugestao,
+            "gm_preview": {
+                "codigo": c_sys,
+                "codigo_nfe": c_gm,
+                "erro": err_gm or "",
+            },
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET"])
+def api_pdv_cadastro_rapido_gm_preview(request):
+    """Próximo GM sugerido (sem gravar) — ao abrir o formulário sem bipar."""
+    from produtos.pdv_cadastro_rapido_util import alocar_gm_preview
+
+    err_gm, c_sys, c_gm = alocar_gm_preview()
+    if err_gm:
+        return JsonResponse({"ok": False, "erro": err_gm}, status=400)
+    return JsonResponse({"ok": True, "codigo": c_sys, "codigo_nfe": c_gm})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_pdv_cadastro_rapido_criar(request):
+    """Cria produto mínimo no balcão, marca pendente conferência e ajusta estoque opcional."""
+    from decimal import Decimal
+
+    from produtos import catalogo_agro as cat_agro
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+    from produtos.pdv_cadastro_rapido_util import (
+        buscar_produto_por_codigo,
+        ean_parece_valido,
+        marcar_extras_origem_pdv,
+        normalizar_ean,
+    )
+    from produtos.agro_produto_fiscal_defaults import normalizar_ncm_somente_digitos
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    nome = str(payload.get("nome") or "").strip()
+    if len(nome) < 2:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o nome do produto (mínimo 2 caracteres)."},
+            status=400,
+        )
+
+    cb_raw = str(payload.get("codigo_barras") or "").strip()
+    cb = normalizar_ean(cb_raw) if cb_raw and (cb_raw.isdigit() or normalizar_ean(cb_raw)) else cb_raw
+    if cb_raw and ean_parece_valido(normalizar_ean(cb_raw)):
+        cb = normalizar_ean(cb_raw)
+
+    if cb:
+        existente = buscar_produto_por_codigo(cb)
+        if existente:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "erro": "Este código de barras já está cadastrado.",
+                    "existe": True,
+                    "produto": existente,
+                },
+                status=409,
+            )
+
+    def _dec(key):
+        raw = payload.get(key)
+        if raw is None or str(raw).strip() == "":
+            return None
+        try:
+            return float(Decimal(str(raw).replace(",", ".").strip()))
+        except Exception:
+            raise ValueError(f"Valor inválido: {key}")
+
+    try:
+        preco_venda = _dec("preco_venda")
+        preco_custo = _dec("preco_custo")
+        saldo_centro = _dec("saldo_centro")
+        saldo_vila = _dec("saldo_vila")
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+
+    if preco_venda is None or preco_venda < 0:
+        return JsonResponse(
+            {"ok": False, "erro": "Informe o preço de venda."},
+            status=400,
+        )
+
+    ncm_digits = normalizar_ncm_somente_digitos(payload.get("ncm") or "")
+
+    cod_sys = str(payload.get("codigo") or "").strip()
+    cod_gm = str(payload.get("codigo_nfe") or payload.get("codigo_gm") or "").strip()
+    # Se o vendedor mandou só GM (ex. GM4522), deriva o código sistema — senão try_criar exige 4 dígitos.
+    if cod_gm and not cod_sys:
+        import re as _re
+
+        m_gm = _re.match(r"^GM\s*(\d{4})$", cod_gm, flags=_re.IGNORECASE)
+        if m_gm:
+            cod_sys = m_gm.group(1)
+            cod_gm = f"GM{cod_sys}"
+        else:
+            from produtos.cadastro_codigo_sequencial_util import (
+                alocar_codigo_sequencial_novo_cadastro,
+            )
+
+            err_al, c_sys, _c_gm_ign = alocar_codigo_sequencial_novo_cadastro(None, None)
+            if err_al is not None:
+                return JsonResponse(
+                    {"ok": False, "erro": err_al.get("erro", "Erro ao gerar código.")},
+                    status=int(err_al.get("status") or 400),
+                )
+            cod_sys = str(c_sys or "").strip()
+    create_payload = {
+        "nome": nome,
+        "codigo": cod_sys,
+        "codigo_nfe": cod_gm,
+        "codigo_barras": cb,
+        "unidade": "UN",
+        "preco_venda": preco_venda,
+        "preco_custo": preco_custo if preco_custo is not None else 0,
+        "marca": str(payload.get("marca") or "").strip()[:120],
+    }
+
+    if not agro_catalogo_usa_postgres():
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Cadastro rápido do PDV exige catálogo Postgres (agro_pg).",
+            },
+            status=503,
+        )
+
+    err_c, novo_id = cat_agro.try_criar_produto_postgres_somente_agro(create_payload)
+    if err_c is not None:
+        return err_c
+    if not novo_id:
+        return JsonResponse({"ok": False, "erro": "Falha ao criar produto."}, status=500)
+
+    ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+        produto_externo_id=str(novo_id)[:64],
+        defaults={"usuario": request.user if request.user.is_authenticated else None},
+    )
+    ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+    ex = marcar_extras_origem_pdv(ex)
+    if preco_custo is not None:
+        ex["preco_custo_overlay"] = float(preco_custo)
+    if ncm_digits:
+        fiscal = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
+        fiscal["ncm"] = ncm_digits[:14]
+        ex["fiscal"] = fiscal
+    ov.nome = nome[:300]
+    if cb:
+        ov.codigo_barras = cb[:80]
+    if cod_gm:
+        ov.codigo_nfe = cod_gm[:64]
+    ov.unidade = "UN"
+    ov.preco_venda = Decimal(str(preco_venda))
+    ov.cadastro_extras = ex
+    ov.usuario = request.user if request.user.is_authenticated else ov.usuario
+    ov.save()
+
+    try:
+        cat_agro.sincronizar_modelo_produto_de_overlay(ov)
+    except Exception:
+        logger.warning("pdv cadastro rápido: sync modelo overlay", exc_info=True)
+
+    try:
+        from produtos.cadastro_alteracao_historico_util import registrar_diffs_cadastro
+
+        registrar_diffs_cadastro(
+            produto_id=str(novo_id)[:64],
+            antes={},
+            depois={
+                "nome": nome,
+                "codigo_barras": cb,
+                "codigo_nfe": cod_gm,
+                "preco_venda": preco_venda,
+                "preco_custo": preco_custo,
+            },
+            usuario=request.user if request.user.is_authenticated else None,
+            origem="pdv",
+        )
+    except Exception:
+        logger.info("pdv cadastro rápido: histórico", exc_info=True)
+
+    saldos_out = {"saldo_centro": 0.0, "saldo_vila": 0.0}
+    if saldo_centro is not None or saldo_vila is not None:
+        try:
+            client_m, db_m = None, None
+            try:
+                client_m, db_m = obter_conexao_mongo()
+            except Exception:
+                client_m, db_m = None, None
+            p = cat_agro.obter_produto_model(novo_id)
+            row = cat_agro.produto_agro_para_row(p) if p is not None else {"id": novo_id, "nome": nome}
+            pid_out = str(row.get("id") or novo_id).strip()
+            nome_p = str(row.get("nome") or nome)[:200]
+            codigo = str(row.get("codigo_nfe") or row.get("codigo") or cod_gm or "")[:100]
+            saldos_antes = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
+            sinfo = saldos_antes.get(pid_out) or {}
+            erp_c = Decimal(str(sinfo.get("saldo_erp_centro") or 0))
+            erp_v = Decimal(str(sinfo.get("saldo_erp_vila") or 0))
+            empresa = Empresa.objects.filter(nome_fantasia="Agro Mais").first() or Empresa.objects.first()
+            with transaction.atomic():
+                if saldo_centro is not None:
+                    AjusteRapidoEstoque.objects.create(
+                        empresa=empresa,
+                        produto_externo_id=pid_out[:100],
+                        codigo_interno=codigo,
+                        nome_produto=nome_p[:255],
+                        deposito="centro",
+                        saldo_erp_referencia=erp_c,
+                        saldo_informado=Decimal(str(saldo_centro)),
+                        origem=OrigemAjusteEstoque.AJUSTE_PIN,
+                        observacao="PDV — cadastro rápido centro",
+                        usuario=request.user if request.user.is_authenticated else None,
+                    )
+                if saldo_vila is not None:
+                    AjusteRapidoEstoque.objects.create(
+                        empresa=empresa,
+                        produto_externo_id=pid_out[:100],
+                        codigo_interno=codigo,
+                        nome_produto=nome_p[:255],
+                        deposito="vila",
+                        saldo_erp_referencia=erp_v,
+                        saldo_informado=Decimal(str(saldo_vila)),
+                        origem=OrigemAjusteEstoque.AJUSTE_PIN,
+                        observacao="PDV — cadastro rápido vila",
+                        usuario=request.user if request.user.is_authenticated else None,
+                    )
+            _invalidar_caches_apos_ajuste_pin()
+            saldos = mapa_saldos_operacionais_agro([pid_out], db=db_m, client=client_m)
+            s2 = saldos.get(pid_out) or {}
+            saldos_out = {
+                "saldo_centro": round(float(s2.get("saldo_centro") or 0), 2),
+                "saldo_vila": round(float(s2.get("saldo_vila") or 0), 2),
+            }
+        except Exception as e:
+            logger.warning("pdv cadastro rápido estoque: %s", e, exc_info=True)
+
+    p_final = cat_agro.obter_produto_model(novo_id)
+    row_final = cat_agro.produto_agro_para_row(p_final) if p_final is not None else {
+        "id": novo_id,
+        "nome": nome,
+        "codigo": cod_sys,
+        "codigo_nfe": cod_gm,
+        "codigo_barras": cb,
+        "unidade": "UN",
+        "preco_venda": preco_venda,
+        "preco_custo": preco_custo or 0,
+    }
+    row_final["saldo_centro"] = saldos_out.get("saldo_centro", 0)
+    row_final["saldo_vila"] = saldos_out.get("saldo_vila", 0)
+    row_final["pendente_conferencia"] = True
+    row_final["origem_pdv"] = True
+
+    try:
+        from django.core.cache import cache
+        from produtos.bca_busca_cache_util import bca_busca_cache_bump_invalidate
+
+        bca_busca_cache_bump_invalidate()
+        cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        cache.delete(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY)
+    except Exception:
+        pass
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "produto": row_final,
+            "pendente_conferencia": True,
+            "mensagem": "Produto criado. Aparece no Cadastro para conferência.",
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET"])
+def api_cadastro_pendentes_pdv(request):
+    """Contagem (+ ids) de produtos criados no PDV aguardando conferência."""
+    from produtos.pdv_cadastro_rapido_util import contar_pendentes_pdv, ids_pendentes_pdv
+
+    n = contar_pendentes_pdv()
+    ids = ids_pendentes_pdv(80) if request.GET.get("ids") in ("1", "true", "yes") else []
+    return JsonResponse({"ok": True, "n": n, "ids": ids})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_cadastro_pendente_pdv_marcar_conferido(request):
+    """Remove a flag pendente_conferencia (após revisar no Cadastro)."""
+    from produtos.pdv_cadastro_rapido_util import limpar_pendente_conferencia
+
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
+    if ov is None:
+        return JsonResponse({"ok": False, "erro": "Produto não encontrado no overlay."}, status=404)
+    ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
+    ov.cadastro_extras = limpar_pendente_conferencia(ex)
+    ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+    from produtos.pdv_cadastro_rapido_util import contar_pendentes_pdv
+
+    return JsonResponse({"ok": True, "n": contar_pendentes_pdv()})
+
+
+@login_required(login_url="/admin/login/")
 @require_POST
 def api_produtos_gestao_overlay_salvar(request):
     """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""

@@ -123,6 +123,9 @@ def parse_filtros_cadastro(request) -> dict[str, Any]:
     out["sem_marca"] = get.get("sem_marca") in ("1", "true", "yes")
     out["sem_categoria"] = get.get("sem_categoria") in ("1", "true", "yes")
     out["somente_agro"] = get.get("somente_agro") in ("1", "true", "yes")
+    out["pendente_pdv"] = get.get("pendente_pdv") in ("1", "true", "yes") or get.get(
+        "pendente_conferencia_pdv"
+    ) in ("1", "true", "yes")
     ncm = str(get.get("ncm") or "").strip().lower()
     out["ncm"] = ncm if ncm in ("com", "sem") else ""
     out["custo_min"] = _parse_money(str(get.get("custo_min") or ""))
@@ -142,7 +145,13 @@ def filtros_cadastro_ativos(f: dict[str, Any]) -> bool:
         return True
     if f.get("data_tipo") and (f.get("data_de") or f.get("data_ate")):
         return True
-    if f.get("sem_marca") or f.get("sem_categoria") or f.get("somente_agro") or f.get("ncm"):
+    if (
+        f.get("sem_marca")
+        or f.get("sem_categoria")
+        or f.get("somente_agro")
+        or f.get("pendente_pdv")
+        or f.get("ncm")
+    ):
         return True
     if any(f.get(k) is not None for k in ("custo_min", "custo_max", "venda_min", "venda_max")):
         return True
@@ -204,6 +213,16 @@ def aplicar_filtros_cadastro_qs(qs, f: dict[str, Any]):
 
     if f.get("somente_agro"):
         qs = qs.filter(cadastro_somente_agro=True)
+
+    if f.get("pendente_pdv"):
+        from produtos.pdv_cadastro_rapido_util import ids_pendentes_pdv
+
+        pids = ids_pendentes_pdv(2000)
+        f["_pendente_pdv_ids"] = set(pids)
+        if not pids:
+            qs = qs.none()
+        else:
+            qs = qs.filter(produto_externo_id__in=pids)
 
     ncm = f.get("ncm") or ""
     if ncm == "com":
@@ -297,6 +316,20 @@ def row_passa_filtros_cadastro(r: dict, f: dict[str, Any]) -> bool:
             return False
     if f.get("somente_agro") and not r.get("cadastro_somente_agro") and not r.get("somente_agro"):
         return False
+    if f.get("pendente_pdv"):
+        pid = str(r.get("id") or r.get("produto_externo_id") or "").strip()
+        if not pid:
+            return False
+        # Conjunto cacheado no request/filtro se disponível; fallback por flag na row.
+        pids = f.get("_pendente_pdv_ids")
+        if pids is not None:
+            if pid not in pids and pid[:64] not in pids:
+                return False
+        elif not r.get("pendente_conferencia") and not r.get("origem_pdv_pendente"):
+            from produtos.pdv_cadastro_rapido_util import ids_pendentes_pdv
+
+            if pid not in set(ids_pendentes_pdv(2000)):
+                return False
     ncm_flag = f.get("ncm") or ""
     ncm_v = str(r.get("ncm") or "").strip()
     if ncm_flag == "com" and not ncm_v:

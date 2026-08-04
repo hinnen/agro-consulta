@@ -389,7 +389,59 @@
     background: #bfdbfe !important;
     box-shadow: 0 20px 52px rgba(14, 116, 144, 0.28) !important;
   }
-  /* ID+display:flex ganha do .hidden do Tailwind — sem isto a lista cobre o carrinho (FL-008). */
+    #pdv-step1-search-wrap .pdv-step1-search-head {
+    gap: 0.55rem;
+    min-height: 5.25rem;
+    align-items: center;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-head .pdv-step1-block-meta {
+    margin-left: 0;
+    font-size: 0.875rem;
+  }
+  #pdv-step1-search-wrap #pdv-product-search-wrap {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    max-width: none;
+  }
+  #pdv-step1-search-wrap #pdv-product-search {
+    border-color: #cbd5e1 !important;
+    background: #fff;
+    min-height: 5rem !important;
+    height: 5rem !important;
+    font-size: 1.85rem !important;
+    font-weight: 900 !important;
+    line-height: 1.15 !important;
+    padding-top: 0.9rem !important;
+    padding-bottom: 0.9rem !important;
+    box-shadow: none !important;
+  }
+  #pdv-step1-search-wrap #pdv-product-search::placeholder {
+    font-size: 1.55rem;
+    font-weight: 800;
+  }
+  #pdv-step1-search-wrap #pdv-product-search:focus {
+    border-color: #94a3b8 !important;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.25) !important;
+  }
+  #pdv-step1-search-wrap .pdv-btn-cadastro-rapido {
+    min-height: 5rem !important;
+    height: 5rem !important;
+  }
+  #pdv-step1-search-wrap .pdv-step1-search-f2 {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.9rem;
+    padding: 0.35rem 0.6rem;
+  }
+  #pdv-cadastro-rapido-overlay details > summary {
+    list-style: none;
+  }
+  #pdv-cadastro-rapido-overlay details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+/* ID+display:flex ganha do .hidden do Tailwind — sem isto a lista cobre o carrinho (FL-008). */
   #pdv-product-autocomplete.hidden,
   #pdv-step1-search-wrap #pdv-product-autocomplete.hidden {
     display: none !important;
@@ -3176,9 +3228,10 @@
     #pdv-step1-layout { grid-template-columns: minmax(0, 1fr) 13.25rem !important; gap: .35rem; }
     #pdv-step1-client-bar { padding: .4rem .6rem !important; }
     #pdv-step1-search-wrap { padding: .55rem .75rem !important; }
-    #pdv-step1-search-wrap .pdv-step1-search-head { min-height: 3.2rem !important; }
+    #pdv-step1-search-wrap .pdv-step1-search-head { min-height: 4.6rem !important; }
     #pdv-step1-search-wrap .pdv-step1-block-title--search { font-size: 1.2rem !important; }
-    #pdv-step1-search-wrap #pdv-product-search { height: 3rem !important; min-height: 3rem !important; font-size: 1.2rem !important; font-weight: 900 !important; }
+    #pdv-step1-search-wrap #pdv-product-search { height: 4.4rem !important; min-height: 4.4rem !important; font-size: 1.65rem !important; font-weight: 900 !important; }
+    #pdv-step1-search-wrap .pdv-btn-cadastro-rapido { height: 4.4rem !important; min-height: 4.4rem !important; }
     #pdv-product-autocomplete[data-pdv-ac-layout] { max-height: unset !important; }
     #pdv-product-autocomplete .pdv-ac-head,
     #pdv-product-autocomplete .pdv-ac-row {
@@ -4169,6 +4222,90 @@
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
+<div id="pdv-cadastro-rapido-overlay" class="fixed inset-0 z-[139] hidden items-center justify-center bg-slate-950/55 p-1.5 backdrop-blur-[2px] sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-cadastro-rapido-title">
+  <div class="pdv-product-edit-panel pdv-cadastro-rapido-panel flex max-h-[min(94dvh,52rem)] w-full flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document" style="max-width:min(44rem,98vw)">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <p class="text-[clamp(0.75rem,0.35vw+0.7rem,0.95rem)] font-black uppercase tracking-[0.12em] text-orange-800">Cadastro rápido</p>
+        <h3 id="pdv-cadastro-rapido-title" class="min-w-0 truncate font-black text-slate-900">Produto novo</h3>
+      </div>
+      <details class="relative shrink-0">
+        <summary class="inline-flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border-2 border-amber-600 bg-white text-base font-black text-amber-900" title="Ajuda" aria-label="Ajuda do cadastro rápido">?</summary>
+        <div class="absolute right-0 top-[calc(100%+0.35rem)] z-20 w-[min(20rem,88vw)] rounded-xl border-2 border-amber-200 bg-amber-50 p-3 text-left text-[12px] font-semibold leading-snug text-amber-950 shadow-lg">
+          <p class="mb-1.5 font-black uppercase tracking-wide text-amber-900">Como usar</p>
+          <ul class="list-disc space-y-1 pl-4">
+            <li>Bipe o código. Se achar na internet, preenche nome e NCM sozinho.</li>
+            <li>A foto (quando aparecer) é só pra conferir — <strong>não</strong> grava no sistema.</li>
+            <li>Estoque da prateleira é opcional: preencha só se souber a quantidade agora.</li>
+          </ul>
+        </div>
+      </details>
+      <button type="button" id="pdv-cadastro-rapido-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar cadastro rápido">×</button>
+    </header>
+    <div class="pdv-wizard-scroll min-h-0 flex-1 overflow-y-auto px-4 py-3.5 sm:px-5 sm:py-4">
+      <div id="pdv-cadastro-rapido-step-ean" class="grid gap-3">
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código de barras</span>
+          <input id="pdv-cadastro-rapido-ean" type="text" inputmode="numeric" class="pdv-input w-full font-mono text-lg" autocomplete="off" placeholder="Bipar ou digitar…">
+        </label>
+        <p id="pdv-cadastro-rapido-ean-status" class="hidden text-sm font-bold" role="status"></p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="pdv-cadastro-rapido-ean-ok" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl bg-orange-500 px-4 font-black uppercase text-white hover:bg-orange-600">Continuar</button>
+          <button type="button" id="pdv-cadastro-rapido-sem-ean" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 font-black uppercase text-slate-700 hover:bg-slate-50">Sem barras</button>
+        </div>
+      </div>
+      <div id="pdv-cadastro-rapido-step-form" class="hidden grid gap-3">
+        <div id="pdv-cadastro-rapido-preview" class="hidden flex justify-center">
+          <div class="flex h-[7rem] w-[7rem] items-center justify-center overflow-hidden rounded-xl border-2 border-slate-200 bg-white shadow-sm">
+            <img id="pdv-cadastro-rapido-foto" src="" alt="Foto do produto" class="max-h-full max-w-full object-contain" hidden>
+          </div>
+        </div>
+        <input id="pdv-cadastro-rapido-ncm" type="hidden" value="">
+        <label class="block">
+          <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome <span class="text-red-600">*</span></span>
+          <input id="pdv-cadastro-rapido-nome" type="text" class="pdv-input w-full text-[1.15rem]" autocomplete="off">
+        </label>
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código GM</span>
+            <input id="pdv-cadastro-rapido-gm" type="text" class="pdv-input w-full font-mono" autocomplete="off">
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Código de barras</span>
+            <input id="pdv-cadastro-rapido-cb" type="text" inputmode="numeric" class="pdv-input w-full font-mono" autocomplete="off">
+          </label>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Preço de custo</span>
+            <input id="pdv-cadastro-rapido-custo" type="text" inputmode="decimal" class="pdv-input w-full tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0,00">
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Preço de venda <span class="text-red-600">*</span></span>
+            <input id="pdv-cadastro-rapido-venda" type="text" inputmode="decimal" class="pdv-input w-full tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0,00">
+          </label>
+        </div>
+        <div class="rounded-xl border-2 border-emerald-200 bg-emerald-50/90 p-3">
+          <p class="mb-1 text-[11px] font-black uppercase tracking-wide text-emerald-800">Estoque agora (<span id="pdv-cadastro-rapido-dep-lbl">Centro</span>) — opcional</p>
+          <input id="pdv-cadastro-rapido-estoque" type="text" inputmode="decimal" class="pdv-input w-full border-emerald-300 bg-white tabular-nums text-[1.1rem]" autocomplete="off" placeholder="0">
+        </div>
+        <p id="pdv-cadastro-rapido-sugestao" class="sr-only" aria-live="polite"></p>
+        <p id="pdv-cadastro-rapido-erro" class="hidden text-sm font-bold text-red-600" role="alert"></p>
+        <div class="flex gap-2.5 pt-1">
+          <button type="button" id="pdv-cadastro-rapido-voltar" class="pdv-action-btn min-h-[3.1rem] flex-1 rounded-xl border-2 border-slate-300 bg-white font-black uppercase text-slate-700">Voltar</button>
+          <button type="button" id="pdv-cadastro-rapido-salvar" class="pdv-action-btn min-h-[3.1rem] flex-1 rounded-xl bg-orange-500 font-black uppercase text-white hover:bg-orange-600">Salvar e vender</button>
+        </div>
+      </div>
+      <div id="pdv-cadastro-rapido-step-existe" class="hidden grid gap-3">
+        <p id="pdv-cadastro-rapido-existe-msg" class="text-base font-bold text-amber-900"></p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" id="pdv-cadastro-rapido-usar-existente" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl bg-emerald-600 px-4 font-black uppercase text-white hover:bg-emerald-700">Usar no carrinho</button>
+          <button type="button" id="pdv-cadastro-rapido-existe-voltar" class="pdv-action-btn min-h-[3rem] flex-1 rounded-xl border-2 border-slate-300 bg-white px-4 font-black uppercase text-slate-700">Outro código</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% with sspin_pedir_pin_ao_abrir=True %}
