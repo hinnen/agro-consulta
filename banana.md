@@ -1184,22 +1184,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.64)
+### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP (04/08 · frase+senha)
 
-**Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste:** badge **v13.88** · `teste` @ HEAD  
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · `producao` @ **`a0f0db2`** · badge **13.80** · Render auto |
+| **Autorização** | *pode enviar lote cad/nf/dsp para produção* + **99738595** (04/08) |
+| **Inclui** | ENTRADA-NF-CUSTO · CAD-DUP · CAD-CB-OPC · DSP-PNG-BG |
+| **NÃO inclui** | **PDV-CAD-RAPIDO** (fica no `teste`) |
+| **Branch** | `deploy/lote-cad-nf-dsp-v13.80` → `producao` |
+| **Rollback** | `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · badge **13.80** · smoke Entrada NF custo · Cadastro Duplicar/barras · Dispenser PNG · 1 bip PDV |
 
-| # | Pacote | Versão | Status | Risco |
-| - | ------ | ------ | ------ | ----- |
-| 1 | **ENTRADA-NF-CUSTO** | v13.71 | 📋 **pronto para envio** · VERIFY 10/10 | Baixo — Entrada NF |
-| 2 | **CAD-DUP** | v13.72 | 📋 **pronto para envio** | Baixo — Cadastro |
-| 3 | **CAD-CB-OPC** | v13.75 | 📋 **pronto para envio** · VERIFY 7/7 | Baixo — barras |
-| 4 | **DSP-PNG-BG** | v13.80 | 📋 **pronto para envio** · VERIFY_OK | Baixo — Dispenser |
-| 5 | **PDV-CAD-RAPIDO** | v13.90 | 📋 **pronto para envio** · VERIFY_OK · 21/21 | Médio — PDV (+ Produto) |
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.80)
 
-**Lote já empacotado (1–4):** branch `deploy/lote-cad-nf-dsp-v13.80` · *pode enviar lote cad/nf/dsp para produção* + **99738595**  
-**PDV-CAD-RAPIDO (5):** só no `teste` v13.90 — subir **depois** do lote 1–4 (ou cherry separado). **Migrate:** não.  
-**Pós-Live:** Ctrl+F5 · badge · smoke Entrada NF / Cadastro / Dispenser / PDV **+ Produto**.
+**Loja hoje:** badge **v13.80** · `producao` @ **`a0f0db2`**  
+**Rollback:** `6996fca` / `rollback/pre-lote-cad-nf-dsp-v13.80`
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **ENTRADA-NF-CUSTO** | ✅ **enviado** / Live |
+| 2 | **CAD-DUP** | ✅ **enviado** / Live |
+| 3 | **CAD-CB-OPC** | ✅ **enviado** / Live |
+| 4 | **DSP-PNG-BG** | ✅ **enviado** / Live |
+| 5 | **PDV-CAD-RAPIDO** | 📋 **pronto para envio** · só `teste` · **não** neste lote |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.90**)
 
@@ -1214,23 +1223,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `agro_busca_catalogo.js` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
 | **Commit** | HEAD `teste` |
 
-### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
+### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
 
-**Itens 1–4 do CHECKLIST** · ver tabela acima. **Não inclui** PDV-CAD-RAPIDO.  
-**Autorizar:** *pode enviar lote cad/nf/dsp para produção* + **99738595** · `git push origin deploy/lote-cad-nf-dsp-v13.80:producao`  
+**Status:** ✅ **Live loja v13.80** · ver bloco Deploy acima. **Não inclui** PDV-CAD-RAPIDO.  
 **Rollback:** `git push origin 6996fca:producao`
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.80**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no deploy v13.80 · VERIFY_OK · **não** loja ainda |
+| **Status** | ✅ **enviado** / Live loja v13.80 |
 | **Inclui** | Moldura ingredientes sempre branca · upload PNG + limpa fundo branco/preto da borda |
 | **Prova** | `python scripts/verify_dsp_png_bg.py` → **VERIFY_OK** |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
 | **Arquivo** | `dispenser_a6_studio.html` |
-| **Autorizar** | junto no lote · frase acima + **99738595** |
 | **Você** | Ctrl+F5 Dispenser → Ingredientes → PNG transparente · moldura **branca** · foto antiga «queimada» → apagar e subir de novo |
 
 ### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`) · **OBSOLETO**
