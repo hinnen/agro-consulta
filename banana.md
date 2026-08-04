@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
 | **Inclui** | `+ Produto` no PDV · bipar → checa EAN → Open Food Facts + **Cosmos** (token `.env`) · cria Agro (UN) · card **PDV conferir** · texto claro do estoque |
-| **UI** | botão `+ Novo/Produto` · chip **Lista de hoje** · busca maior · tip legível · preview **foto (só conferência)** + **NCM** do Cosmos |
+| **UI** | botão `+ Novo/Produto` · chip **Lista de hoje** · busca maior · modal limpo (**?** ajuda) · foto só se existir · NCM silencioso |
 | **Fix verificação** | GM sem código sistema deriva 4 dígitos · mensagem se internet não achar · rótulo estoque · **NCM grava** em `cadastro_extras.fiscal` |
 | **Prova** | `manage.py test produtos.tests_pdv_cadastro_rapido` · `python scripts/verify_pdv_cadastro_rapido.py` → **VERIFY_OK** |
 | **Cosmos (nome BR)** | No `.env` local: `AGRO_COSMOS_TOKEN=` (e User-Agent se o site pedir) — cadastrar em cosmos.bluesoft.com.br/api · sem token = só OFF (álcool Flops etc. não vem) |
