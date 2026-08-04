@@ -8447,7 +8447,55 @@
             sugestao: document.getElementById('pdv-cadastro-rapido-sugestao'),
             erro: document.getElementById('pdv-cadastro-rapido-erro'),
             existeMsg: document.getElementById('pdv-cadastro-rapido-existe-msg'),
+            preview: document.getElementById('pdv-cadastro-rapido-preview'),
+            foto: document.getElementById('pdv-cadastro-rapido-foto'),
+            fotoVazio: document.getElementById('pdv-cadastro-rapido-foto-vazio'),
+            ncm: document.getElementById('pdv-cadastro-rapido-ncm'),
         };
+    }
+
+    function cadastroRapidoLimparPreview() {
+        var el = cadastroRapidoEls();
+        if (el.preview) el.preview.classList.add('hidden');
+        if (el.foto) {
+            el.foto.removeAttribute('src');
+            el.foto.hidden = true;
+            el.foto.onload = null;
+            el.foto.onerror = null;
+        }
+        if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
+        if (el.ncm) el.ncm.value = '';
+    }
+
+    function cadastroRapidoAplicarPreview(opts) {
+        opts = opts || {};
+        var el = cadastroRapidoEls();
+        var ncmTxt = String(opts.ncmExibicao || opts.ncm || '').trim();
+        var fotoUrl = String(opts.fotoUrl || '').trim();
+        if (!ncmTxt && !fotoUrl) {
+            cadastroRapidoLimparPreview();
+            return;
+        }
+        if (el.preview) el.preview.classList.remove('hidden');
+        if (el.ncm) el.ncm.value = ncmTxt;
+        if (el.foto && fotoUrl) {
+            if (el.fotoVazio) el.fotoVazio.classList.add('hidden');
+            el.foto.hidden = false;
+            el.foto.onerror = function () {
+                el.foto.hidden = true;
+                el.foto.removeAttribute('src');
+                if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
+            };
+            el.foto.onload = function () {
+                el.foto.hidden = false;
+                if (el.fotoVazio) el.fotoVazio.classList.add('hidden');
+            };
+            el.foto.src = fotoUrl;
+        } else if (el.foto) {
+            el.foto.hidden = true;
+            el.foto.removeAttribute('src');
+            if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
+        }
     }
 
     function closeCadastroRapidoOverlay() {
@@ -8457,6 +8505,7 @@
         el.overlay.classList.remove('flex');
         cadastroRapidoExistente = null;
         cadastroRapidoCodigoSys = '';
+        cadastroRapidoLimparPreview();
     }
 
     function cadastroRapidoShowStep(step) {
@@ -8471,6 +8520,7 @@
         if (!el.overlay) return;
         cadastroRapidoExistente = null;
         cadastroRapidoCodigoSys = '';
+        cadastroRapidoLimparPreview();
         if (el.ean) el.ean.value = '';
         if (el.eanStatus) {
             el.eanStatus.textContent = '';
@@ -8508,6 +8558,11 @@
         if (el.nome && opts.nome) el.nome.value = opts.nome;
         if (el.gm && opts.gm) el.gm.value = opts.gm;
         if (opts.codigo) cadastroRapidoCodigoSys = String(opts.codigo);
+        cadastroRapidoAplicarPreview({
+            ncm: opts.ncm,
+            ncmExibicao: opts.ncmExibicao,
+            fotoUrl: opts.fotoUrl,
+        });
         if (el.sugestao) {
             if (opts.sugestaoMsg) {
                 el.sugestao.textContent = opts.sugestaoMsg;
@@ -8588,7 +8643,9 @@
                     msgSug =
                         'Sugestão da internet (' +
                         (sug.fonte || 'web') +
-                        '). Confira o nome antes de salvar.';
+                        '). Confira nome' +
+                        (sug.ncm || sug.ncm_exibicao ? ', NCM' : '') +
+                        ' e foto antes de salvar.';
                 } else if (sug.motivo === 'sem_cosmos') {
                     msgSug =
                         'Não achamos o nome na internet gratuita. Produtos de mercado BR costumam estar no Cosmos — configure o token no .env ou digite o nome.';
@@ -8601,6 +8658,9 @@
                     nome: sug.achou ? sug.nome : '',
                     gm: gmPrev.codigo_nfe || '',
                     codigo: gmPrev.codigo || '',
+                    ncm: sug.ncm || '',
+                    ncmExibicao: sug.ncm_exibicao || sug.ncm || '',
+                    fotoUrl: sug.foto_url || '',
                     sugestaoMsg: msgSug,
                 });
             })
@@ -8668,6 +8728,8 @@
             preco_venda: vendaN,
             unidade: 'UN',
         };
+        var ncmRaw = el.ncm ? String(el.ncm.value || '').trim() : '';
+        if (ncmRaw) payload.ncm = ncmRaw;
         if (custoN != null) payload.preco_custo = custoN;
         if (estoqueN != null) {
             if (dep === 'vila') payload.saldo_vila = estoqueN;

@@ -110,6 +110,8 @@ class ConsultarInternetTests(SimpleTestCase):
                 "product": {
                     "product_name_pt": "Leite Integral",
                     "brands": "Marca X, Outra",
+                    "ncm": "0401.20.10",
+                    "image_front_url": "https://example.com/leite.jpg",
                 },
             }
         ).encode()
@@ -132,6 +134,43 @@ class ConsultarInternetTests(SimpleTestCase):
         self.assertEqual(out["nome"], "Leite Integral")
         self.assertEqual(out["marca"], "Marca X")
         self.assertEqual(out["fonte"], "openfoodfacts")
+        self.assertEqual(out["ncm"], "04012010")
+        self.assertEqual(out["ncm_exibicao"], "0401.20.10")
+        self.assertEqual(out["foto_url"], "https://example.com/leite.jpg")
+
+    def test_cosmos_ncm_e_foto(self):
+        from produtos.pdv_cadastro_rapido_util import _consultar_ean_cosmos, formatar_ncm_exibicao
+        import json
+
+        self.assertEqual(formatar_ncm_exibicao("22072019"), "2207.20.19")
+
+        payload = json.dumps(
+            {
+                "description": "ALCOOL FLOPS 1L",
+                "brand": {"name": "FLOPS"},
+                "ncm": {"code": "22072019", "description": "Outros"},
+                "thumbnail": "https://cdn-cosmos.bluesoft.com.br/products/7898288820020",
+            }
+        ).encode()
+
+        class Resp:
+            def read(self):
+                return payload
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+        with self.settings(AGRO_COSMOS_TOKEN="tok-teste"), patch(
+            "urllib.request.urlopen", return_value=Resp()
+        ):
+            out = _consultar_ean_cosmos("7898288820020")
+        self.assertIsNotNone(out)
+        self.assertEqual(out["ncm"], "22072019")
+        self.assertEqual(out["ncm_exibicao"], "2207.20.19")
+        self.assertTrue(out["foto_url"].startswith("https://cdn-cosmos"))
 
     def test_sem_token_cosmos_motivo(self):
         from produtos.pdv_cadastro_rapido_util import consultar_ean_internet

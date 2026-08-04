@@ -79,6 +79,51 @@ def buscar_produto_por_codigo(codigo: str) -> dict[str, Any] | None:
     }
 
 
+def _ncm_so_digitos(raw: Any) -> str:
+    from produtos.agro_produto_fiscal_defaults import normalizar_ncm_somente_digitos
+
+    return normalizar_ncm_somente_digitos(raw)
+
+
+def formatar_ncm_exibicao(raw: Any) -> str:
+    """Ex.: 22072019 → 2207.20.19 (só exibição)."""
+    d = _ncm_so_digitos(raw)
+    if len(d) == 8:
+        return f"{d[:4]}.{d[4:6]}.{d[6:]}"
+    return d
+
+
+def _extrair_ncm_de_payload(data: dict[str, Any]) -> str:
+    ncm_obj = data.get("ncm")
+    if isinstance(ncm_obj, dict):
+        return _ncm_so_digitos(ncm_obj.get("code") or ncm_obj.get("codigo") or "")
+    if isinstance(ncm_obj, str):
+        return _ncm_so_digitos(ncm_obj)
+    return _ncm_so_digitos(data.get("ncm_code") or data.get("codigo_ncm") or "")
+
+
+def _extrair_thumb_cosmos(data: dict[str, Any]) -> str:
+    for key in ("thumbnail", "thumbnail_url", "image", "picture", "img"):
+        u = str(data.get(key) or "").strip()
+        if u.startswith("http"):
+            return u[:500]
+    return ""
+
+
+def _extrair_thumb_off(prod: dict[str, Any]) -> str:
+    for key in (
+        "image_front_url",
+        "image_url",
+        "image_front_small_url",
+        "image_small_url",
+        "image_thumb_url",
+    ):
+        u = str(prod.get(key) or "").strip()
+        if u.startswith("http"):
+            return u[:500]
+    return ""
+
+
 def _consultar_ean_cosmos(digits: str, *, timeout: float = 4.0) -> dict[str, Any] | None:
     """Bluesoft Cosmos (BR) — precisa ``AGRO_COSMOS_TOKEN`` no .env (cadastro gratuito no site)."""
     import json
@@ -119,6 +164,7 @@ def _consultar_ean_cosmos(digits: str, *, timeout: float = 4.0) -> dict[str, Any
             marca = brand.strip()
         if len(nome) < 2:
             return None
+        ncm = _extrair_ncm_de_payload(data)
         return {
             "ok": True,
             "achou": True,
@@ -126,6 +172,9 @@ def _consultar_ean_cosmos(digits: str, *, timeout: float = 4.0) -> dict[str, Any
             "nome": nome[:300],
             "marca": marca[:120],
             "ean": digits,
+            "ncm": ncm,
+            "ncm_exibicao": formatar_ncm_exibicao(ncm) if ncm else "",
+            "foto_url": _extrair_thumb_cosmos(data),
         }
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
         logger.info("cosmos EAN %s: %s", digits, e)
@@ -152,6 +201,9 @@ def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
         "nome": "",
         "marca": "",
         "ean": digits,
+        "ncm": "",
+        "ncm_exibicao": "",
+        "foto_url": "",
         "motivo": "",
     }
     if not ean_parece_valido(digits):
@@ -195,6 +247,7 @@ def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
             marca = str(prod.get("brands") or "").strip().split(",")[0].strip()
             if len(nome) < 2:
                 continue
+            ncm = _ncm_so_digitos(prod.get("ncm") or prod.get("code_ncm") or "")
             out.update(
                 {
                     "achou": True,
@@ -202,6 +255,9 @@ def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
                     "nome": nome[:300],
                     "marca": marca[:120],
                     "ean": digits,
+                    "ncm": ncm,
+                    "ncm_exibicao": formatar_ncm_exibicao(ncm) if ncm else "",
+                    "foto_url": _extrair_thumb_off(prod),
                     "motivo": "",
                 }
             )

@@ -3826,6 +3826,20 @@
         </div>
       </div>
       <div id="pdv-cadastro-rapido-step-form" class="hidden grid gap-2.5">
+        <div id="pdv-cadastro-rapido-preview" class="hidden grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-3 rounded-xl border-2 border-sky-200 bg-sky-50/90 p-2.5">
+          <div class="flex h-[5.5rem] w-[5.5rem] items-center justify-center overflow-hidden rounded-lg border border-sky-200 bg-white">
+            <img id="pdv-cadastro-rapido-foto" src="" alt="Foto do produto (só conferência)" class="max-h-full max-w-full object-contain" hidden>
+            <span id="pdv-cadastro-rapido-foto-vazio" class="px-1 text-center text-[10px] font-bold uppercase leading-tight text-slate-400">Sem foto</span>
+          </div>
+          <div class="min-w-0">
+            <p class="mb-1 text-[11px] font-black uppercase tracking-wide text-sky-900">Conferir na internet</p>
+            <p class="mb-2 text-[11px] font-semibold leading-snug text-sky-900/80">A foto <strong>não</strong> é salva — só pra você conferir se é o produto certo.</p>
+            <label class="block">
+              <span class="mb-0.5 block text-[10px] font-black uppercase tracking-wide text-slate-500">NCM (vai no cadastro)</span>
+              <input id="pdv-cadastro-rapido-ncm" type="text" class="pdv-input w-full font-mono text-sm" autocomplete="off" placeholder="Ex.: 2207.20.19" title="Puxado do Cosmos; você pode corrigir">
+            </label>
+          </div>
+        </div>
         <label class="block">
           <span class="mb-1 block text-[11px] font-black uppercase tracking-wide text-slate-500">Nome <span class="text-red-600">*</span></span>
           <input id="pdv-cadastro-rapido-nome" type="text" class="pdv-input w-full" autocomplete="off">

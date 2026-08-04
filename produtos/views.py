@@ -1749,6 +1749,7 @@ def api_pdv_cadastro_rapido_criar(request):
         marcar_extras_origem_pdv,
         normalizar_ean,
     )
+    from produtos.agro_produto_fiscal_defaults import normalizar_ncm_somente_digitos
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -1802,6 +1803,8 @@ def api_pdv_cadastro_rapido_criar(request):
             {"ok": False, "erro": "Informe o preço de venda."},
             status=400,
         )
+
+    ncm_digits = normalizar_ncm_somente_digitos(payload.get("ncm") or "")
 
     cod_sys = str(payload.get("codigo") or "").strip()
     cod_gm = str(payload.get("codigo_nfe") or payload.get("codigo_gm") or "").strip()
@@ -1859,6 +1862,10 @@ def api_pdv_cadastro_rapido_criar(request):
     ex = marcar_extras_origem_pdv(ex)
     if preco_custo is not None:
         ex["preco_custo_overlay"] = float(preco_custo)
+    if ncm_digits:
+        fiscal = dict(ex.get("fiscal") or {}) if isinstance(ex.get("fiscal"), dict) else {}
+        fiscal["ncm"] = ncm_digits[:14]
+        ex["fiscal"] = fiscal
     ov.nome = nome[:300]
     if cb:
         ov.codigo_barras = cb[:80]
