@@ -79,19 +79,88 @@ def buscar_produto_por_codigo(codigo: str) -> dict[str, Any] | None:
     }
 
 
+def _consultar_ean_cosmos(digits: str, *, timeout: float = 4.0) -> dict[str, Any] | None:
+    """Bluesoft Cosmos (BR) — precisa ``AGRO_COSMOS_TOKEN`` no .env (cadastro gratuito no site)."""
+    import json
+    import urllib.error
+    import urllib.request
+
+    from django.conf import settings
+
+    token = str(getattr(settings, "AGRO_COSMOS_TOKEN", "") or "").strip()
+    if not token:
+        return None
+    ua = str(getattr(settings, "AGRO_COSMOS_USER_AGENT", "") or "").strip() or (
+        "SisVale-AgroConsulta/1.0"
+    )
+    url = f"https://api.cosmos.bluesoft.com.br/gtins/{digits}.json"
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={
+                "User-Agent": ua,
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-Cosmos-Token": token,
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+        data = json.loads(raw) if raw else {}
+        if not isinstance(data, dict):
+            return None
+        nome = str(data.get("description") or data.get("description_html") or "").strip()
+        marca = ""
+        brand = data.get("brand")
+        if isinstance(brand, dict):
+            marca = str(brand.get("name") or "").strip()
+        elif isinstance(brand, str):
+            marca = brand.strip()
+        if len(nome) < 2:
+            return None
+        return {
+            "ok": True,
+            "achou": True,
+            "fonte": "cosmos",
+            "nome": nome[:300],
+            "marca": marca[:120],
+            "ean": digits,
+        }
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, ValueError) as e:
+        logger.info("cosmos EAN %s: %s", digits, e)
+        return None
+    except Exception:
+        logger.warning("cosmos EAN falhou", exc_info=True)
+        return None
+
+
 def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
     """
-    Tenta Open Food Facts (e espelhos). Sem achado → sugestao vazia (ok=True, achou=False).
-    Nunca bloqueia o cadastro se a rede falhar.
+    Ordem: Bluesoft Cosmos (se token) → Open Food Facts / Products Facts.
+    Sem achado → sugestao vazia (ok=True, achou=False). Rede nunca trava o cadastro.
     """
     import json
     import urllib.error
     import urllib.request
 
     digits = normalizar_ean(ean)
-    out: dict[str, Any] = {"ok": True, "achou": False, "fonte": "", "nome": "", "marca": "", "ean": digits}
+    out: dict[str, Any] = {
+        "ok": True,
+        "achou": False,
+        "fonte": "",
+        "nome": "",
+        "marca": "",
+        "ean": digits,
+        "motivo": "",
+    }
     if not ean_parece_valido(digits):
+        out["motivo"] = "codigo_invalido"
         return out
+
+    cosmos = _consultar_ean_cosmos(digits, timeout=timeout)
+    if cosmos and cosmos.get("achou"):
+        return cosmos
 
     urls = [
         f"https://world.openfoodfacts.org/api/v2/product/{digits}.json",
@@ -133,6 +202,7 @@ def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
                     "nome": nome[:300],
                     "marca": marca[:120],
                     "ean": digits,
+                    "motivo": "",
                 }
             )
             return out
@@ -142,6 +212,11 @@ def consultar_ean_internet(ean: str, *, timeout: float = 4.0) -> dict[str, Any]:
         except Exception:
             logger.warning("consultar_ean_internet falhou", exc_info=True)
             continue
+
+    from django.conf import settings
+
+    tem_cosmos = bool(str(getattr(settings, "AGRO_COSMOS_TOKEN", "") or "").strip())
+    out["motivo"] = "sem_cosmos" if not tem_cosmos else "nao_encontrado"
     return out
 
 

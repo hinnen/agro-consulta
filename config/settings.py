@@ -336,6 +336,11 @@ AGRO_CLIENTES_SYNC_ERP_HABILITADO = config(
 # Desvinculação ERP — default legacy (produção inalterada). Staging: ver .env.example
 AGRO_FONTE_CATALOGO = (config('AGRO_FONTE_CATALOGO', default='legacy') or 'legacy').strip().lower()
 AGRO_FONTE_ESTOQUE = (config('AGRO_FONTE_ESTOQUE', default='legacy') or 'legacy').strip().lower()
+# Cadastro rápido PDV — Bluesoft Cosmos (GTIN BR). Token gratuito em cosmos.bluesoft.com.br/api
+AGRO_COSMOS_TOKEN = (config("AGRO_COSMOS_TOKEN", default="") or "").strip()
+AGRO_COSMOS_USER_AGENT = (config("AGRO_COSMOS_USER_AGENT", default="") or "").strip() or (
+    "SisVale-AgroConsulta/1.0"
+)
 AGRO_FONTE_FINANCEIRO = (
     config('AGRO_FONTE_FINANCEIRO', default='legacy') or 'legacy'
 ).strip().lower()

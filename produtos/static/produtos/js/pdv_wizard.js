@@ -8583,14 +8583,25 @@
                 }
                 var sug = data.sugestao || {};
                 var gmPrev = data.gm_preview || {};
+                var msgSug = '';
+                if (sug.achou) {
+                    msgSug =
+                        'Sugestão da internet (' +
+                        (sug.fonte || 'web') +
+                        '). Confira o nome antes de salvar.';
+                } else if (sug.motivo === 'sem_cosmos') {
+                    msgSug =
+                        'Não achamos o nome na internet gratuita. Produtos de mercado BR costumam estar no Cosmos — configure o token no .env ou digite o nome.';
+                } else {
+                    msgSug =
+                        'Código novo no sistema, mas sem nome automático na internet. Digite o nome (como no Google).';
+                }
                 cadastroRapidoIrFormulario({
                     ean: data.ean || raw,
                     nome: sug.achou ? sug.nome : '',
                     gm: gmPrev.codigo_nfe || '',
                     codigo: gmPrev.codigo || '',
-                    sugestaoMsg: sug.achou
-                        ? 'Sugestão da internet (' + (sug.fonte || 'web') + '). Confira antes de salvar.'
-                        : '',
+                    sugestaoMsg: msgSug,
                 });
             })
             .catch(function () {

@@ -102,7 +102,6 @@ class ConsultarInternetTests(SimpleTestCase):
 
     def test_achou_openfoodfacts(self):
         from produtos.pdv_cadastro_rapido_util import consultar_ean_internet
-        import io
         import json
 
         payload = json.dumps(
@@ -125,12 +124,30 @@ class ConsultarInternetTests(SimpleTestCase):
             def __exit__(self, *a):
                 return False
 
-        with patch("urllib.request.urlopen", return_value=Resp()):
+        with patch(
+            "produtos.pdv_cadastro_rapido_util._consultar_ean_cosmos", return_value=None
+        ), patch("urllib.request.urlopen", return_value=Resp()):
             out = consultar_ean_internet("7891000100103")
         self.assertTrue(out["achou"])
         self.assertEqual(out["nome"], "Leite Integral")
         self.assertEqual(out["marca"], "Marca X")
         self.assertEqual(out["fonte"], "openfoodfacts")
+
+    def test_sem_token_cosmos_motivo(self):
+        from produtos.pdv_cadastro_rapido_util import consultar_ean_internet
+        import urllib.error
+
+        with patch(
+            "produtos.pdv_cadastro_rapido_util._consultar_ean_cosmos", return_value=None
+        ), patch(
+            "urllib.request.urlopen",
+            side_effect=urllib.error.HTTPError(
+                "https://x", 404, "Not Found", hdrs=None, fp=None
+            ),
+        ), self.settings(AGRO_COSMOS_TOKEN=""):
+            out = consultar_ean_internet("7898288820020")
+        self.assertFalse(out["achou"])
+        self.assertEqual(out.get("motivo"), "sem_cosmos")
 
 
 class DerivarGmNoCriarLogicTests(SimpleTestCase):
