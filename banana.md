@@ -1184,17 +1184,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.02**)
+### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | No Cadastro → **3. Preços/Margem**: bloco **«Custo vem do saco»** — liga 5 kg / 2 kg / granel ao saco 47 ou 24 kg |
+| **O quê** | Cadastro → aba **5. Composição** → bloco **«Custo vem do saco»** (saiu da aba Preços) |
 | **Cálculo** | `custo = custo_saco × (kg_produto ÷ kg_saco)` · grava overlay + PG + Mongo |
 | **Auto** | Se o custo do saco mudar (cadastro, Entrada NF ou Excel), filhos com sync ligado atualizam sozinhos |
 | **Dados** | `cadastro_extras.custo_familia` no overlay (Postgres) · sem migrate |
 | **Arquivos** | `custo_familia_util.py` · hooks overlay/NF/planilha · modal · `api/produtos/custo-familia/propagar/` |
+| **UX** | v14.03 — layout na Composição (não mais em Preços/Margem) |
 | **Prova** | VERIFY_OK_CALC + smoke propaga no PG local |
-| **Você** | Ctrl+F5 Cadastro · abrir milho 5 kg · marcar «usar custo do saco» · buscar saco 47 · kg · Salvar · mudar custo do saco · conferir filhos |
+| **Você** | Ctrl+F5 Cadastro · milho 5 kg · aba **Composição** · ligar saco · Salvar |
 | **Loja** | **só no teste** — produção só com frase+senha |
 
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
