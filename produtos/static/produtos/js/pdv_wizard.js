@@ -8449,7 +8449,6 @@
             existeMsg: document.getElementById('pdv-cadastro-rapido-existe-msg'),
             preview: document.getElementById('pdv-cadastro-rapido-preview'),
             foto: document.getElementById('pdv-cadastro-rapido-foto'),
-            fotoVazio: document.getElementById('pdv-cadastro-rapido-foto-vazio'),
             ncm: document.getElementById('pdv-cadastro-rapido-ncm'),
         };
     }
@@ -8463,39 +8462,33 @@
             el.foto.onload = null;
             el.foto.onerror = null;
         }
-        if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
         if (el.ncm) el.ncm.value = '';
     }
 
     function cadastroRapidoAplicarPreview(opts) {
         opts = opts || {};
         var el = cadastroRapidoEls();
-        var ncmTxt = String(opts.ncmExibicao || opts.ncm || '').trim();
+        var ncmTxt = String(opts.ncm || opts.ncmExibicao || '').trim();
         var fotoUrl = String(opts.fotoUrl || '').trim();
-        if (!ncmTxt && !fotoUrl) {
-            cadastroRapidoLimparPreview();
-            return;
-        }
-        if (el.preview) el.preview.classList.remove('hidden');
         if (el.ncm) el.ncm.value = ncmTxt;
-        if (el.foto && fotoUrl) {
-            if (el.fotoVazio) el.fotoVazio.classList.add('hidden');
-            el.foto.hidden = false;
-            el.foto.onerror = function () {
+        if (!fotoUrl || !el.foto || !el.preview) {
+            if (el.preview) el.preview.classList.add('hidden');
+            if (el.foto) {
                 el.foto.hidden = true;
                 el.foto.removeAttribute('src');
-                if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
-            };
-            el.foto.onload = function () {
-                el.foto.hidden = false;
-                if (el.fotoVazio) el.fotoVazio.classList.add('hidden');
-            };
-            el.foto.src = fotoUrl;
-        } else if (el.foto) {
+            }
+            return;
+        }
+        el.foto.onerror = function () {
             el.foto.hidden = true;
             el.foto.removeAttribute('src');
-            if (el.fotoVazio) el.fotoVazio.classList.remove('hidden');
-        }
+            el.preview.classList.add('hidden');
+        };
+        el.foto.onload = function () {
+            el.foto.hidden = false;
+            el.preview.classList.remove('hidden');
+        };
+        el.foto.src = fotoUrl;
     }
 
     function closeCadastroRapidoOverlay() {
@@ -8532,7 +8525,6 @@
         }
         if (el.sugestao) {
             el.sugestao.textContent = '';
-            el.sugestao.classList.add('hidden');
         }
         if (el.nome) el.nome.value = '';
         if (el.gm) el.gm.value = '';
@@ -8540,6 +8532,7 @@
         if (el.custo) el.custo.value = '';
         if (el.venda) el.venda.value = '';
         if (el.estoque) el.estoque.value = '';
+        if (el.ncm) el.ncm.value = '';
         var dep = typeof depositoPdvAtivo === 'function' ? depositoPdvAtivo() : 'centro';
         if (el.depLbl) el.depLbl.textContent = dep === 'vila' ? 'Vila' : 'Centro';
         cadastroRapidoShowStep('ean');
@@ -8559,17 +8552,11 @@
         if (el.gm && opts.gm) el.gm.value = opts.gm;
         if (opts.codigo) cadastroRapidoCodigoSys = String(opts.codigo);
         cadastroRapidoAplicarPreview({
-            ncm: opts.ncm,
-            ncmExibicao: opts.ncmExibicao,
+            ncm: opts.ncm || opts.ncmExibicao || '',
             fotoUrl: opts.fotoUrl,
         });
         if (el.sugestao) {
-            if (opts.sugestaoMsg) {
-                el.sugestao.textContent = opts.sugestaoMsg;
-                el.sugestao.classList.remove('hidden');
-            } else {
-                el.sugestao.classList.add('hidden');
-            }
+            el.sugestao.textContent = opts.sugestaoMsg || '';
         }
         if (el.erro) el.erro.classList.add('hidden');
         window.setTimeout(function () {
@@ -8640,18 +8627,11 @@
                 var gmPrev = data.gm_preview || {};
                 var msgSug = '';
                 if (sug.achou) {
-                    msgSug =
-                        'Sugestão da internet (' +
-                        (sug.fonte || 'web') +
-                        '). Confira nome' +
-                        (sug.ncm || sug.ncm_exibicao ? ', NCM' : '') +
-                        ' e foto antes de salvar.';
+                    msgSug = 'Sugestão ' + (sug.fonte || 'internet');
                 } else if (sug.motivo === 'sem_cosmos') {
-                    msgSug =
-                        'Não achamos o nome na internet gratuita. Produtos de mercado BR costumam estar no Cosmos — configure o token no .env ou digite o nome.';
+                    msgSug = 'Sem nome automático — digite o nome.';
                 } else {
-                    msgSug =
-                        'Código novo no sistema, mas sem nome automático na internet. Digite o nome (como no Google).';
+                    msgSug = 'Código novo — digite o nome.';
                 }
                 cadastroRapidoIrFormulario({
                     ean: data.ean || raw,
@@ -8659,7 +8639,6 @@
                     gm: gmPrev.codigo_nfe || '',
                     codigo: gmPrev.codigo || '',
                     ncm: sug.ncm || '',
-                    ncmExibicao: sug.ncm_exibicao || sug.ncm || '',
                     fotoUrl: sug.foto_url || '',
                     sugestaoMsg: msgSug,
                 });
