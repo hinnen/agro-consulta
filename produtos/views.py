@@ -2832,6 +2832,10 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if "deposito" in k_in:
             k_prev["deposito"] = str(k_in.get("deposito") or "").strip()[:16]
         ex["kit"] = k_prev
+    if "composicao" in payload:
+        from produtos.composicao_kit_util import mesclar_composicao_no_extras
+
+        mesclar_composicao_no_extras(ex, payload.get("composicao"))
     if "permite_venda_estoque_negativo" in payload:
         pvneg = payload.get("permite_venda_estoque_negativo")
         if isinstance(pvneg, bool):
@@ -15280,7 +15284,7 @@ def aplicar_baixa_estoque_venda_agro(
             if db is not None and not sem_mongo
             else None
         )
-        comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
+        comp = _composicao_efetiva_produto_agro(ov, p_doc)
 
         if baixa_cmp and comp:
             for c in comp:
@@ -15474,7 +15478,7 @@ def aplicar_estorno_estoque_venda_agro(
             if db is not None and not sem_mongo
             else None
         )
-        comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
+        comp = _composicao_efetiva_produto_agro(ov, p_doc)
 
         if baixa_cmp and comp:
             for c in comp:
@@ -21518,6 +21522,34 @@ def _margem_percentual_produto_pv(p: dict, pv: float) -> float | None:
     return round(float(mva_pct), 2)
 
 
+def _composicao_efetiva_produto_agro(ov, p_doc: dict | None) -> list[dict]:
+    """Preferência: overlay Agro; senão espelho Mongo (ERP)."""
+    from produtos.composicao_kit_util import extrair_composicao_overlay
+
+    ce = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+    if isinstance(ce, dict) and "composicao" in ce:
+        return extrair_composicao_overlay(ce)
+    return _extrair_composicao_produto_mongo(p_doc or {})
+
+
+def _enriquecer_composicao_com_custos(db, client_m, comp: list[dict]) -> list[dict]:
+    out = []
+    for it in comp or []:
+        if not isinstance(it, dict):
+            continue
+        row = dict(it)
+        spid = str(row.get("produto_id") or "").strip()
+        if not spid:
+            row["custo_unitario_agro"] = None
+            out.append(row)
+            continue
+        dchild = _produto_mongo_por_id_externo(db, client_m, spid) if db is not None else None
+        cdec = _custo_unitario_agro_para_produto_id(db, client_m, spid, dchild)
+        row["custo_unitario_agro"] = round(float(cdec), 4) if cdec is not None else None
+        out.append(row)
+    return out
+
+
 def _extrair_composicao_produto_mongo(p: dict) -> list[dict]:
     candidatos = (
         "ItensComposicao",
@@ -22102,7 +22134,7 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         "cst_pis_cofins": _mongo_primeiro_texto(
             p, ("CstPisCofins", "CSTPIS", "PisCofinsCST", "CstPis", "CstCofins")
         ),
-        "composicao": _extrair_composicao_produto_mongo(p),
+        "composicao": _composicao_efetiva_produto_agro(ov_det, p),
         "similares": _resolver_similares_produto_mongo(db, client_m, p),
     }
     row.update(extra)
@@ -22160,16 +22192,26 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     wv = _custo_medio_ponderado_variacoes_rows(var_rows)
     row["custo_medio_variacoes"] = round(float(wv), 4) if wv is not None else None
 
-    if extra.get("eh_kit"):
-        ck = _custo_total_kit_composicao_agro(db, client_m, p)
+    if extra.get("eh_kit") or (isinstance(row.get("composicao"), list) and row["composicao"]):
+        from produtos.composicao_kit_util import custo_total_composicao
+
+        comp_enr = _enriquecer_composicao_com_custos(db, client_m, row.get("composicao") or [])
+        row["composicao"] = comp_enr
+        ck = custo_total_composicao(comp_enr)
+        if ck is None and extra.get("eh_kit"):
+            ck = _custo_total_kit_composicao_agro(db, client_m, p)
         row["custo_kit_composicao"] = round(float(ck), 4) if ck is not None else None
+        row["eh_kit"] = True if (extra.get("eh_kit") or comp_enr) else False
     else:
         row["custo_kit_composicao"] = None
 
+    # custos por linha já no enriquecimento acima; legado só se ainda sem custo
     comp = row.get("composicao")
     if isinstance(comp, list):
         for it in comp:
             if not isinstance(it, dict):
+                continue
+            if it.get("custo_unitario_agro") is not None:
                 continue
             spid = str(it.get("produto_id") or "").strip()
             if not spid:

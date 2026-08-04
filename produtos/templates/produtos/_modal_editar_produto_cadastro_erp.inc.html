@@ -661,51 +661,55 @@
 
       <div id="tab-composicao" class="tab-content tab-fill-stack hidden flex flex-col gap-4 font-['Inter']">
 
-        <div id="edit-custo-familia-box" class="w-full rounded-xl border-2 border-amber-200 bg-white shadow-sm p-4 space-y-3 shrink-0">
-          <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm text-slate-600 shrink-0 px-0.5">
+          Esta aba tem <strong>duas ferramentas diferentes</strong>: em cima calcula o <strong>preço de custo</strong> a partir do saco; embaixo monta o <strong>kit</strong> (baixa estoque dos insumos na venda).
+        </p>
+
+        <!-- BLOCO 1 — Custo do saco -->
+        <section id="edit-custo-familia-box" class="w-full rounded-xl border-2 border-amber-300 bg-amber-50/40 shadow-sm p-4 space-y-3 shrink-0" aria-labelledby="cf-titulo">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200 pb-2">
             <div class="flex items-center gap-2 min-w-0">
-              <span class="text-base font-black uppercase text-amber-900 tracking-tight">Custo vem do saco</span>
+              <span id="cf-titulo" class="text-base font-black uppercase text-amber-950 tracking-tight">1 · Custo vem do saco</span>
               <details class="relative shrink-0">
-                <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-slate-200 text-sm font-black text-slate-700 select-none">?</summary>
-                <div class="absolute left-0 top-full mt-2 z-30 w-72 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
-                  Pacote/granel puxa o custo do saco. Ex.: saco 47&nbsp;kg a R$&nbsp;94 → pacote 5&nbsp;kg = R$&nbsp;10. Granel: kg deste produto = 1. Se o saco mudar de custo, atualiza sozinho.
+                <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-white border border-amber-300 text-sm font-black text-amber-900 select-none">?</summary>
+                <div class="absolute left-0 top-full mt-2 z-30 w-80 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
+                  Só o <strong>custo em R$</strong>. Ex.: saco 47&nbsp;kg a R$&nbsp;94 → pacote 5&nbsp;kg = R$&nbsp;10. Granel: kg deste produto = 1. <strong>Não baixa estoque</strong> do saco — isso é o bloco 2.
                 </div>
               </details>
             </div>
-            <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none">
+            <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none bg-white rounded-lg border border-amber-200 px-3">
               <input type="checkbox" id="edit-cf-ativo" class="w-6 h-6 rounded border-slate-300 text-amber-600 focus:ring-amber-500" />
               <span class="text-base font-bold text-slate-800">Usar neste produto</span>
             </label>
           </div>
           <div id="edit-cf-campos" class="hidden space-y-3">
-            <div class="flex flex-wrap gap-2 items-end">
-              <div class="flex-1 min-w-[220px] relative">
-                <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Saco (origem)</span>
-                <div class="flex gap-2">
-                  <input type="text" id="edit-cf-pai-busca" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-amber-500 outline-none" placeholder="Nome ou código…" autocomplete="off" />
-                  <button type="button" id="edit-cf-pai-buscar-btn" class="min-h-[50px] px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-black uppercase shrink-0">Buscar</button>
-                </div>
-                <div id="edit-cf-pai-resultados" class="hidden absolute left-0 right-0 top-full mt-1 z-20 space-y-1 max-h-40 overflow-y-auto bg-white border-2 border-slate-200 rounded-lg shadow-xl p-1"></div>
+            <div class="relative">
+              <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Buscar saco (origem do custo)</span>
+              <div class="flex gap-2">
+                <input type="text" id="edit-cf-pai-busca" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold bg-white focus:border-amber-500 outline-none" placeholder="Nome ou código…" autocomplete="off" />
+                <button type="button" id="edit-cf-pai-buscar-btn" class="min-h-[50px] px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-sm font-black uppercase shrink-0">Buscar</button>
               </div>
+              <div id="edit-cf-pai-resultados" class="hidden absolute left-0 right-0 top-full mt-1 z-20 space-y-1 max-h-40 overflow-y-auto bg-white border-2 border-slate-200 rounded-lg shadow-xl p-1"></div>
             </div>
-            <div id="edit-cf-pai-selecionado" class="hidden rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+            <div id="edit-cf-pai-selecionado" class="hidden rounded-xl border-2 border-amber-400 bg-white px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
               <div class="min-w-0">
+                <div class="text-[10px] font-black uppercase text-amber-800">Saco selecionado</div>
                 <div id="edit-cf-pai-nome" class="text-base font-black text-slate-900 truncate"></div>
                 <div id="edit-cf-pai-custo" class="text-sm font-bold text-slate-600 tabular-nums"></div>
               </div>
-              <button type="button" id="edit-cf-pai-limpar" class="min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-white text-sm font-black uppercase text-slate-700">Trocar</button>
+              <button type="button" id="edit-cf-pai-limpar" class="min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-slate-50 text-sm font-black uppercase text-slate-700">Trocar</button>
             </div>
             <input type="hidden" id="edit-cf-pai-id" value="" />
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <label class="block">
                 <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Kg do saco</span>
-                <input type="text" id="edit-cf-kg-pai" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold tabular-nums bg-white focus:border-amber-500 outline-none" inputmode="decimal" placeholder="47" autocomplete="off" />
+                <input type="text" id="edit-cf-kg-pai" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold tabular-nums bg-white focus:border-amber-500 outline-none" inputmode="decimal" placeholder="47" autocomplete="off" />
               </label>
               <label class="block">
                 <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Kg deste produto</span>
-                <input type="text" id="edit-cf-kg-filho" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold tabular-nums bg-white focus:border-amber-500 outline-none" inputmode="decimal" placeholder="5" autocomplete="off" />
+                <input type="text" id="edit-cf-kg-filho" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold tabular-nums bg-white focus:border-amber-500 outline-none" inputmode="decimal" placeholder="5" autocomplete="off" />
               </label>
-              <div class="col-span-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 px-3 py-2 min-h-[50px] flex flex-col justify-center">
+              <div class="col-span-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 px-3 py-2 min-h-[50px] flex flex-col justify-center">
                 <span class="text-[10px] font-black uppercase text-emerald-800">Custo calculado</span>
                 <div id="edit-cf-preview" class="text-lg font-black text-emerald-900 tabular-nums leading-tight">—</div>
               </div>
@@ -715,83 +719,96 @@
               <span class="text-base font-bold text-slate-800">Atualizar sozinho quando o saco mudar</span>
             </label>
           </div>
-          <div id="edit-cf-filhos-box" class="hidden border-t border-slate-200 pt-3 space-y-2">
+          <div id="edit-cf-filhos-box" class="hidden border-t border-amber-200 pt-3 space-y-2">
             <div class="text-sm font-black uppercase text-slate-600">Pacotes/granel que usam este saco</div>
             <ul id="edit-cf-filhos-list" class="text-sm text-slate-700 space-y-1"></ul>
             <button type="button" id="edit-cf-propagar-btn" class="min-h-[44px] px-4 rounded-lg bg-amber-700 hover:bg-amber-800 text-white text-sm font-black uppercase">Recalcular filhos agora</button>
           </div>
+        </section>
+
+        <!-- Divisão forte -->
+        <div class="shrink-0 flex items-center gap-3 py-1" role="separator" aria-label="Separação entre custo do saco e kit">
+          <div class="flex-1 border-t-4 border-slate-300 rounded"></div>
+          <span class="text-xs font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">outra ferramenta</span>
+          <div class="flex-1 border-t-4 border-slate-300 rounded"></div>
         </div>
 
-        <div class="p-3 rounded-xl border border-blue-200 bg-blue-50/50 flex flex-wrap items-center gap-3 shrink-0">
-          <label class="flex items-center gap-2 cursor-pointer select-none">
-            <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-            <span class="text-base font-bold text-slate-700">Baixar estoque dos componentes na venda</span>
-          </label>
-
-          <div class="group relative px-3 py-2 bg-slate-200 rounded-full text-sm font-black cursor-help">
-            ?
-            <div class="hidden group-hover:block absolute left-0 bottom-full mb-3 w-72 p-4 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl z-50 leading-snug">
-              <p class="mb-2"><strong>Ativado (Padrão):</strong> O estoque do produto mestre não é alterado. O sistema diminui o saldo apenas dos insumos listados abaixo.</p>
-              <p><strong>Ideal para:</strong> Vendas a granel, kits de ração ou combos de produtos.</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex flex-wrap gap-2 items-end p-4 rounded-xl border border-slate-200 bg-white shadow-sm shrink-0">
-          <div class="flex-1 min-w-[250px] relative">
-            <span class="text-base font-black uppercase text-slate-600 mb-1 block">Buscar Componente / Insumo</span>
-            <input type="text" id="comp-busca" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" placeholder="Nome ou código..." />
-            <div id="comp-resultados" class="hidden absolute top-full left-0 w-full bg-white border border-slate-200 rounded-b-lg shadow-xl z-20 max-h-48 overflow-y-auto [scrollbar-width:thin]"></div>
-          </div>
-
-          <label class="w-24">
-            <span class="text-base font-black uppercase text-slate-600 mb-1 block">Qtd (Fracionar)</span>
-            <input type="number" id="comp-qtd" step="0.001" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none" value="1" />
-          </label>
-
-          <div class="w-48 relative">
-            <div class="flex items-center gap-1 mb-1">
-              <span class="text-base font-black uppercase text-slate-600 block">Depósito Saída</span>
-              <div class="group relative px-2 py-0.5 bg-slate-200 rounded-full text-sm font-black cursor-help">
-                ?
-                <div class="hidden group-hover:block absolute right-0 bottom-full mb-2 w-64 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl z-50">
-                  Dinâmico: usa o depósito da venda (PDV). Selecione um local para travar a saída neste depósito.
+        <!-- BLOCO 2 — Kit / componentes -->
+        <section id="edit-kit-composicao-box" class="w-full rounded-xl border-2 border-sky-300 bg-sky-50/40 shadow-sm p-4 space-y-3 flex flex-col min-h-0 flex-1" aria-labelledby="kit-titulo">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-sky-200 pb-2 shrink-0">
+            <div class="flex items-center gap-2 min-w-0">
+              <span id="kit-titulo" class="text-base font-black uppercase text-sky-950 tracking-tight">2 · Kit / componentes</span>
+              <details class="relative shrink-0">
+                <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-white border border-sky-300 text-sm font-black text-sky-900 select-none">?</summary>
+                <div class="absolute left-0 top-full mt-2 z-30 w-80 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
+                  Lista de <strong>insumos</strong> deste produto. Na venda, com a opção ligada, o sistema <strong>baixa o estoque dos componentes</strong> (não do produto mestre). Ideal para kits e combos. <strong>Não substitui</strong> o «Custo vem do saco».
                 </div>
-              </div>
+              </details>
             </div>
-            <select id="comp-deposito" class="w-full min-h-[50px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold bg-white focus:border-emerald-500 outline-none">
-              <option value="" class="font-bold">Dinâmico (Padrão PDV)</option>
-              <option value="1">Loja Central</option>
-              <option value="2">Depósito 01</option>
-              <option value="3">Silo Grande</option>
-            </select>
+            <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer select-none bg-white rounded-lg border border-sky-200 px-3">
+              <input type="checkbox" id="comp-baixa-auto" checked="checked" class="w-6 h-6 rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
+              <span class="text-base font-bold text-slate-800">Baixar estoque dos componentes na venda</span>
+            </label>
           </div>
 
-          <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-slate-200 text-slate-500 border-2 border-slate-300 cursor-not-allowed" disabled title="Composição definida no ERP">Add</button>
-        </div>
+          <div class="space-y-3 shrink-0">
+            <div class="relative">
+              <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Buscar componente / insumo</span>
+              <div class="flex gap-2">
+                <input type="text" id="comp-busca" class="flex-1 min-h-[50px] px-3 rounded-lg border-2 border-sky-200 text-base font-bold bg-white focus:border-sky-500 outline-none" placeholder="Nome ou código…" autocomplete="off" />
+                <button type="button" id="comp-btn-buscar" class="min-h-[50px] px-4 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-black uppercase shrink-0">Buscar</button>
+              </div>
+              <div id="comp-resultados" class="hidden absolute left-0 right-0 top-full mt-1 z-20 space-y-1 max-h-40 overflow-y-auto bg-white border-2 border-slate-200 rounded-lg shadow-xl p-1"></div>
+            </div>
+            <div id="comp-selecionado" class="hidden rounded-xl border-2 border-sky-400 bg-white px-3 py-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-[10px] font-black uppercase text-sky-800">Componente selecionado</div>
+                <div id="comp-sel-nome" class="text-base font-black text-slate-900 truncate"></div>
+                <div id="comp-sel-custo" class="text-sm font-bold text-slate-600 tabular-nums"></div>
+              </div>
+              <button type="button" id="comp-sel-limpar" class="min-h-[44px] px-4 rounded-lg border-2 border-slate-300 bg-slate-50 text-sm font-black uppercase text-slate-700">Trocar</button>
+            </div>
+            <input type="hidden" id="comp-sel-id" value="" />
+            <div class="flex flex-wrap gap-2 items-end">
+              <label class="w-28">
+                <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Qtd</span>
+                <input type="text" id="comp-qtd" inputmode="decimal" class="w-full min-h-[50px] px-3 rounded-lg border-2 border-sky-200 text-base font-bold bg-white focus:border-sky-500 outline-none tabular-nums" value="1" />
+              </label>
+              <label class="w-44 flex-1 min-w-[10rem]">
+                <span class="text-sm font-black uppercase text-slate-600 mb-1 block">Depósito saída</span>
+                <select id="comp-deposito" class="w-full min-h-[50px] px-2 rounded-lg border-2 border-sky-200 text-sm font-bold bg-white focus:border-sky-500 outline-none">
+                  <option value="">Dinâmico (PDV)</option>
+                  <option value="centro">Centro</option>
+                  <option value="vila">Vila</option>
+                </select>
+              </label>
+              <button type="button" id="comp-btn-adicionar" class="min-h-[50px] px-5 rounded-lg text-sm font-black uppercase bg-sky-600 hover:bg-sky-700 text-white border-2 border-sky-700 shrink-0">Adicionar</button>
+            </div>
+          </div>
 
-        <div class="cadastro-tab-grow border border-slate-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin]">
-          <table class="w-full text-base min-w-[750px]">
-            <thead class="bg-slate-50 text-base font-black uppercase text-slate-600 sticky top-0 z-[1]">
-              <tr>
-                <th class="px-4 py-3 text-left">Produto</th>
-                <th class="px-4 py-3 text-left">Depósito Saída</th>
-                <th class="px-4 py-3 text-right">Custo Unit.</th>
-                <th class="px-4 py-3 text-right">Qtd</th>
-                <th class="px-4 py-3 text-right">Subtotal</th>
-                <th class="w-12"></th>
-              </tr>
-            </thead>
-            <tbody id="lista-composicao" class="divide-y divide-slate-100"></tbody>
-            <tfoot class="bg-slate-50 border-t border-slate-200">
-              <tr>
-                <td colspan="4" class="px-4 py-4 text-right text-base font-black uppercase text-slate-600 tracking-wider font-['Inter']">Custo Total Calculado Final:</td>
-                <td id="edit-comp-custo-total" class="px-4 py-4 text-right text-xl font-black text-emerald-700">R$ 0,00</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+          <div class="cadastro-tab-grow border-2 border-sky-200 rounded-xl overflow-auto bg-white [scrollbar-width:thin] min-h-[8rem]">
+            <table class="w-full text-base min-w-[720px]">
+              <thead class="bg-sky-50 text-sm font-black uppercase text-slate-600 sticky top-0 z-[1]">
+                <tr>
+                  <th class="px-3 py-2.5 text-left">Produto</th>
+                  <th class="px-3 py-2.5 text-left">Depósito</th>
+                  <th class="px-3 py-2.5 text-right">Custo unit.</th>
+                  <th class="px-3 py-2.5 text-right">Qtd</th>
+                  <th class="px-3 py-2.5 text-right">Subtotal</th>
+                  <th class="w-14"></th>
+                </tr>
+              </thead>
+              <tbody id="lista-composicao" class="divide-y divide-slate-100"></tbody>
+              <tfoot class="bg-sky-50 border-t border-sky-200">
+                <tr>
+                  <td colspan="4" class="px-3 py-3 text-right text-sm font-black uppercase text-slate-600">Custo total do kit:</td>
+                  <td id="edit-comp-custo-total" class="px-3 py-3 text-right text-lg font-black text-emerald-700 tabular-nums">R$ 0,00</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
       </div>
 
       <div id="tab-config" class="tab-content hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2363,14 +2380,16 @@
     var tb = document.getElementById('lista-composicao');
     var totEl = document.getElementById('edit-comp-custo-total');
     if (!tb) return;
-    if (!lista || !lista.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-16 text-center text-slate-400 font-semibold text-lg">Sem itens de composição neste cadastro.</td></tr>';
+    if (lista) modalEdit._composicao = Array.isArray(lista) ? lista.slice() : [];
+    var rows = modalEdit._composicao || [];
+    if (!rows.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="px-4 py-10 text-center text-slate-400 font-semibold text-base">Nenhum componente. Busque e adicione acima.</td></tr>';
       if (totEl) totEl.textContent = 'R$ 0,00';
       return;
     }
     var tot = 0;
     var h = '';
-    lista.forEach(function (it) {
+    rows.forEach(function (it, ix) {
       var q = Number(it.quantidade);
       if (!isFinite(q)) q = 0;
       var cu = it.custo_unitario_agro != null ? Number(it.custo_unitario_agro) : NaN;
@@ -2378,15 +2397,26 @@
       if (isFinite(sub)) tot += sub;
       var cuTxt = isFinite(cu) ? fmtMoneyPt(cu) : '—';
       var subTxt = isFinite(sub) ? fmtMoneyPt(sub) : '—';
-      var depTxt = esc(String(it.deposito || '—').trim() || '—');
-      h += '<tr class="comp-linha"><td class="px-4 py-3 text-base font-semibold text-slate-800">' + esc(it.nome || '—') + '</td>' +
-        '<td class="px-4 py-3 text-slate-600 text-base font-semibold">' + depTxt + '</td>' +
-        '<td class="px-4 py-3 text-right text-base text-slate-700 font-bold">' + esc(cuTxt) + '</td>' +
-        '<td class="px-4 py-3 text-right text-base font-bold">' + esc(fmtQtd(it.quantidade)) + '</td>' +
-        '<td class="px-4 py-3 text-right text-base text-emerald-800 font-bold">' + esc(subTxt) + '</td><td></td></tr>';
+      var depRaw = String(it.deposito || '').trim().toLowerCase();
+      var depTxt = !depRaw ? 'Dinâmico (PDV)' : (depRaw === 'centro' || depRaw === '1' ? 'Centro' : (depRaw === 'vila' || depRaw === '2' ? 'Vila' : depRaw));
+      h += '<tr class="comp-linha" data-comp-i="' + ix + '">' +
+        '<td class="px-3 py-2.5 text-base font-semibold text-slate-800">' + esc(it.nome || it.produto_id || '—') + '</td>' +
+        '<td class="px-3 py-2.5 text-slate-600 text-sm font-semibold">' + esc(depTxt) + '</td>' +
+        '<td class="px-3 py-2.5 text-right text-base text-slate-700 font-bold tabular-nums">' + esc(cuTxt) + '</td>' +
+        '<td class="px-3 py-2.5 text-right text-base font-bold tabular-nums">' + esc(fmtQtd(it.quantidade)) + '</td>' +
+        '<td class="px-3 py-2.5 text-right text-base text-emerald-800 font-bold tabular-nums">' + esc(subTxt) + '</td>' +
+        '<td class="px-2 py-2"><button type="button" class="comp-btn-rem min-h-[40px] min-w-[40px] rounded-lg border-2 border-red-200 text-lg text-red-700 font-black" data-i="' + ix + '" title="Remover">×</button></td></tr>';
     });
     tb.innerHTML = h;
     if (totEl) totEl.textContent = fmtMoneyPt(tot);
+    tb.querySelectorAll('.comp-btn-rem').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        if (!isFinite(i)) return;
+        (modalEdit._composicao || []).splice(i, 1);
+        renderComposicao();
+      });
+    });
   }
 
   function renderSimilaresErpModal(lista) {
@@ -2983,6 +3013,15 @@
         baixa_componentes: chkComp ? !!chkComp.checked : false,
         deposito: depComp ? String(depComp.value || '') : ''
       },
+      composicao: (modalEdit._composicao || []).map(function (it) {
+        return {
+          produto_id: String(it.produto_id || '').trim(),
+          nome: String(it.nome || '').trim(),
+          codigo: String(it.codigo || '').trim(),
+          quantidade: it.quantidade != null ? String(it.quantidade) : '1',
+          deposito: String(it.deposito || '').trim()
+        };
+      }),
       delivery: {
         ativo: !!(document.getElementById('edit-delivery-ativo') || {}).checked,
         titulo: gv('edit-delivery-titulo'),
@@ -4635,17 +4674,136 @@
   });
 
   var compBusca = document.getElementById('comp-busca');
-  if (compBusca) {
-    compBusca.addEventListener('input', function () {
-      var q = (compBusca.value || '').trim().toLowerCase();
-      var tb = document.getElementById('lista-composicao');
-      if (!tb) return;
-      tb.querySelectorAll('tr.comp-linha').forEach(function (tr) {
-        var show = !q || (tr.textContent || '').toLowerCase().indexOf(q) >= 0;
-        tr.classList.toggle('hidden', !show);
-      });
-    });
+  modalEdit._compPendente = null;
+
+  function setCompPendente(p) {
+    var idEl = document.getElementById('comp-sel-id');
+    var nomeEl = document.getElementById('comp-sel-nome');
+    var custoEl = document.getElementById('comp-sel-custo');
+    var sel = document.getElementById('comp-selecionado');
+    var box = document.getElementById('comp-resultados');
+    if (!p || !p.id) {
+      modalEdit._compPendente = null;
+      if (idEl) idEl.value = '';
+      if (nomeEl) nomeEl.textContent = '';
+      if (custoEl) custoEl.textContent = '';
+      if (sel) sel.classList.add('hidden');
+      return;
+    }
+    modalEdit._compPendente = p;
+    if (idEl) idEl.value = String(p.id);
+    if (nomeEl) nomeEl.textContent = p.nome || p.id;
+    if (custoEl) {
+      var c = p.custo != null && isFinite(Number(p.custo)) ? Number(p.custo) : null;
+      custoEl.textContent = c != null
+        ? ('Custo: R$ ' + c.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        : 'Custo: —';
+    }
+    if (sel) sel.classList.remove('hidden');
+    if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
   }
+
+  function buscarComponenteKit() {
+    var inp = document.getElementById('comp-busca');
+    var box = document.getElementById('comp-resultados');
+    if (!inp || !box) return;
+    var q = String(inp.value || '').trim();
+    if (q.length < 2) {
+      box.classList.remove('hidden');
+      box.innerHTML = '<p class="text-[0.65rem] font-semibold text-sky-800 px-2 py-1">Digite ao menos 2 letras.</p>';
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = '<p class="text-[0.65rem] text-slate-500 px-2 py-1">Buscando…</p>';
+    fetch('/api/buscar/?q=' + encodeURIComponent(q) + '&limit=12', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var itens = (data && (data.produtos || data.resultados || data.items)) || [];
+        if (!Array.isArray(itens)) itens = [];
+        var selfId = String(
+          (modalEdit.getAttribute && modalEdit.getAttribute('data-produto-id')) || ''
+        ).trim();
+        itens = itens.filter(function (it) {
+          var id = String(it.id || it.produto_id || '').trim();
+          return id && id !== selfId;
+        }).slice(0, 12);
+        if (!itens.length) {
+          box.innerHTML = '<p class="text-[0.65rem] font-semibold text-slate-600 px-2 py-1">Nenhum produto.</p>';
+          return;
+        }
+        box.innerHTML = itens.map(function (it) {
+          var id = String(it.id || it.produto_id || '').trim();
+          var nome = String(it.nome || it.Nome || id).replace(/"/g, '&quot;');
+          var custo = it.preco_custo != null ? it.preco_custo : (it.custo != null ? it.custo : it.PrecoCusto);
+          return '<button type="button" class="comp-pick w-full text-left min-h-[36px] px-2 py-1.5 rounded-lg border border-sky-200 bg-white hover:bg-sky-50 text-xs font-bold" data-id="' + id + '" data-nome="' + nome + '" data-custo="' + (custo != null ? custo : '') + '">' + nome + '</button>';
+        }).join('');
+        box.querySelectorAll('.comp-pick').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var cRaw = btn.getAttribute('data-custo');
+            var cNum = cRaw !== '' && cRaw != null ? parseFloat(String(cRaw).replace(',', '.')) : null;
+            setCompPendente({
+              id: btn.getAttribute('data-id'),
+              nome: btn.getAttribute('data-nome'),
+              custo: isFinite(cNum) ? cNum : null
+            });
+          });
+        });
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="text-[0.65rem] font-semibold text-red-600 px-2 py-1">Falha na busca.</p>';
+      });
+  }
+
+  function adicionarComponenteKit() {
+    var p = modalEdit._compPendente;
+    if (!p || !p.id) {
+      alert('Busque e escolha um componente antes de adicionar.');
+      return;
+    }
+    var qEl = document.getElementById('comp-qtd');
+    var depEl = document.getElementById('comp-deposito');
+    var qRaw = String((qEl && qEl.value) || '1').trim().replace(',', '.');
+    var q = parseFloat(qRaw);
+    if (!isFinite(q) || q <= 0) q = 1;
+    var arr = modalEdit._composicao || [];
+    var found = null;
+    arr.forEach(function (it) {
+      if (String(it.produto_id) === String(p.id)) found = it;
+    });
+    if (found) {
+      found.quantidade = (Number(found.quantidade) || 0) + q;
+    } else {
+      arr.push({
+        produto_id: String(p.id),
+        nome: p.nome || p.id,
+        codigo: '',
+        quantidade: q,
+        deposito: depEl ? String(depEl.value || '') : '',
+        custo_unitario_agro: p.custo != null ? p.custo : null
+      });
+    }
+    modalEdit._composicao = arr;
+    renderComposicao();
+    setCompPendente(null);
+    if (qEl) qEl.value = '1';
+    var busca = document.getElementById('comp-busca');
+    if (busca) busca.value = '';
+  }
+
+  (function bindComposicaoKitUi() {
+    var btnBusca = document.getElementById('comp-btn-buscar');
+    var inp = document.getElementById('comp-busca');
+    var btnAdd = document.getElementById('comp-btn-adicionar');
+    var limpar = document.getElementById('comp-sel-limpar');
+    if (btnBusca) btnBusca.addEventListener('click', buscarComponenteKit);
+    if (inp) {
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); buscarComponenteKit(); }
+      });
+    }
+    if (btnAdd) btnAdd.addEventListener('click', adicionarComponenteKit);
+    if (limpar) limpar.addEventListener('click', function () { setCompPendente(null); });
+  })();
 
   setTimeout(function () {
     try {

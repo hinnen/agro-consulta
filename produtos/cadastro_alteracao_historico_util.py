@@ -45,6 +45,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("fiscal_cst_pis_cofins", "CST PIS/COFINS"),
     ("kit_baixa_componentes", "Kit: baixar componentes"),
     ("kit_deposito", "Kit: depósito"),
+    ("composicao", "Kit: componentes"),
     ("precos_modo", "Modo preços"),
     ("precos_por_forma", "Preços por forma"),
     ("precos_grupos", "Preços grupos A/B"),
@@ -120,6 +121,7 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["fiscal_cst_pis_cofins"] = fiscal.get("cst_pis_cofins") or ""
     out["kit_baixa_componentes"] = kit.get("baixa_componentes")
     out["kit_deposito"] = kit.get("deposito") or ""
+    out["composicao"] = ex.get("composicao") if isinstance(ex.get("composicao"), list) else None
     out["precos_modo"] = ex.get("precos_modo") or ""
     out["precos_por_forma"] = ex.get("precos_por_forma")
     out["precos_grupos"] = ex.get("precos_grupos")
