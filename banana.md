@@ -1184,44 +1184,51 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP (04/08 · frase+senha)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **enviado** · `producao` @ **`a0f0db2`** · badge **13.80** · Render auto |
-| **Autorização** | *pode enviar lote cad/nf/dsp para produção* + **99738595** (04/08) |
-| **Inclui** | ENTRADA-NF-CUSTO · CAD-DUP · CAD-CB-OPC · DSP-PNG-BG |
-| **NÃO inclui** | **PDV-CAD-RAPIDO** (fica no `teste`) |
-| **Branch** | `deploy/lote-cad-nf-dsp-v13.80` → `producao` |
-| **Rollback** | `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80` |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · badge **13.80** · smoke Entrada NF custo · Cadastro Duplicar/barras · Dispenser PNG · 1 bip PDV |
-
-### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.80)
+### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.80)
 
 **Loja hoje:** badge **v13.80** · `producao` @ **`a0f0db2`**  
-**Rollback:** `6996fca` / `rollback/pre-lote-cad-nf-dsp-v13.80`
+**Teste:** badge **v13.95** · `teste` @ HEAD  
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **ENTRADA-NF-CUSTO** | ✅ **enviado** / Live |
-| 2 | **CAD-DUP** | ✅ **enviado** / Live |
-| 3 | **CAD-CB-OPC** | ✅ **enviado** / Live |
-| 4 | **DSP-PNG-BG** | ✅ **enviado** / Live |
-| 5 | **PDV-CAD-RAPIDO** | 📋 **pronto para envio** · só `teste` · **não** neste lote |
+| # | Pacote | Versão | Status | Risco |
+| - | ------ | ------ | ------ | ----- |
+| 1 | **PDV-CAD-RAPIDO** | v13.95 | 📋 **pronto para envio** · VERIFY_OK · 21/21 | Médio — PDV (+ Produto) |
 
-### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.90**)
+**Autorizar loja:** *pode subir cadastro rápido PDV / PDV-CAD-RAPIDO para produção* + **99738595**  
+**Migrate:** **NÃO** · **Pós-Live:** Ctrl+F5 PDV · + Novo Produto · bipar · Cadastro card **PDV conferir**
+
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.95**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
-| **Inclui** | `+ Produto` no PDV · bipar → checa EAN → Open Food Facts + **Cosmos** (token `.env`) · cria Agro (UN) · card **PDV conferir** · texto claro do estoque |
-| **UI** | botão `+ Novo/Produto` · chip **Lista de hoje** · busca maior · modal limpo (**?** ajuda) · foto só se existir · NCM silencioso |
-| **Fix verificação** | GM sem código sistema deriva 4 dígitos · mensagem se internet não achar · rótulo estoque · **NCM grava** em `cadastro_extras.fiscal` |
-| **Prova** | `manage.py test produtos.tests_pdv_cadastro_rapido` · `python scripts/verify_pdv_cadastro_rapido.py` → **VERIFY_OK** |
-| **Cosmos (nome BR)** | No `.env` local: `AGRO_COSMOS_TOKEN=` (e User-Agent se o site pedir) — cadastrar em cosmos.bluesoft.com.br/api · sem token = só OFF (álcool Flops etc. não vem) |
+| **Inclui** | `+ Novo/Produto` no PDV · bipar → Cosmos/OFF · cria Agro (UN) · NCM silencioso · foto só se existir · card **PDV conferir** · modal limpo (**?**) · busca PDV maior |
+| **Prova** | `manage.py test produtos.tests_pdv_cadastro_rapido` **21/21** · `python scripts/verify_pdv_cadastro_rapido.py` → **VERIFY_OK** |
+| **Cosmos** | `.env`: `AGRO_COSMOS_TOKEN` (+ User-Agent se pedir) |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — PDV balcão · não mexe fechamento/NFC-e |
 | **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `agro_busca_catalogo.js` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
 | **Commit** | HEAD `teste` |
+| **Autorizar** | frase acima + **99738595** |
+
+### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP (04/08 · frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · `producao` @ **`a0f0db2`** · badge **13.80** |
+| **Inclui** | ENTRADA-NF-CUSTO · CAD-DUP · CAD-CB-OPC · DSP-PNG-BG |
+| **NÃO inclui** | **PDV-CAD-RAPIDO** (ainda só `teste`) |
+| **Rollback** | `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80` |
+
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.80) · **histórico**
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1–4 | ENTRADA-NF-CUSTO · CAD-DUP · CAD-CB-OPC · DSP-PNG-BG | ✅ Live v13.80 |
+| 5 | **PDV-CAD-RAPIDO** | → ver **CHECKLIST ÚNICO — pronto envio** acima |
+
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.90**) · **substituído**
+
+> Substituído pelo pacote **v13.95** no topo do CHECKPOINT.
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
 
