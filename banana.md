@@ -1187,7 +1187,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste:** badge **v13.86** · `teste` @ **`b501258`**  
+**Teste:** badge **v13.88** · `teste` @ HEAD  
 
 | # | Pacote | Versão | Status | Risco |
 | - | ------ | ------ | ------ | ----- |
