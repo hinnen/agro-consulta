@@ -1187,7 +1187,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.64)
 
 **Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Teste:** badge **v13.83** · `teste` @ HEAD  
+**Teste:** badge **v13.86** · `teste` @ **`b501258`**  
 
 | # | Pacote | Versão | Status | Risco |
 | - | ------ | ------ | ------ | ----- |
@@ -1195,23 +1195,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **CAD-DUP** | v13.72 | 📋 **pronto para envio** | Baixo — Cadastro |
 | 3 | **CAD-CB-OPC** | v13.75 | 📋 **pronto para envio** · VERIFY 7/7 | Baixo — barras |
 | 4 | **DSP-PNG-BG** | v13.80 | 📋 **pronto para envio** · VERIFY_OK | Baixo — Dispenser |
-| 5 | **PDV-CAD-RAPIDO** | v13.83 | 📋 **pronto para envio** · VERIFY_OK · 20/20 | Médio — PDV (+ Produto) |
+| 5 | **PDV-CAD-RAPIDO** | v13.86 | 📋 **pronto para envio** · VERIFY_OK · 20/20 | Médio — PDV (+ Produto) |
 
 **Lote já empacotado (1–4):** branch `deploy/lote-cad-nf-dsp-v13.80` · *pode enviar lote cad/nf/dsp para produção* + **99738595**  
-**PDV-CAD-RAPIDO (5):** só no `teste` v13.82 — subir **depois** do lote 1–4 (ou cherry separado). **Migrate:** não.  
+**PDV-CAD-RAPIDO (5):** só no `teste` v13.86 — subir **depois** do lote 1–4 (ou cherry separado). **Migrate:** não.  
 **Pós-Live:** Ctrl+F5 · badge · smoke Entrada NF / Cadastro / Dispenser / PDV **+ Produto**.
 
-### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.82**)
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (`PDV-CAD-RAPIDO` · **v13.86**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
 | **Inclui** | `+ Produto` no PDV · bipar → checa EAN → Open Food Facts + **Cosmos** (token `.env`) · cria Agro (UN) · card **PDV conferir** · texto claro do estoque |
+| **UI** | botão `+ Novo/Produto` · chip **Lista de hoje** = catálogo local do PC · tip legível (`b501258` v13.86 — sem corte uppercase) |
 | **Fix verificação** | GM sem código sistema deriva 4 dígitos · mensagem se internet não achar · rótulo estoque |
 | **Prova** | `manage.py test produtos.tests_pdv_cadastro_rapido` · `python scripts/verify_pdv_cadastro_rapido.py` → **VERIFY_OK** |
 | **Cosmos (nome BR)** | No `.env` local: `AGRO_COSMOS_TOKEN=` (e User-Agent se o site pedir) — cadastrar em cosmos.bluesoft.com.br/api · sem token = só OFF (álcool Flops etc. não vem) |
-| **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
-| **Commit** | `6b24480` (+ este VERIFY/fix) · branch `teste` |
+| **Arquivos** | `pdv_cadastro_rapido_util.py` · `views.py` · `urls.py` · `pdv/views.py` · `pdv_wizard.js/html` · `step_produtos.html` · `agro_busca_catalogo.js` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` · `cadastro_filtros_util.py` · tests + verify |
+| **Commit** | `b501258` · branch `teste` |
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
 
