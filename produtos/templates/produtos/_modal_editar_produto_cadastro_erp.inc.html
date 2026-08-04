@@ -520,6 +520,61 @@
           </div>
         </div>
 
+        <div id="edit-custo-familia-box" class="w-full rounded-xl border-2 border-amber-300 bg-amber-50/90 p-3 sm:p-4 space-y-3">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <div class="text-sm font-black uppercase tracking-wide text-amber-950">Custo vem do saco</div>
+              <p class="text-xs text-amber-900/80 mt-0.5 max-w-xl">Pacote/granel herda o custo do saco fechado (ex.: 47&nbsp;kg → 5&nbsp;kg). Se o custo do saco mudar, atualiza sozinho.</p>
+            </div>
+            <details class="shrink-0">
+              <summary class="cursor-pointer text-xs font-black text-amber-800 px-2 py-1 rounded-lg border border-amber-300 bg-white">?</summary>
+              <div class="mt-1 max-w-sm text-xs text-slate-700 bg-white border border-amber-200 rounded-lg p-2 shadow">
+                Ex.: saco 47&nbsp;kg a R$&nbsp;94 → 1&nbsp;kg = R$&nbsp;2 → pacote 5&nbsp;kg = R$&nbsp;10. Granel: kg deste produto = 1.
+              </div>
+            </details>
+          </div>
+          <label class="inline-flex items-center gap-2 min-h-[44px] cursor-pointer">
+            <input type="checkbox" id="edit-cf-ativo" class="w-5 h-5 rounded border-2 border-amber-400 text-amber-600" />
+            <span class="text-sm font-bold text-amber-950">Usar custo do saco neste produto</span>
+          </label>
+          <div id="edit-cf-campos" class="hidden space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2 items-stretch">
+              <input type="text" id="edit-cf-pai-busca" class="flex-1 min-h-[44px] px-3 rounded-lg border-2 border-amber-200 text-sm font-bold bg-white" placeholder="Buscar saco (nome ou código)…" autocomplete="off" />
+              <button type="button" id="edit-cf-pai-buscar-btn" class="min-h-[44px] px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wide">Buscar</button>
+            </div>
+            <div id="edit-cf-pai-resultados" class="hidden space-y-1 max-h-36 overflow-y-auto"></div>
+            <div id="edit-cf-pai-selecionado" class="hidden rounded-lg border-2 border-amber-400 bg-white px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-[10px] font-black uppercase text-amber-700">Saco (origem do custo)</div>
+                <div id="edit-cf-pai-nome" class="text-sm font-bold text-slate-900"></div>
+                <div id="edit-cf-pai-custo" class="text-xs text-slate-600 tabular-nums"></div>
+              </div>
+              <button type="button" id="edit-cf-pai-limpar" class="min-h-[36px] px-3 rounded-lg border-2 border-slate-200 text-xs font-black uppercase text-slate-600">Trocar</button>
+            </div>
+            <input type="hidden" id="edit-cf-pai-id" value="" />
+            <div class="grid grid-cols-2 gap-3">
+              <label class="block">
+                <span class="text-[10px] font-black uppercase text-amber-800 block mb-1">Kg do saco</span>
+                <input type="text" id="edit-cf-kg-pai" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold tabular-nums bg-white" inputmode="decimal" placeholder="47" autocomplete="off" />
+              </label>
+              <label class="block">
+                <span class="text-[10px] font-black uppercase text-amber-800 block mb-1">Kg deste produto</span>
+                <input type="text" id="edit-cf-kg-filho" class="w-full min-h-[44px] px-3 rounded-lg border-2 border-amber-200 text-base font-bold tabular-nums bg-white" inputmode="decimal" placeholder="5" autocomplete="off" />
+              </label>
+            </div>
+            <label class="inline-flex items-center gap-2 min-h-[40px] cursor-pointer">
+              <input type="checkbox" id="edit-cf-auto" class="w-5 h-5 rounded border-2 border-amber-400 text-amber-600" checked />
+              <span class="text-sm font-bold text-amber-950">Atualizar sozinho quando o saco mudar</span>
+            </label>
+            <div id="edit-cf-preview" class="rounded-lg bg-white border border-amber-200 px-3 py-2 text-sm font-bold text-slate-800 tabular-nums">Custo calculado: —</div>
+          </div>
+          <div id="edit-cf-filhos-box" class="hidden border-t border-amber-200 pt-3 space-y-2">
+            <div class="text-[10px] font-black uppercase text-amber-800">Pacotes/granel que usam este saco</div>
+            <ul id="edit-cf-filhos-list" class="text-xs text-slate-700 space-y-1"></ul>
+            <button type="button" id="edit-cf-propagar-btn" class="min-h-[40px] px-3 rounded-lg bg-amber-700 text-white text-xs font-black uppercase">Recalcular filhos agora</button>
+          </div>
+        </div>
+
         <label class="price-main-card w-full mx-auto rounded-2xl border-orange-400 border-solid bg-orange-50/90 shadow-md text-center hover:border-orange-500 transition-colors cursor-text">
           <span class="info-card-label text-orange-700 block mb-0.5">Preço de Venda Final (R$) <abbr class="text-red-600 no-underline cursor-help" title="Obrigatório">*</abbr></span>
           <div class="flex flex-nowrap items-baseline justify-center gap-3 sm:gap-4 leading-none">
@@ -2557,6 +2612,9 @@
 
     setMoeda('edit-custo', produto.preco_custo);
     setMoeda('edit-custo-acrescimo', produto.preco_custo_com_acrescimos);
+    if (typeof carregarCustoFamiliaUi === 'function') {
+      carregarCustoFamiliaUi(produto);
+    }
     setVal('edit-mva-rs', produto.mva_lucro_reais != null && produto.mva_lucro_reais !== ''
       ? fmtMoeda2(produto.mva_lucro_reais) : '');
     setPct2('edit-mva-pct', produto.mva_lucro_percentual);
@@ -2901,6 +2959,9 @@
       modelo: gv('edit-modelo'),
       preco_venda: gv('edit-venda'),
       preco_custo: gv('edit-custo'),
+      custo_familia: (typeof coletarCustoFamiliaPayload === 'function'
+        ? coletarCustoFamiliaPayload()
+        : { ativo: false }),
       estoque_min_centro: gv('edit-est-min'),
       estoque_max_centro: gv('edit-est-max'),
       permite_venda_estoque_negativo: !!(document.getElementById('edit-permite-negativo') || {}).checked,
@@ -3400,6 +3461,244 @@
           e.preventDefault();
           buscarDeliveryEmbalagens();
         }
+      });
+    }
+  })();
+
+  /* —— Custo família (saco → pacote/granel) —— */
+  modalEdit._cfPaiCusto = null;
+
+  function _cfParseNum(s) {
+    var t = String(s || '').trim();
+    if (!t) return null;
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(t);
+    return isFinite(n) ? n : null;
+  }
+
+  function _cfFmtMoney(n) {
+    if (n == null || !isFinite(n)) return '—';
+    return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function atualizarCustoFamiliaPreview() {
+    var prev = document.getElementById('edit-cf-preview');
+    var ativo = !!(document.getElementById('edit-cf-ativo') || {}).checked;
+    var campos = document.getElementById('edit-cf-campos');
+    if (campos) campos.classList.toggle('hidden', !ativo);
+    var editCusto = document.getElementById('edit-custo');
+    if (!ativo) {
+      if (prev) prev.textContent = 'Custo calculado: —';
+      if (editCusto) {
+        editCusto.readOnly = false;
+        editCusto.classList.remove('bg-slate-100');
+      }
+      return;
+    }
+    var kp = _cfParseNum((document.getElementById('edit-cf-kg-pai') || {}).value);
+    var kf = _cfParseNum((document.getElementById('edit-cf-kg-filho') || {}).value);
+    var cp = modalEdit._cfPaiCusto;
+    var auto = !!(document.getElementById('edit-cf-auto') || {}).checked;
+    var calc = (cp != null && kp > 0 && kf > 0) ? (cp * (kf / kp)) : null;
+    if (prev) {
+      prev.textContent = calc != null
+        ? ('Custo calculado: ' + _cfFmtMoney(calc))
+        : 'Custo calculado: — (escolha o saco e os kg)';
+    }
+    if (editCusto) {
+      if (auto && calc != null) {
+        if (typeof setMoeda === 'function') setMoeda('edit-custo', calc);
+        else editCusto.value = Number(calc).toFixed(2).replace('.', ',');
+        editCusto.readOnly = true;
+        editCusto.classList.add('bg-slate-100');
+      } else {
+        editCusto.readOnly = false;
+        editCusto.classList.remove('bg-slate-100');
+      }
+    }
+  }
+
+  function setCustoFamiliaPai(p) {
+    var idEl = document.getElementById('edit-cf-pai-id');
+    var nomeEl = document.getElementById('edit-cf-pai-nome');
+    var custoEl = document.getElementById('edit-cf-pai-custo');
+    var sel = document.getElementById('edit-cf-pai-selecionado');
+    var box = document.getElementById('edit-cf-pai-resultados');
+    if (!p || !p.id) {
+      if (idEl) idEl.value = '';
+      modalEdit._cfPaiCusto = null;
+      if (nomeEl) nomeEl.textContent = '';
+      if (custoEl) custoEl.textContent = '';
+      if (sel) sel.classList.add('hidden');
+      atualizarCustoFamiliaPreview();
+      return;
+    }
+    if (idEl) idEl.value = String(p.id);
+    modalEdit._cfPaiCusto = (p.custo != null && isFinite(Number(p.custo))) ? Number(p.custo) : null;
+    if (nomeEl) nomeEl.textContent = p.nome || p.id;
+    if (custoEl) custoEl.textContent = 'Custo saco: ' + _cfFmtMoney(modalEdit._cfPaiCusto);
+    if (sel) sel.classList.remove('hidden');
+    if (box) { box.classList.add('hidden'); box.innerHTML = ''; }
+    atualizarCustoFamiliaPreview();
+  }
+
+  function carregarCustoFamiliaUi(produto) {
+    var cf = (produto && produto.custo_familia) || null;
+    var chk = document.getElementById('edit-cf-ativo');
+    var auto = document.getElementById('edit-cf-auto');
+    var kgP = document.getElementById('edit-cf-kg-pai');
+    var kgF = document.getElementById('edit-cf-kg-filho');
+    if (chk) chk.checked = !!(cf && cf.ativo !== false && cf.pai_produto_id);
+    if (auto) auto.checked = !cf || cf.auto_sync !== false;
+    if (kgP) kgP.value = cf && cf.kg_pai != null ? String(cf.kg_pai).replace('.', ',') : '';
+    if (kgF) kgF.value = cf && cf.kg_filho != null ? String(cf.kg_filho).replace('.', ',') : '';
+    if (cf && cf.pai_produto_id) {
+      setCustoFamiliaPai({
+        id: cf.pai_produto_id,
+        nome: cf.pai_nome || cf.pai_produto_id,
+        custo: cf.custo_pai_atual != null ? cf.custo_pai_atual : null
+      });
+      if (cf.custo_calculado != null && typeof setMoeda === 'function' && (auto && auto.checked)) {
+        setMoeda('edit-custo', cf.custo_calculado);
+      }
+    } else {
+      setCustoFamiliaPai(null);
+    }
+    var filhos = (produto && produto.custo_familia_filhos) || [];
+    var fbox = document.getElementById('edit-cf-filhos-box');
+    var flist = document.getElementById('edit-cf-filhos-list');
+    if (fbox && flist) {
+      if (filhos.length) {
+        fbox.classList.remove('hidden');
+        flist.innerHTML = filhos.map(function (f) {
+          var kg = f.kg_filho != null ? (String(f.kg_filho) + ' kg') : '';
+          var c = f.ultimo_custo_calculado != null ? _cfFmtMoney(f.ultimo_custo_calculado) : '—';
+          return '<li><span class="font-bold">' + (f.nome || f.produto_id) + '</span> · ' + kg + ' · custo ' + c +
+            (f.auto_sync === false ? ' <span class="text-amber-700">(sync off)</span>' : '') + '</li>';
+        }).join('');
+      } else {
+        fbox.classList.add('hidden');
+        flist.innerHTML = '';
+      }
+    }
+    atualizarCustoFamiliaPreview();
+  }
+
+  function coletarCustoFamiliaPayload() {
+    var ativo = !!(document.getElementById('edit-cf-ativo') || {}).checked;
+    if (!ativo) return { ativo: false };
+    return {
+      ativo: true,
+      pai_produto_id: String((document.getElementById('edit-cf-pai-id') || {}).value || '').trim(),
+      pai_nome: String((document.getElementById('edit-cf-pai-nome') || {}).textContent || '').trim(),
+      kg_pai: String((document.getElementById('edit-cf-kg-pai') || {}).value || '').trim(),
+      kg_filho: String((document.getElementById('edit-cf-kg-filho') || {}).value || '').trim(),
+      auto_sync: !!(document.getElementById('edit-cf-auto') || {}).checked
+    };
+  }
+
+  function buscarCustoFamiliaPai() {
+    var inp = document.getElementById('edit-cf-pai-busca');
+    var box = document.getElementById('edit-cf-pai-resultados');
+    if (!inp || !box) return;
+    var q = String(inp.value || '').trim();
+    if (q.length < 2) {
+      box.classList.remove('hidden');
+      box.innerHTML = '<p class="text-[0.65rem] font-semibold text-amber-800">Digite ao menos 2 letras.</p>';
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = '<p class="text-[0.65rem] text-slate-500">Buscando…</p>';
+    fetch('/api/buscar/?q=' + encodeURIComponent(q) + '&limit=12', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var itens = (data && (data.produtos || data.resultados || data.items)) || [];
+        if (!Array.isArray(itens)) itens = [];
+        var selfId = String(
+          (modalEdit.getAttribute && modalEdit.getAttribute('data-produto-id')) ||
+          modalEdit._produtoId ||
+          modalEdit.produtoId ||
+          ''
+        ).trim();
+        itens = itens.filter(function (it) {
+          var id = String(it.id || it.produto_id || it._id || '').trim();
+          return id && id !== selfId;
+        }).slice(0, 12);
+        if (!itens.length) {
+          box.innerHTML = '<p class="text-[0.65rem] font-semibold text-slate-600">Nenhum produto.</p>';
+          return;
+        }
+        box.innerHTML = itens.map(function (it) {
+          var id = String(it.id || it.produto_id || '').trim();
+          var nome = String(it.nome || it.Nome || id).replace(/"/g, '&quot;');
+          var custo = it.preco_custo != null ? it.preco_custo : (it.custo != null ? it.custo : it.PrecoCusto);
+          return '<button type="button" class="cf-pai-pick w-full text-left min-h-[36px] px-2 py-1.5 rounded-lg border border-amber-200 bg-white hover:bg-amber-50 text-xs font-bold" data-id="' + id + '" data-nome="' + nome + '" data-custo="' + (custo != null ? custo : '') + '">' + nome + '</button>';
+        }).join('');
+        box.querySelectorAll('.cf-pai-pick').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var cRaw = btn.getAttribute('data-custo');
+            var cNum = cRaw !== '' && cRaw != null ? parseFloat(String(cRaw).replace(',', '.')) : null;
+            setCustoFamiliaPai({
+              id: btn.getAttribute('data-id'),
+              nome: btn.getAttribute('data-nome'),
+              custo: isFinite(cNum) ? cNum : null
+            });
+          });
+        });
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="text-[0.65rem] font-semibold text-red-600">Falha na busca.</p>';
+      });
+  }
+
+  (function bindCustoFamiliaUi() {
+    var chk = document.getElementById('edit-cf-ativo');
+    var auto = document.getElementById('edit-cf-auto');
+    var kgP = document.getElementById('edit-cf-kg-pai');
+    var kgF = document.getElementById('edit-cf-kg-filho');
+    var btnBusca = document.getElementById('edit-cf-pai-buscar-btn');
+    var inpBusca = document.getElementById('edit-cf-pai-busca');
+    var limpar = document.getElementById('edit-cf-pai-limpar');
+    var propBtn = document.getElementById('edit-cf-propagar-btn');
+    if (chk) chk.addEventListener('change', atualizarCustoFamiliaPreview);
+    if (auto) auto.addEventListener('change', atualizarCustoFamiliaPreview);
+    [kgP, kgF].forEach(function (el) {
+      if (el) el.addEventListener('input', atualizarCustoFamiliaPreview);
+    });
+    if (btnBusca) btnBusca.addEventListener('click', buscarCustoFamiliaPai);
+    if (inpBusca) {
+      inpBusca.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); buscarCustoFamiliaPai(); }
+      });
+    }
+    if (limpar) limpar.addEventListener('click', function () { setCustoFamiliaPai(null); });
+    if (propBtn) {
+      propBtn.addEventListener('click', function () {
+        var pid = String(
+          (modalEdit.getAttribute && modalEdit.getAttribute('data-produto-id')) ||
+          modalEdit._produtoId ||
+          modalEdit.produtoId ||
+          ''
+        ).trim();
+        if (!pid) return;
+        propBtn.disabled = true;
+        fetch('/api/produtos/custo-familia/propagar/', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': (typeof csrfDeliveryTok === 'function' ? csrfDeliveryTok() : '') ||
+              ((document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '')
+          },
+          body: JSON.stringify({ produto_id: pid })
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            propBtn.disabled = false;
+            var n = (d && d.atualizados) || 0;
+            alert(d && d.ok ? ('Atualizados: ' + n + ' produto(s).') : ((d && d.erro) || 'Falha ao recalcular.'));
+          })
+          .catch(function () { propBtn.disabled = false; alert('Falha ao recalcular.'); });
       });
     }
   })();

@@ -2044,6 +2044,31 @@ def api_produtos_gestao_overlay_salvar(request):
         return JsonResponse(out, status=500)
 
 
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_custo_familia_propagar(request):
+    """Recalcula pacotes/granel ligados ao saco (pai) informado."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()[:64]
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    try:
+        from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+        out = propagar_custo_familia_de_pai(
+            pid,
+            origem="overlay",
+            usuario=request.user if request.user.is_authenticated else None,
+        )
+        return JsonResponse(out)
+    except Exception as exc:
+        logger.exception("api_custo_familia_propagar")
+        return JsonResponse({"ok": False, "erro": str(exc)[:300]}, status=500)
+
+
 def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
     """Se verdadeiro, após gravar overlay envia ``Produtos/Salvar`` ao ERP legado."""
     if not agro_cadastro_produto_erp_sync_habilitado():
@@ -2863,10 +2888,25 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["precos_grupos"] = pg
         else:
             ex.pop("precos_grupos", None)
-    if "preco_custo" in payload:
+    if "custo_familia" in payload:
+        from produtos.custo_familia_util import (
+            custo_filho_desde_familia,
+            mesclar_custo_familia_no_extras,
+        )
+
+        mesclar_custo_familia_no_extras(
+            ex, payload.get("custo_familia"), filho_id=pid
+        )
+        # Com sync ligado, custo do filho vem do saco (pai) — sobrescreve o digitado.
+        calc_cf = custo_filho_desde_familia(ex)
+        if calc_cf is not None:
+            custo_payload = calc_cf
+    if "preco_custo" in payload or (
+        "custo_familia" in payload and custo_payload is not None
+    ):
         if custo_payload is not None:
             ex["preco_custo_overlay"] = float(custo_payload)
-        else:
+        elif "preco_custo" in payload:
             ex.pop("preco_custo_overlay", None)
     if "modelo" in payload:
         mod = _txt("modelo", 200)
@@ -3000,7 +3040,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         )
         # Custo não tem coluna no overlay SQLite: sem gravar no Mongo o espelho continua vazio e o
         # cadastro «Salvar no Agro» parece «reverter» o custo ao reabrir (só ``Produtos/Salvar`` atualizava).
-        if "preco_custo" in payload and custo_payload is not None:
+        if ("preco_custo" in payload or "custo_familia" in payload) and custo_payload is not None:
             try:
                 cfloat = float(custo_payload)
                 res_c = db[client.col_p].update_one(
@@ -3100,6 +3140,23 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     except Exception:
         pass
 
+    # Saco (pai) mudou de custo → atualiza pacotes/granel vinculados.
+    prop_familia: dict | None = None
+    if custo_payload is not None and (
+        "preco_custo" in payload or "custo_familia" in payload
+    ):
+        try:
+            from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+            prop_familia = propagar_custo_familia_de_pai(
+                pid,
+                custo_payload,
+                origem="overlay",
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+        except Exception:
+            logger.warning("overlay salvar: propagar custo_familia", exc_info=True)
+
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
@@ -3111,6 +3168,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         row = cat_agro.produto_model_para_resposta_salvar(p_mod, ov)
         uid = int(getattr(request.user, "pk", None) or 0)
         resp_pg: dict = {"ok": True, "produto": row, "fonte": "agro_pg", "somente_agro": True}
+        if prop_familia and prop_familia.get("atualizados"):
+            resp_pg["custo_familia_propagados"] = prop_familia.get("atualizados")
         if push_erp and agro_cadastro_produto_erp_sync_habilitado():
             resp_pg["aviso_erp"] = (
                 "Catálogo SisVale (Postgres): envio ao ERP legado não usa espelho Mongo nesta etapa."
@@ -16443,6 +16502,12 @@ def _entrada_nfe_gravar_custo_sisvale(pid: str, val: Decimal) -> bool:
         if p is not None:
             p.custo = val
             p.save(update_fields=["custo", "atualizado_em"])
+    try:
+        from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+        propagar_custo_familia_de_pai(pid64, val, origem="entrada_nf")
+    except Exception:
+        logger.warning("entrada_nfe: propagar custo_familia %s", pid64, exc_info=True)
     return True
 
 
@@ -22050,6 +22115,32 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         row["modelo"] = str(ce_ov.get("modelo") or "").strip()[:200]
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
+    try:
+        from produtos.custo_familia_util import (
+            extrair_custo_familia,
+            ler_custo_produto,
+            calcular_custo_filho,
+            resumo_filhos_do_pai,
+        )
+
+        cf_row = extrair_custo_familia(ce_ov or {})
+        if cf_row:
+            row["custo_familia"] = cf_row
+            cp_pai = ler_custo_produto(cf_row.get("pai_produto_id") or "")
+            if cp_pai is not None:
+                row["custo_familia"]["custo_pai_atual"] = float(cp_pai)
+                calc = calcular_custo_filho(
+                    cp_pai, cf_row.get("kg_pai"), cf_row.get("kg_filho")
+                )
+                if calc is not None:
+                    row["custo_familia"]["custo_calculado"] = float(calc)
+        else:
+            row["custo_familia"] = None
+        filhos_cf = resumo_filhos_do_pai(pid_det)
+        row["custo_familia_filhos"] = filhos_cf
+    except Exception:
+        row["custo_familia"] = None
+        row["custo_familia_filhos"] = []
     ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})
     if ppf_det:
         row["precos_por_forma"] = ppf_det

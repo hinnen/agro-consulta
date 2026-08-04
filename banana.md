@@ -1184,6 +1184,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | No Cadastro → **3. Preços/Margem**: bloco **«Custo vem do saco»** — liga 5 kg / 2 kg / granel ao saco 47 ou 24 kg |
+| **Cálculo** | `custo = custo_saco × (kg_produto ÷ kg_saco)` · grava overlay + PG + Mongo |
+| **Auto** | Se o custo do saco mudar (cadastro, Entrada NF ou Excel), filhos com sync ligado atualizam sozinhos |
+| **Dados** | `cadastro_extras.custo_familia` no overlay (Postgres) · sem migrate |
+| **Arquivos** | `custo_familia_util.py` · hooks overlay/NF/planilha · modal · `api/produtos/custo-familia/propagar/` |
+| **Prova** | VERIFY_OK_CALC + smoke propaga no PG local |
+| **Você** | Ctrl+F5 Cadastro · abrir milho 5 kg · marcar «usar custo do saco» · buscar saco 47 · kg · Salvar · mudar custo do saco · conferir filhos |
+| **Loja** | **só no teste** — produção só com frase+senha |
+
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
 
 | Item | Detalhe |
@@ -1207,6 +1220,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
+| 2 | **CUSTO-FAMILIA** (saco→pacote) | 🧪 **só no teste** v14.02 |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (PDV-CAD-RAPIDO · **v13.81**)

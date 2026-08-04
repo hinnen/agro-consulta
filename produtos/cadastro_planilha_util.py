@@ -1069,6 +1069,16 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         if not agro_mongo_escrita_bloqueada():
             db[client.col_p].update_one(_mongo_filtro_id_produto_externo(pid), {"$set": mongo_set})
 
+    if COL_PRECO_CUSTO in patch and custo_payload is not None:
+        try:
+            from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+            propagar_custo_familia_de_pai(
+                pid, custo_payload, origem="planilha", usuario=user
+            )
+        except Exception:
+            pass
+
 
 def aplicar_importacao_cadastro(
     path: Path,
