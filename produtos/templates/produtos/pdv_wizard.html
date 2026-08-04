@@ -1038,6 +1038,23 @@
   #pdv-step1-search-wrap #pdv-product-autocomplete {
     background: #fff;
   }
+  .agro-pacote-chip-wrap .agro-pacote-chip-tip {
+    visibility: hidden;
+  }
+  .agro-pacote-chip-wrap:hover .agro-pacote-chip-tip,
+  .agro-pacote-chip-wrap:focus-within .agro-pacote-chip-tip {
+    visibility: visible;
+    opacity: 1;
+  }
+  .agro-pacote-chip-wrap .agro-pacote-chip-tip::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translateX(-50%);
+    border: 7px solid transparent;
+    border-bottom-color: #a7f3d0;
+  }
   #pdv-step1-cart-wrap {
     display: flex;
     flex-direction: column;
