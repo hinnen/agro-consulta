@@ -1187,11 +1187,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · pós loja v13.80)
 
 **Loja hoje:** badge **v13.80** · `producao` @ **`a0f0db2`**  
-**Teste:** badge **v13.95** · `teste` @ HEAD  
+**Teste:** badge **v13.96** · `teste` @ HEAD  
 
 | # | Pacote | Versão | Status | Risco |
 | - | ------ | ------ | ------ | ----- |
-| 1 | **PDV-CAD-RAPIDO** | v13.95 | 📋 **pronto para envio** · VERIFY_OK · 21/21 | Médio — PDV (+ Produto) |
+| 1 | **PDV-CAD-RAPIDO** | v13.96 | 📋 **pronto para envio** · VERIFY_OK · 21/21 | Médio — PDV (+ Produto) |
 
 **Autorizar loja:** *pode subir cadastro rápido PDV / PDV-CAD-RAPIDO para produção* + **99738595**  
 **Migrate:** **NÃO** · **Pós-Live:** Ctrl+F5 PDV · + Novo Produto · bipar · Cadastro card **PDV conferir**
