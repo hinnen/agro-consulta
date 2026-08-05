@@ -1188,17 +1188,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.21** · HEAD `a6ab52b`  
+**Teste:** badge **v14.23+** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | **BI-TOPBAR-TOTAL** (Sync compacto + Total por unidade) | 📋 **pronto para envio** · VERIFY_OK · `fcf1c49`/`739be93` |
-| 2 | **SEFAZ-UI** (aba limpa + textos no «?») | 📋 **pronto para envio** · v14.19 · `e83af8f` |
-| — | PDV-CAD-RAPIDO / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
-| — | lote CAD/NF+DSP (barras · duplicar · NF custo · dispenser PNG) | ✅ **Live** v13.80 |
+| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | 📋 **pronto para envio** · VERIFY_OK |
+| 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio** · v14.19 |
+| 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio** · VERIFY_OK · `645fc75` |
+| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
+| — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
 
-**Autorizar loja:** *pode subir BI-TOPBAR-TOTAL / SEFAZ-UI para produção* + **99738595**
+**Autorizar:** frase do pacote + **99738595** · **branch isolada** (modal COMP-UX **não** é o `teste` inteiro)
+
+### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | ▶/▼ em Saco e Kit · texto longo só no «?» · aba Composição com scroll · saco começa recolhido se kit ligado |
+| **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` (só aba Composição) · `scripts/verify_comp_ux_recolher.py` |
+| **Commit** | `645fc75` (+ verify neste push) |
+| **Prova** | `python scripts/verify_comp_ux_recolher.py` → **VERIFY_OK** · `verify_custo_familia.py` → **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI Cadastro Composição · **zero** lógica PDV/estoque |
+| **⚠️** | Subir **sobre loja v13.83** com patch isolado do modal — **não** o modal completo do `teste` (tem WIP) |
+| **Você** | Ctrl+F5 Cadastro → Composição · ▶ no Saco · vê o Kit |
+| **Autorizar** | *pode subir COMP-UX / composição recolhimento para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — BI topbar Sync + Total unidades (`BI-TOPBAR-TOTAL` · **v14.18**)
 
@@ -1242,12 +1258,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ teste · ver **PACOTE PRONTO BI-TOPBAR-TOTAL** |
 | **Commit** | `fcf1c49` · push `origin/teste` |
 
-### 🩹 UX Composição — recolhimento Saco/Kit (04/08 · **teste**)
+### 🩹 UX Composição — recolhimento Saco/Kit (04/08 · **v14.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🧪 **só no teste** — texto no «?» · botão ▶/▼ em Saco e Kit · aba com scroll |
-| **Você** | Ctrl+F5 Cadastro → Composição · ▶ recolhe saco · vê o Kit |
+| **Status** | 📋 **PACOTE PRONTO** — ver **COMP-UX** no CHECKLIST |
+| **Prova** | VERIFY_OK (`verify_comp_ux_recolher` + `verify_custo_familia`) |
 
 ### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
 
