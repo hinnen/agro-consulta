@@ -57,10 +57,19 @@ def _valor_titulo_dre(t: TituloFinanceiroAgro, valor: str) -> Decimal:
 
 
 def _valor_titulo_grafico(t: TituloFinanceiroAgro, valor: str, *, as_of: date | None) -> Decimal:
+    """Valor do título no gráfico.
+
+    ``as_of`` = modo «como era no dia»: pagamento posterior à data escolhida ainda
+    não tinha acontecido, então o título volta a contar como aberto. Quitação
+    parcial em várias datas colapsa no único ``data_pagamento`` do título.
+    """
     modo = (valor or "bruto").strip().lower()
+    pago_depois = bool(as_of and t.data_pagamento and t.data_pagamento > as_of)
     if modo == "pago":
-        return _dec2(t.valor_pago)
+        return Decimal("0") if pago_depois else _dec2(t.valor_pago)
     if modo == "saldo":
+        if pago_depois:
+            return _dec2(t.valor_bruto)
         if not _titulo_aberto(t):
             return Decimal("0")
         return _dec2(t.valor_restante)

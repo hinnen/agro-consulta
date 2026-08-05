@@ -1185,6 +1185,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP` · **teste** · 05/08)
+
+Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** corrigidos:
+
+| # | Problema | Fix |
+| - | -------- | --- |
+| **1** | **«Como era no dia» / «Comparar» não reconstruíam o passado** — `as_of` chegava na função e era **ignorado**; a diferença que aparecia vinha só do filtro de situação. | `_valor_titulo_grafico` usa `as_of`: título com `data_pagamento` **depois** da data volta a contar como **aberto** (pago = 0 · saldo = bruto). |
+| **2** | Chip do período **selecionado sumia** (texto branco em fundo claro) — `.is-past`/`.is-future` vinham **depois** do `.is-active` no CSS. | `.is-active` movido para o fim do bloco. |
+| **3** | Bloco de **ajuda «?» dos Filtros cortado** no painel (1366×768) — `<details>` não repassa altura ao conteúdo. | `ajustarScrollPlanos()` também trava a altura da coluna Filtros (mesmo truque já usado na lista de planos). |
+| **4** | Popup CP do ponto usava status **diferente** da lista de planos quando havia dia de referência. | `cpStatusFromGrafico` = `statusPlanosComoCp` · título do popup avisa que o CP mostra **hoje**. |
+| **5** | `shrink: 0` (**propriedade inválida**) em 7 blocos — barra, meta, cabeçalho e rodapé podiam encolher. | Trocado por `flex-shrink: 0`. |
+| **6** | Ajuda dizia que título **criado depois some** — não é verdade (não existe data de cadastro no título). | Texto corrigido. |
+
+**Visual (regras `banana`/AGENTS §5 e §11):** escala tipográfica em **rem** (acompanha o Agro Display Scale, sem `px` fixo nem zoom por tela); botões/chips com alvo mínimo **2,6 rem**; **Soma** em destaque na barra verde; botão **↻ Atualizar** com rótulo (era só ícone); contraste maior em rótulos, badge «Como era» e legenda do gráfico; CSS morto removido.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Arquivos** | `financeiro/templates/financeiro/grafico_gastos.html` · `produtos/lancamentos_financeiro_pg_analytics_util.py` |
+| **Prova** | Série × soma manual bate em **6 combinações** (venc/comp/pagamento × bruto/pago/saldo, com e sem `as_of`, 1 plano e TODOS) · página renderiza 200 · Chrome 1366×768: **sem rolagem** de página, painel de filtros rola por dentro |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — falta Renan conferir na tela |
+
 ### 🐞 FIX — gráfico Gastos por plano somava plano errado (`GG-FILTRO` · **teste** · 05/08)
 
 | Item | Detalhe |

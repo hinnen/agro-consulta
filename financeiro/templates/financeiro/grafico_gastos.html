@@ -22,37 +22,46 @@
     --gg-orange-soft: #fff7ed;
     --gg-border: #cbd5e1;
     --gg-card: #ffffff;
-    --gg-muted: #64748b;
+    --gg-muted: #475569;
     --gg-text: #0f172a;
     --gg-radius: 0.875rem;
     --gg-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
-    --gg-label: clamp(0.75rem, 0.82rem, 0.875rem);
-    --gg-field: clamp(0.8125rem, 0.9rem, 0.9375rem);
-    --gg-title: clamp(0.9375rem, 1rem, 1.0625rem);
+    /* escala em rem — acompanha o Agro Display Scale (AGENTS §11), sem px fixo */
+    --gg-label: 0.875rem;
+    --gg-field: 0.9375rem;
+    --gg-title: 1.0625rem;
+    --gg-touch: 2.6rem;
   }
   .gg-shell-wrap {
     display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 0.35rem;
   }
   .gg-page-head {
     display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between;
-    gap: 0.5rem; padding: 0.1rem 0 0; shrink: 0;
+    gap: 0.5rem; padding: 0.1rem 0 0; flex-shrink: 0;
   }
   .gg-page-head h1 {
-    margin: 0; font-size: clamp(1.05rem, 1.15rem, 1.35rem);
+    margin: 0; font-size: 1.25rem;
     font-weight: 900; color: var(--gg-text); line-height: 1.1;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   }
   .gg-page-head h1 em { font-style: normal; color: var(--gg-emerald); }
-  .gg-page-sub { display: none; }
   .gg-head-actions { display: flex; gap: 0.35rem; align-items: center; flex-shrink: 0; }
   .gg-btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.3rem;
-    min-height: 2.35rem; padding: 0 0.75rem; border-radius: 0.65rem;
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;
+    min-height: var(--gg-touch); padding: 0 0.9rem; border-radius: 0.7rem;
     font-size: var(--gg-label); font-weight: 800; text-transform: uppercase;
     letter-spacing: 0.03em; text-decoration: none; cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  .gg-btn-sm { min-height: 2.1rem; padding: 0 0.55rem; font-size: 0.6875rem; }
+  .gg-btn:focus-visible,
+  .gg-chip:focus-visible,
+  .gg-chip-hoje:focus-visible,
+  .gg-atalho-slot:focus-visible,
+  .gg-mini-btn:focus-visible,
+  .gg-summary-edit:focus-visible {
+    outline: 3px solid var(--gg-emerald); outline-offset: 2px;
+  }
+  .gg-btn-sm { min-height: 2.3rem; padding: 0 0.7rem; font-size: 0.8125rem; }
   .gg-btn:active { transform: translateY(1px); }
   .gg-btn-secondary { border: 2px solid var(--gg-border); background: var(--gg-card); color: var(--gg-text); }
   .gg-btn-secondary:hover { border-color: #f59e0b; color: #92400e; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15); }
@@ -69,22 +78,27 @@
     display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
     padding: 0.35rem 0.55rem; border-radius: var(--gg-radius);
     border: 2px solid var(--gg-border); background: var(--gg-card); box-shadow: var(--gg-shadow);
-    shrink: 0; overflow: hidden;
+    flex-shrink: 0; overflow: hidden;
   }
   .gg-chips { display: flex; gap: 0.3rem; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
   .gg-chips::-webkit-scrollbar { display: none; }
   .gg-chip {
-    min-height: 2.1rem; padding: 0 0.65rem; border-radius: 999px; flex-shrink: 0;
+    min-height: 2.3rem; padding: 0 0.8rem; border-radius: 999px; flex-shrink: 0;
     border: 2px solid #e2e8f0; background: #f8fafc; color: #334155;
     font-size: var(--gg-label); font-weight: 800; cursor: pointer;
   }
   .gg-chip:hover { border-color: #86efac; background: var(--gg-emerald-soft); color: var(--gg-emerald-dark); }
-  .gg-chip.is-active { border-color: var(--gg-emerald); background: var(--gg-emerald); color: #fff; box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22); }
   .gg-chip.is-past { background: #f1f5f9; }
   .gg-chip.is-future { background: #eff6ff; border-color: #bfdbfe; }
   .gg-chip.is-future:hover { border-color: #60a5fa; background: #dbeafe; color: #1e40af; }
+  /* depois de is-past/is-future: senão o chip selecionado fica branco no branco */
+  .gg-chip.is-active,
+  .gg-chip.is-active:hover {
+    border-color: var(--gg-emerald-dark); background: var(--gg-emerald); color: #fff;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22);
+  }
   .gg-chip-hoje {
-    min-height: 2.35rem; padding: 0 0.85rem; border-radius: 999px; flex-shrink: 0;
+    min-height: var(--gg-touch); padding: 0 1rem; border-radius: 999px; flex-shrink: 0;
     border: 2px solid #f59e0b; background: #fffbeb; color: #92400e;
     font-size: var(--gg-label); font-weight: 900; cursor: pointer;
   }
@@ -94,9 +108,9 @@
   .gg-periodo-sep { width: 2px; height: 1.5rem; background: #cbd5e1; flex-shrink: 0; margin: 0 0.15rem; }
   .gg-atalhos { display: flex; gap: 0.3rem; flex-shrink: 0; margin-left: 0.35rem; padding-left: 0.35rem; border-left: 2px solid #e2e8f0; }
   .gg-atalho-slot {
-    min-height: 2.1rem; max-width: 6.5rem; padding: 0 0.5rem; border-radius: 0.55rem;
-    border: 2px dashed #cbd5e1; background: #fafbfc; color: #64748b;
-    font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
+    min-height: 2.3rem; max-width: 7.5rem; padding: 0 0.6rem; border-radius: 0.6rem;
+    border: 2px dashed #cbd5e1; background: #fafbfc; color: #475569;
+    font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
     cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .gg-atalho-slot.is-filled { border-style: solid; border-color: #86efac; background: #ecfdf5; color: #047857; }
@@ -120,7 +134,11 @@
   details.gg-split-col { min-height: 0; overflow: hidden; border: 2px solid #e2e8f0; border-radius: var(--gg-radius); background: #fafbfc; }
   details.gg-split-col[open] { display: flex; flex-direction: column; }
   .gg-split-col > summary { flex-shrink: 0; }
-  .gg-split-col[open] > .gg-split-inner { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  /* base 0% = a coluna ocupa só a sobra da grade e rola por dentro (nada cortado) */
+  .gg-split-col[open] > .gg-split-inner { flex: 1 1 0%; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .gg-split-col[open] > .gg-split-inner--filtros {
+    display: block; overflow-y: auto; overflow-x: hidden; max-height: 100%;
+  }
   .gg-split-col > summary {
     list-style: none; cursor: pointer; padding: 0.45rem 0.65rem;
     font-size: var(--gg-title); font-weight: 900; color: var(--gg-text);
@@ -158,29 +176,32 @@
   .gg-meta-split { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-toolbar-actions { display: flex; gap: 0.35rem; margin-left: auto; flex-shrink: 0; }
   .gg-meta-bar {
-    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.35rem;
-    padding: 0.3rem 0.55rem; border-radius: var(--gg-radius);
-    border: 2px dashed #86efac; background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
-    font-size: var(--gg-label); shrink: 0; overflow: hidden; min-height: 2.35rem;
+    display: flex; flex-wrap: nowrap; align-items: center; gap: 0.45rem;
+    padding: 0.35rem 0.6rem; border-radius: var(--gg-radius);
+    border: 2px solid #86efac; background: linear-gradient(90deg, #ecfdf5, #f0fdf4);
+    font-size: var(--gg-label); flex-shrink: 0; overflow: hidden; min-height: 2.9rem;
   }
   .gg-meta-bar .gg-tag {
-    max-width: min(22rem, 100%); padding: 0.15rem 0.5rem; border-radius: 999px;
+    max-width: min(26rem, 100%); padding: 0.2rem 0.6rem; border-radius: 999px;
     background: #fff; border: 1px solid #bbf7d0; font-weight: 800; color: #047857;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0;
   }
   .gg-meta-stat {
-    display: inline-flex; align-items: baseline; gap: 0.2rem; flex-shrink: 0;
-    padding: 0.08rem 0.4rem; border-radius: 0.45rem; background: rgba(255,255,255,0.9); font-weight: 800;
+    display: inline-flex; align-items: baseline; gap: 0.3rem; flex-shrink: 0;
+    padding: 0.15rem 0.55rem; border-radius: 0.55rem; background: #fff;
+    border: 1px solid #bbf7d0; font-weight: 800;
   }
-  .gg-meta-stat small { font-size: 0.625rem; font-weight: 800; text-transform: uppercase; color: var(--gg-muted); }
+  .gg-meta-stat small { font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; color: var(--gg-muted); }
   .gg-meta-stat strong { font-size: var(--gg-field); font-variant-numeric: tabular-nums; }
-  .gg-meta-stat.is-soma strong { color: var(--gg-emerald-dark); }
+  .gg-meta-stat.is-soma { border-color: var(--gg-emerald); background: #fff; }
+  .gg-meta-stat.is-soma strong { color: var(--gg-emerald-dark); font-size: 1.15rem; }
   .gg-meta-stat.is-planos strong { color: var(--gg-orange); }
-  .gg-meta-time { margin-left: auto; flex-shrink: 0; font-size: 0.625rem; font-weight: 700; color: var(--gg-muted); }
+  .gg-meta-time { margin-left: auto; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: var(--gg-muted); }
   .gg-summary-edit {
-    flex-shrink: 0; min-height: 2rem; padding: 0 0.55rem; border-radius: 999px;
+    flex-shrink: 0; min-height: 2.3rem; padding: 0 0.8rem; border-radius: 999px;
     border: 2px solid var(--gg-emerald); background: #fff;
-    font-size: 0.6875rem; font-weight: 800; color: var(--gg-emerald-dark); cursor: pointer;
+    font-size: 0.8125rem; font-weight: 800; text-transform: uppercase;
+    color: var(--gg-emerald-dark); cursor: pointer;
   }
   .gg-summary-edit:hover { background: var(--gg-emerald-soft); }
   .gg-stage { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; overflow: hidden; }
@@ -201,7 +222,7 @@
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     gap: 0.35rem; padding: 0.45rem 0.75rem;
     background: linear-gradient(90deg, #f8fafc, #fff);
-    border-bottom: 2px solid #f1f5f9; shrink: 0;
+    border-bottom: 2px solid #f1f5f9; flex-shrink: 0;
   }
   .gg-filters-head h2 { margin: 0; font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); }
   .gg-filters-head-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
@@ -312,7 +333,7 @@
   .gg-filters-foot {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
     gap: 0.45rem; padding: 0.45rem 0.75rem;
-    border-top: 2px solid #f1f5f9; background: #fafbfc; shrink: 0;
+    border-top: 2px solid #f1f5f9; background: #fafbfc; flex-shrink: 0;
   }
   .gg-help details { margin-top: 0.45rem; padding: 0.45rem 0.65rem; border-radius: var(--gg-radius); border: 1px solid #e2e8f0; background: #fafbfc; font-size: var(--gg-label); }
   .gg-help summary { cursor: pointer; font-weight: 800; color: #475569; }
@@ -322,8 +343,8 @@
   .gg-meta-bar.is-historico { border-color: #fcd34d; background: linear-gradient(90deg, #fffbeb, #fef3c7); }
   .gg-meta-bar.is-comparar { border-color: #93c5fd; background: linear-gradient(90deg, #eff6ff, #dbeafe); }
   .gg-meta-badge-hist {
-    flex-shrink: 0; padding: 0.12rem 0.45rem; border-radius: 999px;
-    background: #f59e0b; color: #fff; font-size: 0.625rem; font-weight: 900; text-transform: uppercase;
+    flex-shrink: 0; padding: 0.2rem 0.6rem; border-radius: 999px;
+    background: #b45309; color: #fff; font-size: 0.75rem; font-weight: 900; text-transform: uppercase;
   }
   .gg-meta-badge-hist.is-comparar { background: #2563eb; }
   .gg-chk-toggle.is-disabled { opacity: 0.55; cursor: not-allowed; }
@@ -331,7 +352,7 @@
     display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem;
     padding: 0.45rem 0.55rem; border-radius: var(--gg-radius);
     border: 2px solid #93c5fd; background: linear-gradient(90deg, #eff6ff, #fff);
-    shrink: 0;
+    flex-shrink: 0;
   }
   .gg-compare-strip[hidden] { display: none !important; }
   .gg-compare-cell {
@@ -358,7 +379,6 @@
   .gg-compare-cell.is-delta.is-menos { border-color: #86efac; background: #ecfdf5; }
   .gg-compare-cell.is-delta.is-menos strong { color: #047857; }
   .gg-compare-cell.is-delta.is-zero strong { color: #64748b; }
-  .gg-kpi-row { display: none; }
   .gg-chart-card {
     flex: 1 1 auto; min-height: 0; height: 100%; display: flex; flex-direction: column;
     border: 2px solid var(--gg-border); border-radius: var(--gg-radius);
@@ -401,7 +421,7 @@
   .gg-cp-popup-head {
     display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
     padding: 0.45rem 0.65rem; border-bottom: 2px solid #f1f5f9;
-    background: linear-gradient(90deg, #ecfdf5, #fff); shrink: 0;
+    background: linear-gradient(90deg, #ecfdf5, #fff); flex-shrink: 0;
   }
   .gg-cp-popup-head strong { font-size: var(--gg-title); font-weight: 900; color: var(--gg-text); flex: 1; min-width: 0; }
   .gg-cp-popup-head .gg-btn { min-height: 2.1rem; }
@@ -419,7 +439,6 @@
 <div class="gg-page-head">
   <div>
     <h1 title="Só leitura · totais iguais Contas a pagar"><em>Gráfico</em> · Gastos por plano</h1>
-    <p class="gg-page-sub">Só leitura · totais iguais Contas a pagar · dedup + filtro de planos</p>
   </div>
   <div class="gg-head-actions">
     <a href="{% url 'lancamentos_contas_pagar' %}" class="gg-btn gg-btn-secondary gg-btn-sm" data-prefetch>CP</a>
@@ -448,7 +467,7 @@
       <span aria-hidden="true">⚙</span> Filtros
     </button>
     <button type="button" class="gg-btn gg-btn-primary gg-btn-sm" id="btn-atualizar-grafico" title="Atualizar gráfico">
-      <span aria-hidden="true">↻</span>
+      <span aria-hidden="true">↻</span> Atualizar
     </button>
   </div>
 </div>
@@ -577,7 +596,7 @@
               <details>
                 <summary>? Tempo real vs como era no dia</summary>
                 <p><strong>Tempo real</strong> — valores de hoje (pagamentos recentes já abatem o saldo).</p>
-                <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: títulos pagos <em>depois</em> voltam a aparecer em aberto; títulos criados depois somem. Pagamentos parciais antigos podem ter pequena diferença em relação ao saldo atual.</p>
+                <p><strong>Como era no dia</strong> — simula o que você veria na data escolhida: título pago <em>depois</em> dessa data volta a aparecer em aberto. Quitação parcial em várias datas conta pela data do último pagamento, então pode dar pequena diferença. Título <em>lançado</em> depois da data continua aparecendo (o sistema não guarda a data de cadastro).</p>
                 <p><strong>Comparar</strong> — duas linhas no gráfico (verde = hoje, laranja = como era na data). Em cada mês aparece a <em>variação</em>; no canto, totais e diferença geral. Desliga «Individual».</p>
               </details>
               <details>
@@ -761,16 +780,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   };
 
+  // <details> não repassa altura para o conteúdo em todo Chrome — travar por JS
+  // para lista de planos e coluna de filtros rolarem em vez de cortar o fim.
   function ajustarScrollPlanos() {
-    var grid = document.getElementById('container-planos-contas');
     var foot = document.querySelector('.gg-filters-foot');
     var wrap = document.getElementById('painel-filtros-grafico');
-    if (!grid || !foot || !wrap || !wrap.classList.contains('is-open')) return;
-    var top = grid.getBoundingClientRect().top;
-    var lim = foot.getBoundingClientRect().top - top - 8;
-    if (lim < 80) lim = 80;
-    grid.style.maxHeight = Math.floor(lim) + 'px';
-    grid.style.overflowY = 'auto';
+    if (!foot || !wrap || !wrap.classList.contains('is-open')) return;
+    var limiteFoot = foot.getBoundingClientRect().top;
+    [
+      document.getElementById('container-planos-contas'),
+      document.querySelector('.gg-split-inner--filtros')
+    ].forEach(function (el) {
+      if (!el) return;
+      var lim = limiteFoot - el.getBoundingClientRect().top - 8;
+      if (lim < 80) lim = 80;
+      el.style.maxHeight = Math.floor(lim) + 'px';
+      el.style.overflowY = 'auto';
+    });
   }
 
   let cpPopupAberto = false;
@@ -1152,16 +1178,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return { de: isoDate(ini), ate: isoDate(fim) };
   }
 
-  function cpStatusFromGrafico(por, valor) {
-    const v = (valor || 'bruto').toLowerCase();
-    const p = (por || 'vencimento').toLowerCase();
-    if (p === 'pagamento') {
-      if (v === 'pago') return 'quitados';
-      return 'todos';
-    }
-    if (v === 'saldo') return 'abertos';
-    if (v === 'bruto' && (p === 'vencimento' || p === 'competencia')) return 'abertos';
-    return 'todos';
+  function cpStatusFromGrafico(por, valor, dataRef) {
+    return statusPlanosComoCp(por, valor, dataRef);
   }
 
   function montarUrlCpPonto(index) {
@@ -1179,10 +1197,15 @@ document.addEventListener('DOMContentLoaded', function () {
     if (filtroDe && intervalo.de < filtroDe) intervalo.de = filtroDe;
     if (filtroAte && intervalo.ate > filtroAte) intervalo.ate = filtroAte;
 
+    const modo = getModoTempo();
+    const dataRef = (modo === 'historico' || modo === 'comparar')
+      ? (document.getElementById('filtro-data-referencia').value || '')
+      : '';
+
     const p = new URLSearchParams();
     p.set('embed', 'grafico');
     p.set('ref', por);
-    p.set('status', cpStatusFromGrafico(por, valor));
+    p.set('status', cpStatusFromGrafico(por, valor, dataRef));
     if (por === 'competencia') {
       if (intervalo.de) p.set('comp_de', intervalo.de);
       if (intervalo.ate) p.set('comp_ate', intervalo.ate);
@@ -1201,10 +1224,10 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
-    return {
-      url: CP_URL + '?' + p.toString(),
-      titulo: 'Contas a pagar · ' + (labels[index] || key)
-    };
+    let titulo = 'Contas a pagar · ' + (labels[index] || key);
+    if (dataRef) titulo += ' · situação de hoje (o ponto é como era em ' + fmtDataBr(dataRef) + ')';
+
+    return { url: CP_URL + '?' + p.toString(), titulo: titulo };
   }
 
   function indicePontoNoClique(evt) {
@@ -1480,7 +1503,7 @@ document.addEventListener('DOMContentLoaded', function () {
         plugins: {
           legend: {
             position: 'top',
-            labels: { font: { weight: '800', size: 11 }, padding: 6, boxWidth: 12, boxHeight: 12, color: '#475569' }
+            labels: { font: { weight: '800', size: 13 }, padding: 8, boxWidth: 14, boxHeight: 14, color: '#334155' }
           },
           tooltip: {
             enabled: true,
