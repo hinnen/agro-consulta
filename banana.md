@@ -1184,13 +1184,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 Custo família — saco → pacote/granel (04/08 · **v14.11**)
+### ✅ Deploy loja **v13.82** — CUSTO-FAMILIA (04/08 · frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **PACOTE PRONTO** — ver bloco **CUSTO-FAMILIA v14.11** no CHECKLIST |
-| **Audit** | detalhe agro_pg devolve CF/composição · só-saco ≠ eh_kit · VERIFY_OK |
-| **Loja** | **ainda não** — precisa frase+senha + branch isolada |
+| **Status** | ✅ **enviado** · producao @ **b28ce83** · badge **13.82** · Render auto |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Branch** | `deploy/custo-familia-v13.82` → producao (**não** teste inteiro) |
+| **Diff** | **11 arquivos** · VERIFY_OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | `git push origin 3381d0d:producao` · tag `rollback/pre-custo-familia-v13.82` |
+| **Você** | Ctrl+F5 Cadastro → Composição · amarrar pacote no saco · reabrir · 1 venda · estoque do saco |
+
+### 🚀 Custo família — saco → pacote/granel (04/08 · **Live v13.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja** — ver Deploy v13.82 acima |
+| **Rollback** | tag `rollback/pre-custo-familia-v13.82` → 3381d0d |
 
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
 
@@ -1207,29 +1218,25 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
 | **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
 
-### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.81)
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.82)
 
-**Loja hoje:** badge **v13.81** · producao @ **3381d0d**  
+**Loja hoje:** badge **v13.82** · producao @ **b28ce83**  
 **Teste:** badge **v14.11** · teste @ HEAD (WIP restante **não** na loja)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
-| 2 | **CUSTO-FAMILIA** (saco+kit) | 📋 **pronto para envio** · v14.11 · **não** loja |
+| 2 | **CUSTO-FAMILIA** (saco+kit) | ✅ **enviado** / Live v13.82 |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
-### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v14.11**)
+### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v13.82**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
-| **Inclui** | Bloco saco (custo + baixa estoque na venda) · bloco kit (vários insumos) · propaga custo (cadastro / NF / Excel) · detalhe agro_pg não apaga vínculo |
-| **Prova** | `python scripts/verify_custo_familia.py` → **VERIFY_OK** |
-| **Migrate** | **NÃO** |
-| **Risco** | Médio — PDV baixa composição se «baixa saco»/kit ligado; cadastro Composição |
-| **Você** | Ctrl+F5 Cadastro → Composição · amarrar 5kg no saco · reabrir · 1 venda · conferir estoque do saco |
-| **Autorizar** | *pode subir custo família / produção* + **99738595** |
-| **⚠️** | **Não** subir `teste` inteiro — branch isolada / cherry como PDV-CAD |
+| **Status** | ✅ **Live loja v13.82** · b28ce83 |
+| **Inclui** | Bloco saco (custo + baixa estoque) · kit multi-insumo · propaga (cadastro/NF/Excel) |
+| **Rollback** | `3381d0d` / `rollback/pre-custo-familia-v13.82` |
+| **Você** | Ctrl+F5 Cadastro → Composição · 1 venda com pacote ligado ao saco |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (PDV-CAD-RAPIDO · **v13.81**)
 
