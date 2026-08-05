@@ -3149,6 +3149,44 @@ def excluir_rascunho_entrada(db, oid: str) -> dict[str, Any]:
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _entrada_nfe_produto_ids_das_linhas(linhas: Any) -> list[str]:
+    out: list[str] = []
+    for ln in linhas if isinstance(linhas, list) else []:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        out.append(pid)
+    return sorted(out)
+
+
+def entrada_nfe_bloqueio_troca_produto_com_estoque(doc: dict[str, Any], linhas: Any) -> str:
+    """
+    Trava multi-PC: com estoque Agro já aplicado, trocar / incluir / remover produto sem estornar
+    deixaria o saldo no item errado. Retorna a mensagem de bloqueio, ou string vazia se pode salvar.
+    """
+    if not isinstance(doc, dict):
+        return ""
+    ex = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    st = str(doc.get("status") or "").strip().lower()
+    ajuste_ids = ex.get("estoque_agro_ajuste_ids")
+    tem_estoque = (
+        st == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+        or bool(doc.get("estoque_aplicado_em"))
+        or bool(str(ex.get("estoque_agro_registrado_em") or "").strip())
+        or (isinstance(ajuste_ids, list) and any(str(x).strip() for x in ajuste_ids))
+    )
+    if not tem_estoque:
+        return ""
+    if _entrada_nfe_produto_ids_das_linhas(doc.get("linhas")) == _entrada_nfe_produto_ids_das_linhas(linhas):
+        return ""
+    return (
+        "Esta nota já teve entrada no estoque: trocar, incluir ou remover produto exige estorno. "
+        "Use «Reabrir nota» (etapa 5 ou 8) — o saldo volta e você registra o estoque de novo."
+    )
+
+
 def atualizar_rascunho_entrada(
     db,
     oid: str,
@@ -3178,6 +3216,9 @@ def atualizar_rascunho_entrada(
             atual = lazy_import_rascunho_mongo(db, str(_id))
         if not atual:
             return {"ok": False, "erro": "Rascunho não encontrado."}
+        bloqueio_troca = entrada_nfe_bloqueio_troca_produto_com_estoque(atual, linhas)
+        if bloqueio_troca:
+            return {"ok": False, "erro": bloqueio_troca, "requer_estorno": True}
         st_atual = str(atual.get("status") or "").strip().lower()
         novo_status: str | None = None
         if st_atual in (ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_DESCARTADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO):

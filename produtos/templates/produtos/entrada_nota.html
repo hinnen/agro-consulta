@@ -1908,6 +1908,38 @@
       </div>
     </div>
 
+    <div id="modal-nfe-troca-estorno" class="hidden fixed inset-0 z-[69] flex items-end sm:items-center justify-center p-4 bg-slate-900/55" role="dialog" aria-modal="true" aria-labelledby="modal-nfe-troca-estorno-titulo">
+      <div class="w-full max-w-[min(34rem,96vw)] rounded-2xl border-[3px] border-amber-400 bg-white shadow-2xl overflow-hidden flex flex-col">
+        <div class="px-5 py-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b-2 border-amber-200 shrink-0">
+          <p class="text-[10px] font-black uppercase tracking-wide text-amber-800">Esta nota já tem lançamentos</p>
+          <h3 id="modal-nfe-troca-estorno-titulo" class="mt-1 text-lg sm:text-xl font-black text-amber-950 leading-tight">Trocar o produto estorna o que já foi lançado</h3>
+          <p id="modal-nfe-troca-estorno-texto" class="mt-2 text-sm font-semibold text-amber-950/90 leading-snug"></p>
+        </div>
+        <div class="px-5 py-4 space-y-3">
+          <ul class="list-disc pl-4 text-sm font-bold text-slate-800 leading-snug space-y-1">
+            <li>O saldo que entrou por esta nota volta (saída de estorno no histórico).</li>
+            <li>Título a pagar gerado por esta nota é excluído, se existir.</li>
+            <li>Depois da troca você precisa <strong>registrar o estoque de novo</strong> (etapa 5), refazer o financeiro e finalizar com PIN.</li>
+          </ul>
+          <label class="block max-w-xs">
+            <span class="text-[10px] font-black uppercase text-amber-900 tracking-wide">PIN (senha rápida)</span>
+            <input type="password" id="modal-nfe-troca-estorno-pin" autocomplete="current-password" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-300 px-4 text-lg font-mono tracking-[0.15em] bg-white focus:border-amber-600 outline-none" inputmode="numeric" maxlength="12" placeholder="····">
+          </label>
+          <p id="modal-nfe-troca-estorno-msg" class="text-sm font-bold text-red-700 min-h-[1.25rem]" role="status"></p>
+        </div>
+        <div class="px-4 pb-4 pt-1 flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 shrink-0">
+          <button type="button" id="modal-nfe-troca-estorno-cancelar"
+            class="min-h-[52px] flex-1 rounded-xl border-2 border-slate-400 bg-white px-4 text-sm font-black uppercase text-slate-800 hover:bg-slate-50 shadow-sm">
+            Cancelar (manter produto)
+          </button>
+          <button type="button" id="modal-nfe-troca-estorno-confirmar"
+            class="min-h-[52px] flex-1 rounded-xl border-2 border-amber-800 bg-amber-500 px-4 text-sm font-black uppercase text-white hover:bg-amber-600 shadow-sm">
+            Estornar e trocar
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div id="modal-prod" class="hidden fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50" role="dialog" aria-modal="true" aria-labelledby="modal-prod-titulo">
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(42rem,96vw)] w-full p-5 sm:p-6 border-2 border-slate-200 max-h-[85vh] overflow-hidden flex flex-col">
         <h3 id="modal-prod-titulo" class="text-base font-black uppercase text-slate-900">Buscar produto</h3>
@@ -3953,6 +3985,218 @@
     });
   }
 
+  /** Integrações já gravadas nesta nota: estoque Agro, conta a pagar ou finalização com PIN. */
+  function entradaNfeIntegracoesAplicadasCliente() {
+    if (entradaNfeEstoqueJaRegistrado()) return true;
+    if (entradaNfeFinanceiroJaLancadoCliente()) return true;
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
+    return !!String(ex.aprovacao_wizard_em || '').trim();
+  }
+
+  function entradaNfeResumoIntegracoesAplicadas() {
+    const partes = [];
+    if (entradaNfeEstoqueJaRegistrado()) partes.push('entrada no estoque');
+    if (entradaNfeFinanceiroJaLancadoCliente()) partes.push('conta a pagar');
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {};
+    if (String(ex.aprovacao_wizard_em || '').trim()) partes.push('finalização com PIN');
+    return partes;
+  }
+
+  let _nfeTrocaEstornoResolve = null;
+
+  function entradaNfeInitModalTrocaEstorno() {
+    const modal = document.getElementById('modal-nfe-troca-estorno');
+    const inPin = document.getElementById('modal-nfe-troca-estorno-pin');
+    const btnCancelar = document.getElementById('modal-nfe-troca-estorno-cancelar');
+    const btnConfirmar = document.getElementById('modal-nfe-troca-estorno-confirmar');
+    const msg = document.getElementById('modal-nfe-troca-estorno-msg');
+    if (!modal || !inPin || !btnCancelar || !btnConfirmar) return;
+
+    function fechar(pin) {
+      modal.classList.add('hidden');
+      inPin.value = '';
+      if (msg) msg.textContent = '';
+      const res = _nfeTrocaEstornoResolve;
+      _nfeTrocaEstornoResolve = null;
+      if (typeof res === 'function') res(pin || null);
+    }
+
+    btnCancelar.addEventListener('click', () => fechar(null));
+    btnConfirmar.addEventListener('click', () => {
+      const pin = String(inPin.value || '').trim();
+      if (!pin) {
+        if (msg) msg.textContent = 'Digite o PIN para estornar e trocar o produto.';
+        try {
+          inPin.focus();
+        } catch (_) {}
+        return;
+      }
+      fechar(pin);
+    });
+    inPin.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      btnConfirmar.click();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || modal.classList.contains('hidden')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      fechar(null);
+    }, true);
+  }
+
+  /** Confirmação + PIN antes de estornar a nota para trocar o produto. Resolve com o PIN ou `null`. */
+  function entradaNfeAbrirModalTrocaEstorno(nomeNovo) {
+    return new Promise((resolve) => {
+      const modal = document.getElementById('modal-nfe-troca-estorno');
+      const inPin = document.getElementById('modal-nfe-troca-estorno-pin');
+      const texto = document.getElementById('modal-nfe-troca-estorno-texto');
+      if (!modal || !inPin) {
+        resolve(null);
+        return;
+      }
+      if (texto) {
+        const partes = entradaNfeResumoIntegracoesAplicadas();
+        const feito = partes.length ? partes.join(' + ') : 'lançamentos desta nota';
+        texto.textContent = `Esta nota já tem ${feito}. Para mexer em «${String(nomeNovo || 'produtos da nota').slice(0, 60)}», o sistema estorna tudo e você refaz as etapas.`;
+      }
+      const msg = document.getElementById('modal-nfe-troca-estorno-msg');
+      if (msg) msg.textContent = '';
+      _nfeTrocaEstornoResolve = resolve;
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        try {
+          inPin.focus();
+        } catch (_) {}
+      });
+    });
+  }
+
+  /** Espelha no cliente os carimbos que o servidor apagou ao estornar (mesmo efeito de «Reabrir nota»). */
+  function entradaNfeAplicarEstadoLocalAposEstorno(resp) {
+    const ex = entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? { ...entradaNfeExtraUltimo } : {};
+    [
+      'aprovacao_wizard_em',
+      'aprovacao_wizard_usuario',
+      'wizard_etapa1_confirmada_em',
+      'wizard_etapa2_confirmada_em',
+      'wizard_etapa3_confirmada_em',
+      'wizard_etapa4_lote_confirmada_em',
+      'wizard_lote_pular_em',
+      'wizard_etapa6_etiquetas_em',
+      'financeiro_lancado',
+      'financeiro_ids',
+      'financeiro_lancado_em',
+      'financeiro_ui',
+      'estoque_agro_ajuste_ids',
+      'estoque_agro_registrado_em',
+      'estoque_agro_lock',
+      'estoque_aplicado_em',
+    ].forEach((k) => {
+      delete ex[k];
+    });
+    entradaNfeExtraUltimo = ex;
+    entradaNfeRascunhoStatusUltimo = String((resp && resp.status) || '').trim();
+    entradaNfeRascunhoBucketUltimo = '';
+    entradaNfeFornecedorEtapaConfirmada = false;
+    entradaNfeProdutosEtapaConfirmada = false;
+    entradaNfeCodigosEtapaConfirmada = false;
+    entradaNfeLoteEtapaConfirmada = false;
+    entradaNfeWizardConferenciaRegistrada = false;
+    entradaNfeRascunhoFinanceiroLancadoUltimo = false;
+    entradaNfeAutosaveLastSig = '';
+    entradaNfeAutosaveDirty = true;
+    try {
+      entradaNfeAtualizarUiBotaoEstoqueAgro({ status: entradaNfeRascunhoStatusUltimo, extra: ex });
+      entradaNfeAtualizarUiBotaoConfirmarFornecedor();
+      entradaNfeAtualizarUiBotaoConfirmarProdutos();
+      entradaNfeAtualizarUiBotaoConfirmarCodigos();
+      entradaNfeAtualizarUiBotaoConfirmarLote();
+      entradaNfeAtualizarUiBotaoWizardFinalizar();
+      entradaNfeAplicarCongelamentoEditorUi();
+      entradaNfeWizardAgendarAtualizarCores();
+    } catch (_) {}
+  }
+
+  /**
+   * Estorna a nota (mesma rotina de «Reabrir nota») antes de mexer nos produtos.
+   * Retorna a resposta do servidor, ou `null` se o usuário cancelou / o estorno falhou.
+   */
+  async function entradaNfeEstornarParaEditarProdutos(nomeAlvo) {
+    const rid = entradaNfeRascunhoEditId;
+    if (!rid) return null;
+    const pin = await entradaNfeAbrirModalTrocaEstorno(nomeAlvo);
+    if (!pin) {
+      showMsg('Nada alterado: mexer nos produtos exige o estorno para o saldo não ficar no item errado.', false);
+      return null;
+    }
+    try {
+      const r = await fetch(URL_REABRIR_NOTA, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ rascunho_id: rid, pin }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        showMsg(j.erro || 'Não foi possível estornar a nota — nada alterado.', false);
+        return null;
+      }
+      entradaNfeAplicarEstadoLocalAposEstorno(j);
+      return j;
+    } catch (_) {
+      showMsg('Erro de rede ao estornar — nada alterado.', false);
+      return null;
+    }
+  }
+
+  function entradaNfeMsgAposEstorno(prefixo, j) {
+    const det = [];
+    const nEst = Number((j && (j.estoque_ajustes_estornados || j.estoque_ajustes_removidos)) || 0);
+    if (nEst > 0) det.push(`${nEst} entrada(s) de estoque`);
+    if (Number((j && j.financeiro_titulos_removidos) || 0) > 0) {
+      det.push(`${j.financeiro_titulos_removidos} título(s) a pagar`);
+    }
+    showMsg(
+      `${prefixo}`
+        + (det.length ? ` Estornados: ${det.join(' · ')}.` : '')
+        + ' Confirme os produtos, registre o estoque na etapa 5, refaça o financeiro e finalize com o PIN.',
+      true,
+    );
+  }
+
+  /** Troca de produto numa nota que já lançou estoque / financeiro / PIN: estorna e só então aplica. */
+  async function entradaNfeTrocarProdutoComEstorno(tr, p, via) {
+    if (!entradaNfeRascunhoEditId) {
+      entradaNfeAplicarProdutoNaLinhaInterno(tr, p, via);
+      return;
+    }
+    const nomeNovo = entradaNfeStrCampo(p.nome) || entradaNfeStrCampo(p.Nome) || '';
+    const j = await entradaNfeEstornarParaEditarProdutos(nomeNovo);
+    if (!j) return;
+    entradaNfeAplicarProdutoNaLinhaInterno(tr, p, via);
+    entradaNfeWizardSetStep(2);
+    entradaNfeMsgAposEstorno('Produto trocado.', j);
+  }
+
+  /** Remover linha já vinculada numa nota com estoque / financeiro / PIN: estorna antes. */
+  async function entradaNfeRemoverLinhaComEstorno(tr) {
+    if (!entradaNfeRascunhoEditId) {
+      entradaNfeRemoverLinhaDaGrade(tr);
+      return;
+    }
+    const nome = entradaNfeStrCampo(tr.querySelector('.in-desc')?.value) || 'linha da nota';
+    const j = await entradaNfeEstornarParaEditarProdutos(nome);
+    if (!j) return;
+    entradaNfeRemoverLinhaDaGrade(tr);
+    entradaNfeWizardSetStep(2);
+    entradaNfeMsgAposEstorno('Item removido.', j);
+  }
+
   async function entradaNfeConfirmarProdutosEtapa() {
     const d = entradaNfeWizardValidarEtapaDetalhe(2, { ignorarConfirmacaoProdutos: true });
     if (!d.ok) {
@@ -5867,6 +6111,7 @@
   document.getElementById('btn-prod-novo-popup')?.addEventListener('click', () => abrirCadastroProdutoNovoPopup());
   document.getElementById('nfe-btn-confirmar-fornecedor')?.addEventListener('click', () => { void entradaNfeConfirmarFornecedorEtapa(); });
   entradaNfeInitModalMargemCrit();
+  entradaNfeInitModalTrocaEstorno();
   document.getElementById('nfe-btn-confirmar-produtos')?.addEventListener('click', () => {
     void entradaNfeConfirmarProdutosEtapa();
   });
@@ -7827,13 +8072,23 @@
       document.getElementById('modal-prod-q').focus();
     });
     tr.querySelector('.btn-del').addEventListener('click', () => {
-      tr.remove();
-      atualizarPainelTotalNfe();
-      entradaNfeEnsureTrailingCompactRow();
-      entradaNfeProdutosEtapaInvalidate();
-      entradaNfeAgendarAutosaveRascunho();
+      const pidLinha = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (pidLinha && entradaNfeIntegracoesAplicadasCliente()) {
+        void entradaNfeRemoverLinhaComEstorno(tr);
+        return;
+      }
+      entradaNfeRemoverLinhaDaGrade(tr);
     });
     entradaNfeSyncEditProdBtn(tr);
+  }
+
+  function entradaNfeRemoverLinhaDaGrade(tr) {
+    if (!tr) return;
+    tr.remove();
+    atualizarPainelTotalNfe();
+    entradaNfeEnsureTrailingCompactRow();
+    entradaNfeProdutosEtapaInvalidate();
+    entradaNfeAgendarAutosaveRascunho();
   }
 
   /** Sentinela de busca no fim da tabela — sem expandir até sugestão / Enter (sem modal até escolher). */
@@ -9764,6 +10019,22 @@
       }
       return;
     }
+    const pidNovoTroca = String(p.id != null ? p.id : '').trim();
+    const pidAtualTroca = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+    if (
+      !entradaNfeRascunhoAplicandoGrade
+      && pidNovoTroca
+      && pidNovoTroca !== pidAtualTroca
+      && entradaNfeIntegracoesAplicadasCliente()
+    ) {
+      void entradaNfeTrocarProdutoComEstorno(tr, p, via);
+      return;
+    }
+    entradaNfeAplicarProdutoNaLinhaInterno(tr, p, via);
+  }
+
+  function entradaNfeAplicarProdutoNaLinhaInterno(tr, p, via) {
+    if (!tr || !p) return;
     /* Linha da NF: manter V. unit (e rateio). Só linha manual sem base NF usa custo do cadastro. */
     const temCustoNf =
       tr.dataset.nfeCustNfPreservado === '1'
@@ -10295,6 +10566,7 @@
         if (!entradaNfeErroIgnoravelAutosaveHint(errAuto)) {
           entradaNfeAutosaveHint(errAuto.slice(0, 80), false);
         }
+        if (j.requer_estorno) showMsg(errAuto, false);
       }
     } catch (_) {
       if (!entradaNfeNotaFinalizadaCliente()) {
