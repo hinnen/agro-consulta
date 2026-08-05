@@ -1190,7 +1190,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 10/10 · 14 séries |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 |
 | **O quê** | Soma só planos marcados · bucket recorta no período · «Como era»/Comparar usa `as_of` · popup CP alinhado · visual Display Scale |
 | **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
 | **Prova** | `python scripts/verify_grafico_gastos.py` → **VERIFY_OK** |
@@ -1204,7 +1204,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · não loja |
+| **Status** | ✅ **Live** v14.41 |
 | **Onde** | Entrada NF → aba SEFAZ · item **Só resumo** |
 | **Fluxo** | **Dar ciência e buscar XML** → (se precisar) **Buscar XML** → **Carregar na grade** |
 | **Inclui** | Evento **210210** no Ambiente Nacional · status/protocolo no Postgres · não reenvia se já ciente |
@@ -1228,7 +1228,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 11/11 |
 | **Onde** | Entrada NF («Salvar + a pagar») · Contas a pagar → **Backup** |
 | **Inclui** | Bloqueio PG por chave NF / assinatura · guard Entrada NF · trava duplo clique · Backup Todos/Abertos + data/hora último |
 | **Migrate** | **NÃO** |
@@ -1243,7 +1243,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 21/21 |
+| **Status** | ⛔ **NÃO enviado** 05/08 — colide com loja `0065`/`PlanoContaAgro` |
 | **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
 | **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
 | **Migrate** | **SIM** · `0082_plano_conta_agro` |
@@ -1256,39 +1256,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
-**Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.40** · HEAD  
-**Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
+> **Atualizado 05/08 pós-deploy:** loja **v14.41** · `producao` @ **2efcc60** · 6 pacotes ✅ Live · **PLANOS-CONTA não subiu** (colide com `0065` já na loja).
 
-| # | Pacote | Commit | Migrate | Prova (rodada 05/08) |
-| - | ------ | ------ | ------- | -------------------- |
-| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | `fcf1c49` | não | `verify_bi_topbar_total.py` **OK 35/35** |
-| 2 | **SEFAZ-UI** (aba limpa + «?») | `e83af8f` | não | `verify_sefaz_ui.py` **OK 8/8** |
-| 3 | **COMP-UX** (Saco/Kit recolhíveis) | `645fc75` | não | `verify_comp_ux_recolher.py` **OK** |
-| 4 | **PLANOS-CONTA** (cadastro Config F11) | `7270317` | **0082** | `verify_planos_conta.py` **OK 21/21** |
-| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | `aa2a9a3` | **0083** | `verify_dfe_manifestacao.py` **OK 21/21** |
-| 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | `4b28263` | não | `verify_cp_anti_dup_backup.py` **OK 11/11** |
-| 7 | **GG-GASTOS** (filtro plano + clip + as_of + visual) | `69ab665`+`6756c02` | não | `verify_grafico_gastos.py` **OK 10/10** |
-| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | — | — | ✅ **Live** v13.81–v13.83 |
-| — | lote CAD/NF+DSP | — | — | ✅ **Live** v13.80 |
+**Loja hoje:** badge **v14.41** · producao @ **2efcc60**  
+**Revert:** tag `checkpoint-loja-pre-lote-20260805` = **ed52234** (v13.83)  
+**Teste:** badge **v14.40+** · HEAD  
+**Branch envio:** `deploy/lote-checklist-20260805`
 
-**Todos 📋 pronto para envio à produção.** Geral: `verify_pacote_envio.py` → **15 telas 200** (PDV, caixa, vendas, RH, NF, CP intactos) · `manage.py check` OK.
+| # | Pacote | Status loja |
+| - | ------ | ----------- |
+| 1 | **BI-TOPBAR-TOTAL** | ✅ **Live** v14.41 |
+| 2 | **SEFAZ-UI** | ✅ **Live** v14.41 |
+| 3 | **COMP-UX** | ✅ **Live** v14.41 |
+| 4 | **PLANOS-CONTA** | ⛔ **NÃO enviado** — loja já tem `PlanoContaAgro`/`0065`; pacote `teste` (0082) colidiria |
+| 5 | **DFE-CIENCIA** | ✅ **Live** v14.41 · migrate **0083** (dep. → 0081) |
+| 6 | **CP-DUP-BACKUP** | ✅ **Live** v14.41 |
+| 7 | **GG-GASTOS** | ✅ **Live** v14.41 |
+| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 
-**⚠️ Ordem obrigatória do cherry-pick** — 2, 5 e 6 mexem no **mesmo** `entrada_nota.html`; 4, 5 e 6 no mesmo `urls.py`/`views.py`:
+**Você (Ctrl+F5):** `/` Sync+Total · Entrada NF SEFAZ/?/Ciência · CP Backup · Cadastro Composição ▶ · `/financeiro/grafico-gastos/` 1 plano.
 
-`e83af8f` (SEFAZ-UI) → `7270317` (PLANOS-CONTA) → `aa2a9a3` (DFE-CIENCIA) → `4b28263` (CP-DUP-BACKUP) → `fcf1c49` · `645fc75` · `69ab665`+`6756c02` (independentes, qualquer ordem).
+**Reverter se der errado:** `git push origin checkpoint-loja-pre-lote-20260805:producao` (volta v13.83) — só com frase+senha de novo.
 
-Depois do cherry-pick, na branch de envio: `python scripts/verify_sefaz_ui.py` (guarda a convivência dos 3 no template) + `migrate` (0082, 0083).
+### 📦 ENVIO LOJA 05/08 — lote checklist (`LOTE-v14.41`)
 
-**Nota:** `makemigrations --check` acusa drift (índice `produtos_ag_cnpj_dfe_idx` da **0071** + 2 alter de choices). É **pré-existente na produção**, não vem deste lote, e não gera SQL. Não bloqueia.
-
-**Autorizar:** frase do pacote + **99738595** · **branch isolada** — **não** merge `teste` inteiro (`teste` diverge da loja em 112 arquivos, inclui remoções de RH).
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** / Live v14.41 · `2efcc60` |
+| **Antes** | v13.83 · `ed52234` · tag `checkpoint-loja-pre-lote-20260805` |
+| **Incluiu** | SEFAZ-UI · DFE-CIENCIA · CP-DUP-BACKUP · BI-TOPBAR-TOTAL · COMP-UX · GG-GASTOS |
+| **Omitiu** | **PLANOS-CONTA** (risco migrate vs 0065) |
+| **Migrate** | **0083** só (DFE) — Render build roda `migrate --noinput` |
+| **Prova pré-push** | verifies OK · check OK · 14 telas 200 |
 
 ### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **Live** v14.41 |
 | **Inclui** | ▶/▼ em Saco e Kit · texto longo só no «?» · aba Composição com scroll · saco começa recolhido se kit ligado |
 | **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` (só aba Composição) · `scripts/verify_comp_ux_recolher.py` |
 | **Commit** | `645fc75` (+ verify neste push) |
@@ -1303,7 +1308,7 @@ Depois do cherry-pick, na branch de envio: `python scripts/verify_sefaz_ui.py` (
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **Live** v14.41 |
 | **Inclui** | Sync ERP compacto na topbar · mais espaço aos filtros · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
 | **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` · `scripts/verify_bi_topbar_total.py` · VERSION |
 | **Commit código** | `fcf1c49` · pacote+verify `739be93` · badge **14.20** |
@@ -1317,7 +1322,7 @@ Depois do cherry-pick, na branch de envio: `python scripts/verify_sefaz_ui.py` (
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · **não** loja |
+| **Status** | ✅ **Live** v14.41 |
 | **Inclui** | Aba SEFAZ só ações + lista · escritas no **?** · status compacto · chip «Só resumo» |
 | **Arquivo** | `entrada_nota.html` |
 | **Commit** | `e83af8f` |
