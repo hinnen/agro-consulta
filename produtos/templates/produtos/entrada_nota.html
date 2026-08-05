@@ -2142,7 +2142,7 @@
           <p><strong>Buscar notas novas</strong> puxa só o que ainda não passou no cursor e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
           <p><strong>Baixar pela chave</strong> recupera nota que o Buscar já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita: não use no meio do «Aguarde 1h».</p>
           <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong>, aguarde ~1h antes de consultar de novo.</p>
-          <p>Item <strong>Só resumo</strong>: a Receita mandou só o cabeçalho — use a aba <strong>XML</strong> com o arquivo completo. <strong>Carregar na grade</strong> só aparece quando o XML completo já está salvo.</p>
+          <p>Item <strong>Só resumo</strong>: clique <strong>Dar ciência e buscar XML</strong>. A Ciência libera o XML completo; se a Receita ainda estiver processando, aguarde e clique <strong>Buscar XML</strong> no mesmo item.</p>
           <p><strong>Pendentes</strong> = ainda para lançar · <strong>Concluídas</strong> = carregadas ou ignoradas. <strong>Avançado</strong> (ultNSU) só se o suporte pedir.</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
@@ -2173,6 +2173,7 @@
   const URL_DFE_INBOX = "{% url 'api_entrada_nota_dfe_inbox' %}";
   const URL_DFE_INBOX_DETALHE_TMPL = "{% url 'api_entrada_nota_dfe_inbox_detalhe' doc_id=999999999 %}".replace('999999999', '__ID__');
   const URL_DFE_INBOX_IGNORAR_TMPL = "{% url 'api_entrada_nota_dfe_inbox_ignorar' doc_id=999999999 %}".replace('999999999', '__ID__');
+  const URL_DFE_INBOX_CIENCIA_TMPL = "{% url 'api_entrada_nota_dfe_inbox_ciencia' doc_id=999999999 %}".replace('999999999', '__ID__');
   const URL_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const URL_BUSCA = "{% url 'api_buscar_mobile' %}";
   const URL_RASC_OBTER = "{% url 'api_entrada_nota_rascunho_obter' %}";
@@ -5959,7 +5960,7 @@
           'Buscar notas novas: só puxa o que ainda não passou no cursor (até ~80). Processe as mais antigas primeiro.',
           'Baixar pela chave: recupera nota que o Buscar já passou — não mexe no cursor. Também conta no limite da Receita.',
           'Se aparecer Aguarde / 656 / 137: espere ~1h antes de consultar de novo. Não use a chave no meio dessa espera.',
-          'Só resumo: a Receita mandou só o cabeçalho — use a aba XML com o arquivo. Carregar na grade só com XML completo.',
+          'Só resumo: clique Dar ciência e buscar XML. Se ainda não liberar, aguarde e use Buscar XML no mesmo item.',
           'Pendentes = para lançar · Concluídas = carregadas ou ignoradas. Avançado (ultNSU) só se o suporte pedir.',
         ],
       },
@@ -10737,7 +10738,9 @@
         if (pode) {
           acoes += `<button type="button" class="min-h-[2.5rem] px-3 rounded-lg bg-orange-600 text-white text-[0.65rem] font-black uppercase tracking-wide hover:bg-orange-700 btn-dfe-carregar" data-id="${pv.id}">Carregar na grade</button>`;
         } else {
-          acoes += `<span class="inline-flex items-center min-h-[2rem] px-2 rounded-md border border-amber-300 bg-amber-50 text-[0.65rem] font-black uppercase text-amber-950" title="Só resumo da Receita — use a aba XML. Detalhe no ?">Só resumo</span>`;
+          acoes += `<span class="inline-flex items-center min-h-[2rem] px-2 rounded-md border border-amber-300 bg-amber-50 text-[0.65rem] font-black uppercase text-amber-950" title="Só resumo da Receita — dê ciência para liberar o XML completo">Só resumo</span>`;
+          const jaCiente = String(pv.manifestacao_status || '') === 'ciencia';
+          acoes += `<button type="button" class="min-h-[2.5rem] px-3 rounded-lg bg-emerald-600 text-white text-[0.65rem] font-black uppercase tracking-wide hover:bg-emerald-700 btn-dfe-ciencia" data-id="${pv.id}">${jaCiente ? 'Buscar XML' : 'Dar ciência e buscar XML'}</button>`;
         }
         acoes += `<button type="button" class="min-h-[2.5rem] px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-[0.65rem] font-black uppercase tracking-wide hover:bg-slate-50 btn-dfe-ignorar" data-id="${pv.id}">Ignorar</button>`;
       } else {
@@ -10774,6 +10777,35 @@
         });
       }
       const btnIgn = div.querySelector('.btn-dfe-ignorar');
+      const btnCiencia = div.querySelector('.btn-dfe-ciencia');
+      if (btnCiencia) {
+        btnCiencia.addEventListener('click', async () => {
+          const id = btnCiencia.getAttribute('data-id');
+          btnCiencia.disabled = true;
+          const textoAnterior = btnCiencia.textContent;
+          btnCiencia.textContent = 'Aguarde…';
+          try {
+            const r = await fetch(entradaNfeDfeUrlId(URL_DFE_INBOX_CIENCIA_TMPL, id), {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            });
+            const j = await r.json();
+            if (!j.ok) {
+              showMsg(j.erro || 'A Receita não aceitou a Ciência da Operação.', false);
+              return;
+            }
+            showMsg(j.mensagem || 'Ciência registrada.', true);
+            if (Array.isArray(j.itens_pendentes)) entradaNfeDfeRenderInbox(j.itens_pendentes);
+            else void carregarDfeInbox();
+          } catch (_) {
+            showMsg('Erro de rede ao registrar a Ciência.', false);
+          } finally {
+            btnCiencia.disabled = false;
+            btnCiencia.textContent = textoAnterior;
+          }
+        });
+      }
       if (btnIgn) {
         btnIgn.addEventListener('click', async () => {
           const id = btnIgn.getAttribute('data-id');

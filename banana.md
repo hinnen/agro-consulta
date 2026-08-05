@@ -568,6 +568,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
+- **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
@@ -1185,6 +1186,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO LOJA — DF-e Ciência + XML completo (`DFE-CIENCIA` · **v14.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · não loja |
+| **Fluxo** | Só resumo → **Dar ciência e buscar XML** → Carregar na grade |
+| **Persistência** | Ciência/protocolo no Postgres · não repete evento |
+| **Migrate** | **SIM** · `0083_dfe_manifestacao_ciencia` |
+| **Prova** | `verify_dfe_manifestacao.py` → **VERIFY_OK 12/12** · unit cliente OK · check OK |
+| **Risco** | Fiscal: evento oficial **210210** no Ambiente Nacional; produção só após autorização |
+
 ### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP` · **teste** · 05/08)
 
 Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** corrigidos:
@@ -1262,6 +1274,7 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio à produção** · v14.19 |
 | 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio à produção** · VERIFY_OK · `645fc75` |
 | 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
+| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 12/12 · migrate **0083** |
 | — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 | — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
 
