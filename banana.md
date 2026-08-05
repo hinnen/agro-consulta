@@ -1198,30 +1198,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🧪 **teste** — falta Renan conferir na tela com os dados dele |
 
-### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **teste**)
+### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **v14.26**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 21/21 |
 | **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
-| **O quê** | Cadastro PG `PlanoContaAgro` · entra nas sugestões de plano |
+| **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
 | **Migrate** | **SIM** · `0082_plano_conta_agro` |
-| **Status** | 🧪 **teste** |
+| **Prova** | `python scripts/verify_planos_conta.py` → **VERIFY_OK** |
+| **Commit** | `7270317` (+ verify neste push) |
+| **Risco** | Baixo — cadastro novo · **não** apaga planos ERP |
+| **⚠️** | Branch isolada + migrate na loja · **não** merge `teste` inteiro |
+| **Você** | Ctrl+F5 · F11 → Planos · criar um · ver em Lançamentos busca plano |
+| **Autorizar** | *pode subir PLANOS-CONTA / planos de contas para produção* + **99738595** |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · após loja v13.83)
+### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.23+** · HEAD  
+**Teste:** badge **v14.26+** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | 📋 **pronto para envio** · VERIFY_OK |
-| 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio** · v14.19 |
-| 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio** · VERIFY_OK · `645fc75` |
+| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | 📋 **pronto para envio à produção** · VERIFY_OK |
+| 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio à produção** · v14.19 |
+| 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio à produção** · VERIFY_OK · `645fc75` |
+| 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
 | — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 | — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
 
-**Autorizar:** frase do pacote + **99738595** · **branch isolada** (modal COMP-UX **não** é o `teste` inteiro)
+**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA = migrate)
 
 ### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
 
