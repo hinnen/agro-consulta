@@ -1184,20 +1184,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **AGUARDA pausa + senha**
+### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · lojas abertas → **não subir agora** |
-| **Sintoma** | Modal Cadastro: Preços/Composição/Comissão com `├º` (acentos quebrados) |
-| **Causa** | Merge isolado CUSTO-FAMILIA leu UTF-8 como CP850 no HTML do modal |
-| **O que sobe** | **só** `VERSION` 13.82→13.83 + `_modal_editar_produto_cadastro_erp.inc.html` |
-| **Não mexe** | PDV · caixa · estoque · venda · lógica saco/kit (só texto do modal) |
-| **Branch** | `deploy/hotfix-modal-utf8-v13.83` @ **ed52234** |
-| **Prova** | `verify_modal_utf8_hotfix.py` → **VERIFY_OK** · `verify_custo_familia.py` no hotfix → **VERIFY_OK** · ids/hooks CF idênticos · hotfix = reverse(cp850) do live |
+| **Status** | ✅ **enviado** · producao @ **ed52234** · badge **13.83** · Render auto |
+| **Autorização** | *pode subir esse path para produção* + **99738595** |
+| **Branch** | `deploy/hotfix-modal-utf8-v13.83` → producao |
+| **Diff** | **2 arquivos** (modal + VERSION) · VERIFY_OK |
+| **Migrate** | **NÃO** |
 | **Rollback** | `git push origin b28ce83:producao` · tag `rollback/pre-modal-utf8-v13.83` |
-| **Próximo chat** | Lojas pausam vendas → *pode subir hotfix modal / acentos para produção* + **99738595** → `git push origin deploy/hotfix-modal-utf8-v13.83:producao` |
-| **Você após Live** | Ctrl+F5 Cadastro → abas com ç/ã ok · Composição saco/kit ainda lá |
+| **Você** | Ctrl+F5 Cadastro → abas Preços/Composição com ç/ã ok |
+
+### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja** — ver Deploy v13.83 acima |
+| **Rollback** | tag `rollback/pre-modal-utf8-v13.83` → b28ce83 (v13.82) |
 
 ### ✅ Deploy loja **v13.82** — CUSTO-FAMILIA (04/08 · frase+senha)
 
