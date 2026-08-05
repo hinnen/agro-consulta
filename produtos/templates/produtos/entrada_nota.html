@@ -4052,7 +4052,7 @@
       const modal = document.getElementById('modal-nfe-troca-estorno');
       const inPin = document.getElementById('modal-nfe-troca-estorno-pin');
       const texto = document.getElementById('modal-nfe-troca-estorno-texto');
-      if (!modal || !inPin) {
+      if (!modal || !inPin || _nfeTrocaEstornoResolve) {
         resolve(null);
         return;
       }
@@ -7747,7 +7747,8 @@
         }, 6000);
         return;
       }
-      if (j.produto_id_atualizado) {
+      /* Com estoque já lançado o vínculo fica como está: o saldo entrou no id antigo e trocar exige estorno. */
+      if (j.produto_id_atualizado && !entradaNfeIntegracoesAplicadasCliente()) {
         const hid = tr.querySelector('.in-prod-id');
         if (hid) hid.value = String(j.produto_id_atualizado).trim();
         entradaNfeLinhaApplyCatalogoUi(tr);
@@ -9234,6 +9235,12 @@
   function entradaNfeXmlMergeConfirmar() {
     const ctx = entradaNfeXmlMergeCtx;
     if (!ctx) return;
+    if (entradaNfeIntegracoesAplicadasCliente()) {
+      const aviso = 'Esta nota já lançou estoque / financeiro. Reabra a nota (etapa 5 ou 8) para estornar antes de trazer o XML para a grade.';
+      showMsg(aviso, false);
+      window.alert(aviso);
+      return;
+    }
     const incluir = !!(document.getElementById('nfe-chk-rateio-acrescimos')?.checked);
     const rows = entradaNfeXmlMergeMontarGradeFinal(ctx).map((row) => {
       const baseRow = { ...row, preservar_custo_nf: true };
