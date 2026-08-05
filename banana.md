@@ -1185,6 +1185,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 CHECKLIST ÚNICO — pronto envio (04/08)
+
+**Loja hoje:** badge **v13.83** · producao @ **ed52234**  
+**Teste:** badge **v14.19** · HEAD
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **BI-TOPBAR-TOTAL** (Sync compacto + Total por unidade) | 📋 **pronto para envio** · VERIFY_OK |
+| — | PDV-CAD-RAPIDO / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
+
+**Autorizar loja:** *pode subir BI-TOPBAR-TOTAL / produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — BI topbar Sync + Total unidades (`BI-TOPBAR-TOTAL` · **v14.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | Sync ERP compacto na topbar · mais espaço aos filtros · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
+| **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` · `scripts/verify_bi_topbar_total.py` · VERSION |
+| **Commit código** | `fcf1c49` |
+| **Prova** | `python scripts/verify_bi_topbar_total.py` → **VERIFY_OK 35/35** · home local **200** (Sync curto · Total push · stores Centro/Vila) |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — **só BI `/`** · zero PDV/caixa/NF |
+| **Você** | Ctrl+F5 `/` · Sync pequeno · filtros legíveis · Total = Centro+Vila |
+| **Autorizar** | *pode subir BI-TOPBAR-TOTAL / produção* + **99738595** |
+
 ### 🎨 Entrada NF — aba SEFAZ limpa + ajuda «?» (04/08 · **teste v14.19**)
 
 | Item | Detalhe |
@@ -1199,11 +1225,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Botão Sync ERP compacto · faixa superior dá mais espaço aos filtros de período · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
-| **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` |
+| **Status** | ✅ teste · ver **PACOTE PRONTO BI-TOPBAR-TOTAL** |
 | **Commit** | `fcf1c49` · push `origin/teste` |
-| **Prova** | Ctrl+F5 em `/` · conferir topbar + Total no gráfico da direita |
-| **Risco** | Baixo — só BI home |
 
 ### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
 
@@ -1258,17 +1281,17 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
 | **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
 
-### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.83)
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.83) · **superado**
 
-**Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.15+** · teste @ HEAD
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (04/08)** no topo (BI-TOPBAR-TOTAL).
+
+**Loja na época:** badge **v13.83** · producao @ **ed52234**
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
 | 2 | **CUSTO-FAMILIA** (saco+kit) | ✅ **enviado** / Live v13.82 |
 | 3 | **MODAL-UTF8** (acentos) | ✅ **enviado** / Live v13.83 |
-| — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
 ### 📦 PACOTE PRONTO LOJA — Hotfix acentos modal (`MODAL-UTF8` · **v13.83**)
 
