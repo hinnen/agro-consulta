@@ -31,6 +31,7 @@ def check_static() -> None:
         "produtos/planos_conta_util.py",
         "produtos/templates/produtos/planos_conta_config.html",
         "produtos/migrations/0082_plano_conta_agro.py",
+        "produtos/migrations/0084_plano_conta_alinha_loja.py",
         "produtos/static/produtos/js/agro_perf_config.js",
     ]
     for rel in files:
@@ -96,6 +97,21 @@ def check_static() -> None:
         fail("migration 0082 ainda tem RenameIndex nas operations")
     ok("migration 0082")
 
+    mig84 = open(
+        os.path.join(ROOT, "produtos", "migrations", "0084_plano_conta_alinha_loja.py"),
+        encoding="utf-8",
+    ).read()
+    for needle in (
+        "SeparateDatabaseAndState",
+        "table_names()",
+        "PlanoContaAliasAgro",
+    ):
+        if needle not in mig84:
+            fail(f"migration 0084 sem {needle}")
+    if "CreateModel" in mig84.split("database_operations", 1)[-1].split("state_operations", 1)[0]:
+        fail("migration 0084 criando tabela direto no banco (quebra a loja)")
+    ok("migration 0084 condicional (loja = no-op)")
+
     reg = open(
         os.path.join(ROOT, "produtos", "pg_backup_registry.py"), encoding="utf-8"
     ).read()
@@ -128,7 +144,17 @@ def check_django() -> None:
     tables = connection.introspection.table_names()
     if "produtos_planocontaagro" not in tables:
         fail("tabela produtos_planocontaagro não migrada — rode migrate")
-    ok("tabela PG migrada")
+    if "produtos_planocontaaliasagro" not in tables:
+        fail("tabela de apelidos ausente — rode migrate (0084)")
+    cols = {c.name for c in connection.introspection.get_table_description(
+        connection.cursor(), "produtos_planocontaagro"
+    )}
+    if "tipo" not in cols:
+        fail("coluna tipo ausente — banco fora do formato da loja")
+    for morta in ("codigo", "natureza", "criado_por_id"):
+        if morta in cols:
+            fail(f"coluna {morta} ainda existe — 0084 não rodou")
+    ok("tabela PG no formato da loja (tipo + apelidos)")
 
     for name in (
         "planos_conta_config",
@@ -146,8 +172,7 @@ def check_django() -> None:
 
     obj = PlanoContaAgro.objects.create(
         nome=marker,
-        codigo="9.9.9",
-        natureza=PlanoContaAgro.Natureza.DESPESA,
+        tipo=PlanoContaAgro.Tipo.FIXA,
         grupo="VERIFY",
         ativo=True,
     )
@@ -157,8 +182,8 @@ def check_django() -> None:
             fail("id_publico diverge")
         if parse_id_publico(ser["id"]) != obj.pk:
             fail("parse_id_publico falhou")
-        if "9.9.9" not in ser["nome_exibicao"]:
-            fail("nome_exibicao sem código")
+        if ser.get("tipo") != "fixa" or ser.get("tipo_label") != "Fixa":
+            fail(f"tipo não serializou: {ser}")
         ok(f"ORM create + serializar ({ser['id']})")
 
         lista = listar_planos_agro(q="VERIFY_PLANOS", incluir_inativos=False)
@@ -217,8 +242,7 @@ def check_django() -> None:
                 {
                     "pk": obj.pk,
                     "nome": nome2,
-                    "codigo": "9.9.8",
-                    "natureza": "ambos",
+                    "tipo": "variavel",
                     "grupo": "VERIFY2",
                     "ativo": True,
                 }
@@ -228,7 +252,7 @@ def check_django() -> None:
         if r.status_code != 200 or not r.json().get("ok"):
             fail(f"salvar edit: {r.status_code} {r.content[:300]!r}")
         obj.refresh_from_db()
-        if obj.nome != nome2 or obj.natureza != "ambos":
+        if obj.nome != nome2 or obj.tipo != "variavel":
             fail("edit não persistiu")
         ok("API salvar (editar)")
 
@@ -246,7 +270,7 @@ def check_django() -> None:
             data=json.dumps(
                 {
                     "nome": marker + "_DUP",
-                    "natureza": "receita",
+                    "tipo": "fixa",
                 }
             ),
             content_type="application/json",
@@ -258,7 +282,7 @@ def check_django() -> None:
 
         r = c.post(
             reverse("api_planos_conta_salvar"),
-            data=json.dumps({"nome": marker + "_DUP", "natureza": "despesa"}),
+            data=json.dumps({"nome": marker + "_DUP", "tipo": "outra"}),
             content_type="application/json",
         )
         if r.status_code != 400:

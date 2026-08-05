@@ -1278,59 +1278,63 @@ class OpcaoBaixaFinanceiroExtra(models.Model):
 
 
 class PlanoContaAgro(models.Model):
-    """Cadastro de plano de contas no Postgres (SisVale) — não depende do ERP.
+    """Cadastro oficial de planos de despesa (CP) — Postgres, sem Mongo.
 
-    Aparece nas sugestões de plano (Lançamentos / Entrada NF). ID público: ``agro:{pk}``.
+    Títulos antigos podem ter grafias diferentes; aliases mapeiam sem apagar dados.
     """
 
-    class Natureza(models.TextChoices):
-        DESPESA = "despesa", "Despesa (CP)"
-        RECEITA = "receita", "Receita (CR)"
-        AMBOS = "ambos", "Despesa e receita"
+    class Tipo(models.TextChoices):
+        FIXA = "fixa", "Fixa"
+        VARIAVEL = "variavel", "Variável"
+        OUTRA = "outra", "Outra"
 
     nome = models.CharField(max_length=200, unique=True, db_index=True)
-    codigo = models.CharField(
-        max_length=40,
-        blank=True,
-        default="",
-        help_text="Código / hierarquia opcional (ex. 2.1.3).",
-    )
-    natureza = models.CharField(
+    tipo = models.CharField(
         max_length=16,
-        choices=Natureza.choices,
-        default=Natureza.DESPESA,
-        db_index=True,
+        choices=Tipo.choices,
+        default=Tipo.OUTRA,
+        blank=True,
     )
     grupo = models.CharField(max_length=120, blank=True, default="")
+    observacao = models.CharField(max_length=400, blank=True, default="")
     ativo = models.BooleanField(default=True, db_index=True)
-    observacao = models.CharField(max_length=300, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Plano de conta Agro"
+        verbose_name_plural = "Planos de conta Agro"
+
+    def __str__(self):
+        return self.nome
+
+
+class PlanoContaAliasAgro(models.Model):
+    """Grafia encontrada em títulos → plano oficial (sem alterar ``TituloFinanceiroAgro``)."""
+
+    grafia = models.CharField(max_length=200, unique=True, db_index=True)
+    plano = models.ForeignKey(
+        PlanoContaAgro,
+        on_delete=models.CASCADE,
+        related_name="aliases",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
     criado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="planos_conta_criados",
+        related_name="plano_conta_aliases",
     )
 
     class Meta:
-        ordering = ["nome"]
-        verbose_name = "Plano de contas Agro"
-        verbose_name_plural = "Planos de contas Agro"
+        ordering = ["grafia"]
+        verbose_name = "Alias plano de conta"
+        verbose_name_plural = "Aliases plano de conta"
 
     def __str__(self):
-        return self.nome
-
-    @property
-    def id_publico(self) -> str:
-        return f"agro:{self.pk}"
-
-    def nome_exibicao(self) -> str:
-        cod = (self.codigo or "").strip()
-        if cod:
-            return f"{cod} — {self.nome}"
-        return self.nome
+        return f"{self.grafia} → {self.plano_id}"
 
 
 class LancamentoAtalhoFiltro(models.Model):
