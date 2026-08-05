@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -72,6 +73,7 @@ def check_static() -> None:
         "api_planos_conta_lista",
         "api_planos_conta_salvar",
         "api_planos_conta_toggle",
+        "api_planos_conta_seed",
         "pc-btn-salvar",
         "pc-lista",
         "pc-inativos",
@@ -79,6 +81,24 @@ def check_static() -> None:
         if needle not in tpl:
             fail(f"template sem {needle}")
     ok("template tela")
+
+    # Contrato de layout (banana §4.14 · AGENTS §5 e §11): escala global, sem px fixo,
+    # sem rolagem de página e tela larga aproveitada (não coluna estreita).
+    if "_agro_consulta_ui.html" not in tpl:
+        fail("tela sem _agro_consulta_ui.html (escala global / UI padrão)")
+    if "container-type: inline-size" not in tpl or "@container" not in tpl:
+        fail("tela sem container query (layout não escala por largura)")
+    if "100dvh" not in tpl or "overflow: hidden" not in tpl:
+        fail("tela pode rolar a página inteira (falta 100dvh + overflow hidden)")
+    if tpl.count("clamp(") < 15:
+        fail("tipografia/alturas sem clamp() suficiente — px fixo quebra a escala")
+    if "zoom" in tpl.lower():
+        fail("tela usando zoom local (escala é global no <html>)")
+    if re.search(r"text-\[\d+px\]|font-size:\s*\d+px", tpl):
+        fail("tela com font-size em px fixo")
+    if re.search(r"max-w-(lg|md|sm|xl)\b", tpl):
+        fail("tela em coluna estreita (max-w-*) — aproveitar a tela 16:9")
+    ok("layout no padrão Agro Display Scale (§11)")
 
     views = open(os.path.join(ROOT, "produtos", "views.py"), encoding="utf-8").read()
     if "injetar_planos_agro_sugestao" not in views:
