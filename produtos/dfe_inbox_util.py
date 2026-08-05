@@ -227,6 +227,8 @@ def dfe_inbox_listar(cnpj: str, *, aba: str = "pendentes", limit: int = 80) -> l
                 "dh_emi": row.dh_emi,
                 "status": row.status,
                 "pode_carregar": row.schema == "nfe" and bool((row.xml or "").strip()),
+                "manifestacao_status": row.manifestacao_status or "",
+                "manifestacao_mensagem": row.manifestacao_mensagem or "",
                 "rascunho_id": row.rascunho_id or "",
                 "criado_em": row.criado_em.isoformat() if row.criado_em else "",
             }
@@ -557,3 +559,84 @@ def dfe_executar_download_por_chave(chave: str) -> dict[str, Any]:
         out["ok"] = True
     out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
     return out
+
+
+def dfe_manifestar_ciencia_e_baixar(doc_id: int) -> dict[str, Any]:
+    """Registra Ciência (uma vez) e tenta trocar o resumo pelo XML completo."""
+    from produtos.models import AgroNfeDistDfeDocumento
+    from produtos.sefaz_dfe_client import (
+        _cfg_dist_dfe,
+        nfe_manifestar_ciencia_operacao,
+    )
+
+    cfg = _cfg_dist_dfe()
+    cnpj = _cnpj14(str(cfg.get("cnpj") or ""))
+    row = dfe_inbox_obter(doc_id, cnpj if len(cnpj) == 14 else None)
+    if not row:
+        return {"ok": False, "erro": "Nota não encontrada na caixa de entrada."}
+    if row.schema == AgroNfeDistDfeDocumento.Schema.NFE and (row.xml or "").strip():
+        return {
+            "ok": True,
+            "xml_completo": True,
+            "mensagem": "XML completo já está disponível.",
+            "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+        }
+
+    ciencia_ja_registrada = row.manifestacao_status == "ciencia"
+    ciencia: dict[str, Any] = {"ok": True, "reutilizada": True}
+    if not ciencia_ja_registrada:
+        ciencia = nfe_manifestar_ciencia_operacao(row.chave)
+        row.manifestacao_mensagem = str(
+            ciencia.get("x_motivo") or ciencia.get("erro") or ""
+        )[:500]
+        if ciencia.get("ok"):
+            row.manifestacao_status = "ciencia"
+            row.manifestacao_protocolo = str(ciencia.get("protocolo") or "")[:30]
+            row.manifestacao_em = timezone.now()
+        else:
+            row.manifestacao_status = "erro"
+        row.save(
+            update_fields=[
+                "manifestacao_status",
+                "manifestacao_protocolo",
+                "manifestacao_mensagem",
+                "manifestacao_em",
+                "atualizado_em",
+            ]
+        )
+        if not ciencia.get("ok"):
+            return {
+                "ok": False,
+                "erro": ciencia.get("erro") or "A Receita não aceitou a Ciência da Operação.",
+                "c_stat": ciencia.get("c_stat"),
+                "x_motivo": ciencia.get("x_motivo"),
+                "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+            }
+
+    download = dfe_executar_download_por_chave(row.chave)
+    row.refresh_from_db()
+    xml_completo = row.schema == AgroNfeDistDfeDocumento.Schema.NFE and bool(
+        (row.xml or "").strip()
+    )
+    if xml_completo:
+        mensagem = "Ciência registrada e XML completo liberado. Já pode carregar na grade."
+    elif download.get("aguardar_segundos"):
+        mensagem = (
+            "Ciência registrada. A Receita ainda está no intervalo de espera; "
+            "depois do contador, clique Buscar XML."
+        )
+    else:
+        mensagem = (
+            "Ciência registrada. A Receita ainda não entregou o XML completo; "
+            "aguarde alguns minutos e clique Buscar XML."
+        )
+    return {
+        "ok": True,
+        "ciencia_registrada": True,
+        "ciencia_reutilizada": ciencia_ja_registrada,
+        "xml_completo": xml_completo,
+        "mensagem": mensagem,
+        "c_stat": download.get("c_stat"),
+        "aguardar_segundos": download.get("aguardar_segundos"),
+        "itens_pendentes": dfe_inbox_listar(cnpj, aba="pendentes"),
+    }

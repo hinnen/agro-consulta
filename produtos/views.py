@@ -17861,7 +17861,7 @@ def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
                 "ok": False,
                 "erro": (
                     "Esta nota veio só como resumo da Receita (sem XML completo). "
-                    "Use a aba XML · Ler XML do arquivo do fornecedor/e-mail."
+                    "Use Dar ciência e buscar XML na aba SEFAZ."
                 ),
                 "chave": row.chave,
                 "schema": row.schema,
@@ -17907,6 +17907,16 @@ def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
         return JsonResponse({"ok": False, "erro": "Nota não encontrada."}, status=404)
     r = dfe_inbox_marcar(doc_id=row.pk, status="ignorada")
     return JsonResponse(r, status=200 if r.get("ok") else 400)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_entrada_nota_dfe_inbox_ciencia(request, doc_id: int):
+    """Registra Ciência da Operação e tenta baixar o XML completo."""
+    from produtos.dfe_inbox_util import dfe_manifestar_ciencia_e_baixar
+
+    res = dfe_manifestar_ciencia_e_baixar(doc_id)
+    return JsonResponse(res, status=200 if res.get("ok") else 400)
 
 
 @require_GET

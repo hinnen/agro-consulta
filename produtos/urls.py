@@ -1161,6 +1161,11 @@ urlpatterns = [
         name='api_entrada_nota_dfe_inbox_ignorar',
     ),
     path(
+        'api/entrada-nota/dfe-inbox/<int:doc_id>/ciencia/',
+        views.api_entrada_nota_dfe_inbox_ciencia,
+        name='api_entrada_nota_dfe_inbox_ciencia',
+    ),
+    path(
         'api/cron/dfe-consultar-inbox/',
         views.api_cron_dfe_consultar_inbox,
         name='api_cron_dfe_consultar_inbox',

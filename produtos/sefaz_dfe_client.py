@@ -62,6 +62,14 @@ URL_DIST_DFE = {
     2: "https://hom1.nfe.fazenda.gov.br/NFeDistribuicaoDFe/NFeDistribuicaoDFe.asmx",
 }
 
+URL_RECEPCAO_EVENTO_AN = {
+    1: "https://www.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx",
+    2: "https://hom1.nfe.fazenda.gov.br/NFeRecepcaoEvento4/NFeRecepcaoEvento4.asmx",
+}
+NS_NFE = "http://www.portalfiscal.inf.br/nfe"
+NS_WSDL_EVENTO = "http://www.portalfiscal.inf.br/nfe/wsdl/NFeRecepcaoEvento4"
+CIENCIA_CSTAT_OK = frozenset({"135", "136", "573"})
+
 
 def _cfg_dist_dfe() -> dict[str, Any]:
     """
@@ -118,6 +126,164 @@ def distribuicao_dfe_configurada() -> bool:
         and len(c["cnpj"]) == 14
         and c["uf"] in UF_PARA_COD
     )
+
+
+def dfe_ambiente_permite_consulta_sefaz() -> bool:
+    """
+    Consulta Dist DF-e na Receita só no Render (loja/staging).
+    No runserver local fica desligada — mesmo CNPJ/certificado compete com a loja (656).
+    Exceção explícita: NFE_DIST_DFE_PERMITIR_LOCAL=true no .env.
+    """
+    import os
+
+    if str(os.environ.get("NFE_DIST_DFE_PERMITIR_LOCAL", "")).lower() in ("1", "true", "yes"):
+        return True
+    return str(os.environ.get("RENDER", "")).lower() in ("1", "true", "yes")
+
+
+def dfe_bloqueio_pc_local() -> dict[str, Any] | None:
+    """Retorna dict de erro se a consulta SEFAZ estiver desligada neste ambiente."""
+    if dfe_ambiente_permite_consulta_sefaz():
+        return None
+    return {
+        "ok": False,
+        "erro": (
+            "Consulta SEFAZ Dist DF-e desligada no PC local — não compete com a loja. "
+            "Use a produção online."
+        ),
+        "bloqueio_pc_local": True,
+        "bloqueio_local": True,
+        "c_stat": None,
+        "aguardar_segundos": 0,
+        "ult_nsu": None,
+        "max_nsu": None,
+        "notas_xml": [],
+        "x_motivo": "",
+    }
+
+
+def nfe_manifestar_ciencia_operacao(chave: str) -> dict[str, Any]:
+    """Registra evento 210210 no Ambiente Nacional para liberar o XML completo."""
+    import os
+    from datetime import datetime
+
+    from lxml import etree
+
+    from produtos.nfce_sp_emissao_util import (
+        _assinar_evento_xml,
+        _cert_pem_temporario,
+        _parse_retorno_evento,
+    )
+    from produtos.sefaz_soap_util import (
+        montar_envelope_nfe_dados_msg,
+        normalizar_xml_envio,
+        sanitizar_erro_http_sefaz,
+    )
+    out: dict[str, Any] = {
+        "ok": False,
+        "c_stat": "",
+        "x_motivo": "",
+        "protocolo": "",
+        "erro": None,
+    }
+    ch = re.sub(r"\D", "", str(chave or ""))[:44]
+    if len(ch) != 44:
+        out["erro"] = "Chave NF-e inválida (44 dígitos)."
+        return out
+    if not distribuicao_dfe_configurada():
+        out["erro"] = "Certificado DF-e/NFC-e incompleto no servidor."
+        return out
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    cfg = _cfg_dist_dfe()
+    tp_amb = 1 if int(cfg.get("tp_amb") or 2) == 1 else 2
+    id_evento = f"ID210210{ch}01"
+    dh_evento = datetime.now().astimezone().isoformat(timespec="seconds")
+
+    def _el(parent, tag: str, text: str | None = None, **attrs):
+        el = etree.SubElement(parent, etree.QName(NS_NFE, tag), **attrs)
+        if text is not None:
+            el.text = str(text)
+        return el
+
+    evento = etree.Element(
+        etree.QName(NS_NFE, "evento"), nsmap={None: NS_NFE}, versao="1.00"
+    )
+    inf = etree.SubElement(evento, etree.QName(NS_NFE, "infEvento"), Id=id_evento)
+    _el(inf, "cOrgao", "91")
+    _el(inf, "tpAmb", str(tp_amb))
+    _el(inf, "CNPJ", cfg["cnpj"])
+    _el(inf, "chNFe", ch)
+    _el(inf, "dhEvento", dh_evento)
+    _el(inf, "tpEvento", "210210")
+    _el(inf, "nSeqEvento", "1")
+    _el(inf, "verEvento", "1.00")
+    det = etree.SubElement(inf, etree.QName(NS_NFE, "detEvento"), versao="1.00")
+    _el(det, "descEvento", "Ciencia da Operacao")
+
+    signed, err_sign = _assinar_evento_xml(
+        evento, cfg["cert_path"], cfg["cert_password"], id_evento
+    )
+    if err_sign or not signed:
+        out["erro"] = err_sign or "Falha ao assinar Ciência da Operação."
+        return out
+
+    id_lote = str(int(datetime.now().timestamp()))[-15:]
+    env_evento = (
+        f'<envEvento xmlns="{NS_NFE}" versao="1.00">'
+        f"<idLote>{id_lote}</idLote>{normalizar_xml_envio(signed)}</envEvento>"
+    )
+    soap, headers = montar_envelope_nfe_dados_msg(
+        NS_WSDL_EVENTO, env_evento, "nfeRecepcaoEvento"
+    )
+    cleanup: list[str] = []
+    try:
+        cert_file, key_file, cleanup = _cert_pem_temporario(
+            cfg["cert_path"], cfg["cert_password"]
+        )
+        response = requests.post(
+            URL_RECEPCAO_EVENTO_AN[tp_amb],
+            data=soap.encode("utf-8"),
+            headers=headers,
+            cert=(cert_file, key_file),
+            verify=sefaz_requests_verify(),
+            timeout=60,
+        )
+        text = response.text or ""
+        if response.status_code >= 400:
+            out["erro"] = sanitizar_erro_http_sefaz(response.status_code, text)
+            return out
+        ret = _parse_retorno_evento(text)
+    except requests.RequestException as exc:
+        out["erro"] = str(exc)[:400]
+        return out
+    except Exception as exc:
+        logger.exception("nfe_manifestar_ciencia_operacao")
+        out["erro"] = str(exc)[:400]
+        return out
+    finally:
+        for path in cleanup:
+            try:
+                if path and os.path.isfile(path):
+                    os.unlink(path)
+            except OSError:
+                pass
+
+    c_stat = str(ret.get("c_stat") or "")
+    out.update(
+        {
+            "c_stat": c_stat,
+            "x_motivo": str(ret.get("x_motivo") or ""),
+            "protocolo": str(ret.get("protocolo") or ""),
+            "ok": c_stat in CIENCIA_CSTAT_OK,
+        }
+    )
+    if not out["ok"]:
+        out["erro"] = out["x_motivo"] or f"Ciência rejeitada (cStat {c_stat or '—'})."
+    return out
 
 
 def _assinar_dist_dfe_xml(xml_unsigned: str, cert_path: str, cert_password: str) -> tuple[str | None, str | None]:

@@ -980,6 +980,10 @@ class AgroNfeDistDfeDocumento(models.Model):
         max_length=16, choices=Status.choices, default=Status.PENDENTE, db_index=True
     )
     rascunho_id = models.CharField(max_length=64, blank=True, default="")
+    manifestacao_status = models.CharField(max_length=20, blank=True, default="", db_index=True)
+    manifestacao_protocolo = models.CharField(max_length=30, blank=True, default="")
+    manifestacao_mensagem = models.CharField(max_length=500, blank=True, default="")
+    manifestacao_em = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
