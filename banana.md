@@ -1204,7 +1204,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
 | **Inclui** | Sync ERP compacto na topbar · mais espaço aos filtros · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
 | **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` · `scripts/verify_bi_topbar_total.py` · VERSION |
-| **Commit código** | `fcf1c49` |
+| **Commit código** | `fcf1c49` · pacote+verify `739be93` · badge **14.20** |
 | **Prova** | `python scripts/verify_bi_topbar_total.py` → **VERIFY_OK 35/35** · home local **200** (Sync curto · Total push · stores Centro/Vila) |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — **só BI `/`** · zero PDV/caixa/NF |
@@ -1283,7 +1283,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.83) · **superado**
 
-> **Vigente:** **CHECKLIST ÚNICO — pronto envio (04/08)** no topo (BI-TOPBAR-TOTAL).
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (04/08)** no topo (BI-TOPBAR-TOTAL · SEFAZ-UI).
 
 **Loja na época:** badge **v13.83** · producao @ **ed52234**
 
@@ -1357,36 +1357,22 @@ Base antes do PDV-CAD: 0f0db2.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | Lista barras opcionais no cadastro · grava PG · bip PDV acha qualquer EAN |
-| **Prova** | `manage.py test produtos.tests_codigos_barras_opcionais` **7/7 OK** |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só overlay JSON + busca código |
-| **Cherry** | `9ec0296` + verify · no prep |
-| **Autorizar** | *pode subir barras opcionais / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Duplicar cadastro (`CAD-DUP` · **v13.72**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | Botão **Duplicar** no modal Cadastro · códigos/barras novos · sem estoque |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — UI modal + mesmo POST overlay |
-| **Cherry** | `9894c1f` · no prep |
-| **Autorizar** | *pode subir duplicar cadastro / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · **v13.71**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | V. unit etapa 2 puxa custo do Cadastro (JS ignora 0 · overlay sync · PG fallback) |
-| **Prova** | `manage.py test produtos.tests_entrada_nf_custo_cadastro` **10/10 OK** · PG local GM1821 custo **27** (overlay sem custo → path PG) |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — Entrada NF etapa 2 · linha XML com custo preservado não sobrescreve |
-| **Cherry** | `0b024a3` / prep `c6c6bca` |
-| **Autorizar** | *pode subir entrada NF custo / produção* + **99738595** |
 
 ### ✅ VERIFY — ENTRADA-NF-CUSTO (03/08)
 
