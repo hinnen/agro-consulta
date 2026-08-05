@@ -17182,7 +17182,82 @@ def api_entrada_nota_financeiro(request):
                 )
 
     from produtos.agro_mongo_guard import agro_mongo_escrita_bloqueada
-    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+    from produtos.lancamentos_financeiro_pg_write_util import (
+        inserir_lancamentos_manual_lote_dispatch,
+        listar_titulos_pg_por_chave_nfe,
+    )
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    # Anti-duplicata: se a chave da NF já tem títulos no CP, só religa a nota (não gera 2º lote).
+    chave_nf = str(cab.get("chave") or xml_chave or "").strip()
+    if chave_nf and len(chave_nf) >= 40:
+        existentes: list = []
+        if agro_financeiro_usa_postgres():
+            existentes = listar_titulos_pg_por_chave_nfe(chave_nf, despesa=True)
+        elif db is not None:
+            from produtos.nfe_entrada_util import _titulos_mongo_por_rastro_entrada_nfe
+
+            existentes = [
+                t
+                for t in _titulos_mongo_por_rastro_entrada_nfe(db, cab)
+                if chave_nf in str((t or {}).get("Observacao") or "")
+            ]
+        if existentes:
+            ids_exist = []
+            lote_exist = None
+            for t in existentes:
+                if hasattr(t, "mongo_id"):
+                    mid = str(t.mongo_id or "").strip()
+                    if mid:
+                        ids_exist.append(mid)
+                    from produtos.nfe_entrada_util import _extrair_lote_agro_lancamento
+
+                    lote_exist = lote_exist or _extrair_lote_agro_lancamento(
+                        {
+                            "NumeroDocumento": getattr(t, "numero_documento", "") or "",
+                            "Observacao": getattr(t, "observacoes", "") or "",
+                        }
+                    )
+                elif isinstance(t, dict):
+                    from produtos.nfe_entrada_util import (
+                        _extrair_lote_agro_lancamento,
+                        _mongo_lancamento_id_str,
+                    )
+
+                    mid = _mongo_lancamento_id_str(t)
+                    if mid:
+                        ids_exist.append(mid)
+                    lote_exist = lote_exist or _extrair_lote_agro_lancamento(t)
+            rid_fin = str(r_rasc.get("id") or rid_up or "").strip()
+            if rid_fin and ids_exist:
+                try:
+                    from produtos.nfe_entrada_util import marcar_rascunho_financeiro_lancado
+
+                    marcar_rascunho_financeiro_lancado(
+                        db,
+                        rid_fin,
+                        ids=ids_exist,
+                        usuario=usuario,
+                        lote=lote_exist,
+                    )
+                except Exception:
+                    logger.exception("api_entrada_nota_financeiro: marcar recuperado por chave")
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "rascunho": r_rasc,
+                    "financeiro": {
+                        "ok": True,
+                        "ids": ids_exist,
+                        "recuperado": True,
+                        "lote": lote_exist,
+                        "quitar_ao_salvar": bool(
+                            fin.get("quitar_ao_salvar") or fin.get("quitar_na_entrada")
+                        ),
+                    },
+                },
+                status=200,
+            )
 
     resultado = inserir_lancamentos_manual_lote_dispatch(
         db,
@@ -18079,15 +18154,19 @@ def api_lancamentos_backup_abertos_xlsx(request):
 
 
 def _api_lancamentos_backup_zip_resposta(request, *, somente_abertos: bool):
-    err = _lancamentos_pre_corte_admin_ok(request)
-    if err:
-        return err
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
-    from produtos.lancamentos_backup_util import montar_zip_backup_completo, nome_arquivo_backup_completo
+    """Backup ZIP — qualquer usuário logado (CP). Checkpoint continua só admin."""
+    from django.core.cache import cache
 
-    blob, stats = montar_zip_backup_completo(
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+    from produtos.lancamentos_backup_util import (
+        montar_zip_backup_lancamentos_dispatch,
+        nome_arquivo_backup_completo,
+    )
+
+    _, db = obter_conexao_mongo()
+    if db is None and not agro_financeiro_usa_postgres():
+        return HttpResponse("Mongo indisponível", status=503, content_type="text/plain; charset=utf-8")
+    blob, stats = montar_zip_backup_lancamentos_dispatch(
         db,
         gerado_por=getattr(request.user, "username", "") or "",
         somente_abertos=somente_abertos,
@@ -18098,10 +18177,33 @@ def _api_lancamentos_backup_zip_resposta(request, *, somente_abertos: bool):
             status=500,
             content_type="text/plain; charset=utf-8",
         )
+    agora = timezone.localtime()
+    cache.set(
+        "agro_lancamentos_backup_ultimo",
+        {
+            "em": agora.isoformat(),
+            "somente_abertos": bool(somente_abertos),
+            "por": getattr(request.user, "username", "") or "",
+            "fonte": stats.get("fonte") or "",
+            "export_pagar": stats.get("export_pagar"),
+            "export_receber": stats.get("export_receber"),
+        },
+        timeout=60 * 60 * 24 * 90,
+    )
     nome = nome_arquivo_backup_completo("zip", somente_abertos=somente_abertos)
     resp = HttpResponse(blob, content_type="application/zip")
     resp["Content-Disposition"] = f'attachment; filename="{nome}"'
     return resp
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_lancamentos_backup_ultimo(request):
+    """Data/hora do último backup ZIP baixado nesta loja (cache)."""
+    from django.core.cache import cache
+
+    info = cache.get("agro_lancamentos_backup_ultimo") or {}
+    return JsonResponse({"ok": True, "ultimo": info or None})
 
 
 @login_required(login_url="/admin/login/")

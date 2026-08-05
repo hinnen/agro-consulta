@@ -272,6 +272,161 @@ def montar_zip_backup_completo(
     return buf.getvalue(), stats
 
 
+def _iter_csv_lancamentos_pg(despesa: bool, *, somente_abertos: bool = False) -> Iterator[tuple[Any, ...]]:
+    from produtos.models import TituloFinanceiroAgro
+
+    qs = TituloFinanceiroAgro.objects.filter(despesa=bool(despesa)).order_by(
+        "data_vencimento", "id"
+    )
+    if somente_abertos:
+        qs = qs.filter(quitado=False).exclude(valor_restante=0)
+    n = 0
+    for t in qs.iterator(chunk_size=400):
+        if n >= _BACKUP_CAP:
+            break
+        row = {
+            "id": t.mongo_id or str(t.pk),
+            "id_erp": "",
+            "data_vencimento": t.data_vencimento.isoformat() if t.data_vencimento else "",
+            "data_competencia": t.data_competencia.isoformat() if t.data_competencia else "",
+            "data_pagamento": t.data_pagamento.isoformat() if t.data_pagamento else "",
+            "cliente": t.cliente or "",
+            "descricao": t.descricao or "",
+            "numero_documento": t.numero_documento or "",
+            "parcela": t.parcela or 0,
+            "plano_conta": t.plano_conta or "",
+            "grupo": t.grupo or "",
+            "forma_pagamento": t.forma_pagamento or "",
+            "banco": t.banco or "",
+            "centro_custo": "",
+            "empresa": t.empresa or "",
+            "valor_bruto": t.valor_bruto,
+            "valor_movimentado": t.valor_pago,
+            "restante": t.valor_restante,
+            "pago": bool(t.quitado),
+            "observacoes": t.observacoes or "",
+            "fonte_agro": "Sim",
+            "congelado_em": "",
+            "criado_por": t.criado_por or "",
+            "modificado_por": t.modificado_por or "",
+        }
+        snap = t.dados_snapshot_json if isinstance(t.dados_snapshot_json, dict) else {}
+        row["id_erp"] = str(snap.get("id_erp") or "")[:80]
+        yield _vals_lancamentos(row, despesa=despesa)
+        n += 1
+
+
+def _contagem_pg(despesa: bool, *, somente_abertos: bool = False) -> int:
+    from produtos.models import TituloFinanceiroAgro
+
+    qs = TituloFinanceiroAgro.objects.filter(despesa=bool(despesa))
+    if somente_abertos:
+        qs = qs.filter(quitado=False).exclude(valor_restante=0)
+    return qs.count()
+
+
+def montar_zip_backup_completo_pg(
+    *,
+    gerado_por: str = "",
+    somente_abertos: bool = False,
+) -> tuple[bytes, dict[str, Any]]:
+    """Backup CP/CR a partir do Postgres (loja desvinculada do Mongo financeiro)."""
+    agora = timezone.localtime()
+    buf = BytesIO()
+    stats: dict[str, Any] = {
+        "ok": True,
+        "gerado_em": agora.isoformat(),
+        "fonte": "postgres",
+        "somente_abertos": bool(somente_abertos),
+    }
+    sufixo_arq = "_em_aberto" if somente_abertos else ""
+    rotulo_filtro = (
+        "Em aberto (mesmo critério da lista Lançamentos)"
+        if somente_abertos
+        else "Todos (abertos + quitados)"
+    )
+    fiado_headers = (
+        "ID",
+        "Cliente",
+        "Código cliente",
+        "Documento",
+        "Parcela",
+        "Vencimento",
+        "Valor",
+        "Pago",
+        "Saldo",
+        "Situação",
+        "Origem",
+        "Venda Agro ID",
+        "Descrição",
+    )
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        body_p, c_p = _csv_bytes(
+            _headers_lancamentos(despesa=True),
+            _iter_csv_lancamentos_pg(True, somente_abertos=somente_abertos),
+        )
+        zf.writestr(f"01_a_pagar{sufixo_arq}.csv", body_p)
+        body_r, c_r = _csv_bytes(
+            _headers_lancamentos(despesa=False),
+            _iter_csv_lancamentos_pg(False, somente_abertos=somente_abertos),
+        )
+        zf.writestr(f"02_a_receber{sufixo_arq}.csv", body_r)
+        body_f, c_f = _csv_bytes(fiado_headers, _iter_csv_fiado(somente_abertos=somente_abertos))
+        zf.writestr(f"03_fiado_pdv{sufixo_arq}.csv", body_f)
+        tot_p = _contagem_pg(True, somente_abertos=somente_abertos)
+        tot_r = _contagem_pg(False, somente_abertos=somente_abertos)
+        tot_f = _contagem_fiado(somente_abertos=somente_abertos)
+        stats.update(
+            {
+                "export_pagar": c_p,
+                "export_receber": c_r,
+                "export_fiado": c_f,
+                "total_pagar": tot_p,
+                "total_receber": tot_r,
+                "total_fiado": tot_f,
+                "truncado": any(x > _BACKUP_CAP for x in (tot_p, tot_r, tot_f))
+                or c_p >= _BACKUP_CAP
+                or c_r >= _BACKUP_CAP
+                or c_f >= _BACKUP_CAP,
+            }
+        )
+        readme = (
+            f"SisVale — backup Lançamentos\r\n"
+            f"Filtro: {rotulo_filtro}\r\n"
+            f"Fonte: Postgres (SisVale)\r\n"
+            f"Gerado: {agora.strftime('%d/%m/%Y %H:%M')}\r\n"
+            f"Por: {(gerado_por or '—')[:120]}\r\n"
+            f"\r\n"
+            f"Arquivos:\r\n"
+            f"  01_a_pagar{sufixo_arq}.csv     — {c_p} linhas (total no filtro: {tot_p})\r\n"
+            f"  02_a_receber{sufixo_arq}.csv   — {c_r} linhas (total no filtro: {tot_r})\r\n"
+            f"  03_fiado_pdv{sufixo_arq}.csv   — {c_f} linhas (total no filtro: {tot_f})\r\n"
+            f"\r\n"
+            f"Como abrir: extraia o ZIP e abra UM CSV por vez no Excel.\r\n"
+        )
+        if stats.get("truncado"):
+            readme += f"\r\nATENÇÃO: limite de exportação {_BACKUP_CAP} linhas por arquivo.\r\n"
+        zf.writestr("LEIA-ME.txt", readme.encode("utf-8"))
+    return buf.getvalue(), stats
+
+
+def montar_zip_backup_lancamentos_dispatch(
+    db,
+    *,
+    gerado_por: str = "",
+    somente_abertos: bool = False,
+) -> tuple[bytes, dict[str, Any]]:
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
+    if agro_financeiro_usa_postgres():
+        return montar_zip_backup_completo_pg(
+            gerado_por=gerado_por, somente_abertos=somente_abertos
+        )
+    return montar_zip_backup_completo(
+        db, gerado_por=gerado_por, somente_abertos=somente_abertos
+    )
+
+
 def nome_arquivo_backup_completo(ext: str = "zip", *, somente_abertos: bool = False) -> str:
     agora = timezone.localtime()
     sufixo = "_ABERTOS" if somente_abertos else ""

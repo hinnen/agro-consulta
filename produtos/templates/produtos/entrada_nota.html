@@ -10190,6 +10190,10 @@
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
+    if (window.__entradaNfeFinSalvando) {
+      showMsg('Já estou gravando o financeiro — aguarde (evita duplicar título).', false);
+      return;
+    }
     clearTimeout(entradaNfeAutosaveTimer);
     entradaNfeAutosaveTimer = null;
     const cab = coletarCabecalho();
@@ -10289,6 +10293,9 @@
       financeiro,
       rascunho_id: entradaNfeRascunhoEditId || undefined,
     };
+    window.__entradaNfeFinSalvando = true;
+    const btnFin = document.getElementById('btn-salvar-fin');
+    if (btnFin) btnFin.disabled = true;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_FIN, {
@@ -10316,7 +10323,7 @@
           } catch (_) {}
           let t = '';
           if (fin.recuperado) {
-            t = 'Conta a pagar já existia no Mongo — nota vinculada sem duplicar. IDs: ' + fin.ids.join(', ') + '.';
+            t = 'Conta a pagar já existia — nota vinculada sem duplicar. IDs: ' + fin.ids.join(', ') + '.';
           } else if (fin.ja_existia) {
             t = 'Conta a pagar já estava gerada para esta nota. IDs: ' + fin.ids.join(', ') + '.';
           } else if (fin.dry_run) {
@@ -10367,6 +10374,8 @@
     } catch (e) {
       showMsg('Erro de rede.', false);
     } finally {
+      window.__entradaNfeFinSalvando = false;
+      if (btnFin) btnFin.disabled = false;
       if (window.gmLoadingBar) window.gmLoadingBar.hide();
     }
   }

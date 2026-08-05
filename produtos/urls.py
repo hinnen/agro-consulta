@@ -795,6 +795,11 @@ urlpatterns = [
         name='api_lancamentos_backup_abertos_xlsx',
     ),
     path(
+        'api/lancamentos/backup-ultimo/',
+        views.api_lancamentos_backup_ultimo,
+        name='api_lancamentos_backup_ultimo',
+    ),
+    path(
         'api/lancamentos/congelamento-status/',
         views.api_lancamentos_congelamento_status,
         name='api_lancamentos_congelamento_status',

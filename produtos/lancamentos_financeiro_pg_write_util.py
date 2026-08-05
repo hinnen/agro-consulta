@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import secrets
 from datetime import date, datetime
 from decimal import Decimal
@@ -37,6 +38,57 @@ from produtos.mongo_financeiro_util import (
 logger = logging.getLogger(__name__)
 
 _TOL = Decimal("0.02")
+_RE_CHAVE_NF_OBS = re.compile(r"(?:chave\s+)?(\d{44})\b", re.I)
+
+
+def _chave_nf_em_observacoes(obs: str | None) -> str:
+    m = _RE_CHAVE_NF_OBS.search(str(obs or ""))
+    return m.group(1) if m else ""
+
+
+def buscar_titulo_pg_duplicado(
+    *,
+    despesa: bool,
+    pessoa_nome: str,
+    valor: Decimal,
+    data_vencimento: date,
+    descricao: str,
+    observacoes: str = "",
+) -> TituloFinanceiroAgro | None:
+    """Espelho do bloqueio Mongo: evita 2º título idêntico (ex. Salvar+a pagar 2×)."""
+    valor_q = _dec2(valor)
+    qs = TituloFinanceiroAgro.objects.filter(despesa=bool(despesa), valor_bruto=valor_q)
+    if data_vencimento:
+        qs = qs.filter(data_vencimento=data_vencimento)
+
+    chave = _chave_nf_em_observacoes(observacoes)
+    if chave:
+        hit = qs.filter(observacoes__icontains=chave).order_by("id").first()
+        if hit:
+            return hit
+
+    pessoa = (pessoa_nome or "").strip()
+    desc = (descricao or "").strip()
+    if not pessoa or not desc:
+        return None
+    hit = (
+        qs.filter(cliente__iexact=pessoa[:300], descricao__iexact=desc[:500])
+        .order_by("id")
+        .first()
+    )
+    return hit
+
+
+def listar_titulos_pg_por_chave_nfe(chave: str, *, despesa: bool = True) -> list[TituloFinanceiroAgro]:
+    """Títulos CP/CR que citam a chave da NF nas observações (só leitura)."""
+    ch = str(chave or "").strip()
+    if len(ch) < 40:
+        return []
+    return list(
+        TituloFinanceiroAgro.objects.filter(
+            despesa=bool(despesa), observacoes__icontains=ch
+        ).order_by("id")[:80]
+    )
 
 
 def _notificar_baixa_rh_titulo_salario_pg(
@@ -639,6 +691,7 @@ def inserir_lancamentos_manual_lote_pg(
     erros: list[dict] = []
     novos: list[TituloFinanceiroAgro] = []
     parcela_seq = 0
+    batch_sigs: set[tuple] = set()
 
     for idx, ln in enumerate(linhas):
         n = idx + 1
@@ -721,6 +774,44 @@ def inserir_lancamentos_manual_lote_pg(
             observacoes = " | ".join(
                 p for p in (obs_linha, obs_antecipado, obs_quitado, f"Lote manual Agro {lote}") if p
             )[:2000]
+            desc_final = (desc_base + desc_suf)[:500]
+            dup = buscar_titulo_pg_duplicado(
+                despesa=bool(ln_despesa),
+                pessoa_nome=ln_pessoa,
+                valor=valor_dec,
+                data_vencimento=use_dv_d,
+                descricao=desc_final,
+                observacoes=observacoes,
+            )
+            if dup:
+                erros.append(
+                    {
+                        "linha": f"{n}-{sub + 1}",
+                        "erro": (
+                            "Possível duplicidade bloqueada: já existe título equivalente "
+                            f"(id {dup.mongo_id or dup.pk})."
+                        ),
+                    }
+                )
+                continue
+            # Também evita duplicar dentro do próprio lote (duplo clique / payload repetido).
+            sig_batch = (
+                bool(ln_despesa),
+                (ln_pessoa or "").casefold(),
+                str(valor_dec),
+                use_dv_d.isoformat() if use_dv_d else "",
+                desc_final.casefold(),
+                _chave_nf_em_observacoes(observacoes),
+            )
+            if sig_batch in batch_sigs:
+                erros.append(
+                    {
+                        "linha": f"{n}-{sub + 1}",
+                        "erro": "Possível duplicidade bloqueada: linha repetida no mesmo lote.",
+                    }
+                )
+                continue
+            batch_sigs.add(sig_batch)
             mongo_id = str(ObjectId())
             quitado = bool(ln_quit_pagar or ln_quit_receber)
             pago = valor_dec if quitado else Decimal("0")
@@ -730,7 +821,7 @@ def inserir_lancamentos_manual_lote_pg(
             titulo = TituloFinanceiroAgro(
                 mongo_id=mongo_id,
                 despesa=bool(ln_despesa),
-                descricao=(desc_base + desc_suf)[:500],
+                descricao=desc_final,
                 cliente=ln_pessoa[:300],
                 cliente_id=lp_id,
                 numero_documento=(

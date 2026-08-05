@@ -1198,6 +1198,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🧪 **teste** — falta Renan conferir na tela com os dados dele |
 
+### 📦 Anti-duplicata CP + Backup na tela (`CP-DUP-BACKUP` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Postgres **não** tinha o bloqueio de duplicidade que o Mongo tinha — «Salvar + a pagar» 2× gerava 2 lotes (ex. NF 14988 Ibiúna · lotes `AGCFEAF832` + `AG721D19E4`) |
+| **Fix** | Bloqueio por chave NF / assinatura no insert PG · guard na Entrada NF · trava duplo clique · botão **Backup** (Todos / Em aberto) + data/hora do último |
+| **Não apagou** | Duplicatas já feitas — Renan apaga manual |
+| **Lista Ibiúna (apagar 1 lote)** | Manter `AGCFEAF832` (ids 18368–18370) · apagar `AG721D19E4` (ids **18371, 18372, 18373**) — 3 títulos em aberto |
+| **Prova** | `python scripts/verify_cp_anti_dup_backup.py` → **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** |
+
 ### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **v14.26**)
 
 | Item | Detalhe |
