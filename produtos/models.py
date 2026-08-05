@@ -1269,14 +1269,64 @@ class OpcaoBaixaFinanceiroExtra(models.Model):
             ),
         ]
 
-    def save(self, *args, **kwargs):
-        self.nome = (self.nome or "").strip()[:300]
-        self.id_erp = (self.id_erp or "").strip()[:80]
-        super().save(*args, **kwargs)
+    def __str__(self):
+        return f"{self.get_tipo_display()}: {self.nome}"
+
+
+class PlanoContaAgro(models.Model):
+    """Cadastro de plano de contas no Postgres (SisVale) — não depende do ERP.
+
+    Aparece nas sugestões de plano (Lançamentos / Entrada NF). ID público: ``agro:{pk}``.
+    """
+
+    class Natureza(models.TextChoices):
+        DESPESA = "despesa", "Despesa (CP)"
+        RECEITA = "receita", "Receita (CR)"
+        AMBOS = "ambos", "Despesa e receita"
+
+    nome = models.CharField(max_length=200, unique=True, db_index=True)
+    codigo = models.CharField(
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Código / hierarquia opcional (ex. 2.1.3).",
+    )
+    natureza = models.CharField(
+        max_length=16,
+        choices=Natureza.choices,
+        default=Natureza.DESPESA,
+        db_index=True,
+    )
+    grupo = models.CharField(max_length=120, blank=True, default="")
+    ativo = models.BooleanField(default=True, db_index=True)
+    observacao = models.CharField(max_length=300, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="planos_conta_criados",
+    )
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Plano de contas Agro"
+        verbose_name_plural = "Planos de contas Agro"
 
     def __str__(self):
-        suf = f" ({self.id_erp})" if self.id_erp else ""
-        return f"{self.get_tipo_display()}: {self.nome}{suf}"
+        return self.nome
+
+    @property
+    def id_publico(self) -> str:
+        return f"agro:{self.pk}"
+
+    def nome_exibicao(self) -> str:
+        cod = (self.codigo or "").strip()
+        if cod:
+            return f"{cod} — {self.nome}"
+        return self.nome
 
 
 class LancamentoAtalhoFiltro(models.Model):

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Planos de contas | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    body { font-family: 'Inter', sans-serif; min-height: 100dvh; }
+    .pc-shell { width: 100%; max-width: min(56rem, 100%); margin: 0 auto; }
+    .pc-touch { min-height: 2.75rem; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+  <header class="border-b border-slate-200 bg-white shadow-sm">
+    <div class="pc-shell px-3 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700">Configuração</p>
+        <h1 class="text-xl sm:text-2xl font-black uppercase text-slate-900">Planos de contas</h1>
+        <p class="text-sm font-semibold text-slate-500 mt-0.5">Cadastro SisVale (Postgres). Planos do ERP continuam valendo.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'home' %}" class="pc-touch inline-flex items-center px-4 rounded-xl border-2 border-slate-200 bg-white text-xs font-black uppercase text-slate-700">← BI</a>
+        <a href="{% url 'lancamentos_financeiros' %}" class="pc-touch inline-flex items-center px-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-xs font-black uppercase text-emerald-900">Lançamentos</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="pc-shell px-3 sm:px-5 py-4 space-y-4">
+    <section class="rounded-2xl border-2 border-emerald-300 bg-white p-4 shadow-sm space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="pc-form-titulo" class="text-base font-black uppercase text-slate-900">Novo plano</h2>
+        <details class="relative">
+          <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-slate-100 border border-slate-300 text-sm font-black text-slate-700">?</summary>
+          <div class="absolute right-0 top-full mt-2 z-20 w-72 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
+            Crie planos usados nos Lançamentos e na Entrada NF. O nome precisa ser único. Código (ex. 2.1.3) é opcional.
+          </div>
+        </details>
+      </div>
+      <input type="hidden" id="pc-pk" value="">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label class="block sm:col-span-2">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Nome *</span>
+          <input id="pc-nome" type="text" maxlength="200" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="Ex.: MANUTENÇÃO LOJA">
+        </label>
+        <label class="block">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Código</span>
+          <input id="pc-codigo" type="text" maxlength="40" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="2.1.3">
+        </label>
+        <label class="block">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Natureza</span>
+          <select id="pc-natureza" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none">
+            {% for val, lab in naturezas %}
+            <option value="{{ val }}">{{ lab }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Grupo</span>
+          <input id="pc-grupo" type="text" maxlength="120" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="Opcional">
+        </label>
+      </div>
+      <div class="flex flex-wrap gap-2 pt-1">
+        <button type="button" id="pc-btn-salvar" class="pc-touch px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black uppercase">Salvar</button>
+        <button type="button" id="pc-btn-limpar" class="pc-touch px-4 rounded-xl border-2 border-slate-300 bg-slate-50 text-sm font-black uppercase text-slate-700">Limpar</button>
+        <p id="pc-msg" class="text-sm font-bold text-slate-600 self-center" role="status"></p>
+      </div>
+    </section>
+
+    <section class="rounded-2xl border-2 border-slate-200 bg-white shadow-sm overflow-hidden">
+      <div class="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center gap-2 justify-between bg-slate-50">
+        <h2 class="text-base font-black uppercase text-slate-900">Lista</h2>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input id="pc-busca" type="search" placeholder="Buscar…" class="pc-touch w-44 sm:w-56 px-3 rounded-xl border-2 border-slate-200 text-sm font-bold outline-none focus:border-emerald-500">
+          <label class="inline-flex items-center gap-2 text-sm font-bold text-slate-700 cursor-pointer select-none">
+            <input type="checkbox" id="pc-inativos" class="w-5 h-5 rounded border-slate-300 text-emerald-600">
+            Ver inativos
+          </label>
+        </div>
+      </div>
+      <div class="overflow-auto max-h-[min(55dvh,28rem)]">
+        <table class="w-full text-sm min-w-[32rem]">
+          <thead class="bg-slate-900 text-white text-[10px] font-black uppercase sticky top-0">
+            <tr>
+              <th class="px-3 py-2.5 text-left">Nome</th>
+              <th class="px-3 py-2.5 text-left">Natureza</th>
+              <th class="px-3 py-2.5 text-left">Status</th>
+              <th class="px-3 py-2.5 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="pc-lista" class="divide-y divide-slate-100 bg-white"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script>
+  (function () {
+    var API_LISTA = "{% url 'api_planos_conta_lista' %}";
+    var API_SALVAR = "{% url 'api_planos_conta_salvar' %}";
+    var URL_TOGGLE = "{% url 'api_planos_conta_toggle' pk=0 %}".replace('/0/', '/__PK__/');
+
+    function msg(t, ok) {
+      var el = document.getElementById('pc-msg');
+      if (!el) return;
+      el.textContent = t || '';
+      el.className = 'text-sm font-bold self-center ' + (ok === false ? 'text-red-700' : 'text-emerald-800');
+    }
+
+    function limpar() {
+      document.getElementById('pc-pk').value = '';
+      document.getElementById('pc-nome').value = '';
+      document.getElementById('pc-codigo').value = '';
+      document.getElementById('pc-grupo').value = '';
+      document.getElementById('pc-natureza').value = 'despesa';
+      document.getElementById('pc-form-titulo').textContent = 'Novo plano';
+      msg('');
+    }
+
+    function carregar() {
+      var q = (document.getElementById('pc-busca').value || '').trim();
+      var ina = document.getElementById('pc-inativos').checked ? '1' : '0';
+      var tb = document.getElementById('pc-lista');
+      tb.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-400 font-semibold">Carregando…</td></tr>';
+      fetch(API_LISTA + '?q=' + encodeURIComponent(q) + '&inativos=' + ina, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var itens = (j && j.itens) || [];
+          if (!itens.length) {
+            tb.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-400 font-semibold">Nenhum plano cadastrado.</td></tr>';
+            return;
+          }
+          tb.innerHTML = itens.map(function (it) {
+            var st = it.ativo
+              ? '<span class="text-emerald-700 font-black">Ativo</span>'
+              : '<span class="text-slate-400 font-bold">Inativo</span>';
+            return '<tr class="hover:bg-emerald-50/40">' +
+              '<td class="px-3 py-3"><div class="font-black text-slate-900">' + esc(it.nome_exibicao || it.nome) + '</div>' +
+              (it.grupo ? '<div class="text-xs font-semibold text-slate-500">' + esc(it.grupo) + '</div>' : '') +
+              '</td>' +
+              '<td class="px-3 py-3 font-bold text-slate-700">' + esc(it.natureza_label || it.natureza) + '</td>' +
+              '<td class="px-3 py-3">' + st + '</td>' +
+              '<td class="px-3 py-3 text-right whitespace-nowrap">' +
+              '<button type="button" data-edit="' + it.pk + '" class="pc-touch px-3 rounded-lg border-2 border-slate-200 text-xs font-black uppercase text-slate-700 mr-1">Editar</button>' +
+              '<button type="button" data-tog="' + it.pk + '" class="pc-touch px-3 rounded-lg border-2 border-amber-300 text-xs font-black uppercase text-amber-900">' +
+              (it.ativo ? 'Desativar' : 'Reativar') + '</button>' +
+              '</td></tr>';
+          }).join('');
+          tb.querySelectorAll('[data-edit]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var pk = btn.getAttribute('data-edit');
+              var it = itens.find(function (x) { return String(x.pk) === String(pk); });
+              if (!it) return;
+              document.getElementById('pc-pk').value = String(it.pk);
+              document.getElementById('pc-nome').value = it.nome || '';
+              document.getElementById('pc-codigo').value = it.codigo || '';
+              document.getElementById('pc-grupo').value = it.grupo || '';
+              document.getElementById('pc-natureza').value = it.natureza || 'despesa';
+              document.getElementById('pc-form-titulo').textContent = 'Editar plano';
+              msg('Editando…', true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+          });
+          tb.querySelectorAll('[data-tog]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var pk = btn.getAttribute('data-tog');
+              fetch(URL_TOGGLE.replace('__PK__', pk), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrftoken()
+                },
+                body: '{}'
+              }).then(function (r) { return r.json(); }).then(function (j) {
+                if (!j.ok) { msg(j.erro || 'Falha', false); return; }
+                carregar();
+              });
+            });
+          });
+        })
+        .catch(function () {
+          tb.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-red-600 font-bold">Falha ao carregar.</td></tr>';
+        });
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      });
+    }
+
+    function csrftoken() {
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    document.getElementById('pc-btn-limpar').addEventListener('click', limpar);
+    document.getElementById('pc-btn-salvar').addEventListener('click', function () {
+      var body = {
+        pk: document.getElementById('pc-pk').value || null,
+        nome: document.getElementById('pc-nome').value,
+        codigo: document.getElementById('pc-codigo').value,
+        grupo: document.getElementById('pc-grupo').value,
+        natureza: document.getElementById('pc-natureza').value,
+        ativo: true
+      };
+      fetch(API_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken() },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (!x.j.ok) { msg(x.j.erro || 'Erro', false); return; }
+          msg('Salvo.', true);
+          limpar();
+          carregar();
+        })
+        .catch(function () { msg('Falha de rede.', false); });
+    });
+
+    var tBusca = null;
+    document.getElementById('pc-busca').addEventListener('input', function () {
+      clearTimeout(tBusca);
+      tBusca = setTimeout(carregar, 220);
+    });
+    document.getElementById('pc-inativos').addEventListener('change', carregar);
+    carregar();
+  })();
+  </script>
+</body>
+</html>

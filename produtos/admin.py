@@ -8,6 +8,7 @@ from .models import (
     ItemVendaAgro,
     MovimentoCaixa,
     OpcaoBaixaFinanceiroExtra,
+    PlanoContaAgro,
     Produto,
     SessaoCaixa,
     VendaAgro,
@@ -245,3 +246,11 @@ class OpcaoBaixaFinanceiroExtraAdmin(admin.ModelAdmin):
     list_filter = ("tipo",)
     search_fields = ("nome", "id_erp", "usuario__username")
     raw_id_fields = ("usuario",)
+
+
+@admin.register(PlanoContaAgro)
+class PlanoContaAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "nome", "codigo", "natureza", "ativo", "atualizado_em")
+    list_filter = ("natureza", "ativo")
+    search_fields = ("nome", "codigo", "grupo")
+    raw_id_fields = ("criado_por",)

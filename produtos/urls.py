@@ -12,6 +12,7 @@ from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
+from . import views_planos_conta
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 
@@ -19,6 +20,26 @@ urlpatterns = [
     # --- PÁGINAS ---
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
+    path(
+        "configuracao/planos-conta/",
+        views_planos_conta.planos_conta_config_view,
+        name="planos_conta_config",
+    ),
+    path(
+        "api/configuracao/planos-conta/",
+        views_planos_conta.api_planos_conta_lista,
+        name="api_planos_conta_lista",
+    ),
+    path(
+        "api/configuracao/planos-conta/salvar/",
+        views_planos_conta.api_planos_conta_salvar,
+        name="api_planos_conta_salvar",
+    ),
+    path(
+        "api/configuracao/planos-conta/<int:pk>/toggle/",
+        views_planos_conta.api_planos_conta_toggle,
+        name="api_planos_conta_toggle",
+    ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),

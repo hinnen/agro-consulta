@@ -19606,6 +19606,12 @@ def api_lancamentos_sugestoes(request):
         )
         if campo == "plano":
             itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
+            try:
+                from produtos.planos_conta_util import injetar_planos_agro_sugestao
+
+                itens = injetar_planos_agro_sugestao(itens, q, limit=lim)
+            except Exception:
+                logger.warning("api_lancamentos_sugestoes: planos Agro", exc_info=True)
         return JsonResponse({"campo": campo, "itens": itens, "fonte": "postgres"})
     _, db = obter_conexao_mongo()
     if db is None:
@@ -19621,6 +19627,12 @@ def api_lancamentos_sugestoes(request):
     )
     if campo == "plano":
         itens = injetar_emprestimo_dual_sugestao_plano(itens, q)
+        try:
+            from produtos.planos_conta_util import injetar_planos_agro_sugestao
+
+            itens = injetar_planos_agro_sugestao(itens, q, limit=lim)
+        except Exception:
+            logger.warning("api_lancamentos_sugestoes: planos Agro", exc_info=True)
     return JsonResponse({"campo": campo, "itens": itens})
 
 

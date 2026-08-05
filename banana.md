@@ -1185,6 +1185,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
+| **O quê** | Cadastro PG `PlanoContaAgro` · entra nas sugestões de plano |
+| **Migrate** | **SIM** · `0082_plano_conta_agro` |
+| **Status** | 🧪 **teste** |
+
 ### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
