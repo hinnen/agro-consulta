@@ -1267,9 +1267,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** (Saída A) · **sem migrate** na loja |
 | **Onde** | Configuração (F11) → **Planos de contas** |
-| **Commit loja** | **só** `e109918` (tela) · opcional `3ecc824` (botão «Carregar lista padrão» se vazio) |
+| **Commit loja** | `e109918` (tela) + `3ecc824` (botão «Carregar lista padrão») + **`fe7746c`** (visual §11 — obrigatório) |
 | **NÃO subir** | `c6757fd` / migrate **0084** (loja já tem `0065`) |
-| **Prova** | `verify_planos_conta.py` **23/23** |
+| **Prova** | `verify_planos_conta.py` **24/24** (inclui contrato de layout) · medido 1366×768 e 2333 px: 2 colunas, página não rola |
 | **Você** | Ctrl+F5 · F11 → Planos · edita um dos 44 |
 | **Autorizar** | *pode subir PLANOS-CONTA / planos de contas para produção* + **99738595** |
 
@@ -1340,7 +1340,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 Plano de contas SisVale (`PLANOS-CONTA` · detalhe)
 
-> Vigente no topo: **PACOTE PRONTO PLANOS-CONTA**. Loja: cherry-pick **só** `e109918` (+ opcional `3ecc824`). **Não** subir `c6757fd`/`0084` (loja já tem `0065`). Merge `teste`→`producao` apagaria util da loja — só branch isolada.
+> Vigente no topo: **PACOTE PRONTO PLANOS-CONTA**. Loja: cherry-pick `e109918` + `3ecc824` + **`fe7746c`**. **Não** subir `c6757fd`/`0084` (loja já tem `0065`). Merge `teste`→`producao` apagaria util da loja — só branch isolada.
+>
+> **Visual (05/08 · Renan reprovou a 1ª versão):** tela refeita no contrato **§4.14 / AGENTS §5 e §11** — shell **16:9** ocupando a largura toda (form à esquerda ~27 %, lista à direita), `100dvh` + `overflow: hidden` (**página não rola**, só a lista), tipografia e alturas em `clamp`/`rem` (sem `px` fixo, sem `zoom` local), `@container` cai para 1 coluna abaixo de 62 rem, cabeçalho da tabela fixo. `verify_planos_conta.py` agora **falha** se a tela voltar a ter coluna estreita, `px` fixo, `zoom` local ou rolagem de página.
 
 ### 📦 CHECKLIST ÚNICO — pós v14.41 (05/08) · **superado**
 
