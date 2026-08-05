@@ -1190,7 +1190,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)
 
 > **Loja hoje:** badge **v14.41** · `producao` @ **2efcc60** · revert tag `checkpoint-loja-pre-lote-20260805`  
-> **Teste:** badge **v14.51** · HEAD `teste`  
+> **Teste:** badge **v14.54** · HEAD `teste`  
 > **⚠️** Só branch isolada / cherry-pick — **não** merge `teste`→`producao`.
 
 | # | Pacote | Status | Commit(s) | Migrate |
