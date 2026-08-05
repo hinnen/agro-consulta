@@ -673,6 +673,11 @@ urlpatterns = [
         name='api_produtos_gestao_overlay_salvar',
     ),
     path(
+        'api/produtos/custo-familia/propagar/',
+        views.api_custo_familia_propagar,
+        name='api_custo_familia_propagar',
+    ),
+    path(
         'api/produtos/gestao/mongo-codigo-sistema-reparar/',
         views.api_produtos_gestao_mongo_codigo_sistema_reparar,
         name='api_produtos_gestao_mongo_codigo_sistema_reparar',

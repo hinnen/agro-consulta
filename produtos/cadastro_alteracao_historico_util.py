@@ -45,12 +45,14 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("fiscal_cst_pis_cofins", "CST PIS/COFINS"),
     ("kit_baixa_componentes", "Kit: baixar componentes"),
     ("kit_deposito", "Kit: depósito"),
+    ("composicao", "Kit: componentes"),
     ("precos_modo", "Modo preços"),
     ("precos_por_forma", "Preços por forma"),
     ("precos_grupos", "Preços grupos A/B"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
     ("codigos_barras_opcionais", "Barras opcionais"),
+    ("custo_familia", "Custo do saco (família)"),
     ("variacoes", "Marcas / códigos"),
 ]
 
@@ -120,6 +122,7 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["fiscal_cst_pis_cofins"] = fiscal.get("cst_pis_cofins") or ""
     out["kit_baixa_componentes"] = kit.get("baixa_componentes")
     out["kit_deposito"] = kit.get("deposito") or ""
+    out["composicao"] = ex.get("composicao") if isinstance(ex.get("composicao"), list) else None
     out["precos_modo"] = ex.get("precos_modo") or ""
     out["precos_por_forma"] = ex.get("precos_por_forma")
     out["precos_grupos"] = ex.get("precos_grupos")
@@ -130,6 +133,7 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     else:
         out["c_prods_nf"] = str(ex.get("entrada_nfe_c_prod") or "").strip()
     out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
+    out["custo_familia"] = ex.get("custo_familia") if isinstance(ex.get("custo_familia"), dict) else None
     return out
 
 

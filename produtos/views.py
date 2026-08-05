@@ -2068,6 +2068,30 @@ def api_produtos_gestao_overlay_salvar(request):
         return JsonResponse(out, status=500)
 
 
+
+def api_custo_familia_propagar(request):
+    """Recalcula pacotes/granel ligados ao saco (pai) informado."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    pid = str(payload.get("produto_id") or "").strip()[:64]
+    if not pid:
+        return JsonResponse({"ok": False, "erro": "produto_id obrigatório"}, status=400)
+    try:
+        from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+        out = propagar_custo_familia_de_pai(
+            pid,
+            origem="overlay",
+            usuario=request.user if request.user.is_authenticated else None,
+        )
+        return JsonResponse(out)
+    except Exception as exc:
+        logger.exception("api_custo_familia_propagar")
+        return JsonResponse({"ok": False, "erro": str(exc)[:300]}, status=500)
+
+
 def _payload_truthy_sincronizar_erp_legado(payload: dict) -> bool:
     """Se verdadeiro, após gravar overlay envia ``Produtos/Salvar`` ao ERP legado."""
     if not agro_cadastro_produto_erp_sync_habilitado():
@@ -2838,8 +2862,25 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if "kit" in payload and isinstance(payload.get("kit"), dict):
         k_in = payload["kit"]
         k_prev = dict(ex.get("kit") or {}) if isinstance(ex.get("kit"), dict) else {}
-        if "baixa_componentes" in k_in:
+        if "usar" in k_in or "ativo" in k_in:
+            usar_raw = k_in.get("usar") if "usar" in k_in else k_in.get("ativo")
+            if isinstance(usar_raw, bool):
+                usar = usar_raw
+            else:
+                usar = str(usar_raw or "").strip().lower() in (
+                    "1",
+                    "true",
+                    "yes",
+                    "on",
+                    "sim",
+                    "s",
+                )
+            k_prev["usar"] = usar
+            # Ferramenta ligada = baixa automática dos componentes.
+            k_prev["baixa_componentes"] = usar
+        elif "baixa_componentes" in k_in:
             k_prev["baixa_componentes"] = bool(k_in.get("baixa_componentes"))
+            k_prev["usar"] = bool(k_in.get("baixa_componentes"))
         if "deposito" in k_in:
             k_prev["deposito"] = str(k_in.get("deposito") or "").strip()[:16]
         ex["kit"] = k_prev
@@ -2898,10 +2939,34 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             ex["precos_grupos"] = pg
         else:
             ex.pop("precos_grupos", None)
-    if "preco_custo" in payload:
+    if "custo_familia" in payload:
+        from produtos.custo_familia_util import (
+            custo_filho_desde_familia,
+            mesclar_custo_familia_no_extras,
+        )
+
+        mesclar_custo_familia_no_extras(
+            ex, payload.get("custo_familia"), filho_id=pid
+        )
+        # Com sync ligado, custo do filho vem do saco (pai) — sobrescreve o digitado.
+        calc_cf = custo_filho_desde_familia(ex)
+        if calc_cf is not None:
+            custo_payload = calc_cf
+    if "composicao" in payload:
+        from produtos.composicao_kit_util import mesclar_composicao_no_extras
+
+        mesclar_composicao_no_extras(ex, payload.get("composicao"))
+    # Depois do kit manual: saco pode injetar/atualizar a linha de estoque automática.
+    if "custo_familia" in payload or "composicao" in payload:
+        from produtos.custo_familia_util import aplicar_vinculo_saco_na_composicao
+
+        aplicar_vinculo_saco_na_composicao(ex)
+    if "preco_custo" in payload or (
+        "custo_familia" in payload and custo_payload is not None
+    ):
         if custo_payload is not None:
             ex["preco_custo_overlay"] = float(custo_payload)
-        else:
+        elif "preco_custo" in payload:
             ex.pop("preco_custo_overlay", None)
     if "modelo" in payload:
         mod = _txt("modelo", 200)
@@ -3055,7 +3120,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         )
         # Custo não tem coluna no overlay SQLite: sem gravar no Mongo o espelho continua vazio e o
         # cadastro «Salvar no Agro» parece «reverter» o custo ao reabrir (só ``Produtos/Salvar`` atualizava).
-        if "preco_custo" in payload and custo_payload is not None:
+        if ("preco_custo" in payload or "custo_familia" in payload) and custo_payload is not None:
             try:
                 cfloat = float(custo_payload)
                 res_c = db[client.col_p].update_one(
@@ -3155,6 +3220,23 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     except Exception:
         pass
 
+    # Saco (pai) mudou de custo → atualiza pacotes/granel vinculados.
+    prop_familia: dict | None = None
+    if custo_payload is not None and (
+        "preco_custo" in payload or "custo_familia" in payload
+    ):
+        try:
+            from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+            prop_familia = propagar_custo_familia_de_pai(
+                pid,
+                custo_payload,
+                origem="overlay",
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+        except Exception:
+            logger.warning("overlay salvar: propagar custo_familia", exc_info=True)
+
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
@@ -3166,6 +3248,8 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         row = cat_agro.produto_model_para_resposta_salvar(p_mod, ov)
         uid = int(getattr(request.user, "pk", None) or 0)
         resp_pg: dict = {"ok": True, "produto": row, "fonte": "agro_pg", "somente_agro": True}
+        if prop_familia and prop_familia.get("atualizados"):
+            resp_pg["custo_familia_propagados"] = prop_familia.get("atualizados")
         if push_erp and agro_cadastro_produto_erp_sync_habilitado():
             resp_pg["aviso_erp"] = (
                 "Catálogo SisVale (Postgres): envio ao ERP legado não usa espelho Mongo nesta etapa."
@@ -15404,7 +15488,7 @@ def aplicar_baixa_estoque_venda_agro(
             if db is not None and not sem_mongo
             else None
         )
-        comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
+        comp = _composicao_efetiva_produto_agro(ov, p_doc)
 
         if baixa_cmp and comp:
             for c in comp:
@@ -15598,7 +15682,7 @@ def aplicar_estorno_estoque_venda_agro(
             if db is not None and not sem_mongo
             else None
         )
-        comp = _extrair_composicao_produto_mongo(p_doc or {}) if p_doc else []
+        comp = _composicao_efetiva_produto_agro(ov, p_doc)
 
         if baixa_cmp and comp:
             for c in comp:
@@ -16682,6 +16766,12 @@ def _entrada_nfe_gravar_custo_sisvale(pid: str, val: Decimal) -> bool:
         if p is not None:
             p.custo = val
             p.save(update_fields=["custo", "atualizado_em"])
+    try:
+        from produtos.custo_familia_util import propagar_custo_familia_de_pai
+
+        propagar_custo_familia_de_pai(pid64, val, origem="entrada_nf")
+    except Exception:
+        logger.warning("entrada_nfe: propagar custo_familia %s", pid64, exc_info=True)
     return True
 
 
@@ -21750,6 +21840,35 @@ def _margem_percentual_produto_pv(p: dict, pv: float) -> float | None:
     return round(float(mva_pct), 2)
 
 
+
+def _composicao_efetiva_produto_agro(ov, p_doc: dict | None) -> list[dict]:
+    """Preferência: overlay Agro; senão espelho Mongo (ERP)."""
+    from produtos.composicao_kit_util import extrair_composicao_overlay
+
+    ce = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+    if isinstance(ce, dict) and "composicao" in ce:
+        return extrair_composicao_overlay(ce)
+    return _extrair_composicao_produto_mongo(p_doc or {})
+
+
+def _enriquecer_composicao_com_custos(db, client_m, comp: list[dict]) -> list[dict]:
+    out = []
+    for it in comp or []:
+        if not isinstance(it, dict):
+            continue
+        row = dict(it)
+        spid = str(row.get("produto_id") or "").strip()
+        if not spid:
+            row["custo_unitario_agro"] = None
+            out.append(row)
+            continue
+        dchild = _produto_mongo_por_id_externo(db, client_m, spid) if db is not None else None
+        cdec = _custo_unitario_agro_para_produto_id(db, client_m, spid, dchild)
+        row["custo_unitario_agro"] = round(float(cdec), 4) if cdec is not None else None
+        out.append(row)
+    return out
+
+
 def _extrair_composicao_produto_mongo(p: dict) -> list[dict]:
     candidatos = (
         "ItensComposicao",
@@ -22334,7 +22453,7 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         "cst_pis_cofins": _mongo_primeiro_texto(
             p, ("CstPisCofins", "CSTPIS", "PisCofinsCST", "CstPis", "CstCofins")
         ),
-        "composicao": _extrair_composicao_produto_mongo(p),
+        "composicao": _composicao_efetiva_produto_agro(ov_det, p),
         "similares": _resolver_similares_produto_mongo(db, client_m, p),
     }
     row.update(extra)
@@ -22350,6 +22469,32 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
         row["modelo"] = str(ce_ov.get("modelo") or "").strip()[:200]
     if ce_ov and "permite_venda_estoque_negativo" in ce_ov:
         row["permite_venda_estoque_negativo"] = bool(ce_ov.get("permite_venda_estoque_negativo"))
+    try:
+        from produtos.custo_familia_util import (
+            extrair_custo_familia,
+            ler_custo_produto,
+            calcular_custo_filho,
+            resumo_filhos_do_pai,
+        )
+
+        cf_row = extrair_custo_familia(ce_ov or {})
+        if cf_row:
+            row["custo_familia"] = cf_row
+            cp_pai = ler_custo_produto(cf_row.get("pai_produto_id") or "")
+            if cp_pai is not None:
+                row["custo_familia"]["custo_pai_atual"] = float(cp_pai)
+                calc = calcular_custo_filho(
+                    cp_pai, cf_row.get("kg_pai"), cf_row.get("kg_filho")
+                )
+                if calc is not None:
+                    row["custo_familia"]["custo_calculado"] = float(calc)
+        else:
+            row["custo_familia"] = None
+        filhos_cf = resumo_filhos_do_pai(pid_det)
+        row["custo_familia_filhos"] = filhos_cf
+    except Exception:
+        row["custo_familia"] = None
+        row["custo_familia_filhos"] = []
     ppf_det = extrair_precos_por_forma_cadastro_extras(ce_ov or {})
     if ppf_det:
         row["precos_por_forma"] = ppf_det
@@ -22369,16 +22514,35 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     wv = _custo_medio_ponderado_variacoes_rows(var_rows)
     row["custo_medio_variacoes"] = round(float(wv), 4) if wv is not None else None
 
-    if extra.get("eh_kit"):
-        ck = _custo_total_kit_composicao_agro(db, client_m, p)
+    if extra.get("eh_kit") or (isinstance(row.get("composicao"), list) and row["composicao"]):
+        from produtos.composicao_kit_util import custo_total_composicao
+
+        comp_enr = _enriquecer_composicao_com_custos(db, client_m, row.get("composicao") or [])
+        row["composicao"] = comp_enr
+        manuais_kit = [
+            x
+            for x in comp_enr
+            if isinstance(x, dict) and str(x.get("origem") or "") != "custo_familia"
+        ]
+        # Só kit «de verdade» (insumos manuais). Linha só do saco ≠ trava custo como kit.
+        eh_kit_efetivo = bool(extra.get("eh_kit") or manuais_kit)
+        ck = None
+        if eh_kit_efetivo:
+            ck = custo_total_composicao(comp_enr)
+            if ck is None and extra.get("eh_kit"):
+                ck = _custo_total_kit_composicao_agro(db, client_m, p)
         row["custo_kit_composicao"] = round(float(ck), 4) if ck is not None else None
+        row["eh_kit"] = eh_kit_efetivo
     else:
         row["custo_kit_composicao"] = None
 
+    # custos por linha já no enriquecimento acima; legado só se ainda sem custo
     comp = row.get("composicao")
     if isinstance(comp, list):
         for it in comp:
             if not isinstance(it, dict):
+                continue
+            if it.get("custo_unitario_agro") is not None:
                 continue
             spid = str(it.get("produto_id") or "").strip()
             if not spid:
