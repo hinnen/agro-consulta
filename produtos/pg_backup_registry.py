@@ -81,6 +81,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
             "financeiro.LancamentoFinanceiro",
             "produtos.OpcaoBaixaFinanceiroExtra",
             "produtos.PlanoContaAgro",
+            "produtos.PlanoContaAliasAgro",
             "produtos.LancamentoAtalhoFiltro",
             "financeiro.GraficoGastosAtalhoAgro",
         ),

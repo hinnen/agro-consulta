@@ -37,7 +37,7 @@
         <details class="relative">
           <summary class="list-none cursor-pointer px-2.5 py-1 rounded-full bg-slate-100 border border-slate-300 text-sm font-black text-slate-700">?</summary>
           <div class="absolute right-0 top-full mt-2 z-20 w-72 p-3 bg-slate-800 text-white text-sm font-semibold rounded-lg shadow-xl leading-snug">
-            Crie planos usados nos Lançamentos e na Entrada NF. O nome precisa ser único. Código (ex. 2.1.3) é opcional.
+            Crie planos usados nos Lançamentos e na Entrada NF. O nome precisa ser único. Tipo (Fixa / Variável / Outra) é só classificação; desativar não apaga nada e não muda títulos antigos.
           </div>
         </details>
       </div>
@@ -48,18 +48,14 @@
           <input id="pc-nome" type="text" maxlength="200" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="Ex.: MANUTENÇÃO LOJA">
         </label>
         <label class="block">
-          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Código</span>
-          <input id="pc-codigo" type="text" maxlength="40" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="2.1.3">
-        </label>
-        <label class="block">
-          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Natureza</span>
-          <select id="pc-natureza" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none">
-            {% for val, lab in naturezas %}
+          <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Tipo</span>
+          <select id="pc-tipo" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold bg-white focus:border-emerald-500 outline-none">
+            {% for val, lab in tipos %}
             <option value="{{ val }}">{{ lab }}</option>
             {% endfor %}
           </select>
         </label>
-        <label class="block sm:col-span-2">
+        <label class="block">
           <span class="text-xs font-black uppercase text-slate-500 mb-1 block">Grupo</span>
           <input id="pc-grupo" type="text" maxlength="120" autocomplete="off" class="w-full pc-touch px-3 rounded-xl border-2 border-slate-200 text-base font-bold focus:border-emerald-500 outline-none" placeholder="Opcional">
         </label>
@@ -87,7 +83,7 @@
           <thead class="bg-slate-900 text-white text-[10px] font-black uppercase sticky top-0">
             <tr>
               <th class="px-3 py-2.5 text-left">Nome</th>
-              <th class="px-3 py-2.5 text-left">Natureza</th>
+              <th class="px-3 py-2.5 text-left">Tipo</th>
               <th class="px-3 py-2.5 text-left">Status</th>
               <th class="px-3 py-2.5 text-right">Ações</th>
             </tr>
@@ -114,9 +110,8 @@
     function limpar() {
       document.getElementById('pc-pk').value = '';
       document.getElementById('pc-nome').value = '';
-      document.getElementById('pc-codigo').value = '';
       document.getElementById('pc-grupo').value = '';
-      document.getElementById('pc-natureza').value = 'despesa';
+      document.getElementById('pc-tipo').value = 'outra';
       document.getElementById('pc-form-titulo').textContent = 'Novo plano';
       msg('');
     }
@@ -142,7 +137,9 @@
               '<td class="px-3 py-3"><div class="font-black text-slate-900">' + esc(it.nome_exibicao || it.nome) + '</div>' +
               (it.grupo ? '<div class="text-xs font-semibold text-slate-500">' + esc(it.grupo) + '</div>' : '') +
               '</td>' +
-              '<td class="px-3 py-3 font-bold text-slate-700">' + esc(it.natureza_label || it.natureza) + '</td>' +
+              '<td class="px-3 py-3 font-bold text-slate-700">' + esc(it.tipo_label || it.tipo) +
+              (it.apelidos ? '<div class="text-xs font-semibold text-slate-400">' + it.apelidos + ' apelido(s)</div>' : '') +
+              '</td>' +
               '<td class="px-3 py-3">' + st + '</td>' +
               '<td class="px-3 py-3 text-right whitespace-nowrap">' +
               '<button type="button" data-edit="' + it.pk + '" class="pc-touch px-3 rounded-lg border-2 border-slate-200 text-xs font-black uppercase text-slate-700 mr-1">Editar</button>' +
@@ -157,9 +154,8 @@
               if (!it) return;
               document.getElementById('pc-pk').value = String(it.pk);
               document.getElementById('pc-nome').value = it.nome || '';
-              document.getElementById('pc-codigo').value = it.codigo || '';
               document.getElementById('pc-grupo').value = it.grupo || '';
-              document.getElementById('pc-natureza').value = it.natureza || 'despesa';
+              document.getElementById('pc-tipo').value = it.tipo || 'outra';
               document.getElementById('pc-form-titulo').textContent = 'Editar plano';
               msg('Editando…', true);
               window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -204,9 +200,8 @@
       var body = {
         pk: document.getElementById('pc-pk').value || null,
         nome: document.getElementById('pc-nome').value,
-        codigo: document.getElementById('pc-codigo').value,
         grupo: document.getElementById('pc-grupo').value,
-        natureza: document.getElementById('pc-natureza').value,
+        tipo: document.getElementById('pc-tipo').value,
         ativo: true
       };
       fetch(API_SALVAR, {

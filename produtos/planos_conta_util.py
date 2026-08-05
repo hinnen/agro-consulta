@@ -26,16 +26,16 @@ def parse_id_publico(raw: str) -> int | None:
 
 def serializar_plano(p: PlanoContaAgro) -> dict[str, Any]:
     return {
-        "id": p.id_publico,
+        "id": id_publico_plano(p.pk),
         "pk": p.pk,
         "nome": p.nome,
-        "nome_exibicao": p.nome_exibicao(),
-        "codigo": p.codigo or "",
-        "natureza": p.natureza,
-        "natureza_label": p.get_natureza_display(),
+        "nome_exibicao": p.nome,
+        "tipo": p.tipo or PlanoContaAgro.Tipo.OUTRA,
+        "tipo_label": p.get_tipo_display(),
         "grupo": p.grupo or "",
         "ativo": bool(p.ativo),
         "observacao": p.observacao or "",
+        "apelidos": p.aliases.count(),
         "fonte": "agro",
     }
 
@@ -46,11 +46,7 @@ def listar_planos_agro(*, q: str = "", incluir_inativos: bool = False) -> list[d
         qs = qs.filter(ativo=True)
     qq = (q or "").strip()
     if qq:
-        qs = qs.filter(
-            Q(nome__icontains=qq)
-            | Q(codigo__icontains=qq)
-            | Q(grupo__icontains=qq)
-        )
+        qs = qs.filter(Q(nome__icontains=qq) | Q(grupo__icontains=qq))
     return [serializar_plano(p) for p in qs[:300]]
 
 

@@ -250,7 +250,6 @@ class OpcaoBaixaFinanceiroExtraAdmin(admin.ModelAdmin):
 
 @admin.register(PlanoContaAgro)
 class PlanoContaAgroAdmin(admin.ModelAdmin):
-    list_display = ("id", "nome", "codigo", "natureza", "ativo", "atualizado_em")
-    list_filter = ("natureza", "ativo")
-    search_fields = ("nome", "codigo", "grupo")
-    raw_id_fields = ("criado_por",)
+    list_display = ("id", "nome", "tipo", "grupo", "ativo", "atualizado_em")
+    list_filter = ("tipo", "ativo")
+    search_fields = ("nome", "grupo")

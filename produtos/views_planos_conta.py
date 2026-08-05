@@ -23,7 +23,7 @@ def planos_conta_config_view(request):
         request,
         "produtos/planos_conta_config.html",
         {
-            "naturezas": PlanoContaAgro.Natureza.choices,
+            "tipos": PlanoContaAgro.Tipo.choices,
         },
     )
 
@@ -57,12 +57,11 @@ def api_planos_conta_salvar(request):
             status=400,
         )
 
-    codigo = str(body.get("codigo") or "").strip()[:40]
     grupo = str(body.get("grupo") or "").strip()[:120]
-    observacao = str(body.get("observacao") or "").strip()[:300]
-    natureza = str(body.get("natureza") or PlanoContaAgro.Natureza.DESPESA).strip().lower()
-    if natureza not in {c.value for c in PlanoContaAgro.Natureza}:
-        natureza = PlanoContaAgro.Natureza.DESPESA
+    observacao = str(body.get("observacao") or "").strip()[:400]
+    tipo = str(body.get("tipo") or PlanoContaAgro.Tipo.OUTRA).strip().lower()
+    if tipo not in {c.value for c in PlanoContaAgro.Tipo}:
+        tipo = PlanoContaAgro.Tipo.OUTRA
     ativo = body.get("ativo")
     if isinstance(ativo, bool):
         ativo_b = ativo
@@ -95,10 +94,9 @@ def api_planos_conta_salvar(request):
                     status=400,
                 )
             obj.nome = nome
-            obj.codigo = codigo
             obj.grupo = grupo
             obj.observacao = observacao
-            obj.natureza = natureza
+            obj.tipo = tipo
             obj.ativo = ativo_b
             obj.save()
         else:
@@ -109,12 +107,10 @@ def api_planos_conta_salvar(request):
                 )
             obj = PlanoContaAgro.objects.create(
                 nome=nome,
-                codigo=codigo,
                 grupo=grupo,
                 observacao=observacao,
-                natureza=natureza,
+                tipo=tipo,
                 ativo=ativo_b,
-                criado_por=request.user if request.user.is_authenticated else None,
             )
     except IntegrityError:
         return JsonResponse(
