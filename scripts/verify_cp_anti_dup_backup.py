@@ -63,11 +63,17 @@ def main() -> None:
         "api_lancamentos_backup_ultimo",
         "Só em aberto",
         "initBackupCp",
+        ".sv-backup-menu[hidden] { display: none; }",
+        "function fecharMenu()",
+        "ev.key === 'Escape'",
+        'id="sv-backup-menu" hidden',
     ):
         if needle not in tpl:
             fail(f"tela CP sem '{needle}'")
+    if tpl.count("fecharMenu();") < 3:
+        fail("fecharMenu() deve fechar após baixar + Esc/fora (marcadores < 3)")
     checks += 1
-    ok("UI Backup CP")
+    ok("UI Backup CP (menu fecha de verdade)")
 
     ent = Path(ROOT, "produtos/templates/produtos/entrada_nota.html").read_text(encoding="utf-8")
     if "__entradaNfeFinSalvando" not in ent:

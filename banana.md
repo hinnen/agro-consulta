@@ -1187,40 +1187,90 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
+### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)
+
+> **Loja hoje:** badge **v14.41** · `producao` @ **2efcc60** · revert tag `checkpoint-loja-pre-lote-20260805`  
+> **Teste:** badge **v14.50** · HEAD `teste`  
+> **⚠️** Só branch isolada / cherry-pick — **não** merge `teste`→`producao`.
+
+| # | Pacote | Status | Commit(s) | Migrate |
+| - | ------ | ------ | --------- | ------- |
+| 1 | **BI-TOPBAR-DATAS** | 📋 **pronto para envio à produção** | `8d6976f` | **NÃO** |
+| 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
+| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` | **NÃO** |
+| 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | **só** `e109918` (+ opcional `3ecc824`) · **sem** `c6757fd`/`0084` | **NÃO** na loja |
+
+**Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
+
+**Prova lote pendente:** `python scripts/verify_pacotes_pendentes_0508.py` → **VERIFY_OK 9/9** · `verify_cp_anti_dup_backup.py` **11/11** · `verify_bi_topbar_total.py` **35/35** · `verify_planos_conta.py` **23/23** · `manage.py check` OK · ZIP Backup abertos **200** (PG).
+
+**Autorizar:** frase explícita do pacote (ou *lote checklist 05/08*) + **99738595** na mesma mensagem.
+
+### 📦 PACOTE PRONTO LOJA — BI topbar filtros de data (`BI-TOPBAR-DATAS` · **v14.45**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Sintoma** | Nota já na etapa 6; Renan trocou o 1º produto e finalizou: o **saldo continuou no produto antigo** e o novo ficou sem entrada |
-| **Causa** | `entradaNfeProdutosEtapaInvalidate` sai cedo quando a nota é «legado/concluída» (estoque aplicado) → troca no botão **Mudar** não invalidava nada nem estornava |
-| **Fix front** | Trocar produto (Mudar / bip / busca) **ou remover linha vinculada** com estoque/financeiro/PIN já lançados abre modal **«Estornar e trocar»** (PIN) → chama `api_entrada_nota_reabrir_nota` (estorna saldo + título), limpa carimbos no cliente, aplica o produto e volta à **etapa 2**; cancelar = não troca |
-| **Fix back** | `entrada_nfe_bloqueio_troca_produto_com_estoque` em `atualizar_rascunho_entrada`: com estoque aplicado, salvar linhas com conjunto de `produto_id` diferente é **recusado** (`requer_estorno`) — trava multi-PC |
-| **Arquivos** | `produtos/templates/produtos/entrada_nota.html` · `produtos/nfe_entrada_util.py` |
-| **Prova** | `manage.py check` OK · template compila · teste da função de bloqueio (troca/remoção bloqueiam; mesma lista passa) |
+| **Status** | 📋 **pronto para envio à produção** |
+| **O quê** | Filtros `Mês até hoje`…`Datas` nunca cortados · marca/rótulo Loja só ≥1600px · badge **`Trava: Vila`** só com caixa travado · JS mede largura e joga filtros p/ 2ª linha se não couber |
+| **Arquivo** | `dashboard_gerencial.html` |
+| **Commit** | `8d6976f` |
+| **Prova** | `verify_pacotes_pendentes_0508.py` · `verify_bi_topbar_total.py` **35/35** · Chrome 820–1920 |
 | **Migrate** | **NÃO** |
+| **Risco** | Baixo — só BI `/` |
+| **Você** | Ctrl+F5 `/` · «Datas» visível · trava do caixa aparece só quando trava |
+| **Autorizar** | *pode subir BI-TOPBAR-DATAS / filtros BI para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Backup CP menu fecha (`CP-BACKUP-MENU` · **v14.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** |
+| **O quê** | Overlay amarelo do **Backup** não fica aberto sozinho · fecha fora / Esc / após baixar ZIP |
+| **Arquivo** | `lancamentos_contas_pagar_teste.html` |
+| **Commit** | `e0652c5` |
+| **Prova** | `verify_cp_anti_dup_backup.py` **11/11** · ZIP abertos 200 + `backup_ultimo` grava · CSS `[hidden]` depois do `display:flex` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI do botão Backup (CP-DUP-BACKUP já Live) |
+| **Você** | Ctrl+F5 CP · Backup fechado · clica → abre → baixa → fecha |
+| **Autorizar** | *pode subir CP-BACKUP-MENU / Backup CP para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **v14.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** |
+| **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) |
+| **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` |
+| **Commit** | `7f8a78d` |
+| **Prova** | `verify_pacotes_pendentes_0508.py` (bloqueio troca/remoção + modal) · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio-baixo — mexe em Entrada NF já concluída; estorno usa API de reabrir já existente |
+| **Você** | Nota com estoque · Mudar produto → modal PIN · saldo antigo some / novo entra |
+| **Autorizar** | *pode subir NF-TROCA-ESTORNO / troca produto NF para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Planos de contas Config (`PLANOS-CONTA` · **v14.26+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** (Saída A) · **sem migrate** na loja |
+| **Onde** | Configuração (F11) → **Planos de contas** |
+| **Commit loja** | **só** `e109918` (tela) · opcional `3ecc824` (botão «Carregar lista padrão» se vazio) |
+| **NÃO subir** | `c6757fd` / migrate **0084** (loja já tem `0065`) |
+| **Prova** | `verify_planos_conta.py` **23/23** |
+| **Você** | Ctrl+F5 · F11 → Planos · edita um dos 44 |
+| **Autorizar** | *pode subir PLANOS-CONTA / planos de contas para produção* + **99738595** |
+
+### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
+
+> Empacotado em **NF-TROCA-ESTORNO** (acima).
 
 ### 🐞 FIX — painel Backup do CP ficava sempre aberto (05/08 · **teste v14.46**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Em Contas a pagar o overlay amarelo do botão **Backup** aparecia sempre, sem clicar |
-| **Causa** | `.sv-backup-menu { display: flex }` vencia o atributo `hidden` (especificidade de classe > regra do navegador) |
-| **Fix** | `.sv-backup-menu[hidden] { display: none; }` + `fecharMenu()` no JS: fecha ao clicar fora, no **Esc** e **depois de baixar** o ZIP |
-| **Arquivo** | `produtos/templates/produtos/lancamentos_contas_pagar_teste.html` |
-| **Prova** | render logado 200 + 6/6 marcadores → **VERIFY_OK** (tela precisa login; conferir no Chrome) |
-| **Migrate** | **NÃO** |
+> Empacotado em **CP-BACKUP-MENU** (acima).
 
 ### 🔧 BI topbar — filtros de data nunca escondidos (05/08 · **teste v14.45**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Botões de período (`Mês até hoje`…`Datas`) cortados pelo bloco Sync; ajuste anterior melhorou mas não resolveu |
-| **O quê** | Texto «Gestão Estratégica / SisVale BI» só ≥1600px (ícone + `v` + `Aa` sempre) · rótulo «Loja» só ≥1600px · seletor mais estreito · badge `TRAVADO: VILA ELIAS` → **`Trava: Vila`** e **só quando o caixa trava** (livre = seletor já diz a loja) · botões mais compactos <1600px |
-| **Chave** | JS mede a largura pedida por marca+ações+filtros+sync; se não cabe, classe `dash-topbar--periods-row` joga os 7 filtros para uma **linha inteira** deles (volta a 1 linha quando sobra espaço). Reage a resize, Display Scale (ResizeObserver) e ao badge de trava |
-| **Arquivo** | `produtos/templates/produtos/dashboard_gerencial.html` (CSS topbar + IIFE `agroDashTopbarAjustar` + `updateBadge`) |
-| **Prova local** | Chrome CDP em 1920/1600/1366/1280/1180/1024/820 + zoom Display Scale + trava ligada/desligada → «Datas» visível em todos, sem scroll lateral |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só topbar do BI |
+> Empacotado em **BI-TOPBAR-DATAS** (acima).
 
 ### 📦 PACOTE PRONTO LOJA — Gráfico gastos acerto + visual (`GG-GASTOS` · **v14.30+**)
 
@@ -1275,64 +1325,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · CP: botão Backup · Entrada NF: não gerar 2º lote na mesma chave |
 | **Autorizar** | *pode subir CP-DUP-BACKUP / anti-duplicata CP para produção* + **99738595** |
 
-### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **v14.26**)
+### 📦 Plano de contas SisVale (`PLANOS-CONTA` · detalhe)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** (conflito resolvido 05/08 — **Saída A**) · VERIFY_OK 23/23 · **sem migrate** na loja |
-| **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
-| **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
-| **Migrate** | **SIM** · `0082_plano_conta_agro` |
-| **Prova** | `python scripts/verify_planos_conta.py` → **VERIFY_OK** |
-| **Commit** | `7270317` (+ verify neste push) |
-| **Você** | Ctrl+F5 · F11 → Planos · criar um · ver em Lançamentos busca plano |
+> Vigente no topo: **PACOTE PRONTO PLANOS-CONTA**. Loja: cherry-pick **só** `e109918` (+ opcional `3ecc824`). **Não** subir `c6757fd`/`0084` (loja já tem `0065`). Merge `teste`→`producao` apagaria util da loja — só branch isolada.
 
-**Raiz do conflito (diagnóstico 05/08):** a loja tem cadastro de planos desde **v11.82** (`0065_plano_conta_agro_cadastro`, commit `a459735`) — **44 planos** em `produtos_planocontaagro` + **40 aliases** em `produtos_planocontaaliasagro`, usados por `plano_conta_agro_util.py`, `lancamentos_financeiro_pg_util.py`, `..._pg_write_util.py` e APIs `api/lancamentos/planos-cadastro|criar|orfaos|mapear`. Esse pacote **nunca entrou no `teste`** (só na linha `producao`) → o `teste` está **atrás** da loja nessa área e a `0082` criou **outro** `PlanoContaAgro` na **mesma tabela**.
+### 📦 CHECKLIST ÚNICO — pós v14.41 (05/08) · **superado**
 
-| Choque | Loja (`0065`, Live) | Teste (`0082`) |
-| ------ | ------------------- | -------------- |
-| Colunas | `nome`, **`tipo`** (NOT NULL), `grupo`, `observacao`, `ativo`, datas | `nome`, **`codigo`**, **`natureza`**, `grupo`, `ativo`, `observacao`, datas, **`criado_por`** — **sem** `tipo` |
-| Alias | `PlanoContaAliasAgro` (40 linhas, resolvedor de grafia) | **não existe** |
-| Migrate | tabela já existe → `0082` quebra (`relation already exists`) | roda limpo no PC |
-| Se «fakear» a `0082` | tela nova consulta `codigo` / `natureza` → **500** na loja; INSERT sem `tipo` também falha |
-
-**Resolvido (Saída A · 05/08):** o `teste` **adotou** o modelo da loja — `PlanoContaAgro` agora é **idêntico** ao de `producao` (`tipo` + `PlanoContaAliasAgro`); `codigo`/`natureza`/`criado_por` saíram. A tela de Configuração passa a **editar os 44 planos** que a loja já tem e mostra a contagem de apelidos.
-
-| Commit | O quê | Vai para a loja? |
-| ------ | ----- | ---------------- |
-| `c6757fd` | `models.py` + **migration `0084`** + verify — alinha o **teste** | ❌ **NÃO** — a loja já veio do `0065` |
-| `e109918` | tela / util / template / admin / backup registry | ✅ **sim** — é só código, **zero migrate** |
-
-- `0084` é **condicional** (checa colunas / tabelas): no banco da loja seria no-op, mas o **state** do Django quebraria lá → **não** cherry-pick.
-- Provado no PC: `0084` roda em banco antigo **e** em banco já no formato da loja (2ª vez = no-op) · `verify_planos_conta.py` **22/22** · `manage.py check` OK.
-- Apelidos entraram no backup PG (`produtos.PlanoContaAliasAgro`).
-- **Lista vazia no PC é normal:** os 44 planos nasceram do seed do `0065`, que só rodou na loja. Tela vazia mostra botão **«Carregar lista padrão»** (`api/configuracao/planos-conta/carregar-padrao/`) que lê `docs/dados/plano_despesas_*.csv` — no PC gerou **44 planos + 40 apelidos**, igual à loja; rodar 2× não duplica. Na loja o botão nem aparece (já tem lista).
-
-**⚠️ Alerta geral:** `teste` ainda **não tem** `plano_conta_agro_util.py` (resolvedor de grafia, órfãos, seed) que a loja usa — merge `teste` → `producao` **apagaria** isso. Só branch isolada por pacote. Trazer esse util para o `teste` é tarefa separada.
-
-### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
-
-> **Atualizado 05/08 pós-deploy:** loja **v14.41** · `producao` @ **2efcc60** · 6 pacotes ✅ Live · **PLANOS-CONTA não subiu** (colide com `0065` já na loja).
-
-**Loja hoje:** badge **v14.41** · producao @ **2efcc60**  
-**Revert:** tag `checkpoint-loja-pre-lote-20260805` = **ed52234** (v13.83)  
-**Teste:** badge **v14.40+** · HEAD  
-**Branch envio:** `deploy/lote-checklist-20260805`
-
-| # | Pacote | Status loja |
-| - | ------ | ----------- |
-| 1 | **BI-TOPBAR-TOTAL** | ✅ **Live** v14.41 |
-| 2 | **SEFAZ-UI** | ✅ **Live** v14.41 |
-| 3 | **COMP-UX** | ✅ **Live** v14.41 |
-| 4 | **PLANOS-CONTA** | 📋 **pronto para envio** (conflito resolvido) · cherry-pick **só** `e109918` · **sem migrate** |
-| 5 | **DFE-CIENCIA** | ✅ **Live** v14.41 · migrate **0083** (dep. → 0081) |
-| 6 | **CP-DUP-BACKUP** | ✅ **Live** v14.41 |
-| 7 | **GG-GASTOS** | ✅ **Live** v14.41 |
-| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
-
-**Você (Ctrl+F5):** `/` Sync+Total · Entrada NF SEFAZ/?/Ciência · CP Backup · Cadastro Composição ▶ · `/financeiro/grafico-gastos/` 1 plano.
-
-**Reverter se der errado:** `git push origin checkpoint-loja-pre-lote-20260805:producao` (volta v13.83) — só com frase+senha de novo.
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)** no topo do CHECKPOINT.
 
 ### 📦 ENVIO LOJA 05/08 — lote checklist (`LOTE-v14.41`)
 
