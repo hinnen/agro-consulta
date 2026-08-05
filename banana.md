@@ -1186,6 +1186,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO LOJA — Gráfico gastos acerto + visual (`GG-GASTOS` · **v14.30+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 10/10 · 14 séries |
+| **O quê** | Soma só planos marcados · bucket recorta no período · «Como era»/Comparar usa `as_of` · popup CP alinhado · visual Display Scale |
+| **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
+| **Prova** | `python scripts/verify_grafico_gastos.py` → **VERIFY_OK** |
+| **Commits** | `69ab665` (filtro+clip) · `6756c02` (checkup+visual) · + script verify |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só leitura BI · não grava CP |
+| **Você** | Ctrl+F5 · `/financeiro/grafico-gastos/` · 1 plano (ex. Salários) · ponto Jul = CP mesmo filtro |
+| **Autorizar** | *pode subir GG-GASTOS / gráfico gastos para produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO LOJA — DF-e Ciência + XML completo (`DFE-CIENCIA` · **v14.33**)
 
 | Item | Detalhe |
@@ -1202,40 +1216,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · SEFAZ → Só resumo → Dar ciência · depois Carregar |
 | **Autorizar** | *pode subir DFE-CIENCIA / ciência DF-e para produção* + **99738595** |
 
-### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP` · **teste** · 05/08)
+### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP`)
 
-Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** corrigidos:
+> ✅ Empacotado em **GG-GASTOS** (acima) · VERIFY_OK · pronto envio.
 
-| # | Problema | Fix |
-| - | -------- | --- |
-| **1** | **«Como era no dia» / «Comparar» não reconstruíam o passado** — `as_of` chegava na função e era **ignorado**; a diferença que aparecia vinha só do filtro de situação. | `_valor_titulo_grafico` usa `as_of`: título com `data_pagamento` **depois** da data volta a contar como **aberto** (pago = 0 · saldo = bruto). |
-| **2** | Chip do período **selecionado sumia** (texto branco em fundo claro) — `.is-past`/`.is-future` vinham **depois** do `.is-active` no CSS. | `.is-active` movido para o fim do bloco. |
-| **3** | Bloco de **ajuda «?» dos Filtros cortado** no painel (1366×768) — `<details>` não repassa altura ao conteúdo. | `ajustarScrollPlanos()` também trava a altura da coluna Filtros (mesmo truque já usado na lista de planos). |
-| **4** | Popup CP do ponto usava status **diferente** da lista de planos quando havia dia de referência. | `cpStatusFromGrafico` = `statusPlanosComoCp` · título do popup avisa que o CP mostra **hoje**. |
-| **5** | `shrink: 0` (**propriedade inválida**) em 7 blocos — barra, meta, cabeçalho e rodapé podiam encolher. | Trocado por `flex-shrink: 0`. |
-| **6** | Ajuda dizia que título **criado depois some** — não é verdade (não existe data de cadastro no título). | Texto corrigido. |
+### 🐞 FIX — gráfico Gastos somava plano errado (`GG-FILTRO`)
 
-**Visual (regras `banana`/AGENTS §5 e §11):** escala tipográfica em **rem** (acompanha o Agro Display Scale, sem `px` fixo nem zoom por tela); botões/chips com alvo mínimo **2,6 rem**; **Soma** em destaque na barra verde; botão **↻ Atualizar** com rótulo (era só ícone); contraste maior em rótulos, badge «Como era» e legenda do gráfico; CSS morto removido.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Arquivos** | `financeiro/templates/financeiro/grafico_gastos.html` · `produtos/lancamentos_financeiro_pg_analytics_util.py` |
-| **Prova** | Série × soma manual bate em **6 combinações** (venc/comp/pagamento × bruto/pago/saldo, com e sem `as_of`, 1 plano e TODOS) · página renderiza 200 · Chrome 1366×768: **sem rolagem** de página, painel de filtros rola por dentro |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — falta Renan conferir na tela |
-
-### 🐞 FIX — gráfico Gastos por plano somava plano errado (`GG-FILTRO` · **teste** · 05/08)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Renan: 1 plano marcado (Salários) → ponto Jul/2026 **R$ 34.726**; clicando na bolinha o CP mostrava **R$ 8.474** pago. Mai/2026 também sem sentido. |
-| **Causa 1** | Modo **soma** (sem «individual») ignorava os planos **marcados** — filtrava só por **exclusão** da lista de checkboxes. Plano que não estava na lista (ex. só existe nos dias fora do filtro, ou `(sem plano)`) entrava no total. |
-| **Causa 2** | Bucket **mês/semana/ano** usava o mês **inteiro**, sem recortar nas pontas do filtro: com 05/05→05/08 o ponto Mai contava 01–04/05 e Ago contava 06–31/08. |
-| **Fix** | `grafico_gastos_serie_pg` — inclusão positiva por `plano_ids` (quando não é «todos») + recorte do bucket em `[data_de, data_ate]`. Popup CP também recorta a data do ponto. |
-| **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
-| **Prova** | Script local comparando série × soma manual (venc/pago, venc/bruto, pag/pago · 1 plano e TODOS) → bate em todos os casos. `manage.py check` OK. |
-| **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** — falta Renan conferir na tela com os dados dele |
+> ✅ Empacotado em **GG-GASTOS** (acima) · filtro positivo + clip do bucket.
 
 ### 📦 PACOTE PRONTO LOJA — Anti-duplicata CP + Backup (`CP-DUP-BACKUP` · **v14.34**)
 
@@ -1270,7 +1257,7 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.35+** · HEAD  
+**Teste:** badge **v14.36+** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
@@ -1281,10 +1268,11 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
 | 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 21/21 · migrate **0083** · `aa2a9a3` |
 | 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 · **sem** migrate |
+| 7 | **GG-GASTOS** (filtro plano + clip + as_of + visual) | 📋 **pronto para envio à produção** · VERIFY_OK 10/10 · **sem** migrate |
 | — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 | — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
 
-**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA/DFE-CIENCIA = migrate)
+**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA/DFE-CIENCIA = migrate; GG-GASTOS = só leitura)
 
 ### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
 
