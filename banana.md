@@ -1199,8 +1199,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
 | 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` | **NÃO** |
 | 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | **só** `e109918` (+ opcional `3ecc824`) · **sem** `c6757fd`/`0084` | **NÃO** na loja |
+| 5 | **GG-UX** | 🟡 **depois / sem pressa** · revisão uso + dúvida se ainda está errado | — | — |
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
+
+### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · 05/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **fila** · checklist #5 · **sem pressa** |
+| **Onde** | `/financeiro/grafico-gastos/` (já Live v14.41 com GG-GASTOS) |
+| **Pediu** | Renan: tela confusa · acha que ainda não está certa · 2ª linha / dia de referência / como usar |
+| **Escopo futuro** | Explicar melhor (rótulos/?/ajuda) · revisar se Comparar/Como era/Bruto vs Saldo batem com o que a loja espera · sem deploy até alinhar |
+| **Não é** | bug urgente de PDV/caixa — só BI gráfico |
 
 **Prova lote pendente:** `python scripts/verify_pacotes_pendentes_0508.py` → **VERIFY_OK 9/9** · `verify_cp_anti_dup_backup.py` **11/11** · `verify_bi_topbar_total.py` **35/35** · `verify_planos_conta.py` **23/23** · `manage.py check` OK · ZIP Backup abertos **200** (PG).
 
