@@ -1228,7 +1228,8 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | **Fix** | Bloqueio por chave NF / assinatura no insert PG · guard na Entrada NF · trava duplo clique · botão **Backup** (Todos / Em aberto) + data/hora do último |
 | **Não apagou** | Duplicatas já feitas — Renan apaga manual |
 | **Lista Ibiúna (apagar 1 lote)** | Manter `AGCFEAF832` (ids 18368–18370) · apagar `AG721D19E4` (ids **18371, 18372, 18373**) — 3 títulos em aberto |
-| **Cópias antigas (maio · `admin@agro.com` · quitadas · mesmo lote/documento — vieram do Mongo/importação, não do bug atual)** | apagar o id maior de cada par: 16461 · 15740 · 16009 · 16951 · 15879 · 16177 · 15455 · 16739 · 15878 · 16375 · 16746 (manter 13771 · 13768 · 14987 · 16783 · 15845 · 15033 · 14552 · 13697 · 15787 · 14800 · 14801) — **R$ 4.858,04** de despesa contada em dobro no DRE/BI |
+| **Cópias antigas (maio · quitadas)** | **deixar** (05/08 Renan) — não aparecem em «Em aberto»; DRE maio pode ter ~R$ 4.858 a mais; **não** apagar agora |
+| **Julho em diante** | **limpo** (05/08) — zero NF com 2 lotes / assinatura duplicada · Ibiúna `AG721D19E4` (18371–73) **já sumiu** do PG |
 | **Falso positivo** | Comissão do Vendedor e vendas PDV com mesmo valor/data = pedidos diferentes, **não** apagar |
 | **Prova** | `python scripts/verify_cp_anti_dup_backup.py` → **VERIFY_OK** |
 | **Migrate** | **NÃO** |
