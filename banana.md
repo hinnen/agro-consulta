@@ -1184,6 +1184,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **pronto envio**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · **não** loja ainda |
+| **Sintoma** | Após CUSTO-FAMILIA v13.82, abas/labels do modal (Preços, Composição, Comissão…) saíram `├º` / “quebrados” |
+| **Causa** | Arquivo do modal gravado com bytes UTF-8 lidos como CP850 no merge isolado |
+| **Fix** | `deploy/hotfix-modal-utf8-v13.83` @ **ed52234** · só modal + VERSION |
+| **Rollback** | tag `rollback/pre-modal-utf8-v13.83` → b28ce83 (v13.82) |
+| **Autorizar** | *pode subir hotfix modal / acentos para produção* + **99738595** |
+
 ### ✅ Deploy loja **v13.82** — CUSTO-FAMILIA (04/08 · frase+senha)
 
 | Item | Detalhe |
