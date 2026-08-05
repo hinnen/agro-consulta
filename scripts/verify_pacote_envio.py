@@ -27,7 +27,7 @@ ROTAS = [
     ("home", "BI / (BI-TOPBAR-TOTAL)"),
     ("entrada_nota", "Entrada NF (SEFAZ-UI · DFE-CIENCIA · CP-DUP-BACKUP)"),
     ("grafico_gastos", "Grafico gastos (GG-GASTOS)"),
-    ("planos_conta_config", "Planos de contas (PLANOS-CONTA)"),
+    # PLANOS-CONTA omitido do lote loja: ja existe PlanoContaAgro (0065) na producao.
     ("lancamentos_contas_pagar", "Contas a pagar (CP-DUP-BACKUP)"),
     ("lancamentos_financeiros", "Lancamentos"),
     ("produtos_cadastro_erp", "Cadastro ERP (COMP-UX)"),
