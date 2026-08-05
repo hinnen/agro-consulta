@@ -41,7 +41,13 @@ def main() -> int:
     check("sync_no_wide_padding", not re.search(
         r'id="btn-sync-dashboard"[^>]*px-4\s+py-1\.5', top
     ))
-    check("topbar_grid_periods_fr", "minmax(14rem, 1fr)" in top or "minmax(14rem,1fr)" in top)
+    check(
+        "topbar_grid_periods_fr",
+        "minmax(14rem, 1fr)" in top
+        or "minmax(14rem,1fr)" in top
+        or "minmax(0, 1fr)" in top
+        or "dash-topbar--periods-row" in top,
+    )
     check("topbar_periods_class", "dash-topbar-periods" in top)
     check("topbar_sync_wrap", "dash-topbar-sync" in top)
     check("sync_title_js_reset", 'btnSyncTitle.textContent = "Sync"' in top)

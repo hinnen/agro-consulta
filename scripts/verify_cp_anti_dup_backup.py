@@ -40,6 +40,7 @@ def main() -> None:
     ):
         reverse(name)
 
+<<<<<<< HEAD
     tpl = open(
         os.path.join(
             ROOT, "produtos", "templates", "produtos", "lancamentos_contas_pagar_teste.html"
@@ -50,6 +51,27 @@ def main() -> None:
         fail("botão Backup ausente na tela CP")
     if "api_lancamentos_backup_ultimo" not in tpl:
         fail("tela CP sem status último backup")
+=======
+    tpl = Path(ROOT, "produtos/templates/produtos/lancamentos_contas_pagar_teste.html").read_text(
+        encoding="utf-8"
+    )
+    for needle in (
+        'id="sv-btn-backup"',
+        "api_lancamentos_backup_ultimo",
+        "Só em aberto",
+        "initBackupCp",
+        ".sv-backup-menu[hidden] { display: none; }",
+        "function fecharMenu()",
+        "ev.key === 'Escape'",
+        'id="sv-backup-menu" hidden',
+    ):
+        if needle not in tpl:
+            fail(f"tela CP sem '{needle}'")
+    if tpl.count("fecharMenu();") < 3:
+        fail("fecharMenu() deve fechar após baixar + Esc/fora (marcadores < 3)")
+    checks += 1
+    ok("UI Backup CP (menu fecha de verdade)")
+>>>>>>> eaec9a8 (docs+verify: pacotes prontos envio (BI datas, Backup menu, NF estorno, planos))
 
     ent = open(
         os.path.join(ROOT, "produtos", "templates", "produtos", "entrada_nota.html"),

@@ -3149,6 +3149,30 @@ def excluir_rascunho_entrada(db, oid: str) -> dict[str, Any]:
         return {"ok": False, "erro": str(exc)[:500]}
 
 
+def _entrada_nfe_num_linha(val: Any) -> float | None:
+    try:
+        s = str(val if val is not None else "").replace(",", ".").strip()
+        if not s:
+            return None
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def _entrada_nfe_qtd_estoque_linha(ln: dict) -> float | None:
+    """Quantidade que entra no estoque: «Qtd est.» ou Qtd NF × Un/emb."""
+    q_est = _entrada_nfe_num_linha(ln.get("q_estoque"))
+    if q_est is not None and q_est > 0:
+        return round(q_est, 3)
+    q_com = _entrada_nfe_num_linha(ln.get("q_com"))
+    if q_com is None:
+        return None
+    emb = _entrada_nfe_num_linha(ln.get("un_por_embalagem"))
+    if emb is None or emb <= 0:
+        emb = 1.0
+    return round(q_com * emb, 3)
+
+
 def _entrada_nfe_produto_ids_das_linhas(linhas: Any) -> list[str]:
     out: list[str] = []
     for ln in linhas if isinstance(linhas, list) else []:
@@ -3161,10 +3185,26 @@ def _entrada_nfe_produto_ids_das_linhas(linhas: Any) -> list[str]:
     return sorted(out)
 
 
+def _entrada_nfe_qtds_por_produto(linhas: Any) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for ln in linhas if isinstance(linhas, list) else []:
+        if not isinstance(ln, dict):
+            continue
+        pid = str(ln.get("produto_id") or "").strip()
+        if not pid or pid.lower().startswith("local:"):
+            continue
+        q = _entrada_nfe_qtd_estoque_linha(ln)
+        if q is None:
+            continue
+        out[pid] = round(out.get(pid, 0.0) + q, 3)
+    return out
+
+
 def entrada_nfe_bloqueio_troca_produto_com_estoque(doc: dict[str, Any], linhas: Any) -> str:
     """
-    Trava multi-PC: com estoque Agro já aplicado, trocar / incluir / remover produto sem estornar
-    deixaria o saldo no item errado. Retorna a mensagem de bloqueio, ou string vazia se pode salvar.
+    Trava multi-PC: com estoque Agro já aplicado, trocar / incluir / remover produto — ou mudar a
+    quantidade que entrou — sem estornar deixaria o saldo errado. Retorna a mensagem de bloqueio,
+    ou string vazia se pode salvar.
     """
     if not isinstance(doc, dict):
         return ""
@@ -3179,12 +3219,22 @@ def entrada_nfe_bloqueio_troca_produto_com_estoque(doc: dict[str, Any], linhas: 
     )
     if not tem_estoque:
         return ""
-    if _entrada_nfe_produto_ids_das_linhas(doc.get("linhas")) == _entrada_nfe_produto_ids_das_linhas(linhas):
-        return ""
-    return (
-        "Esta nota já teve entrada no estoque: trocar, incluir ou remover produto exige estorno. "
-        "Use «Reabrir nota» (etapa 5 ou 8) — o saldo volta e você registra o estoque de novo."
+    msg = (
+        "Esta nota já teve entrada no estoque: trocar, incluir ou remover produto — ou mudar a "
+        "quantidade — exige estorno. Use «Reabrir nota» (etapa 5 ou 8): o saldo volta e você "
+        "registra o estoque de novo."
     )
+    if _entrada_nfe_produto_ids_das_linhas(doc.get("linhas")) != _entrada_nfe_produto_ids_das_linhas(linhas):
+        return msg
+    qt_antes = _entrada_nfe_qtds_por_produto(doc.get("linhas"))
+    qt_depois = _entrada_nfe_qtds_por_produto(linhas)
+    for pid, q_antes in qt_antes.items():
+        q_depois = qt_depois.get(pid)
+        if q_depois is None:
+            continue
+        if abs(q_antes - q_depois) > 0.0005:
+            return msg
+    return ""
 
 
 def atualizar_rascunho_entrada(

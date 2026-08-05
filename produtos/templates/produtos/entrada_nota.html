@@ -10266,6 +10266,53 @@
     abrirModalCadastroProd(pid);
   });
 
+  /**
+   * Quantidade (Qtd NF / Un/emb) em nota que já lançou estoque: a alteração só vale com estorno.
+   * Cancelar volta o valor digitado; confirmar estorna e devolve o usuário à etapa 2.
+   */
+  const entradaNfeQtdGuardPrev = new WeakMap();
+  const elTbodyItensGuard = document.getElementById('tbody-itens');
+  elTbodyItensGuard?.addEventListener('focusin', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('.in-qtd, .in-un-emb')) return;
+    entradaNfeQtdGuardPrev.set(el, String(el.value ?? ''));
+  }, true);
+  elTbodyItensGuard?.addEventListener('change', (e) => {
+    const el = e.target;
+    if (!el || !el.matches || !el.matches('.in-qtd, .in-un-emb')) return;
+    if (entradaNfeRascunhoAplicandoGrade) return;
+    if (!entradaNfeQtdGuardPrev.has(el)) return;
+    const anterior = String(entradaNfeQtdGuardPrev.get(el) ?? '');
+    if (String(el.value ?? '') === anterior) return;
+    const tr = el.closest('tr');
+    const pid = String(tr?.querySelector('.in-prod-id')?.value || '').trim();
+    if (!pid || !entradaNfeIntegracoesAplicadasCliente()) {
+      entradaNfeQtdGuardPrev.set(el, String(el.value ?? ''));
+      return;
+    }
+    clearTimeout(entradaNfeAutosaveTimer);
+    entradaNfeAutosaveTimer = null;
+    void entradaNfeQtdAlteradaComEstorno(el, tr, anterior);
+  }, true);
+
+  async function entradaNfeQtdAlteradaComEstorno(el, tr, anterior) {
+    const nome = entradaNfeStrCampo(tr?.querySelector('.in-desc')?.value) || 'quantidade da nota';
+    const j = await entradaNfeEstornarParaEditarProdutos(nome);
+    if (!j) {
+      el.value = anterior;
+      entradaNfeQtdGuardPrev.set(el, anterior);
+      try {
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (_) {}
+      return;
+    }
+    entradaNfeQtdGuardPrev.set(el, String(el.value ?? ''));
+    entradaNfeProdutosEtapaInvalidate();
+    entradaNfeAgendarAutosaveRascunho();
+    entradaNfeWizardSetStep(2);
+    entradaNfeMsgAposEstorno('Quantidade alterada.', j);
+  }
+
   /** Tab em Qtd NF → V. unit; bip/Enter em EAN/código GM resolve catálogo. */
   document.getElementById('tbody-itens').addEventListener('keydown', async (e) => {
     if (e.key === 'Tab' && !e.shiftKey) {
