@@ -1191,11 +1191,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · não loja |
-| **Fluxo** | Só resumo → **Dar ciência e buscar XML** → Carregar na grade |
-| **Persistência** | Ciência/protocolo no Postgres · não repete evento |
+| **Onde** | Entrada NF → aba SEFAZ · item **Só resumo** |
+| **Fluxo** | **Dar ciência e buscar XML** → (se precisar) **Buscar XML** → **Carregar na grade** |
+| **Inclui** | Evento **210210** no Ambiente Nacional · status/protocolo no Postgres · não reenvia se já ciente |
 | **Migrate** | **SIM** · `0083_dfe_manifestacao_ciencia` |
-| **Prova** | `verify_dfe_manifestacao.py` → **VERIFY_OK 12/12** · unit cliente OK · check OK |
-| **Risco** | Fiscal: evento oficial **210210** no Ambiente Nacional; produção só após autorização |
+| **Prova** | `python scripts/verify_dfe_manifestacao.py` → **VERIFY_OK 21/21** · unit cliente OK · `manage.py check` OK · migrate local OK |
+| **Commit** | `aa2a9a3` (+ verify reforçado neste push) |
+| **Risco** | Fiscal: evento oficial na Receita; XML pode demorar minutos após a Ciência |
+| **⚠️** | Branch isolada + migrate na loja · **não** merge `teste` inteiro |
+| **Você** | Ctrl+F5 · SEFAZ → Só resumo → Dar ciência · depois Carregar |
+| **Autorizar** | *pode subir DFE-CIENCIA / ciência DF-e para produção* + **99738595** |
 
 ### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP` · **teste** · 05/08)
 
@@ -1274,7 +1279,7 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio à produção** · v14.19 |
 | 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio à produção** · VERIFY_OK · `645fc75` |
 | 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
-| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 12/12 · migrate **0083** |
+| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 21/21 · migrate **0083** · `aa2a9a3` |
 | 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 · **sem** migrate |
 | — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 | — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
