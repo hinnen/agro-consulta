@@ -77,7 +77,9 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         models=(
             "financeiro.GrupoEmpresarial",
             "financeiro.GrupoEmpresarialEmpresa",
-            "produtos.TituloFinanceiroAgro",
+            "produtos.PlanoContaAgro",
+    "produtos.PlanoContaAliasAgro",
+    "produtos.TituloFinanceiroAgro",
             "financeiro.LancamentoFinanceiro",
             "produtos.OpcaoBaixaFinanceiroExtra",
             "produtos.LancamentoAtalhoFiltro",

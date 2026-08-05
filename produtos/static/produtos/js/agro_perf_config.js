@@ -28,6 +28,10 @@
       '.agro-perf-config-row small{display:block;font-size:.7rem;font-weight:600;color:#64748b;margin-top:.2rem}' +
       '.agro-perf-config-toggle{min-width:3.4rem;min-height:2.4rem;border-radius:.75rem;border:2px solid #cbd5e1;background:#f8fafc;font-size:.72rem;font-weight:900;text-transform:uppercase;cursor:pointer}' +
       '.agro-perf-config-toggle[aria-pressed="true"]{border-color:#059669;background:#ecfdf5;color:#047857}' +
+      '.agro-perf-config-links{margin-top:.85rem;padding-top:.85rem;border-top:2px solid #f1f5f9;display:flex;flex-direction:column;gap:.5rem}' +
+      '.agro-perf-config-link{display:flex;align-items:center;justify-content:space-between;gap:.5rem;min-height:2.75rem;padding:.55rem .75rem;border-radius:.75rem;border:2px solid #a7f3d0;background:#ecfdf5;color:#065f46;font-size:.78rem;font-weight:900;text-transform:uppercase;text-decoration:none}' +
+      '.agro-perf-config-link:hover{background:#d1fae5;border-color:#34d399}' +
+      '.agro-perf-config-link small{display:block;font-size:.65rem;font-weight:600;text-transform:none;color:#047857;margin-top:.15rem}' +
       '#agro-perf-config-close{margin-top:1rem;width:100%;min-height:2.75rem;border-radius:.75rem;border:2px solid #047857;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:.8rem;font-weight:900;text-transform:uppercase;cursor:pointer}';
     document.head.appendChild(st);
   }
@@ -54,6 +58,11 @@
       '<div class="agro-perf-config-row" id="agro-perf-config-row-gestao">' +
       '<label for="agro-perf-config-gestao">Menos animações na <strong>Gestão</strong><small>BI, cards pulsando, etc.</small></label>' +
       '<button type="button" id="agro-perf-config-gestao" class="agro-perf-config-toggle" aria-pressed="false">Off</button>' +
+      '</div>' +
+      '<div class="agro-perf-config-links">' +
+      '<a class="agro-perf-config-link" href="/configuracao/planos-conta/">' +
+      '<span>Planos de contas<small>Cadastrar / editar planos SisVale</small></span><span aria-hidden="true">›</span>' +
+      '</a>' +
       '</div>' +
       '<button type="button" id="agro-perf-config-close">Fechar</button>' +
       '</div>';

@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
+from . import views_planos_conta
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -1180,4 +1181,32 @@ urlpatterns = [
         views.api_entrada_nota_produto_margem,
         name='api_entrada_nota_produto_margem',
     ),
+
+# Planos de contas — Config (F11). Modelo já na loja (0065); sem migrate neste pacote.
+path(
+    "configuracao/planos-conta/",
+    views_planos_conta.planos_conta_config_view,
+    name="planos_conta_config",
+),
+path(
+    "api/configuracao/planos-conta/",
+    views_planos_conta.api_planos_conta_lista,
+    name="api_planos_conta_lista",
+),
+path(
+    "api/configuracao/planos-conta/salvar/",
+    views_planos_conta.api_planos_conta_salvar,
+    name="api_planos_conta_salvar",
+),
+path(
+    "api/configuracao/planos-conta/<int:pk>/toggle/",
+    views_planos_conta.api_planos_conta_toggle,
+    name="api_planos_conta_toggle",
+),
+path(
+    "api/configuracao/planos-conta/carregar-padrao/",
+    views_planos_conta.api_planos_conta_seed,
+    name="api_planos_conta_seed",
+),
+
 ]

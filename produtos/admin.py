@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import (
+from .models import (, PlanoContaAgro
     ClienteAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
@@ -245,3 +245,9 @@ class OpcaoBaixaFinanceiroExtraAdmin(admin.ModelAdmin):
     list_filter = ("tipo",)
     search_fields = ("nome", "id_erp", "usuario__username")
     raw_id_fields = ("usuario",)
+
+@admin.register(PlanoContaAgro)
+class PlanoContaAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "nome", "tipo", "grupo", "ativo", "atualizado_em")
+    list_filter = ("tipo", "ativo")
+    search_fields = ("nome", "grupo")

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full">
+<head>
+  {% load static %}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Planos de contas | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow: hidden;
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    /* Escala única da tela (acompanha o Agro Display Scale — sem px fixo). */
+    .pc-page {
+      container-type: inline-size;
+      --pc-fs-base: clamp(0.95rem, 0.25vw + 0.88rem, 1.08rem);
+      --pc-fs-eyebrow: clamp(0.7rem, 0.14vw + 0.66rem, 0.8rem);
+      --pc-fs-label: clamp(0.78rem, 0.16vw + 0.74rem, 0.9rem);
+      --pc-fs-body: clamp(0.95rem, 0.22vw + 0.9rem, 1.1rem);
+      --pc-fs-strong: clamp(1.02rem, 0.3vw + 0.95rem, 1.22rem);
+      --pc-fs-section: clamp(1.05rem, 0.35vw + 0.95rem, 1.28rem);
+      --pc-fs-page: clamp(1.4rem, 0.75vw + 1.15rem, 1.95rem);
+      --pc-ctrl-h: clamp(2.85rem, 5.5vh, 3.4rem);
+      font-size: var(--pc-fs-base);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .pc-head {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: clamp(0.5rem, 1vw, 1rem);
+      padding: clamp(0.55rem, 1.1vh, 0.9rem) clamp(0.7rem, 1.4vw, 1.5rem);
+      background: #fff;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pc-eyebrow {
+      font-size: var(--pc-fs-eyebrow);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: #047857;
+      margin: 0;
+    }
+    .pc-title {
+      font-size: var(--pc-fs-page);
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1.1;
+      margin: 0.1rem 0 0;
+      color: #0f172a;
+    }
+    .pc-sub {
+      font-size: var(--pc-fs-label);
+      font-weight: 700;
+      color: #475569;
+      margin: 0.15rem 0 0;
+    }
+    .pc-head-acoes { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .pc-btn {
+      min-height: var(--pc-ctrl-h);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding-inline: clamp(0.9rem, 1.4vw, 1.5rem);
+      border-radius: 0.75rem;
+      border: 2px solid transparent;
+      font-size: var(--pc-fs-label);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pc-btn--ghost { border-color: #cbd5e1; background: #fff; color: #1e293b; }
+    .pc-btn--ghost:hover { background: #f1f5f9; }
+    .pc-btn--verde { background: #047857; color: #fff; }
+    .pc-btn--verde:hover { background: #065f46; }
+    .pc-btn--verde-claro { border-color: #6ee7b7; background: #ecfdf5; color: #065f46; }
+    .pc-btn--verde-claro:hover { background: #d1fae5; }
+    .pc-btn:disabled { opacity: 0.6; cursor: default; }
+    .pc-btn-mini {
+      min-height: clamp(2.4rem, 4.4vh, 2.8rem);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding-inline: clamp(0.7rem, 1vw, 1.05rem);
+      border-radius: 0.6rem;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      font-size: var(--pc-fs-label);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #1e293b;
+      cursor: pointer;
+    }
+    .pc-btn-mini--laranja { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+
+    /* Corpo: 16:9 aproveitado — formulário à esquerda, lista à direita. */
+    .pc-main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(0.5rem, 1vw, 1rem);
+      padding: clamp(0.5rem, 1.1vh, 0.9rem) clamp(0.7rem, 1.4vw, 1.5rem) clamp(0.6rem, 1.2vh, 1rem);
+      overflow: hidden;
+    }
+    @container (min-width: 62rem) {
+      .pc-main { grid-template-columns: minmax(20rem, 27%) minmax(0, 1fr); }
+    }
+    .pc-card {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border: 2px solid #cbd5e1;
+      border-radius: 1rem;
+      overflow: hidden;
+    }
+    .pc-card--form { border-color: #6ee7b7; }
+    .pc-card-head {
+      flex: 0 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: clamp(0.5rem, 1vh, 0.8rem) clamp(0.7rem, 1vw, 1.05rem);
+      background: #f8fafc;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .pc-card-titulo {
+      font-size: var(--pc-fs-section);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #0f172a;
+      margin: 0;
+    }
+    .pc-card-corpo {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      padding: clamp(0.6rem, 1.1vh, 0.95rem) clamp(0.7rem, 1vw, 1.05rem);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(0.55rem, 1vh, 0.85rem);
+    }
+    .pc-campo { display: flex; flex-direction: column; gap: 0.3rem; }
+    .pc-campo-label {
+      font-size: var(--pc-fs-label);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #475569;
+    }
+    .pc-input, .pc-select {
+      width: 100%;
+      min-height: var(--pc-ctrl-h);
+      padding: 0.35rem clamp(0.6rem, 0.9vw, 0.9rem);
+      border: 2px solid #cbd5e1;
+      border-radius: 0.75rem;
+      background: #fff;
+      font-size: var(--pc-fs-strong);
+      font-weight: 800;
+      color: #0f172a;
+      outline: none;
+    }
+    .pc-input:focus, .pc-select:focus { border-color: #10b981; }
+    .pc-form-acoes { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .pc-msg { font-size: var(--pc-fs-label); font-weight: 800; color: #065f46; }
+    .pc-msg.is-erro { color: #b91c1c; }
+    .pc-ajuda {
+      font-size: var(--pc-fs-label);
+      font-weight: 700;
+      line-height: 1.45;
+      color: #e2e8f0;
+      background: #1e293b;
+      border-radius: 0.7rem;
+      padding: 0.6rem 0.7rem;
+      margin-top: 0.35rem;
+    }
+    .pc-ajuda-btn {
+      list-style: none;
+      cursor: pointer;
+      min-height: clamp(2.2rem, 4vh, 2.6rem);
+      min-width: clamp(2.2rem, 4vh, 2.6rem);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      font-size: var(--pc-fs-strong);
+      font-weight: 900;
+      color: #334155;
+    }
+    .pc-ajuda-btn::-webkit-details-marker { display: none; }
+
+    .pc-busca-linha { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .pc-busca {
+      min-height: var(--pc-ctrl-h);
+      width: clamp(11rem, 22vw, 20rem);
+      padding: 0.3rem clamp(0.6rem, 0.9vw, 0.9rem);
+      border: 2px solid #cbd5e1;
+      border-radius: 0.75rem;
+      font-size: var(--pc-fs-body);
+      font-weight: 800;
+      outline: none;
+    }
+    .pc-busca:focus { border-color: #10b981; }
+    .pc-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: var(--pc-fs-label);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #334155;
+      cursor: pointer;
+      user-select: none;
+      min-height: var(--pc-ctrl-h);
+    }
+    .pc-check input { width: 1.4rem; height: 1.4rem; accent-color: #047857; }
+    .pc-total { font-size: var(--pc-fs-label); font-weight: 900; color: #475569; margin-left: auto; }
+
+    .pc-tabela-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .pc-tabela { width: 100%; border-collapse: collapse; }
+    .pc-tabela thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #0f172a;
+      color: #fff;
+      font-size: var(--pc-fs-label);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      text-align: left;
+      padding: 0.55rem clamp(0.6rem, 0.9vw, 1rem);
+      white-space: nowrap;
+    }
+    .pc-tabela thead th:last-child { text-align: right; }
+    .pc-tabela tbody td {
+      padding: 0.5rem clamp(0.6rem, 0.9vw, 1rem);
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: middle;
+    }
+    .pc-tabela tbody tr:hover { background: #ecfdf5; }
+    .pc-nome { font-size: var(--pc-fs-strong); font-weight: 900; color: #0f172a; }
+    .pc-nome-sub { font-size: var(--pc-fs-label); font-weight: 700; color: #64748b; }
+    .pc-celula { font-size: var(--pc-fs-body); font-weight: 800; color: #334155; }
+    .pc-status-ativo { font-size: var(--pc-fs-body); font-weight: 900; color: #047857; }
+    .pc-status-inativo { font-size: var(--pc-fs-body); font-weight: 800; color: #94a3b8; }
+    .pc-acoes { text-align: right; white-space: nowrap; }
+    .pc-acoes .pc-btn-mini + .pc-btn-mini { margin-left: 0.35rem; }
+    .pc-vazio { padding: clamp(1.2rem, 4vh, 2.5rem) 1rem; text-align: center; }
+    .pc-vazio-titulo { font-size: var(--pc-fs-strong); font-weight: 900; color: #475569; margin-bottom: 0.8rem; }
+    .pc-vazio-nota { font-size: var(--pc-fs-label); font-weight: 700; color: #94a3b8; margin-top: 0.55rem; }
+  </style>
+</head>
+<body>
+  <div class="pc-page">
+    <header class="pc-head">
+      <div>
+        <p class="pc-eyebrow">Configuração</p>
+        <h1 class="pc-title">Planos de contas</h1>
+        <p class="pc-sub">Cadastro SisVale (Postgres). Planos do ERP continuam valendo.</p>
+      </div>
+      <div class="pc-head-acoes">
+        <a href="{% url 'home' %}" class="pc-btn pc-btn--ghost">← BI</a>
+        <a href="{% url 'lancamentos_financeiros' %}" class="pc-btn pc-btn--verde-claro">Lançamentos</a>
+      </div>
+    </header>
+
+    <main class="pc-main">
+      <section class="pc-card pc-card--form">
+        <div class="pc-card-head">
+          <h2 id="pc-form-titulo" class="pc-card-titulo">Novo plano</h2>
+          <details>
+            <summary class="pc-ajuda-btn">?</summary>
+            <div class="pc-ajuda">
+              Crie planos usados nos Lançamentos e na Entrada NF. O nome precisa ser único.
+              Tipo (Fixa / Variável / Outra) é só classificação; desativar não apaga nada e
+              não muda títulos antigos.
+            </div>
+          </details>
+        </div>
+        <div class="pc-card-corpo">
+          <input type="hidden" id="pc-pk" value="">
+          <label class="pc-campo">
+            <span class="pc-campo-label">Nome *</span>
+            <input id="pc-nome" type="text" maxlength="200" autocomplete="off" class="pc-input" placeholder="Ex.: MANUTENÇÃO LOJA">
+          </label>
+          <label class="pc-campo">
+            <span class="pc-campo-label">Tipo</span>
+            <select id="pc-tipo" class="pc-select">
+              {% for val, lab in tipos %}
+              <option value="{{ val }}"{% if val == 'outra' %} selected{% endif %}>{{ lab }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label class="pc-campo">
+            <span class="pc-campo-label">Grupo</span>
+            <input id="pc-grupo" type="text" maxlength="120" autocomplete="off" class="pc-input" placeholder="Opcional">
+          </label>
+          <div class="pc-form-acoes">
+            <button type="button" id="pc-btn-salvar" class="pc-btn pc-btn--verde">Salvar</button>
+            <button type="button" id="pc-btn-limpar" class="pc-btn pc-btn--ghost">Limpar</button>
+          </div>
+          <p id="pc-msg" class="pc-msg" role="status"></p>
+        </div>
+      </section>
+
+      <section class="pc-card">
+        <div class="pc-card-head">
+          <h2 class="pc-card-titulo">Lista</h2>
+          <div class="pc-busca-linha">
+            <input id="pc-busca" type="search" placeholder="Buscar…" class="pc-busca">
+            <label class="pc-check">
+              <input type="checkbox" id="pc-inativos">
+              Ver inativos
+            </label>
+            <span id="pc-total" class="pc-total"></span>
+          </div>
+        </div>
+        <div class="pc-tabela-wrap">
+          <table class="pc-tabela">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="pc-lista"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+  (function () {
+    var API_LISTA = "{% url 'api_planos_conta_lista' %}";
+    var API_SALVAR = "{% url 'api_planos_conta_salvar' %}";
+    var API_SEED = "{% url 'api_planos_conta_seed' %}";
+    var URL_TOGGLE = "{% url 'api_planos_conta_toggle' pk=0 %}".replace('/0/', '/__PK__/');
+
+    function el(id) { return document.getElementById(id); }
+
+    function msg(t, ok) {
+      var m = el('pc-msg');
+      if (!m) return;
+      m.textContent = t || '';
+      m.className = 'pc-msg' + (ok === false ? ' is-erro' : '');
+    }
+
+    function limpar() {
+      el('pc-pk').value = '';
+      el('pc-nome').value = '';
+      el('pc-grupo').value = '';
+      el('pc-tipo').value = 'outra';
+      el('pc-form-titulo').textContent = 'Novo plano';
+      msg('');
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/[&<>"']/g, function (c) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+      });
+    }
+
+    function csrftoken() {
+      var m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : '';
+    }
+
+    function linhaAviso(html) {
+      return '<tr><td colspan="4" class="pc-vazio">' + html + '</td></tr>';
+    }
+
+    function ligarBotaoPadrao() {
+      var bp = el('pc-btn-padrao');
+      if (!bp) return;
+      bp.addEventListener('click', function () {
+        bp.disabled = true;
+        bp.textContent = 'Carregando…';
+        fetch(API_SEED, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken() },
+          body: '{}'
+        }).then(function (r) { return r.json(); }).then(function (j) {
+          if (!j.ok) {
+            msg(j.erro || 'Falha', false);
+            bp.disabled = false;
+            bp.textContent = 'Carregar lista padrão';
+            return;
+          }
+          msg('Carregado: ' + j.planos + ' plano(s) e ' + j.apelidos + ' apelido(s).', true);
+          carregar();
+        }).catch(function () {
+          msg('Falha ao carregar.', false);
+          bp.disabled = false;
+          bp.textContent = 'Carregar lista padrão';
+        });
+      });
+    }
+
+    function carregar() {
+      var q = (el('pc-busca').value || '').trim();
+      var ina = el('pc-inativos').checked ? '1' : '0';
+      var tb = el('pc-lista');
+      var total = el('pc-total');
+      tb.innerHTML = linhaAviso('<div class="pc-vazio-titulo">Carregando…</div>');
+      fetch(API_LISTA + '?q=' + encodeURIComponent(q) + '&inativos=' + ina, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          var itens = (j && j.itens) || [];
+          total.textContent = itens.length ? itens.length + ' plano(s)' : '';
+          if (!itens.length) {
+            if (q) {
+              tb.innerHTML = linhaAviso('<div class="pc-vazio-titulo">Nada encontrado para esta busca.</div>');
+              return;
+            }
+            tb.innerHTML = linhaAviso(
+              '<div class="pc-vazio-titulo">Nenhum plano cadastrado neste banco.</div>' +
+              '<button type="button" id="pc-btn-padrao" class="pc-btn pc-btn--verde">Carregar lista padrão</button>' +
+              '<div class="pc-vazio-nota">Mesma lista de planos que a loja usa.</div>'
+            );
+            ligarBotaoPadrao();
+            return;
+          }
+          tb.innerHTML = itens.map(function (it) {
+            return '<tr>' +
+              '<td><div class="pc-nome">' + esc(it.nome) + '</div>' +
+              (it.grupo ? '<div class="pc-nome-sub">' + esc(it.grupo) + '</div>' : '') +
+              '</td>' +
+              '<td><div class="pc-celula">' + esc(it.tipo_label || it.tipo) + '</div>' +
+              (it.apelidos ? '<div class="pc-nome-sub">' + it.apelidos + ' apelido(s)</div>' : '') +
+              '</td>' +
+              '<td><span class="' + (it.ativo ? 'pc-status-ativo' : 'pc-status-inativo') + '">' +
+              (it.ativo ? 'Ativo' : 'Inativo') + '</span></td>' +
+              '<td class="pc-acoes">' +
+              '<button type="button" data-edit="' + it.pk + '" class="pc-btn-mini">Editar</button>' +
+              '<button type="button" data-tog="' + it.pk + '" class="pc-btn-mini pc-btn-mini--laranja">' +
+              (it.ativo ? 'Desativar' : 'Reativar') + '</button>' +
+              '</td></tr>';
+          }).join('');
+          tb.querySelectorAll('[data-edit]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var pk = btn.getAttribute('data-edit');
+              var it = itens.find(function (x) { return String(x.pk) === String(pk); });
+              if (!it) return;
+              el('pc-pk').value = String(it.pk);
+              el('pc-nome').value = it.nome || '';
+              el('pc-grupo').value = it.grupo || '';
+              el('pc-tipo').value = it.tipo || 'outra';
+              el('pc-form-titulo').textContent = 'Editar plano';
+              msg('Editando…', true);
+              el('pc-nome').focus();
+            });
+          });
+          tb.querySelectorAll('[data-tog]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+              var pk = btn.getAttribute('data-tog');
+              fetch(URL_TOGGLE.replace('__PK__', pk), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken() },
+                body: '{}'
+              }).then(function (r) { return r.json(); }).then(function (j) {
+                if (!j.ok) { msg(j.erro || 'Falha', false); return; }
+                carregar();
+              });
+            });
+          });
+        })
+        .catch(function () {
+          tb.innerHTML = linhaAviso('<div class="pc-vazio-titulo">Falha ao carregar.</div>');
+        });
+    }
+
+    el('pc-btn-limpar').addEventListener('click', limpar);
+    el('pc-btn-salvar').addEventListener('click', function () {
+      var body = {
+        pk: el('pc-pk').value || null,
+        nome: el('pc-nome').value,
+        grupo: el('pc-grupo').value,
+        tipo: el('pc-tipo').value,
+        ativo: true
+      };
+      fetch(API_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken() },
+        body: JSON.stringify(body)
+      }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (x) {
+          if (!x.j.ok) { msg(x.j.erro || 'Erro', false); return; }
+          msg('Salvo.', true);
+          limpar();
+          carregar();
+        })
+        .catch(function () { msg('Falha de rede.', false); });
+    });
+
+    el('pc-nome').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); el('pc-btn-salvar').click(); }
+    });
+
+    var tBusca = null;
+    el('pc-busca').addEventListener('input', function () {
+      clearTimeout(tBusca);
+      tBusca = setTimeout(carregar, 220);
+    });
+    el('pc-inativos').addEventListener('change', carregar);
+    carregar();
+  })();
+  </script>
+</body>
+</html>
