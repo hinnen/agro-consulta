@@ -132,20 +132,24 @@
         background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
         color: #fff;
         border: 1px solid rgba(251, 146, 60, 0.5);
-        box-shadow: 0 3px 12px rgba(234, 88, 12, 0.18);
+        box-shadow: 0 2px 8px rgba(234, 88, 12, 0.16);
+        max-width: 7.25rem;
+        min-width: 6.25rem;
+        padding: 0.28rem 0.45rem !important;
+        gap: 0.1rem;
     }
     .btn-sync-erp:hover { filter: brightness(1.06); }
     .btn-sync-erp.btn-sync-ok {
         border-color: rgba(52, 211, 153, 0.65);
-        box-shadow: 0 3px 14px rgba(16, 185, 129, 0.26);
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.22);
     }
     .btn-sync-erp.btn-sync-warn {
         border-color: rgba(251, 191, 36, 0.7);
-        box-shadow: 0 3px 14px rgba(245, 158, 11, 0.28);
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.24);
     }
     .btn-sync-erp.btn-sync-danger {
         border-color: rgba(248, 113, 113, 0.78);
-        box-shadow: 0 3px 16px rgba(239, 68, 68, 0.35);
+        box-shadow: 0 2px 12px rgba(239, 68, 68, 0.3);
     }
     @keyframes sync-alert-pulse {
         0%, 100% { transform: translateY(0); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
@@ -156,11 +160,11 @@
     }
     .sync-thermo-track {
         width: 100%;
-        height: 5px;
+        height: 3px;
         background: rgba(255, 255, 255, 0.22);
         border-radius: 999px;
         overflow: hidden;
-        margin-top: 4px;
+        margin-top: 2px;
     }
     .sync-thermo-fill {
         height: 100%;
@@ -170,11 +174,15 @@
         transition: width 0.35s ease;
     }
     .sync-thermo-text {
-        font-size: 9px;
-        line-height: 1.2;
+        font-size: 7px;
+        line-height: 1.15;
         font-weight: 800;
-        margin-top: 2px;
+        margin-top: 1px;
         opacity: 0.95;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
     }
     .dash-btn { min-height: clamp(38px, 4.5vw + 24px, 44px); padding-left: clamp(0.65rem, 1vw, 1rem); padding-right: clamp(0.65rem, 1vw, 1rem); }
     .dash-cta-strip a { text-decoration: none; }
@@ -748,7 +756,7 @@
         flex-wrap: nowrap !important;
         overflow-x: auto;
         overflow-y: hidden;
-        flex: 1 1 0;
+        flex: 1 1 12rem;
         min-width: 0;
         max-width: 100%;
         scrollbar-width: none;
@@ -759,16 +767,29 @@
         flex-shrink: 0;
         white-space: nowrap;
     }
+    .dash-topbar-actions {
+        flex-shrink: 1;
+        min-width: 0;
+    }
+    .dash-topbar-actions .dash-topbar-cta {
+        padding-left: 0.55rem;
+        padding-right: 0.55rem;
+    }
+    .dash-topbar-sync {
+        flex: 0 0 auto;
+        max-width: 7.25rem;
+    }
     @media (min-width: 992px) {
         .dash-topbar {
             display: grid !important;
-            grid-template-columns: auto auto minmax(0, 1fr) auto;
+            grid-template-columns: auto minmax(0, auto) minmax(14rem, 1fr) auto;
             align-items: center;
             flex-wrap: nowrap !important;
-            gap: 0.35rem;
+            gap: 0.4rem;
         }
         .dash-topbar-periods {
             justify-self: stretch;
+            min-width: 14rem;
         }
     }
     @media (min-width: 1280px) and (max-width: 1599px) {
@@ -835,34 +856,34 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-            <div class="flex items-center gap-1.5 mr-1 min-w-0" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
+        <div class="dash-topbar-actions flex items-center gap-1.5 min-w-0">
+            <div class="flex items-center gap-1 min-w-0" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
                 <label class="text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
-                <select id="dash-agro-loja" class="min-w-[8.5rem] max-w-[11rem] rounded-lg border border-white/15 bg-slate-800 px-1.5 py-1.5 text-[10px] font-bold text-white">
+                <select id="dash-agro-loja" class="min-w-[6.5rem] max-w-[9rem] rounded-lg border border-white/15 bg-slate-800 px-1.5 py-1.5 text-[10px] font-bold text-white">
                     <option value="1" {% if pdv_deposito_boot.deposito != 'vila' %}selected{% endif %}>Centro</option>
                     <option value="2" {% if pdv_deposito_boot.deposito == 'vila' %}selected{% endif %}>Vila Elias</option>
                 </select>
-                <span id="dash-agro-loja-badge" class="hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase {% if pdv_deposito_boot.deposito == 'vila' %}border-slate-400 bg-slate-700 text-slate-100{% else %}border-emerald-500/50 bg-emerald-950/40 text-emerald-200{% endif %}">{{ pdv_deposito_boot.estoqueAtivoLabel|default:"Estoque: Centro" }}</span>
+                <span id="dash-agro-loja-badge" class="hidden lg:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase max-w-[7.5rem] truncate {% if pdv_deposito_boot.deposito == 'vila' %}border-slate-400 bg-slate-700 text-slate-100{% else %}border-emerald-500/50 bg-emerald-950/40 text-emerald-200{% endif %}">{{ pdv_deposito_boot.estoqueAtivoLabel|default:"Estoque: Centro" }}</span>
             </div>
             <button type="button" id="dash-btn-pdv-top"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
-                class="btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
-                <i data-lucide="shopping-cart" class="w-4 h-4 text-[#00BFFF]"></i>
-                <span class="text-xs font-black uppercase italic">PDV <small class="opacity-50 ml-1">F1</small></span>
+                class="dash-topbar-cta btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0">
+                <i data-lucide="shopping-cart" class="w-3.5 h-3.5 text-[#00BFFF]"></i>
+                <span class="text-[10px] font-black uppercase italic">PDV <small class="opacity-50 ml-0.5">F1</small></span>
             </button>
 
             <button type="button"
                 onclick="window.tabManager.addTab('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'file-text')"
-                class="btn-main-pulsing-emerald bg-[#10B981]/10 border border-[#10B981]/30 hover:border-[#10B981] text-white px-4 py-2 rounded-xl flex items-center gap-2 transition-all">
-                <i data-lucide="file-text" class="w-4 h-4 text-[#10B981]"></i>
-                <span class="text-xs font-black uppercase italic">Orçamento <small class="opacity-50 ml-1">F2</small></span>
+                class="dash-topbar-cta btn-main-pulsing-emerald bg-[#10B981]/10 border border-[#10B981]/30 hover:border-[#10B981] text-white py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#10B981]"></i>
+                <span class="text-[10px] font-black uppercase italic">Orç. <small class="opacity-50 ml-0.5">F2</small></span>
             </button>
 
             <button type="button"
                 onclick="toggleLaunchpad()"
-                class="bg-slate-800 border border-white/10 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-700 transition-all">
-                <i data-lucide="layout-grid" class="w-4 h-4 text-purple-400"></i>
-                <span class="text-xs font-black uppercase italic">Menu <small class="opacity-50 ml-1">F10</small></span>
+                class="dash-topbar-cta bg-slate-800 border border-white/10 text-white py-1.5 rounded-xl flex items-center gap-1.5 hover:bg-slate-700 transition-all shrink-0">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span class="text-[10px] font-black uppercase italic">Menu <small class="opacity-50 ml-0.5">F10</small></span>
             </button>
         </div>
 
@@ -876,18 +897,18 @@
             <button type="button" title="Escolher um dia ou intervalo de datas" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'personalizado' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="personalizado" id="btn-periodo-cal"><i data-lucide="calendar-range" class="inline w-3 h-3 mr-0.5 align-middle opacity-90"></i><span class="align-middle">Datas</span></button>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-            <button id="btn-sync-dashboard" type="button" class="btn-sync-erp flex flex-col items-end px-4 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-xl transition-all border border-orange-400/30 group">
-                <div class="flex items-center gap-2">
-                    <span id="sync-btn-title" class="text-[10px] font-black uppercase italic">Sincronizar ERP</span>
-                    <i data-lucide="refresh-cw" class="w-3 h-3 group-hover:rotate-180 transition-transform duration-500"></i>
+        <div class="dash-topbar-sync flex items-center">
+            <button id="btn-sync-dashboard" type="button" class="btn-sync-erp flex flex-col items-stretch text-white rounded-lg transition-all group" title="Sincronizar estoque com o ERP">
+                <div class="flex items-center justify-between gap-1">
+                    <span id="sync-btn-title" class="text-[9px] font-black uppercase italic leading-none">Sync</span>
+                    <i data-lucide="refresh-cw" class="w-2.5 h-2.5 group-hover:rotate-180 transition-transform duration-500 shrink-0"></i>
                 </div>
-                <span id="sync-btn-sub" class="text-[8px] font-bold opacity-75">
-                    Estoque: {{ ultima_sinc_estoque|default:"—" }} · BI: {% if mongo_ok %}ok{% else %}alerta{% endif %}
+                <span id="sync-btn-sub" class="text-[7px] font-bold opacity-80 leading-tight truncate">
+                    {{ ultima_sinc_estoque|default:"—" }} · {% if mongo_ok %}ok{% else %}alerta{% endif %}
                 </span>
-                <div class="w-full">
+                <div class="w-full min-w-0">
                     <div class="sync-thermo-track"><div id="sync-thermo-fill" class="sync-thermo-fill"></div></div>
-                    <div id="sync-thermo-text" class="sync-thermo-text text-right">Termômetro: sem leitura</div>
+                    <div id="sync-thermo-text" class="sync-thermo-text">Sem leitura</div>
                 </div>
             </button>
         </div>
@@ -1467,19 +1488,28 @@ document.addEventListener("keydown", function (e) {
           syncThermoFill.style.width = pct + "%";
         }
         if (syncThermoText) {
+          var thermoFull = "";
+          var thermoShort = "";
           if (ageMin === null) {
-            syncThermoText.textContent = "Termômetro: sem leitura";
+            thermoFull = "Termômetro: sem leitura";
+            thermoShort = "Sem leitura";
           } else if (level === "ok") {
-            syncThermoText.textContent = "Termômetro: atualizado há " + ageMin + " min (ok)";
+            thermoFull = "Termômetro: atualizado há " + ageMin + " min (ok)";
+            thermoShort = ageMin + " min · ok";
           } else if (level === "warn") {
-            syncThermoText.textContent = "Termômetro: " + ageMin + " min sem sync (atenção)";
+            thermoFull = "Termômetro: " + ageMin + " min sem sync (atenção)";
+            thermoShort = ageMin + " min · atenc.";
           } else {
-            syncThermoText.textContent = "Termômetro: " + ageMin + " min sem sync (crítico)";
+            thermoFull = "Termômetro: " + ageMin + " min sem sync (crítico)";
+            thermoShort = ageMin + " min · crítico";
           }
+          syncThermoText.textContent = thermoShort;
+          syncThermoText.title = thermoFull;
+          btnSync.title = "Sincronizar estoque com o ERP · " + thermoFull;
         }
       }
       function syncSubText(stockText) {
-        return "Estoque: " + (stockText || "—") + " · BI: " + syncBiStatus;
+        return (stockText || "—") + " · " + syncBiStatus;
       }
       function formatDatePtBrNoSec(dt) {
         var d = String(dt.getDate()).padStart(2, "0");
@@ -1496,8 +1526,8 @@ document.addEventListener("keydown", function (e) {
       btnSync.addEventListener("click", function () {
         var fb = document.getElementById("sync-feedback");
         btnSync.disabled = true;
-        if (btnSyncTitle) btnSyncTitle.textContent = "Sincronizando...";
-        if (btnSyncSub) btnSyncSub.textContent = "Aguarde alguns segundos...";
+        if (btnSyncTitle) btnSyncTitle.textContent = "Sync…";
+        if (btnSyncSub) btnSyncSub.textContent = "Aguarde…";
         var params = new URLSearchParams(window.location.search || "");
         var periodo = params.get("periodo") || "mes_ate_hoje";
         var body = "periodo=" + encodeURIComponent(periodo);
@@ -1528,7 +1558,7 @@ document.addEventListener("keydown", function (e) {
           })
           .finally(function () {
             btnSync.disabled = false;
-            if (btnSyncTitle) btnSyncTitle.textContent = "Sincronizar ERP";
+            if (btnSyncTitle) btnSyncTitle.textContent = "Sync";
             if (btnSyncSub) btnSyncSub.textContent = syncSubText(syncStockRaw);
           });
       });

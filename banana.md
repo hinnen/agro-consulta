@@ -1184,6 +1184,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 BI — topbar sync + Total por unidade (04/08 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão Sync ERP compacto · faixa superior dá mais espaço aos filtros de período · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
+| **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` |
+| **Prova** | Ctrl+F5 em `/` · conferir topbar + Total no gráfico da direita |
+| **Risco** | Baixo — só BI home |
+
 ### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
 
 | Item | Detalhe |

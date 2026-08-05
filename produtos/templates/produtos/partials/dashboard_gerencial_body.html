@@ -130,7 +130,7 @@
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
           <div class="absolute left-0 z-30 mt-1 w-[min(22rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
             <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.{% if dashboard_vendas_fonte == "pdv" %} <strong>Fonte: PDV</strong> (VendaAgro). Meses <strong>set/2025–mai/2026</strong> usam também a planilha histórica importada (Centro); jun/2026 em diante só PDV.{% endif %}</p>
-            <p><span class="text-emerald-800 font-extrabold">Total</span> — só a loja do seletor em cima ({% if dashboard_loja_filtro_label %}{{ dashboard_loja_filtro_label }}{% else %}Centro/Vila{% endif %}). O gráfico ao lado («por unidade») compara as duas.</p>
+            <p><span class="text-emerald-800 font-extrabold">Total</span> — só a loja do seletor em cima ({% if dashboard_loja_filtro_label %}{{ dashboard_loja_filtro_label }}{% else %}Centro/Vila{% endif %}). O gráfico ao lado («por unidade») compara as duas e mostra a <strong>soma das lojas</strong>.</p>
             <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (média dos <strong>3 meses</strong> anteriores no mesmo dia da semana). Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
@@ -148,12 +148,17 @@
   </div>
 
   <div class="xl:col-span-4 glass-card p-4 sm:p-5">
-    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex flex-wrap items-center gap-2">
-      <span>Faturamento por Unidade</span>
-      {% if dashboard_vendas_fonte == "pdv" %}
-      <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
-      {% endif %}
-    </h3>
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+      <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex flex-wrap items-center gap-2">
+        <span>Faturamento por Unidade</span>
+        {% if dashboard_vendas_fonte == "pdv" %}
+        <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
+        {% endif %}
+      </h3>
+      <span id="dash-total-unidades" class="text-[11px] font-black text-sky-800 bg-sky-100 border border-sky-200 rounded-md px-2 py-1 tabular-nums" title="Soma Centro + Vila Elias no período">
+        Total: R$ —
+      </span>
+    </div>
     <div id="stores-chart" class="dash-chart-host w-full"></div>
   </div>
 </div>
@@ -637,23 +642,41 @@
     }
 
     var storesPayload = {{ stores_chart_json|safe }};
-    var lojas = (storesPayload && storesPayload.labels) || [];
-    var lojaTotais = (storesPayload && storesPayload.values) || [];
+    var lojas = ((storesPayload && storesPayload.labels) || []).slice();
+    var lojaTotais = ((storesPayload && storesPayload.values) || []).slice();
+    var totalUnidades = 0;
+    for (var si = 0; si < lojaTotais.length; si++) {
+      totalUnidades += Number(lojaTotais[si] || 0);
+    }
+    totalUnidades = Math.round(totalUnidades * 100) / 100;
+    var totalUnidadesBadge = document.getElementById("dash-total-unidades");
+    if (totalUnidadesBadge) {
+      totalUnidadesBadge.textContent = "Total: R$ " + totalUnidades.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+    if (lojas.length) {
+      lojas.push("Total");
+      lojaTotais.push(totalUnidades);
+    }
+    var storeColors = ["#10b981", "#ea580c", "#0369a1", "#7c3aed", "#64748b"];
     var storeEl = document.querySelector("#stores-chart");
-    var storeH = dashChartHeight("#stores-chart");
+    var storeH = Math.max(dashChartHeight("#stores-chart"), lojas.length >= 3 ? 280 : 260);
     if (storeEl) {
       window.__dashStoreChart = new ApexCharts(storeEl, {
         series: [{ name: "Faturamento", data: lojaTotais }],
         chart: { type: "bar", height: storeH, toolbar: { show: false }, background: "transparent" },
-        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: "70%" } },
-        colors: ["#10b981", "#ea580c"],
+        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: lojas.length >= 3 ? "62%" : "70%" } },
+        colors: storeColors.slice(0, Math.max(lojaTotais.length, 1)),
         dataLabels: {
           enabled: true,
           style: { colors: ["#334155"] },
           formatter: function (v) { return "R$ " + Number(v || 0).toFixed(2); }
         },
         xaxis: { categories: lojas, labels: { style: { colors: "#475569" } } },
-        yaxis: { labels: { style: { colors: "#334155" } } },
+        yaxis: { labels: { style: { colors: "#334155", fontWeight: 700 } } },
+        legend: { show: true, position: "bottom", fontSize: "11px", fontWeight: 700, markers: { width: 10, height: 10, radius: 2 } },
         grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
         tooltip: Object.assign({}, dashTooltip, {
           y: {
