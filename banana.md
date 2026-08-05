@@ -1190,14 +1190,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)
 
 > **Loja hoje:** badge **v14.41** · `producao` @ **2efcc60** · revert tag `checkpoint-loja-pre-lote-20260805`  
-> **Teste:** badge **v14.54** · HEAD `teste`  
+> **Teste:** badge **v14.58** · HEAD `teste`  
 > **⚠️** Só branch isolada / cherry-pick — **não** merge `teste`→`producao`.
 
 | # | Pacote | Status | Commit(s) | Migrate |
 | - | ------ | ------ | --------- | ------- |
 | 1 | **BI-TOPBAR-DATAS** | 📋 **pronto para envio à produção** | `8d6976f` | **NÃO** |
 | 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
-| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` | **NÃO** |
+| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` + `263a137` | **NÃO** |
 | 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | **só** `e109918` (+ opcional `3ecc824`) · **sem** `c6757fd`/`0084` | **NÃO** na loja |
 | 5 | **GG-UX** | 🟡 **P2,5** · depois / sem pressa · revisão uso + dúvida se ainda está errado | — | — |
 
@@ -1215,7 +1215,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Escopo futuro** | Explicar melhor (rótulos/?/ajuda) · revisar se Comparar/Como era/Bruto vs Saldo batem com o que a loja espera · sem deploy até alinhar |
 | **Não é** | bug urgente de PDV/caixa — só BI gráfico |
 
-**Prova lote pendente:** `python scripts/verify_pacotes_pendentes_0508.py` → **VERIFY_OK 9/9** · `verify_cp_anti_dup_backup.py` **11/11** · `verify_bi_topbar_total.py` **35/35** · `verify_planos_conta.py` **23/23** · `manage.py check` OK · ZIP Backup abertos **200** (PG).
+**Prova lote pendente:** `python scripts/verify_pacotes_pendentes_0508.py` → **VERIFY_OK 9/9** · `verify_nf_troca_estorno.py` **11/11** · `verify_cp_anti_dup_backup.py` **11/11** · `verify_bi_topbar_total.py` **35/35** · `verify_planos_conta.py` **23/23** · `manage.py check` OK · ZIP Backup abertos **200** (PG).
 
 **Autorizar:** frase explícita do pacote (ou *lote checklist 05/08*) + **99738595** na mesma mensagem.
 
@@ -1247,15 +1247,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 CP · Backup fechado · clica → abre → baixa → fecha |
 | **Autorizar** | *pode subir CP-BACKUP-MENU / Backup CP para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **v14.48**)
+### 📦 PACOTE PRONTO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **v14.58**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** |
-| **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) |
+| **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) · XML «Confirmar na grade» e repontar id pela margem também respeitam o estorno |
 | **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` |
-| **Commit** | `7f8a78d` + `eaec9a8` (também trava mudança de quantidade) |
-| **Prova** | `verify_pacotes_pendentes_0508.py` (bloqueio troca/remoção + modal) · `manage.py check` OK |
+| **Commit** | `7f8a78d` + `eaec9a8` + `263a137` |
+| **Prova** | `python scripts/verify_nf_troca_estorno.py` → **VERIFY_OK 11/11** (banco real: troca/qtd recusadas, estorno libera; API 400 `requer_estorno`; `node --check` nos scripts da tela) · `verify_pacotes_pendentes_0508.py` **9/9** · `manage.py check` OK |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio-baixo — mexe em Entrada NF já concluída; estorno usa API de reabrir já existente |
 | **Você** | Nota com estoque · Mudar produto → modal PIN · saldo antigo some / novo entra |
@@ -1289,7 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 · 🟡 **GG-UX** na fila (clareza / Renan acha que ainda não está certa) |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 · 🟡 **GG-UX P2,5** na fila (clareza / Renan acha que ainda não está certa) |
 | **O quê** | Soma só planos marcados · bucket recorta no período · «Como era»/Comparar usa `as_of` · popup CP alinhado · visual Display Scale |
 | **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
 | **Prova** | `python scripts/verify_grafico_gastos.py` → **VERIFY_OK** |
