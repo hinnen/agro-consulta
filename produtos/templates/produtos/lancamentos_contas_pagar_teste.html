@@ -81,6 +81,22 @@
   .sv-btn-secondary:hover { background-color: #f1f3f5; }
   .sv-btn-cal { background-color: #0284c7; color: #fff; }
   .sv-btn-cal:hover { background-color: #0369a1; }
+  .sv-backup-wrap { position: relative; }
+  .sv-btn-backup { background-color: #b45309; color: #fff; }
+  .sv-btn-backup:hover { background-color: #92400e; }
+  .sv-backup-menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 40;
+    min-width: 15rem; padding: 0.5rem; border-radius: 0.75rem;
+    border: 2px solid #fcd34d; background: #fffbeb; box-shadow: 0 8px 24px rgba(0,0,0,.12);
+    display: flex; flex-direction: column; gap: 0.35rem;
+  }
+  .sv-backup-item {
+    display: block; min-height: 2.75rem; padding: 0.55rem 0.75rem; border-radius: 0.55rem;
+    background: #fff; border: 1px solid #fde68a; color: #78350f;
+    font-weight: 800; font-size: 0.78rem; text-transform: uppercase; text-decoration: none;
+  }
+  .sv-backup-item:hover { background: #fef3c7; }
+  .sv-backup-meta { margin: 0.15rem 0 0; font-size: 0.72rem; font-weight: 700; color: #92400e; line-height: 1.3; }
   .sv-filters-panel {
     background-color: var(--cor-card); border-radius: var(--raio-borda); padding: 24px;
     margin-bottom: 24px; box-shadow: var(--sombra-suave); display: none; opacity: 0;
@@ -437,6 +453,16 @@
       <input type="search" id="sv-busca" class="sv-input-large" placeholder="Buscar fornecedor, valor, data, NF, boleto…" autocomplete="off">
     </div>
     <div class="sv-toolbar-actions">
+      <div class="sv-backup-wrap" id="sv-backup-wrap">
+        <button type="button" class="sv-btn sv-btn-backup" id="sv-btn-backup" aria-expanded="false" aria-controls="sv-backup-menu" title="Baixar ZIP dos lançamentos">
+          <span aria-hidden="true">💾</span> Backup
+        </button>
+        <div class="sv-backup-menu" id="sv-backup-menu" hidden>
+          <a href="{% url 'api_lancamentos_backup_completo_xlsx' %}" class="sv-backup-item" id="sv-backup-todos" download>Todos (abertos + quitados)</a>
+          <a href="{% url 'api_lancamentos_backup_abertos_xlsx' %}" class="sv-backup-item" id="sv-backup-abertos" download>Só em aberto</a>
+          <p class="sv-backup-meta" id="sv-backup-ultimo">Último backup: —</p>
+        </div>
+      </div>
       <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="sv-btn sv-btn-cal" title="Calendário mensal por vencimento">
         <span aria-hidden="true">📅</span> Calendário
       </a>
@@ -2637,6 +2663,77 @@
   });
 
   document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);
+
+  (function initBackupCp() {
+    const KEY = 'agro_lancamentos_backup_ultimo_v1';
+    const btn = document.getElementById('sv-btn-backup');
+    const menu = document.getElementById('sv-backup-menu');
+    const meta = document.getElementById('sv-backup-ultimo');
+    if (!btn || !menu || !meta) return;
+
+    function fmtIso(iso) {
+      if (!iso) return '';
+      try {
+        const d = new Date(iso);
+        if (Number.isNaN(d.getTime())) return String(iso).slice(0, 16).replace('T', ' ');
+        const p = (n) => String(n).padStart(2, '0');
+        return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      } catch (_) {
+        return String(iso).slice(0, 16);
+      }
+    }
+    function pintar(info) {
+      if (!info || !info.em) {
+        meta.textContent = 'Último backup: ainda não feito neste PC/loja';
+        return;
+      }
+      const tipo = info.somente_abertos ? 'só em aberto' : 'todos';
+      meta.textContent = `Último backup: ${fmtIso(info.em)} (${tipo})`;
+    }
+    function lerLocal() {
+      try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (_) { return null; }
+    }
+    function gravarLocal(info) {
+      try { localStorage.setItem(KEY, JSON.stringify(info)); } catch (_) {}
+    }
+    function marcarDownload(somenteAbertos) {
+      const info = {
+        em: new Date().toISOString(),
+        somente_abertos: !!somenteAbertos,
+      };
+      gravarLocal(info);
+      pintar(info);
+    }
+    pintar(lerLocal());
+    fetch('{% url "api_lancamentos_backup_ultimo" %}', { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((j) => {
+        const u = j && j.ultimo;
+        if (!u || !u.em) return;
+        const loc = lerLocal();
+        if (!loc || !loc.em || String(u.em) > String(loc.em)) {
+          gravarLocal(u);
+          pintar(u);
+        }
+      })
+      .catch(() => {});
+
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const open = menu.hasAttribute('hidden');
+      if (open) menu.removeAttribute('hidden');
+      else menu.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', () => {
+      menu.setAttribute('hidden', '');
+      btn.setAttribute('aria-expanded', 'false');
+    });
+    menu.addEventListener('click', (ev) => ev.stopPropagation());
+    document.getElementById('sv-backup-todos')?.addEventListener('click', () => marcarDownload(false));
+    document.getElementById('sv-backup-abertos')?.addEventListener('click', () => marcarDownload(true));
+  })();
+
   document.getElementById('sv-aplicar-filtros').addEventListener('click', () => {
     marcarPrefiltro('');
     fecharFiltros();
