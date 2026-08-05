@@ -1197,7 +1197,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | --------- | ------- |
 | 1 | **BI-TOPBAR-DATAS** | 📋 **pronto para envio à produção** | `8d6976f` | **NÃO** |
 | 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
-| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` | **NÃO** |
+| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` | **NÃO** |
 | 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | **só** `e109918` (+ opcional `3ecc824`) · **sem** `c6757fd`/`0084` | **NÃO** na loja |
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
