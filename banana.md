@@ -1199,15 +1199,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
 | 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` | **NÃO** |
 | 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | **só** `e109918` (+ opcional `3ecc824`) · **sem** `c6757fd`/`0084` | **NÃO** na loja |
-| 5 | **GG-UX** | 🟡 **depois / sem pressa** · revisão uso + dúvida se ainda está errado | — | — |
+| 5 | **GG-UX** | 🟡 **P2,5** · depois / sem pressa · revisão uso + dúvida se ainda está errado | — | — |
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
 
-### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · 05/08)
+**P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente.
+
+### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · **P2,5** · 05/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **fila** · checklist #5 · **sem pressa** |
+| **Status** | 🟡 **fila P2,5** · checklist #5 · **sem pressa** |
 | **Onde** | `/financeiro/grafico-gastos/` (já Live v14.41 com GG-GASTOS) |
 | **Pediu** | Renan: tela confusa · acha que ainda não está certa · 2ª linha / dia de referência / como usar |
 | **Escopo futuro** | Explicar melhor (rótulos/?/ajuda) · revisar se Comparar/Como era/Bruto vs Saldo batem com o que a loja espera · sem deploy até alinhar |
@@ -1287,7 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 · 🟡 **GG-UX** na fila (clareza / Renan acha que ainda não está certa) |
 | **O quê** | Soma só planos marcados · bucket recorta no período · «Como era»/Comparar usa `as_of` · popup CP alinhado · visual Display Scale |
 | **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
 | **Prova** | `python scripts/verify_grafico_gastos.py` → **VERIFY_OK** |
