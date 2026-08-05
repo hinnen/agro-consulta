@@ -1191,33 +1191,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** badge **v14.41** · `producao` @ **2efcc60** · revert tag `checkpoint-loja-pre-lote-20260805`  
 > **Teste:** badge **v14.61** · HEAD `teste`  
-> **⚠️** Só branch isolada / cherry-pick — **não** merge `teste`→`producao`.
+> **Branch deploy pronta:** `deploy/lote-checklist-0508` @ **93a824d** (sobre `producao`)  
+> **⚠️** **NÃO** merge `teste`→`producao`. No próximo chat: pausar vendas → frase + senha → push **só** essa branch.
 
-| # | Pacote | Status | Commit(s) | Migrate |
-| - | ------ | ------ | --------- | ------- |
-| 1 | **BI-TOPBAR-DATAS** | 📋 **pronto para envio à produção** | `8d6976f` | **NÃO** |
-| 2 | **CP-BACKUP-MENU** | 📋 **pronto para envio à produção** | `e0652c5` | **NÃO** |
-| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto para envio à produção** | `7f8a78d` + `eaec9a8` + `263a137` | **NÃO** |
-| 4 | **PLANOS-CONTA** | 📋 **pronto para envio à produção** | `e109918` + `3ecc824` + **`fe7746c`** · **sem** `c6757fd`/`0084` | **NÃO** na loja |
-| 5 | **GG-UX** | 🟡 **P2,5** · depois / sem pressa · revisão uso + dúvida se ainda está errado | — | — |
+| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
+| - | ------ | ------ | --------- | ------- | ----------------- |
+| 1 | **BI-TOPBAR-DATAS** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Baixo — só BI `/` |
+| 2 | **CP-BACKUP-MENU** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Baixo — só painel Backup CP |
+| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Médio — Entrada NF (não PDV) |
+| 4 | **PLANOS-CONTA** | 📋 **pronto** · revisado | na branch deploy (**prep**, não cherry cru) | **NÃO** | Baixo — tela Config nova; modelo loja já existe (`0065`) |
+| 5 | **GG-UX** | 🟡 **fora deste lote** · P2,5 | — | — | — |
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
 
-**P:** P0 loja → P1 grave → P2 melhoria → P3 depois · decimal menor = mais urgente.
+**Prova (05/08 · revalidado):** `verify_planos_conta` **24/24** · `verify_nf_troca_estorno` **11/11** · `verify_cp_anti_dup_backup` **11/11** · `verify_bi_topbar_total` **35/35** · `verify_pacotes_pendentes_0508` **9/9** · `manage.py check` OK.
+
+**Simulação cherry (prep):** BI/CP/NF aplicam limpo (só conflito `VERSION`/`banana.md` — normal). **PLANOS:** cherry `e109918`+`3ecc824`+`fe7746c` **sozinho falha** (arquivos da tela não existem na loja) → na branch deploy foi feito **prep** (UI+APIs+menu, **sem** `0082`/`0084`/`models`). Lote **não toca PDV/caixa** · **sem migrate**.
+
+**Próximo chat (deploy):**  
+1. Lojas pausam vendas.  
+2. Renan: *pode subir lote checklist 05/08 / deploy/lote-checklist-0508 para produção* + **99738595**.  
+3. Assistente: `VERSION` no badge do lote · push `producao` a partir dessa branch · Render Live · Ctrl+F5 · smoke BI + CP Backup + Entrada NF (estorno) + F11 Planos · despausar.
+
+**Autorizar:** frase do lote + **99738595** na mesma mensagem.
 
 ### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · **P2,5** · 05/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **fila P2,5** · checklist #5 · **sem pressa** |
+| **Status** | 🟡 **fora do lote** · fila P2,5 · **sem pressa** |
 | **Onde** | `/financeiro/grafico-gastos/` (já Live v14.41 com GG-GASTOS) |
-| **Pediu** | Renan: tela confusa · acha que ainda não está certa · 2ª linha / dia de referência / como usar |
-| **Escopo futuro** | Explicar melhor (rótulos/?/ajuda) · revisar se Comparar/Como era/Bruto vs Saldo batem com o que a loja espera · sem deploy até alinhar |
-| **Não é** | bug urgente de PDV/caixa — só BI gráfico |
-
-**Prova lote pendente:** `verify_pacotes_pendentes_0508.py` **9/9** · `verify_nf_troca_estorno.py` **11/11** · `verify_cp_anti_dup_backup.py` **11/11** · `verify_bi_topbar_total.py` **35/35** · `verify_planos_conta.py` **24/24** · `manage.py check` OK · ZIP Backup abertos **200** (PG).
-
-**Autorizar:** frase explícita do pacote (ou *lote checklist 05/08*) + **99738595** na mesma mensagem.
+| **Pediu** | Renan: tela confusa · revisão de clareza depois |
 
 ### 📦 PACOTE PRONTO LOJA — BI topbar filtros de data (`BI-TOPBAR-DATAS` · **v14.45**)
 
@@ -1265,14 +1269,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** (Saída A) · **sem migrate** na loja |
+| **Status** | 📋 **pronto** · sobe via branch **`deploy/lote-checklist-0508`** |
 | **Onde** | Configuração (F11) → **Planos de contas** |
-| **O quê** | Tela edita planos oficiais (tipo/apelidos) · botão «Carregar lista padrão» se vazio · visual §11 (16:9, sem rolagem de página, `clamp`/`rem`) |
-| **Commit loja** | `e109918` + `3ecc824` + **`fe7746c`** |
-| **NÃO subir** | `c6757fd` / migrate **0084** (loja já tem `0065`) |
-| **Prova** | `verify_planos_conta.py` **24/24** · layout medido 1366×768 (2 colunas, página não rola) · lote **9/9** · `check` OK |
+| **O quê** | Tela edita planos oficiais · seed se vazio · visual §11 |
+| **Loja** | Prep na branch deploy (UI+APIs+menu) · modelo já existe (`0065`) |
+| **NÃO** | cherry cru `e109918`… (arquivos não existem na loja) · **nem** `c6757fd`/`0084` |
+| **Prova** | `verify_planos_conta.py` **24/24** · reverse URL OK na branch deploy · `check` OK |
 | **Você** | Ctrl+F5 · F11 → Planos · edita um dos 44 |
-| **Autorizar** | *pode subir PLANOS-CONTA / planos de contas para produção* + **99738595** |
+| **Autorizar** | *lote checklist 05/08* + **99738595** (junto com o lote) |
 
 ### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
 
@@ -1341,7 +1345,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### 📦 Plano de contas SisVale (`PLANOS-CONTA` · detalhe)
 
-> Vigente: **PACOTE PRONTO PLANOS-CONTA** no checklist. Cherry-pick `e109918` + `3ecc824` + `fe7746c`. **Não** `c6757fd`/`0084`. Sem merge `teste`→`producao`.
+> Vigente: checklist + branch **`deploy/lote-checklist-0508`**. **Não** cherry cru dos commits do `teste`. **Não** `0084`.
 
 ### 📦 CHECKLIST ÚNICO — pós v14.41 (05/08) · **superado**
 
