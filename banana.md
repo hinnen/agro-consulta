@@ -1270,7 +1270,7 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.34+** · HEAD  
+**Teste:** badge **v14.35+** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
