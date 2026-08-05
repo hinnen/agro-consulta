@@ -1833,31 +1833,34 @@
       <button type="button" id="btn-salvar-xml" class="min-h-[48px] px-6 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-md border-2 border-orange-700 w-full sm:w-auto">Salvar entrada</button>
     </section>
 
-    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-xl border-2 border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
+    <section id="panel-sefaz" class="tab-panel hidden bg-white rounded-xl border border-slate-200 shadow-sm p-3 sm:p-4 space-y-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-sm font-black uppercase text-slate-800">SEFAZ (DF-e)</h2>
-        <button type="button" id="btn-sefaz-refresh-meta" class="min-h-[36px] px-2 py-1 rounded-lg border-2 border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-slate-50 shrink-0" title="Consultar novamente certificado e ambiente no servidor">Atualizar status</button>
-      </div>
-      <div id="sefaz-status" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-3 text-xs font-semibold text-slate-700" data-nfe-sefaz-lazy="1">Ao abrir esta aba pela primeira vez, o servidor consulta certificado DF-e — pode levar alguns segundos. Use «Atualizar status» quando quiser repetir.</div>
-      <div class="flex flex-wrap gap-3 items-end">
-        <button type="button" id="btn-dist-dfe" class="min-h-[48px] px-6 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase hover:bg-emerald-700 shadow-sm">Buscar notas novas</button>
-        <p class="w-full text-[10px] font-semibold text-slate-500 leading-snug">Lista <strong>salva no banco</strong> (até ~80). Processar as <strong>mais antigas primeiro</strong>. Botão só puxa notas <strong>novas</strong> (pra frente do cursor). Se 656/137 → aguarde 1h.</p>
-        <div class="w-full flex flex-wrap gap-2 items-end rounded-xl border-2 border-orange-200 bg-orange-50/60 p-3">
-          <label class="block flex-1 min-w-[14rem]"><span class="text-[10px] font-black uppercase text-orange-950">Chave NF-e (44 dígitos)</span>
-            <input type="text" id="sefaz-chave" inputmode="numeric" maxlength="54" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-orange-300 px-3 py-2 text-sm font-mono bg-white" placeholder="Cole a chave da nota (portal / XML / fornecedor)"></label>
-          <button type="button" id="btn-dfe-chave" class="min-h-[48px] px-5 py-3 rounded-xl bg-orange-600 text-white font-black text-xs uppercase hover:bg-orange-700 shadow-sm border-2 border-orange-800">Baixar pela chave</button>
-          <p class="w-full text-[10px] font-semibold text-orange-950/80 leading-snug">Recupera nota que o «Buscar» já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita (não use no meio do Aguarde 1h).</p>
+        <div class="flex items-center gap-2 min-w-0">
+          <h2 class="text-sm font-black uppercase tracking-tight text-slate-900">SEFAZ</h2>
+          <button type="button" class="nfe-wiz-help entrada-nfe-ajuda-sefaz min-h-[2.25rem] min-w-[2.25rem] rounded-lg border border-slate-300 bg-white text-sm font-black text-slate-700 hover:bg-orange-50 hover:border-orange-300 shrink-0" data-help-w="sefaz" title="Ajuda SEFAZ" aria-label="Ajuda da aba SEFAZ">?</button>
         </div>
-        <details class="w-full rounded-xl border border-slate-200 bg-slate-50/80 p-2">
-          <summary class="cursor-pointer text-[10px] font-black uppercase text-slate-600">Avançado · ultNSU</summary>
-          <label class="mt-2 block"><span class="text-[10px] font-black uppercase text-slate-600">ultNSU (opcional)</span>
-            <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[44px] rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-mono" placeholder="Vazio = cursor salvo"></label>
+        <button type="button" id="btn-sefaz-refresh-meta" class="min-h-[2.25rem] px-2.5 rounded-lg border border-slate-300 bg-white text-[0.65rem] font-black uppercase text-slate-700 hover:bg-slate-50 shrink-0" title="Atualizar status do certificado">Status</button>
+      </div>
+      <div id="sefaz-status" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2 text-xs font-semibold text-slate-700" data-nfe-sefaz-lazy="1" role="status">
+        <span class="inline-flex items-center gap-2 text-slate-600 font-bold"><span class="h-2 w-2 rounded-full bg-slate-400 shrink-0" aria-hidden="true"></span>Abrindo…</span>
+      </div>
+      <div class="flex flex-col gap-2.5">
+        <button type="button" id="btn-dist-dfe" class="min-h-[3rem] w-full sm:w-auto sm:min-w-[14rem] px-5 rounded-xl bg-emerald-600 text-white font-black text-sm uppercase tracking-wide hover:bg-emerald-700 shadow-sm">Buscar notas novas</button>
+        <div class="flex flex-wrap gap-2 items-end">
+          <label class="block flex-1 min-w-[min(100%,16rem)]"><span class="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">Chave NF-e</span>
+            <input type="text" id="sefaz-chave" inputmode="numeric" maxlength="54" autocomplete="off" class="mt-1 w-full min-h-[2.75rem] rounded-xl border border-slate-300 px-3 py-2 text-sm font-mono bg-white focus:border-orange-400 focus:outline-none" placeholder="44 dígitos"></label>
+          <button type="button" id="btn-dfe-chave" class="min-h-[2.75rem] px-4 rounded-xl bg-orange-600 text-white font-black text-[0.7rem] uppercase tracking-wide hover:bg-orange-700 shadow-sm">Baixar pela chave</button>
+        </div>
+        <details class="rounded-lg border border-slate-200/90 bg-slate-50/50 px-2.5 py-1.5">
+          <summary class="cursor-pointer text-[0.65rem] font-black uppercase tracking-wide text-slate-500 select-none">Avançado</summary>
+          <label class="mt-2 block pb-1"><span class="text-[0.65rem] font-black uppercase text-slate-500">ultNSU</span>
+            <input type="text" id="sefaz-ult" class="mt-1 w-44 min-h-[2.5rem] rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-mono bg-white" placeholder="Cursor salvo"></label>
         </details>
       </div>
-      <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 p-4 space-y-2 text-sm"></div>
-      <div class="flex flex-wrap gap-2" role="tablist" aria-label="Caixa de entrada DF-e">
-        <button type="button" id="btn-dfe-aba-pendentes" class="dfe-inbox-aba min-h-[40px] px-4 rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-[11px] font-black uppercase" data-aba="pendentes">Pendentes</button>
-        <button type="button" id="btn-dfe-aba-concluidas" class="dfe-inbox-aba min-h-[40px] px-4 rounded-xl border-2 border-slate-300 bg-white text-slate-800 text-[11px] font-black uppercase" data-aba="concluidas">Concluídas</button>
+      <div id="sefaz-result" class="hidden rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5 space-y-1 text-sm font-semibold text-slate-800"></div>
+      <div class="inline-flex flex-wrap rounded-xl border border-slate-200 bg-slate-100/80 p-0.5 gap-0.5" role="tablist" aria-label="Caixa de entrada DF-e">
+        <button type="button" id="btn-dfe-aba-pendentes" class="dfe-inbox-aba min-h-[2.5rem] px-4 rounded-[0.65rem] border border-emerald-600 bg-emerald-600 text-white text-[0.7rem] font-black uppercase" data-aba="pendentes">Pendentes</button>
+        <button type="button" id="btn-dfe-aba-concluidas" class="dfe-inbox-aba min-h-[2.5rem] px-4 rounded-[0.65rem] border border-transparent bg-transparent text-slate-700 text-[0.7rem] font-black uppercase hover:bg-white/80" data-aba="concluidas">Concluídas</button>
       </div>
       <div id="sefaz-previews" class="space-y-2" aria-live="polite"></div>
     </section>
@@ -2133,6 +2136,14 @@
         <div class="border-l-4 border-indigo-200 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">Passo a passo (aba Manual)</p>
           <p>Use <strong>Próximo</strong> / <strong>Anterior</strong> ou os botões no topo: cada passo aparece <strong>só um por vez</strong>. O chip fica <strong>verde</strong> só quando os obrigatórios daquele passo estão ok; <strong>Próximo</strong> só avança se o passo atual estiver válido. A etapa 6 · Etiquetas é opcional. A etapa 8 · Finalizar (PIN) exige os passos anteriores completos. O PIN é o mesmo da <strong>senha rápida</strong> do usuário (estoque / empréstimo).</p>
+        </div>
+        <div class="border-l-4 border-emerald-300 pl-3 space-y-2">
+          <p class="text-xs font-black uppercase text-slate-500">SEFAZ (DF-e)</p>
+          <p><strong>Buscar notas novas</strong> puxa só o que ainda não passou no cursor e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
+          <p><strong>Baixar pela chave</strong> recupera nota que o Buscar já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita: não use no meio do «Aguarde 1h».</p>
+          <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong>, aguarde ~1h antes de consultar de novo.</p>
+          <p>Item <strong>Só resumo</strong>: a Receita mandou só o cabeçalho — use a aba <strong>XML</strong> com o arquivo completo. <strong>Carregar na grade</strong> só aparece quando o XML completo já está salvo.</p>
+          <p><strong>Pendentes</strong> = ainda para lançar · <strong>Concluídas</strong> = carregadas ou ignoradas. <strong>Avançado</strong> (ultNSU) só se o suporte pedir.</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
           <p class="font-black uppercase text-slate-500">Técnico</p>
@@ -5941,6 +5952,17 @@
           'Após gravar o PIN, o custo escolhido é aplicado ao catálogo conforme a regra da loja.',
         ],
       },
+      sefaz: {
+        titulo: 'Ajuda rápida · SEFAZ (DF-e)',
+        resumo: 'Puxe notas da Receita para a caixa salva no banco (todos os PCs) e carregue na grade.',
+        itens: [
+          'Buscar notas novas: só puxa o que ainda não passou no cursor (até ~80). Processe as mais antigas primeiro.',
+          'Baixar pela chave: recupera nota que o Buscar já passou — não mexe no cursor. Também conta no limite da Receita.',
+          'Se aparecer Aguarde / 656 / 137: espere ~1h antes de consultar de novo. Não use a chave no meio dessa espera.',
+          'Só resumo: a Receita mandou só o cabeçalho — use a aba XML com o arquivo. Carregar na grade só com XML completo.',
+          'Pendentes = para lançar · Concluídas = carregadas ou ignoradas. Avançado (ultNSU) só se o suporte pedir.',
+        ],
+      },
     };
     const p = map[String(key || '')];
     if (!p) {
@@ -5967,6 +5989,20 @@
     entradaNfeAjudaContextoSet(w);
     abrirModalAjudaEntradaNfe(true);
   });
+
+  document.getElementById('panel-sefaz')?.addEventListener('click', (e) => {
+    const elT = e.target;
+    const h = elT instanceof Element ? elT.closest('.nfe-wiz-help') : null;
+    if (!h) return;
+    const w = h.getAttribute('data-help-w') || 'sefaz';
+    entradaNfeAjudaContextoSet(w);
+    abrirModalAjudaEntradaNfe(true);
+  });
+
+  function entradaNfeAbaEditorAtiva() {
+    const on = document.querySelector('.tab-btn.tab-on');
+    return String(on?.dataset?.tab || 'manual').toLowerCase();
+  }
 
   function entradaNfeAbrirEditor() {
     document.body.classList.add('entrada-nfe--editor');
@@ -6010,7 +6046,14 @@
   }
 
   document.querySelectorAll('.entrada-nfe-open-ajuda').forEach((btn) => {
-    btn.addEventListener('click', abrirModalAjudaEntradaNfe);
+    btn.addEventListener('click', () => {
+      if (entradaNfeAbaEditorAtiva() === 'sefaz') {
+        entradaNfeAjudaContextoSet('sefaz');
+        abrirModalAjudaEntradaNfe(true);
+        return;
+      }
+      abrirModalAjudaEntradaNfe(false);
+    });
   });
   document.getElementById('btn-entrada-nfe-voltar-lista')?.addEventListener('click', () => entradaNfeFecharEditor());
   if (entradaNfeEmbedLancamentos) {
@@ -10623,9 +10666,9 @@
       b.classList.toggle('bg-emerald-600', on);
       b.classList.toggle('text-white', on);
       b.classList.toggle('border-emerald-600', on);
-      b.classList.toggle('bg-white', !on);
-      b.classList.toggle('text-slate-800', !on);
-      b.classList.toggle('border-slate-300', !on);
+      b.classList.toggle('border-transparent', !on);
+      b.classList.toggle('bg-transparent', !on);
+      b.classList.toggle('text-slate-700', !on);
     });
   }
 
@@ -10667,33 +10710,34 @@
     const list = Array.isArray(itens) ? itens : [];
     if (!list.length) {
       prevBox.innerHTML =
-        '<p class="text-xs font-semibold text-slate-600">'
+        '<p class="text-xs font-semibold text-slate-500 py-2">'
         + (entradaNfeDfeAba === 'concluidas'
           ? 'Nenhuma nota concluída ainda.'
-          : 'Caixa vazia. Use «Buscar notas novas» ou Ler XML.')
+          : 'Caixa vazia.')
         + '</p>';
       return;
     }
     list.forEach((pv) => {
       const div = document.createElement('div');
-      div.className = 'rounded-lg border border-slate-200 p-3 bg-slate-50';
+      div.className = 'rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm';
       const valor = Number(pv.valor_total || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const pode = !!pv.pode_carregar;
       const statusLbl = String(pv.status || '');
-      let acoes = '';
+      let acoes = '<div class="mt-2 flex flex-wrap items-center gap-2">';
       if (entradaNfeDfeAba === 'pendentes') {
         if (pode) {
-          acoes += `<button type="button" class="mt-2 mr-2 min-h-[40px] px-3 rounded-lg border-2 border-orange-600 bg-orange-500 text-white text-[10px] font-black uppercase btn-dfe-carregar" data-id="${pv.id}">Carregar na grade</button>`;
+          acoes += `<button type="button" class="min-h-[2.5rem] px-3 rounded-lg bg-orange-600 text-white text-[0.65rem] font-black uppercase tracking-wide hover:bg-orange-700 btn-dfe-carregar" data-id="${pv.id}">Carregar na grade</button>`;
         } else {
-          acoes += `<p class="mt-2 text-[10px] font-bold text-amber-900">Só resumo da Receita — use Ler XML do arquivo.</p>`;
+          acoes += `<span class="inline-flex items-center min-h-[2rem] px-2 rounded-md border border-amber-300 bg-amber-50 text-[0.65rem] font-black uppercase text-amber-950" title="Só resumo da Receita — use a aba XML. Detalhe no ?">Só resumo</span>`;
         }
-        acoes += `<button type="button" class="mt-2 min-h-[40px] px-3 rounded-lg border-2 border-slate-300 bg-white text-slate-800 text-[10px] font-black uppercase btn-dfe-ignorar" data-id="${pv.id}">Ignorar</button>`;
+        acoes += `<button type="button" class="min-h-[2.5rem] px-3 rounded-lg border border-slate-300 bg-white text-slate-700 text-[0.65rem] font-black uppercase tracking-wide hover:bg-slate-50 btn-dfe-ignorar" data-id="${pv.id}">Ignorar</button>`;
       } else {
-        acoes += `<p class="mt-2 text-[10px] font-bold text-slate-600">Status: ${statusLbl || '—'}</p>`;
+        acoes += `<span class="text-[0.7rem] font-bold text-slate-500">Status: ${statusLbl || '—'}</span>`;
       }
+      acoes += '</div>';
       div.innerHTML =
-        `<div class="font-black text-slate-800">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
-        + `<div class="text-xs text-slate-600 break-all">Chave ${pv.chave || '—'}</div>`
+        `<div class="font-black text-slate-900 text-sm leading-snug">${pv.emit_nome || '—'} · NF ${pv.numero || '—'} · R$ ${valor}</div>`
+        + `<div class="mt-0.5 text-[0.7rem] font-mono text-slate-500 break-all">${pv.chave || '—'}</div>`
         + acoes;
       const btnLoad = div.querySelector('.btn-dfe-carregar');
       if (btnLoad) {
@@ -10753,7 +10797,7 @@
     const prevBox = document.getElementById('sefaz-previews');
     if (!prevBox) return;
     entradaNfeDfeSyncAbasUi();
-    prevBox.innerHTML = '<p class="text-xs font-bold text-slate-600">Carregando lista salva…</p>';
+    prevBox.innerHTML = '<p class="text-xs font-semibold text-slate-500">Carregando…</p>';
     try {
       const u = new URL(URL_DFE_INBOX, window.location.origin);
       u.searchParams.set('aba', entradaNfeDfeAba);
@@ -10795,21 +10839,21 @@
     entradaNfeSefazStatusEmCurso = true;
     el.removeAttribute('data-nfe-sefaz-lazy');
     el.innerHTML =
-      '<span class="inline-flex items-center gap-2 text-slate-700 font-bold flex-wrap">'
+      '<span class="inline-flex items-center gap-2 text-slate-600 font-bold">'
       + '<span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shrink-0" aria-hidden="true"></span>'
-      + 'Consultando certificado DF-e no servidor…</span>';
+      + 'Consultando…</span>';
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await fetch(URL_SEFAZ, { credentials: 'same-origin' });
       const s = await r.json();
       if (s.configurada) {
         if (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false) {
-          el.innerHTML = `<span class="text-amber-950 font-black">PC local: consulta SEFAZ desligada</span><span class="block text-[10px] font-semibold text-amber-900/90 mt-0.5">Não compete com a loja. Use a produção online. Lista salva / XML manual ok. · Cursor ${s.ult_nsu || '—'}</span>`;
+          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-950"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Local · SEFAZ off</span><span class="text-[0.7rem] font-semibold text-slate-600">Cursor ${s.ult_nsu || '—'}</span>`;
         } else {
-          el.innerHTML = `<span class="text-emerald-800 font-black">DF-e pronto · lista salva no banco (todos os PCs).</span><span class="block text-[10px] font-semibold text-emerald-900/80 mt-0.5">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Ambiente ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
+          el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-500 shrink-0" aria-hidden="true"></span>Pronto</span><span class="text-[0.7rem] font-semibold text-slate-600">UF ${s.uf || '—'} · CNPJ ${s.cnpj_mascarado || '—'} · Amb ${s.tp_amb} · Cursor ${s.ult_nsu || '—'}</span>`;
         }
       } else {
-        el.innerHTML = `<span class="text-amber-900 font-bold">Certificado e dados fiscais ainda não estão configurados no servidor.</span> <span class="text-[10px] font-semibold text-amber-800/90">Peça suporte à equipe técnica.</span>`;
+        el.innerHTML = `<span class="inline-flex items-center gap-2 font-black text-amber-900"><span class="h-2 w-2 rounded-full bg-amber-500 shrink-0" aria-hidden="true"></span>Não configurado</span>`;
       }
       entradaNfeSefazAplicarLimiteUi(s);
     } catch (_) {
