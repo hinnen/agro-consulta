@@ -1184,16 +1184,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **pronto envio**
+### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **AGUARDA pausa + senha**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · **não** loja ainda |
-| **Sintoma** | Após CUSTO-FAMILIA v13.82, abas/labels do modal (Preços, Composição, Comissão…) saíram `├º` / “quebrados” |
-| **Causa** | Arquivo do modal gravado com bytes UTF-8 lidos como CP850 no merge isolado |
-| **Fix** | `deploy/hotfix-modal-utf8-v13.83` @ **ed52234** · só modal + VERSION |
-| **Rollback** | tag `rollback/pre-modal-utf8-v13.83` → b28ce83 (v13.82) |
-| **Autorizar** | *pode subir hotfix modal / acentos para produção* + **99738595** |
+| **Status** | 📋 **pronto para envio** · lojas abertas → **não subir agora** |
+| **Sintoma** | Modal Cadastro: Preços/Composição/Comissão com `├º` (acentos quebrados) |
+| **Causa** | Merge isolado CUSTO-FAMILIA leu UTF-8 como CP850 no HTML do modal |
+| **O que sobe** | **só** `VERSION` 13.82→13.83 + `_modal_editar_produto_cadastro_erp.inc.html` |
+| **Não mexe** | PDV · caixa · estoque · venda · lógica saco/kit (só texto do modal) |
+| **Branch** | `deploy/hotfix-modal-utf8-v13.83` @ **ed52234** |
+| **Prova** | `verify_modal_utf8_hotfix.py` → **VERIFY_OK** · `verify_custo_familia.py` no hotfix → **VERIFY_OK** · ids/hooks CF idênticos · hotfix = reverse(cp850) do live |
+| **Rollback** | `git push origin b28ce83:producao` · tag `rollback/pre-modal-utf8-v13.83` |
+| **Próximo chat** | Lojas pausam vendas → *pode subir hotfix modal / acentos para produção* + **99738595** → `git push origin deploy/hotfix-modal-utf8-v13.83:producao` |
+| **Você após Live** | Ctrl+F5 Cadastro → abas com ç/ã ok · Composição saco/kit ainda lá |
 
 ### ✅ Deploy loja **v13.82** — CUSTO-FAMILIA (04/08 · frase+senha)
 
@@ -1231,13 +1235,14 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.82)
 
-**Loja hoje:** badge **v13.82** · producao @ **b28ce83**  
-**Teste:** badge **v14.11** · teste @ HEAD (WIP restante **não** na loja)
+**Loja hoje:** badge **v13.82** · producao @ **b28ce83** (modal com acentos quebrados — hotfix pronto)  
+**Teste:** badge **v14.12** · teste @ HEAD
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
 | 2 | **CUSTO-FAMILIA** (saco+kit) | ✅ **enviado** / Live v13.82 |
+| 3 | **MODAL-UTF8** (acentos) | 📋 **pronto para envio** · v13.83 |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
 ### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v13.82**)
