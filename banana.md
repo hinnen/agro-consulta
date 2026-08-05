@@ -1237,30 +1237,26 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
 | **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
 
-### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.82)
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.83)
 
-**Loja hoje:** badge **v13.82** · producao @ **b28ce83** (acentos modal quebrados)  
-**Teste:** badge **v14.13+** · teste @ HEAD  
-**Fila:** **MODAL-UTF8 v13.83** — aguarda pausa loja + senha (não piora PDV/venda)
+**Loja hoje:** badge **v13.83** · producao @ **ed52234**  
+**Teste:** badge **v14.15+** · teste @ HEAD
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
 | 2 | **CUSTO-FAMILIA** (saco+kit) | ✅ **enviado** / Live v13.82 |
-| 3 | **MODAL-UTF8** (acentos) | 📋 **pronto para envio** · v13.83 · branch pronta |
+| 3 | **MODAL-UTF8** (acentos) | ✅ **enviado** / Live v13.83 |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
 
 ### 📦 PACOTE PRONTO LOJA — Hotfix acentos modal (`MODAL-UTF8` · **v13.83**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · **não** loja · lojas abertas = esperar |
-| **Inclui** | Só texto UTF-8 do modal Cadastro + badge 13.83 |
-| **Prova** | `python scripts/verify_modal_utf8_hotfix.py` → **VERIFY_OK** |
-| **Migrate** | **NÃO** |
-| **Risco** | **Baixíssimo** — zero lógica PDV/estoque; Render redeploy rápido |
+| **Status** | ✅ **Live loja v13.83** · ed52234 |
+| **Inclui** | Texto UTF-8 do modal Cadastro |
 | **Rollback** | `b28ce83` / `rollback/pre-modal-utf8-v13.83` |
-| **Autorizar** | *pode subir hotfix modal / acentos para produção* + **99738595** |
+| **Você** | Ctrl+F5 Cadastro → Preços/Composição legíveis |
 
 ### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v13.82**)
 
