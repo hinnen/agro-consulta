@@ -352,11 +352,11 @@ def grafico_gastos_serie_pg(
     )
 
     excl = set(str(x).strip() for x in (planos_excluir_nomes or []) if str(x).strip())
-    incluir_individual: set[str] | None = None
-    if individual and plano_ids:
+    incluir: set[str] | None = None
+    if not todos_planos and plano_ids:
         nomes = {str(x).strip() for x in plano_ids if str(x).strip()}
         if nomes:
-            incluir_individual = nomes
+            incluir = nomes
 
     agr = (agrupamento or "mes").strip().lower()
     bucket_keys = _grafico_gastos_iter_bucket_keys(data_de, data_ate, agr)
@@ -373,7 +373,7 @@ def grafico_gastos_serie_pg(
             plano = str(t.plano_conta or "").strip() or "(sem plano)"
             if excl and plano in excl:
                 continue
-            if incluir_individual is not None and plano not in incluir_individual:
+            if incluir is not None and plano not in incluir:
                 continue
             dt = _campo_data_titulo(t, modo_por)
             if dt is None or dt < data_de or dt > data_ate:
@@ -390,6 +390,12 @@ def grafico_gastos_serie_pg(
                 totais[bkey] = 0.0
                 continue
             b_de, b_ate = intervalo
+            # bucket de mês/semana/ano pode passar das pontas do filtro (ex. 05/05 a 05/08)
+            b_de = max(b_de, data_de)
+            b_ate = min(b_ate, data_ate)
+            if b_de > b_ate:
+                totais[bkey] = 0.0
+                continue
             titulos = _titulos_no_periodo_pg(
                 data_de=b_de, data_ate=b_ate, por=modo_por, despesa=True, status=st
             )
@@ -397,7 +403,7 @@ def grafico_gastos_serie_pg(
                 titulos,
                 modo_valor=modo_valor,
                 excluir_planos=excl,
-                incluir_planos=None,
+                incluir_planos=incluir,
                 data_referencia=data_referencia,
             )
             totais[bkey] = float(soma)
@@ -417,8 +423,8 @@ def grafico_gastos_serie_pg(
             )
     else:
         label = "Total Selecionado"
-        if incluir_individual and len(incluir_individual) == 1:
-            label = next(iter(incluir_individual))
+        if incluir and len(incluir) == 1:
+            label = next(iter(incluir))
         cor_borda, cor_fundo = _GRAFICO_GASTOS_CORES[0]
         datasets = [
             {

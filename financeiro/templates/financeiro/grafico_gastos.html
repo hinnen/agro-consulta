@@ -1174,6 +1174,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const valor = document.getElementById('filtro-valor').value;
     const intervalo = bucketParaIntervalo(key, agr);
     if (!intervalo) return null;
+    const filtroDe = document.getElementById('data-inicial').value;
+    const filtroAte = document.getElementById('data-final').value;
+    if (filtroDe && intervalo.de < filtroDe) intervalo.de = filtroDe;
+    if (filtroAte && intervalo.ate > filtroAte) intervalo.ate = filtroAte;
 
     const p = new URLSearchParams();
     p.set('embed', 'grafico');
