@@ -756,7 +756,8 @@
         flex-wrap: nowrap !important;
         overflow-x: auto;
         overflow-y: hidden;
-        flex: 1 1 12rem;
+        /* Tela estreita: barra de datas ganha uma linha só dela (nada de botão cortado). */
+        flex: 1 1 100%;
         min-width: 0;
         max-width: 100%;
         scrollbar-width: none;
@@ -779,18 +780,53 @@
         flex: 0 0 auto;
         max-width: 7.25rem;
     }
+    /* Marca e rótulos só em tela larga: os filtros de período têm prioridade. */
+    .dash-brand-text { display: none; }
+    .dash-topbar-loja-lbl { display: none; }
+    @media (min-width: 1600px) {
+        .dash-brand-text { display: block; }
+        .dash-topbar-loja-lbl { display: inline; }
+    }
+    @media (max-width: 1599px) {
+        .dash-topbar-periods { gap: 0.1rem; padding: 0.15rem; }
+        .dash-topbar-periods .period-btn {
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+        }
+        .dash-topbar-actions .dash-topbar-cta {
+            padding-left: 0.4rem;
+            padding-right: 0.4rem;
+        }
+    }
+    /* Abaixo de 992px: sync sobe para a 1ª linha e os filtros ficam com a linha de baixo. */
+    @media (max-width: 991px) {
+        .dash-topbar-sync { order: 2; }
+        .dash-topbar-periods { order: 3; }
+    }
     @media (min-width: 992px) {
         .dash-topbar {
             display: grid !important;
-            grid-template-columns: auto minmax(0, auto) minmax(14rem, 1fr) auto;
+            grid-template-columns: auto minmax(0, auto) minmax(0, 1fr) auto;
             align-items: center;
             flex-wrap: nowrap !important;
             gap: 0.4rem;
         }
         .dash-topbar-periods {
             justify-self: stretch;
-            min-width: 14rem;
+            min-width: 0;
         }
+        /* Marcado pelo JS quando os 7 filtros não cabem na linha: eles ganham a linha de baixo. */
+        .dash-topbar.dash-topbar--periods-row {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-areas:
+                "brand actions sync"
+                "periods periods periods";
+            row-gap: 0.3rem;
+        }
+        .dash-topbar--periods-row .dash-topbar-brand { grid-area: brand; }
+        .dash-topbar--periods-row .dash-topbar-actions { grid-area: actions; justify-content: flex-end; }
+        .dash-topbar--periods-row .dash-topbar-sync { grid-area: sync; }
+        .dash-topbar--periods-row .dash-topbar-periods { grid-area: periods; }
     }
     @media (min-width: 1280px) and (max-width: 1599px) {
         .dash-kpi-grid > .kpi-card {
@@ -822,16 +858,16 @@
 <div id="agro-ver-popover" class="agro-ver-popover hidden" role="tooltip" aria-hidden="true" translate="no"></div>
 <div class="main-container">
     <div class="dash-topbar flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
-        <div class="flex items-center gap-3 px-2 border-r border-white/10 mr-1 min-w-0">
-            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] shrink-0">
+        <div class="dash-topbar-brand flex items-center gap-2 pl-1 pr-2 border-r border-white/10 mr-1 min-w-0">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] shrink-0" title="Gestão Estratégica — SisVale BI">
                 <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
             </div>
-            <div class="hidden xl:flex xl:items-baseline xl:gap-2 min-w-0">
-                <div class="min-w-0">
-                    <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
-                </div>
-                <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
+            <div class="dash-brand-text min-w-0">
+                <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
+                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
                 {% if agro_display_scale_habilitado %}
                 <button
                     type="button"
@@ -842,28 +878,16 @@
                 >Aa</button>
                 {% endif %}
             </div>
-            <div class="xl:hidden flex items-center gap-1.5 shrink-0">
-                <button type="button" class="agro-ver-badge js-agro-ver-badge" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
-                {% if agro_display_scale_habilitado %}
-                <button
-                    type="button"
-                    id="dash-link-display-scale-sm"
-                    class="agro-scale-trigger agro-scale-trigger--header agro-scale-trigger--dash"
-                    title="Ajustar tamanho da tela"
-                    aria-label="Ajustar tamanho da tela"
-                >Aa</button>
-                {% endif %}
-            </div>
         </div>
 
         <div class="dash-topbar-actions flex items-center gap-1.5 min-w-0">
             <div class="flex items-center gap-1 min-w-0" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
-                <label class="text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
-                <select id="dash-agro-loja" class="min-w-[6.5rem] max-w-[9rem] rounded-lg border border-white/15 bg-slate-800 px-1.5 py-1.5 text-[10px] font-bold text-white">
+                <label class="dash-topbar-loja-lbl text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
+                <select id="dash-agro-loja" class="max-w-[6.5rem] rounded-lg border border-white/15 bg-slate-800 px-1 py-1.5 text-[10px] font-bold text-white">
                     <option value="1" {% if pdv_deposito_boot.deposito != 'vila' %}selected{% endif %}>Centro</option>
                     <option value="2" {% if pdv_deposito_boot.deposito == 'vila' %}selected{% endif %}>Vila Elias</option>
                 </select>
-                <span id="dash-agro-loja-badge" class="hidden lg:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase max-w-[7.5rem] truncate {% if pdv_deposito_boot.deposito == 'vila' %}border-slate-400 bg-slate-700 text-slate-100{% else %}border-emerald-500/50 bg-emerald-950/40 text-emerald-200{% endif %}">{{ pdv_deposito_boot.estoqueAtivoLabel|default:"Estoque: Centro" }}</span>
+                <span id="dash-agro-loja-badge" class="{% if not pdv_deposito_boot.caixaTravado %}hidden {% endif %}inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100">Trava: {% if pdv_deposito_boot.deposito == 'vila' %}Vila{% else %}Centro{% endif %}</span>
             </div>
             <button type="button" id="dash-btn-pdv-top"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
@@ -1570,6 +1594,57 @@ document.addEventListener("keydown", function (e) {
       }
     });
     window.agroNovaSaidaOnSuccess = function () { /* permanece no BI após Nova saída */ };
+
+    /* Filtros de período nunca escondidos: se os 7 botões não cabem na linha da topbar
+       (tela estreita, escala de tela grande, badge de trava do caixa), eles descem para
+       uma linha inteira só deles. Medição real — não depende de breakpoint chutado. */
+    (function () {
+      var CLS = 'dash-topbar--periods-row';
+      var bar = document.querySelector('.dash-topbar');
+      var per = document.querySelector('.dash-topbar-periods');
+      var brand = document.querySelector('.dash-topbar-brand');
+      var acoes = document.querySelector('.dash-topbar-actions');
+      var sync = document.querySelector('.dash-topbar-sync');
+      if (!bar || !per || !brand || !acoes || !sync) return;
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+      /* Largura que o bloco pede pelo conteúdo — não muda quando ele é esticado pela grade. */
+      function larguraConteudo(el) {
+        var cs = getComputedStyle(el);
+        var filhos = [];
+        for (var i = 0; i < el.children.length; i++) {
+          if (el.children[i].getClientRects().length) filhos.push(el.children[i]);
+        }
+        var w = 0;
+        for (var k = 0; k < filhos.length; k++) w += filhos[k].getBoundingClientRect().width;
+        w += num(cs.columnGap) * Math.max(0, filhos.length - 1);
+        return w + num(cs.paddingLeft) + num(cs.paddingRight)
+          + num(cs.borderLeftWidth) + num(cs.borderRightWidth)
+          + num(cs.marginLeft) + num(cs.marginRight);
+      }
+      function ajustar() {
+        var cs = getComputedStyle(bar);
+        var gap = num(cs.columnGap);
+        var pedido = larguraConteudo(brand) + larguraConteudo(acoes)
+          + larguraConteudo(per) + larguraConteudo(sync) + gap * 3;
+        var disponivel = bar.clientWidth - num(cs.paddingLeft) - num(cs.paddingRight);
+        bar.classList.toggle(CLS, pedido > disponivel + 2);
+      }
+      ajustar();
+      window.addEventListener('resize', ajustar);
+      window.addEventListener('load', ajustar);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustar);
+      /* Agro Display Scale aplica o zoom depois do load; ResizeObserver pega a mudança. */
+      if (window.ResizeObserver) {
+        try {
+          var ro = new ResizeObserver(ajustar);
+          ro.observe(bar);
+          ro.observe(acoes);
+        } catch (eRo) {}
+      }
+      setTimeout(ajustar, 400);
+      setTimeout(ajustar, 1500);
+      window.agroDashTopbarAjustar = ajustar;
+    })();
 </script>
 {% include "produtos/includes/agro_loja_confirm.html" %}
 {{ pdv_deposito_boot|json_script:"dash-pdv-deposito-boot" }}
@@ -1594,17 +1669,17 @@ document.addEventListener("keydown", function (e) {
       document.cookie = COOKIE_DEP + '=' + encodeURIComponent(dep) + ';path=/;max-age=34560000;SameSite=Lax';
     } catch (e0) {}
   }
+  /* Livre: o próprio seletor já mostra a loja — badge só quando o caixa travou (texto curto). */
   function updateBadge(label, isVila, travado) {
     var b = document.getElementById('dash-agro-loja-badge');
     if (!b) return;
-    b.textContent = label || 'Estoque: Centro';
-    if (travado) {
-      b.className = 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-amber-400 bg-amber-950/50 text-amber-100';
-      return;
+    if (!travado) {
+      b.classList.add('hidden');
+    } else {
+      b.textContent = 'Trava: ' + (isVila ? 'Vila' : 'Centro');
+      b.className = 'inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100';
     }
-    b.className = isVila
-      ? 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-slate-400 bg-slate-700 text-slate-100'
-      : 'hidden sm:inline-flex items-center rounded-md border px-1.5 py-0.5 text-[8px] font-black uppercase border-emerald-500/50 bg-emerald-950/40 text-emerald-200';
+    if (typeof window.agroDashTopbarAjustar === 'function') window.agroDashTopbarAjustar();
   }
   function aplicarTrava(sel, j) {
     var travado = !!(j && (j.caixaTravado || (j.trava && j.trava.travado)));

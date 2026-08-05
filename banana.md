@@ -1186,6 +1186,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 BI topbar — filtros de data nunca escondidos (05/08 · **teste v14.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Botões de período (`Mês até hoje`…`Datas`) cortados pelo bloco Sync; ajuste anterior melhorou mas não resolveu |
+| **O quê** | Texto «Gestão Estratégica / SisVale BI» só ≥1600px (ícone + `v` + `Aa` sempre) · rótulo «Loja» só ≥1600px · seletor mais estreito · badge `TRAVADO: VILA ELIAS` → **`Trava: Vila`** e **só quando o caixa trava** (livre = seletor já diz a loja) · botões mais compactos <1600px |
+| **Chave** | JS mede a largura pedida por marca+ações+filtros+sync; se não cabe, classe `dash-topbar--periods-row` joga os 7 filtros para uma **linha inteira** deles (volta a 1 linha quando sobra espaço). Reage a resize, Display Scale (ResizeObserver) e ao badge de trava |
+| **Arquivo** | `produtos/templates/produtos/dashboard_gerencial.html` (CSS topbar + IIFE `agroDashTopbarAjustar` + `updateBadge`) |
+| **Prova local** | Chrome CDP em 1920/1600/1366/1280/1180/1024/820 + zoom Display Scale + trava ligada/desligada → «Datas» visível em todos, sem scroll lateral |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só topbar do BI |
+
 ### 📦 PACOTE PRONTO LOJA — Gráfico gastos acerto + visual (`GG-GASTOS` · **v14.30+**)
 
 | Item | Detalhe |
