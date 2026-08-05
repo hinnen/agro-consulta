@@ -1241,7 +1241,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** |
 | **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) |
 | **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` |
-| **Commit** | `7f8a78d` |
+| **Commit** | `7f8a78d` + `eaec9a8` (também trava mudança de quantidade) |
 | **Prova** | `verify_pacotes_pendentes_0508.py` (bloqueio troca/remoção + modal) · `manage.py check` OK |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio-baixo — mexe em Entrada NF já concluída; estorno usa API de reabrir já existente |
