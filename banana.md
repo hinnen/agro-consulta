@@ -1186,6 +1186,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐞 FIX — painel Backup do CP ficava sempre aberto (05/08 · **teste v14.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Em Contas a pagar o overlay amarelo do botão **Backup** aparecia sempre, sem clicar |
+| **Causa** | `.sv-backup-menu { display: flex }` vencia o atributo `hidden` (especificidade de classe > regra do navegador) |
+| **Fix** | `.sv-backup-menu[hidden] { display: none; }` + `fecharMenu()` no JS: fecha ao clicar fora, no **Esc** e **depois de baixar** o ZIP |
+| **Arquivo** | `produtos/templates/produtos/lancamentos_contas_pagar_teste.html` |
+| **Prova** | render logado 200 + 6/6 marcadores → **VERIFY_OK** (tela precisa login; conferir no Chrome) |
+| **Migrate** | **NÃO** |
+
 ### 🔧 BI topbar — filtros de data nunca escondidos (05/08 · **teste v14.45**)
 
 | Item | Detalhe |
