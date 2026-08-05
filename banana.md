@@ -1185,17 +1185,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 CHECKLIST ÚNICO — pronto envio (04/08)
+### 📦 CHECKLIST ÚNICO — pronto envio (04/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.20** · `739be93`
+**Teste:** badge **v14.20** · HEAD `50d2ce8`  
+**Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | **BI-TOPBAR-TOTAL** (Sync compacto + Total por unidade) | 📋 **pronto para envio** · VERIFY_OK |
+| 1 | **BI-TOPBAR-TOTAL** (Sync compacto + Total por unidade) | 📋 **pronto para envio** · VERIFY_OK · `fcf1c49`/`739be93` |
+| 2 | **SEFAZ-UI** (aba limpa + textos no «?») | 📋 **pronto para envio** · v14.19 · `e83af8f` |
 | — | PDV-CAD-RAPIDO / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
+| — | lote CAD/NF+DSP (barras · duplicar · NF custo · dispenser PNG) | ✅ **Live** v13.80 |
 
-**Autorizar loja:** *pode subir BI-TOPBAR-TOTAL / produção* + **99738595**
+**Autorizar loja:** *pode subir BI-TOPBAR-TOTAL / SEFAZ-UI para produção* + **99738595**
 
 ### 📦 PACOTE PRONTO LOJA — BI topbar Sync + Total unidades (`BI-TOPBAR-TOTAL` · **v14.18**)
 
@@ -1211,15 +1214,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/` · Sync pequeno · filtros legíveis · Total = Centro+Vila |
 | **Autorizar** | *pode subir BI-TOPBAR-TOTAL / produção* + **99738595** |
 
+### 📦 PACOTE PRONTO LOJA — Entrada NF aba SEFAZ limpa (`SEFAZ-UI` · **v14.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · **não** loja |
+| **Inclui** | Aba SEFAZ só ações + lista · escritas no **?** · status compacto · chip «Só resumo» |
+| **Arquivo** | `entrada_nota.html` |
+| **Commit** | `e83af8f` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI |
+| **Você** | Ctrl+F5 `/entrada-nota/` → SEFAZ → **?** |
+| **Autorizar** | *pode subir SEFAZ-UI / Entrada NF SEFAZ para produção* + **99738595** |
+
 ### 🎨 Entrada NF — aba SEFAZ limpa + ajuda «?» (04/08 · **teste v14.19**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Visual SEFAZ mais limpo · escritas longas no **?** · status compacto · chip «Só resumo» |
-| **Arquivo** | `entrada_nota.html` |
-| **Badge** | **14.19** |
-| **Prova** | Ctrl+F5 `/entrada-nota/` → aba SEFAZ · abrir **?** |
-| **Risco** | Baixo — só UI |
+| **Status** | ✅ teste · ver **PACOTE PRONTO SEFAZ-UI** |
+| **Badge** | **14.19** · `e83af8f` |
+| **Prova** | Ctrl+F5 `/entrada-nota/` → SEFAZ → **?** |
 
 ### 🔧 BI — topbar sync + Total por unidade (04/08 · **teste v14.18**)
 
