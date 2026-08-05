@@ -1185,6 +1185,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐞 FIX — gráfico Gastos por plano somava plano errado (`GG-FILTRO` · **teste** · 05/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Renan: 1 plano marcado (Salários) → ponto Jul/2026 **R$ 34.726**; clicando na bolinha o CP mostrava **R$ 8.474** pago. Mai/2026 também sem sentido. |
+| **Causa 1** | Modo **soma** (sem «individual») ignorava os planos **marcados** — filtrava só por **exclusão** da lista de checkboxes. Plano que não estava na lista (ex. só existe nos dias fora do filtro, ou `(sem plano)`) entrava no total. |
+| **Causa 2** | Bucket **mês/semana/ano** usava o mês **inteiro**, sem recortar nas pontas do filtro: com 05/05→05/08 o ponto Mai contava 01–04/05 e Ago contava 06–31/08. |
+| **Fix** | `grafico_gastos_serie_pg` — inclusão positiva por `plano_ids` (quando não é «todos») + recorte do bucket em `[data_de, data_ate]`. Popup CP também recorta a data do ponto. |
+| **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
+| **Prova** | Script local comparando série × soma manual (venc/pago, venc/bruto, pag/pago · 1 plano e TODOS) → bate em todos os casos. `manage.py check` OK. |
+| **Migrate** | **NÃO** |
+| **Status** | 🧪 **teste** — falta Renan conferir na tela com os dados dele |
+
 ### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **teste**)
 
 | Item | Detalhe |
