@@ -90,6 +90,8 @@
     border: 2px solid #fcd34d; background: #fffbeb; box-shadow: 0 8px 24px rgba(0,0,0,.12);
     display: flex; flex-direction: column; gap: 0.35rem;
   }
+  /* Sem isto o display: flex acima vence o atributo hidden e o painel fica sempre aberto. */
+  .sv-backup-menu[hidden] { display: none; }
   .sv-backup-item {
     display: block; min-height: 2.75rem; padding: 0.55rem 0.75rem; border-radius: 0.55rem;
     background: #fff; border: 1px solid #fde68a; color: #78350f;
@@ -2718,20 +2720,33 @@
       })
       .catch(() => {});
 
-    btn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
-      const open = menu.hasAttribute('hidden');
-      if (open) menu.removeAttribute('hidden');
-      else menu.setAttribute('hidden', '');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    document.addEventListener('click', () => {
+    function fecharMenu() {
       menu.setAttribute('hidden', '');
       btn.setAttribute('aria-expanded', 'false');
+    }
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const abrir = menu.hasAttribute('hidden');
+      if (abrir) {
+        menu.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        fecharMenu();
+      }
+    });
+    document.addEventListener('click', fecharMenu);
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape') fecharMenu();
     });
     menu.addEventListener('click', (ev) => ev.stopPropagation());
-    document.getElementById('sv-backup-todos')?.addEventListener('click', () => marcarDownload(false));
-    document.getElementById('sv-backup-abertos')?.addEventListener('click', () => marcarDownload(true));
+    document.getElementById('sv-backup-todos')?.addEventListener('click', () => {
+      marcarDownload(false);
+      fecharMenu();
+    });
+    document.getElementById('sv-backup-abertos')?.addEventListener('click', () => {
+      marcarDownload(true);
+      fecharMenu();
+    });
   })();
 
   document.getElementById('sv-aplicar-filtros').addEventListener('click', () => {
