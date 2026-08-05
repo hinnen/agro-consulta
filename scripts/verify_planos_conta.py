@@ -160,6 +160,7 @@ def check_django() -> None:
         "planos_conta_config",
         "api_planos_conta_lista",
         "api_planos_conta_salvar",
+        "api_planos_conta_seed",
     ):
         reverse(name)
     tog = reverse("api_planos_conta_toggle", kwargs={"pk": 1})
@@ -334,6 +335,19 @@ def check_django() -> None:
         else:
             print(f"  ~ sugestões HTTP {r.status_code} — skip (inject ORM OK)")
             ok("API sugestões skip HTTP")
+
+        r = c.post(reverse("api_planos_conta_seed"), data="{}", content_type="application/json")
+        if r.status_code != 200 or not r.json().get("ok"):
+            fail(f"seed padrão: {r.status_code} {r.content[:200]!r}")
+        total1 = r.json().get("total") or 0
+        if total1 < 20:
+            fail(f"seed trouxe poucos planos: {total1}")
+        r2 = c.post(reverse("api_planos_conta_seed"), data="{}", content_type="application/json")
+        if r2.status_code != 200 or (r2.json().get("planos") or 0) != 0:
+            fail(f"seed não é idempotente: {r2.json()}")
+        if (r2.json().get("total") or 0) != total1:
+            fail("seed duplicou planos na 2ª rodada")
+        ok(f"seed lista padrão idempotente ({total1} planos)")
 
     finally:
         PlanoContaAgro.objects.filter(nome__startswith="__VERIFY_PLANOS_").delete()

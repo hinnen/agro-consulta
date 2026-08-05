@@ -11,7 +11,7 @@ from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.models import PlanoContaAgro
-from produtos.planos_conta_util import listar_planos_agro, serializar_plano
+from produtos.planos_conta_util import listar_planos_agro, seed_planos_padrao, serializar_plano
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,18 @@ def planos_conta_config_view(request):
             "tipos": PlanoContaAgro.Tipo.choices,
         },
     )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_planos_conta_seed(request):
+    """Carrega a lista padrão (mesma da loja) — não sobrescreve o que já existe."""
+    try:
+        stats = seed_planos_padrao()
+    except Exception:
+        logger.exception("api_planos_conta_seed")
+        return JsonResponse({"ok": False, "erro": "Falha ao carregar a lista padrão."}, status=500)
+    return JsonResponse({"ok": True, **stats, "total": PlanoContaAgro.objects.count()})
 
 
 @login_required(login_url="/admin/login/")

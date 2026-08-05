@@ -40,6 +40,11 @@ urlpatterns = [
         views_planos_conta.api_planos_conta_toggle,
         name="api_planos_conta_toggle",
     ),
+    path(
+        "api/configuracao/planos-conta/carregar-padrao/",
+        views_planos_conta.api_planos_conta_seed,
+        name="api_planos_conta_seed",
+    ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),

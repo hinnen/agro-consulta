@@ -1266,7 +1266,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** (conflito resolvido 05/08 — **Saída A**) · VERIFY_OK 22/22 · **sem migrate** na loja |
+| **Status** | 📋 **pronto para envio à produção** (conflito resolvido 05/08 — **Saída A**) · VERIFY_OK 23/23 · **sem migrate** na loja |
 | **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
 | **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
 | **Migrate** | **SIM** · `0082_plano_conta_agro` |
@@ -1293,6 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 - `0084` é **condicional** (checa colunas / tabelas): no banco da loja seria no-op, mas o **state** do Django quebraria lá → **não** cherry-pick.
 - Provado no PC: `0084` roda em banco antigo **e** em banco já no formato da loja (2ª vez = no-op) · `verify_planos_conta.py` **22/22** · `manage.py check` OK.
 - Apelidos entraram no backup PG (`produtos.PlanoContaAliasAgro`).
+- **Lista vazia no PC é normal:** os 44 planos nasceram do seed do `0065`, que só rodou na loja. Tela vazia mostra botão **«Carregar lista padrão»** (`api/configuracao/planos-conta/carregar-padrao/`) que lê `docs/dados/plano_despesas_*.csv` — no PC gerou **44 planos + 40 apelidos**, igual à loja; rodar 2× não duplica. Na loja o botão nem aparece (já tem lista).
 
 **⚠️ Alerta geral:** `teste` ainda **não tem** `plano_conta_agro_util.py` (resolvedor de grafia, órfãos, seed) que a loja usa — merge `teste` → `producao` **apagaria** isso. Só branch isolada por pacote. Trazer esse util para o `teste` é tarefa separada.
 
