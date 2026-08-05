@@ -1232,20 +1232,20 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | **Migrate** | **NÃO** |
 | **Status** | 🧪 **teste** — falta Renan conferir na tela com os dados dele |
 
-### 📦 Anti-duplicata CP + Backup na tela (`CP-DUP-BACKUP` · **teste**)
+### 📦 PACOTE PRONTO LOJA — Anti-duplicata CP + Backup (`CP-DUP-BACKUP` · **v14.34**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Causa** | Postgres **não** tinha o bloqueio de duplicidade que o Mongo tinha — «Salvar + a pagar» 2× gerava 2 lotes (ex. NF 14988 Ibiúna · lotes `AGCFEAF832` + `AG721D19E4`) |
-| **Fix** | Bloqueio por chave NF / assinatura no insert PG · guard na Entrada NF · trava duplo clique · botão **Backup** (Todos / Em aberto) + data/hora do último |
-| **Não apagou** | Duplicatas já feitas — Renan apaga manual |
-| **Lista Ibiúna (apagar 1 lote)** | Manter `AGCFEAF832` (ids 18368–18370) · apagar `AG721D19E4` (ids **18371, 18372, 18373**) — 3 títulos em aberto |
-| **Cópias antigas (maio · quitadas)** | **deixar** (05/08 Renan) — não aparecem em «Em aberto»; DRE maio pode ter ~R$ 4.858 a mais; **não** apagar agora |
-| **Julho em diante** | **limpo** (05/08) — zero NF com 2 lotes / assinatura duplicada · Ibiúna `AG721D19E4` (18371–73) **já sumiu** do PG |
-| **Falso positivo** | Comissão do Vendedor e vendas PDV com mesmo valor/data = pedidos diferentes, **não** apagar |
-| **Prova** | `python scripts/verify_cp_anti_dup_backup.py` → **VERIFY_OK** |
+| **Status** | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 |
+| **Onde** | Entrada NF («Salvar + a pagar») · Contas a pagar → **Backup** |
+| **Inclui** | Bloqueio PG por chave NF / assinatura · guard Entrada NF · trava duplo clique · Backup Todos/Abertos + data/hora último |
 | **Migrate** | **NÃO** |
-| **Status** | 🧪 **teste** |
+| **Prova** | `python scripts/verify_cp_anti_dup_backup.py` → **VERIFY_OK 11/11** · `manage.py check` OK |
+| **Commit** | `4b28263` (+ verify neste push) |
+| **Risco** | Baixo — não apaga título antigo; só impede 2º lote novo |
+| **Dados** | Maio quitado **deixar** · julho+ limpo · Ibiúna lote errado já sumiu |
+| **Você** | Ctrl+F5 · CP: botão Backup · Entrada NF: não gerar 2º lote na mesma chave |
+| **Autorizar** | *pode subir CP-DUP-BACKUP / anti-duplicata CP para produção* + **99738595** |
 
 ### 📦 Plano de contas SisVale (`PLANOS-CONTA` · **v14.26**)
 
@@ -1265,7 +1265,7 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.26+** · HEAD  
+**Teste:** badge **v14.34+** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
 | # | Pacote | Status |
@@ -1275,10 +1275,11 @@ Varredura da tela inteira depois do fix `GG-FILTRO` (abaixo). Achados **reais** 
 | 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio à produção** · VERIFY_OK · `645fc75` |
 | 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
 | 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 12/12 · migrate **0083** |
+| 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 · **sem** migrate |
 | — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
 | — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
 
-**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA = migrate)
+**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA/DFE-CIENCIA = migrate)
 
 ### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
 
