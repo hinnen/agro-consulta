@@ -580,6 +580,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
+- **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 
 ### 4.8 Estoque Agro
@@ -1185,6 +1186,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Nota já na etapa 6; Renan trocou o 1º produto e finalizou: o **saldo continuou no produto antigo** e o novo ficou sem entrada |
+| **Causa** | `entradaNfeProdutosEtapaInvalidate` sai cedo quando a nota é «legado/concluída» (estoque aplicado) → troca no botão **Mudar** não invalidava nada nem estornava |
+| **Fix front** | Trocar produto (Mudar / bip / busca) **ou remover linha vinculada** com estoque/financeiro/PIN já lançados abre modal **«Estornar e trocar»** (PIN) → chama `api_entrada_nota_reabrir_nota` (estorna saldo + título), limpa carimbos no cliente, aplica o produto e volta à **etapa 2**; cancelar = não troca |
+| **Fix back** | `entrada_nfe_bloqueio_troca_produto_com_estoque` em `atualizar_rascunho_entrada`: com estoque aplicado, salvar linhas com conjunto de `produto_id` diferente é **recusado** (`requer_estorno`) — trava multi-PC |
+| **Arquivos** | `produtos/templates/produtos/entrada_nota.html` · `produtos/nfe_entrada_util.py` |
+| **Prova** | `manage.py check` OK · template compila · teste da função de bloqueio (troca/remoção bloqueiam; mesma lista passa) |
+| **Migrate** | **NÃO** |
 
 ### 🐞 FIX — painel Backup do CP ficava sempre aberto (05/08 · **teste v14.46**)
 
