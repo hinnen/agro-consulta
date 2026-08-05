@@ -1243,16 +1243,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⛔ **NÃO enviado** 05/08 — colide com loja `0065`/`PlanoContaAgro` |
+| **Status** | ⛔ **NÃO enviado** 05/08 — colide com loja `0065`/`PlanoContaAgro` · aguarda decisão **A/B** |
 | **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
 | **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
 | **Migrate** | **SIM** · `0082_plano_conta_agro` |
 | **Prova** | `python scripts/verify_planos_conta.py` → **VERIFY_OK** |
 | **Commit** | `7270317` (+ verify neste push) |
-| **Risco** | Baixo — cadastro novo · **não** apaga planos ERP |
-| **⚠️** | Branch isolada + migrate na loja · **não** merge `teste` inteiro |
 | **Você** | Ctrl+F5 · F11 → Planos · criar um · ver em Lançamentos busca plano |
-| **Autorizar** | *pode subir PLANOS-CONTA / planos de contas para produção* + **99738595** |
+
+**Raiz do conflito (diagnóstico 05/08):** a loja tem cadastro de planos desde **v11.82** (`0065_plano_conta_agro_cadastro`, commit `a459735`) — **44 planos** em `produtos_planocontaagro` + **40 aliases** em `produtos_planocontaaliasagro`, usados por `plano_conta_agro_util.py`, `lancamentos_financeiro_pg_util.py`, `..._pg_write_util.py` e APIs `api/lancamentos/planos-cadastro|criar|orfaos|mapear`. Esse pacote **nunca entrou no `teste`** (só na linha `producao`) → o `teste` está **atrás** da loja nessa área e a `0082` criou **outro** `PlanoContaAgro` na **mesma tabela**.
+
+| Choque | Loja (`0065`, Live) | Teste (`0082`) |
+| ------ | ------------------- | -------------- |
+| Colunas | `nome`, **`tipo`** (NOT NULL), `grupo`, `observacao`, `ativo`, datas | `nome`, **`codigo`**, **`natureza`**, `grupo`, `ativo`, `observacao`, datas, **`criado_por`** — **sem** `tipo` |
+| Alias | `PlanoContaAliasAgro` (40 linhas, resolvedor de grafia) | **não existe** |
+| Migrate | tabela já existe → `0082` quebra (`relation already exists`) | roda limpo no PC |
+| Se «fakear» a `0082` | tela nova consulta `codigo` / `natureza` → **500** na loja; INSERT sem `tipo` também falha |
+
+**Saída A (recomendada):** `teste` **adota** o modelo da loja como base — trazer `plano_conta_agro_util.py`, `tipo` e o alias para o `teste`; reescrever a `0082` para **só adicionar** `codigo` / `natureza` / `criado_por` quando a tabela já existir; a tela nova passa a editar os **44 planos** que a loja já tem. Resolve a divergência de vez.  
+**Saída B:** cancelar o pacote — loja segue com o cadastro atual (via Lançamentos) e a tela nova sai do `teste`.
+
+**⚠️ Alerta geral:** enquanto isso não fechar, **merge `teste` → `producao` apagaria** `plano_conta_agro_util.py` e o alias da loja. Só branch isolada por pacote.
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
