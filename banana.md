@@ -1243,7 +1243,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⛔ **NÃO enviado** 05/08 — colide com loja `0065`/`PlanoContaAgro` · aguarda decisão **A/B** |
+| **Status** | 📋 **pronto para envio à produção** (conflito resolvido 05/08 — **Saída A**) · VERIFY_OK 22/22 · **sem migrate** na loja |
 | **Onde** | Configuração (F11) → **Planos de contas** · `/configuracao/planos-conta/` |
 | **Inclui** | Cadastro PG `PlanoContaAgro` · lista/salvar/toggle · entra nas sugestões de plano · menu Config |
 | **Migrate** | **SIM** · `0082_plano_conta_agro` |
@@ -1260,10 +1260,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Migrate | tabela já existe → `0082` quebra (`relation already exists`) | roda limpo no PC |
 | Se «fakear» a `0082` | tela nova consulta `codigo` / `natureza` → **500** na loja; INSERT sem `tipo` também falha |
 
-**Saída A (recomendada):** `teste` **adota** o modelo da loja como base — trazer `plano_conta_agro_util.py`, `tipo` e o alias para o `teste`; reescrever a `0082` para **só adicionar** `codigo` / `natureza` / `criado_por` quando a tabela já existir; a tela nova passa a editar os **44 planos** que a loja já tem. Resolve a divergência de vez.  
-**Saída B:** cancelar o pacote — loja segue com o cadastro atual (via Lançamentos) e a tela nova sai do `teste`.
+**Resolvido (Saída A · 05/08):** o `teste` **adotou** o modelo da loja — `PlanoContaAgro` agora é **idêntico** ao de `producao` (`tipo` + `PlanoContaAliasAgro`); `codigo`/`natureza`/`criado_por` saíram. A tela de Configuração passa a **editar os 44 planos** que a loja já tem e mostra a contagem de apelidos.
 
-**⚠️ Alerta geral:** enquanto isso não fechar, **merge `teste` → `producao` apagaria** `plano_conta_agro_util.py` e o alias da loja. Só branch isolada por pacote.
+| Commit | O quê | Vai para a loja? |
+| ------ | ----- | ---------------- |
+| `c6757fd` | `models.py` + **migration `0084`** + verify — alinha o **teste** | ❌ **NÃO** — a loja já veio do `0065` |
+| `e109918` | tela / util / template / admin / backup registry | ✅ **sim** — é só código, **zero migrate** |
+
+- `0084` é **condicional** (checa colunas / tabelas): no banco da loja seria no-op, mas o **state** do Django quebraria lá → **não** cherry-pick.
+- Provado no PC: `0084` roda em banco antigo **e** em banco já no formato da loja (2ª vez = no-op) · `verify_planos_conta.py` **22/22** · `manage.py check` OK.
+- Apelidos entraram no backup PG (`produtos.PlanoContaAliasAgro`).
+
+**⚠️ Alerta geral:** `teste` ainda **não tem** `plano_conta_agro_util.py` (resolvedor de grafia, órfãos, seed) que a loja usa — merge `teste` → `producao` **apagaria** isso. Só branch isolada por pacote. Trazer esse util para o `teste` é tarefa separada.
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
@@ -1279,7 +1287,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **BI-TOPBAR-TOTAL** | ✅ **Live** v14.41 |
 | 2 | **SEFAZ-UI** | ✅ **Live** v14.41 |
 | 3 | **COMP-UX** | ✅ **Live** v14.41 |
-| 4 | **PLANOS-CONTA** | ⛔ **NÃO enviado** — loja já tem `PlanoContaAgro`/`0065`; pacote `teste` (0082) colidiria |
+| 4 | **PLANOS-CONTA** | 📋 **pronto para envio** (conflito resolvido) · cherry-pick **só** `e109918` · **sem migrate** |
 | 5 | **DFE-CIENCIA** | ✅ **Live** v14.41 · migrate **0083** (dep. → 0081) |
 | 6 | **CP-DUP-BACKUP** | ✅ **Live** v14.41 |
 | 7 | **GG-GASTOS** | ✅ **Live** v14.41 |
