@@ -1187,19 +1187,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)
+### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61)
 
-> **Loja hoje:** badge **v14.41** · `producao` @ **2efcc60** · revert tag `checkpoint-loja-pre-lote-20260805`  
-> **Teste:** badge **v14.61** · HEAD `teste`  
-> **Branch deploy pronta:** `deploy/lote-checklist-0508` @ **93a824d** (sobre `producao`)  
-> **⚠️** **NÃO** merge `teste`→`producao`. No próximo chat: pausar vendas → frase + senha → push **só** essa branch.
+> **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de** · HTTP `/healthz` **200 ok** · home **200 / v14.61**  
+> **Lote enviado:** `deploy/lote-checklist-0508` · rollback: `rollback/pre-lote-checklist-0508-v14.41`  
+> **Teste:** badge **v14.61** · HEAD `teste`
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **BI-TOPBAR-DATAS** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Baixo — só BI `/` |
-| 2 | **CP-BACKUP-MENU** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Baixo — só painel Backup CP |
-| 3 | **NF-TROCA-ESTORNO** | 📋 **pronto** · revisado | na branch deploy | **NÃO** | Médio — Entrada NF (não PDV) |
-| 4 | **PLANOS-CONTA** | 📋 **pronto** · revisado | na branch deploy (**prep**, não cherry cru) | **NÃO** | Baixo — tela Config nova; modelo loja já existe (`0065`) |
+| 1 | **BI-TOPBAR-DATAS** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Baixo — só BI `/` |
+| 2 | **CP-BACKUP-MENU** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Baixo — só painel Backup CP |
+| 3 | **NF-TROCA-ESTORNO** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Médio — Entrada NF (não PDV) |
+| 4 | **PLANOS-CONTA** | ✅ **Live v14.61** | lote 05/08 (**prep**, não cherry cru) | **NÃO** | Baixo — tela Config nova; modelo loja já existe (`0065`) |
 | 5 | **GG-UX** | 🟡 **fora deste lote** · P2,5 | — | — | — |
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
@@ -1208,12 +1207,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Simulação cherry (prep):** BI/CP/NF aplicam limpo (só conflito `VERSION`/`banana.md` — normal). **PLANOS:** cherry `e109918`+`3ecc824`+`fe7746c` **sozinho falha** (arquivos da tela não existem na loja) → na branch deploy foi feito **prep** (UI+APIs+menu, **sem** `0082`/`0084`/`models`). Lote **não toca PDV/caixa** · **sem migrate**.
 
-**Próximo chat (deploy):**  
-1. Lojas pausam vendas.  
-2. Renan: *pode subir lote checklist 05/08 / deploy/lote-checklist-0508 para produção* + **99738595**.  
-3. Assistente: `VERSION` no badge do lote · push `producao` a partir dessa branch · Render Live · Ctrl+F5 · smoke BI + CP Backup + Entrada NF (estorno) + F11 Planos · despausar.
-
-**Autorizar:** frase do lote + **99738595** na mesma mensagem.
+**Deploy concluído (05/08):** autorização recebida · `producao` **47bb1de** · Render/HTTP Live · versão confirmada na home. Fazer **Ctrl+F5** nos PCs da loja.
 
 ### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · **P2,5** · 05/08)
 
@@ -1223,11 +1217,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/financeiro/grafico-gastos/` (já Live v14.41 com GG-GASTOS) |
 | **Pediu** | Renan: tela confusa · revisão de clareza depois |
 
-### 📦 PACOTE PRONTO LOJA — BI topbar filtros de data (`BI-TOPBAR-DATAS` · **v14.45**)
+### ✅ ENVIADO LOJA — BI topbar filtros de data (`BI-TOPBAR-DATAS` · **Live v14.61**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.61** |
 | **O quê** | Filtros `Mês até hoje`…`Datas` nunca cortados · marca/rótulo Loja só ≥1600px · badge **`Trava: Vila`** só com caixa travado · JS mede largura e joga filtros p/ 2ª linha se não couber |
 | **Arquivo** | `dashboard_gerencial.html` |
 | **Commit** | `8d6976f` |
@@ -1235,13 +1229,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só BI `/` |
 | **Você** | Ctrl+F5 `/` · «Datas» visível · trava do caixa aparece só quando trava |
-| **Autorizar** | *pode subir BI-TOPBAR-DATAS / filtros BI para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Backup CP menu fecha (`CP-BACKUP-MENU` · **v14.46**)
+### ✅ ENVIADO LOJA — Backup CP menu fecha (`CP-BACKUP-MENU` · **Live v14.61**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.61** |
 | **O quê** | Overlay amarelo do **Backup** não fica aberto sozinho · fecha fora / Esc / após baixar ZIP |
 | **Arquivo** | `lancamentos_contas_pagar_teste.html` |
 | **Commit** | `e0652c5` |
@@ -1249,13 +1242,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só UI do botão Backup (CP-DUP-BACKUP já Live) |
 | **Você** | Ctrl+F5 CP · Backup fechado · clica → abre → baixa → fecha |
-| **Autorizar** | *pode subir CP-BACKUP-MENU / Backup CP para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **v14.58**)
+### ✅ ENVIADO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **Live v14.61**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.61** |
 | **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) · XML «Confirmar na grade» e repontar id pela margem também respeitam o estorno |
 | **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` |
 | **Commit** | `7f8a78d` + `eaec9a8` + `263a137` |
@@ -1263,20 +1255,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Médio-baixo — mexe em Entrada NF já concluída; estorno usa API de reabrir já existente |
 | **Você** | Nota com estoque · Mudar produto → modal PIN · saldo antigo some / novo entra |
-| **Autorizar** | *pode subir NF-TROCA-ESTORNO / troca produto NF para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Planos de contas Config (`PLANOS-CONTA` · **v14.61**)
+### ✅ ENVIADO LOJA — Planos de contas Config (`PLANOS-CONTA` · **Live v14.61**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto** · sobe via branch **`deploy/lote-checklist-0508`** |
+| **Status** | ✅ **Live v14.61** · enviado via **`deploy/lote-checklist-0508`** |
 | **Onde** | Configuração (F11) → **Planos de contas** |
 | **O quê** | Tela edita planos oficiais · seed se vazio · visual §11 |
 | **Loja** | Prep na branch deploy (UI+APIs+menu) · modelo já existe (`0065`) |
 | **NÃO** | cherry cru `e109918`… (arquivos não existem na loja) · **nem** `c6757fd`/`0084` |
 | **Prova** | `verify_planos_conta.py` **24/24** · reverse URL OK na branch deploy · `check` OK |
 | **Você** | Ctrl+F5 · F11 → Planos · edita um dos 44 |
-| **Autorizar** | *lote checklist 05/08* + **99738595** (junto com o lote) |
 
 ### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
 
