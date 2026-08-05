@@ -1257,22 +1257,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (05/08 · após loja v13.83)
 
 **Loja hoje:** badge **v13.83** · producao @ **ed52234**  
-**Teste:** badge **v14.39+** · HEAD  
+**Teste:** badge **v14.40** · HEAD  
 **Regra:** **não** merge `teste` inteiro — só branch isolada + frase + senha.
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | 📋 **pronto para envio à produção** · VERIFY_OK |
-| 2 | **SEFAZ-UI** (aba limpa + «?») | 📋 **pronto para envio à produção** · v14.19 |
-| 3 | **COMP-UX** (Saco/Kit recolhíveis) | 📋 **pronto para envio à produção** · VERIFY_OK · `645fc75` |
-| 4 | **PLANOS-CONTA** (cadastro Config F11) | 📋 **pronto para envio à produção** · VERIFY_OK · migrate **0082** |
-| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | 📋 **pronto para envio à produção** · VERIFY_OK 21/21 · migrate **0083** · `aa2a9a3` |
-| 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | 📋 **pronto para envio à produção** · VERIFY_OK 11/11 · **sem** migrate |
-| 7 | **GG-GASTOS** (filtro plano + clip + as_of + visual) | 📋 **pronto para envio à produção** · VERIFY_OK 10/10 · **sem** migrate |
-| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | ✅ **Live** v13.81–v13.83 |
-| — | lote CAD/NF+DSP | ✅ **Live** v13.80 |
+| # | Pacote | Commit | Migrate | Prova (rodada 05/08) |
+| - | ------ | ------ | ------- | -------------------- |
+| 1 | **BI-TOPBAR-TOTAL** (Sync + Total unidades) | `fcf1c49` | não | `verify_bi_topbar_total.py` **OK 35/35** |
+| 2 | **SEFAZ-UI** (aba limpa + «?») | `e83af8f` | não | `verify_sefaz_ui.py` **OK 8/8** |
+| 3 | **COMP-UX** (Saco/Kit recolhíveis) | `645fc75` | não | `verify_comp_ux_recolher.py` **OK** |
+| 4 | **PLANOS-CONTA** (cadastro Config F11) | `7270317` | **0082** | `verify_planos_conta.py` **OK 21/21** |
+| 5 | **DFE-CIENCIA** (Só resumo → XML completo) | `aa2a9a3` | **0083** | `verify_dfe_manifestacao.py` **OK 21/21** |
+| 6 | **CP-DUP-BACKUP** (anti-dup NF + Backup CP) | `4b28263` | não | `verify_cp_anti_dup_backup.py` **OK 11/11** |
+| 7 | **GG-GASTOS** (filtro plano + clip + as_of + visual) | `69ab665`+`6756c02` | não | `verify_grafico_gastos.py` **OK 10/10** |
+| — | PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8 | — | — | ✅ **Live** v13.81–v13.83 |
+| — | lote CAD/NF+DSP | — | — | ✅ **Live** v13.80 |
 
-**Autorizar:** frase do pacote + **99738595** · **branch isolada** (COMP-UX = só modal; PLANOS-CONTA/DFE-CIENCIA = migrate; GG-GASTOS = só leitura)
+**Todos 📋 pronto para envio à produção.** Geral: `verify_pacote_envio.py` → **15 telas 200** (PDV, caixa, vendas, RH, NF, CP intactos) · `manage.py check` OK.
+
+**⚠️ Ordem obrigatória do cherry-pick** — 2, 5 e 6 mexem no **mesmo** `entrada_nota.html`; 4, 5 e 6 no mesmo `urls.py`/`views.py`:
+
+`e83af8f` (SEFAZ-UI) → `7270317` (PLANOS-CONTA) → `aa2a9a3` (DFE-CIENCIA) → `4b28263` (CP-DUP-BACKUP) → `fcf1c49` · `645fc75` · `69ab665`+`6756c02` (independentes, qualquer ordem).
+
+Depois do cherry-pick, na branch de envio: `python scripts/verify_sefaz_ui.py` (guarda a convivência dos 3 no template) + `migrate` (0082, 0083).
+
+**Nota:** `makemigrations --check` acusa drift (índice `produtos_ag_cnpj_dfe_idx` da **0071** + 2 alter de choices). É **pré-existente na produção**, não vem deste lote, e não gera SQL. Não bloqueia.
+
+**Autorizar:** frase do pacote + **99738595** · **branch isolada** — **não** merge `teste` inteiro (`teste` diverge da loja em 112 arquivos, inclui remoções de RH).
 
 ### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
 
