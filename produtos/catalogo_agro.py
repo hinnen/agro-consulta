@@ -388,14 +388,59 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
+    pid64 = str(row.get("id") or "").strip()[:64]
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).first() if pid64 else None
+    ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     # Coluna Produto.modelo + overlay — nunca sumir ao reabrir o modal
     if not str(row.get("modelo") or "").strip():
-        ov = ProdutoGestaoOverlayAgro.objects.filter(
-            produto_externo_id=str(row.get("id") or "")[:64]
-        ).first()
-        if ov and isinstance(ov.cadastro_extras, dict):
-            row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
+        if ce.get("modelo") is not None:
+            row["modelo"] = str(ce.get("modelo") or "").strip()[:200]
     row["modelo"] = str(row.get("modelo") or "").strip()[:200]
+    row["cadastro_extras"] = dict(ce) if ce else {}
+
+    # Custo família (saco) + composição (kit) — sem isso o Salvar apaga o vínculo ao reabrir (agro_pg).
+    try:
+        from produtos.composicao_kit_util import extrair_composicao_overlay
+        from produtos.custo_familia_util import (
+            calcular_custo_filho,
+            extrair_custo_familia,
+            ler_custo_produto,
+            resumo_filhos_do_pai,
+        )
+
+        cf = extrair_custo_familia(ce)
+        if cf:
+            row["custo_familia"] = dict(cf)
+            cp_pai = ler_custo_produto(cf.get("pai_produto_id") or "")
+            if cp_pai is not None:
+                row["custo_familia"]["custo_pai_atual"] = float(cp_pai)
+                calc = calcular_custo_filho(cp_pai, cf.get("kg_pai"), cf.get("kg_filho"))
+                if calc is not None:
+                    row["custo_familia"]["custo_calculado"] = float(calc)
+        else:
+            row["custo_familia"] = None
+        row["custo_familia_filhos"] = resumo_filhos_do_pai(pid64) if pid64 else []
+
+        comp = extrair_composicao_overlay(ce) if "composicao" in ce else []
+        for it in comp:
+            if not isinstance(it, dict):
+                continue
+            spid = str(it.get("produto_id") or "").strip()
+            if not spid:
+                it["custo_unitario_agro"] = None
+                continue
+            cdec = ler_custo_produto(spid)
+            it["custo_unitario_agro"] = round(float(cdec), 4) if cdec is not None else None
+        row["composicao"] = comp
+        # eh_kit só se houver insumos manuais (não só linha automática do saco)
+        manuais = [x for x in comp if str(x.get("origem") or "") != "custo_familia"]
+        row["eh_kit"] = bool(manuais)
+    except Exception:
+        row.setdefault("custo_familia", None)
+        row.setdefault("custo_familia_filhos", [])
+        row.setdefault("composicao", [])
+        row.setdefault("eh_kit", False)
+
     return {
         **row,
         "preco_custo_com_acrescimos": pc,

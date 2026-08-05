@@ -2514,6 +2514,15 @@
     editCusto.readOnly = false;
 
     if (p.eh_kit && p.composicao && p.composicao.length) {
+      var soSaco = p.composicao.every(function (it) {
+        return String((it && it.origem) || '') === 'custo_familia';
+      });
+      var cfAtivo = !!(p.custo_familia && p.custo_familia.pai_produto_id) ||
+        !!(document.getElementById('edit-cf-ativo') || {}).checked;
+      if (soSaco || cfAtivo) {
+        // Custo vem do saco — não trava como soma do kit.
+        return;
+      }
       var tot = 0;
       p.composicao.forEach(function (it) {
         var q = Number(it.quantidade);

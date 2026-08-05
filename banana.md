@@ -1184,15 +1184,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 Custo família — saco → pacote/granel (04/08 · **teste v14.07**)
+### 🚀 Custo família — saco → pacote/granel (04/08 · **v14.11**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Bloco **1 · Saco (custo + estoque)** — junta as duas coisas; kit (bloco 2) só p/ combo multi-insumo |
-| **Junto** | Opção **«Na venda, baixar estoque do saco»** (ligado por padrão) → baixa `kg_filho/kg_pai` do saco |
-| **Você** | Ctrl+F5 · Composição · ligar saco + kg · Salvar · vender 1 pacote e conferir estoque do saco |
-| **UX kit** | v14.09 — bloco 2 recolhido · «Usar neste produto» expande · baixa automática se ativo |
-| **Loja** | **só no teste** |
+| **Status** | 📋 **PACOTE PRONTO** — ver bloco **CUSTO-FAMILIA v14.11** no CHECKLIST |
+| **Audit** | detalhe agro_pg devolve CF/composição · só-saco ≠ eh_kit · VERIFY_OK |
+| **Loja** | **ainda não** — precisa frase+senha + branch isolada |
 
 ### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
 
@@ -1212,13 +1210,26 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 ### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.81)
 
 **Loja hoje:** badge **v13.81** · producao @ **3381d0d**  
-**Teste:** badge **v14.00** · 	este @ HEAD (WIP restante **não** na loja)
+**Teste:** badge **v14.11** · teste @ HEAD (WIP restante **não** na loja)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
-| 2 | **CUSTO-FAMILIA** (saco→pacote) | 🧪 **só no teste** v14.07 |
+| 2 | **CUSTO-FAMILIA** (saco+kit) | 📋 **pronto para envio** · v14.11 · **não** loja |
 | — | lote CAD/NF+DSP | ✅ Live desde v13.80 |
+
+### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v14.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Inclui** | Bloco saco (custo + baixa estoque na venda) · bloco kit (vários insumos) · propaga custo (cadastro / NF / Excel) · detalhe agro_pg não apaga vínculo |
+| **Prova** | `python scripts/verify_custo_familia.py` → **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — PDV baixa composição se «baixa saco»/kit ligado; cadastro Composição |
+| **Você** | Ctrl+F5 Cadastro → Composição · amarrar 5kg no saco · reabrir · 1 venda · conferir estoque do saco |
+| **Autorizar** | *pode subir custo família / produção* + **99738595** |
+| **⚠️** | **Não** subir `teste` inteiro — branch isolada / cherry como PDV-CAD |
 
 ### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (PDV-CAD-RAPIDO · **v13.81**)
 

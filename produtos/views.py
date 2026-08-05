@@ -22219,11 +22219,20 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
 
         comp_enr = _enriquecer_composicao_com_custos(db, client_m, row.get("composicao") or [])
         row["composicao"] = comp_enr
-        ck = custo_total_composicao(comp_enr)
-        if ck is None and extra.get("eh_kit"):
-            ck = _custo_total_kit_composicao_agro(db, client_m, p)
+        manuais_kit = [
+            x
+            for x in comp_enr
+            if isinstance(x, dict) and str(x.get("origem") or "") != "custo_familia"
+        ]
+        # Só kit «de verdade» (insumos manuais). Linha só do saco ≠ trava custo como kit.
+        eh_kit_efetivo = bool(extra.get("eh_kit") or manuais_kit)
+        ck = None
+        if eh_kit_efetivo:
+            ck = custo_total_composicao(comp_enr)
+            if ck is None and extra.get("eh_kit"):
+                ck = _custo_total_kit_composicao_agro(db, client_m, p)
         row["custo_kit_composicao"] = round(float(ck), 4) if ck is not None else None
-        row["eh_kit"] = True if (extra.get("eh_kit") or comp_enr) else False
+        row["eh_kit"] = eh_kit_efetivo
     else:
         row["custo_kit_composicao"] = None
 
