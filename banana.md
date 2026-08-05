@@ -1242,6 +1242,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ teste · ver **PACOTE PRONTO BI-TOPBAR-TOTAL** |
 | **Commit** | `fcf1c49` · push `origin/teste` |
 
+### 🩹 UX Composição — recolhimento Saco/Kit (04/08 · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🧪 **só no teste** — texto no «?» · botão ▶/▼ em Saco e Kit · aba com scroll |
+| **Você** | Ctrl+F5 Cadastro → Composição · ▶ recolhe saco · vê o Kit |
+
 ### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
 
 | Item | Detalhe |

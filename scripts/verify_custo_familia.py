@@ -209,15 +209,24 @@ def main() -> None:
     for need in (
         "edit-cf-ativo",
         "edit-cf-baixa-estoque",
+        "edit-cf-toggle-corpo",
+        "edit-cf-corpo",
         "edit-kit-ativo",
         "edit-kit-campos",
+        "edit-kit-toggle-corpo",
+        "edit-kit-corpo",
         "coletarCustoFamiliaPayload",
         "baixa_estoque_saco",
         "comp-btn-buscar",
         "atualizarKitCamposVisivel",
+        "atualizarCfCorpoVisivel",
     ):
         if need not in html:
             fail(f"modal sem {need}")
+    if "outra ferramenta" in html.lower():
+        fail("modal ainda tem divisor 'outra ferramenta'")
+    if "Bloco 1 (saco):" in html:
+        fail("texto longo do intro ainda fora do ?")
     if "comp-baixa-auto" in html:
         fail("modal ainda tem comp-baixa-auto legado")
     if "id=\"edit-cf-campos\" class=\"hidden" not in html and 'id="edit-cf-campos" class="hidden' not in html:
