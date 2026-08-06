@@ -978,14 +978,14 @@ def api_produtos_gestao_facetas(request):
 
     from produtos.agro_fonte_config import agro_gestao_usa_postgres
 
-    _fac_cache_key = "agro_gestao_facetas_v6"
+    from produtos import catalogo_agro as cat_agro
+
+    _fac_cache_key = cat_agro.FACETAS_GESTAO_CACHE_KEY
     hit = cache.get(_fac_cache_key)
     if hit is not None:
         return JsonResponse({"ok": True, **hit})
 
     if agro_gestao_usa_postgres():
-        from produtos import catalogo_agro as cat_agro
-
         try:
             fac = cat_agro.facetas_gestao()
         except Exception as e:
@@ -998,8 +998,6 @@ def api_produtos_gestao_facetas(request):
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
-        from produtos import catalogo_agro as cat_agro
-
         try:
             fac = cat_agro.facetas_gestao()
         except Exception as e:
@@ -3216,7 +3214,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if isinstance(cur_cat, dict) and cur_cat.get("version"):
             cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
-        cache.delete("agro_gestao_facetas_v1")
+        from produtos.catalogo_agro import invalidar_cache_facetas_gestao
+
+        invalidar_cache_facetas_gestao()
     except Exception:
         pass
 
@@ -23255,8 +23255,6 @@ def api_produtos_cadastro_faceta_nova(request):
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin or "PIN incorreto."}, status=403)
 
-    from django.core.cache import cache
-
     from produtos.models import ProdutoCadastroAlteracaoAgro
 
     operador = rotulo_operador_pin(pin) or ""
@@ -23274,8 +23272,9 @@ def api_produtos_cadastro_faceta_nova(request):
         logger.exception("falha ao gravar log faceta nova tipo=%s", tipo)
 
     try:
-        cache.delete("agro_gestao_facetas_v5")
-        cache.delete("agro_gestao_facetas_v4")
+        from produtos.catalogo_agro import invalidar_cache_facetas_gestao
+
+        invalidar_cache_facetas_gestao()
     except Exception:
         pass
 

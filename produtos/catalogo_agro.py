@@ -19,6 +19,31 @@ _SORT_MAP = {
     "preco_venda": "preco_venda",
 }
 
+# Cache da API de facetas (gestão/cadastro). Sempre invalidar TODAS as chaves ao mudar dims.
+FACETAS_GESTAO_CACHE_KEY = "agro_gestao_facetas_v6"
+FACETAS_GESTAO_CACHE_KEYS = (
+    "agro_gestao_facetas_v1",
+    "agro_gestao_facetas_v2",
+    "agro_gestao_facetas_v3",
+    "agro_gestao_facetas_v4",
+    "agro_gestao_facetas_v5",
+    FACETAS_GESTAO_CACHE_KEY,
+)
+
+
+def invalidar_cache_facetas_gestao() -> None:
+    """Apaga cache de marcas/categorias/unidades (todas as versões de chave)."""
+    try:
+        from django.core.cache import cache
+
+        for k in FACETAS_GESTAO_CACHE_KEYS:
+            try:
+                cache.delete(k)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
 
 def _dec(v) -> float:
     try:
@@ -96,22 +121,27 @@ def produto_agro_para_row(
         "fonte": "agro_pg",
     }
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+    from produtos.mongo_index_codigos import (
+        _eans_embalagem_nf_de_cadastro_extras,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
 
     # Batch (_rows_de_produtos) já monta ov_map: NÃO reconsultar overlay por produto
     # (N+1 derruba /api/todos-produtos/delta/ e trava o PDV).
     if resolver_overlay_faltante and ov is None and pid:
         ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid[:64]).first()
     row = _aplicar_overlay_em_row(row, ov)
-    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay;
-    # inclui 2º código (EAN/cProd da NF) gravado em cadastro_extras.
-    ce = ov.cadastro_extras if ov and isinstance(getattr(ov, "cadastro_extras", None), dict) else None
+    # index/busca_texto depois do overlay — GM da loja costuma estar só no overlay
+    extras_ix: list[str] = []
+    if ov is not None and isinstance(getattr(ov, "cadastro_extras", None), dict):
+        extras_ix.extend(codigos_barras_opcionais_de_cadastro_extras(ov.cadastro_extras))
+        extras_ix.extend(_eans_embalagem_nf_de_cadastro_extras(ov.cadastro_extras))
     row["index_codigos"] = index_codigos_de_campos(
         codigo=row.get("codigo"),
         codigo_nfe=row.get("codigo_nfe"),
         codigo_barras=row.get("codigo_barras"),
-        cadastro_extras=ce,
+        extras=extras_ix,
     )
-    ix_extra = " ".join(str(x) for x in (row.get("index_codigos") or []) if x)
     row["busca_texto"] = " ".join(
         x
         for x in (
@@ -121,10 +151,10 @@ def produto_agro_para_row(
             row.get("codigo"),
             row.get("codigo_nfe"),
             row.get("codigo_barras"),
+            *extras_ix,
             row.get("categoria"),
             row.get("subcategoria"),
             row.get("fornecedor"),
-            ix_extra,
         )
         if x
     ).strip()
@@ -235,11 +265,8 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
         if not partes:
             partes = [termo_txt]
         try:
-            # Começa filtrado (não objects.all()) — JSON icontains no overlay inteiro era lento.
-            ovs = ProdutoGestaoOverlayAgro.objects.filter(
-                cadastro_extras__modelo__icontains=partes[0][:120]
-            )
-            for pl in partes[1:]:
+            ovs = ProdutoGestaoOverlayAgro.objects.all()
+            for pl in partes:
                 ovs = ovs.filter(cadastro_extras__modelo__icontains=pl[:120])
             pids = list(ovs.values_list("produto_externo_id", flat=True)[:lim])
             if not pids:
@@ -287,9 +314,6 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 lim,
             )
     else:
-        from produtos.agro_fonte_config import agro_busca_leve_cpu
-
-        leve = agro_busca_leve_cpu()
         q_nome = q_nome_tokens_cadastro(termo)
         if q_nome is not None:
             _cadastro_pg_append_unicos(
@@ -298,31 +322,9 @@ def buscar(q: str, *, limit: int = 80, inativos: bool = False) -> list[dict]:
                 qs.filter(q_nome).order_by("nome", "pk")[:lim],
                 lim,
             )
-        # Frase longa (ex. "ração estima carne"): AND de todos os tokens pode zerar.
-        # Fallback: token mais longo (≥4) — costuma ser a marca/linha (estima, milho…).
-        if not found:
-            partes_fb = [p.strip() for p in termo.split() if len(p.strip()) >= 4]
-            if len(partes_fb) >= 2:
-                best = max(partes_fb, key=len)
-                q_fb = q_nome_tokens_cadastro(best)
-                if q_fb is not None:
-                    _cadastro_pg_append_unicos(
-                        found,
-                        seen_pk,
-                        qs.filter(q_fb).order_by("nome", "pk")[:lim],
-                        lim,
-                    )
-        # Com AGRO_BUSCA_LEVE_CPU: se nome/marca/modelo já achou, não varre overlay+OR 9 colunas.
-        # false no .env = comportamento antigo (overlay se <3 + OR se <min(8,lim)).
-        if leve:
-            if len(found) == 0:
-                _append_overlay_modelo_matches(termo)
-            limiar_or = 1
-        else:
-            if len(found) < 3:
-                _append_overlay_modelo_matches(termo)
-            limiar_or = min(8, lim)
-        if len(found) < limiar_or:
+        _append_overlay_modelo_matches(termo)
+        # Fallback icontains largo: só se quase vazio (OR em 8 colunas é caro).
+        if len(found) < min(3, lim):
             _cadastro_pg_append_unicos(
                 found,
                 seen_pk,
@@ -411,26 +413,14 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     pc = float(row.get("preco_custo") or 0)
     mva_rs = round(pv - pc, 2) if pv and pc else 0.0
     mva_pct = round((mva_rs / pc) * 100, 2) if pc > 0 else 0.0
-    pid = str(row.get("id") or "").strip()[:64]
-    ov = None
-    if pid:
-        ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+    pid64 = str(row.get("id") or "").strip()[:64]
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid64).first() if pid64 else None
+    ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     # Coluna Produto.modelo + overlay — nunca sumir ao reabrir o modal
     if not str(row.get("modelo") or "").strip():
-        if ov and isinstance(ov.cadastro_extras, dict):
-            row["modelo"] = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
+        if ce.get("modelo") is not None:
+            row["modelo"] = str(ce.get("modelo") or "").strip()[:200]
     row["modelo"] = str(row.get("modelo") or "").strip()[:200]
-    # Fiscal do overlay (NFC-e) + padrão SP/SN se ainda vazio (modal não fica em branco).
-    try:
-        from produtos.views import _merge_fiscal_overlay_sobre_row_cadastro
-
-        _merge_fiscal_overlay_sobre_row_cadastro(row, ov)
-    except Exception:
-        pass
-    from produtos.agro_produto_fiscal_defaults import aplicar_fiscal_padrao_em_row_detalhe
-
-    aplicar_fiscal_padrao_em_row_detalhe(row)
-    ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     row["cadastro_extras"] = dict(ce) if ce else {}
 
     # Custo família (saco) + composição (kit) — sem isso o Salvar apaga o vínculo ao reabrir (agro_pg).
@@ -454,7 +444,7 @@ def produto_model_para_detalhe(p: Produto) -> dict:
                     row["custo_familia"]["custo_calculado"] = float(calc)
         else:
             row["custo_familia"] = None
-        row["custo_familia_filhos"] = resumo_filhos_do_pai(pid) if pid else []
+        row["custo_familia_filhos"] = resumo_filhos_do_pai(pid64) if pid64 else []
 
         comp = extrair_composicao_overlay(ce) if "composicao" in ce else []
         for it in comp:
@@ -507,122 +497,25 @@ def sincronizar_modelo_produto_de_overlay(
     custo_payload: Decimal | None = None,
     payload: dict | None = None,
 ) -> Produto:
-    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``).
-
-    Com ``pdv_edicao_rapida``: nunca sobrescreve campo bom com vazio / «—» / ObjectId
-    (bug do lápis PDV). Cadastro modal completo continua podendo limpar campo de propósito.
-    """
-    import re
-
+    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``)."""
     pid64 = str(pid or "").strip()[:64]
     payload = payload or {}
     p = obter_produto_model(pid64)
-    _re_oid = re.compile(r"^[0-9a-f]{24}$", re.I)
-    pdv_rapida = str(payload.get("pdv_edicao_rapida") or "").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-        "sim",
-        "s",
-    )
 
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
 
-    def _parece_oid(s: str) -> bool:
-        return bool(_re_oid.fullmatch(str(s or "").strip()))
-
-    def _vazio_ou_traco(s: str | None) -> bool:
-        t = str(s or "").strip()
-        return (not t) or t in ("—", "-", "–", "---", "...")
-
-    def _manter(novo, antigo, *, mx: int | None = None, rejeitar_oid: bool = False):
-        """No lápis PDV: prefere manter o Produto se o novo vier vazio/ruim."""
-        ns = str(novo if novo is not None else "").strip()
-        ant = str(antigo if antigo is not None else "").strip()
-        if mx is not None:
-            ns = ns[:mx]
-            ant = ant[:mx]
-        if not pdv_rapida:
-            if rejeitar_oid and _parece_oid(ns) and ant and not _parece_oid(ant):
-                return ant
-            return ns if ns or not rejeitar_oid else (ant or ns)
-        if _vazio_ou_traco(ns):
-            return ant if ant else (ns or None)
-        if rejeitar_oid and _parece_oid(ns):
-            if ant and not _parece_oid(ant):
-                return ant
-            return ant or ""
-        return ns
-
     from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
 
     cod_sys = _txt("codigo", 50)
-    # Nunca usar o Id Mongo (pid) como codigo_interno se o Produto já tem código bom.
-    cod_interno_cand = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or "")
-    if not cod_interno_cand and p is not None:
-        cod_interno_cand = str(p.codigo_interno or "").strip()[:50]
-    if not cod_interno_cand and not _parece_oid(pid64):
-        cod_interno_cand = pid64[:50]
-    if pdv_rapida:
-        codigo_interno = (
-            _manter(
-                cod_interno_cand,
-                p.codigo_interno if p is not None else "",
-                mx=50,
-                rejeitar_oid=True,
-            )
-            or ""
-        )
-    else:
-        codigo_interno = (
-            cod_sys[:50]
-            if cod_sys
-            else (
-                _txt("codigo_nfe", 64)[:50]
-                or (str(p.codigo_interno or "").strip()[:50] if p is not None else "")
-                or ("" if _parece_oid(pid64) else pid64[:50])
-            )
-        )
-
-    codigo_nfe_cand = (
+    codigo_interno = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or pid64[:50])
+    codigo_nfe_val = (
         ov.codigo_nfe.strip()
         or _txt("codigo_nfe", 64)
         or gm_sugerido_de_codigo_sistema(cod_sys)
-        or ""
-    )
-    if pdv_rapida:
-        codigo_nfe_val = (
-            _manter(
-                codigo_nfe_cand,
-                p.codigo_nfe if p is not None else "",
-                mx=64,
-                rejeitar_oid=True,
-            )
-            or ""
-        )
-    else:
-        codigo_nfe_val = (
-            codigo_nfe_cand
-            or (str(p.codigo_nfe or "").strip() if p is not None else "")
-            or codigo_interno
-        )[:64]
-
-    nome_cand = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or ""
-    if pdv_rapida:
-        nome = (
-            _manter(
-                nome_cand,
-                p.nome if p is not None else "",
-                mx=300,
-                rejeitar_oid=True,
-            )
-            or "—"
-        )
-    else:
-        nome = nome_cand or (str(p.nome or "").strip() if p is not None else "") or "—"
-
+        or codigo_interno
+    )[:64]
+    nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
     custo = custo_payload
     if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
         raw_ce = ov.cadastro_extras.get("preco_custo_overlay")
@@ -648,93 +541,26 @@ def sincronizar_modelo_produto_de_overlay(
     elif p is not None:
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
-    cb_cand = ov.codigo_barras.strip() or None
-    if pdv_rapida:
-        defaults = {
-            "codigo_interno": codigo_interno[:50],
-            "codigo_nfe": codigo_nfe_val[:64],
-            "codigo_barras": _manter(
-                cb_cand,
-                p.codigo_barras if p is not None else None,
-                mx=50,
-                rejeitar_oid=True,
-            ),
-            "nome": nome[:300],
-            "marca": _manter(ov.marca.strip(), p.marca if p is not None else "", mx=120) or "",
-            "modelo": _manter(
-                modelo_val, getattr(p, "modelo", None) if p is not None else "", mx=200
-            )
-            or "",
-            "categoria": _manter(
-                ov.categoria.strip() or None,
-                p.categoria if p is not None else None,
-                mx=200,
-            ),
-            "subcategoria": _manter(
-                ov.subcategoria.strip(),
-                p.subcategoria if p is not None else "",
-                mx=200,
-            )
-            or "",
-            "subcategoria_2": _manter(
-                ov.subcategoria_2.strip(),
-                p.subcategoria_2 if p is not None else "",
-                mx=200,
-            )
-            or "",
-            "subcategoria_3": _manter(
-                ov.subcategoria_3.strip(),
-                p.subcategoria_3 if p is not None else "",
-                mx=200,
-            )
-            or "",
-            "subcategoria_4": _manter(
-                ov.subcategoria_4.strip(),
-                p.subcategoria_4 if p is not None else "",
-                mx=200,
-            )
-            or "",
-            "fornecedor_texto": _manter(
-                ov.fornecedor_texto.strip(),
-                p.fornecedor_texto if p is not None else "",
-                mx=300,
-            )
-            or "",
-            "unidade": (
-                _manter(ov.unidade.strip(), p.unidade if p is not None else "UN", mx=20) or "UN"
-            )[:20],
-            "descricao": _manter(
-                ov.descricao.strip(),
-                p.descricao if p is not None else "",
-                mx=16000,
-            )
-            or "",
-            "custo": custo,
-            "preco_venda": pv,
-            "ativo": ativo,
-            "cadastro_inativo": cad_inativo,
-        }
-    else:
-        defaults = {
-            "codigo_interno": (codigo_interno or "")[:50],
-            "codigo_nfe": (codigo_nfe_val or "")[:64],
-            "codigo_barras": cb_cand,
-            "nome": nome[:300],
-            "marca": ov.marca.strip()[:120],
-            "modelo": modelo_val,
-            "categoria": ov.categoria.strip()[:200] or None,
-            "subcategoria": ov.subcategoria.strip()[:200],
-            "subcategoria_2": ov.subcategoria_2.strip()[:200],
-            "subcategoria_3": ov.subcategoria_3.strip()[:200],
-            "subcategoria_4": ov.subcategoria_4.strip()[:200],
-            "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
-            "unidade": (ov.unidade.strip() or "UN")[:20],
-            "descricao": ov.descricao.strip()[:16000],
-            "custo": custo,
-            "preco_venda": pv,
-            "ativo": ativo,
-            "cadastro_inativo": cad_inativo,
-        }
+    defaults = {
+        "codigo_interno": codigo_interno,
+        "codigo_nfe": codigo_nfe_val,
+        "codigo_barras": (ov.codigo_barras.strip() or None),
+        "nome": nome[:300],
+        "marca": ov.marca.strip()[:120],
+        "modelo": modelo_val,
+        "categoria": ov.categoria.strip()[:200] or None,
+        "subcategoria": ov.subcategoria.strip()[:200],
+        "subcategoria_2": ov.subcategoria_2.strip()[:200],
+        "subcategoria_3": ov.subcategoria_3.strip()[:200],
+        "subcategoria_4": ov.subcategoria_4.strip()[:200],
+        "fornecedor_texto": ov.fornecedor_texto.strip()[:300],
+        "unidade": (ov.unidade.strip() or "UN")[:20],
+        "descricao": ov.descricao.strip()[:16000],
+        "custo": custo,
+        "preco_venda": pv,
+        "ativo": ativo,
+        "cadastro_inativo": cad_inativo,
+    }
     if p is None:
         p = Produto.objects.create(produto_externo_id=pid64, **defaults)
     else:
@@ -1296,7 +1122,7 @@ def _produto_overlay_ids_fornecedor_agro(termo: str) -> list[str]:
 
 
 def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
-    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay)."""
+    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay + PIN)."""
     lim_cat = max(1, min(int(limite or 500), 2000))
     qs = queryset_catalogo_ativos(inativos=False)
     marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=0)
@@ -1355,6 +1181,19 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
         list(qs.exclude(modelo="").values_list("modelo", flat=True).distinct()),
         limite=lim_cat,
     )
+
+    # Valores autorizados com PIN (faceta-nova) — entram na lista mesmo antes de gravar no produto.
+    pin_extra = _facetas_autorizadas_por_pin()
+    marcas = _faceta_valores_distintos(list(marcas) + pin_extra.get("marcas", []), limite=0)
+    categorias = _faceta_valores_distintos(list(categorias) + pin_extra.get("categorias", []), limite=lim_cat)
+    subcategorias = _faceta_valores_distintos(
+        list(subcategorias) + pin_extra.get("subcategorias", []), limite=lim_cat
+    )
+    fornecedores = _faceta_valores_distintos(
+        list(fornecedores) + pin_extra.get("fornecedores", []), limite=lim_cat + 200
+    )
+    unidades = _faceta_valores_distintos(list(unidades) + pin_extra.get("unidades", []), limite=lim_cat)
+
     return {
         "marcas": marcas,
         "categorias": categorias,
@@ -1368,6 +1207,47 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
     }
 
 
+def _facetas_autorizadas_por_pin(*, limite_por_tipo: int = 400) -> dict[str, list[str]]:
+    """Lê logs ``faceta_*`` (PIN +) e devolve valores limpos por tipo de lista."""
+    out: dict[str, list[str]] = {
+        "marcas": [],
+        "categorias": [],
+        "subcategorias": [],
+        "fornecedores": [],
+        "unidades": [],
+    }
+    mapa = {
+        "faceta_marca": "marcas",
+        "faceta_categoria": "categorias",
+        "faceta_subcategoria": "subcategorias",
+        "faceta_fornecedor": "fornecedores",
+        "faceta_unidade": "unidades",
+    }
+    try:
+        from produtos.models import ProdutoCadastroAlteracaoAgro
+
+        qs = (
+            ProdutoCadastroAlteracaoAgro.objects.filter(campo__in=list(mapa.keys()))
+            .order_by("-id")
+            .values_list("campo", "valor_depois")[: limite_por_tipo * len(mapa)]
+        )
+        buckets: dict[str, list[str]] = {k: [] for k in out}
+        for campo, raw in qs:
+            key = mapa.get(str(campo or ""))
+            if not key:
+                continue
+            s = str(raw or "").strip()
+            if " · PIN " in s:
+                s = s.split(" · PIN ", 1)[0].strip()
+            if s:
+                buckets[key].append(s)
+        for k, vals in buckets.items():
+            out[k] = _faceta_valores_distintos(vals, limite=limite_por_tipo)
+    except Exception:
+        pass
+    return out
+
+
 def listar_todos_rows_ativos() -> list[dict]:
     """Todos os produtos ativos do Postgres (catálogo ``agro_pg``).
 
@@ -1376,118 +1256,6 @@ def listar_todos_rows_ativos() -> list[dict]:
     """
     qs = queryset_catalogo_ativos(inativos=False).order_by("nome", "pk")
     return _rows_de_produtos(list(qs))
-
-
-def listar_slim_rows_pdv() -> list[dict]:
-    """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
-
-    Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos, busca_texto.
-    Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
-    """
-    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
-
-    qs = (
-        queryset_catalogo_ativos(inativos=False)
-        .order_by("nome", "pk")
-        .values(
-            "pk",
-            "produto_externo_id",
-            "erp_produto_id",
-            "nome",
-            "marca",
-            "modelo",
-            "codigo_interno",
-            "codigo_nfe",
-            "codigo_barras",
-            "preco_venda",
-        )
-    )
-    rows_raw = list(qs)
-    if not rows_raw:
-        return []
-
-    ids = [
-        str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()[:64]
-        for r in rows_raw
-    ]
-    ids = [i for i in ids if i]
-    ov_map: dict[str, dict] = {}
-    if ids:
-        # batch em fatias (evita IN gigante)
-        for i in range(0, len(ids), 900):
-            fatia = ids[i : i + 900]
-            for o in ProdutoGestaoOverlayAgro.objects.filter(
-                produto_externo_id__in=fatia
-            ).values(
-                "produto_externo_id",
-                "nome",
-                "codigo_nfe",
-                "codigo_barras",
-                "preco_venda",
-                "cadastro_extras",
-            ):
-                pid = str(o.get("produto_externo_id") or "").strip()[:64]
-                if pid:
-                    ov_map[pid] = o
-
-    out: list[dict] = []
-    for r in rows_raw:
-        pid = str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()
-        if not pid:
-            continue
-        ov = ov_map.get(pid[:64]) or {}
-        nome = (ov.get("nome") or r.get("nome") or "").strip() or pid
-        codigo = (r.get("codigo_interno") or "").strip()
-        codigo_nfe = (ov.get("codigo_nfe") or r.get("codigo_nfe") or codigo or "").strip()
-        codigo_barras = (ov.get("codigo_barras") or r.get("codigo_barras") or "").strip()
-        preco = ov.get("preco_venda")
-        if preco is None:
-            preco = r.get("preco_venda")
-        marca = (r.get("marca") or "").strip()
-        modelo = (r.get("modelo") or "").strip()
-        ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
-        ix = index_codigos_de_campos(
-            codigo=codigo,
-            codigo_nfe=codigo_nfe,
-            codigo_barras=codigo_barras,
-            cadastro_extras=ce,
-        )
-        busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
-        # Preços A/B / por forma — sem isso o PDV adiciona do cache slim e a forma não muda o valor.
-        from produtos.precos_forma_pagamento_util import (
-            extrair_precos_grupos_cadastro_extras,
-            extrair_precos_modo_cadastro_extras,
-            extrair_precos_por_forma_cadastro_extras,
-        )
-
-        modo = extrair_precos_modo_cadastro_extras(ce)
-        pg = extrair_precos_grupos_cadastro_extras(ce)
-        ppf = extrair_precos_por_forma_cadastro_extras(ce)
-        if pg and modo != "grupos":
-            modo = "grupos"
-        row_slim: dict = {
-            "id": pid,
-            "nome": nome,
-            "codigo": codigo,
-            "codigo_nfe": codigo_nfe,
-            "codigo_barras": codigo_barras,
-            "preco_venda": _dec(preco),
-            "index_codigos": ix if isinstance(ix, list) else [],
-            "busca_texto": busca,
-            # campos mínimos que o PDV espera em normalize
-            "marca": marca,
-            "preco_custo": 0.0,
-            "preco_custo_final": 0.0,
-            "saldo_centro": 0.0,
-            "saldo_vila": 0.0,
-            "precos_modo": modo,
-        }
-        if pg:
-            row_slim["precos_grupos"] = pg
-        if ppf:
-            row_slim["precos_por_forma"] = ppf
-        out.append(row_slim)
-    return out
 
 
 def row_para_doc_busca_pdv(row: dict) -> dict:
@@ -1704,12 +1472,6 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
             ix = row.get("index_codigos") or []
             if isinstance(ix, list):
                 ex["index_codigos"] = [str(x) for x in ix[:260] if x is not None and str(x).strip()]
-            if row.get("precos_modo"):
-                ex["precos_modo"] = row.get("precos_modo")
-            if isinstance(row.get("precos_grupos"), dict):
-                ex["precos_grupos"] = row["precos_grupos"]
-            if isinstance(row.get("precos_por_forma"), dict):
-                ex["precos_por_forma"] = row["precos_por_forma"]
             partes = [
                 row.get("nome"),
                 row.get("marca"),
@@ -1758,12 +1520,130 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
                 "media_venda_diaria_30d": 0.0,
                 "index_codigos": ix_list,
             }
-            if row.get("precos_modo"):
-                novo["precos_modo"] = row.get("precos_modo")
-            if isinstance(row.get("precos_grupos"), dict):
-                novo["precos_grupos"] = row["precos_grupos"]
-            if isinstance(row.get("precos_por_forma"), dict):
-                novo["precos_por_forma"] = row["precos_por_forma"]
             itens.append(novo)
             por_id[pid] = novo
     return itens
+
+
+def listar_slim_rows_pdv() -> list[dict]:
+    """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
+
+    Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos, busca_texto.
+    Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
+    """
+    from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
+
+    qs = (
+        queryset_catalogo_ativos(inativos=False)
+        .order_by("nome", "pk")
+        .values(
+            "pk",
+            "produto_externo_id",
+            "erp_produto_id",
+            "nome",
+            "marca",
+            "modelo",
+            "codigo_interno",
+            "codigo_nfe",
+            "codigo_barras",
+            "preco_venda",
+        )
+    )
+    rows_raw = list(qs)
+    if not rows_raw:
+        return []
+
+    ids = [
+        str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()[:64]
+        for r in rows_raw
+    ]
+    ids = [i for i in ids if i]
+    ov_map: dict[str, dict] = {}
+    if ids:
+        # batch em fatias (evita IN gigante)
+        for i in range(0, len(ids), 900):
+            fatia = ids[i : i + 900]
+            for o in ProdutoGestaoOverlayAgro.objects.filter(
+                produto_externo_id__in=fatia
+            ).values(
+                "produto_externo_id",
+                "nome",
+                "codigo_nfe",
+                "codigo_barras",
+                "preco_venda",
+                "cadastro_extras",
+            ):
+                pid = str(o.get("produto_externo_id") or "").strip()[:64]
+                if pid:
+                    ov_map[pid] = o
+
+    out: list[dict] = []
+    for r in rows_raw:
+        pid = str(r.get("produto_externo_id") or r.get("erp_produto_id") or r.get("pk") or "").strip()
+        if not pid:
+            continue
+        ov = ov_map.get(pid[:64]) or {}
+        nome = (ov.get("nome") or r.get("nome") or "").strip() or pid
+        codigo = (r.get("codigo_interno") or "").strip()
+        codigo_nfe = (ov.get("codigo_nfe") or r.get("codigo_nfe") or codigo or "").strip()
+        codigo_barras = (ov.get("codigo_barras") or r.get("codigo_barras") or "").strip()
+        preco = ov.get("preco_venda")
+        if preco is None:
+            preco = r.get("preco_venda")
+        marca = (r.get("marca") or "").strip()
+        modelo = (r.get("modelo") or "").strip()
+        ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
+        from produtos.mongo_index_codigos import (
+            _eans_embalagem_nf_de_cadastro_extras,
+            codigos_barras_opcionais_de_cadastro_extras,
+        )
+
+        extras_ix = list(codigos_barras_opcionais_de_cadastro_extras(ce)) + list(
+            _eans_embalagem_nf_de_cadastro_extras(ce)
+        )
+        ix = index_codigos_de_campos(
+            codigo=codigo,
+            codigo_nfe=codigo_nfe,
+            codigo_barras=codigo_barras,
+            extras=extras_ix,
+        )
+        busca = " ".join(
+            x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras, *extras_ix) if x
+        ).strip()
+        # PreÃ§os A/B / por forma â€” sem isso o PDV adiciona do cache slim e a forma nÃ£o muda o valor.
+        from produtos.precos_forma_pagamento_util import (
+            extrair_precos_grupos_cadastro_extras,
+            extrair_precos_modo_cadastro_extras,
+            extrair_precos_por_forma_cadastro_extras,
+        )
+
+        modo = extrair_precos_modo_cadastro_extras(ce)
+        pg = extrair_precos_grupos_cadastro_extras(ce)
+        ppf = extrair_precos_por_forma_cadastro_extras(ce)
+        if pg and modo != "grupos":
+            modo = "grupos"
+        row_slim: dict = {
+            "id": pid,
+            "nome": nome,
+            "codigo": codigo,
+            "codigo_nfe": codigo_nfe,
+            "codigo_barras": codigo_barras,
+            "preco_venda": _dec(preco),
+            "index_codigos": ix if isinstance(ix, list) else [],
+            "busca_texto": busca,
+            # campos mÃ­nimos que o PDV espera em normalize
+            "marca": marca,
+            "preco_custo": 0.0,
+            "preco_custo_final": 0.0,
+            "saldo_centro": 0.0,
+            "saldo_vila": 0.0,
+            "precos_modo": modo,
+        }
+        if pg:
+            row_slim["precos_grupos"] = pg
+        if ppf:
+            row_slim["precos_por_forma"] = ppf
+        out.append(row_slim)
+    return out
+
+

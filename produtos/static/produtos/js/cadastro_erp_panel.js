@@ -418,6 +418,7 @@
     if (fSemMarcaEl && fSemMarcaEl.checked) n += 1;
     if (fSemCatEl && fSemCatEl.checked) n += 1;
     if (fSomenteAgroEl && fSomenteAgroEl.checked) n += 1;
+    if (filtroPendentePdvAtivo) n += 1;
     fResumoEl.textContent = n ? (n + ' ativo(s)') : '';
   }
 
@@ -885,6 +886,8 @@
         } else {
           carregarDetalheProduto(String(p.id || ''));
         }
+        refreshPendentesPdv();
+        if (filtroPendentePdvAtivo) carregar();
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -1269,11 +1272,7 @@
       tr.className = 'border-b border-slate-100 cursor-pointer transition-colors' + rowHi;
       tr.innerHTML =
         '<td class="px-4 py-3">' +
-        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') +
-        (p.nome_quebrado
-          ? ' <span class="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900" title="Nome no banco está quebrado — abra o lápis e corrija">Consertar nome</span>'
-          : '') +
-        '</div>' +
+        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
         (String(cod).trim() !== '' ? '<div class="text-xs text-slate-400"> ' + escapeHtml(String(cod)) + '</div>' : '') +
         '</td>' +
         '<td data-coluna="marca" class="px-4 py-3 text-slate-700">' + escapeHtml(p.marca || '-') + '</td>' +
@@ -1540,7 +1539,8 @@
             ncm: params.get('ncm') || '',
             sem_marca: params.get('sem_marca') || '',
             sem_categoria: params.get('sem_categoria') || '',
-            somente_agro: params.get('somente_agro') || ''
+            somente_agro: params.get('somente_agro') || '',
+            pendente_pdv: params.get('pendente_pdv') || ''
           },
           signal: sig,
         })
@@ -1864,7 +1864,6 @@
       : fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
           .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
     fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
-    fetchPendentesPdvPromise(sig ? { signal: sig } : undefined);
     return pLista
       .then(function (x) {
         if (gen !== carregarGen) return;
@@ -2087,15 +2086,43 @@
         Object.keys(cadMsFacetas).forEach(function (k) { cadastroMsRenderBtn(k); });
         try {
           if (!window._agroFacetas) window._agroFacetas = {};
-          window._agroFacetas.marcas = j.marcas || [];
-          window._agroFacetas.categorias = j.categorias || [];
-          window._agroFacetas.fornecedores = j.fornecedores || [];
-          window._agroFacetas.subcategorias = j.subcategorias || [];
-          window._agroFacetas.subcategorias_2 = j.subcategorias_2 || [];
-          window._agroFacetas.subcategorias_3 = j.subcategorias_3 || [];
-          window._agroFacetas.subcategorias_4 = j.subcategorias_4 || [];
-          window._agroFacetas.unidades = j.unidades || [];
-          window._agroFacetas.modelos = j.modelos || [];
+          var facKeys = [
+            ['marcas', j.marcas],
+            ['categorias', j.categorias],
+            ['fornecedores', j.fornecedores],
+            ['subcategorias', j.subcategorias],
+            ['subcategorias_2', j.subcategorias_2],
+            ['subcategorias_3', j.subcategorias_3],
+            ['subcategorias_4', j.subcategorias_4],
+            ['unidades', j.unidades],
+            ['modelos', j.modelos]
+          ];
+          function _normFac(s) {
+            return String(s || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLowerCase()
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+          facKeys.forEach(function (pair) {
+            var k = pair[0];
+            var incoming = Array.isArray(pair[1]) ? pair[1] : [];
+            var prev = Array.isArray(window._agroFacetas[k]) ? window._agroFacetas[k] : [];
+            var merged = incoming.slice();
+            var seen = {};
+            merged.forEach(function (x) { seen[_normFac(x)] = true; });
+            prev.forEach(function (x) {
+              var s = String(x || '').trim();
+              if (!s || seen[_normFac(s)]) return;
+              seen[_normFac(s)] = true;
+              merged.push(s);
+            });
+            window._agroFacetas[k] = merged;
+          });
+          if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
+            window.AgroPickList.mergeFacetas(j);
+          }
         } catch (eFac) { /* ignore */ }
         cadastroAtualizarResumoFiltros();
       })
@@ -2121,6 +2148,8 @@
     if (fSemMarcaEl) fSemMarcaEl.checked = false;
     if (fSemCatEl) fSemCatEl.checked = false;
     if (fSomenteAgroEl) fSomenteAgroEl.checked = false;
+    filtroPendentePdvAtivo = false;
+    refreshPendentesPdv();
     cadastroAtualizarResumoFiltros();
   }
 
@@ -2140,6 +2169,18 @@
       carregar();
     });
   }
+
+  if (btnPendentesPdv) {
+    btnPendentesPdv.addEventListener('click', function () {
+      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
+      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      refreshPendentesPdv();
+      carregar();
+    });
+  }
+  refreshPendentesPdv();
 
   document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
     det.addEventListener('toggle', function () {
@@ -2246,18 +2287,6 @@
         });
     });
   }
-
-  if (btnPendentesPdv) {
-    btnPendentesPdv.addEventListener('click', function () {
-      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
-      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
-      pagina = 1;
-      cadastroAtualizarResumoFiltros();
-      refreshPendentesPdv();
-      carregar();
-    });
-  }
-  refreshPendentesPdv();
 
   if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpForcarTodos.addEventListener('click', function () {
