@@ -582,6 +582,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
+- **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 
 ### 4.8 Estoque Agro
 
@@ -1186,6 +1187,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ðŸ©¹ Entrada NF validade → tela Validade + busca BCA (`NF-VAL-BCA` · 06/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ðŸŸ¡ **teste** · prova local pendente |
+| **Bug** | Etapa 4 (lote/validade) gravava sÃ³ no rascunho — **nÃ£o** ia para `/relatorios/validade/` |
+| **Fix** | Ao lanÃ§ar estoque: cria/soma `EstoqueLote` · reabrir reduz se tiver `nf_lote`/`nf_val` |
+| **UX** | Busca BCA no relatÃ³rio de validade (achar produto / avisar se nÃ£o tem lote na lista) |
+| **VocÃª** | Ctrl+F5 Validade · buscar produto · nova NF com validade + estoque deve aparecer |
+| **Notas antigas** | NÃ£o backfill automÃ¡tico — sÃ³ novas entradas (ou reabrir+relanÃ§ar estoque) |
 
 ### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · WIP teste)
 

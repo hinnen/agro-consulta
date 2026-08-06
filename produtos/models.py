@@ -1755,6 +1755,128 @@ def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> 
     overlay.save(update_fields=["cadastro_extras", "atualizado_em"])
 
 
+def parse_data_validade_entrada_nf(raw) -> "date | None":
+    """Aceita AAAA-MM-DD (XML/input) ou DD/MM/AAAA."""
+    from datetime import date as _date
+    from datetime import datetime as _dt
+    import re as _re
+
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    if _re.match(r"^\d{4}-\d{2}-\d{2}", s):
+        try:
+            return _dt.strptime(s[:10], "%Y-%m-%d").date()
+        except (ValueError, TypeError):
+            return None
+    m = _re.match(r"^(\d{2})/(\d{2})/(\d{4})$", s[:10] if len(s) >= 10 else s)
+    if m:
+        try:
+            return _date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except (ValueError, TypeError):
+            return None
+    return None
+
+
+def registrar_lote_validade_apos_entrada_nf(
+    pid: str,
+    ln: dict,
+    qtd,
+    *,
+    nome_produto: str = "",
+) -> dict | None:
+    """
+    Espelha lote/validade da etapa 4 da Entrada NF em ``EstoqueLote`` (tela Validade + BI).
+    Sem data → não cria. Soma quantidade se o mesmo código de lote já existir.
+    """
+    from decimal import Decimal
+
+    dv = parse_data_validade_entrada_nf(ln.get("lote_validade") if isinstance(ln, dict) else None)
+    if dv is None:
+        return None
+    lote_cod = str((ln or {}).get("lote_numero") or "").strip()[:100] or "—"
+    try:
+        q_add = Decimal(str(qtd)).quantize(Decimal("0.01"))
+    except Exception:
+        return None
+    if q_add <= 0:
+        return None
+    ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
+        produto_externo_id=str(pid)[:64],
+        defaults={"nome": (nome_produto or "")[:255]},
+    )
+    if nome_produto and not (getattr(ov, "nome", None) or "").strip():
+        ov.nome = str(nome_produto)[:255]
+        ov.save(update_fields=["nome", "atualizado_em"])
+    el = EstoqueLote.objects.filter(overlay=ov, lote_codigo=lote_cod).first()
+    if el is not None:
+        nova = (Decimal(el.quantidade_atual or 0) + q_add).quantize(Decimal("0.01"))
+        el.data_validade = dv
+        el.quantidade_atual = nova
+        el.save()
+    else:
+        el = EstoqueLote.objects.create(
+            overlay=ov,
+            lote_codigo=lote_cod,
+            data_validade=dv,
+            quantidade_atual=q_add,
+        )
+    return {
+        "lote_id": el.pk,
+        "lote_codigo": el.lote_codigo,
+        "data_validade": el.data_validade.isoformat()[:10],
+        "quantidade_atual": float(el.quantidade_atual),
+    }
+
+
+def reduzir_lote_validade_estorno_entrada_nf(
+    pid: str,
+    *,
+    lote_codigo: str = "",
+    data_validade=None,
+    qtd=None,
+) -> None:
+    """Ao reabrir NF: reduz o saldo do lote que a entrada tinha alimentado."""
+    from decimal import Decimal
+
+    if not pid:
+        return
+    try:
+        q_sub = Decimal(str(qtd or 0)).quantize(Decimal("0.01"))
+    except Exception:
+        return
+    if q_sub <= 0:
+        return
+    code = str(lote_codigo or "").strip()[:100] or "—"
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=str(pid)[:64]).first()
+    if ov is None:
+        return
+    el = EstoqueLote.objects.filter(overlay=ov, lote_codigo=code).first()
+    if el is None and data_validade is not None:
+        el = (
+            EstoqueLote.objects.filter(overlay=ov, data_validade=data_validade)
+            .order_by("-quantidade_atual", "id")
+            .first()
+        )
+    if el is None:
+        return
+    nova = (Decimal(el.quantidade_atual or 0) - q_sub).quantize(Decimal("0.01"))
+    if nova <= 0:
+        ov_ref = el.overlay
+        el.delete()
+        if EstoqueLote.objects.filter(overlay=ov_ref).exists():
+            sync_overlay_validade_resumo_de_lotes(ov_ref)
+        else:
+            ex = dict(ov_ref.cadastro_extras) if isinstance(ov_ref.cadastro_extras, dict) else {}
+            ex.pop("validade", None)
+            ex.pop("lote", None)
+            ov_ref.cadastro_extras = ex
+            ov_ref.save(update_fields=["cadastro_extras", "atualizado_em"])
+    else:
+        el.quantidade_atual = nova
+        el.save()
+
+
 class ProdutoMarcaVariacaoAgro(models.Model):
     """
     Variações de marca/código do produto mestre (espelho ERP) no Agro.

@@ -3422,6 +3422,29 @@ def estornar_ajustes_entrada_nf_por_reabertura(
                     usuario=usuario_django if usuario_django is not None else None,
                 )
                 criados.append(int(novo.pk))
+                # Espelho lote/validade (tela Validade) — só se a entrada gravou nf_lote/nf_val.
+                try:
+                    from produtos.models import (
+                        parse_data_validade_entrada_nf,
+                        reduzir_lote_validade_estorno_entrada_nf,
+                    )
+
+                    obs_orig = str(adj.observacao or "")
+                    m_lote = re.search(r"nf_lote=([^|]+)", obs_orig, re.I)
+                    m_val = re.search(r"nf_val=([0-9]{4}-[0-9]{2}-[0-9]{2})", obs_orig, re.I)
+                    if m_lote or m_val:
+                        reduzir_lote_validade_estorno_entrada_nf(
+                            pid,
+                            lote_codigo=(m_lote.group(1).strip() if m_lote else "")[:100],
+                            data_validade=(
+                                parse_data_validade_entrada_nf(m_val.group(1)) if m_val else None
+                            ),
+                            qtd=qtd,
+                        )
+                except Exception:
+                    logger.exception(
+                        "estorno entrada NF: reduzir lote/validade adj=%s", adj.pk
+                    )
     except Exception as exc:
         logger.exception("estornar_ajustes_entrada_nf_por_reabertura")
         return {"ok": False, "erro": str(exc)[:500], "estornados": 0, "ajuste_ids_estorno": []}

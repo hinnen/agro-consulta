@@ -185,6 +185,8 @@ from .models import (
     compor_endereco_resumo_cliente,
     sync_overlay_validade_resumo_de_lotes,
     sync_overlay_extra_validade_para_lote,
+    registrar_lote_validade_apos_entrada_nf,
+    parse_data_validade_entrada_nf,
 )
 from integracoes.texto import eh_granel, expandir_tokens, montar_busca_texto, normalizar, tokens
 from integracoes.venda_erp_mongo import VendaERPMongoClient
@@ -15022,6 +15024,7 @@ def aplicar_entrada_nota_estoque_agro(
     """
     Incrementa o saldo **visto pelo Agro** via ``AjusteRapidoEstoque``, sem alterar o Mongo do ERP.
     Mantém a mesma lógica do PDV/ajuste PIN: final = saldo_informado + (ERP_atual - saldo_erp_referencia).
+    Se a linha tiver ``lote_validade`` (etapa 4), também alimenta ``EstoqueLote`` (tela Validade).
     """
     dep = (deposito or "centro").strip().lower()
     if dep not in ("centro", "vila"):
@@ -15130,6 +15133,11 @@ def aplicar_entrada_nota_estoque_agro(
             if custo_ln is not None:
                 obs_bits.append(f"nf_custo={custo_ln:.4f}".rstrip("0").rstrip("."))
             obs_bits.append(f"nf_qtd={qtd}")
+            dv_lote = parse_data_validade_entrada_nf(ln.get("lote_validade"))
+            lote_cod_obs = str(ln.get("lote_numero") or "").strip()[:100] or "—"
+            if dv_lote is not None:
+                obs_bits.append("nf_lote=" + lote_cod_obs.replace("|", "/"))
+                obs_bits.append("nf_val=" + dv_lote.isoformat()[:10])
             obs_txt = " | ".join(obs_bits)
             adj = AjusteRapidoEstoque.objects.create(
                 empresa=empresa,
@@ -15144,18 +15152,32 @@ def aplicar_entrada_nota_estoque_agro(
                 observacao=obs_txt[:2000],
                 usuario=usuario_django if usuario_django is not None else None,
             )
-            aplicados.append(
-                {
-                    "linha": idx,
-                    "produto_id": pid,
-                    "deposito": dep,
-                    "quantidade": float(qtd),
-                    "saldo_erp_mongo": float(saldo_erp),
-                    "saldo_agro_antes": float(saldo_final_antes),
-                    "saldo_agro_depois": float(saldo_final_depois),
-                    "ajuste_id": adj.pk,
-                }
-            )
+            lote_info = None
+            try:
+                lote_info = registrar_lote_validade_apos_entrada_nf(
+                    pid, ln, qtd, nome_produto=nome_p
+                )
+                if lote_info:
+                    _invalidar_cache_dashboard_perdas_validade()
+            except Exception:
+                logger.exception(
+                    "aplicar_entrada_nota_estoque_agro lote/validade linha %s pid=%s",
+                    idx,
+                    pid[:48],
+                )
+            row_ap = {
+                "linha": idx,
+                "produto_id": pid,
+                "deposito": dep,
+                "quantidade": float(qtd),
+                "saldo_erp_mongo": float(saldo_erp),
+                "saldo_agro_antes": float(saldo_final_antes),
+                "saldo_agro_depois": float(saldo_final_depois),
+                "ajuste_id": adj.pk,
+            }
+            if lote_info:
+                row_ap["lote"] = lote_info
+            aplicados.append(row_ap)
         except Exception as exc:
             logger.exception("aplicar_entrada_nota_estoque_agro linha %s", idx)
             erros.append({"linha": idx, "produto_id": pid, "erro": str(exc)[:300]})
