@@ -1194,7 +1194,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **teste** · prova local pendente |
+| **Status** | 🟡 **teste v14.66** · prova local pendente |
 | **Bug** | Cadastrou Caixa no Azul · no outro produto a lista dizia «não cadastrado» (marca/cat igual) |
 | **Causa** | Cache das facetas (`v6`) **não era limpo** ao salvar/+ PIN (apagava chave velha) · JS **apagava** o que acabou de cadastrar ao recarregar a lista |
 | **Fix** | Invalidar cache certo · lista do servidor junta produto+PIN · JS **soma** (não sobrescreve) · ao abrir/salvar produto, valor entra na lista |
