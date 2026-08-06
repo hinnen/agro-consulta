@@ -2522,6 +2522,8 @@ class UsoLojaRetiradaAgro(models.Model):
         CONSUMO = "consumo", "Consumo interno"
         AMOSTRA = "amostra", "Amostra"
         BRINDE = "brinde", "Brinde cliente"
+        USO_GERALDINHO = "uso_geraldinho", "Uso Geraldinho"
+        USO_GERALDO = "uso_geraldo", "Uso Geraldo"
         OUTROS = "outros", "Outros"
 
     deposito = models.CharField(max_length=20, db_index=True)

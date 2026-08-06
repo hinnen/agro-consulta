@@ -65,6 +65,10 @@
     totCentroVenda: document.getElementById('pdv-uso-loja-tot-centro-venda'),
     totVilaCusto: document.getElementById('pdv-uso-loja-tot-vila-custo'),
     totVilaVenda: document.getElementById('pdv-uso-loja-tot-vila-venda'),
+    totGeraldinhoCusto: document.getElementById('pdv-uso-loja-tot-geraldinho-custo'),
+    totGeraldinhoVenda: document.getElementById('pdv-uso-loja-tot-geraldinho-venda'),
+    totGeraldoCusto: document.getElementById('pdv-uso-loja-tot-geraldo-custo'),
+    totGeraldoVenda: document.getElementById('pdv-uso-loja-tot-geraldo-venda'),
     stepPop: document.getElementById('pdv-uso-loja-step-pop'),
     stepEyebrow: document.getElementById('pdv-uso-loja-step-eyebrow'),
     stepTitle: document.getElementById('pdv-uso-loja-step-title'),
@@ -1106,10 +1110,18 @@
     var t = totais || {};
     var c = t.centro || {};
     var v = t.vila || {};
+    var gh = t.uso_geraldinho || {};
+    var gd = t.uso_geraldo || {};
     if (dom.totCentroCusto) dom.totCentroCusto.textContent = fmtTotMoney(c.custo);
     if (dom.totCentroVenda) dom.totCentroVenda.textContent = fmtTotMoney(c.venda);
     if (dom.totVilaCusto) dom.totVilaCusto.textContent = fmtTotMoney(v.custo);
     if (dom.totVilaVenda) dom.totVilaVenda.textContent = fmtTotMoney(v.venda);
+    if (dom.totGeraldinhoCusto)
+      dom.totGeraldinhoCusto.textContent = fmtTotMoney(gh.custo);
+    if (dom.totGeraldinhoVenda)
+      dom.totGeraldinhoVenda.textContent = fmtTotMoney(gh.venda);
+    if (dom.totGeraldoCusto) dom.totGeraldoCusto.textContent = fmtTotMoney(gd.custo);
+    if (dom.totGeraldoVenda) dom.totGeraldoVenda.textContent = fmtTotMoney(gd.venda);
   }
 
   function loadHistorico() {
