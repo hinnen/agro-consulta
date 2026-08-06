@@ -1193,6 +1193,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 Dispenser — pet upload sem «comer» pelo branco (`DSP-PET-BG` · **06/08**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | + Adicionar pet · foto com peito branco (ex. Bernese) saía com buracos/fantasmas brancos |
+| **Causa** | Upload do pet usava a mesma limpeza de fundo branco/preto dos ingredientes |
+| **Fix** | Pet só redimensiona (PNG); limpeza de borda fica só em ingredientes |
+| **Arquivo** | `dispenser_a6_studio.html` |
+| **Você** | Ctrl+F5 Dispenser → Bicho → apagar o pet ruim → subir de novo |
+
 ### 📦 PACOTE PRONTO LOJA — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.82**)
 
 | Item | Detalhe |
