@@ -1190,6 +1190,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
+
+> **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
+> **Teste:** badge **v14.66** · HEAD `teste`  
+> **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
+
+| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
+| - | ------ | ------ | --------- | ------- | ----------------- |
+| 1 | **PLANOS-PDV** | 📋 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`(no-op loja)+`0085` | Baixo — Config + select saída; PDV venda/caixa turno intactos |
+| 2 | **NF-VAL-BCA** | 🟡 teste · prova Renan | — | — | — |
+| 3 | **FACETA-CACHE** | 🟡 teste · prova Renan | — | — | — |
+| 4 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+
+**Já Live (v14.61):** BI-TOPBAR-DATAS · CP-BACKUP-MENU · NF-TROCA-ESTORNO · PLANOS-CONTA (+ lote 05/08).
+
+**Autorizar PLANOS-PDV:** *pode subir PLANOS-PDV / planos no PDV para produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — Planos no PDV por checkbox (`PLANOS-PDV` · **v14.62+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** |
+| **O quê** | Checkbox **PDV** em Planos de contas · 14 atuais pré-marcados · saída/retirada lê Postgres · marcar **Manutenção do Prédio** libera no select |
+| **Commits** | `65e0f6f` (+ bump `bbddd19`) |
+| **Migrate** | **SIM** — loja: `0084` (no-op, schema já ok) + `0085` (`exibir_pdv` + seed) · **não** subir `0082` |
+| **Prova** | `verify_planos_conta` **28/28** · `manage.py check` OK · toggle Manutenção on/off · 14 marcados = lista antiga · IDs especiais vale/salário/outros/depósito OK · inativo some do PDV |
+| **Risco** | Baixo-médio — muda texto gravado do plano (nome oficial Agro em vez do código ERP); aliases já cobrem |
+| **Você** | Ctrl+F5 Config Planos · coluna PDV · marcar Manutenção · abrir Retirada e conferir |
+| **Autorizar** | *pode subir PLANOS-PDV / planos no PDV para produção* + **99738595** |
+
 ### 🐛 Cadastro — unidade/marca/cat «não cadastrado» (`FACETA-CACHE` · 06/08)
 
 | Item | Detalhe |
@@ -1211,15 +1241,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **VocÃª** | Ctrl+F5 Validade · buscar produto · nova NF com validade + estoque deve aparecer |
 | **Notas antigas** | NÃ£o backfill automÃ¡tico — sÃ³ novas entradas (ou reabrir+relanÃ§ar estoque) |
 
-### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · WIP teste)
+### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · detalhe)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **teste v14.62** · falta prova local do Renan + senha loja |
-| **O quê** | Coluna/checkbox **PDV** em Planos de contas · pré-marca os 14 que já estavam na retirada · PDV lê do Postgres |
-| **Ex.** | Marcar **Manutenção do Prédio** → aparece na saída/retirada |
-| **Migrate** | **SIM** `0085_plano_conta_exibir_pdv` |
-| **Prova** | `verify_planos_conta` **28/28** |
+> **Vigente:** **PACOTE PRONTO LOJA — PLANOS-PDV** no topo do CHECKPOINT.
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61)
 
