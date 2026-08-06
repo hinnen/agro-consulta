@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Motivos **Uso Geraldinho** / **Uso Geraldo** · cards de soma no histórico · títulos **Uso Centro** / **Uso Vila Elias** |
 | **Migrate** | **NÃO** |
 | **Arquivos** | `models.py` · `uso_loja_util.py` · `uso_loja_overlay.html` · `pdv_uso_loja.js` |
-| **Você** | Ctrl+F5 PDV · Uso loja · motivo → confirmar · Histórico ver 4 cards |
+| **Você** | Ctrl+F5 PDV · Uso loja · motivo → confirmar · Histórico ver 4 cards · botão topbar verde |
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
