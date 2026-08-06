@@ -1193,16 +1193,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🐞 FIX — saída Vila gravava empresa Centro (`CX-EMP-LOJA` · 06/08)
+### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
+
+> **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
+> **Teste:** badge **v14.74** · HEAD `teste`  
+> **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
+
+| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
+| - | ------ | ------ | --------- | ------- | ----------------- |
+| 1 | **CX-EMP-LOJA** | 📋 **pronto para envio à produção** | cherry `64c338b` | **NÃO** | Baixo — só saída/retirada (empresa do lançamento) |
+| 2 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+
+**Já Live (v14.72):** PLANOS-PDV · NF-VAL-BCA · FACETA-CACHE · TRANSF-BIP · FOTO-PDV.
+
+**Autorizar:** *pode subir CX-EMP-LOJA / empresa saída caixa para produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — saída Vila = empresa Vila (`CX-EMP-LOJA` · **v14.74**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **teste v14.74** · prova Renan · falta senha loja |
-| **Bug** | Retirada na Vila Elias caía em **Agro Mais Centro**; campo empresa fixo / digitar Vila não achava |
-| **Fix** | Empresa = loja do caixa (Centro → Agro Mais Centro · Vila → **Agro Mais Vila Elias**) · campo só leitura · API força a loja do turno |
-| **Prova** | `verify_saida_empresa_loja` **6/6** · `manage.py check` OK |
-| **Você** | Ctrl+F5 Retirada na Vila · empresa deve ser Vila Elias · registrar e conferir no CP |
+| **Status** | 📋 **pronto para envio à produção** |
+| **O quê** | Retirada usa empresa da loja do caixa · Vila → **Agro Mais Vila Elias** · Centro → **Agro Mais Centro** · campo só leitura · API ignora Centro errado |
+| **Commit** | `64c338b` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_saida_empresa_loja` **10/10** · `manage.py check` OK · gaveta/vila · force API · templates readonly |
+| **Risco** | Baixo — não mexe PDV venda / abrir-fechar caixa |
+| **Você** | Ctrl+F5 Retirada na Vila · empresa Vila Elias · registrar 1 saída · conferir CP |
 | **Autorizar** | *pode subir CX-EMP-LOJA / empresa saída caixa para produção* + **99738595** |
+
+### 🐞 FIX — saída Vila gravava empresa Centro (`CX-EMP-LOJA` · detalhe)
+
+> **Vigente:** **PACOTE PRONTO LOJA — CX-EMP-LOJA** no topo do CHECKPOINT.
 
 ### ✅ Deploy loja **v14.72** — lote checklist 06/08 (frase+senha)
 
@@ -1216,20 +1237,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-0608-v14.61` @ `47bb1de` |
 | **Você** | **Ctrl+F5** Cadastro · Validade · Transferências · Config Planos · Retirada |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (06/08 · loja v14.72)
+### ✅ CHECKLIST ÚNICO — enviado produção (06/08 · loja v14.72) · **superado**
 
-> **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.72** · HEAD `teste`  
-> **⚠️** **NÃO** merge `teste`→`producao`. Próximo envio = cherry/prep.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PLANOS-PDV** | ✅ enviado | 0085 |
-| 2 | **NF-VAL-BCA** | ✅ enviado | 0086 |
-| 3 | **FACETA-CACHE** | ✅ enviado | não |
-| 4 | **TRANSF-BIP** | ✅ enviado | não |
-| 5 | **FOTO-PDV** | ✅ enviado | não |
-| 6 | **GG-UX** | 🟡 P2,5 · fora | — |
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)** no topo. Loja permanece **v14.72** até o próximo envio.
 
 ### 📦 PACOTE PRONTO LOJA — Foto Gerais = Delivery = PDV (`FOTO-PDV` · **v14.68+**)
 

@@ -76,7 +76,44 @@ def main() -> None:
         fail("embed não manda empresa_nome no quem leva")
     ok("template embed")
 
-    print("VERIFY_OK 6/6")
+    leg = open(
+        os.path.join(ROOT, "produtos", "templates", "produtos", "caixa_saida.html"),
+        encoding="utf-8",
+    ).read()
+    if "readonly" not in leg or "cx-empresa" not in leg:
+        fail("caixa_saida.html sem empresa readonly")
+    ok("template legado")
+
+    import inspect
+
+    from produtos import views as v
+
+    src_api = inspect.getsource(v.api_lancamentos_saida_caixa)
+    if "empresa_loja" not in src_api or "empresa_nome = empresa_loja" not in src_api:
+        fail("API não força empresa da loja do caixa")
+    ok("API força empresa do turno")
+
+    class _S:
+        def __init__(self, ponto):
+            self.ponto_caixa = ponto
+
+    class _Req:
+        session = {}
+        COOKIES = {}
+
+    from produtos.caixa_util import (
+        PONTO_CAIXA_GAVETA,
+        PONTO_CAIXA_VILA,
+        deposito_operacional_sessao_caixa,
+    )
+
+    if deposito_operacional_sessao_caixa(_Req(), _S(PONTO_CAIXA_VILA)) != "vila":
+        fail("ponto vila ≠ deposito vila")
+    if deposito_operacional_sessao_caixa(_Req(), _S(PONTO_CAIXA_GAVETA)) != "centro":
+        fail("ponto gaveta ≠ deposito centro")
+    ok("deposito gaveta/vila")
+
+    print("VERIFY_OK 10/10")
 
 
 if __name__ == "__main__":
