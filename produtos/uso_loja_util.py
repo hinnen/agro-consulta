@@ -18,6 +18,11 @@ from produtos.pdv_deposito_util import (
 
 MOTIVOS_VALIDOS = frozenset(c.value for c in UsoLojaRetiradaAgro.Motivo)
 MOTIVO_LABEL = {c.value: c.label for c in UsoLojaRetiradaAgro.Motivo}
+# Motivos com card próprio no histórico (soma independente do depósito).
+MOTIVOS_CARD_TOTAL = (
+    UsoLojaRetiradaAgro.Motivo.USO_GERALDINHO.value,
+    UsoLojaRetiradaAgro.Motivo.USO_GERALDO.value,
+)
 
 
 def _dec(v) -> Decimal:
@@ -287,13 +292,20 @@ def _precos_overlay_por_ids(pids: list[str]) -> dict[str, tuple[Decimal, Decimal
 
 def totais_uso_loja_por_deposito() -> dict[str, dict[str, float]]:
     """
-    Soma custo e venda de todas as saídas NÃO estornadas, por depósito.
+    Soma custo e venda de saídas NÃO estornadas:
+    - por depósito (centro / vila);
+    - por motivo com card (uso_geraldinho / uso_geraldo).
     Usa snapshot do item; se faltar, cai no overlay atual.
     """
-    base = {
-        DEPOSITO_CENTRO: {"custo": Decimal("0.00"), "venda": Decimal("0.00")},
-        DEPOSITO_VILA: {"custo": Decimal("0.00"), "venda": Decimal("0.00")},
+    def _zero() -> dict[str, Decimal]:
+        return {"custo": Decimal("0.00"), "venda": Decimal("0.00")}
+
+    base: dict[str, dict[str, Decimal]] = {
+        DEPOSITO_CENTRO: _zero(),
+        DEPOSITO_VILA: _zero(),
     }
+    for mot in MOTIVOS_CARD_TOTAL:
+        base[mot] = _zero()
     itens = list(
         UsoLojaRetiradaItemAgro.objects.filter(retirada__estornado=False)
         .select_related("retirada")
@@ -303,6 +315,7 @@ def totais_uso_loja_por_deposito() -> dict[str, dict[str, float]]:
             "preco_venda",
             "produto_externo_id",
             "retirada__deposito",
+            "retirada__motivo",
             "retirada__estornado",
         )
     )
@@ -313,9 +326,6 @@ def totais_uso_loja_por_deposito() -> dict[str, dict[str, float]]:
     ]
     lookup = _precos_overlay_por_ids(missing) if missing else {}
     for it in itens:
-        dep = normalizar_deposito(it.retirada.deposito)
-        if dep not in base:
-            continue
         qtd = _dec(it.quantidade)
         if qtd <= 0:
             continue
@@ -323,8 +333,16 @@ def totais_uso_loja_por_deposito() -> dict[str, dict[str, float]]:
         oc, ov = lookup.get(pid, (Decimal("0.00"), Decimal("0.00")))
         custo_u = _money(it.preco_custo) if it.preco_custo is not None else oc
         venda_u = _money(it.preco_venda) if it.preco_venda is not None else ov
-        base[dep]["custo"] += (custo_u * qtd).quantize(Decimal("0.01"))
-        base[dep]["venda"] += (venda_u * qtd).quantize(Decimal("0.01"))
+        add_c = (custo_u * qtd).quantize(Decimal("0.01"))
+        add_v = (venda_u * qtd).quantize(Decimal("0.01"))
+        dep = normalizar_deposito(it.retirada.deposito)
+        if dep in base:
+            base[dep]["custo"] += add_c
+            base[dep]["venda"] += add_v
+        mot = (it.retirada.motivo or "").strip().lower()
+        if mot in MOTIVOS_CARD_TOTAL:
+            base[mot]["custo"] += add_c
+            base[mot]["venda"] += add_v
     return {
         k: {"custo": float(v["custo"]), "venda": float(v["venda"])}
         for k, v in base.items()

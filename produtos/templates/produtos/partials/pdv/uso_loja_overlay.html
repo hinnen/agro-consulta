@@ -353,17 +353,17 @@
   #pdv-uso-loja-overlay .ul-hist-totais {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.65rem;
+    gap: 0.55rem;
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag {
     border-radius: 0.9rem;
     border-width: 3px;
     border-style: solid;
-    padding: 0.7rem 0.85rem 0.75rem;
-    min-height: 6.5rem;
+    padding: 0.55rem 0.75rem 0.6rem;
+    min-height: 5.4rem;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.3rem;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="centro"] {
@@ -374,11 +374,19 @@
     border-color: #ea580c;
     background: linear-gradient(180deg, #fed7aa 0%, #ffedd5 55%, #fff7ed 100%);
   }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldinho"] {
+    border-color: #059669;
+    background: linear-gradient(180deg, #a7f3d0 0%, #d1fae5 55%, #ecfdf5 100%);
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldo"] {
+    border-color: #7c3aed;
+    background: linear-gradient(180deg, #ddd6fe 0%, #ede9fe 55%, #f5f3ff 100%);
+  }
   #pdv-uso-loja-overlay .ul-hist-total-loja {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     font-weight: 900;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     line-height: 1.1;
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="centro"] .ul-hist-total-loja {
@@ -386,6 +394,12 @@
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="vila"] .ul-hist-total-loja {
     color: #9a3412;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldinho"] .ul-hist-total-loja {
+    color: #065f46;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldo"] .ul-hist-total-loja {
+    color: #5b21b6;
   }
   #pdv-uso-loja-overlay .ul-hist-total-metrics {
     display: grid;
@@ -409,7 +423,7 @@
     margin-bottom: 0.15rem;
   }
   #pdv-uso-loja-overlay .ul-hist-total-val {
-    font-size: clamp(1.35rem, 2.2vw + 0.85rem, 1.85rem);
+    font-size: clamp(1.15rem, 1.8vw + 0.75rem, 1.55rem);
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     line-height: 1.05;
@@ -422,6 +436,12 @@
   }
   #pdv-uso-loja-overlay .ul-hist-total-tag[data-dep="vila"] .ul-hist-total-val {
     color: #7c2d12;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldinho"] .ul-hist-total-val {
+    color: #064e3b;
+  }
+  #pdv-uso-loja-overlay .ul-hist-total-tag[data-motivo="uso_geraldo"] .ul-hist-total-val {
+    color: #4c1d95;
   }
   #pdv-uso-loja-overlay .ul-hist-footer {
     padding-top: 0.65rem;
@@ -648,9 +668,35 @@
     <div class="ul-view-historico hidden min-h-0 flex-1 flex-col overflow-hidden">
       <div id="pdv-uso-loja-hist-list" class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4"></div>
       <footer class="ul-hist-footer shrink-0 border-t-2 border-emerald-100 bg-white px-3 py-2 sm:px-4">
-        <div class="ul-hist-totais" aria-label="Totais por loja">
+        <div class="ul-hist-totais" aria-label="Totais por loja e motivo">
+          <div class="ul-hist-total-tag" data-motivo="uso_geraldinho">
+            <div class="ul-hist-total-loja">Uso Geraldinho</div>
+            <div class="ul-hist-total-metrics">
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total custo</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-geraldinho-custo">0,00</strong>
+              </div>
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total venda</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-geraldinho-venda">0,00</strong>
+              </div>
+            </div>
+          </div>
+          <div class="ul-hist-total-tag" data-motivo="uso_geraldo">
+            <div class="ul-hist-total-loja">Uso Geraldo</div>
+            <div class="ul-hist-total-metrics">
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total custo</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-geraldo-custo">0,00</strong>
+              </div>
+              <div class="ul-hist-total-metric">
+                <span class="ul-hist-total-label">total venda</span>
+                <strong class="ul-hist-total-val" id="pdv-uso-loja-tot-geraldo-venda">0,00</strong>
+              </div>
+            </div>
+          </div>
           <div class="ul-hist-total-tag" data-dep="centro">
-            <div class="ul-hist-total-loja">Centro</div>
+            <div class="ul-hist-total-loja">Uso Centro</div>
             <div class="ul-hist-total-metrics">
               <div class="ul-hist-total-metric">
                 <span class="ul-hist-total-label">total custo</span>
@@ -663,7 +709,7 @@
             </div>
           </div>
           <div class="ul-hist-total-tag" data-dep="vila">
-            <div class="ul-hist-total-loja">Vila Elias</div>
+            <div class="ul-hist-total-loja">Uso Vila Elias</div>
             <div class="ul-hist-total-metrics">
               <div class="ul-hist-total-metric">
                 <span class="ul-hist-total-label">total custo</span>
@@ -705,6 +751,8 @@
             <button type="button" class="ul-step-motivo-btn" data-motivo="amostra">Amostra</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="outros">Outros</button>
             <button type="button" class="ul-step-motivo-btn" data-motivo="brinde">Brinde cliente</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="uso_geraldinho">Uso Geraldinho</button>
+            <button type="button" class="ul-step-motivo-btn" data-motivo="uso_geraldo">Uso Geraldo</button>
           </div>
           <div id="pdv-uso-loja-step-motivo-outros-wrap" class="hidden px-4 pt-2 pb-1">
             <input type="text" id="pdv-uso-loja-step-motivo-txt" class="ul-field" placeholder="Descreva o motivo" autocomplete="off" maxlength="120" />
