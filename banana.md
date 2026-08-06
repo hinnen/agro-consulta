@@ -1267,10 +1267,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio** · teste **v14.65+** · backfill PG **já feito** |
-| **O quê** | Etapa 4 (lote/validade) ao lançar estoque grava `EstoqueLote` · busca BCA em `/relatorios/validade/` · comando `backfill_validade_entrada_nf` |
+| **O quê** | Etapa 4 → `EstoqueLote` · busca BCA · backfill · **fix filtro Loja** (Centro/Vila não sumia mais a lista quando C+V operacional 0 e lote tem qtd — alinhado ao BI) |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — Entrada NF estoque + tela Validade |
-| **Você** | Ctrl+F5 Validade · buscar Anticion / Capstar (NF 264005 / 264290) |
+| **Você** | Ctrl+F5 Validade · **Todas / Centro / Vila** · buscar Anticion / Capstar |
 | **Notas antigas** | Backfill **aplicado 06/08:** 31 lotes (NF 264005+264290) · 1 pid inválido pulado · dry-run padrão / `--aplicar` · não reabre nota · não sobrescreve lote existente |
 | **Autorizar** | *pode subir NF-VAL-BCA / validade NF para produção* + **99738595** |
 
