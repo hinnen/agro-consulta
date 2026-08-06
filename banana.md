@@ -1198,14 +1198,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **PLANOS-PDV** | 📋 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`(no-op loja)+`0085` | Baixo — Config + select saída; PDV venda/caixa turno intactos |
-| 2 | **NF-VAL-BCA** | 🟡 teste · prova Renan | — | — | — |
-| 3 | **FACETA-CACHE** | 🟡 teste · prova Renan | — | — | — |
+| 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`(no-op)+`0085` | Baixo — Config + select saída |
+| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF estoque + Validade |
+| 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — lista marca/cat/unidade cadastro |
 | 4 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
 **Já Live (v14.61):** BI-TOPBAR-DATAS · CP-BACKUP-MENU · NF-TROCA-ESTORNO · PLANOS-CONTA (+ lote 05/08).
 
-**Autorizar PLANOS-PDV:** *pode subir PLANOS-PDV / planos no PDV para produção* + **99738595**
+**Prova FACETA (06/08):** `verify_faceta_cache` **10/10** · overlay+PIN → lista · `manage.py check` OK.
+
+**Autorizar:** *pode subir [PLANOS-PDV / NF-VAL-BCA / FACETA-CACHE] para produção* + **99738595**
 
 ### 📦 PACOTE PRONTO LOJA — Planos no PDV por checkbox (`PLANOS-PDV` · **v14.62+**)
 
@@ -1220,26 +1222,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Config Planos · coluna PDV · marcar Manutenção · abrir Retirada e conferir |
 | **Autorizar** | *pode subir PLANOS-PDV / planos no PDV para produção* + **99738595** |
 
-### 🐛 Cadastro — unidade/marca/cat «não cadastrado» (`FACETA-CACHE` · 06/08)
+### 📦 PACOTE PRONTO LOJA — Cadastro faceta unidade/marca/cat (`FACETA-CACHE` · **v14.66**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **teste v14.66** · prova local pendente |
-| **Bug** | Cadastrou Caixa no Azul · no outro produto a lista dizia «não cadastrado» (marca/cat igual) |
-| **Causa** | Cache das facetas (`v6`) **não era limpo** ao salvar/+ PIN (apagava chave velha) · JS **apagava** o que acabou de cadastrar ao recarregar a lista |
-| **Fix** | Invalidar cache certo · lista do servidor junta produto+PIN · JS **soma** (não sobrescreve) · ao abrir/salvar produto, valor entra na lista |
-| **Você** | Ctrl+F5 Cadastro · digitar **Caixa** no Roxo → deve achar · mesma lógica marca/categoria |
+| **Status** | 📦 **pronto para envio à produção** · teste **v14.66** |
+| **Bug** | Cadastrou Caixa no produto · no outro a lista dizia «não cadastrado» (marca/cat igual) |
+| **Fix** | Invalidar cache `v6` ao salvar/+ PIN · servidor junta produto+PIN · JS **soma** (não apaga) · seed ao abrir/salvar |
+| **Prova** | `scripts/verify_faceta_cache.py` **10/10** · integração overlay+PIN OK · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só combobox do cadastro |
+| **Você** | Ctrl+F5 Cadastro · digitar **Caixa** no outro Natuverm → tem que achar |
+| **Autorizar** | *pode subir FACETA-CACHE / faceta cadastro para produção* + **99738595** |
 
-### ðŸ©¹ Entrada NF validade → tela Validade + busca BCA (`NF-VAL-BCA` · 06/08)
+### 📦 PACOTE PRONTO LOJA — Entrada NF validade → Validade + BCA (`NF-VAL-BCA` · **v14.65**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸŸ¡ **teste v14.64** · prova local pendente |
-| **Bug** | Etapa 4 (lote/validade) gravava sÃ³ no rascunho — **nÃ£o** ia para `/relatorios/validade/` |
-| **Fix** | Ao lanÃ§ar estoque: cria/soma `EstoqueLote` · reabrir reduz se tiver `nf_lote`/`nf_val` |
-| **UX** | Busca BCA no relatÃ³rio de validade (achar produto / avisar se nÃ£o tem lote na lista) |
-| **VocÃª** | Ctrl+F5 Validade · buscar produto · nova NF com validade + estoque deve aparecer |
-| **Notas antigas** | NÃ£o backfill automÃ¡tico — sÃ³ novas entradas (ou reabrir+relanÃ§ar estoque) |
+| **Status** | 📦 **pronto para envio à produção** · teste **v14.65** |
+| **O quê** | Etapa 4 (lote/validade) ao lançar estoque grava `EstoqueLote` · busca BCA em `/relatorios/validade/` |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — Entrada NF estoque + tela Validade |
+| **Você** | Ctrl+F5 Validade · nova NF com validade + estoque deve aparecer |
+| **Notas antigas** | Sem backfill automático — só novas entradas (ou reabrir+relançar estoque) |
+| **Autorizar** | *pode subir NF-VAL-BCA / validade NF para produção* + **99738595** |
 
 ### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · detalhe)
 
