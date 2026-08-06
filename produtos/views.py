@@ -11198,7 +11198,7 @@ def api_caixa_conferencia_estado(request):
 
 @login_required(login_url="/admin/login/")
 def caixa_painel(request):
-    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+    from produtos.saida_caixa_planos import listar_planos_saida_caixa
 
     from rh.utils import resolver_empresa_por_nome_fantasia
 
@@ -11237,7 +11237,7 @@ def caixa_painel(request):
     }
     if painel in ("retirada", "reforco"):
         emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
-        ctx["planos_json"] = json.dumps(SAIDA_CAIXA_PLANOS, ensure_ascii=False)
+        ctx["planos_json"] = json.dumps(listar_planos_saida_caixa(), ensure_ascii=False)
         ctx["empresa_padrao_id"] = emp.pk if emp else ""
     if aberto:
         aberto = (
@@ -11334,7 +11334,7 @@ def caixa_painel(request):
 def caixa_retiradas_historico(request):
     from produtos.caixa_retiradas_util import listar_quem_retiradas_distintas, listar_retiradas_historico
     from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
-    from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+    from produtos.saida_caixa_planos import listar_planos_saida_caixa
 
     hoje = timezone.localdate()
     data_de = _lancamentos_parse_date_param(request.GET.get("de")) or hoje
@@ -11393,7 +11393,7 @@ def caixa_retiradas_historico(request):
             "linhas": linhas_fmt,
             "qtd": resultado["qtd"],
             "total_str": total_str,
-            "planos_opts": SAIDA_CAIXA_PLANOS,
+            "planos_opts": listar_planos_saida_caixa(),
             "quem_opts": listar_quem_retiradas_distintas(),
             "url_nova_saida": url_nova,
             "pode_nova_saida": pode_nova_saida,
@@ -19125,7 +19125,7 @@ def _anexar_retirada_turno_caixa_saida(
 @require_POST
 def api_lancamentos_saida_caixa(request):
     """Registra uma despesa rápida (saída de caixa) com plano de conta — grava como lançamento manual de 1 linha."""
-    from produtos.saida_caixa_planos import PLANO_DEPOSITO_ID, SAIDA_CAIXA_PLANOS
+    from produtos.saida_caixa_planos import PLANO_DEPOSITO_ID, listar_planos_saida_caixa
 
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -19154,7 +19154,8 @@ def api_lancamentos_saida_caixa(request):
         return JsonResponse({"ok": False, "erro": "Valor deve ser maior que zero."}, status=400)
 
     plano_id_req = str(payload.get("plano_id") or "").strip()
-    plan_map = {p["id"]: p for p in SAIDA_CAIXA_PLANOS}
+    saida_planos = listar_planos_saida_caixa()
+    plan_map = {p["id"]: p for p in saida_planos}
     is_outros = False
     is_deposito = plano_id_req == PLANO_DEPOSITO_ID
     if plano_id_req:

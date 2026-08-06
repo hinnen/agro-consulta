@@ -866,6 +866,12 @@ class PlanoContaAgro(models.Model):
     grupo = models.CharField(max_length=120, blank=True, default="")
     observacao = models.CharField(max_length=400, blank=True, default="")
     ativo = models.BooleanField(default=True, db_index=True)
+    exibir_pdv = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Mostrar no PDV",
+        help_text="Se marcado, aparece no select de plano da saída/retirada do caixa.",
+    )
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 

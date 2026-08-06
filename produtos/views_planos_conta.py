@@ -80,6 +80,18 @@ def api_planos_conta_salvar(request):
     else:
         ativo_b = str(ativo or "1").strip().lower() not in ("0", "false", "nao", "não", "off")
 
+    if "exibir_pdv" in body:
+        ep = body.get("exibir_pdv")
+        exibir_pdv_b = bool(ep) if isinstance(ep, bool) else str(ep).strip().lower() in (
+            "1",
+            "true",
+            "sim",
+            "yes",
+            "on",
+        )
+    else:
+        exibir_pdv_b = None
+
     pk_raw = body.get("pk") or body.get("id")
     pk = None
     if pk_raw is not None and str(pk_raw).strip():
@@ -110,6 +122,8 @@ def api_planos_conta_salvar(request):
             obj.observacao = observacao
             obj.tipo = tipo
             obj.ativo = ativo_b
+            if exibir_pdv_b is not None:
+                obj.exibir_pdv = exibir_pdv_b
             obj.save()
         else:
             if PlanoContaAgro.objects.filter(nome__iexact=nome).exists():
@@ -123,6 +137,7 @@ def api_planos_conta_salvar(request):
                 observacao=observacao,
                 tipo=tipo,
                 ativo=ativo_b,
+                exibir_pdv=bool(exibir_pdv_b) if exibir_pdv_b is not None else False,
             )
     except IntegrityError:
         return JsonResponse(
@@ -146,7 +161,17 @@ def api_planos_conta_toggle(request, pk: int):
         body = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         body = {}
-    if "ativo" in body:
+    if "exibir_pdv" in body and "ativo" not in body:
+        v = body.get("exibir_pdv")
+        obj.exibir_pdv = bool(v) if isinstance(v, bool) else str(v).strip().lower() in (
+            "1",
+            "true",
+            "sim",
+            "yes",
+            "on",
+        )
+        obj.save(update_fields=["exibir_pdv", "atualizado_em"])
+    elif "ativo" in body:
         v = body.get("ativo")
         obj.ativo = bool(v) if isinstance(v, bool) else str(v).strip().lower() in (
             "1",
@@ -155,7 +180,8 @@ def api_planos_conta_toggle(request, pk: int):
             "yes",
             "on",
         )
+        obj.save(update_fields=["ativo", "atualizado_em"])
     else:
         obj.ativo = not obj.ativo
-    obj.save(update_fields=["ativo", "atualizado_em"])
+        obj.save(update_fields=["ativo", "atualizado_em"])
     return JsonResponse({"ok": True, "item": serializar_plano(obj)})

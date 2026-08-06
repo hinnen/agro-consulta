@@ -30,6 +30,27 @@ def parse_id_publico(raw: str) -> int | None:
         return None
 
 
+# Planos que já estavam no select da saída/retirada (pré-marcar «No PDV»).
+NOMES_PDV_PADRAO: frozenset[str] = frozenset(
+    {
+        "Adiantamento de Salário (Vale)",
+        "Salários",
+        "Alimentação",
+        "Brindes e ações festivas",
+        "Combustível Strada",
+        "Combustível Demais Carros",
+        "Compra Mercadoria SN",
+        "Embalagens",
+        "Material de Limpeza e Conservação",
+        "Matérias de Escritório",
+        "Matérias de Informática",
+        "Retiradas Geraldinho",
+        "Retiradas Geraldo",
+        "Outros (verificar)",
+    }
+)
+
+
 def serializar_plano(p: PlanoContaAgro) -> dict[str, Any]:
     return {
         "id": id_publico_plano(p.pk),
@@ -40,6 +61,7 @@ def serializar_plano(p: PlanoContaAgro) -> dict[str, Any]:
         "tipo_label": p.get_tipo_display(),
         "grupo": p.grupo or "",
         "ativo": bool(p.ativo),
+        "exibir_pdv": bool(getattr(p, "exibir_pdv", False)),
         "observacao": p.observacao or "",
         "apelidos": p.aliases.count(),
         "fonte": "agro",
@@ -95,6 +117,7 @@ def seed_planos_padrao() -> dict[str, int]:
                         :400
                     ],
                     "ativo": True,
+                    "exibir_pdv": nome in NOMES_PDV_PADRAO,
                 },
             )
             stats["planos" if criado else "ja_existiam"] += 1

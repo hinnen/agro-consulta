@@ -234,6 +234,24 @@
       min-height: var(--pc-ctrl-h);
     }
     .pc-check input { width: 1.4rem; height: 1.4rem; accent-color: #047857; }
+    .pc-check--form {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: var(--pc-fs-body);
+      min-height: clamp(2.4rem, 4vh, 2.9rem);
+      padding: 0.2rem 0;
+    }
+    .pc-pdv-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pc-pdv-cell input {
+      width: 1.45rem;
+      height: 1.45rem;
+      accent-color: #047857;
+      cursor: pointer;
+    }
     .pc-total { font-size: var(--pc-fs-label); font-weight: 900; color: #475569; margin-left: auto; }
 
     .pc-tabela-wrap { flex: 1 1 auto; min-height: 0; overflow: auto; }
@@ -292,9 +310,9 @@
           <details>
             <summary class="pc-ajuda-btn">?</summary>
             <div class="pc-ajuda">
-              Crie planos usados nos Lançamentos e na Entrada NF. O nome precisa ser único.
-              Tipo (Fixa / Variável / Outra) é só classificação; desativar não apaga nada e
-              não muda títulos antigos.
+              Crie planos usados nos Lançamentos e na Entrada NF. Marque <strong>Mostrar no PDV</strong>
+              (ou a coluna PDV na lista) para aparecer na saída/retirada do caixa.
+              Nome único; tipo é só classificação; desativar não apaga títulos antigos.
             </div>
           </details>
         </div>
@@ -315,6 +333,10 @@
           <label class="pc-campo">
             <span class="pc-campo-label">Grupo</span>
             <input id="pc-grupo" type="text" maxlength="120" autocomplete="off" class="pc-input" placeholder="Opcional">
+          </label>
+          <label class="pc-check pc-check--form">
+            <input type="checkbox" id="pc-pdv">
+            Mostrar no PDV (saída / retirada)
           </label>
           <div class="pc-form-acoes">
             <button type="button" id="pc-btn-salvar" class="pc-btn pc-btn--verde">Salvar</button>
@@ -342,6 +364,7 @@
               <tr>
                 <th>Nome</th>
                 <th>Tipo</th>
+                <th title="Aparece na saída/retirada do caixa">PDV</th>
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
@@ -374,6 +397,7 @@
       el('pc-nome').value = '';
       el('pc-grupo').value = '';
       el('pc-tipo').value = 'outra';
+      el('pc-pdv').checked = false;
       el('pc-form-titulo').textContent = 'Novo plano';
       msg('');
     }
@@ -390,7 +414,7 @@
     }
 
     function linhaAviso(html) {
-      return '<tr><td colspan="4" class="pc-vazio">' + html + '</td></tr>';
+      return '<tr><td colspan="5" class="pc-vazio">' + html + '</td></tr>';
     }
 
     function ligarBotaoPadrao() {
@@ -453,6 +477,10 @@
               '<td><div class="pc-celula">' + esc(it.tipo_label || it.tipo) + '</div>' +
               (it.apelidos ? '<div class="pc-nome-sub">' + it.apelidos + ' apelido(s)</div>' : '') +
               '</td>' +
+              '<td><div class="pc-pdv-cell">' +
+              '<input type="checkbox" data-pdv="' + it.pk + '" title="Mostrar na saída do PDV"' +
+              (it.exibir_pdv ? ' checked' : '') + '>' +
+              '</div></td>' +
               '<td><span class="' + (it.ativo ? 'pc-status-ativo' : 'pc-status-inativo') + '">' +
               (it.ativo ? 'Ativo' : 'Inativo') + '</span></td>' +
               '<td class="pc-acoes">' +
@@ -470,9 +498,31 @@
               el('pc-nome').value = it.nome || '';
               el('pc-grupo').value = it.grupo || '';
               el('pc-tipo').value = it.tipo || 'outra';
+              el('pc-pdv').checked = !!it.exibir_pdv;
               el('pc-form-titulo').textContent = 'Editar plano';
               msg('Editando…', true);
               el('pc-nome').focus();
+            });
+          });
+          tb.querySelectorAll('[data-pdv]').forEach(function (chk) {
+            chk.addEventListener('change', function () {
+              var pk = chk.getAttribute('data-pdv');
+              fetch(URL_TOGGLE.replace('__PK__', pk), {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken() },
+                body: JSON.stringify({ exibir_pdv: !!chk.checked })
+              }).then(function (r) { return r.json(); }).then(function (j) {
+                if (!j.ok) {
+                  chk.checked = !chk.checked;
+                  msg(j.erro || 'Falha ao marcar PDV', false);
+                  return;
+                }
+                msg(chk.checked ? 'Marcado no PDV.' : 'Removido do PDV.', true);
+              }).catch(function () {
+                chk.checked = !chk.checked;
+                msg('Falha de rede.', false);
+              });
             });
           });
           tb.querySelectorAll('[data-tog]').forEach(function (btn) {
@@ -502,6 +552,7 @@
         nome: el('pc-nome').value,
         grupo: el('pc-grupo').value,
         tipo: el('pc-tipo').value,
+        exibir_pdv: !!el('pc-pdv').checked,
         ativo: true
       };
       fetch(API_SALVAR, {

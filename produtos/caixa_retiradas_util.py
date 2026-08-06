@@ -41,17 +41,13 @@ except ImportError:  # loja v5.65 — cherry-pick perdeu helpers em caixa_util
         return s
 
 from produtos.models import MovimentoCaixa, TituloFinanceiroAgro
-from produtos.saida_caixa_planos import SAIDA_CAIXA_PLANOS
+from produtos.saida_caixa_planos import listar_planos_saida_caixa
 from rh.constants import PLANO_ADIANTAMENTO_CANONICO
 from rh.services.importador_vales_caixa import plano_e_adiantamento_salario_vale
 
 # ASCII — evita mojibake (ÔÇö) em colunas vazias na loja
 _SEM_VALOR = "-"
-
-_VALE_PLANO_LABEL = next(
-    (p["label"] for p in SAIDA_CAIXA_PLANOS if p.get("id") == "adiant_vale"),
-    "Adiantamento de Salário (Vale)",
-)
+_VALE_PLANO_LABEL = "Adiantamento de Salário (Vale)"
 
 
 def _op_exib(raw: str) -> str:
@@ -82,7 +78,7 @@ def _variantes_plano_filtro(plano_f: str) -> list[str]:
     if not plano_f:
         return []
     out = {plano_f}
-    for p in SAIDA_CAIXA_PLANOS:
+    for p in listar_planos_saida_caixa():
         if (p.get("plano") or "").strip() == plano_f or (p.get("label") or "").strip() == plano_f:
             if p.get("plano"):
                 out.add(str(p["plano"]).strip())
