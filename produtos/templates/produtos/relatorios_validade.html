@@ -1,4 +1,5 @@
 {% extends "layouts/base_pdv.html" %}
+{% load static %}
 
 {% block pdv_title %}Relatório de validade | SisVale{% endblock %}
 {% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
@@ -19,6 +20,15 @@
     @media (min-width: 1280px) {
       #rv-tabela.rv-compact th.rv-td-prod,
       #rv-tabela.rv-compact td.rv-td-prod { max-width: 26rem; }
+    }
+    #rv-tabela tr.rv-busca-hit {
+      outline: 2px solid #f97316;
+      outline-offset: -2px;
+      background: rgba(249, 115, 22, 0.12) !important;
+    }
+    #rv-busca-drop .rv-busca-item:hover,
+    #rv-busca-drop .rv-busca-item.rv-busca-on {
+      background: #0f172a;
     }
     @media print {
       .no-print { display: none !important; }
@@ -58,6 +68,20 @@
 
 {% block pdv_content %}
 <div class="print-root min-w-0 p-1 sm:p-2">
+  <div class="no-print relative z-40 mb-3 rounded-2xl border-2 border-orange-500/50 bg-slate-900/95 p-3 sm:p-4" id="rv-busca-wrap">
+    <label class="mb-1 block text-[10px] font-black uppercase tracking-wide text-orange-400" for="rv-busca">Buscar produto (BCA)</label>
+    <div class="flex flex-wrap items-stretch gap-2">
+      <div class="relative min-w-0 flex-1">
+        <input type="search" id="rv-busca" name="rv_busca" autocomplete="off" enterkeyhint="search"
+          placeholder="Nome, código GM, EAN…"
+          class="w-full min-h-[48px] rounded-xl border-2 border-slate-600 bg-slate-950 px-3 text-base font-bold text-white placeholder:text-slate-500 focus:border-orange-500 focus:outline-none" />
+        <div id="rv-busca-drop" class="absolute left-0 right-0 top-full z-50 mt-1 hidden max-h-72 overflow-y-auto rounded-xl border-2 border-slate-600 bg-slate-900 shadow-2xl" role="listbox"></div>
+      </div>
+      <button type="button" id="rv-busca-limpar" class="min-h-[48px] shrink-0 rounded-xl border-2 border-slate-600 bg-slate-800 px-4 text-xs font-black uppercase text-slate-200 hover:border-slate-400" title="Mostrar toda a lista de novo">Limpar</button>
+    </div>
+    <p id="rv-busca-status" class="mt-2 min-h-[1.25rem] text-xs font-semibold text-slate-400" aria-live="polite"></p>
+  </div>
+
   <form method="get" class="no-print mb-4 flex flex-wrap items-end gap-2 sm:gap-3 rounded-2xl border border-slate-700 bg-slate-800/90 p-3 sm:p-4" id="form-relatorio-validade">
     <div>
       <label class="mb-1 block text-xs font-bold uppercase text-slate-500">Loja</label>
@@ -140,7 +164,7 @@
         </thead>
         <tbody class="divide-y divide-slate-700/80">
           {% for p in produtos %}
-          <tr data-pid="{{ p.produto_id|escape }}"
+          <tr data-pid="{{ p.produto_id|escape }}" data-nome="{{ p.nome|escape }}" data-lote-txt="{{ p.lote_raw|default:p.lote|escape }}"
             {% if p.lote_id %}data-lote-id="{{ p.lote_id }}" data-lote-qtd="{{ p.lote_qtd|default:0 }}"{% endif %}
             class="hover:bg-slate-800/40">
             <td class="rv-td-prod text-sm font-semibold leading-snug" title="{{ p.nome|escape }}">{{ p.nome }}</td>
@@ -242,6 +266,237 @@
     </div>
   </div>
 
+  <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=1"></script>
+  <script>
+  (function () {
+    /* —— Busca BCA: achar produto na lista (ou avisar se não tem validade) —— */
+    var inp = document.getElementById('rv-busca');
+    var drop = document.getElementById('rv-busca-drop');
+    var stEl = document.getElementById('rv-busca-status');
+    var btnLimpar = document.getElementById('rv-busca-limpar');
+    var tbl = document.getElementById('rv-tabela');
+    var buscaTimer = null;
+    var buscaSeq = 0;
+    var hitIdx = -1;
+    var lastRows = [];
+
+    function setStatus(t, ok) {
+      if (!stEl) return;
+      stEl.textContent = t || '';
+      stEl.classList.remove('text-emerald-400', 'text-amber-300', 'text-red-400', 'text-slate-400');
+      if (ok === true) stEl.classList.add('text-emerald-400');
+      else if (ok === false) stEl.classList.add('text-red-400');
+      else if (ok === 'warn') stEl.classList.add('text-amber-300');
+      else stEl.classList.add('text-slate-400');
+    }
+
+    function rowsAll() {
+      if (!tbl) return [];
+      return Array.prototype.slice.call(tbl.querySelectorAll('tbody tr[data-pid]'));
+    }
+
+    function limparFiltroBusca() {
+      rowsAll().forEach(function (tr) {
+        tr.classList.remove('hidden', 'rv-busca-hit');
+        tr.style.display = '';
+      });
+      if (drop) {
+        drop.classList.add('hidden');
+        drop.innerHTML = '';
+      }
+      hitIdx = -1;
+      lastRows = [];
+      setStatus('');
+    }
+
+    function filtrarPorPid(pid, meta) {
+      var pidS = String(pid || '').trim();
+      var hits = [];
+      rowsAll().forEach(function (tr) {
+        var match = String(tr.getAttribute('data-pid') || '') === pidS;
+        tr.classList.toggle('rv-busca-hit', match);
+        if (match) {
+          tr.classList.remove('hidden');
+          tr.style.display = '';
+          hits.push(tr);
+        } else {
+          tr.classList.add('hidden');
+          tr.style.display = 'none';
+        }
+      });
+      if (hits.length) {
+        setStatus(
+          'Na lista: ' + hits.length + ' lote(s) · ' + (meta && meta.nome ? meta.nome : pidS),
+          true
+        );
+        try {
+          hits[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (e1) {}
+      } else {
+        setStatus(
+          'Produto no catálogo, mas sem validade/lote nesta lista' +
+            (meta && meta.nome ? ' — ' + meta.nome : '') +
+            '. Se preencheu na Entrada NF e já lançou estoque, confira se a data foi gravada (notas antigas podem não ter ido).',
+          'warn'
+        );
+      }
+    }
+
+    function mapProd(p) {
+      if (!p || typeof p !== 'object') return null;
+      var id = String(p.produto_id || p.id || p._id || '').trim();
+      if (!id) return null;
+      return {
+        produto_id: id,
+        nome: String(p.nome || p.Nome || '').trim(),
+        codigo: String(p.codigo_interno || p.codigo || p.Codigo || p.codigo_nfe || '').trim(),
+        ean: String(p.codigo_barras || p.ean || p.EAN || '').trim(),
+      };
+    }
+
+    function renderDrop(lista) {
+      if (!drop) return;
+      lastRows = lista || [];
+      hitIdx = lastRows.length ? 0 : -1;
+      if (!lastRows.length) {
+        drop.innerHTML = '<div class="px-3 py-4 text-center text-sm font-bold text-slate-500">Nenhum produto</div>';
+        drop.classList.remove('hidden');
+        return;
+      }
+      drop.innerHTML = lastRows
+        .map(function (p, i) {
+          var sub = [p.codigo, p.ean].filter(Boolean).join(' · ');
+          return (
+            '<button type="button" class="rv-busca-item block w-full border-b border-slate-800 px-3 py-2.5 text-left' +
+            (i === 0 ? ' rv-busca-on' : '') +
+            '" data-i="' +
+            i +
+            '" role="option">' +
+            '<span class="block text-sm font-bold text-white leading-snug">' +
+            (p.nome || p.produto_id).replace(/</g, '&lt;') +
+            '</span>' +
+            (sub
+              ? '<span class="mt-0.5 block text-[11px] font-semibold text-slate-400">' +
+                sub.replace(/</g, '&lt;') +
+                '</span>'
+              : '') +
+            '</button>'
+          );
+        })
+        .join('');
+      drop.classList.remove('hidden');
+    }
+
+    function escolher(i) {
+      var p = lastRows[i];
+      if (!p) return;
+      if (inp) inp.value = p.nome || p.codigo || p.produto_id;
+      if (drop) {
+        drop.classList.add('hidden');
+        drop.innerHTML = '';
+      }
+      filtrarPorPid(p.produto_id, p);
+    }
+
+    function executarBusca(termo) {
+      var q = String(termo || '').trim();
+      if (!q) {
+        limparFiltroBusca();
+        return;
+      }
+      var seq = ++buscaSeq;
+      setStatus('Buscando…', null);
+      var fetchFn =
+        typeof fetchAgroBuscaCatalogo === 'function'
+          ? fetchAgroBuscaCatalogo(q, { limit: 24, contexto: 'validade' })
+          : fetch('/api/buscar/?q=' + encodeURIComponent(q) + '&limit=24', {
+              credentials: 'same-origin',
+            }).then(function (r) {
+              return r.json();
+            });
+      Promise.resolve(fetchFn)
+        .then(function (j) {
+          if (seq !== buscaSeq) return;
+          var lista = ((j && j.produtos) || []).map(mapProd).filter(Boolean).slice(0, 24);
+          if (lista.length === 1) {
+            var only = lista[0];
+            var qd = q.replace(/\s+/g, '').toLowerCase();
+            var codes = [only.codigo, only.ean, only.produto_id]
+              .map(function (x) {
+                return String(x || '').trim().toLowerCase();
+              })
+              .filter(Boolean);
+            if (codes.indexOf(qd) >= 0 || /^\d{8,}$/.test(qd)) {
+              lastRows = lista;
+              escolher(0);
+              return;
+            }
+          }
+          renderDrop(lista);
+          setStatus(lista.length ? lista.length + ' resultado(s)' : 'Nenhum produto', lista.length ? null : 'warn');
+        })
+        .catch(function () {
+          if (seq !== buscaSeq) return;
+          setStatus('Falha na busca', false);
+          if (drop) {
+            drop.innerHTML = '<div class="px-3 py-4 text-center text-sm font-bold text-red-400">Erro na busca</div>';
+            drop.classList.remove('hidden');
+          }
+        });
+    }
+
+    if (inp) {
+      inp.addEventListener('input', function () {
+        clearTimeout(buscaTimer);
+        buscaTimer = setTimeout(function () {
+          executarBusca(inp.value);
+        }, 220);
+      });
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (!lastRows.length) return;
+          hitIdx = Math.min(lastRows.length - 1, hitIdx + 1);
+          Array.prototype.forEach.call(drop.querySelectorAll('.rv-busca-item'), function (el, i) {
+            el.classList.toggle('rv-busca-on', i === hitIdx);
+          });
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (!lastRows.length) return;
+          hitIdx = Math.max(0, hitIdx - 1);
+          Array.prototype.forEach.call(drop.querySelectorAll('.rv-busca-item'), function (el, i) {
+            el.classList.toggle('rv-busca-on', i === hitIdx);
+          });
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          if (hitIdx >= 0 && lastRows[hitIdx]) escolher(hitIdx);
+          else executarBusca(inp.value);
+        } else if (e.key === 'Escape') {
+          limparFiltroBusca();
+          inp.blur();
+        }
+      });
+    }
+    if (drop) {
+      drop.addEventListener('click', function (e) {
+        var btn = e.target.closest('.rv-busca-item');
+        if (!btn) return;
+        escolher(parseInt(btn.getAttribute('data-i'), 10));
+      });
+    }
+    if (btnLimpar) {
+      btnLimpar.addEventListener('click', function () {
+        if (inp) inp.value = '';
+        limparFiltroBusca();
+        if (inp) inp.focus();
+      });
+    }
+    document.addEventListener('click', function (e) {
+      var wrap = document.getElementById('rv-busca-wrap');
+      if (wrap && !wrap.contains(e.target) && drop) drop.classList.add('hidden');
+    });
+  })();
+  </script>
   {% if pode_editar_validade %}
   <script>
   (function () {
