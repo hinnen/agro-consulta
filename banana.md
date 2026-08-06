@@ -592,6 +592,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Painel: `/estoque/sincronizacao/`.
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
+- **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
 
 ### 4.9 Compras
 
@@ -1193,7 +1194,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
-> **Teste:** badge **v14.66** · HEAD `teste`  
+> **Teste:** badge **v14.67** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
@@ -1201,7 +1202,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`(no-op)+`0085` | Baixo — Config + select saída |
 | 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF estoque + Validade |
 | 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — lista marca/cat/unidade cadastro |
-| 4 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+| 4 | **TRANSF-BIP** | 🧪 **teste** · **v14.67** | cherry | **NÃO** | Baixo — só forçada `/transferencias/` |
+| 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+
+### ✅ Transferência forçada — bip volta na busca (`TRANSF-BIP` · **v14.67** · 06/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Bip barras → +1 no carrinho e cursor na busca; digitar nome/GM → foco na qtd (igual) |
+| **Arquivo** | `produtos/templates/produtos/transferencias.html` |
+| **Você** | Ctrl+F5 `/transferencias/` → Forçada · bip · bip · digitar GM e Enter |
 
 **Já Live (v14.61):** BI-TOPBAR-DATAS · CP-BACKUP-MENU · NF-TROCA-ESTORNO · PLANOS-CONTA (+ lote 05/08).
 

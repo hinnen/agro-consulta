@@ -1552,9 +1552,19 @@
             if (hiEl && hiEl.scrollIntoView) hiEl.scrollIntoView({ block: 'nearest' });
         }
 
-        function tfEscolherResultado(idx) {
+        function tfTermoPareceBip(termo) {
+            const q = String(termo || '').trim().replace(/\s+/g, '');
+            // Leitor: EAN/GTIN numérico. Nome / GM digitado → false (foco na qtd).
+            return /^\d{8,}$/.test(q);
+        }
+
+        function tfEscolherResultado(idx, opts) {
             if (idx < 0 || idx >= tfResultados.length) return;
-            const cartIdx = tfAddOuSomar(tfResultados[idx]);
+            const fromBip = !!(opts && opts.fromBip);
+            // Bip: sempre +1 e volta na busca. Digitar nome/GM: qtd 1 (ou mantém) e foco na quantidade.
+            const cartIdx = fromBip
+                ? tfAddOuSomar(tfResultados[idx], { quantidade: 1 })
+                : tfAddOuSomar(tfResultados[idx]);
             const elBusca = document.getElementById('tf-busca');
             const elStatus = document.getElementById('tf-busca-status');
             if (elStatus) elStatus.textContent = '';
@@ -1563,8 +1573,10 @@
             tfHighlightIdx = -1;
             const elRes = document.getElementById('tf-resultados');
             if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
-            if (cartIdx >= 0) {
-                // Item novo entra com 1; se já existia, mantém qtd e seleciona (pronto pra sobrescrever)
+            if (cartIdx < 0) return;
+            if (fromBip) {
+                tfVoltarBusca();
+            } else {
                 tfFocarQtd(cartIdx);
             }
         }
@@ -1598,9 +1610,9 @@
                     const codes = [only.codigo_interno, only.codigo_barras, only.produto_id]
                         .map((x) => String(x || '').trim().toLowerCase())
                         .filter(Boolean);
-                    const isBarcodeLike = /^\d{8,}$/.test(qDigits);
+                    const isBarcodeLike = tfTermoPareceBip(qDigits);
                     if (codes.includes(qDigits.toLowerCase()) || isBarcodeLike) {
-                        tfEscolherResultado(0);
+                        tfEscolherResultado(0, { fromBip: isBarcodeLike });
                         return;
                     }
                 }
@@ -1778,8 +1790,9 @@
                     tfRenderResultados();
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
+                    const fromBip = tfTermoPareceBip(elBusca.value);
                     if (tfHighlightIdx >= 0 && tfResultados[tfHighlightIdx]) {
-                        tfEscolherResultado(tfHighlightIdx);
+                        tfEscolherResultado(tfHighlightIdx, { fromBip });
                     } else {
                         clearTimeout(tfBuscaTimer);
                         tfExecutarBusca(elBusca.value);
