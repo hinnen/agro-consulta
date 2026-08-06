@@ -1196,19 +1196,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.75** · HEAD `teste`  
+> **Teste:** badge **v14.76** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
 | 1 | **CX-EMP-LOJA** | 📋 **pronto para envio à produção** | cherry `64c338b` | **NÃO** | Baixo — só saída/retirada (empresa do lançamento) |
-| 2 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+| 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.76** | cherry / lote | **NÃO** | Baixo — só Relatório Validade |
+| 3 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
 **Já Live (v14.72):** PLANOS-PDV · NF-VAL-BCA · FACETA-CACHE · TRANSF-BIP · FOTO-PDV.
 
-**Autorizar:** *pode subir CX-EMP-LOJA / empresa saída caixa para produção* + **99738595**
+**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR] para produção* + **99738595**
 
-### 📦 PACOTE PRONTO LOJA — saída Vila = empresa Vila (`CX-EMP-LOJA` · **v14.74**)
+### 📦 PACOTE PRONTO LOJA — Validade Salvar na linha (`VAL-SALVAR` · **v14.76**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **Bug** | Com Mongo ok + lote, botão virava «Usar cadastro» — mudava a data e **não gravava** |
+| **Fix** | Sempre **Salvar** · grava `EstoqueLote` (data/lote) · API aceita `lote_id` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Validade · muda data · **Salvar** · confirma |
+| **Autorizar** | *pode subir VAL-SALVAR / salvar validade para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — saída Vila = empresa Vila (`CX-EMP-LOJA` · **v14.75**)
 
 | Item | Detalhe |
 | ---- | ------- |

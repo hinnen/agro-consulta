@@ -22495,17 +22495,44 @@ def api_overlay_lote_adicionar(request):
             "usuario": request.user if request.user.is_authenticated else None,
         },
     )
-    defaults = {
-        "data_validade": dv,
-        "quantidade_atual": qtd,
-    }
-    if dep:
-        defaults["deposito"] = dep
-    el, _ = EstoqueLote.objects.update_or_create(
-        overlay=ov,
-        lote_codigo=lote_cod,
-        defaults=defaults,
-    )
+    lote_id_raw = payload.get("lote_id")
+    el = None
+    if lote_id_raw not in (None, "", 0, "0"):
+        try:
+            lid = int(lote_id_raw)
+        except (TypeError, ValueError):
+            lid = 0
+        if lid > 0:
+            el = (
+                EstoqueLote.objects.filter(pk=lid, overlay=ov)
+                .select_related("overlay")
+                .first()
+            )
+            if el is None:
+                return JsonResponse(
+                    {"ok": False, "erro": "Lote não encontrado neste produto."},
+                    status=404,
+                )
+            el.lote_codigo = lote_cod
+            el.data_validade = dv
+            # Relatório: qtd vem do atributo da linha — só altera se veio número válido
+            if "quantidade" in payload:
+                el.quantidade_atual = qtd
+            if dep:
+                el.deposito = dep
+            el.save()
+    if el is None:
+        defaults = {
+            "data_validade": dv,
+            "quantidade_atual": qtd,
+        }
+        if dep:
+            defaults["deposito"] = dep
+        el, _ = EstoqueLote.objects.update_or_create(
+            overlay=ov,
+            lote_codigo=lote_cod,
+            defaults=defaults,
+        )
     sync_overlay_validade_resumo_de_lotes(ov)
     return JsonResponse(
         {
