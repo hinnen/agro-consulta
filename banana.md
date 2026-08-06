@@ -1193,11 +1193,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 06/08 (`deploy/lote-checklist-0608` · **v14.72**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
+| **Branch** | `deploy/lote-checklist-0608` · base loja `47bb1de` (v14.61) |
+| **Pacotes** | PLANOS-PDV · FACETA-CACHE · TRANSF-BIP · FOTO-PDV (+ util foto Delivery→PDV) · NF-VAL-BCA |
+| **Fora** | GG-UX (P2,5) |
+| **Migrate** | **0085** (`exibir_pdv`, deps→**0083**, sem 0082/0084) · **0086** (`EstoqueLote.deposito`) |
+| **Após Live** | migrate · opcional `backfill_validade_entrada_nf --aplicar` · Ctrl+F5 Cadastro / Validade / Transferências / Config Planos |
+| **Provas prep** | faceta 10/10 · foto 13/13 · transf 4/4 · planos static OK · validade 23/23 no teste · `manage.py check` OK |
+| **Risco loja aberta** | Baixo–médio · **não** toca PDV finalize / caixa abrir-fechar · toca saída/retirada (planos) + Entrada NF lote + Cadastro modal |
+| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch |
+| **Autorizar** | *pode subir lote checklist 06/08 / deploy/lote-checklist-0608 para produção* + **99738595** |
+
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
 > **Teste:** badge **v14.71** · HEAD `teste`  
-> **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
+> **Prep loja:** `deploy/lote-checklist-0608` **v14.72** · aguarda senha  
+> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
