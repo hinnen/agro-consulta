@@ -426,6 +426,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
+**Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -533,7 +535,11 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera.
 
-**Modal cadastro â€” marca/categoria (08/07):** Â«Salvar no AgroÂ» grava online (Postgres + overlay). BotÃ£o **+** sÃ³ preenche o campo â€” **nÃ£o** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que Â«apagavaÂ» marca/cat).
+**Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
+
+**Faceta unidade/marca/cat (06/08 · FACETA-CACHE):** lista branca vinha de cache desatualizado (+ PIN não limpava chave `v6`). Corrigido: invalidar cache ao salvar/+ · servidor inclui valores do produto e do PIN · JS não sobrescreve o que já cadastrou na sessão.
+
+**Foto produto (06/08 · FOTO-PDV · v14.68):** aba Gerais usa o mesmo anexar foto da aba Delivery (uma foto só) · já aparece no PDV (fluxo Delivery desde v11.45). Removido campo URL que não gravava no Agro.
 
 **Fantasmas Mongo â†’ Postgres (`agro_pg`, 2026-06-24):**
 
@@ -566,6 +572,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
+- **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
+- **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
 - **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
@@ -576,7 +584,9 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
+- **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
+- **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 
 ### 4.8 Estoque Agro
 
@@ -584,6 +594,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Painel: `/estoque/sincronizacao/`.
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
+- **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
 
 ### 4.9 Compras
 
@@ -1182,43 +1193,441 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 06/08 (`deploy/lote-checklist-0608` · **v14.72**)
 
-### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08)
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
+| **Branch** | `deploy/lote-checklist-0608` · base loja `47bb1de` (v14.61) |
+| **Pacotes** | PLANOS-PDV · FACETA-CACHE · TRANSF-BIP · FOTO-PDV (+ util foto Delivery→PDV) · NF-VAL-BCA |
+| **Fora** | GG-UX (P2,5) |
+| **Migrate** | **0085** (`exibir_pdv`, deps→**0083**, sem 0082/0084) · **0086** (`EstoqueLote.deposito`) |
+| **Após Live** | migrate · opcional `backfill_validade_entrada_nf --aplicar` · Ctrl+F5 Cadastro / Validade / Transferências / Config Planos |
+| **Provas prep** | faceta 10/10 · foto 13/13 · transf 4/4 · planos static OK · validade 23/23 no teste · `manage.py check` OK |
+| **Risco loja aberta** | Baixo–médio · **não** toca PDV finalize / caixa abrir-fechar · toca saída/retirada (planos) + Entrada NF lote + Cadastro modal |
+| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch |
+| **Autorizar** | *pode subir lote checklist 06/08 / deploy/lote-checklist-0608 para produção* + **99738595** |
 
-**Loja hoje:** badge **v13.64** · `producao` @ **`6996fca`**  
-**Pacote:** badge **v13.80** · branch `deploy/lote-cad-nf-dsp-v13.80`  
-**Como subir (próximo chat):** 1) lojas pausam vendas 2) *pode enviar lote cad/nf/dsp para produção* + **99738595** 3) `git push origin deploy/lote-cad-nf-dsp-v13.80:producao`  
-**Rollback:** `git push origin 6996fca:producao` · tag `rollback/pre-lote-cad-nf-dsp-v13.80`  
-**Migrate novo:** **NÃO**  
-**NÃO usar:** `prep/lote-cad-nf-v13.75` — tinha `catalogo_agro.py` com encoding quebrado (lápis PDV / travessão). **Este deploy NÃO toca** `catalogo_agro.py`.
+### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
-| Ordem | Pacote | Status | Risco loja aberta |
-| ----- | ------ | ------ | ----------------- |
-| **1** | **ENTRADA-NF-CUSTO** | ✅ no deploy · VERIFY 10/10 | Baixo — Entrada NF etapa 2 |
-| **2** | **CAD-DUP** | ✅ no deploy | Baixo — modal Cadastro |
-| **3** | **CAD-CB-OPC** | ✅ no deploy · VERIFY 7/7 | Baixo — overlay + busca código (não mexe carrinho/caixa) |
-| **4** | **DSP-PNG-BG** | ✅ no deploy · VERIFY_OK | Baixo — só `/interno/dispenser-a6*` |
+> **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
+> **Teste:** badge **v14.71** · HEAD `teste`  
+> **Prep loja:** `deploy/lote-checklist-0608` **v14.72** · aguarda senha  
+> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
 
-**Provas (03/08 remonte limpo):** encoding OK · AST views/utils OK · Django check 0 · `tests_codigos_barras_opcionais` **7/7** · `tests_entrada_nf_custo_cadastro` **10/10** · `verify_dsp_png_bg.py` **VERIFY_OK** · diff **sem** `consulta_produtos` / `pdv_wizard` / `caixa_*`  
-**Arquivos:** hist · busca código · mongo_index · modal cadastro · entrada_nota · views(+59) · dispenser studio · verify script · 2 test files · VERSION  
-**Autorizar:** *pode enviar lote cad/nf/dsp para produção* + **99738595**  
-**Pós-Live:** Ctrl+F5 · badge **13.80** · Entrada NF custo · Cadastro Duplicar/barras · Dispenser PNG branco · 1 bip PDV smoke
+| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
+| - | ------ | ------ | --------- | ------- | ----------------- |
+| 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`+`0085` | Baixo — Config + select saída |
+| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.71** | cherry / lote | **SIM** `0086` | Médio — Entrada NF + Validade |
+| 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — combobox cadastro |
+| 4 | **TRANSF-BIP** | 📦 **pronto para envio à produção** · **v14.67** | cherry / lote | **NÃO** | Baixo — só forçada |
+| 5 | **FOTO-PDV** | 📦 **pronto para envio à produção** · **v14.68+** | cherry / lote | **NÃO** | Baixo — modal cadastro |
+| 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (03/08 · pós v13.64) · **substituído**
+**Provas (06/08):** `verify_validade_nf_path` **23/23** · `verify_foto_pdv` **13/13** · `verify_transf_bip` **4/4** · `verify_faceta_cache` **10/10** · `manage.py check` OK.
 
-Absorvido no **`deploy/lote-cad-nf-dsp-v13.80`** acima. Prep antigo `prep/lote-cad-nf-v13.75` = **NÃO usar**.
+**Autorizar:** *pode subir [PLANOS-PDV / NF-VAL-BCA / FACETA-CACHE / TRANSF-BIP / FOTO-PDV] para produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — Foto Gerais = Delivery = PDV (`FOTO-PDV` · **v14.68+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Aba Gerais: anexar foto (igual Delivery) · **mesma foto** nas duas abas · PDV já lê do overlay |
+| **Prova** | `scripts/verify_foto_pdv.py` **13/13** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só modal cadastro |
+| **Você** | Ctrl+F5 Cadastro · Gerais → foto → Salvar · Delivery igual · PDV |
+| **Autorizar** | *pode subir FOTO-PDV / foto produto para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Transferência forçada bip (`TRANSF-BIP` · **v14.67**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Bip barras → +1 e cursor na busca; digitar nome/GM → foco na qtd |
+| **Prova** | `scripts/verify_transf_bip.py` **4/4** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só `/transferencias/` forçada |
+| **Você** | Ctrl+F5 Forçada · bip · bip · digitar GM + Enter |
+| **Autorizar** | *pode subir TRANSF-BIP / bip transferência para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Planos no PDV por checkbox (`PLANOS-PDV` · **v14.62+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Checkbox **PDV** em Planos de contas · 14 atuais pré-marcados · saída/retirada lê Postgres · marcar **Manutenção do Prédio** libera no select |
+| **Commits** | `65e0f6f` (+ bump `bbddd19`) |
+| **Migrate** | **SIM** — loja: `0084` (no-op, schema já ok) + `0085` (`exibir_pdv` + seed) · **não** subir `0082` |
+| **Prova** | `verify_planos_conta` **28/28** · `manage.py check` OK · toggle Manutenção on/off · 14 marcados = lista antiga · IDs especiais vale/salário/outros/depósito OK · inativo some do PDV |
+| **Risco** | Baixo-médio — muda texto gravado do plano (nome oficial Agro em vez do código ERP); aliases já cobrem |
+| **Você** | Ctrl+F5 Config Planos · coluna PDV · marcar Manutenção · abrir Retirada e conferir |
+| **Autorizar** | *pode subir PLANOS-PDV / planos no PDV para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Cadastro faceta unidade/marca/cat (`FACETA-CACHE` · **v14.66**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · teste **v14.66** |
+| **Bug** | Cadastrou Caixa no produto · no outro a lista dizia «não cadastrado» (marca/cat igual) |
+| **Fix** | Invalidar cache `v6` ao salvar/+ PIN · servidor junta produto+PIN · JS **soma** (não apaga) · seed ao abrir/salvar |
+| **Prova** | `scripts/verify_faceta_cache.py` **10/10** · integração overlay+PIN OK · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só combobox do cadastro |
+| **Você** | Ctrl+F5 Cadastro · digitar **Caixa** no outro Natuverm → tem que achar |
+| **Autorizar** | *pode subir FACETA-CACHE / faceta cadastro para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Entrada NF validade → Validade + BCA (`NF-VAL-BCA` · **v14.71**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · teste **v14.71** |
+| **O quê** | Etapa 4 NF → `EstoqueLote` (+ `deposito`) · estorno reduz lote · colunas **Centro/Vila** · filtro Loja por saldo/lote · BCA + linha editável sem data · backfill `manage.py backfill_validade_entrada_nf` |
+| **Migrate** | **SIM** — `0086_estoque_lote_deposito` · loja: após deploy rodar migrate · backfill com `--aplicar` se faltar lote antigo |
+| **Prova** | `scripts/verify_validade_nf_path.py` **23/23** · `manage.py check` OK |
+| **Risco** | Médio — Entrada NF estoque + tela Validade |
+| **Você** | Ctrl+F5 Validade · Todas/Centro/Vila · BCA produto sem data → preencher · Entrada NF etapa 4 → conferir lista |
+| **Autorizar** | *pode subir NF-VAL-BCA / validade NF para produção* + **99738595** |
+
+### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · detalhe)
+
+> **Vigente:** **PACOTE PRONTO LOJA — PLANOS-PDV** no topo do CHECKPOINT.
+
+### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61) · **superado**
+
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (06/08)** no topo. Loja permanece **v14.61** até o próximo envio.
+
+**Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
+
+**Prova (05/08 · revalidado):** `verify_planos_conta` **24/24** · `verify_nf_troca_estorno` **11/11** · `verify_cp_anti_dup_backup` **11/11** · `verify_bi_topbar_total` **35/35** · `verify_pacotes_pendentes_0508` **9/9** · `manage.py check` OK.
+
+**Simulação cherry (prep):** BI/CP/NF aplicam limpo (só conflito `VERSION`/`banana.md` — normal). **PLANOS:** cherry `e109918`+`3ecc824`+`fe7746c` **sozinho falha** (arquivos da tela não existem na loja) → na branch deploy foi feito **prep** (UI+APIs+menu, **sem** `0082`/`0084`/`models`). Lote **não toca PDV/caixa** · **sem migrate**.
+
+**Deploy concluído (05/08):** autorização recebida · `producao` **47bb1de** · Render/HTTP Live · versão confirmada na home. Fazer **Ctrl+F5** nos PCs da loja.
+
+### 🟡 WIP — Gráfico gastos uso / clareza (`GG-UX` · **P2,5** · 05/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **fora do lote** · fila P2,5 · **sem pressa** |
+| **Onde** | `/financeiro/grafico-gastos/` (já Live v14.41 com GG-GASTOS) |
+| **Pediu** | Renan: tela confusa · revisão de clareza depois |
+
+### ✅ ENVIADO LOJA — BI topbar filtros de data (`BI-TOPBAR-DATAS` · **Live v14.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v14.61** |
+| **O quê** | Filtros `Mês até hoje`…`Datas` nunca cortados · marca/rótulo Loja só ≥1600px · badge **`Trava: Vila`** só com caixa travado · JS mede largura e joga filtros p/ 2ª linha se não couber |
+| **Arquivo** | `dashboard_gerencial.html` |
+| **Commit** | `8d6976f` |
+| **Prova** | `verify_pacotes_pendentes_0508.py` · `verify_bi_topbar_total.py` **35/35** · Chrome 820–1920 |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só BI `/` |
+| **Você** | Ctrl+F5 `/` · «Datas» visível · trava do caixa aparece só quando trava |
+
+### ✅ ENVIADO LOJA — Backup CP menu fecha (`CP-BACKUP-MENU` · **Live v14.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v14.61** |
+| **O quê** | Overlay amarelo do **Backup** não fica aberto sozinho · fecha fora / Esc / após baixar ZIP |
+| **Arquivo** | `lancamentos_contas_pagar_teste.html` |
+| **Commit** | `e0652c5` |
+| **Prova** | `verify_cp_anti_dup_backup.py` **11/11** · ZIP abertos 200 + `backup_ultimo` grava · CSS `[hidden]` depois do `display:flex` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI do botão Backup (CP-DUP-BACKUP já Live) |
+| **Você** | Ctrl+F5 CP · Backup fechado · clica → abre → baixa → fecha |
+
+### ✅ ENVIADO LOJA — NF trocar produto exige estorno (`NF-TROCA-ESTORNO` · **Live v14.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v14.61** |
+| **O quê** | Com estoque já lançado, trocar/remover produto **ou mudar quantidade** pede **Estornar e trocar** (PIN) · back recusa salvar (`requer_estorno`) · XML «Confirmar na grade» e repontar id pela margem também respeitam o estorno |
+| **Arquivos** | `entrada_nota.html` · `nfe_entrada_util.py` |
+| **Commit** | `7f8a78d` + `eaec9a8` + `263a137` |
+| **Prova** | `python scripts/verify_nf_troca_estorno.py` → **VERIFY_OK 11/11** (banco real: troca/qtd recusadas, estorno libera; API 400 `requer_estorno`; `node --check` nos scripts da tela) · `verify_pacotes_pendentes_0508.py` **9/9** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio-baixo — mexe em Entrada NF já concluída; estorno usa API de reabrir já existente |
+| **Você** | Nota com estoque · Mudar produto → modal PIN · saldo antigo some / novo entra |
+
+### ✅ ENVIADO LOJA — Planos de contas Config (`PLANOS-CONTA` · **Live v14.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v14.61** · enviado via **`deploy/lote-checklist-0508`** |
+| **Onde** | Configuração (F11) → **Planos de contas** |
+| **O quê** | Tela edita planos oficiais · seed se vazio · visual §11 |
+| **Loja** | Prep na branch deploy (UI+APIs+menu) · modelo já existe (`0065`) |
+| **NÃO** | cherry cru `e109918`… (arquivos não existem na loja) · **nem** `c6757fd`/`0084` |
+| **Prova** | `verify_planos_conta.py` **24/24** · reverse URL OK na branch deploy · `check` OK |
+| **Você** | Ctrl+F5 · F11 → Planos · edita um dos 44 |
+
+### 🐞 FIX — trocar produto na NF não estornava o estoque (05/08 · **teste v14.48**)
+
+> Empacotado em **NF-TROCA-ESTORNO** (acima).
+
+### 🐞 FIX — painel Backup do CP ficava sempre aberto (05/08 · **teste v14.46**)
+
+> Empacotado em **CP-BACKUP-MENU** (acima).
+
+### 🔧 BI topbar — filtros de data nunca escondidos (05/08 · **teste v14.45**)
+
+> Empacotado em **BI-TOPBAR-DATAS** (acima).
+
+### 📦 PACOTE PRONTO LOJA — Gráfico gastos acerto + visual (`GG-GASTOS` · **v14.30+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 10/10 · 🟡 **GG-UX P2,5** na fila (clareza / Renan acha que ainda não está certa) |
+| **O quê** | Soma só planos marcados · bucket recorta no período · «Como era»/Comparar usa `as_of` · popup CP alinhado · visual Display Scale |
+| **Arquivos** | `produtos/lancamentos_financeiro_pg_analytics_util.py` · `financeiro/templates/financeiro/grafico_gastos.html` |
+| **Prova** | `python scripts/verify_grafico_gastos.py` → **VERIFY_OK** |
+| **Commits** | `69ab665` (filtro+clip) · `6756c02` (checkup+visual) · + script verify |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só leitura BI · não grava CP |
+| **Você** | Ctrl+F5 · `/financeiro/grafico-gastos/` · 1 plano (ex. Salários) · ponto Jul = CP mesmo filtro |
+| **Autorizar** | *pode subir GG-GASTOS / gráfico gastos para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — DF-e Ciência + XML completo (`DFE-CIENCIA` · **v14.33**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 |
+| **Onde** | Entrada NF → aba SEFAZ · item **Só resumo** |
+| **Fluxo** | **Dar ciência e buscar XML** → (se precisar) **Buscar XML** → **Carregar na grade** |
+| **Inclui** | Evento **210210** no Ambiente Nacional · status/protocolo no Postgres · não reenvia se já ciente |
+| **Migrate** | **SIM** · `0083_dfe_manifestacao_ciencia` |
+| **Prova** | `python scripts/verify_dfe_manifestacao.py` → **VERIFY_OK 21/21** · unit cliente OK · `manage.py check` OK · migrate local OK |
+| **Commit** | `aa2a9a3` (+ verify reforçado neste push) |
+| **Risco** | Fiscal: evento oficial na Receita; XML pode demorar minutos após a Ciência |
+| **⚠️** | Branch isolada + migrate na loja · **não** merge `teste` inteiro |
+| **Você** | Ctrl+F5 · SEFAZ → Só resumo → Dar ciência · depois Carregar |
+| **Autorizar** | *pode subir DFE-CIENCIA / ciência DF-e para produção* + **99738595** |
+
+### 🧹 CHECKUP + visual — tela Gráfico gastos (`GG-CHECKUP`)
+
+> ✅ Empacotado em **GG-GASTOS** (acima) · VERIFY_OK · pronto envio.
+
+### 🐞 FIX — gráfico Gastos somava plano errado (`GG-FILTRO`)
+
+> ✅ Empacotado em **GG-GASTOS** (acima) · filtro positivo + clip do bucket.
+
+### 📦 PACOTE PRONTO LOJA — Anti-duplicata CP + Backup (`CP-DUP-BACKUP` · **v14.34**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 · VERIFY_OK 11/11 |
+| **Onde** | Entrada NF («Salvar + a pagar») · Contas a pagar → **Backup** |
+| **Inclui** | Bloqueio PG por chave NF / assinatura · guard Entrada NF · trava duplo clique · Backup Todos/Abertos + data/hora último |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_cp_anti_dup_backup.py` → **VERIFY_OK 11/11** · `manage.py check` OK |
+| **Commit** | `4b28263` (+ verify neste push) |
+| **Risco** | Baixo — não apaga título antigo; só impede 2º lote novo |
+| **Dados** | Maio quitado **deixar** · julho+ limpo · Ibiúna lote errado já sumiu |
+| **Você** | Ctrl+F5 · CP: botão Backup · Entrada NF: não gerar 2º lote na mesma chave |
+| **Autorizar** | *pode subir CP-DUP-BACKUP / anti-duplicata CP para produção* + **99738595** |
+
+### 📦 Plano de contas SisVale (`PLANOS-CONTA` · detalhe)
+
+> Vigente: checklist + branch **`deploy/lote-checklist-0508`**. **Não** cherry cru dos commits do `teste`. **Não** `0084`.
+
+### 📦 CHECKLIST ÚNICO — pós v14.41 (05/08) · **superado**
+
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (05/08 · após loja v14.41)** no topo do CHECKPOINT.
+
+### 📦 ENVIO LOJA 05/08 — lote checklist (`LOTE-v14.41`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** / Live v14.41 · `2efcc60` |
+| **Antes** | v13.83 · `ed52234` · tag `checkpoint-loja-pre-lote-20260805` |
+| **Incluiu** | SEFAZ-UI · DFE-CIENCIA · CP-DUP-BACKUP · BI-TOPBAR-TOTAL · COMP-UX · GG-GASTOS |
+| **Omitiu** | **PLANOS-CONTA** (risco migrate vs 0065) |
+| **Migrate** | **0083** só (DFE) — Render build roda `migrate --noinput` |
+| **Prova pré-push** | verifies OK · check OK · 14 telas 200 |
+
+### 📦 PACOTE PRONTO LOJA — Composição Saco/Kit recolher (`COMP-UX` · **v14.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 |
+| **Inclui** | ▶/▼ em Saco e Kit · texto longo só no «?» · aba Composição com scroll · saco começa recolhido se kit ligado |
+| **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` (só aba Composição) · `scripts/verify_comp_ux_recolher.py` |
+| **Commit** | `645fc75` (+ verify neste push) |
+| **Prova** | `python scripts/verify_comp_ux_recolher.py` → **VERIFY_OK** · `verify_custo_familia.py` → **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI Cadastro Composição · **zero** lógica PDV/estoque |
+| **⚠️** | Subir **sobre loja v13.83** com patch isolado do modal — **não** o modal completo do `teste` (tem WIP) |
+| **Você** | Ctrl+F5 Cadastro → Composição · ▶ no Saco · vê o Kit |
+| **Autorizar** | *pode subir COMP-UX / composição recolhimento para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — BI topbar Sync + Total unidades (`BI-TOPBAR-TOTAL` · **v14.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 |
+| **Inclui** | Sync ERP compacto na topbar · mais espaço aos filtros · gráfico **Faturamento por Unidade** com barra **Total** (Centro+Vila) + badge |
+| **Arquivos** | `dashboard_gerencial.html` · `dashboard_gerencial_body.html` · `scripts/verify_bi_topbar_total.py` · VERSION |
+| **Commit código** | `fcf1c49` · pacote+verify `739be93` · badge **14.20** |
+| **Prova** | `python scripts/verify_bi_topbar_total.py` → **VERIFY_OK 35/35** · home local **200** (Sync curto · Total push · stores Centro/Vila) |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — **só BI `/`** · zero PDV/caixa/NF |
+| **Você** | Ctrl+F5 `/` · Sync pequeno · filtros legíveis · Total = Centro+Vila |
+| **Autorizar** | *pode subir BI-TOPBAR-TOTAL / produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Entrada NF aba SEFAZ limpa (`SEFAZ-UI` · **v14.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live** v14.41 |
+| **Inclui** | Aba SEFAZ só ações + lista · escritas no **?** · status compacto · chip «Só resumo» |
+| **Arquivo** | `entrada_nota.html` |
+| **Commit** | `e83af8f` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI |
+| **Você** | Ctrl+F5 `/entrada-nota/` → SEFAZ → **?** |
+| **Autorizar** | *pode subir SEFAZ-UI / Entrada NF SEFAZ para produção* + **99738595** |
+
+### 🎨 Entrada NF — aba SEFAZ limpa + ajuda «?» (04/08 · **teste v14.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste · ver **PACOTE PRONTO SEFAZ-UI** |
+| **Badge** | **14.19** · `e83af8f` |
+| **Prova** | Ctrl+F5 `/entrada-nota/` → SEFAZ → **?** |
+
+### 🔧 BI — topbar sync + Total por unidade (04/08 · **teste v14.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste · ver **PACOTE PRONTO BI-TOPBAR-TOTAL** |
+| **Commit** | `fcf1c49` · push `origin/teste` |
+
+### 🩹 UX Composição — recolhimento Saco/Kit (04/08 · **v14.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **PACOTE PRONTO** — ver **COMP-UX** no CHECKLIST |
+| **Prova** | VERIFY_OK (`verify_comp_ux_recolher` + `verify_custo_familia`) |
+
+### ✅ Deploy loja **v13.83** — MODAL-UTF8 acentos (04/08 · frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · producao @ **ed52234** · badge **13.83** · Render auto |
+| **Autorização** | *pode subir esse path para produção* + **99738595** |
+| **Branch** | `deploy/hotfix-modal-utf8-v13.83` → producao |
+| **Diff** | **2 arquivos** (modal + VERSION) · VERIFY_OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | `git push origin b28ce83:producao` · tag `rollback/pre-modal-utf8-v13.83` |
+| **Você** | Ctrl+F5 Cadastro → abas Preços/Composição com ç/ã ok |
+
+### 🚑 HOTFIX modal acentos (`MODAL-UTF8` · **v13.83**) — **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja** — ver Deploy v13.83 acima |
+| **Rollback** | tag `rollback/pre-modal-utf8-v13.83` → b28ce83 (v13.82) |
+
+### ✅ Deploy loja **v13.82** — CUSTO-FAMILIA (04/08 · frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · producao @ **b28ce83** · badge **13.82** · Render auto |
+| **Autorização** | *pode subir para produção* + **99738595** |
+| **Branch** | `deploy/custo-familia-v13.82` → producao (**não** teste inteiro) |
+| **Diff** | **11 arquivos** · VERIFY_OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | `git push origin 3381d0d:producao` · tag `rollback/pre-custo-familia-v13.82` |
+| **Você** | Ctrl+F5 Cadastro → Composição · amarrar pacote no saco · reabrir · 1 venda · estoque do saco |
+
+### 🚀 Custo família — saco → pacote/granel (04/08 · **Live v13.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja** — ver Deploy v13.82 acima |
+| **Rollback** | tag `rollback/pre-custo-familia-v13.82` → 3381d0d |
+
+### ✅ Deploy loja **v13.81** — PDV-CAD-RAPIDO (04/08 · frase+senha)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado** · producao @ **3381d0d** · badge **13.81** · Render auto |
+| **Autorização** | *pode subir cadastro rápido PDV / PDV-CAD-RAPIDO para produção* + **99738595** |
+| **Branch** | deploy/pdv-cad-rapido-v13.99 → producao (**não** 	este inteiro) |
+| **Diff** | **16 arquivos** / +2011 · FL-008 preservado |
+| **Prova** | 21/21 + VERIFY_OK na branch isolada |
+| **Migrate** | **NÃO** |
+| **Rollback** | git push origin a0f0db2:producao · tag 
+ollback/pre-pdv-cad-rapido-v13.81 |
+| **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
+| **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
+
+### 📦 CHECKLIST ÚNICO — pós envio (04/08 · após v13.83) · **superado**
+
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (04/08)** no topo (BI-TOPBAR-TOTAL · SEFAZ-UI).
+
+**Loja na época:** badge **v13.83** · producao @ **ed52234**
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **PDV-CAD-RAPIDO** | ✅ **enviado** / Live v13.81 |
+| 2 | **CUSTO-FAMILIA** (saco+kit) | ✅ **enviado** / Live v13.82 |
+| 3 | **MODAL-UTF8** (acentos) | ✅ **enviado** / Live v13.83 |
+
+### 📦 PACOTE PRONTO LOJA — Hotfix acentos modal (`MODAL-UTF8` · **v13.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja v13.83** · ed52234 |
+| **Inclui** | Texto UTF-8 do modal Cadastro |
+| **Rollback** | `b28ce83` / `rollback/pre-modal-utf8-v13.83` |
+| **Você** | Ctrl+F5 Cadastro → Preços/Composição legíveis |
+
+### 📦 PACOTE PRONTO LOJA — Custo família saco+kit (`CUSTO-FAMILIA` · **v13.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja v13.82** · b28ce83 |
+| **Inclui** | Bloco saco (custo + baixa estoque) · kit multi-insumo · propaga (cadastro/NF/Excel) |
+| **Rollback** | `3381d0d` / `rollback/pre-custo-familia-v13.82` |
+| **Você** | Ctrl+F5 Cadastro → Composição · 1 venda com pacote ligado ao saco |
+
+### 📦 PACOTE PRONTO LOJA — Cadastro rápido PDV (PDV-CAD-RAPIDO · **v13.81**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live loja v13.81** · 3381d0d |
+| **Inclui** | + Novo/Produto · Cosmos/OFF · NCM silencioso · foto se existir · card **PDV conferir** · modal **?** · busca maior |
+| **Rollback** | 0f0db2 / 
+ollback/pre-pdv-cad-rapido-v13.81 |
+
+### ⚠️ Lembrete — NÃO subir 	este inteiro
+
+	este vs loja ainda tem centenas de arquivos WIP. Loja só recebe branch isolada.
+
+### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP · **histórico**
+
+Base antes do PDV-CAD: 0f0db2.
+
+### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
+
+**Status:** ✅ **Live loja v13.80** · ver bloco Deploy acima. **Não inclui** PDV-CAD-RAPIDO.  
+**Rollback:** `git push origin 6996fca:producao`
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser PNG fundo (`DSP-PNG-BG` · **v13.80**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no deploy v13.80 · VERIFY_OK · **não** loja ainda |
+| **Status** | ✅ **enviado** / Live loja v13.80 |
 | **Inclui** | Moldura ingredientes sempre branca · upload PNG + limpa fundo branco/preto da borda |
 | **Prova** | `python scripts/verify_dsp_png_bg.py` → **VERIFY_OK** |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
 | **Arquivo** | `dispenser_a6_studio.html` |
-| **Autorizar** | junto no lote · frase acima + **99738595** |
 | **Você** | Ctrl+F5 Dispenser → Ingredientes → PNG transparente · moldura **branca** · foto antiga «queimada» → apagar e subir de novo |
 
 ### 🚀 PREP deploy — lote CAD/NF (`prep/lote-cad-nf-v13.75`) · **OBSOLETO**
@@ -1233,36 +1642,22 @@ Absorvido no **`deploy/lote-cad-nf-dsp-v13.80`** acima. Prep antigo `prep/lote-c
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | Lista barras opcionais no cadastro · grava PG · bip PDV acha qualquer EAN |
-| **Prova** | `manage.py test produtos.tests_codigos_barras_opcionais` **7/7 OK** |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só overlay JSON + busca código |
-| **Cherry** | `9ec0296` + verify · no prep |
-| **Autorizar** | *pode subir barras opcionais / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Duplicar cadastro (`CAD-DUP` · **v13.72**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | Botão **Duplicar** no modal Cadastro · códigos/barras novos · sem estoque |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — UI modal + mesmo POST overlay |
-| **Cherry** | `9894c1f` · no prep |
-| **Autorizar** | *pode subir duplicar cadastro / produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Entrada NF custo cadastro (`ENTRADA-NF-CUSTO` · **v13.71**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio** · VERIFY_OK · **não** loja |
+| **Status** | ✅ **enviado** / Live no lote v13.80 |
 | **Inclui** | V. unit etapa 2 puxa custo do Cadastro (JS ignora 0 · overlay sync · PG fallback) |
-| **Prova** | `manage.py test produtos.tests_entrada_nf_custo_cadastro` **10/10 OK** · PG local GM1821 custo **27** (overlay sem custo → path PG) |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — Entrada NF etapa 2 · linha XML com custo preservado não sobrescreve |
-| **Cherry** | `0b024a3` / prep `c6c6bca` |
-| **Autorizar** | *pode subir entrada NF custo / produção* + **99738595** |
 
 ### ✅ VERIFY — ENTRADA-NF-CUSTO (03/08)
 

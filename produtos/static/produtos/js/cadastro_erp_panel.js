@@ -418,7 +418,6 @@
     if (fSemMarcaEl && fSemMarcaEl.checked) n += 1;
     if (fSemCatEl && fSemCatEl.checked) n += 1;
     if (fSomenteAgroEl && fSomenteAgroEl.checked) n += 1;
-    if (filtroPendentePdvAtivo) n += 1;
     fResumoEl.textContent = n ? (n + ' ativo(s)') : '';
   }
 
@@ -886,8 +885,6 @@
         } else {
           carregarDetalheProduto(String(p.id || ''));
         }
-        refreshPendentesPdv();
-        if (filtroPendentePdvAtivo) carregar();
       }).catch(function (e) {
         showMsg(e.message || 'Erro ao salvar', false);
       }).finally(function () {
@@ -1272,7 +1269,11 @@
       tr.className = 'border-b border-slate-100 cursor-pointer transition-colors' + rowHi;
       tr.innerHTML =
         '<td class="px-4 py-3">' +
-        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') + '</div>' +
+        '<div class="font-semibold text-slate-900">' + escapeHtml(p.nome || '—') +
+        (p.nome_quebrado
+          ? ' <span class="ml-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-amber-900" title="Nome no banco está quebrado — abra o lápis e corrija">Consertar nome</span>'
+          : '') +
+        '</div>' +
         (String(cod).trim() !== '' ? '<div class="text-xs text-slate-400"> ' + escapeHtml(String(cod)) + '</div>' : '') +
         '</td>' +
         '<td data-coluna="marca" class="px-4 py-3 text-slate-700">' + escapeHtml(p.marca || '-') + '</td>' +
@@ -1539,8 +1540,7 @@
             ncm: params.get('ncm') || '',
             sem_marca: params.get('sem_marca') || '',
             sem_categoria: params.get('sem_categoria') || '',
-            somente_agro: params.get('somente_agro') || '',
-            pendente_pdv: params.get('pendente_pdv') || ''
+            somente_agro: params.get('somente_agro') || ''
           },
           signal: sig,
         })
@@ -1864,6 +1864,7 @@
       : fetch(urlFetch(), { credentials: 'same-origin', signal: sig })
           .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); });
     fetchPendentesBadgePromise(sig ? { signal: sig } : undefined);
+    fetchPendentesPdvPromise(sig ? { signal: sig } : undefined);
     return pLista
       .then(function (x) {
         if (gen !== carregarGen) return;
@@ -2148,8 +2149,6 @@
     if (fSemMarcaEl) fSemMarcaEl.checked = false;
     if (fSemCatEl) fSemCatEl.checked = false;
     if (fSomenteAgroEl) fSomenteAgroEl.checked = false;
-    filtroPendentePdvAtivo = false;
-    refreshPendentesPdv();
     cadastroAtualizarResumoFiltros();
   }
 
@@ -2169,18 +2168,6 @@
       carregar();
     });
   }
-
-  if (btnPendentesPdv) {
-    btnPendentesPdv.addEventListener('click', function () {
-      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
-      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
-      pagina = 1;
-      cadastroAtualizarResumoFiltros();
-      refreshPendentesPdv();
-      carregar();
-    });
-  }
-  refreshPendentesPdv();
 
   document.querySelectorAll('.cadastro-adv-filtros').forEach(function (det) {
     det.addEventListener('toggle', function () {
@@ -2287,6 +2274,18 @@
         });
     });
   }
+
+  if (btnPendentesPdv) {
+    btnPendentesPdv.addEventListener('click', function () {
+      filtroPendentePdvAtivo = !filtroPendentePdvAtivo;
+      if (buscaEl && filtroPendentePdvAtivo) buscaEl.value = '';
+      pagina = 1;
+      cadastroAtualizarResumoFiltros();
+      refreshPendentesPdv();
+      carregar();
+    });
+  }
+  refreshPendentesPdv();
 
   if (btnErpForcarTodos && URL_ERP_SYNC_PENDENTES && PODE_EDITAR_OVERLAY && ERP_SYNC_HABILITADO) {
     btnErpForcarTodos.addEventListener('click', function () {

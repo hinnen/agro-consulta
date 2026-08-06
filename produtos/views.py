@@ -779,6 +779,9 @@ def _linha_gestao_produto_json(
     pg_lin = extrair_precos_grupos_overlay(ov)
     if pg_lin:
         out["precos_grupos"] = pg_lin
+    from produtos.catalogo_delivery_util import aplicar_imagem_delivery_no_row
+
+    aplicar_imagem_delivery_no_row(out, ov)
     return out
 
 
@@ -849,6 +852,9 @@ def _aplicar_produto_gestao_overlay_em_dict(
             pass
     if isinstance(ce_pc, dict) and ce_pc.get("modelo") is not None:
         row["modelo"] = str(ce_pc.get("modelo") or "").strip()[:200]
+    from produtos.catalogo_delivery_util import aplicar_imagem_delivery_no_row
+
+    aplicar_imagem_delivery_no_row(row, ov)
     return row
 
 
@@ -2903,7 +2909,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if "delivery" in payload:
         from produtos.catalogo_delivery_util import normalizar_delivery
 
-        d_del = normalizar_delivery(payload.get("delivery"))
+        d_del = normalizar_delivery(payload.get("delivery"), processar_imagem=True)
         if d_del.get("ativo") or any(
             (
                 d_del.get("titulo"),

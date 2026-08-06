@@ -31,8 +31,6 @@ def check_static() -> None:
         "produtos/views_planos_conta.py",
         "produtos/planos_conta_util.py",
         "produtos/templates/produtos/planos_conta_config.html",
-        "produtos/migrations/0082_plano_conta_agro.py",
-        "produtos/migrations/0084_plano_conta_alinha_loja.py",
         "produtos/static/produtos/js/agro_perf_config.js",
     ]
     for rel in files:
@@ -104,36 +102,18 @@ def check_static() -> None:
     ok("layout no padrão Agro Display Scale (§11)")
 
     views = open(os.path.join(ROOT, "produtos", "views.py"), encoding="utf-8").read()
-    if "injetar_planos_agro_sugestao" not in views:
-        fail("views.py sem injeção nas sugestões")
+    if "injetar_planos_agro_sugestao" not in views and "sugestoes_plano_cadastro" not in views:
+        fail("views.py sem injeção/sugestão de planos Agro")
     ok("sugestões Lançamentos injetam Agro")
 
-    mig = open(
-        os.path.join(ROOT, "produtos", "migrations", "0082_plano_conta_agro.py"),
-        encoding="utf-8",
-    ).read()
-    if "name=\"PlanoContaAgro\"" not in mig and "name='PlanoContaAgro'" not in mig:
-        fail("migration 0082 sem CreateModel PlanoContaAgro")
-    # só na operations — comentário pode citar RenameIndex
-    ops = mig.split("operations =", 1)[-1]
-    if "RenameIndex" in ops:
-        fail("migration 0082 ainda tem RenameIndex nas operations")
-    ok("migration 0082")
-
-    mig84 = open(
-        os.path.join(ROOT, "produtos", "migrations", "0084_plano_conta_alinha_loja.py"),
-        encoding="utf-8",
-    ).read()
-    for needle in (
-        "SeparateDatabaseAndState",
-        "table_names()",
-        "PlanoContaAliasAgro",
-    ):
-        if needle not in mig84:
-            fail(f"migration 0084 sem {needle}")
-    if "CreateModel" in mig84.split("database_operations", 1)[-1].split("state_operations", 1)[0]:
-        fail("migration 0084 criando tabela direto no banco (quebra a loja)")
-    ok("migration 0084 condicional (loja = no-op)")
+    # Loja: PlanoContaAgro já veio da 0065 — pacote sobe só 0085 (deps→0083).
+    mig85_path = os.path.join(ROOT, "produtos", "migrations", "0085_plano_conta_exibir_pdv.py")
+    mig85_head = open(mig85_path, encoding="utf-8").read()
+    if "0083_dfe_manifestacao_ciencia" not in mig85_head:
+        fail("migration 0085 deve depender de 0083 na loja (sem 0082/0084)")
+    if "0084_plano_conta_alinha_loja" in mig85_head:
+        fail("migration 0085 ainda depende de 0084 (incompatível com loja)")
+    ok("migration 0085 deps→0083 (loja)")
 
     mig85 = open(
         os.path.join(ROOT, "produtos", "migrations", "0085_plano_conta_exibir_pdv.py"),
