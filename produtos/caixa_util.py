@@ -983,6 +983,36 @@ def deposito_caixa_browser(request) -> str:
         return "centro"
 
 
+def deposito_operacional_sessao_caixa(request, sessao=None) -> str:
+    """centro|vila da saída: ponto Vila/Gaveta tem prioridade; notebook/teste usam o seletor do aparelho."""
+    ponto = ""
+    if sessao is not None:
+        ponto = str(getattr(sessao, "ponto_caixa", "") or "").strip().lower()
+    if ponto == PONTO_CAIXA_VILA:
+        return "vila"
+    if ponto == PONTO_CAIXA_GAVETA:
+        return "centro"
+    return deposito_caixa_browser(request)
+
+
+def empresa_nome_saida_caixa(deposito: str | None = None) -> str:
+    """Nome fantasia gravado no financeiro na saída/retirada (Centro × Vila)."""
+    from django.conf import settings
+
+    d = str(deposito or "").strip().lower()
+    if d == "vila":
+        return (
+            (getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_VILA", "") or "")
+            .strip()
+            or "Agro Mais Vila Elias"
+        )
+    return (
+        (getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "")
+        .strip()
+        or "Agro Mais Centro"
+    )
+
+
 def sincronizar_deposito_com_ponto_caixa(request, ponto: str) -> None:
     """Ao abrir caixa, alinha o seletor de loja do PDV com o ponto aberto."""
     try:

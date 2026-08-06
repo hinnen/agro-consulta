@@ -86,7 +86,12 @@
         <label class="block">
           <span class="text-[11px] font-black uppercase text-slate-500">Empresa (lançamento)</span>
           <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}" data-empresa-id="{{ empresa_padrao_id|default:'' }}"
-            class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-white px-3 py-2 text-sm font-semibold focus:border-orange-500 outline-none">
+            readonly
+            title="Vem do caixa aberto (Centro ou Vila) — não digite."
+            class="cx-field mt-1.5 w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none cursor-default">
+          <span class="block text-[10px] font-semibold text-slate-400 mt-0.5">
+            Automático pelo caixa{% if empresa_deposito == 'vila' %} · <strong>Vila Elias</strong>{% elif empresa_deposito == 'centro' %} · <strong>Centro</strong>{% endif %}.
+          </span>
         </label>
       </div>
     </details>
@@ -237,7 +242,12 @@
     var prev = selQuem.value;
     selQuem.innerHTML = '<option value="">— Carregando…</option>';
     try {
-      var r = await fetch(API_QUEM_LEVA, { credentials: 'same-origin' });
+      var q = '';
+      var en = (inpEmpresa.value || '').trim();
+      var eid = (inpEmpresa.dataset.empresaId || '').trim();
+      if (eid) q = '?empresa_id=' + encodeURIComponent(eid);
+      else if (en) q = '?empresa_nome=' + encodeURIComponent(en);
+      var r = await fetch(API_QUEM_LEVA + q, { credentials: 'same-origin' });
       var d = await r.json();
       selQuem.innerHTML = '<option value="">— Escolha —</option>';
       (d.pessoas || []).forEach(function (p) {

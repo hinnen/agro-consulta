@@ -101,9 +101,11 @@
           <input type="date" id="cx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
         </label>
         <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (nome fantasia no cadastro)</span>
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (lançamento)</span>
           <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}" data-empresa-id="{{ empresa_padrao_id|default:'' }}"
-            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-emerald-500 outline-none">
+            readonly
+            title="Vem do caixa aberto (Centro ou Vila)"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none cursor-default">
         </label>
       </div>
     </details>
