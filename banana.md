@@ -1191,7 +1191,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **teste** · falta prova local do Renan + senha loja |
+| **Status** | 🟡 **teste v14.62** · falta prova local do Renan + senha loja |
 | **O quê** | Coluna/checkbox **PDV** em Planos de contas · pré-marca os 14 que já estavam na retirada · PDV lê do Postgres |
 | **Ex.** | Marcar **Manutenção do Prédio** → aparece na saída/retirada |
 | **Migrate** | **SIM** `0085_plano_conta_exibir_pdv` |
