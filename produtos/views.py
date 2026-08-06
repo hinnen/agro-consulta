@@ -30848,10 +30848,12 @@ def relatorios_validade(request):
                 stf,
                 saldo_lote_local=lq_fallback,
             )
-        # Filtro por loja: saldo da unidade; se C+V operacional zerou mas o lote tem qtd,
-        # mantém a linha (mesmo critério do card BI) — EstoqueLote ainda não tem depósito.
-        if deposito_filtro in ("centro", "vila") and estoque_mongo_ok and saldos_map:
-            s = saldos_map.get(pid) or {}
+        # Filtro por loja: saldo da unidade.
+        # EstoqueLote ainda não tem depósito: se o C+V operacional das duas lojas
+        # está zerado e o lote tem qtd, mostra na Centro e na Vila (igual card BI).
+        # Se só a outra loja tem saldo operacional, esconde.
+        if deposito_filtro in ("centro", "vila"):
+            s = (saldos_map or {}).get(pid) or {} if estoque_mongo_ok else {}
             chave = "saldo_vila" if deposito_filtro == "vila" else "saldo_centro"
             try:
                 saldo_loja = float(s.get(chave) or 0)
@@ -30867,9 +30869,18 @@ def relatorios_validade(request):
             if saldo_loja > 0:
                 row["saldo_c_v"] = saldo_loja
                 row["saldo_vencido"] = saldo_loja if stf == "vencido" else 0.0
-            elif lq_fallback > 0 and total_op <= 0:
+            elif lq_fallback > 0 and (not estoque_mongo_ok or total_op <= 0):
                 row["saldo_c_v"] = lq_fallback
                 row["saldo_vencido"] = lq_fallback if stf == "vencido" else 0.0
+            elif (
+                not estoque_mongo_ok
+                and saldo_lote_local is not None
+                and float(saldo_lote_local or 0) > 0
+            ):
+                row["saldo_c_v"] = float(saldo_lote_local)
+                row["saldo_vencido"] = (
+                    float(saldo_lote_local) if stf == "vencido" else 0.0
+                )
             else:
                 return
         else:
