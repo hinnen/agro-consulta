@@ -274,12 +274,14 @@
   <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v=1"></script>
   <script>
   (function () {
-    /* —— Busca BCA: achar produto na lista (ou avisar se não tem validade) —— */
+    /* —— Busca BCA: achar na lista ou abrir linha para cadastrar validade —— */
     var inp = document.getElementById('rv-busca');
     var drop = document.getElementById('rv-busca-drop');
     var stEl = document.getElementById('rv-busca-status');
     var btnLimpar = document.getElementById('rv-busca-limpar');
     var tbl = document.getElementById('rv-tabela');
+    var tbody = tbl ? tbl.querySelector('tbody') : null;
+    var podeEditar = {{ pode_editar_validade|yesno:"true,false" }};
     var buscaTimer = null;
     var buscaSeq = 0;
     var hitIdx = -1;
@@ -295,12 +297,27 @@
       else stEl.classList.add('text-slate-400');
     }
 
+    function esc(s) {
+      return String(s || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"/g, '&quot;');
+    }
+
     function rowsAll() {
       if (!tbl) return [];
       return Array.prototype.slice.call(tbl.querySelectorAll('tbody tr[data-pid]'));
     }
 
+    function removerDrafts() {
+      if (!tbody) return;
+      Array.prototype.slice.call(tbody.querySelectorAll('tr[data-rv-draft="1"]')).forEach(function (tr) {
+        tr.remove();
+      });
+    }
+
     function limparFiltroBusca() {
+      removerDrafts();
       rowsAll().forEach(function (tr) {
         tr.classList.remove('hidden', 'rv-busca-hit');
         tr.style.display = '';
@@ -314,8 +331,74 @@
       setStatus('');
     }
 
+    function inserirLinhaSemValidade(meta) {
+      if (!tbody || !meta || !meta.produto_id) return null;
+      removerDrafts();
+      var empty = tbody.querySelector('tr:not([data-pid])');
+      if (empty) empty.remove();
+      rowsAll().forEach(function (tr) {
+        tr.classList.add('hidden');
+        tr.style.display = 'none';
+        tr.classList.remove('rv-busca-hit');
+      });
+      var nome = meta.nome || meta.produto_id;
+      var tr = document.createElement('tr');
+      tr.setAttribute('data-pid', meta.produto_id);
+      tr.setAttribute('data-nome', nome);
+      tr.setAttribute('data-rv-draft', '1');
+      tr.setAttribute('data-lote-qtd', '0');
+      tr.className = 'hover:bg-slate-800/40 rv-busca-hit';
+      var acoes = '';
+      if (podeEditar) {
+        acoes =
+          '<td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">' +
+          '<span class="block min-h-[38px] rounded border border-slate-700/80 bg-slate-900/40 px-1 py-1 text-center text-[9px] font-bold leading-tight text-slate-600">—</span>' +
+          '<span class="rv-msg-baixa block min-h-[1em]"></span></td>' +
+          '<td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">' +
+          '<div class="flex w-full min-w-0 flex-col gap-0.5">' +
+          '<button type="button" class="rv-salvar flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-emerald-600 bg-emerald-600 px-2 text-xs font-black uppercase leading-none text-white hover:bg-emerald-500 sm:min-h-[40px] sm:px-3 sm:text-sm">Salvar</button>' +
+          '<span class="rv-msg block min-h-[1em] text-center text-[9px] font-bold leading-tight text-slate-500" aria-live="polite"></span>' +
+          '</div></td>';
+      }
+      var loteCell = podeEditar
+        ? '<input type="text" name="lote" value="" maxlength="80" autocomplete="off" placeholder="Lote" class="rv-lote w-full min-w-[5.5rem] max-w-[8rem] rounded border border-slate-600 bg-slate-900 px-1.5 py-1 text-xs font-bold text-white focus:border-orange-500 focus:outline-none sm:text-sm" />'
+        : '<span class="text-xs text-slate-500">—</span>';
+      var valCell = podeEditar
+        ? '<input type="date" name="validade" value="" class="rv-val h-9 max-w-full rounded border-2 border-orange-600 bg-slate-900 px-1 font-mono text-xs font-bold text-white focus:border-orange-500 focus:outline-none sm:px-2 sm:text-sm" title="Informe a validade e clique Salvar" />'
+        : '<span class="text-slate-500">—</span>';
+      tr.innerHTML =
+        '<td class="rv-td-prod text-sm font-semibold leading-snug" title="' +
+        esc(nome) +
+        '">' +
+        esc(nome) +
+        ' <span class="mt-0.5 block text-[10px] font-bold uppercase text-orange-400">Sem validade · preencha e salve</span></td>' +
+        '<td class="whitespace-nowrap">' +
+        loteCell +
+        '</td>' +
+        '<td class="text-right text-xs font-mono tabular-nums text-slate-500">—</td>' +
+        '<td class="text-right text-xs font-mono tabular-nums text-slate-500">—</td>' +
+        '<td class="text-right text-xs font-mono tabular-nums text-slate-500">—</td>' +
+        '<td class="min-w-0">' +
+        valCell +
+        '</td>' +
+        '<td class="no-print max-w-[7rem] text-xs text-amber-300">Nova</td>' +
+        acoes;
+      tbody.insertBefore(tr, tbody.firstChild);
+      var valInp = tr.querySelector('.rv-val');
+      if (valInp) {
+        try {
+          valInp.focus();
+        } catch (e1) {}
+      }
+      try {
+        tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e2) {}
+      return tr;
+    }
+
     function filtrarPorPid(pid, meta) {
       var pidS = String(pid || '').trim();
+      removerDrafts();
       var hits = [];
       rowsAll().forEach(function (tr) {
         var match = String(tr.getAttribute('data-pid') || '') === pidS;
@@ -338,10 +421,10 @@
           hits[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
         } catch (e1) {}
       } else {
+        inserirLinhaSemValidade(meta || { produto_id: pidS });
         setStatus(
-          'Produto no catálogo, mas sem validade/lote nesta lista' +
-            (meta && meta.nome ? ' — ' + meta.nome : '') +
-            '. Se preencheu na Entrada NF e já lançou estoque, confira se a data foi gravada (notas antigas podem não ter ido).',
+          'Sem validade ainda — preencha a data e clique Salvar' +
+            (meta && meta.nome ? ' · ' + meta.nome : ''),
           'warn'
         );
       }
@@ -569,12 +652,26 @@
       if (!tr) return;
       var pid = tr.getAttribute('data-pid');
       var loteId = tr.getAttribute('data-lote-id');
+      var isDraft = tr.getAttribute('data-rv-draft') === '1';
       var v = (tr.querySelector('.rv-val') || {}).value || '';
       var l = (tr.querySelector('.rv-lote') || {}).value || '';
       rowMsg(tr, '…', null);
-      if (loteId && !mongoOk) {
+      if (!String(v || '').trim()) {
+        rowMsg(tr, 'Informe a data de validade.', false);
+        return;
+      }
+      if (isDraft || (loteId && !mongoOk)) {
         var q = tr.getAttribute('data-lote-qtd');
         if (q === null || q === undefined || q === '') q = '0';
+        var body = {
+          produto_id: pid,
+          lote_codigo: l || '—',
+          data_validade: v,
+          quantidade: q
+        };
+        var loja = "{{ filtros.loja|default:'todas'|escapejs }}";
+        if (loja === 'centro' || loja === 'vila') body.deposito = loja;
+        else if (isDraft) body.deposito = 'centro';
         fetch(apiLote, {
           method: 'POST',
           credentials: 'same-origin',
@@ -582,12 +679,7 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': csrf()
           },
-          body: JSON.stringify({
-            produto_id: pid,
-            lote_codigo: l,
-            data_validade: v,
-            quantidade: q
-          })
+          body: JSON.stringify(body)
         }).then(function (r) {
           if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
           return r.json();
