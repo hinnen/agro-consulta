@@ -1192,7 +1192,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸŸ¡ **teste** · prova local pendente |
+| **Status** | ðŸŸ¡ **teste v14.63** · `73c1541` · prova local pendente |
 | **Bug** | Etapa 4 (lote/validade) gravava sÃ³ no rascunho — **nÃ£o** ia para `/relatorios/validade/` |
 | **Fix** | Ao lanÃ§ar estoque: cria/soma `EstoqueLote` · reabrir reduz se tiver `nf_lote`/`nf_val` |
 | **UX** | Busca BCA no relatÃ³rio de validade (achar produto / avisar se nÃ£o tem lote na lista) |
