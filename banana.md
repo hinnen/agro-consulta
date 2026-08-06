@@ -1206,18 +1206,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.79** · HEAD `teste`  
+> **Teste:** badge **v14.80** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **CX-EMP-LOJA** | 📋 **pronto para envio à produção** | cherry `64c338b` | **NÃO** | Baixo — só saída/retirada (empresa do lançamento) |
-| 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — só Relatório Validade |
-| 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — só card Validade do BI |
-| 4 | **PDV-USO-DONOS** | 🧪 **teste v14.79** | cherry / lote | **NÃO** | Baixo — só Uso loja |
+| 1 | **CX-EMP-LOJA** | 📦 **pronto para envio à produção** · **v14.75** | cherry `64c338b` | **NÃO** | Baixo — saída/retirada |
+| 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
+| 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
+| 4 | **PDV-USO-DONOS** | 🧪 teste · fora deste lote | — | **NÃO** | — |
 | 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-**Já Live (v14.72):** PLANOS-PDV · NF-VAL-BCA · FACETA-CACHE · TRANSF-BIP · FOTO-PDV.
+**Provas (06/08):** `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
 
 **Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA] para produção* + **99738595**
 
@@ -1226,10 +1226,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
-| **Bug** | Com TRAVA Vila, card Validade ainda contava lote do Centro (C+V 0 / fallback) |
-| **Fix** | Card usa `EstoqueLote.deposito` · lote Centro ≠ Vila · cache `v5` |
+| **O quê** | Card Validade do BI respeita TRAVA Centro/Vila (`EstoqueLote.deposito`) · cache `v5` |
+| **Prova** | `scripts/verify_bi_val_salvar_path.py` **17/17** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 BI · TRAVA Vila · conferir Vencidos/No mês vs Relatório loja Vila |
+| **Risco** | Baixo — só KPI do BI |
+| **Você** | Ctrl+F5 BI · TRAVA Vila · números ≠ Centro |
 | **Autorizar** | *pode subir BI-VAL-LOJA / validade BI loja para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Validade Salvar na linha (`VAL-SALVAR` · **v14.77**)
@@ -1237,28 +1238,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** |
-| **Bug** | Com Mongo ok + lote, botão virava «Usar cadastro» — mudava a data e **não gravava** |
-| **Fix** | Sempre **Salvar** · grava `EstoqueLote` (data/lote) · API aceita `lote_id` |
+| **O quê** | Sempre **Salvar** · grava data/lote no `EstoqueLote` · API com `lote_id` |
+| **Prova** | `verify_bi_val_salvar_path` · sem «Usar cadastro» |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Validade · muda data · **Salvar** · confirma |
+| **Risco** | Baixo — Relatório Validade |
+| **Você** | Ctrl+F5 Validade · muda data · **Salvar** |
 | **Autorizar** | *pode subir VAL-SALVAR / salvar validade para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — saída Vila = empresa Vila (`CX-EMP-LOJA` · **v14.75**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** |
-| **O quê** | Retirada usa empresa da loja do caixa · Vila → **Agro Mais Vila Elias** · Centro → **Agro Mais Centro** · campo só leitura · API ignora Centro errado |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Retirada: empresa da loja do caixa · Vila → **Agro Mais Vila Elias** · Centro → **Agro Mais Centro** |
 | **Commit** | `64c338b` |
+| **Prova** | `verify_saida_empresa_loja` **10/10** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_saida_empresa_loja` **10/10** · `manage.py check` OK · gaveta/vila · force API · templates readonly |
-| **Risco** | Baixo — não mexe PDV venda / abrir-fechar caixa |
-| **Você** | Ctrl+F5 Retirada na Vila · empresa Vila Elias · registrar 1 saída · conferir CP |
+| **Risco** | Baixo — não mexe PDV venda |
+| **Você** | Ctrl+F5 Retirada Vila · empresa certa · 1 saída |
 | **Autorizar** | *pode subir CX-EMP-LOJA / empresa saída caixa para produção* + **99738595** |
-
-### 🐞 FIX — saída Vila gravava empresa Centro (`CX-EMP-LOJA` · detalhe)
-
-> **Vigente:** **PACOTE PRONTO LOJA — CX-EMP-LOJA** no topo do CHECKPOINT.
 
 ### ✅ Deploy loja **v14.72** — lote checklist 06/08 (frase+senha)
 
