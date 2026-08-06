@@ -1218,11 +1218,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 PDV · motivo dono · Histórico 4 cards · botão verde |
 | **Autorizar** | *pode subir PDV-USO-DONOS / uso loja donos para produção* + **99738595** |
 
+### 🚀 PREP deploy loja — lote checklist 06/08b (`deploy/lote-checklist-0608b` · **v14.85**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
+| **Branch** | `deploy/lote-checklist-0608b` · base loja `008e361` (v14.72) |
+| **Pacotes** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
+| **Fora** | GG-UX (P2,5) |
+| **Migrate** | **NÃO** |
+| **Após Live** | Ctrl+F5 Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
+| **Provas** | saida empresa 10/10 · bi/val 17/17 · uso donos 65/65 · dsp pet 31/31 · `manage.py check` OK |
+| **Risco loja aberta** | Baixo · **não** toca PDV finalize / caixa abrir-fechar · saída/retirada (empresa) · Uso loja · Validade · BI card · Dispenser |
+| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch |
+| **Autorizar** | *pode subir lote checklist 06/08b / deploy/lote-checklist-0608b para produção* + **99738595** |
+
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
 > **Teste:** badge **v14.84** · HEAD `teste`  
-> **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
+> **Prep loja:** `deploy/lote-checklist-0608b` **v14.85** · aguarda senha  
+> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
