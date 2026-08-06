@@ -31095,19 +31095,21 @@ def relatorios_validade(request):
                 saldos_map, pid, stf
             )
         # ERP 0 com Id divergente do código do relatório é comum: mostrar o saldo do lote (Agro).
-        if estoque_mongo_ok and row.get("lote_id") and (row.get("lote_qtd") is not None):
+        lq_fallback = 0.0
+        if row.get("lote_id") and (row.get("lote_qtd") is not None):
             try:
-                lq = float(row.get("lote_qtd") or 0)
+                lq_fallback = float(row.get("lote_qtd") or 0)
             except (TypeError, ValueError):
-                lq = 0.0
-            if lq > 0 and (scv is None or float(scv) == 0.0):
-                scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-                    {},
-                    pid,
-                    stf,
-                    saldo_lote_local=lq,
-                )
-        # Filtro por loja: usa saldo daquela unidade (não C+V).
+                lq_fallback = 0.0
+        if estoque_mongo_ok and lq_fallback > 0 and (scv is None or float(scv) == 0.0):
+            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
+                {},
+                pid,
+                stf,
+                saldo_lote_local=lq_fallback,
+            )
+        # Filtro por loja: saldo da unidade; se C+V operacional zerou mas o lote tem qtd,
+        # mantém a linha (mesmo critério do card BI) — EstoqueLote ainda não tem depósito.
         if deposito_filtro in ("centro", "vila") and estoque_mongo_ok and saldos_map:
             s = saldos_map.get(pid) or {}
             chave = "saldo_vila" if deposito_filtro == "vila" else "saldo_centro"
@@ -31115,9 +31117,20 @@ def relatorios_validade(request):
                 saldo_loja = float(s.get(chave) or 0)
             except (TypeError, ValueError):
                 saldo_loja = 0.0
-            row["saldo_c_v"] = saldo_loja
-            row["saldo_vencido"] = saldo_loja if stf == "vencido" else 0.0
-            if saldo_loja <= 0:
+            try:
+                saldo_c = float(s.get("saldo_centro") or 0)
+                saldo_v = float(s.get("saldo_vila") or 0)
+            except (TypeError, ValueError):
+                saldo_c = 0.0
+                saldo_v = 0.0
+            total_op = saldo_c + saldo_v
+            if saldo_loja > 0:
+                row["saldo_c_v"] = saldo_loja
+                row["saldo_vencido"] = saldo_loja if stf == "vencido" else 0.0
+            elif lq_fallback > 0 and total_op <= 0:
+                row["saldo_c_v"] = lq_fallback
+                row["saldo_vencido"] = lq_fallback if stf == "vencido" else 0.0
+            else:
                 return
         else:
             row["saldo_c_v"] = scv
