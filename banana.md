@@ -1193,6 +1193,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐞 FIX — saída Vila gravava empresa Centro (`CX-EMP-LOJA` · 06/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **teste v14.74** · prova Renan · falta senha loja |
+| **Bug** | Retirada na Vila Elias caía em **Agro Mais Centro**; campo empresa fixo / digitar Vila não achava |
+| **Fix** | Empresa = loja do caixa (Centro → Agro Mais Centro · Vila → **Agro Mais Vila Elias**) · campo só leitura · API força a loja do turno |
+| **Prova** | `verify_saida_empresa_loja` **6/6** · `manage.py check` OK |
+| **Você** | Ctrl+F5 Retirada na Vila · empresa deve ser Vila Elias · registrar e conferir no CP |
+| **Autorizar** | *pode subir CX-EMP-LOJA / empresa saída caixa para produção* + **99738595** |
+
 ### ✅ Deploy loja **v14.72** — lote checklist 06/08 (frase+senha)
 
 | Item | Detalhe |

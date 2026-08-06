@@ -11096,6 +11096,10 @@ def api_caixa_conferencia_estado(request):
 
 @login_required(login_url="/admin/login/")
 def caixa_painel(request):
+    from produtos.caixa_util import (
+        deposito_operacional_sessao_caixa,
+        empresa_nome_saida_caixa,
+    )
     from produtos.saida_caixa_planos import listar_planos_saida_caixa
 
     from rh.utils import resolver_empresa_por_nome_fantasia
@@ -11114,7 +11118,8 @@ def caixa_painel(request):
             request, "caixa_retiradas_historico" if painel == "retirada" else "caixa_painel"
         )
 
-    empresa_padrao = getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "Agro Mais Centro"
+    dep_loja = deposito_operacional_sessao_caixa(request, aberto)
+    empresa_padrao = empresa_nome_saida_caixa(dep_loja)
     ctx = {
         "sessao_aberta": aberto,
         "caixa_rotulo": rotulo_caixa_browser(request, aberto) if aberto else "Caixa fechado",
@@ -11122,6 +11127,7 @@ def caixa_painel(request):
         "planos_json": "[]",
         "empresa_padrao": empresa_padrao,
         "empresa_padrao_id": "",
+        "empresa_deposito": dep_loja,
         "qtd_caixas_abertos": SessaoCaixa.objects.filter(fechado_em__isnull=True).count(),
         "caixa_gerido_operador": (request.session.get("pdv_caixa_gerido_operador") or "").strip(),
         "linhas_resumo_caixa": [],
@@ -11137,6 +11143,14 @@ def caixa_painel(request):
         emp = resolver_empresa_por_nome_fantasia(empresa_padrao)
         ctx["planos_json"] = json.dumps(listar_planos_saida_caixa(), ensure_ascii=False)
         ctx["empresa_padrao_id"] = emp.pk if emp else ""
+        if emp is None and dep_loja == "vila":
+            # Fallback RH: se «Agro Mais Vila Elias» ainda não existe no cadastro base,
+            # tenta variantes curtas para listar quem leva / id.
+            for alt in ("Agro Mais Vila", "Vila Elias", "Vila"):
+                emp = resolver_empresa_por_nome_fantasia(alt)
+                if emp:
+                    ctx["empresa_padrao_id"] = emp.pk
+                    break
     if aberto:
         aberto = (
             SessaoCaixa.objects.prefetch_related("vendas", "movimentos")
@@ -18950,9 +18964,25 @@ def api_lancamentos_saida_caixa(request):
     if dv is None:
         dv = dc
 
-    empresa_nome = str(payload.get("empresa_nome") or "").strip() or (
-        (config("AGRO_FIN_SAIDA_CAIXA_EMPRESA", default="") or "").strip() or "Loja"
-    )
+    empresa_nome = str(payload.get("empresa_nome") or "").strip()
+    try:
+        from produtos.caixa_util import (
+            deposito_operacional_sessao_caixa,
+            empresa_nome_saida_caixa,
+        )
+
+        empresa_loja = empresa_nome_saida_caixa(
+            deposito_operacional_sessao_caixa(request, sessao_turno)
+        )
+        if empresa_loja:
+            # Fonte da verdade = loja do caixa aberto (evita Vila cair em Centro).
+            empresa_nome = empresa_loja
+    except Exception:
+        pass
+    if not empresa_nome:
+        empresa_nome = (
+            (config("AGRO_FIN_SAIDA_CAIXA_EMPRESA", default="") or "").strip() or "Loja"
+        )
     banco_nome = str(payload.get("banco_nome") or "").strip()
     forma_nome = str(payload.get("forma_nome") or "").strip()
     if not banco_nome or not forma_nome:
