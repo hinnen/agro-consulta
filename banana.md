@@ -1196,19 +1196,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
-> **Teste:** badge **v14.69** · HEAD `teste`  
+> **Teste:** badge **v14.71** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
 | 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`+`0085` | Baixo — Config + select saída |
-| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF + Validade |
+| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.71** | cherry / lote | **SIM** `0086` | Médio — Entrada NF + Validade |
 | 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — combobox cadastro |
 | 4 | **TRANSF-BIP** | 📦 **pronto para envio à produção** · **v14.67** | cherry / lote | **NÃO** | Baixo — só forçada |
 | 5 | **FOTO-PDV** | 📦 **pronto para envio à produção** · **v14.68+** | cherry / lote | **NÃO** | Baixo — modal cadastro |
 | 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-**Provas (06/08):** `verify_foto_pdv` **13/13** · `verify_transf_bip` **4/4** · `verify_faceta_cache` **10/10** · `manage.py check` OK.
+**Provas (06/08):** `verify_validade_nf_path` **23/23** · `verify_foto_pdv` **13/13** · `verify_transf_bip` **4/4** · `verify_faceta_cache` **10/10** · `manage.py check` OK.
 
 **Autorizar:** *pode subir [PLANOS-PDV / NF-VAL-BCA / FACETA-CACHE / TRANSF-BIP / FOTO-PDV] para produção* + **99738595**
 
@@ -1262,16 +1262,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Cadastro · digitar **Caixa** no outro Natuverm → tem que achar |
 | **Autorizar** | *pode subir FACETA-CACHE / faceta cadastro para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Entrada NF validade → Validade + BCA (`NF-VAL-BCA` · **v14.65**)
+### 📦 PACOTE PRONTO LOJA — Entrada NF validade → Validade + BCA (`NF-VAL-BCA` · **v14.71**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio** · teste **v14.65+** · backfill PG **já feito** |
-| **O quê** | Etapa 4 → `EstoqueLote` · busca BCA · backfill · **fix filtro Loja** (Centro/Vila não sumia mais a lista quando C+V operacional 0 e lote tem qtd — alinhado ao BI) |
-| **Migrate** | **NÃO** |
+| **Status** | 📦 **pronto para envio à produção** · teste **v14.71** |
+| **O quê** | Etapa 4 NF → `EstoqueLote` (+ `deposito`) · estorno reduz lote · colunas **Centro/Vila** · filtro Loja por saldo/lote · BCA + linha editável sem data · backfill `manage.py backfill_validade_entrada_nf` |
+| **Migrate** | **SIM** — `0086_estoque_lote_deposito` · loja: após deploy rodar migrate · backfill com `--aplicar` se faltar lote antigo |
+| **Prova** | `scripts/verify_validade_nf_path.py` **23/23** · `manage.py check` OK |
 | **Risco** | Médio — Entrada NF estoque + tela Validade |
-| **Você** | Ctrl+F5 Validade · **Todas / Centro / Vila** · buscar Anticion / Capstar |
-| **Notas antigas** | Backfill **aplicado 06/08:** 31 lotes (NF 264005+264290) · 1 pid inválido pulado · dry-run padrão / `--aplicar` · não reabre nota · não sobrescreve lote existente |
+| **Você** | Ctrl+F5 Validade · Todas/Centro/Vila · BCA produto sem data → preencher · Entrada NF etapa 4 → conferir lista |
 | **Autorizar** | *pode subir NF-VAL-BCA / validade NF para produção* + **99738595** |
 
 ### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · detalhe)
