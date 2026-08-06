@@ -1193,15 +1193,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🔧 Dispenser — pet upload sem «comer» pelo branco (`DSP-PET-BG` · **06/08**)
+### 📦 PACOTE PRONTO LOJA — Dispenser pet sem comer pelo branco (`DSP-PET-BG` · **v14.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | + Adicionar pet · foto com peito branco (ex. Bernese) saía com buracos/fantasmas brancos |
-| **Causa** | Upload do pet usava a mesma limpeza de fundo branco/preto dos ingredientes |
-| **Fix** | Pet só redimensiona (PNG); limpeza de borda fica só em ingredientes |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | + Adicionar pet não limpa fundo branco/preto (peito branco intacto); ingredientes seguem iguais |
+| **Prova** | `scripts/verify_dsp_pet_bg.py` **31/31** · `verify_dsp_png_bg.py` OK · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só `/interno/dispenser-a6*` · **zero** PDV |
 | **Arquivo** | `dispenser_a6_studio.html` |
-| **Você** | Ctrl+F5 Dispenser → Bicho → apagar o pet ruim → subir de novo |
+| **Você** | Ctrl+F5 Dispenser → Bicho → apagar pet ruim → subir de novo |
+| **Autorizar** | *pode subir DSP-PET-BG / dispenser pet para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.82**)
 
@@ -1218,7 +1221,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.82** · HEAD `teste`  
+> **Teste:** badge **v14.84** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
@@ -1227,11 +1230,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
 | 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
 | 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.82** | cherry / lote | **NÃO** | Baixo — Uso loja |
-| 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+| 5 | **DSP-PET-BG** | 📦 **pronto para envio à produção** · **v14.84** | cherry / lote | **NÃO** | Baixo — só Dispenser |
+| 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-**Provas (06/08):** `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
+**Provas (06/08):** `verify_dsp_pet_bg` **31/31** · `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
 
-**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA / PDV-USO-DONOS] para produção* + **99738595**
+**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA / PDV-USO-DONOS / DSP-PET-BG] para produção* + **99738595**
 
 ### 📦 PACOTE PRONTO LOJA — BI Validade segue loja travada (`BI-VAL-LOJA` · **v14.78**)
 
