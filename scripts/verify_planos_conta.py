@@ -77,6 +77,9 @@ def check_static() -> None:
         "pc-btn-salvar",
         "pc-lista",
         "pc-inativos",
+        "pc-pdv",
+        "exibir_pdv",
+        "Mostrar no PDV",
     ):
         if needle not in tpl:
             fail(f"template sem {needle}")
@@ -132,6 +135,21 @@ def check_static() -> None:
         fail("migration 0084 criando tabela direto no banco (quebra a loja)")
     ok("migration 0084 condicional (loja = no-op)")
 
+    mig85 = open(
+        os.path.join(ROOT, "produtos", "migrations", "0085_plano_conta_exibir_pdv.py"),
+        encoding="utf-8",
+    ).read()
+    if "exibir_pdv" not in mig85 or "NOMES_PDV_ATUAL" not in mig85:
+        fail("migration 0085 sem exibir_pdv / seed PDV")
+    ok("migration 0085 exibir_pdv")
+
+    saida = open(
+        os.path.join(ROOT, "produtos", "saida_caixa_planos.py"), encoding="utf-8"
+    ).read()
+    if "listar_planos_saida_caixa" not in saida or "exibir_pdv" not in saida:
+        fail("saida_caixa_planos sem lista dinâmica do PDV")
+    ok("saída caixa lê planos do Postgres")
+
     reg = open(
         os.path.join(ROOT, "produtos", "pg_backup_registry.py"), encoding="utf-8"
     ).read()
@@ -171,10 +189,12 @@ def check_django() -> None:
     )}
     if "tipo" not in cols:
         fail("coluna tipo ausente — banco fora do formato da loja")
+    if "exibir_pdv" not in cols:
+        fail("coluna exibir_pdv ausente — rode migrate (0085)")
     for morta in ("codigo", "natureza", "criado_por_id"):
         if morta in cols:
             fail(f"coluna {morta} ainda existe — 0084 não rodou")
-    ok("tabela PG no formato da loja (tipo + apelidos)")
+    ok("tabela PG no formato da loja (tipo + apelidos + PDV)")
 
     for name in (
         "planos_conta_config",
@@ -196,8 +216,11 @@ def check_django() -> None:
         tipo=PlanoContaAgro.Tipo.FIXA,
         grupo="VERIFY",
         ativo=True,
+        exibir_pdv=False,
     )
     try:
+        from produtos.saida_caixa_planos import listar_planos_saida_caixa
+
         ser = serializar_plano(obj)
         if ser["id"] != id_publico_plano(obj.pk):
             fail("id_publico diverge")
@@ -205,7 +228,21 @@ def check_django() -> None:
             fail("parse_id_publico falhou")
         if ser.get("tipo") != "fixa" or ser.get("tipo_label") != "Fixa":
             fail(f"tipo não serializou: {ser}")
+        if ser.get("exibir_pdv") is not False:
+            fail(f"exibir_pdv não serializou: {ser}")
         ok(f"ORM create + serializar ({ser['id']})")
+
+        antes = {p["id"] for p in listar_planos_saida_caixa()}
+        if ser["id"] in antes:
+            fail("plano sem exibir_pdv não deveria estar no PDV")
+        obj.exibir_pdv = True
+        obj.save(update_fields=["exibir_pdv", "atualizado_em"])
+        depois = {p["id"] for p in listar_planos_saida_caixa()}
+        if ser["id"] not in depois:
+            fail("plano com exibir_pdv deveria aparecer no PDV")
+        if "deposito" not in depois:
+            fail("Depósito sumiu da lista do PDV")
+        ok("listar_planos_saida_caixa respeita exibir_pdv")
 
         lista = listar_planos_agro(q="VERIFY_PLANOS", incluir_inativos=False)
         if not any(x["pk"] == obj.pk for x in lista):
@@ -255,6 +292,28 @@ def check_django() -> None:
         if not data.get("ok") or not any(i.get("pk") == obj.pk for i in data.get("itens") or []):
             fail(f"lista API sem o plano: {data}")
         ok("API lista")
+
+        r = c.post(
+            reverse("api_planos_conta_toggle", kwargs={"pk": obj.pk}),
+            data=json.dumps({"exibir_pdv": False}),
+            content_type="application/json",
+        )
+        if r.status_code != 200 or not r.json().get("ok"):
+            fail(f"toggle PDV off: {r.status_code} {r.content[:300]!r}")
+        obj.refresh_from_db()
+        if obj.exibir_pdv:
+            fail("toggle exibir_pdv=False não persistiu")
+        r = c.post(
+            reverse("api_planos_conta_toggle", kwargs={"pk": obj.pk}),
+            data=json.dumps({"exibir_pdv": True}),
+            content_type="application/json",
+        )
+        if r.status_code != 200 or not r.json().get("ok"):
+            fail(f"toggle PDV on: {r.status_code} {r.content[:300]!r}")
+        obj.refresh_from_db()
+        if not obj.exibir_pdv:
+            fail("toggle exibir_pdv=True não persistiu")
+        ok("API toggle exibir_pdv")
 
         nome2 = marker + "_EDIT"
         r = c.post(

@@ -1187,6 +1187,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — Planos no PDV por checkbox (`PLANOS-PDV` · WIP teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **teste** · falta prova local do Renan + senha loja |
+| **O quê** | Coluna/checkbox **PDV** em Planos de contas · pré-marca os 14 que já estavam na retirada · PDV lê do Postgres |
+| **Ex.** | Marcar **Manutenção do Prédio** → aparece na saída/retirada |
+| **Migrate** | **SIM** `0085_plano_conta_exibir_pdv` |
+| **Prova** | `verify_planos_conta` **28/28** |
+
 ### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de** · HTTP `/healthz` **200 ok** · home **200 / v14.61**  
