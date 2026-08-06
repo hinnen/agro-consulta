@@ -1245,19 +1245,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Vigente:** **PACOTE PRONTO LOJA — PLANOS-PDV** no topo do CHECKPOINT.
 
-### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61)
+### ✅ CHECKLIST ÚNICO — enviado produção (05/08 · loja v14.61) · **superado**
 
-> **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de** · HTTP `/healthz` **200 ok** · home **200 / v14.61**  
-> **Lote enviado:** `deploy/lote-checklist-0508` · rollback: `rollback/pre-lote-checklist-0508-v14.41`  
-> **Teste:** badge **v14.61** · HEAD `teste`
-
-| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
-| - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **BI-TOPBAR-DATAS** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Baixo — só BI `/` |
-| 2 | **CP-BACKUP-MENU** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Baixo — só painel Backup CP |
-| 3 | **NF-TROCA-ESTORNO** | ✅ **Live v14.61** | lote 05/08 | **NÃO** | Médio — Entrada NF (não PDV) |
-| 4 | **PLANOS-CONTA** | ✅ **Live v14.61** | lote 05/08 (**prep**, não cherry cru) | **NÃO** | Baixo — tela Config nova; modelo loja já existe (`0065`) |
-| 5 | **GG-UX** | 🟡 **fora deste lote** · P2,5 | — | — | — |
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (06/08)** no topo. Loja permanece **v14.61** até o próximo envio.
 
 **Já Live (v14.41):** BI-TOPBAR-TOTAL · SEFAZ-UI · COMP-UX · DFE-CIENCIA · CP-DUP-BACKUP · GG-GASTOS · PDV-CAD / CUSTO-FAMILIA / MODAL-UTF8.
 
