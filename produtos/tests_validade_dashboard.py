@@ -29,21 +29,30 @@ class ContagemValidadePorLojaTests(TestCase):
             produto_externo_id=pid, nome=nome
         )
 
-    def _lote(self, ov, *, dv: date, qtd: float, codigo: str = "L1") -> EstoqueLote:
+    def _lote(
+        self,
+        ov,
+        *,
+        dv: date,
+        qtd: float,
+        codigo: str = "L1",
+        deposito: str = "",
+    ) -> EstoqueLote:
         return EstoqueLote.objects.create(
             overlay=ov,
             lote_codigo=codigo,
             data_validade=dv,
             quantidade_atual=qtd,
+            deposito=deposito,
         )
 
     @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
-    def test_lote_qtd_com_c_v_zerado_conta_nas_duas_lojas(self, mock_saldos):
-        """Bug Renan: relatório lista lote; card Centro e Vila ficavam 0."""
+    def test_lote_centro_com_c_v_zerado_nao_infla_vila(self, mock_saldos):
+        """Backfill em centro: Vila travada não deve herdar o lote."""
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-VENC")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=1)
+        self._lote(ov, dv=date(2026, 7, 30), qtd=1, deposito="centro")
         mock_saldos.return_value = {
             "PID-VENC": {"saldo_centro": 0.0, "saldo_vila": 0.0},
         }
@@ -51,15 +60,29 @@ class ContagemValidadePorLojaTests(TestCase):
         c = _contagem_validade_dashboard_por_loja(hoje, "centro")
         v = _contagem_validade_dashboard_por_loja(hoje, "vila")
         self.assertEqual(c["vencidos"], 1)
-        self.assertEqual(v["vencidos"], 1)
+        self.assertEqual(v["vencidos"], 0)
         self.assertEqual(c["vencendo_mes"], 0)
 
     @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
-    def test_no_mes_lote_sem_saldo_operacional(self, mock_saldos):
+    def test_lote_sem_loja_e_c_v_zerado_nao_inventa_loja(self, mock_saldos):
+        from produtos.views import _contagem_validade_dashboard_por_loja
+
+        ov = self._ov("PID-SEM")
+        self._lote(ov, dv=date(2026, 7, 30), qtd=1, deposito="")
+        mock_saldos.return_value = {
+            "PID-SEM": {"saldo_centro": 0.0, "saldo_vila": 0.0},
+        }
+        c = _contagem_validade_dashboard_por_loja(_hoje(), "centro")
+        v = _contagem_validade_dashboard_por_loja(_hoje(), "vila")
+        self.assertEqual(c["vencidos"], 0)
+        self.assertEqual(v["vencidos"], 0)
+
+    @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
+    def test_no_mes_lote_centro_sem_saldo_operacional(self, mock_saldos):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-MES")
-        self._lote(ov, dv=date(2026, 8, 30), qtd=3)
+        self._lote(ov, dv=date(2026, 8, 30), qtd=3, deposito="centro")
         mock_saldos.return_value = {
             "PID-MES": {"saldo_centro": 0.0, "saldo_vila": 0.0},
         }
@@ -72,7 +95,7 @@ class ContagemValidadePorLojaTests(TestCase):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-CTR")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=1)
+        self._lote(ov, dv=date(2026, 7, 30), qtd=1, deposito="")
         mock_saldos.return_value = {
             "PID-CTR": {"saldo_centro": 2.0, "saldo_vila": 0.0},
         }
@@ -87,9 +110,9 @@ class ContagemValidadePorLojaTests(TestCase):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-2L")
-        self._lote(ov, dv=date(2027, 1, 1), qtd=1, codigo="FUT")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=1, codigo="VENC")
-        self._lote(ov, dv=date(2026, 8, 15), qtd=1, codigo="MES")
+        self._lote(ov, dv=date(2027, 1, 1), qtd=1, codigo="FUT", deposito="centro")
+        self._lote(ov, dv=date(2026, 7, 30), qtd=1, codigo="VENC", deposito="centro")
+        self._lote(ov, dv=date(2026, 8, 15), qtd=1, codigo="MES", deposito="centro")
         mock_saldos.return_value = {
             "PID-2L": {"saldo_centro": 0.0, "saldo_vila": 0.0},
         }
@@ -102,7 +125,7 @@ class ContagemValidadePorLojaTests(TestCase):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-Z")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=0)
+        self._lote(ov, dv=date(2026, 7, 30), qtd=0, deposito="centro")
         mock_saldos.return_value = {
             "PID-Z": {"saldo_centro": 0.0, "saldo_vila": 0.0},
         }
@@ -111,22 +134,23 @@ class ContagemValidadePorLojaTests(TestCase):
         self.assertEqual(c["vencendo_mes"], 0)
 
     @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
-    def test_mapa_vazio_ainda_conta_lote_com_qtd(self, mock_saldos):
+    def test_mapa_vazio_ainda_conta_lote_com_deposito(self, mock_saldos):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-MAP")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=1)
+        self._lote(ov, dv=date(2026, 7, 30), qtd=1, deposito="centro")
         mock_saldos.return_value = {}
         c = _contagem_validade_dashboard_por_loja(_hoje(), "centro")
+        v = _contagem_validade_dashboard_por_loja(_hoje(), "vila")
         self.assertEqual(c["vencidos"], 1)
+        self.assertEqual(v["vencidos"], 0)
 
     @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
-    def test_estoque_so_vila_com_lote_nao_infla_centro(self, mock_saldos):
-        """Lote+qtd com saldo só na Vila: Centro não deve contar (C+V>0)."""
+    def test_estoque_so_vila_com_lote_vila(self, mock_saldos):
         from produtos.views import _contagem_validade_dashboard_por_loja
 
         ov = self._ov("PID-VILA")
-        self._lote(ov, dv=date(2026, 7, 30), qtd=5)
+        self._lote(ov, dv=date(2026, 7, 30), qtd=5, deposito="vila")
         mock_saldos.return_value = {
             "PID-VILA": {"saldo_centro": 0.0, "saldo_vila": 5.0},
         }

@@ -1196,18 +1196,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.77** · HEAD `teste`  
+> **Teste:** badge **v14.78** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
 | 1 | **CX-EMP-LOJA** | 📋 **pronto para envio à produção** | cherry `64c338b` | **NÃO** | Baixo — só saída/retirada (empresa do lançamento) |
 | 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — só Relatório Validade |
-| 3 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+| 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — só card Validade do BI |
+| 4 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
 **Já Live (v14.72):** PLANOS-PDV · NF-VAL-BCA · FACETA-CACHE · TRANSF-BIP · FOTO-PDV.
 
-**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR] para produção* + **99738595**
+**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA] para produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — BI Validade segue loja travada (`BI-VAL-LOJA` · **v14.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** |
+| **Bug** | Com TRAVA Vila, card Validade ainda contava lote do Centro (C+V 0 / fallback) |
+| **Fix** | Card usa `EstoqueLote.deposito` · lote Centro ≠ Vila · cache `v5` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 BI · TRAVA Vila · conferir Vencidos/No mês vs Relatório loja Vila |
+| **Autorizar** | *pode subir BI-VAL-LOJA / validade BI loja para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Validade Salvar na linha (`VAL-SALVAR` · **v14.77**)
 
