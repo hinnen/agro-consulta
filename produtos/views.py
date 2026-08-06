@@ -15337,7 +15337,7 @@ def aplicar_entrada_nota_estoque_agro(
             lote_info = None
             try:
                 lote_info = registrar_lote_validade_apos_entrada_nf(
-                    pid, ln, qtd, nome_produto=nome_p
+                    pid, ln, qtd, nome_produto=nome_p, deposito=dep
                 )
                 if lote_info:
                     _invalidar_cache_dashboard_perdas_validade()
@@ -22743,6 +22743,9 @@ def api_overlay_lote_adicionar(request):
         qtd = Decimal(str(q).replace(",", ".").strip() or "0").quantize(Decimal("0.01"))
     except Exception:
         return JsonResponse({"ok": False, "erro": "Quantidade inválida"}, status=400)
+    dep = str(payload.get("deposito") or payload.get("loja") or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = ""
 
     ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
         produto_externo_id=pid[:64],
@@ -22750,13 +22753,16 @@ def api_overlay_lote_adicionar(request):
             "usuario": request.user if request.user.is_authenticated else None,
         },
     )
+    defaults = {
+        "data_validade": dv,
+        "quantidade_atual": qtd,
+    }
+    if dep:
+        defaults["deposito"] = dep
     el, _ = EstoqueLote.objects.update_or_create(
         overlay=ov,
         lote_codigo=lote_cod,
-        defaults={
-            "data_validade": dv,
-            "quantidade_atual": qtd,
-        },
+        defaults=defaults,
     )
     sync_overlay_validade_resumo_de_lotes(ov)
     return JsonResponse(
@@ -22767,6 +22773,7 @@ def api_overlay_lote_adicionar(request):
                 "lote_codigo": el.lote_codigo,
                 "data_validade": el.data_validade.isoformat()[:10],
                 "quantidade_atual": str(el.quantidade_atual),
+                "deposito": el.deposito or "",
             },
         }
     )
@@ -31073,91 +31080,83 @@ def relatorios_validade(request):
     lista_validade: list[dict] = []
     totais_saldo_c_v = 0.0
     totais_saldo_vencido = 0.0
+    totais_saldo_centro = 0.0
+    totais_saldo_vila = 0.0
 
     def anexa_linha_validade(
         row: dict, *, saldo_lote_local: float | None = None
     ) -> None:
         stf = str(row.get("status") or "")
         pid = str(row.get("produto_id") or "")
-        if estoque_mongo_ok and saldos_map:
-            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-                saldos_map, pid, stf
-            )
-        elif not estoque_mongo_ok and saldo_lote_local is not None:
-            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-                {},
-                pid,
-                stf,
-                saldo_lote_local=saldo_lote_local,
-            )
-        else:
-            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-                saldos_map, pid, stf
-            )
-        # ERP 0 com Id divergente do código do relatório é comum: mostrar o saldo do lote (Agro).
+        s = (saldos_map or {}).get(pid) or {} if estoque_mongo_ok else {}
+        try:
+            saldo_c = float(s.get("saldo_centro") or 0)
+        except (TypeError, ValueError):
+            saldo_c = 0.0
+        try:
+            saldo_v = float(s.get("saldo_vila") or 0)
+        except (TypeError, ValueError):
+            saldo_v = 0.0
+
         lq_fallback = 0.0
         if row.get("lote_id") and (row.get("lote_qtd") is not None):
             try:
                 lq_fallback = float(row.get("lote_qtd") or 0)
             except (TypeError, ValueError):
                 lq_fallback = 0.0
-        if estoque_mongo_ok and lq_fallback > 0 and (scv is None or float(scv) == 0.0):
-            scv, sv = _relatorio_validade_saldo_cv_e_vencido(
-                {},
-                pid,
-                stf,
-                saldo_lote_local=lq_fallback,
-            )
-        # Filtro por loja: saldo da unidade.
-        # EstoqueLote ainda não tem depósito: se o C+V operacional das duas lojas
-        # está zerado e o lote tem qtd, mostra na Centro e na Vila (igual card BI).
-        # Se só a outra loja tem saldo operacional, esconde.
-        if deposito_filtro in ("centro", "vila"):
-            s = (saldos_map or {}).get(pid) or {} if estoque_mongo_ok else {}
-            chave = "saldo_vila" if deposito_filtro == "vila" else "saldo_centro"
+        if (
+            lq_fallback <= 0
+            and saldo_lote_local is not None
+            and not estoque_mongo_ok
+        ):
             try:
-                saldo_loja = float(s.get(chave) or 0)
+                lq_fallback = float(saldo_lote_local or 0)
             except (TypeError, ValueError):
-                saldo_loja = 0.0
-            try:
-                saldo_c = float(s.get("saldo_centro") or 0)
-                saldo_v = float(s.get("saldo_vila") or 0)
-            except (TypeError, ValueError):
-                saldo_c = 0.0
-                saldo_v = 0.0
-            total_op = saldo_c + saldo_v
-            if saldo_loja > 0:
-                row["saldo_c_v"] = saldo_loja
-                row["saldo_vencido"] = saldo_loja if stf == "vencido" else 0.0
-            elif lq_fallback > 0 and (not estoque_mongo_ok or total_op <= 0):
-                row["saldo_c_v"] = lq_fallback
-                row["saldo_vencido"] = lq_fallback if stf == "vencido" else 0.0
-            elif (
-                not estoque_mongo_ok
-                and saldo_lote_local is not None
-                and float(saldo_lote_local or 0) > 0
-            ):
-                row["saldo_c_v"] = float(saldo_lote_local)
-                row["saldo_vencido"] = (
-                    float(saldo_lote_local) if stf == "vencido" else 0.0
-                )
-            else:
+                lq_fallback = 0.0
+
+        # Lote com loja conhecida e sem saldo operacional nessa loja → conta no estoque da loja.
+        dep_lote = str(row.get("lote_deposito") or "").strip().lower()
+        if dep_lote not in ("centro", "vila"):
+            dep_lote = ""
+        if lq_fallback > 0 and dep_lote == "centro" and saldo_c <= 0:
+            saldo_c = lq_fallback
+        if lq_fallback > 0 and dep_lote == "vila" and saldo_v <= 0:
+            saldo_v = lq_fallback
+        # Lote sem loja + C+V operacional zerado: só entra em «Todas» (não inventa loja).
+        if (
+            lq_fallback > 0
+            and not dep_lote
+            and saldo_c <= 0
+            and saldo_v <= 0
+            and deposito_filtro is None
+        ):
+            # Mostra quantidade do lote como referência em C+V agregado.
+            saldo_c = lq_fallback
+
+        scv = saldo_c + saldo_v
+        sv = scv if stf == "vencido" else 0.0
+
+        if deposito_filtro == "centro":
+            if saldo_c <= 0:
                 return
+            row["saldo_centro"] = saldo_c
+            row["saldo_vila"] = saldo_v
+            row["saldo_c_v"] = saldo_c
+            row["saldo_vencido"] = saldo_c if stf == "vencido" else 0.0
+        elif deposito_filtro == "vila":
+            if saldo_v <= 0:
+                return
+            row["saldo_centro"] = saldo_c
+            row["saldo_vila"] = saldo_v
+            row["saldo_c_v"] = saldo_v
+            row["saldo_vencido"] = saldo_v if stf == "vencido" else 0.0
         else:
-            row["saldo_c_v"] = scv
-            row["saldo_vencido"] = sv
-            if (
-                somente_com_estoque
-                and estoque_mongo_ok
-                and scv is not None
-                and scv <= 0
-            ):
-                return
-            if somente_com_estoque and (not estoque_mongo_ok) and saldo_lote_local is not None:
-                try:
-                    if float(saldo_lote_local) <= 0:
-                        return
-                except (TypeError, ValueError):
+            row["saldo_centro"] = saldo_c
+            row["saldo_vila"] = saldo_v
+            row["saldo_c_v"] = scv if (estoque_mongo_ok or lq_fallback > 0) else None
+            row["saldo_vencido"] = sv if row["saldo_c_v"] is not None else None
+            if somente_com_estoque:
+                if row["saldo_c_v"] is None or float(row["saldo_c_v"] or 0) <= 0:
                     return
         lista_validade.append(row)
 
@@ -31222,6 +31221,9 @@ def relatorios_validade(request):
             lote_raw = str(el.lote_codigo or "").strip()[:100]
             lote = lote_raw or "N/A"
             qtd = float(el.quantidade_atual or 0)
+            dep_el = str(getattr(el, "deposito", None) or "").strip().lower()
+            if dep_el not in ("centro", "vila"):
+                dep_el = ""
             anexa_linha_validade(
                 {
                     "produto_id": ov.produto_externo_id,
@@ -31230,6 +31232,7 @@ def relatorios_validade(request):
                     "lote_raw": lote_raw,
                     "lote_id": el.pk,
                     "lote_qtd": qtd,
+                    "lote_deposito": dep_el,
                     "data_validade": data_venc,
                     "dias_restantes": dias_restantes,
                     "dias_restantes_abs": abs(dias_restantes),
@@ -31298,20 +31301,27 @@ def relatorios_validade(request):
     if lista_validade and estoque_mongo_ok:
         totais_saldo_c_v = 0.0
         totais_saldo_vencido = 0.0
+        totais_saldo_centro = 0.0
+        totais_saldo_vila = 0.0
         por_produto: dict[str, dict] = {}
         for r in lista_validade:
             pid = str(r.get("produto_id") or "")
             if not pid or r.get("status") == "erro_importacao":
                 continue
+            sc = r.get("saldo_centro")
+            svl = r.get("saldo_vila")
             scv = r.get("saldo_c_v")
             sv = r.get("saldo_vencido")
             if pid not in por_produto:
-                por_produto[pid] = {"c_v": scv, "venc": sv}
+                por_produto[pid] = {"c_v": scv, "venc": sv, "centro": sc, "vila": svl}
             else:
                 cur = por_produto[pid]
-                if scv is not None:
-                    if cur.get("c_v") is None:
-                        cur["c_v"] = scv
+                if scv is not None and cur.get("c_v") is None:
+                    cur["c_v"] = scv
+                if sc is not None and cur.get("centro") is None:
+                    cur["centro"] = sc
+                if svl is not None and cur.get("vila") is None:
+                    cur["vila"] = svl
                 if sv is not None:
                     a = float(cur["venc"] or 0) if cur.get("venc") is not None else 0.0
                     b = float(sv or 0)
@@ -31323,9 +31333,15 @@ def relatorios_validade(request):
                 totais_saldo_c_v += float(c)
             if v is not None:
                 totais_saldo_vencido += float(v)
+            if t.get("centro") is not None:
+                totais_saldo_centro += float(t["centro"])
+            if t.get("vila") is not None:
+                totais_saldo_vila += float(t["vila"])
     elif lista_validade and not estoque_mongo_ok:
         totais_saldo_c_v = 0.0
         totais_saldo_vencido = 0.0
+        totais_saldo_centro = 0.0
+        totais_saldo_vila = 0.0
         for r in lista_validade:
             if r.get("status") == "erro_importacao":
                 continue
@@ -31335,6 +31351,10 @@ def relatorios_validade(request):
                 totais_saldo_c_v += float(c)
             if v is not None:
                 totais_saldo_vencido += float(v)
+            if r.get("saldo_centro") is not None:
+                totais_saldo_centro += float(r["saldo_centro"])
+            if r.get("saldo_vila") is not None:
+                totais_saldo_vila += float(r["saldo_vila"])
 
     lista_validade.sort(
         key=lambda x: (0, x["produto_id"], str(x.get("lote") or ""))
@@ -31358,6 +31378,8 @@ def relatorios_validade(request):
         "exibir_rodape_totais": exibir_rodape_totais,
         "totais_estoque": {
             "c_v": totais_saldo_c_v,
+            "centro": totais_saldo_centro,
+            "vila": totais_saldo_vila,
             "vencido": totais_saldo_vencido,
         },
         "filtros": {
