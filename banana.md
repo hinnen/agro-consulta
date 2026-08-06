@@ -539,6 +539,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Faceta unidade/marca/cat (06/08 · FACETA-CACHE):** lista branca vinha de cache desatualizado (+ PIN não limpava chave `v6`). Corrigido: invalidar cache ao salvar/+ · servidor inclui valores do produto e do PIN · JS não sobrescreve o que já cadastrou na sessão.
 
+**Foto produto (06/08 · FOTO-PDV · v14.68):** aba Gerais usa o mesmo anexar foto da aba Delivery (uma foto só) · já aparece no PDV (fluxo Delivery desde v11.45). Removido campo URL que não gravava no Agro.
+
 **Fantasmas Mongo â†’ Postgres (`agro_pg`, 2026-06-24):**
 
 | O quÃª | Detalhe |
@@ -1194,7 +1196,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
-> **Teste:** badge **v14.67** · HEAD `teste`  
+> **Teste:** badge **v14.68** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
@@ -1203,7 +1205,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF estoque + Validade |
 | 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — lista marca/cat/unidade cadastro |
 | 4 | **TRANSF-BIP** | 🧪 **teste** · **v14.67** | cherry | **NÃO** | Baixo — só forçada `/transferencias/` |
-| 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+| 5 | **FOTO-PDV** | 🧪 **teste** · **v14.68** | cherry | **NÃO** | Baixo — só modal cadastro |
+| 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
+
+### ✅ Cadastro — foto Gerais = Delivery = PDV (`FOTO-PDV` · **v14.68** · 06/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba Gerais: anexar foto (igual Delivery) · **mesma foto** nas duas abas · já alimenta PDV |
+| **Antes** | Só URL (não gravava); foto útil só na aba 10 |
+| **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` |
+| **Você** | Ctrl+F5 Cadastro · Gerais → Escolher arquivo → Salvar · abrir Delivery (mesma preview) · PDV |
 
 ### ✅ Transferência forçada — bip volta na busca (`TRANSF-BIP` · **v14.67** · 06/08)
 
