@@ -1193,7 +1193,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO LOJA — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.81**)
+### 📦 PACOTE PRONTO LOJA — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.82**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1208,7 +1208,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
 > **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.81** · HEAD `teste`  
+> **Teste:** badge **v14.82** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CX-EMP-LOJA** | 📦 **pronto para envio à produção** · **v14.75** | cherry `64c338b` | **NÃO** | Baixo — saída/retirada |
 | 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
 | 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
-| 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.81** | cherry / lote | **NÃO** | Baixo — Uso loja |
+| 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.82** | cherry / lote | **NÃO** | Baixo — Uso loja |
 | 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
 **Provas (06/08):** `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
