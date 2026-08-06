@@ -1193,15 +1193,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.79**)
+### 📦 PACOTE PRONTO LOJA — Uso loja donos + cards (`PDV-USO-DONOS` · **v14.81**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🧪 **teste** · aguarda prova local |
-| **O quê** | Motivos **Uso Geraldinho** / **Uso Geraldo** · cards de soma no histórico · títulos **Uso Centro** / **Uso Vila Elias** |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Motivos **Uso Geraldinho** / **Uso Geraldo** · cards de soma · **Uso Centro** / **Uso Vila Elias** · botão topbar verde |
+| **Prova** | `scripts/verify_uso_loja_donos_path.py` **65/65** · `manage.py check` OK |
 | **Migrate** | **NÃO** |
-| **Arquivos** | `models.py` · `uso_loja_util.py` · `uso_loja_overlay.html` · `pdv_uso_loja.js` |
-| **Você** | Ctrl+F5 PDV · Uso loja · motivo → confirmar · Histórico ver 4 cards · botão topbar verde |
+| **Risco** | Baixo — só Uso loja |
+| **Você** | Ctrl+F5 PDV · motivo dono · Histórico 4 cards · botão verde |
+| **Autorizar** | *pode subir PDV-USO-DONOS / uso loja donos para produção* + **99738595** |
 
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
 
@@ -1214,12 +1216,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CX-EMP-LOJA** | 📦 **pronto para envio à produção** · **v14.75** | cherry `64c338b` | **NÃO** | Baixo — saída/retirada |
 | 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
 | 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
-| 4 | **PDV-USO-DONOS** | 🧪 teste · fora deste lote | — | **NÃO** | — |
+| 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.81** | cherry / lote | **NÃO** | Baixo — Uso loja |
 | 5 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-**Provas (06/08):** `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
+**Provas (06/08):** `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
 
-**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA] para produção* + **99738595**
+**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA / PDV-USO-DONOS] para produção* + **99738595**
 
 ### 📦 PACOTE PRONTO LOJA — BI Validade segue loja travada (`BI-VAL-LOJA` · **v14.78**)
 
