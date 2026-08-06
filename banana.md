@@ -1213,7 +1213,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** |
+| **Status** | 📦 **pronto para envio à produção** |
 | **O quê** | Checkbox **PDV** em Planos de contas · 14 atuais pré-marcados · saída/retirada lê Postgres · marcar **Manutenção do Prédio** libera no select |
 | **Commits** | `65e0f6f` (+ bump `bbddd19`) |
 | **Migrate** | **SIM** — loja: `0084` (no-op, schema já ok) + `0085` (`exibir_pdv` + seed) · **não** subir `0082` |
