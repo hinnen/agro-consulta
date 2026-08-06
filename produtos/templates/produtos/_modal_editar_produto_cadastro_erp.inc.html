@@ -1674,7 +1674,65 @@
     el.value = fmtPctInput(Number(n));
   }
 
-  window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [], unidades: [] };
+  window._agroFacetas = {
+    marcas: [],
+    fornecedores: [],
+    categorias: [],
+    subcategorias: [],
+    subcategorias_2: [],
+    subcategorias_3: [],
+    subcategorias_4: [],
+    unidades: [],
+    modelos: []
+  };
+
+  function mergeAgroFacetasPayload(d) {
+    if (!d || typeof d !== 'object') return;
+    if (!window._agroFacetas) window._agroFacetas = {};
+    [
+      'marcas',
+      'fornecedores',
+      'categorias',
+      'subcategorias',
+      'subcategorias_2',
+      'subcategorias_3',
+      'subcategorias_4',
+      'unidades',
+      'modelos'
+    ].forEach(function (k) {
+      if (!Array.isArray(d[k])) return;
+      var prev = Array.isArray(window._agroFacetas[k]) ? window._agroFacetas[k] : [];
+      var merged = d[k].slice();
+      var seen = {};
+      merged.forEach(function (x) {
+        seen[normFacetTxt(x)] = true;
+      });
+      prev.forEach(function (x) {
+        var s = String(x || '').trim();
+        if (!s || seen[normFacetTxt(s)]) return;
+        seen[normFacetTxt(s)] = true;
+        merged.push(s);
+      });
+      window._agroFacetas[k] = merged;
+    });
+    if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
+      window.AgroPickList.mergeFacetas(d);
+    }
+  }
+
+  /** Garante que valores já gravados no produto entrem na lista branca (reuso em outros itens). */
+  function seedFacetasDoProduto(produto) {
+    if (!produto || typeof produto !== 'object') return;
+    appendFacetToList('marcas', produto.marca);
+    appendFacetToList('fornecedores', produto.fornecedor || produto.fornecedor_texto);
+    appendFacetToList('categorias', produto.categoria);
+    appendFacetToList('subcategorias', produto.subcategoria);
+    appendFacetToList('subcategorias_2', produto.subcategoria_2);
+    appendFacetToList('subcategorias_3', produto.subcategoria_3);
+    appendFacetToList('subcategorias_4', produto.subcategoria_4);
+    appendFacetToList('unidades', produto.unidade);
+    appendFacetToList('modelos', produto.modelo);
+  }
 
   function atualizarMargemLivre() {
     var el = document.getElementById('edit-margem-livre');
@@ -2038,39 +2096,36 @@
     var cfg = window.AgroCadastroErpLista || {};
     var url = cfg.URL_FACETAS || '';
     if (!url) return;
-    fetch(url, { credentials: 'same-origin' })
+    fetch(url + (url.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now(), {
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    })
       .then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (d) {
         if (!d || !d.ok) return;
-        window._agroFacetas.marcas = Array.isArray(d.marcas) ? d.marcas.slice() : [];
-        window._agroFacetas.fornecedores = Array.isArray(d.fornecedores) ? d.fornecedores.slice() : [];
-        window._agroFacetas.categorias = Array.isArray(d.categorias) ? d.categorias.slice() : [];
-        window._agroFacetas.subcategorias = Array.isArray(d.subcategorias) ? d.subcategorias.slice() : [];
-        window._agroFacetas.unidades = Array.isArray(d.unidades) ? d.unidades.slice() : [];
-        if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
-          window.AgroPickList.mergeFacetas(d);
-        }
+        mergeAgroFacetasPayload(d);
         var dm = document.getElementById('dl-marcas-agro');
         var df = document.getElementById('dl-forns-agro');
         var dc = document.getElementById('dl-cats-agro');
         var ds = document.getElementById('dl-subcats-agro');
-        if (dm && d.marcas && d.marcas.length) {
-          dm.innerHTML = d.marcas.map(function (m) {
+        if (dm && window._agroFacetas.marcas && window._agroFacetas.marcas.length) {
+          dm.innerHTML = window._agroFacetas.marcas.map(function (m) {
             return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
           }).join('');
         }
-        if (df && d.fornecedores && d.fornecedores.length) {
-          df.innerHTML = d.fornecedores.map(function (m) {
+        if (df && window._agroFacetas.fornecedores && window._agroFacetas.fornecedores.length) {
+          df.innerHTML = window._agroFacetas.fornecedores.map(function (m) {
             return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
           }).join('');
         }
-        if (dc && d.categorias && d.categorias.length) {
-          dc.innerHTML = d.categorias.map(function (m) {
+        if (dc && window._agroFacetas.categorias && window._agroFacetas.categorias.length) {
+          dc.innerHTML = window._agroFacetas.categorias.map(function (m) {
             return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
           }).join('');
         }
-        if (ds && d.subcategorias && d.subcategorias.length) {
-          ds.innerHTML = d.subcategorias.map(function (m) {
+        if (ds && window._agroFacetas.subcategorias && window._agroFacetas.subcategorias.length) {
+          ds.innerHTML = window._agroFacetas.subcategorias.map(function (m) {
             return '<option value="' + String(m).replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '"></option>';
           }).join('');
         }
@@ -2651,6 +2706,7 @@
     setVal('edit-unidade', produto.unidade || '');
     setVal('edit-peso-etiqueta', produto.peso_etiqueta || '');
     setVal('edit-fornecedor', produto.fornecedor || '');
+    seedFacetasDoProduto(produto);
 
     var ce = produto.cadastro_extras && typeof produto.cadastro_extras === 'object' ? produto.cadastro_extras : {};
     var kit = ce.kit && typeof ce.kit === 'object' ? ce.kit : {};
@@ -3203,6 +3259,7 @@
         } else {
           setVal('edit-modelo', gv('edit-modelo'));
         }
+        seedFacetasDoProduto(j.produto);
         loadFacetasDatalists();
       }
     }).catch(function (e) {
@@ -4631,7 +4688,19 @@
   }
 
   function appendFacetToList(facetKey, val) {
-    if (!window._agroFacetas) window._agroFacetas = { marcas: [], fornecedores: [], categorias: [], subcategorias: [], unidades: [] };
+    if (!window._agroFacetas) {
+      window._agroFacetas = {
+        marcas: [],
+        fornecedores: [],
+        categorias: [],
+        subcategorias: [],
+        subcategorias_2: [],
+        subcategorias_3: [],
+        subcategorias_4: [],
+        unidades: [],
+        modelos: []
+      };
+    }
     var arr = window._agroFacetas[facetKey];
     if (!Array.isArray(arr)) {
       window._agroFacetas[facetKey] = [];
@@ -4640,6 +4709,11 @@
     var v = String(val || '').trim();
     if (!v) return;
     if (!findFacetExact(facetKey, v)) arr.push(v);
+    if (window.AgroPickList && window.AgroPickList.appendFacet) {
+      try {
+        window.AgroPickList.appendFacet(facetKey, v);
+      } catch (eAp) { /* ignore */ }
+    }
     var mapDl = {
       marcas: 'dl-marcas-agro',
       fornecedores: 'dl-forns-agro',

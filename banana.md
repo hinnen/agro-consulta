@@ -535,7 +535,9 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera.
 
-**Modal cadastro â€” marca/categoria (08/07):** Â«Salvar no AgroÂ» grava online (Postgres + overlay). BotÃ£o **+** sÃ³ preenche o campo â€” **nÃ£o** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que Â«apagavaÂ» marca/cat).
+**Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
+
+**Faceta unidade/marca/cat (06/08 · FACETA-CACHE):** lista branca vinha de cache desatualizado (+ PIN não limpava chave `v6`). Corrigido: invalidar cache ao salvar/+ · servidor inclui valores do produto e do PIN · JS não sobrescreve o que já cadastrou na sessão.
 
 **Fantasmas Mongo â†’ Postgres (`agro_pg`, 2026-06-24):**
 
@@ -1187,6 +1189,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🐛 Cadastro — unidade/marca/cat «não cadastrado» (`FACETA-CACHE` · 06/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **teste** · prova local pendente |
+| **Bug** | Cadastrou Caixa no Azul · no outro produto a lista dizia «não cadastrado» (marca/cat igual) |
+| **Causa** | Cache das facetas (`v6`) **não era limpo** ao salvar/+ PIN (apagava chave velha) · JS **apagava** o que acabou de cadastrar ao recarregar a lista |
+| **Fix** | Invalidar cache certo · lista do servidor junta produto+PIN · JS **soma** (não sobrescreve) · ao abrir/salvar produto, valor entra na lista |
+| **Você** | Ctrl+F5 Cadastro · digitar **Caixa** no Roxo → deve achar · mesma lógica marca/categoria |
 
 ### ðŸ©¹ Entrada NF validade → tela Validade + busca BCA (`NF-VAL-BCA` · 06/08)
 

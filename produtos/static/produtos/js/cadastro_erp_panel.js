@@ -2086,15 +2086,43 @@
         Object.keys(cadMsFacetas).forEach(function (k) { cadastroMsRenderBtn(k); });
         try {
           if (!window._agroFacetas) window._agroFacetas = {};
-          window._agroFacetas.marcas = j.marcas || [];
-          window._agroFacetas.categorias = j.categorias || [];
-          window._agroFacetas.fornecedores = j.fornecedores || [];
-          window._agroFacetas.subcategorias = j.subcategorias || [];
-          window._agroFacetas.subcategorias_2 = j.subcategorias_2 || [];
-          window._agroFacetas.subcategorias_3 = j.subcategorias_3 || [];
-          window._agroFacetas.subcategorias_4 = j.subcategorias_4 || [];
-          window._agroFacetas.unidades = j.unidades || [];
-          window._agroFacetas.modelos = j.modelos || [];
+          var facKeys = [
+            ['marcas', j.marcas],
+            ['categorias', j.categorias],
+            ['fornecedores', j.fornecedores],
+            ['subcategorias', j.subcategorias],
+            ['subcategorias_2', j.subcategorias_2],
+            ['subcategorias_3', j.subcategorias_3],
+            ['subcategorias_4', j.subcategorias_4],
+            ['unidades', j.unidades],
+            ['modelos', j.modelos]
+          ];
+          function _normFac(s) {
+            return String(s || '')
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLowerCase()
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+          facKeys.forEach(function (pair) {
+            var k = pair[0];
+            var incoming = Array.isArray(pair[1]) ? pair[1] : [];
+            var prev = Array.isArray(window._agroFacetas[k]) ? window._agroFacetas[k] : [];
+            var merged = incoming.slice();
+            var seen = {};
+            merged.forEach(function (x) { seen[_normFac(x)] = true; });
+            prev.forEach(function (x) {
+              var s = String(x || '').trim();
+              if (!s || seen[_normFac(s)]) return;
+              seen[_normFac(s)] = true;
+              merged.push(s);
+            });
+            window._agroFacetas[k] = merged;
+          });
+          if (window.AgroPickList && window.AgroPickList.mergeFacetas) {
+            window.AgroPickList.mergeFacetas(j);
+          }
         } catch (eFac) { /* ignore */ }
         cadastroAtualizarResumoFiltros();
       })

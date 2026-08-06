@@ -19,6 +19,31 @@ _SORT_MAP = {
     "preco_venda": "preco_venda",
 }
 
+# Cache da API de facetas (gestão/cadastro). Sempre invalidar TODAS as chaves ao mudar dims.
+FACETAS_GESTAO_CACHE_KEY = "agro_gestao_facetas_v6"
+FACETAS_GESTAO_CACHE_KEYS = (
+    "agro_gestao_facetas_v1",
+    "agro_gestao_facetas_v2",
+    "agro_gestao_facetas_v3",
+    "agro_gestao_facetas_v4",
+    "agro_gestao_facetas_v5",
+    FACETAS_GESTAO_CACHE_KEY,
+)
+
+
+def invalidar_cache_facetas_gestao() -> None:
+    """Apaga cache de marcas/categorias/unidades (todas as versões de chave)."""
+    try:
+        from django.core.cache import cache
+
+        for k in FACETAS_GESTAO_CACHE_KEYS:
+            try:
+                cache.delete(k)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
 
 def _dec(v) -> float:
     try:
@@ -1097,7 +1122,7 @@ def _produto_overlay_ids_fornecedor_agro(termo: str) -> list[str]:
 
 
 def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
-    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay)."""
+    """Marcas, categorias, subcategorias e fornecedores (Postgres + overlay + PIN)."""
     lim_cat = max(1, min(int(limite or 500), 2000))
     qs = queryset_catalogo_ativos(inativos=False)
     marcas = _faceta_valores_distintos(qs.exclude(marca="").values_list("marca", flat=True).distinct(), limite=0)
@@ -1156,6 +1181,19 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
         list(qs.exclude(modelo="").values_list("modelo", flat=True).distinct()),
         limite=lim_cat,
     )
+
+    # Valores autorizados com PIN (faceta-nova) — entram na lista mesmo antes de gravar no produto.
+    pin_extra = _facetas_autorizadas_por_pin()
+    marcas = _faceta_valores_distintos(list(marcas) + pin_extra.get("marcas", []), limite=0)
+    categorias = _faceta_valores_distintos(list(categorias) + pin_extra.get("categorias", []), limite=lim_cat)
+    subcategorias = _faceta_valores_distintos(
+        list(subcategorias) + pin_extra.get("subcategorias", []), limite=lim_cat
+    )
+    fornecedores = _faceta_valores_distintos(
+        list(fornecedores) + pin_extra.get("fornecedores", []), limite=lim_cat + 200
+    )
+    unidades = _faceta_valores_distintos(list(unidades) + pin_extra.get("unidades", []), limite=lim_cat)
+
     return {
         "marcas": marcas,
         "categorias": categorias,
@@ -1167,6 +1205,47 @@ def facetas_gestao(*, limite: int = 500) -> dict[str, list[str]]:
         "unidades": unidades,
         "modelos": modelos,
     }
+
+
+def _facetas_autorizadas_por_pin(*, limite_por_tipo: int = 400) -> dict[str, list[str]]:
+    """Lê logs ``faceta_*`` (PIN +) e devolve valores limpos por tipo de lista."""
+    out: dict[str, list[str]] = {
+        "marcas": [],
+        "categorias": [],
+        "subcategorias": [],
+        "fornecedores": [],
+        "unidades": [],
+    }
+    mapa = {
+        "faceta_marca": "marcas",
+        "faceta_categoria": "categorias",
+        "faceta_subcategoria": "subcategorias",
+        "faceta_fornecedor": "fornecedores",
+        "faceta_unidade": "unidades",
+    }
+    try:
+        from produtos.models import ProdutoCadastroAlteracaoAgro
+
+        qs = (
+            ProdutoCadastroAlteracaoAgro.objects.filter(campo__in=list(mapa.keys()))
+            .order_by("-id")
+            .values_list("campo", "valor_depois")[: limite_por_tipo * len(mapa)]
+        )
+        buckets: dict[str, list[str]] = {k: [] for k in out}
+        for campo, raw in qs:
+            key = mapa.get(str(campo or ""))
+            if not key:
+                continue
+            s = str(raw or "").strip()
+            if " · PIN " in s:
+                s = s.split(" · PIN ", 1)[0].strip()
+            if s:
+                buckets[key].append(s)
+        for k, vals in buckets.items():
+            out[k] = _faceta_valores_distintos(vals, limite=limite_por_tipo)
+    except Exception:
+        pass
+    return out
 
 
 def listar_todos_rows_ativos() -> list[dict]:

@@ -5,7 +5,17 @@
 (function (global) {
   'use strict';
 
-  var FACETAS = { marcas: [], fornecedores: [], categorias: [], subcategorias: [], unidades: [] };
+  var FACETAS = {
+    marcas: [],
+    fornecedores: [],
+    categorias: [],
+    subcategorias: [],
+    subcategorias_2: [],
+    subcategorias_3: [],
+    subcategorias_4: [],
+    unidades: [],
+    modelos: [],
+  };
   var pinModalEl = null;
   var pinState = null;
 
@@ -32,7 +42,11 @@
     if (t === 'fornecedor') return 'fornecedores';
     if (t === 'categoria') return 'categorias';
     if (t === 'subcategoria') return 'subcategorias';
+    if (t === 'subcategoria_2' || t === 'sub2') return 'subcategorias_2';
+    if (t === 'subcategoria_3' || t === 'sub3') return 'subcategorias_3';
+    if (t === 'subcategoria_4' || t === 'sub4') return 'subcategorias_4';
     if (t === 'unidade') return 'unidades';
+    if (t === 'modelo') return 'modelos';
     return t;
   }
 
@@ -77,10 +91,21 @@
 
   function mergeFacetas(data) {
     if (!data || typeof data !== 'object') return;
-    ['marcas', 'fornecedores', 'categorias', 'subcategorias', 'unidades'].forEach(function (k) {
-      if (Array.isArray(data[k])) {
-        FACETAS[k] = data[k].slice();
-      }
+    ['marcas', 'fornecedores', 'categorias', 'subcategorias', 'subcategorias_2', 'subcategorias_3', 'subcategorias_4', 'unidades', 'modelos'].forEach(function (k) {
+      if (!Array.isArray(data[k])) return;
+      var prev = Array.isArray(FACETAS[k]) ? FACETAS[k] : [];
+      var merged = data[k].slice();
+      var seen = {};
+      merged.forEach(function (x) {
+        seen[norm(x)] = true;
+      });
+      prev.forEach(function (x) {
+        var s = String(x || '').trim();
+        if (!s || seen[norm(s)]) return;
+        seen[norm(s)] = true;
+        merged.push(s);
+      });
+      FACETAS[k] = merged;
     });
   }
 
