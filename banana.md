@@ -1196,40 +1196,45 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.61)
 
 > **Loja hoje:** ✅ **Live v14.61** · `producao` @ **47bb1de**  
-> **Teste:** badge **v14.68** · HEAD `teste`  
+> **Teste:** badge **v14.69** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Deploy = cherry/prep do pacote.
 
 | # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
 | - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`(no-op)+`0085` | Baixo — Config + select saída |
-| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF estoque + Validade |
-| 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — lista marca/cat/unidade cadastro |
-| 4 | **TRANSF-BIP** | 🧪 **teste** · **v14.67** | cherry | **NÃO** | Baixo — só forçada `/transferencias/` |
-| 5 | **FOTO-PDV** | 🧪 **teste** · **v14.68** | cherry | **NÃO** | Baixo — só modal cadastro |
+| 1 | **PLANOS-PDV** | 📦 **pronto para envio à produção** | cherry/prep (`65e0f6f`) | **SIM** `0084`+`0085` | Baixo — Config + select saída |
+| 2 | **NF-VAL-BCA** | 📦 **pronto para envio à produção** · **v14.65** | cherry / lote | **NÃO** | Médio — Entrada NF + Validade |
+| 3 | **FACETA-CACHE** | 📦 **pronto para envio à produção** · **v14.66** | cherry / lote | **NÃO** | Baixo — combobox cadastro |
+| 4 | **TRANSF-BIP** | 📦 **pronto para envio à produção** · **v14.67** | cherry / lote | **NÃO** | Baixo — só forçada |
+| 5 | **FOTO-PDV** | 📦 **pronto para envio à produção** · **v14.68+** | cherry / lote | **NÃO** | Baixo — modal cadastro |
 | 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
 
-### ✅ Cadastro — foto Gerais = Delivery = PDV (`FOTO-PDV` · **v14.68** · 06/08)
+**Provas (06/08):** `verify_foto_pdv` **13/13** · `verify_transf_bip` **4/4** · `verify_faceta_cache` **10/10** · `manage.py check` OK.
+
+**Autorizar:** *pode subir [PLANOS-PDV / NF-VAL-BCA / FACETA-CACHE / TRANSF-BIP / FOTO-PDV] para produção* + **99738595**
+
+### 📦 PACOTE PRONTO LOJA — Foto Gerais = Delivery = PDV (`FOTO-PDV` · **v14.68+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Aba Gerais: anexar foto (igual Delivery) · **mesma foto** nas duas abas · já alimenta PDV |
-| **Antes** | Só URL (não gravava); foto útil só na aba 10 |
-| **Arquivo** | `_modal_editar_produto_cadastro_erp.inc.html` |
-| **Você** | Ctrl+F5 Cadastro · Gerais → Escolher arquivo → Salvar · abrir Delivery (mesma preview) · PDV |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Aba Gerais: anexar foto (igual Delivery) · **mesma foto** nas duas abas · PDV já lê do overlay |
+| **Prova** | `scripts/verify_foto_pdv.py` **13/13** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só modal cadastro |
+| **Você** | Ctrl+F5 Cadastro · Gerais → foto → Salvar · Delivery igual · PDV |
+| **Autorizar** | *pode subir FOTO-PDV / foto produto para produção* + **99738595** |
 
-### ✅ Transferência forçada — bip volta na busca (`TRANSF-BIP` · **v14.67** · 06/08)
+### 📦 PACOTE PRONTO LOJA — Transferência forçada bip (`TRANSF-BIP` · **v14.67**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Bip barras → +1 no carrinho e cursor na busca; digitar nome/GM → foco na qtd (igual) |
-| **Arquivo** | `produtos/templates/produtos/transferencias.html` |
-| **Você** | Ctrl+F5 `/transferencias/` → Forçada · bip · bip · digitar GM e Enter |
-
-**Já Live (v14.61):** BI-TOPBAR-DATAS · CP-BACKUP-MENU · NF-TROCA-ESTORNO · PLANOS-CONTA (+ lote 05/08).
-
-**Prova FACETA (06/08):** `verify_faceta_cache` **10/10** · overlay+PIN → lista · `manage.py check` OK.
-
-**Autorizar:** *pode subir [PLANOS-PDV / NF-VAL-BCA / FACETA-CACHE] para produção* + **99738595**
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Bip barras → +1 e cursor na busca; digitar nome/GM → foco na qtd |
+| **Prova** | `scripts/verify_transf_bip.py` **4/4** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só `/transferencias/` forçada |
+| **Você** | Ctrl+F5 Forçada · bip · bip · digitar GM + Enter |
+| **Autorizar** | *pode subir TRANSF-BIP / bip transferência para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Planos no PDV por checkbox (`PLANOS-PDV` · **v14.62+**)
 
