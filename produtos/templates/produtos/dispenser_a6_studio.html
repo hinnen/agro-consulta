@@ -1500,6 +1500,7 @@ Batata-Doce</textarea>
     }
 
     /* Remove fundo sólido ligado à borda (branco ou preto — comum em PNG de IA).
+       Só para ingredientes/ícones — NÃO usar em pets (pelo branco some).
        Não remove cinza médio: peixe/arroz prateado virava «comido» (sardinha). */
     function knockEdgeMatteToDataUrl(img, maxSide, cb) {
       var w = img.naturalWidth || img.width;
@@ -3001,7 +3002,10 @@ Batata-Doce</textarea>
       reader.onload = function () {
         var img = new Image();
         img.onload = function () {
-          knockWhiteToDataUrl(img, 720, function (dataUrl) {
+          /* Pet NÃO usa knock de branco/preto: pelo branco (Bernese etc.) cola no
+             contorno e a limpeza «comia» o peito — buracos/fantasmas na foto.
+             Só redimensiona; a moldura é redonda e esconde o fundo. */
+          resizeImageToDataUrl(img, 720, function (dataUrl) {
             if (!dataUrl) {
               window.alert("Não deu para processar essa imagem.");
               return;
@@ -3016,7 +3020,7 @@ Batata-Doce</textarea>
             cloudPushMidia("pet", item);
             buildPetGal();
             selectPet(item);
-          });
+          }, { type: "image/png" });
         };
         img.onerror = function () { window.alert("Não consegui ler essa imagem."); };
         img.src = String(reader.result || "");
