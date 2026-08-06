@@ -1652,6 +1652,14 @@ class EstoqueLote(models.Model):
         decimal_places=2,
         default=0,
     )
+    deposito = models.CharField(
+        "Depósito / loja",
+        max_length=16,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="centro | vila — loja onde a entrada NF lançou o estoque; vazio = não definido.",
+    )
     data_entrada = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1784,10 +1792,12 @@ def registrar_lote_validade_apos_entrada_nf(
     qtd,
     *,
     nome_produto: str = "",
+    deposito: str = "",
 ) -> dict | None:
     """
     Espelha lote/validade da etapa 4 da Entrada NF em ``EstoqueLote`` (tela Validade + BI).
     Sem data → não cria. Soma quantidade se o mesmo código de lote já existir.
+    ``deposito`` = centro|vila (loja do lançamento de estoque).
     """
     from decimal import Decimal
 
@@ -1801,6 +1811,9 @@ def registrar_lote_validade_apos_entrada_nf(
         return None
     if q_add <= 0:
         return None
+    dep = str(deposito or "").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = ""
     ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
         produto_externo_id=str(pid)[:64],
         defaults={"nome": (nome_produto or "")[:255]},
@@ -1813,6 +1826,10 @@ def registrar_lote_validade_apos_entrada_nf(
         nova = (Decimal(el.quantidade_atual or 0) + q_add).quantize(Decimal("0.01"))
         el.data_validade = dv
         el.quantidade_atual = nova
+        if dep and not (el.deposito or "").strip():
+            el.deposito = dep
+        elif dep:
+            el.deposito = dep
         el.save()
     else:
         el = EstoqueLote.objects.create(
@@ -1820,12 +1837,14 @@ def registrar_lote_validade_apos_entrada_nf(
             lote_codigo=lote_cod,
             data_validade=dv,
             quantidade_atual=q_add,
+            deposito=dep,
         )
     return {
         "lote_id": el.pk,
         "lote_codigo": el.lote_codigo,
         "data_validade": el.data_validade.isoformat()[:10],
         "quantidade_atual": float(el.quantidade_atual),
+        "deposito": el.deposito or "",
     }
 
 

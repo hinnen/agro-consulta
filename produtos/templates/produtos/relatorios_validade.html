@@ -143,7 +143,7 @@
   {% endif %}
   {% if not estoque_mongo_ok %}
   <p class="no-print mb-4 rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-sm text-slate-300">
-    Estoque (centro + vila) do ERP indisponível. A coluna C+V usa a <strong>quantidade por lote</strong> gravada no Agro, quando a linha vem de lotes. Filtro «Só com estoque» aplica a essa quantidade. Totais no rodapé somam o saldo por lote nesse modo.
+    Estoque (centro / vila) indisponível no mapa operacional. As colunas usam a <strong>quantidade do lote</strong> na loja gravada no Agro. Filtro por loja respeita essa loja do lote.
   </p>
   {% endif %}
 
@@ -154,7 +154,8 @@
           <tr>
             <th class="rv-td-prod" scope="col">Produto</th>
             <th class="w-[1%] whitespace-nowrap" scope="col">Lote</th>
-            <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Centro + vila (PDV)">C+V</th>
+            <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Saldo operacional Centro">Centro</th>
+            <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Saldo operacional Vila Elias">Vila</th>
             <th class="w-[1%] whitespace-nowrap text-right tabular-nums" title="Stock em lote/linha já vencida">Venc.</th>
             <th class="min-w-[11rem]" scope="col">Vencimento</th>
             <th class="no-print w-[1%] max-w-[8rem] text-left" scope="col">Sit.</th>
@@ -176,8 +177,11 @@
               <span class="inline-block rounded border border-slate-700/80 bg-slate-900/90 px-1.5 py-0.5 text-xs font-bold text-slate-300">{{ p.lote }}</span>
               {% endif %}
             </td>
-            <td class="text-right text-xs font-mono tabular-nums sm:text-sm">
-              {% if p.saldo_c_v is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_c_v|floatformat:2 }}{% endif %}
+            <td class="text-right text-xs font-mono tabular-nums sm:text-sm {% if filtros.loja == 'vila' %}text-slate-500{% endif %}">
+              {% if p.saldo_centro is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_centro|floatformat:2 }}{% endif %}
+            </td>
+            <td class="text-right text-xs font-mono tabular-nums sm:text-sm {% if filtros.loja == 'centro' %}text-slate-500{% endif %}">
+              {% if p.saldo_vila is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_vila|floatformat:2 }}{% endif %}
             </td>
             <td class="text-right text-xs font-mono tabular-nums sm:text-sm">
               {% if p.saldo_vencido is None %}<span class="text-slate-500">—</span>{% else %}{{ p.saldo_vencido|floatformat:2 }}{% endif %}
@@ -248,7 +252,7 @@
           </tr>
           {% empty %}
           <tr>
-            <td colspan="{% if pode_editar_validade %}8{% else %}6{% endif %}" class="px-4 py-8 text-center font-semibold text-slate-500">Nenhum produto com estes filtros (ou nenhum com estoque, se a leitura do Mongo estiver ativa).</td>
+            <td colspan="{% if pode_editar_validade %}9{% else %}7{% endif %}" class="px-4 py-8 text-center font-semibold text-slate-500">Nenhum produto com estes filtros (ou nenhum com estoque nesta loja).</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -256,7 +260,8 @@
         <tfoot class="border-t-2 border-slate-600 bg-slate-900/90 text-[10px] font-bold uppercase text-slate-400 sm:text-xs print:text-slate-800">
           <tr>
             <td class="text-slate-300 print:text-slate-700" colspan="2">Totais</td>
-            <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.c_v|floatformat:2 }}</td>
+            <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.centro|floatformat:2 }}</td>
+            <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.vila|floatformat:2 }}</td>
             <td class="text-right font-mono text-slate-100 print:text-slate-900 tabular-nums">{{ totais_estoque.vencido|floatformat:2 }}</td>
             <td class="" colspan="{% if pode_editar_validade %}4{% else %}2{% endif %}"></td>
           </tr>

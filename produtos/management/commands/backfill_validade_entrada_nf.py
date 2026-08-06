@@ -121,6 +121,17 @@ class Command(BaseCommand):
             default=40,
             help="Quantas linhas de detalhe imprimir (padrão 40).",
         )
+        parser.add_argument(
+            "--deposito",
+            type=str,
+            default="centro",
+            help="Loja do lote (centro|vila). Padrão: centro.",
+        )
+        parser.add_argument(
+            "--preencher-deposito",
+            action="store_true",
+            help="Só preenche deposito vazio nos lotes já existentes (não cria lote novo).",
+        )
 
     def handle(self, *args, **options):
         from produtos.models import (
@@ -136,6 +147,20 @@ class Command(BaseCommand):
         rid_filtro = str(options.get("id") or "").strip()
         incluir_marcados = bool(options.get("incluir_ja_marcados"))
         mostrar = max(0, int(options.get("mostrar") or 40))
+        dep_padrao = str(options.get("deposito") or "centro").strip().lower()
+        if dep_padrao not in ("centro", "vila"):
+            dep_padrao = "centro"
+
+        if options.get("preencher_deposito"):
+            qs_l = EstoqueLote.objects.filter(deposito="")
+            n = qs_l.count()
+            self.stdout.write(
+                f"{'APLICAR' if aplicar else 'DRY-RUN'} preencher deposito={dep_padrao} em {n} lote(s) sem loja"
+            )
+            if aplicar and n:
+                qs_l.update(deposito=dep_padrao)
+                self.stdout.write(self.style.SUCCESS(f"Atualizados: {n}"))
+            return
 
         qs = EntradaNotaRascunhoAgro.objects.exclude(status="descartada").order_by(
             "criado_em", "rascunho_id"
@@ -230,11 +255,15 @@ class Command(BaseCommand):
                         )
                     elif len(detalhes) < mostrar:
                         detalhes.append(msg)
+                    if aplicar and not (el.deposito or "").strip():
+                        el.deposito = dep_padrao
+                        el.save(update_fields=["deposito"])
                     continue
 
                 msg = (
                     f"CRIAR · NF {nf_num or '?'} L{idx} · pid={pid[:20]} · "
-                    f"{(nome or '')[:40]} · lote={lote_cod} · val={dv.isoformat()} · qtd={qtd}"
+                    f"{(nome or '')[:40]} · lote={lote_cod} · val={dv.isoformat()} · "
+                    f"qtd={qtd} · dep={dep_padrao}"
                 )
                 if len(detalhes) < mostrar:
                     detalhes.append(msg)
@@ -264,6 +293,7 @@ class Command(BaseCommand):
                             lote_codigo=lote_cod,
                             data_validade=dv,
                             quantidade_atual=qtd.quantize(Decimal("0.01")),
+                            deposito=dep_padrao,
                         )
                     cont["criar"] += 1
                     criados_neste += 1
