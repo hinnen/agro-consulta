@@ -1,7 +1,7 @@
 /**
  * Campanha PDV (inauguração Vila — % automático).
- * Preço de tela = pós-promo × fator. No envio, manda preço SEM campanha + campanha_id
- * para o servidor aplicar (fonte da verdade / NFC-e / caixa).
+ * Regra: menor entre (preço pós-promo) e (preço base × fator). Não soma os dois.
+ * No envio: preco = pós-promo, preco_base = lista/forma; servidor reaplica o min.
  */
 (function (global) {
     'use strict';
@@ -72,22 +72,39 @@
         return toNum(regra && regra.percentual, 0);
     }
 
-    /** Depois do recalc de promo/forma: grava base e aplica fator na tela. */
+    function precoBaseItem(item) {
+        if (!item) return 0;
+        if (item.preco_base_forma != null) return toNum(item.preco_base_forma, 0);
+        if (item.preco_padrao != null) return toNum(item.preco_padrao, 0);
+        return toNum(item.preco, 0);
+    }
+
+    /** Depois do recalc de promo/forma: cobra o menor (promo vs base×fator). */
     function aplicarNosItens(itens) {
         if (!Array.isArray(itens)) return itens;
         var on = ativa();
         var f = fator();
         itens.forEach(function (item) {
             if (!item) return;
-            var base = toNum(item.preco, 0);
-            item.preco_pos_promo = base;
+            var aposPromo = toNum(item.preco, 0);
+            item.preco_pos_promo = aposPromo;
             if (on) {
-                item.preco = Math.round(base * f * 10000) / 10000;
+                var base = precoBaseItem(item);
+                if (base <= 0) base = aposPromo;
+                var comCampanha = Math.round(base * f * 10000) / 10000;
+                var finalP = aposPromo;
+                if (comCampanha > 0 && (finalP <= 0 || comCampanha < finalP)) {
+                    finalP = comCampanha;
+                }
+                item.preco = finalP;
                 item.campanha_id = id();
                 item.campanha_pct = percentual();
+                item.campanha_usou =
+                    Math.abs(finalP - comCampanha) < 0.00005 ? 'campanha' : 'promo_ou_lista';
             } else {
                 delete item.campanha_id;
                 delete item.campanha_pct;
+                delete item.campanha_usou;
             }
         });
         return itens;
@@ -101,9 +118,17 @@
         return toNum(item.preco, 0);
     }
 
+    function precoBaseEnvioItem(item) {
+        return precoBaseItem(item);
+    }
+
     function metaPayload() {
         if (!ativa()) return null;
-        return { campanha_id: id(), campanha_pct: percentual() };
+        return {
+            campanha_id: id(),
+            campanha_pct: percentual(),
+            campanha_modo: 'menor',
+        };
     }
 
     function atualizarFaixaUi() {
@@ -130,6 +155,7 @@
         percentual: percentual,
         aplicarNosItens: aplicarNosItens,
         precoEnvioItem: precoEnvioItem,
+        precoBaseEnvioItem: precoBaseEnvioItem,
         metaPayload: metaPayload,
         atualizarFaixaUi: atualizarFaixaUi,
     };
