@@ -1197,7 +1197,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | + Adicionar pet não limpa fundo branco/preto (peito branco intacto); ingredientes seguem iguais |
 | **Prova** | `scripts/verify_dsp_pet_bg.py` **31/31** · `verify_dsp_png_bg.py` OK · `manage.py check` OK |
 | **Migrate** | **NÃO** |
@@ -1210,7 +1210,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Motivos **Uso Geraldinho** / **Uso Geraldo** · cards de soma · **Uso Centro** / **Uso Vila Elias** · botão topbar verde |
 | **Prova** | `scripts/verify_uso_loja_donos_path.py` **65/65** · `manage.py check` OK |
 | **Migrate** | **NÃO** |
@@ -1218,46 +1218,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 PDV · motivo dono · Histórico 4 cards · botão verde |
 | **Autorizar** | *pode subir PDV-USO-DONOS / uso loja donos para produção* + **99738595** |
 
-### 🚀 PREP deploy loja — lote checklist 06/08b (`deploy/lote-checklist-0608b` · **v14.85**)
+### ✅ Deploy loja **v14.85** — lote checklist 06/08b (frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
-| **Branch** | `deploy/lote-checklist-0608b` · base loja `008e361` (v14.72) |
-| **Pacotes** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
-| **Fora** | GG-UX (P2,5) |
+| **Status** | ✅ **Live v14.85** · `producao` @ **e68187b** · Render `dep-d9qlio0u01pc739jq0hg` |
+| **Incluiu** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
+| **Branch** | `deploy/lote-checklist-0608b` (FF → `producao`) |
 | **Migrate** | **NÃO** |
-| **Após Live** | Ctrl+F5 Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
-| **Provas** | saida empresa 10/10 · bi/val 17/17 · uso donos 65/65 · dsp pet 31/31 · `manage.py check` OK |
-| **Risco loja aberta** | Baixo · **não** toca PDV finalize / caixa abrir-fechar · saída/retirada (empresa) · Uso loja · Validade · BI card · Dispenser |
-| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch |
-| **Autorizar** | *pode subir lote checklist 06/08b / deploy/lote-checklist-0608b para produção* + **99738595** |
+| **Fora** | GG-UX (P2,5) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0608b-v14.72` @ `008e361` |
+| **Você** | **Ctrl+F5** Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
+### ✅ CHECKLIST ÚNICO — enviado produção (06/08b · loja v14.85)
 
-> **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.84** · HEAD `teste`  
-> **Prep loja:** `deploy/lote-checklist-0608b` **v14.85** · aguarda senha  
-> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
+> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
+> **Teste:** badge **v14.85** · HEAD `teste`  
+> **⚠️** **NÃO** merge `teste`→`producao`. Próximo envio = cherry/prep.
 
-| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
-| - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **CX-EMP-LOJA** | 📦 **pronto para envio à produção** · **v14.75** | cherry `64c338b` | **NÃO** | Baixo — saída/retirada |
-| 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
-| 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
-| 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.82** | cherry / lote | **NÃO** | Baixo — Uso loja |
-| 5 | **DSP-PET-BG** | 📦 **pronto para envio à produção** · **v14.84** | cherry / lote | **NÃO** | Baixo — só Dispenser |
-| 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
-
-**Provas (06/08):** `verify_dsp_pet_bg` **31/31** · `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
-
-**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA / PDV-USO-DONOS / DSP-PET-BG] para produção* + **99738595**
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CX-EMP-LOJA** | ✅ enviado | não |
+| 2 | **VAL-SALVAR** | ✅ enviado | não |
+| 3 | **BI-VAL-LOJA** | ✅ enviado | não |
+| 4 | **PDV-USO-DONOS** | ✅ enviado | não |
+| 5 | **DSP-PET-BG** | ✅ enviado | não |
+| 6 | **GG-UX** | 🟡 P2,5 · fora | — |
 
 ### 📦 PACOTE PRONTO LOJA — BI Validade segue loja travada (`BI-VAL-LOJA` · **v14.78**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Card Validade do BI respeita TRAVA Centro/Vila (`EstoqueLote.deposito`) · cache `v5` |
 | **Prova** | `scripts/verify_bi_val_salvar_path.py` **17/17** |
 | **Migrate** | **NÃO** |
@@ -1269,7 +1261,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Sempre **Salvar** · grava data/lote no `EstoqueLote` · API com `lote_id` |
 | **Prova** | `verify_bi_val_salvar_path` · sem «Usar cadastro» |
 | **Migrate** | **NÃO** |
@@ -1281,7 +1273,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Retirada: empresa da loja do caixa · Vila → **Agro Mais Vila Elias** · Centro → **Agro Mais Centro** |
 | **Commit** | `64c338b` |
 | **Prova** | `verify_saida_empresa_loja` **10/10** |
