@@ -1193,6 +1193,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.87**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste v14.87** · aguarda prova local · **não** loja |
+| **O quê** | **08/08/2026** só **Vila Elias**: 5% off automático em todo item do PDV (não mexe cadastro). Faixa laranja no PDV. Dia seguinte desliga sozinho. |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` **9/9** · local: loja Vila + (hoje fora da data) `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` → bipar → preço −5% · Centro sem desconto |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — só dia/loja da campanha; kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
+| **Arquivos** | `campanha_pdv_util.py` · `pdv_campanha.js` · wizard + persist venda |
+| **Você** | Prova no PC · amanhã na Vila Ctrl+F5 · **loja só com frase+senha** |
+| **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO LOJA — Dispenser pet sem comer pelo branco (`DSP-PET-BG` · **v14.84**)
 
 | Item | Detalhe |

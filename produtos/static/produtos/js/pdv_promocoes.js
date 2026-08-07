@@ -242,6 +242,10 @@
             if (item.preco_manual) {
                 item.promocao = getPromo(item.id);
                 limparAlocPromo(item);
+                /* restaura base antes da campanha p/ não descontar 2× no recalc */
+                if (item.preco_pos_promo != null) {
+                    item.preco = toNum(item.preco_pos_promo, item.preco);
+                }
                 return;
             }
             var padrao = padraoItemComForma(item, forma);
@@ -277,6 +281,10 @@
                 alocarAcimaUnidadesPool(pool.entries, pool.promo);
             }
         });
+
+        if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
+            global.AgroPdvCampanha.aplicarNosItens(itens);
+        }
 
         return agruparCarrinhoPromoAtiva(itens);
     }
@@ -360,6 +368,12 @@
         if (item.preco_manual) {
             item.promocao = getPromo(item.id);
             limparAlocPromo(item);
+            if (item.preco_pos_promo != null) {
+                item.preco = toNum(item.preco_pos_promo, item.preco);
+            }
+            if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
+                global.AgroPdvCampanha.aplicarNosItens([item]);
+            }
             return item;
         }
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
@@ -368,6 +382,9 @@
         item.promocao = promo;
         item.preco = resolvePreco(item.id, item.qtd, padrao);
         limparAlocPromo(item);
+        if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
+            global.AgroPdvCampanha.aplicarNosItens([item]);
+        }
         return item;
     }
 

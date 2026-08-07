@@ -100,6 +100,7 @@ def pdv_home(request):
         },
     ]
     from produtos.pdv_deposito_util import bootstrap_deposito
+    from produtos.campanha_pdv_util import bootstrap_campanha
 
     dep_boot = bootstrap_deposito(request)
     ctx = {
@@ -115,6 +116,7 @@ def pdv_home(request):
             "pdvEntregaWhatsapp": getattr(settings, "PDV_ENTREGA_WHATSAPP", "") or "",
             "origensMaps": origens_maps,
             "pdvDeposito": dep_boot,
+            "campanhaPdv": bootstrap_campanha(dep_boot.get("deposito")),
             "urls": {
                 "apiBuscarProdutos": reverse("api_buscar_mobile"),
                 "apiBuscarClientes": reverse("api_buscar_clientes"),
