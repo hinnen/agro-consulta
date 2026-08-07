@@ -246,9 +246,11 @@
                 if (item.preco_pos_promo != null) {
                     item.preco = toNum(item.preco_pos_promo, item.preco);
                 }
+                item.preco_base_forma = toNum(item.preco, 0);
                 return;
             }
             var padrao = padraoItemComForma(item, forma);
+            item.preco_base_forma = padrao;
             var promo = getPromo(item.id);
             if (!promo) {
                 item.promocao = null;
@@ -371,6 +373,7 @@
             if (item.preco_pos_promo != null) {
                 item.preco = toNum(item.preco_pos_promo, item.preco);
             }
+            item.preco_base_forma = toNum(item.preco, 0);
             if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
                 global.AgroPdvCampanha.aplicarNosItens([item]);
             }
@@ -378,6 +381,7 @@
         }
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
         if (!item.preco_padrao) item.preco_padrao = padrao;
+        item.preco_base_forma = padrao;
         var promo = getPromo(item.id);
         item.promocao = promo;
         item.preco = resolvePreco(item.id, item.qtd, padrao);

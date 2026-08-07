@@ -115,8 +115,9 @@ def campanha_no_calendario(
         "fator": float(fator),
         "data_inicio": ini.isoformat(),
         "data_fim": fim.isoformat(),
-        "rotulo": f"{CAMPANHA_NOME}: {pct.normalize()}% off automático",
+        "rotulo": f"{CAMPANHA_NOME}: {pct.normalize()}% off (vale o menor vs promo)",
         "teste": bool(campanha_forcar_teste() and not no_periodo),
+        "modo": "menor",
     }
 
 
@@ -173,8 +174,9 @@ def aplicar_desconto_campanha_nos_itens(
     agora: datetime | date | None = None,
 ) -> tuple[list, dict[str, Any] | None]:
     """
-    Multiplica preço unitário pelo fator da campanha (ex. 0,95).
-    Itens já devem vir com preço pós-promo / pós-forma, SEM o desconto da campanha.
+    Preço final = menor entre (preço pós-promo enviado) e (preço base × fator).
+    ``preco`` no payload = pós-promo / lista sem campanha.
+    ``preco_base`` (opcional) = lista/forma sem promo; se ausente, usa ``preco``.
     """
     camp = campanha_ativa_para_deposito(deposito, agora=agora)
     if not camp or not isinstance(raw_itens, list):
@@ -186,11 +188,26 @@ def aplicar_desconto_campanha_nos_itens(
         if not isinstance(row, dict):
             continue
         item = deepcopy(row)
-        vu = _dec_preco(item.get("preco"))
-        if vu > 0:
-            item["preco"] = float(_q4(vu * fator))
+        vu_promo = _dec_preco(item.get("preco"))
+        vu_base = _dec_preco(
+            item.get("preco_base")
+            if item.get("preco_base") is not None
+            else item.get("preco_padrao")
+        )
+        if vu_base <= 0:
+            vu_base = vu_promo
+        if vu_promo > 0 or vu_base > 0:
+            com_campanha = _q4(vu_base * fator) if vu_base > 0 else Decimal("0")
+            if vu_promo <= 0:
+                final = com_campanha
+            elif com_campanha <= 0:
+                final = _q4(vu_promo)
+            else:
+                final = min(_q4(vu_promo), com_campanha)
+            item["preco"] = float(final)
         item["campanha_id"] = camp["id"]
         item["campanha_pct"] = camp["percentual"]
+        item["campanha_modo"] = "menor"
         out.append(item)
     return out, camp
 

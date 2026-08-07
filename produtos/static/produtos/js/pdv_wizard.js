@@ -9500,16 +9500,28 @@
     function payloadItens(state) {
         return (state.itens || []).map(function (item) {
             var precoEnvio = item.preco;
+            var precoBase = null;
             if (window.AgroPdvCampanha && window.AgroPdvCampanha.precoEnvioItem) {
                 precoEnvio = window.AgroPdvCampanha.precoEnvioItem(item);
             }
-            return {
+            if (window.AgroPdvCampanha && window.AgroPdvCampanha.ativa && window.AgroPdvCampanha.ativa()) {
+                if (window.AgroPdvCampanha.precoBaseEnvioItem) {
+                    precoBase = window.AgroPdvCampanha.precoBaseEnvioItem(item);
+                } else if (item.preco_base_forma != null) {
+                    precoBase = item.preco_base_forma;
+                }
+            }
+            var row = {
                 id: item.id,
                 nome: item.nome,
                 qtd: item.qtd,
                 preco: precoEnvio,
                 codigo: item.codigo
             };
+            if (precoBase != null && isFinite(Number(precoBase)) && Number(precoBase) > 0) {
+                row.preco_base = precoBase;
+            }
+            return row;
         });
     }
 

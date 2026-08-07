@@ -46,8 +46,26 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         self.assertIsNotNone(camp)
         self.assertEqual(out[0]["preco"], 95.0)
         self.assertEqual(out[0]["campanha_id"], CAMPANHA_ID)
+        self.assertEqual(out[0]["campanha_modo"], "menor")
         # original intacto
         self.assertEqual(itens[0]["preco"], 100)
+
+    def test_menor_valor_promo_vence(self):
+        """Promo R$ 8 vs lista R$ 100×0,95=95 → fica 8."""
+        itens = [{"id": "1", "preco": 8, "preco_base": 100}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 8.0)
+
+    def test_menor_valor_campanha_vence(self):
+        """Promo fraca R$ 98 vs lista R$ 100×0,95=95 → fica 95."""
+        itens = [{"id": "1", "preco": 98, "preco_base": 100}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 95.0)
+
+    def test_fator_decimal_preciso(self):
+        itens = [{"id": "1", "preco": Decimal("33.33")}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertAlmostEqual(out[0]["preco"], 31.6635, places=4)
 
     def test_bootstrap_centro_regra_visivel_mas_inativa(self):
         with mock.patch(
@@ -65,8 +83,6 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         self.assertIsNotNone(boot["regra"])
 
     def test_bootstrap_vila_ativa(self):
-        boot = bootstrap_campanha("vila")
-        # depende da data real — força calendário
         with mock.patch(
             "produtos.campanha_pdv_util.campanha_no_calendario",
             return_value={
@@ -80,8 +96,3 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
             boot = bootstrap_campanha("vila")
         self.assertTrue(boot["ativa"])
         self.assertEqual(boot["regra"]["id"], CAMPANHA_ID)
-
-    def test_fator_decimal_preciso(self):
-        itens = [{"id": "1", "preco": Decimal("33.33")}]
-        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
-        self.assertAlmostEqual(out[0]["preco"], 31.6635, places=4)
