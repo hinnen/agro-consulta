@@ -26493,6 +26493,44 @@ def _persistir_venda_agro(
         str(data.get("forma_pagamento") or data.get("formaPagamento") or "")
     ).strip()[:80]
 
+    from produtos.campanha_pdv_util import aplicar_desconto_campanha_nos_itens
+    from produtos.pdv_deposito_util import (
+        deposito_de_loja_id,
+        normalizar_deposito,
+        resolver_deposito_request,
+    )
+
+    sessao = exigir_sessao_caixa_para_venda(request, data)
+
+    dep_payload = data.get("deposito") or data.get("pdv_deposito") or data.get("loja_id")
+    if dep_payload is not None and str(dep_payload).strip() != "":
+        raw_dep = str(dep_payload).strip().lower()
+        if raw_dep in ("1", "2"):
+            dep_v = deposito_de_loja_id(raw_dep)
+        else:
+            dep_v = normalizar_deposito(raw_dep)
+    else:
+        dep_v = resolver_deposito_request(request)
+    if sessao is not None:
+        try:
+            from produtos.caixa_util import deposito_de_ponto_caixa
+
+            dep_sess = deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
+            if dep_sess in ("centro", "vila"):
+                dep_v = dep_sess
+        except Exception:
+            pass
+    if dep_v not in ("centro", "vila"):
+        dep_v = "centro"
+
+    raw_itens_camp, camp_aplicada = aplicar_desconto_campanha_nos_itens(raw_itens, dep_v)
+    if camp_aplicada:
+        raw_itens = raw_itens_camp
+        data = dict(data)
+        data["campanha_id"] = camp_aplicada["id"]
+        data["campanha_pct"] = camp_aplicada["percentual"]
+        data["itens"] = raw_itens
+
     itens_payload = []
     total = Decimal("0")
     for i in raw_itens:
@@ -26529,7 +26567,6 @@ def _persistir_venda_agro(
 
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
-    sessao = exigir_sessao_caixa_para_venda(request, data)
     sync_st = (erp_sync_status or "").strip()
     if not sync_st:
         sync_st = (
@@ -26558,34 +26595,6 @@ def _persistir_venda_agro(
         nfce_solicitada = False
 
     with transaction.atomic():
-        from produtos.pdv_deposito_util import (
-            deposito_de_loja_id,
-            normalizar_deposito,
-            resolver_deposito_request,
-        )
-
-        dep_payload = data.get("deposito") or data.get("pdv_deposito") or data.get("loja_id")
-        if dep_payload is not None and str(dep_payload).strip() != "":
-            raw_dep = str(dep_payload).strip().lower()
-            if raw_dep in ("1", "2"):
-                dep_v = deposito_de_loja_id(raw_dep)
-            else:
-                dep_v = normalizar_deposito(raw_dep)
-        else:
-            dep_v = resolver_deposito_request(request)
-        # Sessão de caixa manda no depósito (evita venda Vila no caixa Centro)
-        if sessao is not None:
-            try:
-                from produtos.caixa_util import deposito_de_ponto_caixa
-
-                dep_sess = deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
-                if dep_sess in ("centro", "vila"):
-                    dep_v = dep_sess
-            except Exception:
-                pass
-        if dep_v not in ("centro", "vila"):
-            dep_v = "centro"
-
         v = VendaAgro.objects.create(
             cliente_nome=cliente[:300],
             cliente_id_erp=cid[:32],
@@ -26688,6 +26697,22 @@ def _pdv_pedido_linhas_e_valor_final(data: dict, *, client_m, db):
     raw_itens = data.get("itens", [])
     if not isinstance(raw_itens, list):
         raw_itens = []
+
+    from produtos.campanha_pdv_util import aplicar_desconto_campanha_nos_itens
+    from produtos.pdv_deposito_util import (
+        deposito_de_loja_id,
+        normalizar_deposito,
+    )
+
+    dep_payload = data.get("deposito") or data.get("pdv_deposito") or data.get("loja_id")
+    dep_v = "centro"
+    if dep_payload is not None and str(dep_payload).strip() != "":
+        raw_dep = str(dep_payload).strip().lower()
+        if raw_dep in ("1", "2"):
+            dep_v = deposito_de_loja_id(raw_dep)
+        else:
+            dep_v = normalizar_deposito(raw_dep)
+    raw_itens, _camp = aplicar_desconto_campanha_nos_itens(raw_itens, dep_v)
 
     integ = (
         IntegracaoERP.objects.filter(ativo=True, tipo_erp="venda_erp")

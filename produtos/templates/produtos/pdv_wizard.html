@@ -3534,6 +3534,7 @@
           <span class="text-xs sm:text-sm font-bold text-amber-900/90">Abra o caixa antes de registrar vendas.</span>
           <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[40px] px-3 py-1.5 rounded-xl border-2 border-amber-600 bg-white text-xs sm:text-sm font-black uppercase text-amber-950 hover:bg-amber-100 no-underline shrink-0">Abrir caixa</a>
         </div>
+        <div id="pdv-campanha-faixa" class="hidden flex items-center justify-center gap-2 px-2 py-1 bg-orange-600 text-white text-xs sm:text-sm font-black uppercase tracking-wide border-b-2 border-orange-800" role="status" aria-live="polite"></div>
         <div id="pdv-topbar-compact" class="pdv-wiz-topbar">
           <div class="pdv-wiz-topbar-row">
             <div class="pdv-wiz-topbar-stepper-wrap pdv-wizard-scroll">
@@ -4217,6 +4218,7 @@
 </script>
 <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_offline_cache.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_campanha.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/precos_forma_pagamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

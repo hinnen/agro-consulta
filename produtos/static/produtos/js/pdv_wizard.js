@@ -16,6 +16,13 @@
     var pagamentoUi = bootstrap.pagamentoUi || {};
     var MSG_CAIXA_FECHADO_VENDA = 'Abra o caixa antes de registrar vendas.';
 
+    if (window.AgroPdvCampanha) {
+        var depIni =
+            (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || 'centro';
+        window.AgroPdvCampanha.setBootstrap(bootstrap.campanhaPdv || null, depIni);
+        window.AgroPdvCampanha.atualizarFaixaUi();
+    }
+
     function caixaAbertoParaVenda() {
         var cx = bootstrap.caixa || {};
         return !!(cx.aberto && cx.id);
@@ -64,6 +71,14 @@
     function atualizarBadgeDeposito(depBoot) {
         if (!depBoot || typeof depBoot !== 'object') return;
         bootstrap.pdvDeposito = depBoot;
+        if (window.AgroPdvCampanha) {
+            if (bootstrap.campanhaPdv) {
+                window.AgroPdvCampanha.setBootstrap(bootstrap.campanhaPdv, depBoot.deposito);
+            } else {
+                window.AgroPdvCampanha.setDeposito(depBoot.deposito || 'centro');
+            }
+            window.AgroPdvCampanha.atualizarFaixaUi();
+        }
         var badge = document.getElementById('pdv-deposito-badge');
         if (!badge) return;
         // Com caixa aberto o botão da direita já diz a loja — badge TRAVADO fica redundante.
@@ -103,8 +118,17 @@
                     bootstrap.pagamentoUi = data.pagamentoUi;
                     pagamentoUi = data.pagamentoUi;
                 }
+                if (data && Object.prototype.hasOwnProperty.call(data, 'campanhaPdv')) {
+                    bootstrap.campanhaPdv = data.campanhaPdv;
+                }
                 if (data && data.pdvDeposito) {
                     atualizarBadgeDeposito(data.pdvDeposito);
+                } else if (window.AgroPdvCampanha && bootstrap.campanhaPdv) {
+                    window.AgroPdvCampanha.setBootstrap(
+                        bootstrap.campanhaPdv,
+                        (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || 'centro'
+                    );
+                    window.AgroPdvCampanha.atualizarFaixaUi();
                 }
                 atualizarUiAvisoCaixa();
                 return caixaAbertoParaVenda();
@@ -9090,11 +9114,15 @@
 
     function payloadItens(state) {
         return (state.itens || []).map(function (item) {
+            var precoEnvio = item.preco;
+            if (window.AgroPdvCampanha && window.AgroPdvCampanha.precoEnvioItem) {
+                precoEnvio = window.AgroPdvCampanha.precoEnvioItem(item);
+            }
             return {
                 id: item.id,
                 nome: item.nome,
                 qtd: item.qtd,
-                preco: item.preco,
+                preco: precoEnvio,
                 codigo: item.codigo
             };
         });
@@ -9344,6 +9372,13 @@
         }
         if (state.entrega && state.entrega.pedidoEntregaPendenteId) {
             payload.pedido_entrega_pendente_id = state.entrega.pedidoEntregaPendenteId;
+        }
+        if (window.AgroPdvCampanha && window.AgroPdvCampanha.metaPayload) {
+            var metaCamp = window.AgroPdvCampanha.metaPayload();
+            if (metaCamp) {
+                payload.campanha_id = metaCamp.campanha_id;
+                payload.campanha_pct = metaCamp.campanha_pct;
+            }
         }
         injetarDepositoNoPayload(payload);
         return injetarOperadorNoPayload(payload);
