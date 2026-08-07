@@ -1193,11 +1193,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### FIX — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v14.92**)
+### FIX — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v14.93**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v14.92** · push `e5df05a` · aguarda prova local · **não** loja |
+| **Status** | ✅ **teste v14.93** · push `450c2f5` · aguarda prova local · **não** loja |
 | **Sintoma** | Nova promoção etapa 2: busca GM/nome → «Nenhum produto» (ex. GM1507-30) |
 | **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
 | **Fix** | `buscar_produtos_para_promocao` + `buscar_produtos_motor_pdv` usam catálogo PG |
