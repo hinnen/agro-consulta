@@ -262,23 +262,30 @@ def telas_promocao_labels(ids: list) -> str:
 
 
 def buscar_produtos_para_promocao(q: str, *, limit: int = 24) -> list[dict[str, Any]]:
-    """Busca produtos no Mongo (mesmo motor da Consulta) para a tela de promoções."""
-    from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
-    from produtos.views import (
-        _float_api_json,
-        _merge_produtos_overlay_codigo_consulta,
-        _valor_texto_campo,
-        obter_conexao_mongo,
+    """Busca produtos (mesmo catálogo do PDV) para a tela de promoções."""
+    from produtos.agro_fonte_config import (
+        agro_catalogo_usa_postgres,
+        agro_pdv_catalogo_somente_postgres,
     )
+    from produtos.busca_produtos_mongo import buscar_produtos_motor_pdv
+    from produtos.views import _float_api_json, _valor_texto_campo
 
     q = str(q or "").strip()
     if len(q) < 2:
         return []
-    client, db = obter_conexao_mongo()
-    if db is None or client is None:
-        return []
-    prods = buscar_produtos_motor_pdv(q, limit=max(limit, 40))
-    prods = _merge_produtos_overlay_codigo_consulta(q, prods, db, client)
+    lim = max(limit, 40)
+    usa_pg = agro_catalogo_usa_postgres() or agro_pdv_catalogo_somente_postgres()
+    if usa_pg:
+        # Loja agro_pg: não depende de Mongo (antes a API voltava [] sem conexão).
+        prods = buscar_produtos_motor_pdv(q, limit=lim)
+    else:
+        from produtos.views import _merge_produtos_overlay_codigo_consulta, obter_conexao_mongo
+
+        client, db = obter_conexao_mongo()
+        if db is None or client is None:
+            return []
+        prods = buscar_produtos_motor_pdv(q, limit=lim)
+        prods = _merge_produtos_overlay_codigo_consulta(q, prods, db, client)
     out: list[dict[str, Any]] = []
     for p in prods:
         pid = str(p.get("Id") or p.get("_id") or "").strip()
