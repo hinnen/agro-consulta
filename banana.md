@@ -1193,6 +1193,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### FIX — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v14.92**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · aguarda prova local · **não** loja |
+| **Sintoma** | Nova promoção etapa 2: busca GM/nome → «Nenhum produto» (ex. GM1507-30) |
+| **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
+| **Fix** | `buscar_produtos_para_promocao` + `buscar_produtos_motor_pdv` usam catálogo PG |
+| **Prova** | shell: GM1507-30 → farelo trigo · `scripts/verify_promo_busca_pg_path.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só tela promoções / estoque ajuste que reusa o motor |
+| **Você** | Ctrl+F5 Promoções → Nova → etapa 2 → GM ou nome |
+| **Autorizar** | *pode subir PROMO-BUSCA-PG / busca promoção para produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.90**)
 
 | Item | Detalhe |
