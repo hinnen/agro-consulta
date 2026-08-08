@@ -56,6 +56,17 @@ check("AgroPdvCampanha.setBootstrap" in js_wiz, "wizard liga bootstrap da campan
 check("preco_base" in js_wiz, "payload manda preco_base pro servidor")
 check("precoEnvioItem" in js_wiz, "envio usa preço sem campanha aplicada 2×")
 check("aplicarNosItens" in js_promo, "promo chama campanha após recalc")
+check("carregar({ empresa: 'centro' })" not in js_wiz, "PDV nao forca promo da Centro")
+check("empresaPromoPdv" in js_wiz, "PDV pede promo da loja do caixa")
+check("rot.indexOf('vila')" in js_wiz.split("function empresaPromoPdv")[1][:500], "promo Vila pelo rótulo do caixa")
+check("getPromoDoItem" in js_promo, "PDV casa promo por id e GM")
+check("agro_pdv_promocoes_cache_v2_" in js_promo, "cache promo v2 (invalida lista velha)")
+check("agro_pdv_promocoes_bump_v1" in js_wiz, "PDV recarrega promo ao salvar em outra aba")
+check("recarregarPromocoesPdv(true)" in js_wiz, "volta no PDV recarrega promo da rede")
+util_promo = (ROOT / "produtos" / "promocoes_util.py").read_text(encoding="utf-8")
+check("out[codigo] = d" in util_promo, "API promo indexa também pelo GM")
+check("setOnAtualizado" in js_promo and "setOnAtualizado" in js_wiz, "PDV recarrega carrinho quando promo chega")
+check("recalcularTodasPromocoes" in js_state, "state expoe recálculo de promo")
 check(
     "delete item.campanha_id" in js_promo and "delete item.preco_pos_promo" in js_promo,
     "promo limpa marca da campanha antes de reaplicar (qtd nova)",

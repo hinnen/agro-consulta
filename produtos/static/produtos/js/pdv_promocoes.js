@@ -7,7 +7,8 @@
     var carregado = false;
     var empresa = 'centro';
     var apiUrl = '';
-    var PROMO_LS_PREFIX = 'agro_pdv_promocoes_cache_v1_';
+    var onMapaAtualizado = null;
+    var PROMO_LS_PREFIX = 'agro_pdv_promocoes_cache_v2_';
 
     function promoCacheKey() {
         return PROMO_LS_PREFIX + String(empresa || 'centro');
@@ -16,6 +17,11 @@
     function aplicarMapaPromo(obj) {
         mapa = obj && typeof obj === 'object' ? obj : {};
         carregado = true;
+        if (typeof onMapaAtualizado === 'function') {
+            try {
+                onMapaAtualizado(mapa);
+            } catch (e1) {}
+        }
         return mapa;
     }
 
@@ -95,14 +101,43 @@
         return precoPadrao;
     }
 
-    function getPromo(produtoId) {
-        var pid = String(produtoId || '').trim();
-        return pid ? mapa[pid] || null : null;
+    function codigoPromoChaves(extra) {
+        var out = [];
+        var seen = {};
+        function add(v) {
+            var s = String(v || '').trim();
+            if (!s || seen[s]) return;
+            seen[s] = true;
+            out.push(s);
+        }
+        if (extra && typeof extra === 'object') {
+            add(extra.codigoGm);
+            add(extra.codigo_nfe);
+            add(extra.codigo);
+            add(extra.codigo_barras);
+        }
+        return out;
     }
 
-    function resolvePreco(produtoId, quantidade, precoPadrao) {
+    function getPromo(produtoId, extra) {
+        var pid = String(produtoId || '').trim();
+        if (pid && mapa[pid]) return mapa[pid];
+        var chaves = codigoPromoChaves(extra);
+        if (pid) chaves.push(pid);
+        for (var i = 0; i < chaves.length; i++) {
+            if (mapa[chaves[i]]) return mapa[chaves[i]];
+        }
+        return null;
+    }
+
+    function getPromoDoItem(item) {
+        if (!item) return null;
+        return getPromo(item.id, item);
+    }
+
+    function resolvePreco(produtoId, quantidade, precoPadrao, extra) {
         var padrao = toNum(precoPadrao, 0);
-        var promo = getPromo(produtoId);
+        var promo = getPromo(produtoId, extra);
         var qtd = toNum(quantidade, 1);
         if (!promo) return padrao;
         return calcularPreco(promo, qtd, padrao);
@@ -240,7 +275,7 @@
         itens.forEach(function (item) {
             if (!item) return;
             if (item.preco_manual) {
-                item.promocao = getPromo(item.id);
+                item.promocao = getPromoDoItem(item);
                 limparAlocPromo(item);
                 /* restaura base antes da campanha p/ não descontar 2× no recalc */
                 if (item.preco_pos_promo != null) {
@@ -251,7 +286,7 @@
             }
             var padrao = padraoItemComForma(item, forma);
             item.preco_base_forma = padrao;
-            var promo = getPromo(item.id);
+            var promo = getPromoDoItem(item);
             if (!promo) {
                 item.promocao = null;
                 limparAlocPromo(item);
@@ -303,7 +338,7 @@
     /** Promo de pool (mix) com critério atingido — usado para agrupar linhas no carrinho. */
     function poolAtivoNoItem(item) {
         if (!item || item.preco_manual) return false;
-        var promo = item.promocao || getPromo(item.id);
+        var promo = item.promocao || getPromoDoItem(item);
         if (!promo || promo.tipo === 'valor_direto') return false;
         if (!promoPoolKey(promo)) return false;
         if (item.promo_grupos_pool != null) return toNum(item.promo_grupos_pool, 0) > 0;
@@ -323,7 +358,7 @@
         itens.forEach(function (item, i) {
             var key = '';
             if (poolAtivoNoItem(item)) {
-                var promo = item.promocao || getPromo(item.id);
+                var promo = item.promocao || getPromoDoItem(item);
                 key = promoPoolKey(promo);
             }
             itemPoolKey[i] = key;
@@ -377,7 +412,7 @@
     function aplicarNoItem(item) {
         if (!item) return item;
         if (item.preco_manual) {
-            item.promocao = getPromo(item.id);
+            item.promocao = getPromoDoItem(item);
             limparAlocPromo(item);
             if (item.preco_pos_promo != null) {
                 item.preco = toNum(item.preco_pos_promo, item.preco);
@@ -391,9 +426,9 @@
         var padrao = toNum(item.preco_padrao != null ? item.preco_padrao : item.preco, 0);
         if (!item.preco_padrao) item.preco_padrao = padrao;
         item.preco_base_forma = padrao;
-        var promo = getPromo(item.id);
+        var promo = getPromoDoItem(item);
         item.promocao = promo;
-        item.preco = resolvePreco(item.id, item.qtd, padrao);
+        item.preco = resolvePreco(item.id, item.qtd, padrao, item);
         limparAlocPromo(item);
         delete item.campanha_id;
         delete item.campanha_pct;
@@ -415,6 +450,10 @@
 
     function setApiUrl(url) {
         apiUrl = String(url || '').trim();
+    }
+
+    function setOnAtualizado(fn) {
+        onMapaAtualizado = typeof fn === 'function' ? fn : null;
     }
 
     function fmtQtdLabel(q) {
@@ -446,7 +485,7 @@
     /** Soma quantidades no carrinho para a mesma promoção (mix). */
     function poolContextoFromCarrinho(item, itens) {
         if (!item) return null;
-        var promo = item.promocao || getPromo(item.id);
+        var promo = item.promocao || getPromoDoItem(item);
         if (!promo || promo.tipo === 'valor_direto') return null;
         var key = promoPoolKey(promo);
         if (!key) return null;
@@ -466,7 +505,7 @@
         var nLinhas = 0;
         (itens || []).forEach(function (it) {
             if (!it || it.preco_manual) return;
-            var p = it.promocao || getPromo(it.id);
+            var p = it.promocao || getPromoDoItem(it);
             if (!p || promoPoolKey(p) !== key) return;
             if (!it.promocao) it.promocao = p;
             total += toNum(it.qtd, 0);
@@ -488,7 +527,7 @@
     function mixBlocoContextoCarrinho(item, itens) {
         var key = '';
         if (poolAtivoNoItem(item)) {
-            var promo = item.promocao || getPromo(item.id);
+            var promo = item.promocao || getPromoDoItem(item);
             key = promoPoolKey(promo);
         }
         if (!key || !Array.isArray(itens) || itens.length < 2) {
@@ -508,7 +547,7 @@
         var prev = itens[idx - 1];
         var prevKey = '';
         if (prev && poolAtivoNoItem(prev)) {
-            var pPromo = prev.promocao || getPromo(prev.id);
+            var pPromo = prev.promocao || getPromoDoItem(prev);
             prevKey = promoPoolKey(pPromo);
         }
         var mixContinuacao = prevKey === key;
@@ -747,6 +786,7 @@
         carregar: carregar,
         setEmpresa: setEmpresa,
         setApiUrl: setApiUrl,
+        setOnAtualizado: setOnAtualizado,
         getPromo: getPromo,
         calcTotalLinha: calcTotalLinha,
         resolvePreco: resolvePreco,

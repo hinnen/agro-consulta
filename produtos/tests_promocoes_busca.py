@@ -93,3 +93,44 @@ class PromocoesBuscaPgTests(SimpleTestCase):
         mongo.assert_not_called()
         pg.assert_called_once()
         self.assertEqual(out[0]["Id"], "1")
+
+
+class PromocoesMapaPdvTests(SimpleTestCase):
+    def test_aplica_valor_direto_por_gm_quando_id_diferente(self):
+        from produtos.promocoes_util import aplicar_promocao_em_produto_dict
+
+        promo = {
+            "id": 9,
+            "nome": "farelo de trigo",
+            "tipo": "valor_direto",
+            "qtd_x": 0,
+            "preco_y": 0,
+            "preco_produto_promo": 54.9,
+        }
+        promo_map = {"mongo-id": promo, "GM1507-30": promo}
+        row = {"id": "outro-id", "codigo_nfe": "GM1507-30", "preco_venda": 60}
+        out = aplicar_promocao_em_produto_dict(row, promo_map)
+        self.assertAlmostEqual(out["preco_venda"], 54.9)
+        self.assertEqual(out["promocao"]["tipo"], "valor_direto")
+
+    def test_aplica_valor_direto_por_id(self):
+        from produtos.promocoes_util import aplicar_promocao_em_produto_dict
+
+        promo = {
+            "id": 9,
+            "nome": "farelo de trigo",
+            "tipo": "valor_direto",
+            "qtd_x": 0,
+            "preco_y": 0,
+            "preco_produto_promo": 54.9,
+        }
+        out = aplicar_promocao_em_produto_dict(
+            {"id": "mongo-id", "preco_venda": 60},
+            {"mongo-id": promo},
+        )
+        self.assertAlmostEqual(out["preco_venda"], 54.9)
+
+    def test_mapa_pdv_expõe_codigo_gm(self):
+        util = __import__("pathlib").Path(__file__).with_name("promocoes_util.py").read_text(encoding="utf-8")
+        self.assertIn("out[codigo] = d", util)
+        self.assertIn("promo_map.get(codigo)", util)

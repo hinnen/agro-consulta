@@ -1193,6 +1193,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Promo valor direto prevalece no 5% Vila (`CAMP-PROMO-MENOR`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste v15.04** · **não** está na loja (loja ainda **v15.03**) |
+| **Sintoma** | Farelo GM1507-30: lista **R$ 60** · valor direto **R$ 54,90** · PDV Vila cobrou **R$ 57** (só 5%) |
+| **Causa** | Promo **estava gravada** (PG id 9, Vila, 07–08, 54,90). PDV não recarregava o mapa após salvar (cache 2 h) e podia pedir promo da **Centro** se o depósito do bootstrap viesse errado. Campanha 5% rodava sozinha. |
+| **Fix** | Recarrega promo ao voltar no PDV / salvar em outra aba · casa também pelo **GM** · cache v2 · caixa Vila manda na empresa da promo |
+| **Prova** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** |
+| **Migrate** | **NÃO** |
+| **Você agora** | **Ctrl+F5** PDV Vila → farelo 30 kg deve ir a **R$ 54,90** (não 57). Loja só com frase + senha. |
+| **Autorizar loja** | *pode subir CAMP-PROMO-MENOR / promo valor direto 5% para produção* + **99738595** |
+
 ### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
 
 | Item | Detalhe |

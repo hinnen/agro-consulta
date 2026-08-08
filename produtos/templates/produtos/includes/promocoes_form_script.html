@@ -760,6 +760,9 @@
                     return;
                 }
                 showMsg('Promoção salva.', true);
+                try {
+                    localStorage.setItem('agro_pdv_promocoes_bump_v1', String(Date.now()));
+                } catch (eBump) {}
                 if (res.data.redirect) window.location.assign(res.data.redirect);
             })
             .catch(function (err) {

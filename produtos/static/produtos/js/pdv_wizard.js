@@ -17,6 +17,13 @@
     var MSG_CAIXA_FECHADO_VENDA = 'Abra o caixa antes de registrar vendas.';
 
     window.AgroPdvWizardBootstrap = bootstrap;
+    if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.setOnAtualizado) {
+        window.AgroPdvPromocoes.setOnAtualizado(function () {
+            if (window.AgroPdvState && window.AgroPdvState.recalcularTodasPromocoes) {
+                window.AgroPdvState.recalcularTodasPromocoes();
+            }
+        });
+    }
     if (window.AgroPdvCampanha) {
         var depIni =
             (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) ||
@@ -71,6 +78,41 @@
         }
     }
 
+    function empresaPromoPdv() {
+        try {
+            var cx = bootstrap.caixa || {};
+            var rot = String(cx.rotulo || cx.pontoOperacao || '').toLowerCase();
+            if (rot.indexOf('vila') !== -1) return 'vila';
+        } catch (e1) {}
+        var dep = String((bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || '')
+            .trim()
+            .toLowerCase();
+        if (dep === '2' || dep.indexOf('vila') !== -1) return 'vila';
+        if (dep === '1' || dep === 'centro') return 'centro';
+        return 'centro';
+    }
+
+    var empresaPromoCarregada = '';
+
+    function recarregarPromocoesPdv(force) {
+        if (!window.AgroPdvPromocoes || !urls.apiPromocoesAtivasPdv) return Promise.resolve();
+        var emp = empresaPromoPdv();
+        if (
+            !force &&
+            emp === empresaPromoCarregada &&
+            window.AgroPdvPromocoes.estaCarregado &&
+            window.AgroPdvPromocoes.estaCarregado()
+        ) {
+            return Promise.resolve();
+        }
+        empresaPromoCarregada = emp;
+        window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
+        return window.AgroPdvPromocoes.carregar({
+            empresa: emp,
+            force: !!force,
+        });
+    }
+
     function atualizarBadgeDeposito(depBoot) {
         if (!depBoot || typeof depBoot !== 'object') return;
         bootstrap.pdvDeposito = depBoot;
@@ -82,6 +124,7 @@
             }
             window.AgroPdvCampanha.atualizarFaixaUi();
         }
+        recarregarPromocoesPdv(true);
         var badge = document.getElementById('pdv-deposito-badge');
         if (!badge) return;
         // Com caixa aberto o botão da direita já diz a loja — badge TRAVADO fica redundante.
@@ -1272,7 +1315,9 @@
     }
 
     function agroWizardCatalogoRefreshNoFoco() {
-        if (document.hidden || !wizardProductCatalog.length) return;
+        if (document.hidden) return;
+        recarregarPromocoesPdv(true);
+        if (!wizardProductCatalog.length) return;
         if (wizardCatalogBootAt && Date.now() - wizardCatalogBootAt < 2500) return;
 
         agroWizardAplicarFilaPatchLocal(true);
@@ -14135,10 +14180,7 @@
     }
 
     function carregarDadosSecundariosPdv() {
-        if (window.AgroPdvPromocoes && urls.apiPromocoesAtivasPdv) {
-            window.AgroPdvPromocoes.setApiUrl(urls.apiPromocoesAtivasPdv);
-            window.AgroPdvPromocoes.carregar({ empresa: 'centro' });
-        }
+        recarregarPromocoesPdv(true);
         loadWizardClientesCache(false);
         setTimeout(function () {
             refreshEntregasPendentesUi(true, true).then(function () {
@@ -14152,6 +14194,10 @@
     }
 
     window.addEventListener('storage', function (ev) {
+        if (ev.key === 'agro_pdv_promocoes_bump_v1') {
+            recarregarPromocoesPdv(true);
+            return;
+        }
         if (ev.key !== PDV_PATCH_QUEUE_KEY && ev.key !== PDV_SHARED_CATALOG_LS_KEY) return;
         if (!wizardProductCatalog.length) return;
         clearTimeout(wizardStoragePatchTimer);
@@ -14246,20 +14292,12 @@
             })
             .then(function (j) {
                 if (!j || !j.ok) return;
-                bootstrap.pdvDeposito = {
+                atualizarBadgeDeposito({
                     deposito: j.deposito,
                     depositoLabel: j.depositoLabel,
                     lojaId: j.lojaId,
                     estoqueAtivoLabel: j.estoqueAtivoLabel,
-                };
-                var badge = document.getElementById('pdv-deposito-badge');
-                if (badge && j.estoqueAtivoLabel) {
-                    badge.textContent = j.estoqueAtivoLabel;
-                    var isVila = String(j.deposito || '') === 'vila';
-                    badge.className = isVila
-                        ? 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-slate-400 bg-slate-100 text-slate-800'
-                        : 'inline-flex items-center self-stretch rounded-md border px-1.5 text-[9px] font-black uppercase tracking-wide shrink-0 border-emerald-300 bg-emerald-50 text-emerald-900';
-                }
+                });
             })
             .catch(function () {});
     })();
