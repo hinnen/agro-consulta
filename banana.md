@@ -1203,7 +1203,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Recarrega promo ao voltar no PDV / salvar em outra aba · casa também pelo **GM** · cache v2 · caixa Vila manda na empresa da promo |
 | **Prova** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** |
 | **Migrate** | **NÃO** |
-| **Você agora** | **Ctrl+F5** PDV Vila → farelo 30 kg deve ir a **R$ 54,90** (não 57). Loja só com frase + senha. |
+| **Você agora** | **Ctrl+F5** PDV Vila (teste local) → farelo 30 kg deve ir a **R$ 54,90** (não 57). Loja só com frase + senha. |
 | **Autorizar loja** | *pode subir CAMP-PROMO-MENOR / promo valor direto 5% para produção* + **99738595** |
 
 ### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
