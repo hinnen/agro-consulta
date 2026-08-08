@@ -71,25 +71,25 @@
         return String(q || '').trim().toUpperCase();
     }
 
-    /** GM1769, gm123, ou numérico curto (sem ser EAN 8–14 dígitos). */
+    /** GM1769, GM1507-30, gm123, ou numérico curto (sem ser EAN 8–14 dígitos). */
     function ehCodigoGm(q) {
         var t = normalizarCodigoGm(q);
-        if (/^GM\d+$/i.test(t)) return true;
+        if (/^GM\d+(-\d+)?$/i.test(t)) return true;
         if (/^\d{1,7}$/.test(t)) return true;
         return false;
     }
 
-    /** Parcial: G, GM, GM17, 176… — dispara autocomplete. */
+    /** Parcial: G, GM, GM17, GM1507-, 176… — dispara autocomplete. */
     function ehCodigoGmParcial(q) {
         var t = normalizarCodigoGm(q);
-        if (/^G(M(\d*)?)?$/.test(t)) return true;
+        if (/^G(M(\d*(-?\d*)?)?)?$/.test(t)) return true;
         if (/^\d{1,7}$/.test(t)) return true;
         return false;
     }
 
     function codigoGmCompleto(q) {
         var t = normalizarCodigoGm(q);
-        if (/^GM\d{3,}$/.test(t)) return true;
+        if (/^GM\d{3,}(-\d+)?$/.test(t)) return true;
         if (/^\d{4,7}$/.test(t)) return true;
         return false;
     }
