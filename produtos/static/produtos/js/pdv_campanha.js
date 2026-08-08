@@ -111,6 +111,8 @@
         itens.forEach(function (item) {
             if (!item) return;
             var aposPromo = toNum(item.preco, 0);
+            /* Só reusa cache se o recalc de promo NÃO rodou (ainda tem campanha_id).
+               Promo apaga campanha_id antes de chamar de novo. */
             if (item.preco_pos_promo != null && item.campanha_id) {
                 aposPromo = toNum(item.preco_pos_promo, aposPromo);
             }

@@ -1204,16 +1204,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CAMP-VILA-5** | 📦 pronto para envio à produção | não |
 | 2 | **PROMO-BUSCA-PG** | 📦 pronto para envio à produção | não |
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.99**)
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.99+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · teste v14.99 · VERIFY_OK 30/30 |
+| **Status** | 📦 **pronto para envio à produção** · VERIFY_OK **31/31** |
 | **O quê** | **08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ (2,50→2,40 · 87→82,65) · não mexe cadastro · faixa laranja |
-| **Prova** | `manage.py test produtos.tests_campanha_pdv` **14/14** · `scripts/verify_camp_vila_5_path.py` **30/30** · PC: `.env` TEST=1 · Ctrl+F5 PDV Vila |
+| **Fix extra** | Recalc do carrinho (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` **14/14** · `scripts/verify_camp_vila_5_path.py` **31/31** · PC: `.env` TEST=1 · Ctrl+F5 PDV Vila |
 | **Migrate** | **NÃO** |
-| **Risco** | Médio — só dia/loja da campanha · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa |
+| **Risco** | Médio — só dia/loja da campanha · **hoje 07/08 desligada** · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
+| **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa · promo: menor vence |
 | **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.01**)
