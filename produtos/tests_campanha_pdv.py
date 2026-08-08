@@ -79,6 +79,11 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
         self.assertEqual(out[0]["preco"], 2.40)
 
+    def test_servidor_nao_aplica_duas_vezes_com_preco_base(self):
+        itens = [{"id": "1", "preco": 82.65, "preco_base": 87}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 82.65)
+
     def test_bootstrap_centro_regra_visivel_mas_inativa(self):
         with mock.patch(
             "produtos.campanha_pdv_util.campanha_no_calendario",
