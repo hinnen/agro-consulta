@@ -1193,24 +1193,65 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.97**)
+### 🚀 PREP deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.02**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · prova local: faixa OK · preço carrinho corrigido · arredonda 5¢ · **não** loja |
-| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · **menor** vs promo · preço da campanha **arredonda a 5¢** (2,375→2,40) · não mexe cadastro · faixa laranja |
-| **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
+| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
+| **Branch** | `deploy/lote-checklist-0708` · base loja `e68187b` (v14.85) |
+| **Pacotes** | CAMP-VILA-5 · PROMO-BUSCA-PG |
+| **Fora** | GG-UX (P2,5) |
 | **Migrate** | **NÃO** |
-| **Risco** | Médio — só dia/loja da campanha; kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Arquivos** | `campanha_pdv_util.py` · `pdv_campanha.js` · wizard + persist venda |
-| **Você** | Prova no PC · amanhã na Vila Ctrl+F5 · **loja só com frase+senha** |
-| **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
+| **Após Live** | Ctrl+F5 PDV **Vila** + **Centro** · Promoções → Nova → etapa 2 (GM/nome) |
+| **Provas** | campanha **14/14** + verify **31/31** · promo busca **5/5** + verify **53/53** · `manage.py check` OK |
+| **Risco loja aberta** | Médio **só 08/08 Vila** (5% no PDV) · **hoje 07/08 campanha desligada** · Centro sem faixa · busca promo só tela Promoções |
+| **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart Render · **não** ligar TEST na loja |
+| **Rollback** | tag `rollback/pre-lote-checklist-0708-v14.85` @ `e68187b` |
+| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
+| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
+
+### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
+
+> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
+> **Prep loja:** `deploy/lote-checklist-0708` **v15.02** · aguarda senha  
+> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.02 | não |
+| 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.02 | não |
+
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **no lote prep** · VERIFY_OK **31/31** |
+| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ (2,50→2,40 · 87→82,65) · não mexe cadastro · faixa laranja |
+| **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` **14/14** · `scripts/verify_camp_vila_5_path.py` **31/31** |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — só dia/loja da campanha · **hoje 07/08 desligada** · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
+| **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa · promo: menor vence |
+| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **no lote prep** · VERIFY_OK **53/53** |
+| **O quê** | Etapa 2 da promoção busca no **Postgres** (GM + nome); JS aceita GM com hífen (`GM1507-30`) |
+| **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
+| **Prova** | `manage.py test produtos.tests_promocoes_busca` **5/5** · `scripts/verify_promo_busca_pg_path.py` **53/53** |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só tela promoções / estoque ajuste que reusa o motor |
+| **Você** | Ctrl+F5 Promoções → Nova → etapa 2 → GM ou nome |
+| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser pet sem comer pelo branco (`DSP-PET-BG` · **v14.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | + Adicionar pet não limpa fundo branco/preto (peito branco intacto); ingredientes seguem iguais |
 | **Prova** | `scripts/verify_dsp_pet_bg.py` **31/31** · `verify_dsp_png_bg.py` OK · `manage.py check` OK |
 | **Migrate** | **NÃO** |
@@ -1223,7 +1264,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Motivos **Uso Geraldinho** / **Uso Geraldo** · cards de soma · **Uso Centro** / **Uso Vila Elias** · botão topbar verde |
 | **Prova** | `scripts/verify_uso_loja_donos_path.py` **65/65** · `manage.py check` OK |
 | **Migrate** | **NÃO** |
@@ -1235,7 +1276,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
+| **Status** | ✅ **enviado / Live v14.85** |
 | **Branch** | `deploy/lote-checklist-0608b` · base loja `008e361` (v14.72) |
 | **Pacotes** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
 | **Fora** | GG-UX (P2,5) |
