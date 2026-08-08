@@ -1230,8 +1230,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — só Vila nos dias 07–08 · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Você** | Ctrl+F5 PDV Vila **07 e 08** · milho 1kg → 2,40 · Centro sem faixa · **09** sem 5% |
-| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
+| **Você** | **Ctrl+F5** PDV Vila **07 e 08** · milho 1kg → 2,40 · Centro sem faixa · **09** sem 5% |
 
 ### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.02**)
 
