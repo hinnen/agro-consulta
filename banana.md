@@ -1196,7 +1196,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
 
 > **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
-> **Teste:** badge **v15.00** · HEAD `teste`  
+> **Teste:** badge **v15.01** · HEAD `teste`  
 > **⚠️** **NÃO** merge `teste`→`producao`. Envio = cherry/prep + frase + senha.
 
 | # | Pacote | Status | Migrate |
@@ -1216,11 +1216,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa |
 | **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.00**)
+### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · teste v15.00 · VERIFY_OK **53/53** |
+| **Status** | 📦 **pronto para envio à produção** · teste v15.01 · VERIFY_OK **53/53** |
 | **O quê** | Etapa 2 da promoção busca no **Postgres** (GM + nome); JS aceita GM com hífen (`GM1507-30`) |
 | **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
 | **Prova** | `manage.py test produtos.tests_promocoes_busca` **5/5** · `scripts/verify_promo_busca_pg_path.py` **53/53** · API GM1507-30 + farelo |
