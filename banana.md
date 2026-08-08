@@ -1257,7 +1257,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **no lote prep** · VERIFY_OK **53/53** |
+| **Status** | ✅ **Live v15.03** · VERIFY_OK **53/53** |
 | **O quê** | Etapa 2 da promoção busca no **Postgres** (GM + nome); JS aceita GM com hífen (`GM1507-30`) |
 | **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
 | **Prova** | `manage.py test produtos.tests_promocoes_busca` **5/5** · `scripts/verify_promo_busca_pg_path.py` **53/53** |
