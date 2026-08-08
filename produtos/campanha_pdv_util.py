@@ -234,11 +234,13 @@ def aplicar_desconto_campanha_nos_itens(
                 final = _q4(vu_promo)
             else:
                 final = min(_q4(vu_promo), com_campanha)
-            if com_campanha > 0 and abs(final - com_campanha) < Decimal("0.00005"):
+            usou_campanha = com_campanha > 0 and abs(final - com_campanha) < Decimal("0.00005")
+            if usou_campanha:
                 final = arredondar_preco_5_centavos(final)
             else:
                 final = _q2(final)
             item["preco"] = float(final)
+            item["campanha_usou"] = "campanha" if usou_campanha else "promo_ou_lista"
         item["campanha_id"] = camp["id"]
         item["campanha_pct"] = camp["percentual"]
         item["campanha_modo"] = "menor"

@@ -1193,11 +1193,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
+
+> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
+> **Teste:** badge **v14.99** · HEAD `teste`  
+> **⚠️** **NÃO** merge `teste`→`producao`. Envio = cherry/prep + frase + senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAMP-VILA-5** | 📦 pronto para envio à produção | não |
+| 2 | **PROMO-BUSCA-PG** | 📦 pronto para envio à produção | não |
+
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.98**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto para envio à produção** · teste v14.98 · VERIFY_OK |
+| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ (2,50→2,40 · 87→82,65) · não mexe cadastro · faixa laranja |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` · `scripts/verify_camp_vila_5_path.py` · PC: `.env` TEST=1 · Ctrl+F5 PDV Vila |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio — só dia/loja da campanha · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
+| **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa |
+| **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
+
 ### FIX — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v14.93**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v14.93** · push `450c2f5` · aguarda prova local · **não** loja |
+| **Status** | 📦 **pronto para envio à produção** · teste v14.93 |
 | **Sintoma** | Nova promoção etapa 2: busca GM/nome → «Nenhum produto» (ex. GM1507-30) |
 | **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
 | **Fix** | `buscar_produtos_para_promocao` + `buscar_produtos_motor_pdv` usam catálogo PG |
@@ -1206,19 +1229,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só tela promoções / estoque ajuste que reusa o motor |
 | **Você** | Ctrl+F5 Promoções → Nova → etapa 2 → GM ou nome |
 | **Autorizar** | *pode subir PROMO-BUSCA-PG / busca promoção para produção* + **99738595** |
-
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.97**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **teste v14.97** · arredonda 5¢ · aguarda prova local · **não** loja |
-| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · **menor** vs promo · preço da campanha **arredonda a 5¢** (2,375→2,40) · não mexe cadastro · faixa laranja |
-| **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
-| **Migrate** | **NÃO** |
-| **Risco** | Médio — só dia/loja da campanha; kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Arquivos** | `campanha_pdv_util.py` · `pdv_campanha.js` · wizard + persist venda |
-| **Você** | Prova no PC · amanhã na Vila Ctrl+F5 · **loja só com frase+senha** |
-| **Autorizar** | *pode subir CAMP-VILA-5 / inauguração 5% Vila para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Dispenser pet sem comer pelo branco (`DSP-PET-BG` · **v14.84**)
 
@@ -1257,11 +1267,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-0608b-v14.72` @ `008e361` |
 | **Você** | **Ctrl+F5** Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (06/08b · loja v14.85)
+### ✅ CHECKLIST ÚNICO — enviado produção (06/08b · loja v14.85) · **superado**
 
-> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
-> **Teste:** badge **v14.85** · HEAD `teste`  
-> **⚠️** **NÃO** merge `teste`→`producao`. Próximo envio = cherry/prep.
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (07/08)** no topo. Loja permanece **v14.85** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

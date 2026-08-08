@@ -103,7 +103,7 @@
         return toNum(item.preco, 0);
     }
 
-    /** Depois do recalc de promo/forma: cobra o menor (promo vs base×fator). */
+    /** Depois do recalc de promo/forma: cobra o menor (promo vs base×fator). Idempotente. */
     function aplicarNosItens(itens) {
         if (!Array.isArray(itens)) return itens;
         var on = ativa();
@@ -111,6 +111,9 @@
         itens.forEach(function (item) {
             if (!item) return;
             var aposPromo = toNum(item.preco, 0);
+            if (item.preco_pos_promo != null && item.campanha_id) {
+                aposPromo = toNum(item.preco_pos_promo, aposPromo);
+            }
             item.preco_pos_promo = aposPromo;
             if (on) {
                 var base = precoBaseItem(item);
