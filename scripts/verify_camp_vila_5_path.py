@@ -39,7 +39,8 @@ js_promo = (ROOT / "produtos" / "static" / "produtos" / "js" / "pdv_promocoes.js
 js_state = (ROOT / "produtos" / "static" / "produtos" / "js" / "pdv_state.js").read_text(encoding="utf-8")
 js_wiz = (ROOT / "produtos" / "static" / "produtos" / "js" / "pdv_wizard.js").read_text(encoding="utf-8")
 
-check("CAMPANHA_DATA_DEFAULT = date(2026, 8, 8)" in util, "data inauguração 08/08/2026")
+check("CAMPANHA_INICIO_DEFAULT = date(2026, 8, 7)" in util, "janela inicia 07/08/2026")
+check("CAMPANHA_FIM_DEFAULT = date(2026, 8, 8)" in util, "janela termina 08/08/2026")
 check('CAMPANHA_DEPOSITO = "vila"' in util, "só depósito Vila")
 check("arredondar_preco_5_centavos" in util, "arredonda 5 centavos no servidor")
 check('"modo": "menor"' in util, "modo menor vs promo")
@@ -66,14 +67,25 @@ check("aplicar_desconto_campanha_nos_itens" in views, "persistência venda aplic
 check(views.count("aplicar_desconto_campanha_nos_itens") >= 2, "venda Agro + pedido ERP aplicam")
 check("deposito_de_ponto_caixa" in views, "caixa manda no depósito da campanha")
 
+from django.test import override_settings
+
 from produtos.campanha_pdv_util import (
     aplicar_desconto_campanha_nos_itens,
     arredondar_preco_5_centavos,
     campanha_ativa_para_deposito,
 )
 
-check(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 8)) is not None, "Vila no dia = ativa")
-check(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 8)) is None, "Centro no dia = inativa")
+with override_settings(
+    AGRO_CAMPANHA_INAUGURACAO_TEST=False,
+    AGRO_CAMPANHA_INAUGURACAO_OFF=False,
+    AGRO_CAMPANHA_INAUGURACAO_INICIO="",
+    AGRO_CAMPANHA_INAUGURACAO_FIM="",
+):
+    check(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7)) is not None, "Vila 07/08 = ativa")
+    check(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 8)) is not None, "Vila 08/08 = ativa")
+    check(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 9)) is None, "Vila 09/08 = inativa")
+    check(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 7)) is None, "Centro 07/08 = inativa")
+    check(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 8)) is None, "Centro 08/08 = inativa")
 check(
     arredondar_preco_5_centavos(Decimal("2.375")) == Decimal("2.40"),
     "2,375 → 2,40",

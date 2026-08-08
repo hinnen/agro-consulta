@@ -22,7 +22,9 @@ CAMPANHA_ID = "inauguracao_vila_2026_08_08"
 CAMPANHA_NOME = "Inauguração Vila Elias"
 CAMPANHA_DEPOSITO = "vila"
 CAMPANHA_PCT_DEFAULT = Decimal("5")
-CAMPANHA_DATA_DEFAULT = date(2026, 8, 8)
+CAMPANHA_INICIO_DEFAULT = date(2026, 8, 7)
+CAMPANHA_FIM_DEFAULT = date(2026, 8, 8)
+CAMPANHA_DATA_DEFAULT = CAMPANHA_INICIO_DEFAULT  # alias (início da janela)
 
 
 def _env_truthy(name: str) -> bool:
@@ -45,9 +47,11 @@ def _env_truthy(name: str) -> bool:
 
 
 def _env_str(name: str, default: str = "") -> str:
-    raw = getattr(settings, name, None)
-    if raw is not None and str(raw).strip() != "":
-        return str(raw).strip()
+    if hasattr(settings, name):
+        raw = getattr(settings, name)
+        if raw is not None and str(raw).strip() != "":
+            return str(raw).strip()
+        return default
     import os
 
     raw = os.environ.get(name)
@@ -85,8 +89,8 @@ def percentual_campanha() -> Decimal:
 
 
 def datas_campanha() -> tuple[date, date]:
-    ini = _parse_date(_env_str("AGRO_CAMPANHA_INAUGURACAO_INICIO", ""), CAMPANHA_DATA_DEFAULT)
-    fim = _parse_date(_env_str("AGRO_CAMPANHA_INAUGURACAO_FIM", ""), ini)
+    ini = _parse_date(_env_str("AGRO_CAMPANHA_INAUGURACAO_INICIO", ""), CAMPANHA_INICIO_DEFAULT)
+    fim = _parse_date(_env_str("AGRO_CAMPANHA_INAUGURACAO_FIM", ""), CAMPANHA_FIM_DEFAULT)
     if fim < ini:
         fim = ini
     return ini, fim

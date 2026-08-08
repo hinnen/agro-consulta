@@ -1203,8 +1203,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fora** | GG-UX (P2,5) |
 | **Migrate** | **NÃO** |
 | **Após Live** | Ctrl+F5 PDV **Vila** + **Centro** · Promoções → Nova → etapa 2 (GM/nome) |
-| **Provas** | campanha **14/14** + verify **31/31** · promo busca **5/5** + verify **53/53** · `manage.py check` OK |
-| **Risco loja aberta** | Médio **só 08/08 Vila** (5% no PDV) · **hoje 07/08 campanha desligada** · Centro sem faixa · busca promo só tela Promoções |
+| **Provas** | campanha **15/15** + verify **35/35** · promo busca **5/5** + verify **53/53** · `manage.py check` OK |
+| **Risco loja aberta** | Médio **07 e 08/08 Vila** (5% no PDV) · **09/08 volta ao normal sozinho** · Centro sem faixa · busca promo só tela Promoções |
 | **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart Render · **não** ligar TEST na loja |
 | **Rollback** | tag `rollback/pre-lote-checklist-0708-v14.85` @ `e68187b` |
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
@@ -1225,13 +1225,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **no lote prep** · VERIFY_OK **31/31** |
-| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ (2,50→2,40 · 87→82,65) · não mexe cadastro · faixa laranja |
+| **Status** | 📦 **no lote prep** · VERIFY_OK **35/35** · janela **07–08/08** |
+| **O quê** | **07 e 08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ · **09/08 volta ao normal** · não mexe cadastro · faixa laranja |
 | **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
-| **Prova** | `manage.py test produtos.tests_campanha_pdv` **14/14** · `scripts/verify_camp_vila_5_path.py` **31/31** |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
 | **Migrate** | **NÃO** |
-| **Risco** | Médio — só dia/loja da campanha · **hoje 07/08 desligada** · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Você** | Ctrl+F5 PDV Vila · milho 1kg → 2,40 · 47kg → 82,65 · Centro sem faixa · promo: menor vence |
+| **Risco** | Médio — só Vila nos dias 07–08 · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
+| **Você** | Ctrl+F5 PDV Vila **07 e 08** · milho 1kg → 2,40 · Centro sem faixa · **09** sem 5% |
 | **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.02**)
