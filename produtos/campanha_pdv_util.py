@@ -133,7 +133,7 @@ def campanha_no_calendario(
         "fator": float(fator),
         "data_inicio": ini.isoformat(),
         "data_fim": fim.isoformat(),
-        "rotulo": f"{CAMPANHA_NOME}: {pct.normalize()}% off (vale o menor vs promo)",
+        "rotulo": f"{CAMPANHA_NOME}: {pct.normalize()}% off (menor vs promo · 5¢)",
         "teste": bool(campanha_forcar_teste() and not no_periodo),
         "modo": "menor",
     }
@@ -173,6 +173,18 @@ def _q2(v: Decimal) -> Decimal:
 
 def _q4(v: Decimal) -> Decimal:
     return v.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
+
+
+def arredondar_preco_5_centavos(v: Decimal) -> Decimal:
+    """Múltiplo de R$ 0,05 mais próximo (2,375 → 2,40 · 82,65 → 82,65)."""
+    if v <= 0:
+        return Decimal("0.00")
+    passo = Decimal("0.05")
+    n = (v / passo).quantize(Decimal("1"), rounding=ROUND_HALF_UP)
+    out = (n * passo).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if out <= 0 and v > 0:
+        return passo
+    return out
 
 
 def _dec_preco(raw) -> Decimal:
@@ -222,6 +234,10 @@ def aplicar_desconto_campanha_nos_itens(
                 final = _q4(vu_promo)
             else:
                 final = min(_q4(vu_promo), com_campanha)
+            if com_campanha > 0 and abs(final - com_campanha) < Decimal("0.00005"):
+                final = arredondar_preco_5_centavos(final)
+            else:
+                final = _q2(final)
             item["preco"] = float(final)
         item["campanha_id"] = camp["id"]
         item["campanha_pct"] = camp["percentual"]

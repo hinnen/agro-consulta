@@ -87,6 +87,15 @@
         return toNum(regra && regra.percentual, 0);
     }
 
+    /** Múltiplo de R$ 0,05 mais próximo. */
+    function arredondar5Centavos(v) {
+        var n = toNum(v, 0);
+        if (n <= 0) return 0;
+        var out = Math.round(n / 0.05) * 0.05;
+        out = Math.round(out * 100) / 100;
+        return out > 0 ? out : 0.05;
+    }
+
     function precoBaseItem(item) {
         if (!item) return 0;
         if (item.preco_base_forma != null) return toNum(item.preco_base_forma, 0);
@@ -108,14 +117,20 @@
                 if (base <= 0) base = aposPromo;
                 var comCampanha = Math.round(base * f * 10000) / 10000;
                 var finalP = aposPromo;
+                var usouCampanha = false;
                 if (comCampanha > 0 && (finalP <= 0 || comCampanha < finalP)) {
                     finalP = comCampanha;
+                    usouCampanha = true;
+                }
+                if (usouCampanha) {
+                    finalP = arredondar5Centavos(finalP);
+                } else {
+                    finalP = Math.round(finalP * 100) / 100;
                 }
                 item.preco = finalP;
                 item.campanha_id = id();
                 item.campanha_pct = percentual();
-                item.campanha_usou =
-                    Math.abs(finalP - comCampanha) < 0.00005 ? 'campanha' : 'promo_ou_lista';
+                item.campanha_usou = usouCampanha ? 'campanha' : 'promo_ou_lista';
             } else {
                 delete item.campanha_id;
                 delete item.campanha_pct;
