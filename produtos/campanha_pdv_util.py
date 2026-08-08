@@ -26,21 +26,39 @@ CAMPANHA_DATA_DEFAULT = date(2026, 8, 8)
 
 
 def _env_truthy(name: str) -> bool:
-    raw = str(getattr(settings, name, None) or "").strip().lower()
-    if not raw:
-        import os
+    raw = getattr(settings, name, None)
+    if isinstance(raw, bool):
+        return raw
+    if raw is not None and str(raw).strip() != "":
+        return str(raw).strip().lower() in ("1", "true", "yes", "on", "sim")
+    import os
 
-        raw = str(os.environ.get(name) or "").strip().lower()
-    return raw in ("1", "true", "yes", "on", "sim")
+    raw = os.environ.get(name)
+    if raw is not None and str(raw).strip() != "":
+        return str(raw).strip().lower() in ("1", "true", "yes", "on", "sim")
+    try:
+        from decouple import config as _cfg
+
+        return bool(_cfg(name, default=False, cast=bool))
+    except Exception:
+        return False
 
 
 def _env_str(name: str, default: str = "") -> str:
     raw = getattr(settings, name, None)
-    if raw is None or str(raw).strip() == "":
-        import os
+    if raw is not None and str(raw).strip() != "":
+        return str(raw).strip()
+    import os
 
-        raw = os.environ.get(name)
-    return str(raw or default).strip()
+    raw = os.environ.get(name)
+    if raw is not None and str(raw).strip() != "":
+        return str(raw).strip()
+    try:
+        from decouple import config as _cfg
+
+        return str(_cfg(name, default=default) or default).strip()
+    except Exception:
+        return default
 
 
 def _parse_date(raw: str | None, fallback: date) -> date:

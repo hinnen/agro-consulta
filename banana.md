@@ -1199,7 +1199,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **teste v14.87** · aguarda prova local · **não** loja |
 | **O quê** | **08/08/2026** só **Vila Elias**: 5% off automático · **menor** entre promo e lista−5% (não soma) · não mexe cadastro · faixa laranja |
-| **Prova** | `manage.py test produtos.tests_campanha_pdv` · local: `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · Vila −5% · item em promo forte mantém promo · Centro normal |
+| **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — só dia/loja da campanha; kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
 | **Arquivos** | `campanha_pdv_util.py` · `pdv_campanha.js` · wizard + persist venda |
