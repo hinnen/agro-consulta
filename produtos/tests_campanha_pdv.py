@@ -24,13 +24,29 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         self.assertEqual(camp["percentual"], 5.0)
         self.assertAlmostEqual(camp["fator"], 0.95)
 
+    @override_settings(
+        AGRO_CAMPANHA_INAUGURACAO_TEST=False,
+        AGRO_CAMPANHA_INAUGURACAO_INICIO="",
+        AGRO_CAMPANHA_INAUGURACAO_FIM="",
+    )
+    def test_ativa_vila_dia_07(self):
+        camp = campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7))
+        self.assertIsNotNone(camp)
+        self.assertEqual(camp["data_inicio"], "2026-08-07")
+        self.assertEqual(camp["data_fim"], "2026-08-08")
+
     def test_centro_nao_aplica(self):
         self.assertIsNone(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 8)))
+        self.assertIsNone(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 7)))
 
     def test_fora_da_data_nao_aplica(self):
-        with override_settings(AGRO_CAMPANHA_INAUGURACAO_TEST=False):
+        with override_settings(
+            AGRO_CAMPANHA_INAUGURACAO_TEST=False,
+            AGRO_CAMPANHA_INAUGURACAO_INICIO="",
+            AGRO_CAMPANHA_INAUGURACAO_FIM="",
+        ):
+            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 6)))
             self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 9)))
-            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7)))
 
     @override_settings(AGRO_CAMPANHA_INAUGURACAO_OFF="1")
     def test_kill_switch(self):
