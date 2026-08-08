@@ -1193,7 +1193,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.02**)
+### 🚀 PREP deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1213,15 +1213,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
 
 > **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
-> **Prep loja:** `deploy/lote-checklist-0708` **v15.02** · aguarda senha  
+> **Prep loja:** `deploy/lote-checklist-0708` **v15.03** · aguarda senha  
 > **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.02 | não |
-| 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.02 | não |
+| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.03 | não |
+| 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.03 | não |
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.02**)
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
