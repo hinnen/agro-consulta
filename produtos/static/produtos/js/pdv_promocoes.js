@@ -284,6 +284,15 @@
             }
         });
 
+        /* Recalc gravou o pós-promo em item.preco. Limpa marca da campanha
+           senão o 2º recalc (mudou qtd) reusa preco_pos_promo velho. */
+        itens.forEach(function (item) {
+            if (!item) return;
+            delete item.campanha_id;
+            delete item.campanha_pct;
+            delete item.campanha_usou;
+            delete item.preco_pos_promo;
+        });
         if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
             global.AgroPdvCampanha.aplicarNosItens(itens);
         }
@@ -386,6 +395,10 @@
         item.promocao = promo;
         item.preco = resolvePreco(item.id, item.qtd, padrao);
         limparAlocPromo(item);
+        delete item.campanha_id;
+        delete item.campanha_pct;
+        delete item.campanha_usou;
+        delete item.preco_pos_promo;
         if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
             global.AgroPdvCampanha.aplicarNosItens([item]);
         }

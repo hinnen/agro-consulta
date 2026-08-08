@@ -55,6 +55,10 @@ check("AgroPdvCampanha.setBootstrap" in js_wiz, "wizard liga bootstrap da campan
 check("preco_base" in js_wiz, "payload manda preco_base pro servidor")
 check("precoEnvioItem" in js_wiz, "envio usa preço sem campanha aplicada 2×")
 check("aplicarNosItens" in js_promo, "promo chama campanha após recalc")
+check(
+    "delete item.campanha_id" in js_promo and "delete item.preco_pos_promo" in js_promo,
+    "promo limpa marca da campanha antes de reaplicar (qtd nova)",
+)
 check("arredondar5Centavos" in js_camp, "JS arredonda 5¢")
 check("preco_pos_promo" in js_camp and "campanha_id" in js_camp, "JS guarda base pós-promo")
 check("if (item.preco_pos_promo != null && item.campanha_id)" in js_camp, "JS idempotente (não desconta 2×)")
