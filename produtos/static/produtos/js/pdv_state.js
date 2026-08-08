@@ -1181,6 +1181,10 @@
         normalizeQty: normalizeQty,
         formatQtyDisplay: formatQtyDisplay,
         qtyStepFor: qtyStepFor,
+        recalcularTodasPromocoes: function () {
+            recalcularTodasPromocoes();
+            notify();
+        },
         QTD_MIN: QTD_MIN
     };
 })();

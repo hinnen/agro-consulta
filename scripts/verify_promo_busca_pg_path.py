@@ -99,6 +99,7 @@ def test_arquivos_path() -> None:
     check("produto_externo_id" in js, "JS usa produto_externo_id")
     check("Nenhum produto para" in js, "mensagem vazio na tela")
     check("Nada para" in js, "painel vazio na tela")
+    check("agro_pdv_promocoes_bump_v1" in js, "salvar promo avisa o PDV aberto")
 
 
 def test_js_gm_hifen() -> None:

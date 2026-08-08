@@ -216,7 +216,11 @@ def buscar_promocoes_pdv_ativas(
             pp = None
             if promo.tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
                 pp = _float_val(linha.preco_promocional, 0) or None
-            out[pid] = _promo_para_dict(promo, preco_produto_promo=pp)
+            d = _promo_para_dict(promo, preco_produto_promo=pp)
+            out[pid] = d
+            codigo = str(linha.codigo or "").strip()
+            if codigo and codigo not in out:
+                out[codigo] = d
     return out
 
 
@@ -228,9 +232,12 @@ def aplicar_promocao_em_produto_dict(
 ) -> dict[str, Any]:
     """Ajusta preco_venda e anexa metadados de promoção no dict do produto."""
     pid = str(row.get("id") or row.get("Id") or "").strip()
-    if not pid or pid not in promo_map:
+    codigo = str(
+        row.get("codigo_nfe") or row.get("CodigoNFe") or row.get("codigo") or row.get("Codigo") or ""
+    ).strip()
+    promo = promo_map.get(pid) or (promo_map.get(codigo) if codigo else None)
+    if not promo:
         return row
-    promo = promo_map[pid]
     preco_padrao = _float_val(row.get("preco_venda") or row.get("preco") or 0)
     preco = calcular_preco_promocional(
         tipo=promo["tipo"],

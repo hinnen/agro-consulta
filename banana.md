@@ -1193,12 +1193,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
+### 🚀 PREP deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
-| **Branch** | `deploy/lote-checklist-0708` · base loja `e68187b` (v14.85) |
+| **Loja hoje** | ✅ **Live v15.03** · `producao` @ **290e8b2** |
+| **Branch** | `deploy/camp-promo-menor-0808` · base loja `290e8b2` (v15.03) |
+| **Pacote** | **CAMP-PROMO-MENOR** só |
+| **Fora** | resto do `teste` · GG-UX · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | PDV Vila pedia promo da **Centro** (`carregar({ empresa: 'centro' })`) → valor direto 54,90 não entrava · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
+| **Provas** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** · `manage.py check` OK |
+| **Risco loja aberta** | Médio — só PDV/promo (07–08 Vila 5% + valor direto). Centro sem faixa. Sem migrate. Persistência de venda **não muda**. |
+| **Após Live** | **Ctrl+F5** PDV Vila → farelo GM1507-30 = **R$ 54,90** (não 57) · Centro sem 5% |
+| **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart (só se 5% der problema) |
+| **Rollback** | tag `rollback/pre-camp-promo-menor-0808-v15.03` @ `290e8b2` |
+| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate · FL-038 pausa automática **não** está na loja (Zap + janela calma) |
+| **Autorizar** | *pode subir CAMP-PROMO-MENOR / deploy/camp-promo-menor-0808 para produção* + **99738595** |
+
+### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.03** · `producao` @ **290e8b2** |
+| **Branch** | `deploy/lote-checklist-0708` (FF → `producao`) · base era `e68187b` (v14.85) |
 | **Pacotes** | CAMP-VILA-5 · PROMO-BUSCA-PG |
 | **Fora** | GG-UX (P2,5) |
 | **Migrate** | **NÃO** |
@@ -1208,24 +1227,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart Render · **não** ligar TEST na loja |
 | **Rollback** | tag `rollback/pre-lote-checklist-0708-v14.85` @ `e68187b` |
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
-| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
+### ✅ CHECKLIST ÚNICO — enviado produção (07/08 · loja v15.03)
 
-> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
-> **Prep loja:** `deploy/lote-checklist-0708` **v15.03** · aguarda senha  
-> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
+> **Loja hoje:** ✅ **Live v15.03** · `producao` @ **290e8b2**  
+> **Próximo:** CAMP-PROMO-MENOR · `deploy/camp-promo-menor-0808` **v15.04** · aguarda senha  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.03 | não |
-| 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.03 | não |
+| 1 | **CAMP-VILA-5** | ✅ enviado / Live v15.03 | não |
+| 2 | **PROMO-BUSCA-PG** | ✅ enviado / Live v15.03 | não |
+| 3 | **CAMP-PROMO-MENOR** | 🚀 PREP v15.04 · aguarda senha | não |
 
 ### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **no lote prep** · VERIFY_OK **35/35** · janela **07–08/08** |
+| **Status** | ✅ **Live v15.03** · janela **07–08/08** |
 | **O quê** | **07 e 08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ · **09/08 volta ao normal** · não mexe cadastro · faixa laranja |
 | **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
