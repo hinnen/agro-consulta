@@ -1207,12 +1207,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Promoções → Nova → etapa 2 → GM ou nome |
 | **Autorizar** | *pode subir PROMO-BUSCA-PG / busca promoção para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.90**)
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.97**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **teste v14.95+** · prova local: faixa OK · preço carrinho corrigido (cache JS + recálculo) · **não** loja |
-| **O quê** | **08/08/2026** só **Vila Elias**: 5% off automático · **menor** entre promo e lista−5% (não soma) · não mexe cadastro · faixa laranja |
+| **O quê** | **08/08/2026** só **Vila Elias**: 5% off · **menor** vs promo · preço da campanha **arredonda a 5¢** (2,375→2,40) · não mexe cadastro · faixa laranja |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — só dia/loja da campanha; kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |

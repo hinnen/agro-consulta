@@ -9,6 +9,7 @@ from django.test import SimpleTestCase, override_settings
 from produtos.campanha_pdv_util import (
     CAMPANHA_ID,
     aplicar_desconto_campanha_nos_itens,
+    arredondar_preco_5_centavos,
     bootstrap_campanha,
     campanha_ativa_para_deposito,
     campanha_no_calendario,
@@ -63,10 +64,20 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
         self.assertEqual(out[0]["preco"], 95.0)
 
-    def test_fator_decimal_preciso(self):
+    def test_arredonda_5_centavos(self):
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("2.375")), Decimal("2.40"))
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("82.65")), Decimal("82.65"))
+        self.assertEqual(arredondar_preco_5_centavos(Decimal("31.6635")), Decimal("31.65"))
+
+    def test_fator_decimal_arredonda_5c(self):
         itens = [{"id": "1", "preco": Decimal("33.33")}]
         out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
-        self.assertAlmostEqual(out[0]["preco"], 31.6635, places=4)
+        self.assertEqual(out[0]["preco"], 31.65)
+
+    def test_milho_1kg_arredonda(self):
+        itens = [{"id": "1", "preco": Decimal("2.50")}]
+        out, _ = aplicar_desconto_campanha_nos_itens(itens, "vila", agora=date(2026, 8, 8))
+        self.assertEqual(out[0]["preco"], 2.40)
 
     def test_bootstrap_centro_regra_visivel_mas_inativa(self):
         with mock.patch(
