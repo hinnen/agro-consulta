@@ -27,8 +27,9 @@ class CampanhaInauguracaoVilaTests(SimpleTestCase):
         self.assertIsNone(campanha_ativa_para_deposito("centro", agora=date(2026, 8, 8)))
 
     def test_fora_da_data_nao_aplica(self):
-        self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 9)))
-        self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7)))
+        with override_settings(AGRO_CAMPANHA_INAUGURACAO_TEST=False):
+            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 9)))
+            self.assertIsNone(campanha_ativa_para_deposito("vila", agora=date(2026, 8, 7)))
 
     @override_settings(AGRO_CAMPANHA_INAUGURACAO_OFF="1")
     def test_kill_switch(self):
