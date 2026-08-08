@@ -1218,10 +1218,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.02 | não |
+| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.03 | não |
 | 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.02 | não |
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.02**)
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
