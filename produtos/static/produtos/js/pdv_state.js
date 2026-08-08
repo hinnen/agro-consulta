@@ -410,17 +410,20 @@
         }
         if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
             window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);
-            return;
+        } else {
+            (state.itens || []).forEach(function (item) {
+                if (!item || item.preco_manual) return;
+                if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+                    window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, fp);
+                } else if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
+                    if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
+                    window.AgroPdvPromocoes.aplicarNoItem(item);
+                }
+            });
         }
-        (state.itens || []).forEach(function (item) {
-            if (!item || item.preco_manual) return;
-            if (typeof window.AgroPrecosFormaPagamento !== 'undefined' && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
-                window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, fp);
-            } else if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.aplicarNoItem) {
-                if (item.preco_padrao == null) item.preco_padrao = toNumber(item.preco);
-                window.AgroPdvPromocoes.aplicarNoItem(item);
-            }
-        });
+        if (window.AgroPdvCampanha && window.AgroPdvCampanha.aplicarNosItens) {
+            window.AgroPdvCampanha.aplicarNosItens(state.itens);
+        }
     }
 
     function recalcularPrecosFormaItens(forma) {
@@ -431,6 +434,9 @@
         if (!state.itens || !state.itens.length) return;
         if (typeof window.AgroPdvPromocoes !== 'undefined' && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
             window.AgroPdvPromocoes.recalcCarrinhoComForma(state.itens, fp);
+            if (window.AgroPdvCampanha && window.AgroPdvCampanha.aplicarNosItens) {
+                window.AgroPdvCampanha.aplicarNosItens(state.itens);
+            }
             return;
         }
         recalcularTodasPromocoes();

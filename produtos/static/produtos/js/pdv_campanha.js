@@ -25,22 +25,29 @@
         }
         if (boot.regra) {
             regra = boot.regra;
-            depositoAtual = String(
+            depositoAtual = normalizarDepositoJs(
                 deposito || boot.depositoAtual || 'centro'
-            ).toLowerCase();
+            );
             return;
         }
         if (boot.id) {
             regra = boot;
-            depositoAtual = String(deposito || boot.deposito || 'centro').toLowerCase();
+            depositoAtual = normalizarDepositoJs(deposito || boot.deposito || 'centro');
             return;
         }
         regra = null;
-        depositoAtual = String(deposito || 'centro').toLowerCase();
+        depositoAtual = normalizarDepositoJs(deposito || 'centro');
+    }
+
+    function normalizarDepositoJs(dep) {
+        var d = String(dep || '').trim().toLowerCase();
+        if (d === '2' || d.indexOf('vila') !== -1) return 'vila';
+        if (d === '1' || d.indexOf('centro') !== -1) return 'centro';
+        return d || 'centro';
     }
 
     function setDeposito(dep) {
-        depositoAtual = String(dep || 'centro').toLowerCase();
+        depositoAtual = normalizarDepositoJs(dep);
     }
 
     function getConfig() {
@@ -49,10 +56,18 @@
 
     function ativa() {
         if (!regra || !regra.id) return false;
-        var depAlvo = String(regra.deposito || 'vila').toLowerCase();
-        if (depositoAtual !== depAlvo) return false;
         var f = toNum(regra.fator, 0);
-        return f > 0 && f < 1;
+        if (!(f > 0 && f < 1)) return false;
+        var depAlvo = normalizarDepositoJs(regra.deposito || 'vila');
+        var dep = normalizarDepositoJs(depositoAtual);
+        if (dep === depAlvo) return true;
+        /* Caixa Vila no rotulo, mesmo se o cookie de deposito vier errado */
+        try {
+            var cx = (window.AgroPdvWizardBootstrap && window.AgroPdvWizardBootstrap.caixa) || {};
+            var rot = String(cx.rotulo || cx.pontoOperacao || '').toLowerCase();
+            if (depAlvo === 'vila' && rot.indexOf('vila') !== -1) return true;
+        } catch (e1) {}
+        return false;
     }
 
     function fator() {
