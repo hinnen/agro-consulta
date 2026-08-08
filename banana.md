@@ -1211,7 +1211,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v14.95+** · prova local: faixa OK · preço carrinho corrigido (cache JS + recálculo) · **não** loja |
+| **Status** | ✅ **teste v14.97** · arredonda 5¢ · aguarda prova local · **não** loja |
 | **O quê** | **08/08/2026** só **Vila Elias**: 5% off · **menor** vs promo · preço da campanha **arredonda a 5¢** (2,375→2,40) · não mexe cadastro · faixa laranja |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
 | **Migrate** | **NÃO** |
