@@ -16,9 +16,12 @@
     var pagamentoUi = bootstrap.pagamentoUi || {};
     var MSG_CAIXA_FECHADO_VENDA = 'Abra o caixa antes de registrar vendas.';
 
+    window.AgroPdvWizardBootstrap = bootstrap;
     if (window.AgroPdvCampanha) {
         var depIni =
-            (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || 'centro';
+            (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) ||
+            (bootstrap.caixa && bootstrap.caixa.pontoOperacao) ||
+            'centro';
         window.AgroPdvCampanha.setBootstrap(bootstrap.campanhaPdv || null, depIni);
         window.AgroPdvCampanha.atualizarFaixaUi();
     }

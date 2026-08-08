@@ -1193,11 +1193,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.87**)
+### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v14.90**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v14.87** · aguarda prova local · **não** loja |
+| **Status** | ✅ **teste** · prova local: faixa OK · preço carrinho corrigido (cache JS + recálculo) · **não** loja |
 | **O quê** | **08/08/2026** só **Vila Elias**: 5% off automático · **menor** entre promo e lista−5% (não soma) · não mexe cadastro · faixa laranja |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` · `.env` `AGRO_CAMPANHA_INAUGURACAO_TEST=1` · **reiniciar runserver** · Ctrl+F5 PDV Vila → faixa laranja + preço −5% · Centro normal |
 | **Migrate** | **NÃO** |

@@ -242,8 +242,10 @@ def pdv_home(request):
             "nfce": nfce_config_resumo(),
         },
         "pdv_reabrir_from_consulta": pdv_reabrir_from_consulta,
-        "agro_pdv_assets_v": getattr(settings, "AGRO_PDV_ASSETS_V", "") or (
-            str(int(__import__("time").time())) if settings.DEBUG else ""
+        "agro_pdv_assets_v": (
+            f"{getattr(settings, 'AGRO_PDV_ASSETS_V', '') or 'dev'}-{int(__import__('time').time())}"
+            if settings.DEBUG
+            else (getattr(settings, "AGRO_PDV_ASSETS_V", "") or "")
         ),
     }
     return render(request, "produtos/pdv_wizard.html", ctx)
