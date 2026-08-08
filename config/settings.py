@@ -538,6 +538,13 @@ AGRO_PDV_NFCE_ASSINCRONA = config("AGRO_PDV_NFCE_ASSINCRONA", default=True, cast
 NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)
 # Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
+
+# Campanha inauguração Vila (CAMP-VILA-5): fora da data use TEST=1 no .env local; OFF=1 desliga.
+AGRO_CAMPANHA_INAUGURACAO_TEST = config("AGRO_CAMPANHA_INAUGURACAO_TEST", default=False, cast=bool)
+AGRO_CAMPANHA_INAUGURACAO_OFF = config("AGRO_CAMPANHA_INAUGURACAO_OFF", default=False, cast=bool)
+AGRO_CAMPANHA_INAUGURACAO_PCT = config("AGRO_CAMPANHA_INAUGURACAO_PCT", default="5")
+AGRO_CAMPANHA_INAUGURACAO_INICIO = config("AGRO_CAMPANHA_INAUGURACAO_INICIO", default="")
+AGRO_CAMPANHA_INAUGURACAO_FIM = config("AGRO_CAMPANHA_INAUGURACAO_FIM", default="")
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()
 PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").strip()
 # Percentual de cashback gerado na venda quando o produto não tem % no overlay (padrão 1%).
