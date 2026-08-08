@@ -1193,37 +1193,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
+### ✅ Deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
-| **Loja hoje** | ✅ **Live v15.03** · `producao` @ **290e8b2** |
-| **Branch** | `deploy/camp-promo-menor-0808` @ **14dc51a** · base loja `290e8b2` (v15.03) |
-| **Pacote** | **CAMP-PROMO-MENOR** só (cherry `911c998` + banana PREP) |
+| **Status** | ✅ **enviado / Live v15.04** · `producao` @ **14dc51a** · Render `dep-d9ra30bbc2fs73ahkii0` |
+| **Loja hoje** | ✅ **Live v15.04** · `producao` @ **14dc51a** |
+| **Branch** | `deploy/camp-promo-menor-0808` (FF → `producao`) · base era `290e8b2` (v15.03) |
+| **Pacote** | **CAMP-PROMO-MENOR** só |
 | **Fora** | resto do `teste` · GG-UX · **NÃO** merge `teste`→`producao` |
 | **Migrate** | **NÃO** |
-| **O quê** | Loja ainda pede promo da **Centro** no PDV (`carregar({ empresa: 'centro' })`) → valor direto 54,90 não entra · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
-| **Revisão** | Diff vs loja = só PDV/promo + testes/verify + banana/VERSION. Persistência de venda **não muda**. Sem migrate. |
-| **Provas** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** · `manage.py check` OK (na branch deploy) |
-| **Risco loja aberta** | Médio — só PDV/promo (07–08 Vila 5% + valor direto). Centro sem faixa. FL-038 pausa automática **não** está na loja → Zap + janela calma. |
-| **Após Live** | **Ctrl+F5** PDV Vila → farelo GM1507-30 = **R$ 54,90** (não 57) · Centro sem 5% |
+| **O quê** | PDV Vila pedia promo da **Centro** → valor direto 54,90 não entrava · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
+| **Provas** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** · `manage.py check` OK |
+| **Você** | **Ctrl+F5** PDV Vila → farelo GM1507-30 = **R$ 54,90** (não 57) · Centro sem 5% |
 | **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart (só se 5% der problema) |
 | **Rollback** | tag `rollback/pre-camp-promo-menor-0808-v15.03` @ `290e8b2` |
-| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
-| **Autorizar** | *pode subir CAMP-PROMO-MENOR / deploy/camp-promo-menor-0808 para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Promo valor direto prevalece no 5% Vila (`CAMP-PROMO-MENOR`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v15.04** · PREP loja pronta (`deploy/camp-promo-menor-0808`) · loja ainda **v15.03** |
+| **Status** | ✅ **Live v15.04** · `producao` @ **14dc51a** |
 | **Sintoma** | Farelo GM1507-30: lista **R$ 60** · valor direto **R$ 54,90** · PDV Vila cobrou **R$ 57** (só 5%) |
 | **Causa** | Promo **estava gravada** (PG id 9, Vila, 07–08, 54,90). PDV da loja carrega promo só da **Centro**. Campanha 5% rodava sozinha. |
 | **Fix** | Recarrega promo ao voltar no PDV / salvar em outra aba · casa também pelo **GM** · cache v2 · caixa Vila manda na empresa da promo |
 | **Prova** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** |
 | **Migrate** | **NÃO** |
-| **Você agora** | Próximo chat: pausar vendas + frase + senha. |
+| **Você agora** | **Ctrl+F5** PDV Vila → farelo = **R$ 54,90**. |
 
 ### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
 
@@ -1242,17 +1238,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
 | **Você agora** | **Ctrl+F5** PDV Vila + Centro · Promoções etapa 2 |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (07/08 · loja v15.03)
+### ✅ CHECKLIST ÚNICO — enviado produção (08/08 · loja v15.04)
 
-> **Loja hoje:** ✅ **Live v15.03** · `producao` @ **290e8b2** · Render `dep-d9r9hne417fc73a776pg`  
-> **Próximo:** CAMP-PROMO-MENOR · `deploy/camp-promo-menor-0808` **v15.04** · aguarda senha  
+> **Loja hoje:** ✅ **Live v15.04** · `producao` @ **14dc51a** · Render `dep-d9ra30bbc2fs73ahkii0`  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CAMP-VILA-5** | ✅ enviado / Live v15.03 | não |
 | 2 | **PROMO-BUSCA-PG** | ✅ enviado / Live v15.03 | não |
-| 3 | **CAMP-PROMO-MENOR** | 🚀 PREP v15.04 · aguarda senha | não |
+| 3 | **CAMP-PROMO-MENOR** | ✅ enviado / Live v15.04 | não |
 
 ### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
