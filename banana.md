@@ -1193,12 +1193,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
+### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
-| **Branch** | `deploy/lote-checklist-0708` · base loja `e68187b` (v14.85) |
+| **Status** | ✅ **enviado / Live v15.03** · `producao` @ **290e8b2** · Render `dep-d9r9hne417fc73a776pg` |
+| **Branch** | `deploy/lote-checklist-0708` (FF → `producao`) · base era `e68187b` (v14.85) |
 | **Pacotes** | CAMP-VILA-5 · PROMO-BUSCA-PG |
 | **Fora** | GG-UX (P2,5) |
 | **Migrate** | **NÃO** |
@@ -1208,24 +1208,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart Render · **não** ligar TEST na loja |
 | **Rollback** | tag `rollback/pre-lote-checklist-0708-v14.85` @ `e68187b` |
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
-| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
+| **Você agora** | **Ctrl+F5** PDV Vila + Centro · Promoções etapa 2 |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (07/08 · após loja v14.85)
+### ✅ CHECKLIST ÚNICO — enviado produção (07/08 · loja v15.03)
 
-> **Loja hoje:** ✅ **Live v14.85** · `producao` @ **e68187b**  
-> **Prep loja:** `deploy/lote-checklist-0708` **v15.03** · aguarda senha  
-> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
+> **Loja hoje:** ✅ **Live v15.03** · `producao` @ **290e8b2** · Render `dep-d9r9hne417fc73a776pg`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAMP-VILA-5** | 📦 no lote prep v15.03 | não |
-| 2 | **PROMO-BUSCA-PG** | 📦 no lote prep v15.02 | não |
+| 1 | **CAMP-VILA-5** | ✅ enviado / Live v15.03 | não |
+| 2 | **PROMO-BUSCA-PG** | ✅ enviado / Live v15.03 | não |
 
 ### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **no lote prep** · VERIFY_OK **35/35** · janela **07–08/08** |
+| **Status** | ✅ **Live v15.03** · janela **07–08/08** |
 | **O quê** | **07 e 08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ · **09/08 volta ao normal** · não mexe cadastro · faixa laranja |
 | **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
@@ -1238,7 +1237,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **no lote prep** · VERIFY_OK **53/53** |
+| **Status** | ✅ **Live v15.03** · VERIFY_OK **53/53** |
 | **O quê** | Etapa 2 da promoção busca no **Postgres** (GM + nome); JS aceita GM com hífen (`GM1507-30`) |
 | **Causa** | API ainda exigia Mongo; loja já é `agro_pg` |
 | **Prova** | `manage.py test produtos.tests_promocoes_busca` **5/5** · `scripts/verify_promo_busca_pg_path.py` **53/53** |
