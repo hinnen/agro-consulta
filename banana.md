@@ -1193,37 +1193,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PREP LOJA — Excel cadastro Sub 2–4 + Unidade + Modelo + Peso (`CAD-XLSX-COLS` · **v15.05**)
+### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **PREP próximo chat** · loja ainda **v15.04** · **não subir agora** (lojas abertas) |
-| **Branch loja** | `deploy/cad-xlsx-cols` (base `14dc51a`) · **FF só** após pausa + frase + senha |
-| **PROIBIDO** | cherry-pick teste `19c09bf` / `355b76d` / `75a5f3b` — util do **teste é mais pobre** que a loja (apagaria fiscal/facetas/dropdown) |
-| **O quê** | Checkboxes Excel: Sub 2/3/4, Unidade, Modelo, **Peso** · gravar `peso_etiqueta` no overlay · célula vazia não altera |
-| **Fora** | PDV · caixa · checkout · financeiro · **NÃO** merge `teste`→`producao` |
-| **Prova** | `tests_cadastro_planilha_peso` **7/7** · verify **20/20** · `manage.py check` |
+| **Status** | ✅ **enviado / Live v15.05** · `producao` @ **9c45d74** · Render `dep-d9s5cum417fc73aov3fg` |
+| **Loja hoje** | ✅ **Live v15.05** · `producao` @ **9c45d74** |
+| **Branch** | `deploy/cad-xlsx-cols` (FF → `producao`) · base era `14dc51a` (v15.04) |
+| **Pacote** | **CAD-XLSX-COLS** só |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` · **NÃO** cherry `19c09bf`/`355b76d` |
 | **Migrate** | **NÃO** |
-| **Restart** | Gunicorn reinicia → **pausar vendas** mesmo sendo só Cadastro |
-| **Você no próximo chat** | lojas pausam vendas → *pode subir para produção* + senha |
+| **O quê** | Excel Cadastro: checkboxes Sub 2–4, Unidade, Modelo, **Peso** · gravar `peso_etiqueta` · célula vazia não altera |
+| **Provas** | `tests_cadastro_planilha_peso` **7/7** · verify **20/20** · `manage.py check` |
+| **Você** | Cadastro → Ctrl+F5 → Excel ↓ → marcar Sub 2–4 / Unidade / Modelo / Peso |
+| **Rollback** | tag `rollback/pre-cad-xlsx-cols-v15.04` @ `14dc51a` · branch `producao-backup-pre-v1505-cad-xlsx-20260809` · frase+senha |
 
-### ✅ CHECKLIST ÚNICO — PREP envio (09/08 · após loja v15.04)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.05)
 
-> **Loja hoje:** ✅ **Live v15.04** · `producao` @ **14dc51a**  
-> **⚠️** **NÃO** merge `teste`→`producao`. **NÃO** cherry teste CAD-XLSX. Só FF `deploy/cad-xlsx-cols`.
+> **Loja hoje:** ✅ **Live v15.05** · `producao` @ **9c45d74**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAD-XLSX-COLS** | 📋 PREP · branch `deploy/cad-xlsx-cols` · **v15.05** · aguarda pausa+senha | não |
+| 1 | **CAD-XLSX-COLS** | ✅ enviado / Live v15.05 | não |
 
 ### CAD-XLSX-COLS — Excel cadastro (loja · 09/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **PREP** · deploy **v15.05** · loja **v15.04** · teste lab **v15.07** (não usar na loja) |
+| **Status** | ✅ **Live v15.05** · `9c45d74` |
 | **O quê** | Modal Excel ↓ mostra Sub 2–4, Unidade, Modelo, Peso · import grava Peso |
 | **Regra** | Célula vazia **não** altera · baixar Excel de novo |
-| **Prova** | peso **7/7** · verify **20/20** |
+| **Rollback** | `rollback/pre-cad-xlsx-cols-v15.04` → v15.04 |
 | **Migrate** | **NÃO** |
 
 ### ✅ Deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
