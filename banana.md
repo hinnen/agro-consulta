@@ -1193,6 +1193,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 Resumo financeiro — aviso de ajuda na frente (`RG-AJUDA-MODAL` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste · loja ainda abre o aviso sozinho |
+| **O quê** | `/financeiro/resumo-gerencial/` abria o modal **?** na frente (CSS `display:flex` ganhava do `hidden`) |
+| **Agora** | Fecha **Fechar** → **Atualizar F5** → card **Resultado líquido gerencial** = lucro líquido |
+| **Arquivo** | `resumo_financeiro_gerencial.html` |
+| **Você** | Na loja: Fechar + F5. No teste: Ctrl+F5 no resumo — aviso só no **?** |
+
 ### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
 
 | Item | Detalhe |
