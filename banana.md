@@ -1193,15 +1193,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO LOJA — Excel cadastro Sub 2–4 + Unidade + Modelo + Peso (`CAD-XLSX-COLS` · **v15.07**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · teste **v15.07** · loja ainda **v15.04** |
+| **O quê** | Excel Cadastro: **Sub 2/3/4**, **Unidade**, **Modelo**, **Peso** · célula vazia não altera · gravar só o que mudou (não zera Unidade) · Desfazer restaura PG |
+| **Prova** | `tests_cadastro_planilha_cols` **13/13** · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Cadastro → Excel ↓ novo → preencher → Excel ↑ |
+| **Risco loja** | Baixo — só planilha cadastro |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.04)
+
+> **Loja hoje:** ✅ **Live v15.04** · `producao` @ **14dc51a**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Só o pacote abaixo.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-XLSX-COLS** | 📋 pronto para envio à produção · teste **v15.07** | não |
+
 ### CAD-XLSX-COLS — Excel cadastro Sub 2–4 + Unidade + Modelo + Peso (09/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v15.05** · `19c09bf` · loja **não** |
-| **O quê** | Planilha Cadastro passa a exportar/importar **Subcategoria 2/3/4**, **Unidade**, **Modelo**, **Peso** |
-| **Regra** | Célula vazia **não** altera · baixar de novo (Excel antigo sem essas colunas) |
-| **Arquivos** | `cadastro_planilha_util.py` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` |
-| **Prova** | `tests_cadastro_planilha_cols` · PC local: Excel ↓ → preencher → Excel ↑ |
+| **Status** | 📋 **pronto envio** · teste **v15.07** · loja **não** |
+| **O quê** | Planilha Cadastro: Sub 2/3/4, Unidade, Modelo, Peso |
+| **Regra** | Célula vazia **não** altera · baixar Excel de novo |
+| **Prova** | `tests_cadastro_planilha_cols` **13/13** |
 | **Migrate** | **NÃO** |
 
 ### ✅ Deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
@@ -1249,10 +1268,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
 | **Você agora** | **Ctrl+F5** PDV Vila + Centro · Promoções etapa 2 |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (08/08 · loja v15.04)
+### ✅ CHECKLIST ÚNICO — enviado produção (08/08 · loja v15.04) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.04** · `producao` @ **14dc51a** · Render `dep-d9ra30bbc2fs73ahkii0`  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (09/08)** no topo. Loja permanece **v15.04** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

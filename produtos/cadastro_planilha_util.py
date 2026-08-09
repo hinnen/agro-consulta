@@ -204,6 +204,117 @@ def _gravar_overlay_import_campo(ov: ProdutoGestaoOverlayAgro, key: str, val) ->
     setattr(ov, _overlay_model_field(key), str(val or "")[: _max_txt_import(key)])
 
 
+# Produto PG: só os campos que a planilha mexeu (evita zerar Unidade ao gravar só Modelo/Peso/Sub 2).
+_PG_TXT_FROM_PATCH = (
+    (COL_NOME, "nome", 300),
+    (COL_MARCA, "marca", 120),
+    (COL_MODELO, "modelo", 200),
+    (COL_UNIDADE, "unidade", 20),
+    (COL_CATEGORIA, "categoria", 200),
+    (COL_SUBCATEGORIA, "subcategoria", 200),
+    (COL_SUBCATEGORIA_2, "subcategoria_2", 200),
+    (COL_SUBCATEGORIA_3, "subcategoria_3", 200),
+    (COL_SUBCATEGORIA_4, "subcategoria_4", 200),
+    (COL_CODIGO_BARRAS, "codigo_barras", 50),
+    (COL_CODIGO_GM, "codigo_nfe", 64),
+)
+
+
+def _snapshot_produto_pg(p_pg) -> dict[str, Any]:
+    return {
+        "custo": float(p_pg.custo or 0),
+        "preco_venda": float(p_pg.preco_venda or 0),
+        "nome": (p_pg.nome or "")[:300],
+        "marca": (p_pg.marca or "")[:120],
+        "modelo": str(getattr(p_pg, "modelo", None) or "")[:200],
+        "unidade": (p_pg.unidade or "")[:20],
+        "categoria": (p_pg.categoria or "")[:200],
+        "subcategoria": (p_pg.subcategoria or "")[:200],
+        "subcategoria_2": (p_pg.subcategoria_2 or "")[:200],
+        "subcategoria_3": (p_pg.subcategoria_3 or "")[:200],
+        "subcategoria_4": (p_pg.subcategoria_4 or "")[:200],
+        "codigo_barras": (p_pg.codigo_barras or "")[:50],
+        "codigo_nfe": (p_pg.codigo_nfe or "")[:64],
+    }
+
+
+def _valor_overlay_para_produto(ov, col: str):
+    if col == COL_MODELO:
+        return str(_extras_dict(ov).get("modelo") or "")[:200]
+    if col == COL_CODIGO_GM:
+        return (ov.codigo_nfe or "").strip()[:64]
+    if col == COL_CODIGO_BARRAS:
+        return (ov.codigo_barras or "").strip()[:50] or None
+    if col == COL_UNIDADE:
+        return ((ov.unidade or "").strip() or "UN")[:20]
+    if col == COL_CATEGORIA:
+        return (ov.categoria or "").strip()[:200] or None
+    if col == COL_NOME:
+        return (ov.nome or "").strip()[:300]
+    if col == COL_MARCA:
+        return (ov.marca or "").strip()[:120]
+    if col == COL_SUBCATEGORIA:
+        return (ov.subcategoria or "").strip()[:200]
+    if col == COL_SUBCATEGORIA_2:
+        return (ov.subcategoria_2 or "").strip()[:200]
+    if col == COL_SUBCATEGORIA_3:
+        return (ov.subcategoria_3 or "").strip()[:200]
+    if col == COL_SUBCATEGORIA_4:
+        return (ov.subcategoria_4 or "").strip()[:200]
+    return None
+
+
+def _aplicar_patch_no_produto_pg(pid: str, ov, patch: dict, custo_payload=None) -> None:
+    from produtos import catalogo_agro
+
+    p = catalogo_agro.obter_produto_model(pid)
+    if p is None:
+        sync_payload = {}
+        if COL_MODELO in patch:
+            sync_payload["modelo"] = str(_extras_dict(ov).get("modelo") or "")
+        catalogo_agro.sincronizar_modelo_produto_de_overlay(
+            pid, ov, custo_payload=custo_payload, payload=sync_payload or None
+        )
+        return
+    changed = False
+    for col, attr, _mx in _PG_TXT_FROM_PATCH:
+        if col not in patch:
+            continue
+        setattr(p, attr, _valor_overlay_para_produto(ov, col))
+        changed = True
+    if COL_PRECO_VENDA in patch and ov.preco_venda is not None:
+        p.preco_venda = ov.preco_venda
+        changed = True
+    if custo_payload is not None:
+        p.custo = custo_payload
+        changed = True
+    if changed:
+        p.save()
+
+
+def _restaurar_produto_pg(p, pg_antes: dict, patch_keys) -> bool:
+    changed = False
+    if COL_PRECO_CUSTO in patch_keys and "custo" in pg_antes:
+        p.custo = Decimal(str(pg_antes["custo"])).quantize(Decimal("0.01"))
+        changed = True
+    if COL_PRECO_VENDA in patch_keys and "preco_venda" in pg_antes:
+        p.preco_venda = Decimal(str(pg_antes["preco_venda"])).quantize(Decimal("0.01"))
+        changed = True
+    for col, attr, mx in _PG_TXT_FROM_PATCH:
+        if col not in patch_keys or attr not in pg_antes:
+            continue
+        val = str(pg_antes.get(attr) or "")[:mx]
+        if attr == "unidade":
+            val = val or "UN"
+        elif attr == "codigo_barras":
+            val = val or None
+        elif attr == "categoria":
+            val = val or None
+        setattr(p, attr, val)
+        changed = True
+    return changed
+
+
 def _valor_atual_campo_import(atual: dict, key: str):
     if key in (COL_PRECO_CUSTO, COL_PRECO_VENDA):
         return atual.get(key)
@@ -865,10 +976,7 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
 
         p_pg = catalogo_agro.obter_produto_model(pid)
         if p_pg is not None:
-            produto_pg = {
-                "custo": float(p_pg.custo or 0),
-                "preco_venda": float(p_pg.preco_venda or 0),
-            }
+            produto_pg = _snapshot_produto_pg(p_pg)
 
     campos = [k for k in IMPORT_KEYS if k in patch]
     para: dict[str, Any] = {}
@@ -955,31 +1063,13 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
-        from decimal import Decimal
-
         from produtos import catalogo_agro
 
         pg_antes = item.get("produto_pg") or {}
-        ov_atual = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
-        if ov_atual is not None:
-            custo_rev = None
-            if COL_PRECO_CUSTO in patch_keys and "custo" in pg_antes:
-                custo_rev = Decimal(str(pg_antes["custo"])).quantize(Decimal("0.01"))
-            catalogo_agro.sincronizar_modelo_produto_de_overlay(
-                pid, ov_atual, custo_payload=custo_rev
-            )
-        elif pg_antes:
-            p = catalogo_agro.obter_produto_model(pid)
-            if p is not None:
-                changed = False
-                if COL_PRECO_CUSTO in patch_keys and "custo" in pg_antes:
-                    p.custo = Decimal(str(pg_antes["custo"])).quantize(Decimal("0.01"))
-                    changed = True
-                if COL_PRECO_VENDA in patch_keys and "preco_venda" in pg_antes:
-                    p.preco_venda = Decimal(str(pg_antes["preco_venda"])).quantize(Decimal("0.01"))
-                    changed = True
-                if changed:
-                    p.save()
+        p = catalogo_agro.obter_produto_model(pid)
+        if p is not None and pg_antes:
+            if _restaurar_produto_pg(p, pg_antes, patch_keys):
+                p.save()
 
 
 def _historico_import_resumo_item(item: dict) -> dict:
@@ -1114,11 +1204,7 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
     if agro_catalogo_usa_postgres():
-        from produtos import catalogo_agro
-
-        catalogo_agro.sincronizar_modelo_produto_de_overlay(
-            pid, ov, custo_payload=custo_payload
-        )
+        _aplicar_patch_no_produto_pg(pid, ov, patch, custo_payload=custo_payload)
 
     mongo_set: dict[str, float] = {}
     if COL_PRECO_CUSTO in patch:
