@@ -1199,6 +1199,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.24)
 
 > **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8**  
+> **Teste:** **v15.26**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate | Risco PDV |
@@ -1221,10 +1222,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · teste **v15.25** · `1f661f6` |
-| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. |
-| **Você** | Ctrl+F5 Resumo gerencial → trocar os dois botões |
-| **Prova** | `tests_receita_pdv_dre` **16/16** · verify DRE/CMV · `manage.py check` |
+| **Status** | 📋 **pronto para envio à produção** · teste **v15.25+** (hoje **v15.26**) · `1f661f6` |
+| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
+| **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
+| **Prova** | `tests_receita_pdv_dre` **16/16** · `tests_pdv_racoes` **16/16** · verify RG **78/78** · verify DRE **33/33** · verify CMV **55/55** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir RG-CMV-TOGGLE para produção* + **99738595** |
 
