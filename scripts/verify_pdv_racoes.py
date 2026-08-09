@@ -301,6 +301,7 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
         ("Adicionar +1", "botao +1 depois de adicionar"),
         ("#pdv-racoes-overlay.is-lista", "CSS overlay grande"),
         ("pdv-racoes-panel", "CSS painel"),
+        ("white-space: nowrap", "CSS lista sem quebra de linha"),
     ):
         blob = js + wiz
         if needle not in blob:
