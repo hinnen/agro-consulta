@@ -1193,6 +1193,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
+
+> **Loja hoje:** ✅ **Live v15.20** · `producao` @ deploy/pdv-racoes-fix-25  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-FIX** | ✅ enviado / Live v15.20 | não |
+| 2 | **PDV-RACOES-25** | ✅ enviado / Live v15.20 | não |
+
+### ✅ Deploy loja — Rações fix + saco 2,5 kg (`deploy/pdv-racoes-fix-25` · **v15.20**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.20** · base era `42faf6c` (v15.16) |
+| **Pacotes** | **PDV-RACOES-FIX** + **PDV-RACOES-25** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Botão Rações lê cadastro na hora + saco **2,5 kg** |
+| **Você** | Ctrl+F5 PDV → Rações → **Cão adulto** → Origens · Peso `2,5` no cadastro |
+| **Rollback** | tag `rollback/pre-pdv-racoes-fix-25-v15.16` @ `42faf6c` · branch `producao-backup-pre-v1520-racoes-20260809` · frase+senha |
+
 ### 🚀 PREP deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
 
 | Item | Detalhe |

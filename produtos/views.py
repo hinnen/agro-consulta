@@ -3222,6 +3222,9 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if isinstance(cur_cat, dict) and cur_cat.get("version"):
             cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
+        hoje_slim = timezone.localdate().isoformat()
+        cache.delete(f"pdv_catalogo_slim_v3:{hoje_slim}")
+        cache.delete(f"pdv_catalogo_slim_v2:{hoje_slim}")
         from produtos.catalogo_agro import invalidar_cache_facetas_gestao
 
         invalidar_cache_facetas_gestao()
@@ -28291,6 +28294,19 @@ def _catalogo_pdv_body_vazio() -> dict:
         "catalog_version": "catalogo-full-off",
         "catalog_updated_at": timezone.now().isoformat(),
     }
+
+
+
+@require_GET
+def api_pdv_racoes_overlay(request):
+    """Atalho Rações: cat/sub1/sub2/peso do cadastro Agro, sem cache diário do PDV."""
+    from produtos.pdv_racoes_util import listar_patches_racoes_pdv
+
+    try:
+        itens = listar_patches_racoes_pdv()
+    except Exception as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)[:200], "itens": []}, status=500)
+    return JsonResponse({"ok": True, "itens": itens})
 
 
 @require_GET

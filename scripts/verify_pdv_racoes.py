@@ -93,10 +93,15 @@ def check_cadastro() -> None:
     if save_idx < 0:
         save_idx = views.find('_aplicar_txt_ov("peso_etiqueta"')
     inv_idx = views.find("cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)", max(save_idx, 0))
-    if save_idx < 0 or inv_idx < 0 or inv_idx - save_idx > 25000:
+    save_chunk = views[save_idx : save_idx + 80000] if save_idx >= 0 else ""
+    if save_idx < 0 or inv_idx < 0 or inv_idx - save_idx > 80000:
         fail("salvar Agro não invalida catálogo PDV")
     else:
         ok("salvar Agro invalida catálogo PDV")
+    if "pdv_catalogo_slim_v3:" not in save_chunk:
+        fail("salvar Agro não invalida slim PDV")
+    else:
+        ok("salvar Agro invalida slim PDV")
 
 
 def check_catalogo() -> None:
@@ -164,6 +169,21 @@ def check_frontend_parity() -> None:
         fail("addItem carrinho")
     else:
         ok("addItem carrinho")
+    urls = read("produtos/urls.py")
+    if "api/pdv/racoes-overlay/" not in urls:
+        fail("rota racoes-overlay")
+    else:
+        ok("rota racoes-overlay")
+    if "/api/pdv/racoes-overlay/" not in js or "pdvRacoesSincronizarCadastro" not in js:
+        fail("JS puxa cadastro vivo Racoes")
+    elif "loadWizardCatalog()" not in js.split("function pdvRacoesSincronizarCadastro")[1].split("function pdvRacoesAbrir")[0]:
+        fail("sync Racoes nao espera catalogo")
+    elif "aplicarWizardPatchesProdutos(d.itens)" not in js:
+        fail("JS nao aplica patch overlay no catalogo")
+    elif "pdvRacoesSyncP.finally" not in js:
+        fail("IrMarca nao espera sync cadastro")
+    else:
+        ok("JS puxa cadastro vivo Racoes (catalogo + patch + espera)")
     m = re.search(r"var PDV_RACOES_TIPOS = \[(.*?)\];", js, re.S)
     if not m:
         fail("JS PDV_RACOES_TIPOS")
@@ -187,6 +207,12 @@ def check_frontend_parity() -> None:
             fail(f"JS peso kg:{kg}")
         else:
             ok(f"JS peso kg:{kg}")
+    if "key: 'kg:2.5'" not in js and 'key: "kg:2.5"' not in js:
+        fail("JS botao saco 2,5")
+    elif "Saco 2,5 kg" not in js:
+        fail("JS label Saco 2,5 kg")
+    else:
+        ok("JS botao+label Saco 2,5 kg")
     if "'pacote'" not in js and '"pacote"' not in js:
         fail("JS pacote")
     else:
@@ -213,13 +239,47 @@ def check_util_cenarios() -> None:
         TIPOS_RACOES,
         filtrar_racoes,
         parse_peso_racoes,
+        patch_racoes_de_campos,
         tipo_racoes_por_id,
     )
 
+    def _js_parse_peso(raw: str) -> str | None:
+        t = (raw or "").strip().lower()
+        if not t:
+            return None
+        if t.startswith("pacote") or t in ("pct", "p10"):
+            return "pacote"
+        t = t.replace(",", ".")
+        t = re.sub(r"\s*k\s*g\s*$", "", t, flags=re.I)
+        t = re.sub(r"\s*quilos?\s*$", "", t, flags=re.I).strip()
+        try:
+            n = float(t)
+        except ValueError:
+            return None
+        for p in (1, 2.5, 5, 10, 15, 20, 25):
+            if abs(n - p) <= 0.05:
+                return f"kg:{p}" if p != int(p) else f"kg:{int(p)}"
+        return None
+
+    for amostra in ("2,5", "2.5", "2,50 kg", "25", "15 kg", "pacote"):
+        py = parse_peso_racoes(amostra)
+        js = _js_parse_peso(amostra)
+        if py != js:
+            fail(f"JS!=Python peso '{amostra}' py={py} js={js}")
+            break
+    else:
+        ok("JS=Python chave peso 2,5/25/pacote")
+
     if parse_peso_racoes("15 kg") != "kg:15" or parse_peso_racoes("PACOTE") != "pacote":
         fail("parse peso 15/pacote")
+    elif parse_peso_racoes("2,5") != "kg:2.5":
+        fail("parse peso 2,5")
+    elif parse_peso_racoes("2.5kg") != "kg:2.5" or parse_peso_racoes("2,50") != "kg:2.5":
+        fail("parse peso 2.5kg/2,50")
+    elif parse_peso_racoes("25") != "kg:25" or parse_peso_racoes("2,5") == parse_peso_racoes("25"):
+        fail("2,5 nao pode virar 25")
     else:
-        ok("parse peso 15/pacote")
+        ok("parse peso 15/pacote/2,5 isolado do 25")
     if len(TIPOS_RACOES) != 8:
         fail("8 tipos")
     else:
@@ -258,6 +318,14 @@ def check_util_cenarios() -> None:
             "peso_etiqueta": "pacote",
         },
         {
+            "id": "s25",
+            "categoria": "Rações",
+            "subcategoria": "Cão",
+            "subcategoria_2": "Adulto",
+            "marca": "ESTIMACAO",
+            "peso_etiqueta": "2,5",
+        },
+        {
             "id": "old",
             "categoria": "Rações",
             "subcategoria": "cachorro",
@@ -272,10 +340,18 @@ def check_util_cenarios() -> None:
         fail(f"cenário GM50 adulto 15kg: {[r['id'] for r in hit]}")
     else:
         ok("cenário GM50 adulto 15kg")
-    if [r["id"] for r in filtrar_racoes(catalogo, adulto, peso_key=None)] != ["gm50", "pct"]:
+    if [r["id"] for r in filtrar_racoes(catalogo, adulto, peso_key=None)] != ["gm50", "pct", "s25"]:
         fail("todas marcas+tamanhos adulto")
     else:
         ok("todas marcas+tamanhos adulto")
+    if [r["id"] for r in filtrar_racoes(catalogo, adulto, marca="estimacao", peso_key="kg:2.5")] != ["s25"]:
+        fail("cenario adulto 2,5 kg")
+    else:
+        ok("cenario adulto 2,5 kg")
+    if [r["id"] for r in filtrar_racoes(catalogo, adulto, peso_key="kg:25")]:
+        fail("2,5 nao deve aparecer em 25 kg")
+    else:
+        ok("2,5 isolado do 25 kg")
     rp = tipo_racoes_por_id("cao_adulto_rp")
     if [r["id"] for r in filtrar_racoes(catalogo, rp)] != ["rp10"]:
         fail("Adulto RP isolado")
@@ -286,6 +362,31 @@ def check_util_cenarios() -> None:
         fail("gato filhote granel")
     else:
         ok("gato filhote granel")
+    stale = {
+        "id": "origens15",
+        "categoria": "",
+        "subcategoria": "cachorro",
+        "subcategoria_2": "",
+        "marca": "ORIGENS",
+        "peso_etiqueta": "",
+    }
+    if filtrar_racoes([stale], adulto):
+        fail("origens velho nao deveria achar")
+    else:
+        ok("origens catalogo velho vazio")
+    patch = patch_racoes_de_campos(
+        pid="origens15",
+        categoria="Rações",
+        sub1="Cão",
+        sub2="Adulto",
+        peso="15",
+        marca="ORIGENS",
+    )
+    merged = {**stale, **(patch or {})}
+    if [r["id"] for r in filtrar_racoes([merged], adulto, marca="ORIGENS", peso_key="kg:15")] != ["origens15"]:
+        fail("origens apos patch cadastro")
+    else:
+        ok("origens apos patch cadastro")
 
 
 def check_overlay_row() -> None:
@@ -337,6 +438,21 @@ def check_overlay_row() -> None:
         fail(f"overlay marca={row.get('marca')}")
     else:
         ok("overlay aplica cat/sub1/sub2/peso/marca no row PDV")
+
+    ov.peso_etiqueta = "2,5"
+    row2 = {
+        "categoria": "velha",
+        "subcategoria": "cachorro",
+        "subcategoria_2": "",
+        "peso_etiqueta": "",
+        "marca": "",
+    }
+    with patch("produtos.catalogo_delivery_util.aplicar_imagem_delivery_no_row", lambda r, o: r):
+        _aplicar_produto_gestao_overlay_em_dict(row2, ov)
+    if row2.get("peso_etiqueta") != "2,5":
+        fail(f"overlay peso 2,5={row2.get('peso_etiqueta')}")
+    else:
+        ok("overlay grava peso 2,5 como texto")
 
 
 def main() -> int:

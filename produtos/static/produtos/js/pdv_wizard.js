@@ -12512,6 +12512,7 @@
     ];
     var PDV_RACOES_PESOS = [
         { key: 'kg:1', label: 'Granel' },
+        { key: 'kg:2.5', label: 'Saco 2,5 kg' },
         { key: 'kg:5', label: 'Saco 5 kg' },
         { key: 'kg:10', label: 'Saco 10 kg' },
         { key: 'kg:15', label: 'Saco 15 kg' },
@@ -12520,6 +12521,7 @@
         { key: 'pacote', label: 'Pacote R$ 10' }
     ];
     var pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
+    var pdvRacoesSyncP = null;
 
     function pdvRacoesNorm(s) {
         return stripAccents(s).replace(/\s+/g, ' ').trim();
@@ -12542,10 +12544,12 @@
         t = t.replace(/\s*k\s*g\s*$/i, '').replace(/\s*quilos?\s*$/i, '').trim();
         var n = parseFloat(t);
         if (!isFinite(n)) return null;
-        var ni = Math.round(n);
-        if (Math.abs(n - ni) > 0.05) return null;
-        if ([1, 5, 10, 15, 20, 25].indexOf(ni) === -1) return null;
-        return 'kg:' + ni;
+        var allowed = [1, 2.5, 5, 10, 15, 20, 25];
+        var i;
+        for (i = 0; i < allowed.length; i++) {
+            if (Math.abs(n - allowed[i]) <= 0.05) return 'kg:' + allowed[i];
+        }
+        return null;
     }
 
     function pdvRacoesTipoPorId(id) {
@@ -12710,20 +12714,40 @@
         pdvRacoesShowStep('tipo');
     }
 
+    function pdvRacoesSincronizarCadastro() {
+        var base = Promise.resolve();
+        try {
+            base = loadWizardCatalog() || Promise.resolve();
+        } catch (eLoad) {
+            base = Promise.resolve();
+        }
+        pdvRacoesSyncP = Promise.resolve(base)
+            .then(function () {
+                return fetch('/api/pdv/racoes-overlay/', { credentials: 'same-origin' });
+            })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (d) {
+                if (!d || !Array.isArray(d.itens) || !d.itens.length) return;
+                aplicarWizardPatchesProdutos(d.itens);
+            })
+            .catch(function () {});
+        return pdvRacoesSyncP;
+    }
+
     function pdvRacoesAbrir() {
         var el = pdvRacoesOverlayEl();
         if (!el) return;
-        if (!catalogReady) {
-            try {
-                loadWizardCatalog();
-            } catch (eLoad) {}
-        }
         pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
-        pdvRacoesSetMsg('');
+        pdvRacoesSetMsg('Lendo cadastro…');
         pdvRacoesShowStep('tipo');
         el.classList.remove('hidden');
         el.classList.add('flex');
         document.body.classList.add('modal-open');
+        pdvRacoesSincronizarCadastro().finally(function () {
+            pdvRacoesSetMsg('');
+        });
     }
 
     function pdvRacoesAdicionar(lista) {
@@ -12744,6 +12768,26 @@
     }
 
     function pdvRacoesIrMarca(tipo) {
+        function seguir() {
+            var qtd = pdvRacoesFiltrar(tipo).length;
+            if (!qtd) {
+                pdvRacoesSetMsg('Nenhum produto cadastrado nessa opção. Confira Categoria, Sub 1 e Sub 2.');
+                return;
+            }
+            pdvRacoesSeguirMarca(tipo);
+        }
+        if (pdvRacoesSyncP) {
+            pdvRacoesSetMsg('Lendo cadastro…');
+            pdvRacoesSyncP.finally(function () {
+                pdvRacoesSetMsg('');
+                seguir();
+            });
+            return;
+        }
+        seguir();
+    }
+
+    function pdvRacoesSeguirMarca(tipo) {
         var qtd = pdvRacoesFiltrar(tipo).length;
         if (!qtd) {
             pdvRacoesSetMsg('Nenhum produto cadastrado nessa opção. Confira Categoria, Sub 1 e Sub 2.');
@@ -12764,7 +12808,7 @@
         pdvRacoesSel.marca = marca;
         var nPesos = pdvRacoesRenderPesos(pdvRacoesSel.tipo, marca);
         if (!nPesos) {
-            pdvRacoesSetMsg('Nenhum peso cadastrado nessa opção. No Peso (etiqueta) use 1, 5, 10, 15, 20, 25 ou pacote.');
+            pdvRacoesSetMsg('Nenhum peso cadastrado nessa opção. No Peso (etiqueta) use 1, 2,5, 5, 10, 15, 20, 25 ou pacote.');
             pdvRacoesShowStep('peso');
             return;
         }

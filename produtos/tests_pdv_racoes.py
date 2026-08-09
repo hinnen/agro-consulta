@@ -6,6 +6,7 @@ from produtos.pdv_racoes_util import (
     eh_categoria_racoes,
     filtrar_racoes,
     parse_peso_racoes,
+    patch_racoes_de_campos,
     tipo_racoes_por_id,
 )
 
@@ -35,6 +36,9 @@ class ParsePesoTests(SimpleTestCase):
         self.assertEqual(parse_peso_racoes("15"), "kg:15")
         self.assertEqual(parse_peso_racoes("20 kg"), "kg:20")
         self.assertEqual(parse_peso_racoes("25"), "kg:25")
+        self.assertEqual(parse_peso_racoes("2,5"), "kg:2.5")
+        self.assertEqual(parse_peso_racoes("2.5"), "kg:2.5")
+        self.assertEqual(parse_peso_racoes("2,50 kg"), "kg:2.5")
 
     def test_pacote(self):
         self.assertEqual(parse_peso_racoes("pacote"), "pacote")
@@ -46,6 +50,10 @@ class ParsePesoTests(SimpleTestCase):
         self.assertIsNone(parse_peso_racoes(""))
         self.assertIsNone(parse_peso_racoes("7"))
         self.assertIsNone(parse_peso_racoes("500 g"))
+        self.assertIsNone(parse_peso_racoes("2"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), parse_peso_racoes("25"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), parse_peso_racoes("5"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), "pacote")
 
 
 class CategoriaTipoTests(SimpleTestCase):
@@ -69,6 +77,7 @@ class FiltrarTests(SimpleTestCase):
             _row(id="p3", subcategoria_2="Filhote", peso_etiqueta="15"),
             _row(id="p4", categoria="Farelo"),
             _row(id="p5", peso_etiqueta="pacote", marca="ESTIMACAO"),
+            _row(id="p7", peso_etiqueta="2,5", marca="ESTIMACAO"),
             _row(id="p6", inativo=True),
         ]
         so_est_15 = filtrar_racoes(rows, tipo, marca="ESTIMACAO", peso_key="kg:15")
@@ -76,9 +85,11 @@ class FiltrarTests(SimpleTestCase):
         todas_15 = filtrar_racoes(rows, tipo, marca=None, peso_key="kg:15")
         self.assertEqual([r["id"] for r in todas_15], ["p1"])
         todas = filtrar_racoes(rows, tipo, marca=None, peso_key=None)
-        self.assertEqual([r["id"] for r in todas], ["p1", "p2", "p5"])
+        self.assertEqual([r["id"] for r in todas], ["p1", "p2", "p5", "p7"])
         pacote = filtrar_racoes(rows, tipo, marca="estimacao", peso_key="pacote")
         self.assertEqual([r["id"] for r in pacote], ["p5"])
+        saco25 = filtrar_racoes(rows, tipo, marca="ESTIMACAO", peso_key="kg:2.5")
+        self.assertEqual([r["id"] for r in saco25], ["p7"])
 
     def test_adulto_nao_pega_rp(self):
         tipo = tipo_racoes_por_id("cao_adulto")
@@ -129,6 +140,57 @@ class FiltrarTests(SimpleTestCase):
             [r["id"] for r in filtrar_racoes(rows, tipo, marca=None, peso_key="kg:10")],
             ["a", "b"],
         )
+
+    def test_origens_catalogo_velho_depois_patch(self):
+        """Lista velha do PDV (sem cat/sub2) + patch do cadastro → Cão adulto 15 kg."""
+        tipo = tipo_racoes_por_id("cao_adulto")
+        stale = _row(
+            id="origens15",
+            nome="Racao origens cachorro adulto carne e frango 15kg",
+            categoria="",
+            subcategoria="cachorro",
+            subcategoria_2="",
+            marca="ORIGENS",
+            peso_etiqueta="",
+        )
+        self.assertEqual(filtrar_racoes([stale], tipo), [])
+        patch = patch_racoes_de_campos(
+            pid="origens15",
+            categoria="Rações",
+            sub1="Cão",
+            sub2="Adulto",
+            peso="15",
+            marca="ORIGENS",
+        )
+        merged = {**stale, **patch}
+        hit = filtrar_racoes([merged], tipo, marca="ORIGENS", peso_key="kg:15")
+        self.assertEqual([r["id"] for r in hit], ["origens15"])
+        self.assertEqual(merged["subcategoria"], "Cão")
+
+    def test_patch_overlay_vivo(self):
+        ok = patch_racoes_de_campos(
+            pid="GM50",
+            categoria="Rações",
+            sub1="Cão",
+            sub2="Adulto",
+            peso="15",
+            marca="ORIGENS",
+        )
+        self.assertEqual(ok["id"], "GM50")
+        self.assertEqual(ok["subcategoria"], "Cão")
+        self.assertEqual(ok["subcategoria_2"], "Adulto")
+        self.assertEqual(ok["peso_etiqueta"], "15")
+        self.assertIsNone(
+            patch_racoes_de_campos(pid="x", categoria="Rações", sub1="Cão", sub2="")
+        )
+        self.assertIsNone(
+            patch_racoes_de_campos(pid="x", categoria="Farelo", sub1="Cão", sub2="Adulto")
+        )
+        long_id = "Z" * 80
+        recorte = patch_racoes_de_campos(
+            pid=long_id, categoria="Rações", sub1="Cão", sub2="Adulto"
+        )
+        self.assertEqual(len(recorte["id"]), 64)
 
     def test_oito_tipos_catalogo_minimo(self):
         rows = []
