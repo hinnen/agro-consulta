@@ -428,6 +428,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
+**Rações PDV (09/08):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -1192,6 +1194,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **teste v15.11** · loja ainda sem |
+| **O quê** | Botão **Rações** no PDV (ao lado da busca) → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
+| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1` `5` `10` `15` `20` `25` ou `pacote` |
+| **Catálogo** | Cache PDV **v3** passa sub 2 + peso (senão o botão não acha) · 1ª abertura do dia reconstrói |
+| **Você** | Ctrl+F5 no PDV · cadastrar Sub 1/2 + Peso · testar Estimação 15 kg em Cão adulto |
+| **Prova** | `tests_pdv_racoes` **8/8** · verify **VERIFY_OK** · `manage.py check` |
+| **Migrate** | **NÃO** |
 
 ### 🔧 Resumo financeiro — aviso de ajuda na frente (`RG-AJUDA-MODAL` · **teste**)
 

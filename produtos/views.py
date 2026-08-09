@@ -3454,8 +3454,9 @@ _CLIENTE_PDV_ONLY_FIELDS = (
 )
 
 # Catálogo PDV: um snapshot por dia civil (TIME_ZONE) + invalidação manual. Estoque ao vivo via /api/pdv/saldos/.
-CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v2"
-CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v2"
+# v3: inclui subcategoria_2 + peso_etiqueta (atalho Rações no PDV).
+CATALOGO_PDV_CACHE_ENTRY_KEY = "pdv_catalogo_produtos_por_dia_v3"
+CATALOGO_PDV_CACHE_PREV_ENTRY_KEY = "pdv_catalogo_produtos_prev_v3"
 
 # Saldos PDV: cache curto só com Redis (settings.AGRO_PDV_SALDOS_CACHE_SECONDS > 0).
 _SALDOS_PDV_CACHE_KEY = "pdv_saldos_compacto_snapshot_v1"
@@ -27784,6 +27785,11 @@ def _catalogo_pdv_montar_produtos_somente_postgres(db, client) -> list[dict]:
                 "fornecedor": row.get("fornecedor") or "",
                 "categoria": row.get("categoria") or "",
                 "subcategoria": row.get("subcategoria") or "",
+                "subcategoria_2": row.get("subcategoria_2") or "",
+                "subcategoria_3": row.get("subcategoria_3") or "",
+                "subcategoria_4": row.get("subcategoria_4") or "",
+                "peso_etiqueta": row.get("peso_etiqueta") or "",
+                "unidade": row.get("unidade") or "",
                 "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
                 "codigo_barras": row.get("codigo_barras") or "",
                 "referencia": "",
@@ -27943,7 +27949,9 @@ def _catalogo_pdv_version(produtos: list[dict]) -> str:
                 f"{p.get('id','')}|{p.get('nome','')}|{p.get('codigo_nfe','')}|"
                 f"{p.get('codigo_barras','')}|{p.get('preco_venda',0)}|{p.get('preco_custo_final',0)}|"
                 f"{p.get('precos_modo','')}|{p.get('precos_grupos') or {}}|"
-                f"{p.get('precos_por_forma') or {}}|{ix_fp}"
+                f"{p.get('precos_por_forma') or {}}|{ix_fp}|"
+                f"{p.get('categoria','')}|{p.get('subcategoria','')}|{p.get('subcategoria_2','')}|"
+                f"{p.get('peso_etiqueta','')}|{p.get('marca','')}"
             ).encode("utf-8")
         )
     return h.hexdigest()[:20]
@@ -27995,8 +28003,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    # v2: inclui precos_grupos / precos_modo (PDV forma A/B).
-    ck = f"pdv_catalogo_slim_v2:{hoje}"
+    # v3: inclui categoria / sub 1–2 / peso_etiqueta (atalho Rações).
+    ck = f"pdv_catalogo_slim_v3:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)
@@ -28010,7 +28018,7 @@ def api_pdv_catalogo_slim(request):
         "ok": True,
         "slim": True,
         "produtos": produtos,
-        "catalog_version": f"slim-v2-{hoje}-{len(produtos)}",
+        "catalog_version": f"slim-v3-{hoje}-{len(produtos)}",
         "catalog_updated_at": timezone.now().isoformat(),
     }
     cache.set(ck, body, timeout=1800)

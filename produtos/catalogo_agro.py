@@ -1469,6 +1469,10 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
             ex["codigo_barras"] = row.get("codigo_barras") or ex.get("codigo_barras")
             ex["categoria"] = row.get("categoria") or ex.get("categoria")
             ex["subcategoria"] = row.get("subcategoria") or ex.get("subcategoria")
+            ex["subcategoria_2"] = row.get("subcategoria_2") or ex.get("subcategoria_2") or ""
+            ex["subcategoria_3"] = row.get("subcategoria_3") or ex.get("subcategoria_3") or ""
+            ex["subcategoria_4"] = row.get("subcategoria_4") or ex.get("subcategoria_4") or ""
+            ex["peso_etiqueta"] = row.get("peso_etiqueta") or ex.get("peso_etiqueta") or ""
             ex["fornecedor"] = row.get("fornecedor") or ex.get("fornecedor")
             ix = row.get("index_codigos") or []
             if isinstance(ix, list):
@@ -1503,6 +1507,10 @@ def mesclar_catalogo_pdv_cache(itens: list[dict]) -> list[dict]:
                 "fornecedor": row.get("fornecedor") or "",
                 "categoria": row.get("categoria") or "",
                 "subcategoria": row.get("subcategoria") or "",
+                "subcategoria_2": row.get("subcategoria_2") or "",
+                "subcategoria_3": row.get("subcategoria_3") or "",
+                "subcategoria_4": row.get("subcategoria_4") or "",
+                "peso_etiqueta": row.get("peso_etiqueta") or "",
                 "codigo_nfe": row.get("codigo_nfe") or row.get("codigo"),
                 "codigo_barras": row.get("codigo_barras") or "",
                 "referencia": "",
@@ -1548,6 +1556,9 @@ def listar_slim_rows_pdv() -> list[dict]:
             "codigo_nfe",
             "codigo_barras",
             "preco_venda",
+            "categoria",
+            "subcategoria",
+            "subcategoria_2",
         )
     )
     rows_raw = list(qs)
@@ -1569,9 +1580,14 @@ def listar_slim_rows_pdv() -> list[dict]:
             ).values(
                 "produto_externo_id",
                 "nome",
+                "marca",
                 "codigo_nfe",
                 "codigo_barras",
                 "preco_venda",
+                "categoria",
+                "subcategoria",
+                "subcategoria_2",
+                "peso_etiqueta",
                 "cadastro_extras",
             ):
                 pid = str(o.get("produto_externo_id") or "").strip()[:64]
@@ -1591,8 +1607,16 @@ def listar_slim_rows_pdv() -> list[dict]:
         preco = ov.get("preco_venda")
         if preco is None:
             preco = r.get("preco_venda")
-        marca = (r.get("marca") or "").strip()
+        marca = (str(ov.get("marca") or "").strip() or (r.get("marca") or "").strip())
         modelo = (r.get("modelo") or "").strip()
+        categoria = (str(ov.get("categoria") or "").strip() or (r.get("categoria") or "").strip())
+        subcategoria = (
+            str(ov.get("subcategoria") or "").strip() or (r.get("subcategoria") or "").strip()
+        )
+        subcategoria_2 = (
+            str(ov.get("subcategoria_2") or "").strip() or (r.get("subcategoria_2") or "").strip()
+        )
+        peso_etiqueta = str(ov.get("peso_etiqueta") or "").strip()
         ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
         from produtos.mongo_index_codigos import (
             _eans_embalagem_nf_de_cadastro_extras,
@@ -1634,6 +1658,10 @@ def listar_slim_rows_pdv() -> list[dict]:
             "busca_texto": busca,
             # campos mÃ­nimos que o PDV espera em normalize
             "marca": marca,
+            "categoria": categoria,
+            "subcategoria": subcategoria,
+            "subcategoria_2": subcategoria_2,
+            "peso_etiqueta": peso_etiqueta,
             "preco_custo": 0.0,
             "preco_custo_final": 0.0,
             "saldo_centro": 0.0,

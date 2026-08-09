@@ -423,6 +423,8 @@ def propagar_custo_familia_de_pai(
         try:
             from django.core.cache import cache
 
+            cache.delete("pdv_catalogo_produtos_por_dia_v3")
+            cache.delete("pdv_catalogo_produtos_prev_v3")
             cache.delete("pdv_catalogo_produtos_por_dia_v2")
             cache.delete("pdv_catalogo_produtos_prev_v2")
         except Exception:
