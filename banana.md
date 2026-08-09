@@ -1207,23 +1207,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.23)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.23)
 
 > **Loja hoje:** ✅ **Live v15.23** · `producao` @ **2116b41**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-LISTA** | 📋 **pronto envio** | não | **sim** — pausar vendas |
+| 1 | **PDV-RACOES-LISTA** | 📋 **pronto para envio à produção** · teste **v15.24** | não | **sim** — pausar vendas |
 
-### 📦 PACOTE PRONTO — Rações escolhe na lista (`PDV-RACOES-LISTA`)
+### 📦 PACOTE PRONTO — Rações escolhe na lista (`PDV-RACOES-LISTA` · **v15.24**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · teste |
-| **O quê** | Depois do tamanho: overlay grande, menor→maior preço, Adicionar / Adicionar todas / Fechar. Linha verde no carrinho. Esc fecha. |
+| **Status** | 📋 **pronto para envio à produção** · teste **v15.24** · `4be8cad` |
+| **O quê** | Depois do tamanho: overlay grande, barato→caro, Adicionar / Adicionar todas / Fechar. Linha verde. Esc fecha. Não vai direto ao carrinho. |
 | **Você** | Ctrl+F5 PDV → Rações → tipo → marca → tamanho → lista → Adicionar |
-| **Prova** | `tests_pdv_racoes` **15/15** · verify **VERIFY_OK** · `manage.py check` |
+| **Prova** | `tests_pdv_racoes` · verify path lista **VERIFY_OK** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA para produção* + **99738595** |
 
