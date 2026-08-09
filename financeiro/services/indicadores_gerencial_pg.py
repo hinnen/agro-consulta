@@ -125,6 +125,74 @@ def _indicadores_from_core(
     }
 
 
+_DRE_CMV_JS_FIELDS = (
+    "cmv",
+    "lucro_bruto",
+    "margem_bruta_pct",
+    "markup_pct",
+    "margem_contrib",
+    "margem_contrib_pct",
+    "ebitda",
+    "resultado_liquido",
+    "ponto_equilibrio",
+    "indice_seguranca_pct",
+)
+
+
+def recalc_indicadores_cmv(ind: dict[str, Any], cmv_novo, dias_janela: int) -> dict[str, Any]:
+    """Recalcula lucro/margem/EBITDA/líquido/PE com outro CMV. Caixa não muda."""
+    rec = _dec(ind.get("receita_op"))
+    dv = _dec(ind.get("dv"))
+    df = _dec(ind.get("df"))
+    desp_fin = _dec(ind.get("desp_fin"))
+    rec_nao = _dec(ind.get("receita_nao_op"))
+    cmv = _dec(cmv_novo)
+    lucro_bruto = rec - cmv
+    margem_bruta_pct = (
+        (lucro_bruto / rec * Decimal("100")) if rec > 0 else Decimal("0")
+    )
+    markup_pct = (
+        ((rec / cmv) - Decimal("1")) * Decimal("100") if cmv > 0 else Decimal("0")
+    )
+    margem_contrib = rec - cmv - dv
+    margem_contrib_pct = (
+        (margem_contrib / rec * Decimal("100")) if rec > 0 else Decimal("0")
+    )
+    dias_u = max(int(dias_janela or 1), 1)
+    eq = EquilibrioFinanceiroService().calcular(rec, cmv, df, dv, dias_periodo=dias_u)
+    faturamento_equilibrio = eq["faturamento_equilibrio"]
+    pe_diario = eq["faturamento_diario_equilibrio"]
+    indice_seguranca_pct = (
+        ((rec - faturamento_equilibrio) / rec * Decimal("100"))
+        if rec > 0
+        else Decimal("0")
+    )
+    ebitda = margem_contrib - df
+    resultado_liquido = ebitda - desp_fin + rec_nao
+    out = dict(ind)
+    out.update(
+        {
+            "cmv": cmv,
+            "lucro_bruto": lucro_bruto,
+            "margem_bruta_pct": margem_bruta_pct,
+            "markup_pct": markup_pct,
+            "margem_contrib": margem_contrib,
+            "margem_contrib_pct": margem_contrib_pct,
+            "mc_ratio": eq["margem_contribuicao_pct"],
+            "ponto_equilibrio": faturamento_equilibrio,
+            "pe_diario": pe_diario,
+            "indice_seguranca_pct": indice_seguranca_pct,
+            "ebitda": ebitda,
+            "resultado_liquido": resultado_liquido,
+        }
+    )
+    return out
+
+
+def _pack_cmv_js(ind: dict[str, Any]) -> dict[str, float]:
+    return {k: float(_dec(ind.get(k))) for k in _DRE_CMV_JS_FIELDS}
+
+
 def _zeros(dias: int) -> dict[str, Any]:
     z = Decimal("0")
     caixa_z = {k: z for k in natureza_buckets_from_linhas_dre([])}
@@ -359,7 +427,6 @@ def get_indicadores_gerencial_pg(
     referencia = _benchmark(ref60, dias_periodo)
     media_60 = ref60["receita_op"] / Decimal(str(REF_DIAS_COMPARACAO))
     previsao_30 = media_60 * Decimal("30")
-    pe_30 = (atual["pe_diario"] or Decimal("0")) * Decimal("30")
 
     from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_id
 
@@ -371,6 +438,54 @@ def get_indicadores_gerencial_pg(
         labels, serie = _serie_receita_7d(
             empresa_id, data_fim, por=por, valor=valor, filtro_contas=fc
         )
+
+    atual_paga = dict(atual)
+    referencia_paga = dict(referencia)
+    cmv_v_atual = {"ok": False, "total": Decimal("0"), "skus_com_custo": 0, "skus_sem_custo": 0}
+    cmv_v_60 = {"ok": False, "total": Decimal("0"), "skus_com_custo": 0, "skus_sem_custo": 0}
+    try:
+        from produtos.relatorios_vendas_util import custo_mercadoria_vendida
+
+        cmv_v_atual = custo_mercadoria_vendida(
+            data_inicio, data_fim, deposito=dep_pdv
+        )
+        cmv_v_60 = custo_mercadoria_vendida(ref_ini, hoje, deposito=dep_pdv)
+    except Exception as exc:
+        avisos.append(f"CMV vendida indisponível: {exc}")
+
+    k_ref = Decimal(str(dias_periodo)) / Decimal(str(REF_DIAS_COMPARACAO))
+    cmv_v_ok = bool(cmv_v_atual.get("ok"))
+    if cmv_v_ok:
+        atual_vendida = recalc_indicadores_cmv(
+            atual_paga, _dec(cmv_v_atual.get("total")), dias_periodo
+        )
+        referencia_vendida = recalc_indicadores_cmv(
+            referencia_paga, _dec(cmv_v_60.get("total")) * k_ref, dias_periodo
+        )
+    else:
+        atual_vendida = dict(atual_paga)
+        referencia_vendida = dict(referencia_paga)
+    skus_sem = int(cmv_v_atual.get("skus_sem_custo") or 0)
+    if cmv_v_ok and skus_sem > 0:
+        avisos.append(
+            f"{skus_sem} produto(s) vendido(s) sem custo no cadastro — CMV vendida ficou menor."
+        )
+
+    modo_ssr = "vendida" if cmv_v_ok else "paga"
+    atual = dict(atual_vendida if cmv_v_ok else atual_paga)
+    atual["cmv_paga"] = _dec(atual_paga.get("cmv"))
+    atual["cmv_vendida"] = _dec(cmv_v_atual.get("total")) if cmv_v_ok else _dec(atual_paga.get("cmv"))
+    atual["cmv_modo"] = modo_ssr
+    atual["cmv_skus_sem_custo"] = skus_sem if cmv_v_ok else 0
+    atual["cmv_skus_com_custo"] = int(cmv_v_atual.get("skus_com_custo") or 0) if cmv_v_ok else 0
+    referencia = dict(referencia_vendida if cmv_v_ok else referencia_paga)
+    referencia["cmv_paga"] = _dec(referencia_paga.get("cmv"))
+    referencia["cmv_vendida"] = (
+        _dec(cmv_v_60.get("total")) * k_ref if cmv_v_ok else _dec(referencia_paga.get("cmv"))
+    )
+    referencia["cmv_modo"] = modo_ssr
+
+    pe_30 = (atual["pe_diario"] or Decimal("0")) * Decimal("30")
 
     variacao = gastos_variacao_pg(
         empresa_id=empresa_id,
@@ -385,6 +500,18 @@ def get_indicadores_gerencial_pg(
         "atual": atual,
         "referencia": referencia,
         "faturamento_pdv": fat_pdv,
+        "cmv_modos": {
+            "vendida": {
+                "atual": _pack_cmv_js(atual_vendida),
+                "ref": _pack_cmv_js(referencia_vendida),
+            },
+            "paga": {
+                "atual": _pack_cmv_js(atual_paga),
+                "ref": _pack_cmv_js(referencia_paga),
+            },
+            "skus_sem_custo": skus_sem if cmv_v_ok else 0,
+            "skus_com_custo": int(cmv_v_atual.get("skus_com_custo") or 0) if cmv_v_ok else 0,
+        },
         "extras": {
             "previsao_30": previsao_30,
             "tendencia": _tendencia_linear(serie),

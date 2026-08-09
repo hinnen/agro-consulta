@@ -428,6 +428,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
+**Rações PDV (09/08 · loja v15.20):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora (não lista velha). Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -533,7 +535,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera.
+**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -621,6 +623,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
+- **DRE Indicadores — CMV (09/08, `DRE-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / EBITDA / líquido acompanham. Caixa não muda. Padrão = vendida.
 
 ### 4.11 Caixa
 
@@ -1193,9 +1196,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Inauguração Vila — 5% encerrado (09/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **encerrado** · janela era **07–08/08** · hoje **09/08** o 5% **já desliga sozinho** |
+| **Decisão** | **Deixar o código** (não apagar, não deploy) |
+| **Por quê** | Remover agora = risco no PDV sem ganho. Faixa só liga na data. **CAMP-PROMO-MENOR** (promo da loja certa + GM) **fica** — é correção permanente. |
+| **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
+| **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
+| **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
+
+### 🚀 PREP deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.23**)
+
+> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só no **próximo chat** com pausa + frase + senha.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **DRE-CMV-TOGGLE** | 🚀 **PREP PRONTA** · aguarda pausa + senha | não | **não** — só Indicadores |
+
+### 📦 PACOTE PRONTO — DRE CMV vendida × paga (`DRE-CMV-TOGGLE` · **v15.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP PRONTA** · branch `deploy/dre-cmv-toggle-0908` |
+| **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. Se CMV vendida falhar, fica na paga. |
+| **Fora** | PDV · caixa · relatórios (filtro loja só se pedir) · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Provas** | `tests_receita_pdv_dre` **12/12** · `tests_pdv_racoes` **15/15** · path **47/47 VERIFY_OK** · verify DRE **24/24** · `manage.py check` OK |
+| **Loja aberta** | Código de venda/caixa **não muda**. Indicadores pode pesar 1 worker — não abrir DRE no rush. |
+| **Você no deploy** | Pausar vendas ~2 min → autorizar → **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
+| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
+| **Autorizar** | *pode subir DRE-CMV-TOGGLE / deploy/dre-cmv-toggle-0908 para produção* + **99738595** |
+
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 
-> **Loja hoje:** ✅ **Live v15.20** · `producao` @ deploy/pdv-racoes-fix-25  
+> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
@@ -1207,38 +1244,167 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v15.20** · base era `42faf6c` (v15.16) |
+| **Status** | ✅ **enviado / Live v15.20** · `producao` @ **759e435** · Render `dep-d9s9pujl550s73e4dc10` · base era `42faf6c` (v15.16) |
 | **Pacotes** | **PDV-RACOES-FIX** + **PDV-RACOES-25** |
 | **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
 | **Migrate** | **NÃO** |
 | **O quê** | Botão Rações lê cadastro na hora + saco **2,5 kg** |
-| **Você** | Ctrl+F5 PDV → Rações → **Cão adulto** → Origens · Peso `2,5` no cadastro |
+| **Provas** | `tests_pdv_racoes` **15/15** · verify **VERIFY_OK** · `manage.py check` |
+| **Você** | **Ctrl+F5** PDV → Rações → **Cão adulto** → Origens · Peso `2,5` no cadastro |
 | **Rollback** | tag `rollback/pre-pdv-racoes-fix-25-v15.16` @ `42faf6c` · branch `producao-backup-pre-v1520-racoes-20260809` · frase+senha |
 
-### 🚀 PREP deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
+### 📦 PACOTE PRONTO — Rações lê cadastro ao vivo (`PDV-RACOES-FIX` · **v15.20**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · aguarda frase + senha no próximo chat |
-| **Loja hoje** | ✅ **Live v15.03** · `producao` @ **290e8b2** |
-| **Branch** | `deploy/camp-promo-menor-0808` · base loja `290e8b2` (v15.03) |
+| **Status** | ✅ **Live v15.20** · `producao` @ **759e435** |
+| **O quê** | Botão Rações puxa Categoria/Sub 1/Sub 2/Peso do Agro na hora (não usa lista velha do PDV) |
+| **Você** | Ctrl+F5 no PDV → Rações → **Cão adulto** → deve aparecer Origens |
+| **Prova** | `tests_pdv_racoes` **15/15** · verify path Origens+2,5 **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.20** · `producao` @ **759e435** |
+| **O quê** | Botão Rações: tamanho **Saco 2,5 kg** · cadastro Peso (etiqueta) = **`2,5`** |
+| **Cadastro** | Só `2,5` (aceita `2.5` / `2,50 kg`) · **não** vira 25 kg nem pacote |
+| **Prova** | `tests_pdv_racoes` **15/15** · verify path 2,5 **VERIFY_OK** · `manage.py check` |
+| **Migrate** | **NÃO** |
+
+### ✅ Deploy loja — lote checklist 09/08 (`deploy/lote-checklist-0908` · **v15.16**)
+
+> **Loja hoje:** ✅ **Live v15.16** · `producao` @ **42faf6c** · Render `dep-d9s5ogjbc2fs73b36p8g`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-PDV-RECEITA** | ✅ enviado / Live v15.16 | não |
+| 2 | **RG-AJUDA-MODAL** | ✅ enviado / Live v15.16 | não |
+| 3 | **PDV-RACOES** | ✅ enviado / Live v15.16 | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.16** · `producao` @ **42faf6c** |
+| **Branch** | `deploy/lote-checklist-0908` (FF → `producao`) · base era `9c45d74` (v15.05) |
+| **Pacotes** | DRE-PDV-RECEITA · RG-AJUDA-MODAL · PDV-RACOES |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **Provas** | tests **20/20** · verify DRE **15/15** · verify Rações **VERIFY_OK** · `manage.py check` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0908-v15.05` @ `9c45d74` · frase+senha |
+| **Você agora** | **Ctrl+F5** PDV (botão Rações) · Indicadores (receita ≈ card PDV) · Resumo (ajuda só no ?) |
+
+### 📦 PACOTE PRONTO LOJA — DRE usa venda do PDV (`DRE-PDV-RECEITA` · **v15.14**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.16** · `producao` @ **42faf6c** |
+| **O quê** | Indicadores + Resumo: **receita operacional = faturamento PDV** (loja da empresa) · líquido recalcula · CR só conferência · grupo soma cada loja (não “todas”) · caixa não mistura |
+| **Prova** | `tests_receita_pdv_dre` **7/7** · verify **VERIFY_OK** · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Indicadores · mês até hoje · receita ≈ card PDV · líquido deixa de ser −10 mil |
+
+### 📦 PACOTE PRONTO LOJA — Resumo aviso ajuda (`RG-AJUDA-MODAL` · **v15.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.16** · `producao` @ **42faf6c** |
+| **O quê** | `/financeiro/resumo-gerencial/` — modal ajuda só no **?** |
+| **Commit** | `9eabf62` |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES` · **v15.11+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.16** · `producao` @ **42faf6c** |
+| **O quê** | Botão **Rações** no PDV → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
+| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote` |
+| **Catálogo** | Cache PDV **v3** · 1ª abertura do dia reconstrói |
+| **Você** | Ctrl+F5 PDV · testar Estimação 15 kg em Cão adulto |
+| **Prova** | `tests_pdv_racoes` **13/13** · verify path cadastro→overlay→catálogo→JS→carrinho **VERIFY_OK** (loja + teste) · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Commit** | `251d679` + verify |
+
+### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.05** · `producao` @ **9c45d74** · Render `dep-d9s5cum417fc73aov3fg` |
+| **Loja hoje** | ✅ **Live v15.05** · `producao` @ **9c45d74** |
+| **Branch** | `deploy/cad-xlsx-cols` (FF → `producao`) · base era `14dc51a` (v15.04) |
+| **Pacote** | **CAD-XLSX-COLS** só |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` · **NÃO** cherry `19c09bf`/`355b76d` |
+| **Migrate** | **NÃO** |
+| **O quê** | Excel Cadastro: checkboxes Sub 2–4, Unidade, Modelo, **Peso** · gravar `peso_etiqueta` · célula vazia não altera |
+| **Provas** | `tests_cadastro_planilha_peso` **7/7** · verify **20/20** · `manage.py check` |
+| **Você** | Cadastro → Ctrl+F5 → Excel ↓ → marcar Sub 2–4 / Unidade / Modelo / Peso |
+| **Rollback** | tag `rollback/pre-cad-xlsx-cols-v15.04` @ `14dc51a` · branch `producao-backup-pre-v1505-cad-xlsx-20260809` · frase+senha |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.16) · **superado**
+
+> **Vigente:** loja **Live v15.20**. `producao` @ **759e435**.  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-PDV-RECEITA** | ✅ enviado / Live v15.16 | não |
+| 2 | **RG-AJUDA-MODAL** | ✅ enviado / Live v15.16 | não |
+| 3 | **PDV-RACOES** | ✅ enviado / Live v15.16 | não |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.05) · **superado**
+
+> **Vigente:** loja **Live v15.16**. `producao` @ **42faf6c**.  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-XLSX-COLS** | ✅ enviado / Live v15.05 | não |
+
+### CAD-XLSX-COLS — Excel cadastro (loja · 09/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.05** · `9c45d74` |
+| **O quê** | Modal Excel ↓ mostra Sub 2–4, Unidade, Modelo, Peso · import grava Peso |
+| **Regra** | Célula vazia **não** altera · baixar Excel de novo |
+| **Rollback** | `rollback/pre-cad-xlsx-cols-v15.04` → v15.04 |
+| **Migrate** | **NÃO** |
+
+### ✅ Deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.04** · `producao` @ **14dc51a** · Render `dep-d9ra30bbc2fs73ahkii0` |
+| **Loja hoje** | ✅ **Live v15.04** · `producao` @ **14dc51a** |
+| **Branch** | `deploy/camp-promo-menor-0808` (FF → `producao`) · base era `290e8b2` (v15.03) |
 | **Pacote** | **CAMP-PROMO-MENOR** só |
 | **Fora** | resto do `teste` · GG-UX · **NÃO** merge `teste`→`producao` |
 | **Migrate** | **NÃO** |
-| **O quê** | PDV Vila pedia promo da **Centro** (`carregar({ empresa: 'centro' })`) → valor direto 54,90 não entrava · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
+| **O quê** | PDV Vila pedia promo da **Centro** → valor direto 54,90 não entrava · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
 | **Provas** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** · `manage.py check` OK |
-| **Risco loja aberta** | Médio — só PDV/promo (07–08 Vila 5% + valor direto). Centro sem faixa. Sem migrate. Persistência de venda **não muda**. |
-| **Após Live** | **Ctrl+F5** PDV Vila → farelo GM1507-30 = **R$ 54,90** (não 57) · Centro sem 5% |
-| **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart (só se 5% der problema) |
+| **Você** | Inauguração **passou** · 5% off. Promo valor direto segue valendo (fix permanente). |
+| **Kill** | só se 5% ainda aparecer: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Rollback** | tag `rollback/pre-camp-promo-menor-0808-v15.03` @ `290e8b2` |
-| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate · FL-038 pausa automática **não** está na loja (Zap + janela calma) |
-| **Autorizar** | *pode subir CAMP-PROMO-MENOR / deploy/camp-promo-menor-0808 para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO — Promo valor direto prevalece no 5% Vila (`CAMP-PROMO-MENOR`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.04** · `producao` @ **14dc51a** |
+| **Sintoma** | Farelo GM1507-30: lista **R$ 60** · valor direto **R$ 54,90** · PDV Vila cobrou **R$ 57** (só 5%) |
+| **Causa** | Promo **estava gravada** (PG id 9, Vila, 07–08, 54,90). PDV da loja carrega promo só da **Centro**. Campanha 5% rodava sozinha. |
+| **Fix** | Recarrega promo ao voltar no PDV / salvar em outra aba · casa também pelo **GM** · cache v2 · caixa Vila manda na empresa da promo |
+| **Prova** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** |
+| **Migrate** | **NÃO** |
+| **Você agora** | **Ctrl+F5** PDV Vila → farelo = **R$ 54,90**. |
 
 ### ✅ Deploy loja — lote checklist 07/08 (`deploy/lote-checklist-0708` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v15.03** · `producao` @ **290e8b2** |
+| **Status** | ✅ **enviado / Live v15.03** · `producao` @ **290e8b2** · Render `dep-d9r9hne417fc73a776pg` |
 | **Branch** | `deploy/lote-checklist-0708` (FF → `producao`) · base era `e68187b` (v14.85) |
 | **Pacotes** | CAMP-VILA-5 · PROMO-BUSCA-PG |
 | **Fora** | GG-UX (P2,5) |
@@ -1249,31 +1415,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart Render · **não** ligar TEST na loja |
 | **Rollback** | tag `rollback/pre-lote-checklist-0708-v14.85` @ `e68187b` |
 | **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch · sem migrate |
+| **Você agora** | **Ctrl+F5** PDV Vila + Centro · Promoções etapa 2 |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (07/08 · loja v15.03)
+### ✅ CHECKLIST ÚNICO — enviado produção (08/08 · loja v15.04) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.03** · `producao` @ **290e8b2**  
-> **Próximo:** CAMP-PROMO-MENOR · `deploy/camp-promo-menor-0808` **v15.04** · aguarda senha  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (09/08)** no topo. Loja permanece **v15.04** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CAMP-VILA-5** | ✅ enviado / Live v15.03 | não |
 | 2 | **PROMO-BUSCA-PG** | ✅ enviado / Live v15.03 | não |
-| 3 | **CAMP-PROMO-MENOR** | 🚀 PREP v15.04 · aguarda senha | não |
+| 3 | **CAMP-PROMO-MENOR** | ✅ enviado / Live v15.04 | não |
 
 ### 📦 PACOTE PRONTO LOJA — Inauguração Vila 5% auto (`CAMP-VILA-5` · **v15.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live v15.03** · janela **07–08/08** |
+| **Status** | ✅ **encerrado 09/08** · código ficou na loja (desliga sozinho) · Live desde v15.03 |
 | **O quê** | **07 e 08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ · **09/08 volta ao normal** · não mexe cadastro · faixa laranja |
 | **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
 | **Migrate** | **NÃO** |
 | **Risco** | Médio — só Vila nos dias 07–08 · kill `AGRO_CAMPANHA_INAUGURACAO_OFF=1` |
-| **Você** | Ctrl+F5 PDV Vila **07 e 08** · milho 1kg → 2,40 · Centro sem faixa · **09** sem 5% |
-| **Autorizar** | *pode subir lote checklist 07/08 / deploy/lote-checklist-0708 para produção* + **99738595** |
+| **Você** | **Ctrl+F5** PDV Vila **07 e 08** · milho 1kg → 2,40 · Centro sem faixa · **09** sem 5% |
 
 ### 📦 PACOTE PRONTO LOJA — Promo busca produto Postgres (`PROMO-BUSCA-PG` · **v15.02**)
 
@@ -1313,46 +1477,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 PDV · motivo dono · Histórico 4 cards · botão verde |
 | **Autorizar** | *pode subir PDV-USO-DONOS / uso loja donos para produção* + **99738595** |
 
-### 🚀 PREP deploy loja — lote checklist 06/08b (`deploy/lote-checklist-0608b` · **v14.85**)
+### ✅ Deploy loja **v14.85** — lote checklist 06/08b (frase+senha)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v14.85** |
-| **Branch** | `deploy/lote-checklist-0608b` · base loja `008e361` (v14.72) |
-| **Pacotes** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
-| **Fora** | GG-UX (P2,5) |
+| **Status** | ✅ **Live v14.85** · `producao` @ **e68187b** · Render `dep-d9qlio0u01pc739jq0hg` |
+| **Incluiu** | CX-EMP-LOJA · VAL-SALVAR · BI-VAL-LOJA · PDV-USO-DONOS · DSP-PET-BG |
+| **Branch** | `deploy/lote-checklist-0608b` (FF → `producao`) |
 | **Migrate** | **NÃO** |
-| **Após Live** | Ctrl+F5 Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
-| **Provas** | saida empresa 10/10 · bi/val 17/17 · uso donos 65/65 · dsp pet 31/31 · `manage.py check` OK |
-| **Risco loja aberta** | Baixo · **não** toca PDV finalize / caixa abrir-fechar · saída/retirada (empresa) · Uso loja · Validade · BI card · Dispenser |
-| **⚠️** | **NÃO** merge `teste`→`producao` · só esta branch |
-| **Autorizar** | *pode subir lote checklist 06/08b / deploy/lote-checklist-0608b para produção* + **99738595** |
+| **Fora** | GG-UX (P2,5) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0608b-v14.72` @ `008e361` |
+| **Você** | **Ctrl+F5** Retirada Vila · Validade · BI (TRAVA) · Uso loja · Dispenser |
 
-### 📦 CHECKLIST ÚNICO — pronto envio (06/08 · após loja v14.72)
+### ✅ CHECKLIST ÚNICO — enviado produção (06/08b · loja v14.85) · **superado**
 
-> **Loja hoje:** ✅ **Live v14.72** · `producao` @ **008e361**  
-> **Teste:** badge **v14.84** · HEAD `teste`  
-> **Prep loja:** `deploy/lote-checklist-0608b` **v14.85** · aguarda senha  
-> **⚠️** **NÃO** merge `teste`→`producao`. Usar a branch prep.
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (07/08)** no topo. Loja permanece **v14.85** até o próximo envio.
 
-| # | Pacote | Status | Como sobe | Migrate | Risco loja aberta |
-| - | ------ | ------ | --------- | ------- | ----------------- |
-| 1 | **CX-EMP-LOJA** | 📦 **pronto para envio à produção** · **v14.75** | cherry `64c338b` | **NÃO** | Baixo — saída/retirada |
-| 2 | **VAL-SALVAR** | 📦 **pronto para envio à produção** · **v14.77** | cherry / lote | **NÃO** | Baixo — Relatório Validade |
-| 3 | **BI-VAL-LOJA** | 📦 **pronto para envio à produção** · **v14.78** | cherry / lote | **NÃO** | Baixo — card Validade BI |
-| 4 | **PDV-USO-DONOS** | 📦 **pronto para envio à produção** · **v14.82** | cherry / lote | **NÃO** | Baixo — Uso loja |
-| 5 | **DSP-PET-BG** | 📦 **pronto para envio à produção** · **v14.84** | cherry / lote | **NÃO** | Baixo — só Dispenser |
-| 6 | **GG-UX** | 🟡 P2,5 · fora | — | — | — |
-
-**Provas (06/08):** `verify_dsp_pet_bg` **31/31** · `verify_uso_loja_donos_path` **65/65** · `verify_bi_val_salvar_path` **17/17** · `verify_validade_nf_path` **23/23** · `verify_saida_empresa_loja` **10/10** · `manage.py check` OK.
-
-**Autorizar:** *pode subir [CX-EMP-LOJA / VAL-SALVAR / BI-VAL-LOJA / PDV-USO-DONOS / DSP-PET-BG] para produção* + **99738595**
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CX-EMP-LOJA** | ✅ enviado | não |
+| 2 | **VAL-SALVAR** | ✅ enviado | não |
+| 3 | **BI-VAL-LOJA** | ✅ enviado | não |
+| 4 | **PDV-USO-DONOS** | ✅ enviado | não |
+| 5 | **DSP-PET-BG** | ✅ enviado | não |
+| 6 | **GG-UX** | 🟡 P2,5 · fora | — |
 
 ### 📦 PACOTE PRONTO LOJA — BI Validade segue loja travada (`BI-VAL-LOJA` · **v14.78**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Card Validade do BI respeita TRAVA Centro/Vila (`EstoqueLote.deposito`) · cache `v5` |
 | **Prova** | `scripts/verify_bi_val_salvar_path.py` **17/17** |
 | **Migrate** | **NÃO** |
@@ -1364,7 +1518,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Sempre **Salvar** · grava data/lote no `EstoqueLote` · API com `lote_id` |
 | **Prova** | `verify_bi_val_salvar_path` · sem «Usar cadastro» |
 | **Migrate** | **NÃO** |
@@ -1376,7 +1530,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** |
+| **Status** | ✅ **Live v14.85** |
 | **O quê** | Retirada: empresa da loja do caixa · Vila → **Agro Mais Vila Elias** · Centro → **Agro Mais Centro** |
 | **Commit** | `64c338b` |
 | **Prova** | `verify_saida_empresa_loja` **10/10** |
