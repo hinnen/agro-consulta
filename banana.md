@@ -1195,6 +1195,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 DRE usa venda do PDV no lucro (`DRE-PDV-RECEITA` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste · loja ainda com receita DRE = R$ 0 |
+| **O quê** | Indicadores + Resumo gerencial: **receita operacional = faturamento PDV** (loja da empresa) · líquido recalcula · CR só conferência |
+| **Caixa** | Continua pagamento realizado — não mistura com lucro |
+| **Você** | Ctrl+F5 Indicadores · mês até hoje · receita ≈ card PDV · líquido deixa de ser só despesa |
+| **Prova** | `tests_receita_pdv_dre` |
+| **Migrate** | **NÃO** |
+
 ### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES`)
 
 | Item | Detalhe |

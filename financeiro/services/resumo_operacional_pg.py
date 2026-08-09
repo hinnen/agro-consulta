@@ -95,7 +95,11 @@ def consolidar_empresa_pg(
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
     }
-    return core
+    from financeiro.services.receita_pdv_util import aplicar_receita_pdv_no_resumo
+
+    return aplicar_receita_pdv_no_resumo(
+        core, data_inicio, data_fim, empresa_nome=nome
+    )
 
 
 def consolidar_grupo_pg(
@@ -162,6 +166,11 @@ def consolidar_grupo_pg(
             "Sem eliminação automática entre filiais."
         ),
     }
+    from financeiro.services.receita_pdv_util import aplicar_receita_pdv_no_resumo
+
+    consolidado = aplicar_receita_pdv_no_resumo(
+        consolidado, data_inicio, data_fim, deposito=None
+    )
 
     return {
         "fonte": "postgres",

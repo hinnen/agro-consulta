@@ -123,6 +123,7 @@
         value: brl(c.receita_operacional),
         tone: "success",
         sign: nRec > 0 ? "pos" : nRec < 0 ? "neg" : "zero",
+        subtitle: c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : null,
         trend: c._trend_receita_operacional || null,
       }),
       buildKpiCard({
