@@ -169,6 +169,7 @@ def check_frontend_parity() -> None:
         fail("addItem carrinho")
     else:
         ok("addItem carrinho")
+    check_lista_overlay_path(js, wiz)
     urls = read("produtos/urls.py")
     if "api/pdv/racoes-overlay/" not in urls:
         fail("rota racoes-overlay")
@@ -232,6 +233,99 @@ def check_frontend_parity() -> None:
         fail("pdv_home não usa wizard")
     else:
             ok("pdv_home usa wizard")
+
+
+def check_lista_overlay_path(js: str, wiz: str) -> None:
+    """Path: tipo → marca → tamanho → lista (não vai direto ao carrinho)."""
+    if "function pdvRacoesAdicionar" in js:
+        fail("peso ainda chama pdvRacoesAdicionar (deveria abrir lista)")
+    else:
+        ok("peso nao manda direto ao carrinho")
+    peso_click = js.split("var pesosGrid = document.getElementById('pdv-racoes-pesos-grid')")
+    if len(peso_click) < 2:
+        fail("bind pesosGrid")
+    else:
+        chunk = peso_click[1].split("var addTodas")[0]
+        if "pdvRacoesIrLista(b.getAttribute('data-peso'))" not in chunk:
+            fail("clique tamanho nao abre lista")
+        else:
+            ok("clique tamanho abre lista")
+    if "pdvRacoesIrLista(null)" not in js:
+        fail("Todos os tamanhos nao abre lista")
+    else:
+        ok("Todos os tamanhos abre lista")
+    ir = js.split("function pdvRacoesIrLista")[1].split("function pdvRacoesAddUm")[0] if "function pdvRacoesIrLista" in js else ""
+    if "return pa - pb" not in ir or "pdvRacoesShowStep('lista')" not in ir:
+        fail("IrLista sem sort preco ou sem step lista")
+    elif "caixaAbertoParaVenda()" not in ir:
+        fail("IrLista sem checar caixa")
+    else:
+        ok("IrLista ordena preco crescente + checa caixa")
+    add_um = js.split("function pdvRacoesAddUm")[1].split("function pdvRacoesAddTodas")[0] if "function pdvRacoesAddUm" in js else ""
+    if "State.addItem(p, 1)" not in add_um:
+        fail("AddUm sem addItem")
+    elif "pdvRacoesFechar" in add_um:
+        fail("AddUm fecha overlay (deveria ficar aberto)")
+    elif "pdvRacoesRenderLista()" not in add_um:
+        fail("AddUm sem refresh visual")
+    else:
+        ok("AddUm entra no carrinho e atualiza linha")
+    add_todas = js.split("function pdvRacoesAddTodas")[1].split("function pdvRacoesIrMarca")[0] if "function pdvRacoesAddTodas" in js else ""
+    if "pdvRacoesQtdCarrinho(resolveProdutoId(p)) > 0" not in add_todas:
+        fail("AddTodas nao pula ja no carrinho")
+    elif "pdvRacoesFechar" in add_todas:
+        fail("AddTodas fecha overlay")
+    else:
+        ok("AddTodas so as que faltam + overlay aberto")
+    wire = js.split("function wireRacoesUi")[1].split("function wireCadastroRapidoUi")[0] if "function wireRacoesUi" in js else ""
+    if "step === 'lista'" not in wire or "ShowStep('peso')" not in wire:
+        fail("Voltar da lista nao volta no tamanho")
+    else:
+        ok("Voltar lista -> tamanho")
+    if "if (pdvRacoesSel.step === 'lista') return;" not in wire:
+        fail("clique fora na lista fecha (nao deveria)")
+    else:
+        ok("clique fora na lista nao fecha")
+    if "ev.key !== 'Escape'" not in wire or "pdvRacoesOverlayAberto()" not in wire or "pdvRacoesFechar()" not in wire:
+        fail("Esc nao fecha overlay Racoes")
+    else:
+        ok("Esc fecha overlay")
+    for needle, label in (
+        ('id="pdv-racoes-step-lista"', "HTML step lista"),
+        ('id="pdv-racoes-add-todas"', "HTML Adicionar todas"),
+        ('id="pdv-racoes-lista-body"', "HTML corpo tabela"),
+        ('id="pdv-racoes-fechar"', "HTML Fechar ×"),
+        ("Adicionar todas", "texto Adicionar todas"),
+        ("pdv-racoes-row-ok", "CSS/JS linha verde"),
+        ("No carrinho", "badge No carrinho"),
+        ("Adicionar +1", "botao +1 depois de adicionar"),
+        ("#pdv-racoes-overlay.is-lista", "CSS overlay grande"),
+        ("pdv-racoes-panel", "CSS painel"),
+    ):
+        blob = js + wiz
+        if needle not in blob:
+            fail(label)
+        else:
+            ok(label)
+    if "cancelar.textContent = step === 'lista' ? 'Fechar'" not in js:
+        fail("botao Fechar na lista")
+    else:
+        ok("botao Fechar na lista")
+    try:
+        import subprocess
+
+        r = subprocess.run(
+            ["node", "--check", str(ROOT / "produtos/static/produtos/js/pdv_wizard.js")],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if r.returncode != 0:
+            fail(f"node --check: {(r.stderr or r.stdout or '').strip()[:200]}")
+        else:
+            ok("node --check pdv_wizard.js")
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        fail(f"node --check indisponivel: {exc}")
 
 
 def check_util_cenarios() -> None:

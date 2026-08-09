@@ -69,6 +69,17 @@ class CategoriaTipoTests(SimpleTestCase):
 
 
 class FiltrarTests(SimpleTestCase):
+    def test_lista_pdv_ordem_preco_crescente(self):
+        tipo = tipo_racoes_por_id("cao_adulto")
+        rows = [
+            _row(id="caro", nome="Z", marca="A", preco_venda=89.9, peso_etiqueta="15"),
+            _row(id="barato", nome="A", marca="B", preco_venda=12.5, peso_etiqueta="15"),
+            _row(id="meio", nome="M", marca="C", preco_venda=40, peso_etiqueta="15"),
+        ]
+        lista = filtrar_racoes(rows, tipo, marca=None, peso_key="kg:15")
+        lista.sort(key=lambda r: (float(r.get("preco_venda") or 0), str(r.get("nome") or "")))
+        self.assertEqual([r["id"] for r in lista], ["barato", "meio", "caro"])
+
     def test_tipo_marca_peso(self):
         tipo = tipo_racoes_por_id("cao_adulto")
         rows = [

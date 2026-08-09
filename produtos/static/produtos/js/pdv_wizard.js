@@ -12520,8 +12520,10 @@
         { key: 'kg:25', label: 'Saco 25 kg' },
         { key: 'pacote', label: 'Pacote R$ 10' }
     ];
-    var pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
+    var pdvRacoesSel = { tipo: null, marca: undefined, pesoKey: undefined, step: 'tipo' };
     var pdvRacoesSyncP = null;
+    var pdvRacoesListaRows = [];
+    var pdvRacoesAddedCount = 0;
 
     function pdvRacoesNorm(s) {
         return stripAccents(s).replace(/\s+/g, ' ').trim();
@@ -12609,22 +12611,36 @@
 
     function pdvRacoesShowStep(step) {
         pdvRacoesSel.step = step;
+        var overlay = pdvRacoesOverlayEl();
         var tipoEl = document.getElementById('pdv-racoes-step-tipo');
         var marcaEl = document.getElementById('pdv-racoes-step-marca');
         var pesoEl = document.getElementById('pdv-racoes-step-peso');
+        var listaEl = document.getElementById('pdv-racoes-step-lista');
         var voltar = document.getElementById('pdv-racoes-voltar');
+        var addTodas = document.getElementById('pdv-racoes-add-todas');
+        var statusEl = document.getElementById('pdv-racoes-lista-status');
+        var cancelar = document.getElementById('pdv-racoes-cancelar');
         var titulo = document.getElementById('pdv-racoes-titulo');
         var crumb = document.getElementById('pdv-racoes-crumb');
+        if (overlay) overlay.classList.toggle('is-lista', step === 'lista');
         if (tipoEl) tipoEl.classList.toggle('hidden', step !== 'tipo');
         if (marcaEl) marcaEl.classList.toggle('hidden', step !== 'marca');
         if (pesoEl) pesoEl.classList.toggle('hidden', step !== 'peso');
+        if (listaEl) listaEl.classList.toggle('hidden', step !== 'lista');
         if (voltar) voltar.classList.toggle('hidden', step === 'tipo');
+        if (addTodas) addTodas.classList.toggle('hidden', step !== 'lista');
+        if (statusEl) statusEl.classList.toggle('hidden', step !== 'lista');
+        if (cancelar) cancelar.textContent = step === 'lista' ? 'Fechar' : 'Cancelar';
         var partes = [];
         if (pdvRacoesSel.tipo) partes.push(pdvRacoesSel.tipo.label);
         if (step !== 'tipo') {
             if (pdvRacoesSel.marca === undefined) partes.push('Todas as marcas');
             else if (!String(pdvRacoesSel.marca || '').trim()) partes.push('Sem marca');
             else partes.push(pdvRacoesSel.marca);
+        }
+        if (step === 'lista') {
+            if (pdvRacoesSel.pesoKey === null || pdvRacoesSel.pesoKey === undefined) partes.push('Todos os tamanhos');
+            else partes.push(pdvRacoesPesoLabel(pdvRacoesSel.pesoKey));
         }
         if (crumb) {
             crumb.textContent = partes.join(' · ');
@@ -12633,7 +12649,8 @@
         if (titulo) {
             if (step === 'tipo') titulo.textContent = 'Escolha o tipo';
             else if (step === 'marca') titulo.textContent = 'Escolha a marca';
-            else titulo.textContent = 'Escolha o tamanho';
+            else if (step === 'peso') titulo.textContent = 'Escolha o tamanho';
+            else titulo.textContent = 'Escolha as rações';
         }
     }
 
@@ -12703,15 +12720,26 @@
         return pesos.length;
     }
 
-    function pdvRacoesFechar() {
+    function pdvRacoesFechar(opts) {
+        opts = opts || {};
+        var n = pdvRacoesAddedCount;
         var el = pdvRacoesOverlayEl();
         if (!el) return;
         el.classList.add('hidden');
-        el.classList.remove('flex');
+        el.classList.remove('flex', 'is-lista');
         document.body.classList.remove('modal-open');
-        pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
+        pdvRacoesSel = { tipo: null, marca: undefined, pesoKey: undefined, step: 'tipo' };
+        pdvRacoesListaRows = [];
+        pdvRacoesAddedCount = 0;
         pdvRacoesSetMsg('');
         pdvRacoesShowStep('tipo');
+        if (!opts.silencioso && n > 0) {
+            showSaleDoneFeedback(
+                n === 1 ? '1 ração no carrinho.' : n + ' rações no carrinho.',
+                'success',
+                { durationMs: 2800 }
+            );
+        }
     }
 
     function pdvRacoesSincronizarCadastro() {
@@ -12739,7 +12767,9 @@
     function pdvRacoesAbrir() {
         var el = pdvRacoesOverlayEl();
         if (!el) return;
-        pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
+        pdvRacoesSel = { tipo: null, marca: undefined, pesoKey: undefined, step: 'tipo' };
+        pdvRacoesListaRows = [];
+        pdvRacoesAddedCount = 0;
         pdvRacoesSetMsg('Lendo cadastro…');
         pdvRacoesShowStep('tipo');
         el.classList.remove('hidden');
@@ -12750,20 +12780,164 @@
         });
     }
 
-    function pdvRacoesAdicionar(lista) {
-        var n = 0;
-        (lista || []).forEach(function (p) {
-            if (State.addItem(p, 1)) n += 1;
+    function pdvRacoesPreco(p) {
+        return State.toNumber(
+            p && (p.preco_venda != null ? p.preco_venda : p.preco_padrao != null ? p.preco_padrao : p.preco)
+        );
+    }
+
+    function pdvRacoesPesoLabel(key) {
+        var i;
+        for (i = 0; i < PDV_RACOES_PESOS.length; i++) {
+            if (PDV_RACOES_PESOS[i].key === key) return PDV_RACOES_PESOS[i].label;
+        }
+        return key || '—';
+    }
+
+    function pdvRacoesQtdCarrinho(pid) {
+        var want = String(pid || '');
+        if (!want) return 0;
+        var itens = (State.getState && State.getState().itens) || [];
+        var i;
+        for (i = 0; i < itens.length; i++) {
+            if (String(itens[i].id) === want) return State.toNumber(itens[i].qtd);
+        }
+        return 0;
+    }
+
+    function pdvRacoesAtualizarStatusLista() {
+        var statusEl = document.getElementById('pdv-racoes-lista-status');
+        var addTodas = document.getElementById('pdv-racoes-add-todas');
+        var faltam = 0;
+        pdvRacoesListaRows.forEach(function (p) {
+            if (pdvRacoesQtdCarrinho(resolveProdutoId(p)) <= 0) faltam += 1;
         });
-        pdvRacoesFechar();
+        if (statusEl) {
+            var noCart = pdvRacoesListaRows.length - faltam;
+            statusEl.textContent = noCart
+                ? noCart + ' no carrinho'
+                : pdvRacoesListaRows.length + (pdvRacoesListaRows.length === 1 ? ' produto' : ' produtos');
+        }
+        if (addTodas) {
+            addTodas.disabled = faltam <= 0;
+            addTodas.textContent = faltam > 0 ? 'Adicionar todas (' + faltam + ')' : 'Todas no carrinho';
+        }
+    }
+
+    function pdvRacoesRenderLista() {
+        var body = document.getElementById('pdv-racoes-lista-body');
+        if (!body) return;
+        body.innerHTML = pdvRacoesListaRows
+            .map(function (p) {
+                var pid = resolveProdutoId(p);
+                var qtd = pdvRacoesQtdCarrinho(pid);
+                var ok = qtd > 0;
+                var pesoKey = pdvRacoesParsePeso(p.peso_etiqueta);
+                return (
+                    '<tr class="' +
+                    (ok ? 'pdv-racoes-row-ok' : '') +
+                    '" data-racoes-id="' +
+                    escapeHtml(pid) +
+                    '">' +
+                    '<td class="font-black text-slate-800">' +
+                    escapeHtml(displayCodigoGm(p)) +
+                    '</td>' +
+                    '<td><div class="pdv-racoes-nome">' +
+                    escapeHtml(p.nome || '—') +
+                    '</div></td>' +
+                    '<td class="font-bold uppercase text-slate-800">' +
+                    escapeHtml(String(p.marca || '').trim() || 'Sem marca') +
+                    '</td>' +
+                    '<td class="font-bold text-slate-800">' +
+                    escapeHtml(pdvRacoesPesoLabel(pesoKey)) +
+                    '</td>' +
+                    '<td class="pdv-racoes-preco">' +
+                    escapeHtml(formatMoney(pdvRacoesPreco(p))) +
+                    '</td>' +
+                    '<td>' +
+                    (ok
+                        ? '<span class="pdv-racoes-qtd-ok">No carrinho · ' + formatQty(qtd) + '</span>'
+                        : '<span class="text-slate-500 font-bold">—</span>') +
+                    '</td>' +
+                    '<td><button type="button" class="pdv-racoes-add-btn' +
+                    (ok ? ' is-ok' : '') +
+                    '" data-racoes-add="' +
+                    escapeHtml(pid) +
+                    '">' +
+                    (ok ? 'Adicionar +1' : 'Adicionar') +
+                    '</button></td>' +
+                    '</tr>'
+                );
+            })
+            .join('');
+        pdvRacoesAtualizarStatusLista();
+    }
+
+    function pdvRacoesIrLista(pesoKey) {
+        if (!caixaAbertoParaVenda()) {
+            showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
+            return;
+        }
+        var lista = pdvRacoesFiltrar(pdvRacoesSel.tipo, pdvRacoesSel.marca, pesoKey);
+        if (!lista.length) {
+            pdvRacoesSetMsg('Nenhum produto cadastrado nessa opção.');
+            return;
+        }
+        lista.sort(function (a, b) {
+            var pa = pdvRacoesPreco(a);
+            var pb = pdvRacoesPreco(b);
+            if (pa !== pb) return pa - pb;
+            return pdvRacoesNorm(a.nome).localeCompare(pdvRacoesNorm(b.nome), 'pt-BR');
+        });
+        pdvRacoesSel.pesoKey = pesoKey;
+        pdvRacoesListaRows = lista;
+        pdvRacoesSetMsg('');
+        pdvRacoesShowStep('lista');
+        pdvRacoesRenderLista();
+    }
+
+    function pdvRacoesAddUm(pid) {
+        if (!caixaAbertoParaVenda()) {
+            showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
+            return false;
+        }
+        var want = String(pid || '');
+        var p = null;
+        var i;
+        for (i = 0; i < pdvRacoesListaRows.length; i++) {
+            if (resolveProdutoId(pdvRacoesListaRows[i]) === want) {
+                p = pdvRacoesListaRows[i];
+                break;
+            }
+        }
+        if (!p || !State.addItem(p, 1)) return false;
+        pdvRacoesAddedCount += 1;
+        pdvRacoesRenderLista();
+        return true;
+    }
+
+    function pdvRacoesAddTodas() {
+        if (!caixaAbertoParaVenda()) {
+            showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error' });
+            return;
+        }
+        var n = 0;
+        pdvRacoesListaRows.forEach(function (p) {
+            if (pdvRacoesQtdCarrinho(resolveProdutoId(p)) > 0) return;
+            if (State.addItem(p, 1)) {
+                pdvRacoesAddedCount += 1;
+                n += 1;
+            }
+        });
+        pdvRacoesRenderLista();
         if (!n) {
-            showSaleDoneFeedback('Nenhum produto cadastrado nessa opção.', 'warn', { durationMs: 2800 });
+            showSaleDoneFeedback('Todas já estão no carrinho.', 'warn', { durationMs: 2200 });
             return;
         }
         showSaleDoneFeedback(
             n === 1 ? '1 ração no carrinho.' : n + ' rações no carrinho.',
             'success',
-            { durationMs: 2800 }
+            { durationMs: 2200 }
         );
     }
 
@@ -12828,13 +13002,16 @@
         if (voltar) {
             voltar.addEventListener('click', function () {
                 pdvRacoesSetMsg('');
-                if (pdvRacoesSel.step === 'peso') pdvRacoesShowStep('marca');
+                if (pdvRacoesSel.step === 'lista') pdvRacoesShowStep('peso');
+                else if (pdvRacoesSel.step === 'peso') pdvRacoesShowStep('marca');
                 else pdvRacoesShowStep('tipo');
             });
         }
         if (overlay) {
             overlay.addEventListener('click', function (ev) {
-                if (ev.target === overlay) pdvRacoesFechar();
+                if (ev.target !== overlay) return;
+                if (pdvRacoesSel.step === 'lista') return;
+                pdvRacoesFechar();
             });
         }
         var tipoWrap = document.getElementById('pdv-racoes-step-tipo');
@@ -12862,7 +13039,7 @@
         var todosP = document.getElementById('pdv-racoes-todos-pesos');
         if (todosP) {
             todosP.addEventListener('click', function () {
-                pdvRacoesAdicionar(pdvRacoesFiltrar(pdvRacoesSel.tipo, pdvRacoesSel.marca, null));
+                pdvRacoesIrLista(null);
             });
         }
         var pesosGrid = document.getElementById('pdv-racoes-pesos-grid');
@@ -12870,9 +13047,17 @@
             pesosGrid.addEventListener('click', function (ev) {
                 var b = ev.target.closest('.pdv-racoes-peso-btn');
                 if (!b) return;
-                pdvRacoesAdicionar(
-                    pdvRacoesFiltrar(pdvRacoesSel.tipo, pdvRacoesSel.marca, b.getAttribute('data-peso'))
-                );
+                pdvRacoesIrLista(b.getAttribute('data-peso'));
+            });
+        }
+        var addTodas = document.getElementById('pdv-racoes-add-todas');
+        if (addTodas) addTodas.addEventListener('click', pdvRacoesAddTodas);
+        var listaBody = document.getElementById('pdv-racoes-lista-body');
+        if (listaBody) {
+            listaBody.addEventListener('click', function (ev) {
+                var b = ev.target.closest('[data-racoes-add]');
+                if (!b) return;
+                pdvRacoesAddUm(b.getAttribute('data-racoes-add'));
             });
         }
         document.addEventListener('keydown', function (ev) {
