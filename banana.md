@@ -428,7 +428,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1206,6 +1206,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.16)
+
+> **Loja hoje:** ✅ **Live v15.16** · `producao` @ **42faf6c**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Cherry/FF só o pacote autorizado.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.17** | não | **sim** — pausar vendas |
+
+**Autorizar:** *pode subir PDV-RACOES-25 / saco 2,5 kg para produção* + **99738595**.
+
+### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.17**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto envio** · loja v15.16 ainda sem 2,5 kg |
+| **O quê** | Botão Rações: tamanho **Saco 2,5 kg** · cadastro Peso (etiqueta) = **`2,5`** |
+| **Cadastro** | Só `2,5` (aceita também `2.5` / `2,50 kg`) · não misturar com `pacote` |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-25 para produção* + **99738595** |
+
 ### ✅ Deploy loja — lote checklist 09/08 (`deploy/lote-checklist-0908` · **v15.16**)
 
 > **Loja hoje:** ✅ **Live v15.16** · `producao` @ **42faf6c** · Render `dep-d9s5ogjbc2fs73b36p8g`  
@@ -1253,7 +1274,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **Live v15.16** · `producao` @ **42faf6c** |
 | **O quê** | Botão **Rações** no PDV → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
-| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso no overlay |
+| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote` |
 | **Catálogo** | Cache PDV **v3** · 1ª abertura do dia reconstrói |
 | **Você** | Ctrl+F5 PDV · testar Estimação 15 kg em Cão adulto |
 | **Prova** | `tests_pdv_racoes` **13/13** · verify path cadastro→overlay→catálogo→JS→carrinho **VERIFY_OK** (loja + teste) · `manage.py check` |

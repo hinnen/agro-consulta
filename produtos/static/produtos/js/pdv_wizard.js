@@ -8874,6 +8874,7 @@
     ];
     var PDV_RACOES_PESOS = [
         { key: 'kg:1', label: 'Granel' },
+        { key: 'kg:2.5', label: 'Saco 2,5 kg' },
         { key: 'kg:5', label: 'Saco 5 kg' },
         { key: 'kg:10', label: 'Saco 10 kg' },
         { key: 'kg:15', label: 'Saco 15 kg' },
@@ -8904,10 +8905,12 @@
         t = t.replace(/\s*k\s*g\s*$/i, '').replace(/\s*quilos?\s*$/i, '').trim();
         var n = parseFloat(t);
         if (!isFinite(n)) return null;
-        var ni = Math.round(n);
-        if (Math.abs(n - ni) > 0.05) return null;
-        if ([1, 5, 10, 15, 20, 25].indexOf(ni) === -1) return null;
-        return 'kg:' + ni;
+        var allowed = [1, 2.5, 5, 10, 15, 20, 25];
+        var i;
+        for (i = 0; i < allowed.length; i++) {
+            if (Math.abs(n - allowed[i]) <= 0.05) return 'kg:' + allowed[i];
+        }
+        return null;
     }
 
     function pdvRacoesTipoPorId(id) {
@@ -9126,7 +9129,7 @@
         pdvRacoesSel.marca = marca;
         var nPesos = pdvRacoesRenderPesos(pdvRacoesSel.tipo, marca);
         if (!nPesos) {
-            pdvRacoesSetMsg('Nenhum peso cadastrado nessa opção. No Peso (etiqueta) use 1, 5, 10, 15, 20, 25 ou pacote.');
+            pdvRacoesSetMsg('Nenhum peso cadastrado nessa opção. No Peso (etiqueta) use 1, 2,5, 5, 10, 15, 20, 25 ou pacote.');
             pdvRacoesShowStep('peso');
             return;
         }

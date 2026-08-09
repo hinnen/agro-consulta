@@ -218,8 +218,10 @@ def check_util_cenarios() -> None:
 
     if parse_peso_racoes("15 kg") != "kg:15" or parse_peso_racoes("PACOTE") != "pacote":
         fail("parse peso 15/pacote")
+    elif parse_peso_racoes("2,5") != "kg:2.5":
+        fail("parse peso 2,5")
     else:
-        ok("parse peso 15/pacote")
+        ok("parse peso 15/pacote/2,5")
     if len(TIPOS_RACOES) != 8:
         fail("8 tipos")
     else:

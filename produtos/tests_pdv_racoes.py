@@ -35,6 +35,9 @@ class ParsePesoTests(SimpleTestCase):
         self.assertEqual(parse_peso_racoes("15"), "kg:15")
         self.assertEqual(parse_peso_racoes("20 kg"), "kg:20")
         self.assertEqual(parse_peso_racoes("25"), "kg:25")
+        self.assertEqual(parse_peso_racoes("2,5"), "kg:2.5")
+        self.assertEqual(parse_peso_racoes("2.5"), "kg:2.5")
+        self.assertEqual(parse_peso_racoes("2,50 kg"), "kg:2.5")
 
     def test_pacote(self):
         self.assertEqual(parse_peso_racoes("pacote"), "pacote")
@@ -69,6 +72,7 @@ class FiltrarTests(SimpleTestCase):
             _row(id="p3", subcategoria_2="Filhote", peso_etiqueta="15"),
             _row(id="p4", categoria="Farelo"),
             _row(id="p5", peso_etiqueta="pacote", marca="ESTIMACAO"),
+            _row(id="p7", peso_etiqueta="2,5", marca="ESTIMACAO"),
             _row(id="p6", inativo=True),
         ]
         so_est_15 = filtrar_racoes(rows, tipo, marca="ESTIMACAO", peso_key="kg:15")
@@ -76,9 +80,11 @@ class FiltrarTests(SimpleTestCase):
         todas_15 = filtrar_racoes(rows, tipo, marca=None, peso_key="kg:15")
         self.assertEqual([r["id"] for r in todas_15], ["p1"])
         todas = filtrar_racoes(rows, tipo, marca=None, peso_key=None)
-        self.assertEqual([r["id"] for r in todas], ["p1", "p2", "p5"])
+        self.assertEqual([r["id"] for r in todas], ["p1", "p2", "p5", "p7"])
         pacote = filtrar_racoes(rows, tipo, marca="estimacao", peso_key="pacote")
         self.assertEqual([r["id"] for r in pacote], ["p5"])
+        saco25 = filtrar_racoes(rows, tipo, marca="ESTIMACAO", peso_key="kg:2.5")
+        self.assertEqual([r["id"] for r in saco25], ["p7"])
 
     def test_adulto_nao_pega_rp(self):
         tipo = tipo_racoes_por_id("cao_adulto")

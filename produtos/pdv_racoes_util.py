@@ -16,7 +16,7 @@ TIPOS_RACOES: list[dict[str, str]] = [
     {"id": "cao_senior", "label": "Cão Sênior", "sub1": "Cão", "sub2": "Sênior"},
 ]
 
-PESOS_KG_RACOES = (1, 5, 10, 15, 20, 25)
+PESOS_KG_RACOES = (1, 2.5, 5, 10, 15, 20, 25)
 
 
 def norm_txt_racoes(s: Any) -> str:
@@ -30,8 +30,14 @@ def eh_categoria_racoes(cat: Any) -> bool:
     return norm_txt_racoes(cat) == "racoes"
 
 
+def peso_racoes_key(n: float) -> str:
+    if abs(n - round(n)) < 0.001:
+        return f"kg:{int(round(n))}"
+    return f"kg:{n:g}"
+
+
 def parse_peso_racoes(raw: Any) -> str | None:
-    """Chave: ``pacote`` | ``kg:1`` … ``kg:25`` | None se não reconhecer."""
+    """Chave: ``pacote`` | ``kg:1`` · ``kg:2.5`` … ``kg:25`` | None se não reconhecer."""
     t = norm_txt_racoes(raw)
     if not t:
         return None
@@ -44,11 +50,9 @@ def parse_peso_racoes(raw: Any) -> str | None:
         n = float(t)
     except ValueError:
         return None
-    ni = int(round(n))
-    if abs(n - ni) > 0.05:
-        return None
-    if ni in PESOS_KG_RACOES:
-        return f"kg:{ni}"
+    for p in PESOS_KG_RACOES:
+        if abs(n - float(p)) <= 0.05:
+            return peso_racoes_key(float(p))
     return None
 
 
