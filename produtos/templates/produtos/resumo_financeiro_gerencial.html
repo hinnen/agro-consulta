@@ -107,6 +107,14 @@
             <option value="realizado">Já pago / recebido</option>
           </select>
         </div>
+        <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
+          <span class="rg-field__label">CMV</span>
+          <div class="rg-cmv__chips">
+            <button type="button" class="rg-chip is-active" data-dre-cmv="vendida">Mercadoria vendida</button>
+            <button type="button" class="rg-chip" data-dre-cmv="paga">Mercadoria paga</button>
+          </div>
+          <p id="rg-cmv-hint" class="rg-cmv__hint">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
+        </div>
       </div>
       <div id="rg-filtro-ativo" class="rg-filtro-ativo" role="status" aria-live="polite"></div>
     </section>
@@ -171,6 +179,7 @@
         <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber).</li>
         <li>O <strong>nome fantasia</strong> da empresa deve coincidir com o campo Empresa nos títulos.</li>
         <li>Modo <strong>grupo</strong> soma as empresas vinculadas (sem eliminação automática entre filiais).</li>
+        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro bruto, operacional, líquido e ponto de equilíbrio acompanham. O <strong>caixa não muda</strong>.</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
       <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>

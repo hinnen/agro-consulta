@@ -49,6 +49,7 @@ def consolidar_empresa_pg(
     filtro_contas: str = "",
     diagnostico: bool = False,
     usar_receita_pdv: bool = True,
+    anexar_cmv_modos: bool = False,
 ) -> dict[str, Any]:
     empresa = get_object_or_none_empresa(empresa_id)
     if not empresa:
@@ -101,9 +102,17 @@ def consolidar_empresa_pg(
         core["receita_lancamentos"] = core.get("receita_operacional")
         return core
 
-    from financeiro.services.receita_pdv_util import aplicar_receita_pdv_no_resumo
+    from financeiro.services.receita_pdv_util import (
+        aplicar_cmv_modos_no_resumo,
+        aplicar_receita_pdv_no_resumo,
+    )
 
-    return aplicar_receita_pdv_no_resumo(
+    core = aplicar_receita_pdv_no_resumo(
+        core, data_inicio, data_fim, empresa_nome=nome
+    )
+    if not anexar_cmv_modos:
+        return core
+    return aplicar_cmv_modos_no_resumo(
         core, data_inicio, data_fim, empresa_nome=nome
     )
 
@@ -117,6 +126,7 @@ def consolidar_grupo_pg(
     valor: str = "bruto",
     filtro_contas: str = "",
     diagnostico: bool = False,
+    anexar_cmv_modos: bool = False,
 ) -> dict[str, Any]:
     grupo = GrupoEmpresarial.objects.filter(pk=grupo_id, ativo=True).first()
     if not grupo:
@@ -139,6 +149,12 @@ def consolidar_grupo_pg(
         "geracao_caixa",
         "receita_lancamentos",
         "receita_fonte",
+        "cmv_paga",
+        "cmv_vendida",
+        "cmv_modo",
+        "cmv_skus_sem_custo",
+        "cmv_skus_com_custo",
+        "cmv_modos",
     )
 
     por_empresa_limpo: list[dict[str, Any]] = []
@@ -153,6 +169,7 @@ def consolidar_grupo_pg(
             valor=valor,
             filtro_contas=filtro_contas,
             diagnostico=diagnostico,
+            anexar_cmv_modos=anexar_cmv_modos,
         )
         if sub.get("erro"):
             por_empresa_limpo.append({"empresa_id": v.empresa_id, "erro": sub["erro"]})
@@ -165,9 +182,20 @@ def consolidar_grupo_pg(
             }
         )
 
-    from financeiro.services.receita_pdv_util import somar_resumos_dre_empresas
+    from financeiro.services.receita_pdv_util import (
+        fundir_cmv_modos_grupo,
+        somar_resumos_dre_empresas,
+    )
 
     consolidado = somar_resumos_dre_empresas(por_empresa_limpo)
+    if anexar_cmv_modos:
+        try:
+            dias = (data_fim - data_inicio).days + 1
+        except Exception:
+            dias = 30
+        consolidado = fundir_cmv_modos_grupo(
+            consolidado, por_empresa_limpo, dias_periodo=max(int(dias or 1), 1)
+        )
     consolidado["ajustes_eliminacao"] = {
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),

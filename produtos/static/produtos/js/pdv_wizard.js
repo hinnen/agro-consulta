@@ -12842,7 +12842,9 @@
                     '<td class="font-black text-slate-800">' +
                     escapeHtml(displayCodigoGm(p)) +
                     '</td>' +
-                    '<td><div class="pdv-racoes-nome">' +
+                    '<td><div class="pdv-racoes-nome" title="' +
+                    escapeHtml(p.nome || '—') +
+                    '">' +
                     escapeHtml(p.nome || '—') +
                     '</div></td>' +
                     '<td class="font-bold uppercase text-slate-800">' +

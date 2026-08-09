@@ -71,6 +71,15 @@ def main() -> int:
     print("== resumo gerencial ==")
     check("modal_hidden_css", ".rg-modal-backdrop.hidden { display: none !important; }" in html_rg)
     check("js_subtitulo_pdv", 'c.receita_fonte === "pdv"' in js)
+    check("fn_cmv_modos_resumo", "def aplicar_cmv_modos_no_resumo" in util)
+    check("fn_recalc_resumo_cmv", "def recalc_resumo_cmv" in util)
+    check("empresa_flag_cmv", "anexar_cmv_modos" in resumo)
+    check("chip_vendida_rg", 'data-dre-cmv="vendida"' in html_rg)
+    check("chip_paga_rg", 'data-dre-cmv="paga"' in html_rg)
+    check("js_cmv_key", "agro_dre_cmv_modo_v1" in js)
+    check("js_apply_cmv", "function aplicarCmvNoCore" in js)
+    check("js_caixa_intacto", "geracao_caixa" in js)
+    check("ajuda_cmv_rg", "CMV vendida" in html_rg and "caixa não muda" in html_rg)
 
     print(f"\n{len(oks)} OK · {len(fails)} FAIL")
     if fails:

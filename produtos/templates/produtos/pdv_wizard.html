@@ -439,19 +439,24 @@
     width: min(44rem, 96vw);
   }
   #pdv-racoes-overlay.is-lista .pdv-racoes-panel {
-    max-height: min(96dvh, 62rem);
-    width: min(86rem, 98vw);
+    max-height: min(96dvh, 70rem);
+    width: min(96rem, 99vw);
+  }
+  #pdv-racoes-overlay.is-lista footer {
+    flex-wrap: nowrap;
   }
   #pdv-racoes-lista-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 1.05rem;
+    font-size: 1.02rem;
   }
   #pdv-racoes-lista-table th,
   #pdv-racoes-lista-table td {
     border: 2px solid #94a3b8;
-    padding: 0.7rem 0.85rem;
+    padding: 0.28rem 0.55rem;
     vertical-align: middle;
+    white-space: nowrap;
+    line-height: 1.15;
   }
   #pdv-racoes-lista-table thead th {
     position: sticky;
@@ -459,9 +464,9 @@
     z-index: 1;
     background: #ecfdf5;
     color: #064e3b;
-    font-size: 0.95rem;
+    font-size: 0.88rem;
     font-weight: 900;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     text-align: left;
   }
@@ -472,29 +477,31 @@
     background: #d1fae5;
   }
   #pdv-racoes-lista-table .pdv-racoes-nome {
-    font-size: 1.15rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: #0f172a;
-    line-height: 1.25;
+    line-height: 1.15;
+    white-space: nowrap;
   }
   #pdv-racoes-lista-table .pdv-racoes-preco {
-    font-size: 1.35rem;
+    font-size: 1.2rem;
     font-weight: 900;
     color: #0f172a;
     white-space: nowrap;
     text-align: right;
   }
   #pdv-racoes-lista-table .pdv-racoes-add-btn {
-    min-height: 3.1rem;
-    min-width: 8.5rem;
-    border-radius: 0.75rem;
+    min-height: 2.25rem;
+    min-width: max-content;
+    border-radius: 0.55rem;
     border: 2px solid #059669;
     background: #059669;
     color: #fff;
-    font-size: 1rem;
+    font-size: 0.92rem;
     font-weight: 900;
     text-transform: uppercase;
-    padding: 0.45rem 0.75rem;
+    white-space: nowrap;
+    padding: 0.22rem 0.7rem;
   }
   #pdv-racoes-lista-table .pdv-racoes-add-btn:hover {
     background: #047857;
@@ -505,13 +512,13 @@
   }
   #pdv-racoes-lista-table .pdv-racoes-qtd-ok {
     display: inline-block;
-    margin-top: 0.2rem;
-    border-radius: 0.4rem;
+    border-radius: 0.35rem;
     background: #065f46;
     color: #ecfdf5;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 900;
-    padding: 0.15rem 0.45rem;
+    white-space: nowrap;
+    padding: 0.08rem 0.4rem;
   }
   #pdv-step1-search-wrap .pdv-step1-search-f2 {
     border-color: #cbd5e1;

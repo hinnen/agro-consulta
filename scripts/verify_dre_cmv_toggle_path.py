@@ -48,6 +48,11 @@ def test_arquivos() -> None:
     ind = _read("financeiro/services/indicadores_gerencial_pg.py")
     vendas = _read("produtos/relatorios_vendas_util.py")
     html = _read("financeiro/templates/financeiro/indicadores_gerencial.html")
+    html_rg = _read("produtos/templates/produtos/resumo_financeiro_gerencial.html")
+    js_rg = _read("static/js/agro_resumo_gerencial.js")
+    util_pdv = _read("financeiro/services/receita_pdv_util.py")
+    resumo_pg = _read("financeiro/services/resumo_operacional_pg.py")
+    api = _read("financeiro/api/views.py")
     bi = _read("produtos/views.py")
 
     check("url_indicadores", "dashboard_financeiro_completo" in urls and "financeiro/dashboard-gerencial/" in urls)
@@ -83,6 +88,15 @@ def test_arquivos() -> None:
     check("caixa_tbl_sem_toggle", "data-dre-field" not in caixa_tbl)
     check("ajuda_dois_cmv", "CMV vendida" in html and "CMV paga" in html)
     check("ajuda_caixa_nao_muda", "caixa</strong> não muda" in html or "caixa não muda" in html.lower())
+
+    check("resumo_chip_vendida", 'data-dre-cmv="vendida"' in html_rg)
+    check("resumo_chip_paga", 'data-dre-cmv="paga"' in html_rg)
+    check("resumo_js_key", "agro_dre_cmv_modo_v1" in js_rg)
+    check("resumo_js_apply", "function aplicarCmvNoCore" in js_rg)
+    check("resumo_fn_modos", "def aplicar_cmv_modos_no_resumo" in util_pdv)
+    check("resumo_flag", "anexar_cmv_modos" in resumo_pg)
+    check("api_anexa_cmv", "anexar_cmv_modos=True" in api)
+    check("resumo_ajuda_cmv", "CMV vendida" in html_rg and "caixa não muda" in html_rg)
 
 
 def test_url_reverse() -> None:
