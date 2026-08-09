@@ -2570,6 +2570,12 @@
         { key: 'marca', label: 'Marca' },
         { key: 'categoria', label: 'Categoria' },
         { key: 'subcategoria', label: 'Subcategoria' },
+        { key: 'subcategoria_2', label: 'Subcategoria 2' },
+        { key: 'subcategoria_3', label: 'Subcategoria 3' },
+        { key: 'subcategoria_4', label: 'Subcategoria 4' },
+        { key: 'unidade', label: 'Unidade' },
+        { key: 'modelo', label: 'Modelo' },
+        { key: 'peso_etiqueta', label: 'Peso' },
         { key: 'codigo_barras', label: 'Código barras' },
         { key: 'preco_custo', label: 'Preço custo' },
         { key: 'preco_venda', label: 'Preço venda' }
@@ -2744,7 +2750,8 @@
         var html = '<table class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-2">Linha</th><th class="p-2">Nome</th><th class="p-2">Campos</th></tr></thead><tbody>';
         j.alteracoes.slice(0, 80).forEach(function (a) {
           var campos = (a.campos || []).map(function (c) {
-            return escapeHtml(String(c.campo || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
+            var rot = (typeof rotuloCampoImport !== 'undefined' && rotuloCampoImport[c.campo]) || c.campo;
+            return escapeHtml(String(rot || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
           }).join('; ');
           html += '<tr class="border-t border-slate-100"><td class="p-2 font-mono">' + a.linha + '</td><td class="p-2">' + escapeHtml(String(a.nome || '')) + '</td><td class="p-2 text-slate-600">' + campos + '</td></tr>';
         });
@@ -3112,8 +3119,14 @@
     var rotuloCampoImport = {
       nome: 'Nome',
       marca: 'Marca',
+      modelo: 'Modelo',
+      unidade: 'Unidade',
+      peso_etiqueta: 'Peso',
       categoria: 'Categoria',
       subcategoria: 'Subcategoria',
+      subcategoria_2: 'Subcategoria 2',
+      subcategoria_3: 'Subcategoria 3',
+      subcategoria_4: 'Subcategoria 4',
       codigo_barras: 'Código barras',
       preco_custo: 'Preço custo',
       preco_venda: 'Preço venda'

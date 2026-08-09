@@ -24,8 +24,14 @@ COL_ID = "id"
 COL_CODIGO_GM = "codigo_gm"
 COL_NOME = "nome"
 COL_MARCA = "marca"
+COL_MODELO = "modelo"
+COL_UNIDADE = "unidade"
+COL_PESO = "peso_etiqueta"
 COL_CATEGORIA = "categoria"
 COL_SUBCATEGORIA = "subcategoria"
+COL_SUBCATEGORIA_2 = "subcategoria_2"
+COL_SUBCATEGORIA_3 = "subcategoria_3"
+COL_SUBCATEGORIA_4 = "subcategoria_4"
 COL_CODIGO_BARRAS = "codigo_barras"
 COL_PRECO_CUSTO = "preco_custo"
 COL_PRECO_VENDA = "preco_venda"
@@ -37,10 +43,46 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Marca", COL_MARCA),
     ("Categoria", COL_CATEGORIA),
     ("Subcategoria", COL_SUBCATEGORIA),
+    ("Subcategoria 2", COL_SUBCATEGORIA_2),
+    ("Subcategoria 3", COL_SUBCATEGORIA_3),
+    ("Subcategoria 4", COL_SUBCATEGORIA_4),
+    ("Unidade", COL_UNIDADE),
+    ("Modelo", COL_MODELO),
+    ("Peso", COL_PESO),
     ("Código barras", COL_CODIGO_BARRAS),
     ("Preço custo", COL_PRECO_CUSTO),
     ("Preço venda", COL_PRECO_VENDA),
 ]
+
+_COLS_TEXTO_EXCEL = frozenset(
+    {
+        COL_ID,
+        COL_CODIGO_GM,
+        COL_CODIGO_BARRAS,
+        COL_UNIDADE,
+        COL_MODELO,
+        COL_PESO,
+        COL_SUBCATEGORIA,
+        COL_SUBCATEGORIA_2,
+        COL_SUBCATEGORIA_3,
+        COL_SUBCATEGORIA_4,
+    }
+)
+
+_MAX_TXT_IMPORT = {
+    COL_NOME: 300,
+    COL_CODIGO_GM: 64,
+    COL_CODIGO_BARRAS: 80,
+    COL_CATEGORIA: 200,
+    COL_SUBCATEGORIA: 200,
+    COL_SUBCATEGORIA_2: 200,
+    COL_SUBCATEGORIA_3: 200,
+    COL_SUBCATEGORIA_4: 200,
+    COL_UNIDADE: 20,
+    COL_PESO: 40,
+    COL_MODELO: 200,
+    COL_MARCA: 120,
+}
 
 # Colunas travadas no Excel (só ID — coluna oculta na planilha).
 EXPORT_COLS_BLOQUEADAS = frozenset({COL_ID})
@@ -86,8 +128,14 @@ IMPORT_KEYS = {
     COL_CODIGO_GM,
     COL_NOME,
     COL_MARCA,
+    COL_MODELO,
+    COL_UNIDADE,
+    COL_PESO,
     COL_CATEGORIA,
     COL_SUBCATEGORIA,
+    COL_SUBCATEGORIA_2,
+    COL_SUBCATEGORIA_3,
+    COL_SUBCATEGORIA_4,
     COL_CODIGO_BARRAS,
     COL_PRECO_CUSTO,
     COL_PRECO_VENDA,
@@ -97,8 +145,14 @@ OVERLAY_IMPORT_KEYS = (
     COL_CODIGO_GM,
     COL_NOME,
     COL_MARCA,
+    COL_MODELO,
+    COL_UNIDADE,
+    COL_PESO,
     COL_CATEGORIA,
     COL_SUBCATEGORIA,
+    COL_SUBCATEGORIA_2,
+    COL_SUBCATEGORIA_3,
+    COL_SUBCATEGORIA_4,
     COL_CODIGO_BARRAS,
     COL_PRECO_VENDA,
 )
@@ -108,6 +162,46 @@ HISTORICO_IMPORT_LISTA_LIMITE = 30
 
 def _overlay_model_field(key: str) -> str:
     return "codigo_nfe" if key == COL_CODIGO_GM else key
+
+
+def _max_txt_import(key: str) -> int:
+    return _MAX_TXT_IMPORT.get(key, 120)
+
+
+def _extras_dict(ov: ProdutoGestaoOverlayAgro | None) -> dict:
+    if ov is None:
+        return {}
+    return dict(ov.cadastro_extras) if isinstance(getattr(ov, "cadastro_extras", None), dict) else {}
+
+
+def _ler_overlay_import_campo(ov: ProdutoGestaoOverlayAgro | None, key: str):
+    if ov is None:
+        return None if key == COL_PRECO_VENDA else ""
+    if key == COL_PRECO_VENDA:
+        val = ov.preco_venda
+        return str(val) if val is not None else None
+    if key == COL_MODELO:
+        return str(_extras_dict(ov).get("modelo") or "")
+    return str(getattr(ov, _overlay_model_field(key), "") or "")
+
+
+def _gravar_overlay_import_campo(ov: ProdutoGestaoOverlayAgro, key: str, val) -> None:
+    if key == COL_PRECO_VENDA:
+        if val is None or (isinstance(val, str) and not str(val).strip()):
+            ov.preco_venda = None
+        else:
+            ov.preco_venda = Decimal(str(val))
+        return
+    if key == COL_MODELO:
+        ex = _extras_dict(ov)
+        s = str(val or "").strip()[:200]
+        if s:
+            ex["modelo"] = s
+        else:
+            ex.pop("modelo", None)
+        ov.cadastro_extras = ex
+        return
+    setattr(ov, _overlay_model_field(key), str(val or "")[: _max_txt_import(key)])
 
 
 def _valor_atual_campo_import(atual: dict, key: str):
@@ -135,6 +229,12 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_MARCA: ("marca",),
         COL_CATEGORIA: ("categoria", "grupo"),
         COL_SUBCATEGORIA: ("subcategoria", "sub categoria", "subgrupo"),
+        COL_SUBCATEGORIA_2: ("subcategoria 2", "sub categoria 2", "sub 2", "sub2"),
+        COL_SUBCATEGORIA_3: ("subcategoria 3", "sub categoria 3", "sub 3", "sub3"),
+        COL_SUBCATEGORIA_4: ("subcategoria 4", "sub categoria 4", "sub 4", "sub4"),
+        COL_UNIDADE: ("unidade", "unid", "sigla unidade"),
+        COL_MODELO: ("modelo",),
+        COL_PESO: ("peso", "peso etiqueta", "peso gondola"),
         COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
         COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
         COL_PRECO_VENDA: ("preco venda", "preço venda", "venda", "preco de venda", "preço de venda"),
@@ -336,6 +436,12 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
         COL_MARCA: str(row.get("marca") or ""),
         COL_CATEGORIA: str(row.get("categoria") or ""),
         COL_SUBCATEGORIA: str(row.get("subcategoria") or ""),
+        COL_SUBCATEGORIA_2: str(row.get("subcategoria_2") or ""),
+        COL_SUBCATEGORIA_3: str(row.get("subcategoria_3") or ""),
+        COL_SUBCATEGORIA_4: str(row.get("subcategoria_4") or ""),
+        COL_UNIDADE: str(row.get("unidade") or ""),
+        COL_MODELO: str(row.get("modelo") or ""),
+        COL_PESO: str(row.get("peso_etiqueta") or ""),
         COL_CODIGO_BARRAS: str(row.get("codigo_barras") or ""),
         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
         COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
@@ -362,7 +468,7 @@ def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> 
         for col, (_, key) in enumerate(hdrs, start=1):
             val = line.get(key)
             cell = ws.cell(row=ri, column=col)
-            if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS):
+            if key in _COLS_TEXTO_EXCEL:
                 cell.value = str(val) if val is not None else ""
                 cell.number_format = "@"
             else:
@@ -551,8 +657,14 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     txt(COL_CODIGO_GM, 64)
     txt(COL_NOME, 300)
     txt(COL_MARCA, 120)
+    txt(COL_MODELO, 200)
+    txt(COL_UNIDADE, 20)
+    txt(COL_PESO, 40)
     txt(COL_CATEGORIA, 200)
     txt(COL_SUBCATEGORIA, 200)
+    txt(COL_SUBCATEGORIA_2, 200)
+    txt(COL_SUBCATEGORIA_3, 200)
+    txt(COL_SUBCATEGORIA_4, 200)
     txt(COL_CODIGO_BARRAS, 80)
     dec(COL_PRECO_CUSTO)
     dec(COL_PRECO_VENDA)
@@ -735,12 +847,7 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
     ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
     overlay: dict[str, Any] = {}
     for k in OVERLAY_IMPORT_KEYS:
-        if k == COL_PRECO_VENDA:
-            val = ov.preco_venda if ov else None
-            overlay[k] = str(val) if val is not None else None
-        else:
-            fld = _overlay_model_field(k)
-            overlay[k] = (getattr(ov, fld, "") or "") if ov else ""
+        overlay[k] = _ler_overlay_import_campo(ov, k)
 
     mongo: dict[str, Any] = {}
     if db is not None:
@@ -786,10 +893,11 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
 
 def _overlay_import_esta_vazio(ov: ProdutoGestaoOverlayAgro) -> bool:
     for k in OVERLAY_IMPORT_KEYS:
+        v = _ler_overlay_import_campo(ov, k)
         if k == COL_PRECO_VENDA:
-            if ov.preco_venda is not None:
+            if v is not None:
                 return False
-        elif str(getattr(ov, _overlay_model_field(k), "") or "").strip():
+        elif str(v or "").strip():
             return False
     return True
 
@@ -815,44 +923,13 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
         for k in patch_keys:
             if k not in OVERLAY_IMPORT_KEYS:
                 continue
-            v = overlay_antes.get(k)
-            if k == COL_PRECO_VENDA:
-                ov.preco_venda = Decimal(str(v)) if v is not None else None
-            else:
-                fld = _overlay_model_field(k)
-                mx = (
-                    300
-                    if k == COL_NOME
-                    else 64
-                    if k == COL_CODIGO_GM
-                    else 80
-                    if k == COL_CODIGO_BARRAS
-                    else 200
-                    if k in (COL_CATEGORIA, COL_SUBCATEGORIA)
-                    else 120
-                )
-                setattr(ov, fld, str(v or "")[:mx])
+            _gravar_overlay_import_campo(ov, k, overlay_antes.get(k))
         ov.save()
     elif ov:
         for k in patch_keys:
             if k not in OVERLAY_IMPORT_KEYS:
                 continue
-            if k == COL_PRECO_VENDA:
-                ov.preco_venda = None
-            else:
-                fld = _overlay_model_field(k)
-                mx = (
-                    300
-                    if k == COL_NOME
-                    else 64
-                    if k == COL_CODIGO_GM
-                    else 80
-                    if k == COL_CODIGO_BARRAS
-                    else 200
-                    if k in (COL_CATEGORIA, COL_SUBCATEGORIA)
-                    else 120
-                )
-                setattr(ov, fld, "")
+            _gravar_overlay_import_campo(ov, k, None if k == COL_PRECO_VENDA else "")
         if _overlay_import_esta_vazio(ov):
             ov.delete()
         else:
@@ -1012,21 +1089,10 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         defaults={"usuario": user if user and user.is_authenticated else None},
     )
     antes = snapshot_overlay(ov)
-    ex = dict(ov.cadastro_extras) if isinstance(ov.cadastro_extras, dict) else {}
-    if COL_CODIGO_GM in patch:
-        ov.codigo_nfe = str(patch[COL_CODIGO_GM] or "")[:64]
-    if COL_NOME in patch:
-        ov.nome = str(patch[COL_NOME] or "")[:300]
-    if COL_MARCA in patch:
-        ov.marca = str(patch[COL_MARCA] or "")[:120]
-    if COL_CATEGORIA in patch:
-        ov.categoria = str(patch[COL_CATEGORIA] or "")[:200]
-    if COL_SUBCATEGORIA in patch:
-        ov.subcategoria = str(patch[COL_SUBCATEGORIA] or "")[:200]
-    if COL_CODIGO_BARRAS in patch:
-        ov.codigo_barras = str(patch[COL_CODIGO_BARRAS] or "")[:80]
-    if COL_PRECO_VENDA in patch:
-        ov.preco_venda = patch[COL_PRECO_VENDA]
+    for k in OVERLAY_IMPORT_KEYS:
+        if k in patch:
+            _gravar_overlay_import_campo(ov, k, patch[k])
+    ex = _extras_dict(ov)
     if COL_PRECO_CUSTO in patch:
         ex["preco_custo_overlay"] = float(patch[COL_PRECO_CUSTO])
     ov.cadastro_extras = ex

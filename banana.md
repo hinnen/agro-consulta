@@ -533,7 +533,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera.
+**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1192,6 +1192,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### CAD-XLSX-COLS — Excel cadastro Sub 2–4 + Unidade + Modelo + Peso (09/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste v15.05** · loja **não** |
+| **O quê** | Planilha Cadastro passa a exportar/importar **Subcategoria 2/3/4**, **Unidade**, **Modelo**, **Peso** |
+| **Regra** | Célula vazia **não** altera · baixar de novo (Excel antigo sem essas colunas) |
+| **Arquivos** | `cadastro_planilha_util.py` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` |
+| **Prova** | `tests_cadastro_planilha_cols` · PC local: Excel ↓ → preencher → Excel ↑ |
+| **Migrate** | **NÃO** |
 
 ### ✅ Deploy loja — CAMP-PROMO-MENOR (`deploy/camp-promo-menor-0808` · **v15.04**)
 

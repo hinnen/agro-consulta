@@ -114,6 +114,7 @@ def produto_agro_para_row(
         "imagem": "",
         "inativo": bool(p.cadastro_inativo or not p.ativo),
         "unidade": (p.unidade or "UN").strip() or "UN",
+        "peso_etiqueta": "",
         "descricao": (p.descricao or "").strip(),
         "ncm": (p.ncm or "").strip(),
         "cadastro_somente_agro": bool(p.cadastro_somente_agro),
