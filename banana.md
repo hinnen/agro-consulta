@@ -1213,13 +1213,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **DRE-PDV-RECEITA** | 📋 **pronto envio** · teste **v15.13** | não | não (só leitura financeiro) |
+| 1 | **DRE-PDV-RECEITA** | 📋 **pronto envio** · teste **v15.14** | não | não (só leitura financeiro) |
 | 2 | **RG-AJUDA-MODAL** | 📋 **pronto envio** · teste **v15.10** | não | não |
 | 3 | **PDV-RACOES** | 📋 **pronto envio** · teste **v15.11** | não | **sim** — pausar vendas |
 
 **Autorizar:** frase + senha na mesma mensagem. Preferir **1+2** juntos; **3** à parte (PDV).
 
-### 📦 PACOTE PRONTO LOJA — DRE usa venda do PDV (`DRE-PDV-RECEITA` · **v15.13**)
+### 📦 PACOTE PRONTO LOJA — DRE usa venda do PDV (`DRE-PDV-RECEITA` · **v15.14**)
 
 | Item | Detalhe |
 | ---- | ------- |
