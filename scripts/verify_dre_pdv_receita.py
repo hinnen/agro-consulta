@@ -55,6 +55,18 @@ def main() -> int:
     check("label_receita_pdv", "Receita operacional (PDV)" in html_ind)
     check("dre_badge_pdv", "receita_fonte == 'pdv'" in html_ind)
     check("ajuda_pdv", "vendas do PDV" in html_ind.lower() or "vendas do PDV" in html_ind)
+    check("recalc_cmv", "def recalc_indicadores_cmv" in ind)
+    check("cmv_modos_json", '"cmv_modos"' in ind or "cmv_modos" in ind)
+    check("chip_vendida", 'data-dre-cmv="vendida"' in html_ind)
+    check("chip_paga", 'data-dre-cmv="paga"' in html_ind)
+    check("js_toggle_cmv", "agro_dre_cmv_modo_v1" in html_ind)
+    check("ajuda_cmv_dois", "CMV vendida" in html_ind and "CMV paga" in html_ind)
+
+    util_vendas = _read("produtos/relatorios_vendas_util.py")
+    print("== CMV vendida ==")
+    check("fn_cmv_vendida", "def custo_mercadoria_vendida" in util_vendas)
+    check("fn_cmv_rows", "def cmv_vendida_de_rows" in util_vendas)
+    check("qs_deposito", "deposito: str | None = None" in util_vendas)
 
     print("== resumo gerencial ==")
     check("modal_hidden_css", ".rg-modal-backdrop.hidden { display: none !important; }" in html_rg)

@@ -311,24 +311,24 @@
     </div>
     <div class="ig-card p-4 border-l-4 border-l-emerald-500">
       <p class="ig-muted m-0">Margem bruta / Markup</p>
-      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.margem_bruta_pct|floatformat:1 }}% <span class="text-slate-400 text-base">/</span> {{ a.markup_pct|floatformat:1 }}%</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1"><span data-dre-field="margem_bruta_pct" data-dre-col="atual" data-dre-fmt="pct1">{{ a.margem_bruta_pct|floatformat:1 }}%</span> <span class="text-slate-400 text-base">/</span> <span data-dre-field="markup_pct" data-dre-col="atual" data-dre-fmt="pct1">{{ a.markup_pct|floatformat:1 }}%</span></p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-amber-500">
       <p class="ig-muted m-0">Margem contribuição</p>
-      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.margem_contrib_pct|floatformat:1 }}%</p>
-      <p class="text-sm font-bold text-slate-600 m-0">R$ {{ a.margem_contrib|floatformat:2 }}</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1" data-dre-field="margem_contrib_pct" data-dre-col="atual" data-dre-fmt="pct1">{{ a.margem_contrib_pct|floatformat:1 }}%</p>
+      <p class="text-sm font-bold text-slate-600 m-0" data-dre-field="margem_contrib" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.margem_contrib|floatformat:2 }}</p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-violet-500">
       <p class="ig-muted m-0">EBITDA / Líquido</p>
-      <p class="text-xl font-black ig-kpi m-0 mt-1">R$ {{ a.ebitda|floatformat:0 }} <span class="text-slate-400">|</span> R$ {{ a.resultado_liquido|floatformat:0 }}</p>
+      <p class="text-xl font-black ig-kpi m-0 mt-1"><span data-dre-field="ebitda" data-dre-col="atual" data-dre-fmt="rs0">R$ {{ a.ebitda|floatformat:0 }}</span> <span class="text-slate-400">|</span> <span data-dre-field="resultado_liquido" data-dre-col="atual" data-dre-fmt="rs0">R$ {{ a.resultado_liquido|floatformat:0 }}</span></p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-orange-500">
       <p class="ig-muted m-0">Ponto equilíbrio</p>
-      <p class="text-2xl font-black ig-kpi m-0 mt-1">R$ {{ a.ponto_equilibrio|floatformat:2 }}</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1" data-dre-field="ponto_equilibrio" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.ponto_equilibrio|floatformat:2 }}</p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-teal-500">
       <p class="ig-muted m-0">Índice segurança</p>
-      <p class="text-2xl font-black ig-kpi m-0 mt-1">{{ a.indice_seguranca_pct|floatformat:1 }}%</p>
+      <p class="text-2xl font-black ig-kpi m-0 mt-1" data-dre-field="indice_seguranca_pct" data-dre-col="atual" data-dre-fmt="pct1">{{ a.indice_seguranca_pct|floatformat:1 }}%</p>
     </div>
     <div class="ig-card p-4 border-l-4 border-l-rose-500">
       <p class="ig-muted m-0">Geração caixa</p>
@@ -472,21 +472,28 @@
 
   <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
     <div class="ig-card p-4">
-      <h2 class="text-sm font-black uppercase text-slate-900 m-0 mb-3">DRE gerencial</h2>
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 class="text-sm font-black uppercase text-slate-900 m-0">DRE gerencial</h2>
+        <div class="flex flex-wrap gap-2" role="group" aria-label="Tipo de CMV">
+          <button type="button" class="ig-chip is-active" data-dre-cmv="vendida">Mercadoria vendida</button>
+          <button type="button" class="ig-chip" data-dre-cmv="paga">Mercadoria paga</button>
+        </div>
+      </div>
+      <p id="ig-cmv-hint" class="text-[11px] font-semibold text-slate-600 m-0 mb-3">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
       <div class="ig-table-wrap">
         <table class="min-w-full text-sm font-semibold">
           <thead><tr class="text-xs uppercase text-slate-500 border-b"><th class="py-2">Linha</th><th class="text-right py-2">Atual</th><th class="text-right py-2">Ref. 60d</th></tr></thead>
           <tbody class="text-slate-800">
             {% with a=dados.atual p=dados.referencia %}
             <tr class="border-b border-slate-100"><td class="py-2">Receita operacional{% if a.receita_fonte == 'pdv' %} <span class="text-[10px] font-black uppercase text-sky-700">PDV</span>{% endif %}</td><td class="text-right">R$ {{ a.receita_op|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.receita_op|floatformat:2 }}</td></tr>
-            <tr class="border-b border-slate-100"><td class="py-2">(−) CMV</td><td class="text-right">R$ {{ a.cmv|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.cmv|floatformat:2 }}</td></tr>
-            <tr class="border-b bg-emerald-50/50"><td class="py-2 font-black">Lucro bruto</td><td class="text-right font-black">R$ {{ a.lucro_bruto|floatformat:2 }}</td><td class="text-right">R$ {{ p.lucro_bruto|floatformat:2 }}</td></tr>
+            <tr class="border-b border-slate-100"><td class="py-2">(−) <span data-dre-cmv-label>CMV vendida</span></td><td class="text-right" data-dre-field="cmv" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.cmv|floatformat:2 }}</td><td class="text-right text-slate-500" data-dre-field="cmv" data-dre-col="ref" data-dre-fmt="rs2">R$ {{ p.cmv|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-emerald-50/50"><td class="py-2 font-black">Lucro bruto</td><td class="text-right font-black" data-dre-field="lucro_bruto" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.lucro_bruto|floatformat:2 }}</td><td class="text-right" data-dre-field="lucro_bruto" data-dre-col="ref" data-dre-fmt="rs2">R$ {{ p.lucro_bruto|floatformat:2 }}</td></tr>
             <tr class="border-b"><td class="py-2">(−) Desp. variáveis</td><td class="text-right">R$ {{ a.dv|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.dv|floatformat:2 }}</td></tr>
-            <tr class="border-b bg-sky-50/50"><td class="py-2 font-black">Margem contrib.</td><td class="text-right font-black">R$ {{ a.margem_contrib|floatformat:2 }}</td><td class="text-right">R$ {{ p.margem_contrib|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-sky-50/50"><td class="py-2 font-black">Margem contrib.</td><td class="text-right font-black" data-dre-field="margem_contrib" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.margem_contrib|floatformat:2 }}</td><td class="text-right" data-dre-field="margem_contrib" data-dre-col="ref" data-dre-fmt="rs2">R$ {{ p.margem_contrib|floatformat:2 }}</td></tr>
             <tr class="border-b"><td class="py-2">(−) Desp. fixas</td><td class="text-right">R$ {{ a.df|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.df|floatformat:2 }}</td></tr>
-            <tr class="border-b bg-indigo-50/50"><td class="py-2 font-black">EBITDA</td><td class="text-right font-black">R$ {{ a.ebitda|floatformat:2 }}</td><td class="text-right">R$ {{ p.ebitda|floatformat:2 }}</td></tr>
+            <tr class="border-b bg-indigo-50/50"><td class="py-2 font-black">EBITDA</td><td class="text-right font-black" data-dre-field="ebitda" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.ebitda|floatformat:2 }}</td><td class="text-right" data-dre-field="ebitda" data-dre-col="ref" data-dre-fmt="rs2">R$ {{ p.ebitda|floatformat:2 }}</td></tr>
             <tr class="border-b"><td class="py-2">(−) Desp. financeiras</td><td class="text-right">R$ {{ a.desp_fin|floatformat:2 }}</td><td class="text-right text-slate-500">R$ {{ p.desp_fin|floatformat:2 }}</td></tr>
-            <tr class="bg-emerald-100/50"><td class="py-2 font-black">Resultado líquido</td><td class="text-right font-black">R$ {{ a.resultado_liquido|floatformat:2 }}</td><td class="text-right font-black">R$ {{ p.resultado_liquido|floatformat:2 }}</td></tr>
+            <tr class="bg-emerald-100/50"><td class="py-2 font-black">Resultado líquido</td><td class="text-right font-black" data-dre-field="resultado_liquido" data-dre-col="atual" data-dre-fmt="rs2">R$ {{ a.resultado_liquido|floatformat:2 }}</td><td class="text-right font-black" data-dre-field="resultado_liquido" data-dre-col="ref" data-dre-fmt="rs2">R$ {{ p.resultado_liquido|floatformat:2 }}</td></tr>
             {% endwith %}
           </tbody>
         </table>
@@ -507,7 +514,8 @@
   <details class="ig-card p-4">
     <summary class="cursor-pointer text-sm font-black uppercase text-slate-700">? Como ler este painel</summary>
     <div class="mt-3 text-sm text-slate-700 font-semibold space-y-2 border-t pt-3">
-      <p><strong>Receita operacional e lucro líquido</strong> usam as <strong>vendas do PDV</strong> (mesmo número do BI, loja da empresa). Despesas (CMV, fixa, variável, financeira) continuam dos lançamentos.</p>
+      <p><strong>Receita operacional e lucro líquido</strong> usam as <strong>vendas do PDV</strong> (mesmo número do BI, loja da empresa).</p>
+      <p><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida (o que saiu). <strong>CMV paga</strong> = compras lançadas no mês (o que você pagou / deve de mercadoria). Troque no botão do DRE — lucro bruto, margem e líquido acompanham. O <strong>caixa</strong> não muda.</p>
       <p>KPIs e DRE usam a data e o valor escolhidos nos filtros de cima. O <strong>caixa</strong> do painel usa sempre <strong>pagamento + valor pago</strong> — não mistura com o lucro.</p>
       <p>A coluna <strong>Ref. 60d</strong> projeta a média dos últimos 60 dias para o mesmo número de dias do período escolhido.</p>
       <p><strong>Lançamentos CR</strong> (títulos a receber) ficam só como conferência — não entram de novo na receita, para não contar a venda duas vezes.</p>
@@ -534,6 +542,7 @@
 {% if dados %}
 {{ dados.extras.grafico_labels|json_script:"ig-receita-labels" }}
 {{ dados.extras.grafico_data|json_script:"ig-receita-data" }}
+{% if dados.cmv_modos %}{{ dados.cmv_modos|json_script:"ig-cmv-modos" }}{% endif %}
 {% if dados and dados.variacao.ok %}
 {{ dados.variacao.chart|json_script:"ig-variacao-chart" }}
 {{ dados.variacao.buckets|json_script:"ig-variacao-buckets" }}
@@ -582,6 +591,58 @@ document.addEventListener('DOMContentLoaded', function () {
       form.submit();
     });
   });
+
+  (function () {
+    const el = document.getElementById('ig-cmv-modos');
+    if (!el) return;
+    let pack;
+    try { pack = JSON.parse(el.textContent); } catch (e) { return; }
+    const KEY = 'agro_dre_cmv_modo_v1';
+    const hint = document.getElementById('ig-cmv-hint');
+    const HINTS = {
+      vendida: 'Custo do cadastro × quantidade vendida (o que saiu da loja).',
+      paga: 'Compras lançadas no mês (o que você pagou / deve de mercadoria).'
+    };
+    function fmt(kind, v) {
+      const n = Number(v);
+      const x = Number.isFinite(n) ? n : 0;
+      if (kind === 'pct1') return x.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+      if (kind === 'rs0') return 'R$ ' + x.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      return 'R$ ' + x.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function applyModo(modo) {
+      const m = (modo === 'paga') ? 'paga' : 'vendida';
+      const snap = pack[m];
+      if (!snap) return;
+      document.querySelectorAll('[data-dre-field]').forEach(function (node) {
+        const field = node.getAttribute('data-dre-field');
+        const col = node.getAttribute('data-dre-col') || 'atual';
+        const kind = node.getAttribute('data-dre-fmt') || 'rs2';
+        const src = snap[col] || snap.atual || {};
+        if (src[field] == null) return;
+        node.textContent = fmt(kind, src[field]);
+      });
+      document.querySelectorAll('[data-dre-cmv-label]').forEach(function (node) {
+        node.textContent = m === 'paga' ? 'CMV paga' : 'CMV vendida';
+      });
+      document.querySelectorAll('[data-dre-cmv]').forEach(function (btn) {
+        btn.classList.toggle('is-active', btn.getAttribute('data-dre-cmv') === m);
+      });
+      if (hint) {
+        let t = HINTS[m];
+        const sem = Number(pack.skus_sem_custo || 0);
+        if (m === 'vendida' && sem > 0) t += ' ' + sem + ' produto(s) sem custo no cadastro.';
+        hint.textContent = t;
+      }
+      try { localStorage.setItem(KEY, m); } catch (e) {}
+    }
+    document.querySelectorAll('[data-dre-cmv]').forEach(function (btn) {
+      btn.addEventListener('click', function () { applyModo(btn.getAttribute('data-dre-cmv')); });
+    });
+    let saved = 'vendida';
+    try { saved = localStorage.getItem(KEY) || 'vendida'; } catch (e) {}
+    applyModo(saved);
+  })();
 
   if (typeof Chart !== 'undefined') {
     try {

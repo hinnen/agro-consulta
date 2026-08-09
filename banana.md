@@ -623,6 +623,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
+- **DRE Indicadores — CMV (09/08, `DRE-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / EBITDA / líquido acompanham. Caixa não muda. Padrão = vendida.
 
 ### 4.11 Caixa
 
@@ -1205,6 +1206,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · DRE-CMV)
+
+> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só com frase + senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-CMV-TOGGLE** | 📦 pronto / aguarda senha | não |
+
+### 📦 PACOTE PRONTO — DRE CMV vendida × paga (`DRE-CMV-TOGGLE` · **v15.21**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto / teste** · aguarda frase+senha |
+| **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. |
+| **Você** | Ctrl+F5 Indicadores → DRE → trocar os dois botões · conferir lucro bruto |
+| **Prova** | `tests_receita_pdv_dre` **10/10** · verify **24/24 VERIFY_OK** |
+| **Migrate** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 

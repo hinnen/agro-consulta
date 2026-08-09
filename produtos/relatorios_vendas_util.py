@@ -132,14 +132,23 @@ def parse_periodo_b_request(request) -> dict[str, Any]:
     }
 
 
-def _qs_itens(desde: datetime, ate: datetime):
+def _qs_itens(desde: datetime, ate: datetime, deposito: str | None = None):
     from produtos.models import ItemVendaAgro
 
-    return ItemVendaAgro.objects.filter(
+    qs = ItemVendaAgro.objects.filter(
         venda__devolvida_em__isnull=True,
         venda__criado_em__gte=desde,
         venda__criado_em__lte=ate,
     ).exclude(produto_id_externo="")
+    if deposito == "vila":
+        qs = qs.filter(venda__deposito__iexact="vila")
+    elif deposito == "centro":
+        qs = qs.filter(
+            Q(venda__deposito__iexact="centro")
+            | Q(venda__deposito="")
+            | Q(venda__deposito__isnull=True)
+        )
+    return qs
 
 
 def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
@@ -169,6 +178,60 @@ def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
             continue
         out.append({"produto_id_externo": pid, "qtd": qtd, "valor": valor})
     return out
+
+
+def cmv_vendida_de_rows(rows, meta) -> tuple[Decimal, int, int]:
+    """Custo cadastro × qtd. Retorna (total, skus_com_custo, skus_sem_custo)."""
+    total = Decimal("0")
+    skus_ok = 0
+    skus_sem = 0
+    for r in rows or []:
+        pid = str(r.get("produto_id_externo") or "").strip()
+        if not pid:
+            continue
+        try:
+            qtd = Decimal(str(r.get("qtd") or 0))
+        except Exception:
+            continue
+        if qtd <= 0:
+            continue
+        try:
+            custo_u = Decimal(str((meta.get(pid) or {}).get("custo") or 0))
+        except Exception:
+            custo_u = Decimal("0")
+        if custo_u <= 0:
+            skus_sem += 1
+            continue
+        total += (custo_u * qtd).quantize(Decimal("0.01"))
+        skus_ok += 1
+    return total, skus_ok, skus_sem
+
+
+def custo_mercadoria_vendida(
+    data_ini: date,
+    data_fim: date,
+    *,
+    deposito: str | None = None,
+) -> dict[str, Any]:
+    """Custo cadastro × quantidade vendida no período (todas as SKUs)."""
+    desde = datetime.combine(data_ini, time.min)
+    ate = datetime.combine(data_fim, time(23, 59, 59))
+    desde, ate = _aware_bounds(desde, ate)
+    rows = list(
+        _qs_itens(desde, ate, deposito=deposito)
+        .values("produto_id_externo")
+        .annotate(qtd=Sum("quantidade"))
+    )
+    pids = [str(r.get("produto_id_externo") or "").strip() for r in rows]
+    meta = mapa_produtos_meta(pids)
+    total, skus_ok, skus_sem = cmv_vendida_de_rows(rows, meta)
+    return {
+        "ok": True,
+        "total": total,
+        "skus_com_custo": skus_ok,
+        "skus_sem_custo": skus_sem,
+        "deposito": deposito or "todas",
+    }
 
 
 

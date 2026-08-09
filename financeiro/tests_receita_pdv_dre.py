@@ -162,3 +162,68 @@ class IndicadoresDreConsistenciaTests(SimpleTestCase):
         self.assertEqual(ind["resultado_liquido"].quantize(Decimal("0.01")), esperado.quantize(Decimal("0.01")))
         self.assertEqual(ind["receita_op"], Decimal("39125.01"))
         self.assertEqual(ind["receita_fonte"], "pdv")
+
+
+class CmvVendidaRowsTests(SimpleTestCase):
+    def test_soma_custo_qtd_e_ignora_sem_custo(self):
+        from produtos.relatorios_vendas_util import cmv_vendida_de_rows
+
+        rows = [
+            {"produto_id_externo": "A", "qtd": 10},
+            {"produto_id_externo": "B", "qtd": 2},
+            {"produto_id_externo": "C", "qtd": 5},
+        ]
+        meta = {
+            "A": {"custo": Decimal("3.50")},
+            "B": {"custo": Decimal("0")},
+            "C": {"custo": Decimal("12")},
+        }
+        total, ok, sem = cmv_vendida_de_rows(rows, meta)
+        self.assertEqual(total, Decimal("95.00"))
+        self.assertEqual(ok, 2)
+        self.assertEqual(sem, 1)
+
+
+class RecalcIndicadoresCmvTests(SimpleTestCase):
+    def test_vendida_recalcula_lucro_e_nao_mexe_caixa(self):
+        from financeiro.services.indicadores_gerencial_pg import recalc_indicadores_cmv
+
+        ind = {
+            "receita_op": Decimal("100000"),
+            "receita_nao_op": Decimal("0"),
+            "cmv": Decimal("60000"),
+            "dv": Decimal("5000"),
+            "df": Decimal("8000"),
+            "desp_fin": Decimal("2000"),
+            "lucro_bruto": Decimal("40000"),
+            "ebitda": Decimal("27000"),
+            "resultado_liquido": Decimal("25000"),
+            "geracao_caixa": Decimal("-1234.56"),
+            "entradas_caixa": Decimal("10"),
+            "saidas_caixa": Decimal("20"),
+        }
+        out = recalc_indicadores_cmv(ind, Decimal("24663"), 31)
+        self.assertEqual(out["cmv"], Decimal("24663"))
+        self.assertEqual(out["lucro_bruto"], Decimal("75337"))
+        self.assertEqual(out["margem_contrib"], Decimal("70337"))
+        self.assertEqual(out["ebitda"], Decimal("62337"))
+        self.assertEqual(out["resultado_liquido"], Decimal("60337"))
+        self.assertEqual(out["geracao_caixa"], Decimal("-1234.56"))
+        self.assertEqual(out["entradas_caixa"], Decimal("10"))
+
+    def test_paga_volta_aos_numeros_originais(self):
+        from financeiro.services.indicadores_gerencial_pg import recalc_indicadores_cmv
+
+        ind = {
+            "receita_op": Decimal("100455"),
+            "receita_nao_op": Decimal("0"),
+            "cmv": Decimal("24663"),
+            "dv": Decimal("683.80"),
+            "df": Decimal("4321.88"),
+            "desp_fin": Decimal("1463.97"),
+            "geracao_caixa": Decimal("50"),
+        }
+        paga = Decimal("60339")
+        out = recalc_indicadores_cmv(ind, paga, 31)
+        self.assertEqual(out["lucro_bruto"], Decimal("40116"))
+        self.assertEqual(out["geracao_caixa"], Decimal("50"))
