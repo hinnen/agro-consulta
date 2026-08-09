@@ -1197,7 +1197,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v15.05** · loja **não** |
+| **Status** | ✅ **teste v15.05** · `19c09bf` · loja **não** |
 | **O quê** | Planilha Cadastro passa a exportar/importar **Subcategoria 2/3/4**, **Unidade**, **Modelo**, **Peso** |
 | **Regra** | Célula vazia **não** altera · baixar de novo (Excel antigo sem essas colunas) |
 | **Arquivos** | `cadastro_planilha_util.py` · `cadastro_erp_panel.js` · `produtos_cadastro_erp.html` |
