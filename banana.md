@@ -1200,7 +1200,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | teste · aguarda senha |
+| **Status** | teste **v15.25** · aguarda senha |
 | **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
 | **Prova** | `tests_receita_pdv_dre` **16/16** · verify DRE **33/33** · verify CMV **55/55** · `manage.py check` |
 | **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
