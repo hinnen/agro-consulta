@@ -301,7 +301,6 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
         ("Adicionar +1", "botao +1 depois de adicionar"),
         ("#pdv-racoes-overlay.is-lista", "CSS overlay grande"),
         ("pdv-racoes-panel", "CSS painel"),
-        ("white-space: nowrap", "CSS lista sem quebra de linha"),
     ):
         blob = js + wiz
         if needle not in blob:
@@ -312,6 +311,7 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
         fail("botao Fechar na lista")
     else:
         ok("botao Fechar na lista")
+    check_lista_dense(js, wiz)
     try:
         import subprocess
 
@@ -327,6 +327,57 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
             ok("node --check pdv_wizard.js")
     except (OSError, subprocess.TimeoutExpired) as exc:
         fail(f"node --check indisponivel: {exc}")
+
+
+def check_lista_dense(js: str, wiz: str) -> None:
+    """Lista compacta: uma linha por produto, sem zoom local."""
+    css_a = wiz.find("#pdv-racoes-overlay.is-lista .pdv-racoes-panel")
+    css_b = wiz.find("#pdv-step1-search-wrap .pdv-step1-search-f2 {")
+    css = wiz[css_a:css_b] if css_a >= 0 and css_b > css_a else ""
+    if not css:
+        fail("bloco CSS lista Racoes")
+        return
+    if "min(96dvh, 70rem)" not in css or "min(96rem, 99vw)" not in css:
+        fail("overlay lista tamanho compacto")
+    else:
+        ok("overlay lista maior (70rem / 96rem)")
+    if "zoom:" in css:
+        fail("zoom local na lista Racoes")
+    else:
+        ok("lista sem zoom local")
+    tbl = css[css.find("#pdv-racoes-lista-table {") :] if "#pdv-racoes-lista-table {" in css else ""
+    if "white-space: nowrap" not in tbl:
+        fail("td/th lista sem nowrap")
+    else:
+        ok("td/th lista nowrap")
+    if "padding: 0.28rem 0.55rem" not in tbl:
+        fail("padding lista nao compacto")
+    else:
+        ok("padding lista compacto")
+    if "padding: 0.7rem 0.85rem" in tbl:
+        fail("padding lista ainda alto")
+    else:
+        ok("padding alto removido")
+    if "min-height: 3.1rem" in tbl:
+        fail("botao Adicionar ainda alto")
+    elif "min-height: 2.25rem" not in tbl or "white-space: nowrap" not in css[css.find(".pdv-racoes-add-btn") :]:
+        fail("botao Adicionar nao compacto/nowrap")
+    else:
+        ok("botao Adicionar compacto + nowrap")
+    if ".pdv-racoes-qtd-ok" not in css or "white-space: nowrap" not in css[css.find(".pdv-racoes-qtd-ok") :]:
+        fail("badge No carrinho quebra linha")
+    else:
+        ok("badge No carrinho nowrap")
+    foot = css[css.find("#pdv-racoes-overlay.is-lista footer") :]
+    if "flex-wrap: nowrap" not in foot[:180]:
+        fail("footer lista quebra linha")
+    else:
+        ok("footer lista nowrap")
+    render = js.split("function pdvRacoesRenderLista")[1].split("function pdvRacoesIrLista")[0] if "function pdvRacoesRenderLista" in js else ""
+    if 'title="' not in render:
+        fail("nome da lista sem title")
+    else:
+        ok("nome da lista com title")
 
 
 def check_util_cenarios() -> None:

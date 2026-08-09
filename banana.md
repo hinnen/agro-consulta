@@ -1196,15 +1196,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Resumo CMV vendida × paga (`RG-CMV-TOGGLE`)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.24)
+
+> **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **PDV-RACOES-LISTA-DENSE** | 📋 **pronto para envio à produção** · teste **v15.26** | não | **sim** — pausar vendas |
+| 2 | **RG-CMV-TOGGLE** | 📋 **pronto para envio à produção** · teste **v15.25** | não | não (Resumo) |
+
+### 📦 PACOTE PRONTO — Lista Rações sem quebra (`PDV-RACOES-LISTA-DENSE` · **v15.26**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | teste **v15.25** · aguarda senha |
-| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
-| **Prova** | `tests_receita_pdv_dre` **16/16** · verify DRE **33/33** · verify CMV **55/55** · `manage.py check` |
-| **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
+| **Status** | 📋 **pronto para envio à produção** · teste **v15.26** · `b06a4e3` |
+| **O quê** | Lista numa linha só (sem quebra em tamanho / botão / carrinho). Overlay um pouco maior. Zoom Agro **não** muda. |
+| **Você** | Ctrl+F5 PDV → Rações → lista → deve caber mais produtos |
+| **Prova** | `tests_pdv_racoes` **16/16** · verify path lista+dense **VERIFY_OK** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-LISTA-DENSE para produção* + **99738595** |
+
+### 📦 PACOTE PRONTO — Resumo CMV vendida × paga (`RG-CMV-TOGGLE` · **v15.25**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · teste **v15.25** · `1f661f6` |
+| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. |
+| **Você** | Ctrl+F5 Resumo gerencial → trocar os dois botões |
+| **Prova** | `tests_receita_pdv_dre` **16/16** · verify DRE/CMV · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir RG-CMV-TOGGLE para produção* + **99738595** |
 
 ### ✅ Inauguração Vila — 5% encerrado (09/08)
 
@@ -1216,25 +1238,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.24)
-
-> **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
-
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-LISTA-DENSE** | 📋 **pronto envio** · teste | não | **sim** — pausar vendas |
-
-### 📦 PACOTE PRONTO — Lista Rações sem quebra (`PDV-RACOES-LISTA-DENSE`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📋 **pronto envio** · teste · loja ainda **v15.24** |
-| **O quê** | Linha da lista numa só altura: sem quebra em tamanho / botão / carrinho. Overlay um pouco maior. Zoom Agro **não** muda. |
-| **Você** | Ctrl+F5 PDV → Rações → lista → conferir mais produtos na tela |
-| **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir PDV-RACOES-LISTA-DENSE para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.24)
 
