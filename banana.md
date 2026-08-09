@@ -1206,53 +1206,63 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.05)
+### 📦 PREP deploy loja — lote checklist 09/08 (`deploy/lote-checklist-0908` · **v15.16**)
 
 > **Loja hoje:** ✅ **Live v15.05** · `producao` @ **9c45d74**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Cherry/FF só o pacote autorizado.
+> **Prep:** branch **`deploy/lote-checklist-0908`** @ **42faf6c** · **aguarda pausa + senha**  
+> **⚠️** **NÃO** merge `teste`→`producao`. FF só esta branch. Lojas abertas agora = **não subir**.
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **DRE-PDV-RECEITA** | 📋 **pronto envio** · teste **v15.14** | não | não (só leitura financeiro) |
-| 2 | **RG-AJUDA-MODAL** | 📋 **pronto envio** · teste **v15.10** | não | não |
-| 3 | **PDV-RACOES** | 📋 **pronto envio** · teste **v15.15** | não | **sim** — pausar vendas |
+| 1 | **DRE-PDV-RECEITA** | 📦 **PREP** · no lote v15.16 | não | não (só leitura financeiro) |
+| 2 | **RG-AJUDA-MODAL** | 📦 **PREP** · no lote v15.16 | não | não |
+| 3 | **PDV-RACOES** | 📦 **PREP** · no lote v15.16 | não | **sim** — **pausar vendas** |
 
-**Autorizar:** frase + senha na mesma mensagem. Preferir **1+2** juntos; **3** à parte (PDV).
+**Próximo chat (você):** 1) Zap da loja: *«Atualização ~2 min — não finalize venda agora.»* 2) frase + senha na mesma mensagem: *pode subir lote checklist 09/08 / deploy/lote-checklist-0908 para produção* + **99738595**.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Branch** | `deploy/lote-checklist-0908` (FF → `producao`) · base **9c45d74** (v15.05) |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **Provas (worktree loja)** | tests **20/20** · verify DRE **15/15** · verify Rações **VERIFY_OK** · `manage.py check` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0908-v15.05` @ `9c45d74` |
+| **Depois do Live** | Ctrl+F5 PDV (botão Rações) · Indicadores (receita ≈ card PDV) · Resumo (ajuda só no ?) |
 
 ### 📦 PACOTE PRONTO LOJA — DRE usa venda do PDV (`DRE-PDV-RECEITA` · **v15.14**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · loja ainda receita DRE = R$ 0 |
+| **Status** | 📦 **PREP lote v15.16** · `deploy/lote-checklist-0908` · aguarda pausa+senha |
 | **O quê** | Indicadores + Resumo: **receita operacional = faturamento PDV** (loja da empresa) · líquido recalcula · CR só conferência · grupo soma cada loja (não “todas”) · caixa não mistura |
 | **Prova** | `tests_receita_pdv_dre` **7/7** · verify **VERIFY_OK** · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Indicadores · mês até hoje · receita ≈ card PDV · líquido deixa de ser −10 mil |
-| **Autorizar** | *pode subir DRE-PDV-RECEITA / lucro PDV para produção* + **99738595** |
+| **Autorizar** | *pode subir lote checklist 09/08 / deploy/lote-checklist-0908 para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — Resumo aviso ajuda (`RG-AJUDA-MODAL` · **v15.10**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · loja ainda abre o **?** sozinho |
+| **Status** | 📦 **PREP lote v15.16** · `deploy/lote-checklist-0908` · aguarda pausa+senha |
 | **O quê** | `/financeiro/resumo-gerencial/` — modal ajuda só no **?** |
 | **Commit** | `9eabf62` |
 | **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir RG-AJUDA-MODAL para produção* + **99738595** |
+| **Autorizar** | *pode subir lote checklist 09/08 / deploy/lote-checklist-0908 para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES` · **v15.11+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · loja ainda sem |
+| **Status** | 📦 **PREP lote v15.16** · `deploy/lote-checklist-0908` · **pausar vendas** + senha |
 | **O quê** | Botão **Rações** no PDV → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
 | **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso no overlay |
 | **Catálogo** | Cache PDV **v3** · 1ª abertura do dia reconstrói |
 | **Você** | Ctrl+F5 PDV · testar Estimação 15 kg em Cão adulto |
-| **Prova** | `tests_pdv_racoes` **13/13** · verify path cadastro→overlay→catálogo→JS→carrinho **VERIFY_OK** · `manage.py check` |
+| **Prova** | `tests_pdv_racoes` **13/13** · verify path cadastro→overlay→catálogo→JS→carrinho **VERIFY_OK** (loja + teste) · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Commit** | `251d679` + verify |
-| **Autorizar** | *pode subir PDV-RACOES para produção* + **99738595** |
+| **Autorizar** | *pode subir lote checklist 09/08 / deploy/lote-checklist-0908 para produção* + **99738595** |
 
 ### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
 

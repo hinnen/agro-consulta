@@ -64,20 +64,35 @@ def check_cadastro() -> None:
         else:
             ok(label)
     views = read("produtos/views.py")
-    if 'if "peso_etiqueta" in payload:' not in views or "ov.peso_etiqueta" not in views:
+    peso_grava = (
+        ('if "peso_etiqueta" in payload:' in views and "ov.peso_etiqueta" in views)
+        or '_aplicar_txt_ov("peso_etiqueta"' in views
+    )
+    if not peso_grava:
         fail("overlay grava peso")
     else:
         ok("overlay grava peso")
-    if 'if "subcategoria_2" in payload:' not in views or "ov.subcategoria_2" not in views:
+    sub2_grava = (
+        ('if "subcategoria_2" in payload:' in views and "ov.subcategoria_2" in views)
+        or '_aplicar_txt_ov("subcategoria_2"' in views
+    )
+    if not sub2_grava:
         fail("overlay grava sub2")
     else:
         ok("overlay grava sub2")
-    if 'if "subcategoria" in payload:' not in views:
+    sub1_grava = (
+        'if "subcategoria" in payload:' in views or '_aplicar_txt_ov("subcategoria"' in views
+    )
+    if not sub1_grava:
         fail("overlay grava sub1")
     else:
         ok("overlay grava sub1")
-    save_idx = views.find('if "peso_etiqueta" in payload:')
-    inv_idx = views.find("cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)", save_idx)
+    save_idx = views.find("_api_produtos_gestao_overlay_salvar_core")
+    if save_idx < 0:
+        save_idx = views.find('if "peso_etiqueta" in payload:')
+    if save_idx < 0:
+        save_idx = views.find('_aplicar_txt_ov("peso_etiqueta"')
+    inv_idx = views.find("cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)", max(save_idx, 0))
     if save_idx < 0 or inv_idx < 0 or inv_idx - save_idx > 25000:
         fail("salvar Agro não invalida catálogo PDV")
     else:
