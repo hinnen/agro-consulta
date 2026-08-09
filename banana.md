@@ -1207,28 +1207,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### 🚀 PREP deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.23**)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.23)
 
-> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só no **próximo chat** com pausa + frase + senha.
+> **Loja hoje:** ✅ **Live v15.23** · `producao` @ **2116b41** · Render `dep-d9sflrgu01pc73e5vet0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **DRE-CMV-TOGGLE** | 🚀 **PREP PRONTA** · aguarda pausa + senha | não | **não** — só Indicadores |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-CMV-TOGGLE** | ✅ enviado / Live v15.23 | não |
+
+### ✅ Deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.23** · `producao` @ **2116b41** · Render `dep-d9sflrgu01pc73e5vet0` · base era `759e435` (v15.20) |
+| **Pacotes** | **DRE-CMV-TOGGLE** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Indicadores DRE: botão **Mercadoria vendida** × **Mercadoria paga**. Lucro/margem/líquido acompanham. Caixa não muda. |
+| **Provas** | `tests_receita_pdv_dre` **12/12** · `tests_pdv_racoes` **15/15** · path **47/47** · verify DRE **24/24** · `manage.py check` |
+| **Você** | **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
+| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
 
 ### 📦 PACOTE PRONTO — DRE CMV vendida × paga (`DRE-CMV-TOGGLE` · **v15.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · `deploy/dre-cmv-toggle-0908` @ **2116b41** · v15.23 |
+| **Status** | ✅ **Live v15.23** · `producao` @ **2116b41** |
 | **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. Se CMV vendida falhar, fica na paga. |
-| **Fora** | PDV · caixa · relatórios (filtro loja só se pedir) · resto do `teste` |
+| **Você** | Ctrl+F5 Indicadores → DRE → trocar os dois botões |
+| **Prova** | `tests_receita_pdv_dre` **12/12** · path **47/47 VERIFY_OK** |
 | **Migrate** | **NÃO** |
-| **Provas** | `tests_receita_pdv_dre` **12/12** · `tests_pdv_racoes` **15/15** · path **47/47 VERIFY_OK** · verify DRE **24/24** · `manage.py check` OK |
-| **Loja aberta** | Código de venda/caixa **não muda**. Indicadores pode pesar 1 worker — não abrir DRE no rush. |
-| **Você no deploy** | Pausar vendas ~2 min → autorizar → **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
-| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
-| **Autorizar** | *pode subir DRE-CMV-TOGGLE / deploy/dre-cmv-toggle-0908 para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 
