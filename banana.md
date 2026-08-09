@@ -623,7 +623,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
-- **DRE Indicadores — CMV (09/08, `DRE-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / EBITDA / líquido acompanham. Caixa não muda. Padrão = vendida.
+- **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
 
 ### 4.11 Caixa
 
@@ -1196,6 +1196,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Resumo CMV vendida × paga (`RG-CMV-TOGGLE`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | teste · aguarda senha |
+| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
+| **Prova** | `tests_receita_pdv_dre` **16/16** · verify DRE **33/33** · verify CMV **55/55** · `manage.py check` |
+| **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
+| **Migrate** | **NÃO** |
+
 ### ✅ Inauguração Vila — 5% encerrado (09/08)
 
 | Item | Detalhe |
@@ -1206,6 +1216,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.24)
+
+> **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **PDV-RACOES-LISTA-DENSE** | 📋 **pronto envio** · teste | não | **sim** — pausar vendas |
+
+### 📦 PACOTE PRONTO — Lista Rações sem quebra (`PDV-RACOES-LISTA-DENSE`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto envio** · teste · loja ainda **v15.24** |
+| **O quê** | Linha da lista numa só altura: sem quebra em tamanho / botão / carrinho. Overlay um pouco maior. Zoom Agro **não** muda. |
+| **Você** | Ctrl+F5 PDV → Rações → lista → conferir mais produtos na tela |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-LISTA-DENSE para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.24)
 

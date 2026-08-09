@@ -86,6 +86,140 @@ def aplicar_receita_pdv_no_resumo(
     return core
 
 
+_RESUMO_CMV_JS_FIELDS = (
+    "cmv",
+    "lucro_bruto",
+    "resultado_operacional",
+    "resultado_liquido_gerencial",
+    "markup_pct",
+    "margem_bruta_pct",
+    "margem_contribuicao_pct",
+    "faturamento_equilibrio",
+    "faturamento_diario_equilibrio",
+)
+
+
+def recalc_resumo_cmv(core: dict[str, Any], cmv_novo, *, dias_periodo: int = 30) -> dict[str, Any]:
+    """Recalcula lucro/líquido/PE do resumo com outro CMV. Caixa não muda."""
+    rec = _dec(core.get("receita_operacional"))
+    df = _dec(core.get("despesas_fixas"))
+    dv = _dec(core.get("despesas_variaveis"))
+    dfin = _dec(core.get("despesas_financeiras"))
+    cmv = _dec(cmv_novo)
+    out = dict(core)
+    out["cmv"] = cmv
+    out["lucro_bruto"] = rec - cmv
+    out["resultado_operacional"] = rec - cmv - df - dv
+    out["resultado_liquido_gerencial"] = out["resultado_operacional"] - dfin
+    out["margem_bruta_pct"] = (out["lucro_bruto"] / rec * Decimal("100")) if rec > 0 else Decimal("0")
+    out["markup_pct"] = ((rec / cmv) - Decimal("1")) * Decimal("100") if cmv > 0 else Decimal("0")
+    from financeiro.services.equilibrio import EquilibrioFinanceiroService
+
+    dias_u = max(int(dias_periodo or 1), 1)
+    eq = EquilibrioFinanceiroService().calcular(rec, cmv, df, dv, dias_periodo=dias_u)
+    out["margem_contribuicao_pct"] = eq["margem_contribuicao_pct"]
+    out["faturamento_equilibrio"] = eq["faturamento_equilibrio"]
+    out["faturamento_diario_equilibrio"] = eq["faturamento_diario_equilibrio"]
+    return out
+
+
+def pack_resumo_cmv_js(core: dict[str, Any]) -> dict[str, float]:
+    return {k: float(_dec(core.get(k))) for k in _RESUMO_CMV_JS_FIELDS}
+
+
+def aplicar_cmv_modos_no_resumo(
+    core: dict[str, Any],
+    data_inicio,
+    data_fim,
+    *,
+    empresa_nome: str | None = None,
+    deposito: str | None = None,
+    dias_periodo: int | None = None,
+) -> dict[str, Any]:
+    """Anexa CMV vendida × paga no resumo. Não troca o CMV raiz (paga) — o JS escolhe o modo."""
+    if not isinstance(core, dict) or core.get("erro"):
+        return core
+
+    try:
+        dias = int(dias_periodo) if dias_periodo else (data_fim - data_inicio).days + 1
+    except Exception:
+        dias = 30
+    dias = max(dias, 1)
+
+    paga_cmv = _dec(core.get("cmv"))
+    snap_paga = recalc_resumo_cmv(core, paga_cmv, dias_periodo=dias)
+
+    dep = deposito if deposito is not None else deposito_pdv_por_empresa_nome(empresa_nome)
+    cmv_v = {"ok": False, "total": Decimal("0"), "skus_com_custo": 0, "skus_sem_custo": 0}
+    try:
+        from produtos.relatorios_vendas_util import custo_mercadoria_vendida
+
+        cmv_v = custo_mercadoria_vendida(data_inicio, data_fim, deposito=dep)
+    except Exception:
+        cmv_v = {"ok": False, "total": Decimal("0"), "skus_com_custo": 0, "skus_sem_custo": 0}
+
+    ok = bool(cmv_v.get("ok"))
+    snap_vend = (
+        recalc_resumo_cmv(core, _dec(cmv_v.get("total")), dias_periodo=dias) if ok else dict(snap_paga)
+    )
+    out = dict(core)
+    out["cmv_paga"] = paga_cmv
+    out["cmv_vendida"] = _dec(cmv_v.get("total")) if ok else paga_cmv
+    out["cmv_modo"] = "vendida" if ok else "paga"
+    out["cmv_skus_sem_custo"] = int(cmv_v.get("skus_sem_custo") or 0) if ok else 0
+    out["cmv_skus_com_custo"] = int(cmv_v.get("skus_com_custo") or 0) if ok else 0
+    out["cmv_modos"] = {
+        "vendida": pack_resumo_cmv_js(snap_vend),
+        "paga": pack_resumo_cmv_js(snap_paga),
+        "skus_sem_custo": out["cmv_skus_sem_custo"],
+        "skus_com_custo": out["cmv_skus_com_custo"],
+        "ok_vendida": ok,
+    }
+    return out
+
+
+def fundir_cmv_modos_grupo(
+    consolidado: dict[str, Any],
+    subs: list[dict[str, Any]],
+    *,
+    dias_periodo: int = 30,
+) -> dict[str, Any]:
+    """Soma CMV vendida/paga das lojas no consolidado do grupo."""
+    if not isinstance(consolidado, dict) or consolidado.get("erro"):
+        return consolidado
+    paga = Decimal("0")
+    vendida = Decimal("0")
+    ok_any = False
+    sem = 0
+    com = 0
+    for sub in subs:
+        if not isinstance(sub, dict) or sub.get("erro"):
+            continue
+        paga += _dec(sub.get("cmv_paga", sub.get("cmv")))
+        if (sub.get("cmv_modos") or {}).get("ok_vendida"):
+            ok_any = True
+            vendida += _dec(sub.get("cmv_vendida"))
+        sem += int(sub.get("cmv_skus_sem_custo") or 0)
+        com += int(sub.get("cmv_skus_com_custo") or 0)
+    dias = max(int(dias_periodo or 1), 1)
+    snap_paga = recalc_resumo_cmv(consolidado, paga, dias_periodo=dias)
+    snap_vend = recalc_resumo_cmv(consolidado, vendida, dias_periodo=dias) if ok_any else dict(snap_paga)
+    out = dict(consolidado)
+    out["cmv_paga"] = paga
+    out["cmv_vendida"] = vendida if ok_any else paga
+    out["cmv_modo"] = "vendida" if ok_any else "paga"
+    out["cmv_skus_sem_custo"] = sem if ok_any else 0
+    out["cmv_skus_com_custo"] = com if ok_any else 0
+    out["cmv_modos"] = {
+        "vendida": pack_resumo_cmv_js(snap_vend),
+        "paga": pack_resumo_cmv_js(snap_paga),
+        "skus_sem_custo": out["cmv_skus_sem_custo"],
+        "skus_com_custo": out["cmv_skus_com_custo"],
+        "ok_vendida": ok_any,
+    }
+    return out
+
+
 _KEYS_SOMA_DRE = (
     "receita_operacional",
     "receita_nao_operacional",

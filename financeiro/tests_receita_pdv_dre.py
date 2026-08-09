@@ -8,8 +8,11 @@ from unittest.mock import patch
 from django.test import SimpleTestCase
 
 from financeiro.services.receita_pdv_util import (
+    aplicar_cmv_modos_no_resumo,
     aplicar_receita_pdv_no_resumo,
     deposito_pdv_por_empresa_nome,
+    fundir_cmv_modos_grupo,
+    recalc_resumo_cmv,
     somar_resumos_dre_empresas,
 )
 
@@ -314,3 +317,98 @@ class GetIndicadoresCmvToggleTests(SimpleTestCase):
         self.assertEqual(out["atual"]["lucro_bruto"], paga_atual["lucro_bruto"])
         self.assertEqual(out["atual"]["geracao_caixa"], paga_atual["geracao_caixa"])
         self.assertTrue(any("CMV vendida" in str(a) for a in out["meta"]["avisos"]))
+
+
+class ResumoCmvModosTests(SimpleTestCase):
+    def _core(self):
+        return {
+            "receita_operacional": Decimal("100000"),
+            "cmv": Decimal("60000"),
+            "despesas_fixas": Decimal("8000"),
+            "despesas_variaveis": Decimal("5000"),
+            "despesas_financeiras": Decimal("2000"),
+            "lucro_bruto": Decimal("40000"),
+            "resultado_operacional": Decimal("27000"),
+            "resultado_liquido_gerencial": Decimal("25000"),
+            "geracao_caixa": Decimal("-1234.56"),
+            "receita_fonte": "pdv",
+        }
+
+    def test_recalc_nao_mexe_caixa(self):
+        out = recalc_resumo_cmv(self._core(), Decimal("24663"), dias_periodo=31)
+        self.assertEqual(out["cmv"], Decimal("24663"))
+        self.assertEqual(out["lucro_bruto"], Decimal("75337"))
+        self.assertEqual(out["geracao_caixa"], Decimal("-1234.56"))
+
+    @patch("produtos.relatorios_vendas_util.custo_mercadoria_vendida")
+    def test_anexa_modos_sem_trocar_cmv_raiz(self, mock_cmv):
+        mock_cmv.return_value = {
+            "ok": True,
+            "total": Decimal("24663"),
+            "skus_com_custo": 80,
+            "skus_sem_custo": 3,
+        }
+        out = aplicar_cmv_modos_no_resumo(
+            self._core(),
+            date(2026, 7, 1),
+            date(2026, 7, 31),
+            empresa_nome="Agro Mais Centro",
+        )
+        self.assertEqual(out["cmv"], Decimal("60000"))
+        self.assertEqual(out["lucro_bruto"], Decimal("40000"))
+        self.assertEqual(out["geracao_caixa"], Decimal("-1234.56"))
+        self.assertEqual(out["cmv_modo"], "vendida")
+        self.assertEqual(out["cmv_modos"]["vendida"]["cmv"], 24663.0)
+        self.assertEqual(out["cmv_modos"]["vendida"]["lucro_bruto"], 75337.0)
+        self.assertEqual(out["cmv_modos"]["paga"]["lucro_bruto"], 40000.0)
+        self.assertEqual(out["cmv_skus_sem_custo"], 3)
+        self.assertEqual(mock_cmv.call_args.kwargs.get("deposito"), "centro")
+        self.assertNotIn("geracao_caixa", out["cmv_modos"]["vendida"])
+
+    @patch("produtos.relatorios_vendas_util.custo_mercadoria_vendida")
+    def test_fallback_paga_se_vendida_falha(self, mock_cmv):
+        mock_cmv.side_effect = RuntimeError("mongo down")
+        out = aplicar_cmv_modos_no_resumo(
+            self._core(),
+            date(2026, 7, 1),
+            date(2026, 7, 31),
+            empresa_nome="Agro Mais Centro",
+        )
+        self.assertEqual(out["cmv_modo"], "paga")
+        self.assertFalse(out["cmv_modos"]["ok_vendida"])
+        self.assertEqual(out["cmv"], Decimal("60000"))
+        self.assertEqual(out["geracao_caixa"], Decimal("-1234.56"))
+
+    def test_fundir_grupo_soma_modos(self):
+        consolidado = {
+            "receita_operacional": Decimal("39000"),
+            "cmv": Decimal("2900"),
+            "despesas_fixas": Decimal("4300"),
+            "despesas_variaveis": Decimal("680"),
+            "despesas_financeiras": Decimal("1050"),
+            "geracao_caixa": Decimal("-80"),
+        }
+        subs = [
+            {
+                "cmv_paga": Decimal("2000"),
+                "cmv_vendida": Decimal("1500"),
+                "cmv_modos": {"ok_vendida": True},
+                "cmv_skus_sem_custo": 2,
+                "cmv_skus_com_custo": 10,
+            },
+            {
+                "cmv_paga": Decimal("900"),
+                "cmv_vendida": Decimal("700"),
+                "cmv_modos": {"ok_vendida": True},
+                "cmv_skus_sem_custo": 1,
+                "cmv_skus_com_custo": 5,
+            },
+        ]
+        out = fundir_cmv_modos_grupo(consolidado, subs, dias_periodo=31)
+        self.assertEqual(out["cmv"], Decimal("2900"))
+        self.assertEqual(out["cmv_paga"], Decimal("2900"))
+        self.assertEqual(out["cmv_vendida"], Decimal("2200"))
+        self.assertEqual(out["cmv_modos"]["vendida"]["cmv"], 2200.0)
+        self.assertEqual(out["cmv_modos"]["paga"]["cmv"], 2900.0)
+        self.assertEqual(out["geracao_caixa"], Decimal("-80"))
+        self.assertEqual(out["cmv_skus_sem_custo"], 3)

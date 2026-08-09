@@ -23,6 +23,47 @@
     return (n * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
   }
 
+  function pctJa(s) {
+    var n = parseFloat(String(s).replace(",", "."));
+    if (isNaN(n)) return "—";
+    return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+  }
+
+  var CMV_KEY = "agro_dre_cmv_modo_v1";
+  var CMV_HINT = {
+    vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
+    paga: "Compras lançadas no período (o que você pagou / deve de mercadoria).",
+  };
+
+  function cmvModoSalvo() {
+    try {
+      var m = localStorage.getItem(CMV_KEY);
+      if (m === "paga" || m === "vendida") return m;
+    } catch (e) {}
+    return "vendida";
+  }
+
+  function salvarCmvModo(m) {
+    try {
+      localStorage.setItem(CMV_KEY, m);
+    } catch (e) {}
+  }
+
+  function aplicarCmvNoCore(c) {
+    if (!c || !c.cmv_modos) return c;
+    var m = cmvModoSalvo();
+    if (m === "vendida" && c.cmv_modos.ok_vendida === false) m = "paga";
+    var snap = c.cmv_modos[m];
+    if (!snap) return c;
+    return Object.assign({}, c, snap, { cmv_modo: m });
+  }
+
+  function coreDoPayload(data, modo) {
+    if (!data) return data;
+    if (modo === "grupo") return data.consolidado || data;
+    return data;
+  }
+
   function escapeHtml(t) {
     if (t == null) return "";
     var d = document.createElement("div");
@@ -131,6 +172,10 @@
         value: brl(c.lucro_bruto),
         tone: "success",
         sign: signFromNumber(nLucro),
+        subtitle:
+          c.markup_pct != null && c.margem_bruta_pct != null
+            ? "Markup " + pctJa(c.markup_pct) + " · margem " + pctJa(c.margem_bruta_pct)
+            : null,
         trend: c._trend_lucro_bruto || null,
       }),
       buildKpiCard({
@@ -346,8 +391,33 @@
       e.classList.toggle("hidden", !msg);
     }
 
+    function syncCmvChips(c) {
+      var m = (c && c.cmv_modo) || cmvModoSalvo();
+      document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
+        btn.classList.toggle("is-active", btn.getAttribute("data-dre-cmv") === m);
+      });
+      var hint = el("rg-cmv-hint");
+      if (hint) hint.textContent = CMV_HINT[m] || CMV_HINT.vendida;
+    }
+
+    function pintarEquilibrio(c) {
+      if (!c || c.faturamento_equilibrio == null) return false;
+      el("sec-equilibrio").classList.add("is-visible");
+      el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
+      el("eq-fat").textContent = brl(c.faturamento_equilibrio);
+      el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      return true;
+    }
+
+    var lastPayload = null;
+    var lastModoTela = "empresa";
+
     function renderResumo(data, modo) {
-      var c = modo === "grupo" ? data.consolidado : data;
+      lastPayload = data;
+      lastModoTela = modo;
+      var bruto = coreDoPayload(data, modo);
+      var c = aplicarCmvNoCore(bruto);
+      syncCmvChips(c);
       el("painel-cards").innerHTML = renderKpiGrid(c);
       el("painel-cards").classList.remove("hidden");
 
@@ -465,16 +535,19 @@
         }
         var data = await r.json();
         renderResumo(data, modo);
-        var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
-        var re = await fetch("/api/financeiro/gap-equilibrio?" + dq, {
-          credentials: "same-origin",
-        });
-        if (re.ok) {
-          var eq = await re.json();
-          el("sec-equilibrio").classList.add("is-visible");
-          el("eq-margem").textContent = pct(eq.margem_contribuicao_pct);
-          el("eq-fat").textContent = brl(eq.faturamento_equilibrio);
-          el("eq-dia").textContent = brl(eq.faturamento_diario_equilibrio);
+        var cEq = aplicarCmvNoCore(coreDoPayload(data, modo));
+        if (!pintarEquilibrio(cEq)) {
+          var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
+          var re = await fetch("/api/financeiro/gap-equilibrio?" + dq, {
+            credentials: "same-origin",
+          });
+          if (re.ok) {
+            var eq = await re.json();
+            el("sec-equilibrio").classList.add("is-visible");
+            el("eq-margem").textContent = pct(eq.margem_contribuicao_pct);
+            el("eq-fat").textContent = brl(eq.faturamento_equilibrio);
+            el("eq-dia").textContent = brl(eq.faturamento_diario_equilibrio);
+          }
         }
       } catch (e) {
         mostrarErro("Falha de rede.");
@@ -489,6 +562,14 @@
       atualizarResumoFiltroVisivel();
     });
     el("btn-atualizar").addEventListener("click", atualizar);
+    document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        salvarCmvModo(btn.getAttribute("data-dre-cmv"));
+        if (!lastPayload) return;
+        renderResumo(lastPayload, lastModoTela);
+        pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, lastModoTela)));
+      });
+    });
     ["f-empresa", "f-grupo", "f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
       el(id).addEventListener("change", function () {
         salvarCtx();
@@ -554,7 +635,9 @@
     mainZeros: mainZeros,
     brl: brl,
     pct: pct,
+    pctJa: pctJa,
     num: num,
+    aplicarCmvNoCore: aplicarCmvNoCore,
     initPainel: initPainel,
   };
 

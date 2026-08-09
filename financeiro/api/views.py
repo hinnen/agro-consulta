@@ -152,6 +152,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
             else:
                 get_object_or_404(
@@ -165,6 +166,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
                 if pack.get("erro"):
                     return Response(
@@ -236,6 +238,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
                 if pack.get("erro"):
                     return Response(
@@ -255,6 +258,7 @@ class GapEquilibrioAPIView(_AuthAPIView):
                     valor=valor,
                     filtro_contas=fc,
                     diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
                 )
                 if grupo.get("erro"):
                     return Response(

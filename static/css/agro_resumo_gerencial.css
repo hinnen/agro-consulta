@@ -163,6 +163,47 @@
 .rg-field--date {
   width: 8.75rem;
 }
+.rg-cmv {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 12rem;
+  flex: 1 1 14rem;
+}
+.rg-cmv__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+.rg-chip {
+  min-height: 2.25rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #475569;
+  cursor: pointer;
+}
+.rg-chip.is-active {
+  border-color: #059669;
+  background: #059669;
+  color: #fff;
+}
+.rg-chip:focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+.rg-cmv__hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.3;
+}
 .rg-btn-atualizar {
   height: 2.25rem;
   padding: 0 0.85rem;
