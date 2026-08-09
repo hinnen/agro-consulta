@@ -428,7 +428,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · loja v15.20):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora (não lista velha). Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1206,39 +1206,48 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.16)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 
-> **Loja hoje:** ✅ **Live v15.16** · `producao` @ **42faf6c**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Cherry/FF só o pacote autorizado.
+> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-FIX** | 📋 **pronto envio** · teste **v15.20** | não | **sim** — pausar vendas |
-| 2 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.18** | não | **sim** — pausar vendas |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-FIX** | ✅ enviado / Live v15.20 | não |
+| 2 | **PDV-RACOES-25** | ✅ enviado / Live v15.20 | não |
 
-**Autorizar:** frase + senha. Preferir **1+2 juntos** (fix + saco 2,5 kg).
+### ✅ Deploy loja — Rações fix + saco 2,5 kg (`deploy/pdv-racoes-fix-25` · **v15.20**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.20** · `producao` @ **759e435** · Render `dep-d9s9pujl550s73e4dc10` · base era `42faf6c` (v15.16) |
+| **Pacotes** | **PDV-RACOES-FIX** + **PDV-RACOES-25** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Botão Rações lê cadastro na hora + saco **2,5 kg** |
+| **Provas** | `tests_pdv_racoes` **15/15** · verify **VERIFY_OK** · `manage.py check` |
+| **Você** | **Ctrl+F5** PDV → Rações → **Cão adulto** → Origens · Peso `2,5` no cadastro |
+| **Rollback** | tag `rollback/pre-pdv-racoes-fix-25-v15.16` @ `42faf6c` · branch `producao-backup-pre-v1520-racoes-20260809` · frase+senha |
 
 ### 📦 PACOTE PRONTO — Rações lê cadastro ao vivo (`PDV-RACOES-FIX` · **v15.20**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · loja v15.16 botão não acha produto recém-cadastrado |
+| **Status** | ✅ **Live v15.20** · `producao` @ **759e435** |
 | **O quê** | Botão Rações puxa Categoria/Sub 1/Sub 2/Peso do Agro na hora (não usa lista velha do PDV) |
 | **Você** | Ctrl+F5 no PDV → Rações → **Cão adulto** → deve aparecer Origens |
 | **Prova** | `tests_pdv_racoes` **15/15** · verify path Origens+2,5 **VERIFY_OK** |
 | **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir PDV-RACOES-FIX para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.18**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto envio** · loja v15.16 ainda sem 2,5 kg |
+| **Status** | ✅ **Live v15.20** · `producao` @ **759e435** |
 | **O quê** | Botão Rações: tamanho **Saco 2,5 kg** · cadastro Peso (etiqueta) = **`2,5`** |
 | **Cadastro** | Só `2,5` (aceita `2.5` / `2,50 kg`) · **não** vira 25 kg nem pacote |
-| **Prova** | `tests_pdv_racoes` **13/13** · verify path 2,5 **VERIFY_OK** · `manage.py check` |
+| **Prova** | `tests_pdv_racoes` **15/15** · verify path 2,5 **VERIFY_OK** · `manage.py check` |
 | **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir PDV-RACOES-25 para produção* + **99738595** |
 
 ### ✅ Deploy loja — lote checklist 09/08 (`deploy/lote-checklist-0908` · **v15.16**)
 
@@ -1309,9 +1318,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Cadastro → Ctrl+F5 → Excel ↓ → marcar Sub 2–4 / Unidade / Modelo / Peso |
 | **Rollback** | tag `rollback/pre-cad-xlsx-cols-v15.04` @ `14dc51a` · branch `producao-backup-pre-v1505-cad-xlsx-20260809` · frase+senha |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.16)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.16) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.16** · `producao` @ **42faf6c**  
+> **Vigente:** loja **Live v15.20**. `producao` @ **759e435**.  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
