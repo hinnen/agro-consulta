@@ -1079,11 +1079,31 @@
     text-transform: uppercase;
     text-align: left;
   }
-  #pdv-racoes-lista-table tbody tr:nth-child(even) {
-    background: #f8fafc;
-  }
   #pdv-racoes-lista-table tbody tr.pdv-racoes-row-ok {
-    background: #d1fae5;
+    box-shadow: inset 5px 0 0 #059669;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-thumb {
+    display: block;
+    width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
+    border-radius: 0.4rem;
+    border: 2px solid #94a3b8;
+    background: #fff;
+    overflow: hidden;
+    cursor: zoom-in;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  #pdv-racoes-lista-table .pdv-racoes-acao {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
   }
   #pdv-racoes-lista-table .pdv-racoes-nome {
     font-size: 1.05rem;
@@ -3938,12 +3958,12 @@
           <table id="pdv-racoes-lista-table">
             <thead>
               <tr>
+                <th>Foto</th>
                 <th>GM</th>
                 <th>Produto</th>
                 <th>Marca</th>
                 <th>Tamanho</th>
                 <th class="text-right">Preço</th>
-                <th>Carrinho</th>
                 <th>Ação</th>
               </tr>
             </thead>

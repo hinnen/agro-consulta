@@ -8891,6 +8891,49 @@
         return stripAccents(s).replace(/\s+/g, ' ').trim();
     }
 
+    var PDV_RACOES_MARCA_HUE = {
+        origens: 28,
+        estimacao: 48,
+        estimacat: 48,
+        robustus: 6,
+        'special dog': 210,
+        'special cat': 210,
+        special: 210,
+        magnus: 18,
+        'formula natural': 142,
+        golden: 42,
+        premier: 220,
+        'royal canin': 38,
+        whiskas: 280,
+        pedigree: 50,
+        'pro plan': 14,
+        guabi: 130,
+        farmina: 350,
+        hills: 205,
+        "hill's": 205,
+        'luck cat': 300,
+        'mix cat': 175,
+        'gran plus': 25,
+        'three dogs': 200,
+        '3 dogs': 200,
+        biofresh: 155,
+        quatree: 195,
+        naturalis: 145
+    };
+
+    function pdvRacoesCorMarca(marca) {
+        var n = pdvRacoesNorm(marca);
+        var hue;
+        if (n && PDV_RACOES_MARCA_HUE[n] != null) hue = PDV_RACOES_MARCA_HUE[n];
+        else {
+            var h = 0;
+            var i;
+            for (i = 0; i < n.length; i++) h = (h * 33 + n.charCodeAt(i)) >>> 0;
+            hue = h % 360;
+        }
+        return 'hsl(' + hue + ', 52%, 88%)';
+    }
+
     function pdvRacoesOverlayEl() {
         return document.getElementById('pdv-racoes-overlay');
     }
@@ -9195,12 +9238,22 @@
                 var qtd = pdvRacoesQtdCarrinho(pid);
                 var ok = qtd > 0;
                 var pesoKey = pdvRacoesParsePeso(p.peso_etiqueta);
+                var marcaTxt = String(p.marca || '').trim() || 'Sem marca';
+                var imgUrl = String(p.imagem || assets.placeholderProduto || '').trim();
                 return (
                     '<tr class="' +
                     (ok ? 'pdv-racoes-row-ok' : '') +
                     '" data-racoes-id="' +
                     escapeHtml(pid) +
+                    '" style="background:' +
+                    escapeHtml(pdvRacoesCorMarca(marcaTxt)) +
                     '">' +
+                    '<td><button type="button" class="pdv-racoes-thumb" data-pdv-photo-zoom="' +
+                    escapeHtml(imgUrl) +
+                    '" title="Ampliar foto">' +
+                    '<img src="' +
+                    escapeHtml(imgUrl) +
+                    '" alt=""></button></td>' +
                     '<td class="font-black text-slate-800">' +
                     escapeHtml(displayCodigoGm(p)) +
                     '</td>' +
@@ -9210,7 +9263,7 @@
                     escapeHtml(p.nome || '—') +
                     '</div></td>' +
                     '<td class="font-bold uppercase text-slate-800">' +
-                    escapeHtml(String(p.marca || '').trim() || 'Sem marca') +
+                    escapeHtml(marcaTxt) +
                     '</td>' +
                     '<td class="font-bold text-slate-800">' +
                     escapeHtml(pdvRacoesPesoLabel(pesoKey)) +
@@ -9218,18 +9271,17 @@
                     '<td class="pdv-racoes-preco">' +
                     escapeHtml(formatMoney(pdvRacoesPreco(p))) +
                     '</td>' +
-                    '<td>' +
+                    '<td><div class="pdv-racoes-acao">' +
                     (ok
                         ? '<span class="pdv-racoes-qtd-ok">No carrinho · ' + formatQty(qtd) + '</span>'
-                        : '<span class="text-slate-500 font-bold">—</span>') +
-                    '</td>' +
-                    '<td><button type="button" class="pdv-racoes-add-btn' +
+                        : '') +
+                    '<button type="button" class="pdv-racoes-add-btn' +
                     (ok ? ' is-ok' : '') +
                     '" data-racoes-add="' +
                     escapeHtml(pid) +
                     '">' +
                     (ok ? 'Adicionar +1' : 'Adicionar') +
-                    '</button></td>' +
+                    '</button></div></td>' +
                     '</tr>'
                 );
             })
@@ -9419,6 +9471,13 @@
         var listaBody = document.getElementById('pdv-racoes-lista-body');
         if (listaBody) {
             listaBody.addEventListener('click', function (ev) {
+                var zoom = ev.target.closest('[data-pdv-photo-zoom]');
+                if (zoom) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    openProductPhotoPop(zoom.getAttribute('data-pdv-photo-zoom') || '');
+                    return;
+                }
                 var b = ev.target.closest('[data-racoes-add]');
                 if (!b) return;
                 pdvRacoesAddUm(b.getAttribute('data-racoes-add'));
@@ -9426,6 +9485,8 @@
         }
         document.addEventListener('keydown', function (ev) {
             if (ev.key !== 'Escape') return;
+            var photoPop = document.getElementById('pdv-product-photo-pop');
+            if (photoPop && photoPop.open) return;
             if (!pdvRacoesOverlayAberto()) return;
             ev.preventDefault();
             pdvRacoesFechar();

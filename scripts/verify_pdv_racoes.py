@@ -312,6 +312,7 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
     else:
         ok("botao Fechar na lista")
     check_lista_dense(js, wiz)
+    check_lista_marca_foto(js, wiz)
     try:
         import subprocess
 
@@ -378,6 +379,40 @@ def check_lista_dense(js: str, wiz: str) -> None:
         fail("nome da lista sem title")
     else:
         ok("nome da lista com title")
+
+
+def check_lista_marca_foto(js: str, wiz: str) -> None:
+    """Cor da marca + foto miniatura + carrinho na acao."""
+    if "<th>Carrinho</th>" in wiz:
+        fail("coluna Carrinho ainda na lista")
+    else:
+        ok("coluna Carrinho removida")
+    if "<th>Foto</th>" not in wiz or "pdv-racoes-thumb" not in wiz:
+        fail("coluna Foto miniatura")
+    else:
+        ok("coluna Foto miniatura")
+    if "function pdvRacoesCorMarca" not in js or "PDV_RACOES_MARCA_HUE" not in js:
+        fail("cor da marca na linha")
+    else:
+        ok("cor da marca na linha")
+    render = js.split("function pdvRacoesRenderLista")[1].split("function pdvRacoesIrLista")[0] if "function pdvRacoesRenderLista" in js else ""
+    if 'data-pdv-photo-zoom="' not in render or "pdvRacoesCorMarca(" not in render:
+        fail("render sem foto/cor marca")
+    else:
+        ok("render foto + cor marca")
+    if 'class="pdv-racoes-acao"' not in render or "No carrinho" not in render:
+        fail("indicador carrinho fora da acao")
+    else:
+        ok("indicador carrinho na acao")
+    wire = js.split("function wireRacoesUi")[1].split("function wireCadastroRapidoUi")[0] if "function wireRacoesUi" in js else ""
+    if "openProductPhotoPop" not in wire or "data-pdv-photo-zoom" not in wire:
+        fail("clique na foto nao abre zoom PDV")
+    else:
+        ok("clique na foto abre zoom PDV")
+    if "photoPop.open" not in wire:
+        fail("Esc fecha overlay com foto aberta")
+    else:
+        ok("Esc nao fecha Racoes com foto aberta")
 
 
 def check_util_cenarios() -> None:
