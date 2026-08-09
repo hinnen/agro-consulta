@@ -1213,17 +1213,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.17** | não | **sim** — pausar vendas |
+| 1 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.18** | não | **sim** — pausar vendas |
 
 **Autorizar:** *pode subir PDV-RACOES-25 / saco 2,5 kg para produção* + **99738595**.
 
-### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.17**)
+### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.18**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto envio** · loja v15.16 ainda sem 2,5 kg |
 | **O quê** | Botão Rações: tamanho **Saco 2,5 kg** · cadastro Peso (etiqueta) = **`2,5`** |
-| **Cadastro** | Só `2,5` (aceita também `2.5` / `2,50 kg`) · não misturar com `pacote` |
+| **Cadastro** | Só `2,5` (aceita `2.5` / `2,50 kg`) · **não** vira 25 kg nem pacote |
+| **Prova** | `tests_pdv_racoes` **13/13** · verify path 2,5 **VERIFY_OK** · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-25 para produção* + **99738595** |
 

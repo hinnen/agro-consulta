@@ -49,6 +49,10 @@ class ParsePesoTests(SimpleTestCase):
         self.assertIsNone(parse_peso_racoes(""))
         self.assertIsNone(parse_peso_racoes("7"))
         self.assertIsNone(parse_peso_racoes("500 g"))
+        self.assertIsNone(parse_peso_racoes("2"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), parse_peso_racoes("25"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), parse_peso_racoes("5"))
+        self.assertNotEqual(parse_peso_racoes("2,5"), "pacote")
 
 
 class CategoriaTipoTests(SimpleTestCase):
