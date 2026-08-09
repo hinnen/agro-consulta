@@ -1207,24 +1207,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · DRE-CMV)
+### 🚀 PREP deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.21**)
 
 > **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só com frase + senha.
+> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só com frase + senha no **próximo chat**.
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **DRE-CMV-TOGGLE** | 📦 pronto / aguarda senha | não |
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **DRE-CMV-TOGGLE** | 🚀 **PREP PRONTA** · aguarda pausa + senha | não | **não** — só Indicadores |
 
 ### 📦 PACOTE PRONTO — DRE CMV vendida × paga (`DRE-CMV-TOGGLE` · **v15.21**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto / teste** · aguarda frase+senha |
+| **Status** | 🚀 **PREP PRONTA** · teste `e24568f` · branch `deploy/dre-cmv-toggle-0908` |
 | **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. |
-| **Você** | Ctrl+F5 Indicadores → DRE → trocar os dois botões · conferir lucro bruto |
-| **Prova** | `tests_receita_pdv_dre` **10/10** · verify **24/24 VERIFY_OK** |
+| **Fora** | PDV · caixa · relatórios filtros · resto do `teste` |
 | **Migrate** | **NÃO** |
+| **Provas** | `tests_receita_pdv_dre` **10/10** · verify **24/24 VERIFY_OK** · `manage.py check` OK |
+| **Você no deploy** | Pausar vendas ~2 min → autorizar → **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
+| **Risco loja aberta** | Baixo — não grava venda/caixa. Relatórios: `_qs_itens` ganha filtro opcional (sem filtro = igual hoje). Indicadores pode ficar um pouco mais lento no load (soma custo × qtd). |
+| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
+| **Autorizar** | *pode subir DRE-CMV-TOGGLE / deploy/dre-cmv-toggle-0908 para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 
