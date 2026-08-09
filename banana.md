@@ -1196,59 +1196,48 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — PREP envio (09/08 · após loja v15.24)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.26)
 
-> **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8**  
-> **Teste:** **v15.26**  
-> **⚠️** **NÃO** merge `teste`→`producao`. **NÃO** push `producao` sem pausa + senha.
+> **Loja hoje:** ✅ **Live v15.26** · `producao` @ **ebe9e9c** · Render `dep-d9sh2egae00c73anribg`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-LISTA-DENSE** | 🚀 **PREP pronto** · aguarda pausa + senha · loja alvo **v15.26** | não | **sim** — pausar vendas |
-| 2 | **RG-CMV-TOGGLE** | 🚀 **PREP pronto** · aguarda pausa + senha · loja alvo **v15.26** | não | não (Resumo) |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-LISTA-DENSE** | ✅ enviado / Live v15.26 | não |
+| 2 | **RG-CMV-TOGGLE** | ✅ enviado / Live v15.26 | não |
 
-### 🚀 PREP deploy — lote DENSE + Resumo CMV (`deploy/lote-dense-rg-0908` · **v15.26**)
+### ✅ Deploy loja — lote DENSE + Resumo CMV (`deploy/lote-dense-rg-0908` · **v15.26**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP** · branch `deploy/lote-dense-rg-0908` @ **ebe9e9c** · **aguarda pausa + frase+senha** |
-| **Base loja** | `5fc0ee8` · Live **v15.24** |
-| **Alvo** | loja **v15.26** |
-| **Método** | worktree `origin/producao` · recorte cirúrgico · **não** merge `teste` |
-| **DENSE** | só CSS da lista Rações + `title` no nome · **não** arquivo inteiro do `pdv_wizard.js` (teste tem drift de catálogo) |
-| **RG** | Resumo gerencial: chips vendida × paga · lucro/PE/markup acompanham · caixa não muda |
-| **Arquivos** | 14 (VERSION + 2 PDV lista + 7 Resumo/API + 4 verify/test) |
-| **Fora** | resto do teste · caixa · finalizar venda · `/consulta/` · catálogo PDV · migrate |
-| **Provas** | teste **32/32** · worktree **32/32** · verify Rações **VERIFY_OK** · RG **78/78** · DRE **55/55** · PDV-DRE **33/33** · `node --check` · `manage.py check` |
-| **Risco loja aberta** | DENSE = só visual da lista Rações. Carrinho / caixa / finalizar **iguais**. RG = só Resumo. Mesmo assim: **pausar vendas** (restart ~2 min). |
+| **Status** | ✅ **enviado / Live v15.26** · `producao` @ **ebe9e9c** · Render `dep-d9sh2egae00c73anribg` · base era `5fc0ee8` (v15.24) |
+| **Pacotes** | **PDV-RACOES-LISTA-DENSE** + **RG-CMV-TOGGLE** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
 | **Migrate** | **NÃO** |
+| **O quê** | Lista Rações compacta (sem quebra) + Resumo CMV vendida × paga |
+| **Provas** | teste **32/32** · worktree **32/32** · verify Rações **VERIFY_OK** · RG **78/78** · DRE **55/55** · PDV-DRE **33/33** |
+| **Você** | **Ctrl+F5** PDV → Rações → lista · Resumo gerencial → julho Centro → trocar os dois botões |
 | **Rollback** | tag `rollback/pre-lote-dense-rg-v15.24` @ `5fc0ee8` · branch `producao-backup-pre-v1526-dense-rg-20260809` · frase+senha |
-| **Render loja** | `srv-d6rhp8ua2pns73aht0eg` · Sistvale - Produção · branch `producao` |
-| **Zap (quando autorizar)** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Próximo chat** | 1) lojas pausam vendas 2) *pode subir lote DENSE+RG para produção* + **99738595** 3) push `deploy/lote-dense-rg-0908` → `producao` + Ctrl+F5 |
-| **Autorizar** | *pode subir lote DENSE+RG para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Lista Rações sem quebra (`PDV-RACOES-LISTA-DENSE` · **v15.26**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto** · aguarda pausa + senha · teste **v15.26** · `b06a4e3` / deploy **ebe9e9c** |
+| **Status** | ✅ **Live v15.26** · `producao` @ **ebe9e9c** |
 | **O quê** | Lista numa linha só (sem quebra em tamanho / botão / carrinho). Overlay um pouco maior. Zoom Agro **não** muda. |
 | **Você** | Ctrl+F5 PDV → Rações → lista → deve caber mais produtos |
 | **Prova** | `tests_pdv_racoes` **16/16** · verify path lista+dense **VERIFY_OK** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir lote DENSE+RG para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Resumo CMV vendida × paga (`RG-CMV-TOGGLE` · **v15.25**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto** · aguarda pausa + senha · teste **v15.25+** · `1f661f6` / deploy **ebe9e9c** |
+| **Status** | ✅ **Live v15.26** · `producao` @ **ebe9e9c** |
 | **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
 | **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
 | **Prova** | `tests_receita_pdv_dre` **16/16** · verify RG **78/78** · verify DRE **33/33** · verify CMV **55/55** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir lote DENSE+RG para produção* + **99738595** |
 
 ### ✅ Inauguração Vila — 5% encerrado (09/08)
 
