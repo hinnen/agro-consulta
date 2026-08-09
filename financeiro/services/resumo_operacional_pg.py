@@ -48,6 +48,7 @@ def consolidar_empresa_pg(
     valor: str = "bruto",
     filtro_contas: str = "",
     diagnostico: bool = False,
+    usar_receita_pdv: bool = True,
 ) -> dict[str, Any]:
     empresa = get_object_or_none_empresa(empresa_id)
     if not empresa:
@@ -95,7 +96,16 @@ def consolidar_empresa_pg(
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
     }
-    return core
+    if not usar_receita_pdv:
+        core["receita_fonte"] = "lancamentos"
+        core["receita_lancamentos"] = core.get("receita_operacional")
+        return core
+
+    from financeiro.services.receita_pdv_util import aplicar_receita_pdv_no_resumo
+
+    return aplicar_receita_pdv_no_resumo(
+        core, data_inicio, data_fim, empresa_nome=nome
+    )
 
 
 def consolidar_grupo_pg(
@@ -127,6 +137,8 @@ def consolidar_grupo_pg(
         "aportes_socios",
         "retiradas_socios",
         "geracao_caixa",
+        "receita_lancamentos",
+        "receita_fonte",
     )
 
     por_empresa_limpo: list[dict[str, Any]] = []
@@ -153,15 +165,18 @@ def consolidar_grupo_pg(
             }
         )
 
-    consolidado = agregar_linhas_dre_em_resumo(todas_linhas)
+    from financeiro.services.receita_pdv_util import somar_resumos_dre_empresas
+
+    consolidado = somar_resumos_dre_empresas(por_empresa_limpo)
     consolidado["ajustes_eliminacao"] = {
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
         "observacao": (
-            "Consolidado do grupo = soma das empresas. "
+            "Consolidado do grupo = soma das empresas (PDV de cada loja). "
             "Sem eliminação automática entre filiais."
         ),
     }
+    consolidado["linhas_dre"] = todas_linhas
 
     return {
         "fonte": "postgres",

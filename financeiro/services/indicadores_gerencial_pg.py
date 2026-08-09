@@ -77,6 +77,9 @@ def _indicadores_from_core(
 
     ebitda = margem_contrib - df
     resultado_liquido = _dec(core.get("resultado_liquido_gerencial")) + receita_nao_op
+    rec_lanc = core.get("receita_lancamentos")
+    receita_lancamentos = _dec(rec_lanc) if rec_lanc is not None else receita_op
+    receita_fonte = str(core.get("receita_fonte") or "lancamentos")
 
     entradas_caixa = (
         caixa_buckets[NF.NATUREZA_RECEITA_OPERACIONAL]
@@ -117,6 +120,8 @@ def _indicadores_from_core(
         "geracao_caixa": geracao_caixa,
         "aportes": _dec(core.get("aportes_socios")),
         "retiradas": _dec(core.get("retiradas_socios")),
+        "receita_fonte": receita_fonte,
+        "receita_lancamentos": receita_lancamentos,
     }
 
 
@@ -161,28 +166,21 @@ def _benchmark(ref: dict, dias_periodo: int) -> dict:
             * k,
             "aportes_socios": _dec(ref.get("aportes")) * k,
             "retiradas_socios": _dec(ref.get("retiradas")) * k,
+            "receita_fonte": ref.get("receita_fonte") or "lancamentos",
+            "receita_lancamentos": _dec(ref.get("receita_lancamentos")) * k,
         },
         caixa_buckets=caixa_buckets,
         dias_janela=max(dias_periodo, 1),
     )
 
 
-def _faturamento_pdv_periodo(data_ini: date, data_fim: date) -> dict[str, Any]:
+def _faturamento_pdv_periodo(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict[str, Any]:
     """Mesma série do BI (``_dashboard_mongo_vendas_serie`` — PDV + planilha + fallback)."""
-    try:
-        from produtos.views import _dashboard_mongo_vendas_serie
+    from financeiro.services.receita_pdv_util import faturamento_pdv_periodo
 
-        s = _dashboard_mongo_vendas_serie(data_ini, data_fim)
-    except Exception:
-        return {"ok": False, "total": Decimal("0"), "por_dia": {}, "fonte": "pdv"}
-    if not s.get("ok"):
-        return {"ok": False, "total": Decimal("0"), "por_dia": {}, "fonte": s.get("fonte") or "pdv"}
-    return {
-        "ok": True,
-        "total": _dec(s.get("total")),
-        "por_dia": s.get("por_dia") or {},
-        "fonte": s.get("fonte") or "pdv",
-    }
+    return faturamento_pdv_periodo(data_ini, data_fim, deposito=deposito)
 
 
 def _serie_faturamento_7d(
@@ -313,6 +311,7 @@ def _bloco_periodo(
         por="pagamento",
         valor="realizado",
         filtro_contas=filtro_contas,
+        usar_receita_pdv=False,
     )
     if caixa.get("erro"):
         buckets_caixa = natureza_buckets_from_linhas_dre([])
@@ -362,7 +361,10 @@ def get_indicadores_gerencial_pg(
     previsao_30 = media_60 * Decimal("30")
     pe_30 = (atual["pe_diario"] or Decimal("0")) * Decimal("30")
 
-    fat_pdv = _faturamento_pdv_periodo(data_inicio, data_fim)
+    from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_id
+
+    dep_pdv = deposito_pdv_por_empresa_id(empresa_id)
+    fat_pdv = _faturamento_pdv_periodo(data_inicio, data_fim, deposito=dep_pdv)
     if fat_pdv.get("ok"):
         labels, serie = _serie_faturamento_7d(data_fim, fat_pdv.get("por_dia") or {})
     else:
