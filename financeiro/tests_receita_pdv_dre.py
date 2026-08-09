@@ -289,3 +289,28 @@ class GetIndicadoresCmvToggleTests(SimpleTestCase):
         self.assertNotIn("geracao_caixa", out["cmv_modos"]["vendida"]["atual"])
         self.assertEqual(out["atual"]["cmv_skus_sem_custo"], 3)
         self.assertEqual(mock_cmv.call_args_list[0].kwargs.get("deposito"), "centro")
+
+    @patch("financeiro.services.indicadores_gerencial_pg.gastos_variacao_pg")
+    @patch("produtos.relatorios_vendas_util.custo_mercadoria_vendida")
+    @patch("financeiro.services.receita_pdv_util.deposito_pdv_por_empresa_id")
+    @patch("financeiro.services.indicadores_gerencial_pg._faturamento_pdv_periodo")
+    @patch("financeiro.services.indicadores_gerencial_pg._bloco_periodo")
+    def test_se_cmv_vendida_falha_fica_paga_e_caixa_igual(
+        self, mock_bloco, mock_fat, mock_dep, mock_cmv, mock_var
+    ):
+        from financeiro.services.indicadores_gerencial_pg import get_indicadores_gerencial_pg
+
+        paga_atual = self._ind(Decimal("100000"), Decimal("60000"))
+        paga_60 = self._ind(Decimal("200000"), Decimal("120000"), dias=60)
+        mock_bloco.side_effect = [(paga_atual, None), (paga_60, None)]
+        mock_fat.return_value = {"ok": True, "total": Decimal("100000"), "por_dia": {}}
+        mock_dep.return_value = "centro"
+        mock_cmv.side_effect = RuntimeError("mongo down")
+        mock_var.return_value = {"ok": True, "chart": {}, "buckets": []}
+
+        out = get_indicadores_gerencial_pg(1, date(2026, 8, 1), date(2026, 8, 9))
+        self.assertEqual(out["atual"]["cmv_modo"], "paga")
+        self.assertEqual(out["atual"]["cmv"], Decimal("60000"))
+        self.assertEqual(out["atual"]["lucro_bruto"], paga_atual["lucro_bruto"])
+        self.assertEqual(out["atual"]["geracao_caixa"], paga_atual["geracao_caixa"])
+        self.assertTrue(any("CMV vendida" in str(a) for a in out["meta"]["avisos"]))

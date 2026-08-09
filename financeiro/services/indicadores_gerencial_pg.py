@@ -454,28 +454,36 @@ def get_indicadores_gerencial_pg(
         avisos.append(f"CMV vendida indisponível: {exc}")
 
     k_ref = Decimal(str(dias_periodo)) / Decimal(str(REF_DIAS_COMPARACAO))
-    atual_vendida = recalc_indicadores_cmv(
-        atual_paga, _dec(cmv_v_atual.get("total")), dias_periodo
-    )
-    referencia_vendida = recalc_indicadores_cmv(
-        referencia_paga, _dec(cmv_v_60.get("total")) * k_ref, dias_periodo
-    )
+    cmv_v_ok = bool(cmv_v_atual.get("ok"))
+    if cmv_v_ok:
+        atual_vendida = recalc_indicadores_cmv(
+            atual_paga, _dec(cmv_v_atual.get("total")), dias_periodo
+        )
+        referencia_vendida = recalc_indicadores_cmv(
+            referencia_paga, _dec(cmv_v_60.get("total")) * k_ref, dias_periodo
+        )
+    else:
+        atual_vendida = dict(atual_paga)
+        referencia_vendida = dict(referencia_paga)
     skus_sem = int(cmv_v_atual.get("skus_sem_custo") or 0)
-    if skus_sem > 0:
+    if cmv_v_ok and skus_sem > 0:
         avisos.append(
             f"{skus_sem} produto(s) vendido(s) sem custo no cadastro — CMV vendida ficou menor."
         )
 
-    atual = dict(atual_vendida)
+    modo_ssr = "vendida" if cmv_v_ok else "paga"
+    atual = dict(atual_vendida if cmv_v_ok else atual_paga)
     atual["cmv_paga"] = _dec(atual_paga.get("cmv"))
-    atual["cmv_vendida"] = _dec(cmv_v_atual.get("total"))
-    atual["cmv_modo"] = "vendida"
-    atual["cmv_skus_sem_custo"] = skus_sem
-    atual["cmv_skus_com_custo"] = int(cmv_v_atual.get("skus_com_custo") or 0)
-    referencia = dict(referencia_vendida)
+    atual["cmv_vendida"] = _dec(cmv_v_atual.get("total")) if cmv_v_ok else _dec(atual_paga.get("cmv"))
+    atual["cmv_modo"] = modo_ssr
+    atual["cmv_skus_sem_custo"] = skus_sem if cmv_v_ok else 0
+    atual["cmv_skus_com_custo"] = int(cmv_v_atual.get("skus_com_custo") or 0) if cmv_v_ok else 0
+    referencia = dict(referencia_vendida if cmv_v_ok else referencia_paga)
     referencia["cmv_paga"] = _dec(referencia_paga.get("cmv"))
-    referencia["cmv_vendida"] = _dec(cmv_v_60.get("total")) * k_ref
-    referencia["cmv_modo"] = "vendida"
+    referencia["cmv_vendida"] = (
+        _dec(cmv_v_60.get("total")) * k_ref if cmv_v_ok else _dec(referencia_paga.get("cmv"))
+    )
+    referencia["cmv_modo"] = modo_ssr
 
     pe_30 = (atual["pe_diario"] or Decimal("0")) * Decimal("30")
 
@@ -501,8 +509,8 @@ def get_indicadores_gerencial_pg(
                 "atual": _pack_cmv_js(atual_paga),
                 "ref": _pack_cmv_js(referencia_paga),
             },
-            "skus_sem_custo": skus_sem,
-            "skus_com_custo": int(cmv_v_atual.get("skus_com_custo") or 0),
+            "skus_sem_custo": skus_sem if cmv_v_ok else 0,
+            "skus_com_custo": int(cmv_v_atual.get("skus_com_custo") or 0) if cmv_v_ok else 0,
         },
         "extras": {
             "previsao_30": previsao_30,
