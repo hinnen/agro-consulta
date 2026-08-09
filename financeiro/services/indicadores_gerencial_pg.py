@@ -311,6 +311,7 @@ def _bloco_periodo(
         por="pagamento",
         valor="realizado",
         filtro_contas=filtro_contas,
+        usar_receita_pdv=False,
     )
     if caixa.get("erro"):
         buckets_caixa = natureza_buckets_from_linhas_dre([])

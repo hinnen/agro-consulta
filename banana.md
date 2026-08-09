@@ -1206,38 +1206,53 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### 🔧 DRE usa venda do PDV no lucro (`DRE-PDV-RECEITA` · **teste**)
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.05)
+
+> **Loja hoje:** ✅ **Live v15.05** · `producao` @ **9c45d74**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Cherry/FF só o pacote autorizado.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **DRE-PDV-RECEITA** | 📋 **pronto envio** · teste **v15.13** | não | não (só leitura financeiro) |
+| 2 | **RG-AJUDA-MODAL** | 📋 **pronto envio** · teste **v15.10** | não | não |
+| 3 | **PDV-RACOES** | 📋 **pronto envio** · teste **v15.11** | não | **sim** — pausar vendas |
+
+**Autorizar:** frase + senha na mesma mensagem. Preferir **1+2** juntos; **3** à parte (PDV).
+
+### 📦 PACOTE PRONTO LOJA — DRE usa venda do PDV (`DRE-PDV-RECEITA` · **v15.13**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ teste · loja ainda com receita DRE = R$ 0 |
-| **O quê** | Indicadores + Resumo gerencial: **receita operacional = faturamento PDV** (loja da empresa) · líquido recalcula · CR só conferência |
-| **Caixa** | Continua pagamento realizado — não mistura com lucro |
-| **Você** | Ctrl+F5 Indicadores · mês até hoje · receita ≈ card PDV · líquido deixa de ser só despesa |
-| **Prova** | `tests_receita_pdv_dre` |
+| **Status** | 📋 **pronto envio** · loja ainda receita DRE = R$ 0 |
+| **O quê** | Indicadores + Resumo: **receita operacional = faturamento PDV** (loja da empresa) · líquido recalcula · CR só conferência · grupo soma cada loja (não “todas”) · caixa não mistura |
+| **Prova** | `tests_receita_pdv_dre` **7/7** · verify **VERIFY_OK** · `manage.py check` |
 | **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Indicadores · mês até hoje · receita ≈ card PDV · líquido deixa de ser −10 mil |
+| **Autorizar** | *pode subir DRE-PDV-RECEITA / lucro PDV para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES`)
+### 📦 PACOTE PRONTO LOJA — Resumo aviso ajuda (`RG-AJUDA-MODAL` · **v15.10**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **teste v15.11** · loja ainda sem |
-| **O quê** | Botão **Rações** no PDV (ao lado da busca) → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
-| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1` `5` `10` `15` `20` `25` ou `pacote` |
-| **Catálogo** | Cache PDV **v3** passa sub 2 + peso (senão o botão não acha) · 1ª abertura do dia reconstrói |
-| **Você** | Ctrl+F5 no PDV · cadastrar Sub 1/2 + Peso · testar Estimação 15 kg em Cão adulto |
-| **Prova** | `tests_pdv_racoes` **8/8** · verify **VERIFY_OK** · `manage.py check` |
+| **Status** | 📋 **pronto envio** · loja ainda abre o **?** sozinho |
+| **O quê** | `/financeiro/resumo-gerencial/` — modal ajuda só no **?** |
+| **Commit** | `9eabf62` |
 | **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir RG-AJUDA-MODAL para produção* + **99738595** |
 
-### 🔧 Resumo financeiro — aviso de ajuda na frente (`RG-AJUDA-MODAL` · **teste**)
+### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES` · **v15.11**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ teste · loja ainda abre o aviso sozinho |
-| **O quê** | `/financeiro/resumo-gerencial/` abria o modal **?** na frente (CSS `display:flex` ganhava do `hidden`) |
-| **Agora** | Fecha **Fechar** → **Atualizar F5** → card **Resultado líquido gerencial** = lucro líquido |
-| **Arquivo** | `resumo_financeiro_gerencial.html` |
-| **Você** | Na loja: Fechar + F5. No teste: Ctrl+F5 no resumo — aviso só no **?** |
+| **Status** | 📋 **pronto envio** · loja ainda sem |
+| **O quê** | Botão **Rações** no PDV → tipo → marca (ou Todas) → tamanho (ou Todos) → carrinho |
+| **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso no overlay |
+| **Catálogo** | Cache PDV **v3** · 1ª abertura do dia reconstrói |
+| **Você** | Ctrl+F5 PDV · testar Estimação 15 kg em Cão adulto |
+| **Prova** | `tests_pdv_racoes` **8/8** · verify **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Commit** | `251d679` |
+| **Autorizar** | *pode subir PDV-RACOES para produção* + **99738595** |
 
 ### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
 
