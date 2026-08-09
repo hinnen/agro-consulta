@@ -1215,7 +1215,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | --------- |
 | 1 | **DRE-PDV-RECEITA** | 📋 **pronto envio** · teste **v15.14** | não | não (só leitura financeiro) |
 | 2 | **RG-AJUDA-MODAL** | 📋 **pronto envio** · teste **v15.10** | não | não |
-| 3 | **PDV-RACOES** | 📋 **pronto envio** · teste **v15.11** | não | **sim** — pausar vendas |
+| 3 | **PDV-RACOES** | 📋 **pronto envio** · teste **v15.15** | não | **sim** — pausar vendas |
 
 **Autorizar:** frase + senha na mesma mensagem. Preferir **1+2** juntos; **3** à parte (PDV).
 
@@ -1240,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir RG-AJUDA-MODAL para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES` · **v15.11**)
+### 📦 PACOTE PRONTO — PDV atalho Rações (`PDV-RACOES` · **v15.11+**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1249,9 +1249,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cadastro** | Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso no overlay |
 | **Catálogo** | Cache PDV **v3** · 1ª abertura do dia reconstrói |
 | **Você** | Ctrl+F5 PDV · testar Estimação 15 kg em Cão adulto |
-| **Prova** | `tests_pdv_racoes` **8/8** · verify **VERIFY_OK** |
+| **Prova** | `tests_pdv_racoes` **13/13** · verify path cadastro→overlay→catálogo→JS→carrinho **VERIFY_OK** · `manage.py check` |
 | **Migrate** | **NÃO** |
-| **Commit** | `251d679` |
+| **Commit** | `251d679` + verify |
 | **Autorizar** | *pode subir PDV-RACOES para produção* + **99738595** |
 
 ### ✅ Deploy loja — CAD-XLSX-COLS (`deploy/cad-xlsx-cols` · **v15.05**)
