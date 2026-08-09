@@ -141,6 +141,32 @@ class FiltrarTests(SimpleTestCase):
             ["a", "b"],
         )
 
+    def test_origens_catalogo_velho_depois_patch(self):
+        """Lista velha do PDV (sem cat/sub2) + patch do cadastro → Cão adulto 15 kg."""
+        tipo = tipo_racoes_por_id("cao_adulto")
+        stale = _row(
+            id="origens15",
+            nome="Racao origens cachorro adulto carne e frango 15kg",
+            categoria="",
+            subcategoria="cachorro",
+            subcategoria_2="",
+            marca="ORIGENS",
+            peso_etiqueta="",
+        )
+        self.assertEqual(filtrar_racoes([stale], tipo), [])
+        patch = patch_racoes_de_campos(
+            pid="origens15",
+            categoria="Rações",
+            sub1="Cão",
+            sub2="Adulto",
+            peso="15",
+            marca="ORIGENS",
+        )
+        merged = {**stale, **patch}
+        hit = filtrar_racoes([merged], tipo, marca="ORIGENS", peso_key="kg:15")
+        self.assertEqual([r["id"] for r in hit], ["origens15"])
+        self.assertEqual(merged["subcategoria"], "Cão")
+
     def test_patch_overlay_vivo(self):
         ok = patch_racoes_de_campos(
             pid="GM50",
@@ -160,6 +186,11 @@ class FiltrarTests(SimpleTestCase):
         self.assertIsNone(
             patch_racoes_de_campos(pid="x", categoria="Farelo", sub1="Cão", sub2="Adulto")
         )
+        long_id = "Z" * 80
+        recorte = patch_racoes_de_campos(
+            pid=long_id, categoria="Rações", sub1="Cão", sub2="Adulto"
+        )
+        self.assertEqual(len(recorte["id"]), 64)
 
     def test_oito_tipos_catalogo_minimo(self):
         rows = []

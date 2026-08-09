@@ -9077,7 +9077,16 @@
     }
 
     function pdvRacoesSincronizarCadastro() {
-        pdvRacoesSyncP = fetch('/api/pdv/racoes-overlay/', { credentials: 'same-origin' })
+        var base = Promise.resolve();
+        try {
+            base = loadWizardCatalog() || Promise.resolve();
+        } catch (eLoad) {
+            base = Promise.resolve();
+        }
+        pdvRacoesSyncP = Promise.resolve(base)
+            .then(function () {
+                return fetch('/api/pdv/racoes-overlay/', { credentials: 'same-origin' });
+            })
             .then(function (r) {
                 return r.json();
             })
@@ -9092,11 +9101,6 @@
     function pdvRacoesAbrir() {
         var el = pdvRacoesOverlayEl();
         if (!el) return;
-        if (!catalogReady) {
-            try {
-                loadWizardCatalog();
-            } catch (eLoad) {}
-        }
         pdvRacoesSel = { tipo: null, marca: undefined, step: 'tipo' };
         pdvRacoesSetMsg('Lendo cadastro…');
         pdvRacoesShowStep('tipo');

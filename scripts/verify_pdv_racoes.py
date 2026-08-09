@@ -176,8 +176,14 @@ def check_frontend_parity() -> None:
         ok("rota racoes-overlay")
     if "/api/pdv/racoes-overlay/" not in js or "pdvRacoesSincronizarCadastro" not in js:
         fail("JS puxa cadastro vivo Racoes")
+    elif "loadWizardCatalog()" not in js.split("function pdvRacoesSincronizarCadastro")[1].split("function pdvRacoesAbrir")[0]:
+        fail("sync Racoes nao espera catalogo")
+    elif "aplicarWizardPatchesProdutos(d.itens)" not in js:
+        fail("JS nao aplica patch overlay no catalogo")
+    elif "pdvRacoesSyncP.finally" not in js:
+        fail("IrMarca nao espera sync cadastro")
     else:
-        ok("JS puxa cadastro vivo Racoes")
+        ok("JS puxa cadastro vivo Racoes (catalogo + patch + espera)")
     m = re.search(r"var PDV_RACOES_TIPOS = \[(.*?)\];", js, re.S)
     if not m:
         fail("JS PDV_RACOES_TIPOS")
@@ -233,6 +239,7 @@ def check_util_cenarios() -> None:
         TIPOS_RACOES,
         filtrar_racoes,
         parse_peso_racoes,
+        patch_racoes_de_campos,
         tipo_racoes_por_id,
     )
 
@@ -355,6 +362,31 @@ def check_util_cenarios() -> None:
         fail("gato filhote granel")
     else:
         ok("gato filhote granel")
+    stale = {
+        "id": "origens15",
+        "categoria": "",
+        "subcategoria": "cachorro",
+        "subcategoria_2": "",
+        "marca": "ORIGENS",
+        "peso_etiqueta": "",
+    }
+    if filtrar_racoes([stale], adulto):
+        fail("origens velho nao deveria achar")
+    else:
+        ok("origens catalogo velho vazio")
+    patch = patch_racoes_de_campos(
+        pid="origens15",
+        categoria="Rações",
+        sub1="Cão",
+        sub2="Adulto",
+        peso="15",
+        marca="ORIGENS",
+    )
+    merged = {**stale, **(patch or {})}
+    if [r["id"] for r in filtrar_racoes([merged], adulto, marca="ORIGENS", peso_key="kg:15")] != ["origens15"]:
+        fail("origens apos patch cadastro")
+    else:
+        ok("origens apos patch cadastro")
 
 
 def check_overlay_row() -> None:
