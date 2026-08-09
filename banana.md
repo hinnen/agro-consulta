@@ -1207,23 +1207,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.23)
+### ✅ CHECKLIST ÚNICO — PREP envio (09/08 · após loja v15.23)
 
 > **Loja hoje:** ✅ **Live v15.23** · `producao` @ **2116b41**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **⚠️** **NÃO** merge `teste`→`producao`. **NÃO** push `producao` sem pausa + senha.
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-LISTA** | 📋 **pronto para envio à produção** · teste **v15.24** | não | **sim** — pausar vendas |
+| 1 | **PDV-RACOES-LISTA** | 🚀 **PREP pronto** · aguarda pausa + senha · loja alvo **v15.24** | não | **sim** — pausar vendas |
+
+### 🚀 PREP deploy — Rações lista (`deploy/pdv-racoes-lista` · **v15.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP** · branch `deploy/pdv-racoes-lista` @ **5fc0ee8** · **aguarda pausa + frase+senha** |
+| **Base loja** | `2116b41` · Live **v15.23** |
+| **Alvo** | loja **v15.24** |
+| **Método** | worktree `origin/producao` · recorte **só bloco Rações** (JS+HTML+CSS) · **não** arquivo inteiro do teste · **não** merge |
+| **Arquivos** | `pdv_wizard.js` (bloco Rações) · `pdv_wizard.html` (overlay+CSS lista) · `tests_pdv_racoes.py` · `verify_pdv_racoes.py` · `VERSION` |
+| **Fora** | resto do teste · caixa · finalizar venda · `/consulta/` · DRE · migrate |
+| **Provas** | teste **16/16** · verify path lista **VERIFY_OK** · `node --check` · `manage.py check` · worktree igual |
+| **Risco loja aberta** | Só o botão **Rações**. Carrinho / caixa / finalizar **iguais**. Mesmo assim: **pausar vendas** (restart ~2 min). |
+| **Rollback** | tag `rollback/pre-pdv-racoes-lista-v15.23` @ `2116b41` |
+| **Próximo chat** | 1) lojas pausam vendas 2) *pode subir PDV-RACOES-LISTA para produção* + **99738595** 3) push `deploy/pdv-racoes-lista` → `producao` + Ctrl+F5 |
+| **Autorizar** | *pode subir PDV-RACOES-LISTA para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Rações escolhe na lista (`PDV-RACOES-LISTA` · **v15.24**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · teste **v15.24** · `4be8cad` |
+| **Status** | 🚀 **PREP pronto** · aguarda pausa + senha · teste **v15.24** · `4be8cad` / deploy **5fc0ee8** |
 | **O quê** | Depois do tamanho: overlay grande, barato→caro, Adicionar / Adicionar todas / Fechar. Linha verde. Esc fecha. Não vai direto ao carrinho. |
 | **Você** | Ctrl+F5 PDV → Rações → tipo → marca → tamanho → lista → Adicionar |
-| **Prova** | `tests_pdv_racoes` · verify path lista **VERIFY_OK** · `node --check` · `manage.py check` |
+| **Prova** | `tests_pdv_racoes` **16/16** · verify **VERIFY_OK** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA para produção* + **99738595** |
 
