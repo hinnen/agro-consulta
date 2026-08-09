@@ -227,3 +227,65 @@ class RecalcIndicadoresCmvTests(SimpleTestCase):
         out = recalc_indicadores_cmv(ind, paga, 31)
         self.assertEqual(out["lucro_bruto"], Decimal("40116"))
         self.assertEqual(out["geracao_caixa"], Decimal("50"))
+
+
+class GetIndicadoresCmvToggleTests(SimpleTestCase):
+    def _ind(self, rec: Decimal, cmv: Decimal, *, dias: int = 9):
+        from financeiro.models import LancamentoFinanceiro as NF
+        from financeiro.services.indicadores_gerencial_pg import _indicadores_from_core
+        from financeiro.services.resumo_operacional_mongo import natureza_buckets_from_linhas_dre
+
+        buckets = natureza_buckets_from_linhas_dre([])
+        buckets[NF.NATUREZA_RECEITA_OPERACIONAL] = Decimal("80")
+        buckets[NF.NATUREZA_CMV] = Decimal("180")
+        return _indicadores_from_core(
+            {
+                "receita_operacional": rec,
+                "receita_nao_operacional": Decimal("0"),
+                "cmv": cmv,
+                "despesas_fixas": Decimal("1000"),
+                "despesas_variaveis": Decimal("200"),
+                "despesas_financeiras": Decimal("50"),
+                "resultado_liquido_gerencial": rec - cmv - Decimal("1250"),
+                "aportes_socios": Decimal("0"),
+                "retiradas_socios": Decimal("0"),
+                "receita_fonte": "pdv",
+                "receita_lancamentos": Decimal("0"),
+            },
+            caixa_buckets=buckets,
+            dias_janela=dias,
+        )
+
+    @patch("financeiro.services.indicadores_gerencial_pg.gastos_variacao_pg")
+    @patch("produtos.relatorios_vendas_util.custo_mercadoria_vendida")
+    @patch("financeiro.services.receita_pdv_util.deposito_pdv_por_empresa_id")
+    @patch("financeiro.services.indicadores_gerencial_pg._faturamento_pdv_periodo")
+    @patch("financeiro.services.indicadores_gerencial_pg._bloco_periodo")
+    def test_ssr_vendida_json_dois_modos_caixa_intacto(
+        self, mock_bloco, mock_fat, mock_dep, mock_cmv, mock_var
+    ):
+        from financeiro.services.indicadores_gerencial_pg import get_indicadores_gerencial_pg
+
+        paga_atual = self._ind(Decimal("100000"), Decimal("60000"))
+        paga_60 = self._ind(Decimal("200000"), Decimal("120000"), dias=60)
+        mock_bloco.side_effect = [(paga_atual, None), (paga_60, None)]
+        mock_fat.return_value = {"ok": True, "total": Decimal("100000"), "por_dia": {}}
+        mock_dep.return_value = "centro"
+        mock_cmv.side_effect = [
+            {"ok": True, "total": Decimal("24663"), "skus_com_custo": 80, "skus_sem_custo": 3},
+            {"ok": True, "total": Decimal("50000"), "skus_com_custo": 90, "skus_sem_custo": 1},
+        ]
+        mock_var.return_value = {"ok": True, "chart": {}, "buckets": []}
+
+        out = get_indicadores_gerencial_pg(1, date(2026, 8, 1), date(2026, 8, 9))
+        self.assertEqual(out["atual"]["cmv_modo"], "vendida")
+        self.assertEqual(out["atual"]["cmv"], Decimal("24663"))
+        self.assertEqual(out["atual"]["cmv_paga"], Decimal("60000"))
+        self.assertEqual(out["atual"]["lucro_bruto"], Decimal("75337"))
+        self.assertEqual(out["atual"]["geracao_caixa"], paga_atual["geracao_caixa"])
+        self.assertEqual(out["cmv_modos"]["vendida"]["atual"]["cmv"], 24663.0)
+        self.assertEqual(out["cmv_modos"]["paga"]["atual"]["cmv"], 60000.0)
+        self.assertEqual(out["cmv_modos"]["paga"]["atual"]["lucro_bruto"], float(paga_atual["lucro_bruto"]))
+        self.assertNotIn("geracao_caixa", out["cmv_modos"]["vendida"]["atual"])
+        self.assertEqual(out["atual"]["cmv_skus_sem_custo"], 3)
+        self.assertEqual(mock_cmv.call_args_list[0].kwargs.get("deposito"), "centro")
