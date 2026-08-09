@@ -169,6 +169,16 @@ def check_frontend_parity() -> None:
         fail("addItem carrinho")
     else:
         ok("addItem carrinho")
+    if "pdvRacoesIrLista" not in js or "pdvRacoesAddTodas" not in js or "pdvRacoesAddUm" not in js:
+        fail("lista Racoes add um/todas")
+    elif "return pa - pb" not in js:
+        fail("lista Racoes nao ordena preco")
+    elif 'id="pdv-racoes-step-lista"' not in wiz or 'id="pdv-racoes-add-todas"' not in wiz:
+        fail("HTML lista Racoes")
+    elif "Adicionar todas" not in wiz:
+        fail("botao Adicionar todas")
+    else:
+        ok("lista Racoes overlay + preco + add um/todas")
     urls = read("produtos/urls.py")
     if "api/pdv/racoes-overlay/" not in urls:
         fail("rota racoes-overlay")

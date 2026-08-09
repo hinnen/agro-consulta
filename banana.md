@@ -428,7 +428,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08 · loja v15.20):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora (não lista velha). Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · teste):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha fica verde quando entra. Esc fecha. Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1206,6 +1206,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (09/08 · após loja v15.23)
+
+> **Loja hoje:** ✅ **Live v15.23** · `producao` @ **2116b41**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate | Risco PDV |
+| - | ------ | ------ | ------- | --------- |
+| 1 | **PDV-RACOES-LISTA** | 📋 **pronto envio** | não | **sim** — pausar vendas |
+
+### 📦 PACOTE PRONTO — Rações escolhe na lista (`PDV-RACOES-LISTA`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto envio** · teste |
+| **O quê** | Depois do tamanho: overlay grande, menor→maior preço, Adicionar / Adicionar todas / Fechar. Linha verde no carrinho. Esc fecha. |
+| **Você** | Ctrl+F5 PDV → Rações → tipo → marca → tamanho → lista → Adicionar |
+| **Prova** | `tests_pdv_racoes` **15/15** · verify **VERIFY_OK** · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-LISTA para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.23)
 
