@@ -1195,6 +1195,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Inauguração Vila — 5% encerrado (09/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **encerrado** · janela era **07–08/08** · hoje **09/08** o 5% **já desliga sozinho** |
+| **Decisão** | **Deixar o código** (não apagar, não deploy) |
+| **Por quê** | Remover agora = risco no PDV sem ganho. Faixa só liga na data. **CAMP-PROMO-MENOR** (promo da loja certa + GM) **fica** — é correção permanente. |
+| **Loja** | ✅ **Live v15.05** · sem faixa laranja · promoções normais |
+| **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
+| **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
+
 ### 🔧 DRE usa venda do PDV no lucro (`DRE-PDV-RECEITA` · **teste**)
 
 | Item | Detalhe |
@@ -1274,8 +1285,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **O quê** | PDV Vila pedia promo da **Centro** → valor direto 54,90 não entrava · 5% sozinho (60→57). Fix: pede promo da loja do caixa · casa pelo GM · recarrega ao voltar/salvar · cache v2 |
 | **Provas** | `tests_promocoes_busca` **8/8** · `tests_campanha_pdv` **15/15** · verify campanha **45/45** · verify promo busca **54/54** · `manage.py check` OK |
-| **Você** | **Ctrl+F5** PDV Vila → farelo GM1507-30 = **R$ 54,90** (não 57) · Centro sem 5% |
-| **Kill** | `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart (só se 5% der problema) |
+| **Você** | Inauguração **passou** · 5% off. Promo valor direto segue valendo (fix permanente). |
+| **Kill** | só se 5% ainda aparecer: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Rollback** | tag `rollback/pre-camp-promo-menor-0808-v15.03` @ `290e8b2` |
 
 ### 📦 PACOTE PRONTO — Promo valor direto prevalece no 5% Vila (`CAMP-PROMO-MENOR`)
@@ -1321,7 +1332,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live v15.03** · janela **07–08/08** |
+| **Status** | ✅ **encerrado 09/08** · código ficou na loja (desliga sozinho) · Live desde v15.03 |
 | **O quê** | **07 e 08/08/2026** só **Vila Elias**: 5% off · menor vs promo · arredonda 5¢ · **09/08 volta ao normal** · não mexe cadastro · faixa laranja |
 | **Fix extra** | Recalc (mudou qtd) limpa marca da campanha — promo+5% não fica com preço velho |
 | **Prova** | `manage.py test produtos.tests_campanha_pdv` **15/15** · `scripts/verify_camp_vila_5_path.py` **35/35** |
