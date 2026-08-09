@@ -32,6 +32,7 @@ COL_SUBCATEGORIA_3 = "subcategoria_3"
 COL_SUBCATEGORIA_4 = "subcategoria_4"
 COL_FORNECEDOR = "fornecedor"
 COL_UNIDADE = "unidade"
+COL_PESO = "peso_etiqueta"
 COL_DESCRICAO = "descricao"
 COL_CODIGO_BARRAS = "codigo_barras"
 COL_PRECO_CUSTO = "preco_custo"
@@ -61,6 +62,7 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Subcategoria 4", COL_SUBCATEGORIA_4),
     ("Fornecedor", COL_FORNECEDOR),
     ("Unidade", COL_UNIDADE),
+    ("Peso", COL_PESO),
     ("Descrição", COL_DESCRICAO),
     ("Código barras", COL_CODIGO_BARRAS),
     ("Preço custo", COL_PRECO_CUSTO),
@@ -415,6 +417,7 @@ IMPORT_KEYS = {
     COL_SUBCATEGORIA_4,
     COL_FORNECEDOR,
     COL_UNIDADE,
+    COL_PESO,
     COL_DESCRICAO,
     COL_CODIGO_BARRAS,
     COL_PRECO_CUSTO,
@@ -444,6 +447,7 @@ OVERLAY_IMPORT_KEYS = (
     COL_SUBCATEGORIA_4,
     COL_FORNECEDOR,
     COL_UNIDADE,
+    COL_PESO,
     COL_DESCRICAO,
     COL_CODIGO_BARRAS,
     COL_PRECO_VENDA,
@@ -544,6 +548,7 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         ),
         COL_FORNECEDOR: ("fornecedor", "fornecedor texto", "fabricante"),
         COL_UNIDADE: ("unidade", "un", "sigla unidade"),
+        COL_PESO: ("peso", "peso etiqueta", "peso gondola"),
         COL_DESCRICAO: ("descricao", "descrição", "obs", "observacao", "observação"),
         COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
         COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
@@ -613,6 +618,10 @@ def _enriquecer_row_planilha(row: dict, ov: ProdutoGestaoOverlayAgro | None) -> 
         row[COL_NCM] = str(row.get("ncm") or "").strip()
     if not row.get(COL_FORNECEDOR) and row.get("fornecedor"):
         row[COL_FORNECEDOR] = str(row.get("fornecedor") or "").strip()
+    if ov and str(getattr(ov, "peso_etiqueta", "") or "").strip():
+        row[COL_PESO] = str(ov.peso_etiqueta).strip()[:40]
+    if not row.get(COL_PESO) and row.get("peso_etiqueta"):
+        row[COL_PESO] = str(row.get("peso_etiqueta") or "").strip()[:40]
 
 
 def _cel_str(val) -> str:
@@ -831,6 +840,7 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
         COL_SUBCATEGORIA_4: str(row.get("subcategoria_4") or ""),
         COL_FORNECEDOR: str(row.get("fornecedor") or ""),
         COL_UNIDADE: str(row.get("unidade") or ""),
+        COL_PESO: str(row.get("peso_etiqueta") or ""),
         COL_DESCRICAO: str(row.get("descricao") or ""),
         COL_CODIGO_BARRAS: str(row.get("codigo_barras") or ""),
         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
@@ -870,7 +880,7 @@ def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> 
         for col, (_, key) in enumerate(hdrs, start=1):
             val = line.get(key)
             cell = ws.cell(row=ri, column=col)
-            if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS, COL_NCM, COL_CEST, COL_CFOP, COL_CSOSN, COL_ORIGEM):
+            if key in (COL_ID, COL_CODIGO_GM, COL_CODIGO_BARRAS, COL_PESO, COL_NCM, COL_CEST, COL_CFOP, COL_CSOSN, COL_ORIGEM):
                 cell.value = str(val) if val is not None else ""
                 cell.number_format = "@"
             else:
@@ -1129,6 +1139,7 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     txt(COL_SUBCATEGORIA_4, 200)
     txt(COL_FORNECEDOR, 300)
     txt(COL_UNIDADE, 20)
+    txt(COL_PESO, 40)
     txt(COL_DESCRICAO, 16000)
     txt(COL_CODIGO_BARRAS, 80)
     txt(COL_NCM, 16)
@@ -1514,6 +1525,8 @@ def _mx_overlay_texto(key: str) -> int:
         return 300
     if key == COL_UNIDADE:
         return 20
+    if key == COL_PESO:
+        return 40
     if key == COL_DESCRICAO:
         return 16000
     if key == COL_MARCA:
@@ -1824,6 +1837,8 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
         ov.fornecedor_texto = str(patch[COL_FORNECEDOR] or "")[:300]
     if COL_UNIDADE in patch:
         ov.unidade = str(patch[COL_UNIDADE] or "")[:20]
+    if COL_PESO in patch:
+        ov.peso_etiqueta = str(patch[COL_PESO] or "")[:40]
     if COL_DESCRICAO in patch:
         ov.descricao = str(patch[COL_DESCRICAO] or "")[:16000]
     if COL_CODIGO_BARRAS in patch:
