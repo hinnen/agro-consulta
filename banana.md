@@ -1220,7 +1220,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · branch `deploy/dre-cmv-toggle-0908` |
+| **Status** | 🚀 **PREP PRONTA** · `deploy/dre-cmv-toggle-0908` @ **2116b41** · v15.23 |
 | **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. Se CMV vendida falhar, fica na paga. |
 | **Fora** | PDV · caixa · relatórios (filtro loja só se pedir) · resto do `teste` |
 | **Migrate** | **NÃO** |
