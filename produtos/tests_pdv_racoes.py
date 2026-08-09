@@ -6,6 +6,7 @@ from produtos.pdv_racoes_util import (
     eh_categoria_racoes,
     filtrar_racoes,
     parse_peso_racoes,
+    patch_racoes_de_campos,
     tipo_racoes_por_id,
 )
 
@@ -138,6 +139,26 @@ class FiltrarTests(SimpleTestCase):
         self.assertEqual(
             [r["id"] for r in filtrar_racoes(rows, tipo, marca=None, peso_key="kg:10")],
             ["a", "b"],
+        )
+
+    def test_patch_overlay_vivo(self):
+        ok = patch_racoes_de_campos(
+            pid="GM50",
+            categoria="Rações",
+            sub1="Cão",
+            sub2="Adulto",
+            peso="15",
+            marca="ORIGENS",
+        )
+        self.assertEqual(ok["id"], "GM50")
+        self.assertEqual(ok["subcategoria"], "Cão")
+        self.assertEqual(ok["subcategoria_2"], "Adulto")
+        self.assertEqual(ok["peso_etiqueta"], "15")
+        self.assertIsNone(
+            patch_racoes_de_campos(pid="x", categoria="Rações", sub1="Cão", sub2="")
+        )
+        self.assertIsNone(
+            patch_racoes_de_campos(pid="x", categoria="Farelo", sub1="Cão", sub2="Adulto")
         )
 
     def test_oito_tipos_catalogo_minimo(self):

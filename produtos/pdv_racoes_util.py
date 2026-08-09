@@ -103,6 +103,98 @@ def produto_passa_peso_racoes(row: dict | None, peso_key: str | None) -> bool:
     return parsed == peso_key
 
 
+def patch_racoes_de_campos(
+    *,
+    pid: Any,
+    categoria: Any = "",
+    sub1: Any = "",
+    sub2: Any = "",
+    peso: Any = "",
+    marca: Any = "",
+) -> dict | None:
+    """Patch mínimo p/ o PDV (id + cat/sub/peso). None se não for ração com Sub 2."""
+    if not eh_categoria_racoes(categoria):
+        return None
+    s2 = str(sub2 or "").strip()
+    if not s2:
+        return None
+    ident = str(pid or "").strip()[:64]
+    if not ident:
+        return None
+    return {
+        "id": ident,
+        "categoria": str(categoria or "").strip(),
+        "subcategoria": str(sub1 or "").strip(),
+        "subcategoria_2": s2,
+        "peso_etiqueta": str(peso or "").strip(),
+        "marca": str(marca or "").strip(),
+    }
+
+
+def listar_patches_racoes_pdv() -> list[dict]:
+    """Cadastro Agro ao vivo — não depende do cache diário do PDV."""
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+
+    seen: set[str] = set()
+    out: list[dict] = []
+    ov_qs = (
+        ProdutoGestaoOverlayAgro.objects.exclude(categoria="")
+        .exclude(subcategoria_2="")
+        .only(
+            "produto_externo_id",
+            "categoria",
+            "subcategoria",
+            "subcategoria_2",
+            "peso_etiqueta",
+            "marca",
+        )
+    )
+    for ov in ov_qs.iterator():
+        patch = patch_racoes_de_campos(
+            pid=ov.produto_externo_id,
+            categoria=ov.categoria,
+            sub1=ov.subcategoria,
+            sub2=ov.subcategoria_2,
+            peso=ov.peso_etiqueta,
+            marca=ov.marca,
+        )
+        if not patch:
+            continue
+        seen.add(patch["id"])
+        out.append(patch)
+    prod_qs = (
+        Produto.objects.filter(cadastro_inativo=False, ativo=True)
+        .exclude(categoria="")
+        .exclude(subcategoria_2="")
+        .only(
+            "pk",
+            "produto_externo_id",
+            "erp_produto_id",
+            "categoria",
+            "subcategoria",
+            "subcategoria_2",
+            "marca",
+        )
+    )
+    for p in prod_qs.iterator():
+        pid = str(p.produto_externo_id or p.erp_produto_id or p.pk).strip()[:64]
+        if not pid or pid in seen:
+            continue
+        patch = patch_racoes_de_campos(
+            pid=pid,
+            categoria=p.categoria,
+            sub1=p.subcategoria,
+            sub2=p.subcategoria_2,
+            peso="",
+            marca=p.marca,
+        )
+        if not patch:
+            continue
+        seen.add(patch["id"])
+        out.append(patch)
+    return out
+
+
 def filtrar_racoes(
     rows: list[dict] | None,
     tipo: dict[str, str] | None,

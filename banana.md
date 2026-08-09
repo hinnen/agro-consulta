@@ -1213,9 +1213,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate | Risco PDV |
 | - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.18** | não | **sim** — pausar vendas |
+| 1 | **PDV-RACOES-FIX** | 📋 **pronto envio** · teste **v15.19** | não | **sim** — pausar vendas |
+| 2 | **PDV-RACOES-25** | 📋 **pronto envio** · teste **v15.18** | não | **sim** — pausar vendas |
 
-**Autorizar:** *pode subir PDV-RACOES-25 / saco 2,5 kg para produção* + **99738595**.
+**Autorizar:** frase + senha. Preferir **1+2 juntos** (fix + saco 2,5 kg).
+
+### 📦 PACOTE PRONTO — Rações lê cadastro ao vivo (`PDV-RACOES-FIX` · **v15.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto envio** · loja v15.16 botão não acha produto recém-cadastrado |
+| **O quê** | Botão Rações puxa Categoria/Sub 1/Sub 2/Peso do Agro na hora (não usa lista velha do PDV) |
+| **Você** | Ctrl+F5 no PDV → Rações → **Cão adulto** → deve aparecer Origens |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-FIX para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Rações saco 2,5 kg (`PDV-RACOES-25` · **v15.18**)
 

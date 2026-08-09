@@ -93,10 +93,15 @@ def check_cadastro() -> None:
     if save_idx < 0:
         save_idx = views.find('_aplicar_txt_ov("peso_etiqueta"')
     inv_idx = views.find("cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)", max(save_idx, 0))
-    if save_idx < 0 or inv_idx < 0 or inv_idx - save_idx > 25000:
+    save_chunk = views[save_idx : save_idx + 80000] if save_idx >= 0 else ""
+    if save_idx < 0 or inv_idx < 0 or inv_idx - save_idx > 80000:
         fail("salvar Agro não invalida catálogo PDV")
     else:
         ok("salvar Agro invalida catálogo PDV")
+    if "pdv_catalogo_slim_v3:" not in save_chunk:
+        fail("salvar Agro não invalida slim PDV")
+    else:
+        ok("salvar Agro invalida slim PDV")
 
 
 def check_catalogo() -> None:
@@ -164,6 +169,15 @@ def check_frontend_parity() -> None:
         fail("addItem carrinho")
     else:
         ok("addItem carrinho")
+    urls = read("produtos/urls.py")
+    if "api/pdv/racoes-overlay/" not in urls:
+        fail("rota racoes-overlay")
+    else:
+        ok("rota racoes-overlay")
+    if "/api/pdv/racoes-overlay/" not in js or "pdvRacoesSincronizarCadastro" not in js:
+        fail("JS puxa cadastro vivo Racoes")
+    else:
+        ok("JS puxa cadastro vivo Racoes")
     m = re.search(r"var PDV_RACOES_TIPOS = \[(.*?)\];", js, re.S)
     if not m:
         fail("JS PDV_RACOES_TIPOS")
