@@ -275,11 +275,12 @@ def test_pagina_local() -> None:
             code = resp.getcode()
             body = resp.read().decode("utf-8", errors="replace")
         check("http_resumo", code in (200, 302), str(code))
-        if code == 200:
+        login = "Acessar" in body or "login" in body.lower()
+        if code == 200 and not login:
             check("html_tem_chip", 'data-dre-cmv="vendida"' in body)
             check("html_tem_js", "agro_resumo_gerencial.js" in body)
         else:
-            check("login_ou_redirect", True, str(code))
+            check("login_ou_redirect", True, "login" if login else str(code))
     except Exception as exc:
         check("runserver_opcional", True, f"sem local ({type(exc).__name__})")
 

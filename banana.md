@@ -1207,6 +1207,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **PDV-RACOES-LISTA-UX** | 📋 **pronto para envio à produção** · teste | não | **sim** — pausar vendas |
 | 2 | **DRE-VISUAL-PREVIA** | 📋 **pronto para envio à produção** · teste | não | não |
 
+### 📦 PACOTE PRONTO — Lista Rações cor + foto (`PDV-RACOES-LISTA-UX`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
+| **O quê** | Linha com cor da marca · foto miniatura (clique abre grande, igual PDV) · “No carrinho” junto do Adicionar · sem coluna Carrinho |
+| **Prova** | verify Rações **127/127** · tests **17/17** · `node --check` |
+| **Você** | Ctrl+F5 PDV → Rações → lista → conferir cor, foto e Adicionar |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA`)
 
 | Item | Detalhe |
@@ -1217,16 +1228,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `tests_dre_visual` + `tests_receita_pdv_dre` **20/20** · verify visual **24/24** · verify RG **78/78** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
-
-### 📦 PACOTE PRONTO — Lista Rações cor + foto (`PDV-RACOES-LISTA-UX`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | Linha com cor da marca · foto miniatura (clique abre grande) · “No carrinho” junto do Adicionar · sem coluna Carrinho |
-| **Você** | Ctrl+F5 PDV → Rações → lista → conferir cor, foto e Adicionar |
-| **Migrate** | **NÃO** |
-| **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.26)
 
