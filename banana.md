@@ -1198,19 +1198,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE Mini DRE soma + card empréstimos (`DRE-EMP-CARD` · **v15.54**)
+### 📦 PACOTE PRONTO — DRE empréstimos + Mini DRE + «?» (`DRE-EMP-CARD` · **v15.54**)
 
 > **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este pacote está **só no teste** até frase+senha.
+> **⚠️** **NÃO** merge `teste`→`producao`. Só no `teste` até frase+senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · teste após bump |
-| **Prova** | tests DRE visual **18/18** · path visual **217/217** · RG CMV **79/79** · DRE CMV **55/55** |
-| **O quê** | Mini DRE soma + card empréstimos (devido bruto). Frases longas no **«?»** do card · comparativo/emp **sem quebra** de rótulo |
+| **Status** | 📦 **pronto para envio à produção** |
+| **O quê** | Card Empréstimos: devido **bruto** + juros devido + total + pago + emprestado (competência). Mini DRE **Saldo final = soma**. Frases no **«?»** · rótulos sem quebra |
+| **Prova** | unit **34/34** · visual **217/217** · planos **42/42** · DRE CMV **55/55** · PDV-DRE **33/33** · RG CMV **79/79** |
+| **Commits** | `4022f08` … `2735c06` · `teste` @ **2735c06** · **v15.54** |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV · caixa · wizard · Indicadores HTML · API `geracao_caixa` |
-| **Você** | Ctrl+F5 DRE · Jul/2026 Centro vencimento: empréstimo devido ~42.601 · juros devido ~4.658 · total ~47.259 |
+| **Você** | Ctrl+F5 DRE · Jul/2026 Centro vencimento: emp. devido ~42.601 · juros ~4.658 · total ~47.259 |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (10/08 · loja ainda v15.52)
 
@@ -1219,7 +1220,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** (+ «?» cards + sem quebra) | 📦 pronto para envio à produção | não |
+| 1 | **DRE-EMP-CARD** (v15.54) | 📦 pronto para envio à produção | não |
 
 ### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
 
