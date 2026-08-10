@@ -1206,7 +1206,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto para envio à produção** · teste após bump |
-| **Prova** | tests DRE visual **18/18** · path visual **213/213** · RG CMV **79/79** · DRE CMV **55/55** |
+| **Prova** | tests DRE visual **18/18** · path visual **217/217** · RG CMV **79/79** · DRE CMV **55/55** |
 | **O quê** | Mini DRE soma + card empréstimos (devido bruto). Frases longas no **«?»** do card · comparativo/emp **sem quebra** de rótulo |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV · caixa · wizard · Indicadores HTML · API `geracao_caixa` |
@@ -1219,7 +1219,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** | 📦 pronto para envio à produção | não |
+| 1 | **DRE-EMP-CARD** (+ «?» cards + sem quebra) | 📦 pronto para envio à produção | não |
 
 ### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
 
