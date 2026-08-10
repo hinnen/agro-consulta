@@ -1198,37 +1198,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⏳ PREP produção — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
+### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
-> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
-> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
+> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **PREP pronto** · `deploy/dre-visual-polish-0908` @ **2f6d05e** · **não** merge `teste`→`producao` |
-| **Pacote** | **DRE-VISUAL-POLISH** só |
-| **Base loja** | `9b212b0` (v15.46) |
-| **Rollback** | tag `rollback/pre-dre-visual-polish-v15.46` @ `9b212b0` · `git push origin 9b212b0:producao` |
+| **Status** | ✅ **enviado / Live v15.50** · `producao` @ **2f6d05e** · base era `9b212b0` (v15.46) |
+| **Pacote** | **DRE-VISUAL-POLISH** |
+| **Rollback** | `git push origin 9b212b0:producao` ou tag `rollback/pre-dre-visual-polish-v15.46` |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · `views.py` · `relatorios_vendas_util` · Indicadores HTML · API `geracao_caixa` |
-| **Arquivos** | `dre_visual_util.py` · `agro_resumo_gerencial.js/css` · template resumo · tests/verify · VERSION **15.50** |
-| **Prova worktree** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
-| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE · badge **v15.50** · comparativos · Mini DRE juros/empréstimo · Saldo final |
 
-### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.50)
 
-> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-POLISH** (v15.50) | ⏳ PREP · aguarda pausa+senha | não |
+| 1 | **DRE-VISUAL-POLISH** | ✅ enviado / Live v15.50 | não |
 
 ### 📦 PACOTE PRONTO — DRE visual polish (`DRE-VISUAL-POLISH` · **v15.50**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **PREP** · branch `deploy/dre-visual-polish-0908` · loja ainda **v15.46** |
+| **Status** | ✅ **Live v15.50** · `producao` @ **2f6d05e** |
 | **O quê** | PE barras modernas · despesas por categoria no recorte · Mini DRE juros + empréstimo + **Saldo final** · cards **vs mês passado** + **vs média 90d** |
 | **Prova** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** |
 | **Migrate** | **NÃO** |
