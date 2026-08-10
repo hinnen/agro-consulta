@@ -77,6 +77,18 @@
     return d.innerHTML;
   }
 
+  function rgQ(html, aria) {
+    return (
+      '<details class="rg-q">' +
+      '<summary class="rg-q__btn" aria-label="' +
+      escapeHtml(aria || "Ajuda") +
+      '">?</summary>' +
+      '<div class="rg-q__box">' +
+      html +
+      "</div></details>"
+    );
+  }
+
   /**
    * @param {object} o
    * @param {string} o.title
@@ -593,8 +605,42 @@
     var totDev = empOk
       ? num(emp.total_devido != null ? emp.total_devido : empDev + jurDev)
       : 0;
+    var qCmp =
+      "Comparativo: <strong>vs mês passado</strong> = mesmos dias do mês calendário anterior. <strong>vs média 90d</strong> = média diária dos 90 dias anteriores × dias do filtro. Despesa e CMV: subir é ruim; receita, lucro e markup: subir é bom.";
+    var qDesp =
+      "Fixas " +
+      brl(df) +
+      " · variáveis " +
+      brl(dv) +
+      " · financeiras " +
+      brl(dfin) +
+      ". Fixas = aluguel, salário… Variáveis acompanham a venda. Financeiras = IOF, tarifa, ativo (sem juros/pagamento de empréstimo). " +
+      qCmp;
+    var qRec =
+      (c.receita_fonte === "pdv"
+        ? "Vendas do caixa (<strong>PDV</strong>) no período."
+        : "Receita dos <strong>lançamentos</strong> no período.") +
+      " " +
+      qCmp;
+    var qLucro = "Margem bruta = lucro bruto ÷ receita. Comparativo em pontos percentuais. " + qCmp;
+    var qCmvMk =
+      "<strong>CMV</strong> = custo da mercadoria (modo vendida ou paga no filtro de cima). <strong>Markup</strong> = lucro bruto ÷ CMV. " +
+      qCmp;
+    var qPe =
+      escapeHtml(peHint) +
+      ". Custo do equilíbrio = fixas + CMV + variáveis. <strong>Saldo Mini DRE:</strong> " +
+      brl(caixaPeriodo) +
+      " (líquido PDV ± empréstimos e sócios).";
+    var qMini =
+      "<strong>Saldo final</strong> = líquido (PDV) + entrada empréstimo + aporte sócio − juros − empréstimo (principal) − retirada sócio.";
+    var qEmp =
+      modo === "grupo"
+        ? "Abra uma empresa para ver empréstimos."
+        : "Devido = bruto no filtro da tela. <strong>Empréstimo devido</strong> + <strong>juros devido</strong> = <strong>total devido</strong>. <strong>Valor pago</strong> = pago desses títulos (mesmo meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela competência.";
     var empHtml =
-      '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
+      '<article class="rg-card rg-card--emp"><div class="rg-card__head"><h3>Empréstimos</h3>' +
+      rgQ(qEmp, "Ajuda empréstimos") +
+      '</div><dl class="rg-mini">' +
       "<div><dt>Empréstimo devido</dt><dd class=\"" +
       (empOk && empDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
       "\">" +
@@ -615,44 +661,40 @@
       (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
       '">' +
       (empOk ? brl(emp.valor_emprestado) : "—") +
-      '</dd></div></dl><p class="rg-muted">' +
-      (modo === "grupo"
-        ? "Abra uma empresa para ver empréstimos."
-        : "Devido = bruto no filtro da tela · pago = pago desses títulos · emprestado = competência do período") +
-      "</p></article>";
+      "</dd></div></dl></article>";
     return (
       '<div class="rg-board">' +
       '<div class="rg-flow">' +
-      '<article class="rg-flow__kpi rg-flow__kpi--desp"><div class="rg-flow__kpi-main"><span>Despesas</span><strong>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Despesas</span>' +
+      rgQ(qDesp, "Ajuda despesas") +
+      "</div><strong>" +
       brl(desp) +
-      "</strong><small>fixas " +
-      brl(df) +
-      " · var " +
-      brl(dv) +
-      " · fin " +
-      brl(dfin) +
-      "</small></div>" +
+      "</strong></div>" +
       cmpDesp +
       "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--rec' +
       recCls +
-      '"><div class="rg-flow__kpi-main"><span>Receita</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Receita</span>' +
+      rgQ(qRec, "Ajuda receita") +
+      "</div><strong>" +
       brl(rec) +
-      "</strong><small>" +
-      (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
-      "</small></div>" +
+      "</strong></div>" +
       cmpRec +
       "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
       lucroCls +
-      '"><div class="rg-flow__kpi-main"><span>% Lucro</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>% Lucro</span>' +
+      rgQ(qLucro, "Ajuda lucro") +
+      "</div><strong>" +
       (margem != null ? pctJa(margem) : "—") +
-      "</strong><small>margem bruta</small></div>" +
+      "</strong></div>" +
       cmpMarg +
       "</article>" +
-      '<article class="rg-flow__side"><div class="rg-flow__side-row"><div><span>CMV</span><strong class="' +
+      '<article class="rg-flow__side"><div class="rg-flow__side-head">' +
+      rgQ(qCmvMk, "Ajuda CMV e markup") +
+      '</div><div class="rg-flow__side-row"><div><span>CMV</span><strong class="' +
       (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
       brl(cmv) +
@@ -681,15 +723,11 @@
       "</article></div>" +
       '<article class="rg-card rg-card--pe' +
       peCardCls +
-      '"><h3>Ponto de equilíbrio</h3>' +
+      '"><div class="rg-card__head"><h3>Ponto de equilíbrio</h3>' +
+      rgQ(qPe, "Ajuda ponto de equilíbrio") +
+      "</div>" +
       peChartSvg(c) +
-      '<p class="rg-muted">' +
-      peHint +
-      " · Custo = fixas + CMV + variáveis · Saldo Mini DRE: <b class=\"" +
-      valCls(caixaPeriodo) +
-      '">' +
-      brl(caixaPeriodo) +
-      "</b></p></article></div>" +
+      "</article></div>" +
       '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
       '<div class="rg-cat-list">' +
@@ -697,7 +735,9 @@
       "</div></article></div>" +
       '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
       (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005 ? "" : num(c.resultado_liquido_gerencial) > 0 ? " is-good" : " is-bad") +
-      '"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
+      '"><div class="rg-card__head"><h3>Mini DRE</h3>' +
+      rgQ(qMini, "Ajuda Mini DRE") +
+      '</div><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
       valCls(rec) +
       '">' +
       brl(rec) +
