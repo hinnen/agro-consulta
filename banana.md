@@ -1235,7 +1235,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut **composição despesas** · PE **só gráfico de linha** (sem círculo) · categorias · mini DRE · empréstimos · cores bom/ruim. Topo só **?**. Indicadores no menu. |
 | **Você** | Ctrl+F5 Resumo → pizza = despesas; equilíbrio = gráfico de linha |
-| **Prova** | `tests_dre_visual` · verify visual **133/133** · `node --check` |
+| **Prova** | `tests_dre_visual` · verify visual **134/134** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
