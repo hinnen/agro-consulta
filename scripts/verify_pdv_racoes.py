@@ -462,10 +462,34 @@ def check_lista_marca_foto(js: str, wiz: str) -> None:
         fail("row-ok ainda pinta a linha de verde")
     else:
         ok("row-ok nao pinta fundo verde")
-    if "tbody tr:nth-child(even)" not in css or "#f1f5f9" not in css:
+    zebra = "#pdv-racoes-lista-table tbody tr:nth-child(even)"
+    if zebra not in css:
         fail("zebra cinza da lista")
     else:
-        ok("zebra cinza fraquinha")
+        zchunk = css[css.find(zebra) : css.find(zebra) + 90]
+        if "#f1f5f9" not in zchunk:
+            fail("zebra sem cinza fraquinho")
+        else:
+            ok("zebra cinza fraquinha")
+    if ".pdv-racoes-acao" not in css or "display: flex" not in css[css.find(".pdv-racoes-acao") : css.find(".pdv-racoes-acao") + 160]:
+        fail("coluna Acao sem flex")
+    else:
+        ok("coluna Acao flex + nowrap")
+    thumb = css[css.find(".pdv-racoes-thumb") : css.find(".pdv-racoes-thumb") + 220] if ".pdv-racoes-thumb" in css else ""
+    if "width: 2.35rem" not in thumb or "cursor: zoom-in" not in thumb:
+        fail("miniatura sem tamanho/zoom")
+    else:
+        ok("miniatura compacta + zoom-in")
+    thead = wiz[wiz.find('id="pdv-racoes-lista-table"') : wiz.find('id="pdv-racoes-lista-body"')]
+    cols = ("<th>Foto</th>", "<th>GM</th>", "<th>Produto</th>", "<th>Marca</th>", "<th>Tamanho</th>", "<th>Ação</th>")
+    if any(c not in thead for c in cols) or "<th>Carrinho</th>" in thead:
+        fail("cabecalho lista (Foto..Acao)")
+    else:
+        ok("cabecalho Foto GM Produto Marca Tamanho Preco Acao")
+    if render.count("<td") < 7:
+        fail("render sem 7 colunas")
+    else:
+        ok("render 7 colunas")
 
 
 def check_util_cenarios() -> None:

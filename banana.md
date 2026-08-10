@@ -1213,7 +1213,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | Foto miniatura (clique abre grande) · “No carrinho” junto do Adicionar · sem coluna Carrinho · linha **zebra cinza fraca** (sem cor da marca) |
-| **Prova** | verify Rações **VERIFY_OK** · tests **17/17** · `node --check` |
+| **Prova** | verify Rações **129/129** · tests **17/17** · `node --check` |
 | **Você** | Ctrl+F5 PDV → Rações → lista → conferir listra cinza, foto e Adicionar |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
