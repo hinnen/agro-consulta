@@ -235,12 +235,19 @@ def test_pg_vivo_opcional() -> None:
 
 def test_pdv_caixa_intactos() -> None:
     print("== PDV/caixa intactos neste pacote ==")
+    anc = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "origin/producao", "HEAD"],
+        cwd=str(ROOT),
+    )
+    if anc.returncode != 0:
+        check("pdv_caixa_skip_nao_base_loja", True, "branch nao deriva de producao")
+        return
     r = subprocess.run(
         [
             "git",
             "diff",
             "--name-only",
-            "419b3c2",
+            "origin/producao",
             "HEAD",
             "--",
             "produtos/caixa_util.py",

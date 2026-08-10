@@ -1198,24 +1198,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE cadastro oficial de planos (`DRE-PLANOS-CADASTRO` · **v15.52**)
+### ⏳ PREP produção — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
+
+> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
+> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **pronto para envio à produção** · teste **v15.52** · `cf0b46b` |
-| **O quê** | DRE usa **PlanoContaAgro** (alias → nome oficial + tipo/grupo). Título **não** reescrito. Cache 60s + invalida ao salvar plano. |
-| **Prova** | planos **42/42** (PG loja 44) · tests DRE **34/34** · visual **201/201** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** |
+| **Status** | ⏳ **PREP pronto** · `deploy/dre-planos-cadastro-1008` @ **674901d** · **não** merge `teste`→`producao` |
+| **Pacote** | **DRE-PLANOS-CADASTRO** só |
+| **Base loja** | `2f6d05e` (v15.50) |
+| **Rollback** | tag `rollback/pre-dre-planos-cadastro-v15.50` @ `2f6d05e` · `git push origin 2f6d05e:producao` |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · Indicadores HTML |
+| **Fora** | PDV · caixa · wizard · `views.py` · Indicadores HTML |
+| **Arquivos** | `plano_conta_dre_util.py` · `resumo_operacional_mongo.py` · `dre_visual_util.py` · `views_planos_conta.py` · template resumo · tests/verify · VERSION **15.52** |
+| **Prova worktree** | tests **34/34** · planos **42/42** · visual **201/201** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
+| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção
+### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
 
 > **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-PLANOS-CADASTRO** (v15.52) | ⏳ **pronto para envio à produção** | não |
+| 1 | **DRE-PLANOS-CADASTRO** (v15.52) | ⏳ PREP · aguarda pausa+senha | não |
 
 ### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
