@@ -139,6 +139,34 @@ class MontarDreVisualTests(SimpleTestCase):
                     "fatias": [{"nome": "Rações", "valor": 80.0, "pct": 80.0}],
                 },
             ),
+            patch(
+                "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+                return_value={
+                    "ok": True,
+                    "linhas": [
+                        {"plano": "Aluguel", "despesa": 18356.83, "receita": 0},
+                        {"plano": "Comissão", "despesa": 2894.58, "receita": 0},
+                        {"plano": "IOF", "despesa": 3096.78, "receita": 0},
+                    ],
+                },
+            ),
+            patch(
+                "financeiro.services.resumo_operacional_pg.consolidar_empresa_pg",
+                return_value={
+                    "receita_operacional": 90000,
+                    "cmv": 60000,
+                    "despesas_fixas": 10000,
+                    "despesas_variaveis": 2000,
+                    "despesas_financeiras": 1000,
+                    "margem_bruta_pct": 33.33,
+                    "markup_pct": 50.0,
+                    "cmv_modos": {
+                        "ok_vendida": True,
+                        "vendida": {"cmv": 60000, "margem_bruta_pct": 33.33, "markup_pct": 50.0},
+                        "paga": {"cmv": 55000, "margem_bruta_pct": 38.89, "markup_pct": 63.64},
+                    },
+                },
+            ),
         ):
             out = montar_dre_visual(
                 empresa_id=1,
@@ -154,6 +182,83 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertEqual(mock_e.call_args.kwargs["empresa_nome"], "Agro Mais Centro")
         self.assertTrue(out["receita_categorias"]["ok"])
         self.assertEqual(out["receita_categorias"]["fatias"][0]["nome"], "Rações")
+        self.assertTrue(out["despesas_categorias"]["ok"])
+        self.assertAlmostEqual(out["despesas_categorias"]["total"], 24348.19, places=2)
+        self.assertEqual(out["despesas_categorias"]["grupos"][0]["key"], "fixa")
+        self.assertTrue(out["comparativo"]["ok"])
+        self.assertEqual(out["comparativo"]["mes"]["despesas"], 13000.0)
+        self.assertEqual(out["comparativo"]["d90"]["receita"], 90000.0)
+
+    def test_janelas_comparativo(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import janela_90d_antes, janela_mes_passado
+
+        self.assertEqual(janela_mes_passado(date(2026, 7, 1)), (date(2026, 6, 1), date(2026, 6, 30)))
+        self.assertEqual(janela_mes_passado(date(2026, 7, 12)), (date(2026, 6, 1), date(2026, 6, 30)))
+        self.assertEqual(janela_90d_antes(date(2026, 7, 1)), (date(2026, 4, 2), date(2026, 6, 30)))
+
+    def test_snapshot_k_projeta_dias(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import (
+            _dias_periodo,
+            _snapshot_kpis_dre,
+            janela_mes_passado,
+        )
+
+        dias_atual = _dias_periodo(date(2026, 7, 1), date(2026, 7, 31))
+        mes_i, mes_f = janela_mes_passado(date(2026, 7, 1))
+        dias_ref = _dias_periodo(mes_i, mes_f)
+        snap = _snapshot_kpis_dre(
+            {
+                "receita_operacional": 31000,
+                "cmv": 10000,
+                "despesas_fixas": 3000,
+                "despesas_variaveis": 0,
+                "despesas_financeiras": 0,
+            },
+            dias_ref=dias_ref,
+            dias_atual=dias_atual,
+        )
+        self.assertEqual(dias_atual, 31)
+        self.assertEqual(dias_ref, 30)
+        self.assertAlmostEqual(snap["k"], 31 / 30, places=5)
+        self.assertEqual(snap["despesas"], 3000.0)
+        self.assertAlmostEqual(snap["despesas"] * snap["k"], 3100.0, places=1)
+
+    def test_despesas_categorias_so_periodo(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import despesas_categorias_dre_pg
+
+        fake_linhas = {
+            "ok": True,
+            "linhas": [
+                {"plano": "Aluguel", "despesa": 100.0, "receita": 0},
+                {"plano": "Comissão", "despesa": 20.0, "receita": 0},
+                {"plano": "IOF", "despesa": 5.0, "receita": 0},
+                {"plano": "Pagamento de Empréstimos", "despesa": 999.0, "receita": 0},
+            ],
+        }
+        with patch(
+            "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+            return_value=fake_linhas,
+        ):
+            out = despesas_categorias_dre_pg(
+                empresa_nome="Agro Mais Centro",
+                data_inicio=date(2026, 7, 1),
+                data_fim=date(2026, 7, 31),
+                por="competencia",
+                valor="bruto",
+            )
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["total"], 125.0)
+        planos = [r["plano"] for r in out["top"]]
+        self.assertNotIn("Pagamento de Empréstimos", planos)
+        self.assertEqual(out["grupos"][0]["total"], 100.0)
+        self.assertEqual(out["grupos"][2]["key"], "financeira")
+        self.assertEqual(out["grupos"][2]["total"], 5.0)
 
 
 class EmprestimosCardTests(SimpleTestCase):

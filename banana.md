@@ -395,6 +395,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
+- Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
@@ -428,7 +429,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08 · loja v15.20):** botão **Rações** na busca (wizard `/` PDV) → tipo (8 cards) → marca (ou Todas) → tamanho (Granel/2,5/5/10/15/20/25 kg / Pacote R$ 10, ou Todos) → entra no carrinho. Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora (não lista velha). Cadastro: Categoria `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 `Filhote`/`Adulto`/`Castrado`/`Filhote RP`/`Adulto RP`/`Sênior` · Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -623,7 +624,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
-- **DRE Indicadores — CMV (09/08, `DRE-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / EBITDA / líquido acompanham. Caixa não muda. Padrão = vendida.
+- **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
+- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA` + `DRE-VISUAL-POLISH`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + receita PDV por categoria + **PE barras modernas** + mini DRE + empréstimos). Cards de cima: **vs mês passado** e **vs média 90d** (valor + %; projetado nos mesmos dias do filtro). Despesas por categoria = **mesmo recorte do card Despesas**. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Juros empréstimo** → **Empréstimo** → **Saldo final** (= `geracao_caixa`). Indicadores permanece até 100%.
 
 ### 4.11 Caixa
 
@@ -1196,6 +1198,140 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ⏳ PREP produção — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **PREP pronto** · branch `deploy/dre-visual-polish-0908` · **não** merge `teste`→`producao` |
+| **Pacote** | **DRE-VISUAL-POLISH** só |
+| **Base loja** | `9b212b0` (v15.46) |
+| **Rollback** | tag `rollback/pre-dre-visual-polish-v15.46` @ `9b212b0` · `git push origin 9b212b0:producao` |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · `views.py` · `relatorios_vendas_util` · Indicadores HTML · API `geracao_caixa` |
+| **Arquivos** | `dre_visual_util.py` · `agro_resumo_gerencial.js/css` · template resumo · tests/verify · VERSION **15.50** |
+| **Prova worktree** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
+| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
+
+### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-VISUAL-POLISH** (v15.50) | ⏳ PREP · aguarda pausa+senha | não |
+
+### 📦 PACOTE PRONTO — DRE visual polish (`DRE-VISUAL-POLISH` · **v15.50**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **PREP** · branch `deploy/dre-visual-polish-0908` · loja ainda **v15.46** |
+| **O quê** | PE barras modernas · despesas por categoria no recorte · Mini DRE juros + empréstimo + **Saldo final** · cards **vs mês passado** + **vs média 90d** |
+| **Prova** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** |
+| **Migrate** | **NÃO** |
+| **Fora** | Indicadores HTML · API `geracao_caixa` · PDV/caixa |
+
+### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.46** · `producao` @ **9b212b0** · base era `ebe9e9c` (v15.26) |
+| **Pacotes** | **PDV-RACOES-LISTA-UX** + **DRE-VISUAL-PREVIA** + **BI-LUCRO-LIQUIDO** |
+| **Rollback** | `git push origin ebe9e9c:producao` ou tag `rollback/pre-lote-ux-dre-bi-v15.26` |
+| **Migrate** | **NÃO** |
+| **Fora** | caixa, checkout, wizard wholesale, relatórios WIP, Indicadores HTML |
+| **Você** | Ctrl+F5 · BI `/` Lucro Líquido · DRE visual · PDV Rações lista (foto+zebra) · badge **v15.46** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.46)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-LISTA-UX** | ✅ enviado / Live v15.46 | não |
+| 2 | **DRE-VISUAL-PREVIA** | ✅ enviado / Live v15.46 | não |
+| 3 | **BI-LUCRO-LIQUIDO** | ✅ enviado / Live v15.46 | não |
+
+### 📦 PACOTE PRONTO — BI Lucro Líquido (`BI-LUCRO-LIQUIDO` · **v15.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
+| **O quê** | BI `/` · card **Lucro Líquido** no lugar de Novos Clientes · **vencimento** · Bruto + Pago · mesma conta do Resumo. Vila sem empresa própria usa Agro Mais Centro. |
+| **Você** | Ctrl+F5 `/` · datas 12/07–10/08 · Bruto = **-R$ 2.480,17** · Pago = **R$ 1,29** |
+| **Prova** | verify **73/73** · tests **4/4** · live PG = Indicadores |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — Lista Rações foto + zebra (`PDV-RACOES-LISTA-UX`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
+| **O quê** | Foto miniatura (clique abre grande) · “No carrinho” junto do Adicionar · sem coluna Carrinho · linha **zebra cinza fraca** (sem cor da marca) |
+| **Prova** | verify Rações **129/129** · tests **17/17** · `node --check` |
+| **Você** | Ctrl+F5 PDV → Rações → lista |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
+| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + receita por categoria PDV · PE linha · mini DRE · empréstimos no filtro (não total) · sem Estoque · grade sem sobrepor. Indicadores intacto. |
+| **Você** | Ctrl+F5 DRE · 1 dia → devido ≠ total · cards sem tapar · zoom Aa |
+| **Prova** | tests DRE+CMV **27/27** · verify visual **157/157** |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.26)
+
+> **Loja hoje:** ✅ **Live v15.26** · `producao` @ **ebe9e9c** · Render `dep-d9sh2egae00c73anribg`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-LISTA-DENSE** | ✅ enviado / Live v15.26 | não |
+| 2 | **RG-CMV-TOGGLE** | ✅ enviado / Live v15.26 | não |
+
+### ✅ Deploy loja — lote DENSE + Resumo CMV (`deploy/lote-dense-rg-0908` · **v15.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.26** · `producao` @ **ebe9e9c** · Render `dep-d9sh2egae00c73anribg` · base era `5fc0ee8` (v15.24) |
+| **Pacotes** | **PDV-RACOES-LISTA-DENSE** + **RG-CMV-TOGGLE** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Lista Rações compacta (sem quebra) + Resumo CMV vendida × paga |
+| **Provas** | teste **32/32** · worktree **32/32** · verify Rações **VERIFY_OK** · RG **78/78** · DRE **55/55** · PDV-DRE **33/33** |
+| **Você** | **Ctrl+F5** PDV → Rações → lista · Resumo gerencial → julho Centro → trocar os dois botões |
+| **Rollback** | tag `rollback/pre-lote-dense-rg-v15.24` @ `5fc0ee8` · branch `producao-backup-pre-v1526-dense-rg-20260809` · frase+senha |
+
+### 📦 PACOTE PRONTO — Lista Rações sem quebra (`PDV-RACOES-LISTA-DENSE` · **v15.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.26** · `producao` @ **ebe9e9c** |
+| **O quê** | Lista numa linha só (sem quebra em tamanho / botão / carrinho). Overlay um pouco maior. Zoom Agro **não** muda. |
+| **Você** | Ctrl+F5 PDV → Rações → lista → deve caber mais produtos |
+| **Prova** | `tests_pdv_racoes` **16/16** · verify path lista+dense **VERIFY_OK** · `node --check` · `manage.py check` |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE PRONTO — Resumo CMV vendida × paga (`RG-CMV-TOGGLE` · **v15.25**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.26** · `producao` @ **ebe9e9c** |
+| **O quê** | `/financeiro/resumo-gerencial/` — botão **Mercadoria vendida** × **Mercadoria paga** (igual Indicadores). Lucro, operacional, líquido e PE acompanham. Caixa não muda. Markup % no card lucro bruto. |
+| **Você** | Ctrl+F5 Resumo gerencial → julho Centro → trocar os dois botões |
+| **Prova** | `tests_receita_pdv_dre` **16/16** · verify RG **78/78** · verify DRE **33/33** · verify CMV **55/55** · `node --check` · `manage.py check` |
+| **Migrate** | **NÃO** |
+
 ### ✅ Inauguração Vila — 5% encerrado (09/08)
 
 | Item | Detalhe |
@@ -1207,28 +1343,69 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Se 5% ainda aparecer** | Ctrl+F5 · se persistir: `AGRO_CAMPANHA_INAUGURACAO_OFF=1` + restart |
 | **Próxima inauguração** | Reusar o mesmo módulo · só mudar datas |
 
-### 🚀 PREP deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.23**)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.24)
 
-> **Loja hoje:** ✅ **Live v15.20** · `producao` @ **759e435**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Sobe só no **próximo chat** com pausa + frase + senha.
+> **Loja hoje:** ✅ **Live v15.24** · `producao` @ **5fc0ee8** · Render `dep-d9sg5g37uimc73bncm1g`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **DRE-CMV-TOGGLE** | 🚀 **PREP PRONTA** · aguarda pausa + senha | não | **não** — só Indicadores |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-LISTA** | ✅ enviado / Live v15.24 | não |
+
+### ✅ Deploy loja — Rações lista (`deploy/pdv-racoes-lista` · **v15.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.24** · `producao` @ **5fc0ee8** · Render `dep-d9sg5g37uimc73bncm1g` · base era `2116b41` (v15.23) |
+| **Pacotes** | **PDV-RACOES-LISTA** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Depois do tamanho: overlay grande, barato→caro, Adicionar / Adicionar todas / Fechar. Linha verde. Esc fecha. |
+| **Provas** | `tests_pdv_racoes` **16/16** · verify **VERIFY_OK** · `node --check` · `manage.py check` |
+| **Você** | **Ctrl+F5** PDV → Rações → tipo → marca → tamanho → lista → Adicionar |
+| **Rollback** | tag `rollback/pre-pdv-racoes-lista-v15.23` @ `2116b41` · branch `producao-backup-pre-v1524-racoes-lista-20260809` · frase+senha |
+
+### 📦 PACOTE PRONTO — Rações escolhe na lista (`PDV-RACOES-LISTA` · **v15.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **Live v15.24** · `producao` @ **5fc0ee8** |
+| **O quê** | Depois do tamanho: overlay grande, barato→caro, Adicionar / Adicionar todas / Fechar. Linha verde. Esc fecha. Não vai direto ao carrinho. |
+| **Você** | Ctrl+F5 PDV → Rações → tipo → marca → tamanho → lista → Adicionar |
+| **Prova** | `tests_pdv_racoes` **16/16** · verify **VERIFY_OK** · `node --check` · `manage.py check` |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.23)
+
+> **Loja hoje:** ✅ **Live v15.23** · `producao` @ **2116b41** · Render `dep-d9sflrgu01pc73e5vet0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-CMV-TOGGLE** | ✅ enviado / Live v15.23 | não |
+
+### ✅ Deploy loja — DRE CMV vendida × paga (`deploy/dre-cmv-toggle-0908` · **v15.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.23** · `producao` @ **2116b41** · Render `dep-d9sflrgu01pc73e5vet0` · base era `759e435` (v15.20) |
+| **Pacotes** | **DRE-CMV-TOGGLE** |
+| **Fora** | resto do `teste` · **NÃO** merge `teste`→`producao` |
+| **Migrate** | **NÃO** |
+| **O quê** | Indicadores DRE: botão **Mercadoria vendida** × **Mercadoria paga**. Lucro/margem/líquido acompanham. Caixa não muda. |
+| **Provas** | `tests_receita_pdv_dre` **12/12** · `tests_pdv_racoes` **15/15** · path **47/47** · verify DRE **24/24** · `manage.py check` |
+| **Você** | **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
+| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
 
 ### 📦 PACOTE PRONTO — DRE CMV vendida × paga (`DRE-CMV-TOGGLE` · **v15.23**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP PRONTA** · branch `deploy/dre-cmv-toggle-0908` |
+| **Status** | ✅ **Live v15.23** · `producao` @ **2116b41** |
 | **O quê** | Indicadores DRE: botão **Mercadoria vendida** (custo × qtd) ou **Mercadoria paga** (lançamentos). Lucro, margem e líquido acompanham. Caixa não muda. Padrão = vendida. Se CMV vendida falhar, fica na paga. |
-| **Fora** | PDV · caixa · relatórios (filtro loja só se pedir) · resto do `teste` |
+| **Você** | Ctrl+F5 Indicadores → DRE → trocar os dois botões |
+| **Prova** | `tests_receita_pdv_dre` **12/12** · path **47/47 VERIFY_OK** |
 | **Migrate** | **NÃO** |
-| **Provas** | `tests_receita_pdv_dre` **12/12** · `tests_pdv_racoes` **15/15** · path **47/47 VERIFY_OK** · verify DRE **24/24** · `manage.py check` OK |
-| **Loja aberta** | Código de venda/caixa **não muda**. Indicadores pode pesar 1 worker — não abrir DRE no rush. |
-| **Você no deploy** | Pausar vendas ~2 min → autorizar → **Ctrl+F5** Indicadores → DRE → trocar os dois botões |
-| **Rollback** | tag `rollback/pre-dre-cmv-toggle-v15.20` @ `759e435` · branch `producao-backup-pre-v1521-dre-cmv-20260809` · frase+senha |
-| **Autorizar** | *pode subir DRE-CMV-TOGGLE / deploy/dre-cmv-toggle-0908 para produção* + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.20)
 

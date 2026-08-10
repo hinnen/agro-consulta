@@ -80,6 +80,12 @@ def test_arquivos() -> None:
     check("view_template_resumo", "resumo_financeiro_gerencial.html" in prod_views)
     check("fn_montar", "def montar_dre_visual" in util)
     check("fn_gastos", "def gastos_variacao_pg" in gastos)
+    check("fn_desp_cat", "def despesas_categorias_dre_pg" in util)
+    check("montar_chama_desp_cat", "despesas_categorias_dre_pg" in util)
+    check("fn_comparativo", "def comparativo_kpis_dre_pg" in util)
+    check("montar_chama_cmp", "comparativo_kpis_dre_pg" in util)
+    check("fn_janela_mes", "def janela_mes_passado" in util)
+    check("fn_janela_90", "def janela_90d_antes" in util)
     check("fn_emprestimos", "def resumo_emprestimos_pg" in emp_util)
     check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
     check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
@@ -131,17 +137,29 @@ def test_arquivos() -> None:
     check("js_receita_cat", "Receita por categoria" in js and "donutReceitaCategorias" in js)
     check("css_donuts_row", ".rg-charts-donuts" in css)
     check("html_ajuda_rec_cat", "Receita por categoria" in html)
+    check("html_ajuda_caixa_filtro", "Saldo final" in html and "Juros empréstimo" in html)
+    check("html_ajuda_desp_cat", "Despesas por categoria" in html and "card Despesas" in html)
+    check("html_ajuda_cmp", "vs mês passado" in html and "média 90d" in html)
     check("js_sem_gauge_pe", '"rg-gauge"' not in js and "rg-gauge__ring" not in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
+    check("js_mini_juros", "Juros empréstimo" in js and "Saldo final" in js)
+    check("js_mini_emp_linha", ">Empréstimo</dt>" in js or "<dt>Empréstimo</dt>" in js)
     check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
     check("css_emp", ".rg-card--emp" in css)
-    check("js_caixa_nao_muda", "não muda com CMV" in js)
+    check("js_caixa_periodo", "geracao_caixa" in js and "com empréstimos" in js)
+    check("js_desp_cat", "despesas_categorias" in js)
+    check("js_cmp_rows", "vs mês passado" in js and "vs média 90d" in js)
+    check("js_cmp_ref", "function refKpis" in js and "visual.comparativo" in js)
+    check("js_cmp_invert_desp", "renderCmpRows(desp" in js and "true, false)" in js)
+    check("css_cmp", ".rg-cmp" in css and ".rg-flow__side-row" in css)
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_pe_hint", "faturamento_equilibrio" in js)
     check("js_spark", "faturamento_pdv" in js)
     check("js_pe_chart", "function peChartSvg" in js and "Ponto de equilíbrio" in js)
+    check("js_pe_modern", "rg-pe-modern" in js and "Acima do equilíbrio" in js)
     check("css_pe_chart", ".rg-pe-chart" in css)
+    check("css_pe_modern", ".rg-pe-modern" in css)
     check("js_chip_click", 'querySelectorAll("[data-dre-cmv]")' in js)
     check("js_default_vendida", 'return "vendida"' in js)
 
@@ -280,6 +298,33 @@ def test_montar_e_json() -> None:
                 "fatias": [{"nome": "Rações", "valor": 90.0, "pct": 100.0}],
             },
         ),
+        patch(
+            "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+            return_value={
+                "ok": True,
+                "linhas": [
+                    {"plano": "Aluguel", "despesa": 50.0, "receita": 0},
+                    {"plano": "IOF", "despesa": 10.0, "receita": 0},
+                ],
+            },
+        ),
+        patch(
+            "financeiro.services.resumo_operacional_pg.consolidar_empresa_pg",
+            return_value={
+                "receita_operacional": 80000,
+                "cmv": 50000,
+                "despesas_fixas": 8000,
+                "despesas_variaveis": 1000,
+                "despesas_financeiras": 500,
+                "margem_bruta_pct": 37.5,
+                "markup_pct": 60.0,
+                "cmv_modos": {
+                    "ok_vendida": True,
+                    "vendida": {"cmv": 50000, "margem_bruta_pct": 37.5, "markup_pct": 60.0},
+                    "paga": {"cmv": 48000, "margem_bruta_pct": 40.0, "markup_pct": 66.67},
+                },
+            },
+        ),
     ):
         emp_out = montar_dre_visual(
             empresa_id=3,
@@ -294,6 +339,10 @@ def test_montar_e_json() -> None:
     check("montar_emp_valor_arg", mock_e.call_args.kwargs.get("valor") == "bruto")
     check("montar_rec_cat_ok", emp_out.get("receita_categorias", {}).get("ok") is True)
     check("montar_rec_cat_nome", emp_out["receita_categorias"]["fatias"][0]["nome"] == "Rações")
+    check("montar_desp_cat_ok", emp_out.get("despesas_categorias", {}).get("ok") is True)
+    check("montar_desp_cat_total", emp_out["despesas_categorias"]["total"] == 60.0, str(emp_out.get("despesas_categorias")))
+    check("montar_cmp_ok", emp_out.get("comparativo", {}).get("ok") is True)
+    check("montar_cmp_mes", emp_out["comparativo"]["mes"]["despesas"] == 9500.0, str(emp_out.get("comparativo")))
 
 
 def test_serializer() -> None:
@@ -426,6 +475,9 @@ def test_math_cmv_e_fluxo() -> None:
     check("lucro_vendida", snap_v["lucro_bruto"] == rec - cmv_vend, str(snap_v["lucro_bruto"]))
     check("lucro_paga", snap_p["lucro_bruto"] == rec - cmv_paga, str(snap_p["lucro_bruto"]))
     check("caixa_recalc", snap_v["geracao_caixa"] == caixa)
+    check("caixa_visual_geracao", snap_v["geracao_caixa"] == caixa)
+    caixa_liq = snap_v["resultado_liquido_gerencial"]
+    check("caixa_liq_nao_e_geracao", caixa_liq != caixa and caixa_liq == rec - cmv_vend - df - dv - dfin, str(caixa_liq))
     desp = df + dv + dfin
     check("desp_soma", desp == Decimal("24348.19"), str(desp))
     margem = (snap_v["lucro_bruto"] / rec) * Decimal("100")
@@ -450,6 +502,36 @@ def test_math_cmv_e_fluxo() -> None:
     check("raiz_cmv_paga", out["cmv"] == cmv_paga)
     check("raiz_caixa", out["geracao_caixa"] == caixa)
     check("snap_sem_caixa", "geracao_caixa" not in out["cmv_modos"]["vendida"])
+
+    from financeiro.services.dre_visual_util import (
+        _dias_periodo,
+        _snapshot_kpis_dre,
+        janela_90d_antes,
+        janela_mes_passado,
+    )
+
+    mes_i, mes_f = janela_mes_passado(date(2026, 7, 1))
+    d90_i, d90_f = janela_90d_antes(date(2026, 7, 1))
+    check("janela_mes_jun", mes_i == date(2026, 6, 1) and mes_f == date(2026, 6, 30), f"{mes_i}..{mes_f}")
+    check("janela_90_abr", d90_i == date(2026, 4, 2) and d90_f == date(2026, 6, 30), f"{d90_i}..{d90_f}")
+    dias_jul = _dias_periodo(date(2026, 7, 1), date(2026, 7, 31))
+    dias_jun = _dias_periodo(mes_i, mes_f)
+    check("dias_jul_31", dias_jul == 31)
+    check("dias_jun_30", dias_jun == 30)
+    snap_k = _snapshot_kpis_dre(
+        {
+            "receita_operacional": 31000,
+            "cmv": 10000,
+            "despesas_fixas": 3000,
+            "despesas_variaveis": 0,
+            "despesas_financeiras": 0,
+        },
+        dias_ref=dias_jun,
+        dias_atual=dias_jul,
+    )
+    check("k_mes_jul", abs(snap_k["k"] - (31 / 30)) < 1e-6, str(snap_k["k"]))
+    check("k_desp_raw", snap_k["despesas"] == 3000.0)
+    check("k_proj_desp", abs(snap_k["despesas"] * snap_k["k"] - 3100.0) < 0.02)
 
 
 def test_emprestimos_classifica() -> None:

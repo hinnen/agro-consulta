@@ -94,7 +94,7 @@ def test_arquivos() -> None:
     check("chip_paga", 'data-dre-cmv="paga"' in html)
     check("hint_id", 'id="rg-cmv-hint"' in html)
     check("ajuda_cmv", "CMV vendida" in html and "CMV paga" in html)
-    check("ajuda_caixa", "caixa não muda" in html)
+    check("ajuda_caixa", "Saldo final" in html and "empréstimos" in html)
     check("css_chip", ".rg-chip" in css and ".rg-chip.is-active" in css)
 
     check("js_key", "agro_dre_cmv_modo_v1" in js)
@@ -275,11 +275,12 @@ def test_pagina_local() -> None:
             code = resp.getcode()
             body = resp.read().decode("utf-8", errors="replace")
         check("http_resumo", code in (200, 302), str(code))
-        if code == 200:
+        login = "Acessar" in body or "login" in body.lower()
+        if code == 200 and not login:
             check("html_tem_chip", 'data-dre-cmv="vendida"' in body)
             check("html_tem_js", "agro_resumo_gerencial.js" in body)
         else:
-            check("login_ou_redirect", True, str(code))
+            check("login_ou_redirect", True, "login" if login else str(code))
     except Exception as exc:
         check("runserver_opcional", True, f"sem local ({type(exc).__name__})")
 

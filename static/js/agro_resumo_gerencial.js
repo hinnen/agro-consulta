@@ -318,169 +318,47 @@
 
   function peChartSvg(c) {
     var rec = num(c && c.receita_operacional);
-    var cmv = num(c && c.cmv);
-    var df = num(c && c.despesas_fixas);
-    var dv = num(c && c.despesas_variaveis);
     var pe = num(c && c.faturamento_equilibrio);
-    var varRatio = rec > 0 ? (cmv + dv) / rec : 1;
-    if (!isFinite(varRatio) || varRatio < 0) varRatio = 1;
-    var xmax = Math.max(pe * 1.7, rec * 1.3, df > 0 ? df * 2.2 : 1, 1);
-    var ymax = Math.max(xmax, df + varRatio * xmax) * 1.08;
-    if (ymax <= 0) ymax = 1;
-    var W = 440;
-    var H = 220;
-    var padL = 44;
-    var padR = 12;
-    var padT = 16;
-    var padB = 28;
-    function xPx(x) {
-      return padL + (x / xmax) * (W - padL - padR);
-    }
-    function yPx(y) {
-      return H - padB - (y / ymax) * (H - padT - padB);
-    }
-    function pt(x, y) {
-      return xPx(x).toFixed(1) + "," + yPx(y).toFixed(1);
-    }
-    var rec1 = xmax;
-    var cost0 = df;
-    var cost1 = df + varRatio * xmax;
-    var hasPe = pe > 0 && pe < xmax * 0.98 && varRatio < 1;
-    var prejuPoly = "";
-    var lucroPoly = "";
-    if (hasPe) {
-      prejuPoly = [pt(0, 0), pt(pe, pe), pt(pe, df + varRatio * pe), pt(0, cost0)].join(" ");
-      lucroPoly = [pt(pe, pe), pt(xmax, rec1), pt(xmax, cost1), pt(pe, df + varRatio * pe)].join(" ");
-    } else if (varRatio < 1 && df <= 0) {
-      lucroPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
-    } else {
-      prejuPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
-    }
-    var recLine = pt(0, 0) + " " + pt(xmax, rec1);
-    var costLine = pt(0, cost0) + " " + pt(xmax, cost1);
-    var svg =
-      '<svg viewBox="0 0 ' +
-      W +
-      " " +
-      H +
-      '" class="rg-pe-chart" role="img" aria-label="Ponto de equilíbrio">';
-    if (prejuPoly) {
-      svg += '<polygon points="' + prejuPoly + '" fill="#ef4444"/>';
-    }
-    if (lucroPoly) {
-      svg += '<polygon points="' + lucroPoly + '" fill="#059669"/>';
-    }
-    svg +=
-      '<polyline fill="none" stroke="#b91c1c" stroke-width="2.2" points="' +
-      costLine +
-      '"/>';
-    svg +=
-      '<polyline fill="none" stroke="#047857" stroke-width="2.4" points="' +
-      recLine +
-      '"/>';
-    svg +=
-      '<line x1="' +
-      padL +
-      '" y1="' +
-      yPx(0) +
-      '" x2="' +
-      (W - padR) +
-      '" y2="' +
-      yPx(0) +
-      '" stroke="#94a3b8" stroke-width="1"/>';
-    svg +=
-      '<line x1="' +
-      padL +
-      '" y1="' +
-      padT +
-      '" x2="' +
-      padL +
-      '" y2="' +
-      yPx(0) +
-      '" stroke="#94a3b8" stroke-width="1"/>';
-    svg +=
-      '<text x="' +
-      (padL - 6) +
-      '" y="' +
-      (padT + 8) +
-      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">R$</text>';
-    svg +=
-      '<text x="' +
-      (W - padR) +
-      '" y="' +
-      (H - 8) +
-      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">Faturamento</text>';
-    if (hasPe) {
-      svg +=
-        '<line x1="' +
-        xPx(pe) +
-        '" y1="' +
-        yPx(pe) +
-        '" x2="' +
-        xPx(pe) +
-        '" y2="' +
-        yPx(0) +
-        '" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 3"/>';
-      svg +=
-        '<circle cx="' +
-        xPx(pe) +
-        '" cy="' +
-        yPx(pe) +
-        '" r="5" fill="#1e293b"/>';
-      svg +=
-        '<text x="' +
-        xPx(pe) +
-        '" y="' +
-        (yPx(pe) - 10) +
-        '" text-anchor="middle" font-size="10" font-weight="800" fill="#1e293b">Ponto de equilíbrio</text>';
-      var midP = pe * 0.38;
-      svg +=
-        '<text x="' +
-        xPx(midP) +
-        '" y="' +
-        yPx((df + varRatio * midP + midP) / 2) +
-        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
-      var midL = pe + (xmax - pe) * 0.55;
-      svg +=
-        '<text x="' +
-        xPx(midL) +
-        '" y="' +
-        yPx((df + varRatio * midL + midL) / 2) +
-        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">LUCRO</text>';
-    } else if (prejuPoly) {
-      svg +=
-        '<text x="' +
-        xPx(xmax * 0.45) +
-        '" y="' +
-        yPx((df + varRatio * xmax * 0.45 + xmax * 0.45) / 2) +
-        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
-    }
-    if (rec > 0 && rec <= xmax) {
-      svg +=
-        '<line x1="' +
-        xPx(rec) +
-        '" y1="' +
-        yPx(rec) +
-        '" x2="' +
-        xPx(rec) +
-        '" y2="' +
-        yPx(0) +
-        '" stroke="#047857" stroke-width="1.1" stroke-dasharray="2 3"/>';
-    }
-    svg +=
-      '<text x="' +
-      (xPx(xmax) - 4) +
-      '" y="' +
-      (yPx(rec1) - 6) +
-      '" text-anchor="end" font-size="10" font-weight="900" fill="#047857">RECEITA</text>';
-    svg +=
-      '<text x="' +
-      (xPx(0) + 8) +
-      '" y="' +
-      Math.max(yPx(cost0) - 6, padT + 12) +
-      '" text-anchor="start" font-size="10" font-weight="900" fill="#b91c1c">CUSTO TOTAL</text>';
-    svg += "</svg>";
-    return svg;
+    var peOk = pe > 0 && rec >= pe;
+    var escala = Math.max(pe, rec, 1);
+    var barRec = Math.min(100, (rec / escala) * 100);
+    var barPe = pe > 0 ? Math.min(100, (pe / escala) * 100) : 0;
+    var pctPe = pe > 0 ? (rec / pe) * 100 : 0;
+    var folga = rec - pe;
+    var status = !pe
+      ? "Sem PE neste recorte"
+      : peOk
+        ? "Acima do equilíbrio"
+        : "Abaixo do equilíbrio";
+    var statusCls = !pe ? "" : peOk ? " is-good" : " is-bad";
+    var meter = Math.max(0, Math.min(100, pctPe));
+    return (
+      '<div class="rg-pe-chart rg-pe-modern' +
+      statusCls +
+      '" role="img" aria-label="Ponto de equilíbrio"><div class="rg-pe-modern__status">' +
+      status +
+      '</div><div class="rg-pe-modern__nums"><div><span>Receita</span><strong class="' +
+      valCls(rec) +
+      '">' +
+      brl(rec) +
+      '</strong></div><div><span>Equilíbrio</span><strong>' +
+      (pe > 0 ? brl(pe) : "—") +
+      '</strong></div></div><div class="rg-pe-modern__bars"><div class="rg-pe-modern__row"><i>Receita</i><div class="rg-pe-modern__track"><b class="rg-pe-modern__fill rg-pe-modern__fill--rec" style="width:' +
+      barRec.toFixed(1) +
+      '%"></b></div></div><div class="rg-pe-modern__row"><i>PE</i><div class="rg-pe-modern__track"><b class="rg-pe-modern__fill rg-pe-modern__fill--pe" style="width:' +
+      barPe.toFixed(1) +
+      '%"></b></div></div></div>' +
+      (pe > 0
+        ? '<div class="rg-pe-modern__meter"><span style="width:' +
+          meter.toFixed(1) +
+          '%"></span></div><p class="rg-pe-modern__delta">' +
+          pctJa(pctPe) +
+          " do PE · folga " +
+          brl(folga) +
+          "</p>"
+        : "") +
+      "</div>"
+    );
   }
 
   var CAT_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#64748b"];
@@ -528,40 +406,104 @@
     );
   }
 
+  function catValor(r) {
+    return num(r && (r.valor != null ? r.valor : r.ultimo));
+  }
+
   function renderCatRows(top) {
     if (!top || !top.length) {
       return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
     }
     var max = Math.max.apply(
       null,
-      top.map(function (r) {
-        return num(r.ultimo);
-      }).concat([0.01])
+      top.map(catValor).concat([0.01])
     );
     return top
       .slice(0, 8)
       .map(function (r) {
-        var pctW = Math.min(100, (num(r.ultimo) / max) * 100);
-        var tend = r.tendencia === "up" ? "↑" : r.tendencia === "down" ? "↓" : "→";
-        var tendCls =
-          r.tendencia === "up" ? "rg-tend--up" : r.tendencia === "down" ? "rg-tend--down" : "";
+        var val = catValor(r);
+        var pctW = Math.min(100, (val / max) * 100);
         return (
           '<div class="rg-cat">' +
           '<div class="rg-cat__meta"><span class="rg-cat__nome">' +
           escapeHtml(r.plano) +
           '</span><span class="rg-cat__val">' +
-          brl(r.ultimo) +
-          ' <i class="' +
-          tendCls +
-          '">' +
-          tend +
-          "</i></span></div>" +
+          brl(val) +
+          "</span></div>" +
           '<div class="rg-cat__track"><div class="rg-cat__bar" style="width:' +
           pctW.toFixed(1) +
           '%"></div></div></div>'
         );
       })
       .join("");
+  }
+
+  function deltaRel(atual, ref) {
+    if (ref == null || !isFinite(ref) || Math.abs(ref) < 0.005) return null;
+    return ((num(atual) - num(ref)) / Math.abs(num(ref))) * 100;
+  }
+  function deltaPp(atual, ref) {
+    if (ref == null || !isFinite(ref)) return null;
+    return num(atual) - num(ref);
+  }
+  function fmtDelta(d, pp) {
+    if (d == null || !isFinite(d)) return "—";
+    if (Math.abs(d) < 0.05) return pp ? "0 pp" : "0%";
+    var sign = d > 0 ? "+" : "−";
+    var abs = Math.abs(d);
+    if (pp) return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " pp";
+    return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "%";
+  }
+  function cmpTone(d, invert) {
+    if (d == null || !isFinite(d) || Math.abs(d) < 0.05) return "";
+    var good = d > 0;
+    if (invert) good = !good;
+    return good ? " is-good" : " is-bad";
+  }
+  function refKpis(visual, c) {
+    var pack = visual && visual.comparativo;
+    if (!pack || !pack.ok) return null;
+    function one(s) {
+      if (!s) return null;
+      var k = num(s.k) || 1;
+      var modo = (c && c.cmv_modo) || cmvModoSalvo();
+      if (modo === "vendida" && s.ok_vendida === false) modo = "paga";
+      var cm = (s.cmv_modos && s.cmv_modos[modo]) || {};
+      return {
+        desp: num(s.despesas) * k,
+        rec: num(s.receita) * k,
+        cmv: num(cm.cmv != null ? cm.cmv : s.cmv) * k,
+        margem: num(cm.margem_bruta_pct != null ? cm.margem_bruta_pct : s.margem_bruta_pct),
+        markup: num(cm.markup_pct != null ? cm.markup_pct : s.markup_pct),
+      };
+    }
+    return { mes: one(pack.mes), d90: one(pack.d90) };
+  }
+  function renderCmpRows(atual, mesVal, d90Val, invert, asPct) {
+    if (mesVal == null && d90Val == null) return "";
+    function row(label, ref) {
+      if (ref == null) {
+        return '<div class="rg-cmp__row"><i>' + label + "</i><b>—</b><em>—</em></div>";
+      }
+      var d = asPct ? deltaPp(atual, ref) : deltaRel(atual, ref);
+      return (
+        '<div class="rg-cmp__row' +
+        cmpTone(d, invert) +
+        '"><i>' +
+        label +
+        "</i><b>" +
+        (asPct ? pctJa(ref) : brl(ref)) +
+        "</b><em>" +
+        fmtDelta(d, asPct) +
+        "</em></div>"
+      );
+    }
+    return (
+      '<div class="rg-cmp">' +
+      row("vs mês passado", mesVal) +
+      row("vs média 90d", d90Val) +
+      "</div>"
+    );
   }
 
   function renderVisualBoard(c, visual, modo) {
@@ -588,29 +530,53 @@
     var recCls = rec > 0.005 ? "" : " is-muted";
     var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
     var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
+    var caixaPeriodo = num(c.geracao_caixa);
+    var refs = modo === "grupo" ? null : refKpis(visual, c);
+    var rMes = refs && refs.mes;
+    var r90 = refs && refs.d90;
+    var cmpDesp = renderCmpRows(desp, rMes && rMes.desp, r90 && r90.desp, true, false);
+    var cmpRec = renderCmpRows(rec, rMes && rMes.rec, r90 && r90.rec, false, false);
+    var cmpMarg = renderCmpRows(margem, rMes && rMes.margem, r90 && r90.margem, false, true);
+    var cmpCmv = renderCmpRows(cmv, rMes && rMes.cmv, r90 && r90.cmv, true, false);
+    var cmpMk = renderCmpRows(markup, rMes && rMes.markup, r90 && r90.markup, false, true);
+    var catPack =
+      visual && visual.despesas_categorias && visual.despesas_categorias.ok
+        ? visual.despesas_categorias
+        : null;
     var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
     var catHtml =
       modo === "grupo"
         ? '<p class="rg-muted">Abra uma empresa para ver despesas por categoria.</p>'
-        : varOk
-          ? renderCatRows(visual.variacao.top)
-          : '<p class="rg-muted">Despesas por categoria indisponível neste recorte.</p>';
-    var grupos = varOk ? visual.variacao.resumo_grupos || [] : [];
+        : catPack
+          ? renderCatRows(catPack.top)
+          : varOk
+            ? renderCatRows(visual.variacao.top)
+            : '<p class="rg-muted">Despesas por categoria indisponível neste recorte.</p>';
+    var grupos = catPack
+      ? catPack.grupos || []
+      : varOk
+        ? visual.variacao.resumo_grupos || []
+        : [];
     var gruposHtml = grupos
       .map(function (g) {
+        var gval = g.total != null ? g.total : g.ultimo;
         return (
           '<div class="rg-gsum rg-gsum--' +
           escapeHtml(g.key || "") +
           '"><span>' +
           escapeHtml(g.label || "") +
           "</span><strong>" +
-          brl(g.ultimo) +
+          brl(gval) +
           "</strong></div>"
         );
       })
       .join("");
     var emp = (visual && visual.emprestimos) || {};
     var empOk = emp && emp.ok;
+    var jurosEmp = empOk ? num(emp.juros) : 0;
+    var empPago = empOk
+      ? num(emp.valor_pago)
+      : Math.max(0, num(c.amortizacao_emprestimos) - jurosEmp);
     var empHtml =
       '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
       "<div><dt>Valor devido</dt><dd class=\"" +
@@ -637,7 +603,7 @@
     return (
       '<div class="rg-board">' +
       '<div class="rg-flow">' +
-      '<article class="rg-flow__kpi rg-flow__kpi--desp"><span>Despesas</span><strong>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"><div class="rg-flow__kpi-main"><span>Despesas</span><strong>' +
       brl(desp) +
       "</strong><small>fixas " +
       brl(df) +
@@ -645,30 +611,40 @@
       brl(dv) +
       " · fin " +
       brl(dfin) +
-      "</small></article>" +
+      "</small></div>" +
+      cmpDesp +
+      "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--rec' +
       recCls +
-      '"><span>Receita</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><span>Receita</span><strong>' +
       brl(rec) +
       "</strong><small>" +
       (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
-      "</small></article>" +
+      "</small></div>" +
+      cmpRec +
+      "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
       lucroCls +
-      '"><span>% Lucro</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><span>% Lucro</span><strong>' +
       (margem != null ? pctJa(margem) : "—") +
-      "</strong><small>margem bruta</small></article>" +
-      '<article class="rg-flow__side"><div><span>CMV</span><strong class="' +
+      "</strong><small>margem bruta</small></div>" +
+      cmpMarg +
+      "</article>" +
+      '<article class="rg-flow__side"><div class="rg-flow__side-row"><div><span>CMV</span><strong class="' +
       (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
       brl(cmv) +
-      '</strong></div><div><span>Markup</span><strong class="' +
+      "</strong></div>" +
+      cmpCmv +
+      '</div><div class="rg-flow__side-row"><div><span>Markup</span><strong class="' +
       (markup == null ? "" : valCls(markup)) +
       '">' +
       (markup != null ? pctJa(markup) : "—") +
-      "</strong></div></article></div>" +
+      "</strong></div>" +
+      cmpMk +
+      "</div></article></div>" +
       '<div class="rg-col--charts"><div class="rg-charts-donuts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
       p1.toFixed(1) +
       "%;--p2:" +
@@ -689,11 +665,11 @@
       peChartSvg(c) +
       '<p class="rg-muted">' +
       peHint +
-      " · Custo = fixas + CMV + variáveis · Caixa: <b class=\"" +
-      valCls(c.geracao_caixa) +
+      " · Custo = fixas + CMV + variáveis · Caixa do período: <b class=\"" +
+      valCls(caixaPeriodo) +
       '">' +
-      brl(c.geracao_caixa) +
-      "</b> <span>(não muda com CMV)</span></p></article></div>" +
+      brl(caixaPeriodo) +
+      "</b> <span>(com empréstimos)</span></p></article></div>" +
       '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
       '<div class="rg-cat-list">' +
@@ -721,10 +697,18 @@
       valCls(c.resultado_liquido_gerencial) +
       '">' +
       brl(c.resultado_liquido_gerencial) +
-      '</dd></div><div><dt>Caixa</dt><dd class="' +
-      valCls(c.geracao_caixa) +
+      '</dd></div><div><dt>Juros empréstimo</dt><dd class="' +
+      (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
-      brl(c.geracao_caixa) +
+      brl(jurosEmp) +
+      '</dd></div><div><dt>Empréstimo</dt><dd class="' +
+      (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(empPago) +
+      '</dd></div><div><dt>Saldo final</dt><dd class="' +
+      valCls(caixaPeriodo) +
+      '">' +
+      brl(caixaPeriodo) +
       "</dd></div></dl></article>" +
       empHtml +
       "</div></div>"
