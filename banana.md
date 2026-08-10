@@ -1198,31 +1198,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**) · aguarda pausa + senha
+### ✅ Deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**)
 
-> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Esta mensagem **não** sobe loja.
+> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto** · **aguarda pausa vendas + frase + senha** no próximo chat |
+| **Status** | ✅ **enviado / Live v15.54** · `producao` @ **4bf3410** · base era `674901d` (v15.52) |
+| **Pacote** | **DRE-EMP-CARD** |
 | **O quê** | Card Empréstimos (devido bruto + juros + total + pago + emprestado) · Mini DRE **Saldo final = soma** · frases no **«?»** · rótulos sem quebra |
-| **Branch** | `deploy/dre-emp-card-1008` @ **4bf3410** (base `674901d`) |
-| **Rollback** | tag `rollback/pre-dre-emp-card-v15.52` @ **674901d** · ou `git push origin 674901d:producao` |
-| **Arquivos** | `dre_emprestimos_util.py` · `resumo_financeiro_gerencial.html` · `agro_resumo_gerencial.js` · `agro_resumo_gerencial.css` · `VERSION` |
-| **Prova** | unit DRE **18/18** · visual **217/217** · planos **42/42** · DRE CMV **55/55** · PDV-DRE **33/33** · RG CMV **79/79** · PDV/caixa/Indicadores **intactos** no deploy branch |
+| **Rollback** | `git push origin 674901d:producao` ou tag `rollback/pre-dre-emp-card-v15.52` |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · Indicadores HTML · API `geracao_caixa` · resto do `teste` |
-| **Próximo chat** | lojas pausam vendas (Zap) · *«pode subir para produção»* + senha `99738595` → FF `4bf3410` → `producao` |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE · badge **v15.54** · Jul/2026 Centro vencimento: emp. devido ~42.601 · juros ~4.658 |
 
-### ✅ CHECKLIST ÚNICO — aguarda pausa + senha (10/08 · loja ainda v15.52)
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.54)
 
-> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
+> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** v15.54 (`4bf3410`) | 🚀 PREP · aguarda pausa + senha | não |
+| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
 
 ### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
 
