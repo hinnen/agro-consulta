@@ -359,6 +359,12 @@
     var pe = num(c.faturamento_equilibrio);
     var pctPe = pe > 0 ? Math.min(100, (rec / pe) * 100) : 0;
     var peOk = pe > 0 && rec >= pe;
+    var peHint =
+      pe > 0
+        ? "PE " +
+          brl(pe) +
+          (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "")
+        : "Sem ponto de equilíbrio neste recorte";
     var totDonut = desp || 1;
     var p1 = (df / totDonut) * 100;
     var p2 = p1 + (dv / totDonut) * 100;
@@ -410,11 +416,10 @@
       (pe > 0 ? Math.round(pctPe) + "%" : "—") +
       "</strong><span>" +
       (peOk ? "acima do PE" : "do equilíbrio") +
-      '</span></div><p class="rg-gauge__hint">PE ' +
-      brl(pe) +
-      (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "") +
+      '</span></div><p class="rg-gauge__hint">' +
+      peHint +
       "</p></article></div>" +
-      '<div class="rg-mid"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      '<div class="rg-col--charts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
       p1.toFixed(1) +
       "%;--p2:" +
       p2.toFixed(1) +
@@ -425,15 +430,17 @@
       '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
       brl(dfin) +
       "</b></li></ul></div></article>" +
-      '<article class="rg-card"><h3>Faturamento PDV (últ. dias)</h3>' +
+      '<article class="rg-card rg-card--spark"><h3>Faturamento PDV (últ. dias)</h3>' +
       sparkSvg(sparkVals(c)) +
       '<p class="rg-muted">Geração de caixa: <b>' +
       brl(c.geracao_caixa) +
       "</b> <span>(não muda com CMV)</span></p></article></div>" +
-      '<div class="rg-bot"><article class="rg-card rg-card--wide"><h3>Despesas por categoria</h3>' +
+      '<article class="rg-card rg-col--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
+      '<div class="rg-cat-list">' +
       catHtml +
-      '</article><article class="rg-card"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
+      "</div></article>" +
+      '<article class="rg-card rg-col--dre"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
       brl(rec) +
       "</dd></div><div><dt>CMV</dt><dd>" +
       brl(cmv) +
@@ -445,7 +452,7 @@
       brl(c.resultado_liquido_gerencial) +
       "</dd></div><div><dt>Caixa</dt><dd>" +
       brl(c.geracao_caixa) +
-      "</dd></div></dl></article></div></div>"
+      "</dd></div></dl></article></div>"
     );
   }
 

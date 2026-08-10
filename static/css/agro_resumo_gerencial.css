@@ -24,15 +24,16 @@
   border-bottom: 1px solid rgba(148, 163, 184, 0.35);
 }
 .rg-head__inner {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0.35rem 0.75rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0.3rem 0.75rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem 1rem;
-  min-height: 2.75rem;
+  gap: 0.35rem 0.75rem;
+  min-height: 2.5rem;
 }
 .rg-head__brand {
   display: flex;
@@ -90,20 +91,25 @@
 
 /* ——— Toolbar filtros ——— */
 .rg-main {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0.5rem 0.75rem 0.75rem;
-  flex: 1;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0.35rem 0.75rem 0.4rem;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  overflow: hidden;
 }
 .rg-toolbar {
   background: #fff;
   border: var(--rg-border);
   border-radius: var(--rg-radius);
   box-shadow: var(--rg-shadow);
-  padding: 0.5rem 0.65rem;
-  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.55rem;
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 .rg-toolbar__row {
   display: flex;
@@ -238,15 +244,15 @@
 
 /* Resumo filtro ativo */
 .rg-filtro-ativo {
-  margin-top: 0.4rem;
-  font-size: 0.6875rem;
+  margin-top: 0.25rem;
+  font-size: 0.625rem;
   font-weight: 600;
   color: #475569;
-  padding: 0.35rem 0.5rem;
+  padding: 0.2rem 0.4rem;
   background: rgba(241, 245, 249, 0.9);
   border-radius: var(--rg-radius-sm);
   border: 1px solid rgba(226, 232, 240, 0.95);
-  line-height: 1.35;
+  line-height: 1.3;
 }
 .rg-filtro-ativo strong {
   font-weight: 800;
@@ -578,15 +584,25 @@
   color: #fff;
 }
 
-/* ——— Prévia visual DRE ——— */
-.rg-board {
+/* ——— Prévia visual DRE — 16:9, preenche a tela ——— */
+#painel-visual:not(.hidden) {
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+}
+.rg-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(17rem, 1fr) minmax(24rem, 1.55fr) minmax(15rem, 0.9fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.45rem;
 }
 .rg-flow {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) minmax(8rem, 0.85fr) minmax(9rem, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1.15fr) auto minmax(0, 0.95fr) minmax(8rem, 0.85fr) minmax(9rem, 1fr);
   gap: 0.4rem;
   align-items: stretch;
 }
@@ -608,8 +624,8 @@
   box-shadow: var(--rg-shadow);
 }
 .rg-flow__kpi {
-  padding: 0.6rem 0.75rem 0.7rem;
-  min-height: 5.25rem;
+  padding: 0.45rem 0.65rem 0.5rem;
+  min-height: 4.35rem;
 }
 .rg-flow__kpi span,
 .rg-flow__side span,
@@ -624,13 +640,13 @@
 }
 .rg-flow__kpi strong {
   display: block;
-  margin-top: 0.2rem;
-  font-size: clamp(1.05rem, 2vw, 1.4rem);
+  margin-top: 0.15rem;
+  font-size: clamp(1.15rem, 1.8vw, 1.65rem);
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
   color: #0f172a;
-  line-height: 1.15;
+  line-height: 1.12;
 }
 .rg-flow__kpi small {
   display: block;
@@ -666,8 +682,8 @@
   justify-content: center;
 }
 .rg-gauge__ring {
-  width: 6.4rem;
-  height: 6.4rem;
+  width: 5.6rem;
+  height: 5.6rem;
   border-radius: 50%;
   background: conic-gradient(#059669 calc(var(--pct, 0) * 1%), #e2e8f0 0);
   position: relative;
@@ -680,8 +696,8 @@
   background: #fff;
 }
 .rg-gauge__center {
-  margin-top: -4.55rem;
-  height: 4.3rem;
+  margin-top: -4rem;
+  height: 3.85rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -709,15 +725,26 @@
   font-weight: 600;
   font-size: 0.625rem;
 }
-.rg-mid,
-.rg-bot {
+.rg-col--charts {
+  min-height: 0;
   display: grid;
-  gap: 0.55rem;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.45rem;
 }
-.rg-mid { grid-template-columns: 1fr 1fr; }
-.rg-bot { grid-template-columns: 1.55fr 1fr; }
-.rg-card { padding: 0.7rem 0.8rem 0.8rem; min-height: 8rem; }
-.rg-card h3 { margin: 0 0 0.55rem; }
+.rg-col--cat,
+.rg-col--dre {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.rg-cat-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.rg-card { padding: 0.55rem 0.7rem 0.65rem; min-height: 0; }
+.rg-card h3 { margin: 0 0 0.4rem; }
 .rg-donut-row {
   display: flex;
   align-items: center;
@@ -774,8 +801,17 @@
 .rg-dot--fin { background: #059669; }
 .rg-spark {
   width: 100%;
-  height: 4.5rem;
+  height: 100%;
+  min-height: 4.5rem;
   display: block;
+}
+.rg-card--spark {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.rg-card--spark .rg-spark {
+  flex: 1 1 auto;
 }
 .rg-muted { margin: 0.45rem 0 0; text-transform: none; letter-spacing: 0; font-weight: 600; }
 .rg-muted b { color: #0f172a; font-weight: 900; }
@@ -832,42 +868,56 @@
 }
 .rg-tend--up { color: #b91c1c; font-style: normal; }
 .rg-tend--down { color: #047857; font-style: normal; }
-.rg-mini { margin: 0; }
+.rg-mini {
+  margin: 0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
 .rg-mini div {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.28rem 0;
+  padding: 0.35rem 0;
   border-bottom: 1px solid #f1f5f9;
-  font-size: 0.8125rem;
+  font-size: clamp(0.8rem, 1.05vw, 0.95rem);
 }
 .rg-mini dt { margin: 0; color: #64748b; font-weight: 700; }
 .rg-mini dd { margin: 0; font-weight: 900; font-variant-numeric: tabular-nums; color: #0f172a; }
 .rg-mais {
-  margin: 0.35rem 0 0.5rem;
+  margin: 0;
+  flex-shrink: 0;
   background: #fff;
   border: var(--rg-border);
   border-radius: var(--rg-radius);
-  padding: 0.35rem 0.65rem 0.5rem;
+  padding: 0.15rem 0.55rem;
+  max-height: 40vh;
+  overflow: auto;
 }
 .rg-mais summary {
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 900;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #475569;
-  min-height: 2.25rem;
+  min-height: 1.85rem;
   display: flex;
   align-items: center;
 }
 @media (max-width: 1100px) {
+  .rg-main { overflow-y: auto; }
+  .rg-board {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    height: auto;
+  }
   .rg-flow {
     grid-template-columns: 1fr 1fr;
   }
   .rg-flow__arrow { display: none; }
-  .rg-mid,
-  .rg-bot { grid-template-columns: 1fr; }
+  .rg-col--charts { grid-template-rows: auto auto; }
   .rg-gsums { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {

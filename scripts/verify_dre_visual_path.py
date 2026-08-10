@@ -121,6 +121,9 @@ def test_arquivos() -> None:
     check("css_donut", ".rg-donut" in css)
     check("css_cat", ".rg-cat" in css)
     check("css_mini", ".rg-mini" in css)
+    check("css_16x9_full", "max-width: none" in css and "100dvh" in html)
+    check("css_grid_wide", "rg-col--charts" in css and "rg-col--cat" in css)
+    check("js_col_charts", "rg-col--charts" in js)
 
     check("flag_cmv_default_false", "anexar_cmv_modos: bool = False" in resumo)
     check("aplicar_cmv", "def aplicar_cmv_modos_no_resumo" in rec_util)
