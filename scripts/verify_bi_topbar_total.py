@@ -30,6 +30,14 @@ def _read(rel: str) -> str:
     return open(os.path.join(_ROOT, rel), encoding="utf-8").read()
 
 
+def _slice_actions(top: str) -> str:
+    i = top.find("dash-topbar-actions")
+    j = top.find("dash-topbar-periods", i + 1) if i >= 0 else -1
+    if i < 0 or j < 0:
+        return top
+    return top[i:j]
+
+
 def main() -> int:
     top = _read("produtos/templates/produtos/dashboard_gerencial.html")
     body = _read("produtos/templates/produtos/partials/dashboard_gerencial_body.html")
@@ -55,7 +63,8 @@ def main() -> int:
     check("sync_title_attr_full", 'title="Sincronizar estoque com o ERP"' in top)
     check("sync_btn_label_not_long", not re.search(r'id="sync-btn-title"[^>]*>\s*Sincronizar ERP\s*<', top))
     # title attribute / feedback may still say Sincronizar — OK if short button label is Sync
-    check("cta_orc_abbrev", ">Orç.<" in top or "Orç. <small" in top)
+    check("cta_orc_fora_topo", "orcamentos=1" not in _slice_actions(top))
+    check("cta_orc_f2_teclado", 'e.key === "F2"' in top)
 
     print("== faturamento por unidade + Total ==")
     check("total_badge_id", 'id="dash-total-unidades"' in body)
