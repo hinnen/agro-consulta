@@ -1210,7 +1210,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **pronto envio** · `teste` **v15.57** · loja ainda **v15.55** |
 | **O quê** | BI `/`: sem Gestão Estratégica · sem botão Orç. · **Trava** embaixo de Loja. F2 no teclado e no Menu. PDV/caixa intactos. |
+| **Prova** | `verify_bi_topbar_compact_path.py` **VERIFY_OK** (31) · topbar total **36/36** · check 0 · BI lucro 4/4 · CSRF/PDV seletor intactos |
 | **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
 | **Você** | Ctrl+F5 no BI local · badge **v15.57** |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.55)
