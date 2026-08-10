@@ -1198,12 +1198,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE usa cadastro oficial de planos (`DRE-PLANOS-CADASTRO`)
+### 📦 PACOTE PRONTO — DRE usa cadastro oficial de planos (`DRE-PLANOS-CADASTRO` · **v15.51**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **pronto envio** · teste (ainda não loja) |
+| **Status** | ⏳ **pronto envio** · teste **v15.51** · `23cba0c` (ainda não loja) |
 | **O quê** | DRE classifica e lista pelo **PlanoContaAgro** (alias → nome oficial + tipo/grupo). Título **não** é reescrito. Sem cadastro → planilha/heurística. |
+| **Prova** | tests DRE **33/33** · visual **201/201** · CMV **55/55** |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV · caixa · Indicadores HTML |
 
@@ -1214,7 +1215,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-PLANOS-CADASTRO** | ⏳ pronto envio | não |
+| 1 | **DRE-PLANOS-CADASTRO** (v15.51) | ⏳ pronto envio | não |
 
 ### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
