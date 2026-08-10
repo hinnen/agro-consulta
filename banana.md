@@ -1225,7 +1225,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — prévia visual 16:9 (fluxo, PE, categorias, mini DRE + **card empréstimos**). Sem pizza. Topo só **?** (sem Lançamentos/Indicadores). Emprestado **sempre competência**. **Indicadores intacto no menu**. CMV vendida × paga. Caixa não muda. |
 | **Você** | Ctrl+F5 Resumo gerencial → conferir topo sem sobreposição |
-| **Prova** | `tests_dre_visual` **10/10** · verify visual · `node --check` |
+| **Prova** | `tests_dre_visual` **10/10** · verify visual **131/131** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
