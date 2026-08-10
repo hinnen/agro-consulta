@@ -138,12 +138,25 @@ class ResumoOperacionalAPIView(_AuthAPIView):
             from financeiro.services.resumo_operacional_pg import (
                 consolidar_empresa_pg,
                 consolidar_grupo_pg,
+                consolidar_por_loja_pg,
             )
 
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
             fc = (params.get("contas") or "").strip() or "resultado"
-            if params["modo"] == "empresa":
+            modo = params.get("modo") or "lojas"
+            if modo == "lojas":
+                data = consolidar_por_loja_pg(
+                    loja=params.get("loja") or "todas",
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    por=por,
+                    valor=valor,
+                    filtro_contas=fc,
+                    diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                )
+            elif modo == "empresa":
                 data = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],
@@ -184,19 +197,24 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     data = {k: v for k, v in data.items() if k != "linhas_dre"}
             if (
                 params.get("incluir_visual")
-                and params["modo"] == "empresa"
+                and modo in ("empresa", "lojas")
                 and isinstance(data, dict)
                 and not data.get("erro")
             ):
                 from financeiro.services.dre_visual_util import montar_dre_visual
 
+                eid = data.get("empresa_id") or params.get("empresa_id")
+                vis_kw = {}
+                if modo == "lojas":
+                    vis_kw["deposito"] = data.get("deposito_pdv") or "todas"
                 data["visual"] = montar_dre_visual(
-                    empresa_id=params["empresa_id"],
+                    empresa_id=eid,
                     por=por,
                     data_inicio=params["data_inicio"],
                     data_fim=params["data_fim"],
                     empresa_nome=data.get("empresa_nome_filtro"),
                     valor=valor,
+                    **vis_kw,
                 )
         else:
             service = ConsolidacaoFinanceiraService()
@@ -240,12 +258,31 @@ class GapEquilibrioAPIView(_AuthAPIView):
             from financeiro.services.resumo_operacional_pg import (
                 consolidar_empresa_pg,
                 consolidar_grupo_pg,
+                consolidar_por_loja_pg,
             )
 
             por = params.get("por") or "competencia"
             valor = params.get("valor") or "bruto"
             fc = (params.get("contas") or "").strip() or "resultado"
-            if params["modo"] == "empresa":
+            modo = params.get("modo") or "lojas"
+            if modo == "lojas":
+                pack = consolidar_por_loja_pg(
+                    loja=params.get("loja") or "todas",
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    por=por,
+                    valor=valor,
+                    filtro_contas=fc,
+                    diagnostico=diagnostico,
+                    anexar_cmv_modos=True,
+                )
+                if pack.get("erro"):
+                    return Response(
+                        json_safe({"detail": pack["erro"]}),
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                resumo = pack
+            elif modo == "empresa":
                 pack = consolidar_empresa_pg(
                     empresa_id=params["empresa_id"],
                     data_inicio=params["data_inicio"],

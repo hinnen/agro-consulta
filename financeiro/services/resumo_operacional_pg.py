@@ -50,7 +50,9 @@ def consolidar_empresa_pg(
     diagnostico: bool = False,
     usar_receita_pdv: bool = True,
     anexar_cmv_modos: bool = False,
+    deposito: str | None = None,
 ) -> dict[str, Any]:
+    """``deposito``: centro | vila | todas | None (None = deriva do nome da empresa)."""
     empresa = get_object_or_none_empresa(empresa_id)
     if not empresa:
         return {"fonte": "postgres", "erro": "Empresa não encontrada", "linhas_dre": []}
@@ -107,13 +109,17 @@ def consolidar_empresa_pg(
         aplicar_receita_pdv_no_resumo,
     )
 
+    rec_kw: dict[str, Any] = {"empresa_nome": nome}
+    if deposito in ("centro", "vila", "todas"):
+        rec_kw["deposito"] = deposito
+
     core = aplicar_receita_pdv_no_resumo(
-        core, data_inicio, data_fim, empresa_nome=nome
+        core, data_inicio, data_fim, **rec_kw
     )
     if not anexar_cmv_modos:
         return core
     return aplicar_cmv_modos_no_resumo(
-        core, data_inicio, data_fim, empresa_nome=nome
+        core, data_inicio, data_fim, **rec_kw
     )
 
 
@@ -215,3 +221,88 @@ def consolidar_grupo_pg(
         "por_empresa": por_empresa_limpo,
         "consolidado": consolidado,
     }
+
+
+def consolidar_por_loja_pg(
+    *,
+    loja: str = "todas",
+    data_inicio,
+    data_fim,
+    por: str = "competencia",
+    valor: str = "bruto",
+    filtro_contas: str = "",
+    diagnostico: bool = False,
+    anexar_cmv_modos: bool = True,
+) -> dict[str, Any]:
+    """DRE por loja física: Centro + Vila (padrão), Centro ou Vila."""
+    from financeiro.services.receita_pdv_util import (
+        deposito_de_loja,
+        deposito_pdv_efetivo,
+        empresas_ids_para_deposito,
+        fundir_cmv_modos_grupo,
+        label_loja_filtro,
+        normalizar_loja_filtro,
+        somar_resumos_dre_empresas,
+    )
+
+    loja_n = normalizar_loja_filtro(loja)
+    dep_filtro = deposito_de_loja(loja_n)
+    eids = empresas_ids_para_deposito(dep_filtro)
+    if not eids:
+        return {
+            "fonte": "postgres",
+            "erro": "Nenhuma empresa cadastrada para o filtro de loja.",
+            "loja": loja_n,
+            "loja_label": label_loja_filtro(loja_n),
+        }
+
+    subs: list[dict[str, Any]] = []
+    n = len(eids)
+    for eid in eids:
+        dep = deposito_pdv_efetivo(
+            empresa_id=eid, deposito_filtro=dep_filtro, n_empresas=n
+        )
+        sub = consolidar_empresa_pg(
+            empresa_id=eid,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            por=por,
+            valor=valor,
+            filtro_contas=filtro_contas,
+            diagnostico=diagnostico,
+            anexar_cmv_modos=anexar_cmv_modos,
+            deposito=dep,
+        )
+        if isinstance(sub, dict) and not sub.get("erro"):
+            subs.append(sub)
+
+    if not subs:
+        return {
+            "fonte": "postgres",
+            "erro": "Não foi possível montar o DRE deste filtro de loja.",
+            "loja": loja_n,
+            "loja_label": label_loja_filtro(loja_n),
+        }
+
+    if len(subs) == 1:
+        out = dict(subs[0])
+    else:
+        out = somar_resumos_dre_empresas(subs)
+        out["fonte"] = "postgres"
+        if anexar_cmv_modos:
+            try:
+                dias = (data_fim - data_inicio).days + 1
+            except Exception:
+                dias = 30
+            out = fundir_cmv_modos_grupo(out, subs, dias_periodo=max(int(dias or 1), 1))
+        out["empresa_id"] = eids[0]
+        out["empresa_nome_filtro"] = subs[0].get("empresa_nome_filtro") or ""
+        out["linhas_dre"] = []
+        for s in subs:
+            out["linhas_dre"].extend(s.get("linhas_dre") or [])
+
+    out["loja"] = loja_n
+    out["loja_label"] = label_loja_filtro(loja_n)
+    out["empresa_ids"] = eids
+    out["deposito_pdv"] = dep_filtro or "todas"
+    return out

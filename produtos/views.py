@@ -9599,6 +9599,30 @@ def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
     }
 
 
+COOKIE_BI_LOJA = "agro_bi_loja"
+
+
+def _dashboard_loja_numeros_from_request(request) -> tuple[str, str | None]:
+    """Filtro dos números do BI (independente do PDV). todas | centro | vila."""
+    from financeiro.services.receita_pdv_util import (
+        deposito_de_loja,
+        normalizar_loja_filtro,
+    )
+
+    raw = ""
+    try:
+        raw = (request.GET.get("loja") or "").strip()
+    except Exception:
+        raw = ""
+    if not raw:
+        try:
+            raw = (request.COOKIES.get(COOKIE_BI_LOJA) or "").strip()
+        except Exception:
+            raw = ""
+    modo = normalizar_loja_filtro(raw or "todas")
+    return modo, deposito_de_loja(modo)
+
+
 def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None):
     data_ini, data_fim, periodo_label, periodo_key = _dashboard_periodo_from_request(request)
     gasto_por, gasto_por_label = _dashboard_gasto_data_por_from_request(request)
@@ -9609,15 +9633,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     dia_cmp_mes_ant = _dashboard_mesmo_weekday_mes_anterior(hoje)
     labels_cmp_mes_ant = _dashboard_label_mesmo_weekday_mes_ant(hoje, dia_cmp_mes_ant)
 
-    from produtos.pdv_deposito_util import (
-        ROTULO_DEPOSITO,
-        bootstrap_deposito,
-        normalizar_deposito,
-    )
-
-    dep_boot = bootstrap_deposito(request)
-    deposito_filtro = normalizar_deposito(dep_boot.get("deposito"))
-    loja_filtro_label = ROTULO_DEPOSITO.get(deposito_filtro, "Centro")
+    loja_numeros, deposito_filtro = _dashboard_loja_numeros_from_request(request)
+    loja_filtro_label = {
+        "todas": "Centro + Vila",
+        "centro": "Centro",
+        "vila": "Vila Elias",
+    }.get(loja_numeros, "Centro + Vila")
 
     max_workers = 4
     fut = {}
@@ -9724,8 +9745,10 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     vendas_cmp_mes_ant = (
         blk["vendas_cmp_mes_ant"] if "vendas_cmp_mes_ant" in blk else 0.0
     )
-    # Garante série filtrada pela loja do aparelho (cache antigo / caminho sem filtro).
-    if (atual.get("filtro_loja") or "").strip().lower() != deposito_filtro:
+    # Garante série filtrada pelo seletor de números (cache antigo / caminho sem filtro).
+    if (atual.get("filtro_loja") or "").strip().lower() != _dashboard_deposito_filtro_key(
+        deposito_filtro
+    ):
         try:
             atual = _dashboard_mongo_vendas_serie(
                 data_ini, data_fim, deposito=deposito_filtro
@@ -10062,7 +10085,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "chart_total_periodo": _format_moeda_br(
             Decimal(str(round(total_periodo_filtrado, 2)))
         ),
-        "dashboard_loja_filtro": deposito_filtro,
+        "dashboard_loja_filtro": deposito_filtro or "todas",
+        "dashboard_loja_numeros": loja_numeros,
         "dashboard_loja_filtro_label": loja_filtro_label,
         "ticket_por_dia": json.dumps(ticket_por_dia),
         "top_produtos": top_produtos,

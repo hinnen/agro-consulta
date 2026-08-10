@@ -915,6 +915,12 @@
         </div>
 
         <div class="dash-topbar-periods flex items-center justify-center gap-1 bg-black/20 p-1 rounded-xl border border-white/5 max-w-full min-w-0">
+            <label class="text-[8px] font-black uppercase text-slate-400 shrink-0 px-1" for="dash-bi-loja" title="Quais lojas entram nos gráficos e cards. Não troca o PDV.">Números</label>
+            <select id="dash-bi-loja" class="max-w-[8.5rem] rounded-lg border border-white/15 bg-slate-800 px-1 py-1.5 text-[10px] font-bold text-white shrink-0" title="Centro + Vila (padrão), só Centro ou só Vila">
+                <option value="todas" {% if dashboard_loja_numeros != 'centro' and dashboard_loja_numeros != 'vila' %}selected{% endif %}>Centro + Vila</option>
+                <option value="centro" {% if dashboard_loja_numeros == 'centro' %}selected{% endif %}>Centro</option>
+                <option value="vila" {% if dashboard_loja_numeros == 'vila' %}selected{% endif %}>Vila</option>
+            </select>
             <button type="button" title="Do dia 1 do mês civil até hoje" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_ate_hoje' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_ate_hoje">Mês até hoje</button>
             <button type="button" title="Mês civil completo (1º ao último dia)" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_atual' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_atual">Mês atual</button>
             <button type="button" title="Mês civil anterior completo" class="period-btn px-2.5 sm:px-3 py-1.5 text-[8px] sm:text-[9px] font-black uppercase rounded-lg {% if periodo_key == 'mes_anterior' %}period-active{% else %}text-slate-400 hover:text-white{% endif %}" data-periodo="mes_anterior">Mês ant.</button>
@@ -1380,6 +1386,10 @@ document.addEventListener("keydown", function (e) {
         qs.delete("data_ini");
         qs.delete("data_fim");
       }
+      var lojaEl = document.getElementById("dash-bi-loja");
+      var loja = lojaEl && lojaEl.value ? lojaEl.value : "todas";
+      if (loja !== "centro" && loja !== "vila") loja = "todas";
+      qs.set("loja", loja);
       return qs.toString();
     }
 
@@ -1445,6 +1455,24 @@ document.addEventListener("keydown", function (e) {
         carregarPeriodo(p);
       });
     });
+
+    (function bindBiLojaNumeros() {
+      var sel = document.getElementById("dash-bi-loja");
+      if (!sel) return;
+      sel.addEventListener("change", function () {
+        var v = sel.value === "centro" || sel.value === "vila" ? sel.value : "todas";
+        try {
+          document.cookie = "agro_bi_loja=" + encodeURIComponent(v) + ";path=/;max-age=31536000;SameSite=Lax";
+        } catch (eC) {}
+        var qs = new URLSearchParams(window.location.search || "");
+        var periodo = qs.get("periodo") || "mes_ate_hoje";
+        var opts = null;
+        if (periodo === "personalizado") {
+          opts = { dataIni: qs.get("data_ini") || "", dataFim: qs.get("data_fim") || "" };
+        }
+        carregarPeriodo(periodo, opts);
+      });
+    })();
 
     (function bindDashCalModal() {
       var cal = document.getElementById("dash-periodo-cal-modal");

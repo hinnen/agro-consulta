@@ -396,6 +396,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
+- **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
@@ -626,6 +627,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
 - **DRE visual prévia (09/08 + Mini DRE soma + card empréstimos 10/08):** Resumo 16:9. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Entrada empréstimo** → **Aporte sócio** → **Juros pago** → **Empréstimo pago** → **Retirada sócio** → **Saldo final** (= soma). Card Empréstimos: **empréstimo devido** + **juros devido** = bruto no filtro · **total devido** · **valor pago** (pago desses títulos, mesmo meses anteriores) · **emprestado** = entrada competência. Frases longas no **«?»** de cada card (fixas/var/fin, PDV, PE, comparativo, empréstimos). Comparativo e Mini DRE/emp **sem quebra** de rótulo. Indicadores permanece até 100%.
+- **Filtro loja (10/08):** **Centro + Vila** (padrão) · Centro · Vila. Vendas/CMV vendida = PDV da(s) loja(s). Despesas/empréstimos = empresa cadastrada (Vila sem empresa própria usa Centro). BI `/` mesmo recorte no filtro **Números** (não troca o PDV).
 
 ### 4.11 Caixa
 
@@ -1197,6 +1199,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — filtro loja DRE + BI (`DRE-LOJA-FILTRO`)
+
+> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ainda **não** subiu loja |
+| **O quê** | DRE + BI: **Centro + Vila** (padrão) · Centro · Vila. PDV/caixa intactos. Indicadores intactos. |
+| **Migrate** | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — loja v15.54 + teste novo
+
+> **Loja hoje:** ✅ **Live v15.54**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
+| 2 | **DRE-LOJA-FILTRO** | ✅ no teste · falta envio loja | não |
 
 ### ✅ Deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**)
 

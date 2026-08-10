@@ -36,6 +36,7 @@
   }
 
   var CMV_KEY = "agro_dre_cmv_modo_v1";
+  var LOJA_KEY = "agro_dre_loja_v1";
   var CMV_HINT = {
     vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
     paga: "Compras lançadas no período (o que você pagou / deve de mercadoria).",
@@ -68,6 +69,26 @@
     if (!data) return data;
     if (modo === "grupo") return data.consolidado || data;
     return data;
+  }
+
+  function lojaSalva() {
+    try {
+      var v = localStorage.getItem(LOJA_KEY) || "";
+      if (v === "centro" || v === "vila" || v === "todas") return v;
+    } catch (e) {}
+    return "todas";
+  }
+
+  function salvarLoja(v) {
+    try {
+      localStorage.setItem(LOJA_KEY, v === "centro" || v === "vila" ? v : "todas");
+    } catch (e2) {}
+  }
+
+  function labelLoja(v) {
+    if (v === "centro") return "Centro";
+    if (v === "vila") return "Vila";
+    return "Centro + Vila";
   }
 
   function escapeHtml(t) {
@@ -830,12 +851,12 @@
 
     function salvarCtx() {
       try {
+        var loja = el("f-loja") ? el("f-loja").value : "todas";
+        salvarLoja(loja);
         sessionStorage.setItem(
           CK,
           JSON.stringify({
-            modo: el("f-modo").value,
-            empresa_id: el("f-empresa").value,
-            grupo_id: el("f-grupo").value,
+            loja: loja,
             data_inicio: el("f-ini").value,
             data_fim: el("f-fim").value,
             por: el("f-por").value,
@@ -848,42 +869,26 @@
     function carregarCtx() {
       try {
         var raw = sessionStorage.getItem(CK);
-        if (!raw) return;
-        var o = JSON.parse(raw);
-        if (o.modo) el("f-modo").value = o.modo;
-        if (o.empresa_id) el("f-empresa").value = o.empresa_id;
-        if (o.grupo_id) el("f-grupo").value = o.grupo_id;
-        if (o.data_inicio) el("f-ini").value = o.data_inicio;
-        if (o.data_fim) el("f-fim").value = o.data_fim;
-        if (o.por) el("f-por").value = o.por;
-        if (o.valor) el("f-valor").value = o.valor;
+        if (raw) {
+          var o = JSON.parse(raw);
+          if (o.loja && el("f-loja")) el("f-loja").value = o.loja;
+          if (o.data_inicio) el("f-ini").value = o.data_inicio;
+          if (o.data_fim) el("f-fim").value = o.data_fim;
+          if (o.por) el("f-por").value = o.por;
+          if (o.valor) el("f-valor").value = o.valor;
+        }
       } catch (e) {}
-    }
-
-    function toggleModo() {
-      var m = el("f-modo").value;
-      el("wrap-empresa").classList.toggle("hidden", m !== "empresa");
-      el("wrap-grupo").classList.toggle("hidden", m !== "grupo");
-      el("bloco-grupo").classList.toggle("hidden", m !== "grupo");
+      if (el("f-loja") && !el("f-loja").value) el("f-loja").value = lojaSalva();
+      else if (el("f-loja") && !sessionStorage.getItem(CK)) el("f-loja").value = lojaSalva();
     }
 
     function atualizarResumoFiltroVisivel() {
       var ini = el("f-ini").value;
       var fim = el("f-fim").value;
-      var modo = el("f-modo").value;
+      var loja = el("f-loja") ? el("f-loja").value : "todas";
       var periodo = "Período: " + formatDateBR(ini) + " a " + formatDateBR(fim);
-      var entidade = "";
-      if (modo === "empresa") {
-        var sel = el("f-empresa");
-        var oE = sel.options[sel.selectedIndex];
-        entidade = "Empresa: " + (oE ? oE.text : "—");
-      } else {
-        var sg = el("f-grupo");
-        var oG = sg.options[sg.selectedIndex];
-        entidade = "Grupo: " + (oG ? oG.text : "—");
-      }
       el("rg-filtro-ativo").innerHTML =
-        "<strong>" + periodo + "</strong> · <strong>" + entidade + "</strong>";
+        "<strong>" + periodo + "</strong> · <strong>Loja: " + labelLoja(loja) + "</strong>";
     }
 
     function setLoading(on) {
@@ -928,7 +933,7 @@
     }
 
     var lastPayload = null;
-    var lastModoTela = "empresa";
+    var lastModoTela = "lojas";
 
     function renderResumo(data, modo) {
       lastPayload = data;
@@ -995,7 +1000,9 @@
       mostrarErro("");
       el("sec-equilibrio").classList.remove("is-visible");
       setLoading(true);
-      var modo = el("f-modo").value;
+      var loja = el("f-loja") ? el("f-loja").value : "todas";
+      if (loja !== "centro" && loja !== "vila") loja = "todas";
+      var modo = "lojas";
       var ini = el("f-ini").value;
       var fim = el("f-fim").value;
       if (!ini || !fim) {
@@ -1004,8 +1011,8 @@
         return;
       }
       var q =
-        "modo=" +
-        encodeURIComponent(modo) +
+        "loja=" +
+        encodeURIComponent(loja) +
         "&data_inicio=" +
         encodeURIComponent(ini) +
         "&data_fim=" +
@@ -1017,23 +1024,6 @@
         encodeURIComponent(el("f-valor").value) +
         "&contas=resultado" +
         "&incluir_visual=1";
-      if (modo === "empresa") {
-        var eid = el("f-empresa").value;
-        if (!eid) {
-          setLoading(false);
-          mostrarErro("Selecione a empresa.");
-          return;
-        }
-        q += "&empresa_id=" + encodeURIComponent(eid);
-      } else {
-        var gid = el("f-grupo").value;
-        if (!gid) {
-          setLoading(false);
-          mostrarErro("Selecione o grupo ou cadastre um no admin.");
-          return;
-        }
-        q += "&grupo_id=" + encodeURIComponent(gid);
-      }
       try {
         var r = await fetch("/api/financeiro/resumo-operacional?" + q, {
           credentials: "same-origin",
@@ -1086,11 +1076,14 @@
       }
     }
 
-    el("f-modo").addEventListener("change", function () {
-      toggleModo();
-      salvarCtx();
-      atualizarResumoFiltroVisivel();
-    });
+    if (el("f-loja")) {
+      el("f-loja").addEventListener("change", function () {
+        salvarLoja(el("f-loja").value);
+        salvarCtx();
+        atualizarResumoFiltroVisivel();
+        atualizar();
+      });
+    }
     el("btn-atualizar").addEventListener("click", atualizar);
     document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -1100,7 +1093,8 @@
         pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, lastModoTela)));
       });
     });
-    ["f-empresa", "f-grupo", "f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
+    ["f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
+      if (!el(id)) return;
       el(id).addEventListener("change", function () {
         salvarCtx();
         atualizarResumoFiltroVisivel();
@@ -1128,7 +1122,6 @@
     });
 
     carregarCtx();
-    toggleModo();
     var hoje = new Date();
     var iso = hoje.toISOString().slice(0, 10);
     if (!el("f-fim").value) el("f-fim").value = iso;
