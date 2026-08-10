@@ -1225,7 +1225,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — prévia visual 16:9 (fluxo Despesas→Receita→% lucro, PE, donut, despesas por categoria, mini DRE). **Indicadores · Financeiro gerencial intacto**. CMV vendida × paga igual. Caixa não muda. |
 | **Você** | Ctrl+F5 Resumo gerencial → julho Centro · conferir visual · abrir Indicadores e ver que **não mudou** |
-| **Prova** | `tests_dre_visual` **7/7** · verify visual **108/108** · layout **16:9 / 100dvh** · `node --check` · `manage.py check` |
+| **Prova** | `tests_dre_visual` **7/7** · verify visual **109/109** · layout **16:9 / faixa única no topo** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
