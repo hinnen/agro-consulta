@@ -1198,69 +1198,60 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
+### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
 
-> **Loja hoje:** ✅ **Live v15.26** · `producao` @ **ebe9e9c**  
-> **⚠️** Lojas **abertas** — **não** subir agora. **NÃO** merge `teste`→`producao`.  
-> **Próximo chat:** pausar vendas (Zap) + frase + senha `99738595` → FF `deploy/lote-ux-dre-bi-0908` → `producao`.
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto** · aguarda pausa + senha · **não** é produção |
-| **Branch** | `deploy/lote-ux-dre-bi-0908` @ **9b212b0** · base loja **ebe9e9c** |
-| **Rollback** | tag `rollback/pre-lote-ux-dre-bi-v15.26` @ **ebe9e9c** (v15.26) |
+| **Status** | ✅ **enviado / Live v15.46** · `producao` @ **9b212b0** · base era `ebe9e9c` (v15.26) |
 | **Pacotes** | **PDV-RACOES-LISTA-UX** + **DRE-VISUAL-PREVIA** + **BI-LUCRO-LIQUIDO** |
-| **Alvo loja** | **v15.46** |
+| **Rollback** | `git push origin ebe9e9c:producao` ou tag `rollback/pre-lote-ux-dre-bi-v15.26` |
 | **Migrate** | **NÃO** |
-| **Risco PDV** | só lista Rações (foto+zebra) — **pausar vendas** antes do push |
 | **Fora** | caixa, checkout, wizard wholesale, relatórios WIP, Indicadores HTML |
-| **Prova worktree** | tests **48/48** · Rações **129/129** · DRE **157/157** · BI **73/73** (live PG = Indicadores) · `manage.py check` · `node --check` |
-| **Arquivos** | **21** cirúrgicos sobre producao (não o teste inteiro) |
-| **Autorizar** | *pode subir o lote UX+DRE+BI para produção* + **99738595** |
+| **Você** | Ctrl+F5 · BI `/` Lucro Líquido · DRE visual · PDV Rações lista (foto+zebra) · badge **v15.46** |
 
-### ✅ CHECKLIST ÚNICO — PREP pronto · aguarda pausa + senha (09/08 · loja v15.26 → alvo v15.46)
+### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.46)
 
-> **Loja hoje:** ✅ **Live v15.26** · `producao` @ **ebe9e9c**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Branch deploy **já no GitHub** após push.
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
-| # | Pacote | Status | Migrate | Risco PDV |
-| - | ------ | ------ | ------- | --------- |
-| 1 | **PDV-RACOES-LISTA-UX** | 🚀 **PREP** · `9b212b0` · pausar vendas | não | **sim** |
-| 2 | **DRE-VISUAL-PREVIA** | 🚀 **PREP** · `9b212b0` | não | não |
-| 3 | **BI-LUCRO-LIQUIDO** | 🚀 **PREP** · `9b212b0` | não | não |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-RACOES-LISTA-UX** | ✅ enviado / Live v15.46 | não |
+| 2 | **DRE-VISUAL-PREVIA** | ✅ enviado / Live v15.46 | não |
+| 3 | **BI-LUCRO-LIQUIDO** | ✅ enviado / Live v15.46 | não |
 
 ### 📦 PACOTE PRONTO — BI Lucro Líquido (`BI-LUCRO-LIQUIDO` · **v15.42**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP no lote v15.46** · `deploy/lote-ux-dre-bi-0908` @ **9b212b0** · loja ainda **v15.26** |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
 | **O quê** | BI `/` · card **Lucro Líquido** no lugar de Novos Clientes · **vencimento** · Bruto + Pago · mesma conta do Resumo. Vila sem empresa própria usa Agro Mais Centro. |
-| **Você** | Depois do deploy: Ctrl+F5 `/` · datas 12/07–10/08 · Bruto = **-R$ 2.480,17** · Pago = **R$ 1,29** |
+| **Você** | Ctrl+F5 `/` · datas 12/07–10/08 · Bruto = **-R$ 2.480,17** · Pago = **R$ 1,29** |
 | **Prova** | verify **73/73** · tests **4/4** · live PG = Indicadores |
 | **Migrate** | **NÃO** |
-| **Autorizar** | lote UX+DRE+BI + **99738595** |
 
 ### 📦 PACOTE PRONTO — Lista Rações foto + zebra (`PDV-RACOES-LISTA-UX`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP no lote v15.46** · `deploy/lote-ux-dre-bi-0908` @ **9b212b0** · loja ainda **v15.26** |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
 | **O quê** | Foto miniatura (clique abre grande) · “No carrinho” junto do Adicionar · sem coluna Carrinho · linha **zebra cinza fraca** (sem cor da marca) |
 | **Prova** | verify Rações **129/129** · tests **17/17** · `node --check` |
-| **Você** | Depois do deploy: Ctrl+F5 PDV → Rações → lista |
+| **Você** | Ctrl+F5 PDV → Rações → lista |
 | **Migrate** | **NÃO** |
-| **Autorizar** | lote UX+DRE+BI + **99738595** · **pausar vendas** |
 
 ### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.46**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP no lote v15.46** · `deploy/lote-ux-dre-bi-0908` @ **9b212b0** · loja ainda **v15.26** |
+| **Status** | ✅ **Live v15.46** · `producao` @ **9b212b0** |
 | **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + receita por categoria PDV · PE linha · mini DRE · empréstimos no filtro (não total) · sem Estoque · grade sem sobrepor. Indicadores intacto. |
-| **Você** | Depois do deploy: Ctrl+F5 DRE · 1 dia → devido ≠ total · cards sem tapar · zoom Aa |
+| **Você** | Ctrl+F5 DRE · 1 dia → devido ≠ total · cards sem tapar · zoom Aa |
 | **Prova** | tests DRE+CMV **27/27** · verify visual **157/157** |
 | **Migrate** | **NÃO** |
-| **Autorizar** | lote UX+DRE+BI + **99738595** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (09/08 · loja v15.26)
 
