@@ -5,8 +5,12 @@ e o DRE cai na planilha CSV + heurística.
 """
 from __future__ import annotations
 
+import time
 import unicodedata
-from functools import lru_cache
+
+_CACHE_TTL_S = 60.0
+_cache_at = 0.0
+_cache_data: dict[str, tuple[str, str, str]] | None = None
 
 
 def norm_plano_chave(nome: str) -> str:
@@ -21,9 +25,12 @@ def _fold_grupo(s: str) -> str:
     return s.casefold()
 
 
-@lru_cache(maxsize=1)
 def _carregar_cadastro_dre() -> dict[str, tuple[str, str, str]]:
-    """norm → (nome_oficial, tipo, grupo)."""
+    """norm → (nome_oficial, tipo, grupo). Cache curto (TTL) por request/worker."""
+    global _cache_at, _cache_data
+    now = time.monotonic()
+    if _cache_data is not None and (now - _cache_at) < _CACHE_TTL_S:
+        return _cache_data
     out: dict[str, tuple[str, str, str]] = {}
     try:
         from produtos.models import PlanoContaAgro, PlanoContaAliasAgro
@@ -44,12 +51,16 @@ def _carregar_cadastro_dre() -> dict[str, tuple[str, str, str]]:
                 continue
             out[norm_plano_chave(g)] = (n, (tipo or "").strip(), (grupo or "").strip())
     except Exception:
-        return {}
+        out = {}
+    _cache_data = out
+    _cache_at = now
     return out
 
 
 def invalidar_cache_cadastro_dre() -> None:
-    _carregar_cadastro_dre.cache_clear()
+    global _cache_at, _cache_data
+    _cache_at = 0.0
+    _cache_data = None
 
 
 def resolver_plano_cadastro(nome_plano: str) -> dict[str, str] | None:

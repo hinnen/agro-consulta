@@ -326,6 +326,15 @@ class MontarDreVisualTests(SimpleTestCase):
 
 
 class CadastroDrePlanosTests(SimpleTestCase):
+    def test_invalidar_cache_cadastro(self):
+        from financeiro.services import plano_conta_dre_util as u
+
+        u._cache_data = {"x": ("X", "fixa", "")}
+        u._cache_at = 99.0
+        u.invalidar_cache_cadastro_dre()
+        self.assertIsNone(u._cache_data)
+        self.assertEqual(u._cache_at, 0.0)
+
     def test_natureza_cadastro(self):
         from financeiro.models import LancamentoFinanceiro as NF
         from financeiro.services.plano_conta_dre_util import natureza_dre_por_cadastro
