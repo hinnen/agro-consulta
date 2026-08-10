@@ -105,7 +105,9 @@
       </section>
       <div class="rg-head__actions">
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
-        {% include "produtos/_barra_estoque_global.html" %}
+        {% if agro_display_scale_habilitado %}
+        <button type="button" id="dash-link-display-scale" class="rg-btn-ghost rg-btn-icon agro-scale-trigger agro-scale-trigger--header" title="Ajustar tamanho da tela" aria-label="Ajustar tamanho da tela">Aa</button>
+        {% endif %}
         {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5" %}
       </div>
     </div>
