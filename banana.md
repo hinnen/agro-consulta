@@ -1238,7 +1238,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos (devido/pago/juros **no filtro**, não total) · cores bom/ruim. Topo: **?** + **Aa**. Grade sem sobrepor. Indicadores no menu. |
 | **Você** | Ctrl+F5 DRE → cards lado a lado, **sem um tapar o outro** (mesmo com zoom) |
-| **Prova** | `tests_dre_visual` **11/11** · verify visual · `node --check` |
+| **Prova** | `tests_dre_visual` **11/11** · verify visual **148/148** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
