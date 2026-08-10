@@ -1201,17 +1201,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — topo BI compacto (`BI-TOPBAR-COMPACT` · **v15.56**)
+### 📦 PACOTE PRONTO — topo BI compacto (`BI-TOPBAR-COMPACT` · **v15.57**)
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
 > **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto envio** · `teste` **v15.56** · loja ainda **v15.55** |
+| **Status** | ✅ **pronto envio** · `teste` **v15.57** · loja ainda **v15.55** |
 | **O quê** | BI `/`: sem Gestão Estratégica · sem botão Orç. · **Trava** embaixo de Loja. F2 no teclado e no Menu. PDV/caixa intactos. |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 no BI local · badge **v15.56** |
+| **Você** | Ctrl+F5 no BI local · badge **v15.57** |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.55)
 
@@ -1222,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
 | 2 | **DRE-LOJA-FILTRO** | ✅ enviado / Live v15.55 | não |
-| 3 | **BI-TOPBAR-COMPACT** | ✅ **pronto envio** / teste **v15.56** | não |
+| 3 | **BI-TOPBAR-COMPACT** | ✅ **pronto envio** / teste **v15.57** | não |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
