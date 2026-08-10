@@ -382,7 +382,7 @@ def check_lista_dense(js: str, wiz: str) -> None:
 
 
 def check_lista_marca_foto(js: str, wiz: str) -> None:
-    """Cor da marca + foto miniatura + carrinho na acao."""
+    """Foto miniatura + carrinho na acao + zebra cinza (sem cor da marca)."""
     step = read("produtos/templates/produtos/partials/pdv/step_produtos.html")
     css_a = wiz.find("#pdv-racoes-overlay.is-lista .pdv-racoes-panel")
     css_b = wiz.find("#pdv-step1-search-wrap .pdv-step1-search-f2 {")
@@ -397,11 +397,6 @@ def check_lista_marca_foto(js: str, wiz: str) -> None:
         if "function wireRacoesUi" in js
         else ""
     )
-    cor_fn = (
-        js.split("function pdvRacoesCorMarca")[1].split("function pdvRacoesOverlayEl")[0]
-        if "function pdvRacoesCorMarca" in js
-        else ""
-    )
 
     if "<th>Carrinho</th>" in wiz:
         fail("coluna Carrinho ainda na lista")
@@ -411,29 +406,18 @@ def check_lista_marca_foto(js: str, wiz: str) -> None:
         fail("coluna Foto miniatura")
     else:
         ok("coluna Foto miniatura")
-    if "function pdvRacoesCorMarca" not in js or "PDV_RACOES_MARCA_HUE" not in js:
-        fail("cor da marca na linha")
+    if "function pdvRacoesCorMarca" in js or "PDV_RACOES_MARCA_HUE" in js:
+        fail("cor da marca ainda na lista")
     else:
-        ok("cor da marca na linha")
-    hue_map = js.split("var PDV_RACOES_MARCA_HUE")[1].split("function pdvRacoesCorMarca")[0] if "var PDV_RACOES_MARCA_HUE" in js else ""
-    for marca in ("origens:", "estimacao:", "robustus:", "magnus:", "'formula natural':", "'luck cat':"):
-        if marca not in hue_map:
-            fail(f"mapa cor sem {marca}")
-            break
+        ok("cor da marca removida")
+    if 'pdvRacoesCorMarca(' in render or 'style="background:' in render:
+        fail("render ainda pinta cor da marca")
     else:
-        ok("mapa cor marcas conhecidas")
-    if ", 52%, 88%)" not in cor_fn:
-        fail("cor da marca nao e pastel")
+        ok("render sem cor da marca")
+    if 'data-pdv-photo-zoom="' not in render:
+        fail("render sem foto")
     else:
-        ok("cor da marca pastel")
-    if 'data-pdv-photo-zoom="' not in render or "pdvRacoesCorMarca(" not in render:
-        fail("render sem foto/cor marca")
-    else:
-        ok("render foto + cor marca")
-    if 'style="background:' not in render:
-        fail("render sem fundo da marca na linha")
-    else:
-        ok("render fundo da marca na linha")
+        ok("render foto miniatura")
     if "assets.placeholderProduto" not in render:
         fail("foto sem placeholder PDV")
     else:
@@ -477,11 +461,11 @@ def check_lista_marca_foto(js: str, wiz: str) -> None:
     if "background: #d1fae5" in css:
         fail("row-ok ainda pinta a linha de verde")
     else:
-        ok("row-ok nao tapa cor da marca")
-    if "tbody tr:nth-child(even)" in css:
-        fail("faixa zebra tapa cor da marca")
+        ok("row-ok nao pinta fundo verde")
+    if "tbody tr:nth-child(even)" not in css or "#f1f5f9" not in css:
+        fail("zebra cinza da lista")
     else:
-        ok("sem zebra na lista")
+        ok("zebra cinza fraquinha")
 
 
 def check_util_cenarios() -> None:

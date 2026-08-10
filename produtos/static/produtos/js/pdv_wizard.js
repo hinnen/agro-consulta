@@ -8891,49 +8891,6 @@
         return stripAccents(s).replace(/\s+/g, ' ').trim();
     }
 
-    var PDV_RACOES_MARCA_HUE = {
-        origens: 28,
-        estimacao: 48,
-        estimacat: 48,
-        robustus: 6,
-        'special dog': 210,
-        'special cat': 210,
-        special: 210,
-        magnus: 18,
-        'formula natural': 142,
-        golden: 42,
-        premier: 220,
-        'royal canin': 38,
-        whiskas: 280,
-        pedigree: 50,
-        'pro plan': 14,
-        guabi: 130,
-        farmina: 350,
-        hills: 205,
-        "hill's": 205,
-        'luck cat': 300,
-        'mix cat': 175,
-        'gran plus': 25,
-        'three dogs': 200,
-        '3 dogs': 200,
-        biofresh: 155,
-        quatree: 195,
-        naturalis: 145
-    };
-
-    function pdvRacoesCorMarca(marca) {
-        var n = pdvRacoesNorm(marca);
-        var hue;
-        if (n && PDV_RACOES_MARCA_HUE[n] != null) hue = PDV_RACOES_MARCA_HUE[n];
-        else {
-            var h = 0;
-            var i;
-            for (i = 0; i < n.length; i++) h = (h * 33 + n.charCodeAt(i)) >>> 0;
-            hue = h % 360;
-        }
-        return 'hsl(' + hue + ', 52%, 88%)';
-    }
-
     function pdvRacoesOverlayEl() {
         return document.getElementById('pdv-racoes-overlay');
     }
@@ -9245,8 +9202,6 @@
                     (ok ? 'pdv-racoes-row-ok' : '') +
                     '" data-racoes-id="' +
                     escapeHtml(pid) +
-                    '" style="background:' +
-                    escapeHtml(pdvRacoesCorMarca(marcaTxt)) +
                     '">' +
                     '<td><button type="button" class="pdv-racoes-thumb" data-pdv-photo-zoom="' +
                     escapeHtml(imgUrl) +

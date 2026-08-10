@@ -428,7 +428,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
-**Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha com **cor da marca** · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+**Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1207,14 +1207,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **PDV-RACOES-LISTA-UX** | 📋 **pronto para envio à produção** · teste | não | **sim** — pausar vendas |
 | 2 | **DRE-VISUAL-PREVIA** | 📋 **pronto para envio à produção** · teste | não | não |
 
-### 📦 PACOTE PRONTO — Lista Rações cor + foto (`PDV-RACOES-LISTA-UX`)
+### 📦 PACOTE PRONTO — Lista Rações foto + zebra (`PDV-RACOES-LISTA-UX`)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | Linha com cor da marca · foto miniatura (clique abre grande, igual PDV) · “No carrinho” junto do Adicionar · sem coluna Carrinho |
-| **Prova** | verify Rações **127/127** · tests **17/17** · `node --check` |
-| **Você** | Ctrl+F5 PDV → Rações → lista → conferir cor, foto e Adicionar |
+| **O quê** | Foto miniatura (clique abre grande) · “No carrinho” junto do Adicionar · sem coluna Carrinho · linha **zebra cinza fraca** (sem cor da marca) |
+| **Prova** | verify Rações **VERIFY_OK** · tests **17/17** · `node --check` |
+| **Você** | Ctrl+F5 PDV → Rações → lista → conferir listra cinza, foto e Adicionar |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
