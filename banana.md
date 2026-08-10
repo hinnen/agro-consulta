@@ -1198,15 +1198,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🔧 BI — card Lucro Líquido no lugar de Novos Clientes (09/08 · teste)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ teste **v15.41** · loja ainda **v15.26** |
-| **O quê** | BI `/` · card **Lucro Líquido** (Bruto + Pago) · **vencimento** · mesma conta do Resumo. Vila sem empresa própria usa Agro Mais Centro (senão ficava R$ 0). |
-| **Você** | Ctrl+F5 `/` · ANO ou datas 12/07–10/08 · Bruto deve bater com Líquido do Resumo (vencimento · bruto) |
-| **Migrate** | **NÃO** |
-
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.26)
 
 > **Loja hoje:** ✅ **Live v15.26** · `producao` @ **ebe9e9c**  
@@ -1216,6 +1207,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- | --------- |
 | 1 | **PDV-RACOES-LISTA-UX** | 📋 **pronto para envio à produção** · teste | não | **sim** — pausar vendas |
 | 2 | **DRE-VISUAL-PREVIA** | 📋 **pronto para envio à produção** · teste | não | não |
+| 3 | **BI-LUCRO-LIQUIDO** | 📋 **pronto para envio à produção** · teste | não | não |
+
+### 📦 PACOTE PRONTO — BI Lucro Líquido (`BI-LUCRO-LIQUIDO` · **v15.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
+| **O quê** | BI `/` · card **Lucro Líquido** no lugar de Novos Clientes · **vencimento** · Bruto + Pago · mesma conta do Resumo. Vila sem empresa própria usa Agro Mais Centro. |
+| **Você** | Ctrl+F5 `/` · datas 12/07–10/08 · Bruto = **-R$ 2.480,17** (igual Líquido do Resumo) · Pago = **R$ 1,29** |
+| **Prova** | verify path **73/73** · tests **4/4** · live PG = Indicadores · `manage.py check` |
+| **Migrate** | **NÃO** |
+| **Autorizar** | *pode subir BI-LUCRO-LIQUIDO para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO — Lista Rações foto + zebra (`PDV-RACOES-LISTA-UX`)
 
@@ -1228,13 +1231,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.41**)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.42**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos · cores bom/ruim. Topo só **?**. Indicadores no menu. |
-| **Você** | Ctrl+F5 Resumo → pizza da direita = receita por categoria |
+| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos · cores bom/ruim. Topo: **?** + **Aa** (sem Estoque/sincronizar). Indicadores no menu. |
+| **Você** | Ctrl+F5 Resumo → pizza da direita = receita por categoria · topo sem Estoque · filtros quebram linha no zoom |
 | **Prova** | `tests_dre_visual` **11/11** · verify visual **142/142** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
