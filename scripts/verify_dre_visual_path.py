@@ -87,7 +87,11 @@ def test_arquivos() -> None:
     check("emp_devido_no_periodo", "qs_aberto" not in emp_util and "valor_restante" in emp_util)
     check("montar_chama_emp", "resumo_emprestimos_pg" in util)
     check("api_passa_datas", "data_inicio=params" in api and "empresa_nome=data.get" in api)
+    check("api_passa_valor", "valor=valor" in api)
+    check("util_emp_valor", 'valor=valor or "bruto"' in util)
     check("html_ajuda_emp", "Empréstimos" in html and "competência" in html)
+    check("html_ajuda_emp_filtro", "seguem o filtro" in html)
+    check("js_emp_hint_filtro", "filtro da tela" in js)
     check("montar_chama_gastos", "gastos_variacao_pg" in util)
     check("montar_top12", "[:12]" in util)
     check("montar_top_chart_8", "top_chart=8" in util)
@@ -287,6 +291,7 @@ def test_montar_e_json() -> None:
     check("montar_emp_ok", emp_out.get("emprestimos", {}).get("ok") is True)
     check("montar_emp_valor", emp_out["emprestimos"]["valor_emprestado"] == 4.0)
     check("montar_emp_por", mock_e.call_args.kwargs.get("por") == "pagamento")
+    check("montar_emp_valor_arg", mock_e.call_args.kwargs.get("valor") == "bruto")
     check("montar_rec_cat_ok", emp_out.get("receita_categorias", {}).get("ok") is True)
     check("montar_rec_cat_nome", emp_out["receita_categorias"]["fatias"][0]["nome"] == "Rações")
 
@@ -378,6 +383,7 @@ def test_api_anexa_visual() -> None:
     check("api_montar_eid", mock_v.call_args.kwargs.get("empresa_id") == 1)
     check("api_montar_nome", mock_v.call_args.kwargs.get("empresa_nome") == "Agro Mais Centro")
     check("api_montar_datas", mock_v.call_args.kwargs.get("data_inicio") is not None)
+    check("api_montar_valor", mock_v.call_args.kwargs.get("valor") == "bruto")
     check("api_caixa_intacto", data.get("geracao_caixa") == -10.0)
 
     qs_off = dict(qs_on)
@@ -448,10 +454,15 @@ def test_math_cmv_e_fluxo() -> None:
 
 def test_emprestimos_classifica() -> None:
     print("== emprestimos ==")
+    from datetime import date
+    from decimal import Decimal
+    from types import SimpleNamespace
+
     from financeiro.services.dre_emprestimos_util import (
         eh_entrada_emprestimo,
         eh_juros_emprestimo,
         eh_pagamento_principal_emprestimo,
+        resumo_emprestimos_pg,
     )
 
     check("emp_entrada", eh_entrada_emprestimo("Entrada de Empréstimo", despesa=False) is True)
@@ -461,6 +472,56 @@ def test_emprestimos_classifica() -> None:
         "emp_juros_nao_principal",
         eh_pagamento_principal_emprestimo("Juros de Empréstimos", despesa=True) is False,
     )
+
+    def T(**kw):
+        return SimpleNamespace(
+            despesa=kw.get("despesa", True),
+            quitado=kw.get("quitado", False),
+            plano_conta=kw["plano"],
+            valor_restante=Decimal(str(kw.get("restante", 0))),
+            valor_bruto=Decimal(str(kw.get("bruto", 0))),
+            valor_pago=Decimal(str(kw.get("pago", 0))),
+            data_competencia=kw.get("comp"),
+            data_vencimento=kw.get("venc"),
+            data_pagamento=kw.get("pagto"),
+        )
+
+    titulos = [
+        T(plano="Pagamento de Empréstimos", restante=1000, bruto=1000, quitado=False, comp=date(2026, 6, 1), venc=date(2026, 6, 1)),
+        T(plano="Pagamento de Empréstimos", restante=300, bruto=300, quitado=False, comp=date(2026, 7, 20), venc=date(2026, 7, 20)),
+        T(plano="Pagamento de Empréstimos", restante=0, bruto=200, pago=200, quitado=True, comp=date(2026, 7, 10), venc=date(2026, 7, 10), pagto=date(2026, 7, 10)),
+        T(plano="Juros de Empréstimos", restante=0, bruto=50, pago=50, quitado=True, comp=date(2026, 7, 10), venc=date(2026, 7, 10), pagto=date(2026, 7, 10)),
+        T(plano="Entrada de Empréstimo", despesa=False, restante=0, bruto=5000, pago=5000, quitado=True, comp=date(2026, 7, 5), venc=None, pagto=date(2026, 7, 5)),
+        T(plano="Entrada de Empréstimo", despesa=False, restante=0, bruto=9999, pago=9999, quitado=True, comp=date(2026, 6, 1), venc=date(2026, 7, 15), pagto=date(2026, 7, 15)),
+    ]
+
+    class FakeQS:
+        def __init__(self, items):
+            self.items = list(items)
+
+        def filter(self, *a, **k):
+            return FakeQS(self.items)
+
+        def __iter__(self):
+            return iter(self.items)
+
+    with (
+        patch("financeiro.services.dre_emprestimos_util._qs_empresa", return_value=FakeQS(titulos)),
+        patch("financeiro.services.dre_emprestimos_util.dedup_titulos", side_effect=lambda xs: list(xs)),
+    ):
+        out = resumo_emprestimos_pg(
+            empresa_nome="Agro Mais Centro",
+            data_inicio=date(2026, 7, 1),
+            data_fim=date(2026, 7, 31),
+            por="vencimento",
+            valor="bruto",
+        )
+    check("emp_filtro_ok", out.get("ok") is True)
+    check("emp_devido_nao_total", out.get("valor_devido") == 300.0, str(out.get("valor_devido")))
+    check("emp_pago_periodo", out.get("valor_pago") == 500.0, str(out.get("valor_pago")))
+    check("emp_juros_periodo", out.get("juros") == 50.0, str(out.get("juros")))
+    check("emp_entrada_comp_val", out.get("valor_emprestado") == 5000.0, str(out.get("valor_emprestado")))
+    check("emp_entrada_por_comp", out.get("entrada_por") == "competencia")
 
 
 def test_js_syntax() -> None:

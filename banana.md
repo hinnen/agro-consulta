@@ -1231,14 +1231,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.45**)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.46**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos (devido/pago/juros **no filtro**, não total) · cores bom/ruim. Topo: **?** + **Aa**. Grade sem sobrepor. Indicadores no menu. |
-| **Você** | Ctrl+F5 DRE → cards lado a lado, **sem um tapar o outro** (mesmo com zoom) |
-| **Prova** | `tests_dre_visual` **11/11** · verify visual **148/148** · `node --check` |
+| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + receita por categoria PDV · PE linha · mini DRE · empréstimos no filtro (não total) · sem Estoque · grade sem sobrepor. Indicadores intacto. |
+| **Você** | Ctrl+F5 DRE · 1 dia → devido ≠ total · cards sem tapar · zoom Aa |
+| **Prova** | tests DRE+CMV **27/27** · verify visual **157/157** · `manage.py check` · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
