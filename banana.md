@@ -1198,25 +1198,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ⏳ PREP produção — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **PREP pronto** · `deploy/dre-visual-polish-0908` @ **2f6d05e** · **não** merge `teste`→`producao` |
+| **Pacote** | **DRE-VISUAL-POLISH** só |
+| **Base loja** | `9b212b0` (v15.46) |
+| **Rollback** | tag `rollback/pre-dre-visual-polish-v15.46` @ `9b212b0` · `git push origin 9b212b0:producao` |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · `views.py` · `relatorios_vendas_util` · Indicadores HTML · API `geracao_caixa` |
+| **Arquivos** | `dre_visual_util.py` · `agro_resumo_gerencial.js/css` · template resumo · tests/verify · VERSION **15.50** |
+| **Prova worktree** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
+| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
+
+### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-VISUAL-POLISH** (v15.50) | ⏳ PREP · aguarda pausa+senha | não |
+
 ### 📦 PACOTE PRONTO — DRE visual polish (`DRE-VISUAL-POLISH` · **v15.50**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto envio** · só `teste` · loja ainda **v15.46** |
-| **O quê** | PE barras modernas · despesas por categoria no recorte do filtro · Mini DRE: juros + empréstimo + **Saldo final** (`geracao_caixa`) · cards: **vs mês passado** + **vs média 90d** (valor + %, mesmos dias do filtro) |
-| **Você** | Ctrl+F5 DRE · julho Centro · comparativos nos 4 cards · Mini DRE juros/empréstimo · Saldo final ≈ −134 mil |
-| **Prova** | tests DRE+CMV+BI **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG-CMV **79/79** · `node --check` |
+| **Status** | ⏳ **PREP** · branch `deploy/dre-visual-polish-0908` · loja ainda **v15.46** |
+| **O quê** | PE barras modernas · despesas por categoria no recorte · Mini DRE juros + empréstimo + **Saldo final** · cards **vs mês passado** + **vs média 90d** |
+| **Prova** | tests **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** |
 | **Migrate** | **NÃO** |
 | **Fora** | Indicadores HTML · API `geracao_caixa` · PDV/caixa |
-
-### ✅ CHECKLIST ÚNICO — pronto envio produção
-
-> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Produção só frase+senha.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-POLISH** (v15.50) | 📦 pronto envio | não |
 
 ### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
 
