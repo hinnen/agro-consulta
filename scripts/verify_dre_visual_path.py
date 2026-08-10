@@ -95,6 +95,7 @@ def test_arquivos() -> None:
     check("html_mais_numeros", 'id="rg-mais-numeros"' in html)
     check("html_indicadores_link", "dashboard_financeiro_completo" in html)
     check("html_titulo_dre", "DRE gerencial" in html)
+    check("html_toolbar_no_header", 'class="rg-toolbar"' in html and "rg-head__inner" in html)
     check("html_chip_vendida", 'data-dre-cmv="vendida"' in html)
     check("html_chip_paga", 'data-dre-cmv="paga"' in html)
     check("html_ajuda_indicadores", "Indicadores · Financeiro gerencial" in html or "Indicadores" in html)

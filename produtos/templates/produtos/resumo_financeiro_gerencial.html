@@ -34,90 +34,86 @@
         </div>
         <div class="rg-head__titles">
           <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">DRE gerencial</span></h1>
-          <p>Prévia visual · Indicadores intacto</p>
         </div>
       </div>
+      <section class="rg-toolbar" aria-label="Filtros do painel">
+        <div class="rg-toolbar__row">
+          <div class="rg-field rg-field--modo">
+            <span class="rg-field__label">Modo</span>
+            <select id="f-modo" title="Uma empresa ou grupo consolidado">
+              <option value="empresa">Uma empresa</option>
+              <option value="grupo">Grupo (consolidado)</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--empresa" id="wrap-empresa">
+            <span class="rg-field__label">Empresa</span>
+            <select id="f-empresa">
+              {% for e in empresas %}
+              <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
+              {% empty %}
+              <option value="">— cadastre empresa —</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
+            <span class="rg-field__label">Grupo</span>
+            <select id="f-grupo">
+              {% for g in grupos %}
+              <option value="{{ g.id }}">{{ g.nome }}</option>
+              {% empty %}
+              <option value="">— cadastre grupo no admin —</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Início</span>
+            <input type="date" id="f-ini">
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Fim</span>
+            <input type="date" id="f-fim">
+          </div>
+          <div class="rg-field rg-field--por">
+            <span class="rg-field__label">Data</span>
+            <select id="f-por" title="Data dos lançamentos">
+              <option value="competencia">Competência</option>
+              <option value="vencimento">Vencimento</option>
+              <option value="pagamento">Pagamento</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--valor">
+            <span class="rg-field__label">Valor</span>
+            <select id="f-valor">
+              <option value="bruto">Bruto</option>
+              <option value="realizado">Já pago</option>
+            </select>
+          </div>
+          <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
+            <span class="rg-field__label">CMV</span>
+            <div class="rg-cmv__chips">
+              <button type="button" class="rg-chip is-active" data-dre-cmv="vendida" title="Custo do cadastro × quantidade vendida">Merc. vendida</button>
+              <button type="button" class="rg-chip" data-dre-cmv="paga" title="Compras lançadas no período">Merc. paga</button>
+            </div>
+            <p id="rg-cmv-hint" class="rg-cmv__hint visually-hidden">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
+          </div>
+          <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
+            Atualizar
+            <kbd class="gm-kbd-rg">F5</kbd>
+          </button>
+        </div>
+        <div id="rg-filtro-ativo" class="rg-filtro-ativo visually-hidden" role="status" aria-live="polite"></div>
+      </section>
       <div class="rg-head__actions">
         <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
         <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo">Indicadores</a>
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
         {% include "produtos/_barra_estoque_global.html" %}
-        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5" %}
       </div>
     </div>
   </header>
 
   <main class="rg-main">
-    {# ——— Toolbar / filtros ——— #}
-    <section class="rg-toolbar" aria-label="Filtros do painel">
-      <div class="rg-toolbar__row">
-        <div class="rg-field rg-field--modo">
-          <span class="rg-field__label">Modo</span>
-          <select id="f-modo" title="Uma empresa ou grupo consolidado">
-            <option value="empresa">Uma empresa</option>
-            <option value="grupo">Grupo (consolidado)</option>
-          </select>
-        </div>
-        <div class="rg-field rg-field--empresa" id="wrap-empresa">
-          <span class="rg-field__label">Empresa</span>
-          <select id="f-empresa">
-            {% for e in empresas %}
-            <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
-            {% empty %}
-            <option value="">— cadastre empresa —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
-          <span class="rg-field__label">Grupo</span>
-          <select id="f-grupo">
-            {% for g in grupos %}
-            <option value="{{ g.id }}">{{ g.nome }}</option>
-            {% empty %}
-            <option value="">— cadastre grupo no admin —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Início</span>
-          <input type="date" id="f-ini">
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Fim</span>
-          <input type="date" id="f-fim">
-        </div>
-        <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
-          Atualizar
-          <kbd class="gm-kbd-rg">F5</kbd>
-        </button>
-      </div>
-      <div class="rg-toolbar__row rg-toolbar__row--secondary">
-        <div class="rg-field" style="width:9.5rem">
-          <span class="rg-field__label">Data dos lançamentos</span>
-          <select id="f-por">
-            <option value="competencia">Competência</option>
-            <option value="vencimento">Vencimento</option>
-            <option value="pagamento">Pagamento</option>
-          </select>
-        </div>
-        <div class="rg-field" style="width:10rem">
-          <span class="rg-field__label">Valor</span>
-          <select id="f-valor">
-            <option value="bruto">Bruto do título</option>
-            <option value="realizado">Já pago / recebido</option>
-          </select>
-        </div>
-        <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
-          <span class="rg-field__label">CMV</span>
-          <div class="rg-cmv__chips">
-            <button type="button" class="rg-chip is-active" data-dre-cmv="vendida">Mercadoria vendida</button>
-            <button type="button" class="rg-chip" data-dre-cmv="paga">Mercadoria paga</button>
-          </div>
-          <p id="rg-cmv-hint" class="rg-cmv__hint">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
-        </div>
-      </div>
-      <div id="rg-filtro-ativo" class="rg-filtro-ativo" role="status" aria-live="polite"></div>
-    </section>
 
     <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
     <p id="msg-info" class="rg-msg rg-msg--info hidden"></p>
