@@ -208,12 +208,12 @@ def listar_recibos_pagamento_fiado(
 ) -> list[dict[str, Any]]:
     if not cliente_agro_pk and not (cliente_nome or "").strip():
         return []
-    tit_filtros = Q()
     if cliente_agro_pk:
-        tit_filtros |= Q(cliente_agro_id=int(cliente_agro_pk))
-    nome = (cliente_nome or "").strip()
-    if nome:
-        tit_filtros |= Q(cliente_nome__iexact=nome)
+        tit_filtros = Q(cliente_agro_id=int(cliente_agro_pk))
+    else:
+        tit_filtros = Q(cliente_nome__iexact=(cliente_nome or "").strip())
+        if (cliente_codigo or "").strip():
+            tit_filtros &= Q(cliente_codigo=str(cliente_codigo).strip())
     titulo_ids = list(FiadoTituloAgro.objects.filter(tit_filtros).values_list("pk", flat=True)[:2000])
 
     ev_q = Q(tipo=FiadoEventoAgro.Tipo.BAIXA)

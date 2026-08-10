@@ -1201,33 +1201,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — recibo pagamento fiado (`FIADO-RECIBO` · **v15.58**)
+### 📦 PACOTE PRONTO — fila envio loja (10/08 · após Live v15.55)
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.  
+> **Teste:** **v15.58**
+
+| # | Pacote | Teste | O quê | Migrate |
+| - | ------ | ----- | ----- | ------- |
+| 1 | **BI-TOPBAR-COMPACT** | v15.57 | BI `/` compacto: sem Gestão Estratégica · sem Orç. · Trava embaixo de Loja · F2 teclado/Menu | não |
+| 2 | **FIADO-RECIBO** | v15.58 | FL-019 recibo fiado 80 mm: pergunta no PDV + Reimprimir em `/fiado/` | não |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto envio** · `teste` **v15.58** · loja ainda **v15.55** |
-| **O quê** | FL-019: após baixa fiado no PDV pergunta **Imprimir recibo / Agora não**. Tela `/fiado/` → **Reimprimir**. Térmica **80 mm**. Cliente · pago agora · ainda deve · notinhas · forma · data/quem · assinatura. Parcial e quitação. |
-| **Prova** | `verify_fiado_recibo_path.py` **VERIFY_OK** (30) · `manage.py check` 0 |
-| **Migrate** | **NÃO** |
-| **Fora** | NFC-e na baixa (FL-052) · vale crédito (FL-058) · caixa/wizard venda |
-| **Você** | Ctrl+F5 PDV + `/fiado/` · badge **v15.58** · baixa fiado → imprimir · reimprimir na ficha |
-
-### 📦 PACOTE PRONTO — topo BI compacto (`BI-TOPBAR-COMPACT` · **v15.57**)
-
-> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto envio** · `teste` **v15.57** · loja ainda **v15.55** |
-| **O quê** | BI `/`: sem Gestão Estratégica · sem botão Orç. · **Trava** embaixo de Loja. F2 no teclado e no Menu. PDV/caixa intactos. |
-| **Prova** | `verify_bi_topbar_compact_path.py` **VERIFY_OK** (31) · topbar total **36/36** · check 0 · BI lucro 4/4 · CSRF/PDV seletor intactos |
-| **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · Indicadores HTML |
-| **Você** | Ctrl+F5 no BI local · badge **v15.57** |
+| **Prova** | BI-TOPBAR **31/31** · FIADO-RECIBO **79/79** (path + runtime + API + JS) · `manage.py check` 0 |
+| **Fora** | NFC-e baixa (FL-052) · vale crédito (FL-058) · PDV/caixa venda · Indicadores HTML |
+| **Você** | Ctrl+F5 local · badge **v15.58** · BI `/` · baixa fiado → recibo · Reimprimir na ficha |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.55)
 
@@ -1236,10 +1225,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
-| 2 | **DRE-LOJA-FILTRO** | ✅ enviado / Live v15.55 | não |
-| 3 | **BI-TOPBAR-COMPACT** | ✅ **pronto envio** / teste **v15.57** | não |
-| 4 | **FIADO-RECIBO** | ✅ **pronto envio** / teste **v15.58** | não |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ **pronto para envio à produção** / teste **v15.57** | não |
+| 2 | **FIADO-RECIBO** | ✅ **pronto para envio à produção** / teste **v15.58** | não |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
