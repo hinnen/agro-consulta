@@ -1201,16 +1201,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — topo BI compacto (`BI-TOPBAR-COMPACT`)
+### 📦 PACOTE PRONTO — topo BI compacto (`BI-TOPBAR-COMPACT` · **v15.56**)
+
+> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto envio** · `teste` **v15.56** · loja ainda **v15.55** |
+| **O quê** | BI `/`: sem Gestão Estratégica · sem botão Orç. · **Trava** embaixo de Loja. F2 no teclado e no Menu. PDV/caixa intactos. |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 no BI local · badge **v15.56** |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.55)
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no `teste` · ainda **não** subiu loja |
-| **O quê** | BI `/`: tira Gestão Estratégica + botão Orç. · Trava embaixo da Loja. F2/Menu intactos. PDV/caixa intactos. |
-| **Migrate** | **NÃO** |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
+| 2 | **DRE-LOJA-FILTRO** | ✅ enviado / Live v15.55 | não |
+| 3 | **BI-TOPBAR-COMPACT** | ✅ **pronto envio** / teste **v15.56** | não |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
@@ -1227,15 +1239,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fora** | PDV · caixa · wizard · Indicadores HTML |
 | **Você** | Ctrl+F5 DRE + BI `/` · badge **v15.55** · filtro **Loja** / **Números** · padrão as duas |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.55)
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.55) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
-| 2 | **DRE-LOJA-FILTRO** | ✅ enviado / Live v15.55 | não |
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (10/08)** no topo. Loja permanece **v15.55** até o próximo envio.
 
 ### ✅ Deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**)
 
