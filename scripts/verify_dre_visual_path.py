@@ -8,7 +8,7 @@ Path:
     -> GET /api/financeiro/resumo-operacional?incluir_visual=1
     -> consolidar_empresa_pg(anexar_cmv_modos=True)
     -> montar_dre_visual (so modo=empresa) -> gastos_variacao_pg
-    -> JS renderVisualBoard (fluxo + PE + donut + categorias + mini DRE + emprestimos)
+    -> JS renderVisualBoard (fluxo + PE + categorias + mini DRE + emprestimos)
   CMV vendida x paga igual (agro_dre_cmv_modo_v1). Caixa nao muda.
   Indicadores /financeiro/dashboard-gerencial/ intacto (sem redirect).
 
@@ -112,7 +112,8 @@ def test_arquivos() -> None:
     check("js_apply_cmv", "function aplicarCmvNoCore" in js)
     check("js_key_cmv", "agro_dre_cmv_modo_v1" in js)
     check("js_fluxo_desp", "Despesas" in js and "Receita" in js and "% Lucro" in js)
-    check("js_donut", "Composição das despesas" in js and "rg-donut" in js)
+    check("js_desp_split", '" · var "' in js and '" · fin "' in js)
+    check("js_sem_donut", "Composição das despesas" not in js and "rg-donut" not in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
     check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
@@ -129,7 +130,7 @@ def test_arquivos() -> None:
     check("css_board", ".rg-board" in css)
     check("css_flow", ".rg-flow" in css)
     check("css_gauge", ".rg-gauge" in css)
-    check("css_donut", ".rg-donut" in css)
+    check("css_sem_donut", ".rg-donut" not in css)
     check("css_cat", ".rg-cat" in css)
     check("css_mini", ".rg-mini" in css)
     check("css_16x9_full", "max-width: none" in css and "100dvh" in html)

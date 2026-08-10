@@ -532,9 +532,6 @@
           brl(pe) +
           (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "")
         : "Sem ponto de equilíbrio neste recorte";
-    var totDonut = desp || 1;
-    var p1 = (df / totDonut) * 100;
-    var p2 = p1 + (dv / totDonut) * 100;
     var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
     var catHtml =
       modo === "grupo"
@@ -578,7 +575,13 @@
       '<div class="rg-flow">' +
       '<article class="rg-flow__kpi rg-flow__kpi--desp"><span>Despesas</span><strong>' +
       brl(desp) +
-      "</strong><small>fixas + variáveis + financeiras</small></article>" +
+      "</strong><small>fixas " +
+      brl(df) +
+      " · var " +
+      brl(dv) +
+      " · fin " +
+      brl(dfin) +
+      "</small></article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--rec"><span>Receita</span><strong>' +
       brl(rec) +
@@ -603,18 +606,7 @@
       '</span></div><p class="rg-gauge__hint">' +
       peHint +
       "</p></article></div>" +
-      '<div class="rg-col--charts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
-      p1.toFixed(1) +
-      "%;--p2:" +
-      p2.toFixed(1) +
-      '%"></div><ul class="rg-legend"><li><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
-      brl(df) +
-      '</b></li><li><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
-      brl(dv) +
-      '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
-      brl(dfin) +
-      "</b></li></ul></div></article>" +
-      '<article class="rg-card rg-card--pe"><h3>Ponto de equilíbrio</h3>' +
+      '<div class="rg-col--charts"><article class="rg-card rg-card--pe"><h3>Ponto de equilíbrio</h3>' +
       peChartSvg(c) +
       '<p class="rg-muted">Custo = fixas + CMV + variáveis · eixo = faturamento R$ · Caixa: <b>' +
       brl(c.geracao_caixa) +
