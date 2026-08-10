@@ -8,7 +8,7 @@ Path:
     -> GET /api/financeiro/resumo-operacional?incluir_visual=1
     -> consolidar_empresa_pg(anexar_cmv_modos=True)
     -> montar_dre_visual (so modo=empresa) -> gastos_variacao_pg
-    -> JS renderVisualBoard (fluxo + PE + donut + categorias + mini DRE)
+    -> JS renderVisualBoard (fluxo + PE + donut + categorias + mini DRE + emprestimos)
   CMV vendida x paga igual (agro_dre_cmv_modo_v1). Caixa nao muda.
   Indicadores /financeiro/dashboard-gerencial/ intacto (sem redirect).
 
@@ -67,6 +67,7 @@ def test_arquivos() -> None:
     ind_views = _read("financeiro/views.py")
     prod_views = _read("produtos/views.py")
     gastos = _read("financeiro/services/gastos_variacao_pg.py")
+    emp_util = _read("financeiro/services/dre_emprestimos_util.py")
 
     check("url_resumo", "financeiro/resumo-gerencial/" in urls and "resumo_financeiro_gerencial" in urls)
     check("url_indicadores", "financeiro/dashboard-gerencial/" in urls)
@@ -78,6 +79,11 @@ def test_arquivos() -> None:
     check("view_template_resumo", "resumo_financeiro_gerencial.html" in prod_views)
     check("fn_montar", "def montar_dre_visual" in util)
     check("fn_gastos", "def gastos_variacao_pg" in gastos)
+    check("fn_emprestimos", "def resumo_emprestimos_pg" in emp_util)
+    check("emp_entrada_comp", 'entrada_por": "competencia"' in emp_util)
+    check("montar_chama_emp", "resumo_emprestimos_pg" in util)
+    check("api_passa_datas", "data_inicio=params" in api and "empresa_nome=data.get" in api)
+    check("html_ajuda_emp", "Empréstimos" in html and "competência" in html)
     check("montar_chama_gastos", "gastos_variacao_pg" in util)
     check("montar_top12", "[:12]" in util)
     check("montar_top_chart_8", "top_chart=8" in util)
@@ -109,6 +115,8 @@ def test_arquivos() -> None:
     check("js_donut", "Composição das despesas" in js and "rg-donut" in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
+    check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
+    check("css_emp", ".rg-card--emp" in css)
     check("js_caixa_nao_muda", "não muda com CMV" in js)
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_gauge", "rg-gauge" in js and "faturamento_equilibrio" in js)
@@ -188,6 +196,7 @@ def test_montar_e_json() -> None:
     ) as mock_g:
         out = montar_dre_visual(empresa_id=9, por="competencia")
     check("montar_ok", out.get("ok") is True)
+    check("montar_emp_sem_datas", out.get("emprestimos", {}).get("ok") is False)
     check("montar_top_aluguel", out["variacao"]["top"][0]["ultimo"] == 50.0)
     check("montar_top_max_12", len(out["variacao"]["top"]) == 12, str(len(out["variacao"]["top"])))
     check("montar_por_mes", mock_g.call_args.kwargs.get("modo") == "mes")
@@ -216,6 +225,41 @@ def test_montar_e_json() -> None:
     ):
         fb = montar_dre_visual(empresa_id=2, por="vencimento")
     check("montar_fallback_cat", fb["variacao"]["top"][0]["plano"] == "Luz")
+
+    fake_emp = {
+        "ok": True,
+        "valor_devido": 1.0,
+        "valor_pago": 2.0,
+        "juros": 3.0,
+        "valor_emprestado": 4.0,
+        "entrada_por": "competencia",
+    }
+    with (
+        patch(
+            "financeiro.services.gastos_variacao_pg.gastos_variacao_pg",
+            return_value={
+                "ok": True,
+                "linhas": [],
+                "resumo_grupos": [],
+                "buckets": [],
+                "total_ultimo_periodo": 0,
+            },
+        ),
+        patch(
+            "financeiro.services.dre_emprestimos_util.resumo_emprestimos_pg",
+            return_value=fake_emp,
+        ) as mock_e,
+    ):
+        emp_out = montar_dre_visual(
+            empresa_id=3,
+            por="pagamento",
+            data_inicio=date(2026, 7, 1),
+            data_fim=date(2026, 7, 31),
+            empresa_nome="Agro Mais Centro",
+        )
+    check("montar_emp_ok", emp_out.get("emprestimos", {}).get("ok") is True)
+    check("montar_emp_valor", emp_out["emprestimos"]["valor_emprestado"] == 4.0)
+    check("montar_emp_por", mock_e.call_args.kwargs.get("por") == "pagamento")
 
 
 def test_serializer() -> None:
@@ -267,6 +311,7 @@ def test_api_anexa_visual() -> None:
         "despesas_fixas": 20.0,
         "despesas_variaveis": 5.0,
         "despesas_financeiras": 2.0,
+        "empresa_nome_filtro": "Agro Mais Centro",
     }
     visual = {"ok": True, "variacao": {"ok": True, "top": [{"plano": "Aluguel", "ultimo": 20}]}}
 
@@ -302,6 +347,8 @@ def test_api_anexa_visual() -> None:
     check("api_tem_visual", isinstance(data, dict) and data.get("visual", {}).get("ok") is True)
     check("api_montar_chamado", mock_v.called)
     check("api_montar_eid", mock_v.call_args.kwargs.get("empresa_id") == 1)
+    check("api_montar_nome", mock_v.call_args.kwargs.get("empresa_nome") == "Agro Mais Centro")
+    check("api_montar_datas", mock_v.call_args.kwargs.get("data_inicio") is not None)
     check("api_caixa_intacto", data.get("geracao_caixa") == -10.0)
 
     qs_off = dict(qs_on)
@@ -370,6 +417,23 @@ def test_math_cmv_e_fluxo() -> None:
     check("snap_sem_caixa", "geracao_caixa" not in out["cmv_modos"]["vendida"])
 
 
+def test_emprestimos_classifica() -> None:
+    print("== emprestimos ==")
+    from financeiro.services.dre_emprestimos_util import (
+        eh_entrada_emprestimo,
+        eh_juros_emprestimo,
+        eh_pagamento_principal_emprestimo,
+    )
+
+    check("emp_entrada", eh_entrada_emprestimo("Entrada de Empréstimo", despesa=False) is True)
+    check("emp_juros", eh_juros_emprestimo("Juros de Empréstimos", despesa=True) is True)
+    check("emp_principal", eh_pagamento_principal_emprestimo("Pagamento de Empréstimos", despesa=True) is True)
+    check(
+        "emp_juros_nao_principal",
+        eh_pagamento_principal_emprestimo("Juros de Empréstimos", despesa=True) is False,
+    )
+
+
 def test_js_syntax() -> None:
     print("== JS ==")
     r = subprocess.run(
@@ -424,6 +488,7 @@ def main() -> int:
     test_montar_e_json()
     test_api_anexa_visual()
     test_math_cmv_e_fluxo()
+    test_emprestimos_classifica()
     test_js_syntax()
     test_pagina_local()
     print(f"\n{len(oks)} OK · {len(fails)} FAIL")

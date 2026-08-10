@@ -193,6 +193,10 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                 data["visual"] = montar_dre_visual(
                     empresa_id=params["empresa_id"],
                     por=por,
+                    data_inicio=params["data_inicio"],
+                    data_fim=params["data_fim"],
+                    empresa_nome=data.get("empresa_nome_filtro"),
+                    valor=valor,
                 )
         else:
             service = ConsolidacaoFinanceiraService()

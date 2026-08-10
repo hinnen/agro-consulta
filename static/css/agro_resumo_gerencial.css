@@ -755,6 +755,20 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  gap: 0.45rem;
+}
+.rg-col--dre > .rg-card:first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.rg-card--emp {
+  flex: 0 0 auto;
+  border-left: 3px solid #ea580c;
+}
+.rg-card--emp .rg-muted {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
 }
 .rg-cat-list {
   flex: 1 1 auto;

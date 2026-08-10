@@ -556,6 +556,23 @@
         );
       })
       .join("");
+    var emp = (visual && visual.emprestimos) || {};
+    var empOk = emp && emp.ok;
+    var empHtml =
+      '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
+      "<div><dt>Valor devido</dt><dd>" +
+      (empOk ? brl(emp.valor_devido) : "—") +
+      "</dd></div><div><dt>Valor pago</dt><dd>" +
+      (empOk ? brl(emp.valor_pago) : "—") +
+      "</dd></div><div><dt>Juros</dt><dd>" +
+      (empOk ? brl(emp.juros) : "—") +
+      "</dd></div><div><dt>Valor emprestado</dt><dd>" +
+      (empOk ? brl(emp.valor_emprestado) : "—") +
+      '</dd></div></dl><p class="rg-muted">' +
+      (modo === "grupo"
+        ? "Abra uma empresa para ver empréstimos."
+        : "Devido = saldo em aberto · pago/juros = filtro da tela · emprestado = competência do período") +
+      "</p></article>";
     return (
       '<div class="rg-board">' +
       '<div class="rg-flow">' +
@@ -607,7 +624,7 @@
       '<div class="rg-cat-list">' +
       catHtml +
       "</div></article>" +
-      '<article class="rg-card rg-col--dre"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
+      '<div class="rg-col--dre"><article class="rg-card"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
       brl(rec) +
       "</dd></div><div><dt>CMV</dt><dd>" +
       brl(cmv) +
@@ -619,7 +636,9 @@
       brl(c.resultado_liquido_gerencial) +
       "</dd></div><div><dt>Caixa</dt><dd>" +
       brl(c.geracao_caixa) +
-      "</dd></div></dl></article></div>"
+      "</dd></div></dl></article>" +
+      empHtml +
+      "</div></div>"
     );
   }
 

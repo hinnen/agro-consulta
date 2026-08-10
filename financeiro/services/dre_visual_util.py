@@ -4,7 +4,15 @@ from __future__ import annotations
 from typing import Any
 
 
-def montar_dre_visual(*, empresa_id: int, por: str = "competencia") -> dict[str, Any]:
+def montar_dre_visual(
+    *,
+    empresa_id: int,
+    por: str = "competencia",
+    data_inicio=None,
+    data_fim=None,
+    empresa_nome: str | None = None,
+    valor: str = "bruto",
+) -> dict[str, Any]:
     from financeiro.services.gastos_variacao_pg import gastos_variacao_pg
 
     var = gastos_variacao_pg(
@@ -31,6 +39,20 @@ def montar_dre_visual(*, empresa_id: int, por: str = "competencia") -> dict[str,
                 "tendencia": row.get("tendencia") or "flat",
             }
         )
+    emprestimos: dict[str, Any] = {"ok": False}
+    if data_inicio and data_fim and (empresa_nome or "").strip():
+        from financeiro.services.dre_emprestimos_util import resumo_emprestimos_pg
+
+        try:
+            emprestimos = resumo_emprestimos_pg(
+                empresa_nome=empresa_nome,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                por=por or "competencia",
+                valor=valor or "bruto",
+            )
+        except Exception:
+            emprestimos = {"ok": False}
     return {
         "ok": True,
         "variacao": {
@@ -40,4 +62,5 @@ def montar_dre_visual(*, empresa_id: int, por: str = "competencia") -> dict[str,
             "total_ultimo_periodo": var.get("total_ultimo_periodo") or 0,
             "top": top,
         },
+        "emprestimos": emprestimos,
     }
