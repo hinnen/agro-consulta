@@ -306,6 +306,10 @@
       <button type="button" id="fiado-btn-baixa-total-cli" class="min-h-[44px] px-4 rounded-xl border-2 border-orange-400 bg-orange-50 text-orange-950 text-xs font-black uppercase hover:bg-orange-100">Baixa total</button>
       <button type="button" id="fiado-btn-atualizar-titulos" class="min-h-[44px] px-4 rounded-xl bg-slate-800 text-white text-xs font-black uppercase ml-auto shrink-0 hover:bg-slate-900">Atualizar</button>
     </div>
+    <div id="fiado-recibos-box" class="shrink-0 px-4 sm:px-5 py-2 border-b border-slate-100 bg-orange-50/60 hidden">
+      <p class="text-[10px] font-black uppercase text-orange-900 tracking-wide mb-1.5">Pagamentos recentes · reimprimir recibo 80 mm</p>
+      <div id="fiado-recibos-lista" class="flex flex-col gap-1.5 max-h-[7.5rem] overflow-y-auto"></div>
+    </div>
     <div class="fiado-tit-scroll px-2 sm:px-3 pb-3">
       <table class="fiado-tit-table w-full text-left min-w-[48rem] bg-white">
         <thead class="text-[10px] font-black uppercase text-slate-600">
@@ -418,6 +422,8 @@
         baixaCliente: "{% url 'api_fiado_baixa_cliente' %}",
         baixaSelecionados: "{% url 'api_fiado_baixa_selecionados' %}",
         cobrancaPdv: "{% url 'api_fiado_cobranca_pdv' %}",
+        recibos: "{% url 'api_fiado_recibos' %}",
+        recibo: "{% url 'api_fiado_recibo_baixas' %}",
         tituloEditar: "{% url 'api_fiado_titulo_editar' %}",
         limite: "{% url 'api_fiado_limite' %}",
         clienteCredito: "{% url 'api_fiado_cliente_credito' %}",
@@ -429,7 +435,8 @@
     };
   </script>
   {% load static %}
-  <script src="{% static 'produtos/js/fiado_gestao.js' %}"></script>
+  <script src="{% static 'produtos/js/venda_cupom_80mm.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+  <script src="{% static 'produtos/js/fiado_gestao.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   {% include "produtos/_atalho_voltar_pdv.html" %}
 </body>
 </html>

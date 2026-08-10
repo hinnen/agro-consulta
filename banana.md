@@ -1201,6 +1201,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — recibo pagamento fiado (`FIADO-RECIBO` · **v15.58**)
+
+> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto envio** · `teste` **v15.58** · loja ainda **v15.55** |
+| **O quê** | FL-019: após baixa fiado no PDV pergunta **Imprimir recibo / Agora não**. Tela `/fiado/` → **Reimprimir**. Térmica **80 mm**. Cliente · pago agora · ainda deve · notinhas · forma · data/quem · assinatura. Parcial e quitação. |
+| **Prova** | `verify_fiado_recibo_path.py` **VERIFY_OK** (30) · `manage.py check` 0 |
+| **Migrate** | **NÃO** |
+| **Fora** | NFC-e na baixa (FL-052) · vale crédito (FL-058) · caixa/wizard venda |
+| **Você** | Ctrl+F5 PDV + `/fiado/` · badge **v15.58** · baixa fiado → imprimir · reimprimir na ficha |
+
 ### 📦 PACOTE PRONTO — topo BI compacto (`BI-TOPBAR-COMPACT` · **v15.57**)
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
@@ -1225,6 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
 | 2 | **DRE-LOJA-FILTRO** | ✅ enviado / Live v15.55 | não |
 | 3 | **BI-TOPBAR-COMPACT** | ✅ **pronto envio** / teste **v15.57** | não |
+| 4 | **FIADO-RECIBO** | ✅ **pronto envio** / teste **v15.58** | não |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
@@ -5385,7 +5400,7 @@ iews.py (compras enrich) |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · crédito → ver **FL-058 P0,2** |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
-| **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 **ainda aberto** |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **pronto envio** / teste **v15.58** · 80 mm |
 | **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega | 📋 **ainda aberto** |
 | **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | ✅ **código na loja** (`6af5cac`) — checklist mentia «teste» |
 | **P1,6** | **Zap #22** · **FL-024** | Cadastro cat/sub/marca só lista + PIN | ✅ **loja v10.57** — checklist mentia |
@@ -7863,7 +7878,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (dia anterior) | ✅ **loja v6.75** | 03/07 |
 | **FL-017** | **P1** | Caixa / devoluÃ§Ã£o | **DevoluÃ§Ã£o duplicada** no caixa â€” apaga venda e ainda registra **saÃ­da** (dobra o efeito) | **âœ… loja v5.22** Â· validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | âœ… parcial 12/07 | 29/06 |
-| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ðŸ“‹ Pendente | 29/06 |
+| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ✅ **teste v15.58** · PDV pergunta + Reimprimir `/fiado/` · 80 mm | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | âœ… 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | BotÃ£o **NF** nÃ£o aparece na lista â€” ex.: tÃ­tulo **RBS R$ 781,64** | âœ… **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / nÃ£o acha) | âœ… **#17** Renan testou Â· ðŸ“¦ pronto produÃ§Ã£o (fecha) | 29/06 |

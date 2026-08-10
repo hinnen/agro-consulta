@@ -189,8 +189,81 @@
         return '<div class="rodape-sistvale">' + escHtml(CUPOM_RODAPE_SISTEMA) + '</div>';
     }
 
+    function buildReciboFiadoInnerHtml(c) {
+        c = c || {};
+        var h = '<div class="pg">';
+        if (c.mostrar_cabecalho !== false) {
+            h += cupomCabecalhoHtml();
+        }
+        h +=
+            '<div style="text-align:center;font-size:11px;font-weight:900;margin:4px 0 3px;letter-spacing:.06em;">' +
+            escHtml(c.subtitulo || 'RECIBO DE PAGAMENTO FIADO') +
+            '</div>';
+        if (c.segunda_via) {
+            h +=
+                '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+        }
+        if (c.criado_em) {
+            h += '<div style="font-size:10px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
+        }
+        if (c.recibo_id) {
+            h += '<div style="font-size:9px;font-weight:700;margin-top:2px;">Recibo #' + escHtml(String(c.recibo_id)) + '</div>';
+        }
+        h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
+        h += cupomNomeClienteHtml(c.cliente_nome);
+        var titulos = Array.isArray(c.titulos) ? c.titulos : Array.isArray(c.itens) ? c.itens : [];
+        if (titulos.length) {
+            h += '<div style="font-size:10px;font-weight:900;margin:8px 0 3px;text-transform:uppercase;">Notinhas pagas</div>';
+            titulos.forEach(function (it) {
+                var nome = String(it.nome || it.documento || '').slice(0, 48);
+                var val = it.valor_pago_texto || moedaCupom(it.valor_pago != null ? it.valor_pago : it.subtotal);
+                h +=
+                    '<div style="display:flex;justify-content:space-between;gap:2px;margin:3px 0;font-size:11px;line-height:1.22;">' +
+                    '<span style="flex:1;min-width:0;">' +
+                    escHtml(nome || '—') +
+                    '</span><span style="white-space:nowrap;font-weight:800;flex-shrink:0;">' +
+                    escHtml(val) +
+                    '</span></div>';
+            });
+        }
+        h +=
+            '<div class="total-linha"><span>PAGO</span><span class="total-valor">' +
+            escHtml(c.valor_pago_texto || c.total_texto || moedaCupom(c.valor_pago || c.total)) +
+            '</span></div>';
+        if (c.forma_pagamento) {
+            h +=
+                '<div style="font-size:11px;margin-top:4px;word-break:break-word;font-weight:800;"><strong>Pag.:</strong> ' +
+                escHtml(c.forma_pagamento) +
+                '</div>';
+        }
+        h +=
+            '<div style="font-size:14px;font-weight:900;margin-top:8px;border:2px solid #000;padding:6px 5px;">' +
+            (c.quitou
+                ? 'Saldo restante: QUITADO'
+                : 'Ainda deve: ' + escHtml(c.saldo_restante_texto || moedaCupom(c.saldo_restante))) +
+            '</div>';
+        if (c.operador) {
+            h += '<div style="font-size:9px;margin-top:6px;color:#334155;">Recebido por: ' + escHtml(c.operador) + '</div>';
+        }
+        if (c.com_assinatura !== false) {
+            h +=
+                '<div class="assinatura">' +
+                '<div class="assinatura-titulo">Assinatura do cliente</div>' +
+                '<div class="assinatura-area"></div>' +
+                '</div>';
+        }
+        h += '<div style="text-align:center;font-size:10px;margin-top:10px;font-weight:600;">Obrigado pela preferência</div>';
+        h += cupomRodapeSistvaleHtml();
+        h += cupomPgCorteHtml();
+        h += '</div>';
+        return h;
+    }
+
     function buildCupomInnerHtml(c) {
         c = c || {};
+        if (c.tipo === 'recibo_fiado') {
+            return buildReciboFiadoInnerHtml(c);
+        }
         if (c.tipo === 'nfce') {
             return buildNfceCupomInnerHtml(c);
         }
@@ -606,7 +679,142 @@
         });
     }
 
+    function agroImprimirReciboFiado80mm(c) {
+        c = c || {};
+        if (c.tipo !== 'recibo_fiado') c.tipo = 'recibo_fiado';
+        var html = buildReciboFiadoInnerHtml(c);
+        if (!html) {
+            alert('Não foi possível montar o recibo.');
+            return false;
+        }
+        var iframe = cupomEnsureIframe('agro-print-iframe-recibo-fiado', 'Recibo fiado');
+        var idoc = cupomWritePageInIframe(iframe, cupomStyles(), 'Recibo fiado', html);
+        cupomWhenImagesReady(idoc, function () {
+            try {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } catch (errP) {
+                alert('Não foi possível abrir a impressão. Verifique a impressora térmica 80mm.');
+            }
+        }, 80);
+        return true;
+    }
+
+    function agroUrlReciboFiado(opts) {
+        opts = opts || {};
+        var id = parseInt(opts.recibo_id != null ? opts.recibo_id : opts.reciboId, 10);
+        var qs = [];
+        if (opts.segunda_via) qs.push('segunda_via=1');
+        if (id) {
+            return '/api/fiado/recibo/' + id + '/' + (qs.length ? '?' + qs.join('&') : '');
+        }
+        var ids = Array.isArray(opts.baixas_ids) ? opts.baixas_ids : [];
+        if (!ids.length && opts.baixas) {
+            ids = String(opts.baixas)
+                .split(',')
+                .map(function (x) {
+                    return parseInt(String(x).trim(), 10);
+                })
+                .filter(function (n) {
+                    return !!n;
+                });
+        }
+        if (!ids.length) return '';
+        qs.unshift('baixas=' + ids.join(','));
+        return '/api/fiado/recibo/?' + qs.join('&');
+    }
+
+    function agroCarregarEImprimirReciboFiado(opts) {
+        opts = opts || {};
+        var url = agroUrlReciboFiado(opts);
+        if (!url) return Promise.reject(new Error('Recibo inválido.'));
+        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        return fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) {
+                return r.json().then(function (d) {
+                    if (!r.ok || !d.ok) throw new Error((d && d.erro) || 'Falha ao carregar recibo.');
+                    return d.cupom || d;
+                });
+            })
+            .then(function (cupom) {
+                agroImprimirReciboFiado80mm(cupom);
+            })
+            .finally(function () {
+                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+    }
+
+    function agroEscolherImprimirReciboFiado(opts) {
+        opts = opts || {};
+        if (typeof opts === 'number' || (typeof opts === 'string' && String(opts).trim() !== '')) {
+            opts = { recibo_id: opts };
+        }
+
+        return new Promise(function (resolveEscolha) {
+            var overlay = document.getElementById('agro-modal-recibo-fiado');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'agro-modal-recibo-fiado';
+                overlay.className =
+                    'fixed inset-0 z-[120] hidden items-center justify-center p-3 bg-slate-900/65';
+                overlay.setAttribute('role', 'dialog');
+                overlay.setAttribute('aria-modal', 'true');
+                overlay.innerHTML =
+                    '<div class="w-full max-w-md rounded-2xl border-2 border-orange-300 bg-white shadow-2xl p-4 sm:p-5">' +
+                    '<h2 class="text-lg font-black text-orange-950">Pagamento fiado registrado</h2>' +
+                    '<p class="mt-2 text-sm font-semibold text-slate-700 leading-snug">Imprimir recibo na térmica 80 mm agora?</p>' +
+                    '<div class="mt-4 flex flex-col-reverse sm:flex-row flex-wrap gap-2 sm:justify-end">' +
+                    '<button type="button" data-agro-recibo-nao class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">Agora não</button>' +
+                    '<button type="button" data-agro-recibo-sim class="min-h-[48px] px-5 rounded-xl border-2 border-orange-500 bg-orange-500 text-xs font-black uppercase text-white hover:bg-orange-600">Imprimir recibo</button>' +
+                    '</div></div>';
+                document.body.appendChild(overlay);
+            }
+
+            var btnNao = overlay.querySelector('[data-agro-recibo-nao]');
+            var btnSim = overlay.querySelector('[data-agro-recibo-sim]');
+
+            function fecharModal() {
+                overlay.classList.add('hidden');
+                overlay.classList.remove('flex');
+            }
+
+            function escolher(sim) {
+                fecharModal();
+                resolveEscolha(!!sim);
+            }
+
+            btnNao.onclick = function () {
+                escolher(false);
+            };
+            btnSim.onclick = function () {
+                escolher(true);
+            };
+            overlay.onclick = function (e) {
+                if (e.target === overlay) escolher(false);
+            };
+
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            setTimeout(function () {
+                if (btnSim) btnSim.focus();
+            }, 40);
+        }).then(function (quImprime) {
+            if (!quImprime) return false;
+            return agroCarregarEImprimirReciboFiado(Object.assign({}, opts, { segunda_via: false }))
+                .then(function () {
+                    return true;
+                })
+                .catch(function (err) {
+                    alert(err && err.message ? err.message : 'Não foi possível imprimir o recibo.');
+                    return false;
+                });
+        });
+    }
+
     function agroImprimirCupomVenda80mm(c) {
+        if (c && c.tipo === 'recibo_fiado') {
+            return agroImprimirReciboFiado80mm(c);
+        }
         if (!c || (!c.itens || !c.itens.length)) {
             alert('Não há itens para imprimir nesta venda.');
             return false;
@@ -820,6 +1028,9 @@
     }
 
     global.agroImprimirCupomVenda80mm = agroImprimirCupomVenda80mm;
+    global.agroImprimirReciboFiado80mm = agroImprimirReciboFiado80mm;
+    global.agroCarregarEImprimirReciboFiado = agroCarregarEImprimirReciboFiado;
+    global.agroEscolherImprimirReciboFiado = agroEscolherImprimirReciboFiado;
     global.agroCarregarEImprimirCupomVenda = agroCarregarEImprimirCupomVenda;
     global.agroEscolherImprimirCupomPosNfce = agroEscolherImprimirCupomPosNfce;
     global.agroBuildCupomVenda80mmHtml = buildCupomDocumentHtml;

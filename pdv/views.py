@@ -169,6 +169,8 @@ def pdv_home(request):
                 "fiadoGestao": reverse("fiado_gestao"),
                 "apiFiadoCobrancaPdv": reverse("api_fiado_cobranca_pdv"),
                 "apiFiadoBaixaPdv": reverse("api_fiado_baixa_pdv"),
+                "apiFiadoRecibo": reverse("api_fiado_recibo_baixas"),
+                "apiFiadoRecibos": reverse("api_fiado_recibos"),
                 "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
                 "apiPdvProdutoEdicaoRapidaPattern": reverse(
                     "api_pdv_produto_edicao_rapida", args=["__PID__"]
