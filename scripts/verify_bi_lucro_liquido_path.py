@@ -38,6 +38,7 @@ def main() -> int:
     check("por_vencimento", 'por="vencimento"' in ind)
     check("valor_bruto", '"bruto"' in ind and '"realizado"' in ind)
     check("cmv_vendida", "custo_mercadoria_vendida" in ind)
+    check("fallback_vila", "Vila sem cadastro próprio" in ind or "lojas or qualquer" in ind)
 
     print("== BI views ==")
     check("worker_lucro", "def _dashboard_lucro_liquido_vencimento" in views)

@@ -1202,9 +1202,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ teste **v15.37** · loja ainda **v15.26** |
-| **O quê** | BI `/` · card **Lucro Líquido** (Bruto + Pago) · **vencimento** · mesma conta do Resumo (PDV + CMV vendida) |
-| **Você** | Ctrl+F5 `/` · conferir os 2 valores vs Resumo gerencial (DATA=Vencimento · VALOR bruto e pago) |
+| **Status** | 🔧 teste · loja ainda **v15.26** |
+| **O quê** | BI `/` · card **Lucro Líquido** (Bruto + Pago) · **vencimento** · mesma conta do Resumo. Vila sem empresa própria usa Agro Mais Centro (senão ficava R$ 0). |
+| **Você** | Ctrl+F5 `/` · ANO ou datas 12/07–10/08 · Bruto deve bater com Líquido do Resumo (vencimento · bruto) |
 | **Migrate** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.26)

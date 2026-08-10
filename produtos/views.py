@@ -9997,10 +9997,11 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             "color_bruto": _dashboard_lucro_liquido_cor(lucro_liq_bruto),
             "color_pago": _dashboard_lucro_liquido_cor(lucro_liq_pago),
             "context_lines": [
-                f"Período do BI: {periodo_label} · loja {loja_filtro_label}.",
+                f"Período do BI: {periodo_label}.",
                 "Por vencimento — igual ao Resumo gerencial com DATA = Vencimento.",
                 "Bruto = valor do título. Pago = o que já foi pago / recebido.",
                 "Receita = vendas do PDV. CMV = mercadoria vendida (mesmo padrão do DRE).",
+                "Financeiro hoje é uma empresa (Agro Mais Centro) — Centro e Vila veem o mesmo líquido.",
                 (
                     "Clique no cartão para abrir o Resumo gerencial."
                     if lucro_liq_ok

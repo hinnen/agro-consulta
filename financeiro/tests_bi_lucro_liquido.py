@@ -122,3 +122,32 @@ class LucroLiquidoVencimentoTests(SimpleTestCase):
         self.assertFalse(out["ok"])
         self.assertEqual(out["bruto"], Decimal("0"))
         self.assertEqual(out["pago"], Decimal("0"))
+
+    def test_vila_sem_empresa_propria_usa_centro(self):
+        empresas = [_Emp(1, "Agro Mais Centro")]
+        vistos: list[int] = []
+
+        def fake_consol(**kwargs):
+            vistos.append(int(kwargs["empresa_id"]))
+            return _core(rec=1000, cmv=400, df=100, dv=50, dfin=20)
+
+        with (
+            patch("base.models.Empresa.objects") as mock_emp,
+            patch(
+                "financeiro.services.indicadores_gerencial_pg.consolidar_empresa_pg",
+                side_effect=fake_consol,
+            ),
+            patch(
+                "produtos.relatorios_vendas_util.custo_mercadoria_vendida",
+                return_value={"ok": True, "total": Decimal("300")},
+            ),
+        ):
+            mock_emp.filter.return_value.only.return_value = empresas
+            out = lucro_liquido_vencimento_bruto_pago(
+                date(2026, 8, 1), date(2026, 8, 9), deposito="vila"
+            )
+
+        self.assertTrue(out["ok"])
+        self.assertEqual(set(vistos), {1})
+        self.assertEqual(out["bruto"], Decimal("530"))
+        self.assertEqual(out["pago"], Decimal("530"))

@@ -540,19 +540,27 @@ def get_indicadores_gerencial_pg(
 
 
 def _empresas_ids_para_deposito_bi(deposito: str | None) -> list[int]:
+    """IDs de empresa do DRE. Vila sem cadastro próprio cai na empresa da loja (Centro)."""
     from base.models import Empresa
     from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_nome
 
     dep = (deposito or "").strip().lower() or None
-    out: list[int] = []
+    casadas: list[int] = []
+    lojas: list[int] = []
+    qualquer: list[int] = []
     for e in Empresa.objects.filter(ativo=True).only("id", "nome_fantasia"):
+        pk = int(e.pk)
+        qualquer.append(pk)
         mapped = deposito_pdv_por_empresa_nome(e.nome_fantasia)
-        if dep is None:
-            if mapped in ("centro", "vila"):
-                out.append(int(e.pk))
-        elif mapped == dep:
-            out.append(int(e.pk))
-    return out
+        if mapped in ("centro", "vila"):
+            lojas.append(pk)
+            if dep is None or mapped == dep:
+                casadas.append(pk)
+    if dep is None:
+        return lojas or qualquer
+    if casadas:
+        return casadas
+    return lojas or qualquer
 
 
 def _core_vencimento_valor(
@@ -626,12 +634,27 @@ def lucro_liquido_vencimento_bruto_pago(
     if not core_bruto or not core_pago:
         return dict(vazio)
 
+    from base.models import Empresa
+    from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_nome
+
+    deps_emp = {
+        deposito_pdv_por_empresa_nome(e.nome_fantasia)
+        for e in Empresa.objects.filter(pk__in=eids).only("nome_fantasia")
+    }
+    deps_emp.discard(None)
+    if deposito and deposito in deps_emp:
+        cmv_dep = deposito
+    elif len(deps_emp) == 1:
+        cmv_dep = next(iter(deps_emp))
+    else:
+        cmv_dep = None
+
     dias = max((data_fim - data_inicio).days + 1, 1)
     cmv_modo = "paga"
     try:
         from produtos.relatorios_vendas_util import custo_mercadoria_vendida
 
-        cmv_v = custo_mercadoria_vendida(data_inicio, data_fim, deposito=deposito)
+        cmv_v = custo_mercadoria_vendida(data_inicio, data_fim, deposito=cmv_dep)
     except Exception:
         cmv_v = {"ok": False, "total": z}
     if cmv_v.get("ok"):
