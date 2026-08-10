@@ -541,26 +541,9 @@ def get_indicadores_gerencial_pg(
 
 def _empresas_ids_para_deposito_bi(deposito: str | None) -> list[int]:
     """IDs de empresa do DRE. Vila sem cadastro próprio cai na empresa da loja (Centro)."""
-    from base.models import Empresa
-    from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_nome
+    from financeiro.services.receita_pdv_util import empresas_ids_para_deposito
 
-    dep = (deposito or "").strip().lower() or None
-    casadas: list[int] = []
-    lojas: list[int] = []
-    qualquer: list[int] = []
-    for e in Empresa.objects.filter(ativo=True).only("id", "nome_fantasia"):
-        pk = int(e.pk)
-        qualquer.append(pk)
-        mapped = deposito_pdv_por_empresa_nome(e.nome_fantasia)
-        if mapped in ("centro", "vila"):
-            lojas.append(pk)
-            if dep is None or mapped == dep:
-                casadas.append(pk)
-    if dep is None:
-        return lojas or qualquer
-    if casadas:
-        return casadas
-    return lojas or qualquer
+    return empresas_ids_para_deposito(deposito)
 
 
 def _core_vencimento_valor(
@@ -568,11 +551,19 @@ def _core_vencimento_valor(
     data_inicio: date,
     data_fim: date,
     valor: str,
+    deposito: str | None = None,
 ) -> dict[str, Any] | None:
-    from financeiro.services.receita_pdv_util import somar_resumos_dre_empresas
+    from financeiro.services.receita_pdv_util import (
+        deposito_pdv_efetivo,
+        somar_resumos_dre_empresas,
+    )
 
     subs: list[dict[str, Any]] = []
+    n = len(empresa_ids)
     for eid in empresa_ids:
+        dep = deposito_pdv_efetivo(
+            empresa_id=eid, deposito_filtro=deposito, n_empresas=n
+        )
         core = consolidar_empresa_pg(
             empresa_id=eid,
             data_inicio=data_inicio,
@@ -581,6 +572,7 @@ def _core_vencimento_valor(
             valor=valor,
             filtro_contas="resultado",
             usar_receita_pdv=True,
+            deposito=dep,
         )
         if isinstance(core, dict) and not core.get("erro"):
             subs.append(core)
@@ -629,23 +621,17 @@ def lucro_liquido_vencimento_bruto_pago(
     if not eids:
         return dict(vazio)
 
-    core_bruto = _core_vencimento_valor(eids, data_inicio, data_fim, "bruto")
-    core_pago = _core_vencimento_valor(eids, data_inicio, data_fim, "realizado")
+    core_bruto = _core_vencimento_valor(
+        eids, data_inicio, data_fim, "bruto", deposito=deposito
+    )
+    core_pago = _core_vencimento_valor(
+        eids, data_inicio, data_fim, "realizado", deposito=deposito
+    )
     if not core_bruto or not core_pago:
         return dict(vazio)
 
-    from base.models import Empresa
-    from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_nome
-
-    deps_emp = {
-        deposito_pdv_por_empresa_nome(e.nome_fantasia)
-        for e in Empresa.objects.filter(pk__in=eids).only("nome_fantasia")
-    }
-    deps_emp.discard(None)
-    if deposito and deposito in deps_emp:
+    if deposito in ("centro", "vila"):
         cmv_dep = deposito
-    elif len(deps_emp) == 1:
-        cmv_dep = next(iter(deps_emp))
     else:
         cmv_dep = None
 

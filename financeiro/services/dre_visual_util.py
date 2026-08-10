@@ -174,6 +174,7 @@ def comparativo_kpis_dre_pg(
     data_fim,
     por: str = "competencia",
     valor: str = "bruto",
+    deposito: str | None = None,
 ) -> dict[str, Any]:
     """KPIs do mês passado e dos 90 dias anteriores, para projetar no tamanho do filtro."""
     from financeiro.services.resumo_operacional_pg import consolidar_empresa_pg
@@ -184,6 +185,9 @@ def comparativo_kpis_dre_pg(
 
     def _load(ini, fim) -> dict[str, Any] | None:
         try:
+            kw: dict[str, Any] = {}
+            if deposito in ("centro", "vila", "todas"):
+                kw["deposito"] = deposito
             core = consolidar_empresa_pg(
                 empresa_id=empresa_id,
                 data_inicio=ini,
@@ -191,6 +195,7 @@ def comparativo_kpis_dre_pg(
                 por=por or "competencia",
                 valor=valor or "bruto",
                 anexar_cmv_modos=True,
+                **kw,
             )
         except Exception:
             return None
@@ -222,6 +227,7 @@ def montar_dre_visual(
     data_fim=None,
     empresa_nome: str | None = None,
     valor: str = "bruto",
+    deposito: str | None = None,
 ) -> dict[str, Any]:
     from financeiro.services.gastos_variacao_pg import gastos_variacao_pg
 
@@ -254,15 +260,10 @@ def montar_dre_visual(
     despesas_categorias: dict[str, Any] = {"ok": False}
     comparativo: dict[str, Any] = {"ok": False}
     if data_inicio and data_fim:
-        from financeiro.services.receita_pdv_util import (
-            deposito_pdv_por_empresa_id,
-            deposito_pdv_por_empresa_nome,
-        )
+        from financeiro.services.receita_pdv_util import resolver_deposito_pdv
         from produtos.relatorios_vendas_util import receita_categorias_pdv
 
-        dep = deposito_pdv_por_empresa_nome(empresa_nome) or deposito_pdv_por_empresa_id(
-            empresa_id
-        )
+        dep = resolver_deposito_pdv(deposito, empresa_nome)
         try:
             receita_categorias = receita_categorias_pdv(
                 data_inicio, data_fim, deposito=dep, top=6
@@ -299,6 +300,7 @@ def montar_dre_visual(
                 data_fim=data_fim,
                 por=por or "competencia",
                 valor=valor or "bruto",
+                deposito=deposito if deposito in ("centro", "vila", "todas") else None,
             )
         except Exception:
             comparativo = {"ok": False}

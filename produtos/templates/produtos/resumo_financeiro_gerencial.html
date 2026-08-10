@@ -38,31 +38,12 @@
       </div>
       <section class="rg-toolbar" aria-label="Filtros do painel">
         <div class="rg-toolbar__row">
-          <div class="rg-field rg-field--modo">
-            <span class="rg-field__label">Modo</span>
-            <select id="f-modo" title="Uma empresa ou grupo consolidado">
-              <option value="empresa">Uma empresa</option>
-              <option value="grupo">Grupo (consolidado)</option>
-            </select>
-          </div>
-          <div class="rg-field rg-field--empresa" id="wrap-empresa">
-            <span class="rg-field__label">Empresa</span>
-            <select id="f-empresa">
-              {% for e in empresas %}
-              <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
-              {% empty %}
-              <option value="">— cadastre empresa —</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
-            <span class="rg-field__label">Grupo</span>
-            <select id="f-grupo">
-              {% for g in grupos %}
-              <option value="{{ g.id }}">{{ g.nome }}</option>
-              {% empty %}
-              <option value="">— cadastre grupo no admin —</option>
-              {% endfor %}
+          <div class="rg-field rg-field--loja">
+            <span class="rg-field__label">Loja</span>
+            <select id="f-loja" title="Vendas do PDV por loja. Despesas seguem a empresa cadastrada.">
+              <option value="todas" selected>Centro + Vila</option>
+              <option value="centro">Centro</option>
+              <option value="vila">Vila</option>
             </select>
           </div>
           <div class="rg-field rg-field--date">
@@ -118,7 +99,7 @@
     <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
     <p id="msg-info" class="rg-msg rg-msg--info hidden"></p>
     <p id="rg-msg-zero" class="rg-msg rg-msg--zero hidden">
-      Indicadores principais estão zerados neste período. Confira a empresa, as datas e se há lançamentos no SisVale.
+      Indicadores principais estão zerados neste período. Confira a loja, as datas e se há lançamentos no SisVale.
     </p>
 
     {# Skeleton carregando #}
@@ -177,8 +158,7 @@
       <h3>DRE gerencial (prévia)</h3>
       <ul>
         <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber) + receita do <strong>PDV</strong>.</li>
-        <li>O <strong>nome fantasia</strong> da empresa deve coincidir com o campo Empresa nos títulos.</li>
-        <li>Modo <strong>grupo</strong> soma as empresas vinculadas (sem eliminação automática entre filiais).</li>
+        <li><strong>Loja:</strong> padrão <strong>Centro + Vila</strong> (as duas). Centro ou Vila filtra as <strong>vendas do PDV</strong> daquela loja. Despesas/empréstimos seguem a empresa cadastrada (se a Vila não tiver empresa própria, usam a do Centro).</li>
         <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro, operacional, líquido e ponto de equilíbrio acompanham.</li>
         <li><strong>Saldo final</strong> = soma da Mini DRE: líquido (PDV) + <strong>entrada empréstimo</strong> + <strong>aporte sócio</strong> − <strong>juros</strong> − <strong>empréstimo</strong> (principal) − <strong>retirada sócio</strong>, no recorte do filtro.</li>
         <li><strong>Despesas por categoria</strong> = cadastro oficial de planos (grafia antiga vira o nome novo) · mesmos planos e datas do card Despesas.</li>

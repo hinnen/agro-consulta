@@ -26,8 +26,104 @@ def deposito_pdv_por_empresa_id(empresa_id: int | None) -> str | None:
         return None
     from base.models import Empresa
 
-    e = Empresa.objects.filter(pk=empresa_id).only("nome_fantasia").first()
+    qs = Empresa.objects.filter(pk=empresa_id).only("nome_fantasia")
+    e = None
+    first = getattr(qs, "first", None)
+    if callable(first):
+        try:
+            e = first()
+        except Exception:
+            e = None
+    if e is None:
+        try:
+            want = int(empresa_id)
+            for item in qs:
+                if int(getattr(item, "pk", 0) or 0) == want:
+                    e = item
+                    break
+        except Exception:
+            e = None
     return deposito_pdv_por_empresa_nome(e.nome_fantasia if e else None)
+
+
+def normalizar_loja_filtro(raw: str | None) -> str:
+    """todas | centro | vila. Padrão = as duas lojas."""
+    n = (raw or "").strip().lower()
+    if n in ("centro", "1", "central"):
+        return "centro"
+    if n in ("vila", "2", "vila elias", "vila_elias", "vilaelias"):
+        return "vila"
+    return "todas"
+
+
+def deposito_de_loja(loja: str | None) -> str | None:
+    """centro/vila ou None (Centro + Vila)."""
+    n = normalizar_loja_filtro(loja)
+    if n in ("centro", "vila"):
+        return n
+    return None
+
+
+def label_loja_filtro(loja: str | None) -> str:
+    n = normalizar_loja_filtro(loja)
+    if n == "centro":
+        return "Centro"
+    if n == "vila":
+        return "Vila Elias"
+    return "Centro + Vila"
+
+
+def empresas_ids_para_deposito(deposito: str | None) -> list[int]:
+    """IDs de empresa do DRE. Vila sem cadastro próprio cai na empresa da loja (Centro)."""
+    from base.models import Empresa
+
+    dep = (deposito or "").strip().lower() or None
+    if dep not in ("centro", "vila"):
+        dep = None
+    casadas: list[int] = []
+    lojas: list[int] = []
+    qualquer: list[int] = []
+    for e in Empresa.objects.filter(ativo=True).only("id", "nome_fantasia"):
+        pk = int(e.pk)
+        qualquer.append(pk)
+        mapped = deposito_pdv_por_empresa_nome(e.nome_fantasia)
+        if mapped in ("centro", "vila"):
+            lojas.append(pk)
+            if dep is None or mapped == dep:
+                casadas.append(pk)
+    if dep is None:
+        return lojas or qualquer
+    if casadas:
+        return casadas
+    return lojas or qualquer
+
+
+def resolver_deposito_pdv(
+    deposito: str | None = None,
+    empresa_nome: str | None = None,
+) -> str | None:
+    """centro/vila, None = as duas lojas. ``todas`` força as duas mesmo com nome Centro."""
+    if deposito == "todas":
+        return None
+    if deposito in ("centro", "vila"):
+        return deposito
+    return deposito_pdv_por_empresa_nome(empresa_nome)
+
+
+def deposito_pdv_efetivo(
+    *,
+    empresa_id: int | None = None,
+    deposito_filtro: str | None = None,
+    n_empresas: int = 1,
+) -> str:
+    """Valor p/ ``aplicar_receita_pdv``: centro | vila | todas."""
+    if deposito_filtro in ("centro", "vila"):
+        return deposito_filtro
+    if n_empresas > 1 and empresa_id:
+        mapped = deposito_pdv_por_empresa_id(empresa_id)
+        if mapped in ("centro", "vila"):
+            return mapped
+    return "todas"
 
 
 def faturamento_pdv_periodo(data_ini, data_fim, deposito: str | None = None) -> dict[str, Any]:
@@ -65,7 +161,7 @@ def aplicar_receita_pdv_no_resumo(
     if not isinstance(core, dict) or core.get("erro"):
         return core
 
-    dep = deposito if deposito is not None else deposito_pdv_por_empresa_nome(empresa_nome)
+    dep = resolver_deposito_pdv(deposito, empresa_nome)
     fat = faturamento_pdv_periodo(data_inicio, data_fim, deposito=dep)
     core["faturamento_pdv"] = fat
     core["receita_lancamentos"] = _dec(core.get("receita_operacional"))
@@ -149,7 +245,7 @@ def aplicar_cmv_modos_no_resumo(
     paga_cmv = _dec(core.get("cmv"))
     snap_paga = recalc_resumo_cmv(core, paga_cmv, dias_periodo=dias)
 
-    dep = deposito if deposito is not None else deposito_pdv_por_empresa_nome(empresa_nome)
+    dep = resolver_deposito_pdv(deposito, empresa_nome)
     cmv_v = {"ok": False, "total": Decimal("0"), "skus_com_custo": 0, "skus_sem_custo": 0}
     try:
         from produtos.relatorios_vendas_util import custo_mercadoria_vendida
