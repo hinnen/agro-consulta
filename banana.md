@@ -1198,11 +1198,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE visual PE + categoria + caixa (`DRE-VISUAL-POLISH`)
+### 📦 PACOTE PRONTO — DRE visual PE + categoria + caixa (`DRE-VISUAL-POLISH` · **v15.47**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto envio** · só `teste` (loja ainda **v15.46**) |
+| **Status** | 📦 **pronto envio** · `teste` @ **d0b73c8**+VERSION · loja ainda **v15.46** |
 | **O quê** | PE barras modernas · Despesas por categoria = mesmo recorte do card Despesas (não mês corrente) · Caixa do período = líquido a partir do filtro (sem empréstimos; jul/Centro ~R$ 9.091) |
 | **Você** | Ctrl+F5 DRE · julho Centro · Fixas/Var/Fin da lista ≈ card Despesas · Caixa ≈ Líquido · PE novo |
 | **Prova** | tests DRE+CMV **28/28** · verify visual **167/167** |
@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-POLISH** | 📦 pronto envio | não |
+| 1 | **DRE-VISUAL-POLISH** (v15.47) | 📦 pronto envio | não |
 
 ### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
 
