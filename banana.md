@@ -1203,9 +1203,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto envio** · só `teste` · loja ainda **v15.46** |
-| **O quê** | PE barras modernas · Despesas por categoria = recorte do card Despesas · Mini DRE: Líquido → Juros empréstimo → Empréstimo → **Saldo final** (`geracao_caixa`, jul/Centro ~−R$ 134 mil) |
-| **Você** | Ctrl+F5 DRE · julho Centro · lista Fixas/Var/Fin ≈ card · Mini DRE mostra juros + empréstimo · Saldo final ≈ −134 mil |
-| **Prova** | tests DRE+CMV **28/28** · verify visual **172/172** |
+| **O quê** | PE barras · Despesas por categoria no recorte · Mini DRE juros/empréstimo/saldo final · cards: **vs mês passado** + **vs média 90d** (valor + %) |
+| **Você** | Ctrl+F5 DRE · julho Centro · cards de cima com 2 comparativos · Mini DRE juros + empréstimo · Saldo final ≈ −134 mil |
+| **Prova** | tests DRE+CMV **29/29** · verify visual **182/182** |
 | **Migrate** | **NÃO** |
 | **Fora** | Indicadores · API `geracao_caixa` intacta |
 
