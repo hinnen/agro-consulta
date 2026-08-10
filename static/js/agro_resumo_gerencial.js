@@ -530,7 +530,24 @@
     var recCls = rec > 0.005 ? "" : " is-muted";
     var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
     var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
-    var caixaPeriodo = num(c.geracao_caixa);
+    var emp = (visual && visual.emprestimos) || {};
+    var empOk = emp && emp.ok;
+    var jurosEmp = empOk
+      ? num(emp.juros_pago != null ? emp.juros_pago : emp.juros)
+      : 0;
+    var empPago = empOk
+      ? num(emp.emprestimo_pago != null ? emp.emprestimo_pago : emp.valor_pago)
+      : Math.max(0, num(c.amortizacao_emprestimos) - jurosEmp);
+    var entradaEmp =
+      empOk && num(emp.valor_emprestado) > 0.005
+        ? num(emp.valor_emprestado)
+        : num(c.emprestimos_entrada);
+    var aportesSoc = num(c.aportes_socios);
+    var retiradasSoc = num(c.retiradas_socios);
+    var liquidoTela = num(c.resultado_liquido_gerencial);
+    var saldoMini =
+      liquidoTela + entradaEmp + aportesSoc - jurosEmp - empPago - retiradasSoc;
+    var caixaPeriodo = saldoMini;
     var refs = modo === "grupo" ? null : refKpis(visual, c);
     var rMes = refs && refs.mes;
     var r90 = refs && refs.d90;
@@ -571,26 +588,29 @@
         );
       })
       .join("");
-    var emp = (visual && visual.emprestimos) || {};
-    var empOk = emp && emp.ok;
-    var jurosEmp = empOk ? num(emp.juros) : 0;
-    var empPago = empOk
-      ? num(emp.valor_pago)
-      : Math.max(0, num(c.amortizacao_emprestimos) - jurosEmp);
+    var empDev = empOk ? num(emp.emprestimo_devido != null ? emp.emprestimo_devido : emp.valor_devido) : 0;
+    var jurDev = empOk ? num(emp.juros_devido != null ? emp.juros_devido : emp.juros) : 0;
+    var totDev = empOk
+      ? num(emp.total_devido != null ? emp.total_devido : empDev + jurDev)
+      : 0;
     var empHtml =
       '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
-      "<div><dt>Valor devido</dt><dd class=\"" +
-      (empOk && num(emp.valor_devido) > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+      "<div><dt>Empréstimo devido</dt><dd class=\"" +
+      (empOk && empDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
       "\">" +
-      (empOk ? brl(emp.valor_devido) : "—") +
+      (empOk ? brl(empDev) : "—") +
+      '</dd></div><div><dt>Juros devido</dt><dd class="' +
+      (empOk && jurDev > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      (empOk ? brl(jurDev) : "—") +
+      '</dd></div><div><dt>Total devido</dt><dd class="' +
+      (empOk && totDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+      '">' +
+      (empOk ? brl(totDev) : "—") +
       '</dd></div><div><dt>Valor pago</dt><dd class="' +
       (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
       '">' +
       (empOk ? brl(emp.valor_pago) : "—") +
-      '</dd></div><div><dt>Juros</dt><dd class="' +
-      (empOk && num(emp.juros) > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      (empOk ? brl(emp.juros) : "—") +
       '</dd></div><div><dt>Valor emprestado</dt><dd class="' +
       (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
       '">' +
@@ -598,7 +618,7 @@
       '</dd></div></dl><p class="rg-muted">' +
       (modo === "grupo"
         ? "Abra uma empresa para ver empréstimos."
-        : "Devido, pago e juros = filtro da tela · emprestado = competência do período") +
+        : "Devido = bruto no filtro da tela · pago = pago desses títulos · emprestado = competência do período") +
       "</p></article>";
     return (
       '<div class="rg-board">' +
@@ -665,11 +685,11 @@
       peChartSvg(c) +
       '<p class="rg-muted">' +
       peHint +
-      " · Custo = fixas + CMV + variáveis · Caixa do período: <b class=\"" +
+      " · Custo = fixas + CMV + variáveis · Saldo Mini DRE: <b class=\"" +
       valCls(caixaPeriodo) +
       '">' +
       brl(caixaPeriodo) +
-      "</b> <span>(com empréstimos)</span></p></article></div>" +
+      "</b></p></article></div>" +
       '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
       '<div class="rg-cat-list">' +
@@ -697,6 +717,14 @@
       valCls(c.resultado_liquido_gerencial) +
       '">' +
       brl(c.resultado_liquido_gerencial) +
+      '</dd></div><div><dt>Entrada empréstimo</dt><dd class="' +
+      (entradaEmp > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
+      brl(entradaEmp) +
+      '</dd></div><div><dt>Aporte sócio</dt><dd class="' +
+      (aportesSoc > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
+      brl(aportesSoc) +
       '</dd></div><div><dt>Juros empréstimo</dt><dd class="' +
       (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
@@ -705,10 +733,14 @@
       (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
       brl(empPago) +
-      '</dd></div><div><dt>Saldo final</dt><dd class="' +
-      valCls(caixaPeriodo) +
+      '</dd></div><div><dt>Retirada sócio</dt><dd class="' +
+      (retiradasSoc > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
-      brl(caixaPeriodo) +
+      brl(retiradasSoc) +
+      '</dd></div><div><dt>Saldo final</dt><dd class="' +
+      valCls(saldoMini) +
+      '">' +
+      brl(saldoMini) +
       "</dd></div></dl></article>" +
       empHtml +
       "</div></div>"

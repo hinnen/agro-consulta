@@ -408,6 +408,9 @@ class EmprestimosCardTests(SimpleTestCase):
         self.assertFalse(eh_juros_emprestimo("Juros de Empréstimos", despesa=False))
         self.assertTrue(eh_pagamento_principal_emprestimo("Pagamento de Empréstimos", despesa=True))
         self.assertFalse(eh_pagamento_principal_emprestimo("Juros de Empréstimos", despesa=True))
+        self.assertFalse(
+            eh_pagamento_principal_emprestimo("Empréstimo (entrada + pagamento)", despesa=True)
+        )
 
     def test_resumo_entrada_sempre_competencia(self):
         from datetime import date
@@ -518,9 +521,14 @@ class EmprestimosCardTests(SimpleTestCase):
                 valor="bruto",
             )
         self.assertTrue(out["ok"])
-        self.assertEqual(out["valor_devido"], 300.0)
-        self.assertEqual(out["valor_pago"], 500.0)
+        self.assertEqual(out["emprestimo_devido"], 500.0)
+        self.assertEqual(out["valor_devido"], 500.0)
+        self.assertEqual(out["juros_devido"], 50.0)
         self.assertEqual(out["juros"], 50.0)
+        self.assertEqual(out["total_devido"], 550.0)
+        self.assertEqual(out["emprestimo_pago"], 200.0)
+        self.assertEqual(out["juros_pago"], 50.0)
+        self.assertEqual(out["valor_pago"], 250.0)
         self.assertEqual(out["valor_emprestado"], 5000.0)
         self.assertEqual(out["entrada_por"], "competencia")
 
