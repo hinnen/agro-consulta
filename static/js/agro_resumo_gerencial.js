@@ -29,6 +29,12 @@
     return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
   }
 
+  function valCls(n) {
+    var v = num(n);
+    if (!isFinite(v) || Math.abs(v) < 0.005) return "rg-val--zero";
+    return v > 0 ? "rg-val--pos" : "rg-val--neg";
+  }
+
   var CMV_KEY = "agro_dre_cmv_modo_v1";
   var CMV_HINT = {
     vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
@@ -274,6 +280,457 @@
     return html;
   }
 
+  function sparkSvg(vals) {
+    if (!vals || vals.length < 2) {
+      return '<p class="rg-muted">Sem série diária neste período.</p>';
+    }
+    var max = Math.max.apply(null, vals.concat([0.01]));
+    var w = 320;
+    var h = 72;
+    var p = 6;
+    var pts = vals
+      .map(function (v, i) {
+        var x = p + (i / (vals.length - 1)) * (w - 2 * p);
+        var y = h - p - (v / max) * (h - 2 * p);
+        return x.toFixed(1) + "," + y.toFixed(1);
+      })
+      .join(" ");
+    return (
+      '<svg viewBox="0 0 ' +
+      w +
+      " " +
+      h +
+      '" class="rg-spark" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#059669" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' +
+      pts +
+      '"/></svg>'
+    );
+  }
+
+  function sparkVals(c) {
+    var fat = (c && c.faturamento_pdv) || {};
+    var por = fat.por_dia || {};
+    var keys = Object.keys(por).sort();
+    if (!keys.length) return [];
+    return keys.slice(-7).map(function (k) {
+      return num(por[k]);
+    });
+  }
+
+  function peChartSvg(c) {
+    var rec = num(c && c.receita_operacional);
+    var cmv = num(c && c.cmv);
+    var df = num(c && c.despesas_fixas);
+    var dv = num(c && c.despesas_variaveis);
+    var pe = num(c && c.faturamento_equilibrio);
+    var varRatio = rec > 0 ? (cmv + dv) / rec : 1;
+    if (!isFinite(varRatio) || varRatio < 0) varRatio = 1;
+    var xmax = Math.max(pe * 1.7, rec * 1.3, df > 0 ? df * 2.2 : 1, 1);
+    var ymax = Math.max(xmax, df + varRatio * xmax) * 1.08;
+    if (ymax <= 0) ymax = 1;
+    var W = 440;
+    var H = 220;
+    var padL = 44;
+    var padR = 12;
+    var padT = 16;
+    var padB = 28;
+    function xPx(x) {
+      return padL + (x / xmax) * (W - padL - padR);
+    }
+    function yPx(y) {
+      return H - padB - (y / ymax) * (H - padT - padB);
+    }
+    function pt(x, y) {
+      return xPx(x).toFixed(1) + "," + yPx(y).toFixed(1);
+    }
+    var rec1 = xmax;
+    var cost0 = df;
+    var cost1 = df + varRatio * xmax;
+    var hasPe = pe > 0 && pe < xmax * 0.98 && varRatio < 1;
+    var prejuPoly = "";
+    var lucroPoly = "";
+    if (hasPe) {
+      prejuPoly = [pt(0, 0), pt(pe, pe), pt(pe, df + varRatio * pe), pt(0, cost0)].join(" ");
+      lucroPoly = [pt(pe, pe), pt(xmax, rec1), pt(xmax, cost1), pt(pe, df + varRatio * pe)].join(" ");
+    } else if (varRatio < 1 && df <= 0) {
+      lucroPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
+    } else {
+      prejuPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
+    }
+    var recLine = pt(0, 0) + " " + pt(xmax, rec1);
+    var costLine = pt(0, cost0) + " " + pt(xmax, cost1);
+    var svg =
+      '<svg viewBox="0 0 ' +
+      W +
+      " " +
+      H +
+      '" class="rg-pe-chart" role="img" aria-label="Ponto de equilíbrio">';
+    if (prejuPoly) {
+      svg += '<polygon points="' + prejuPoly + '" fill="#ef4444"/>';
+    }
+    if (lucroPoly) {
+      svg += '<polygon points="' + lucroPoly + '" fill="#059669"/>';
+    }
+    svg +=
+      '<polyline fill="none" stroke="#b91c1c" stroke-width="2.2" points="' +
+      costLine +
+      '"/>';
+    svg +=
+      '<polyline fill="none" stroke="#047857" stroke-width="2.4" points="' +
+      recLine +
+      '"/>';
+    svg +=
+      '<line x1="' +
+      padL +
+      '" y1="' +
+      yPx(0) +
+      '" x2="' +
+      (W - padR) +
+      '" y2="' +
+      yPx(0) +
+      '" stroke="#94a3b8" stroke-width="1"/>';
+    svg +=
+      '<line x1="' +
+      padL +
+      '" y1="' +
+      padT +
+      '" x2="' +
+      padL +
+      '" y2="' +
+      yPx(0) +
+      '" stroke="#94a3b8" stroke-width="1"/>';
+    svg +=
+      '<text x="' +
+      (padL - 6) +
+      '" y="' +
+      (padT + 8) +
+      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">R$</text>';
+    svg +=
+      '<text x="' +
+      (W - padR) +
+      '" y="' +
+      (H - 8) +
+      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">Faturamento</text>';
+    if (hasPe) {
+      svg +=
+        '<line x1="' +
+        xPx(pe) +
+        '" y1="' +
+        yPx(pe) +
+        '" x2="' +
+        xPx(pe) +
+        '" y2="' +
+        yPx(0) +
+        '" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 3"/>';
+      svg +=
+        '<circle cx="' +
+        xPx(pe) +
+        '" cy="' +
+        yPx(pe) +
+        '" r="5" fill="#1e293b"/>';
+      svg +=
+        '<text x="' +
+        xPx(pe) +
+        '" y="' +
+        (yPx(pe) - 10) +
+        '" text-anchor="middle" font-size="10" font-weight="800" fill="#1e293b">Ponto de equilíbrio</text>';
+      var midP = pe * 0.38;
+      svg +=
+        '<text x="' +
+        xPx(midP) +
+        '" y="' +
+        yPx((df + varRatio * midP + midP) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
+      var midL = pe + (xmax - pe) * 0.55;
+      svg +=
+        '<text x="' +
+        xPx(midL) +
+        '" y="' +
+        yPx((df + varRatio * midL + midL) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">LUCRO</text>';
+    } else if (prejuPoly) {
+      svg +=
+        '<text x="' +
+        xPx(xmax * 0.45) +
+        '" y="' +
+        yPx((df + varRatio * xmax * 0.45 + xmax * 0.45) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
+    }
+    if (rec > 0 && rec <= xmax) {
+      svg +=
+        '<line x1="' +
+        xPx(rec) +
+        '" y1="' +
+        yPx(rec) +
+        '" x2="' +
+        xPx(rec) +
+        '" y2="' +
+        yPx(0) +
+        '" stroke="#047857" stroke-width="1.1" stroke-dasharray="2 3"/>';
+    }
+    svg +=
+      '<text x="' +
+      (xPx(xmax) - 4) +
+      '" y="' +
+      (yPx(rec1) - 6) +
+      '" text-anchor="end" font-size="10" font-weight="900" fill="#047857">RECEITA</text>';
+    svg +=
+      '<text x="' +
+      (xPx(0) + 8) +
+      '" y="' +
+      Math.max(yPx(cost0) - 6, padT + 12) +
+      '" text-anchor="start" font-size="10" font-weight="900" fill="#b91c1c">CUSTO TOTAL</text>';
+    svg += "</svg>";
+    return svg;
+  }
+
+  var CAT_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#64748b"];
+
+  function donutReceitaCategorias(pack, modo) {
+    if (modo === "grupo") {
+      return '<p class="rg-muted">Abra uma empresa para ver receita por categoria.</p>';
+    }
+    var fatias = pack && pack.ok ? pack.fatias || [] : [];
+    if (!fatias.length) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var total = 0;
+    var i;
+    for (i = 0; i < fatias.length; i++) total += num(fatias[i].valor);
+    if (total <= 0) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var acc = 0;
+    var stops = [];
+    var legend = "";
+    for (i = 0; i < fatias.length; i++) {
+      var f = fatias[i];
+      var p = (num(f.valor) / total) * 100;
+      var c = CAT_COLORS[i % CAT_COLORS.length];
+      stops.push(c + " " + acc.toFixed(2) + "% " + (acc + p).toFixed(2) + "%");
+      acc += p;
+      legend +=
+        '<li><i class="rg-dot" style="background:' +
+        c +
+        '"></i>' +
+        escapeHtml(f.nome || "—") +
+        " <b>" +
+        brl(f.valor) +
+        "</b> <small>" +
+        pctJa(f.pct != null ? f.pct : p) +
+        "</small></li>";
+    }
+    return (
+      '<div class="rg-donut-row"><div class="rg-donut rg-donut--cat" style="background:conic-gradient(' +
+      stops.join(",") +
+      ')"></div><ul class="rg-legend">' +
+      legend +
+      "</ul></div>"
+    );
+  }
+
+  function renderCatRows(top) {
+    if (!top || !top.length) {
+      return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
+    }
+    var max = Math.max.apply(
+      null,
+      top.map(function (r) {
+        return num(r.ultimo);
+      }).concat([0.01])
+    );
+    return top
+      .slice(0, 8)
+      .map(function (r) {
+        var pctW = Math.min(100, (num(r.ultimo) / max) * 100);
+        var tend = r.tendencia === "up" ? "↑" : r.tendencia === "down" ? "↓" : "→";
+        var tendCls =
+          r.tendencia === "up" ? "rg-tend--up" : r.tendencia === "down" ? "rg-tend--down" : "";
+        return (
+          '<div class="rg-cat">' +
+          '<div class="rg-cat__meta"><span class="rg-cat__nome">' +
+          escapeHtml(r.plano) +
+          '</span><span class="rg-cat__val">' +
+          brl(r.ultimo) +
+          ' <i class="' +
+          tendCls +
+          '">' +
+          tend +
+          "</i></span></div>" +
+          '<div class="rg-cat__track"><div class="rg-cat__bar" style="width:' +
+          pctW.toFixed(1) +
+          '%"></div></div></div>'
+        );
+      })
+      .join("");
+  }
+
+  function renderVisualBoard(c, visual, modo) {
+    var df = num(c.despesas_fixas);
+    var dv = num(c.despesas_variaveis);
+    var dfin = num(c.despesas_financeiras);
+    var desp = df + dv + dfin;
+    var rec = num(c.receita_operacional);
+    var cmv = num(c.cmv);
+    var lucro = num(c.lucro_bruto);
+    var margem = c.margem_bruta_pct != null ? num(c.margem_bruta_pct) : rec > 0 ? (lucro / rec) * 100 : null;
+    var markup = c.markup_pct != null ? num(c.markup_pct) : rec > 0 && cmv > 0 ? ((rec - cmv) / cmv) * 100 : null;
+    var pe = num(c.faturamento_equilibrio);
+    var peOk = pe > 0 && rec >= pe;
+    var peHint =
+      pe > 0
+        ? "PE " +
+          brl(pe) +
+          (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "")
+        : "Sem ponto de equilíbrio neste recorte";
+    var totDonut = desp || 1;
+    var p1 = (df / totDonut) * 100;
+    var p2 = p1 + (dv / totDonut) * 100;
+    var recCls = rec > 0.005 ? "" : " is-muted";
+    var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
+    var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
+    var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
+    var catHtml =
+      modo === "grupo"
+        ? '<p class="rg-muted">Abra uma empresa para ver despesas por categoria.</p>'
+        : varOk
+          ? renderCatRows(visual.variacao.top)
+          : '<p class="rg-muted">Despesas por categoria indisponível neste recorte.</p>';
+    var grupos = varOk ? visual.variacao.resumo_grupos || [] : [];
+    var gruposHtml = grupos
+      .map(function (g) {
+        return (
+          '<div class="rg-gsum rg-gsum--' +
+          escapeHtml(g.key || "") +
+          '"><span>' +
+          escapeHtml(g.label || "") +
+          "</span><strong>" +
+          brl(g.ultimo) +
+          "</strong></div>"
+        );
+      })
+      .join("");
+    var emp = (visual && visual.emprestimos) || {};
+    var empOk = emp && emp.ok;
+    var empHtml =
+      '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
+      "<div><dt>Valor devido</dt><dd class=\"" +
+      (empOk && num(emp.valor_devido) > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+      "\">" +
+      (empOk ? brl(emp.valor_devido) : "—") +
+      '</dd></div><div><dt>Valor pago</dt><dd class="' +
+      (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
+      (empOk ? brl(emp.valor_pago) : "—") +
+      '</dd></div><div><dt>Juros</dt><dd class="' +
+      (empOk && num(emp.juros) > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      (empOk ? brl(emp.juros) : "—") +
+      '</dd></div><div><dt>Valor emprestado</dt><dd class="' +
+      (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
+      (empOk ? brl(emp.valor_emprestado) : "—") +
+      '</dd></div></dl><p class="rg-muted">' +
+      (modo === "grupo"
+        ? "Abra uma empresa para ver empréstimos."
+        : "Devido, pago e juros = filtro da tela · emprestado = competência do período") +
+      "</p></article>";
+    return (
+      '<div class="rg-board">' +
+      '<div class="rg-flow">' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"><span>Despesas</span><strong>' +
+      brl(desp) +
+      "</strong><small>fixas " +
+      brl(df) +
+      " · var " +
+      brl(dv) +
+      " · fin " +
+      brl(dfin) +
+      "</small></article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--rec' +
+      recCls +
+      '"><span>Receita</span><strong>' +
+      brl(rec) +
+      "</strong><small>" +
+      (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
+      "</small></article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
+      lucroCls +
+      '"><span>% Lucro</span><strong>' +
+      (margem != null ? pctJa(margem) : "—") +
+      "</strong><small>margem bruta</small></article>" +
+      '<article class="rg-flow__side"><div><span>CMV</span><strong class="' +
+      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(cmv) +
+      '</strong></div><div><span>Markup</span><strong class="' +
+      (markup == null ? "" : valCls(markup)) +
+      '">' +
+      (markup != null ? pctJa(markup) : "—") +
+      "</strong></div></article></div>" +
+      '<div class="rg-col--charts"><div class="rg-charts-donuts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      p1.toFixed(1) +
+      "%;--p2:" +
+      p2.toFixed(1) +
+      '%"></div><ul class="rg-legend"><li><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
+      brl(df) +
+      '</b></li><li><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
+      brl(dv) +
+      '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      brl(dfin) +
+      "</b></li></ul></div></article>" +
+      '<article class="rg-card rg-card--rec-cat"><h3>Receita por categoria</h3>' +
+      donutReceitaCategorias(visual && visual.receita_categorias, modo) +
+      "</article></div>" +
+      '<article class="rg-card rg-card--pe' +
+      peCardCls +
+      '"><h3>Ponto de equilíbrio</h3>' +
+      peChartSvg(c) +
+      '<p class="rg-muted">' +
+      peHint +
+      " · Custo = fixas + CMV + variáveis · Caixa: <b class=\"" +
+      valCls(c.geracao_caixa) +
+      '">' +
+      brl(c.geracao_caixa) +
+      "</b> <span>(não muda com CMV)</span></p></article></div>" +
+      '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
+      (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
+      '<div class="rg-cat-list">' +
+      catHtml +
+      "</div></article></div>" +
+      '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
+      (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005 ? "" : num(c.resultado_liquido_gerencial) > 0 ? " is-good" : " is-bad") +
+      '"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
+      valCls(rec) +
+      '">' +
+      brl(rec) +
+      '</dd></div><div><dt>CMV</dt><dd class="' +
+      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(cmv) +
+      '</dd></div><div><dt>Lucro bruto</dt><dd class="' +
+      valCls(lucro) +
+      '">' +
+      brl(lucro) +
+      '</dd></div><div><dt>Resultado op.</dt><dd class="' +
+      valCls(c.resultado_operacional) +
+      '">' +
+      brl(c.resultado_operacional) +
+      '</dd></div><div><dt>Líquido</dt><dd class="' +
+      valCls(c.resultado_liquido_gerencial) +
+      '">' +
+      brl(c.resultado_liquido_gerencial) +
+      '</dd></div><div><dt>Caixa</dt><dd class="' +
+      valCls(c.geracao_caixa) +
+      '">' +
+      brl(c.geracao_caixa) +
+      "</dd></div></dl></article>" +
+      empHtml +
+      "</div></div>"
+    );
+  }
+
   function mainZeros(c) {
     var keys = [
       "receita_operacional",
@@ -375,10 +832,12 @@
 
     function setLoading(on) {
       var sk = el("rg-kpi-skeleton");
-      var grid = el("painel-cards");
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
       var btn = el("btn-atualizar");
       if (sk) sk.classList.toggle("is-visible", on);
-      if (grid) grid.classList.toggle("hidden", on);
+      if (vis) vis.classList.toggle("hidden", on);
+      if (mais) mais.classList.toggle("hidden", on);
       if (btn) {
         btn.disabled = on;
         btn.setAttribute("aria-busy", on ? "true" : "false");
@@ -402,10 +861,13 @@
 
     function pintarEquilibrio(c) {
       if (!c || c.faturamento_equilibrio == null) return false;
-      el("sec-equilibrio").classList.add("is-visible");
-      el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
-      el("eq-fat").textContent = brl(c.faturamento_equilibrio);
-      el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      var sec = el("sec-equilibrio");
+      if (sec) {
+        sec.classList.remove("is-visible");
+        el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
+        el("eq-fat").textContent = brl(c.faturamento_equilibrio);
+        el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      }
       return true;
     }
 
@@ -418,8 +880,15 @@
       var bruto = coreDoPayload(data, modo);
       var c = aplicarCmvNoCore(bruto);
       syncCmvChips(c);
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
+      if (vis) {
+        vis.innerHTML = renderVisualBoard(c, data.visual, modo);
+        vis.classList.remove("hidden");
+      }
       el("painel-cards").innerHTML = renderKpiGrid(c);
       el("painel-cards").classList.remove("hidden");
+      if (mais) mais.classList.remove("hidden");
 
       var zero = el("rg-msg-zero");
       if (mainZeros(c)) {
@@ -490,7 +959,8 @@
         encodeURIComponent(el("f-por").value) +
         "&valor=" +
         encodeURIComponent(el("f-valor").value) +
-        "&contas=resultado";
+        "&contas=resultado" +
+        "&incluir_visual=1";
       if (modo === "empresa") {
         var eid = el("f-empresa").value;
         if (!eid) {
@@ -543,10 +1013,14 @@
           });
           if (re.ok) {
             var eq = await re.json();
-            el("sec-equilibrio").classList.add("is-visible");
-            el("eq-margem").textContent = pct(eq.margem_contribuicao_pct);
-            el("eq-fat").textContent = brl(eq.faturamento_equilibrio);
-            el("eq-dia").textContent = brl(eq.faturamento_diario_equilibrio);
+            var brutoEq = coreDoPayload(lastPayload, modo);
+            if (brutoEq) {
+              brutoEq.faturamento_equilibrio = eq.faturamento_equilibrio;
+              brutoEq.margem_contribuicao_pct = eq.margem_contribuicao_pct;
+              brutoEq.faturamento_diario_equilibrio = eq.faturamento_diario_equilibrio;
+            }
+            renderResumo(lastPayload, modo);
+            pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, modo)));
           }
         }
       } catch (e) {
@@ -632,6 +1106,8 @@
   window.AgroResumoGerencial = {
     buildKpiCard: buildKpiCard,
     renderKpiGrid: renderKpiGrid,
+    renderVisualBoard: renderVisualBoard,
+    peChartSvg: peChartSvg,
     mainZeros: mainZeros,
     brl: brl,
     pct: pct,

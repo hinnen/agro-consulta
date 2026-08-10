@@ -1,14 +1,14 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full overflow-hidden">
+<html lang="pt-br" class="h-full overflow-hidden" style="height:100dvh">
 <head>
   <meta charset="UTF-8">
-  <title>SisVale | Resumo financeiro gerencial</title>
+  <title>SisVale | DRE gerencial</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}">
+  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}?v={{ agro_asset_v|default:'0' }}">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     /* Modal ajuda — mínimo; restante no CSS do painel */
@@ -23,7 +23,7 @@
     .rg-modal__btn:hover { filter: brightness(1.08); }
   </style>
 </head>
-<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v1" class="bg-slate-100 h-full overflow-hidden text-slate-800 flex flex-col">
+<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v1" class="bg-slate-100 overflow-hidden text-slate-800 flex flex-col" style="height:100dvh;max-height:100dvh">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="rg-head shrink-0">
@@ -33,91 +33,87 @@
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="">
         </div>
         <div class="rg-head__titles">
-          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">Resumo gerencial</span></h1>
-          <p>Operação · caixa · consolidação</p>
+          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">DRE gerencial</span></h1>
         </div>
       </div>
+      <section class="rg-toolbar" aria-label="Filtros do painel">
+        <div class="rg-toolbar__row">
+          <div class="rg-field rg-field--modo">
+            <span class="rg-field__label">Modo</span>
+            <select id="f-modo" title="Uma empresa ou grupo consolidado">
+              <option value="empresa">Uma empresa</option>
+              <option value="grupo">Grupo (consolidado)</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--empresa" id="wrap-empresa">
+            <span class="rg-field__label">Empresa</span>
+            <select id="f-empresa">
+              {% for e in empresas %}
+              <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
+              {% empty %}
+              <option value="">— cadastre empresa —</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
+            <span class="rg-field__label">Grupo</span>
+            <select id="f-grupo">
+              {% for g in grupos %}
+              <option value="{{ g.id }}">{{ g.nome }}</option>
+              {% empty %}
+              <option value="">— cadastre grupo no admin —</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Início</span>
+            <input type="date" id="f-ini">
+          </div>
+          <div class="rg-field rg-field--date">
+            <span class="rg-field__label">Fim</span>
+            <input type="date" id="f-fim">
+          </div>
+          <div class="rg-field rg-field--por">
+            <span class="rg-field__label">Data</span>
+            <select id="f-por" title="Data dos lançamentos">
+              <option value="competencia">Competência</option>
+              <option value="vencimento">Vencimento</option>
+              <option value="pagamento">Pagamento</option>
+            </select>
+          </div>
+          <div class="rg-field rg-field--valor">
+            <span class="rg-field__label">Valor</span>
+            <select id="f-valor">
+              <option value="bruto">Bruto</option>
+              <option value="realizado">Já pago</option>
+            </select>
+          </div>
+          <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
+            <span class="rg-field__label">CMV</span>
+            <div class="rg-cmv__chips">
+              <button type="button" class="rg-chip is-active" data-dre-cmv="vendida" title="Custo do cadastro × quantidade vendida">Merc. vendida</button>
+              <button type="button" class="rg-chip" data-dre-cmv="paga" title="Compras lançadas no período">Merc. paga</button>
+            </div>
+            <p id="rg-cmv-hint" class="rg-cmv__hint visually-hidden">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
+          </div>
+          <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
+            Atualizar
+            <kbd class="gm-kbd-rg">F5</kbd>
+          </button>
+        </div>
+        <div id="rg-filtro-ativo" class="rg-filtro-ativo visually-hidden" role="status" aria-live="polite"></div>
+      </section>
       <div class="rg-head__actions">
-        <a href="{% url 'lancamentos_financeiros' %}" class="rg-btn-ghost">Lançamentos</a>
-        <a href="{% url 'dashboard_financeiro_completo' %}" class="rg-btn-ghost" title="Margens, comparativo e fluxo">Indicadores</a>
         <button type="button" id="btn-ajuda" class="rg-btn-ghost rg-btn-icon" title="Ajuda">?</button>
-        {% include "produtos/_barra_estoque_global.html" %}
-        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5 min-h-[44px]" %}
+        {% if agro_display_scale_habilitado %}
+        <button type="button" id="dash-link-display-scale" class="rg-btn-ghost rg-btn-icon agro-scale-trigger agro-scale-trigger--header" title="Ajustar tamanho da tela" aria-label="Ajustar tamanho da tela">Aa</button>
+        {% endif %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="rg-btn-ghost inline-flex items-center justify-center gap-1.5" %}
       </div>
     </div>
   </header>
 
   <main class="rg-main">
-    {# ——— Toolbar / filtros ——— #}
-    <section class="rg-toolbar" aria-label="Filtros do painel">
-      <div class="rg-toolbar__row">
-        <div class="rg-field rg-field--modo">
-          <span class="rg-field__label">Modo</span>
-          <select id="f-modo" title="Uma empresa ou grupo consolidado">
-            <option value="empresa">Uma empresa</option>
-            <option value="grupo">Grupo (consolidado)</option>
-          </select>
-        </div>
-        <div class="rg-field rg-field--empresa" id="wrap-empresa">
-          <span class="rg-field__label">Empresa</span>
-          <select id="f-empresa">
-            {% for e in empresas %}
-            <option value="{{ e.id }}">{{ e.nome_fantasia }}</option>
-            {% empty %}
-            <option value="">— cadastre empresa —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--grupo hidden" id="wrap-grupo">
-          <span class="rg-field__label">Grupo</span>
-          <select id="f-grupo">
-            {% for g in grupos %}
-            <option value="{{ g.id }}">{{ g.nome }}</option>
-            {% empty %}
-            <option value="">— cadastre grupo no admin —</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Início</span>
-          <input type="date" id="f-ini">
-        </div>
-        <div class="rg-field rg-field--date">
-          <span class="rg-field__label">Fim</span>
-          <input type="date" id="f-fim">
-        </div>
-        <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
-          Atualizar
-          <kbd class="gm-kbd-rg">F5</kbd>
-        </button>
-      </div>
-      <div class="rg-toolbar__row rg-toolbar__row--secondary">
-        <div class="rg-field" style="width:9.5rem">
-          <span class="rg-field__label">Data dos lançamentos</span>
-          <select id="f-por">
-            <option value="competencia">Competência</option>
-            <option value="vencimento">Vencimento</option>
-            <option value="pagamento">Pagamento</option>
-          </select>
-        </div>
-        <div class="rg-field" style="width:10rem">
-          <span class="rg-field__label">Valor</span>
-          <select id="f-valor">
-            <option value="bruto">Bruto do título</option>
-            <option value="realizado">Já pago / recebido</option>
-          </select>
-        </div>
-        <div class="rg-cmv" role="group" aria-label="Tipo de CMV">
-          <span class="rg-field__label">CMV</span>
-          <div class="rg-cmv__chips">
-            <button type="button" class="rg-chip is-active" data-dre-cmv="vendida">Mercadoria vendida</button>
-            <button type="button" class="rg-chip" data-dre-cmv="paga">Mercadoria paga</button>
-          </div>
-          <p id="rg-cmv-hint" class="rg-cmv__hint">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
-        </div>
-      </div>
-      <div id="rg-filtro-ativo" class="rg-filtro-ativo" role="status" aria-live="polite"></div>
-    </section>
 
     <p id="msg-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
     <p id="msg-info" class="rg-msg rg-msg--info hidden"></p>
@@ -141,8 +137,12 @@
       </div>
     </div>
 
-    {# Grid de KPIs (preenchido via JS — mesma API) #}
-    <div id="painel-cards" class="hidden"></div>
+    {# Prévia visual DRE (Indicadores financeiro permanece) #}
+    <div id="painel-visual" class="hidden"></div>
+    <details id="rg-mais-numeros" class="rg-mais hidden">
+      <summary>Números completos</summary>
+      <div id="painel-cards"></div>
+    </details>
 
     <details id="bloco-grupo" class="rg-grupo-detalhe hidden">
       <summary>Por empresa (grupo)</summary>
@@ -174,12 +174,15 @@
 
   <div id="modal-ajuda" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="rg-modal">
-      <h3>Resumo gerencial</h3>
+      <h3>DRE gerencial (prévia)</h3>
       <ul>
-        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber).</li>
+        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber) + receita do <strong>PDV</strong>.</li>
         <li>O <strong>nome fantasia</strong> da empresa deve coincidir com o campo Empresa nos títulos.</li>
         <li>Modo <strong>grupo</strong> soma as empresas vinculadas (sem eliminação automática entre filiais).</li>
-        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro bruto, operacional, líquido e ponto de equilíbrio acompanham. O <strong>caixa não muda</strong>.</li>
+        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro, operacional, líquido e ponto de equilíbrio acompanham. O <strong>caixa não muda</strong>.</li>
+        <li><strong>Empréstimos:</strong> devido, pago e juros seguem o filtro da tela (datas + vencimento/competência/pagamento). Valor emprestado = entradas no período sempre pela <strong>competência</strong>.</li>
+        <li><strong>Receita por categoria:</strong> vendas do <strong>PDV</strong> no período, agrupadas pela categoria do cadastro (top 6 + Outros).</li>
+        <li>A tela <strong>Indicadores · Financeiro gerencial</strong> continua no menu — esta é a prévia visual nova.</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
       <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>
@@ -187,6 +190,6 @@
   </div>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
-  <script src="{% static 'js/agro_resumo_gerencial.js' %}"></script>
+  <script src="{% static 'js/agro_resumo_gerencial.js' %}?v={{ agro_asset_v|default:'0' }}"></script>
 </body>
 </html>

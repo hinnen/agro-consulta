@@ -80,6 +80,20 @@ class FiltrarTests(SimpleTestCase):
         lista.sort(key=lambda r: (float(r.get("preco_venda") or 0), str(r.get("nome") or "")))
         self.assertEqual([r["id"] for r in lista], ["barato", "meio", "caro"])
 
+    def test_filtrar_preserva_imagem(self):
+        tipo = tipo_racoes_por_id("cao_adulto")
+        rows = [
+            _row(
+                id="foto",
+                imagem="https://exemplo/racao.jpg",
+                peso_etiqueta="15",
+                subcategoria_2="Adulto",
+            )
+        ]
+        hit = filtrar_racoes(rows, tipo, marca=None, peso_key="kg:15")
+        self.assertEqual(len(hit), 1)
+        self.assertEqual(hit[0].get("imagem"), "https://exemplo/racao.jpg")
+
     def test_tipo_marca_peso(self):
         tipo = tipo_racoes_por_id("cao_adulto")
         rows = [

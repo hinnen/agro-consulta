@@ -9550,38 +9550,27 @@ def _dashboard_worker(fn, *args, **kwargs):
         connections.close_all()
 
 
-_DASH_CLIENTES_MEDIA_START = date(2026, 4, 20)
+def _dashboard_lucro_liquido_cor(val) -> str:
+    try:
+        n = Decimal(str(val or 0))
+    except Exception:
+        n = Decimal("0")
+    if n > 0:
+        return "#065f46"
+    if n < 0:
+        return "#be123c"
+    return "#334155"
 
 
-def _dashboard_capri_novos_clientes_counts(
-    hoje: date, deposito: str | None = None
-) -> tuple[int, int]:
-    # Cadastro de clientes é da empresa — na vista Vila (sem vendas próprias) zera o card.
-    if deposito == "vila":
-        return 0, 0
-    novos_30 = ClienteAgro.objects.filter(criado_em__date__gte=hoje - timedelta(days=30)).count()
-    # Referência = média diária dos últimos até 90 dias, começando em 20/04/2026.
-    # Enquanto não houver 90 dias completos, usa a amostra disponível (autoajuste).
-    fim_hist = hoje - timedelta(days=1)
-    inicio_90 = hoje - timedelta(days=90)
-    hist_ini = max(_DASH_CLIENTES_MEDIA_START, inicio_90)
-    if fim_hist < hist_ini:
-        return novos_30, 0
-    dias_hist = (fim_hist - hist_ini).days + 1
-    total_hist = ClienteAgro.objects.filter(
-        criado_em__date__gte=hist_ini,
-        criado_em__date__lte=fim_hist,
-    ).count()
-    media_dia = (total_hist / dias_hist) if dias_hist > 0 else 0.0
-    ref_media_90_em_30 = int(round(media_dia * 30))
-    return novos_30, ref_media_90_em_30
+def _dashboard_lucro_liquido_vencimento(data_ini: date, data_fim: date, deposito: str | None = None) -> dict:
+    from financeiro.services.indicadores_gerencial_pg import lucro_liquido_vencimento_bruto_pago
 
-
-def _dashboard_novos_clientes_no_dia(dia: date, deposito: str | None = None) -> int:
-    """Novos cadastros ClienteAgro no dia (empresa). Vila zera — mesma regra do card."""
-    if deposito == "vila":
-        return 0
-    return ClienteAgro.objects.filter(criado_em__date=dia).count()
+    try:
+        return lucro_liquido_vencimento_bruto_pago(data_ini, data_fim, deposito=deposito)
+    except Exception:
+        logger.exception("_dashboard_lucro_liquido_vencimento")
+        z = Decimal("0")
+        return {"ok": False, "bruto": z, "pago": z, "por": "vencimento", "cmv_modo": "paga"}
 
 
 def _dashboard_capri_financeiro(hoje: date, ontem: date) -> dict:
@@ -9726,20 +9715,12 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                 dia_cmp_mes_ant,
                 deposito_filtro,
             )
-            fut["novos_cmp_mes_ant"] = ex.submit(
-                _dashboard_worker,
-                _dashboard_novos_clientes_no_dia,
-                dia_cmp_mes_ant,
-                deposito_filtro,
-            )
-        fut["novos_hoje"] = ex.submit(
+        fut["lucro_liq"] = ex.submit(
             _dashboard_worker,
-            _dashboard_novos_clientes_no_dia,
-            hoje,
+            _dashboard_lucro_liquido_vencimento,
+            data_ini,
+            data_fim,
             deposito_filtro,
-        )
-        fut["novos_clientes"] = ex.submit(
-            _dashboard_worker, _dashboard_capri_novos_clientes_counts, hoje, deposito_filtro
         )
         fut["entregas_pen"] = ex.submit(
             _dashboard_worker, _dashboard_entregas_pendentes_count, deposito_filtro
@@ -9830,16 +9811,6 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
                 )
             except Exception:
                 pass
-            try:
-                blk["novos_cmp_mes_ant"] = _dashboard_novos_clientes_no_dia(
-                    dia_cmp_mes_ant, deposito_filtro
-                )
-            except Exception:
-                pass
-        try:
-            blk["novos_hoje"] = _dashboard_novos_clientes_no_dia(hoje, deposito_filtro)
-        except Exception:
-            pass
     # Mesma série do gráfico (sem PDV escondido no fallback).
     vendas_hoje = round(_dashboard_float((atual.get("por_dia") or {}).get(hoje.isoformat())), 2)
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
@@ -9858,9 +9829,10 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         + validade_venc_conf_n
         + validade_mes_conf_n
     )
-    novos_clientes_30, ref_clientes_media_90 = blk["novos_clientes"]
-    novos_clientes_hoje = int(blk.get("novos_hoje") or 0)
-    novos_cmp_mes_ant = int(blk.get("novos_cmp_mes_ant") or 0)
+    lucro_liq = blk.get("lucro_liq") if isinstance(blk.get("lucro_liq"), dict) else {}
+    lucro_liq_bruto = Decimal(str(lucro_liq.get("bruto") or 0))
+    lucro_liq_pago = Decimal(str(lucro_liq.get("pago") or 0))
+    lucro_liq_ok = bool(lucro_liq.get("ok"))
     ticket_cmp_mes_ant = _dashboard_float(blk.get("tkt_cmp_mes_ant") or 0)
     total_entregas_pendentes = blk["entregas_pen"]
     entregas_serie_7d = blk["entregas_7d"]
@@ -9933,12 +9905,6 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
     # Faturamento por unidade: sempre Centro + Vila (comparativo), mesmo com loja filtrada nos KPIs.
-
-    tendencia_clientes = (
-        ((novos_clientes_hoje / novos_cmp_mes_ant) - 1) * 100
-        if novos_cmp_mes_ant > 0
-        else 0.0
-    )
 
     u7 = serie_atual[-7:] if len(serie_atual) >= 7 else list(serie_atual)
     media_fat_7d = round(sum(u7) / max(len(u7), 1), 2)
@@ -10079,34 +10045,28 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             ],
         },
         {
-            "label": "Novos Clientes",
-            "value": str(novos_clientes_hoje),
-            "prefix": "",
-            "trend": (
-                f"{tendencia_clientes:+.1f}% {labels_cmp_mes_ant['trend_suffix']}"
-                if novos_cmp_mes_ant > 0
-                else "S/ ref."
-            ),
-            "trend_short": (
-                f"{tendencia_clientes:+.1f}%" if novos_cmp_mes_ant > 0 else "S/ ref."
-            ),
-            "trend_class": (
-                "text-emerald-800 bg-emerald-200 ring-1 ring-emerald-300"
-                if novos_cmp_mes_ant > 0 and tendencia_clientes >= 0
-                else (
-                    "text-red-800 bg-red-200 ring-1 ring-red-300"
-                    if novos_cmp_mes_ant > 0
-                    else "text-slate-600 bg-slate-100 ring-1 ring-slate-300"
-                )
-            ),
+            "label": "Lucro Líquido",
+            "value": _format_moeda_br(lucro_liq_bruto),
+            "prefix": "R$",
+            "trend": "Por vencimento",
+            "trend_short": "Venc.",
+            "trend_class": "text-slate-700 bg-slate-100 ring-1 ring-slate-300",
+            "variant": "lucro_liquido_duplo",
+            "value_bruto": f"R$ {_format_moeda_br(lucro_liq_bruto)}",
+            "value_pago": f"R$ {_format_moeda_br(lucro_liq_pago)}",
+            "color_bruto": _dashboard_lucro_liquido_cor(lucro_liq_bruto),
+            "color_pago": _dashboard_lucro_liquido_cor(lucro_liq_pago),
             "context_lines": [
-                f"Número grande: cadastros de cliente **hoje** ({novos_clientes_hoje}).",
+                f"Período do BI: {periodo_label}.",
+                "Por vencimento — igual ao Resumo gerencial com DATA = Vencimento.",
+                "Bruto = valor do título. Pago = o que já foi pago / recebido.",
+                "Receita = vendas do PDV. CMV = mercadoria vendida (mesmo padrão do DRE).",
+                "Financeiro hoje é uma empresa (Agro Mais Centro) — Centro e Vila veem o mesmo líquido.",
                 (
-                    f"O % compara com {labels_cmp_mes_ant['contexto']} ({novos_cmp_mes_ant} cadastro(s))."
-                    if dia_cmp_mes_ant is not None
-                    else "Sem base no mês anterior para o mesmo dia da semana."
+                    "Clique no cartão para abrir o Resumo gerencial."
+                    if lucro_liq_ok
+                    else "Não deu para calcular agora — abra o Resumo gerencial para conferir."
                 ),
-                f"Últimos 30 dias (informação): {novos_clientes_30} novo(s).",
             ],
         },
         {
@@ -14100,10 +14060,18 @@ def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
 @login_required(login_url="/admin/login/")
 def resumo_financeiro_gerencial_view(request):
     """DRE gerencial (Postgres + consolidação grupo) — leitura de snapshot agregado."""
+    from pathlib import Path
+
+    from django.conf import settings
+
     from financeiro.models import GrupoEmpresarial
 
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
     grupos = GrupoEmpresarial.objects.filter(ativo=True).order_by("nome")
+    try:
+        agro_asset_v = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        agro_asset_v = "0"
     return render(
         request,
         "produtos/resumo_financeiro_gerencial.html",
@@ -14111,6 +14079,7 @@ def resumo_financeiro_gerencial_view(request):
             "empresas": empresas,
             "grupos": grupos,
             "financeiro_postgres": agro_financeiro_usa_postgres(),
+            "agro_asset_v": agro_asset_v,
         },
     )
 

@@ -25,6 +25,7 @@ class ResumoOperacionalQuerySerializer(serializers.Serializer):
     )
     contas = serializers.CharField(required=False, allow_blank=True, default="")
     incluir_linhas = serializers.BooleanField(required=False, default=False)
+    incluir_visual = serializers.BooleanField(required=False, default=False)
 
     def validate(self, attrs):
         modo = attrs["modo"]

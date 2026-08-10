@@ -12833,12 +12833,20 @@
                 var qtd = pdvRacoesQtdCarrinho(pid);
                 var ok = qtd > 0;
                 var pesoKey = pdvRacoesParsePeso(p.peso_etiqueta);
+                var marcaTxt = String(p.marca || '').trim() || 'Sem marca';
+                var imgUrl = String(p.imagem || assets.placeholderProduto || '').trim();
                 return (
                     '<tr class="' +
                     (ok ? 'pdv-racoes-row-ok' : '') +
                     '" data-racoes-id="' +
                     escapeHtml(pid) +
                     '">' +
+                    '<td><button type="button" class="pdv-racoes-thumb" data-pdv-photo-zoom="' +
+                    escapeHtml(imgUrl) +
+                    '" title="Ampliar foto">' +
+                    '<img src="' +
+                    escapeHtml(imgUrl) +
+                    '" alt=""></button></td>' +
                     '<td class="font-black text-slate-800">' +
                     escapeHtml(displayCodigoGm(p)) +
                     '</td>' +
@@ -12848,7 +12856,7 @@
                     escapeHtml(p.nome || '—') +
                     '</div></td>' +
                     '<td class="font-bold uppercase text-slate-800">' +
-                    escapeHtml(String(p.marca || '').trim() || 'Sem marca') +
+                    escapeHtml(marcaTxt) +
                     '</td>' +
                     '<td class="font-bold text-slate-800">' +
                     escapeHtml(pdvRacoesPesoLabel(pesoKey)) +
@@ -12856,18 +12864,17 @@
                     '<td class="pdv-racoes-preco">' +
                     escapeHtml(formatMoney(pdvRacoesPreco(p))) +
                     '</td>' +
-                    '<td>' +
+                    '<td><div class="pdv-racoes-acao">' +
                     (ok
                         ? '<span class="pdv-racoes-qtd-ok">No carrinho · ' + formatQty(qtd) + '</span>'
-                        : '<span class="text-slate-500 font-bold">—</span>') +
-                    '</td>' +
-                    '<td><button type="button" class="pdv-racoes-add-btn' +
+                        : '') +
+                    '<button type="button" class="pdv-racoes-add-btn' +
                     (ok ? ' is-ok' : '') +
                     '" data-racoes-add="' +
                     escapeHtml(pid) +
                     '">' +
                     (ok ? 'Adicionar +1' : 'Adicionar') +
-                    '</button></td>' +
+                    '</button></div></td>' +
                     '</tr>'
                 );
             })
@@ -13057,6 +13064,13 @@
         var listaBody = document.getElementById('pdv-racoes-lista-body');
         if (listaBody) {
             listaBody.addEventListener('click', function (ev) {
+                var zoom = ev.target.closest('[data-pdv-photo-zoom]');
+                if (zoom) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    openProductPhotoPop(zoom.getAttribute('data-pdv-photo-zoom') || '');
+                    return;
+                }
                 var b = ev.target.closest('[data-racoes-add]');
                 if (!b) return;
                 pdvRacoesAddUm(b.getAttribute('data-racoes-add'));
@@ -13064,6 +13078,8 @@
         }
         document.addEventListener('keydown', function (ev) {
             if (ev.key !== 'Escape') return;
+            var photoPop = document.getElementById('pdv-product-photo-pop');
+            if (photoPop && photoPop.open) return;
             if (!pdvRacoesOverlayAberto()) return;
             ev.preventDefault();
             pdvRacoesFechar();

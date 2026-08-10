@@ -312,6 +312,7 @@ def check_lista_overlay_path(js: str, wiz: str) -> None:
     else:
         ok("botao Fechar na lista")
     check_lista_dense(js, wiz)
+    check_lista_marca_foto(js, wiz)
     try:
         import subprocess
 
@@ -378,6 +379,117 @@ def check_lista_dense(js: str, wiz: str) -> None:
         fail("nome da lista sem title")
     else:
         ok("nome da lista com title")
+
+
+def check_lista_marca_foto(js: str, wiz: str) -> None:
+    """Foto miniatura + carrinho na acao + zebra cinza (sem cor da marca)."""
+    step = read("produtos/templates/produtos/partials/pdv/step_produtos.html")
+    css_a = wiz.find("#pdv-racoes-overlay.is-lista .pdv-racoes-panel")
+    css_b = wiz.find("#pdv-step1-search-wrap .pdv-step1-search-f2 {")
+    css = wiz[css_a:css_b] if css_a >= 0 and css_b > css_a else ""
+    render = (
+        js.split("function pdvRacoesRenderLista")[1].split("function pdvRacoesIrLista")[0]
+        if "function pdvRacoesRenderLista" in js
+        else ""
+    )
+    wire = (
+        js.split("function wireRacoesUi")[1].split("function wireCadastroRapidoUi")[0]
+        if "function wireRacoesUi" in js
+        else ""
+    )
+
+    if "<th>Carrinho</th>" in wiz:
+        fail("coluna Carrinho ainda na lista")
+    else:
+        ok("coluna Carrinho removida")
+    if "<th>Foto</th>" not in wiz or "pdv-racoes-thumb" not in wiz:
+        fail("coluna Foto miniatura")
+    else:
+        ok("coluna Foto miniatura")
+    if "function pdvRacoesCorMarca" in js or "PDV_RACOES_MARCA_HUE" in js:
+        fail("cor da marca ainda na lista")
+    else:
+        ok("cor da marca removida")
+    if 'pdvRacoesCorMarca(' in render or 'style="background:' in render:
+        fail("render ainda pinta cor da marca")
+    else:
+        ok("render sem cor da marca")
+    if 'data-pdv-photo-zoom="' not in render:
+        fail("render sem foto")
+    else:
+        ok("render foto miniatura")
+    if "assets.placeholderProduto" not in render:
+        fail("foto sem placeholder PDV")
+    else:
+        ok("foto usa placeholder PDV")
+    if 'class="pdv-racoes-acao"' not in render or "No carrinho" not in render:
+        fail("indicador carrinho fora da acao")
+    else:
+        ok("indicador carrinho na acao")
+    if "pdv-racoes-add-btn" not in render or "data-racoes-add=" not in render:
+        fail("botao Adicionar fora da acao")
+    else:
+        ok("botao Adicionar na acao")
+    if "function openProductPhotoPop" not in js:
+        fail("openProductPhotoPop ausente")
+    else:
+        ok("openProductPhotoPop existe")
+    if 'id="pdv-product-photo-pop"' not in step or 'id="pdv-product-photo-pop-img"' not in step:
+        fail("dialog foto PDV ausente")
+    else:
+        ok("dialog foto PDV no wizard")
+    if '{% include "produtos/partials/pdv/step_produtos.html" %}' not in wiz:
+        fail("wizard nao inclui step_produtos")
+    else:
+        ok("wizard inclui step_produtos")
+    if "openProductPhotoPop" not in wire or "data-pdv-photo-zoom" not in wire:
+        fail("clique na foto nao abre zoom PDV")
+    else:
+        ok("clique na foto abre zoom PDV")
+    if "stopPropagation" not in wire or "openProductPhotoPop" not in wire:
+        fail("clique na foto pode disparar Adicionar")
+    else:
+        ok("clique na foto nao dispara Adicionar")
+    if "photoPop.open" not in wire:
+        fail("Esc fecha overlay com foto aberta")
+    else:
+        ok("Esc nao fecha Racoes com foto aberta")
+    if "box-shadow: inset 5px 0 0 #059669" not in css:
+        fail("row-ok nao usa borda verde")
+    else:
+        ok("row-ok so borda verde")
+    if "background: #d1fae5" in css:
+        fail("row-ok ainda pinta a linha de verde")
+    else:
+        ok("row-ok nao pinta fundo verde")
+    zebra = "#pdv-racoes-lista-table tbody tr:nth-child(even)"
+    if zebra not in css:
+        fail("zebra cinza da lista")
+    else:
+        zchunk = css[css.find(zebra) : css.find(zebra) + 90]
+        if "#f1f5f9" not in zchunk:
+            fail("zebra sem cinza fraquinho")
+        else:
+            ok("zebra cinza fraquinha")
+    if ".pdv-racoes-acao" not in css or "display: flex" not in css[css.find(".pdv-racoes-acao") : css.find(".pdv-racoes-acao") + 160]:
+        fail("coluna Acao sem flex")
+    else:
+        ok("coluna Acao flex + nowrap")
+    thumb = css[css.find(".pdv-racoes-thumb") : css.find(".pdv-racoes-thumb") + 220] if ".pdv-racoes-thumb" in css else ""
+    if "width: 2.35rem" not in thumb or "cursor: zoom-in" not in thumb:
+        fail("miniatura sem tamanho/zoom")
+    else:
+        ok("miniatura compacta + zoom-in")
+    thead = wiz[wiz.find('id="pdv-racoes-lista-table"') : wiz.find('id="pdv-racoes-lista-body"')]
+    cols = ("<th>Foto</th>", "<th>GM</th>", "<th>Produto</th>", "<th>Marca</th>", "<th>Tamanho</th>", "<th>Ação</th>")
+    if any(c not in thead for c in cols) or "<th>Carrinho</th>" in thead:
+        fail("cabecalho lista (Foto..Acao)")
+    else:
+        ok("cabecalho Foto GM Produto Marca Tamanho Preco Acao")
+    if render.count("<td") < 7:
+        fail("render sem 7 colunas")
+    else:
+        ok("render 7 colunas")
 
 
 def check_util_cenarios() -> None:
