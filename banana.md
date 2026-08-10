@@ -1198,31 +1198,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⏳ PREP produção — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
+### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
 
-> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
-> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
+> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **PREP pronto** · `deploy/dre-planos-cadastro-1008` @ **674901d** · **não** merge `teste`→`producao` |
-| **Pacote** | **DRE-PLANOS-CADASTRO** só |
-| **Base loja** | `2f6d05e` (v15.50) |
-| **Rollback** | tag `rollback/pre-dre-planos-cadastro-v15.50` @ `2f6d05e` · `git push origin 2f6d05e:producao` |
+| **Status** | ✅ **enviado / Live v15.52** · `producao` @ **674901d** · base era `2f6d05e` (v15.50) |
+| **Pacote** | **DRE-PLANOS-CADASTRO** |
+| **Rollback** | `git push origin 2f6d05e:producao` ou tag `rollback/pre-dre-planos-cadastro-v15.50` |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · `views.py` · Indicadores HTML |
-| **Arquivos** | `plano_conta_dre_util.py` · `resumo_operacional_mongo.py` · `dre_visual_util.py` · `views_planos_conta.py` · template resumo · tests/verify · VERSION **15.52** |
-| **Prova worktree** | tests **34/34** · planos **42/42** · visual **201/201** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
-| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE · badge **v15.52** · despesas com nome oficial do cadastro |
 
-### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.52)
 
-> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
+> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-PLANOS-CADASTRO** (v15.52) | ⏳ PREP · aguarda pausa+senha | não |
+| 1 | **DRE-PLANOS-CADASTRO** | ✅ enviado / Live v15.52 | não |
 
 ### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
