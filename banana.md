@@ -1231,14 +1231,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.43**)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.44**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos (devido/pago/juros **no filtro**, não total) · cores bom/ruim. Topo: **?** + **Aa**. Indicadores no menu. |
 | **Você** | Ctrl+F5 Resumo → 1 dia · **Empréstimos · devido** deve ser só o recorte, não o total |
-| **Prova** | `tests_dre_visual` **11/11** · verify visual · `node --check` |
+| **Prova** | `tests_dre_visual` **11/11** · verify visual **146/146** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
