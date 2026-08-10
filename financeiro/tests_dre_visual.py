@@ -103,6 +103,7 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertTrue(safe["ok"])
         self.assertIsInstance(safe["variacao"]["top"][0]["ultimo"], float)
         self.assertFalse(out["emprestimos"]["ok"])
+        self.assertFalse(out["receita_categorias"]["ok"])
 
     def test_anexa_emprestimos(self):
         from datetime import date
@@ -130,6 +131,14 @@ class MontarDreVisualTests(SimpleTestCase):
                 "financeiro.services.dre_emprestimos_util.resumo_emprestimos_pg",
                 return_value=fake_emp,
             ) as mock_e,
+            patch(
+                "produtos.relatorios_vendas_util.receita_categorias_pdv",
+                return_value={
+                    "ok": True,
+                    "total": 100.0,
+                    "fatias": [{"nome": "Rações", "valor": 80.0, "pct": 80.0}],
+                },
+            ),
         ):
             out = montar_dre_visual(
                 empresa_id=1,
@@ -143,6 +152,8 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertEqual(out["emprestimos"]["valor_emprestado"], 5000.0)
         self.assertEqual(mock_e.call_args.kwargs["por"], "vencimento")
         self.assertEqual(mock_e.call_args.kwargs["empresa_nome"], "Agro Mais Centro")
+        self.assertTrue(out["receita_categorias"]["ok"])
+        self.assertEqual(out["receita_categorias"]["fatias"][0]["nome"], "Rações")
 
 
 class EmprestimosCardTests(SimpleTestCase):
@@ -314,3 +325,28 @@ class ApiIncluirVisualTests(SimpleTestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertNotIn("visual", resp.data)
         self.assertFalse(mock_v.called)
+
+
+class ReceitaCategoriasPdvTests(SimpleTestCase):
+    def test_top_e_outros(self):
+        from datetime import date
+
+        from produtos.relatorios_vendas_util import receita_categorias_pdv
+
+        fake = [
+            {"grupo": "Rações", "valor": 80},
+            {"grupo": "Pet", "valor": 15},
+            {"grupo": "A", "valor": 2},
+            {"grupo": "B", "valor": 2},
+            {"grupo": "C", "valor": 1},
+        ]
+        with patch(
+            "produtos.relatorios_vendas_util.vendas_por_grupo",
+            return_value=fake,
+        ):
+            out = receita_categorias_pdv(date(2026, 7, 1), date(2026, 7, 31), top=2)
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["total"], 100.0)
+        self.assertEqual(out["fatias"][0]["nome"], "Rações")
+        self.assertEqual(out["fatias"][-1]["nome"], "Outros")
+        self.assertEqual(out["fatias"][-1]["valor"], 5.0)

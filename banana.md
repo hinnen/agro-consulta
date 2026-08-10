@@ -625,7 +625,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA`):** Resumo gerencial ganhou layout visual (fluxo + PE + despesas por categoria + **card empréstimos**). Sem pizza (redundante com Mini DRE / card Despesas). **Indicadores · Financeiro gerencial permanece** até a nova tela estar 100%. Layout **16:9** (`100dvh`, filtros numa faixa só no topo). Gráfico **ponto de equilíbrio** (receita × custo, prejuízo/lucro). Empréstimos: devido = saldo em aberto; pago/juros = filtro da tela; emprestado = **sempre competência**.
+- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + **receita PDV por categoria de produto** + PE linha + mini DRE + empréstimos). Sem círculo de PE. Cores bom/ruim. Indicadores permanece até 100%. Empréstimos: devido = saldo aberto; pago/juros = filtro; emprestado = **sempre competência**.
 
 ### 4.11 Caixa
 
@@ -1228,13 +1228,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.40**)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.41**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut **composição despesas** · PE **só gráfico de linha** (sem círculo) · categorias · mini DRE · empréstimos · cores bom/ruim. Topo só **?**. Indicadores no menu. |
-| **Você** | Ctrl+F5 Resumo → pizza = despesas; equilíbrio = gráfico de linha |
+| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut despesas + **receita por categoria de produto (PDV)** · PE linha · mini DRE · empréstimos · cores bom/ruim. Topo só **?**. Indicadores no menu. |
+| **Você** | Ctrl+F5 Resumo → pizza da direita = receita por categoria |
 | **Prova** | `tests_dre_visual` · verify visual **134/134** · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |

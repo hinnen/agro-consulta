@@ -61,6 +61,7 @@ def test_arquivos() -> None:
     css = _read("static/css/agro_resumo_gerencial.css")
     util = _read("financeiro/services/dre_visual_util.py")
     rec_util = _read("financeiro/services/receita_pdv_util.py")
+    rel_v = _read("produtos/relatorios_vendas_util.py")
     resumo = _read("financeiro/services/resumo_operacional_pg.py")
     ind = _read("financeiro/services/indicadores_gerencial_pg.py")
     ind_html = _read("financeiro/templates/financeiro/indicadores_gerencial.html")
@@ -80,6 +81,8 @@ def test_arquivos() -> None:
     check("fn_montar", "def montar_dre_visual" in util)
     check("fn_gastos", "def gastos_variacao_pg" in gastos)
     check("fn_emprestimos", "def resumo_emprestimos_pg" in emp_util)
+    check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
+    check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
     check("emp_entrada_comp", 'entrada_por": "competencia"' in emp_util)
     check("montar_chama_emp", "resumo_emprestimos_pg" in util)
     check("api_passa_datas", "data_inicio=params" in api and "empresa_nome=data.get" in api)
@@ -117,6 +120,9 @@ def test_arquivos() -> None:
     check("js_fluxo_desp", "Despesas" in js and "Receita" in js and "% Lucro" in js)
     check("js_desp_split", '" · var "' in js and '" · fin "' in js)
     check("js_donut", "Composição das despesas" in js and "rg-donut" in js)
+    check("js_receita_cat", "Receita por categoria" in js and "donutReceitaCategorias" in js)
+    check("css_donuts_row", ".rg-charts-donuts" in css)
+    check("html_ajuda_rec_cat", "Receita por categoria" in html)
     check("js_sem_gauge_pe", '"rg-gauge"' not in js and "rg-gauge__ring" not in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
@@ -203,6 +209,7 @@ def test_montar_e_json() -> None:
         out = montar_dre_visual(empresa_id=9, por="competencia")
     check("montar_ok", out.get("ok") is True)
     check("montar_emp_sem_datas", out.get("emprestimos", {}).get("ok") is False)
+    check("montar_rec_cat_sem_datas", out.get("receita_categorias", {}).get("ok") is False)
     check("montar_top_aluguel", out["variacao"]["top"][0]["ultimo"] == 50.0)
     check("montar_top_max_12", len(out["variacao"]["top"]) == 12, str(len(out["variacao"]["top"])))
     check("montar_por_mes", mock_g.call_args.kwargs.get("modo") == "mes")
@@ -255,6 +262,14 @@ def test_montar_e_json() -> None:
             "financeiro.services.dre_emprestimos_util.resumo_emprestimos_pg",
             return_value=fake_emp,
         ) as mock_e,
+        patch(
+            "produtos.relatorios_vendas_util.receita_categorias_pdv",
+            return_value={
+                "ok": True,
+                "total": 90.0,
+                "fatias": [{"nome": "Rações", "valor": 90.0, "pct": 100.0}],
+            },
+        ),
     ):
         emp_out = montar_dre_visual(
             empresa_id=3,
@@ -266,6 +281,8 @@ def test_montar_e_json() -> None:
     check("montar_emp_ok", emp_out.get("emprestimos", {}).get("ok") is True)
     check("montar_emp_valor", emp_out["emprestimos"]["valor_emprestado"] == 4.0)
     check("montar_emp_por", mock_e.call_args.kwargs.get("por") == "pagamento")
+    check("montar_rec_cat_ok", emp_out.get("receita_categorias", {}).get("ok") is True)
+    check("montar_rec_cat_nome", emp_out["receita_categorias"]["fatias"][0]["nome"] == "Rações")
 
 
 def test_serializer() -> None:

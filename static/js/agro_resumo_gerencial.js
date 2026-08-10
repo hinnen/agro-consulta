@@ -483,6 +483,51 @@
     return svg;
   }
 
+  var CAT_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#8b5cf6", "#ef4444", "#06b6d4", "#64748b"];
+
+  function donutReceitaCategorias(pack, modo) {
+    if (modo === "grupo") {
+      return '<p class="rg-muted">Abra uma empresa para ver receita por categoria.</p>';
+    }
+    var fatias = pack && pack.ok ? pack.fatias || [] : [];
+    if (!fatias.length) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var total = 0;
+    var i;
+    for (i = 0; i < fatias.length; i++) total += num(fatias[i].valor);
+    if (total <= 0) {
+      return '<p class="rg-muted">Sem vendas por categoria neste recorte.</p>';
+    }
+    var acc = 0;
+    var stops = [];
+    var legend = "";
+    for (i = 0; i < fatias.length; i++) {
+      var f = fatias[i];
+      var p = (num(f.valor) / total) * 100;
+      var c = CAT_COLORS[i % CAT_COLORS.length];
+      stops.push(c + " " + acc.toFixed(2) + "% " + (acc + p).toFixed(2) + "%");
+      acc += p;
+      legend +=
+        '<li><i class="rg-dot" style="background:' +
+        c +
+        '"></i>' +
+        escapeHtml(f.nome || "—") +
+        " <b>" +
+        brl(f.valor) +
+        "</b> <small>" +
+        pctJa(f.pct != null ? f.pct : p) +
+        "</small></li>";
+    }
+    return (
+      '<div class="rg-donut-row"><div class="rg-donut rg-donut--cat" style="background:conic-gradient(' +
+      stops.join(",") +
+      ')"></div><ul class="rg-legend">' +
+      legend +
+      "</ul></div>"
+    );
+  }
+
   function renderCatRows(top) {
     if (!top || !top.length) {
       return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
@@ -624,7 +669,7 @@
       '">' +
       (markup != null ? pctJa(markup) : "—") +
       "</strong></div></article></div>" +
-      '<div class="rg-col--charts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      '<div class="rg-col--charts"><div class="rg-charts-donuts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
       p1.toFixed(1) +
       "%;--p2:" +
       p2.toFixed(1) +
@@ -635,6 +680,9 @@
       '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
       brl(dfin) +
       "</b></li></ul></div></article>" +
+      '<article class="rg-card rg-card--rec-cat"><h3>Receita por categoria</h3>' +
+      donutReceitaCategorias(visual && visual.receita_categorias, modo) +
+      "</article></div>" +
       '<article class="rg-card rg-card--pe' +
       peCardCls +
       '"><h3>Ponto de equilíbrio</h3>' +

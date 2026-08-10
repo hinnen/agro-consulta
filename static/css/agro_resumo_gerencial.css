@@ -820,6 +820,17 @@
   grid-template-rows: auto minmax(0, 1fr);
   gap: 0.45rem;
 }
+.rg-charts-donuts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  min-height: 0;
+}
+.rg-legend small {
+  margin-left: 0.2rem;
+  font-weight: 700;
+  color: #64748b;
+}
 .rg-col--cat,
 .rg-col--dre {
   min-height: 0;
@@ -1045,6 +1056,7 @@
   }
   .rg-flow__arrow { display: none; }
   .rg-col--charts { min-height: 14rem; }
+  .rg-charts-donuts { grid-template-columns: 1fr; }
   .rg-gsums { grid-template-columns: 1fr; }
 }
 @media (max-width: 720px) {

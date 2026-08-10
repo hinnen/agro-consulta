@@ -151,12 +151,14 @@ def _qs_itens(desde: datetime, ate: datetime, deposito: str | None = None):
     return qs
 
 
-def _agg_itens_por_produto(desde: datetime, ate: datetime) -> list[dict]:
+def _agg_itens_por_produto(
+    desde: datetime, ate: datetime, deposito: str | None = None
+) -> list[dict]:
     """
     Soma qtd/valor por produto — mesmo padrão do giro (Sum em colunas reais).
     """
     qs = (
-        _qs_itens(desde, ate)
+        _qs_itens(desde, ate, deposito=deposito)
         .values("produto_id_externo")
         .annotate(
             qtd=Sum("quantidade"),
@@ -412,8 +414,10 @@ def ranking_produtos(
     return out
 
 
-def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
-    agg = _agg_itens_por_produto(desde, ate)
+def vendas_por_grupo(
+    desde: datetime, ate: datetime, deposito: str | None = None
+) -> list[dict]:
+    agg = _agg_itens_por_produto(desde, ate, deposito=deposito)
     pids = [str(r["produto_id_externo"]) for r in agg]
     meta = mapa_produtos_meta(pids)
     buckets: dict[str, dict] = {}
@@ -439,6 +443,47 @@ def vendas_por_grupo(desde: datetime, ate: datetime) -> list[dict]:
             }
         )
     return out
+
+
+def receita_categorias_pdv(
+    data_ini: date,
+    data_fim: date,
+    *,
+    deposito: str | None = None,
+    top: int = 6,
+) -> dict[str, Any]:
+    """Faturamento PDV por categoria do cadastro (top + Outros)."""
+    desde = datetime.combine(data_ini, time.min)
+    ate = datetime.combine(data_fim, time(23, 59, 59))
+    desde, ate = _aware_bounds(desde, ate)
+    rows = vendas_por_grupo(desde, ate, deposito=deposito)
+    total = float(sum(float(r.get("valor") or 0) for r in rows))
+    if total <= 0:
+        return {"ok": True, "total": 0.0, "fatias": []}
+    top_n = max(1, int(top or 6))
+    head = rows[:top_n]
+    resto = sum(float(r.get("valor") or 0) for r in rows[top_n:])
+    fatias: list[dict[str, Any]] = []
+    for r in head:
+        val = round(float(r.get("valor") or 0), 2)
+        if val <= 0:
+            continue
+        fatias.append(
+            {
+                "nome": str(r.get("grupo") or "Sem categoria"),
+                "valor": val,
+                "pct": round(100.0 * val / total, 1),
+            }
+        )
+    if resto > 0.005:
+        fatias.append(
+            {
+                "nome": "Outros",
+                "valor": round(resto, 2),
+                "pct": round(100.0 * resto / total, 1),
+            }
+        )
+    return {"ok": True, "total": round(total, 2), "fatias": fatias}
 
 
 def vendas_por_marca(
