@@ -1208,7 +1208,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📦 **pronto para envio à produção** |
 | **O quê** | Card Empréstimos: devido **bruto** + juros devido + total + pago + emprestado (competência). Mini DRE **Saldo final = soma**. Frases no **«?»** · rótulos sem quebra |
 | **Prova** | unit **34/34** · visual **217/217** · planos **42/42** · DRE CMV **55/55** · PDV-DRE **33/33** · RG CMV **79/79** |
-| **Commits** | `4022f08` … `2735c06` · `teste` @ **2735c06** · **v15.54** |
+| **Commits** | `4022f08`–`96a8012` · `teste` **v15.54** |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV · caixa · wizard · Indicadores HTML · API `geracao_caixa` |
 | **Você** | Ctrl+F5 DRE · Jul/2026 Centro vencimento: emp. devido ~42.601 · juros ~4.658 · total ~47.259 |
