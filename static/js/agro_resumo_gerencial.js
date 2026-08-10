@@ -632,7 +632,7 @@
       '</dd></div></dl><p class="rg-muted">' +
       (modo === "grupo"
         ? "Abra uma empresa para ver empréstimos."
-        : "Devido = saldo em aberto · pago/juros = filtro da tela · emprestado = competência do período") +
+        : "Devido, pago e juros = filtro da tela · emprestado = competência do período") +
       "</p></article>";
     return (
       '<div class="rg-board">' +

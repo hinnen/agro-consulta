@@ -5,8 +5,6 @@ from datetime import date
 from decimal import Decimal
 from typing import Any
 
-from django.db.models import Q
-
 from financeiro.services.resumo_operacional_mongo import (
     _fold,
     classificar_despesa_plano,
@@ -68,13 +66,6 @@ def resumo_emprestimos_pg(
     valor_n = (valor or "bruto").strip().lower()
 
     devido = Decimal("0")
-    qs_aberto = _qs_empresa(nome).filter(despesa=True, quitado=False).filter(
-        Q(plano_conta__icontains="empréstimo") | Q(plano_conta__icontains="emprestimo")
-    )
-    for t in dedup_titulos(list(qs_aberto)):
-        if eh_pagamento_principal_emprestimo(t.plano_conta or "", despesa=True):
-            devido += _dec2(t.valor_restante)
-
     pago = Decimal("0")
     juros = Decimal("0")
     qs_periodo = _qs_empresa(nome)
@@ -94,9 +85,13 @@ def resumo_emprestimos_pg(
         dt = _campo_data_titulo(t, por_n)
         if dt is None or dt < data_inicio or dt > data_fim:
             continue
+        plano = t.plano_conta or ""
+        if eh_pagamento_principal_emprestimo(plano, despesa=bool(t.despesa)) and not t.quitado:
+            rest = _dec2(t.valor_restante)
+            if rest > 0:
+                devido += rest
         if por_n == "pagamento" and _dec2(t.valor_pago) <= 0:
             continue
-        plano = t.plano_conta or ""
         val = _valor_titulo_dre(t, valor_n)
         if val <= 0:
             continue

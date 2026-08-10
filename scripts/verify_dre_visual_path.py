@@ -84,6 +84,7 @@ def test_arquivos() -> None:
     check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
     check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
     check("emp_entrada_comp", 'entrada_por": "competencia"' in emp_util)
+    check("emp_devido_no_periodo", "qs_aberto" not in emp_util and "valor_restante" in emp_util)
     check("montar_chama_emp", "resumo_emprestimos_pg" in util)
     check("api_passa_datas", "data_inicio=params" in api and "empresa_nome=data.get" in api)
     check("html_ajuda_emp", "Empréstimos" in html and "competência" in html)

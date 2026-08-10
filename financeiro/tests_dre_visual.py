@@ -186,7 +186,22 @@ class EmprestimosCardTests(SimpleTestCase):
             )
 
         titulos = [
-            T(plano="Pagamento de Empréstimos", restante=1000, bruto=1000, quitado=False, comp=date(2026, 6, 1)),
+            T(
+                plano="Pagamento de Empréstimos",
+                restante=1000,
+                bruto=1000,
+                quitado=False,
+                comp=date(2026, 6, 1),
+                venc=date(2026, 6, 1),
+            ),
+            T(
+                plano="Pagamento de Empréstimos",
+                restante=300,
+                bruto=300,
+                quitado=False,
+                comp=date(2026, 7, 20),
+                venc=date(2026, 7, 20),
+            ),
             T(
                 plano="Pagamento de Empréstimos",
                 restante=0,
@@ -259,8 +274,8 @@ class EmprestimosCardTests(SimpleTestCase):
                 valor="bruto",
             )
         self.assertTrue(out["ok"])
-        self.assertEqual(out["valor_devido"], 1000.0)
-        self.assertEqual(out["valor_pago"], 200.0)
+        self.assertEqual(out["valor_devido"], 300.0)
+        self.assertEqual(out["valor_pago"], 500.0)
         self.assertEqual(out["juros"], 50.0)
         self.assertEqual(out["valor_emprestado"], 5000.0)
         self.assertEqual(out["entrada_por"], "competencia")
