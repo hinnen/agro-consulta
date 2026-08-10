@@ -9633,6 +9633,9 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     dia_cmp_mes_ant = _dashboard_mesmo_weekday_mes_anterior(hoje)
     labels_cmp_mes_ant = _dashboard_label_mesmo_weekday_mes_ant(hoje, dia_cmp_mes_ant)
 
+    from produtos.pdv_deposito_util import bootstrap_deposito
+
+    dep_boot = bootstrap_deposito(request)
     loja_numeros, deposito_filtro = _dashboard_loja_numeros_from_request(request)
     loja_filtro_label = {
         "todas": "Centro + Vila",

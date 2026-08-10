@@ -1689,7 +1689,9 @@ document.addEventListener("keydown", function (e) {
     var bootEl = document.getElementById('dash-pdv-deposito-boot');
     if (bootEl) BOOT = JSON.parse(bootEl.textContent || '{}') || {};
   } catch (eBoot) { BOOT = {}; }
+  var CSRF_EMBED = '{{ csrf_token|escapejs }}';
   function csrf() {
+    if (CSRF_EMBED) return CSRF_EMBED;
     var el = document.querySelector('[name=csrfmiddlewaretoken]');
     if (el && el.value) return el.value;
     var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
@@ -1731,15 +1733,30 @@ document.addEventListener("keydown", function (e) {
     fetch(API, {
       method: 'POST',
       credentials: 'same-origin',
+      redirect: 'follow',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify(body),
     })
-      .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j || {} }; }); })
+      .then(function (r) {
+        return r.text().then(function (raw) {
+          var j = null;
+          try { j = raw ? JSON.parse(raw) : {}; } catch (eParse) { j = null; }
+          if (!j) {
+            j = {
+              ok: false,
+              erro: (r.status === 403 || r.status === 401 || /login/i.test(raw || ''))
+                ? 'Sessão inválida. Recarregue a página (Ctrl+F5) e tente de novo.'
+                : 'Falha ao trocar a loja (rede ou servidor). Tente de novo.',
+            };
+          }
+          return { status: r.status, j: j };
+        });
+      })
       .then(function (pack) {
         if (typeof done === 'function') done(pack.j, pack.status);
       })
       .catch(function () {
-        if (typeof done === 'function') done(null, 0);
+        if (typeof done === 'function') done({ ok: false, erro: 'Sem conexão com o servidor. Confira a internet e tente de novo.' }, 0);
       });
   }
   function boot() {
