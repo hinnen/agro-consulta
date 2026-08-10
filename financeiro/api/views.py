@@ -182,6 +182,18 @@ class ResumoOperacionalAPIView(_AuthAPIView):
             if not params.get("incluir_linhas"):
                 if isinstance(data, dict) and "linhas_dre" in data:
                     data = {k: v for k, v in data.items() if k != "linhas_dre"}
+            if (
+                params.get("incluir_visual")
+                and params["modo"] == "empresa"
+                and isinstance(data, dict)
+                and not data.get("erro")
+            ):
+                from financeiro.services.dre_visual_util import montar_dre_visual
+
+                data["visual"] = montar_dre_visual(
+                    empresa_id=params["empresa_id"],
+                    por=por,
+                )
         else:
             service = ConsolidacaoFinanceiraService()
             if params["modo"] == "empresa":

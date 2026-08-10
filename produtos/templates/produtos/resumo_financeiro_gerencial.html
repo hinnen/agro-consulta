@@ -3,7 +3,7 @@
 <html lang="pt-br" class="h-full overflow-hidden">
 <head>
   <meta charset="UTF-8">
-  <title>SisVale | Resumo financeiro gerencial</title>
+  <title>SisVale | DRE gerencial</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,8 +33,8 @@
           <img src="{% static 'img/agro-mais-logo-buscador.png' %}" alt="">
         </div>
         <div class="rg-head__titles">
-          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">Resumo gerencial</span></h1>
-          <p>Operação · caixa · consolidação</p>
+          <h1><span style="color:#059669">Sis</span><span style="color:#1e293b">Vale</span> · <span style="color:#ea580c">DRE gerencial</span></h1>
+          <p>Prévia visual · Indicadores intacto</p>
         </div>
       </div>
       <div class="rg-head__actions">
@@ -141,8 +141,12 @@
       </div>
     </div>
 
-    {# Grid de KPIs (preenchido via JS — mesma API) #}
-    <div id="painel-cards" class="hidden"></div>
+    {# Prévia visual DRE (Indicadores financeiro permanece) #}
+    <div id="painel-visual" class="hidden"></div>
+    <details id="rg-mais-numeros" class="rg-mais hidden">
+      <summary>Números completos</summary>
+      <div id="painel-cards"></div>
+    </details>
 
     <details id="bloco-grupo" class="rg-grupo-detalhe hidden">
       <summary>Por empresa (grupo)</summary>
@@ -174,12 +178,13 @@
 
   <div id="modal-ajuda" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="rg-modal">
-      <h3>Resumo gerencial</h3>
+      <h3>DRE gerencial (prévia)</h3>
       <ul>
-        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber).</li>
+        <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber) + receita do <strong>PDV</strong>.</li>
         <li>O <strong>nome fantasia</strong> da empresa deve coincidir com o campo Empresa nos títulos.</li>
         <li>Modo <strong>grupo</strong> soma as empresas vinculadas (sem eliminação automática entre filiais).</li>
-        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro bruto, operacional, líquido e ponto de equilíbrio acompanham. O <strong>caixa não muda</strong>.</li>
+        <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro, operacional, líquido e ponto de equilíbrio acompanham. O <strong>caixa não muda</strong>.</li>
+        <li>A tela <strong>Indicadores · Financeiro gerencial</strong> continua no menu — esta é a prévia visual nova.</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>
       <button type="button" id="btn-fechar-ajuda" class="rg-modal__btn">Fechar</button>

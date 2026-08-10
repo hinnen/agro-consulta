@@ -274,6 +274,181 @@
     return html;
   }
 
+  function sparkSvg(vals) {
+    if (!vals || vals.length < 2) {
+      return '<p class="rg-muted">Sem série diária neste período.</p>';
+    }
+    var max = Math.max.apply(null, vals.concat([0.01]));
+    var w = 320;
+    var h = 72;
+    var p = 6;
+    var pts = vals
+      .map(function (v, i) {
+        var x = p + (i / (vals.length - 1)) * (w - 2 * p);
+        var y = h - p - (v / max) * (h - 2 * p);
+        return x.toFixed(1) + "," + y.toFixed(1);
+      })
+      .join(" ");
+    return (
+      '<svg viewBox="0 0 ' +
+      w +
+      " " +
+      h +
+      '" class="rg-spark" preserveAspectRatio="none" aria-hidden="true"><polyline fill="none" stroke="#059669" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round" points="' +
+      pts +
+      '"/></svg>'
+    );
+  }
+
+  function sparkVals(c) {
+    var fat = (c && c.faturamento_pdv) || {};
+    var por = fat.por_dia || {};
+    var keys = Object.keys(por).sort();
+    if (!keys.length) return [];
+    return keys.slice(-7).map(function (k) {
+      return num(por[k]);
+    });
+  }
+
+  function renderCatRows(top) {
+    if (!top || !top.length) {
+      return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
+    }
+    var max = Math.max.apply(
+      null,
+      top.map(function (r) {
+        return num(r.ultimo);
+      }).concat([0.01])
+    );
+    return top
+      .slice(0, 8)
+      .map(function (r) {
+        var pctW = Math.min(100, (num(r.ultimo) / max) * 100);
+        var tend = r.tendencia === "up" ? "↑" : r.tendencia === "down" ? "↓" : "→";
+        var tendCls =
+          r.tendencia === "up" ? "rg-tend--up" : r.tendencia === "down" ? "rg-tend--down" : "";
+        return (
+          '<div class="rg-cat">' +
+          '<div class="rg-cat__meta"><span class="rg-cat__nome">' +
+          escapeHtml(r.plano) +
+          '</span><span class="rg-cat__val">' +
+          brl(r.ultimo) +
+          ' <i class="' +
+          tendCls +
+          '">' +
+          tend +
+          "</i></span></div>" +
+          '<div class="rg-cat__track"><div class="rg-cat__bar" style="width:' +
+          pctW.toFixed(1) +
+          '%"></div></div></div>'
+        );
+      })
+      .join("");
+  }
+
+  function renderVisualBoard(c, visual, modo) {
+    var df = num(c.despesas_fixas);
+    var dv = num(c.despesas_variaveis);
+    var dfin = num(c.despesas_financeiras);
+    var desp = df + dv + dfin;
+    var rec = num(c.receita_operacional);
+    var cmv = num(c.cmv);
+    var lucro = num(c.lucro_bruto);
+    var margem = c.margem_bruta_pct != null ? num(c.margem_bruta_pct) : rec > 0 ? (lucro / rec) * 100 : null;
+    var markup = c.markup_pct != null ? num(c.markup_pct) : rec > 0 && cmv > 0 ? ((rec - cmv) / cmv) * 100 : null;
+    var pe = num(c.faturamento_equilibrio);
+    var pctPe = pe > 0 ? Math.min(100, (rec / pe) * 100) : 0;
+    var peOk = pe > 0 && rec >= pe;
+    var totDonut = desp || 1;
+    var p1 = (df / totDonut) * 100;
+    var p2 = p1 + (dv / totDonut) * 100;
+    var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
+    var catHtml =
+      modo === "grupo"
+        ? '<p class="rg-muted">Abra uma empresa para ver despesas por categoria.</p>'
+        : varOk
+          ? renderCatRows(visual.variacao.top)
+          : '<p class="rg-muted">Despesas por categoria indisponível neste recorte.</p>';
+    var grupos = varOk ? visual.variacao.resumo_grupos || [] : [];
+    var gruposHtml = grupos
+      .map(function (g) {
+        return (
+          '<div class="rg-gsum rg-gsum--' +
+          escapeHtml(g.key || "") +
+          '"><span>' +
+          escapeHtml(g.label || "") +
+          "</span><strong>" +
+          brl(g.ultimo) +
+          "</strong></div>"
+        );
+      })
+      .join("");
+    return (
+      '<div class="rg-board">' +
+      '<div class="rg-flow">' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"><span>Despesas</span><strong>' +
+      brl(desp) +
+      "</strong><small>fixas + variáveis + financeiras</small></article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--rec"><span>Receita</span><strong>' +
+      brl(rec) +
+      "</strong><small>" +
+      (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
+      "</small></article>" +
+      '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--lucro"><span>% Lucro</span><strong>' +
+      (margem != null ? pctJa(margem) : "—") +
+      "</strong><small>margem bruta</small></article>" +
+      '<article class="rg-flow__side"><div><span>CMV</span><strong>' +
+      brl(cmv) +
+      "</strong></div><div><span>Markup</span><strong>" +
+      (markup != null ? pctJa(markup) : "—") +
+      "</strong></div></article>" +
+      '<article class="rg-gauge"><div class="rg-gauge__ring" style="--pct:' +
+      pctPe.toFixed(1) +
+      '"></div><div class="rg-gauge__center"><strong>' +
+      (pe > 0 ? Math.round(pctPe) + "%" : "—") +
+      "</strong><span>" +
+      (peOk ? "acima do PE" : "do equilíbrio") +
+      '</span></div><p class="rg-gauge__hint">PE ' +
+      brl(pe) +
+      (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "") +
+      "</p></article></div>" +
+      '<div class="rg-mid"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      p1.toFixed(1) +
+      "%;--p2:" +
+      p2.toFixed(1) +
+      '%"></div><ul class="rg-legend"><li><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
+      brl(df) +
+      '</b></li><li><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
+      brl(dv) +
+      '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      brl(dfin) +
+      "</b></li></ul></div></article>" +
+      '<article class="rg-card"><h3>Faturamento PDV (últ. dias)</h3>' +
+      sparkSvg(sparkVals(c)) +
+      '<p class="rg-muted">Geração de caixa: <b>' +
+      brl(c.geracao_caixa) +
+      "</b> <span>(não muda com CMV)</span></p></article></div>" +
+      '<div class="rg-bot"><article class="rg-card rg-card--wide"><h3>Despesas por categoria</h3>' +
+      (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
+      catHtml +
+      '</article><article class="rg-card"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
+      brl(rec) +
+      "</dd></div><div><dt>CMV</dt><dd>" +
+      brl(cmv) +
+      "</dd></div><div><dt>Lucro bruto</dt><dd>" +
+      brl(lucro) +
+      "</dd></div><div><dt>Resultado op.</dt><dd>" +
+      brl(c.resultado_operacional) +
+      "</dd></div><div><dt>Líquido</dt><dd>" +
+      brl(c.resultado_liquido_gerencial) +
+      "</dd></div><div><dt>Caixa</dt><dd>" +
+      brl(c.geracao_caixa) +
+      "</dd></div></dl></article></div></div>"
+    );
+  }
+
   function mainZeros(c) {
     var keys = [
       "receita_operacional",
@@ -375,10 +550,12 @@
 
     function setLoading(on) {
       var sk = el("rg-kpi-skeleton");
-      var grid = el("painel-cards");
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
       var btn = el("btn-atualizar");
       if (sk) sk.classList.toggle("is-visible", on);
-      if (grid) grid.classList.toggle("hidden", on);
+      if (vis) vis.classList.toggle("hidden", on);
+      if (mais) mais.classList.toggle("hidden", on);
       if (btn) {
         btn.disabled = on;
         btn.setAttribute("aria-busy", on ? "true" : "false");
@@ -402,10 +579,13 @@
 
     function pintarEquilibrio(c) {
       if (!c || c.faturamento_equilibrio == null) return false;
-      el("sec-equilibrio").classList.add("is-visible");
-      el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
-      el("eq-fat").textContent = brl(c.faturamento_equilibrio);
-      el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      var sec = el("sec-equilibrio");
+      if (sec) {
+        sec.classList.remove("is-visible");
+        el("eq-margem").textContent = pct(c.margem_contribuicao_pct);
+        el("eq-fat").textContent = brl(c.faturamento_equilibrio);
+        el("eq-dia").textContent = brl(c.faturamento_diario_equilibrio);
+      }
       return true;
     }
 
@@ -418,8 +598,15 @@
       var bruto = coreDoPayload(data, modo);
       var c = aplicarCmvNoCore(bruto);
       syncCmvChips(c);
+      var vis = el("painel-visual");
+      var mais = el("rg-mais-numeros");
+      if (vis) {
+        vis.innerHTML = renderVisualBoard(c, data.visual, modo);
+        vis.classList.remove("hidden");
+      }
       el("painel-cards").innerHTML = renderKpiGrid(c);
       el("painel-cards").classList.remove("hidden");
+      if (mais) mais.classList.remove("hidden");
 
       var zero = el("rg-msg-zero");
       if (mainZeros(c)) {
@@ -490,7 +677,8 @@
         encodeURIComponent(el("f-por").value) +
         "&valor=" +
         encodeURIComponent(el("f-valor").value) +
-        "&contas=resultado";
+        "&contas=resultado" +
+        "&incluir_visual=1";
       if (modo === "empresa") {
         var eid = el("f-empresa").value;
         if (!eid) {
@@ -543,10 +731,14 @@
           });
           if (re.ok) {
             var eq = await re.json();
-            el("sec-equilibrio").classList.add("is-visible");
-            el("eq-margem").textContent = pct(eq.margem_contribuicao_pct);
-            el("eq-fat").textContent = brl(eq.faturamento_equilibrio);
-            el("eq-dia").textContent = brl(eq.faturamento_diario_equilibrio);
+            var brutoEq = coreDoPayload(lastPayload, modo);
+            if (brutoEq) {
+              brutoEq.faturamento_equilibrio = eq.faturamento_equilibrio;
+              brutoEq.margem_contribuicao_pct = eq.margem_contribuicao_pct;
+              brutoEq.faturamento_diario_equilibrio = eq.faturamento_diario_equilibrio;
+            }
+            renderResumo(lastPayload, modo);
+            pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, modo)));
           }
         }
       } catch (e) {
@@ -632,6 +824,7 @@
   window.AgroResumoGerencial = {
     buildKpiCard: buildKpiCard,
     renderKpiGrid: renderKpiGrid,
+    renderVisualBoard: renderVisualBoard,
     mainZeros: mainZeros,
     brl: brl,
     pct: pct,
