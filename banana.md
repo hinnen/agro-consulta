@@ -1200,25 +1200,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — filtro loja DRE + BI (`DRE-LOJA-FILTRO`)
+### 📦 PACOTE PRONTO — filtro loja DRE + BI (`DRE-LOJA-FILTRO` · **v15.55**)
+
+> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto envio** · `teste` **v15.55** · loja ainda **v15.54** |
+| **O quê** | DRE + BI: **Centro + Vila** (padrão) · Centro · Vila. Vendas/CMV = PDV da loja. Despesas/emp. = empresa (Vila sem cadastro → Centro). PDV/caixa intactos. Indicadores intactos. |
+| **Prova** | `verify_dre_loja_filtro_path.py` **VERIFY_OK** (80) · 50 unit · `verify_dre_visual_path.py` **VERIFY_OK** (223) · BI lucro **VERIFY_OK** (73) |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE + BI `/` · filtro **Loja** / **Números** · padrão as duas |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.54)
 
 > **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no `teste` · ainda **não** subiu loja |
-| **O quê** | DRE + BI: **Centro + Vila** (padrão) · Centro · Vila. PDV/caixa intactos. Indicadores intactos. |
-| **Migrate** | **NÃO** |
-
-### ✅ CHECKLIST ÚNICO — loja v15.54 + teste novo
-
-> **Loja hoje:** ✅ **Live v15.54**
-
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
-| 2 | **DRE-LOJA-FILTRO** | ✅ no teste · falta envio loja | não |
+| 2 | **DRE-LOJA-FILTRO** | ✅ **pronto envio** / teste **v15.55** | não |
 
 ### ✅ Deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**)
 
@@ -1235,14 +1239,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fora** | PDV · caixa · wizard · Indicadores HTML |
 | **Você** | Ctrl+F5 DRE · badge **v15.54** · Jul/2026 Centro vencimento: emp. devido ~42.601 · juros ~4.658 |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.54)
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.54) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **DRE-EMP-CARD** | ✅ enviado / Live v15.54 | não |
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (10/08)** no topo. Loja permanece **v15.54** até o próximo envio.
 
 ### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
 
