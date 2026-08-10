@@ -1228,14 +1228,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.36**)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.39**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | `/financeiro/resumo-gerencial/` — prévia visual 16:9 (fluxo, PE, categorias, mini DRE + **card empréstimos**). Sem pizza. Topo só **?** (sem Lançamentos/Indicadores). Emprestado **sempre competência**. **Indicadores intacto no menu**. CMV vendida × paga. Caixa não muda. |
-| **Você** | Ctrl+F5 Resumo gerencial → conferir topo sem sobreposição |
-| **Prova** | `tests_dre_visual` **10/10** · verify visual **131/131** · `node --check` |
+| **O quê** | `/financeiro/resumo-gerencial/` — 16:9 · donut **composição despesas** · PE **só gráfico de linha** (sem círculo) · categorias · mini DRE · empréstimos · cores bom/ruim. Topo só **?**. Indicadores no menu. |
+| **Você** | Ctrl+F5 Resumo → pizza = despesas; equilíbrio = gráfico de linha |
+| **Prova** | `tests_dre_visual` · verify visual · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 

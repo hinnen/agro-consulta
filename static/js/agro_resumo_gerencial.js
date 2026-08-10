@@ -29,6 +29,12 @@
     return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
   }
 
+  function valCls(n) {
+    var v = num(n);
+    if (!isFinite(v) || Math.abs(v) < 0.005) return "rg-val--zero";
+    return v > 0 ? "rg-val--pos" : "rg-val--neg";
+  }
+
   var CMV_KEY = "agro_dre_cmv_modo_v1";
   var CMV_HINT = {
     vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
@@ -524,7 +530,6 @@
     var margem = c.margem_bruta_pct != null ? num(c.margem_bruta_pct) : rec > 0 ? (lucro / rec) * 100 : null;
     var markup = c.markup_pct != null ? num(c.markup_pct) : rec > 0 && cmv > 0 ? ((rec - cmv) / cmv) * 100 : null;
     var pe = num(c.faturamento_equilibrio);
-    var pctPe = pe > 0 ? Math.min(100, (rec / pe) * 100) : 0;
     var peOk = pe > 0 && rec >= pe;
     var peHint =
       pe > 0
@@ -532,6 +537,12 @@
           brl(pe) +
           (c.margem_contribuicao_pct != null ? " · MC " + pct(c.margem_contribuicao_pct) : "")
         : "Sem ponto de equilíbrio neste recorte";
+    var totDonut = desp || 1;
+    var p1 = (df / totDonut) * 100;
+    var p2 = p1 + (dv / totDonut) * 100;
+    var recCls = rec > 0.005 ? "" : " is-muted";
+    var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
+    var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
     var varOk = visual && visual.ok && visual.variacao && visual.variacao.ok;
     var catHtml =
       modo === "grupo"
@@ -557,13 +568,21 @@
     var empOk = emp && emp.ok;
     var empHtml =
       '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
-      "<div><dt>Valor devido</dt><dd>" +
+      "<div><dt>Valor devido</dt><dd class=\"" +
+      (empOk && num(emp.valor_devido) > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+      "\">" +
       (empOk ? brl(emp.valor_devido) : "—") +
-      "</dd></div><div><dt>Valor pago</dt><dd>" +
+      '</dd></div><div><dt>Valor pago</dt><dd class="' +
+      (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
       (empOk ? brl(emp.valor_pago) : "—") +
-      "</dd></div><div><dt>Juros</dt><dd>" +
+      '</dd></div><div><dt>Juros</dt><dd class="' +
+      (empOk && num(emp.juros) > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
       (empOk ? brl(emp.juros) : "—") +
-      "</dd></div><div><dt>Valor emprestado</dt><dd>" +
+      '</dd></div><div><dt>Valor emprestado</dt><dd class="' +
+      (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+      '">' +
       (empOk ? brl(emp.valor_emprestado) : "—") +
       '</dd></div></dl><p class="rg-muted">' +
       (modo === "grupo"
@@ -583,32 +602,48 @@
       brl(dfin) +
       "</small></article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
-      '<article class="rg-flow__kpi rg-flow__kpi--rec"><span>Receita</span><strong>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--rec' +
+      recCls +
+      '"><span>Receita</span><strong>' +
       brl(rec) +
       "</strong><small>" +
       (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
       "</small></article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
-      '<article class="rg-flow__kpi rg-flow__kpi--lucro"><span>% Lucro</span><strong>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
+      lucroCls +
+      '"><span>% Lucro</span><strong>' +
       (margem != null ? pctJa(margem) : "—") +
       "</strong><small>margem bruta</small></article>" +
-      '<article class="rg-flow__side"><div><span>CMV</span><strong>' +
+      '<article class="rg-flow__side"><div><span>CMV</span><strong class="' +
+      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
       brl(cmv) +
-      "</strong></div><div><span>Markup</span><strong>" +
+      '</strong></div><div><span>Markup</span><strong class="' +
+      (markup == null ? "" : valCls(markup)) +
+      '">' +
       (markup != null ? pctJa(markup) : "—") +
-      "</strong></div></article>" +
-      '<article class="rg-gauge"><div class="rg-gauge__ring" style="--pct:' +
-      pctPe.toFixed(1) +
-      '"></div><div class="rg-gauge__center"><strong>' +
-      (pe > 0 ? Math.round(pctPe) + "%" : "—") +
-      "</strong><span>" +
-      (peOk ? "acima do PE" : "do equilíbrio") +
-      '</span></div><p class="rg-gauge__hint">' +
-      peHint +
-      "</p></article></div>" +
-      '<div class="rg-col--charts"><article class="rg-card rg-card--pe"><h3>Ponto de equilíbrio</h3>' +
+      "</strong></div></article></div>" +
+      '<div class="rg-col--charts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
+      p1.toFixed(1) +
+      "%;--p2:" +
+      p2.toFixed(1) +
+      '%"></div><ul class="rg-legend"><li><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
+      brl(df) +
+      '</b></li><li><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
+      brl(dv) +
+      '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      brl(dfin) +
+      "</b></li></ul></div></article>" +
+      '<article class="rg-card rg-card--pe' +
+      peCardCls +
+      '"><h3>Ponto de equilíbrio</h3>' +
       peChartSvg(c) +
-      '<p class="rg-muted">Custo = fixas + CMV + variáveis · eixo = faturamento R$ · Caixa: <b>' +
+      '<p class="rg-muted">' +
+      peHint +
+      " · Custo = fixas + CMV + variáveis · Caixa: <b class=\"" +
+      valCls(c.geracao_caixa) +
+      '">' +
       brl(c.geracao_caixa) +
       "</b> <span>(não muda com CMV)</span></p></article></div>" +
       '<article class="rg-card rg-col--cat"><h3>Despesas por categoria</h3>' +
@@ -616,17 +651,31 @@
       '<div class="rg-cat-list">' +
       catHtml +
       "</div></article>" +
-      '<div class="rg-col--dre"><article class="rg-card"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd>' +
+      '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
+      (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005 ? "" : num(c.resultado_liquido_gerencial) > 0 ? " is-good" : " is-bad") +
+      '"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
+      valCls(rec) +
+      '">' +
       brl(rec) +
-      "</dd></div><div><dt>CMV</dt><dd>" +
+      '</dd></div><div><dt>CMV</dt><dd class="' +
+      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
       brl(cmv) +
-      "</dd></div><div><dt>Lucro bruto</dt><dd>" +
+      '</dd></div><div><dt>Lucro bruto</dt><dd class="' +
+      valCls(lucro) +
+      '">' +
       brl(lucro) +
-      "</dd></div><div><dt>Resultado op.</dt><dd>" +
+      '</dd></div><div><dt>Resultado op.</dt><dd class="' +
+      valCls(c.resultado_operacional) +
+      '">' +
       brl(c.resultado_operacional) +
-      "</dd></div><div><dt>Líquido</dt><dd>" +
+      '</dd></div><div><dt>Líquido</dt><dd class="' +
+      valCls(c.resultado_liquido_gerencial) +
+      '">' +
       brl(c.resultado_liquido_gerencial) +
-      "</dd></div><div><dt>Caixa</dt><dd>" +
+      '</dd></div><div><dt>Caixa</dt><dd class="' +
+      valCls(c.geracao_caixa) +
+      '">' +
       brl(c.geracao_caixa) +
       "</dd></div></dl></article>" +
       empHtml +
