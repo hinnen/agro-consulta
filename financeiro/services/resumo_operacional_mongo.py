@@ -69,8 +69,12 @@ def classificar_receita_plano(nome_plano: str) -> str:
 
 
 def classificar_despesa_plano(nome_plano: str) -> str:
+    from financeiro.services.plano_conta_dre_util import natureza_dre_por_cadastro
     from financeiro.services.plano_despesa_niveis import natureza_dre_por_planilha
 
+    nat_cad = natureza_dre_por_cadastro(nome_plano)
+    if nat_cad is not None:
+        return nat_cad
     nat_planilha = natureza_dre_por_planilha(nome_plano)
     if nat_planilha is not None:
         return nat_planilha

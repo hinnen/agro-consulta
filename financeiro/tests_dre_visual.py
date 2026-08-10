@@ -241,9 +241,15 @@ class MontarDreVisualTests(SimpleTestCase):
                 {"plano": "Pagamento de Empréstimos", "despesa": 999.0, "receita": 0},
             ],
         }
-        with patch(
-            "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
-            return_value=fake_linhas,
+        with (
+            patch(
+                "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+                return_value={},
+            ),
+            patch(
+                "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+                return_value=fake_linhas,
+            ),
         ):
             out = despesas_categorias_dre_pg(
                 empresa_nome="Agro Mais Centro",
@@ -259,6 +265,130 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertEqual(out["grupos"][0]["total"], 100.0)
         self.assertEqual(out["grupos"][2]["key"], "financeira")
         self.assertEqual(out["grupos"][2]["total"], 5.0)
+
+    def test_despesas_categorias_usa_cadastro_oficial(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import despesas_categorias_dre_pg
+
+        fake_mapa = {
+            "10 — outros": ("Outros (verificar)", "outra", "A conferir"),
+            "outros (verificar)": ("Outros (verificar)", "outra", "A conferir"),
+            "compra de ativos ou equipamentos": (
+                "Compra de Ativos ou Equipamentos",
+                "outra",
+                "Investimento",
+            ),
+            "juros de emprestimos": (
+                "Juros de Empréstimos",
+                "outra",
+                "Empréstimos / financeiro",
+            ),
+            "aluguel": ("Aluguel", "fixa", "Ocupação"),
+        }
+        fake_linhas = {
+            "ok": True,
+            "linhas": [
+                {"plano": "10 — Outros", "despesa": 80.0, "receita": 0},
+                {"plano": "Outros (verificar)", "despesa": 20.0, "receita": 0},
+                {"plano": "Compra de Ativos ou Equipamentos", "despesa": 50.0, "receita": 0},
+                {"plano": "Juros de Emprestimos", "despesa": 999.0, "receita": 0},
+                {"plano": "Aluguel", "despesa": 10.0, "receita": 0},
+            ],
+        }
+        with (
+            patch(
+                "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+                return_value=fake_mapa,
+            ),
+            patch(
+                "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+                return_value=fake_linhas,
+            ),
+        ):
+            out = despesas_categorias_dre_pg(
+                empresa_nome="Agro Mais Centro",
+                data_inicio=date(2026, 7, 1),
+                data_fim=date(2026, 7, 31),
+                por="competencia",
+                valor="bruto",
+            )
+        self.assertTrue(out["ok"])
+        planos = [r["plano"] for r in out["top"]]
+        self.assertIn("Outros (verificar)", planos)
+        self.assertNotIn("10 — Outros", planos)
+        self.assertNotIn("Juros de Empréstimos", planos)
+        outros = next(r for r in out["top"] if r["plano"] == "Outros (verificar)")
+        self.assertEqual(outros["valor"], 100.0)
+        self.assertEqual(out["grupos"][0]["total"], 10.0)
+        self.assertEqual(out["grupos"][2]["total"], 150.0)
+        self.assertEqual(out["total"], 160.0)
+
+
+class CadastroDrePlanosTests(SimpleTestCase):
+    def test_natureza_cadastro(self):
+        from financeiro.models import LancamentoFinanceiro as NF
+        from financeiro.services.plano_conta_dre_util import natureza_dre_por_cadastro
+
+        fake = {
+            "10 — outros": ("Outros (verificar)", "outra", "A conferir"),
+            "juros de emprestimos": (
+                "Juros de Empréstimos",
+                "outra",
+                "Empréstimos / financeiro",
+            ),
+            "2.1.1.1.2 — salarios": ("Salários", "fixa", "Pessoal"),
+            "compra mercadoria cn": ("Compra Mercadoria CN", "outra", "CMV / mercadoria"),
+            "retiradas geraldo": ("Retiradas Geraldo", "outra", "Sócio"),
+        }
+        with patch(
+            "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+            return_value=fake,
+        ):
+            self.assertEqual(
+                natureza_dre_por_cadastro("10 — Outros"),
+                NF.NATUREZA_DESPESA_FINANCEIRA,
+            )
+            self.assertEqual(
+                natureza_dre_por_cadastro("Juros de Emprestimos"),
+                NF.NATUREZA_EMPRESTIMO_AMORTIZACAO,
+            )
+            self.assertEqual(
+                natureza_dre_por_cadastro("2.1.1.1.2 — Salários"),
+                NF.NATUREZA_DESPESA_FIXA,
+            )
+            self.assertEqual(
+                natureza_dre_por_cadastro("Compra Mercadoria CN"),
+                NF.NATUREZA_CMV,
+            )
+            self.assertEqual(
+                natureza_dre_por_cadastro("Retiradas Geraldo"),
+                NF.NATUREZA_RETIRADA_SOCIO,
+            )
+
+    def test_classificar_cadastro_antes_heuristica(self):
+        from financeiro.models import LancamentoFinanceiro as NF
+        from financeiro.services.resumo_operacional_mongo import classificar_despesa_plano
+
+        fake = {
+            "devolucao de mercadorias": ("Outros (verificar)", "outra", "A conferir"),
+        }
+        with patch(
+            "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+            return_value=fake,
+        ):
+            self.assertEqual(
+                classificar_despesa_plano("Devolução de Mercadorias"),
+                NF.NATUREZA_DESPESA_FINANCEIRA,
+            )
+        with patch(
+            "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+            return_value={},
+        ):
+            self.assertEqual(
+                classificar_despesa_plano("Devolução de Mercadorias"),
+                NF.NATUREZA_DESPESA_VARIAVEL,
+            )
 
 
 class EmprestimosCardTests(SimpleTestCase):

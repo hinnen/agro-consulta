@@ -139,6 +139,10 @@ def test_arquivos() -> None:
     check("html_ajuda_rec_cat", "Receita por categoria" in html)
     check("html_ajuda_caixa_filtro", "Saldo final" in html and "Juros empréstimo" in html)
     check("html_ajuda_desp_cat", "Despesas por categoria" in html and "card Despesas" in html)
+    check("html_ajuda_desp_cadastro", "cadastro oficial" in html)
+    check("util_cadastro_dre", (ROOT / "financeiro/services/plano_conta_dre_util.py").is_file())
+    check("classificar_usa_cadastro", "natureza_dre_por_cadastro" in _read("financeiro/services/resumo_operacional_mongo.py"))
+    check("desp_cat_nome_oficial", "nome_oficial_plano" in util)
     check("html_ajuda_cmp", "vs mês passado" in html and "média 90d" in html)
     check("js_sem_gauge_pe", '"rg-gauge"' not in js and "rg-gauge__ring" not in js)
     check("js_categorias", "Despesas por categoria" in js)
@@ -616,6 +620,57 @@ def test_js_syntax() -> None:
     check("node_check", r.returncode == 0, (r.stderr or r.stdout or "").strip()[:120])
 
 
+def test_cadastro_planos_dre() -> None:
+    print("== Cadastro oficial planos no DRE ==")
+    from financeiro.models import LancamentoFinanceiro as NF
+    from financeiro.services.dre_visual_util import despesas_categorias_dre_pg
+    from financeiro.services.resumo_operacional_mongo import classificar_despesa_plano
+
+    fake_mapa = {
+        "10 — outros": ("Outros (verificar)", "outra", "A conferir"),
+        "outros (verificar)": ("Outros (verificar)", "outra", "A conferir"),
+        "devolucao de mercadorias": ("Outros (verificar)", "outra", "A conferir"),
+        "juros de emprestimos": ("Juros de Empréstimos", "outra", "Empréstimos / financeiro"),
+        "aluguel": ("Aluguel", "fixa", "Ocupação"),
+    }
+    with patch(
+        "financeiro.services.plano_conta_dre_util._carregar_cadastro_dre",
+        return_value=fake_mapa,
+    ):
+        check(
+            "classificar_alias_outros",
+            classificar_despesa_plano("Devolução de Mercadorias") == NF.NATUREZA_DESPESA_FINANCEIRA,
+        )
+        check(
+            "classificar_juros_emp_nao_fin",
+            classificar_despesa_plano("Juros de Emprestimos") == NF.NATUREZA_EMPRESTIMO_AMORTIZACAO,
+        )
+        with patch(
+            "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+            return_value={
+                "ok": True,
+                "linhas": [
+                    {"plano": "10 — Outros", "despesa": 80.0, "receita": 0},
+                    {"plano": "Outros (verificar)", "despesa": 20.0, "receita": 0},
+                    {"plano": "Juros de Emprestimos", "despesa": 999.0, "receita": 0},
+                    {"plano": "Aluguel", "despesa": 10.0, "receita": 0},
+                ],
+            },
+        ):
+            out = despesas_categorias_dre_pg(
+                empresa_nome="Agro Mais Centro",
+                data_inicio=date(2026, 7, 1),
+                data_fim=date(2026, 7, 31),
+                por="competencia",
+                valor="bruto",
+            )
+    planos = [r["plano"] for r in out["top"]]
+    check("desp_cat_merge_oficial", "Outros (verificar)" in planos and "10 — Outros" not in planos)
+    check("desp_cat_merge_valor", next(r["valor"] for r in out["top"] if r["plano"] == "Outros (verificar)") == 100.0)
+    check("desp_cat_pula_juros_emp", "Juros de Empréstimos" not in planos)
+    check("desp_cat_total_cadastro", out["total"] == 110.0, str(out.get("total")))
+
+
 def test_pagina_local() -> None:
     print("== Pagina local (se runserver) ==")
     try:
@@ -661,6 +716,7 @@ def main() -> int:
     test_api_anexa_visual()
     test_math_cmv_e_fluxo()
     test_emprestimos_classifica()
+    test_cadastro_planos_dre()
     test_js_syntax()
     test_pagina_local()
     print(f"\n{len(oks)} OK · {len(fails)} FAIL")

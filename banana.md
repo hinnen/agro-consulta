@@ -625,7 +625,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA` + `DRE-VISUAL-POLISH`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + receita PDV por categoria + **PE barras modernas** + mini DRE + empréstimos). Cards de cima: **vs mês passado** e **vs média 90d** (valor + %; projetado nos mesmos dias do filtro). Despesas por categoria = **mesmo recorte do card Despesas**. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Juros empréstimo** → **Empréstimo** → **Saldo final** (= `geracao_caixa`). Indicadores permanece até 100%.
+- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA` + `DRE-VISUAL-POLISH` + `DRE-PLANOS-CADASTRO`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + receita PDV por categoria + **PE barras modernas** + mini DRE + empréstimos). Cards de cima: **vs mês passado** e **vs média 90d**. Despesas por categoria = **cadastro oficial** (grafia antiga → nome novo) · mesmo recorte do card Despesas. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Juros empréstimo** → **Empréstimo** → **Saldo final**. Indicadores permanece até 100%.
 
 ### 4.11 Caixa
 
@@ -1197,6 +1197,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — DRE usa cadastro oficial de planos (`DRE-PLANOS-CADASTRO`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **pronto envio** · teste (ainda não loja) |
+| **O quê** | DRE classifica e lista pelo **PlanoContaAgro** (alias → nome oficial + tipo/grupo). Título **não** é reescrito. Sem cadastro → planilha/heurística. |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · Indicadores HTML |
+
+### ✅ CHECKLIST ÚNICO — após loja v15.50
+
+> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-PLANOS-CADASTRO** | ⏳ pronto envio | não |
 
 ### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
