@@ -97,6 +97,7 @@ def test_arquivos() -> None:
 
     check("html_js", "agro_resumo_gerencial.js" in html)
     check("html_css", "agro_resumo_gerencial.css" in html)
+    check("html_asset_v", "agro_asset_v" in html)
     check("html_painel_visual", 'id="painel-visual"' in html)
     check("html_mais_numeros", 'id="rg-mais-numeros"' in html)
     check("html_sem_atalho_lanc", "lancamentos_financeiros" not in html)

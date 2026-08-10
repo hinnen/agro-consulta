@@ -13951,10 +13951,18 @@ def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
 @login_required(login_url="/admin/login/")
 def resumo_financeiro_gerencial_view(request):
     """DRE gerencial (Postgres + consolidação grupo) — leitura de snapshot agregado."""
+    from pathlib import Path
+
+    from django.conf import settings
+
     from financeiro.models import GrupoEmpresarial
 
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
     grupos = GrupoEmpresarial.objects.filter(ativo=True).order_by("nome")
+    try:
+        agro_asset_v = Path(settings.BASE_DIR / "VERSION").read_text(encoding="utf-8").strip()
+    except OSError:
+        agro_asset_v = "0"
     return render(
         request,
         "produtos/resumo_financeiro_gerencial.html",
@@ -13962,6 +13970,7 @@ def resumo_financeiro_gerencial_view(request):
             "empresas": empresas,
             "grupos": grupos,
             "financeiro_postgres": agro_financeiro_usa_postgres(),
+            "agro_asset_v": agro_asset_v,
         },
     )
 

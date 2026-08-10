@@ -36,12 +36,14 @@
 .rg-head {
   background: linear-gradient(90deg, rgba(234, 88, 12, 0.08) 0%, rgba(5, 150, 105, 0.07) 100%);
   border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  position: relative;
+  z-index: 2;
 }
 .rg-head__inner {
   width: 100%;
   max-width: none;
   margin: 0;
-  padding: 0.25rem 0.6rem;
+  padding: 0.25rem 2.35rem 0.25rem 0.6rem;
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-end;
@@ -94,6 +96,15 @@
   gap: 0.45rem;
   flex-shrink: 0;
   margin-left: 0.35rem;
+  position: relative;
+  z-index: 3;
+}
+#agro-resumo-gerencial-root .agro-scale-trigger--fab {
+  top: 0.28rem;
+  right: 0.28rem;
+}
+#agro-resumo-gerencial-root #agro-barra-estoque-wrap {
+  flex-shrink: 0;
 }
 .rg-head .rg-btn-ghost {
   min-height: 2rem;

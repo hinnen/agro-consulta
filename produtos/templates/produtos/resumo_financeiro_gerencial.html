@@ -8,7 +8,7 @@
   {% include "produtos/_head_perf_mpa.html" %}
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}">
+  <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}?v={{ agro_asset_v|default:'0' }}">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     /* Modal ajuda — mínimo; restante no CSS do painel */
@@ -187,6 +187,6 @@
   </div>
 
   {% include "produtos/_atalho_voltar_pdv.html" %}
-  <script src="{% static 'js/agro_resumo_gerencial.js' %}"></script>
+  <script src="{% static 'js/agro_resumo_gerencial.js' %}?v={{ agro_asset_v|default:'0' }}"></script>
 </body>
 </html>
