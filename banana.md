@@ -1202,7 +1202,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🔧 teste · loja ainda **v15.26** |
+| **Status** | ✅ teste **v15.37** · loja ainda **v15.26** |
 | **O quê** | BI `/` · card **Lucro Líquido** (Bruto + Pago) · **vencimento** · mesma conta do Resumo (PDV + CMV vendida) |
 | **Você** | Ctrl+F5 `/` · conferir os 2 valores vs Resumo gerencial (DATA=Vencimento · VALOR bruto e pago) |
 | **Migrate** | **NÃO** |
