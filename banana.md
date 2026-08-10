@@ -1218,14 +1218,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir PDV-RACOES-LISTA-UX para produção* + **99738595** |
 
-### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA`)
+### 📦 PACOTE PRONTO — DRE visual prévia (`DRE-VISUAL-PREVIA` · **v15.29**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
-| **O quê** | `/financeiro/resumo-gerencial/` virou prévia visual (fluxo Despesas→Receita→% lucro, PE, donut, despesas por categoria, mini DRE). **Indicadores · Financeiro gerencial fica intacto** até a nova tela estar 100%. Números completos no `<details>`. CMV vendida × paga igual. |
+| **O quê** | `/financeiro/resumo-gerencial/` — prévia visual (fluxo Despesas→Receita→% lucro, PE, donut, despesas por categoria, mini DRE). **Indicadores · Financeiro gerencial intacto**. CMV vendida × paga igual. Caixa não muda. |
 | **Você** | Ctrl+F5 Resumo gerencial → julho Centro · conferir visual · abrir Indicadores e ver que **não mudou** |
-| **Prova** | `tests_dre_visual` + `tests_receita_pdv_dre` **20/20** · verify visual **24/24** · verify RG **78/78** · `node --check` · `manage.py check` |
+| **Prova** | `tests_dre_visual` + `tests_receita_pdv_dre` **23/23** · verify visual **105/105** · verify RG **79/79** · `node --check` · `manage.py check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 
