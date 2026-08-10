@@ -1205,18 +1205,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
 > **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.  
-> **Teste:** **v15.58**
+> **Teste:** **v15.59**
 
 | # | Pacote | Teste | O quê | Migrate |
 | - | ------ | ----- | ----- | ------- |
 | 1 | **BI-TOPBAR-COMPACT** | v15.57 | BI `/` compacto: sem Gestão Estratégica · sem Orç. · Trava embaixo de Loja · F2 teclado/Menu | não |
-| 2 | **FIADO-RECIBO** | v15.58 | FL-019 recibo fiado 80 mm: pergunta no PDV + Reimprimir em `/fiado/` | não |
+| 2 | **FIADO-RECIBO** | v15.59 | FL-019 recibo fiado 80 mm: pergunta no PDV + Reimprimir em `/fiado/` | não |
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Prova** | BI-TOPBAR **31/31** · FIADO-RECIBO **79/79** (path + runtime + API + JS) · `manage.py check` 0 |
 | **Fora** | NFC-e baixa (FL-052) · vale crédito (FL-058) · PDV/caixa venda · Indicadores HTML |
-| **Você** | Ctrl+F5 local · badge **v15.58** · BI `/` · baixa fiado → recibo · Reimprimir na ficha |
+| **Você** | Ctrl+F5 local · badge **v15.59** · BI `/` · baixa fiado → recibo · Reimprimir na ficha |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (10/08 · loja v15.55)
 
@@ -1226,7 +1226,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **BI-TOPBAR-COMPACT** | ✅ **pronto para envio à produção** / teste **v15.57** | não |
-| 2 | **FIADO-RECIBO** | ✅ **pronto para envio à produção** / teste **v15.58** | não |
+| 2 | **FIADO-RECIBO** | ✅ **pronto para envio à produção** / teste **v15.59** | não |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
@@ -5387,7 +5387,7 @@ iews.py (compras enrich) |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · crédito → ver **FL-058 P0,2** |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
-| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **pronto envio** / teste **v15.58** · 80 mm |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **pronto envio** / teste **v15.59** · 80 mm |
 | **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega | 📋 **ainda aberto** |
 | **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | ✅ **código na loja** (`6af5cac`) — checklist mentia «teste» |
 | **P1,6** | **Zap #22** · **FL-024** | Cadastro cat/sub/marca só lista + PIN | ✅ **loja v10.57** — checklist mentia |
