@@ -150,6 +150,8 @@ def test_arquivos() -> None:
     check("css_mini", ".rg-mini" in css)
     check("css_16x9_full", "max-width: none" in css and "100dvh" in html)
     check("css_grid_wide", "rg-col--charts" in css and "rg-col--cat" in css)
+    check("css_board_shrink", "minmax(0, 1.2fr)" in css)
+    check("js_col_cat_wrap", 'class="rg-col--cat"' in js and "rg-card--cat" in js)
     check("js_col_charts", "rg-col--charts" in js)
 
     check("flag_cmv_default_false", "anexar_cmv_modos: bool = False" in resumo)

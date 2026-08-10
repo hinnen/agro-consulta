@@ -694,11 +694,11 @@
       '">' +
       brl(c.geracao_caixa) +
       "</b> <span>(não muda com CMV)</span></p></article></div>" +
-      '<article class="rg-card rg-col--cat"><h3>Despesas por categoria</h3>' +
+      '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
       '<div class="rg-cat-list">' +
       catHtml +
-      "</div></article>" +
+      "</div></article></div>" +
       '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
       (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005 ? "" : num(c.resultado_liquido_gerencial) > 0 ? " is-good" : " is-bad") +
       '"><h3>Mini DRE</h3><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
