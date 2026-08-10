@@ -537,3 +537,113 @@ def get_indicadores_gerencial_pg(
             "ref_dias": REF_DIAS_COMPARACAO,
         },
     }
+
+
+def _empresas_ids_para_deposito_bi(deposito: str | None) -> list[int]:
+    from base.models import Empresa
+    from financeiro.services.receita_pdv_util import deposito_pdv_por_empresa_nome
+
+    dep = (deposito or "").strip().lower() or None
+    out: list[int] = []
+    for e in Empresa.objects.filter(ativo=True).only("id", "nome_fantasia"):
+        mapped = deposito_pdv_por_empresa_nome(e.nome_fantasia)
+        if dep is None:
+            if mapped in ("centro", "vila"):
+                out.append(int(e.pk))
+        elif mapped == dep:
+            out.append(int(e.pk))
+    return out
+
+
+def _core_vencimento_valor(
+    empresa_ids: list[int],
+    data_inicio: date,
+    data_fim: date,
+    valor: str,
+) -> dict[str, Any] | None:
+    from financeiro.services.receita_pdv_util import somar_resumos_dre_empresas
+
+    subs: list[dict[str, Any]] = []
+    for eid in empresa_ids:
+        core = consolidar_empresa_pg(
+            empresa_id=eid,
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+            por="vencimento",
+            valor=valor,
+            filtro_contas="resultado",
+            usar_receita_pdv=True,
+        )
+        if isinstance(core, dict) and not core.get("erro"):
+            subs.append(core)
+    if not subs:
+        return None
+    if len(subs) == 1:
+        return subs[0]
+    out = somar_resumos_dre_empresas(subs)
+    out["fonte"] = "postgres"
+    return out
+
+
+def _liquido_display(core: dict[str, Any]) -> Decimal:
+    from financeiro.services.receita_pdv_util import _dec
+
+    return _dec(core.get("resultado_liquido_gerencial")) + _dec(
+        core.get("receita_nao_operacional")
+    )
+
+
+def lucro_liquido_vencimento_bruto_pago(
+    data_inicio: date,
+    data_fim: date,
+    *,
+    deposito: str | None = None,
+) -> dict[str, Any]:
+    """Lucro líquido por vencimento: bruto do título e já pago/recebido.
+
+    Mesma conta do Indicadores/Resumo: receita PDV + CMV vendida + receita não op.
+    ``deposito``: centro | vila | None (as duas lojas).
+    """
+    from financeiro.services.receita_pdv_util import _dec, recalc_resumo_cmv
+
+    z = Decimal("0")
+    vazio = {
+        "ok": False,
+        "bruto": z,
+        "pago": z,
+        "por": "vencimento",
+        "cmv_modo": "paga",
+    }
+    try:
+        eids = _empresas_ids_para_deposito_bi(deposito)
+    except Exception:
+        return dict(vazio)
+    if not eids:
+        return dict(vazio)
+
+    core_bruto = _core_vencimento_valor(eids, data_inicio, data_fim, "bruto")
+    core_pago = _core_vencimento_valor(eids, data_inicio, data_fim, "realizado")
+    if not core_bruto or not core_pago:
+        return dict(vazio)
+
+    dias = max((data_fim - data_inicio).days + 1, 1)
+    cmv_modo = "paga"
+    try:
+        from produtos.relatorios_vendas_util import custo_mercadoria_vendida
+
+        cmv_v = custo_mercadoria_vendida(data_inicio, data_fim, deposito=deposito)
+    except Exception:
+        cmv_v = {"ok": False, "total": z}
+    if cmv_v.get("ok"):
+        cmv_val = _dec(cmv_v.get("total"))
+        core_bruto = recalc_resumo_cmv(core_bruto, cmv_val, dias_periodo=dias)
+        core_pago = recalc_resumo_cmv(core_pago, cmv_val, dias_periodo=dias)
+        cmv_modo = "vendida"
+
+    return {
+        "ok": True,
+        "bruto": _liquido_display(core_bruto),
+        "pago": _liquido_display(core_pago),
+        "por": "vencimento",
+        "cmv_modo": cmv_modo,
+    }

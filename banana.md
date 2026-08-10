@@ -395,6 +395,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Dashboard gerencial SisVale BI; atalhos clÃ¡ssicos em `/atalhos/`.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
+- Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
@@ -1196,6 +1197,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🔧 BI — card Lucro Líquido no lugar de Novos Clientes (09/08 · teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🔧 teste · loja ainda **v15.26** |
+| **O quê** | BI `/` · card **Lucro Líquido** (Bruto + Pago) · **vencimento** · mesma conta do Resumo (PDV + CMV vendida) |
+| **Você** | Ctrl+F5 `/` · conferir os 2 valores vs Resumo gerencial (DATA=Vencimento · VALOR bruto e pago) |
+| **Migrate** | **NÃO** |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (09/08 · após loja v15.26)
 
