@@ -397,6 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
+- **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
@@ -1199,6 +1200,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### WIP — topo BI compacto (`BI-TOPBAR-COMPACT`)
+
+> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ainda **não** subiu loja |
+| **O quê** | BI `/`: tira Gestão Estratégica + botão Orç. · Trava embaixo da Loja. F2/Menu intactos. PDV/caixa intactos. |
+| **Migrate** | **NÃO** |
 
 ### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
 
