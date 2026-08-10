@@ -438,6 +438,74 @@
       .join("");
   }
 
+  function deltaRel(atual, ref) {
+    if (ref == null || !isFinite(ref) || Math.abs(ref) < 0.005) return null;
+    return ((num(atual) - num(ref)) / Math.abs(num(ref))) * 100;
+  }
+  function deltaPp(atual, ref) {
+    if (ref == null || !isFinite(ref)) return null;
+    return num(atual) - num(ref);
+  }
+  function fmtDelta(d, pp) {
+    if (d == null || !isFinite(d)) return "—";
+    if (Math.abs(d) < 0.05) return pp ? "0 pp" : "0%";
+    var sign = d > 0 ? "+" : "−";
+    var abs = Math.abs(d);
+    if (pp) return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " pp";
+    return sign + abs.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "%";
+  }
+  function cmpTone(d, invert) {
+    if (d == null || !isFinite(d) || Math.abs(d) < 0.05) return "";
+    var good = d > 0;
+    if (invert) good = !good;
+    return good ? " is-good" : " is-bad";
+  }
+  function refKpis(visual, c) {
+    var pack = visual && visual.comparativo;
+    if (!pack || !pack.ok) return null;
+    function one(s) {
+      if (!s) return null;
+      var k = num(s.k) || 1;
+      var modo = (c && c.cmv_modo) || cmvModoSalvo();
+      if (modo === "vendida" && s.ok_vendida === false) modo = "paga";
+      var cm = (s.cmv_modos && s.cmv_modos[modo]) || {};
+      return {
+        desp: num(s.despesas) * k,
+        rec: num(s.receita) * k,
+        cmv: num(cm.cmv != null ? cm.cmv : s.cmv) * k,
+        margem: num(cm.margem_bruta_pct != null ? cm.margem_bruta_pct : s.margem_bruta_pct),
+        markup: num(cm.markup_pct != null ? cm.markup_pct : s.markup_pct),
+      };
+    }
+    return { mes: one(pack.mes), d90: one(pack.d90) };
+  }
+  function renderCmpRows(atual, mesVal, d90Val, invert, asPct) {
+    if (mesVal == null && d90Val == null) return "";
+    function row(label, ref) {
+      if (ref == null) {
+        return '<div class="rg-cmp__row"><i>' + label + "</i><b>—</b><em>—</em></div>";
+      }
+      var d = asPct ? deltaPp(atual, ref) : deltaRel(atual, ref);
+      return (
+        '<div class="rg-cmp__row' +
+        cmpTone(d, invert) +
+        '"><i>' +
+        label +
+        "</i><b>" +
+        (asPct ? pctJa(ref) : brl(ref)) +
+        "</b><em>" +
+        fmtDelta(d, asPct) +
+        "</em></div>"
+      );
+    }
+    return (
+      '<div class="rg-cmp">' +
+      row("vs mês passado", mesVal) +
+      row("vs média 90d", d90Val) +
+      "</div>"
+    );
+  }
+
   function renderVisualBoard(c, visual, modo) {
     var df = num(c.despesas_fixas);
     var dv = num(c.despesas_variaveis);
@@ -463,6 +531,14 @@
     var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
     var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
     var caixaPeriodo = num(c.geracao_caixa);
+    var refs = modo === "grupo" ? null : refKpis(visual, c);
+    var rMes = refs && refs.mes;
+    var r90 = refs && refs.d90;
+    var cmpDesp = renderCmpRows(desp, rMes && rMes.desp, r90 && r90.desp, true, false);
+    var cmpRec = renderCmpRows(rec, rMes && rMes.rec, r90 && r90.rec, false, false);
+    var cmpMarg = renderCmpRows(margem, rMes && rMes.margem, r90 && r90.margem, false, true);
+    var cmpCmv = renderCmpRows(cmv, rMes && rMes.cmv, r90 && r90.cmv, true, false);
+    var cmpMk = renderCmpRows(markup, rMes && rMes.markup, r90 && r90.markup, false, true);
     var catPack =
       visual && visual.despesas_categorias && visual.despesas_categorias.ok
         ? visual.despesas_categorias
@@ -527,7 +603,7 @@
     return (
       '<div class="rg-board">' +
       '<div class="rg-flow">' +
-      '<article class="rg-flow__kpi rg-flow__kpi--desp"><span>Despesas</span><strong>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"><div class="rg-flow__kpi-main"><span>Despesas</span><strong>' +
       brl(desp) +
       "</strong><small>fixas " +
       brl(df) +
@@ -535,30 +611,40 @@
       brl(dv) +
       " · fin " +
       brl(dfin) +
-      "</small></article>" +
+      "</small></div>" +
+      cmpDesp +
+      "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--rec' +
       recCls +
-      '"><span>Receita</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><span>Receita</span><strong>' +
       brl(rec) +
       "</strong><small>" +
       (c.receita_fonte === "pdv" ? "Vendas do caixa (PDV)" : "Lançamentos") +
-      "</small></article>" +
+      "</small></div>" +
+      cmpRec +
+      "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
       lucroCls +
-      '"><span>% Lucro</span><strong>' +
+      '"><div class="rg-flow__kpi-main"><span>% Lucro</span><strong>' +
       (margem != null ? pctJa(margem) : "—") +
-      "</strong><small>margem bruta</small></article>" +
-      '<article class="rg-flow__side"><div><span>CMV</span><strong class="' +
+      "</strong><small>margem bruta</small></div>" +
+      cmpMarg +
+      "</article>" +
+      '<article class="rg-flow__side"><div class="rg-flow__side-row"><div><span>CMV</span><strong class="' +
       (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
       brl(cmv) +
-      '</strong></div><div><span>Markup</span><strong class="' +
+      "</strong></div>" +
+      cmpCmv +
+      '</div><div class="rg-flow__side-row"><div><span>Markup</span><strong class="' +
       (markup == null ? "" : valCls(markup)) +
       '">' +
       (markup != null ? pctJa(markup) : "—") +
-      "</strong></div></article></div>" +
+      "</strong></div>" +
+      cmpMk +
+      "</div></article></div>" +
       '<div class="rg-col--charts"><div class="rg-charts-donuts"><article class="rg-card"><h3>Composição das despesas</h3><div class="rg-donut-row"><div class="rg-donut" style="--p1:' +
       p1.toFixed(1) +
       "%;--p2:" +

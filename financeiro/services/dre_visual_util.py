@@ -1,6 +1,7 @@
 """Pacote leve de despesas por categoria para a prévia visual do DRE."""
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 
@@ -84,6 +85,119 @@ def despesas_categorias_dre_pg(
     }
 
 
+def janela_mes_passado(data_inicio):
+    """Mês calendário anterior ao início do filtro."""
+    primeiro = data_inicio.replace(day=1)
+    prev_fim = primeiro - timedelta(days=1)
+    return prev_fim.replace(day=1), prev_fim
+
+
+def janela_90d_antes(data_inicio):
+    """90 dias corridos terminando no dia anterior ao filtro."""
+    fim = data_inicio - timedelta(days=1)
+    ini = fim - timedelta(days=89)
+    return ini, fim
+
+
+def _dias_periodo(ini, fim) -> int:
+    try:
+        return max(int((fim - ini).days) + 1, 1)
+    except Exception:
+        return 1
+
+
+def _fnum(x) -> float:
+    try:
+        return float(x or 0)
+    except Exception:
+        return 0.0
+
+
+def _snapshot_kpis_dre(core: dict[str, Any], *, dias_ref: int, dias_atual: int) -> dict[str, Any]:
+    df = _fnum(core.get("despesas_fixas"))
+    dv = _fnum(core.get("despesas_variaveis"))
+    dfin = _fnum(core.get("despesas_financeiras"))
+    rec = _fnum(core.get("receita_operacional"))
+    cmv = _fnum(core.get("cmv"))
+    lucro = rec - cmv
+    margem = _fnum(core.get("margem_bruta_pct"))
+    if abs(margem) < 1e-9 and rec > 0.005:
+        margem = (lucro / rec) * 100.0
+    markup = _fnum(core.get("markup_pct"))
+    if abs(markup) < 1e-9 and cmv > 0.005:
+        markup = ((rec / cmv) - 1.0) * 100.0
+    modos = core.get("cmv_modos") if isinstance(core.get("cmv_modos"), dict) else {}
+    slim: dict[str, Any] = {}
+    for key in ("vendida", "paga"):
+        snap = modos.get(key)
+        if isinstance(snap, dict):
+            slim[key] = {
+                "cmv": round(_fnum(snap.get("cmv")), 2),
+                "margem_bruta_pct": round(_fnum(snap.get("margem_bruta_pct")), 2),
+                "markup_pct": round(_fnum(snap.get("markup_pct")), 2),
+            }
+    k = float(dias_atual) / float(max(int(dias_ref or 1), 1))
+    return {
+        "despesas": round(df + dv + dfin, 2),
+        "receita": round(rec, 2),
+        "cmv": round(cmv, 2),
+        "margem_bruta_pct": round(margem, 2),
+        "markup_pct": round(markup, 2),
+        "cmv_modos": slim,
+        "ok_vendida": bool(modos.get("ok_vendida")),
+        "dias": int(dias_ref),
+        "dias_atual": int(dias_atual),
+        "k": round(k, 6),
+    }
+
+
+def comparativo_kpis_dre_pg(
+    *,
+    empresa_id: int,
+    data_inicio,
+    data_fim,
+    por: str = "competencia",
+    valor: str = "bruto",
+) -> dict[str, Any]:
+    """KPIs do mês passado e dos 90 dias anteriores, para projetar no tamanho do filtro."""
+    from financeiro.services.resumo_operacional_pg import consolidar_empresa_pg
+
+    dias_atual = _dias_periodo(data_inicio, data_fim)
+    mes_ini, mes_fim = janela_mes_passado(data_inicio)
+    d90_ini, d90_fim = janela_90d_antes(data_inicio)
+
+    def _load(ini, fim) -> dict[str, Any] | None:
+        try:
+            core = consolidar_empresa_pg(
+                empresa_id=empresa_id,
+                data_inicio=ini,
+                data_fim=fim,
+                por=por or "competencia",
+                valor=valor or "bruto",
+                anexar_cmv_modos=True,
+            )
+        except Exception:
+            return None
+        if not isinstance(core, dict) or core.get("erro"):
+            return None
+        dias_ref = _dias_periodo(ini, fim)
+        snap = _snapshot_kpis_dre(core, dias_ref=dias_ref, dias_atual=dias_atual)
+        snap["de"] = ini.isoformat()
+        snap["ate"] = fim.isoformat()
+        return snap
+
+    mes = _load(mes_ini, mes_fim)
+    d90 = _load(d90_ini, d90_fim)
+    if not mes and not d90:
+        return {"ok": False}
+    return {
+        "ok": True,
+        "mes": mes,
+        "d90": d90,
+        "dias_atual": dias_atual,
+    }
+
+
 def montar_dre_visual(
     *,
     empresa_id: int,
@@ -122,6 +236,7 @@ def montar_dre_visual(
     emprestimos: dict[str, Any] = {"ok": False}
     receita_categorias: dict[str, Any] = {"ok": False}
     despesas_categorias: dict[str, Any] = {"ok": False}
+    comparativo: dict[str, Any] = {"ok": False}
     if data_inicio and data_fim:
         from financeiro.services.receita_pdv_util import (
             deposito_pdv_por_empresa_id,
@@ -161,6 +276,16 @@ def montar_dre_visual(
                 )
             except Exception:
                 despesas_categorias = {"ok": False}
+        try:
+            comparativo = comparativo_kpis_dre_pg(
+                empresa_id=empresa_id,
+                data_inicio=data_inicio,
+                data_fim=data_fim,
+                por=por or "competencia",
+                valor=valor or "bruto",
+            )
+        except Exception:
+            comparativo = {"ok": False}
     return {
         "ok": True,
         "variacao": {
@@ -173,4 +298,5 @@ def montar_dre_visual(
         "emprestimos": emprestimos,
         "receita_categorias": receita_categorias,
         "despesas_categorias": despesas_categorias,
+        "comparativo": comparativo,
     }

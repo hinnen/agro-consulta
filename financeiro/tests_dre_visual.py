@@ -150,6 +150,23 @@ class MontarDreVisualTests(SimpleTestCase):
                     ],
                 },
             ),
+            patch(
+                "financeiro.services.resumo_operacional_pg.consolidar_empresa_pg",
+                return_value={
+                    "receita_operacional": 90000,
+                    "cmv": 60000,
+                    "despesas_fixas": 10000,
+                    "despesas_variaveis": 2000,
+                    "despesas_financeiras": 1000,
+                    "margem_bruta_pct": 33.33,
+                    "markup_pct": 50.0,
+                    "cmv_modos": {
+                        "ok_vendida": True,
+                        "vendida": {"cmv": 60000, "margem_bruta_pct": 33.33, "markup_pct": 50.0},
+                        "paga": {"cmv": 55000, "margem_bruta_pct": 38.89, "markup_pct": 63.64},
+                    },
+                },
+            ),
         ):
             out = montar_dre_visual(
                 empresa_id=1,
@@ -168,6 +185,18 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertTrue(out["despesas_categorias"]["ok"])
         self.assertAlmostEqual(out["despesas_categorias"]["total"], 24348.19, places=2)
         self.assertEqual(out["despesas_categorias"]["grupos"][0]["key"], "fixa")
+        self.assertTrue(out["comparativo"]["ok"])
+        self.assertEqual(out["comparativo"]["mes"]["despesas"], 13000.0)
+        self.assertEqual(out["comparativo"]["d90"]["receita"], 90000.0)
+
+    def test_janelas_comparativo(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import janela_90d_antes, janela_mes_passado
+
+        self.assertEqual(janela_mes_passado(date(2026, 7, 1)), (date(2026, 6, 1), date(2026, 6, 30)))
+        self.assertEqual(janela_mes_passado(date(2026, 7, 12)), (date(2026, 6, 1), date(2026, 6, 30)))
+        self.assertEqual(janela_90d_antes(date(2026, 7, 1)), (date(2026, 4, 2), date(2026, 6, 30)))
 
     def test_despesas_categorias_so_periodo(self):
         from datetime import date

@@ -82,6 +82,10 @@ def test_arquivos() -> None:
     check("fn_gastos", "def gastos_variacao_pg" in gastos)
     check("fn_desp_cat", "def despesas_categorias_dre_pg" in util)
     check("montar_chama_desp_cat", "despesas_categorias_dre_pg" in util)
+    check("fn_comparativo", "def comparativo_kpis_dre_pg" in util)
+    check("montar_chama_cmp", "comparativo_kpis_dre_pg" in util)
+    check("fn_janela_mes", "def janela_mes_passado" in util)
+    check("fn_janela_90", "def janela_90d_antes" in util)
     check("fn_emprestimos", "def resumo_emprestimos_pg" in emp_util)
     check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
     check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
@@ -135,6 +139,7 @@ def test_arquivos() -> None:
     check("html_ajuda_rec_cat", "Receita por categoria" in html)
     check("html_ajuda_caixa_filtro", "Saldo final" in html and "Juros empréstimo" in html)
     check("html_ajuda_desp_cat", "Despesas por categoria" in html and "card Despesas" in html)
+    check("html_ajuda_cmp", "vs mês passado" in html and "média 90d" in html)
     check("js_sem_gauge_pe", '"rg-gauge"' not in js and "rg-gauge__ring" not in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
@@ -143,6 +148,9 @@ def test_arquivos() -> None:
     check("css_emp", ".rg-card--emp" in css)
     check("js_caixa_periodo", "geracao_caixa" in js and "com empréstimos" in js)
     check("js_desp_cat", "despesas_categorias" in js)
+    check("js_cmp_rows", "vs mês passado" in js and "vs média 90d" in js)
+    check("js_cmp_ref", "function refKpis" in js and "visual.comparativo" in js)
+    check("css_cmp", ".rg-cmp" in css and ".rg-flow__side-row" in css)
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_pe_hint", "faturamento_equilibrio" in js)
     check("js_spark", "faturamento_pdv" in js)
@@ -298,6 +306,23 @@ def test_montar_e_json() -> None:
                 ],
             },
         ),
+        patch(
+            "financeiro.services.resumo_operacional_pg.consolidar_empresa_pg",
+            return_value={
+                "receita_operacional": 80000,
+                "cmv": 50000,
+                "despesas_fixas": 8000,
+                "despesas_variaveis": 1000,
+                "despesas_financeiras": 500,
+                "margem_bruta_pct": 37.5,
+                "markup_pct": 60.0,
+                "cmv_modos": {
+                    "ok_vendida": True,
+                    "vendida": {"cmv": 50000, "margem_bruta_pct": 37.5, "markup_pct": 60.0},
+                    "paga": {"cmv": 48000, "margem_bruta_pct": 40.0, "markup_pct": 66.67},
+                },
+            },
+        ),
     ):
         emp_out = montar_dre_visual(
             empresa_id=3,
@@ -314,6 +339,8 @@ def test_montar_e_json() -> None:
     check("montar_rec_cat_nome", emp_out["receita_categorias"]["fatias"][0]["nome"] == "Rações")
     check("montar_desp_cat_ok", emp_out.get("despesas_categorias", {}).get("ok") is True)
     check("montar_desp_cat_total", emp_out["despesas_categorias"]["total"] == 60.0, str(emp_out.get("despesas_categorias")))
+    check("montar_cmp_ok", emp_out.get("comparativo", {}).get("ok") is True)
+    check("montar_cmp_mes", emp_out["comparativo"]["mes"]["despesas"] == 9500.0, str(emp_out.get("comparativo")))
 
 
 def test_serializer() -> None:
