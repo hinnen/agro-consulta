@@ -948,6 +948,98 @@
   min-height: 5.5rem;
   display: block;
 }
+.rg-pe-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+}
+.rg-pe-modern__status {
+  align-self: flex-start;
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #e2e8f0;
+  color: #334155;
+}
+.rg-pe-modern.is-good .rg-pe-modern__status {
+  background: var(--rg-good-bg, #d1fae5);
+  color: var(--rg-good, #065f46);
+}
+.rg-pe-modern.is-bad .rg-pe-modern__status {
+  background: var(--rg-bad-bg, #fee2e2);
+  color: var(--rg-bad, #be123c);
+}
+.rg-pe-modern__nums {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+.rg-pe-modern__nums span {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.rg-pe-modern__nums strong {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+.rg-pe-modern__row {
+  display: grid;
+  grid-template-columns: 4.2rem 1fr;
+  gap: 0.4rem;
+  align-items: center;
+}
+.rg-pe-modern__row i {
+  font-style: normal;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.rg-pe-modern__track {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.rg-pe-modern__fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  min-width: 0.2rem;
+}
+.rg-pe-modern__fill--rec { background: #059669; }
+.rg-pe-modern__fill--pe { background: #334155; }
+.rg-pe-modern__meter {
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  overflow: hidden;
+}
+.rg-pe-modern__meter span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #0f172a;
+}
+.rg-pe-modern.is-good .rg-pe-modern__meter span { background: #059669; }
+.rg-pe-modern.is-bad .rg-pe-modern__meter span { background: #e11d48; }
+.rg-pe-modern__delta {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+}
 .rg-card--pe {
   flex: 1 1 auto;
   display: flex;
@@ -986,6 +1078,7 @@
 }
 .rg-gsum--fixa { background: var(--rg-cost-bg); }
 .rg-gsum--variavel { background: var(--rg-warn-bg); }
+.rg-gsum--financeira { background: #e2e8f0; }
 .rg-gsum--outra { background: #f1f5f9; }
 .rg-cat { margin-bottom: 0.45rem; }
 .rg-cat__meta {

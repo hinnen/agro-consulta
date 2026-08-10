@@ -80,6 +80,8 @@ def test_arquivos() -> None:
     check("view_template_resumo", "resumo_financeiro_gerencial.html" in prod_views)
     check("fn_montar", "def montar_dre_visual" in util)
     check("fn_gastos", "def gastos_variacao_pg" in gastos)
+    check("fn_desp_cat", "def despesas_categorias_dre_pg" in util)
+    check("montar_chama_desp_cat", "despesas_categorias_dre_pg" in util)
     check("fn_emprestimos", "def resumo_emprestimos_pg" in emp_util)
     check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
     check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
@@ -131,17 +133,22 @@ def test_arquivos() -> None:
     check("js_receita_cat", "Receita por categoria" in js and "donutReceitaCategorias" in js)
     check("css_donuts_row", ".rg-charts-donuts" in css)
     check("html_ajuda_rec_cat", "Receita por categoria" in html)
+    check("html_ajuda_caixa_filtro", "Caixa do período" in html and "sem empréstimos" in html)
+    check("html_ajuda_desp_cat", "Despesas por categoria" in html and "card Despesas" in html)
     check("js_sem_gauge_pe", '"rg-gauge"' not in js and "rg-gauge__ring" not in js)
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
     check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
     check("css_emp", ".rg-card--emp" in css)
-    check("js_caixa_nao_muda", "não muda com CMV" in js)
+    check("js_caixa_periodo", "a partir do filtro" in js and "sem empréstimos" in js)
+    check("js_desp_cat", "despesas_categorias" in js)
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_pe_hint", "faturamento_equilibrio" in js)
     check("js_spark", "faturamento_pdv" in js)
     check("js_pe_chart", "function peChartSvg" in js and "Ponto de equilíbrio" in js)
+    check("js_pe_modern", "rg-pe-modern" in js and "Acima do equilíbrio" in js)
     check("css_pe_chart", ".rg-pe-chart" in css)
+    check("css_pe_modern", ".rg-pe-modern" in css)
     check("js_chip_click", 'querySelectorAll("[data-dre-cmv]")' in js)
     check("js_default_vendida", 'return "vendida"' in js)
 
@@ -280,6 +287,16 @@ def test_montar_e_json() -> None:
                 "fatias": [{"nome": "Rações", "valor": 90.0, "pct": 100.0}],
             },
         ),
+        patch(
+            "produtos.lancamentos_financeiro_pg_analytics_util.dre_resumo_simples_pg",
+            return_value={
+                "ok": True,
+                "linhas": [
+                    {"plano": "Aluguel", "despesa": 50.0, "receita": 0},
+                    {"plano": "IOF", "despesa": 10.0, "receita": 0},
+                ],
+            },
+        ),
     ):
         emp_out = montar_dre_visual(
             empresa_id=3,
@@ -294,6 +311,8 @@ def test_montar_e_json() -> None:
     check("montar_emp_valor_arg", mock_e.call_args.kwargs.get("valor") == "bruto")
     check("montar_rec_cat_ok", emp_out.get("receita_categorias", {}).get("ok") is True)
     check("montar_rec_cat_nome", emp_out["receita_categorias"]["fatias"][0]["nome"] == "Rações")
+    check("montar_desp_cat_ok", emp_out.get("despesas_categorias", {}).get("ok") is True)
+    check("montar_desp_cat_total", emp_out["despesas_categorias"]["total"] == 60.0, str(emp_out.get("despesas_categorias")))
 
 
 def test_serializer() -> None:
@@ -426,6 +445,8 @@ def test_math_cmv_e_fluxo() -> None:
     check("lucro_vendida", snap_v["lucro_bruto"] == rec - cmv_vend, str(snap_v["lucro_bruto"]))
     check("lucro_paga", snap_p["lucro_bruto"] == rec - cmv_paga, str(snap_p["lucro_bruto"]))
     check("caixa_recalc", snap_v["geracao_caixa"] == caixa)
+    caixa_visual = snap_v["resultado_liquido_gerencial"]
+    check("caixa_visual_liq", caixa_visual == rec - cmv_vend - df - dv - dfin, str(caixa_visual))
     desp = df + dv + dfin
     check("desp_soma", desp == Decimal("24348.19"), str(desp))
     margem = (snap_v["lucro_bruto"] / rec) * Decimal("100")

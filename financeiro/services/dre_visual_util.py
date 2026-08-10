@@ -4,6 +4,86 @@ from __future__ import annotations
 from typing import Any
 
 
+def _grupo_despesa_dre(plano: str) -> str | None:
+    from financeiro.models import LancamentoFinanceiro as NF
+    from financeiro.services.resumo_operacional_mongo import classificar_despesa_plano
+
+    nat = classificar_despesa_plano(plano or "")
+    if nat == NF.NATUREZA_DESPESA_FIXA:
+        return "fixa"
+    if nat == NF.NATUREZA_DESPESA_VARIAVEL:
+        return "variavel"
+    if nat == NF.NATUREZA_DESPESA_FINANCEIRA:
+        return "financeira"
+    return None
+
+
+def despesas_categorias_dre_pg(
+    *,
+    empresa_nome: str,
+    data_inicio,
+    data_fim,
+    por: str = "competencia",
+    valor: str = "bruto",
+) -> dict[str, Any]:
+    """Despesas por plano no mesmo recorte do DRE (filtro + empresa + valor)."""
+    from django.conf import settings
+
+    from produtos.lancamentos_financeiro_pg_analytics_util import dre_resumo_simples_pg
+
+    extra = getattr(settings, "DRE_RESULTADO_EXCLUIR_REGEX_EXTRA", "") or ""
+    raw = dre_resumo_simples_pg(
+        data_de=data_inicio,
+        data_ate=data_fim,
+        por=por or "competencia",
+        valor=valor or "bruto",
+        filtro_contas="resultado",
+        regex_excluir_extra=extra or None,
+        empresa=empresa_nome,
+    )
+    if not raw.get("ok"):
+        return {
+            "ok": False,
+            "erro": raw.get("erro") or "falha",
+            "top": [],
+            "grupos": [],
+            "total": 0.0,
+        }
+    grupos = {
+        "fixa": {"key": "fixa", "label": "Despesas fixas", "total": 0.0},
+        "variavel": {"key": "variavel", "label": "Despesas variáveis", "total": 0.0},
+        "financeira": {"key": "financeira", "label": "Despesas financeiras", "total": 0.0},
+    }
+    linhas: list[dict[str, Any]] = []
+    for row in raw.get("linhas") or []:
+        des = float(row.get("despesa") or 0)
+        if des <= 0.005:
+            continue
+        gkey = _grupo_despesa_dre(str(row.get("plano") or ""))
+        if not gkey:
+            continue
+        grupos[gkey]["total"] += des
+        linhas.append(
+            {
+                "plano": str(row.get("plano") or ""),
+                "valor": round(des, 2),
+                "ultimo": round(des, 2),
+                "grupo": gkey,
+            }
+        )
+    linhas.sort(key=lambda x: -float(x["valor"]))
+    for g in grupos.values():
+        g["total"] = round(float(g["total"]), 2)
+        g["ultimo"] = g["total"]
+    total = round(sum(g["total"] for g in grupos.values()), 2)
+    return {
+        "ok": True,
+        "top": linhas[:12],
+        "grupos": [grupos["fixa"], grupos["variavel"], grupos["financeira"]],
+        "total": total,
+    }
+
+
 def montar_dre_visual(
     *,
     empresa_id: int,
@@ -41,6 +121,7 @@ def montar_dre_visual(
         )
     emprestimos: dict[str, Any] = {"ok": False}
     receita_categorias: dict[str, Any] = {"ok": False}
+    despesas_categorias: dict[str, Any] = {"ok": False}
     if data_inicio and data_fim:
         from financeiro.services.receita_pdv_util import (
             deposito_pdv_por_empresa_id,
@@ -70,6 +151,16 @@ def montar_dre_visual(
                 )
             except Exception:
                 emprestimos = {"ok": False}
+            try:
+                despesas_categorias = despesas_categorias_dre_pg(
+                    empresa_nome=empresa_nome,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    por=por or "competencia",
+                    valor=valor or "bruto",
+                )
+            except Exception:
+                despesas_categorias = {"ok": False}
     return {
         "ok": True,
         "variacao": {
@@ -81,4 +172,5 @@ def montar_dre_visual(
         },
         "emprestimos": emprestimos,
         "receita_categorias": receita_categorias,
+        "despesas_categorias": despesas_categorias,
     }

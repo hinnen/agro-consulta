@@ -625,7 +625,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + **receita PDV por categoria de produto** + PE linha + mini DRE + empréstimos). Sem círculo de PE. Cores bom/ruim. Indicadores permanece até 100%. Empréstimos: devido/pago/juros = **filtro da tela**; emprestado = **sempre competência**.
+- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA` + `DRE-VISUAL-POLISH`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + receita PDV por categoria + **PE barras modernas** + mini DRE + empréstimos). Despesas por categoria = **mesmo recorte do card Despesas**. Caixa do período = **líquido a partir do filtro** (sem empréstimos). Sem círculo de PE. Indicadores permanece até 100%. Empréstimos: devido/pago/juros = **filtro da tela**; emprestado = **sempre competência**.
 
 ### 4.11 Caixa
 
@@ -1197,6 +1197,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — DRE visual PE + categoria + caixa (`DRE-VISUAL-POLISH`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 📦 **pronto envio** · só `teste` (loja ainda **v15.46**) |
+| **O quê** | PE barras modernas · Despesas por categoria = mesmo recorte do card Despesas (não mês corrente) · Caixa do período = líquido a partir do filtro (sem empréstimos; jul/Centro ~R$ 9.091) |
+| **Você** | Ctrl+F5 DRE · julho Centro · Fixas/Var/Fin da lista ≈ card Despesas · Caixa ≈ Líquido · PE novo |
+| **Prova** | tests DRE+CMV **28/28** · verify visual **167/167** |
+| **Migrate** | **NÃO** |
+| **Fora** | Indicadores · API `geracao_caixa` intacta |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção
+
+> **Loja hoje:** ✅ **Live v15.46** · `producao` @ **9b212b0**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Produção só frase+senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-VISUAL-POLISH** | 📦 pronto envio | não |
 
 ### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
 
