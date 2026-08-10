@@ -462,7 +462,7 @@
     var recCls = rec > 0.005 ? "" : " is-muted";
     var lucroCls = margem == null || Math.abs(margem) < 0.05 ? "" : margem > 0 ? " is-good" : " is-bad";
     var peCardCls = !pe ? "" : peOk ? " is-good" : " is-bad";
-    var caixaPeriodo = num(c.resultado_liquido_gerencial);
+    var caixaPeriodo = num(c.geracao_caixa);
     var catPack =
       visual && visual.despesas_categorias && visual.despesas_categorias.ok
         ? visual.despesas_categorias
@@ -497,6 +497,10 @@
       .join("");
     var emp = (visual && visual.emprestimos) || {};
     var empOk = emp && emp.ok;
+    var jurosEmp = empOk ? num(emp.juros) : 0;
+    var empPago = empOk
+      ? num(emp.valor_pago)
+      : Math.max(0, num(c.amortizacao_emprestimos) - jurosEmp);
     var empHtml =
       '<article class="rg-card rg-card--emp"><h3>Empréstimos</h3><dl class="rg-mini">' +
       "<div><dt>Valor devido</dt><dd class=\"" +
@@ -579,7 +583,7 @@
       valCls(caixaPeriodo) +
       '">' +
       brl(caixaPeriodo) +
-      "</b> <span>(a partir do filtro · sem empréstimos)</span></p></article></div>" +
+      "</b> <span>(com empréstimos)</span></p></article></div>" +
       '<div class="rg-col--cat"><article class="rg-card rg-card--cat"><h3>Despesas por categoria</h3>' +
       (gruposHtml ? '<div class="rg-gsums">' + gruposHtml + "</div>" : "") +
       '<div class="rg-cat-list">' +
@@ -607,7 +611,15 @@
       valCls(c.resultado_liquido_gerencial) +
       '">' +
       brl(c.resultado_liquido_gerencial) +
-      '</dd></div><div><dt>Caixa</dt><dd class="' +
+      '</dd></div><div><dt>Juros empréstimo</dt><dd class="' +
+      (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(jurosEmp) +
+      '</dd></div><div><dt>Empréstimo</dt><dd class="' +
+      (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+      '">' +
+      brl(empPago) +
+      '</dd></div><div><dt>Saldo final</dt><dd class="' +
       valCls(caixaPeriodo) +
       '">' +
       brl(caixaPeriodo) +
