@@ -624,7 +624,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA`):** Resumo gerencial ganhou layout visual (fluxo + PE + donut + despesas por categoria). **Indicadores · Financeiro gerencial permanece** até a nova tela estar 100%. Layout **16:9** (`100dvh`, filtros numa faixa só no topo).
+- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA`):** Resumo gerencial ganhou layout visual (fluxo + PE + donut + despesas por categoria). **Indicadores · Financeiro gerencial permanece** até a nova tela estar 100%. Layout **16:9** (`100dvh`, filtros numa faixa só no topo). Gráfico **ponto de equilíbrio** (receita × custo, prejuízo/lucro).
 
 ### 4.11 Caixa
 
@@ -1225,7 +1225,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 📋 **pronto para envio à produção** · teste · loja ainda **v15.26** |
 | **O quê** | `/financeiro/resumo-gerencial/` — prévia visual 16:9 (fluxo Despesas→Receita→% lucro, PE, donut, despesas por categoria, mini DRE). **Indicadores · Financeiro gerencial intacto**. CMV vendida × paga igual. Caixa não muda. |
 | **Você** | Ctrl+F5 Resumo gerencial → julho Centro · conferir visual · abrir Indicadores e ver que **não mudou** |
-| **Prova** | `tests_dre_visual` **7/7** · verify visual **109/109** · layout **16:9 / faixa única no topo** · `node --check` |
+| **Prova** | `tests_dre_visual` **7/7** · verify visual **111/111** · gráfico PE · `node --check` |
 | **Migrate** | **NÃO** |
 | **Autorizar** | *pode subir DRE-VISUAL-PREVIA para produção* + **99738595** |
 

@@ -113,6 +113,8 @@ def test_arquivos() -> None:
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_gauge", "rg-gauge" in js and "faturamento_equilibrio" in js)
     check("js_spark", "faturamento_pdv" in js)
+    check("js_pe_chart", "function peChartSvg" in js and "Ponto de equilíbrio" in js)
+    check("css_pe_chart", ".rg-pe-chart" in css)
     check("js_chip_click", 'querySelectorAll("[data-dre-cmv]")' in js)
     check("js_default_vendida", 'return "vendida"' in js)
 

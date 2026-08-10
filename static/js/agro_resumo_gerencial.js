@@ -310,6 +310,173 @@
     });
   }
 
+  function peChartSvg(c) {
+    var rec = num(c && c.receita_operacional);
+    var cmv = num(c && c.cmv);
+    var df = num(c && c.despesas_fixas);
+    var dv = num(c && c.despesas_variaveis);
+    var pe = num(c && c.faturamento_equilibrio);
+    var varRatio = rec > 0 ? (cmv + dv) / rec : 1;
+    if (!isFinite(varRatio) || varRatio < 0) varRatio = 1;
+    var xmax = Math.max(pe * 1.7, rec * 1.3, df > 0 ? df * 2.2 : 1, 1);
+    var ymax = Math.max(xmax, df + varRatio * xmax) * 1.08;
+    if (ymax <= 0) ymax = 1;
+    var W = 440;
+    var H = 220;
+    var padL = 44;
+    var padR = 12;
+    var padT = 16;
+    var padB = 28;
+    function xPx(x) {
+      return padL + (x / xmax) * (W - padL - padR);
+    }
+    function yPx(y) {
+      return H - padB - (y / ymax) * (H - padT - padB);
+    }
+    function pt(x, y) {
+      return xPx(x).toFixed(1) + "," + yPx(y).toFixed(1);
+    }
+    var rec1 = xmax;
+    var cost0 = df;
+    var cost1 = df + varRatio * xmax;
+    var hasPe = pe > 0 && pe < xmax * 0.98 && varRatio < 1;
+    var prejuPoly = "";
+    var lucroPoly = "";
+    if (hasPe) {
+      prejuPoly = [pt(0, 0), pt(pe, pe), pt(pe, df + varRatio * pe), pt(0, cost0)].join(" ");
+      lucroPoly = [pt(pe, pe), pt(xmax, rec1), pt(xmax, cost1), pt(pe, df + varRatio * pe)].join(" ");
+    } else if (varRatio < 1 && df <= 0) {
+      lucroPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
+    } else {
+      prejuPoly = [pt(0, 0), pt(xmax, rec1), pt(xmax, cost1), pt(0, cost0)].join(" ");
+    }
+    var recLine = pt(0, 0) + " " + pt(xmax, rec1);
+    var costLine = pt(0, cost0) + " " + pt(xmax, cost1);
+    var svg =
+      '<svg viewBox="0 0 ' +
+      W +
+      " " +
+      H +
+      '" class="rg-pe-chart" role="img" aria-label="Ponto de equilíbrio">';
+    if (prejuPoly) {
+      svg += '<polygon points="' + prejuPoly + '" fill="#ef4444"/>';
+    }
+    if (lucroPoly) {
+      svg += '<polygon points="' + lucroPoly + '" fill="#059669"/>';
+    }
+    svg +=
+      '<polyline fill="none" stroke="#b91c1c" stroke-width="2.2" points="' +
+      costLine +
+      '"/>';
+    svg +=
+      '<polyline fill="none" stroke="#047857" stroke-width="2.4" points="' +
+      recLine +
+      '"/>';
+    svg +=
+      '<line x1="' +
+      padL +
+      '" y1="' +
+      yPx(0) +
+      '" x2="' +
+      (W - padR) +
+      '" y2="' +
+      yPx(0) +
+      '" stroke="#94a3b8" stroke-width="1"/>';
+    svg +=
+      '<line x1="' +
+      padL +
+      '" y1="' +
+      padT +
+      '" x2="' +
+      padL +
+      '" y2="' +
+      yPx(0) +
+      '" stroke="#94a3b8" stroke-width="1"/>';
+    svg +=
+      '<text x="' +
+      (padL - 6) +
+      '" y="' +
+      (padT + 8) +
+      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">R$</text>';
+    svg +=
+      '<text x="' +
+      (W - padR) +
+      '" y="' +
+      (H - 8) +
+      '" text-anchor="end" font-size="10" font-weight="800" fill="#64748b">Faturamento</text>';
+    if (hasPe) {
+      svg +=
+        '<line x1="' +
+        xPx(pe) +
+        '" y1="' +
+        yPx(pe) +
+        '" x2="' +
+        xPx(pe) +
+        '" y2="' +
+        yPx(0) +
+        '" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 3"/>';
+      svg +=
+        '<circle cx="' +
+        xPx(pe) +
+        '" cy="' +
+        yPx(pe) +
+        '" r="5" fill="#1e293b"/>';
+      svg +=
+        '<text x="' +
+        xPx(pe) +
+        '" y="' +
+        (yPx(pe) - 10) +
+        '" text-anchor="middle" font-size="10" font-weight="800" fill="#1e293b">Ponto de equilíbrio</text>';
+      var midP = pe * 0.38;
+      svg +=
+        '<text x="' +
+        xPx(midP) +
+        '" y="' +
+        yPx((df + varRatio * midP + midP) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
+      var midL = pe + (xmax - pe) * 0.55;
+      svg +=
+        '<text x="' +
+        xPx(midL) +
+        '" y="' +
+        yPx((df + varRatio * midL + midL) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">LUCRO</text>';
+    } else if (prejuPoly) {
+      svg +=
+        '<text x="' +
+        xPx(xmax * 0.45) +
+        '" y="' +
+        yPx((df + varRatio * xmax * 0.45 + xmax * 0.45) / 2) +
+        '" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">PREJUÍZO</text>';
+    }
+    if (rec > 0 && rec <= xmax) {
+      svg +=
+        '<line x1="' +
+        xPx(rec) +
+        '" y1="' +
+        yPx(rec) +
+        '" x2="' +
+        xPx(rec) +
+        '" y2="' +
+        yPx(0) +
+        '" stroke="#047857" stroke-width="1.1" stroke-dasharray="2 3"/>';
+    }
+    svg +=
+      '<text x="' +
+      (xPx(xmax) - 4) +
+      '" y="' +
+      (yPx(rec1) - 6) +
+      '" text-anchor="end" font-size="10" font-weight="900" fill="#047857">RECEITA</text>';
+    svg +=
+      '<text x="' +
+      (xPx(0) + 8) +
+      '" y="' +
+      Math.max(yPx(cost0) - 6, padT + 12) +
+      '" text-anchor="start" font-size="10" font-weight="900" fill="#b91c1c">CUSTO TOTAL</text>';
+    svg += "</svg>";
+    return svg;
+  }
+
   function renderCatRows(top) {
     if (!top || !top.length) {
       return '<p class="rg-muted">Sem despesas por categoria neste recorte.</p>';
@@ -430,9 +597,9 @@
       '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
       brl(dfin) +
       "</b></li></ul></div></article>" +
-      '<article class="rg-card rg-card--spark"><h3>Faturamento PDV (últ. dias)</h3>' +
-      sparkSvg(sparkVals(c)) +
-      '<p class="rg-muted">Geração de caixa: <b>' +
+      '<article class="rg-card rg-card--pe"><h3>Ponto de equilíbrio</h3>' +
+      peChartSvg(c) +
+      '<p class="rg-muted">Custo = fixas + CMV + variáveis · eixo = faturamento R$ · Caixa: <b>' +
       brl(c.geracao_caixa) +
       "</b> <span>(não muda com CMV)</span></p></article></div>" +
       '<article class="rg-card rg-col--cat"><h3>Despesas por categoria</h3>' +
@@ -832,6 +999,7 @@
     buildKpiCard: buildKpiCard,
     renderKpiGrid: renderKpiGrid,
     renderVisualBoard: renderVisualBoard,
+    peChartSvg: peChartSvg,
     mainZeros: mainZeros,
     brl: brl,
     pct: pct,
