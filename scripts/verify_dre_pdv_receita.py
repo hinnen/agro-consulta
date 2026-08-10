@@ -79,7 +79,7 @@ def main() -> int:
     check("js_cmv_key", "agro_dre_cmv_modo_v1" in js)
     check("js_apply_cmv", "function aplicarCmvNoCore" in js)
     check("js_caixa_intacto", "geracao_caixa" in js)
-    check("ajuda_cmv_rg", "CMV vendida" in html_rg and "caixa não muda" in html_rg)
+    check("ajuda_cmv_rg", "CMV vendida" in html_rg and "Saldo final" in html_rg)
 
     print(f"\n{len(oks)} OK · {len(fails)} FAIL")
     if fails:

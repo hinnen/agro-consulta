@@ -94,7 +94,7 @@ def test_arquivos() -> None:
     check("chip_paga", 'data-dre-cmv="paga"' in html)
     check("hint_id", 'id="rg-cmv-hint"' in html)
     check("ajuda_cmv", "CMV vendida" in html and "CMV paga" in html)
-    check("ajuda_caixa", "caixa não muda" in html)
+    check("ajuda_caixa", "Saldo final" in html and "empréstimos" in html)
     check("css_chip", ".rg-chip" in css and ".rg-chip.is-active" in css)
 
     check("js_key", "agro_dre_cmv_modo_v1" in js)

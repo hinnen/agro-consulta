@@ -1198,16 +1198,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE visual PE + categoria + caixa (`DRE-VISUAL-POLISH` · **v15.48**)
+### 📦 PACOTE PRONTO — DRE visual polish (`DRE-VISUAL-POLISH` · **v15.50**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 📦 **pronto envio** · só `teste` · loja ainda **v15.46** |
-| **O quê** | PE barras · Despesas por categoria no recorte · Mini DRE juros/empréstimo/saldo final · cards: **vs mês passado** + **vs média 90d** (valor + %) |
-| **Você** | Ctrl+F5 DRE · julho Centro · cards de cima com 2 comparativos · Mini DRE juros + empréstimo · Saldo final ≈ −134 mil |
-| **Prova** | tests DRE+CMV **29/29** · verify visual **182/182** |
+| **O quê** | PE barras modernas · despesas por categoria no recorte do filtro · Mini DRE: juros + empréstimo + **Saldo final** (`geracao_caixa`) · cards: **vs mês passado** + **vs média 90d** (valor + %, mesmos dias do filtro) |
+| **Você** | Ctrl+F5 DRE · julho Centro · comparativos nos 4 cards · Mini DRE juros/empréstimo · Saldo final ≈ −134 mil |
+| **Prova** | tests DRE+CMV+BI **34/34** · visual **191/191** · CMV **55/55** · PDV-DRE **33/33** · RG-CMV **79/79** · `node --check` |
 | **Migrate** | **NÃO** |
-| **Fora** | Indicadores · API `geracao_caixa` intacta |
+| **Fora** | Indicadores HTML · API `geracao_caixa` · PDV/caixa |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio produção
 
@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-POLISH** (v15.48) | 📦 pronto envio | não |
+| 1 | **DRE-VISUAL-POLISH** (v15.50) | 📦 pronto envio | não |
 
 ### ✅ Deploy loja — lote UX+DRE+BI (`deploy/lote-ux-dre-bi-0908` · **v15.46**)
 

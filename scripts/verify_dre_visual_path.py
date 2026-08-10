@@ -144,12 +144,14 @@ def test_arquivos() -> None:
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
     check("js_mini_juros", "Juros empréstimo" in js and "Saldo final" in js)
+    check("js_mini_emp_linha", ">Empréstimo</dt>" in js or "<dt>Empréstimo</dt>" in js)
     check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
     check("css_emp", ".rg-card--emp" in css)
     check("js_caixa_periodo", "geracao_caixa" in js and "com empréstimos" in js)
     check("js_desp_cat", "despesas_categorias" in js)
     check("js_cmp_rows", "vs mês passado" in js and "vs média 90d" in js)
     check("js_cmp_ref", "function refKpis" in js and "visual.comparativo" in js)
+    check("js_cmp_invert_desp", "renderCmpRows(desp" in js and "true, false)" in js)
     check("css_cmp", ".rg-cmp" in css and ".rg-flow__side-row" in css)
     check("js_grupo_msg", "Abra uma empresa" in js)
     check("js_pe_hint", "faturamento_equilibrio" in js)
@@ -500,6 +502,36 @@ def test_math_cmv_e_fluxo() -> None:
     check("raiz_cmv_paga", out["cmv"] == cmv_paga)
     check("raiz_caixa", out["geracao_caixa"] == caixa)
     check("snap_sem_caixa", "geracao_caixa" not in out["cmv_modos"]["vendida"])
+
+    from financeiro.services.dre_visual_util import (
+        _dias_periodo,
+        _snapshot_kpis_dre,
+        janela_90d_antes,
+        janela_mes_passado,
+    )
+
+    mes_i, mes_f = janela_mes_passado(date(2026, 7, 1))
+    d90_i, d90_f = janela_90d_antes(date(2026, 7, 1))
+    check("janela_mes_jun", mes_i == date(2026, 6, 1) and mes_f == date(2026, 6, 30), f"{mes_i}..{mes_f}")
+    check("janela_90_abr", d90_i == date(2026, 4, 2) and d90_f == date(2026, 6, 30), f"{d90_i}..{d90_f}")
+    dias_jul = _dias_periodo(date(2026, 7, 1), date(2026, 7, 31))
+    dias_jun = _dias_periodo(mes_i, mes_f)
+    check("dias_jul_31", dias_jul == 31)
+    check("dias_jun_30", dias_jun == 30)
+    snap_k = _snapshot_kpis_dre(
+        {
+            "receita_operacional": 31000,
+            "cmv": 10000,
+            "despesas_fixas": 3000,
+            "despesas_variaveis": 0,
+            "despesas_financeiras": 0,
+        },
+        dias_ref=dias_jun,
+        dias_atual=dias_jul,
+    )
+    check("k_mes_jul", abs(snap_k["k"] - (31 / 30)) < 1e-6, str(snap_k["k"]))
+    check("k_desp_raw", snap_k["despesas"] == 3000.0)
+    check("k_proj_desp", abs(snap_k["despesas"] * snap_k["k"] - 3100.0) < 0.02)
 
 
 def test_emprestimos_classifica() -> None:

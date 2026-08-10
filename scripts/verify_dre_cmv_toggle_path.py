@@ -74,7 +74,11 @@ def test_arquivos() -> None:
     check("qs_centro_vazio", 'venda__deposito=""' in qs and "venda__deposito__isnull=True" in qs)
     check("bi_vila", 'deposito__iexact="vila"' in bi_fn)
     check("bi_centro_vazio", 'deposito=""' in bi_fn and "deposito__isnull=True" in bi_fn)
-    check("relatorio_sem_filtro_loja", "_qs_itens(desde, ate)" in vendas.split("def _agg_itens_por_produto")[1].split("def cmv_vendida_de_rows")[0])
+    check(
+        "relatorio_sem_filtro_loja",
+        "_qs_itens(desde, ate, deposito=deposito)"
+        in vendas.split("def _agg_itens_por_produto")[1].split("def cmv_vendida_de_rows")[0],
+    )
 
     check("chip_vendida", 'data-dre-cmv="vendida"' in html)
     check("chip_paga", 'data-dre-cmv="paga"' in html)
@@ -96,7 +100,7 @@ def test_arquivos() -> None:
     check("resumo_fn_modos", "def aplicar_cmv_modos_no_resumo" in util_pdv)
     check("resumo_flag", "anexar_cmv_modos" in resumo_pg)
     check("api_anexa_cmv", "anexar_cmv_modos=True" in api)
-    check("resumo_ajuda_cmv", "CMV vendida" in html_rg and "caixa não muda" in html_rg)
+    check("resumo_ajuda_cmv", "CMV vendida" in html_rg and "Saldo final" in html_rg)
 
 
 def test_url_reverse() -> None:

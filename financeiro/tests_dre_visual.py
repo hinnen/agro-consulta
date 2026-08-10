@@ -198,6 +198,35 @@ class MontarDreVisualTests(SimpleTestCase):
         self.assertEqual(janela_mes_passado(date(2026, 7, 12)), (date(2026, 6, 1), date(2026, 6, 30)))
         self.assertEqual(janela_90d_antes(date(2026, 7, 1)), (date(2026, 4, 2), date(2026, 6, 30)))
 
+    def test_snapshot_k_projeta_dias(self):
+        from datetime import date
+
+        from financeiro.services.dre_visual_util import (
+            _dias_periodo,
+            _snapshot_kpis_dre,
+            janela_mes_passado,
+        )
+
+        dias_atual = _dias_periodo(date(2026, 7, 1), date(2026, 7, 31))
+        mes_i, mes_f = janela_mes_passado(date(2026, 7, 1))
+        dias_ref = _dias_periodo(mes_i, mes_f)
+        snap = _snapshot_kpis_dre(
+            {
+                "receita_operacional": 31000,
+                "cmv": 10000,
+                "despesas_fixas": 3000,
+                "despesas_variaveis": 0,
+                "despesas_financeiras": 0,
+            },
+            dias_ref=dias_ref,
+            dias_atual=dias_atual,
+        )
+        self.assertEqual(dias_atual, 31)
+        self.assertEqual(dias_ref, 30)
+        self.assertAlmostEqual(snap["k"], 31 / 30, places=5)
+        self.assertEqual(snap["despesas"], 3000.0)
+        self.assertAlmostEqual(snap["despesas"] * snap["k"], 3100.0, places=1)
+
     def test_despesas_categorias_so_periodo(self):
         from datetime import date
 
