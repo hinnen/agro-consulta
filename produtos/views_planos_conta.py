@@ -16,6 +16,15 @@ from produtos.planos_conta_util import listar_planos_agro, seed_planos_padrao, s
 logger = logging.getLogger(__name__)
 
 
+def _invalidar_cache_dre_planos() -> None:
+    try:
+        from financeiro.services.plano_conta_dre_util import invalidar_cache_cadastro_dre
+
+        invalidar_cache_cadastro_dre()
+    except Exception:
+        logger.debug("invalidar cache DRE planos", exc_info=True)
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def planos_conta_config_view(request):
@@ -37,6 +46,7 @@ def api_planos_conta_seed(request):
     except Exception:
         logger.exception("api_planos_conta_seed")
         return JsonResponse({"ok": False, "erro": "Falha ao carregar a lista padrão."}, status=500)
+    _invalidar_cache_dre_planos()
     return JsonResponse({"ok": True, **stats, "total": PlanoContaAgro.objects.count()})
 
 
@@ -148,6 +158,7 @@ def api_planos_conta_salvar(request):
         logger.exception("api_planos_conta_salvar")
         return JsonResponse({"ok": False, "erro": "Falha ao salvar."}, status=500)
 
+    _invalidar_cache_dre_planos()
     return JsonResponse({"ok": True, "item": serializar_plano(obj)})
 
 
@@ -184,4 +195,5 @@ def api_planos_conta_toggle(request, pk: int):
     else:
         obj.ativo = not obj.ativo
         obj.save(update_fields=["ativo", "atualizado_em"])
+    _invalidar_cache_dre_planos()
     return JsonResponse({"ok": True, "item": serializar_plano(obj)})

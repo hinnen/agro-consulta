@@ -50,28 +50,44 @@ def despesas_categorias_dre_pg(
             "grupos": [],
             "total": 0.0,
         }
+    from financeiro.services.plano_conta_dre_util import nome_oficial_plano
+
     grupos = {
         "fixa": {"key": "fixa", "label": "Despesas fixas", "total": 0.0},
         "variavel": {"key": "variavel", "label": "Despesas variáveis", "total": 0.0},
         "financeira": {"key": "financeira", "label": "Despesas financeiras", "total": 0.0},
     }
-    linhas: list[dict[str, Any]] = []
+    agg: dict[str, dict[str, Any]] = {}
     for row in raw.get("linhas") or []:
         des = float(row.get("despesa") or 0)
         if des <= 0.005:
             continue
-        gkey = _grupo_despesa_dre(str(row.get("plano") or ""))
+        bruto = str(row.get("plano") or "")
+        gkey = _grupo_despesa_dre(bruto)
         if not gkey:
             continue
+        nome = nome_oficial_plano(bruto) or bruto
         grupos[gkey]["total"] += des
-        linhas.append(
-            {
-                "plano": str(row.get("plano") or ""),
-                "valor": round(des, 2),
-                "ultimo": round(des, 2),
+        item = agg.get(nome)
+        if item is None:
+            agg[nome] = {
+                "plano": nome,
+                "valor": des,
+                "ultimo": des,
                 "grupo": gkey,
             }
-        )
+        else:
+            item["valor"] += des
+            item["ultimo"] = item["valor"]
+    linhas = [
+        {
+            "plano": v["plano"],
+            "valor": round(float(v["valor"]), 2),
+            "ultimo": round(float(v["ultimo"]), 2),
+            "grupo": v["grupo"],
+        }
+        for v in agg.values()
+    ]
     linhas.sort(key=lambda x: -float(x["valor"]))
     for g in grupos.values():
         g["total"] = round(float(g["total"]), 2)
