@@ -1201,6 +1201,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste**)
+
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · prova **15/15** · **pronto para envio à produção** |
+| **O quê** | Folha fornecedor/categoria/unidade: filho da Composição (granel) **some da lista**; venda × fator (kg_filho/kg_pai) **soma no saco** (ex. 5 + 0,5 = **5,5**) · média/semana também · decimal na impressão |
+| **Prova** | `scripts/verify_folha_familia_path.py` **VERIFY_OK** |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · baixa estoque (já corretos) |
+| **Você** | Ctrl+F5 · Folha ADIMAX · granel não lista · saco com vendas fracionadas |
+
 ### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
 > **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3** · Render `dep-d9tm20hsrm7s73alh9g0`  
