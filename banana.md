@@ -1201,19 +1201,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste**)
+### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste v15.64**)
 
 > **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova **15/15** · **pronto para envio à produção** |
-| **O quê** | Folha fornecedor/categoria/unidade: filho da Composição (granel) **some da lista**; venda × fator (kg_filho/kg_pai) **soma no saco** (ex. 5 + 0,5 = **5,5**) · média/semana também · decimal na impressão |
-| **Prova** | `scripts/verify_folha_familia_path.py` **VERIFY_OK** |
+| **Status** | ✅ **pronto para envio à produção** · prova **42/42** |
+| **O quê** | Folha forn/cat/unid: granel da Composição **some**; venda × fator **soma no saco** (ex. 5,5) · média também · decimal na impressão |
+| **Prova** | `scripts/verify_folha_familia_path.py` **VERIFY_OK 42/42** (fator · rollup · 3 hooks · overlay real · APIs · `manage.py check`) |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · baixa estoque (já corretos) |
-| **Você** | Ctrl+F5 · Folha ADIMAX · granel não lista · saco com vendas fracionadas |
+| **Fora** | PDV · caixa · baixa estoque |
+| **Você** | Ctrl+F5 · Folha ADIMAX · granel fora · saco com fração |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62)
+
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FOLHA-FAMILIA** | ✅ **pronto para envio à produção** / teste **v15.64** | não |
 
 ### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
@@ -1229,34 +1238,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **enviado / Live v15.62** · `producao` @ **e0d19a3** · base era `1f50976` (v15.55) |
-| **Branch** | `deploy/lote-checklist-1108` (FF → `producao`) |
-| **Provas** | BI **31/31** · FIADO **79/79** · FOLHA OK · `manage.py check` 0 |
-| **Rollback** | tag `rollback/pre-lote-checklist-1108-v15.55` @ `1f50976` · frase+senha |
-| **Fora** | resto do `teste` · NFC-e baixa · vale crédito |
-| **Você agora** | **Ctrl+F5** · badge **v15.62** · BI `/` · recibo fiado · Folha→ADIMAX |
+| **Rollback** | tag `rollback/pre-lote-checklist-1108-v15.55` @ `1f50976` |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62)
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
-> Vigente após envio do lote `deploy/lote-checklist-1108`.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **BI-TOPBAR-COMPACT** | ✅ enviado / Live v15.62 | não |
-| 2 | **FIADO-RECIBO** | ✅ enviado / Live v15.62 | não |
-| 3 | **FOLHA-FORN-HIST** | ✅ enviado / Live v15.62 | não |
-
-### 🚀 PREP deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**) · **superado**
-
-> Vigente: **Deploy loja — lote checklist 11/08 Live v15.62** no topo.
-
-### 📦 PACOTE PRONTO — fila envio loja (11/08 · após Live v15.55) · **superado**
-
-> Vigente: **Live v15.62**.
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.55) · **superado**
-
-> Vigente: **CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62)** no topo.
+> Vigente: **CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62)** no topo.
 
 ### 🐛 FIX — Folha Compras por fornecedor (`FOLHA-FORN-HIST` · **teste v15.61**) · VERIFY_OK
 
