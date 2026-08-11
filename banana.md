@@ -1201,6 +1201,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Compras slim com custo + métricas (`COMPRAS-SLIM-DADOS` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · **não** loja |
+| **Sintoma** | Fornecedor lista produtos, mas só nome (sem saldo/custo/última entrada) |
+| **Causa** | slim sem custo · métricas bloqueadas no modo manual |
+| **Fix** | slim **v5** + custo · force métricas/saldos · sync slim na abertura |
+| **Arquivos** | `catalogo_agro.py` · `views.py` · `compras.html` |
+| **Migrate** | **NÃO** |
+
 ### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**)
 
 > **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render `dep-d9tn7foae00c73bg8sb0`  
