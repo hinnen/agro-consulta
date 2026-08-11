@@ -1201,28 +1201,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste v15.66**)
+### 🚀 PREP deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **aguarda pausa + senha**
 
 > **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · prova **42/42** |
-| **O quê** | Folha forn/cat/unid: granel da Composição **some**; venda × fator **soma no saco** (ex. 5,5) · média também · decimal na impressão |
-| **Prova** | `scripts/verify_folha_familia_path.py` **VERIFY_OK 42/42** (fator · rollup · 3 hooks · overlay real · APIs · `manage.py check`) |
-| **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · baixa estoque |
-| **Você** | Ctrl+F5 · Folha ADIMAX · granel fora · saco com fração |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62)
-
-> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** sobe loja.  
+> **Branch pronta:** `deploy/folha-familia-1108` @ **75288b5** (FF → `producao` no próximo chat)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **FOLHA-FAMILIA** | ✅ **pronto para envio à produção** / teste **v15.66** | não |
+| 1 | **FOLHA-FAMILIA** | ✅ no lote · aguarda pausa+senha | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Método** | worktree `origin/producao` · só arquivos do pacote · **não** merge `teste` |
+| **Prova** | deploy tree **42/42** · `manage.py check` 0 · overlay real OK |
+| **Fora** | PDV · caixa · baixa estoque · resto do `teste` |
+| **Rollback** | tag `rollback/pre-folha-familia-v15.62` @ `e0d19a3` · frase+senha |
+| **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir FOLHA-FAMILIA / deploy/folha-familia-1108 para produção* + **99738595** |
+| **Você após Live** | Ctrl+F5 · badge **v15.68** · Folha ADIMAX · granel fora · saco com fração |
+
+### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA`) · **superado pela PREP**
+
+> Vigente: **PREP `deploy/folha-familia-1108` v15.68** no topo.
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62) · **aguarda senha**
+
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Lote em **`deploy/folha-familia-1108`**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FOLHA-FAMILIA** | ✅ **no lote PREP** / aguarda pausa+senha | não |
 
 ### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
