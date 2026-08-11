@@ -391,20 +391,17 @@ def ultima_entrada_nf_agro_por_produto_ids(
     return out
 
 
-def ultimo_documento_entrada_nf_agro_por_fornecedor(
+def _docs_entrada_nf_agro_por_fornecedor(
     fornecedor_nome: str,
     fornecedor_id: str | None = None,
     *,
     scan_limit: int = 400,
-) -> dict | None:
-    """
-    Ultima Entrada NF Agro concluida do fornecedor (Postgres).
-    Retorno: dt, documento, origem, linhas_qtd {pid: float}, hist_pids set[str].
-    """
+) -> list[dict]:
+    """Rascunhos PG concluídos do fornecedor (pré-filtro id **ou** nome — não exclusivo)."""
     fn = str(fornecedor_nome or "").strip()
     fid = str(fornecedor_id or "").strip()
     if not fn and not fid:
-        return None
+        return []
     try:
         from django.db.models import Q
 
@@ -414,11 +411,10 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
             ENTRADA_NFE_STATUS_DESCARTADA,
             ENTRADA_NFE_STATUS_ENCERRADA,
             ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
-            _entrada_nfe_nomes_fornecedor_batem,
         )
     except Exception as exc:
-        logger.warning("ultimo_doc entrada_nf forn import: %s", exc)
-        return None
+        logger.warning("docs entrada_nf forn import: %s", exc)
+        return []
 
     lim = max(50, min(int(scan_limit or 400), 800))
     try:
@@ -429,19 +425,21 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
                 | Q(estoque_aplicado_em__isnull=False)
             )
         )
-        # Pré-filtro no JSON (evita puxar 400 notas pelo Oregon / rede lenta).
+        # Pré-filtro: id **ou** nome (antes só id quando vinha do autocomplete → zero NF).
+        pre = Q()
         if fid:
-            qs = qs.filter(
+            pre |= (
                 Q(cabecalho__emit_fornecedor_id=fid)
                 | Q(cabecalho__fornecedor_id=fid)
                 | Q(cabecalho__emit_id=fid)
             )
-        elif fn:
+        if fn:
             token = fn.split()[0][:40]
-            qs = qs.filter(
-                Q(cabecalho__emit_nome__icontains=token)
-                | Q(cabecalho__fornecedor_nome__icontains=token)
+            pre |= Q(cabecalho__emit_nome__icontains=token) | Q(
+                cabecalho__fornecedor_nome__icontains=token
             )
+        if pre:
+            qs = qs.filter(pre)
         qs = qs.only(
             "rascunho_id",
             "cabecalho",
@@ -459,11 +457,125 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
             "estoque_aplicado_em": 1,
             "status": 1,
         }
-        docs = [row_to_doc(row, projection=proj) for row in qs]
+        return [row_to_doc(row, projection=proj) for row in qs]
     except Exception as exc:
-        logger.warning("ultimo_doc entrada_nf forn query: %s", exc)
+        logger.warning("docs entrada_nf forn query: %s", exc)
+        return []
+
+
+def _fornecedor_casa_doc_entrada_nf(
+    cab: dict,
+    *,
+    fornecedor_nome: str,
+    fornecedor_id: str,
+    nomes_batem,
+) -> bool:
+    emit = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()
+    emit_id = str(
+        cab.get("emit_fornecedor_id") or cab.get("fornecedor_id") or cab.get("emit_id") or ""
+    ).strip()
+    if fornecedor_id and emit_id and fornecedor_id == emit_id:
+        return True
+    if fornecedor_nome and emit and nomes_batem(fornecedor_nome, emit):
+        return True
+    return False
+
+
+def produto_ids_entrada_nf_agro_por_fornecedor(
+    fornecedor_nome: str,
+    fornecedor_id: str | None = None,
+    *,
+    scan_limit: int = 800,
+    limit: int = 800,
+) -> tuple[list[str], dict[str, str]]:
+    """
+    Todos os produto_id que já entraram em NF Agro deste fornecedor (não só o último pedido).
+    Retorna (ids, nomes_hint da linha quando houver).
+    """
+    fn = str(fornecedor_nome or "").strip()
+    fid = str(fornecedor_id or "").strip()
+    if not fn and not fid:
+        return [], {}
+    try:
+        from produtos.nfe_entrada_util import _entrada_nfe_nomes_fornecedor_batem
+    except Exception as exc:
+        logger.warning("produto_ids entrada_nf forn import: %s", exc)
+        return [], {}
+
+    lim_out = max(1, min(int(limit or 800), 1200))
+    docs = _docs_entrada_nf_agro_por_fornecedor(fn, fid, scan_limit=scan_limit)
+    seen: set[str] = set()
+    ids: list[str] = []
+    nomes: dict[str, str] = {}
+
+    def _add(pid: str, nome: str = "") -> None:
+        p = str(pid or "").strip()
+        if not p or p == "None" or p in seen:
+            return
+        if len(ids) >= lim_out:
+            return
+        seen.add(p)
+        ids.append(p)
+        nm = str(nome or "").strip()
+        if nm:
+            nomes[p] = nm[:500]
+            if p.isdigit():
+                nomes[str(int(p))] = nm[:500]
+
+    for doc in docs:
+        if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
+            continue
+        cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        if not _fornecedor_casa_doc_entrada_nf(
+            cab,
+            fornecedor_nome=fn,
+            fornecedor_id=fid,
+            nomes_batem=_entrada_nfe_nomes_fornecedor_batem,
+        ):
+            continue
+        for ln in doc.get("linhas") if isinstance(doc.get("linhas"), list) else []:
+            if not isinstance(ln, dict):
+                continue
+            pid = str(ln.get("produto_id") or ln.get("ProdutoID") or "").strip()
+            if not pid or pid == "None":
+                continue
+            qtd = _qtd_linha_entrada_nf_agro(ln)
+            if qtd <= 0:
+                continue
+            nome_ln = str(
+                ln.get("produto_nome")
+                or ln.get("nome")
+                or ln.get("xProd")
+                or ln.get("descricao")
+                or ""
+            ).strip()
+            _add(pid, nome_ln)
+            if len(ids) >= lim_out:
+                return ids, nomes
+    return ids, nomes
+
+
+def ultimo_documento_entrada_nf_agro_por_fornecedor(
+    fornecedor_nome: str,
+    fornecedor_id: str | None = None,
+    *,
+    scan_limit: int = 400,
+) -> dict | None:
+    """
+    Ultima Entrada NF Agro concluida do fornecedor (Postgres).
+    Retorno: dt, documento, origem, linhas_qtd {pid: float}, hist_pids set[str].
+    """
+    fn = str(fornecedor_nome or "").strip()
+    fid = str(fornecedor_id or "").strip()
+    if not fn and not fid:
+        return None
+    try:
+        from produtos.nfe_entrada_util import _entrada_nfe_nomes_fornecedor_batem
+    except Exception as exc:
+        logger.warning("ultimo_doc entrada_nf forn import: %s", exc)
         return None
 
+    docs = _docs_entrada_nf_agro_por_fornecedor(fn, fid, scan_limit=scan_limit)
     best: dict | None = None
     best_dt: datetime | None = None
     hist_pids: set[str] = set()
@@ -471,16 +583,12 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
         if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
             continue
         cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-        emit = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()
-        emit_id = str(
-            cab.get("emit_fornecedor_id") or cab.get("fornecedor_id") or cab.get("emit_id") or ""
-        ).strip()
-        match = False
-        if fid and emit_id and fid == emit_id:
-            match = True
-        elif fn and emit and _entrada_nfe_nomes_fornecedor_batem(fn, emit):
-            match = True
-        if not match:
+        if not _fornecedor_casa_doc_entrada_nf(
+            cab,
+            fornecedor_nome=fn,
+            fornecedor_id=fid,
+            nomes_batem=_entrada_nfe_nomes_fornecedor_batem,
+        ):
             continue
         dt = _data_doc_entrada_nf_agro(cab, doc)
         if dt is None:
@@ -512,3 +620,4 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
         return None
     best["hist_pids"] = hist_pids
     return best
+

@@ -1415,34 +1415,55 @@ def baixar_fiado_via_pdv(
         if restante_quitar > Decimal("0.02"):
             raise ValueError("Pagamentos não cobriram todos os títulos. Tente de novo.")
 
+    from produtos.fiado_recibo_util import saldo_aberto_cliente_fiado
+
+    t0 = titulos[0]
+    saldo_restante = saldo_aberto_cliente_fiado(
+        cliente_agro_pk=t0.cliente_agro_id,
+        cliente_nome=t0.cliente_nome,
+        cliente_codigo=t0.cliente_codigo or "",
+    )
+    formas_recibo = [{"forma": p["forma"], "valor": float(p["valor"])} for p in pag_norm]
+    parcial = v_total < saldo_total - Decimal("0.02")
     resultado = {
         "valor_aplicado": float(v_total),
         "saldo_total": float(saldo_total),
-        "parcial": v_total < saldo_total - Decimal("0.02"),
+        "saldo_restante": float(saldo_restante),
+        "parcial": parcial,
         "baixas_ids": baixas_ids,
         "titulos_afetados": len(titulos_afetados_set),
         "movimentos_caixa_ids": movimentos_ids,
+        "formas": formas_recibo,
+        "cliente_nome": t0.cliente_nome,
+        "cliente_agro_pk": t0.cliente_agro_id,
     }
-    registrar_evento_fiado(
+    ev = registrar_evento_fiado(
         FiadoEventoAgro.Tipo.BAIXA,
-        cliente_agro=titulos[0].cliente_agro,
-        titulo=titulos[0],
+        cliente_agro=t0.cliente_agro,
+        titulo=t0,
         payload={
             "origem": "pdv",
             "modo": (modo or "").strip().lower(),
+            "recibo": True,
             "valor_aplicado": resultado["valor_aplicado"],
+            "saldo_restante": resultado["saldo_restante"],
+            "parcial": parcial,
             "baixas_ids": baixas_ids,
             "titulos_afetados": len(titulos_afetados_set),
             "movimentos_caixa_ids": movimentos_ids,
+            "formas": formas_recibo,
+            "cliente_nome": t0.cliente_nome,
+            "cliente_agro_pk": t0.cliente_agro_id,
         },
         usuario=user_label,
     )
+    resultado["recibo_id"] = ev.pk
     cid = (client_request_id or "").strip()
     if cid:
         registrar_evento_fiado(
             FiadoEventoAgro.Tipo.BAIXA,
-            cliente_agro=titulos[0].cliente_agro,
-            titulo=titulos[0],
+            cliente_agro=t0.cliente_agro,
+            titulo=t0,
             payload={
                 "origem": "pdv_idempotencia",
                 "client_request_id": cid,

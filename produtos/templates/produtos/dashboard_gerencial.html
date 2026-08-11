@@ -783,12 +783,28 @@
         flex: 0 0 auto;
         max-width: 7.25rem;
     }
-    /* Marca e rótulos só em tela larga: os filtros de período têm prioridade. */
-    .dash-brand-text { display: none; }
-    .dash-topbar-loja-lbl { display: none; }
-    @media (min-width: 1600px) {
-        .dash-brand-text { display: block; }
-        .dash-topbar-loja-lbl { display: inline; }
+    .dash-topbar-loja-lbl { display: inline; }
+    .dash-topbar-loja {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.15rem;
+        flex-shrink: 0;
+        min-width: 0;
+    }
+    .dash-topbar-loja-row {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+    .dash-agro-loja-badge {
+        justify-content: center;
+        width: 100%;
+        max-width: 6.5rem;
+    }
+    .dash-agro-loja-badge.hidden {
+        display: none !important;
     }
     @media (max-width: 1599px) {
         .dash-topbar-periods { gap: 0.1rem; padding: 0.15rem; }
@@ -862,12 +878,11 @@
 <div class="main-container">
     <div class="dash-topbar flex flex-wrap xl:flex-nowrap items-center justify-between gap-2 p-2 bg-slate-900/60 backdrop-blur-md rounded-2xl border border-white/5 mb-6 no-print">
         <div class="dash-topbar-brand flex items-center gap-2 pl-1 pr-2 border-r border-white/10 mr-1 min-w-0">
-            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] shrink-0" title="Gestão Estratégica — SisVale BI">
+            <div class="w-8 h-8 bg-[#00BFFF] rounded-lg flex items-center justify-center shadow-[0_0_10px_rgba(0,191,255,0.3)] shrink-0" title="SisVale BI">
                 <i data-lucide="layout-dashboard" class="text-white w-4 h-4"></i>
             </div>
             <div class="dash-brand-text min-w-0">
-                <h1 class="text-xs font-black text-white uppercase leading-none">Gestão Estratégica</h1>
-                <p class="text-[9px] text-slate-400 font-bold uppercase tracking-tight">SisVale BI</p>
+                <h1 class="text-xs font-black text-white uppercase leading-none">SisVale BI</h1>
             </div>
             <div class="flex items-center gap-1 shrink-0">
                 <button type="button" class="agro-ver-badge js-agro-ver-badge shrink-0" style="font-size:9px;" aria-label="Versão do sistema">v{{ agro_build.version_label }}</button>
@@ -884,26 +899,21 @@
         </div>
 
         <div class="dash-topbar-actions flex items-center gap-1.5 min-w-0">
-            <div class="flex items-center gap-1 min-w-0" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
-                <label class="dash-topbar-loja-lbl text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
-                <select id="dash-agro-loja" class="max-w-[6.5rem] rounded-lg border border-white/15 bg-slate-800 px-1 py-1.5 text-[10px] font-bold text-white">
-                    <option value="1" {% if pdv_deposito_boot.deposito != 'vila' %}selected{% endif %}>Centro</option>
-                    <option value="2" {% if pdv_deposito_boot.deposito == 'vila' %}selected{% endif %}>Vila Elias</option>
-                </select>
-                <span id="dash-agro-loja-badge" class="{% if not pdv_deposito_boot.caixaTravado %}hidden {% endif %}inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100">Trava: {% if pdv_deposito_boot.deposito == 'vila' %}Vila{% else %}Centro{% endif %}</span>
+            <div class="dash-topbar-loja" title="Depósito que o PDV baixa neste computador (Centro ou Vila Elias)">
+                <div class="dash-topbar-loja-row">
+                    <label class="dash-topbar-loja-lbl text-[8px] font-black uppercase text-slate-400 shrink-0" for="dash-agro-loja">Loja</label>
+                    <select id="dash-agro-loja" class="max-w-[6.5rem] rounded-lg border border-white/15 bg-slate-800 px-1 py-1.5 text-[10px] font-bold text-white">
+                        <option value="1" {% if pdv_deposito_boot.deposito != 'vila' %}selected{% endif %}>Centro</option>
+                        <option value="2" {% if pdv_deposito_boot.deposito == 'vila' %}selected{% endif %}>Vila Elias</option>
+                    </select>
+                </div>
+                <span id="dash-agro-loja-badge" class="dash-agro-loja-badge {% if not pdv_deposito_boot.caixaTravado %}hidden {% endif %}inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100">Trava: {% if pdv_deposito_boot.deposito == 'vila' %}Vila{% else %}Centro{% endif %}</span>
             </div>
             <button type="button" id="dash-btn-pdv-top"
                 onclick="window.tabManager.addTab('PDV', '{% url 'pdv_home' %}', 'shopping-cart')"
                 class="dash-topbar-cta btn-main-pulsing-capri bg-[#00BFFF]/10 border border-[#00BFFF]/30 hover:border-[#00BFFF] text-white py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0">
                 <i data-lucide="shopping-cart" class="w-3.5 h-3.5 text-[#00BFFF]"></i>
                 <span class="text-[10px] font-black uppercase italic">PDV <small class="opacity-50 ml-0.5">F1</small></span>
-            </button>
-
-            <button type="button"
-                onclick="window.tabManager.addTab('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'file-text')"
-                class="dash-topbar-cta btn-main-pulsing-emerald bg-[#10B981]/10 border border-[#10B981]/30 hover:border-[#10B981] text-white py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0">
-                <i data-lucide="file-text" class="w-3.5 h-3.5 text-[#10B981]"></i>
-                <span class="text-[10px] font-black uppercase italic">Orç. <small class="opacity-50 ml-0.5">F2</small></span>
             </button>
 
             <button type="button"
@@ -1710,7 +1720,7 @@ document.addEventListener("keydown", function (e) {
       b.classList.add('hidden');
     } else {
       b.textContent = 'Trava: ' + (isVila ? 'Vila' : 'Centro');
-      b.className = 'inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100';
+      b.className = 'dash-agro-loja-badge inline-flex items-center rounded-md border px-1 py-0.5 text-[8px] font-black uppercase whitespace-nowrap border-amber-400 bg-amber-950/50 text-amber-100';
     }
     if (typeof window.agroDashTopbarAjustar === 'function') window.agroDashTopbarAjustar();
   }

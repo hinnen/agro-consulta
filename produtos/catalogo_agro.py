@@ -1256,9 +1256,22 @@ def lista_produto_externo_ids_por_fornecedor(
             if p.isdigit():
                 nomes[str(int(p))] = nm
 
-    qs = queryset_catalogo_ativos(inativos=False)
+    # Termos: nome completo + 1º token (ex. «ADIMAX» dentro de razão social longa do autocomplete).
+    termos: list[str] = []
     if fn:
-        qs = qs.filter(fornecedor_texto__icontains=fn[:120])
+        termos.append(fn[:120])
+        tok = fn.split()[0][:40]
+        if tok and tok.casefold() != fn.casefold() and len(tok) >= 3:
+            termos.append(tok)
+
+    qs = queryset_catalogo_ativos(inativos=False)
+    if termos:
+        from django.db.models import Q
+
+        q_forn = Q()
+        for t in termos:
+            q_forn |= Q(fornecedor_texto__icontains=t)
+        qs = qs.filter(q_forn)
     else:
         qs = qs.none()
     for p in qs.order_by("nome")[: lim + 200]:
@@ -1267,11 +1280,14 @@ def lista_produto_externo_ids_por_fornecedor(
         if len(ids) >= lim:
             break
     if fn:
-        for oid in _produto_overlay_ids_fornecedor_agro(fn):
+        for termo in termos or [fn]:
+            for oid in _produto_overlay_ids_fornecedor_agro(termo):
+                if len(ids) >= lim:
+                    break
+                if oid not in seen:
+                    _add(oid)
             if len(ids) >= lim:
                 break
-            if oid not in seen:
-                _add(oid)
     return ids[:lim], nomes
 
 

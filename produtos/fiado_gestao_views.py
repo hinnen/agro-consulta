@@ -19,6 +19,7 @@ from produtos.caixa_util import (
     parse_valor_moeda_br,
 )
 from produtos.fiado_credito_util import resumo_credito_fiado_cliente
+from produtos.fiado_recibo_util import listar_recibos_pagamento_fiado, montar_recibo_pagamento_fiado
 from produtos.fiado_gestao_util import (
     _usuario_de_request,
     baixar_cliente_fiado,
@@ -51,6 +52,15 @@ def fiado_gestao(request):
     cliente_pre_pk = None
     if pk_pre.isdigit():
         cliente_pre_pk = int(pk_pre)
+    assets_v = ""
+    try:
+        from django.conf import settings
+
+        assets_v = str(getattr(settings, "AGRO_PDV_ASSETS_V", "") or "").strip()
+        if not assets_v:
+            assets_v = (Path(settings.BASE_DIR) / "VERSION").read_text(encoding="utf-8").strip()
+    except Exception:
+        assets_v = ""
     return render(
         request,
         "produtos/fiado_gestao.html",
@@ -62,6 +72,7 @@ def fiado_gestao(request):
             "cliente_pre_pk": cliente_pre_pk,
             "ledger_vazio": (resumo.get("titulos_abertos") or 0) == 0,
             "pode_importar": bool(getattr(request.user, "is_staff", False)),
+            "agro_pdv_assets_v": assets_v,
         },
     )
 
@@ -494,6 +505,59 @@ def api_fiado_baixa_pdv(request):
         return JsonResponse({"ok": True, **r})
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_fiado_recibos(request):
+    pk_raw = request.GET.get("cliente_agro_pk")
+    cliente_pk = None
+    if pk_raw:
+        try:
+            cliente_pk = int(pk_raw)
+        except (TypeError, ValueError):
+            cliente_pk = None
+    try:
+        limit = int(request.GET.get("limit") or 40)
+    except (TypeError, ValueError):
+        limit = 40
+    rows = listar_recibos_pagamento_fiado(
+        cliente_agro_pk=cliente_pk,
+        cliente_nome=str(request.GET.get("cliente_nome") or "").strip(),
+        cliente_codigo=str(request.GET.get("cliente_codigo") or "").strip(),
+        limit=max(1, min(limit, 80)),
+    )
+    return JsonResponse({"ok": True, "recibos": rows})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_fiado_recibo(request, recibo_id=None):
+    segunda = str(request.GET.get("segunda_via") or "").strip() in ("1", "true", "sim")
+    ids: list[int] = []
+    raw_ids = request.GET.get("baixas") or request.GET.get("baixas_ids") or ""
+    if raw_ids:
+        for part in str(raw_ids).replace(";", ",").split(","):
+            part = part.strip()
+            if part.isdigit():
+                ids.append(int(part))
+    rid = recibo_id
+    if rid is None and request.GET.get("recibo_id"):
+        try:
+            rid = int(request.GET.get("recibo_id"))
+        except (TypeError, ValueError):
+            rid = None
+    if not rid and not ids:
+        return JsonResponse({"ok": False, "erro": "Informe o recibo."}, status=400)
+    try:
+        cupom = montar_recibo_pagamento_fiado(
+            recibo_id=int(rid) if rid else None,
+            baixas_ids=ids or None,
+            segunda_via=segunda,
+        )
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=404)
+    return JsonResponse({"ok": True, "cupom": cupom, **cupom})
 
 
 @login_required(login_url="/admin/login/")

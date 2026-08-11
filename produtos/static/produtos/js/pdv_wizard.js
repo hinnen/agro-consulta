@@ -10277,11 +10277,20 @@
             (parcial ? 'Recebimento parcial registrado' : 'Fiado quitado') +
             (valor ? ' — ' + valor : '') +
             '.';
+        var reciboId = data && data.recibo_id != null ? data.recibo_id : null;
+        var baixasIds = data && Array.isArray(data.baixas_ids) ? data.baixas_ids.slice() : [];
         State.reset(false);
         showSaleDoneFeedback(msg, 'success', { durationMs: 2800 });
         try {
             history.replaceState({}, '', urls.pdvWizardHome || '/pdv/');
         } catch (_) {}
+    
+        if (typeof window.agroEscolherImprimirReciboFiado === 'function' && (reciboId || baixasIds.length)) {
+            window.agroEscolherImprimirReciboFiado({
+                recibo_id: reciboId,
+                baixas_ids: baixasIds
+            });
+        }
     }
 
     function confirmFiadoCobrancaMercadoPagoPoint() {

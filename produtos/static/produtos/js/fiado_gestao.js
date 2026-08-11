@@ -21,6 +21,8 @@
     btnBaixaSel: document.getElementById('fiado-btn-baixa-sel'),
     btnBaixaTotalCli: document.getElementById('fiado-btn-baixa-total-cli'),
     btnAtualizarTitulos: document.getElementById('fiado-btn-atualizar-titulos'),
+    recibosBox: document.getElementById('fiado-recibos-box'),
+    recibosLista: document.getElementById('fiado-recibos-lista'),
     modalBaixa: document.getElementById('fiado-modal-baixa'),
     baixaPassoEscolha: document.getElementById('fiado-baixa-passo-escolha'),
     formBaixaParcial: document.getElementById('fiado-form-baixa-parcial'),
@@ -289,6 +291,73 @@
     return (list || []).reduce(function (acc, t) { return acc + (Number(t.saldo_aberto) || 0); }, 0);
   }
 
+  function imprimirReciboFiado(row) {
+    const opts = {
+      recibo_id: row && row.recibo_id != null ? row.recibo_id : null,
+      baixas_ids: row && Array.isArray(row.baixas_ids) ? row.baixas_ids : [],
+      segunda_via: true,
+    };
+    if (typeof window.agroCarregarEImprimirReciboFiado !== 'function') {
+      alert('Módulo de impressão não carregou. Dê Ctrl+F5 e tente de novo.');
+      return;
+    }
+    window.agroCarregarEImprimirReciboFiado(opts).catch(function (err) {
+      alert((err && err.message) || 'Não foi possível imprimir o recibo.');
+    });
+  }
+
+  function renderRecibos(recibos) {
+    if (!el.recibosBox || !el.recibosLista) return;
+    const rows = recibos || [];
+    if (!rows.length) {
+      el.recibosBox.classList.add('hidden');
+      el.recibosLista.innerHTML = '';
+      return;
+    }
+    el.recibosBox.classList.remove('hidden');
+    el.recibosLista.innerHTML = rows
+      .map(function (r) {
+        const recId = r.recibo_id != null ? String(r.recibo_id) : '';
+        const baixas = Array.isArray(r.baixas_ids) ? r.baixas_ids.join(',') : '';
+        return (
+          '<div class="flex items-center gap-2 min-h-[40px] rounded-xl border border-orange-200 bg-white px-2.5 py-1.5">' +
+          '<div class="min-w-0 flex-1">' +
+          '<p class="text-xs font-black text-slate-900 tabular-nums leading-tight">' +
+          esc(r.criado_em || '—') +
+          ' · ' +
+          esc(r.valor_texto || fmtMoeda(r.valor)) +
+          '</p>' +
+          '<p class="text-[10px] font-bold text-slate-600 truncate">' +
+          esc(r.forma || '—') +
+          (r.operador ? ' · ' + esc(r.operador) : '') +
+          '</p></div>' +
+          '<button type="button" class="fiado-btn-reimprimir shrink-0 min-h-[36px] px-3 rounded-xl border-2 border-orange-400 bg-orange-50 text-orange-950 text-[10px] font-black uppercase hover:bg-orange-100" data-recibo="' +
+          esc(recId) +
+          '" data-baixas="' +
+          esc(baixas) +
+          '">Reimprimir</button></div>'
+        );
+      })
+      .join('');
+  }
+
+  async function carregarRecibosCliente(cli) {
+    if (!cli || !urls.recibos) {
+      renderRecibos([]);
+      return;
+    }
+    const qs = new URLSearchParams();
+    if (cli.pk || cli.cliente_agro_pk) qs.set('cliente_agro_pk', String(cli.pk || cli.cliente_agro_pk));
+    if (cli.nome || cli.cliente_nome) qs.set('cliente_nome', String(cli.nome || cli.cliente_nome || ''));
+    if (cli.codigo || cli.cliente_codigo) qs.set('cliente_codigo', String(cli.codigo || cli.cliente_codigo || ''));
+    try {
+      const j = await fetchJson(urls.recibos + '?' + qs.toString());
+      renderRecibos(j.recibos || []);
+    } catch (e) {
+      renderRecibos([]);
+    }
+  }
+
   function atualizarSelecaoUi() {
     const n = selecionados.size;
     let saldoSel = 0;
@@ -358,6 +427,7 @@
       const saldo = saldoTitulos(j.titulos);
       if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(saldo);
       clienteModal.saldo = saldo;
+      carregarRecibosCliente(cli);
     } catch (e) {
       if (el.tbodyTitulos) {
         el.tbodyTitulos.innerHTML =
@@ -801,6 +871,27 @@
   if (el.btnAtualizarTitulos) {
     el.btnAtualizarTitulos.addEventListener('click', function () {
       if (clienteModal) carregarTitulosCliente(clienteModal);
+    });
+  }
+
+  if (el.recibosLista) {
+    el.recibosLista.addEventListener('click', function (ev) {
+      const btn = ev.target.closest('.fiado-btn-reimprimir');
+      if (!btn) return;
+      const recRaw = btn.getAttribute('data-recibo') || '';
+      const recId = recRaw ? parseInt(recRaw, 10) : null;
+      const baixas = String(btn.getAttribute('data-baixas') || '')
+        .split(',')
+        .map(function (x) {
+          return parseInt(String(x).trim(), 10);
+        })
+        .filter(function (n) {
+          return !!n;
+        });
+      imprimirReciboFiado({
+        recibo_id: Number.isFinite(recId) ? recId : null,
+        baixas_ids: baixas,
+      });
     });
   }
 

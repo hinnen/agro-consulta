@@ -6776,11 +6776,40 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 local_ids, nomes_forn = _lista_produto_ids_catalogo_por_fornecedor(
                     db, client, fornecedor_nome, fornecedor_id, limit=800
                 )
+            # Folha = cadastro do fornecedor **+** tudo que já entrou em NF Agro dele
+            # (antes: só cadastro → na prática parecia «só o último pedido»).
+            if use_pg:
+                try:
+                    from produtos.compras_ultimas_compras_util import (
+                        produto_ids_entrada_nf_agro_por_fornecedor,
+                    )
+
+                    hist_ids, hist_nomes = produto_ids_entrada_nf_agro_por_fornecedor(
+                        fornecedor_nome, fornecedor_id, scan_limit=800, limit=800
+                    )
+                    seen_u = {str(x).strip() for x in local_ids if str(x).strip()}
+                    for hid in hist_ids:
+                        hs = str(hid or "").strip()
+                        if not hs or hs in seen_u:
+                            continue
+                        seen_u.add(hs)
+                        local_ids.append(hs)
+                        if len(local_ids) >= 800:
+                            break
+                    for k, v in (hist_nomes or {}).items():
+                        ks = str(k or "").strip()
+                        if ks and ks not in nomes_forn and str(v or "").strip():
+                            nomes_forn[ks] = str(v).strip()[:500]
+                except Exception:
+                    logger.warning(
+                        "relatorio fornecedor: união histórico NF falhou",
+                        exc_info=True,
+                    )
         if not local_ids:
             return JsonResponse(
                 {
                     "ok": False,
-                    "erro": "Nenhum produto no catálogo encontrado para este fornecedor. Ajuste o nome ou escolha na lista de cadastro.",
+                    "erro": "Nenhum produto no cadastro nem em Entrada NF Agro para este fornecedor. Ajuste o nome ou escolha na lista.",
                 },
                 status=400,
             )
