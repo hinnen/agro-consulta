@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste v15.64**)
+### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA` · **teste v15.65**)
 
 > **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
 > **⚠️** **NÃO** merge `teste`→`producao`.
@@ -1222,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **FOLHA-FAMILIA** | ✅ **pronto para envio à produção** / teste **v15.64** | não |
+| 1 | **FOLHA-FAMILIA** | ✅ **pronto para envio à produção** / teste **v15.65** | não |
 
 ### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
