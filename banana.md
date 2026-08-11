@@ -1201,6 +1201,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Compras catálogo vazio (`COMPRAS-SLIM-FALLBACK`) · **teste**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · **não** loja (falta frase+senha) |
+| **Sintoma** | `/compras/` — «Catálogo vazio ou indisponível…» |
+| **Causa** | Freio loja `catalogo-full-off` esvazia `/api/todos-produtos/delta/`; Compras guardava cache vazio |
+| **Fix** | Fallback `/api/pdv/catalogo-slim/` · cache v3 · não grava `catalogo-full-off` |
+| **Arquivos** | `compras.html` · `mobile_ajuste.html` (chave cache) |
+| **Migrate** | **NÃO** |
+| **Você** | Local: Ctrl+F5 em `/compras/` · digitar 2 letras · lista sobe. Loja: só com frase+senha |
+
 ### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**)
 
 > **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5** · Render `dep-d9tmfcoae00c73bfb9o0`  
