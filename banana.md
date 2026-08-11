@@ -1201,37 +1201,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **aguarda pausa + senha**
+### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**)
 
-> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** sobe loja.  
-> **Branch pronta:** `deploy/folha-familia-1108` @ **75288b5** (FF → `producao` no próximo chat)
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5** · Render `dep-d9tmfcoae00c73bfb9o0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **FOLHA-FAMILIA** | ✅ no lote · aguarda pausa+senha | não |
+| 1 | **FOLHA-FAMILIA** | ✅ enviado / Live v15.68 | não |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Método** | worktree `origin/producao` · só arquivos do pacote · **não** merge `teste` |
-| **Prova** | deploy tree **42/42** · `manage.py check` 0 · overlay real OK |
-| **Fora** | PDV · caixa · baixa estoque · resto do `teste` |
+| **Status** | ✅ **enviado / Live v15.68** · `producao` @ **75288b5** · base era `e0d19a3` (v15.62) |
+| **Branch** | `deploy/folha-familia-1108` (FF → `producao`) |
+| **O quê** | Folha: granel some; venda × fator soma no saco · decimal |
+| **Prova** | **42/42** · sem migrate |
 | **Rollback** | tag `rollback/pre-folha-familia-v15.62` @ `e0d19a3` · frase+senha |
-| **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir FOLHA-FAMILIA / deploy/folha-familia-1108 para produção* + **99738595** |
-| **Você após Live** | Ctrl+F5 · badge **v15.68** · Folha ADIMAX · granel fora · saco com fração |
+| **Você agora** | **Ctrl+F5** · badge **v15.68** · Folha ADIMAX · granel fora · saco com fração |
 
-### 📦 PACOTE PRONTO — Folha Compras × composição saco (`FOLHA-FAMILIA`) · **superado pela PREP**
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.68)
 
-> Vigente: **PREP `deploy/folha-familia-1108` v15.68** no topo.
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62) · **aguarda senha**
-
-> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Lote em **`deploy/folha-familia-1108`**.
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **FOLHA-FAMILIA** | ✅ **no lote PREP** / aguarda pausa+senha | não |
+| 1 | **FOLHA-FAMILIA** | ✅ enviado / Live v15.68 | não |
+
+### 🚀 PREP deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
+
+> Vigente: **Deploy loja — FOLHA-FAMILIA Live v15.68** no topo.
 
 ### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
