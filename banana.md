@@ -1201,35 +1201,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — fila envio loja (11/08 · após Live v15.55)
+### 🚀 PREP deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**) · **aguarda pausa + senha**
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.  
-> **Teste:** **v15.61**
-
-| # | Pacote | Teste | O quê | Migrate |
-| - | ------ | ----- | ----- | ------- |
-| 1 | **BI-TOPBAR-COMPACT** | v15.57 | BI `/` compacto: sem Gestão Estratégica · sem Orç. · Trava embaixo de Loja · F2 teclado/Menu | não |
-| 2 | **FIADO-RECIBO** | v15.59 | FL-019 recibo fiado 80 mm: pergunta no PDV + Reimprimir em `/fiado/` | não |
-| 3 | **FOLHA-FORN-HIST** | v15.61 | Folha Compras por fornecedor: lista cadastro **∪** histórico NF (não só último pedido) · token ADIMAX · pré-filtro id **ou** nome | não |
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Prova** | BI-TOPBAR **31/31** · FIADO-RECIBO **79/79** · FOLHA-FORN-HIST **28/28** (cadastro+API+NFs sintéticas+qtd 7/0+rollback) · `manage.py check` 0 |
-| **Commits chave** | BI `61cafe4`/`0817de2` · FIADO `6c7dfba`/`3d1df7f` · FOLHA `9e0efc2` |
-| **Fora** | NFC-e baixa (FL-052) · vale crédito (FL-058) · merge `teste` inteiro |
-| **Você** | Ctrl+F5 local · badge **v15.61** · Folha→ADIMAX · BI `/` · recibo fiado |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.55)
-
-> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** sobe loja.  
+> **Branch pronta:** `deploy/lote-checklist-1108` @ **e0d19a3** (FF → `producao` no próximo chat)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-TOPBAR-COMPACT** | ✅ **pronto para envio à produção** / teste **v15.57** | não |
-| 2 | **FIADO-RECIBO** | ✅ **pronto para envio à produção** / teste **v15.59** | não |
-| 3 | **FOLHA-FORN-HIST** | ✅ **pronto para envio à produção** / teste **v15.61** | não |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ no lote · aguarda pausa+senha | não |
+| 2 | **FIADO-RECIBO** | ✅ no lote · aguarda pausa+senha | não |
+| 3 | **FOLHA-FORN-HIST** | ✅ no lote · aguarda pausa+senha | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Método** | worktree `origin/producao` · só arquivos dos 3 pacotes · **não** merge `teste` |
+| **Prova (deploy tree)** | BI **31/31** · FIADO **79/79** · FOLHA markers + import OK · `manage.py check` 0 · node OK |
+| **Fora do lote** | PDV venda/caixa/wizard (só +9 linhas pergunta recibo) · NFC-e baixa · vale crédito · resto do `teste` |
+| **Rollback** | tag `rollback/pre-lote-checklist-1108-v15.55` @ `1f50976` · frase+senha |
+| **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir lote checklist 11/08 / deploy/lote-checklist-1108 para produção* + **99738595** |
+| **Você após Live** | Ctrl+F5 · badge **v15.62** · BI `/` · recibo fiado · Folha→ADIMAX |
+
+### 📦 PACOTE PRONTO — fila envio loja (11/08 · após Live v15.55) · **superado pela PREP**
+
+> Vigente: **PREP `deploy/lote-checklist-1108` v15.62** no topo.
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.55) · **aguarda senha**
+
+> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Lote em **`deploy/lote-checklist-1108`**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ **no lote PREP** / aguarda pausa+senha | não |
+| 2 | **FIADO-RECIBO** | ✅ **no lote PREP** / aguarda pausa+senha | não |
+| 3 | **FOLHA-FORN-HIST** | ✅ **no lote PREP** / aguarda pausa+senha | não |
 
 ### 🐛 FIX — Folha Compras por fornecedor (`FOLHA-FORN-HIST` · **teste v15.61**) · VERIFY_OK
 
