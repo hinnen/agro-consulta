@@ -84,7 +84,7 @@
           <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] max-h-[min(70dvh,26rem)] overflow-y-auto rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
             <p>Lista até <strong>800</strong> produtos <strong>ativos</strong> para {% if planilha_dim == "categoria" %}a categoria{% elif planilha_dim == "fornecedor" %}o fornecedor{% else %}a unidade{% endif %} escolhido.</p>
             {% if planilha_dim == "fornecedor" %}
-            <p>Lista = produtos com este fornecedor no <strong>cadastro</strong> <strong>e</strong> os que já entraram em <strong>qualquer</strong> Entrada NF Agro dele (não só o último pedido). «Últ. pedido» / «vendas desde» usam a <strong>última</strong> NF. «Média/semana» = PDV (56 dias).</p>
+            <p>Lista = produtos com este fornecedor no <strong>cadastro</strong> <strong>e</strong> os que já entraram em <strong>qualquer</strong> Entrada NF Agro dele (não só o último pedido). <strong>Granel/pacote</strong> ligado ao saco na Composição <strong>não</strong> aparece na lista — a venda fracionada soma no saco (ex. 5 + 0,5 = 5,5). «Últ. pedido» / «vendas desde» usam a <strong>última</strong> NF. «Média/semana» = PDV (56 dias).</p>
             {% else %}
             <p>Colunas <strong>última compra</strong> e <strong>vendas desde essa compra</strong>: <strong>Entrada NF Agro</strong> + vendas PDV Agro.</p>
             {% endif %}

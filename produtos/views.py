@@ -6186,8 +6186,20 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     Métricas por produto para planilha (categoria/unidade): média semanal (56d) e, por linha,
     **última compra ERP** mais recente de qualquer fornecedor (Mongo, mesma fonte das «últimas compras»)
     e **vendas** em ``DtoVenda`` após essa data. Produto sem compra registrada na janela (~800 dias) mantém ``*``.
+    Filhos de custo_familia (granel/pacote) saem da lista; venda × fator soma no saco (pai).
     """
-    hints = nomes_hints or {}
+    from produtos.compras_familia_folha_util import (
+        arred_qtd_folha_compras,
+        preparar_pids_folha_familia,
+        rollup_first_dt_filhos_no_pai,
+        rollup_qtds_filhos_no_pai,
+    )
+
+    hints = dict(nomes_hints or {})
+    display_pids, sales_pids, filhos_map, hints = preparar_pids_folha_familia(
+        p_ids, nomes_hints=hints
+    )
+    p_ids = list(sales_pids)
     now = datetime.now()
     t56 = now - timedelta(days=56)
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres, agro_compras_metricas_postgres
@@ -6299,8 +6311,30 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
     except Exception as exc:
         logger.warning("_compras_relatorio_rows_catalogo_sem_ult_doc métricas ERP degradadas: %s", exc, exc_info=True)
 
+    display_set = {str(x).strip() for x in display_pids if str(x).strip()}
+    if filhos_map:
+        tot56_canon = rollup_qtds_filhos_no_pai(
+            tot56_canon,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+        )
+        first56_canon = rollup_first_dt_filhos_no_pai(
+            first56_canon,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+            qtd_por_canon=tot56_canon,
+        )
+        vendas_pos = rollup_qtds_filhos_no_pai(
+            vendas_pos,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+        )
+
     rows_out: list[dict] = []
-    for pid in p_ids:
+    for pid in display_pids:
         try:
             p = _catalogo_pmap_resolve(pmap, pid)
             canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
@@ -6333,11 +6367,11 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
 
             cs = str(canon)
             qtd_ult: int | None = None
-            qtd_pos: int | None = None
+            qtd_pos: float | None = None
             if cs in qtd_ult_linha:
                 qtd_ult = _arred_int_meio_para_cima(qtd_ult_linha[cs])
             if cs in ref_por_canon:
-                qtd_pos = _arred_int_meio_para_cima(vendas_pos.get(cs, 0.0))
+                qtd_pos = arred_qtd_folha_compras(vendas_pos.get(cs, 0.0))
 
             t56p = float(tot56_canon.get(cs, 0.0))
             first_dt = first56_canon.get(cs)
@@ -6363,7 +6397,7 @@ def _compras_relatorio_rows_catalogo_sem_ult_doc_build(
             if not math.isfinite(dias_hist):
                 dias_hist = 56.0
             semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-            media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+            media_sem = arred_qtd_folha_compras((t56p / float(semanas_den)) if semanas_den else 0.0)
             rows_out.append(
                 {
                     "produto_id": str(canon),
@@ -6823,6 +6857,18 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 fornecedor_id=fornecedor_id,
             )
 
+        from produtos.compras_familia_folha_util import (
+            arred_qtd_folha_compras,
+            preparar_pids_folha_familia,
+            rollup_first_dt_filhos_no_pai,
+            rollup_qtds_filhos_no_pai,
+        )
+
+        display_pids, sales_pids, filhos_map, nomes_forn = preparar_pids_folha_familia(
+            p_ids, nomes_hints=nomes_forn
+        )
+        p_ids = list(sales_pids)
+
         ultimo = _ultimo_documento_compra_do_fornecedor(db, fornecedor_nome, fornecedor_id)
         ref_dt: datetime | None = None
         ultimo_iso = ""
@@ -6892,8 +6938,30 @@ def _api_compras_relatorio_fornecedor_impl(request):
             tot_pos, _fpos, variant_to_canon
         )
 
+        display_set = {str(x).strip() for x in display_pids if str(x).strip()}
+        if filhos_map:
+            tot56_canon = rollup_qtds_filhos_no_pai(
+                tot56_canon,
+                filhos_map,
+                variant_to_canon=variant_to_canon,
+                display_pais=display_set,
+            )
+            first56_canon = rollup_first_dt_filhos_no_pai(
+                first56_canon,
+                filhos_map,
+                variant_to_canon=variant_to_canon,
+                display_pais=display_set,
+                qtd_por_canon=tot56_canon,
+            )
+            tot_pos_canon = rollup_qtds_filhos_no_pai(
+                tot_pos_canon,
+                filhos_map,
+                variant_to_canon=variant_to_canon,
+                display_pais=display_set,
+            )
+
         rows_out: list[dict] = []
-        for pid in p_ids:
+        for pid in display_pids:
             try:
                 p = _catalogo_pmap_resolve(pmap, pid)
                 canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
@@ -6937,7 +7005,7 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 qtd_pos = None
                 cs_f = str(canon)
                 if not sem_doc:
-                    qtd_pos = _arred_int_meio_para_cima(float(tot_pos_canon.get(cs_f, 0.0)))
+                    qtd_pos = arred_qtd_folha_compras(float(tot_pos_canon.get(cs_f, 0.0)))
                 t56p = float(tot56_canon.get(cs_f, 0.0))
                 first_dt = first56_canon.get(cs_f)
                 if first_dt is None and p:
@@ -6962,7 +7030,7 @@ def _api_compras_relatorio_fornecedor_impl(request):
                 if not math.isfinite(dias_hist):
                     dias_hist = 56.0
                 semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-                media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+                media_sem = arred_qtd_folha_compras((t56p / float(semanas_den)) if semanas_den else 0.0)
                 rows_out.append(
                     {
                         "produto_id": str(canon),
@@ -7039,12 +7107,23 @@ def _api_compras_relatorio_fornecedor_pg(
     fornecedor_id: str | None,
 ) -> JsonResponse:
     """Folha por fornecedor 100% Postgres (catálogo + Entrada NF Agro + vendas PDV)."""
+    from produtos.compras_familia_folha_util import (
+        arred_qtd_folha_compras,
+        preparar_pids_folha_familia,
+        rollup_first_dt_filhos_no_pai,
+        rollup_qtds_filhos_no_pai,
+    )
     from produtos.compras_metricas_util import (
         vendas_qtd_apos_ref_compra_postgres,
         vendas_qtd_por_produto_intervalo_postgres,
     )
     from produtos.compras_ultimas_compras_util import ultimo_documento_entrada_nf_agro_por_fornecedor
     from produtos import catalogo_agro as cat_agro
+
+    display_pids, sales_pids, filhos_map, nomes_forn = preparar_pids_folha_familia(
+        p_ids, nomes_hints=nomes_forn
+    )
+    p_ids = list(sales_pids)
 
     now = datetime.now()
     t56 = now - timedelta(days=56)
@@ -7114,8 +7193,30 @@ def _api_compras_relatorio_fornecedor_pg(
         else {}
     )
 
+    display_set = {str(x).strip() for x in display_pids if str(x).strip()}
+    if filhos_map:
+        tot56_canon = rollup_qtds_filhos_no_pai(
+            tot56_canon,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+        )
+        first56_canon = rollup_first_dt_filhos_no_pai(
+            first56_canon,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+            qtd_por_canon=tot56_canon,
+        )
+        vendas_pos = rollup_qtds_filhos_no_pai(
+            vendas_pos,
+            filhos_map,
+            variant_to_canon=variant_to_canon,
+            display_pais=display_set,
+        )
+
     rows_out: list[dict] = []
-    for pid in p_ids:
+    for pid in display_pids:
         try:
             p = _catalogo_pmap_resolve(pmap, pid)
             canon = str(p.get("Id") or p.get("_id") or pid) if p else str(pid)
@@ -7159,7 +7260,7 @@ def _api_compras_relatorio_fornecedor_pg(
             cs_f = str(canon)
             qtd_pos = None
             if not sem_doc:
-                qtd_pos = _arred_int_meio_para_cima(float(vendas_pos.get(cs_f, 0.0)))
+                qtd_pos = arred_qtd_folha_compras(float(vendas_pos.get(cs_f, 0.0)))
             t56p = float(tot56_canon.get(cs_f, 0.0))
             first_dt = first56_canon.get(cs_f)
             anchor = t56
@@ -7177,7 +7278,7 @@ def _api_compras_relatorio_fornecedor_pg(
             if not math.isfinite(dias_hist):
                 dias_hist = 56.0
             semanas_den = int(max(1, min(8, (dias_hist + 6.999999) // 7)))
-            media_sem = _arred_int_meio_para_cima((t56p / float(semanas_den)) if semanas_den else 0.0)
+            media_sem = arred_qtd_folha_compras((t56p / float(semanas_den)) if semanas_den else 0.0)
             rows_out.append(
                 {
                     "produto_id": str(canon),
