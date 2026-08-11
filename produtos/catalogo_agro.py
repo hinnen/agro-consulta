@@ -1479,7 +1479,8 @@ def listar_todos_rows_ativos() -> list[dict]:
 def listar_slim_rows_pdv() -> list[dict]:
     """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
 
-    Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos, busca_texto.
+    Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos,
+    busca_texto, marca, categoria, fornecedor (Compras busca avançada).
     Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
     """
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
@@ -1501,6 +1502,7 @@ def listar_slim_rows_pdv() -> list[dict]:
             "categoria",
             "subcategoria",
             "subcategoria_2",
+            "fornecedor_texto",
         )
     )
     rows_raw = list(qs)
@@ -1529,6 +1531,7 @@ def listar_slim_rows_pdv() -> list[dict]:
                 "categoria",
                 "subcategoria",
                 "subcategoria_2",
+                "fornecedor_texto",
                 "peso_etiqueta",
                 "cadastro_extras",
             ):
@@ -1558,16 +1561,42 @@ def listar_slim_rows_pdv() -> list[dict]:
         subcategoria_2 = (
             str(ov.get("subcategoria_2") or "").strip() or (r.get("subcategoria_2") or "").strip()
         )
+        # Overlay prevalece (mesmo critério da gestão); chave ``fornecedor`` = Compras/PDV.
+        fornecedor = (
+            str(ov.get("fornecedor_texto") or "").strip()
+            or str(r.get("fornecedor_texto") or "").strip()
+        )
         peso_etiqueta = str(ov.get("peso_etiqueta") or "").strip()
         ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
+        from produtos.mongo_index_codigos import (
+            _eans_embalagem_nf_de_cadastro_extras,
+            codigos_barras_opcionais_de_cadastro_extras,
+        )
+
+        extras_ix = list(codigos_barras_opcionais_de_cadastro_extras(ce)) + list(
+            _eans_embalagem_nf_de_cadastro_extras(ce)
+        )
         ix = index_codigos_de_campos(
             codigo=codigo,
             codigo_nfe=codigo_nfe,
             codigo_barras=codigo_barras,
-            cadastro_extras=ce,
+            extras=extras_ix,
         )
-        busca = " ".join(x for x in (nome, marca, modelo, codigo, codigo_nfe, codigo_barras) if x).strip()
-        # Preços A/B / por forma — sem isso o PDV adiciona do cache slim e a forma não muda o valor.
+        busca = " ".join(
+            x
+            for x in (
+                nome,
+                marca,
+                modelo,
+                fornecedor,
+                codigo,
+                codigo_nfe,
+                codigo_barras,
+                *extras_ix,
+            )
+            if x
+        ).strip()
+        # PreÃ§os A/B / por forma â€” sem isso o PDV adiciona do cache slim e a forma nÃ£o muda o valor.
         from produtos.precos_forma_pagamento_util import (
             extrair_precos_grupos_cadastro_extras,
             extrair_precos_modo_cadastro_extras,
@@ -1588,11 +1617,12 @@ def listar_slim_rows_pdv() -> list[dict]:
             "preco_venda": _dec(preco),
             "index_codigos": ix if isinstance(ix, list) else [],
             "busca_texto": busca,
-            # campos mínimos que o PDV espera em normalize
+            # campos mÃ­nimos que o PDV espera em normalize
             "marca": marca,
             "categoria": categoria,
             "subcategoria": subcategoria,
             "subcategoria_2": subcategoria_2,
+            "fornecedor": fornecedor,
             "peso_etiqueta": peso_etiqueta,
             "preco_custo": 0.0,
             "preco_custo_final": 0.0,
