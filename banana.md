@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Compras catálogo slim (`COMPRAS-SLIM-FALLBACK` · **v15.73**)
+### 📦 PACOTE PRONTO — Compras catálogo slim (`COMPRAS-SLIM-FALLBACK` · **v15.75**)
 
 | Item | Detalhe |
 | ---- | ------- |
