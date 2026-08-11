@@ -1201,10 +1201,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — COMPRAS-SLIM-FALLBACK (deploy/compras-slim-1108 · **v15.77**)
+### 🚀 PREP deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**)
 
-> **Loja hoje:** ✅ **Live v15.68** · producao @ **75288b5**  
-> **Branch pronta:** deploy/compras-slim-1108 @ **b226e66** · **NÃO** merge 	este→producao · **NÃO** push producao sem frase+senha.  
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5**  
+> **Branch pronta:** `deploy/compras-slim-1108` @ **b226e66** · **NÃO** merge teste→producao · **NÃO** push producao sem frase+senha.  
 > **Lojas abertas:** path só Compras/ajuste mobile — **não** mexe PDV/caixa/views.
 
 | # | Pacote | Status | Migrate |
@@ -1214,14 +1214,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **PREP pronto** · aguarda *pode subir…* + **99738595** |
-| **O quê** | /compras/ fallback slim com freio catalogo-full-off · cache v3 |
+| **O quê** | `/compras/` fallback slim com freio catalogo-full-off · cache v3 |
 | **Arquivos** | só compras.html + mobile_ajuste.html + VERSION |
-| **Fora** | PDV · caixa · iews.py · Folha · financeiro |
+| **Fora** | PDV · caixa · views.py · Folha · financeiro |
 | **Prova** | **VERIFY_OK 44/44** · diff vs loja = 3 arquivos · slim **já** na loja |
-| **Rollback** | tag 
-ollback/pre-compras-slim-v15.68 @ 75288b5 |
+| **Rollback** | tag rollback/pre-compras-slim-v15.68 @ 75288b5 |
 | **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir COMPRAS-SLIM / deploy/compras-slim-1108 para produção* + **99738595** |
-| **Depois** | Ctrl+F5 /compras/ · badge **v15.77** · digitar 2 letras |
+| **Depois** | Ctrl+F5 `/compras/` · badge **v15.77** · digitar 2 letras |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · PREP v15.77)
 
