@@ -1201,17 +1201,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🐛 FIX — Slim + fornecedor Compras (`COMPRAS-SLIM-FORN` · **teste**)
+### 📦 PACOTE PRONTO — Slim fornecedor Compras (`COMPRAS-SLIM-FORN` · **v15.81**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · prova **46/46** · **não** loja (falta frase+senha) |
-| **Sintoma** | Busca avançada: Marca ok · Fornecedor só «(qualquer)» |
-| **Causa** | Slim v3 sem campo `fornecedor` |
-| **Fix** | `listar_slim_rows_pdv` + cache slim **v4** |
-| **Arquivos** | `catalogo_agro.py` · `views.py` (cache) · verify |
+| **Status** | ✅ **pronto envio** · prova **30/30** (+ fallback **46/46**) · push `teste` |
+| **Loja hoje** | v15.77 — pacote **ainda não** subiu |
+| **Sintoma** | Busca avançada: Fornecedor só «(qualquer)» |
+| **Fix** | slim **v4** com `fornecedor` · cache v4 |
+| **Arquivos** | port cirúrgico: `listar_slim_rows_pdv` + cache slim em `views.py` |
+| **Prova** | `python scripts/verify_compras_slim_forn_path.py` → **VERIFY_OK 30/30** |
 | **Migrate** | **NÃO** |
-| **Você** | Loja ainda v15.77 sem forn — precisa novo PREP/envio |
+| **Deploy** | **não** merge `teste`→`producao` · só port do slim+cache |
+| **Fora** | PDV UI · caixa · Folha |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · após loja v15.77)
+
+> **Loja hoje:** ✅ **Live v15.77** · `producao` @ **b226e66**  
+> **Próximo envio:** pacote abaixo · **sem** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FORN** | ✅ pronto para envio · teste **v15.81** · prova **30/30** | não |
+
+### 🐛 FIX — Slim + fornecedor Compras (`COMPRAS-SLIM-FORN`) · **superado**
+
+> Vigente: **PACOTE PRONTO — COMPRAS-SLIM-FORN** no topo.
 
 ### ✅ Deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**)
 
