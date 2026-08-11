@@ -1203,7 +1203,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**)
 
-> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render (aguardando id)  
+> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render `dep-d9tn7foae00c73bg8sb0`  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
