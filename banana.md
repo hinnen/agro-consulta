@@ -610,7 +610,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - RelatÃ³rios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na prÃ³pria tela** (nÃ£o nova aba) â€” evita limite de 3 abas SisVale e layout bugado. BotÃ£o **Nova aba** no popup se precisar. PÃ¡ginas planilha com `?embed=1` nÃ£o montam barra lateral.
 - **Popup Folha (27/07):** modal compacto (padrÃ£o ERP) Â· Folha de saldo com filtros **botÃ£o+chip** iguais ao cadastro Â· facetas no HTML.
-- **Folha por fornecedor (27/07):** com catÃ¡logo PG **nÃ£o** depende de Mongo â€” usa cadastro + Entrada NF Agro.
+- **Folha por fornecedor (27/07 + 11/08):** catálogo PG — cadastro + Entrada NF Agro. **11/08 (`FOLHA-FORN-HIST`):** lista = cadastro **∪** histórico de NFs (não só último pedido); 1º token do nome (ex. ADIMAX).
 - **Folha de saldo (28/07):** overlay grande · filtros salvos **online** (Postgres) com 1 padrão global · tipografia maior nos filtros.
 - **Atalho PDV Estoque Vila (28/07):** botão no PDV (`/pdv/checkout/`) abre as 5 opções da Folha Compras e manda pra `/compras/?folha=…` com overlay já aberto (rótulo só — não força Vila).
 
@@ -1201,11 +1201,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Folha Compras por fornecedor lista incompleta (`FOLHA-FORN-HIST` · **teste v15.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar local (ADIMAX) |
+| **Sintoma** | Folha (PDV + Compras) parecia só os produtos do **último pedido** |
+| **Causa** | Lista vinha só do campo fornecedor no cadastro (muitas vezes preenchido na última NF) · com ID do autocomplete o pré-filtro de NF ignorava o nome |
+| **Fix** | União **cadastro + histórico Entrada NF Agro** · busca também pelo 1º token do nome · pré-filtro NF id **ou** nome |
+| **Arquivos** | `compras_ultimas_compras_util.py` · `views.py` · `catalogo_agro.py` · `compras_relatorio_planilha.html` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Folha → ADIMAX · deve listar cadastro **e** itens de NFs anteriores (não só a última) |
+
 ### 📦 PACOTE PRONTO — fila envio loja (10/08 · após Live v15.55)
 
 > **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
 > **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.  
-> **Teste:** **v15.59**
+> **Teste:** **v15.61**
 
 | # | Pacote | Teste | O quê | Migrate |
 | - | ------ | ----- | ----- | ------- |
@@ -7865,7 +7877,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (dia anterior) | ✅ **loja v6.75** | 03/07 |
 | **FL-017** | **P1** | Caixa / devoluÃ§Ã£o | **DevoluÃ§Ã£o duplicada** no caixa â€” apaga venda e ainda registra **saÃ­da** (dobra o efeito) | **âœ… loja v5.22** Â· validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | âœ… parcial 12/07 | 29/06 |
-| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ✅ **teste v15.58** · PDV pergunta + Reimprimir `/fiado/` · 80 mm | 29/06 |
+| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ✅ **teste v15.59** · PDV pergunta + Reimprimir `/fiado/` · 80 mm | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | âœ… 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | BotÃ£o **NF** nÃ£o aparece na lista â€” ex.: tÃ­tulo **RBS R$ 781,64** | âœ… **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / nÃ£o acha) | âœ… **#17** Renan testou Â· ðŸ“¦ pronto produÃ§Ã£o (fecha) | 29/06 |
