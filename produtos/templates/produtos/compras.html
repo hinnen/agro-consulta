@@ -766,8 +766,10 @@
 let lista = [];
 let debounceTimer = null;
 let baseProdutos = [];
-const COMPRA_CACHE_KEY = 'agro_compra_catalog_cache_v2';
+/* v3: ignora cache envenenado pelo freio catalogo-full-off (v2 guardava lista vazia). */
+const COMPRA_CACHE_KEY = 'agro_compra_catalog_cache_v3';
 const COMPRA_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const URL_COMPRA_CATALOGO_SLIM = "{% url 'api_pdv_catalogo_slim' %}";
 let compraPoolAvancado = null;
 let buscaAvancadaResultadosCompra = [];
 const LS_COMPRA_DIAS_MEDIA = 'compra_media_vendas_dias';
@@ -2877,13 +2879,47 @@ function lerCacheCatalogoCompras() {
     const raw = localStorage.getItem(COMPRA_CACHE_KEY);
     if (!raw) return null;
     const p = JSON.parse(raw);
-    if (!p || !Array.isArray(p.produtos)) return null;
+    if (!p || !Array.isArray(p.produtos) || !p.produtos.length) return null;
+    if (String(p.catalog_version || '') === 'catalogo-full-off') return null;
     const age = Date.now() - Number(p.saved_at || 0);
     if (!window.AGRO_MANUAL_SYNC_ONLY && age > COMPRA_CACHE_TTL_MS) return null;
     return p;
   } catch (_) {
     return null;
   }
+}
+
+/** Freio AGRO_PDV_CATALOGO_FULL_OFF: delta/full vêm vazios — slim PG não é freiado. */
+function compraCatalogoDeltaInutil(d) {
+  if (!d || typeof d !== 'object') return true;
+  if (d.erro) return true;
+  if (String(d.catalog_version || '') === 'catalogo-full-off') return true;
+  if (Array.isArray(d.produtos) && !d.produtos.length && !d.unchanged && !d.delta) return true;
+  return false;
+}
+
+function carregarCatalogoComprasSlim() {
+  return fetch(URL_COMPRA_CATALOGO_SLIM, {
+    credentials: 'same-origin',
+    cache: 'no-store',
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && Array.isArray(d.produtos) && d.produtos.length) {
+        aplicarBaseCompras(d.produtos);
+        salvarCacheCatalogoCompras(d);
+        return true;
+      }
+      return false;
+    })
+    .catch(() => false);
+}
+
+function compraMostrarErroCatalogo() {
+  const div = document.getElementById('resultados');
+  if (!div || baseProdutos.length) return;
+  compraOcultarCabecalhoListaResultados();
+  div.innerHTML = `<div class="bg-white text-red-600 border border-red-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Erro ao carregar produtos.</div>`;
 }
 
 function hidratarCatalogoComprasDoCache() {
@@ -2907,50 +2943,71 @@ function aplicarDeltaCatalogoCompras(changed, removedIds) {
 }
 
 function sincronizarCatalogoComprasServidor() {
-  const div = document.getElementById('resultados');
   if (window.gmLoader) window.gmLoader.show('🐭 buscando catálogo de compras...');
   const cached = lerCacheCatalogoCompras();
   const since = cached && cached.catalog_version ? cached.catalog_version : '';
   const u = new URL('{% url "api_todos_produtos_delta" %}', window.location.origin);
   if (since) u.searchParams.set('since', since);
+  const finalizar = () => {
+    if (window.gmLoader) window.gmLoader.hide(180);
+  };
   fetch(u.toString())
     .then((r) => r.json())
     .then((d) => {
       if (d && d.unchanged) {
-        if (!baseProdutos.length && cached && cached.produtos) aplicarBaseCompras(cached.produtos);
-        if (window.gmLoader) window.gmLoader.hide(180);
-        return;
-      }
-      if (d && d.delta) {
-        if (!baseProdutos.length && cached && cached.produtos) aplicarBaseCompras(cached.produtos);
-        aplicarDeltaCatalogoCompras(d.changed || [], d.removed_ids || []);
-        salvarCacheCatalogoCompras({
-          produtos: baseProdutos,
-          catalog_version: d.catalog_version || '',
-          catalog_updated_at: d.catalog_updated_at || '',
+        if (!baseProdutos.length && cached && cached.produtos && cached.produtos.length) {
+          aplicarBaseCompras(cached.produtos);
+        }
+        if (baseProdutos.length) {
+          finalizar();
+          return;
+        }
+        return carregarCatalogoComprasSlim().then((ok) => {
+          if (!ok) compraMostrarErroCatalogo();
+          finalizar();
         });
-        if (window.gmLoader) window.gmLoader.hide(180);
-        return;
       }
-      if (d && Array.isArray(d.produtos)) {
+      if (d && d.delta && !compraCatalogoDeltaInutil(d)) {
+        if (!baseProdutos.length && cached && cached.produtos && cached.produtos.length) {
+          aplicarBaseCompras(cached.produtos);
+        }
+        aplicarDeltaCatalogoCompras(d.changed || [], d.removed_ids || []);
+        if (baseProdutos.length) {
+          salvarCacheCatalogoCompras({
+            produtos: baseProdutos,
+            catalog_version: d.catalog_version || '',
+            catalog_updated_at: d.catalog_updated_at || '',
+          });
+          finalizar();
+          return;
+        }
+        return carregarCatalogoComprasSlim().then((ok) => {
+          if (!ok) compraMostrarErroCatalogo();
+          finalizar();
+        });
+      }
+      if (
+        d &&
+        Array.isArray(d.produtos) &&
+        d.produtos.length &&
+        !compraCatalogoDeltaInutil(d)
+      ) {
         aplicarBaseCompras(d.produtos);
         salvarCacheCatalogoCompras(d);
-        if (window.gmLoader) window.gmLoader.hide(180);
+        finalizar();
         return;
       }
-      if (!baseProdutos.length) {
-        compraOcultarCabecalhoListaResultados();
-        div.innerHTML = `<div class="bg-white text-red-600 border border-red-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Erro ao carregar produtos.</div>`;
-      }
-      if (window.gmLoader) window.gmLoader.hide(180);
+      return carregarCatalogoComprasSlim().then((ok) => {
+        if (!ok) compraMostrarErroCatalogo();
+        finalizar();
+      });
     })
-    .catch(() => {
-      if (!baseProdutos.length) {
-        compraOcultarCabecalhoListaResultados();
-        div.innerHTML = `<div class="bg-white text-red-600 border border-red-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Erro ao carregar produtos.</div>`;
-      }
-      if (window.gmLoader) window.gmLoader.hide(180);
-    });
+    .catch(() =>
+      carregarCatalogoComprasSlim().then((ok) => {
+        if (!ok) compraMostrarErroCatalogo();
+        finalizar();
+      })
+    );
 }
 
 function saldoTotalProduto(p) {
