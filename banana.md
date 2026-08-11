@@ -1201,6 +1201,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Slim + fornecedor Compras (`COMPRAS-SLIM-FORN` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · prova **46/46** · **não** loja (falta frase+senha) |
+| **Sintoma** | Busca avançada: Marca ok · Fornecedor só «(qualquer)» |
+| **Causa** | Slim v3 sem campo `fornecedor` |
+| **Fix** | `listar_slim_rows_pdv` + cache slim **v4** |
+| **Arquivos** | `catalogo_agro.py` · `views.py` (cache) · verify |
+| **Migrate** | **NÃO** |
+| **Você** | Loja ainda v15.77 sem forn — precisa novo PREP/envio |
+
 ### ✅ Deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**)
 
 > **Loja hoje:** ✅ **Live v15.77** · `producao` @ **b226e66** · Render `dep-d9tn2heq1p3s73b2ai9g`  

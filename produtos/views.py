@@ -3163,6 +3163,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         hoje_slim = timezone.localdate().isoformat()
+        cache.delete(f"pdv_catalogo_slim_v4:{hoje_slim}")
         cache.delete(f"pdv_catalogo_slim_v3:{hoje_slim}")
         cache.delete(f"pdv_catalogo_slim_v2:{hoje_slim}")
         from produtos.catalogo_agro import invalidar_cache_facetas_gestao
@@ -28144,8 +28145,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    # v3: inclui categoria / sub 1–2 / peso_etiqueta (atalho Rações).
-    ck = f"pdv_catalogo_slim_v3:{hoje}"
+    # v4: + fornecedor (Compras busca avançada; v3 não trazia).
+    ck = f"pdv_catalogo_slim_v4:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)
@@ -28159,7 +28160,7 @@ def api_pdv_catalogo_slim(request):
         "ok": True,
         "slim": True,
         "produtos": produtos,
-        "catalog_version": f"slim-v3-{hoje}-{len(produtos)}",
+        "catalog_version": f"slim-v4-{hoje}-{len(produtos)}",
         "catalog_updated_at": timezone.now().isoformat(),
     }
     cache.set(ck, body, timeout=1800)

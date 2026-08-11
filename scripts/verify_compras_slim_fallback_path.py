@@ -106,7 +106,10 @@ def main() -> None:
         "view_slim_doc_freio",
         "catalogo-full-off" in views and "api_pdv_catalogo_slim" in views,
     )
+    check("slim_cache_v4", "pdv_catalogo_slim_v4" in views)
     check("listar_slim_util", "def listar_slim_rows_pdv" in _read("produtos/catalogo_agro.py"))
+    cat = _read("produtos/catalogo_agro.py")
+    check("slim_fonte_fornecedor_texto", "fornecedor_texto" in cat and '"fornecedor": fornecedor' in cat)
 
     print("== Lógica freio (espelho JS) ==")
     freio = {
@@ -152,8 +155,15 @@ def main() -> None:
             check("slim_tem_nome", bool(sample.get("nome")))
             check(
                 "slim_campos_compra",
-                "preco_venda" in sample and "saldo_centro" in sample and "categoria" in sample,
+                "preco_venda" in sample
+                and "saldo_centro" in sample
+                and "categoria" in sample
+                and "fornecedor" in sample,
             )
+            n_forn = sum(1 for x in rows if str(x.get("fornecedor") or "").strip())
+            check("slim_tem_fornecedores", n_forn > 0, f"com_forn={n_forn}/{len(rows)}")
+            n_marca = sum(1 for x in rows if str(x.get("marca") or "").strip())
+            check("slim_tem_marcas", n_marca > 0, f"com_marca={n_marca}/{len(rows)}")
 
         from django.http import HttpRequest
         from produtos.views import api_pdv_catalogo_slim, api_todos_produtos_delta
