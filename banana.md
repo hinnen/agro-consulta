@@ -1201,28 +1201,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Compras catálogo slim (`COMPRAS-SLIM-FALLBACK` · **v15.75**)
+### 🚀 PREP deploy loja — COMPRAS-SLIM-FALLBACK (deploy/compras-slim-1108 · **v15.77**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto envio** · prova **44/44** · push `teste` |
-| **Loja hoje** | v15.68 (FOLHA-FAMILIA) — este pacote **ainda não** subiu |
-| **Sintoma** | `/compras/` «Catálogo vazio…» com freio `catalogo-full-off` |
-| **Fix** | Fallback `/api/pdv/catalogo-slim/` · cache v3 |
-| **Arquivos** | `compras.html` · `mobile_ajuste.html` · `scripts/verify_compras_slim_fallback_path.py` |
-| **Prova** | `python scripts/verify_compras_slim_fallback_path.py` → **VERIFY_OK 44/44** |
-| **Migrate** | **NÃO** |
-| **Deploy** | portar **só** os 2 templates (slim **já** na loja) · **não** merge `teste`→`producao` |
-| **Você** | frase + senha quando quiser loja · Ctrl+F5 `/compras/` |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · após loja v15.68)
-
-> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5**  
-> **Próximo envio:** pacote abaixo · **sem** merge `teste`→`producao`.
+> **Loja hoje:** ✅ **Live v15.68** · producao @ **75288b5**  
+> **Branch pronta:** deploy/compras-slim-1108 @ **b226e66** · **NÃO** merge 	este→producao · **NÃO** push producao sem frase+senha.  
+> **Lojas abertas:** path só Compras/ajuste mobile — **não** mexe PDV/caixa/views.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ pronto para envio · teste **v15.75** · prova **44/44** | não |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ PREP · aguarda pausa + senha | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **PREP pronto** · aguarda *pode subir…* + **99738595** |
+| **O quê** | /compras/ fallback slim com freio catalogo-full-off · cache v3 |
+| **Arquivos** | só compras.html + mobile_ajuste.html + VERSION |
+| **Fora** | PDV · caixa · iews.py · Folha · financeiro |
+| **Prova** | **VERIFY_OK 44/44** · diff vs loja = 3 arquivos · slim **já** na loja |
+| **Rollback** | tag 
+ollback/pre-compras-slim-v15.68 @ 75288b5 |
+| **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir COMPRAS-SLIM / deploy/compras-slim-1108 para produção* + **99738595** |
+| **Depois** | Ctrl+F5 /compras/ · badge **v15.77** · digitar 2 letras |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · PREP v15.77)
+
+> **Loja hoje:** ✅ **Live v15.68** · próximo: FF deploy/compras-slim-1108 → producao **só** com senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ PREP / aguarda pausa+senha · branch deploy/compras-slim-1108 @ **b226e66** · prova **44/44** | não |
+
+### 📦 PACOTE PRONTO — Compras catálogo slim (COMPRAS-SLIM-FALLBACK · **v15.75**) · **superado**
+
+> Vigente: **PREP deploy loja — COMPRAS-SLIM-FALLBACK** no topo.
 
 ### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
 
