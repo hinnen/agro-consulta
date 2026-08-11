@@ -1201,41 +1201,48 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**) · **aguarda pausa + senha**
+### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
 
-> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** sobe loja.  
-> **Branch pronta:** `deploy/lote-checklist-1108` @ **e0d19a3** (FF → `producao` no próximo chat)
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3** · Render `dep-d9tm20hsrm7s73alh9g0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-TOPBAR-COMPACT** | ✅ no lote · aguarda pausa+senha | não |
-| 2 | **FIADO-RECIBO** | ✅ no lote · aguarda pausa+senha | não |
-| 3 | **FOLHA-FORN-HIST** | ✅ no lote · aguarda pausa+senha | não |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ enviado / Live v15.62 | não |
+| 2 | **FIADO-RECIBO** | ✅ enviado / Live v15.62 | não |
+| 3 | **FOLHA-FORN-HIST** | ✅ enviado / Live v15.62 | não |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Método** | worktree `origin/producao` · só arquivos dos 3 pacotes · **não** merge `teste` |
-| **Prova (deploy tree)** | BI **31/31** · FIADO **79/79** · FOLHA markers + import OK · `manage.py check` 0 · node OK |
-| **Fora do lote** | PDV venda/caixa/wizard (só +9 linhas pergunta recibo) · NFC-e baixa · vale crédito · resto do `teste` |
+| **Status** | ✅ **enviado / Live v15.62** · `producao` @ **e0d19a3** · base era `1f50976` (v15.55) |
+| **Branch** | `deploy/lote-checklist-1108` (FF → `producao`) |
+| **Provas** | BI **31/31** · FIADO **79/79** · FOLHA OK · `manage.py check` 0 |
 | **Rollback** | tag `rollback/pre-lote-checklist-1108-v15.55` @ `1f50976` · frase+senha |
-| **Autorizar (próximo chat)** | lojas pausam vendas → *pode subir lote checklist 11/08 / deploy/lote-checklist-1108 para produção* + **99738595** |
-| **Você após Live** | Ctrl+F5 · badge **v15.62** · BI `/` · recibo fiado · Folha→ADIMAX |
+| **Fora** | resto do `teste` · NFC-e baixa · vale crédito |
+| **Você agora** | **Ctrl+F5** · badge **v15.62** · BI `/` · recibo fiado · Folha→ADIMAX |
 
-### 📦 PACOTE PRONTO — fila envio loja (11/08 · após Live v15.55) · **superado pela PREP**
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62)
 
-> Vigente: **PREP `deploy/lote-checklist-1108` v15.62** no topo.
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.55) · **aguarda senha**
-
-> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Lote em **`deploy/lote-checklist-1108`**.
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3**  
+> Vigente após envio do lote `deploy/lote-checklist-1108`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-TOPBAR-COMPACT** | ✅ **no lote PREP** / aguarda pausa+senha | não |
-| 2 | **FIADO-RECIBO** | ✅ **no lote PREP** / aguarda pausa+senha | não |
-| 3 | **FOLHA-FORN-HIST** | ✅ **no lote PREP** / aguarda pausa+senha | não |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ enviado / Live v15.62 | não |
+| 2 | **FIADO-RECIBO** | ✅ enviado / Live v15.62 | não |
+| 3 | **FOLHA-FORN-HIST** | ✅ enviado / Live v15.62 | não |
+
+### 🚀 PREP deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**) · **superado**
+
+> Vigente: **Deploy loja — lote checklist 11/08 Live v15.62** no topo.
+
+### 📦 PACOTE PRONTO — fila envio loja (11/08 · após Live v15.55) · **superado**
+
+> Vigente: **Live v15.62**.
+
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.55) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62)** no topo.
 
 ### 🐛 FIX — Folha Compras por fornecedor (`FOLHA-FORN-HIST` · **teste v15.61**) · VERIFY_OK
 
