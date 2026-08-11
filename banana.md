@@ -1222,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ pronto para envio · teste **v15.74** · prova **44/44** | não |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ pronto para envio · teste **v15.75** · prova **44/44** | não |
 
 ### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
 
