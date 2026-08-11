@@ -1201,19 +1201,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🐛 FIX — Compras catálogo vazio (`COMPRAS-SLIM-FALLBACK`) · **teste**
+### 📦 PACOTE PRONTO — Compras catálogo slim (`COMPRAS-SLIM-FALLBACK` · **v15.70**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · **não** loja (falta frase+senha) |
-| **Sintoma** | `/compras/` — «Catálogo vazio ou indisponível…» |
-| **Causa** | Freio loja `catalogo-full-off` esvazia `/api/todos-produtos/delta/`; Compras guardava cache vazio |
-| **Fix** | Fallback `/api/pdv/catalogo-slim/` · cache v3 · não grava `catalogo-full-off` |
-| **Arquivos** | `compras.html` · `mobile_ajuste.html` (chave cache) |
+| **Status** | ✅ **pronto envio** · prova **44/44** · push `teste` |
+| **Loja hoje** | v15.68 (FOLHA-FAMILIA) — este pacote **ainda não** subiu |
+| **Sintoma** | `/compras/` «Catálogo vazio…» com freio `catalogo-full-off` |
+| **Fix** | Fallback `/api/pdv/catalogo-slim/` · cache v3 |
+| **Arquivos** | `compras.html` · `mobile_ajuste.html` · `scripts/verify_compras_slim_fallback_path.py` |
+| **Prova** | `python scripts/verify_compras_slim_fallback_path.py` → **VERIFY_OK 44/44** |
 | **Migrate** | **NÃO** |
-| **Você** | Local: Ctrl+F5 em `/compras/` · digitar 2 letras · lista sobe. Loja: só com frase+senha |
+| **Deploy** | portar **só** os 2 templates (slim **já** na loja) · **não** merge `teste`→`producao` |
+| **Você** | frase + senha quando quiser loja · Ctrl+F5 `/compras/` |
 
-### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**)
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · após loja v15.68)
+
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5**  
+> **Próximo envio:** pacote abaixo · **sem** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ pronto para envio · teste **v15.70** · prova **44/44** | não |
+
+### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
 
 > **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5** · Render `dep-d9tmfcoae00c73bfb9o0`  
 > **⚠️** **NÃO** merge `teste`→`producao`.
