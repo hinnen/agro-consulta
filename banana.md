@@ -1201,32 +1201,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Slim fornecedor Compras (`COMPRAS-SLIM-FORN` · **v15.81**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto envio** · prova **30/30** (+ fallback **46/46**) · push `teste` |
-| **Loja hoje** | v15.77 — pacote **ainda não** subiu |
-| **Sintoma** | Busca avançada: Fornecedor só «(qualquer)» |
-| **Fix** | slim **v4** com `fornecedor` · cache v4 |
-| **Arquivos** | port cirúrgico: `listar_slim_rows_pdv` + cache slim em `views.py` |
-| **Prova** | `python scripts/verify_compras_slim_forn_path.py` → **VERIFY_OK 30/30** |
-| **Migrate** | **NÃO** |
-| **Deploy** | **não** merge `teste`→`producao` · só port do slim+cache |
-| **Fora** | PDV UI · caixa · Folha |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · após loja v15.77)
+### 🚀 PREP deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**)
 
 > **Loja hoje:** ✅ **Live v15.77** · `producao` @ **b226e66**  
-> **Próximo envio:** pacote abaixo · **sem** merge `teste`→`producao`.
+> **Branch pronta:** `deploy/compras-slim-forn-1108` @ **5bbebbe** · **NÃO** merge teste→producao · **NÃO** push producao sem frase+senha.  
+> **Lojas abertas:** só API slim (+VERSION) — **não** mexe PDV/caixa/templates.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **COMPRAS-SLIM-FORN** | ✅ pronto para envio · teste **v15.81** · prova **30/30** | não |
+| 1 | **COMPRAS-SLIM-FORN** | ✅ PREP · aguarda pausa + senha | não |
 
-### 🐛 FIX — Slim + fornecedor Compras (`COMPRAS-SLIM-FORN`) · **superado**
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **PREP pronto** · aguarda *pode subir…* + **99738595** |
+| **O quê** | slim **v4** com fornecedor · cache v4 (busca avançada Compras) |
+| **Arquivos** | `catalogo_agro.py` (só `listar_slim_rows_pdv`) + `views.py` (cache) + `VERSION` · **+40/−9** |
+| **Fora** | PDV UI · caixa · Folha · templates Compras |
+| **Prova** | **30/30** + deploy tree **DEPLOY_SLIM_FORN_OK** (1398 forn / 60 opts) |
+| **Rollback** | tag `rollback/pre-compras-slim-forn-v15.77` @ `b226e66` |
+| **Autorizar (próximo chat)** | lojas pausam → *pode subir COMPRAS-SLIM-FORN / deploy/compras-slim-forn-1108 para produção* + **99738595** |
+| **Depois** | Ctrl+F5 `/compras/` · badge **v15.82** · Busca avançada → Fornecedor com lista |
 
-> Vigente: **PACOTE PRONTO — COMPRAS-SLIM-FORN** no topo.
+### ✅ CHECKLIST ÚNICO — pronto envio (11/08 · PREP v15.82)
+
+> **Loja hoje:** ✅ **Live v15.77** · próximo: FF `deploy/compras-slim-forn-1108` → `producao` **só** com senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FORN** | ✅ PREP / aguarda pausa+senha · branch `deploy/compras-slim-forn-1108` @ **5bbebbe** · prova **30/30** | não |
+
+### 📦 PACOTE PRONTO — Slim fornecedor Compras (`COMPRAS-SLIM-FORN` · **v15.81**) · **superado**
+
+> Vigente: **PREP deploy loja — COMPRAS-SLIM-FORN** no topo.
 
 ### ✅ Deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**)
 
