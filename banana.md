@@ -1201,6 +1201,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔎 2ª varredura EAN linha NF (`NF-BIP-EAN` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | dry-run local · **não** aplicado · push `teste` |
+| **Resultado** | 73 notas · 377 pares · **366 já no cadastro** · **11 faltam** (1 promove / 10 opc) |
+| **Obs** | Vários dos 11 parecem lixo (111…, 123…) — Renan decide se aplica |
+| **Cmd** | `contar_bip_entrada_nf_cadastro --fonte=ean` (+ `--aplicar`) |
+
 ### ✅ Backfill bip NF → cadastro (`NF-BIP-BF` · **teste v15.89**)
 
 | Item | Detalhe |
