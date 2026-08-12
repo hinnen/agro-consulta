@@ -13,7 +13,8 @@ Uso:
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+import re
+from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -30,6 +31,22 @@ from produtos.models import EntradaNotaRascunhoAgro, Produto, ProdutoGestaoOverl
 
 def _digits(s: Any) -> str:
     return "".join(ch for ch in str(s or "") if ch.isdigit())
+
+
+def parece_ean_fabrica_br(dig: str) -> bool:
+    """EAN/GTIN que parece de fábrica BR (789/790) — filtra 111…, 123…, 300… interno."""
+    d = _digits(dig)
+    if len(d) not in (8, 12, 13, 14):
+        return False
+    if len(set(d)) < 4:
+        return False
+    if re.match(r"^(0+|1+|1234567890|0123456789|123123123)", d):
+        return False
+    if d.startswith(("789", "790")):
+        return True
+    if len(d) == 14 and d[0] in ("0", "1") and d[1:].startswith(("789", "790")):
+        return True
+    return False
 
 
 def _pid_ok(pid: str) -> bool:
@@ -261,13 +278,24 @@ class Command(BaseCommand):
             action="store_true",
             help="Grava no cadastro. Sem isto = so conta.",
         )
+        parser.add_argument(
+            "--somente-ean-real",
+            action="store_true",
+            help="Ao aplicar/listar faltantes: so 789/790 (fabrica BR), sem lixo 111/123/300.",
+        )
 
     def handle(self, *args, **options):
         fonte = str(options.get("fonte") or "bip")
         aplicar = bool(options.get("aplicar"))
         amostra_n = max(0, int(options.get("amostra") or 0))
+        so_real = bool(options.get("somente_ean_real"))
 
         stats, faltam = _scan(fonte)
+        lixo_n = 0
+        if so_real:
+            filtrados = [x for x in faltam if parece_ean_fabrica_br(x["bip"])]
+            lixo_n = len(faltam) - len(filtrados)
+            faltam = filtrados
 
         self.stdout.write("")
         self.stdout.write(f"=== Contagem fonte={fonte} Entrada NF -> cadastro ===")
@@ -275,9 +303,17 @@ class Command(BaseCommand):
         self.stdout.write(f"Linhas com codigo na fonte:        {stats['linhas_com']}")
         self.stdout.write(f"Pares unicos produto+codigo:       {stats['pares_total']}")
         self.stdout.write(f"  ja no cadastro (pula):           {stats['pares_ja']}")
-        self.stdout.write(f"  ainda faltam gravar:             {stats['faltam']}")
-        self.stdout.write(f"    estim. promove (230...->opc):  {stats['promove']}")
-        self.stdout.write(f"    estim. so opcional:            {stats['opcional']}")
+        self.stdout.write(f"  ainda faltam (bruto):            {stats['faltam']}")
+        if so_real:
+            self.stdout.write(f"  apos filtro EAN real 789/790:    {len(faltam)} (lixo/outros: {lixo_n})")
+        self.stdout.write(
+            f"    estim. promove (230...->opc):  "
+            f"{sum(1 for x in faltam if x['acao_est'] == 'promove')}"
+        )
+        self.stdout.write(
+            f"    estim. so opcional:            "
+            f"{sum(1 for x in faltam if x['acao_est'] == 'opcional')}"
+        )
         self.stdout.write("")
         if fonte == "ean":
             self.stdout.write(
@@ -287,6 +323,8 @@ class Command(BaseCommand):
             self.stdout.write("Fonte bip: so bip_similar_codigos (Sim./Opc.).")
         else:
             self.stdout.write("Fonte ambas: bip_similar + ean da linha (+ variante GTIN-14).")
+        if so_real:
+            self.stdout.write("Filtro: somente EAN fabrica BR (789/790).")
 
         if not aplicar:
             if faltam and amostra_n:
@@ -335,4 +373,6 @@ class Command(BaseCommand):
         self.stdout.write(f"  opcional: {ok_o}")
         self.stdout.write(f"  noop:     {noop}")
         self.stdout.write(f"  erro:     {err}")
+        if so_real:
+            self.stdout.write(f"  (lixo ignorado: {lixo_n})")
         self.stdout.write("")
