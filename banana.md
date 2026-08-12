@@ -1207,7 +1207,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · **não** loja |
+| **Status** | ✅ **pronto para envio à produção** · `teste` @ **5352a9c** · **não** loja |
 | **O quê** | Etapa 3 casa EAN da linha **+** barras do cadastro/overlay dos itens da NF · Ok se casado por EAN/bip na etapa 2 |
 | **Prova** | `scripts/verify_nf_bip_et3_path.py` **VERIFY_OK 40/40** · irmã `verify_nf_bip_cadastro_path.py` **31/31** |
 | **Migrate** | **NÃO** |
