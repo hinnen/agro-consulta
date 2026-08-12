@@ -1,17 +1,19 @@
 """
-Conta e (opcional) aplica códigos bipados das Entradas NF antigas no cadastro.
+Conta e (opcional) aplica códigos das Entradas NF antigas no cadastro.
 
-Fonte: ``EntradaNotaRascunhoAgro.linhas[].bip_similar_codigos``.
-Padrão = só conta. Com ``--aplicar`` grava (regra B: 230… promove).
+Fontes:
+  - bip  = linhas[].bip_similar_codigos (Sim./Opc.)
+  - ean  = linhas[].ean da NF (+ variante sem 1º dígito se GTIN-14 1…/0…)
+  - ambas = as duas
 
 Uso:
-  python manage.py contar_bip_entrada_nf_cadastro
-  python manage.py contar_bip_entrada_nf_cadastro --aplicar
+  python manage.py contar_bip_entrada_nf_cadastro --fonte=ean
+  python manage.py contar_bip_entrada_nf_cadastro --fonte=ean --aplicar
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Iterable
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -43,6 +45,39 @@ def _pid_ok(pid: str) -> bool:
     if 16 <= len(s) <= 64 and all(c.isalnum() for c in s):
         return True
     return False
+
+
+def _ean_candidatos(raw: Any) -> list[str]:
+    """EAN da NF + variante unitária se vier GTIN-14 com prefixo 0/1."""
+    dig = _digits(raw)
+    if len(dig) < 8 or len(dig) > 20:
+        return []
+    if set(dig) <= {"0"}:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(x: str) -> None:
+        if 8 <= len(x) <= 20 and x not in seen and not (set(x) <= {"0"}):
+            seen.add(x)
+            out.append(x)
+
+    add(dig)
+    # Embalagem/caixa: 14 dígitos começando com 0 ou 1 → unitário sem o 1º dígito
+    if len(dig) == 14 and dig[0] in ("0", "1"):
+        add(dig[1:])
+    return out
+
+
+def _codigos_fonte_linha(ln: dict, fonte: str) -> list[str]:
+    raw: list[str] = []
+    if fonte in ("bip", "ambas"):
+        sim = ln.get("bip_similar_codigos")
+        if isinstance(sim, list):
+            raw.extend(str(x) for x in sim)
+    if fonte in ("ean", "ambas"):
+        raw.extend(_ean_candidatos(ln.get("ean")))
+    return normalizar_codigos_barras_opcionais(raw)
 
 
 def _codigos_ja_no_cadastro(pid: str) -> set[str]:
@@ -103,7 +138,6 @@ def _bip_conflito_outro_produto(pid: str, dig: str) -> bool:
 
 
 def _aplicar_um(pid: str, dig: str) -> str:
-    """Grava 1 bip. Retorna acao efetiva: promove|opcional|noop|erro."""
     ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
         produto_externo_id=pid[:64],
         defaults={},
@@ -126,8 +160,11 @@ def _aplicar_um(pid: str, dig: str) -> str:
         if lista:
             ex["codigos_barras_opcionais"] = lista
             ex.pop("codigos_barras_alternativos", None)
+        # EAN da NF em 14 dígitos (embalagem) — campo dedicado, se ainda vazio.
+        if len(dig) == 14 and dig[0] in ("0", "1"):
+            if not str(ex.get("entrada_nfe_ean_embalagem") or "").strip():
+                ex["entrada_nfe_ean_embalagem"] = dig
         ov.cadastro_extras = ex
-        ov.atualizado_em = timezone.now()
         ov.save()
         if acao == "promove" and res.get("codigo_barras"):
             Produto.objects.filter(produto_externo_id=pid[:64]).update(
@@ -136,28 +173,32 @@ def _aplicar_um(pid: str, dig: str) -> str:
     return acao
 
 
-def _coletar_faltantes() -> list[dict[str, str]]:
+def _scan(fonte: str) -> tuple[dict[str, int], list[dict[str, str]]]:
+    notas_com = 0
+    linhas_com = 0
+    pares_total = 0
+    pares_ja = 0
     vistos: set[tuple[str, str]] = set()
-    out: list[dict[str, str]] = []
-    qs = EntradaNotaRascunhoAgro.objects.only(
+    faltam: list[dict[str, str]] = []
+
+    for row in EntradaNotaRascunhoAgro.objects.only(
         "rascunho_id", "linhas", "cabecalho", "status"
-    ).iterator(chunk_size=200)
-    for row in qs:
+    ).iterator(chunk_size=200):
         linhas = row.linhas if isinstance(row.linhas, list) else []
         cab = row.cabecalho if isinstance(row.cabecalho, dict) else {}
         nf = str(cab.get("numero") or "").strip() or "-"
+        teve = False
         for ln in linhas:
             if not isinstance(ln, dict):
                 continue
             pid = str(ln.get("produto_id") or "").strip()
             if not _pid_ok(pid):
                 continue
-            sim = ln.get("bip_similar_codigos")
-            if not isinstance(sim, list) or not sim:
-                continue
-            codigos = normalizar_codigos_barras_opcionais(sim)
+            codigos = _codigos_fonte_linha(ln, fonte)
             if not codigos:
                 continue
+            teve = True
+            linhas_com += 1
             ja = _codigos_ja_no_cadastro(pid)
             princ = _principal_atual(pid)
             for dig in codigos:
@@ -165,13 +206,16 @@ def _coletar_faltantes() -> list[dict[str, str]]:
                 if key in vistos:
                     continue
                 vistos.add(key)
+                pares_total += 1
                 if dig in ja:
+                    pares_ja += 1
                     continue
-                if princ and eh_codigo_barras_loja(princ):
-                    acao_est = "promove"
-                else:
-                    acao_est = "opcional"
-                out.append(
+                acao_est = (
+                    "promove"
+                    if princ and eh_codigo_barras_loja(princ)
+                    else "opcional"
+                )
+                faltam.append(
                     {
                         "nf": nf,
                         "pid": pid,
@@ -181,13 +225,31 @@ def _coletar_faltantes() -> list[dict[str, str]]:
                         "status_nota": str(row.status or ""),
                     }
                 )
-    return out
+        if teve:
+            notas_com += 1
+
+    stats = {
+        "notas_com": notas_com,
+        "linhas_com": linhas_com,
+        "pares_total": pares_total,
+        "pares_ja": pares_ja,
+        "faltam": len(faltam),
+        "promove": sum(1 for x in faltam if x["acao_est"] == "promove"),
+        "opcional": sum(1 for x in faltam if x["acao_est"] == "opcional"),
+    }
+    return stats, faltam
 
 
 class Command(BaseCommand):
-    help = "Conta / aplica bips antigos da Entrada NF no cadastro."
+    help = "Conta / aplica EAN ou bip das Entradas NF no cadastro."
 
     def add_arguments(self, parser):
+        parser.add_argument(
+            "--fonte",
+            choices=("bip", "ean", "ambas"),
+            default="bip",
+            help="bip=similar antigo; ean=EAN da linha NF; ambas=os dois.",
+        )
         parser.add_argument(
             "--amostra",
             type=int,
@@ -201,61 +263,30 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        fonte = str(options.get("fonte") or "bip")
         aplicar = bool(options.get("aplicar"))
         amostra_n = max(0, int(options.get("amostra") or 0))
 
-        faltam = _coletar_faltantes()
-        promove_est = sum(1 for x in faltam if x["acao_est"] == "promove")
-        so_opc = len(faltam) - promove_est
-
-        notas_com_bip = 0
-        linhas_com_bip = 0
-        pares_total = 0
-        pares_ja = 0
-        vistos_all: set[tuple[str, str]] = set()
-        for row in EntradaNotaRascunhoAgro.objects.only("linhas").iterator(chunk_size=200):
-            linhas = row.linhas if isinstance(row.linhas, list) else []
-            teve = False
-            for ln in linhas:
-                if not isinstance(ln, dict):
-                    continue
-                pid = str(ln.get("produto_id") or "").strip()
-                if not _pid_ok(pid):
-                    continue
-                sim = ln.get("bip_similar_codigos")
-                if not isinstance(sim, list) or not sim:
-                    continue
-                codigos = normalizar_codigos_barras_opcionais(sim)
-                if not codigos:
-                    continue
-                teve = True
-                linhas_com_bip += 1
-                ja = _codigos_ja_no_cadastro(pid)
-                for dig in codigos:
-                    key = (pid, dig)
-                    if key in vistos_all:
-                        continue
-                    vistos_all.add(key)
-                    pares_total += 1
-                    if dig in ja:
-                        pares_ja += 1
-            if teve:
-                notas_com_bip += 1
+        stats, faltam = _scan(fonte)
 
         self.stdout.write("")
-        self.stdout.write("=== Contagem bip Entrada NF -> cadastro ===")
-        self.stdout.write(f"Notas com bip_similar gravado:     {notas_com_bip}")
-        self.stdout.write(f"Linhas com bip_similar:            {linhas_com_bip}")
-        self.stdout.write(f"Pares unicos produto+codigo:       {pares_total}")
-        self.stdout.write(f"  ja no cadastro (pula):           {pares_ja}")
-        self.stdout.write(f"  ainda faltam gravar:             {len(faltam)}")
-        self.stdout.write(f"    estim. promove (230...->opc):  {promove_est}")
-        self.stdout.write(f"    estim. so opcional:            {so_opc}")
+        self.stdout.write(f"=== Contagem fonte={fonte} Entrada NF -> cadastro ===")
+        self.stdout.write(f"Notas com codigo na fonte:         {stats['notas_com']}")
+        self.stdout.write(f"Linhas com codigo na fonte:        {stats['linhas_com']}")
+        self.stdout.write(f"Pares unicos produto+codigo:       {stats['pares_total']}")
+        self.stdout.write(f"  ja no cadastro (pula):           {stats['pares_ja']}")
+        self.stdout.write(f"  ainda faltam gravar:             {stats['faltam']}")
+        self.stdout.write(f"    estim. promove (230...->opc):  {stats['promove']}")
+        self.stdout.write(f"    estim. so opcional:            {stats['opcional']}")
         self.stdout.write("")
-        self.stdout.write(
-            "Obs.: so entra bip_similar_codigos (Sim./Opc.). "
-            "Centenas de notas com Ok puro nao tem bip separado gravado."
-        )
+        if fonte == "ean":
+            self.stdout.write(
+                "Fonte ean: campo ean da linha + variante sem 1o digito se GTIN-14 (0/1…)."
+            )
+        elif fonte == "bip":
+            self.stdout.write("Fonte bip: so bip_similar_codigos (Sim./Opc.).")
+        else:
+            self.stdout.write("Fonte ambas: bip_similar + ean da linha (+ variante GTIN-14).")
 
         if not aplicar:
             if faltam and amostra_n:
@@ -263,7 +294,7 @@ class Command(BaseCommand):
                 self.stdout.write(f"Amostra ({min(amostra_n, len(faltam))}):")
                 for a in faltam[:amostra_n]:
                     self.stdout.write(
-                        f"  NF {a['nf']} · prod {a['pid'][:20]} · bip {a['bip']} · "
+                        f"  NF {a['nf']} · prod {a['pid'][:20]} · cod {a['bip']} · "
                         f"hoje {a['principal_hoje']} -> {a['acao_est']} · nota {a['status_nota']}"
                     )
             self.stdout.write("")
@@ -278,7 +309,7 @@ class Command(BaseCommand):
             except Exception as exc:
                 err += 1
                 self.stdout.write(
-                    f"ERRO prod {item['pid'][:24]} bip {item['bip']}: {exc}"
+                    f"ERRO prod {item['pid'][:24]} cod {item['bip']}: {exc}"
                 )
                 continue
             if acao == "promove":
