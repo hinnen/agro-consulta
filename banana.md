@@ -1203,37 +1203,47 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **PREP pronto** · aguarda **pausa vendas** + frase + senha no **próximo chat** |
+| **Branch** | `deploy/lote-checklist-1208b` @ **262d460** · base loja `producao` @ **ec76e89** (v15.99) |
+| **Pacotes** | CP-CAL-PG · NF-BIP-ET3 |
+| **Prova** | VERIFY **31/31** (CP) · **40/40** (ET3) · irmã NF-BIP-CAD **31/31** · static deploy **8/8** |
+| **Migrate** | **NÃO** |
+| **Escopo** | só calendário CP + Entrada NF etapa 3 · **PDV/caixa intactos** vs loja |
+| **Rollback** | tag `rollback/pre-lote-checklist-1208b-v15.99` @ **ec76e89** |
+| **Risco loja aberta** | baixo no path (CP calendário + NF bip) · **mesmo assim** pausar vendas no restart |
+| **Deploy** | cirúrgico FF branch → `producao` · **NÃO** merge `teste`→`producao` · **NÃO** push `producao` sem frase+senha |
+
+### ✅ CHECKLIST ÚNICO — PREP (12/08 · loja ainda Live v15.99)
+
+> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha **depois** de pausar vendas.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-CAL-PG** | ✅ PREP / pronto para envio à produção | não |
+| 2 | **NF-BIP-ET3** | ✅ PREP / pronto para envio à produção | não |
+
 ### 📦 PACOTE PRONTO — Entrada NF etapa 3 barras (`NF-BIP-ET3` · **teste v16.06**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` @ **5352a9c** · **não** loja |
-| **O quê** | Etapa 3 casa EAN da linha **+** barras do cadastro/overlay dos itens da NF · Ok se casado por EAN/bip na etapa 2 |
-| **Prova** | `scripts/verify_nf_bip_et3_path.py` **VERIFY_OK 40/40** · irmã `verify_nf_bip_cadastro_path.py` **31/31** |
+| **Status** | ✅ **PREP no lote 12/08b** · `deploy/lote-checklist-1208b` @ **262d460** · **não** loja |
+| **O quê** | Etapa 3 casa EAN da linha **+** barras do cadastro/overlay · Ok se casado por EAN/bip |
+| **Prova** | `scripts/verify_nf_bip_et3_path.py` **VERIFY_OK 40/40** · irmã **31/31** |
 | **Migrate** | **NÃO** |
-| **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` |
-| **Você** | frase + senha · Ctrl+F5 Entrada NF · bip etapa 3 |
 
 ### 📦 PACOTE PRONTO — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` @ **dfd0244** · **não** loja |
+| **Status** | ✅ **PREP no lote 12/08b** · `deploy/lote-checklist-1208b` @ **262d460** · **não** loja |
 | **O quê** | Calendário CP lê Postgres (sem Mongo) · totais/dia = lista abertos |
-| **Prova** | `scripts/verify_cp_calendario_pg_path.py` · **VERIFY_OK 31/31** · ago/2026 cal=lista **R$ 14.675,50** |
+| **Prova** | `scripts/verify_cp_calendario_pg_path.py` · **VERIFY_OK 31/31** |
 | **Migrate** | **NÃO** |
-| **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` |
-| **Você** | frase + senha · Ctrl+F5 `/lancamentos/contas-pagar/calendario/` |
-
-### ✅ CHECKLIST ÚNICO — pronto envio (12/08 · loja ainda Live v15.99)
-
-> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CP-CAL-PG** | ✅ pronto para envio à produção | não |
-| 2 | **NF-BIP-ET3** | ✅ pronto para envio à produção | não |
 
 ### ✅ Deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
 
