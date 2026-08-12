@@ -16159,7 +16159,7 @@ def api_entrada_nota_fornecedores(request):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_conferir_codigo(request):
-    """Confere código bipado somente como código de barras / EAN no cadastro Mongo (não GM/referência)."""
+    """Confere código bipado como barras/EAN do cadastro (Mongo + overlay Agro; não GM)."""
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -16171,6 +16171,48 @@ def api_entrada_nota_conferir_codigo(request):
     codigo_alt = str(payload.get("codigo_alt") or "").strip()
     if not produto_id or not codigo:
         return JsonResponse({"ok": False, "erro": "Informe produto e o código bipado."}, status=400)
+
+    def _dig(s: str) -> str:
+        return "".join(ch for ch in str(s or "") if ch.isdigit())
+
+    def _bate_overlay_agro(pid: str, dig_c: str, dig_a: str) -> tuple[bool, str]:
+        """Barras principal / opcionais / EAN embalagem NF no overlay ou Produto PG."""
+        if not dig_c and not dig_a:
+            return False, ""
+        nome = ""
+        try:
+            from produtos.catalogo_agro import obter_produto_model
+            from produtos.models import ProdutoGestaoOverlayAgro
+            from produtos.mongo_index_codigos import codigos_barras_opcionais_de_cadastro_extras
+
+            p = obter_produto_model(pid)
+            if p is not None:
+                nome = str(p.nome or "")[:300]
+            ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first()
+            cands: list[str] = []
+            if ov is not None and (ov.codigo_barras or "").strip():
+                cands.append(_dig(ov.codigo_barras))
+            if p is not None and (p.codigo_barras or "").strip():
+                cands.append(_dig(p.codigo_barras))
+            if ov is not None:
+                ce = getattr(ov, "cadastro_extras", None) or {}
+                if isinstance(ce, dict):
+                    for x in codigos_barras_opcionais_de_cadastro_extras(ce):
+                        cands.append(_dig(x))
+                    for k in ("entrada_nfe_ean_embalagem", "ean_embalagem_nf"):
+                        cands.append(_dig(ce.get(k)))
+            cands = [c for c in cands if len(c) >= 8]
+            for c in cands:
+                if dig_c and c == dig_c:
+                    return True, nome
+                if dig_a and c == dig_a:
+                    return True, nome
+            return False, nome
+        except Exception:
+            return False, ""
+
+    dig_c = _dig(codigo)
+    dig_a = _dig(codigo_alt) if codigo_alt else ""
 
     client, db = obter_conexao_mongo()
     col = None
@@ -16184,14 +16226,22 @@ def api_entrada_nota_conferir_codigo(request):
             pass
         doc = col.find_one({"$or": ors})
     if not doc:
+        bate_ov, nome_ov = _bate_overlay_agro(produto_id, dig_c, dig_a)
+        if nome_ov or bate_ov:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "bate": bate_ov,
+                    "ignorado": False,
+                    "nome": nome_ov,
+                }
+            )
         from produtos.catalogo_agro import obter_produto_model
 
         p = obter_produto_model(produto_id)
         if p is None:
             return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
-        dig_p = "".join(ch for ch in str(p.codigo_barras or "") if ch.isdigit())
-        dig_c = "".join(ch for ch in codigo if ch.isdigit())
-        dig_a = "".join(ch for ch in codigo_alt if ch.isdigit()) if codigo_alt else ""
+        dig_p = _dig(p.codigo_barras)
         bate = bool(dig_p and dig_c and dig_p == dig_c)
         if not bate and dig_a:
             bate = bool(dig_p and dig_a and dig_p == dig_a)
@@ -16209,6 +16259,10 @@ def api_entrada_nota_conferir_codigo(request):
     if not bate and codigo_alt:
         ta = somente_alnum(codigo_alt).lower()
         bate = bool(ta and produto_termo_bate_somente_codigo_barras(doc, ta))
+    if not bate:
+        bate_ov, _nome_ov = _bate_overlay_agro(produto_id, dig_c, dig_a)
+        if bate_ov:
+            bate = True
     return JsonResponse(
         {
             "ok": True,
