@@ -1202,7 +1202,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Entrada NF bip → cadastro (`NF-BIP-CAD` · **teste v15.96**)
+### 📦 PACOTE PRONTO — Entrada NF bip → cadastro (`NF-BIP-CAD` · **teste v15.98**)
 
 | Item | Detalhe |
 | ---- | ------- |
