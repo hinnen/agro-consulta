@@ -593,7 +593,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
-- **Etapa 3 cód. barras (12/08 · v16.05):** bip casa com EAN da linha **e** barras do cadastro dos itens da NF (flag ERP religada); casado por EAN/bip na etapa 2 → Ok verde; `match_tipo` persiste no rascunho.
+- **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 
 ### 4.8 Estoque Agro
 
@@ -1203,6 +1203,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Entrada NF etapa 3 barras (`NF-BIP-ET3` · **teste v16.06**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · **não** loja |
+| **O quê** | Etapa 3 casa EAN da linha **+** barras do cadastro/overlay dos itens da NF · Ok se casado por EAN/bip na etapa 2 |
+| **Prova** | `scripts/verify_nf_bip_et3_path.py` **VERIFY_OK 40/40** · irmã `verify_nf_bip_cadastro_path.py` **31/31** |
+| **Migrate** | **NÃO** |
+| **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` |
+| **Você** | frase + senha · Ctrl+F5 Entrada NF · bip etapa 3 |
+
 ### 📦 PACOTE PRONTO — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.04**)
 
 | Item | Detalhe |
@@ -1222,6 +1233,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CP-CAL-PG** | ✅ pronto para envio à produção | não |
+| 2 | **NF-BIP-ET3** | ✅ pronto para envio à produção | não |
 
 ### ✅ Deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
 
