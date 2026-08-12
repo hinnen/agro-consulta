@@ -578,6 +578,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
 - **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
+- **XML vs Aguarde 1h (12/08):** Buscar lista (distNSU) continua com 1h após 137; **Buscar XML / chave** só trava no **656**. Após Buscar, sistema tenta Ciência+XML sozinho nas «Só resumo» — fica pronto para **Carregar na grade** (manual, uma nota por vez).
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
@@ -1200,6 +1201,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ DF-e — XML fora do Aguarde 1h da lista (`DFE-XML-AGUARDE` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ teste · VERIFY_OK 26/26 · **não** loja |
+| **Problema** | Após Buscar, «Buscar XML» ficava preso no contador de 1h da lista |
+| **Fix** | Lista = 1h no 137; XML/chave só trava no **656** · auto Ciência+XML nas Só resumo · **Carregar na grade** continua manual |
+| **Arquivos** | `sefaz_dfe_client.py` · `dfe_inbox_util.py` · `views.py` · `entrada_nota.html` · `verify_dfe_manifestacao.py` |
+| **Você** | Ctrl+F5 Entrada NF → SEFAZ → Buscar · notas devem ir para **Carregar na grade** sem esperar 1h |
+| **Migrate** | **NÃO** |
 
 ### ✅ 2ª varredura EAN — só fábrica 789/790 (`NF-BIP-EAN-REAL` · **teste**)
 

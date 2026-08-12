@@ -222,6 +222,67 @@ def provar_fluxo() -> None:
     check("XML ja completo nao chama SEFAZ", out_ja.get("xml_completo") and mock_c.call_count == 0)
 
 
+def provar_cooldown_chave() -> None:
+    """Aguarde da lista (137) não trava Buscar XML; 656 trava."""
+    import time
+
+    from django.core.cache import cache
+
+    from produtos.sefaz_dfe_client import (
+        dfe_aplicar_cooldown_apos_resposta,
+        dfe_checar_limite_consulta,
+    )
+
+    cnpj = CNPJ
+    cache.delete(f"agro_dfe_cooldown:{cnpj}")
+    cache.delete(f"agro_dfe_last_call:nsu:{cnpj}")
+    cache.delete(f"agro_dfe_last_call:chave:{cnpj}")
+
+    dfe_aplicar_cooldown_apos_resposta(
+        cnpj,
+        c_stat=137,
+        ult_nsu="1",
+        max_nsu="1",
+        x_motivo="Nenhum documento",
+        origem="dist_nsu",
+    )
+    bloq_lista = dfe_checar_limite_consulta(cnpj, modo="dist_nsu")
+    bloq_xml = dfe_checar_limite_consulta(cnpj, modo="cons_chave")
+    check("137 trava Buscar lista", bool(bloq_lista and bloq_lista.get("aguardar_segundos")))
+    check("137 nao trava Buscar XML", bloq_xml is None)
+
+    dfe_aplicar_cooldown_apos_resposta(
+        cnpj,
+        c_stat=656,
+        ult_nsu="1",
+        max_nsu="1",
+        x_motivo="Consumo indevido",
+        origem="cons_chave",
+    )
+    bloq_xml2 = dfe_checar_limite_consulta(cnpj, modo="cons_chave")
+    bloq_lista2 = dfe_checar_limite_consulta(cnpj, modo="dist_nsu")
+    check("656 trava Buscar XML", bool(bloq_xml2 and bloq_xml2.get("c_stat") == 656))
+    check("656 trava Buscar lista", bool(bloq_lista2))
+
+    # cons_chave com 138/fim NSU não deve gravar cooldown de lista
+    cache.delete(f"agro_dfe_cooldown:{cnpj}")
+    dfe_aplicar_cooldown_apos_resposta(
+        cnpj,
+        c_stat=138,
+        ult_nsu="99",
+        max_nsu="99",
+        x_motivo="Documento localizado",
+        origem="cons_chave",
+    )
+    check(
+        "138 chave nao grava Aguarde lista",
+        dfe_checar_limite_consulta(cnpj, modo="dist_nsu") is None,
+    )
+    # limpa
+    cache.delete(f"agro_dfe_cooldown:{cnpj}")
+    _ = time.time()
+
+
 def provar_rota_migrate() -> None:
     import importlib.util
 
@@ -253,6 +314,7 @@ def main() -> int:
     print("=== verify_dfe_manifestacao ===")
     provar_cliente()
     provar_fluxo()
+    provar_cooldown_chave()
     provar_rota_migrate()
     print(f"\nRESULTADO: {PASS} ok · {FAIL} fail")
     print("VERIFY_OK" if not FAIL else "VERIFY_FAIL")

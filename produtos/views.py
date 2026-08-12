@@ -14577,14 +14577,19 @@ def api_entrada_nota_sefaz_status(request):
     permite_sefaz = dfe_ambiente_permite_consulta_sefaz()
     bloqueio_pc = dfe_bloqueio_pc_local()
     bloqueio = None
+    bloqueio_xml = None
     if permite_sefaz and configurada and len(cnpj) == 14:
-        bloqueio = dfe_checar_limite_consulta(cnpj)
+        bloqueio = dfe_checar_limite_consulta(cnpj, modo="dist_nsu")
+        bloqueio_xml = dfe_checar_limite_consulta(cnpj, modo="cons_chave")
     aguardar = int((bloqueio or {}).get("aguardar_segundos") or 0)
+    aguardar_xml = int((bloqueio_xml or {}).get("aguardar_segundos") or 0)
     motivo = ""
     if bloqueio_pc:
         motivo = str(bloqueio_pc.get("erro") or "")
     elif bloqueio:
         motivo = str(bloqueio.get("erro") or bloqueio.get("x_motivo") or "")
+    elif bloqueio_xml:
+        motivo = str(bloqueio_xml.get("erro") or "")
     return JsonResponse(
         {
             "configurada": configurada,
@@ -14594,7 +14599,9 @@ def api_entrada_nota_sefaz_status(request):
             "ult_nsu": obter_ult_nsu(None, cnpj) if len(cnpj) == 14 else "0",
             "consulta_sefaz_habilitada": permite_sefaz,
             "consulta_liberada": bool(permite_sefaz and not bloqueio),
+            "xml_liberado": bool(permite_sefaz and not bloqueio_xml),
             "aguardar_segundos": aguardar,
+            "aguardar_xml_segundos": aguardar_xml,
             "limite_motivo": motivo,
             "bloqueio_pc_local": bool(bloqueio_pc),
         }
@@ -17752,10 +17759,17 @@ def api_entrada_nota_dist_dfe(request):
     else:
         msg_ui = str(res.get("x_motivo") or res.get("erro") or "")
     resumos = int(inbox.get("resumos") or 0)
-    if resumos and novas:
-        msg_ui += " Algumas só vieram como resumo — use Ler XML se não der para carregar."
-    elif resumos and not novas:
-        msg_ui += " Receita mandou só resumo (sem XML completo) — use Ler XML para dar entrada."
+    auto = res.get("auto_xml") or {}
+    xml_ok = int(auto.get("xml_completos") or 0)
+    if xml_ok:
+        msg_ui += f" {xml_ok} pronta(s) para Carregar na grade."
+    elif resumos and novas:
+        msg_ui += " Algumas só vieram como resumo — o sistema tenta liberar o XML sozinho."
+    elif resumos and not novas and not xml_ok:
+        msg_ui += " Receita mandou só resumo — se ainda não liberou, use Dar ciência / Buscar XML."
+    ainda = int(auto.get("ainda_resumo") or 0)
+    if ainda and xml_ok:
+        msg_ui += f" {ainda} ainda sem XML completo (tente Buscar XML no item em alguns minutos)."
 
     out = {
         "ok": bool(res.get("ok")),
@@ -17769,6 +17783,7 @@ def api_entrada_nota_dist_dfe(request):
         "erro": res.get("erro"),
         "msg_ui": msg_ui,
         "inbox": inbox,
+        "auto_xml": auto,
         "itens": res.get("itens_pendentes") or dfe_inbox_listar(cnpj_cfg, aba="pendentes"),
         "previews": [],
     }

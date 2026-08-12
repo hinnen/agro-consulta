@@ -2166,9 +2166,9 @@
         <div class="border-l-4 border-emerald-300 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">SEFAZ (DF-e)</p>
           <p><strong>Buscar notas novas</strong> puxa só o que ainda não passou no cursor e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
-          <p><strong>Baixar pela chave</strong> recupera nota que o Buscar já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita: não use no meio do «Aguarde 1h».</p>
-          <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong>, aguarde ~1h antes de consultar de novo.</p>
-          <p>Item <strong>Só resumo</strong>: clique <strong>Dar ciência e buscar XML</strong>. A Ciência libera o XML completo; se a Receita ainda estiver processando, aguarde e clique <strong>Buscar XML</strong> no mesmo item.</p>
+          <p><strong>Baixar pela chave</strong> e <strong>Buscar XML</strong> liberam a nota na caixa mesmo com o «Aguarde 1h» do Buscar lista — só o <strong>656</strong> trava o XML. Não carrega na grade sozinho.</p>
+          <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong> no Buscar lista, aguarde ~1h antes de buscar notas novas de novo.</p>
+          <p>Após o Buscar, o sistema tenta sozinho Ciência + XML nas «Só resumo». Quando ficar <strong>Carregar na grade</strong>, clique na que for dar entrada (uma de cada vez).</p>
           <p><strong>Pendentes</strong> = ainda para lançar · <strong>Concluídas</strong> = carregadas ou ignoradas. <strong>Avançado</strong> (ultNSU) só se o suporte pedir.</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
@@ -5588,9 +5588,8 @@
     const trSel = rows[ix];
     if (!trSel) return;
     const rawCod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
-    const rawAlt = document.getElementById('nfe-bip-cod-alt')?.value?.trim() || '';
-    const codMain = rawCod || rawAlt;
-    const codAux = rawCod && rawAlt ? rawAlt : '';
+    const codMain = rawCod;
+    const codAux = '';
     const ign = document.getElementById('nfe-bip-ignorar')?.checked;
     if (!ign && !String(codMain).trim()) {
       if (msg) msg.textContent = 'Informe o código lido pelo leitor (principal).';
@@ -6234,9 +6233,9 @@
         resumo: 'Puxe notas da Receita para a caixa salva no banco (todos os PCs) e carregue na grade.',
         itens: [
           'Buscar notas novas: só puxa o que ainda não passou no cursor (até ~80). Processe as mais antigas primeiro.',
-          'Baixar pela chave: recupera nota que o Buscar já passou — não mexe no cursor. Também conta no limite da Receita.',
-          'Se aparecer Aguarde / 656 / 137: espere ~1h antes de consultar de novo. Não use a chave no meio dessa espera.',
-          'Só resumo: clique Dar ciência e buscar XML. Se ainda não liberar, aguarde e use Buscar XML no mesmo item.',
+          'Baixar pela chave / Buscar XML: liberam a nota na caixa mesmo no Aguarde 1h da lista — só 656 trava. Não joga na grade sozinho.',
+          'Se aparecer Aguarde / 656 / 137 no Buscar lista: espere ~1h para buscar notas novas de novo.',
+          'Após o Buscar, o sistema tenta Ciência + XML sozinho. Carregar na grade = você escolhe qual nota dar entrada.',
           'Pendentes = para lançar · Concluídas = carregadas ou ignoradas. Avançado (ultNSU) só se o suporte pedir.',
         ],
       },
@@ -10974,7 +10973,8 @@
     const btnChave = document.getElementById('btn-dfe-chave');
     if (!btn) return;
     const pcLocalOff = !!(s && (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false));
-    const liberado = s && s.configurada && !pcLocalOff && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const liberadoLista = s && s.configurada && !pcLocalOff && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const liberadoXml = s && s.configurada && !pcLocalOff && s.xml_liberado !== false && !(Number(s.aguardar_xml_segundos) > 0);
     const falta = Math.max(0, Math.floor(Number(s && s.aguardar_segundos) || 0));
     const setChave = (on) => {
       if (!btnChave) return;
@@ -10994,11 +10994,11 @@
       }
       return;
     }
-    if (liberado) {
+    setChave(!!liberadoXml);
+    if (liberadoLista) {
       btn.disabled = false;
       btn.classList.remove('opacity-50', 'cursor-not-allowed');
       btn.textContent = 'Buscar notas novas';
-      setChave(true);
       entradaNfeSefazDataAte = 0;
       if (entradaNfeSefazDataTimer) {
         clearInterval(entradaNfeSefazDataTimer);
@@ -11009,7 +11009,6 @@
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
     btn.textContent = falta > 0 ? ('Aguarde ' + entradaNfeSefazFmtEspera(falta)) : 'Consulta bloqueada';
-    setChave(false);
     if (falta > 0) {
       entradaNfeSefazDataAte = Date.now() + falta * 1000;
       if (entradaNfeSefazDataTimer) clearInterval(entradaNfeSefazDataTimer);
@@ -11037,6 +11036,35 @@
       b.classList.toggle('bg-transparent', !on);
       b.classList.toggle('text-slate-700', !on);
     });
+  }
+
+  async function entradaNfeDfeLiberarXmlsRestantes(itens) {
+    const falta = (Array.isArray(itens) ? itens : []).filter((pv) => pv && pv.id && !pv.pode_carregar);
+    if (!falta.length) return;
+    let ok = 0;
+    let itensAgora = itens;
+    for (const pv of falta) {
+      try {
+        const r = await fetch(entradaNfeDfeUrlId(URL_DFE_INBOX_CIENCIA_TMPL, pv.id), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        });
+        const j = await r.json();
+        if (Array.isArray(j.itens_pendentes)) {
+          itensAgora = j.itens_pendentes;
+          entradaNfeDfeRenderInbox(itensAgora);
+        }
+        if (j.xml_completo) ok += 1;
+        if (Number(j.c_stat) === 656 || /656|indevido/i.test(String(j.erro || j.mensagem || ''))) {
+          showMsg(j.erro || j.mensagem || 'Receita bloqueou (656). Aguarde 1h para o restante.', false);
+          break;
+        }
+      } catch (_) {
+        break;
+      }
+    }
+    if (ok) showMsg(ok + ' nota(s) pronta(s) para Carregar na grade.', true);
   }
 
   function entradaNfeDfeUrlId(tmpl, id) {
@@ -11304,12 +11332,21 @@
       if (Array.isArray(j.itens)) entradaNfeDfeRenderInbox(j.itens);
       else void carregarDfeInbox();
       if (j.aguardar_segundos) {
+        const auto656 = !!(j.auto_xml && j.auto_xml.parar_656);
         entradaNfeSefazAplicarLimiteUi({
           configurada: true,
           consulta_liberada: false,
           aguardar_segundos: j.aguardar_segundos,
+          xml_liberado: !auto656,
+          aguardar_xml_segundos: auto656 ? (j.auto_xml.aguardar_segundos || j.aguardar_segundos) : 0,
           limite_motivo: msg,
         });
+      }
+      const aindaResumo = Array.isArray(j.itens)
+        ? j.itens.filter((pv) => pv && !pv.pode_carregar).length
+        : 0;
+      if (aindaResumo && !(j.auto_xml && j.auto_xml.parar_656)) {
+        void entradaNfeDfeLiberarXmlsRestantes(j.itens);
       }
     } catch (e) {
       resBox.textContent = 'Erro de rede.';
@@ -11323,9 +11360,9 @@
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
-    const btnBuscar = document.getElementById('btn-dist-dfe');
-    if (btnBuscar && btnBuscar.disabled) {
-      showMsg('Aguarde o intervalo da SEFAZ antes de baixar pela chave.', false);
+    const btnChave = document.getElementById('btn-dfe-chave');
+    if (btnChave && btnChave.disabled) {
+      showMsg('XML bloqueado pela Receita (656) — aguarde o contador.', false);
       return;
     }
     const chaveRaw = document.getElementById('sefaz-chave')?.value || '';
@@ -11357,10 +11394,14 @@
       if (j.ok) showMsg(msg || 'Nota na caixa de entrada.', true);
       else showMsg(msg || 'Falha ao baixar.', false);
       if (j.aguardar_segundos) {
+        // Baixar pela chave só trava XML no 656; lista pode continuar em Aguarde separado.
+        const so656 = Number(j.c_stat) === 656 || /656|indevido/i.test(String(msg || ''));
         entradaNfeSefazAplicarLimiteUi({
           configurada: true,
-          consulta_liberada: false,
-          aguardar_segundos: j.aguardar_segundos,
+          consulta_liberada: true,
+          aguardar_segundos: 0,
+          xml_liberado: !so656,
+          aguardar_xml_segundos: so656 ? j.aguardar_segundos : 0,
           limite_motivo: msg,
         });
       }
