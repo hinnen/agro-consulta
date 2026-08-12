@@ -1201,6 +1201,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Backfill bip NF → cadastro (`NF-BIP-BF` · **teste v15.88**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ aplicado no PG local · push `teste` · **não** loja |
+| **Aplicado** | **18** opcional · 0 promove · 0 erro |
+| **Por que poucos** | Só `bip_similar_codigos` (Sim./Opc.). Centenas de notas «Ok» **não** guardavam o bip |
+| **Cmd** | `contar_bip_entrada_nf_cadastro --aplicar` |
+| **Próximo** | Se quiser caçar mais: EAN da linha NF (`ean`) vs cadastro — Renan autoriza |
+
 ### 🐛 FIX — Entrada NF bip inteligente + contagem antigos (`NF-BIP-B` · **teste v15.87**)
 
 | Item | Detalhe |
