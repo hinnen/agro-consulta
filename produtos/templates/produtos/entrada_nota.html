@@ -5275,7 +5275,29 @@
     return false;
   }
 
-  /** Bate só com **EAN/código de barras já trazidos da NF na linha** — não usa código GM (NF). */
+  /** Candidatos de barras da linha: EAN na grade, EAN original da NF e similares já bipados. */
+  function entradaNfeBipCodigosCandidatosLinha(tr) {
+    const out = [];
+    const seen = new Set();
+    const push = (raw) => {
+      const s = String(raw || '').trim();
+      if (!s) return;
+      const dig = entradaNfeCatalogOnlyDigits(s);
+      const key = (dig.length >= 8 ? dig : entradaNfeSomenteAlnum(s).toLowerCase());
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push(s);
+    };
+    push(tr && tr.querySelector && tr.querySelector('.in-ean')?.value);
+    push(tr && tr.dataset && tr.dataset.nfeEanOrig);
+    try {
+      const arr = JSON.parse((tr && tr.dataset && tr.dataset.bipSimilarCodigos) || '[]');
+      if (Array.isArray(arr)) arr.forEach(push);
+    } catch (_) {}
+    return out;
+  }
+
+  /** Bate com EAN da linha / EAN original da NF — não usa código GM. */
   function entradaNfeBipBuscarMatchLocalNota(rows, codMain, codAux) {
     const termos = [codMain, codAux].map((x) => String(x || '').trim()).filter(Boolean);
     if (!termos.length) return null;
@@ -5290,14 +5312,17 @@
       const tr = rows[i];
       const pid = tr.querySelector('.in-prod-id')?.value?.trim();
       if (!pid) continue;
-      const ean = String(tr.querySelector('.in-ean')?.value || '').trim();
-      if (!ean) continue;
+      const candidatos = entradaNfeBipCodigosCandidatosLinha(tr);
+      if (!candidatos.length) continue;
       let ok = false;
       for (const t of termos) {
-        if (entradaNfeCodigosEquivalentes(t, ean)) {
-          ok = true;
-          break;
+        for (const cand of candidatos) {
+          if (entradaNfeCodigosEquivalentes(t, cand)) {
+            ok = true;
+            break;
+          }
         }
+        if (ok) break;
       }
       if (!ok) continue;
       return {
@@ -5315,8 +5340,11 @@
     return null;
   }
 
-  /* Mantém o fluxo explícito de vínculo auxiliar: sem auto-match ERP fora da lista da NF. */
-  const ENTRADA_NFE_BIP_AUTO_MATCH_ERP = false;
+  /**
+   * Também confere o barras/EAN do cadastro dos itens **já na lista da NF**
+   * (não busca produto fora da nota).
+   */
+  const ENTRADA_NFE_BIP_AUTO_MATCH_ERP = true;
 
   async function entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux) {
     const loc = entradaNfeBipBuscarMatchLocalNota(rows, codMain, codAux);
@@ -5658,7 +5686,9 @@
       entradaNfeBipLinhaIdx = match.ix;
       let det = '';
       if (match.payload?.local) {
-        det = ' (bate com código de barras da NF)';
+        det = ' (bate com código de barras da linha / NF)';
+      } else if (match.payload?.bate) {
+        det = ' (bate com código de barras do cadastro)';
       }
       entradaNfeBipRebuildSelect();
       entradaNfeBipLimparCamposBip();
@@ -6230,7 +6260,7 @@
         titulo: 'Ajuda rápida · Código de barras',
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
-          'Confirmação automática (verde): só se o lido bater com o EAN da linha na NF ou com código de barras/EAN no cadastro — código GM da NF não basta.',
+          'Verde (Ok): bip bate com o EAN da linha/NF ou com o barras do cadastro daquele item — ou o produto já veio casado por EAN/bip na etapa 2. Código GM da NF não basta.',
           'Se não casar, abre a janela: toque na linha do produto certo. Código interno 230… vira opcional e o bipado passa a principal; senão o bipado entra como opcional.',
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
@@ -7966,7 +7996,15 @@
     tr.querySelector('.in-cfop').value = d.cfop;
     tr.querySelector('.in-prod-id').value = d.produto_id || '';
     atualizarQtdEstoqueRow(tr);
-    const bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
+    const viaCat = String(d.catalogo_via || '').trim();
+    if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
+    else delete tr.dataset.nfeCatVia;
+    const mtBip = String(d.match_tipo || '').trim().toLowerCase();
+    let bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
+    /* Casado por EAN/bip na etapa 2 → já confere barras (verde na etapa 3). */
+    if (!bc && (viaCat === 'scan' || mtBip === 'ean' || mtBip === 'ean_nfe' || mtBip === 'codigo_barras')) {
+      bc = 'ok';
+    }
     if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
     else delete tr.dataset.bipConf;
     entradaNfeLoteAplicarDadosLinha(tr, d);
@@ -7977,9 +8015,6 @@
     } else {
       delete tr.dataset.bipSimilarCodigos;
     }
-    const viaCat = String(d.catalogo_via || '').trim();
-    if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
-    else delete tr.dataset.nfeCatVia;
     entradaNfeLinhaApplyCatalogoUi(tr);
     entradaNfeLinhaApplyPrecosGruposUi(tr, d);
     entradaNfeLinhaRatearCustoPorEmbalagem(tr);
@@ -8209,6 +8244,7 @@
         cfop: tr.querySelector('.in-cfop').value.trim(),
         produto_id: tr.querySelector('.in-prod-id').value.trim(),
         nome_catalogo: entradaNfeLinhaNomeCatalogoTexto(tr),
+        match_tipo: String(tr.dataset.nfeMatchTipo || '').trim(),
         catalogo_via: String(tr.dataset.nfeCatVia || '').trim(),
         bip_conf: entradaNfeBipEstadoLinha(tr),
         bip_similar_codigos: (() => {

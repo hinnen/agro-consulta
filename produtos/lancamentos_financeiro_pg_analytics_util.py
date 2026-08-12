@@ -16,6 +16,7 @@ from django.utils import timezone
 from produtos.lancamentos_financeiro_pg_util import (
     _dec2,
     _titulo_aberto,
+    contas_pagar_montar_qs,
     dedup_titulos,
     titulos_financeiro_montar_qs,
 )
@@ -460,3 +461,117 @@ def grafico_gastos_serie_pg(
         out["ok"] = False
         out["erro"] = "Sem valores no período"
     return out
+
+
+def lancamentos_contas_pagar_totais_diarios_pg(
+    *,
+    vencimento_de: date,
+    vencimento_ate: date,
+) -> dict[str, float]:
+    """Saldo em aberto (a pagar) por dia de vencimento — Postgres + dedup ERP."""
+    if vencimento_de > vencimento_ate:
+        vencimento_de, vencimento_ate = vencimento_ate, vencimento_de
+    out: dict[str, float] = {}
+    try:
+        titulos = dedup_titulos(
+            list(
+                contas_pagar_montar_qs(
+                    status="abertos",
+                    vencimento_de=vencimento_de,
+                    vencimento_ate=vencimento_ate,
+                )
+            )
+        )
+        for t in titulos:
+            dkey = t.data_vencimento
+            if dkey is None or dkey < vencimento_de or dkey > vencimento_ate:
+                continue
+            rest = _dec2(t.valor_restante)
+            if rest <= Decimal("0.02"):
+                continue
+            k = dkey.isoformat()
+            out[k] = out.get(k, 0.0) + float(rest)
+    except Exception as exc:
+        logger.exception("lancamentos_contas_pagar_totais_diarios_pg: %s", exc)
+        return {}
+    return {k: round(v, 2) for k, v in out.items()}
+
+
+def financeiro_calendario_contas_pagar_dias_pg(
+    *,
+    grid_ini: date,
+    grid_fim: date,
+    dias_media_vendas: int = 30,
+) -> dict[str, Any]:
+    """
+    Grade mensal CP (Postgres): a pagar por vencimento + previsão/vendas BI + saldo.
+    Mesmo contrato JSON de ``financeiro_calendario_contas_pagar_dias`` (Mongo).
+    """
+    from produtos.mongo_vendas_util import faturamento_dia_vendas_agro
+
+    if grid_ini > grid_fim:
+        grid_ini, grid_fim = grid_fim, grid_ini
+
+    hoje = timezone.localdate()
+    dias_media_vendas = max(1, min(int(dias_media_vendas or 30), 365))
+    pagar_map = lancamentos_contas_pagar_totais_diarios_pg(
+        vencimento_de=grid_ini, vencimento_ate=grid_fim
+    )
+    meta_hist_cache: dict[tuple[date, date], dict] = {}
+
+    def previsao_vendas_dia(d: date) -> float:
+        from produtos.views import (
+            _dashboard_meta_c_meses_por_dia,
+            _dashboard_vendas_meta_c_para_dia,
+        )
+
+        val = _dashboard_vendas_meta_c_para_dia(
+            d, _dashboard_meta_c_meses_por_dia(d, meta_hist_cache)
+        )
+        return round(float(val), 2)
+
+    dias_out: dict[str, dict[str, Any]] = {}
+    cum = Decimal("0")
+    d = grid_ini
+    while d <= grid_fim:
+        k = d.isoformat()
+        pagar = float(pagar_map.get(k, 0.0))
+        prev = previsao_vendas_dia(d)
+        passado = d < hoje
+        vendas: float | None = None
+        if d <= hoje:
+            vendas = round(float(faturamento_dia_vendas_agro(d)), 2)
+            ent = Decimal(str(vendas))
+        else:
+            ent = Decimal(str(prev))
+        liquido = float((ent - Decimal(str(pagar))).quantize(Decimal("0.01")))
+        cum += Decimal(str(liquido))
+        dias_out[k] = {
+            "pagar": round(pagar, 2),
+            "previsao_vendas": prev,
+            "vendas": vendas,
+            "liquido_dia": liquido,
+            "saldo_acumulado": round(float(cum), 2),
+            "passado": passado,
+            "hoje": d == hoje,
+        }
+        d += timedelta(days=1)
+
+    totais_legacy = {k: v["pagar"] for k, v in dias_out.items()}
+    return {
+        "dias": dias_out,
+        "totais": totais_legacy,
+        "meta": {
+            "hoje": hoje.isoformat(),
+            "grid_ini": grid_ini.isoformat(),
+            "grid_fim": grid_fim.isoformat(),
+            "dias_media_vendas": dias_media_vendas,
+            "fonte": "postgres",
+            "previsao_fonte": "dashboard_meta_c",
+            "vendas_fonte": "dashboard_gerencial",
+            "aviso_saldo": (
+                "Saldo do dia = vendas (ou previsão) menos contas a pagar naquele vencimento. "
+                "Passe o mouse no saldo para ver o acumulado na grade visível."
+            ),
+        },
+    }
