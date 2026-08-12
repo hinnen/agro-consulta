@@ -1202,6 +1202,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.00**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · `teste` · **não** loja |
+| **Sintoma** | `/lancamentos/contas-pagar/calendario/` → «serviço legado indisponível» · todos R$ 0,00 |
+| **Causa** | API ainda exigia Mongo; loja/local já CP no Postgres (Mongo off) |
+| **O quê** | `financeiro_calendario_contas_pagar_dias_pg` + API despacha com `agro_financeiro_usa_postgres()` |
+| **Prova** | smoke local ago/2026: 17 dias com a pagar · soma ~R$ 13.821 |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 calendário CP · conferir totais do mês vs lista |
+
 ### 📦 PACOTE PRONTO — Entrada NF bip → cadastro (`NF-BIP-CAD` · **teste v15.98**)
 
 | Item | Detalhe |

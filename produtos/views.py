@@ -14342,9 +14342,8 @@ def lancamentos_fluxo_calendario_view(request):
 @require_GET
 def api_lancamentos_contas_pagar_calendario(request):
     """Totais diários a pagar (em aberto) para grade do calendário mensal."""
-    _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"erro": "Mongo indisponível", "totais": {}}, status=503)
+    from produtos.agro_fonte_config import agro_financeiro_usa_postgres
+
     hoje = timezone.localdate()
     try:
         ano = int(request.GET.get("ano") or hoje.year)
@@ -14369,9 +14368,22 @@ def api_lancamentos_contas_pagar_calendario(request):
         dias_m = int(request.GET.get("dias_media") or 30)
     except (TypeError, ValueError):
         dias_m = 30
-    out = financeiro_calendario_contas_pagar_dias(
-        db, grid_ini=grid_ini, grid_fim=grid_fim, dias_media_vendas=dias_m
-    )
+
+    if agro_financeiro_usa_postgres():
+        from produtos.lancamentos_financeiro_pg_analytics_util import (
+            financeiro_calendario_contas_pagar_dias_pg,
+        )
+
+        out = financeiro_calendario_contas_pagar_dias_pg(
+            grid_ini=grid_ini, grid_fim=grid_fim, dias_media_vendas=dias_m
+        )
+    else:
+        _, db = obter_conexao_mongo()
+        if db is None:
+            return JsonResponse({"erro": "Mongo indisponível", "totais": {}, "dias": {}}, status=503)
+        out = financeiro_calendario_contas_pagar_dias(
+            db, grid_ini=grid_ini, grid_fim=grid_fim, dias_media_vendas=dias_m
+        )
     if out.get("erro"):
         return JsonResponse({"erro": out["erro"], "totais": {}, "dias": {}}, status=503)
     return JsonResponse(
