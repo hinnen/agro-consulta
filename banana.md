@@ -1206,7 +1206,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` @ **00ec712** · **não** loja |
+| **Status** | ✅ **pronto para envio à produção** · `teste` @ **dfd0244** · **não** loja |
 | **O quê** | Calendário CP lê Postgres (sem Mongo) · totais/dia = lista abertos |
 | **Prova** | `scripts/verify_cp_calendario_pg_path.py` · **VERIFY_OK 31/31** · ago/2026 cal=lista **R$ 14.675,50** |
 | **Migrate** | **NÃO** |
