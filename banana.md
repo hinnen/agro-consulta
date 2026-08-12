@@ -1203,47 +1203,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
+### ✅ Deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **PREP pronto** · aguarda **pausa vendas** + frase + senha no **próximo chat** |
-| **Branch** | `deploy/lote-checklist-1208b` @ **262d460** · base loja `producao` @ **ec76e89** (v15.99) |
+| **Status** | ✅ **enviado / Live v16.07** · `producao` @ **262d460** · Render `dep-d9u8i7psrm7s73b67dhg` |
 | **Pacotes** | CP-CAL-PG · NF-BIP-ET3 |
-| **Prova** | VERIFY **31/31** (CP) · **40/40** (ET3) · irmã NF-BIP-CAD **31/31** · static deploy **8/8** |
+| **Prova** | VERIFY **31/31** · **40/40** (+ irmã 31/31) |
 | **Migrate** | **NÃO** |
-| **Escopo** | só calendário CP + Entrada NF etapa 3 · **PDV/caixa intactos** vs loja |
 | **Rollback** | tag `rollback/pre-lote-checklist-1208b-v15.99` @ **ec76e89** |
-| **Risco loja aberta** | baixo no path (CP calendário + NF bip) · **mesmo assim** pausar vendas no restart |
-| **Deploy** | cirúrgico FF branch → `producao` · **NÃO** merge `teste`→`producao` · **NÃO** push `producao` sem frase+senha |
+| **Base anterior** | Live v15.99 @ **ec76e89** |
+| **Você** | **Ctrl+F5** · badge **v16.07** · calendário CP · Entrada NF etapa 3 |
 
-### ✅ CHECKLIST ÚNICO — PREP (12/08 · loja ainda Live v15.99)
+### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v16.07)
 
-> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha **depois** de pausar vendas.
+> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460** · Render `dep-d9u8i7psrm7s73b67dhg`  
+> Vigente: este checklist. **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CP-CAL-PG** | ✅ PREP / pronto para envio à produção | não |
-| 2 | **NF-BIP-ET3** | ✅ PREP / pronto para envio à produção | não |
-
-### 📦 PACOTE PRONTO — Entrada NF etapa 3 barras (`NF-BIP-ET3` · **teste v16.06**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **PREP no lote 12/08b** · `deploy/lote-checklist-1208b` @ **262d460** · **não** loja |
-| **O quê** | Etapa 3 casa EAN da linha **+** barras do cadastro/overlay · Ok se casado por EAN/bip |
-| **Prova** | `scripts/verify_nf_bip_et3_path.py` **VERIFY_OK 40/40** · irmã **31/31** |
-| **Migrate** | **NÃO** |
-
-### 📦 PACOTE PRONTO — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.04**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **PREP no lote 12/08b** · `deploy/lote-checklist-1208b` @ **262d460** · **não** loja |
-| **O quê** | Calendário CP lê Postgres (sem Mongo) · totais/dia = lista abertos |
-| **Prova** | `scripts/verify_cp_calendario_pg_path.py` · **VERIFY_OK 31/31** |
-| **Migrate** | **NÃO** |
+| 1 | **CP-CAL-PG** | ✅ enviado / Live v16.07 | não |
+| 2 | **NF-BIP-ET3** | ✅ enviado / Live v16.07 | não |
 
 ### ✅ Deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
 
