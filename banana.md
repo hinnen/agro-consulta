@@ -1231,16 +1231,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Deploy** | cirúrgico a partir de `producao` @ **5bbebbe** · **NÃO** merge `teste`→`producao` |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (12/08 · loja ainda v15.82)
+### 🚀 PREP deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ⏳ **PREP pronto** · aguarda **pausa vendas** + frase + senha no **próximo chat** |
+| **Branch** | `deploy/lote-checklist-1208` @ **ec76e89** · base loja `producao` @ **5bbebbe** (v15.82) |
+| **Pacotes** | COMPRAS-SLIM-DADOS · NF-BIP-CAD · DFE-XML-AGUARDE |
+| **Prova** | VERIFY **41/41** · **31/31** · **26/26** (+13 testes bip) |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1208-v15.82` @ **5bbebbe** |
+| **Risco loja aberta** | slim v5 (cache miss 1×) · Entrada NF bip/overlay · SEFAZ inbox — **não** mexeu PDV/caixa venda |
+| **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` · **NÃO** push `producao` sem frase+senha |
+
+### ✅ CHECKLIST ÚNICO — PREP (12/08 · loja ainda Live v15.82)
 
 > **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha.
+> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha **depois** de pausar vendas.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **COMPRAS-SLIM-DADOS** | 🟢 pronto para envio à produção | não |
-| 2 | **NF-BIP-CAD** | 🟢 pronto para envio à produção | não |
-| 3 | **DFE-XML-AGUARDE** | 🟢 pronto para envio à produção | não |
+| 1 | **COMPRAS-SLIM-DADOS** | ⏳ PREP · aguarda pausa+senha | não |
+| 2 | **NF-BIP-CAD** | ⏳ PREP · aguarda pausa+senha | não |
+| 3 | **DFE-XML-AGUARDE** | ⏳ PREP · aguarda pausa+senha | não |
 
 ### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**) · **superado**
 
