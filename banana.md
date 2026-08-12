@@ -1201,7 +1201,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Backfill bip NF → cadastro (`NF-BIP-BF` · **teste v15.88**)
+### ✅ Backfill bip NF → cadastro (`NF-BIP-BF` · **teste v15.89**)
 
 | Item | Detalhe |
 | ---- | ------- |
