@@ -1202,46 +1202,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🐛 FIX — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.00**)
+### 📦 PACOTE PRONTO — Calendário CP Postgres (`CP-CAL-PG` · **teste v16.02**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · `teste` · **não** loja |
-| **Sintoma** | `/lancamentos/contas-pagar/calendario/` → «serviço legado indisponível» · todos R$ 0,00 |
-| **Causa** | API ainda exigia Mongo; loja/local já CP no Postgres (Mongo off) |
-| **O quê** | `financeiro_calendario_contas_pagar_dias_pg` + API despacha com `agro_financeiro_usa_postgres()` |
-| **Prova** | smoke local ago/2026: 17 dias com a pagar · soma ~R$ 13.821 |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 calendário CP · conferir totais do mês vs lista |
-
-### 📦 PACOTE PRONTO — Entrada NF bip → cadastro (`NF-BIP-CAD` · **teste v15.98**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` · **não** loja |
-| **O quê** | Etapa 3: 1 campo · regra B (230…→opc / bip→principal) · grava PG · backfill |
-| **Prova** | `scripts/verify_nf_bip_cadastro_path.py` · **VERIFY_OK 31/31** · 13/13 testes |
+| **Status** | ✅ **pronto para envio à produção** · `teste` @ **823eb41+** · **não** loja |
+| **O quê** | Calendário CP lê Postgres (sem Mongo) · totais/dia = lista abertos |
+| **Prova** | `scripts/verify_cp_calendario_pg_path.py` · **VERIFY_OK 31/31** · ago/2026 cal=lista **R$ 14.675,50** |
 | **Migrate** | **NÃO** |
 | **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` |
-| **Você** | frase + senha · Ctrl+F5 Entrada NF etapa 3 · bipar · Fiscal |
+| **Você** | frase + senha · Ctrl+F5 `/lancamentos/contas-pagar/calendario/` |
 
-### 📦 PACOTE PRONTO — DF-e XML fora do Aguarde 1h (`DFE-XML-AGUARDE` · **teste v15.95**)
+### ✅ CHECKLIST ÚNICO — pronto envio (12/08 · loja ainda Live v15.99)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` @ **abc3fda** · **não** loja |
-| **O quê** | Lista = 1h no 137; XML/chave só trava no **656** · auto Ciência+XML |
-| **Prova** | VERIFY_OK 26/26 |
-| **Migrate** | **NÃO** |
+> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha.
 
-### 📦 PACOTE PRONTO — Compras slim custo + métricas (`COMPRAS-SLIM-DADOS` · **teste v15.85+**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` @ **21e58d0** · **não** loja |
-| **Prova** | `scripts/verify_compras_slim_dados_path.py` · **41/41** |
-| **Migrate** | **NÃO** |
-| **Deploy** | cirúrgico a partir de `producao` @ **5bbebbe** · **NÃO** merge `teste`→`producao` |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-CAL-PG** | ✅ pronto para envio à produção | não |
 
 ### ✅ Deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
 
@@ -1254,10 +1233,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-1208-v15.82` @ **5bbebbe** |
 | **Base anterior** | Live v15.82 @ **5bbebbe** |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v15.99)
+### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v15.99) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89** · Render `dep-d9u7bmu7bikc739ncamg`  
-> Vigente: este checklist. **NÃO** merge `teste`→`producao`.
+> Vigente: **CHECKLIST ÚNICO — pronto envio (12/08)** no topo. Loja permanece **v15.99** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
