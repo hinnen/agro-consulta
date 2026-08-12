@@ -1224,39 +1224,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF · bipar na etapa 3 → abrir cadastro Fiscal → Barras opcionais |
 | **Migrate** | **NÃO** |
 
-### 🐛 FIX — Compras slim com custo + métricas (`COMPRAS-SLIM-DADOS` · **teste**)
+### 📦 PACOTE PRONTO — Compras slim custo + métricas (`COMPRAS-SLIM-DADOS` · **teste v15.85+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · **não** loja |
-| **Sintoma** | Fornecedor lista produtos, mas só nome (sem saldo/custo/última entrada) |
-| **Causa** | slim sem custo · métricas bloqueadas no modo manual |
+| **Status** | ✅ **pronto para envio à produção** · `teste` @ **21e58d0** · **não** loja |
+| **Sintoma** | Fornecedor lista, mas só nome (sem saldo/custo/última entrada) |
 | **Fix** | slim **v5** + custo · force métricas/saldos · sync slim na abertura |
-| **Arquivos** | `catalogo_agro.py` · `views.py` · `compras.html` |
+| **Arquivos** | `catalogo_agro.py` (só `listar_slim_rows_pdv`) · `views.py` (cache slim v5) · `compras.html` |
+| **Prova** | `scripts/verify_compras_slim_dados_path.py` · **41/41** VERIFY_OK |
 | **Migrate** | **NÃO** |
+| **Deploy** | **cirúrgico** a partir de `producao` @ **5bbebbe** · **NÃO** merge `teste`→`producao` |
+| **Você** | frase + senha → PREP · Ctrl+F5 `/compras/` · filtro fornecedor com custo/saldo/última |
 
-### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**)
+### ✅ CHECKLIST ÚNICO — pronto envio (12/08 · loja ainda v15.82)
 
-> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render `dep-d9tn7foae00c73bg8sb0`  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Envio **só** frase + senha.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **COMPRAS-SLIM-FORN** | ✅ enviado / Live v15.82 | não |
+| 1 | **COMPRAS-SLIM-DADOS** | 🟢 pronto para envio à produção | não |
+
+### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**) · **superado**
+
+> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render `dep-d9tn7foae00c73bg8sb0`  
+> Vigente checklist: **pronto envio (12/08)** no topo.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v15.82** · `producao` @ **5bbebbe** · base era `b226e66` (v15.77) |
-| **Branch** | `deploy/compras-slim-forn-1108` (FF → `producao`) |
+| **Status** | ✅ **enviado / Live v15.82** · `producao` @ **5bbebbe** |
 | **O quê** | slim v4 com fornecedor · cache v4 |
-| **Arquivos** | catalogo_agro + views cache + VERSION · +40/−9 |
-| **Prova** | **30/30** · sem migrate |
-| **Rollback** | tag `rollback/pre-compras-slim-forn-v15.77` @ `b226e66` · frase+senha |
-| **Você agora** | **Ctrl+F5** `/compras/` · badge **v15.82** · Busca avançada → Fornecedor |
+| **Rollback** | tag `rollback/pre-compras-slim-forn-v15.77` @ `b226e66` |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.82)
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.82) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe**
+> Vigente: **CHECKLIST ÚNICO — pronto envio (12/08)** no topo. Loja permanece **v15.82** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
