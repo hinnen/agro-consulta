@@ -1201,6 +1201,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Entrada NF etapa 3 grava barras no cadastro (`NF-BIP-OPC` · **teste v15.86**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · **não** loja |
+| **Sintoma** | Bipar código na etapa 3 (ex. `7898752405197`) · cadastro não ganhava o EAN (só rascunho) |
+| **Causa** | Confirmar código / similar só marcava a linha · não gravava overlay |
+| **Fix** | Ao confirmar (ok ou similar) → `codigos_barras_opcionais_adicionar` no PG (merge, não apaga) |
+| **Arquivos** | `entrada_nota.html` · `views.py` · `mongo_index_codigos.py` · testes |
+| **Você** | Ctrl+F5 Entrada NF · bipar na etapa 3 → abrir cadastro Fiscal → Barras opcionais |
+| **Migrate** | **NÃO** |
+
 ### 🐛 FIX — Compras slim com custo + métricas (`COMPRAS-SLIM-DADOS` · **teste**)
 
 | Item | Detalhe |

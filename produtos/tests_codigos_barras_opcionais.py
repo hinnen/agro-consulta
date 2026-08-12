@@ -13,6 +13,7 @@ from produtos.cadastro_busca_codigo_util import (
 )
 from produtos.mongo_index_codigos import (
     codigos_barras_opcionais_de_cadastro_extras,
+    mesclar_codigos_barras_opcionais_adicionar,
     normalizar_codigos_barras_opcionais,
 )
 
@@ -36,6 +37,15 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
     def test_extras_de_cadastro(self):
         ce = {"codigos_barras_opcionais": ["7893333333333", "abc"]}
         self.assertEqual(codigos_barras_opcionais_de_cadastro_extras(ce), ["7893333333333"])
+
+    def test_mesclar_adicionar_nao_apaga_existentes(self):
+        ce = {"codigos_barras_opcionais": ["7891111111111"]}
+        out = mesclar_codigos_barras_opcionais_adicionar(
+            ce,
+            ["7898752405197", "7891111111111"],
+            principal="2300000001490",
+        )
+        self.assertEqual(out, ["7891111111111", "7898752405197"])
 
     def test_termo_bate_extras(self):
         self.assertTrue(

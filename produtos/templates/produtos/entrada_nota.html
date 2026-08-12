@@ -5311,6 +5311,40 @@
     tr.dataset.bipSimilarCodigos = JSON.stringify(arr.slice(0, 20));
   }
 
+  /**
+   * Grava no cadastro (barras opcionais) o EAN bipado na etapa 3.
+   * Só marca a linha no rascunho não bastava — PDV não achava o código depois.
+   */
+  async function entradaNfeLembrarBarrasOpcionaisAposBip(tr, ...codigos) {
+    try {
+      const pid = String(tr && tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (!entradaNfeProdutoIdErpValido(pid)) return;
+      const lista = [];
+      const seen = new Set();
+      for (const raw of codigos) {
+        const dig = entradaNfeCatalogOnlyDigits(String(raw || '')).slice(0, 20);
+        if (dig.length < 8 || dig.length > 20) continue;
+        if (seen.has(dig)) continue;
+        seen.add(dig);
+        lista.push(dig);
+      }
+      if (!lista.length) return;
+      const tok = getCookie('csrftoken');
+      if (!tok) return;
+      const r = await fetch(URL_OVERLAY_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+        body: JSON.stringify({
+          produto_id: pid,
+          codigos_barras_opcionais_adicionar: lista,
+          origem_entrada_nf: true,
+        }),
+      });
+      await r.json().catch(() => ({}));
+    } catch (_) {}
+  }
+
   async function entradaNfeBipBuscarMatchNaNota(rows, codigo, codigoAlt) {
     const c0 = String(codigo || '').trim();
     if (!c0) return null;
@@ -5482,6 +5516,7 @@
         tr.dataset.bipConf = 'similar';
         entradaNfeBipAdicionarCodigoSimilar(tr, pend.codMain);
         entradaNfeBipAdicionarCodigoSimilar(tr, pend.codAux);
+        void entradaNfeLembrarBarrasOpcionaisAposBip(tr, pend.codMain, pend.codAux);
         entradaNfeBipLinhaIdx = i;
         entradaNfeBipLimparCamposBip();
         entradaNfeBipDraftPorLinha[String(i)] = { cod: '', codAlt: '', ignorar: false };
@@ -5589,6 +5624,9 @@
     const match = await entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux);
     if (match && match.tr) {
       match.tr.dataset.bipConf = 'ok';
+      entradaNfeBipAdicionarCodigoSimilar(match.tr, codMain);
+      entradaNfeBipAdicionarCodigoSimilar(match.tr, codAux);
+      void entradaNfeLembrarBarrasOpcionaisAposBip(match.tr, codMain, codAux);
       entradaNfeBipLinhaIdx = match.ix;
       let det = '';
       if (match.payload?.local) {

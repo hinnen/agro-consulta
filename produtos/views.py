@@ -2988,6 +2988,23 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         else:
             ex.pop("codigos_barras_opcionais", None)
             ex.pop("codigos_barras_alternativos", None)
+    # Entrada NF etapa 3: bip confirma → acrescenta sem apagar opcionais já no cadastro.
+    if "codigos_barras_opcionais_adicionar" in payload:
+        from produtos.mongo_index_codigos import mesclar_codigos_barras_opcionais_adicionar
+
+        principal_cb_add = (
+            ov.codigo_barras.strip()
+            if getattr(ov, "codigo_barras", None)
+            else ""
+        ) or _txt("codigo_barras", 80)
+        lista_op_add = mesclar_codigos_barras_opcionais_adicionar(
+            ex,
+            payload.get("codigos_barras_opcionais_adicionar"),
+            principal=principal_cb_add,
+        )
+        if lista_op_add:
+            ex["codigos_barras_opcionais"] = lista_op_add
+            ex.pop("codigos_barras_alternativos", None)
     desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
     c_prod_nf_payload: str | None = None
     if "c_prod_nf" in payload:

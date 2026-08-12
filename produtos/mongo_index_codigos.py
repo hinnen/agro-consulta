@@ -401,6 +401,18 @@ def codigos_barras_opcionais_de_cadastro_extras(cadastro_extras: dict | None) ->
     return normalizar_codigos_barras_opcionais(raw)
 
 
+def mesclar_codigos_barras_opcionais_adicionar(
+    cadastro_extras: dict | None,
+    adicionar: Any,
+    *,
+    principal: str | None = None,
+) -> list[str]:
+    """Une barras opcionais já gravadas com novas (Entrada NF bip / cadastro)."""
+    atuais = codigos_barras_opcionais_de_cadastro_extras(cadastro_extras)
+    novos = normalizar_codigos_barras_opcionais(adicionar, excluir=principal)
+    return normalizar_codigos_barras_opcionais(atuais + novos, excluir=principal)
+
+
 def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     """
     Códigos cadastrados no Agro que entram no mesmo ``index_codigos`` do ERP:
