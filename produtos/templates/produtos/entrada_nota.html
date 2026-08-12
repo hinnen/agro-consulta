@@ -1539,12 +1539,6 @@
             <label class="block"><span class="text-[10px] font-black uppercase text-violet-950">Código lido pelo leitor *</span>
               <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[54px] rounded-xl border-2 border-violet-300 px-3 text-lg font-mono font-bold bg-white shadow-inner focus:border-indigo-500 outline-none" placeholder="EAN ou código…" inputmode="numeric">
             </label>
-            <details class="rounded-xl border border-violet-200 bg-white px-3 py-2">
-              <summary class="cursor-pointer text-xs font-black uppercase text-violet-900 select-none min-h-[40px] flex items-center">Código auxiliar (marca paralela)</summary>
-              <label class="block mt-2"><span class="text-[10px] font-semibold text-violet-900"> Segundo código (opcional)</span>
-                <input type="text" id="nfe-bip-cod-alt" autocomplete="off" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-violet-100 px-2 text-sm font-mono bg-white focus:border-indigo-400 outline-none" placeholder="Outro EAN ou código na embalagem">
-              </label>
-            </details>
             <label class="inline-flex flex-wrap items-center gap-2 px-2 py-2 rounded-xl border-2 border-violet-200 bg-white cursor-pointer shrink-0 min-h-[44px] w-full">
               <input type="checkbox" id="nfe-bip-ignorar" class="h-5 w-5 accent-violet-600 shrink-0">
               <span class="text-xs font-bold text-violet-950 leading-snug">Sem código na embalagem</span>
@@ -1958,7 +1952,7 @@
       <div class="bg-white rounded-2xl shadow-2xl max-w-[min(62rem,97vw)] w-full max-h-[min(88vh,50rem)] overflow-hidden flex flex-col border-2 border-slate-300">
         <div class="px-4 py-3 border-b border-slate-200 flex items-start justify-between gap-3 shrink-0 bg-slate-50/90">
           <div class="min-w-0">
-            <h3 id="modal-nfe-bip-vinculo-titulo" class="text-base font-black uppercase text-slate-900 leading-tight">Código auxiliar na linha</h3>
+            <h3 id="modal-nfe-bip-vinculo-titulo" class="text-base font-black uppercase text-slate-900 leading-tight">Vincular código bipado</h3>
             <p id="modal-nfe-bip-vinculo-sub" class="text-[11px] font-semibold text-slate-700 mt-1 break-words">—</p>
           </div>
           <button type="button" id="modal-nfe-bip-vinculo-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-slate-300 text-xs font-black uppercase bg-white text-slate-800 hover:bg-slate-100">Fechar</button>
@@ -1970,9 +1964,9 @@
             <li>o produto mudou o código de barras;</li>
             <li>o produto é de marca diferente.</li>
           </ol>
-          <p class="text-sm font-semibold text-slate-800 leading-snug mt-3">Nas causas 2 e 3, você pode adicionar o código bipado como código auxiliar. Ou seja, o produto ficará com 2 códigos de barras. Se for esse o caso, selecione na lista abaixo com qual item deseja vincular.</p>
+          <p class="text-sm font-semibold text-slate-800 leading-snug mt-3">Nas causas 2 e 3: toque na linha certa. Se o cadastro tiver código interno 230…, o bipado vira o principal e o 230… fica como opcional; senão o bipado entra só como opcional.</p>
           <div class="nfe-bip-vinculo-wrap">
-            <table class="nfe-bip-vinculo-table" aria-label="Itens da nota para vínculo do código auxiliar">
+            <table class="nfe-bip-vinculo-table" aria-label="Itens da nota para vínculo do código bipado">
               <colgroup>
                 <col style="width: 17%">
                 <col style="width: 43%">
@@ -2188,9 +2182,9 @@
         <div class="border-l-4 border-emerald-300 pl-3 space-y-2">
           <p class="text-xs font-black uppercase text-slate-500">SEFAZ (DF-e)</p>
           <p><strong>Buscar notas novas</strong> puxa só o que ainda não passou no cursor e grava na caixa (até ~80, todos os PCs). Processe as <strong>mais antigas primeiro</strong>.</p>
-          <p><strong>Baixar pela chave</strong> recupera nota que o Buscar já passou — <strong>não</strong> mexe no cursor. Também conta no limite da Receita: não use no meio do «Aguarde 1h».</p>
-          <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong>, aguarde ~1h antes de consultar de novo.</p>
-          <p>Item <strong>Só resumo</strong>: clique <strong>Dar ciência e buscar XML</strong>. A Ciência libera o XML completo; se a Receita ainda estiver processando, aguarde e clique <strong>Buscar XML</strong> no mesmo item.</p>
+          <p><strong>Baixar pela chave</strong> e <strong>Buscar XML</strong> liberam a nota na caixa mesmo com o «Aguarde 1h» do Buscar lista — só o <strong>656</strong> trava o XML. Não carrega na grade sozinho.</p>
+          <p>Se a SEFAZ devolver <strong>656</strong> ou <strong>137</strong> no Buscar lista, aguarde ~1h antes de buscar notas novas de novo.</p>
+          <p>Após o Buscar, o sistema tenta sozinho Ciência + XML nas «Só resumo». Quando ficar <strong>Carregar na grade</strong>, clique na que for dar entrada (uma de cada vez).</p>
           <p><strong>Pendentes</strong> = ainda para lançar · <strong>Concluídas</strong> = carregadas ou ignoradas. <strong>Avançado</strong> (ultNSU) só se o suporte pedir.</p>
         </div>
         <div class="text-[11px] sm:text-xs font-semibold text-slate-600 space-y-1 pt-2 border-t border-slate-100">
@@ -5346,6 +5340,45 @@
     tr.dataset.bipSimilarCodigos = JSON.stringify(arr.slice(0, 20));
   }
 
+  /**
+   * Grava no cadastro o EAN bipado na etapa 3 (regra B):
+   * principal 230??? ??? bip vira principal e 230??? vai a opcionais; sen??o s?? opcional.
+   */
+  async function entradaNfeLembrarBarrasOpcionaisAposBip(tr, ...codigos) {
+    try {
+      const pid = String(tr && tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (!entradaNfeProdutoIdErpValido(pid)) return;
+      const lista = [];
+      const seen = new Set();
+      for (const raw of codigos) {
+        const dig = entradaNfeCatalogOnlyDigits(String(raw || '')).slice(0, 20);
+        if (dig.length < 8 || dig.length > 20) continue;
+        if (seen.has(dig)) continue;
+        seen.add(dig);
+        lista.push(dig);
+      }
+      if (!lista.length) return;
+      const tok = getCookie('csrftoken');
+      if (!tok) return;
+      /* Um bip por vez (campo ??nico); extras da lista caem como opcionais no merge do servidor. */
+      const body = {
+        produto_id: pid,
+        codigo_barras_bip_entrada_nf: lista[0],
+        origem_entrada_nf: true,
+      };
+      if (lista.length > 1) {
+        body.codigos_barras_opcionais_adicionar = lista.slice(1);
+      }
+      const r = await fetch(URL_OVERLAY_SALVAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
+        body: JSON.stringify(body),
+      });
+      await r.json().catch(() => ({}));
+    } catch (_) {}
+  }
+
   async function entradaNfeBipBuscarMatchNaNota(rows, codigo, codigoAlt) {
     const c0 = String(codigo || '').trim();
     if (!c0) return null;
@@ -5384,11 +5417,10 @@
 
   function entradaNfeBipSalvarDraftAtual() {
     const c = document.getElementById('nfe-bip-cod');
-    const a = document.getElementById('nfe-bip-cod-alt');
     const ig = document.getElementById('nfe-bip-ignorar');
     entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = {
       cod: c ? c.value : '',
-      codAlt: a ? a.value : '',
+      codAlt: '',
       ignorar: !!ig?.checked,
     };
   }
@@ -5400,10 +5432,8 @@
   function entradaNfeBipAplicarDraftIx(ix) {
     const d = entradaNfeBipDraftPorLinha[String(ix)] || {};
     const c = document.getElementById('nfe-bip-cod');
-    const a = document.getElementById('nfe-bip-cod-alt');
     const ig = document.getElementById('nfe-bip-ignorar');
     if (c) c.value = d.cod || '';
-    if (a) a.value = d.codAlt || '';
     if (ig) ig.checked = !!d.ignorar;
   }
 
@@ -5457,9 +5487,7 @@
 
   function entradaNfeBipLimparCamposBip() {
     const c = document.getElementById('nfe-bip-cod');
-    const a = document.getElementById('nfe-bip-cod-alt');
     if (c) c.value = '';
-    if (a) a.value = '';
     const ig = document.getElementById('nfe-bip-ignorar');
     if (ig) ig.checked = false;
   }
@@ -5517,6 +5545,7 @@
         tr.dataset.bipConf = 'similar';
         entradaNfeBipAdicionarCodigoSimilar(tr, pend.codMain);
         entradaNfeBipAdicionarCodigoSimilar(tr, pend.codAux);
+        void entradaNfeLembrarBarrasOpcionaisAposBip(tr, pend.codMain, pend.codAux);
         entradaNfeBipLinhaIdx = i;
         entradaNfeBipLimparCamposBip();
         entradaNfeBipDraftPorLinha[String(i)] = { cod: '', codAlt: '', ignorar: false };
@@ -5594,9 +5623,8 @@
     const trSel = rows[ix];
     if (!trSel) return;
     const rawCod = document.getElementById('nfe-bip-cod')?.value?.trim() || '';
-    const rawAlt = document.getElementById('nfe-bip-cod-alt')?.value?.trim() || '';
-    const codMain = rawCod || rawAlt;
-    const codAux = rawCod && rawAlt ? rawAlt : '';
+    const codMain = rawCod;
+    const codAux = '';
     const ign = document.getElementById('nfe-bip-ignorar')?.checked;
     if (!ign && !String(codMain).trim()) {
       if (msg) msg.textContent = 'Informe o código lido pelo leitor (principal).';
@@ -5624,6 +5652,9 @@
     const match = await entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux);
     if (match && match.tr) {
       match.tr.dataset.bipConf = 'ok';
+      entradaNfeBipAdicionarCodigoSimilar(match.tr, codMain);
+      entradaNfeBipAdicionarCodigoSimilar(match.tr, codAux);
+      void entradaNfeLembrarBarrasOpcionaisAposBip(match.tr, codMain, codAux);
       entradaNfeBipLinhaIdx = match.ix;
       let det = '';
       if (match.payload?.local) {
@@ -6136,7 +6167,6 @@
   });
   ['input', 'change'].forEach((ev) => {
     document.getElementById('nfe-bip-cod')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
-    document.getElementById('nfe-bip-cod-alt')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
     document.getElementById('nfe-bip-ignorar')?.addEventListener(ev, () => entradaNfeBipSalvarDraftAtual());
   });
   document.getElementById('modal-nfe-bip-vinculo-fechar')?.addEventListener('click', () => entradaNfeBipModalVinculoFechar());
@@ -6201,7 +6231,7 @@
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
           'Confirmação automática (verde): só se o lido bater com o EAN da linha na NF ou com código de barras/EAN no cadastro — código GM da NF não basta.',
-          'Se não casar, abre a janela: toque na linha do produto certo para marcar como similar/opcional.',
+          'Se não casar, abre a janela: toque na linha do produto certo. Código interno 230… vira opcional e o bipado passa a principal; senão o bipado entra como opcional.',
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
         ],
@@ -6242,9 +6272,9 @@
         resumo: 'Puxe notas da Receita para a caixa salva no banco (todos os PCs) e carregue na grade.',
         itens: [
           'Buscar notas novas: só puxa o que ainda não passou no cursor (até ~80). Processe as mais antigas primeiro.',
-          'Baixar pela chave: recupera nota que o Buscar já passou — não mexe no cursor. Também conta no limite da Receita.',
-          'Se aparecer Aguarde / 656 / 137: espere ~1h antes de consultar de novo. Não use a chave no meio dessa espera.',
-          'Só resumo: clique Dar ciência e buscar XML. Se ainda não liberar, aguarde e use Buscar XML no mesmo item.',
+          'Baixar pela chave / Buscar XML: liberam a nota na caixa mesmo no Aguarde 1h da lista — só 656 trava. Não joga na grade sozinho.',
+          'Se aparecer Aguarde / 656 / 137 no Buscar lista: espere ~1h para buscar notas novas de novo.',
+          'Após o Buscar, o sistema tenta Ciência + XML sozinho. Carregar na grade = você escolhe qual nota dar entrada.',
           'Pendentes = para lançar · Concluídas = carregadas ou ignoradas. Avançado (ultNSU) só se o suporte pedir.',
         ],
       },
@@ -11072,44 +11102,53 @@
 
   function entradaNfeSefazAplicarLimiteUi(s) {
     const btn = document.getElementById('btn-dist-dfe');
-    const el = document.getElementById('sefaz-status');
+    const btnChave = document.getElementById('btn-dfe-chave');
     if (!btn) return;
-    const liberado = s && s.configurada && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const pcLocalOff = !!(s && (s.bloqueio_pc_local || s.consulta_sefaz_habilitada === false));
+    const liberadoLista = s && s.configurada && !pcLocalOff && s.consulta_liberada !== false && !(Number(s.aguardar_segundos) > 0);
+    const liberadoXml = s && s.configurada && !pcLocalOff && s.xml_liberado !== false && !(Number(s.aguardar_xml_segundos) > 0);
     const falta = Math.max(0, Math.floor(Number(s && s.aguardar_segundos) || 0));
-    if (liberado) {
+    const setChave = (on) => {
+      if (!btnChave) return;
+      btnChave.disabled = !on;
+      btnChave.classList.toggle('opacity-50', !on);
+      btnChave.classList.toggle('cursor-not-allowed', !on);
+    };
+    if (pcLocalOff) {
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      btn.textContent = 'Só na loja (local off)';
+      setChave(false);
+      entradaNfeSefazDataAte = 0;
+      if (entradaNfeSefazDataTimer) {
+        clearInterval(entradaNfeSefazDataTimer);
+        entradaNfeSefazDataTimer = null;
+      }
+      return;
+    }
+    setChave(!!liberadoXml);
+    if (liberadoLista) {
       btn.disabled = false;
       btn.classList.remove('opacity-50', 'cursor-not-allowed');
       btn.textContent = 'Buscar notas novas';
-      entradaNfeSefazCooldownAte = 0;
-      if (entradaNfeSefazCooldownTimer) {
-        clearInterval(entradaNfeSefazCooldownTimer);
-        entradaNfeSefazCooldownTimer = null;
+      entradaNfeSefazDataAte = 0;
+      if (entradaNfeSefazDataTimer) {
+        clearInterval(entradaNfeSefazDataTimer);
+        entradaNfeSefazDataTimer = null;
       }
       return;
     }
     btn.disabled = true;
     btn.classList.add('opacity-50', 'cursor-not-allowed');
-    const motivo = String((s && s.limite_motivo) || '').trim();
     btn.textContent = falta > 0 ? ('Aguarde ' + entradaNfeSefazFmtEspera(falta)) : 'Consulta bloqueada';
-    if (el && falta > 0) {
-      const base = el.querySelector('[data-sefaz-limite-msg]');
-      const txt =
-        '<span data-sefaz-limite-msg class="block text-[10px] font-bold text-amber-900 mt-1">'
-        + (motivo
-          ? motivo.slice(0, 220)
-          : ('Limite SEFAZ: próxima consulta em ' + entradaNfeSefazFmtEspera(falta) + '. Nenhuma chamada é enviada agora.'))
-        + '</span>';
-      if (base) base.outerHTML = txt;
-      else el.insertAdjacentHTML('beforeend', txt);
-    }
     if (falta > 0) {
-      entradaNfeSefazCooldownAte = Date.now() + falta * 1000;
-      if (entradaNfeSefazCooldownTimer) clearInterval(entradaNfeSefazCooldownTimer);
-      entradaNfeSefazCooldownTimer = setInterval(() => {
-        const rest = Math.max(0, Math.ceil((entradaNfeSefazCooldownAte - Date.now()) / 1000));
+      entradaNfeSefazDataAte = Date.now() + falta * 1000;
+      if (entradaNfeSefazDataTimer) clearInterval(entradaNfeSefazDataTimer);
+      entradaNfeSefazDataTimer = setInterval(() => {
+        const rest = Math.max(0, Math.ceil((entradaNfeSefazDataAte - Date.now()) / 1000));
         if (rest <= 0) {
-          clearInterval(entradaNfeSefazCooldownTimer);
-          entradaNfeSefazCooldownTimer = null;
+          clearInterval(entradaNfeSefazDataTimer);
+          entradaNfeSefazDataTimer = null;
           carregarSefazStatus();
           return;
         }
@@ -11131,6 +11170,35 @@
       b.classList.toggle('bg-transparent', !on);
       b.classList.toggle('text-slate-700', !on);
     });
+  }
+
+  async function entradaNfeDfeLiberarXmlsRestantes(itens) {
+    const falta = (Array.isArray(itens) ? itens : []).filter((pv) => pv && pv.id && !pv.pode_carregar);
+    if (!falta.length) return;
+    let ok = 0;
+    let itensAgora = itens;
+    for (const pv of falta) {
+      try {
+        const r = await fetch(entradaNfeDfeUrlId(URL_DFE_INBOX_CIENCIA_TMPL, pv.id), {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        });
+        const j = await r.json();
+        if (Array.isArray(j.itens_pendentes)) {
+          itensAgora = j.itens_pendentes;
+          entradaNfeDfeRenderInbox(itensAgora);
+        }
+        if (j.xml_completo) ok += 1;
+        if (Number(j.c_stat) === 656 || /656|indevido/i.test(String(j.erro || j.mensagem || ''))) {
+          showMsg(j.erro || j.mensagem || 'Receita bloqueou (656). Aguarde 1h para o restante.', false);
+          break;
+        }
+      } catch (_) {
+        break;
+      }
+    }
+    if (ok) showMsg(ok + ' nota(s) pronta(s) para Carregar na grade.', true);
   }
 
   function entradaNfeDfeUrlId(tmpl, id) {
@@ -11411,11 +11479,14 @@
         }
       }
       if (j.aguardar_segundos) {
+        const auto656 = !!(j.auto_xml && (j.auto_xml.parar_656 || Number(j.auto_xml.aguardar_segundos) >= 3000));
         entradaNfeSefazAplicarLimiteUi({
           configurada: true,
           consulta_liberada: false,
           aguardar_segundos: j.aguardar_segundos,
           limite_motivo: msg,
+          xml_liberado: !auto656,
+          aguardar_xml_segundos: auto656 ? (j.auto_xml.aguardar_segundos || j.aguardar_segundos) : 0,
         });
       } else {
         void carregarSefazStatus();
@@ -11435,9 +11506,9 @@
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
     }
-    const btnBuscar = document.getElementById('btn-dist-dfe');
-    if (btnBuscar && btnBuscar.disabled) {
-      showMsg('Aguarde o intervalo da SEFAZ antes de baixar pela chave.', false);
+    const btnChave = document.getElementById('btn-dfe-chave');
+    if (btnChave && btnChave.disabled) {
+      showMsg('XML bloqueado pela Receita (656) — aguarde o contador.', false);
       return;
     }
     const chaveRaw = document.getElementById('sefaz-chave')?.value || '';
@@ -11469,10 +11540,14 @@
       if (j.ok) showMsg(msg || 'Nota na caixa de entrada.', true);
       else showMsg(msg || 'Falha ao baixar.', false);
       if (j.aguardar_segundos) {
+        // Baixar pela chave só trava XML no 656; lista pode continuar em Aguarde separado.
+        const so656 = Number(j.c_stat) === 656 || /656|indevido/i.test(String(msg || ''));
         entradaNfeSefazAplicarLimiteUi({
           configurada: true,
-          consulta_liberada: false,
-          aguardar_segundos: j.aguardar_segundos,
+          consulta_liberada: true,
+          aguardar_segundos: 0,
+          xml_liberado: !so656,
+          aguardar_xml_segundos: so656 ? j.aguardar_segundos : 0,
           limite_motivo: msg,
         });
       }

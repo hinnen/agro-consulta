@@ -3028,6 +3028,66 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         else:
             ex.pop("codigos_barras_opcionais", None)
             ex.pop("codigos_barras_alternativos", None)
+    # Entrada NF etapa 3: bip confirma — acrescenta sem apagar opcionais já no cadastro.
+    if "codigos_barras_opcionais_adicionar" in payload:
+        from produtos.mongo_index_codigos import mesclar_codigos_barras_opcionais_adicionar
+
+        principal_cb_add = (
+            ov.codigo_barras.strip()
+            if getattr(ov, "codigo_barras", None)
+            else ""
+        ) or _txt("codigo_barras", 80)
+        lista_op_add = mesclar_codigos_barras_opcionais_adicionar(
+            ex,
+            payload.get("codigos_barras_opcionais_adicionar"),
+            principal=principal_cb_add,
+        )
+        if lista_op_add:
+            ex["codigos_barras_opcionais"] = lista_op_add
+            ex.pop("codigos_barras_alternativos", None)
+    # Entrada NF etapa 3 — regra B: 230… → opcional; bip vira principal (senão só opcional).
+    if "codigo_barras_bip_entrada_nf" in payload:
+        from produtos.mongo_index_codigos import aplicar_bip_entrada_nf_troca_inteligente
+
+        dig_bip_nf = "".join(
+            ch for ch in str(payload.get("codigo_barras_bip_entrada_nf") or "") if ch.isdigit()
+        )
+        if len(dig_bip_nf) >= 8:
+            # Se outro cadastro já usa esse EAN como principal, não promove — só opcional.
+            promover = True
+            try:
+                from produtos.models import Produto, ProdutoGestaoOverlayAgro as _OvCb
+
+                conflito = (
+                    _OvCb.objects.filter(codigo_barras=dig_bip_nf)
+                    .exclude(produto_externo_id=pid[:64])
+                    .exists()
+                    or Produto.objects.filter(codigo_barras=dig_bip_nf)
+                    .exclude(produto_externo_id=pid[:64])
+                    .exists()
+                )
+                if conflito:
+                    promover = False
+            except Exception:
+                logger.warning(
+                    "overlay salvar: checagem conflito EAN bip NF",
+                    exc_info=True,
+                )
+            res_bip = aplicar_bip_entrada_nf_troca_inteligente(
+                codigo_barras_atual=(ov.codigo_barras or "").strip(),
+                cadastro_extras=ex,
+                bip=dig_bip_nf,
+                promover_se_loja=promover,
+            )
+            if res_bip.get("acao") == "promove" and res_bip.get("codigo_barras"):
+                ov.codigo_barras = str(res_bip["codigo_barras"])[:80]
+            lista_bip = res_bip.get("codigos_barras_opcionais") or []
+            if lista_bip:
+                ex["codigos_barras_opcionais"] = lista_bip
+                ex.pop("codigos_barras_alternativos", None)
+            elif res_bip.get("acao") == "promove":
+                # Principal trocou; lista pode ficar vazia se só tinha o próprio bip.
+                pass
     desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
     c_prod_nf_payload: str | None = None
     if "c_prods_nf" in payload:
@@ -3223,6 +3283,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
             cache.set(CATALOGO_PDV_CACHE_PREV_ENTRY_KEY, cur_cat, timeout=86400 * 3)
         cache.delete(CATALOGO_PDV_CACHE_ENTRY_KEY)
         hoje_slim = timezone.localdate().isoformat()
+        cache.delete(f"pdv_catalogo_slim_v5:{hoje_slim}")
         cache.delete(f"pdv_catalogo_slim_v4:{hoje_slim}")
         cache.delete(f"pdv_catalogo_slim_v3:{hoje_slim}")
         cache.delete(f"pdv_catalogo_slim_v2:{hoje_slim}")
@@ -14710,6 +14771,8 @@ def api_entrada_nota_sefaz_status(request):
             "tp_amb": str(cfg.get("tp_amb") or "2"),
             "consulta_liberada": bool(lim.get("liberado")),
             "aguardar_segundos": int(lim.get("aguardar_segundos") or 0),
+            "xml_liberado": bool(lim.get("xml_liberado", lim.get("liberado"))),
+            "aguardar_xml_segundos": int(lim.get("aguardar_xml_segundos") or 0),
             "limite_motivo": str(lim.get("motivo") or ""),
             "ult_nsu": ult,
         }
@@ -17981,10 +18044,17 @@ def api_entrada_nota_dist_dfe(request):
     else:
         msg_ui = str(res.get("x_motivo") or res.get("erro") or "")
     resumos = int(inbox.get("resumos") or 0)
-    if resumos and novas:
-        msg_ui += " Algumas só vieram como resumo — use Ler XML se não der para carregar."
-    elif resumos and not novas:
-        msg_ui += " Receita mandou só resumo (sem XML completo) — use Ler XML para dar entrada."
+    auto = res.get("auto_xml") or {}
+    xml_ok = int(auto.get("xml_completos") or 0)
+    if xml_ok:
+        msg_ui += f" {xml_ok} pronta(s) para Carregar na grade."
+    elif resumos and novas:
+        msg_ui += " Algumas só vieram como resumo — o sistema tenta liberar o XML sozinho."
+    elif resumos and not novas and not xml_ok:
+        msg_ui += " Receita mandou só resumo — se ainda não liberou, use Dar ciência / Buscar XML."
+    ainda = int(auto.get("ainda_resumo") or 0)
+    if ainda and xml_ok:
+        msg_ui += f" {ainda} ainda sem XML completo (tente Buscar XML no item em alguns minutos)."
 
     out = {
         "ok": bool(res.get("ok")),
@@ -17998,6 +18068,7 @@ def api_entrada_nota_dist_dfe(request):
         "erro": res.get("erro"),
         "msg_ui": msg_ui,
         "inbox": inbox,
+        "auto_xml": auto,
         "itens": res.get("itens_pendentes") or dfe_inbox_listar(cnpj_cfg, aba="pendentes"),
         "previews": [],
     }
@@ -28445,8 +28516,8 @@ def api_pdv_catalogo_slim(request):
     from produtos import catalogo_agro as cat_agro
 
     hoje = timezone.localdate().isoformat()
-    # v4: + fornecedor (Compras busca avançada; v3 não trazia).
-    ck = f"pdv_catalogo_slim_v4:{hoje}"
+    # v5: + custo (Compras cards); v4 tinha fornecedor.
+    ck = f"pdv_catalogo_slim_v5:{hoje}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and isinstance(hit.get("produtos"), list) and hit["produtos"]:
         return JsonResponse(hit)
@@ -28460,7 +28531,7 @@ def api_pdv_catalogo_slim(request):
         "ok": True,
         "slim": True,
         "produtos": produtos,
-        "catalog_version": f"slim-v4-{hoje}-{len(produtos)}",
+        "catalog_version": f"slim-v5-{hoje}-{len(produtos)}",
         "catalog_updated_at": timezone.now().isoformat(),
     }
     cache.set(ck, body, timeout=1800)

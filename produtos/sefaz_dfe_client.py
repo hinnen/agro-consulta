@@ -332,27 +332,52 @@ def _dfe_cooldown_key(cnpj: str) -> str:
     return f"agro_dfe_cooldown:{cnpj}"
 
 
-def _dfe_last_call_key(cnpj: str) -> str:
-    return f"agro_dfe_last_call:{cnpj}"
+def _dfe_last_call_key(cnpj: str, *, modo: str = "dist_nsu") -> str:
+    suf = "chave" if modo == "cons_chave" else "nsu"
+    return f"agro_dfe_last_call:{suf}:{cnpj}"
 
 
-def dfe_intervalo_minimo_segundos() -> int:
-    """Intervalo mínimo entre cliques (anti-spam). NT: após 137/vazio = 1h."""
+def dfe_intervalo_minimo_segundos(*, modo: str = "dist_nsu") -> int:
+    """Intervalo mínimo entre cliques (anti-spam). NT: após 137/vazio = 1h no distNSU."""
+    if modo == "cons_chave":
+        try:
+            return max(2, int(config("NFE_DIST_DFE_MIN_INTERVALO_CHAVE_S", default="3") or 3))
+        except (TypeError, ValueError):
+            return 3
     try:
         return max(30, int(config("NFE_DIST_DFE_MIN_INTERVALO_S", default="60") or 60))
     except (TypeError, ValueError):
         return 60
 
 
-def dfe_checar_limite_consulta(cnpj: str) -> dict[str, Any] | None:
+def _dfe_cooldown_tipo(cd: dict[str, Any]) -> str:
+    """Normaliza tipo do bloqueio: 656 trava tudo; dist_nsu só trava Buscar lista."""
+    tipo = str(cd.get("tipo") or "").strip().lower()
+    if tipo in ("656", "dist_nsu"):
+        return tipo
+    motivo = str(cd.get("motivo") or "")
+    if "656" in motivo or "indevido" in motivo.lower():
+        return "656"
+    return "dist_nsu"
+
+
+def dfe_checar_limite_consulta(
+    cnpj: str,
+    *,
+    modo: str = "dist_nsu",
+) -> dict[str, Any] | None:
     """
-    Bloqueia consulta se ainda no cooldown da NT (1h após 137/656) ou intervalo mínimo.
-    Retorna dict de erro ou None se liberado.
+    Bloqueia consulta se ainda no cooldown da NT ou intervalo mínimo.
+
+    modo=dist_nsu (Buscar lista): 1h após 137/fim NSU ou 656.
+    modo=cons_chave (Buscar XML / baixar chave): só 656 trava 1h; o Aguarde da lista
+    não impede liberar o XML completo após a Ciência.
     """
     import time
 
     from django.core.cache import cache
 
+    modo_n = "cons_chave" if modo == "cons_chave" else "dist_nsu"
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
     if len(cnpj) != 14:
         return None
@@ -361,20 +386,26 @@ def dfe_checar_limite_consulta(cnpj: str) -> dict[str, Any] | None:
     if isinstance(cd, dict):
         ate = float(cd.get("ate") or 0)
         if ate > agora:
-            falta = int(ate - agora)
-            motivo = str(cd.get("motivo") or "Aguarde antes de nova consulta à SEFAZ.")
-            return {
-                "ok": False,
-                "erro": f"{motivo} Faltam ~{max(1, falta // 60)} min ({falta}s).",
-                "aguardar_segundos": falta,
-                "c_stat": 656 if "656" in motivo or "indevido" in motivo.lower() else 137,
-            }
-    last = cache.get(_dfe_last_call_key(cnpj))
+            tipo = _dfe_cooldown_tipo(cd)
+            # Lista em espera (137) NÃO bloqueia download por chave.
+            if modo_n == "cons_chave" and tipo != "656":
+                pass
+            else:
+                falta = int(ate - agora)
+                motivo = str(cd.get("motivo") or "Aguarde antes de nova consulta à SEFAZ.")
+                return {
+                    "ok": False,
+                    "erro": f"{motivo} Faltam ~{max(1, falta // 60)} min ({falta}s).",
+                    "aguardar_segundos": falta,
+                    "c_stat": 656 if tipo == "656" else 137,
+                    "cooldown_tipo": tipo,
+                }
+    last = cache.get(_dfe_last_call_key(cnpj, modo=modo_n))
     try:
         last_f = float(last) if last is not None else 0.0
     except (TypeError, ValueError):
         last_f = 0.0
-    min_s = dfe_intervalo_minimo_segundos()
+    min_s = dfe_intervalo_minimo_segundos(modo=modo_n)
     if last_f and (agora - last_f) < min_s:
         falta = int(min_s - (agora - last_f))
         return {
@@ -390,25 +421,37 @@ def dfe_checar_limite_consulta(cnpj: str) -> dict[str, Any] | None:
 
 def dfe_status_limite(cnpj: str) -> dict[str, Any]:
     """Para a UI: se pode consultar agora (sem bater na SEFAZ)."""
-    bloqueio = dfe_checar_limite_consulta(cnpj)
-    if not bloqueio:
-        return {"liberado": True, "aguardar_segundos": 0, "motivo": ""}
+    bloqueio = dfe_checar_limite_consulta(cnpj, modo="dist_nsu")
+    bloqueio_xml = dfe_checar_limite_consulta(cnpj, modo="cons_chave")
+    if not bloqueio and not bloqueio_xml:
+        return {
+            "liberado": True,
+            "xml_liberado": True,
+            "aguardar_segundos": 0,
+            "aguardar_xml_segundos": 0,
+            "motivo": "",
+        }
     return {
-        "liberado": False,
-        "aguardar_segundos": int(bloqueio.get("aguardar_segundos") or 0),
-        "motivo": str(bloqueio.get("erro") or "Aguarde antes de nova consulta."),
+        "liberado": not bool(bloqueio),
+        "xml_liberado": not bool(bloqueio_xml),
+        "aguardar_segundos": int((bloqueio or {}).get("aguardar_segundos") or 0),
+        "aguardar_xml_segundos": int((bloqueio_xml or {}).get("aguardar_segundos") or 0),
+        "motivo": str(
+            (bloqueio or bloqueio_xml or {}).get("erro") or "Aguarde antes de nova consulta."
+        ),
     }
 
 
-def dfe_registrar_consulta_enviada(cnpj: str) -> None:
+def dfe_registrar_consulta_enviada(cnpj: str, *, modo: str = "dist_nsu") -> None:
     import time
 
     from django.core.cache import cache
 
+    modo_n = "cons_chave" if modo == "cons_chave" else "dist_nsu"
     cnpj = re.sub(r"\D", "", cnpj or "")[:14]
     if len(cnpj) != 14:
         return
-    cache.set(_dfe_last_call_key(cnpj), time.time(), timeout=60 * 60 * 6)
+    cache.set(_dfe_last_call_key(cnpj, modo=modo_n), time.time(), timeout=60 * 60 * 6)
 
 
 def dfe_aplicar_cooldown_apos_resposta(
@@ -418,8 +461,13 @@ def dfe_aplicar_cooldown_apos_resposta(
     ult_nsu: str | None,
     max_nsu: str | None,
     x_motivo: str = "",
+    origem: str = "dist_nsu",
 ) -> None:
-    """NT 2014.002: após 137 ou ultNSU==maxNSU (com docs), ou 656 → esperar 1 hora."""
+    """
+    NT 2014.002: após 137 ou ultNSU==maxNSU (distNSU), ou 656 → esperar 1 hora.
+    Download por chave (consChNFe) só grava cooldown no 656 — resposta 137/138
+    da chave não pode travar o Buscar XML das outras notas.
+    """
     import time
 
     from django.core.cache import cache
@@ -428,6 +476,7 @@ def dfe_aplicar_cooldown_apos_resposta(
     if len(cnpj) != 14:
         return
     motivo = ""
+    tipo = "dist_nsu"
     try:
         st = int(c_stat) if c_stat is not None else None
     except (TypeError, ValueError):
@@ -439,23 +488,29 @@ def dfe_aplicar_cooldown_apos_resposta(
     m = re.sub(r"\D", "", str(max_nsu or ""))
     if st == 656:
         motivo = x_motivo or "Consumo indevido (656) — aguarde 1 hora."
+        tipo = "656"
+    elif origem == "cons_chave":
+        # consChNFe: não aplicar espera de lista (137 / fim NSU).
+        return
     elif st == 137:
         motivo = (
             x_motivo
             or "Nenhum documento novo (137). Pela regra da SEFAZ, aguarde 1 hora para consultar de novo."
         )
+        tipo = "dist_nsu"
     elif st == 138:
         try:
             # Só “fim do NSU” se ambos > 0 e iguais (zeros em rejeição 215 não contam).
             if u and m and int(u) > 0 and int(u) == int(m):
                 motivo = "Já no último NSU (ultNSU = maxNSU). Aguarde 1 hora antes de nova consulta."
+                tipo = "dist_nsu"
         except ValueError:
             pass
     if not motivo:
         return
     cache.set(
         _dfe_cooldown_key(cnpj),
-        {"ate": time.time() + 3600, "motivo": motivo[:280]},
+        {"ate": time.time() + 3600, "motivo": motivo[:280], "tipo": tipo},
         timeout=3600 + 120,
     )
 
@@ -485,7 +540,12 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         )
         return out
 
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="dist_nsu")
     if bloqueio:
         # Trava local (cache) — NÃO ecoar o ultNSU pedido como se viesse da SEFAZ
         # (senão o Buscar no Aguarde podia gravar NSU digitado à toa).
@@ -542,7 +602,7 @@ def nfe_distribuicao_dfe_interesse(ult_nsu: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"])
+        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="dist_nsu")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -682,7 +742,12 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         out["erro"] = "Certificado DF-e/NFC-e incompleto."
         return out
 
-    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"])
+    bloqueio_pc = dfe_bloqueio_pc_local()
+    if bloqueio_pc:
+        out.update(bloqueio_pc)
+        return out
+
+    bloqueio = dfe_checar_limite_consulta(cfg["cnpj"], modo="cons_chave")
     if bloqueio:
         out.update(bloqueio)
         out["bloqueio_local"] = True
@@ -735,7 +800,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         from produtos.nfce_sp_emissao_util import _cert_pem_temporario
 
         cert_file, key_file, cleanup = _cert_pem_temporario(cfg["cert_path"], cfg["cert_password"])
-        dfe_registrar_consulta_enviada(cfg["cnpj"])
+        dfe_registrar_consulta_enviada(cfg["cnpj"], modo="cons_chave")
         r = requests.post(
             url,
             data=soap.encode("utf-8"),
@@ -800,6 +865,7 @@ def nfe_distribuicao_dfe_por_chave(chave: str) -> dict[str, Any]:
         ult_nsu=str(ult_nsu_ret or ""),
         max_nsu=str(max_nsu or ""),
         x_motivo=x_motivo,
+        origem="cons_chave",
     )
 
     if c_stat == 656:

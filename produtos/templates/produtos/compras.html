@@ -1657,6 +1657,7 @@ function aplicarSaldosNaBaseCompra(rows) {
   if (
     inp &&
     (normalizarBuscaLocal(inp.value).length >= 2 ||
+      compraPoolAvancado !== null ||
       compraFiltroAlerta !== 'TODOS')
   ) {
     withPreservedResultadosScroll(() => buscar(inp.value));
@@ -2819,16 +2820,16 @@ window.addEventListener('load', () => {
   if (warmed) {
     restaurarRotuloSaldosComprasDoCache();
     carregarSaldosComprasServidor();
+    carregarMetricasCompra(true);
   }
   if (!warmed) {
     compraOcultarCabecalhoListaResultados();
     div.innerHTML = manual
-      ? `<div class="bg-white text-amber-800 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Sem catálogo em cache neste aparelho.<br><span class="text-slate-600 font-semibold text-xs mt-2 block">Use o botão <strong>Estoque</strong> no topo.</span></div>`
+      ? `<div class="bg-white text-amber-800 border border-amber-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm leading-relaxed">Sem catálogo em cache neste aparelho.<br><span class="text-slate-600 font-semibold text-xs mt-2 block">Baixando lista leve…</span></div>`
       : `<div class="bg-white text-slate-500 border border-slate-200 shadow-sm p-8 rounded-2xl font-bold text-center text-sm">Carregando catálogo…</div>`;
   }
-  if (!manual) {
-    sincronizarCatalogoComprasServidor();
-  }
+  /* Com freio full-off o slim é leve — Compras sempre sincroniza (lista + depois saldo/métricas). */
+  sincronizarCatalogoComprasServidor();
   if (typeof AgroEstoqueSync !== 'undefined' && AgroEstoqueSync.mount) {
     AgroEstoqueSync.mount({
       onRefresh: async function () {
@@ -2851,7 +2852,8 @@ function aplicarBaseCompras(produtos) {
   if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
   compraPoolAvancado = null;
   atualizarBannerFiltroCompra();
-  carregarMetricasCompra();
+  /* Slim/freio: modo manual bloqueava m??tricas sem force ??? cards s?? com nome. */
+  carregarMetricasCompra(true);
   buscar(document.getElementById('busca').value);
   renderHistoricoCompras();
   carregarSaldosComprasServidor();

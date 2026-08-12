@@ -1480,7 +1480,7 @@ def listar_slim_rows_pdv() -> list[dict]:
     """Catálogo SLIM só Postgres p/ busca local do PDV (Plano B).
 
     Campos: id, nome, codigo, codigo_nfe, codigo_barras, preco_venda, index_codigos,
-    busca_texto, marca, categoria, fornecedor (Compras busca avançada).
+    busca_texto, marca, categoria, fornecedor, preco_custo* (Compras).
     Sem saldo, sem Mongo, sem N+1, sem hidratar modelos — ``values()`` + 1 batch de overlay.
     """
     from produtos.cadastro_busca_codigo_util import index_codigos_de_campos
@@ -1503,6 +1503,7 @@ def listar_slim_rows_pdv() -> list[dict]:
             "subcategoria",
             "subcategoria_2",
             "fornecedor_texto",
+            "custo",
         )
     )
     rows_raw = list(qs)
@@ -1566,8 +1567,22 @@ def listar_slim_rows_pdv() -> list[dict]:
             str(ov.get("fornecedor_texto") or "").strip()
             or str(r.get("fornecedor_texto") or "").strip()
         )
-        peso_etiqueta = str(ov.get("peso_etiqueta") or "").strip()
         ce = ov.get("cadastro_extras") if isinstance(ov.get("cadastro_extras"), dict) else None
+        # Custo: overlay (cadastro_extras) prevalece; sen??o custo do cat??logo PG.
+        custo_ov = None
+        if isinstance(ce, dict) and ce.get("preco_custo_overlay") is not None:
+            try:
+                custo_ov = float(ce.get("preco_custo_overlay"))
+            except (TypeError, ValueError):
+                custo_ov = None
+        try:
+            custo_cat = float(r.get("custo") or 0)
+        except (TypeError, ValueError):
+            custo_cat = 0.0
+        custo_n = float(custo_ov) if custo_ov is not None and custo_ov > 0 else custo_cat
+        if custo_n < 0:
+            custo_n = 0.0
+        peso_etiqueta = str(ov.get("peso_etiqueta") or "").strip()
         from produtos.mongo_index_codigos import (
             _eans_embalagem_nf_de_cadastro_extras,
             codigos_barras_opcionais_de_cadastro_extras,
@@ -1624,8 +1639,9 @@ def listar_slim_rows_pdv() -> list[dict]:
             "subcategoria_2": subcategoria_2,
             "fornecedor": fornecedor,
             "peso_etiqueta": peso_etiqueta,
-            "preco_custo": 0.0,
-            "preco_custo_final": 0.0,
+            "preco_custo": _dec(custo_n),
+            "preco_custo_final": _dec(custo_n),
+            "preco_custo_acrescimo": _dec(custo_n),
             "saldo_centro": 0.0,
             "saldo_vila": 0.0,
             "precos_modo": modo,

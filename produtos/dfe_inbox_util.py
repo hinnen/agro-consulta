@@ -521,6 +521,14 @@ def dfe_executar_consulta_e_gravar(
             dfe_cron_marcar_hoje(cnpj)
     elif res.get("aguardar_segundos"):
         out["ok"] = False
+    # Após Buscar (ou mesmo no Aguarde da lista): libera XML das «Só resumo»
+    # via Ciência + chave — sem carregar na grade.
+    try:
+        auto = dfe_completar_resumos_pendentes(cnpj)
+    except Exception:
+        logger.exception("dfe_completar_resumos_pendentes")
+        auto = {"tentadas": 0, "xml_completos": 0, "ainda_resumo": 0, "falhas": 1}
+    out["auto_xml"] = auto
     out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
     out["n_docs_retorno"] = len(res.get("notas_xml") or [])
     return out
@@ -558,6 +566,65 @@ def dfe_executar_download_por_chave(chave: str) -> dict[str, Any]:
         out["inbox"] = inbox
         out["ok"] = True
     out["itens_pendentes"] = dfe_inbox_listar(cnpj, aba="pendentes")
+    return out
+
+
+def dfe_completar_resumos_pendentes(
+    cnpj: str,
+    *,
+    limite: int = 8,
+) -> dict[str, Any]:
+    """
+    Para cada nota «Só resumo» pendente: Ciência + download por chave.
+    Não carrega na grade — só deixa pronta para o botão Carregar na grade.
+    Para se a Receita mandar 656. Lote curto (default 8) para não estourar timeout.
+    """
+    from produtos.models import AgroNfeDistDfeDocumento
+
+    cnpj = _cnpj14(cnpj)
+    out: dict[str, Any] = {
+        "tentadas": 0,
+        "xml_completos": 0,
+        "ainda_resumo": 0,
+        "falhas": 0,
+        "parar_656": False,
+        "aguardar_segundos": 0,
+    }
+    if len(cnpj) != 14:
+        return out
+    lim = max(1, min(int(limite or 8), 12))
+    qs = list(
+        AgroNfeDistDfeDocumento.objects.filter(
+            cnpj=cnpj,
+            status__in=STATUS_PENDENTES,
+            schema=AgroNfeDistDfeDocumento.Schema.RESUMO,
+        ).order_by("criado_em")[:lim]
+    )
+    for row in qs:
+        out["tentadas"] += 1
+        try:
+            res = dfe_manifestar_ciencia_e_baixar(row.pk)
+        except Exception:
+            logger.exception("dfe_completar_resumos_pendentes id=%s", row.pk)
+            out["falhas"] += 1
+            continue
+        if res.get("xml_completo"):
+            out["xml_completos"] += 1
+            continue
+        try:
+            c_stat_i = int(res.get("c_stat")) if res.get("c_stat") is not None else None
+        except (TypeError, ValueError):
+            c_stat_i = None
+        erro = str(res.get("erro") or res.get("mensagem") or "")
+        if c_stat_i == 656 or "656" in erro or "indevido" in erro.lower():
+            out["parar_656"] = True
+            out["aguardar_segundos"] = int(res.get("aguardar_segundos") or 3600)
+            out["ainda_resumo"] += 1
+            break
+        if res.get("ok") or res.get("ciencia_registrada"):
+            out["ainda_resumo"] += 1
+        else:
+            out["falhas"] += 1
     return out
 
 
@@ -621,10 +688,19 @@ def dfe_manifestar_ciencia_e_baixar(doc_id: int) -> dict[str, Any]:
     if xml_completo:
         mensagem = "Ciência registrada e XML completo liberado. Já pode carregar na grade."
     elif download.get("aguardar_segundos"):
-        mensagem = (
-            "Ciência registrada. A Receita ainda está no intervalo de espera; "
-            "depois do contador, clique Buscar XML."
-        )
+        try:
+            st_dl = int(download.get("c_stat")) if download.get("c_stat") is not None else None
+        except (TypeError, ValueError):
+            st_dl = None
+        if st_dl == 656 or int(download.get("aguardar_segundos") or 0) >= 3000:
+            mensagem = (
+                "Ciência registrada. A Receita bloqueou (656); "
+                "depois do contador, clique Buscar XML."
+            )
+        else:
+            mensagem = (
+                "Ciência registrada. Aguarde alguns segundos e clique Buscar XML."
+            )
     else:
         mensagem = (
             "Ciência registrada. A Receita ainda não entregou o XML completo; "

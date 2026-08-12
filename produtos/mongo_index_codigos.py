@@ -401,6 +401,81 @@ def codigos_barras_opcionais_de_cadastro_extras(cadastro_extras: dict | None) ->
     return normalizar_codigos_barras_opcionais(raw)
 
 
+def mesclar_codigos_barras_opcionais_adicionar(
+    cadastro_extras: dict | None,
+    adicionar: Any,
+    *,
+    principal: str | None = None,
+) -> list[str]:
+    """Une barras opcionais já gravadas com novas (Entrada NF bip / cadastro)."""
+    atuais = codigos_barras_opcionais_de_cadastro_extras(cadastro_extras)
+    novos = normalizar_codigos_barras_opcionais(adicionar, excluir=principal)
+    return normalizar_codigos_barras_opcionais(atuais + novos, excluir=principal)
+
+
+def aplicar_bip_entrada_nf_troca_inteligente(
+    *,
+    codigo_barras_atual: str,
+    cadastro_extras: dict | None,
+    bip: str,
+    promover_se_loja: bool = True,
+) -> dict[str, Any]:
+    """
+    Regra B (Entrada NF etapa 3):
+    - bip inválido → noop
+    - principal atual é 230… (loja) e bip é outro EAN → bip vira principal; 230… vai a opcionais
+    - senão → bip só entra em opcionais
+    """
+    dig_bip = "".join(ch for ch in str(bip or "") if ch.isdigit())
+    if not (_MIN_CB_OPCIONAL <= len(dig_bip) <= _MAX_CB_OPCIONAL):
+        return {
+            "acao": "noop",
+            "codigo_barras": None,
+            "codigos_barras_opcionais": codigos_barras_opcionais_de_cadastro_extras(
+                cadastro_extras
+            ),
+            "bip": dig_bip,
+        }
+    dig_atual = "".join(ch for ch in str(codigo_barras_atual or "") if ch.isdigit())
+    if dig_bip == dig_atual:
+        return {
+            "acao": "noop",
+            "codigo_barras": None,
+            "codigos_barras_opcionais": codigos_barras_opcionais_de_cadastro_extras(
+                cadastro_extras
+            ),
+            "bip": dig_bip,
+        }
+
+    from produtos.agro_codigo_barras_loja_util import eh_codigo_barras_loja
+
+    if promover_se_loja and dig_atual and eh_codigo_barras_loja(dig_atual):
+        lista = mesclar_codigos_barras_opcionais_adicionar(
+            cadastro_extras,
+            [dig_atual],
+            principal=dig_bip,
+        )
+        return {
+            "acao": "promove",
+            "codigo_barras": dig_bip,
+            "codigos_barras_opcionais": lista,
+            "bip": dig_bip,
+            "antigo_principal": dig_atual,
+        }
+
+    lista = mesclar_codigos_barras_opcionais_adicionar(
+        cadastro_extras,
+        [dig_bip],
+        principal=dig_atual or None,
+    )
+    return {
+        "acao": "opcional",
+        "codigo_barras": None,
+        "codigos_barras_opcionais": lista,
+        "bip": dig_bip,
+    }
+
+
 def coletar_extras_agro_para_busca(produto_externo_id: str) -> list[str]:
     """
     Códigos cadastrados no Agro que entram no mesmo ``index_codigos`` do ERP:

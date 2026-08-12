@@ -39,6 +39,11 @@ def parsear_seq_codigo_barras_loja(cb: str) -> int | None:
         return None
 
 
+def eh_codigo_barras_loja(cb: str) -> bool:
+    """True se for faixa interna 230… (13 dígitos sequenciais da loja)."""
+    return parsear_seq_codigo_barras_loja(cb) is not None
+
+
 def _cb_loja_ocupado_overlays(cb: str) -> bool:
     from .models import ProdutoGestaoOverlayAgro, ProdutoMarcaVariacaoAgro
 
