@@ -1202,65 +1202,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ DF-e — XML fora do Aguarde 1h da lista (`DFE-XML-AGUARDE` · **teste**)
+### 📦 PACOTE PRONTO — Entrada NF bip → cadastro (`NF-BIP-CAD` · **teste v15.95+**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ teste · VERIFY_OK 26/26 · **não** loja |
-| **Problema** | Após Buscar, «Buscar XML» ficava preso no contador de 1h da lista |
-| **Fix** | Lista = 1h no 137; XML/chave só trava no **656** · auto Ciência+XML nas Só resumo · **Carregar na grade** continua manual |
-| **Arquivos** | `sefaz_dfe_client.py` · `dfe_inbox_util.py` · `views.py` · `entrada_nota.html` · `verify_dfe_manifestacao.py` |
-| **Você** | Ctrl+F5 Entrada NF → SEFAZ → Buscar · notas devem ir para **Carregar na grade** sem esperar 1h |
+| **Status** | ✅ **pronto para envio à produção** · `teste` · **não** loja |
+| **O quê** | Etapa 3: 1 campo · regra B (230…→opc / bip→principal) · grava PG · backfill |
+| **Prova** | `scripts/verify_nf_bip_cadastro_path.py` · **VERIFY_OK 31/31** · 13/13 testes |
 | **Migrate** | **NÃO** |
+| **Deploy** | cirúrgico · **NÃO** merge `teste`→`producao` |
+| **Você** | frase + senha · Ctrl+F5 Entrada NF etapa 3 · bipar · Fiscal |
 
-### ✅ 2ª varredura EAN — só fábrica 789/790 (`NF-BIP-EAN-REAL` · **teste**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ aplicado local · push `teste` · **não** loja |
-| **Aplicado** | **4** opcional · 0 erro · **7** lixo ignorados (111/123/300…) |
-| **Filtro** | `--fonte=ean --somente-ean-real --aplicar` |
-
-### 🔎 2ª varredura EAN linha NF (`NF-BIP-EAN` · **teste**)
+### 📦 PACOTE PRONTO — DF-e XML fora do Aguarde 1h (`DFE-XML-AGUARDE` · **teste v15.95**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | dry-run local · **não** aplicado · push `teste` |
-| **Resultado** | 73 notas · 377 pares · **366 já no cadastro** · **11 faltam** (1 promove / 10 opc) |
-| **Obs** | Vários dos 11 parecem lixo (111…, 123…) — Renan decide se aplica |
-| **Cmd** | `contar_bip_entrada_nf_cadastro --fonte=ean` (+ `--aplicar`) |
-
-### ✅ Backfill bip NF → cadastro (`NF-BIP-BF` · **teste v15.89**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ aplicado no PG local · push `teste` · **não** loja |
-| **Aplicado** | **18** opcional · 0 promove · 0 erro |
-| **Por que poucos** | Só `bip_similar_codigos` (Sim./Opc.). Centenas de notas «Ok» **não** guardavam o bip |
-| **Cmd** | `contar_bip_entrada_nf_cadastro --aplicar` |
-| **Próximo** | Se quiser caçar mais: EAN da linha NF (`ean`) vs cadastro — Renan autoriza |
-
-### 🐛 FIX — Entrada NF bip inteligente + contagem antigos (`NF-BIP-B` · **teste v15.87**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · **não** loja |
-| **Decisão** | Etapa 3: **1 campo** · regra **B** (230… → opcional; bip → principal; senão só opcional) |
-| **Contagem local** | 8 notas · 18 pares ainda faltam no cadastro (0 promove / 18 só opcional) · dry-run |
-| **Cmd** | `manage.py contar_bip_entrada_nf_cadastro` (só conta) |
-| **Você** | Ctrl+F5 etapa 3 · conferir 1 campo · dizer se **aplica** backfill dos 18 |
-| **Migrate** | **NÃO** |
-
-### 🐛 FIX — Entrada NF etapa 3 grava barras no cadastro (`NF-BIP-OPC` · **teste v15.86**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ push `teste` · **não** loja |
-| **Sintoma** | Bipar código na etapa 3 (ex. `7898752405197`) · cadastro não ganhava o EAN (só rascunho) |
-| **Causa** | Confirmar código / similar só marcava a linha · não gravava overlay |
-| **Fix** | Ao confirmar (ok ou similar) → `codigos_barras_opcionais_adicionar` no PG (merge, não apaga) |
-| **Arquivos** | `entrada_nota.html` · `views.py` · `mongo_index_codigos.py` · testes |
-| **Você** | Ctrl+F5 Entrada NF · bipar na etapa 3 → abrir cadastro Fiscal → Barras opcionais |
+| **Status** | ✅ **pronto para envio à produção** · `teste` @ **abc3fda** · **não** loja |
+| **O quê** | Lista = 1h no 137; XML/chave só trava no **656** · auto Ciência+XML |
+| **Prova** | VERIFY_OK 26/26 |
 | **Migrate** | **NÃO** |
 
 ### 📦 PACOTE PRONTO — Compras slim custo + métricas (`COMPRAS-SLIM-DADOS` · **teste v15.85+**)
@@ -1268,13 +1227,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` @ **21e58d0** · **não** loja |
-| **Sintoma** | Fornecedor lista, mas só nome (sem saldo/custo/última entrada) |
-| **Fix** | slim **v5** + custo · force métricas/saldos · sync slim na abertura |
-| **Arquivos** | `catalogo_agro.py` (só `listar_slim_rows_pdv`) · `views.py` (cache slim v5) · `compras.html` |
-| **Prova** | `scripts/verify_compras_slim_dados_path.py` · **41/41** VERIFY_OK |
+| **Prova** | `scripts/verify_compras_slim_dados_path.py` · **41/41** |
 | **Migrate** | **NÃO** |
-| **Deploy** | **cirúrgico** a partir de `producao` @ **5bbebbe** · **NÃO** merge `teste`→`producao` |
-| **Você** | frase + senha → PREP · Ctrl+F5 `/compras/` · filtro fornecedor com custo/saldo/última |
+| **Deploy** | cirúrgico a partir de `producao` @ **5bbebbe** · **NÃO** merge `teste`→`producao` |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (12/08 · loja ainda v15.82)
 
@@ -1284,6 +1239,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **COMPRAS-SLIM-DADOS** | 🟢 pronto para envio à produção | não |
+| 2 | **NF-BIP-CAD** | 🟢 pronto para envio à produção | não |
+| 3 | **DFE-XML-AGUARDE** | 🟢 pronto para envio à produção | não |
 
 ### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**) · **superado**
 

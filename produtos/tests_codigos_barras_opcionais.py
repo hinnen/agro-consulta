@@ -68,6 +68,37 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
         self.assertIsNone(res["codigo_barras"])
         self.assertEqual(res["codigos_barras_opcionais"], ["7898752405197"])
 
+    def test_troca_inteligente_mesmo_codigo_noop(self):
+        res = aplicar_bip_entrada_nf_troca_inteligente(
+            codigo_barras_atual="7898752405197",
+            cadastro_extras={},
+            bip="7898752405197",
+        )
+        self.assertEqual(res["acao"], "noop")
+
+    def test_troca_inteligente_sem_promover_se_loja_false(self):
+        res = aplicar_bip_entrada_nf_troca_inteligente(
+            codigo_barras_atual="2300000001490",
+            cadastro_extras={},
+            bip="7898752405197",
+            promover_se_loja=False,
+        )
+        self.assertEqual(res["acao"], "opcional")
+        self.assertIsNone(res["codigo_barras"])
+        self.assertIn("7898752405197", res["codigos_barras_opcionais"])
+        self.assertNotIn("2300000001490", res["codigos_barras_opcionais"])
+
+    def test_parece_ean_fabrica_br(self):
+        from produtos.management.commands.contar_bip_entrada_nf_cadastro import (
+            parece_ean_fabrica_br,
+        )
+
+        self.assertTrue(parece_ean_fabrica_br("7898242031950"))
+        self.assertTrue(parece_ean_fabrica_br("17898242031950"))
+        self.assertFalse(parece_ean_fabrica_br("1111111111111"))
+        self.assertFalse(parece_ean_fabrica_br("1234567891010"))
+        self.assertFalse(parece_ean_fabrica_br("3000000052600"))
+
     def test_termo_bate_extras(self):
         self.assertTrue(
             termo_bate_codigos_produto(

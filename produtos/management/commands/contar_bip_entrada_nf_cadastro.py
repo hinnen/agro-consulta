@@ -40,7 +40,10 @@ def parece_ean_fabrica_br(dig: str) -> bool:
         return False
     if len(set(d)) < 4:
         return False
-    if re.match(r"^(0+|1+|1234567890|0123456789|123123123)", d):
+    # Só lixo se for TODOS iguais (111…) ou sequência óbvia de teste.
+    if re.match(r"^(0+|1+)$", d):
+        return False
+    if d.startswith(("1234567890", "0123456789", "123123123")):
         return False
     if d.startswith(("789", "790")):
         return True
