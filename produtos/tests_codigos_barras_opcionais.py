@@ -12,6 +12,7 @@ from produtos.cadastro_busca_codigo_util import (
     termo_bate_codigos_produto,
 )
 from produtos.mongo_index_codigos import (
+    aplicar_bip_entrada_nf_troca_inteligente,
     codigos_barras_opcionais_de_cadastro_extras,
     mesclar_codigos_barras_opcionais_adicionar,
     normalizar_codigos_barras_opcionais,
@@ -46,6 +47,26 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
             principal="2300000001490",
         )
         self.assertEqual(out, ["7891111111111", "7898752405197"])
+
+    def test_troca_inteligente_promove_230(self):
+        res = aplicar_bip_entrada_nf_troca_inteligente(
+            codigo_barras_atual="2300000001490",
+            cadastro_extras={},
+            bip="7898752405197",
+        )
+        self.assertEqual(res["acao"], "promove")
+        self.assertEqual(res["codigo_barras"], "7898752405197")
+        self.assertIn("2300000001490", res["codigos_barras_opcionais"])
+
+    def test_troca_inteligente_ean_fabrica_so_opcional(self):
+        res = aplicar_bip_entrada_nf_troca_inteligente(
+            codigo_barras_atual="7891111111111",
+            cadastro_extras={},
+            bip="7898752405197",
+        )
+        self.assertEqual(res["acao"], "opcional")
+        self.assertIsNone(res["codigo_barras"])
+        self.assertEqual(res["codigos_barras_opcionais"], ["7898752405197"])
 
     def test_termo_bate_extras(self):
         self.assertTrue(

@@ -3005,6 +3005,49 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if lista_op_add:
             ex["codigos_barras_opcionais"] = lista_op_add
             ex.pop("codigos_barras_alternativos", None)
+    # Entrada NF etapa 3 · regra B: 230… → opcional; bip vira principal (senão só opcional).
+    if "codigo_barras_bip_entrada_nf" in payload:
+        from produtos.mongo_index_codigos import aplicar_bip_entrada_nf_troca_inteligente
+
+        dig_bip_nf = "".join(
+            ch for ch in str(payload.get("codigo_barras_bip_entrada_nf") or "") if ch.isdigit()
+        )
+        if len(dig_bip_nf) >= 8:
+            # Se outro cadastro já usa esse EAN como principal, não promove — só opcional.
+            promover = True
+            try:
+                from produtos.models import Produto, ProdutoGestaoOverlayAgro as _OvCb
+
+                conflito = (
+                    _OvCb.objects.filter(codigo_barras=dig_bip_nf)
+                    .exclude(produto_externo_id=pid[:64])
+                    .exists()
+                    or Produto.objects.filter(codigo_barras=dig_bip_nf)
+                    .exclude(produto_externo_id=pid[:64])
+                    .exists()
+                )
+                if conflito:
+                    promover = False
+            except Exception:
+                logger.warning(
+                    "overlay salvar: checagem conflito EAN bip NF",
+                    exc_info=True,
+                )
+            res_bip = aplicar_bip_entrada_nf_troca_inteligente(
+                codigo_barras_atual=(ov.codigo_barras or "").strip(),
+                cadastro_extras=ex,
+                bip=dig_bip_nf,
+                promover_se_loja=promover,
+            )
+            if res_bip.get("acao") == "promove" and res_bip.get("codigo_barras"):
+                ov.codigo_barras = str(res_bip["codigo_barras"])[:80]
+            lista_bip = res_bip.get("codigos_barras_opcionais") or []
+            if lista_bip:
+                ex["codigos_barras_opcionais"] = lista_bip
+                ex.pop("codigos_barras_alternativos", None)
+            elif res_bip.get("acao") == "promove":
+                # Principal trocou; lista pode ficar vazia se só tinha o próprio bip.
+                pass
     desvincular_cprod_de_pid = str(payload.get("c_prod_nf_desvincular_de") or "").strip()[:64]
     c_prod_nf_payload: str | None = None
     if "c_prod_nf" in payload:

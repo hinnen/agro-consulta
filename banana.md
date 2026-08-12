@@ -1201,6 +1201,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 FIX — Entrada NF bip inteligente + contagem antigos (`NF-BIP-B` · **teste v15.87**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · **não** loja |
+| **Decisão** | Etapa 3: **1 campo** · regra **B** (230… → opcional; bip → principal; senão só opcional) |
+| **Contagem local** | 8 notas · 18 pares ainda faltam no cadastro (0 promove / 18 só opcional) · dry-run |
+| **Cmd** | `manage.py contar_bip_entrada_nf_cadastro` (só conta) |
+| **Você** | Ctrl+F5 etapa 3 · conferir 1 campo · dizer se **aplica** backfill dos 18 |
+| **Migrate** | **NÃO** |
+
 ### 🐛 FIX — Entrada NF etapa 3 grava barras no cadastro (`NF-BIP-OPC` · **teste v15.86**)
 
 | Item | Detalhe |
