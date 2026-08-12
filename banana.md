@@ -1201,6 +1201,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ 2ª varredura EAN — só fábrica 789/790 (`NF-BIP-EAN-REAL` · **teste**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ aplicado local · push `teste` · **não** loja |
+| **Aplicado** | **4** opcional · 0 erro · **7** lixo ignorados (111/123/300…) |
+| **Filtro** | `--fonte=ean --somente-ean-real --aplicar` |
+
 ### 🔎 2ª varredura EAN linha NF (`NF-BIP-EAN` · **teste**)
 
 | Item | Detalhe |
