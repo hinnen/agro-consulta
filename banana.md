@@ -1247,7 +1247,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado** · `producao` @ **ec76e89** · **v15.99** · Render auto (branch `producao`) |
+| **Status** | ✅ **enviado / Live v15.99** · `producao` @ **ec76e89** · Render `dep-d9u7bmu7bikc739ncamg` |
 | **Pacotes** | COMPRAS-SLIM-DADOS · NF-BIP-CAD · DFE-XML-AGUARDE |
 | **Prova** | VERIFY **41/41** · **31/31** · **26/26** |
 | **Migrate** | **NÃO** |
@@ -1256,7 +1256,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v15.99)
 
-> **Loja hoje:** ✅ **v15.99** · `producao` @ **ec76e89**  
+> **Loja hoje:** ✅ **Live v15.99** · `producao` @ **ec76e89** · Render `dep-d9u7bmu7bikc739ncamg`  
 > Vigente: este checklist. **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
