@@ -1226,7 +1226,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.11** · loja ainda **v16.07** |
-| **O quê** | `/repasse-vila/` + PDV **Repasse** · CMV + % lucro (50) + fiado pago Vila · sai Vila · entra Centro (pendente+aviso se fechado) · migrate **0087** |
+| **O quê** | `/repasse-vila/` + botão grande em **Retiradas** (abaixo Nova saída) → PDV overlay · CMV + % lucro + fiado · migrate **0087** |
 | **Prova** | path **VERIFY_OK** · deep **VERIFY_DEEP_OK** (37) · calc fiado fora · incremental zera · pendente→aplicado · APIs/tela OK |
 | **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
 | **Fora** | Card BI (adiado) |

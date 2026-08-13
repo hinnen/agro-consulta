@@ -287,6 +287,40 @@ def main() -> int:
         )
     r = c.get("/repasse-vila/")
     ok("GET tela") if r.status_code == 200 and b"Repasse" in r.content else fail("tela")
+    if r.status_code == 200:
+        if b"caixa/retiradas" in r.content and b"repasse=1" in r.content:
+            ok("Transferir aponta Retiradas?repasse=1")
+        elif b"/pdv/" in r.content and b"repasse=1" in r.content:
+            fail("Transferir ainda aponta /pdv/")
+        else:
+            ok("Transferir sem /pdv/repasse")
+
+    r = c.get("/caixa/retiradas/")
+    body = r.content if r.status_code == 200 else b""
+    ok("GET retiradas") if r.status_code == 200 else fail(f"GET retiradas {r.status_code}")
+    ok("botao crh-btn-repasse") if b'id="crh-btn-repasse"' in body else fail("faltou crh-btn-repasse")
+    ok("overlay na Retiradas") if b"pdv-repasse-overlay" in body else fail("faltou overlay")
+    ok("js repasse na Retiradas") if b"pdv_repasse_vila.js" in body else fail("faltou js")
+    # botao deve ser <button>, nao <a href=pdv>
+    idx = body.find(b'id="crh-btn-repasse"')
+    if idx > 0:
+        chunk = body[max(0, idx - 80) : idx]
+        ok("Repasse e <button>") if b"<button" in chunk else fail("Repasse nao e button")
+    if b'pdv_home' in body or b"/pdv/?" in body or b"/pdv/checkout" in body:
+        # pode ter FAB voltar PDV — so falha se link com repasse=1 para pdv
+        if b"?repasse=1" in body and (b"/pdv/" in body or b"pdv_home" in body):
+            # check specifically for href to pdv with repasse
+            import re as _re
+
+            if _re.search(br'href="[^"]*/pdv[^"]*repasse=1', body):
+                fail("ainda existe href PDV?repasse=1")
+            else:
+                ok("sem href PDV?repasse=1")
+        else:
+            ok("sem navegacao PDV repasse")
+    else:
+        ok("Retiradas sem URL pdv")
+
     r = c.post(
         "/api/repasse-vila/config/",
         data=json.dumps({"percentual_lucro_padrao": 50}),
