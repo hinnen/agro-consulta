@@ -1,0 +1,299 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | Repasse Vila → Centro{% endblock %}
+{% block admin_header_title %}Repasse Vila → Centro{% endblock %}
+{% block admin_header_meta %}Dinheiro da Vila Elias para o Centro{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  <a href="{{ url_pdv_repasse }}" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Transferir no PDV</a>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_agro_consulta_ui.html" %}
+
+<style>
+  .rv-card { border: 2px solid #cbd5e1; border-radius: 1rem; background: #fff; padding: 1rem 1.1rem; }
+  .rv-lbl { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
+  .rv-val { font-size: clamp(1.35rem, 2vw + 0.5rem, 2rem); font-weight: 900; font-variant-numeric: tabular-nums; color: #0f172a; }
+  .rv-check { display: flex; align-items: center; gap: 0.75rem; min-height: 3.25rem; padding: 0.65rem 0.85rem; border: 2px solid #cbd5e1; border-radius: 0.85rem; background: #f8fafc; cursor: pointer; }
+  .rv-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
+  .rv-check input { width: 1.35rem; height: 1.35rem; accent-color: #059669; }
+  .rv-day { display: grid; grid-template-columns: 3rem 1fr auto; gap: 0.5rem; align-items: center; min-height: 2.75rem; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; }
+  .rv-day--hoje { background: #ecfdf5; }
+</style>
+
+<div class="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6 w-full max-w-[90rem]">
+  {# —— Config + preview —— #}
+  <section class="rv-card space-y-4">
+    <div class="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <h2 class="text-xl font-black uppercase text-slate-900">Configurar envio</h2>
+        <p class="text-sm font-semibold text-slate-500">Só Vila Elias → Centro</p>
+      </div>
+      {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="rv-lbl">Receita (sem fiado)</div>
+        <div class="rv-val text-emerald-800" id="rv-receita">—</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="rv-lbl">CMV do dia</div>
+        <div class="rv-val text-slate-800" id="rv-cmv-dia">—</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="rv-lbl">Lucro bruto</div>
+        <div class="rv-val text-sky-800" id="rv-lucro-dia">—</div>
+      </div>
+      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div class="rv-lbl">Fiado pago</div>
+        <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
+      </div>
+    </div>
+
+    <label class="block">
+      <span class="rv-lbl">% do lucro bruto (padrão salvo)</span>
+      <div class="mt-1 flex flex-wrap items-center gap-2">
+        <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
+          class="min-h-[3rem] w-28 rounded-xl border-2 border-slate-300 px-3 text-xl font-black tabular-nums" />
+        <span class="text-lg font-black text-slate-600">%</span>
+        <button type="button" id="rv-salvar-pct" class="min-h-[3rem] rounded-xl border-2 border-emerald-600 bg-emerald-50 px-4 text-sm font-black uppercase text-emerald-900">Salvar padrão</button>
+      </div>
+    </label>
+
+    {% with repasse_help="transferir" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+
+    <div class="space-y-2">
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-todos" checked />
+        <span class="font-black uppercase text-slate-800">Marcar todos</span>
+      </label>
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-cmv" class="rv-linha" data-key="cmv" checked />
+        <span class="flex-1 font-bold text-slate-800">Custo da mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
+      </label>
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
+        <span class="flex-1 font-bold text-slate-800">% lucro bruto <span class="tabular-nums text-sky-800" id="rv-disp-lucro">R$ 0,00</span></span>
+      </label>
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
+        <span class="flex-1 font-bold text-slate-800">Fiado pago na Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
+      </label>
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-dia-cheio" />
+        <span class="font-bold text-slate-800">Dia cheio de novo <span class="text-slate-500 font-semibold">(padrão = só o que falta)</span></span>
+      </label>
+    </div>
+
+    <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-4 flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div class="rv-lbl text-emerald-800">Total a enviar</div>
+        <div class="rv-val text-emerald-900" id="rv-total">R$ 0,00</div>
+        <p class="mt-1 text-xs font-bold text-slate-600" id="rv-ja">Já enviado hoje: —</p>
+      </div>
+      <a href="{{ url_pdv_repasse }}" id="rv-btn-transferir"
+         class="inline-flex min-h-[3.5rem] items-center justify-center rounded-2xl bg-orange-500 px-6 text-base font-black uppercase text-white shadow-lg hover:bg-orange-600">
+        Transferir no PDV →
+      </a>
+    </div>
+
+    {% if not caixa_vila_aberto %}
+    <p class="rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950">Caixa da Vila fechado — abra o caixa da Vila antes de transferir.</p>
+    {% endif %}
+    <p id="rv-status" class="text-sm font-bold text-slate-600"></p>
+  </section>
+
+  {# —— Histórico —— #}
+  <section class="rv-card flex flex-col min-h-[28rem]">
+    <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+      <div>
+        <h2 class="text-xl font-black uppercase text-slate-900">Histórico do mês</h2>
+        <p class="text-sm font-semibold text-slate-500">Dia a dia · zera no mês novo</p>
+      </div>
+      {% with repasse_help="historico" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+    </div>
+    <div class="mb-3 flex flex-wrap items-center gap-2">
+      <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2">
+        <span class="rv-lbl">Total do mês</span>
+        <div class="text-2xl font-black tabular-nums text-slate-900" id="rv-tot-mes">R$ 0,00</div>
+      </div>
+      <button type="button" id="rv-mes-ant" class="min-h-[2.75rem] rounded-xl border-2 border-slate-300 px-3 font-black">‹</button>
+      <span id="rv-mes-lbl" class="min-w-[8rem] text-center text-sm font-black uppercase text-slate-700"></span>
+      <button type="button" id="rv-mes-prox" class="min-h-[2.75rem] rounded-xl border-2 border-slate-300 px-3 font-black">›</button>
+    </div>
+    <div id="rv-dias" class="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white max-h-[min(55vh,32rem)]"></div>
+  </section>
+</div>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+
+{{ calc|json_script:"rv-calc-boot" }}
+{{ hist|json_script:"rv-hist-boot" }}
+
+<script>
+(function () {
+  'use strict';
+  function money(n) {
+    var v = Number(n || 0);
+    return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function bootJson(id) {
+    var el = document.getElementById(id);
+    try { return el ? JSON.parse(el.textContent || '{}') : {}; } catch (e) { return {}; }
+  }
+  var state = {
+    calc: bootJson('rv-calc-boot'),
+    hist: bootJson('rv-hist-boot'),
+    ano: null,
+    mes: null,
+  };
+  state.ano = state.hist.ano || (new Date()).getFullYear();
+  state.mes = state.hist.mes || ((new Date()).getMonth() + 1);
+
+  var pctEl = document.getElementById('rv-pct');
+  var chkCmv = document.getElementById('rv-chk-cmv');
+  var chkLucro = document.getElementById('rv-chk-lucro');
+  var chkFiado = document.getElementById('rv-chk-fiado');
+  var chkTodos = document.getElementById('rv-chk-todos');
+  var chkCheio = document.getElementById('rv-chk-dia-cheio');
+  var statusEl = document.getElementById('rv-status');
+
+  function renderCalc() {
+    var c = state.calc || {};
+    var d = c.disponivel || {};
+    document.getElementById('rv-receita').textContent = money(c.receita_dia);
+    document.getElementById('rv-cmv-dia').textContent = money(c.cmv_dia);
+    document.getElementById('rv-lucro-dia').textContent = money(c.lucro_bruto_dia);
+    document.getElementById('rv-fiado-dia').textContent = money(c.fiado_pago_dia);
+    document.getElementById('rv-disp-cmv').textContent = money(d.cmv);
+    document.getElementById('rv-disp-lucro').textContent = money(d.lucro);
+    document.getElementById('rv-disp-fiado').textContent = money(d.fiado);
+    var tot = 0;
+    if (chkCmv.checked) tot += Number(d.cmv || 0);
+    if (chkLucro.checked) tot += Number(d.lucro || 0);
+    if (chkFiado.checked) tot += Number(d.fiado || 0);
+    document.getElementById('rv-total').textContent = money(tot);
+    var ja = c.ja_enviado || {};
+    document.getElementById('rv-ja').textContent =
+      'Já enviado hoje: ' + money(ja.total) +
+      ' (CMV ' + money(ja.cmv) + ' · lucro ' + money(ja.lucro) + ' · fiado ' + money(ja.fiado) + ')';
+  }
+
+  function renderHist() {
+    var h = state.hist || {};
+    document.getElementById('rv-tot-mes').textContent = money(h.total_mes);
+    var meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    document.getElementById('rv-mes-lbl').textContent = (meses[h.mes] || h.mes) + ' / ' + h.ano;
+    var box = document.getElementById('rv-dias');
+    box.innerHTML = '';
+    var hoje = new Date();
+    var hojeIso = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+    (h.dias || []).forEach(function (row) {
+      if (!row.n && row.valor <= 0 && row.data > hojeIso) return;
+      var div = document.createElement('div');
+      div.className = 'rv-day' + (row.data === hojeIso ? ' rv-day--hoje' : '');
+      var pct = row.pct_lucro_real == null ? '—' : (Number(row.pct_lucro_real).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '% lucro');
+      div.innerHTML =
+        '<span class="font-black text-slate-500">' + row.dia + '</span>' +
+        '<span class="tabular-nums">' + money(row.valor) + (row.n ? ' · ' + row.n + ' envio(s)' : '') + '</span>' +
+        '<span class="text-xs font-black uppercase text-sky-800">' + pct + '</span>';
+      box.appendChild(div);
+    });
+  }
+
+  function fetchCalc() {
+    var pct = pctEl.value || '50';
+    var cheio = chkCheio.checked ? '1' : '0';
+    statusEl.textContent = 'Atualizando…';
+    fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) { state.calc = j; renderCalc(); statusEl.textContent = ''; }
+        else statusEl.textContent = (j && j.erro) || 'Falha ao calcular';
+      })
+      .catch(function () { statusEl.textContent = 'Falha de rede'; });
+  }
+
+  function fetchHist() {
+    fetch('/api/repasse-vila/historico/?ano=' + state.ano + '&mes=' + state.mes, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) { state.hist = j; renderHist(); }
+      });
+  }
+
+  chkTodos.addEventListener('change', function () {
+    var on = chkTodos.checked;
+    chkCmv.checked = on; chkLucro.checked = on; chkFiado.checked = on;
+    renderCalc();
+  });
+  [chkCmv, chkLucro, chkFiado].forEach(function (el) {
+    el.addEventListener('change', function () {
+      chkTodos.checked = chkCmv.checked && chkLucro.checked && chkFiado.checked;
+      renderCalc();
+    });
+  });
+  chkCheio.addEventListener('change', fetchCalc);
+  var pctTimer = null;
+  pctEl.addEventListener('input', function () {
+    clearTimeout(pctTimer);
+    pctTimer = setTimeout(fetchCalc, 350);
+  });
+  document.getElementById('rv-salvar-pct').addEventListener('click', function () {
+    statusEl.textContent = 'Salvando…';
+    fetch('/api/repasse-vila/config/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
+      body: JSON.stringify({ percentual_lucro_padrao: pctEl.value }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        statusEl.textContent = j.ok ? 'Padrão salvo: ' + j.percentual_lucro_padrao + '%' : (j.erro || 'Erro');
+        if (j.ok) fetchCalc();
+      })
+      .catch(function () { statusEl.textContent = 'Falha ao salvar'; });
+  });
+  document.getElementById('rv-mes-ant').addEventListener('click', function () {
+    state.mes -= 1;
+    if (state.mes < 1) { state.mes = 12; state.ano -= 1; }
+    fetchHist();
+  });
+  document.getElementById('rv-mes-prox').addEventListener('click', function () {
+    state.mes += 1;
+    if (state.mes > 12) { state.mes = 1; state.ano += 1; }
+    fetchHist();
+  });
+
+  // Persist checkbox choices for PDV overlay via querystring
+  function syncTransferUrl() {
+    var a = document.getElementById('rv-btn-transferir');
+    if (!a) return;
+    var q = new URLSearchParams();
+    q.set('repasse', '1');
+    q.set('pct', pctEl.value || '50');
+    q.set('cmv', chkCmv.checked ? '1' : '0');
+    q.set('lucro', chkLucro.checked ? '1' : '0');
+    q.set('fiado', chkFiado.checked ? '1' : '0');
+    q.set('cheio', chkCheio.checked ? '1' : '0');
+    a.href = '{% url "pdv_home" %}?' + q.toString();
+  }
+  [pctEl, chkCmv, chkLucro, chkFiado, chkCheio].forEach(function (el) {
+    el.addEventListener('change', syncTransferUrl);
+    el.addEventListener('input', syncTransferUrl);
+  });
+
+  renderCalc();
+  renderHist();
+  syncTransferUrl();
+})();
+</script>
+{% endblock %}

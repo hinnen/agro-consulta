@@ -1,0 +1,223 @@
+"""Repasse Vila → Centro — tela + APIs."""
+from __future__ import annotations
+
+import json
+import logging
+from datetime import date
+from decimal import Decimal
+
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
+
+from produtos.caixa_util import (
+    obter_caixa_vila_aberto,
+    obter_sessao_caixa_aberta_request,
+    operador_label_de_pin,
+    usuario_django_de_pin,
+)
+from produtos.repasse_vila_util import (
+    calcular_disponivel,
+    confirmar_repasse,
+    historico_mes,
+    obter_config,
+    salvar_percentual_padrao,
+    serializar_repasse,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _payload(request) -> dict | None:
+    try:
+        raw = (request.body or b"").decode("utf-8") or "{}"
+        data = json.loads(raw)
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def _parse_bool(v, default=False) -> bool:
+    if v is None:
+        return default
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in ("1", "true", "sim", "yes", "on"):
+        return True
+    if s in ("0", "false", "nao", "não", "no", "off"):
+        return False
+    return default
+
+
+def _parse_date(raw) -> date | None:
+    s = str(raw or "").strip()
+    if not s:
+        return None
+    try:
+        return date.fromisoformat(s[:10])
+    except Exception:
+        return None
+
+
+@login_required(login_url="/admin/login/")
+def repasse_vila_view(request):
+    cfg = obter_config()
+    hoje = timezone.localdate()
+    calc = calcular_disponivel(hoje)
+    hist = historico_mes(hoje.year, hoje.month)
+    url_pdv = reverse("pdv_home") + "?repasse=1"
+    return render(
+        request,
+        "produtos/repasse_vila.html",
+        {
+            "percentual_padrao": cfg.percentual_lucro_padrao,
+            "calc": calc,
+            "hist": hist,
+            "url_pdv_repasse": url_pdv,
+            "caixa_vila_aberto": bool(obter_caixa_vila_aberto()),
+        },
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_calc(request):
+    dia = _parse_date(request.GET.get("data")) or timezone.localdate()
+    pct = request.GET.get("pct")
+    modo = _parse_bool(request.GET.get("dia_cheio"), False)
+    try:
+        pct_v = Decimal(str(pct).replace(",", ".")) if pct not in (None, "") else None
+    except Exception:
+        pct_v = None
+    return JsonResponse(calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo))
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_historico(request):
+    hoje = timezone.localdate()
+    try:
+        ano = int(request.GET.get("ano") or hoje.year)
+        mes = int(request.GET.get("mes") or hoje.month)
+    except Exception:
+        ano, mes = hoje.year, hoje.month
+    return JsonResponse(historico_mes(ano, mes))
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET", "POST"])
+def api_repasse_vila_config(request):
+    if request.method == "GET":
+        cfg = obter_config()
+        return JsonResponse(
+            {
+                "ok": True,
+                "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+                "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else "",
+                "atualizado_por": cfg.atualizado_por or "",
+            }
+        )
+    payload = _payload(request) or {}
+    if not payload and request.POST:
+        payload = {
+            "percentual_lucro_padrao": request.POST.get("percentual_lucro_padrao"),
+            "operador": request.POST.get("operador"),
+        }
+    try:
+        pct = Decimal(str(payload.get("percentual_lucro_padrao") or "50").replace(",", "."))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Porcentagem inválida"}, status=400)
+    op = str(payload.get("operador") or "").strip()
+    if getattr(request, "user", None) and request.user.is_authenticated and not op:
+        op = (request.user.get_username() or "")[:120]
+    cfg = salvar_percentual_padrao(pct, operador=op)
+    return JsonResponse(
+        {
+            "ok": True,
+            "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_meta(request):
+    from rh.models import Funcionario
+
+    cfg = obter_config()
+    caixa = obter_sessao_caixa_aberta_request(request)
+    vila = obter_caixa_vila_aberto()
+    funcionarios = []
+    qs = Funcionario.objects.filter(ativo=True).order_by("nome_cache", "id")[:200]
+    for f in qs:
+        nome = (getattr(f, "nome_exibicao", None) or getattr(f, "nome_cache", None) or "").strip()
+        if not nome:
+            continue
+        ap = (getattr(f, "apelido_interno", None) or "").strip()
+        label = f"{nome} ({ap})" if ap else nome
+        funcionarios.append({"id": f.pk, "nome": label})
+    calc = calcular_disponivel(timezone.localdate())
+    return JsonResponse(
+        {
+            "ok": True,
+            "caixa_aberto": bool(caixa),
+            "caixa_vila_aberto": bool(vila),
+            "percentual_padrao": float(cfg.percentual_lucro_padrao),
+            "funcionarios": funcionarios,
+            "calc": calc,
+            "url_tela": reverse("repasse_vila"),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_confirmar(request):
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    pin = str(payload.get("pin") or "").strip()
+    operador = str(payload.get("operador") or "").strip()
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin or label or "PIN inválido"}, status=400)
+        operador = label or operador
+        user_dj = usuario_django_de_pin(pin)
+        if user_dj is not None:
+            request.user = user_dj  # type: ignore[attr-defined]
+
+    quem = str(payload.get("quem_levou") or "").strip()
+    try:
+        pct = payload.get("percentual_lucro")
+        pct_v = Decimal(str(pct).replace(",", ".")) if pct not in (None, "") else None
+    except Exception:
+        pct_v = None
+    try:
+        vm_raw = payload.get("valor_manual")
+        vm = Decimal(str(vm_raw).replace(",", ".")) if vm_raw not in (None, "") else None
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Valor manual inválido"}, status=400)
+
+    dia = _parse_date(payload.get("data_ref"))
+    rep, err = confirmar_repasse(
+        request=request,
+        quem_levou=quem,
+        percentual_lucro=pct_v,
+        incluir_cmv=_parse_bool(payload.get("incluir_cmv"), True),
+        incluir_lucro=_parse_bool(payload.get("incluir_lucro"), True),
+        incluir_fiado=_parse_bool(payload.get("incluir_fiado"), True),
+        modo_dia_cheio=_parse_bool(payload.get("modo_dia_cheio"), False),
+        valor_manual=vm,
+        forma_pagamento=str(payload.get("forma_pagamento") or "Dinheiro"),
+        operador=operador,
+        data_ref=dia,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "repasse": serializar_repasse(rep)})

@@ -1,0 +1,41 @@
+{# Ajuda Repasse Vila → Centro — textos longos só no ? #}
+{% if repasse_help == "geral" %}
+<details class="repasse-help mt-2 rounded-xl border-2 border-amber-300 bg-amber-50/80 px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[2.75rem] cursor-pointer select-none font-black uppercase text-amber-950 text-xs tracking-wide list-none flex items-center gap-2">
+    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-700 bg-white text-base" aria-hidden="true">?</span>
+    O que é este repasse
+  </summary>
+  <div class="mt-2 space-y-2 text-sm font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-700">
+    <p>A Vila Elias envia dinheiro para o <strong>Centro</strong>. O valor monta assim:</p>
+    <ul class="list-disc pl-5 space-y-1">
+      <li><strong>Custo da mercadoria vendida (CMV)</strong> — sempre no cálculo (vendas da Vila, sem venda fiado).</li>
+      <li><strong>% do lucro bruto</strong> — você escolhe de 0 a 100% (padrão 50%). Lucro bruto = vendas − CMV.</li>
+      <li><strong>Pagamentos de fiado na Vila</strong> — o valor pago entra <strong>inteiro</strong> (venda fiado não entra no CMV).</li>
+    </ul>
+    <p>Venda fiado <strong>não conta</strong> até o cliente pagar. Fiado do Centro pago na Vila <strong>não entra</strong>.</p>
+  </div>
+</details>
+{% elif repasse_help == "transferir" %}
+<details class="repasse-help mt-2 rounded-xl border-2 border-amber-300 bg-amber-50/80 px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[2.75rem] cursor-pointer select-none font-black uppercase text-amber-950 text-xs tracking-wide list-none flex items-center gap-2">
+    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-700 bg-white text-base" aria-hidden="true">?</span>
+    Como transferir
+  </summary>
+  <div class="mt-2 space-y-2 text-sm font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-700">
+    <p>Marque o que vai no envio (CMV, % lucro, fiado). Padrão: manda <strong>só o que ainda falta</strong> no dia. Se quiser mandar o dia de novo do zero, marque <strong>Dia cheio</strong>.</p>
+    <p>O botão <strong>Transferir</strong> abre o PDV na telinha de repasse. Precisa do <strong>caixa da Vila aberto</strong>. Sai do caixa da Vila e entra no Centro (mesmo se o Centro estiver fechado — aí avisa na próxima abertura).</p>
+    <p>Pode usar o valor automático ou digitar um valor manual.</p>
+  </div>
+</details>
+{% elif repasse_help == "historico" %}
+<details class="repasse-help mt-2 rounded-xl border-2 border-amber-300 bg-amber-50/80 px-3 py-2 text-sm text-slate-800">
+  <summary class="min-h-[2.75rem] cursor-pointer select-none font-black uppercase text-amber-950 text-xs tracking-wide list-none flex items-center gap-2">
+    <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-amber-700 bg-white text-base" aria-hidden="true">?</span>
+    Histórico do mês
+  </summary>
+  <div class="mt-2 space-y-2 text-sm font-semibold leading-snug border-t border-amber-200 pt-2 text-slate-700">
+    <p>Cada dia mostra o valor enviado e a <strong>% real do lucro bruto</strong> que foi transferida (lucro enviado ÷ lucro do dia). Vários envios no mesmo dia somam o valor; a % é a real do acumulado, não a média das porcentagens escolhidas.</p>
+    <p>No mês novo a lista recomeça. O total do mês fica no topo.</p>
+  </div>
+</details>
+{% endif %}

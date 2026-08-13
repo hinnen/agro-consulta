@@ -2730,3 +2730,104 @@ class AjusteCodigoPendenteAgro(models.Model):
     def __str__(self):
         return f"#{self.pk} {self.codigo_bipado} → {self.nome_produto or self.produto_externo_id}"
 
+
+class RepasseVilaConfigAgro(models.Model):
+    """Config única — % padrão do lucro bruto no repasse Vila → Centro."""
+
+    percentual_lucro_padrao = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=50,
+        help_text="0 a 100. Padrão na tela/PDV ao montar o envio.",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+    atualizado_por = models.CharField(max_length=120, blank=True, default="")
+
+    class Meta:
+        verbose_name = "Repasse Vila · config"
+        verbose_name_plural = "Repasse Vila · config"
+
+    def __str__(self):
+        return f"Repasse Vila · {self.percentual_lucro_padrao}%"
+
+
+class RepasseVilaCentroAgro(models.Model):
+    """Envio de dinheiro da Vila Elias para o Centro (CMV + % lucro + fiado pago)."""
+
+    class StatusCentro(models.TextChoices):
+        PENDENTE = "pendente", "Pendente no Centro"
+        APLICADO = "aplicado", "Aplicado no caixa Centro"
+
+    data_ref = models.DateField(db_index=True, help_text="Dia das vendas/fiados deste cálculo.")
+    percentual_lucro = models.DecimalField(max_digits=5, decimal_places=2, default=50)
+    modo_dia_cheio = models.BooleanField(
+        default=False,
+        help_text="True = mandou o dia cheio de novo (não só o que faltava).",
+    )
+    incluir_cmv = models.BooleanField(default=True)
+    incluir_lucro = models.BooleanField(default=True)
+    incluir_fiado = models.BooleanField(default=True)
+    valor_cmv = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_lucro = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_fiado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Snapshot do dia (para histórico / %)
+    receita_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cmv_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    lucro_bruto_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    fiado_pago_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    quem_levou = models.CharField(max_length=120)
+    forma_pagamento = models.CharField(max_length=80, default="Dinheiro")
+    operador = models.CharField(max_length=120, blank=True, default="")
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_vila_centro",
+    )
+    sessao_vila = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_vila_saida",
+    )
+    sessao_centro = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasses_centro_entrada",
+    )
+    movimento_saida = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_vila_saida",
+    )
+    movimento_entrada = models.ForeignKey(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="repasse_vila_entrada",
+    )
+    status_centro = models.CharField(
+        max_length=16,
+        choices=StatusCentro.choices,
+        default=StatusCentro.PENDENTE,
+        db_index=True,
+    )
+    aviso_abertura_visto = models.BooleanField(default=False)
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Repasse Vila → Centro"
+        verbose_name_plural = "Repasses Vila → Centro"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Repasse #{self.pk} {self.data_ref} R$ {self.valor_total}"

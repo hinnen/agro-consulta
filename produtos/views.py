@@ -10463,10 +10463,17 @@ def dashboard_gerencial_view(request):
     if request.GET.get("sync") == "1" and request.user.is_authenticated:
         di, df, _lbl, _k = _dashboard_periodo_from_request(request)
         sync_status = _dashboard_sync_vendas_erp_para_mongo(di, df)
+    aviso_rep = request.session.pop("repasse_aviso_abertura", None)
+    if aviso_rep is not None:
+        request.session.modified = True
     return render(
         request,
         "produtos/dashboard_gerencial.html",
-        {**_dashboard_capri_context(request), "sync_status": sync_status},
+        {
+            **_dashboard_capri_context(request),
+            "sync_status": sync_status,
+            "repasse_aviso_abertura": aviso_rep if isinstance(aviso_rep, dict) else None,
+        },
     )
 
 
@@ -11530,6 +11537,10 @@ def caixa_painel(request):
     )
     if ctx["limpar_contagem_caixa_ls"]:
         request.session.modified = True
+    aviso_rep = request.session.pop("repasse_aviso_abertura", None)
+    if aviso_rep:
+        request.session.modified = True
+    ctx["repasse_aviso_abertura"] = aviso_rep if isinstance(aviso_rep, dict) else None
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
@@ -12050,6 +12061,31 @@ def caixa_abrir(request):
             observacao_abertura=obs,
             ponto_caixa=ponto,
         )
+        if ponto == PONTO_CAIXA_GAVETA:
+            try:
+                from produtos.repasse_vila_util import (
+                    aplicar_repasses_pendentes_centro,
+                    texto_aviso_abertura,
+                )
+
+                aplicados = aplicar_repasses_pendentes_centro(
+                    sessao_centro=s,
+                    usuario=request.user
+                    if getattr(request, "user", None) and request.user.is_authenticated
+                    else None,
+                )
+                aviso = texto_aviso_abertura(aplicados)
+                if aviso:
+                    request.session["repasse_aviso_abertura"] = {
+                        "texto": aviso,
+                        "ids": [r.pk for r in aplicados],
+                        "total": float(
+                            sum((_dec(r.valor_total) for r in aplicados), Decimal("0"))
+                        ),
+                    }
+                    request.session.modified = True
+            except Exception:
+                logger.exception("repasse_vila: falha ao aplicar pendentes na abertura Centro")
         definir_ponto_operacao_browser(request, ponto, s.pk)
         sincronizar_deposito_com_ponto_caixa(request, ponto)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
