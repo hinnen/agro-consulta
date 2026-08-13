@@ -110,6 +110,28 @@
     );
   }
 
+  /** Atributo data-rg-tip para balão no mouse (CSS). */
+  function rgTip(texto) {
+    if (!texto) return "";
+    return (
+      ' data-rg-tip="' +
+      escapeHtml(String(texto)).replace(/"/g, "&quot;") +
+      '"'
+    );
+  }
+
+  function miniRow(label, valorHtml, tip) {
+    return (
+      "<div" +
+      rgTip(tip) +
+      "><dt>" +
+      escapeHtml(label) +
+      "</dt><dd>" +
+      valorHtml +
+      "</dd></div>"
+    );
+  }
+
   /**
    * @param {object} o
    * @param {string} o.title
@@ -354,43 +376,78 @@
     var pe = num(c && c.faturamento_equilibrio);
     var peOk = pe > 0 && rec >= pe;
     var escala = Math.max(pe, rec, 1);
-    var barRec = Math.min(100, (rec / escala) * 100);
-    var barPe = pe > 0 ? Math.min(100, (pe / escala) * 100) : 0;
-    var pctPe = pe > 0 ? (rec / pe) * 100 : 0;
-    var folga = rec - pe;
+    var fillPct = Math.min(100, (rec / escala) * 100);
+    var markPct = pe > 0 ? Math.min(100, (pe / escala) * 100) : 0;
+    var folga = pe > 0 ? rec - pe : 0;
     var status = !pe
       ? "Sem PE neste recorte"
       : peOk
         ? "Acima do equilíbrio"
         : "Abaixo do equilíbrio";
     var statusCls = !pe ? "" : peOk ? " is-good" : " is-bad";
-    var meter = Math.max(0, Math.min(100, pctPe));
+    var folgaLbl = !pe ? "—" : peOk ? "Folga" : "Falta";
+    var plain = !pe
+      ? "Neste recorte não dá para calcular o ponto de equilíbrio (falta margem de contribuição)."
+      : "Para empatar, a loja precisa vender " +
+        brl(pe) +
+        ". Já vendeu " +
+        brl(rec) +
+        ".";
     return (
-      '<div class="rg-pe-chart rg-pe-modern' +
+      '<div class="rg-pe-chart rg-pe-modern rg-pe-thermo' +
       statusCls +
-      '" role="img" aria-label="Ponto de equilíbrio"><div class="rg-pe-modern__status">' +
+      '" role="img" aria-label="Ponto de equilíbrio">' +
+      '<div class="rg-pe-modern__status"' +
+      rgTip(
+        pe > 0
+          ? peOk
+            ? "Vendas já cobriram o mínimo para empatar (fixas + CMV + variáveis)."
+            : "Ainda falta vender para cobrir o mínimo e empatar."
+          : "Sem base de cálculo neste filtro."
+      ) +
+      ">" +
       status +
-      '</div><div class="rg-pe-modern__nums"><div><span>Receita</span><strong class="' +
+      "</div>" +
+      (pe > 0
+        ? '<div class="rg-pe-thermo__track"' +
+          rgTip("Barra verde = o que vendeu. Linha = quanto precisa vender para empatar.") +
+          '><b class="rg-pe-thermo__fill" style="width:' +
+          fillPct.toFixed(1) +
+          '%"></b><i class="rg-pe-thermo__mark" style="left:' +
+          markPct.toFixed(1) +
+          '%"></i></div>'
+        : "") +
+      '<div class="rg-pe-modern__nums rg-pe-thermo__nums">' +
+      "<div" +
+      rgTip("Quanto a loja vendeu (receita do PDV) no período filtrado.") +
+      '><span>Vendeu</span><strong class="' +
       valCls(rec) +
       '">' +
       brl(rec) +
-      '</strong></div><div><span>Equilíbrio</span><strong>' +
+      "</strong></div>" +
+      "<div" +
+      rgTip(
+        "Quanto precisa vender para empatar: cobre despesas fixas + CMV + variáveis."
+      ) +
+      "><span>Precisa vender (PE)</span><strong>" +
       (pe > 0 ? brl(pe) : "—") +
-      '</strong></div></div><div class="rg-pe-modern__bars"><div class="rg-pe-modern__row"><i>Receita</i><div class="rg-pe-modern__track"><b class="rg-pe-modern__fill rg-pe-modern__fill--rec" style="width:' +
-      barRec.toFixed(1) +
-      '%"></b></div></div><div class="rg-pe-modern__row"><i>PE</i><div class="rg-pe-modern__track"><b class="rg-pe-modern__fill rg-pe-modern__fill--pe" style="width:' +
-      barPe.toFixed(1) +
-      '%"></b></div></div></div>' +
-      (pe > 0
-        ? '<div class="rg-pe-modern__meter"><span style="width:' +
-          meter.toFixed(1) +
-          '%"></span></div><p class="rg-pe-modern__delta">' +
-          pctJa(pctPe) +
-          " do PE · folga " +
-          brl(folga) +
-          "</p>"
-        : "") +
-      "</div>"
+      "</strong></div>" +
+      "<div" +
+      rgTip(
+        peOk
+          ? "Quanto sobrou além do equilíbrio (lucro de contribuição)."
+          : "Quanto ainda falta vender para empatar."
+      ) +
+      "><span>" +
+      folgaLbl +
+      '</span><strong class="' +
+      (pe > 0 ? valCls(folga) : "") +
+      '">' +
+      (pe > 0 ? brl(Math.abs(folga)) : "—") +
+      "</strong></div></div>" +
+      '<p class="rg-pe-modern__delta rg-pe-thermo__plain">' +
+      plain +
+      "</p></div>"
     );
   }
 
@@ -420,7 +477,9 @@
       stops.push(c + " " + acc.toFixed(2) + "% " + (acc + p).toFixed(2) + "%");
       acc += p;
       legend +=
-        '<li><i class="rg-dot" style="background:' +
+        "<li" +
+        rgTip("Vendas PDV da categoria «" + (f.nome || "—") + "» no período.") +
+        '><i class="rg-dot" style="background:' +
         c +
         '"></i>' +
         escapeHtml(f.nome || "—") +
@@ -457,8 +516,9 @@
         var val = catValor(r);
         var pctW = Math.min(100, (val / max) * 100);
         return (
-          '<div class="rg-cat">' +
-          '<div class="rg-cat__meta"><span class="rg-cat__nome">' +
+          '<div class="rg-cat"' +
+          rgTip("Despesa do plano «" + (r.plano || "—") + "» no mesmo recorte do filtro.") +
+          '><div class="rg-cat__meta"><span class="rg-cat__nome">' +
           escapeHtml(r.plano) +
           '</span><span class="rg-cat__val">' +
           brl(val) +
@@ -514,15 +574,23 @@
   }
   function renderCmpRows(atual, mesVal, d90Val, invert, asPct) {
     if (mesVal == null && d90Val == null) return "";
-    function row(label, ref) {
+    function row(label, ref, tip) {
       if (ref == null) {
-        return '<div class="rg-cmp__row"><i>' + label + "</i><b>—</b><em>—</em></div>";
+        return (
+          '<div class="rg-cmp__row"' +
+          rgTip(tip) +
+          "><i>" +
+          label +
+          "</i><b>—</b><em>—</em></div>"
+        );
       }
       var d = asPct ? deltaPp(atual, ref) : deltaRel(atual, ref);
       return (
         '<div class="rg-cmp__row' +
         cmpTone(d, invert) +
-        '"><i>' +
+        '"' +
+        rgTip(tip) +
+        "><i>" +
         label +
         "</i><b>" +
         (asPct ? pctJa(ref) : brl(ref)) +
@@ -533,8 +601,16 @@
     }
     return (
       '<div class="rg-cmp">' +
-      row("vs mês passado", mesVal) +
-      row("vs média 90d", d90Val) +
+      row(
+        "vs mês passado",
+        mesVal,
+        "Mesmo número de dias do mês calendário anterior (projetado). Passa o mouse nos cards de cima para o detalhe."
+      ) +
+      row(
+        "vs média 90d",
+        d90Val,
+        "Média diária dos 90 dias anteriores × dias do filtro atual."
+      ) +
       "</div>"
     );
   }
@@ -658,70 +734,119 @@
       modo === "grupo"
         ? "Abra uma empresa para ver empréstimos."
         : "Devido = bruto no filtro da tela. <strong>Empréstimo devido</strong> + <strong>juros devido</strong> = <strong>total devido</strong>. <strong>Valor pago</strong> = pago desses títulos (mesmo meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela competência.";
+    var tipDesp =
+      "Soma das despesas fixas + variáveis + financeiras no filtro (sem CMV e sem pagamento de empréstimo).";
+    var tipRec =
+      c.receita_fonte === "pdv"
+        ? "Vendas do caixa (PDV) no período e loja filtrados."
+        : "Receita dos lançamentos no período filtrado.";
+    var tipMarg =
+      "Margem bruta = lucro bruto ÷ receita. Quanto sobra de cada R$ 1,00 vendido depois do CMV.";
+    var tipCmv =
+      "Custo da mercadoria no modo escolhido em cima (vendida = cadastro × qtd; paga = compras lançadas).";
+    var tipMk =
+      "Markup = lucro bruto ÷ CMV. Quanto a loja ganha em cima do custo da mercadoria.";
     var empHtml =
       '<article class="rg-card rg-card--emp"><div class="rg-card__head"><h3>Empréstimos</h3>' +
       rgQ(qEmp, "Ajuda empréstimos") +
       '</div><dl class="rg-mini">' +
-      "<div><dt>Empréstimo devido</dt><dd class=\"" +
-      (empOk && empDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
-      "\">" +
-      (empOk ? brl(empDev) : "—") +
-      '</dd></div><div><dt>Juros devido</dt><dd class="' +
-      (empOk && jurDev > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      (empOk ? brl(jurDev) : "—") +
-      '</dd></div><div><dt>Total devido</dt><dd class="' +
-      (empOk && totDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
-      '">' +
-      (empOk ? brl(totDev) : "—") +
-      '</dd></div><div><dt>Valor pago</dt><dd class="' +
-      (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
-      '">' +
-      (empOk ? brl(emp.valor_pago) : "—") +
-      '</dd></div><div><dt>Valor emprestado</dt><dd class="' +
-      (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
-      '">' +
-      (empOk ? brl(emp.valor_emprestado) : "—") +
-      "</dd></div></dl></article>";
+      miniRow(
+        "Empréstimo devido",
+        '<span class="' +
+          (empOk && empDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(empDev) : "—") +
+          "</span>",
+        "Bruto dos títulos de pagamento de empréstimo com vencimento no filtro."
+      ) +
+      miniRow(
+        "Juros devido",
+        '<span class="' +
+          (empOk && jurDev > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(jurDev) : "—") +
+          "</span>",
+        "Bruto dos títulos de juros de empréstimo no mesmo filtro."
+      ) +
+      miniRow(
+        "Total devido",
+        '<span class="' +
+          (empOk && totDev > 0.005 ? "rg-val--warn" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(totDev) : "—") +
+          "</span>",
+        "Empréstimo devido + juros devido."
+      ) +
+      miniRow(
+        "Valor pago",
+        '<span class="' +
+          (empOk && num(emp.valor_pago) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(emp.valor_pago) : "—") +
+          "</span>",
+        "Já pago desses títulos (pode incluir baixas de meses anteriores)."
+      ) +
+      miniRow(
+        "Valor emprestado",
+        '<span class="' +
+          (empOk && num(emp.valor_emprestado) > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          (empOk ? brl(emp.valor_emprestado) : "—") +
+          "</span>",
+        "Entrada de empréstimo no período (sempre por competência)."
+      ) +
+      "</dl></article>";
     return (
       '<div class="rg-board">' +
       '<div class="rg-flow">' +
-      '<article class="rg-flow__kpi rg-flow__kpi--desp"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Despesas</span>' +
+      '<article class="rg-flow__kpi rg-flow__kpi--desp"' +
+      rgTip(tipDesp) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Despesas</span>' +
       rgQ(qDesp, "Ajuda despesas") +
-      "</div><strong>" +
+      '</div><strong>' +
       brl(desp) +
-      "</strong></div>" +
+      '</strong><small class="rg-flow__kpi-sub">Fixas + variáveis + financeiras</small></div>' +
       cmpDesp +
       "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--rec' +
       recCls +
-      '"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Receita</span>' +
+      '"' +
+      rgTip(tipRec) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>Receita</span>' +
       rgQ(qRec, "Ajuda receita") +
-      "</div><strong>" +
+      '</div><strong>' +
       brl(rec) +
-      "</strong></div>" +
+      '</strong><small class="rg-flow__kpi-sub">' +
+      (c.receita_fonte === "pdv" ? "Vendas do PDV" : "Lançamentos") +
+      "</small></div>" +
       cmpRec +
       "</article>" +
       '<span class="rg-flow__arrow" aria-hidden="true">→</span>' +
       '<article class="rg-flow__kpi rg-flow__kpi--lucro' +
       lucroCls +
-      '"><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>% Lucro</span>' +
+      '"' +
+      rgTip(tipMarg) +
+      '><div class="rg-flow__kpi-main"><div class="rg-flow__kpi-label"><span>% Lucro</span>' +
       rgQ(qLucro, "Ajuda lucro") +
-      "</div><strong>" +
+      '</div><strong>' +
       (margem != null ? pctJa(margem) : "—") +
-      "</strong></div>" +
+      '</strong><small class="rg-flow__kpi-sub">Margem bruta</small></div>' +
       cmpMarg +
       "</article>" +
       '<article class="rg-flow__side"><div class="rg-flow__side-head">' +
       rgQ(qCmvMk, "Ajuda CMV e markup") +
-      '</div><div class="rg-flow__side-row"><div><span>CMV</span><strong class="' +
+      '</div><div class="rg-flow__side-row"' +
+      rgTip(tipCmv) +
+      '><div><span>CMV</span><strong class="' +
       (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
       '">' +
       brl(cmv) +
       "</strong></div>" +
       cmpCmv +
-      '</div><div class="rg-flow__side-row"><div><span>Markup</span><strong class="' +
+      '</div><div class="rg-flow__side-row"' +
+      rgTip(tipMk) +
+      '><div><span>Markup</span><strong class="' +
       (markup == null ? "" : valCls(markup)) +
       '">' +
       (markup != null ? pctJa(markup) : "—") +
@@ -732,11 +857,17 @@
       p1.toFixed(1) +
       "%;--p2:" +
       p2.toFixed(1) +
-      '%"></div><ul class="rg-legend"><li><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
+      '%"></div><ul class="rg-legend"><li' +
+      rgTip("Aluguel, salário e outras que não mudam com a venda.") +
+      '><i class="rg-dot rg-dot--fixa"></i>Fixas <b>' +
       brl(df) +
-      '</b></li><li><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
+      "</b></li><li" +
+      rgTip("Acompanham o volume de venda.") +
+      '><i class="rg-dot rg-dot--var"></i>Variáveis <b>' +
       brl(dv) +
-      '</b></li><li><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
+      "</b></li><li" +
+      rgTip("IOF, tarifa, ativo — sem juros/pagamento de empréstimo.") +
+      '><i class="rg-dot rg-dot--fin"></i>Financeiras <b>' +
       brl(dfin) +
       "</b></li></ul></div></article>" +
       '<article class="rg-card rg-card--rec-cat"><h3>Receita por categoria</h3>' +
@@ -755,54 +886,102 @@
       catHtml +
       "</div></article></div>" +
       '<div class="rg-col--dre"><article class="rg-card rg-card--dre' +
-      (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005 ? "" : num(c.resultado_liquido_gerencial) > 0 ? " is-good" : " is-bad") +
+      (Math.abs(num(c.resultado_liquido_gerencial)) < 0.005
+        ? ""
+        : num(c.resultado_liquido_gerencial) > 0
+          ? " is-good"
+          : " is-bad") +
       '"><div class="rg-card__head"><h3>Mini DRE</h3>' +
       rgQ(qMini, "Ajuda Mini DRE") +
-      '</div><dl class="rg-mini"><div><dt>Receita</dt><dd class="' +
-      valCls(rec) +
-      '">' +
-      brl(rec) +
-      '</dd></div><div><dt>CMV</dt><dd class="' +
-      (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      brl(cmv) +
-      '</dd></div><div><dt>Lucro bruto</dt><dd class="' +
-      valCls(lucro) +
-      '">' +
-      brl(lucro) +
-      '</dd></div><div><dt>Resultado op.</dt><dd class="' +
-      valCls(c.resultado_operacional) +
-      '">' +
-      brl(c.resultado_operacional) +
-      '</dd></div><div><dt>Líquido</dt><dd class="' +
-      valCls(c.resultado_liquido_gerencial) +
-      '">' +
-      brl(c.resultado_liquido_gerencial) +
-      '</dd></div><div><dt>Entrada empréstimo</dt><dd class="' +
-      (entradaEmp > 0.005 ? "rg-val--info" : "rg-val--zero") +
-      '">' +
-      brl(entradaEmp) +
-      '</dd></div><div><dt>Aporte sócio</dt><dd class="' +
-      (aportesSoc > 0.005 ? "rg-val--info" : "rg-val--zero") +
-      '">' +
-      brl(aportesSoc) +
-      '</dd></div><div><dt>Juros empréstimo</dt><dd class="' +
-      (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      brl(jurosEmp) +
-      '</dd></div><div><dt>Empréstimo</dt><dd class="' +
-      (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      brl(empPago) +
-      '</dd></div><div><dt>Retirada sócio</dt><dd class="' +
-      (retiradasSoc > 0.005 ? "rg-val--cost" : "rg-val--zero") +
-      '">' +
-      brl(retiradasSoc) +
-      '</dd></div><div><dt>Saldo final</dt><dd class="' +
-      valCls(saldoMini) +
-      '">' +
-      brl(saldoMini) +
-      "</dd></div></dl></article>" +
+      '</div><dl class="rg-mini">' +
+      miniRow(
+        "Receita",
+        '<span class="' + valCls(rec) + '">' + brl(rec) + "</span>",
+        tipRec
+      ) +
+      miniRow(
+        "CMV",
+        '<span class="' +
+          (cmv > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(cmv) +
+          "</span>",
+        tipCmv
+      ) +
+      miniRow(
+        "Lucro bruto",
+        '<span class="' + valCls(lucro) + '">' + brl(lucro) + "</span>",
+        "Receita − CMV."
+      ) +
+      miniRow(
+        "Resultado op.",
+        '<span class="' +
+          valCls(c.resultado_operacional) +
+          '">' +
+          brl(c.resultado_operacional) +
+          "</span>",
+        "Lucro bruto − despesas operacionais (fixas + variáveis)."
+      ) +
+      miniRow(
+        "Líquido",
+        '<span class="' +
+          valCls(c.resultado_liquido_gerencial) +
+          '">' +
+          brl(c.resultado_liquido_gerencial) +
+          "</span>",
+        "Resultado operacional − despesas financeiras (sem empréstimos/sócios)."
+      ) +
+      miniRow(
+        "Entrada empréstimo",
+        '<span class="' +
+          (entradaEmp > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          brl(entradaEmp) +
+          "</span>",
+        "Dinheiro que entrou de empréstimo no período."
+      ) +
+      miniRow(
+        "Aporte sócio",
+        '<span class="' +
+          (aportesSoc > 0.005 ? "rg-val--info" : "rg-val--zero") +
+          '">' +
+          brl(aportesSoc) +
+          "</span>",
+        "Aporte de sócio no período."
+      ) +
+      miniRow(
+        "Juros empréstimo",
+        '<span class="' +
+          (jurosEmp > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(jurosEmp) +
+          "</span>",
+        "Juros de empréstimo pagos no período."
+      ) +
+      miniRow(
+        "Empréstimo",
+        '<span class="' +
+          (empPago > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(empPago) +
+          "</span>",
+        "Principal de empréstimo pago no período."
+      ) +
+      miniRow(
+        "Retirada sócio",
+        '<span class="' +
+          (retiradasSoc > 0.005 ? "rg-val--cost" : "rg-val--zero") +
+          '">' +
+          brl(retiradasSoc) +
+          "</span>",
+        "Retirada de sócio no período."
+      ) +
+      miniRow(
+        "Saldo final",
+        '<span class="' + valCls(saldoMini) + '">' + brl(saldoMini) + "</span>",
+        "Soma da Mini DRE: líquido + entradas − juros − principal − retiradas."
+      ) +
+      "</dl></article>" +
       empHtml +
       "</div></div>"
     );

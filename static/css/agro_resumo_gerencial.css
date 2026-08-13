@@ -803,7 +803,8 @@
   color: #0f172a;
   line-height: 1.12;
 }
-.rg-flow__kpi small {
+.rg-flow__kpi small,
+.rg-flow__kpi-sub {
   display: block;
   margin-top: 0.2rem;
   font-size: 0.625rem;
@@ -1076,14 +1077,14 @@
 .rg-pe-modern {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
   min-height: 0;
 }
 .rg-pe-modern__status {
   align-self: flex-start;
   border-radius: 999px;
-  padding: 0.18rem 0.6rem;
-  font-size: 0.7rem;
+  padding: 0.28rem 0.75rem;
+  font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1103,6 +1104,9 @@
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
 }
+.rg-pe-thermo__nums {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .rg-pe-modern__nums span {
   display: block;
   font-size: 0.62rem;
@@ -1118,52 +1122,44 @@
   font-variant-numeric: tabular-nums;
   color: #0f172a;
 }
-.rg-pe-modern__row {
-  display: grid;
-  grid-template-columns: 4.2rem 1fr;
-  gap: 0.4rem;
-  align-items: center;
-}
-.rg-pe-modern__row i {
-  font-style: normal;
-  font-size: 0.65rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: #64748b;
-}
-.rg-pe-modern__track {
-  height: 0.7rem;
+.rg-pe-thermo__track {
+  position: relative;
+  height: 1.15rem;
   border-radius: 999px;
   background: #e2e8f0;
-  overflow: hidden;
+  overflow: visible;
+  margin: 0.15rem 0 0.25rem;
 }
-.rg-pe-modern__fill {
+.rg-pe-thermo__fill {
   display: block;
   height: 100%;
   border-radius: 999px;
   min-width: 0.2rem;
+  background: #059669;
 }
-.rg-pe-modern__fill--rec { background: #059669; }
-.rg-pe-modern__fill--pe { background: #334155; }
-.rg-pe-modern__meter {
-  height: 0.45rem;
-  border-radius: 999px;
-  background: #e2e8f0;
-  overflow: hidden;
+.rg-pe-modern.is-bad .rg-pe-thermo__fill {
+  background: #e11d48;
 }
-.rg-pe-modern__meter span {
-  display: block;
-  height: 100%;
+.rg-pe-thermo__mark {
+  position: absolute;
+  top: -0.2rem;
+  bottom: -0.2rem;
+  width: 0.2rem;
+  margin-left: -0.1rem;
   border-radius: 999px;
   background: #0f172a;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
 }
-.rg-pe-modern.is-good .rg-pe-modern__meter span { background: #059669; }
-.rg-pe-modern.is-bad .rg-pe-modern__meter span { background: #e11d48; }
-.rg-pe-modern__delta {
+.rg-pe-modern__delta,
+.rg-pe-thermo__plain {
   margin: 0;
-  font-size: 0.72rem;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
   color: #475569;
+  text-transform: none;
+  letter-spacing: 0;
 }
 .rg-card--pe {
   flex: 1 1 auto;
@@ -1306,4 +1302,58 @@
 }
 @media (max-width: 720px) {
   .rg-flow { grid-template-columns: 1fr; }
+}
+
+/* Balão no mouse — explicação rápida do número */
+[data-rg-tip] {
+  position: relative;
+  cursor: help;
+}
+[data-rg-tip]::after {
+  content: attr(data-rg-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.35rem);
+  transform: translateX(-50%) translateY(0.15rem);
+  z-index: 40;
+  width: max(12rem, min(18rem, 70vw));
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.5rem;
+  background: #0f172a;
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s ease, visibility 0.12s ease, transform 0.12s ease;
+}
+[data-rg-tip]:hover::after,
+[data-rg-tip]:focus-visible::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.rg-flow__kpi[data-rg-tip]::after,
+.rg-card--pe [data-rg-tip]::after {
+  left: 0.5rem;
+  transform: translateX(0) translateY(0.15rem);
+}
+.rg-flow__kpi[data-rg-tip]:hover::after,
+.rg-card--pe [data-rg-tip]:hover::after {
+  transform: translateX(0) translateY(0);
+}
+.rg-mini [data-rg-tip]::after {
+  left: auto;
+  right: 0;
+  transform: translateX(0) translateY(0.15rem);
+}
+.rg-mini [data-rg-tip]:hover::after {
+  transform: translateX(0) translateY(0);
 }

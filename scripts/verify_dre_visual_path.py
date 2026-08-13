@@ -90,21 +90,30 @@ def test_arquivos() -> None:
     check("fn_receita_cat", "def receita_categorias_pdv" in rel_v)
     check("montar_chama_rec_cat", "receita_categorias_pdv" in util)
     check("emp_entrada_comp", 'entrada_por": "competencia"' in emp_util)
-    check("emp_devido_no_periodo", "qs_aberto" not in emp_util and "valor_restante" in emp_util)
+    check(
+        "emp_devido_no_periodo",
+        "emprestimo_devido" in emp_util and "valor_restante" not in emp_util,
+    )
     check("montar_chama_emp", "resumo_emprestimos_pg" in util)
     check("api_passa_datas", "data_inicio=params" in api and "empresa_nome=data.get" in api)
     check("api_passa_valor", "valor=valor" in api)
     check("util_emp_valor", 'valor=valor or "bruto"' in util)
     check("html_ajuda_emp", "Empréstimos" in html and "competência" in html)
-    check("html_ajuda_emp_filtro", "seguem o filtro" in html)
-    check("js_emp_hint_filtro", "filtro da tela" in js)
+    check("html_ajuda_emp_filtro", "empréstimo devido" in html.lower() and "Total devido" in html)
+    check("js_emp_hint_filtro", "Devido = bruto" in js and "filtro da tela" in js)
     check("montar_chama_gastos", "gastos_variacao_pg" in util)
     check("montar_top12", "[:12]" in util)
     check("montar_top_chart_8", "top_chart=8" in util)
     check("ser_incluir_visual", "incluir_visual" in ser)
     check("ser_default_false", "incluir_visual = serializers.BooleanField" in ser)
     check("api_chama_montar", "montar_dre_visual" in api)
-    check("api_so_empresa", 'params["modo"] == "empresa"' in api and "incluir_visual" in api)
+    check("api_visual_empresa_ou_lojas", 'modo in ("empresa", "lojas")' in api and "incluir_visual" in api)
+    check("api_consolidar_loja", "consolidar_por_loja_pg" in api)
+    check("ser_loja", 'choices=["todas", "centro", "vila"]' in ser or "todas" in ser and "loja" in ser)
+    check("html_f_loja", 'id="f-loja"' in html and "Centro + Vila" in html)
+    check("js_loja_param", 'loja=" +' in js or "loja=" in js)
+    check("js_loja_key", "agro_dre_loja_v1" in js)
+    check("resumo_por_loja", "def consolidar_por_loja_pg" in resumo)
     check("api_anexa_cmv", api.count("anexar_cmv_modos=True") >= 4)
     gap = api.split("class GapEquilibrioAPIView")[1] if "class GapEquilibrioAPIView" in api else ""
     check("pe_nao_anexa_visual", "montar_dre_visual" not in gap)
@@ -132,12 +141,13 @@ def test_arquivos() -> None:
     check("js_apply_cmv", "function aplicarCmvNoCore" in js)
     check("js_key_cmv", "agro_dre_cmv_modo_v1" in js)
     check("js_fluxo_desp", "Despesas" in js and "Receita" in js and "% Lucro" in js)
-    check("js_desp_split", '" · var "' in js and '" · fin "' in js)
+    check("js_desp_split", "function rgQ" in js and "qDesp" in js and "financeiras" in js)
     check("js_donut", "Composição das despesas" in js and "rg-donut" in js)
     check("js_receita_cat", "Receita por categoria" in js and "donutReceitaCategorias" in js)
     check("css_donuts_row", ".rg-charts-donuts" in css)
     check("html_ajuda_rec_cat", "Receita por categoria" in html)
-    check("html_ajuda_caixa_filtro", "Saldo final" in html and "Juros empréstimo" in html)
+    check("html_ajuda_caixa_filtro", "Saldo final" in html and "retirada sócio" in html)
+    check("html_ajuda_mini_soma", "soma da Mini DRE" in html)
     check("html_ajuda_desp_cat", "Despesas por categoria" in html and "card Despesas" in html)
     check("html_ajuda_desp_cadastro", "cadastro oficial" in html)
     check("util_cadastro_dre", (ROOT / "financeiro/services/plano_conta_dre_util.py").is_file())
@@ -148,12 +158,29 @@ def test_arquivos() -> None:
     check("js_categorias", "Despesas por categoria" in js)
     check("js_mini_dre", "Mini DRE" in js)
     check("js_mini_juros", "Juros empréstimo" in js and "Saldo final" in js)
-    check("js_mini_emp_linha", ">Empréstimo</dt>" in js or "<dt>Empréstimo</dt>" in js)
-    check("js_emp_card", "Valor devido" in js and "Valor emprestado" in js and "rg-card--emp" in js)
+    check("js_mini_emp_linha", 'miniRow(\n        "Empréstimo"' in js or 'miniRow("Empréstimo"' in js or '"Empréstimo",' in js)
+    check("js_mini_entrada", "Entrada empréstimo" in js)
+    check("js_mini_aporte", "Aporte sócio" in js)
+    check("js_mini_retirada", "Retirada sócio" in js)
+    check("js_saldo_mini", "saldoMini" in js and "liquidoTela" in js)
+    check(
+        "js_emp_card",
+        "Empréstimo devido" in js
+        and "Juros devido" in js
+        and "Total devido" in js
+        and "Valor emprestado" in js
+        and "rg-card--emp" in js,
+    )
     check("css_emp", ".rg-card--emp" in css)
-    check("js_caixa_periodo", "geracao_caixa" in js and "com empréstimos" in js)
+    check("js_caixa_periodo", "geracao_caixa" in js and "Saldo Mini DRE" in js)
     check("js_desp_cat", "despesas_categorias" in js)
     check("js_cmp_rows", "vs mês passado" in js and "vs média 90d" in js)
+    check("js_rg_q", "function rgQ" in js and 'class="rg-q"' in js)
+    check("js_rg_tip", "function rgTip" in js and "data-rg-tip" in js)
+    check("css_rg_tip", "[data-rg-tip]::after" in css and "attr(data-rg-tip)" in css)
+    check("css_rg_q", ".rg-q__btn" in css and ".rg-q__box" in css)
+    check("css_cmp_nowrap", "white-space: nowrap" in css and ".rg-cmp__row" in css)
+    check("css_mini_nowrap", ".rg-mini dt" in css and "nowrap" in css)
     check("js_cmp_ref", "function refKpis" in js and "visual.comparativo" in js)
     check("js_cmp_invert_desp", "renderCmpRows(desp" in js and "true, false)" in js)
     check("css_cmp", ".rg-cmp" in css and ".rg-flow__side-row" in css)
@@ -162,8 +189,12 @@ def test_arquivos() -> None:
     check("js_spark", "faturamento_pdv" in js)
     check("js_pe_chart", "function peChartSvg" in js and "Ponto de equilíbrio" in js)
     check("js_pe_modern", "rg-pe-modern" in js and "Acima do equilíbrio" in js)
+    check("js_pe_thermo", "rg-pe-thermo" in js and "Precisa vender (PE)" in js and "Vendeu" in js)
+    check("js_pe_plain", "Para empatar, a loja precisa vender" in js)
     check("css_pe_chart", ".rg-pe-chart" in css)
     check("css_pe_modern", ".rg-pe-modern" in css)
+    check("css_pe_thermo", ".rg-pe-thermo__track" in css and ".rg-pe-thermo__mark" in css)
+    check("js_kpi_sub", "rg-flow__kpi-sub" in js)
     check("js_chip_click", 'querySelectorAll("[data-dre-cmv]")' in js)
     check("js_default_vendida", 'return "vendida"' in js)
 
@@ -482,6 +513,12 @@ def test_math_cmv_e_fluxo() -> None:
     check("caixa_visual_geracao", snap_v["geracao_caixa"] == caixa)
     caixa_liq = snap_v["resultado_liquido_gerencial"]
     check("caixa_liq_nao_e_geracao", caixa_liq != caixa and caixa_liq == rec - cmv_vend - df - dv - dfin, str(caixa_liq))
+    entrada = Decimal("42364.90")
+    juros = Decimal("3955.00")
+    emp_pg = Decimal("39245.50")
+    ret = Decimal("7850.19")
+    saldo_mini = caixa_liq + entrada - juros - emp_pg - ret
+    check("saldo_mini_soma", abs(saldo_mini - Decimal("405.22")) < Decimal("0.05"), str(saldo_mini))
     desp = df + dv + dfin
     check("desp_soma", desp == Decimal("24348.19"), str(desp))
     margem = (snap_v["lucro_bruto"] / rec) * Decimal("100")
@@ -558,6 +595,10 @@ def test_emprestimos_classifica() -> None:
         "emp_juros_nao_principal",
         eh_pagamento_principal_emprestimo("Juros de Empréstimos", despesa=True) is False,
     )
+    check(
+        "emp_dual_nao_principal",
+        eh_pagamento_principal_emprestimo("Empréstimo (entrada + pagamento)", despesa=True) is False,
+    )
 
     def T(**kw):
         return SimpleNamespace(
@@ -603,8 +644,13 @@ def test_emprestimos_classifica() -> None:
             valor="bruto",
         )
     check("emp_filtro_ok", out.get("ok") is True)
-    check("emp_devido_nao_total", out.get("valor_devido") == 300.0, str(out.get("valor_devido")))
-    check("emp_pago_periodo", out.get("valor_pago") == 500.0, str(out.get("valor_pago")))
+    check("emp_devido_bruto", out.get("emprestimo_devido") == 500.0, str(out.get("emprestimo_devido")))
+    check("emp_devido_alias", out.get("valor_devido") == 500.0, str(out.get("valor_devido")))
+    check("emp_juros_devido", out.get("juros_devido") == 50.0, str(out.get("juros_devido")))
+    check("emp_total_devido", out.get("total_devido") == 550.0, str(out.get("total_devido")))
+    check("emp_pago_periodo", out.get("valor_pago") == 250.0, str(out.get("valor_pago")))
+    check("emp_principal_pago", out.get("emprestimo_pago") == 200.0, str(out.get("emprestimo_pago")))
+    check("emp_juros_pago", out.get("juros_pago") == 50.0, str(out.get("juros_pago")))
     check("emp_juros_periodo", out.get("juros") == 50.0, str(out.get("juros")))
     check("emp_entrada_comp_val", out.get("valor_emprestado") == 5000.0, str(out.get("valor_emprestado")))
     check("emp_entrada_por_comp", out.get("entrada_por") == "competencia")
