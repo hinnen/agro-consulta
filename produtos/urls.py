@@ -16,6 +16,7 @@ from . import views_repasse_vila
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
 from . import views_planos_conta
+from . import contagem_ciclica_views
 
 urlpatterns = [
     # --- PÁGINAS ---
@@ -39,6 +40,51 @@ urlpatterns = [
         "api/ajuste-mobile/codigo-pendente/<int:pk>/status/",
         ajuste_codigo_pendente_views.api_ajuste_codigo_pendente_status,
         name="api_ajuste_codigo_pendente_status",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/sessoes/",
+        contagem_ciclica_views.api_ciclica_sessoes,
+        name="api_ciclica_sessoes",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/categorias/",
+        contagem_ciclica_views.api_ciclica_categorias,
+        name="api_ciclica_categorias",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/abrir/",
+        contagem_ciclica_views.api_ciclica_abrir,
+        name="api_ciclica_abrir",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/",
+        contagem_ciclica_views.api_ciclica_detalhe,
+        name="api_ciclica_detalhe",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/entrar/",
+        contagem_ciclica_views.api_ciclica_entrar,
+        name="api_ciclica_entrar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/contar/",
+        contagem_ciclica_views.api_ciclica_contar,
+        name="api_ciclica_contar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/fechar-pass1/",
+        contagem_ciclica_views.api_ciclica_fechar_pass1,
+        name="api_ciclica_fechar_pass1",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/gravar/",
+        contagem_ciclica_views.api_ciclica_gravar,
+        name="api_ciclica_gravar",
+    ),
+    path(
+        "api/ajuste-mobile/ciclica/<int:pk>/cancelar/",
+        contagem_ciclica_views.api_ciclica_cancelar,
+        name="api_ciclica_cancelar",
     ),
     path("api/bug-report/", bug_report_views.api_bug_report_criar, name="api_bug_report_criar"),
     path("api/bug-report/<int:pk>/status/", bug_report_views.api_bug_report_status, name="api_bug_report_status"),

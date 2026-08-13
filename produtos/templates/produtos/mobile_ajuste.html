@@ -498,6 +498,7 @@
       <h1 class="ma-head-title-txt">Ajuste <span>Mobile</span></h1>
       <div class="ma-head-actions">
         <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
+        <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
         <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
         <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
         <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
@@ -521,6 +522,18 @@
       </div>
     </div>
   </header>
+
+  <div id="ma-ciclica-bar" class="hidden px-3 pt-2">
+    <div class="rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2.5 space-y-2">
+      <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" id="ma-ciclica-btn-pass1" class="min-h-[2.5rem] rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase">Fechar passagem 1</button>
+        <button type="button" id="ma-ciclica-btn-gravar" class="min-h-[2.5rem] rounded-xl bg-emerald-700 text-white text-[10px] font-black uppercase hidden">Gravar estoque</button>
+        <button type="button" id="ma-ciclica-btn-painel" class="min-h-[2.5rem] rounded-xl bg-white border border-orange-200 text-orange-900 text-[10px] font-black uppercase">Painel</button>
+        <button type="button" id="ma-ciclica-btn-sair" class="min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-600 text-[10px] font-black uppercase">Sair do modo</button>
+      </div>
+    </div>
+  </div>
 
   <div id="reader" class="fixed inset-0 z-[120] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
@@ -612,11 +625,11 @@
         <h3 id="m-nome" class="font-black uppercase text-slate-900 pr-1 shrink-0"></h3>
 
         <div class="grid grid-cols-2 gap-2 shrink-0">
-          <div class="min-w-0">
+          <div class="min-w-0" id="ma-saldo-wrap">
             <div id="m-saldo-label" class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Saldo atual (Centro)</div>
             <div id="m-saldo" class="font-black text-emerald-600 tabular-nums">0</div>
           </div>
-          <div class="min-w-0">
+          <div class="min-w-0" id="ma-qtd-wrap">
             <label for="m-novo" class="text-[10px] text-slate-500 font-black uppercase tracking-wide">Quantidade</label>
             <input
               id="m-novo"
@@ -629,6 +642,7 @@
             >
           </div>
         </div>
+        <p id="ma-ciclica-hint" class="hidden text-[10px] font-bold text-orange-800 leading-snug">Modo cíclico · digite o que tem na prateleira (saldo oculto). Estoque só muda no final.</p>
 
         {# Teclado na tela — BT HID = teclado físico; Android esconde o soft keyboard. #}
         <div id="ma-numpad" class="ma-numpad grid grid-cols-3" role="group" aria-label="Teclado numérico">
@@ -648,7 +662,7 @@
       </div>
 
       <div class="ma-sheet-foot shrink-0 border-t border-slate-100 bg-white ma-modal-pad space-y-1.5 shadow-[0_-8px_24px_rgba(15,23,42,0.06)]">
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-2" id="ma-acoes-normal">
           <button type="button" id="ma-btn-somar" onclick="salvar('somar')" class="ma-btn-acao ma-btn-somar rounded-2xl font-black uppercase text-sm tracking-wide active:scale-[0.98] transition-transform text-white">
             Somar
           </button>
@@ -656,6 +670,9 @@
             Trocar
           </button>
         </div>
+        <button type="button" id="ma-btn-ciclica-contar" onclick="salvarCiclica()" class="hidden w-full ma-btn-acao rounded-2xl font-black uppercase text-sm tracking-wide active:scale-[0.98] transition-transform text-white bg-orange-600 min-h-[3rem]">
+          Contar (cíclica)
+        </button>
         <button type="button" onclick="fechar()" class="ma-btn-cancel w-full text-slate-500 font-bold text-sm uppercase">
           Cancelar
         </button>
@@ -711,6 +728,28 @@
     </div>
   </div>
 
+  <div id="ma-ciclica-modal" class="ma-offer-overlay hidden" aria-hidden="true">
+    <div class="bg-white rounded-2xl p-4 w-full max-w-md shadow-2xl space-y-3 max-h-[90dvh] overflow-y-auto">
+      <p class="text-sm font-black text-slate-900">Contagem cíclica</p>
+      <p class="text-[10px] font-bold text-slate-500 leading-snug">Cego · vários celulares · estoque só no final (depois da recontagem).</p>
+      <div id="ma-ciclica-lista" class="space-y-2"></div>
+      <div class="border-t border-slate-100 pt-3 space-y-2">
+        <p class="text-[10px] font-black uppercase text-slate-500">Abrir nova</p>
+        <select id="ma-ciclica-escopo" class="w-full min-h-[2.75rem] rounded-xl border border-slate-200 px-3 text-xs font-black">
+          <option value="loja">Loja inteira</option>
+          <option value="categoria">Categoria</option>
+          <option value="corredor">Corredor (nome livre)</option>
+        </select>
+        <select id="ma-ciclica-cat" class="w-full min-h-[2.75rem] rounded-xl border border-slate-200 px-3 text-xs font-black hidden">
+          <option value="">Escolha a categoria…</option>
+        </select>
+        <input id="ma-ciclica-corredor" type="text" placeholder="Ex.: Ração cães · corredor 3" class="hidden w-full min-h-[2.75rem] rounded-xl border border-slate-200 px-3 text-xs font-bold" />
+        <button type="button" id="ma-ciclica-abrir" class="w-full min-h-[3rem] rounded-xl bg-orange-600 text-white text-xs font-black uppercase">Abrir contagem</button>
+      </div>
+      <button type="button" id="ma-ciclica-fechar-modal" class="w-full min-h-[2.5rem] text-slate-500 font-bold text-sm uppercase">Fechar</button>
+    </div>
+  </div>
+
 {% include "produtos/includes/agro_loja_confirm.html" %}
 {% include "produtos/_js_busca_produto_inteligente.html" %}
 <script src="{% static 'js/agro_estoque_sync.js' %}"></script>
@@ -732,6 +771,13 @@ const MA_API_CODIGO_PENDENTE = "{% url 'api_ajuste_codigo_pendente_criar' %}";
 const MA_API_DEPOSITO = "{% url 'api_pdv_deposito' %}";
 const MA_CSRF = '{{ csrf_token }}';
 const MA_BIP1_KEY = 'ma_bip1_on_v1';
+const MA_API_CICLICA_SESSOES = "{% url 'api_ciclica_sessoes' %}";
+const MA_API_CICLICA_CATS = "{% url 'api_ciclica_categorias' %}";
+const MA_API_CICLICA_ABRIR = "{% url 'api_ciclica_abrir' %}";
+const MA_CICLICA_KEY = 'ma_ciclica_sessao_id_v1';
+
+let maCiclicaSessao = null;
+let maCiclicaPoll = null;
 
 let maBip1On = false;
 let maCodigoOrfao = null;
@@ -1375,6 +1421,10 @@ function maBip1SyncBtn() {
 }
 
 function maBip1Toggle() {
+  if (maCiclicaAtiva()) {
+    alert('Na contagem cíclica o Bip +1 fica desligado (não grava estoque na hora). Bipe e digite a quantidade.');
+    return;
+  }
   maBip1On = !maBip1On;
   try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
   maBip1SyncBtn();
@@ -1511,7 +1561,7 @@ function maAbrirPick(lista) {
     b.type = 'button';
     b.className = 'w-full text-left rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 active:bg-emerald-50';
     b.innerHTML = `<div class="text-sm font-black text-slate-900 leading-snug">${String(p.nome || '').replace(/</g, '&lt;')}</div>
-      <div class="text-[10px] font-bold text-slate-500 mt-0.5">GM ${String(p.codigo_nfe || p.codigo || '').replace(/</g, '&lt;')} · saldo ${Number(getSaldoAtual(p)).toFixed(1)}</div>`;
+      <div class="text-[10px] font-bold text-slate-500 mt-0.5">GM ${String(p.codigo_nfe || p.codigo || '').replace(/</g, '&lt;')}${maCiclicaAtiva() ? '' : ' · saldo ' + Number(getSaldoAtual(p)).toFixed(1)}</div>`;
     b.addEventListener('click', () => {
       maFecharPick();
       pSel = p;
@@ -1639,7 +1689,7 @@ function maProcessarCodigoBipado(codigo) {
   maBipLastCode = c;
   maBipLastAt = now;
 
-  if (!maBip1On) {
+  if (!maBip1On || maCiclicaAtiva()) {
     const inp = document.getElementById('busca');
     if (inp) {
       inp.value = c;
@@ -1824,6 +1874,12 @@ function maPintarResultados(resultados, resumoTxt) {
     const contagem = getContagemAtual(p);
     const d = document.createElement('div');
     d.className = 'ma-card';
+    const numsHtml = maCiclicaAtiva()
+      ? `<div class="ma-card-nums"><span class="ma-card-contagem is-pendente">cego</span></div>`
+      : `<div class="ma-card-nums">
+          <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
+          <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
+        </div>`;
     d.innerHTML = `
       <div class="ma-card-nome">${escMa(p.nome)}</div>
       <div class="ma-card-meta">
@@ -1831,10 +1887,7 @@ function maPintarResultados(resultados, resumoTxt) {
           <span class="ma-card-marca">${escMa(p.marca) || '—'}</span>
           <span class="ma-card-gm">GM: ${escMa(p.codigo_nfe || p.codigo)}</span>
         </div>
-        <div class="ma-card-nums">
-          <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
-          <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
-        </div>
+        ${numsHtml}
       </div>
     `;
     d.onclick = () => {
@@ -1901,8 +1954,25 @@ document.getElementById('f-extra').addEventListener('change', () => {});
 function abrir() {
   const modal = document.getElementById('modal');
   document.getElementById('m-nome').innerText = pSel.nome || '';
-  document.getElementById('m-saldo-label').innerText = `Saldo atual (${getNomeDepositoSelecionado()})`;
-  document.getElementById('m-saldo').innerText = getSaldoAtual(pSel).toFixed(1);
+  const ciclica = maCiclicaAtiva();
+  const saldoWrap = document.getElementById('ma-saldo-wrap');
+  const qtdWrap = document.getElementById('ma-qtd-wrap');
+  const hint = document.getElementById('ma-ciclica-hint');
+  const acoesN = document.getElementById('ma-acoes-normal');
+  const btnC = document.getElementById('ma-btn-ciclica-contar');
+  if (saldoWrap) saldoWrap.classList.toggle('hidden', ciclica);
+  if (qtdWrap) {
+    qtdWrap.classList.toggle('col-span-2', ciclica);
+    if (ciclica) qtdWrap.classList.add('col-span-2');
+    else qtdWrap.classList.remove('col-span-2');
+  }
+  if (hint) hint.classList.toggle('hidden', !ciclica);
+  if (acoesN) acoesN.classList.toggle('hidden', ciclica);
+  if (btnC) btnC.classList.toggle('hidden', !ciclica);
+  if (!ciclica) {
+    document.getElementById('m-saldo-label').innerText = `Saldo atual (${getNomeDepositoSelecionado()})`;
+    document.getElementById('m-saldo').innerText = getSaldoAtual(pSel).toFixed(1);
+  }
   /* Campo vazio: operador digita no numpad (Somar) ou o total (Trocar). */
   document.getElementById('m-novo').value = '';
   modal.classList.remove('hidden');
@@ -2153,6 +2223,10 @@ document.getElementById('busca')?.addEventListener('keydown', (ev) => {
 });
 
 function salvar(modo) {
+  if (maCiclicaAtiva()) {
+    salvarCiclica();
+    return;
+  }
   if (!pSel) return;
   const modoOk = modo === 'somar' ? 'somar' : 'trocar';
   const qtd = parseDecimalBr(document.getElementById('m-novo').value);
@@ -2196,6 +2270,293 @@ function salvar(modo) {
       if (btnTrocar) btnTrocar.disabled = false;
     });
 }
+
+function maCiclicaAtiva() {
+  return !!(maCiclicaSessao && maCiclicaSessao.id && (maCiclicaSessao.status === 'pass1' || maCiclicaSessao.status === 'pass2'));
+}
+
+function maCiclicaUrl(acao) {
+  const id = maCiclicaSessao && maCiclicaSessao.id;
+  if (!id) return '';
+  if (acao === 'detalhe') return `/api/ajuste-mobile/ciclica/${id}/`;
+  return `/api/ajuste-mobile/ciclica/${id}/${acao}/`;
+}
+
+function maCiclicaPost(url, fields) {
+  const fd = new FormData();
+  Object.keys(fields || {}).forEach((k) => fd.append(k, fields[k]));
+  return fetch(url, {
+    method: 'POST',
+    body: fd,
+    headers: { 'X-CSRFToken': MA_CSRF },
+  }).then((r) => r.json());
+}
+
+function maCiclicaPintarBar() {
+  const bar = document.getElementById('ma-ciclica-bar');
+  const txt = document.getElementById('ma-ciclica-bar-txt');
+  const btnP1 = document.getElementById('ma-ciclica-btn-pass1');
+  const btnG = document.getElementById('ma-ciclica-btn-gravar');
+  if (!bar || !txt) return;
+  if (!maCiclicaAtiva()) {
+    bar.classList.add('hidden');
+    return;
+  }
+  bar.classList.remove('hidden');
+  const s = maCiclicaSessao;
+  const esc = s.escopo_tipo === 'loja'
+    ? 'Loja inteira'
+    : (s.escopo_tipo === 'categoria' ? `Cat. ${s.escopo_valor}` : `Corredor ${s.escopo_valor}`);
+  if (s.status === 'pass1') {
+    txt.textContent = `Cíclica #${s.id} · ${esc} · Passagem 1 · ${s.contados_pass1 || 0}/${s.total_itens || '?'} · cego`;
+    if (btnP1) btnP1.classList.remove('hidden');
+    if (btnG) btnG.classList.add('hidden');
+  } else {
+    txt.textContent = `Cíclica #${s.id} · Recontagem · ${s.contados_pass2 || 0}/${s.fila_recontagem || 0} diferenças · cego`;
+    if (btnP1) btnP1.classList.add('hidden');
+    if (btnG) btnG.classList.remove('hidden');
+  }
+}
+
+function maCiclicaAtivar(sessao) {
+  maCiclicaSessao = sessao;
+  try { sessionStorage.setItem(MA_CICLICA_KEY, String(sessao.id)); } catch (_) {}
+  if (maCiclicaPoll) clearInterval(maCiclicaPoll);
+  maCiclicaPoll = setInterval(() => maCiclicaRefresh(false), 12000);
+  maCiclicaPintarBar();
+  buscar(document.getElementById('busca')?.value || '');
+}
+
+function maCiclicaSairModo() {
+  maCiclicaSessao = null;
+  try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
+  if (maCiclicaPoll) {
+    clearInterval(maCiclicaPoll);
+    maCiclicaPoll = null;
+  }
+  maCiclicaPintarBar();
+  buscar(document.getElementById('busca')?.value || '');
+}
+
+function maCiclicaRefresh(forceDetalhe) {
+  if (!maCiclicaSessao || !maCiclicaSessao.id) return Promise.resolve();
+  const url = maCiclicaUrl('detalhe') + (forceDetalhe ? '?t=1' : '');
+  return fetch(url, { headers: { 'X-CSRFToken': MA_CSRF } })
+    .then((r) => r.json())
+    .then((d) => {
+      if (!d || !d.ok || !d.sessao) return;
+      if (d.sessao.status === 'fechada' || d.sessao.status === 'cancelada') {
+        maMostrarToast && maMostrarToast('Contagem cíclica encerrada.', true);
+        maCiclicaSairModo();
+        return;
+      }
+      maCiclicaSessao = d.sessao;
+      maCiclicaPintarBar();
+    })
+    .catch(() => {});
+}
+
+function maCiclicaAbrirModal() {
+  const ov = document.getElementById('ma-ciclica-modal');
+  if (!ov) return;
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+  maCiclicaCarregarLista();
+  maCiclicaCarregarCats();
+}
+
+function maCiclicaFecharModal() {
+  const ov = document.getElementById('ma-ciclica-modal');
+  if (!ov) return;
+  ov.classList.add('hidden');
+  ov.setAttribute('aria-hidden', 'true');
+}
+
+function maCiclicaCarregarLista() {
+  const box = document.getElementById('ma-ciclica-lista');
+  if (!box) return;
+  box.innerHTML = '<p class="text-xs font-bold text-slate-400">Carregando sessões…</p>';
+  const dep = getDepositoSelecionado();
+  fetch(`${MA_API_CICLICA_SESSOES}?deposito=${encodeURIComponent(dep)}`, {
+    headers: { 'X-CSRFToken': MA_CSRF },
+  })
+    .then((r) => r.json())
+    .then((d) => {
+      const rows = (d && d.sessoes) || [];
+      if (!rows.length) {
+        box.innerHTML = '<p class="text-xs font-bold text-slate-400">Nenhuma aberta neste estoque. Abra uma abaixo.</p>';
+        return;
+      }
+      box.innerHTML = '';
+      rows.forEach((s) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-full text-left rounded-xl border border-orange-200 bg-orange-50 px-3 py-3';
+        const esc = s.escopo_tipo === 'loja' ? 'Loja' : `${s.escopo_tipo}: ${s.escopo_valor || ''}`;
+        b.innerHTML = `<div class="text-xs font-black text-orange-950">#${s.id} · ${esc}</div>
+          <div class="text-[10px] font-bold text-orange-800 mt-0.5">${s.status} · ${s.contados_pass1 || 0}/${s.total_itens || 0} · ${(s.participantes || []).join(', ') || s.aberta_por || ''}</div>`;
+        b.addEventListener('click', () => {
+          maCiclicaPost(`/api/ajuste-mobile/ciclica/${s.id}/entrar/`, {})
+            .then((resp) => {
+              if (!resp || !resp.ok) throw new Error((resp && resp.erro) || 'Falha ao entrar');
+              maCiclicaAtivar(resp.sessao);
+              maCiclicaFecharModal();
+              maMostrarToast && maMostrarToast(`Entrou na cíclica #${s.id}`, true);
+            })
+            .catch((e) => alert(e.message || 'Erro'));
+        });
+        box.appendChild(b);
+      });
+    })
+    .catch(() => {
+      box.innerHTML = '<p class="text-xs font-bold text-rose-600">Falha ao listar.</p>';
+    });
+}
+
+function maCiclicaCarregarCats() {
+  const sel = document.getElementById('ma-ciclica-cat');
+  if (!sel || sel.options.length > 1) return;
+  fetch(MA_API_CICLICA_CATS, { headers: { 'X-CSRFToken': MA_CSRF } })
+    .then((r) => r.json())
+    .then((d) => {
+      (d.categorias || []).forEach((c) => {
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = c;
+        sel.appendChild(o);
+      });
+    })
+    .catch(() => {});
+}
+
+function maCiclicaSyncEscopoUI() {
+  const tipo = document.getElementById('ma-ciclica-escopo')?.value || 'loja';
+  const cat = document.getElementById('ma-ciclica-cat');
+  const corr = document.getElementById('ma-ciclica-corredor');
+  if (cat) cat.classList.toggle('hidden', tipo !== 'categoria');
+  if (corr) corr.classList.toggle('hidden', tipo !== 'corredor');
+}
+
+function salvarCiclica() {
+  if (!pSel || !maCiclicaAtiva()) return;
+  const qtd = parseDecimalBr(document.getElementById('m-novo').value);
+  if (!Number.isFinite(qtd) || qtd < 0) {
+    alert('Digite a quantidade da prateleira (pode ser zero).');
+    return;
+  }
+  const btn = document.getElementById('ma-btn-ciclica-contar');
+  if (btn) btn.disabled = true;
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maCiclicaPost(maCiclicaUrl('contar'), {
+    produto_id: pSel.id,
+    qtd: String(qtd),
+    nome_produto: pSel.nome || '',
+    codigo_interno: pSel.codigo_nfe || pSel.codigo || '',
+    categoria: pSel.categoria || '',
+  })
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
+      if (d.sessao) maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
+      maCiclicaPintarBar();
+      fechar();
+      maMostrarToast && maMostrarToast('Contado (ainda não grava estoque)', true);
+      buscar(document.getElementById('busca').value);
+    })
+    .catch((e) => alert(e.message || 'Erro'))
+    .finally(() => {
+      maResetLoading();
+      if (btn) btn.disabled = false;
+    });
+}
+
+document.getElementById('ma-btn-ciclica')?.addEventListener('click', maCiclicaAbrirModal);
+document.getElementById('ma-ciclica-fechar-modal')?.addEventListener('click', maCiclicaFecharModal);
+document.getElementById('ma-ciclica-escopo')?.addEventListener('change', maCiclicaSyncEscopoUI);
+document.getElementById('ma-ciclica-abrir')?.addEventListener('click', () => {
+  const tipo = document.getElementById('ma-ciclica-escopo')?.value || 'loja';
+  let valor = '';
+  if (tipo === 'categoria') valor = document.getElementById('ma-ciclica-cat')?.value || '';
+  if (tipo === 'corredor') valor = document.getElementById('ma-ciclica-corredor')?.value || '';
+  if (tipo === 'categoria' && !valor) {
+    alert('Escolha a categoria.');
+    return;
+  }
+  if (tipo === 'corredor' && !String(valor).trim()) {
+    alert('Digite o nome do corredor.');
+    return;
+  }
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maCiclicaPost(MA_API_CICLICA_ABRIR, {
+    deposito: getDepositoSelecionado(),
+    escopo_tipo: tipo,
+    escopo_valor: valor,
+  })
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao abrir');
+      maCiclicaAtivar(d.sessao);
+      maCiclicaFecharModal();
+      const n = (d.sessao && d.sessao.total_itens) || 0;
+      maMostrarToast && maMostrarToast(`Cíclica aberta · ${n} itens no escopo`, true);
+    })
+    .catch((e) => alert(e.message || 'Erro'))
+    .finally(() => maResetLoading());
+});
+document.getElementById('ma-ciclica-btn-sair')?.addEventListener('click', () => {
+  if (!confirm('Sair do modo cíclico neste celular? A sessão continua aberta pros outros.')) return;
+  maCiclicaSairModo();
+});
+document.getElementById('ma-ciclica-btn-painel')?.addEventListener('click', maCiclicaAbrirModal);
+document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
+  if (!maCiclicaAtiva()) return;
+  const s = maCiclicaSessao;
+  const falta = s.faltam_pass1 || 0;
+  const msg = falta > 0
+    ? `Faltam ~${falta} sem bip. Eles vão como ZERO. Fechar passagem 1 e abrir recontagem das diferenças?`
+    : 'Fechar passagem 1 e abrir recontagem das diferenças?';
+  if (!confirm(msg)) return;
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maCiclicaPost(maCiclicaUrl('fechar-pass1'), {})
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
+      maCiclicaSessao = d.sessao;
+      maCiclicaPintarBar();
+      const n = (d.resumo && d.resumo.recontagem) || 0;
+      alert(`Passagem 1 ok. ${n} itens pra recontar (maiores diferenças).`);
+      buscar(document.getElementById('busca').value);
+    })
+    .catch((e) => alert(e.message || 'Erro'))
+    .finally(() => maResetLoading());
+});
+document.getElementById('ma-ciclica-btn-gravar')?.addEventListener('click', () => {
+  if (!maCiclicaAtiva()) return;
+  if (!confirm('Gravar estoque agora com o resultado da recontagem? Isso altera o saldo da loja.')) return;
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maCiclicaPost(maCiclicaUrl('gravar'), {})
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao gravar');
+      const n = (d.resumo && d.resumo.ajustes) || 0;
+      alert(`Pronto. ${n} ajustes gravados no estoque.`);
+      maCiclicaSairModo();
+    })
+    .catch((e) => alert(e.message || 'Erro'))
+    .finally(() => maResetLoading());
+});
+
+try {
+  const sid = sessionStorage.getItem(MA_CICLICA_KEY);
+  if (sid) {
+    fetch(`/api/ajuste-mobile/ciclica/${sid}/`, { headers: { 'X-CSRFToken': MA_CSRF } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && d.ok && d.sessao && (d.sessao.status === 'pass1' || d.sessao.status === 'pass2')) {
+          maCiclicaAtivar(d.sessao);
+        } else {
+          try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
+        }
+      })
+      .catch(() => {});
+  }
+} catch (_) {}
 </script>
 </body>
 </html>

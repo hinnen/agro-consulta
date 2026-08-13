@@ -29,6 +29,7 @@ class OrigemAjusteEstoque(models.TextChoices):
     VENCIMENTO_EM_LOJA = "vencimento_em_loja", "Vencimento em Loja"
     USO_LOJA = "uso_loja", "Uso loja"
     ESTORNO_USO_LOJA = "estorno_uso_loja", "Estorno uso loja"
+    CONTAGEM_CICLICA = "contagem_ciclica", "Contagem cíclica"
     OUTRO = "outro", "Outro"
 
 
@@ -227,3 +228,137 @@ class IndicadorProdutoLoja(models.Model):
             models.Index(fields=["empresa", "loja", "score_prioridade"]),
             models.Index(fields=["empresa", "loja", "classe_abc", "score_prioridade"]),
         ]
+
+
+class ContagemCiclicaEscopo(models.TextChoices):
+    LOJA = "loja", "Loja inteira"
+    CATEGORIA = "categoria", "Categoria"
+    CORREDOR = "corredor", "Corredor"
+
+
+class ContagemCiclicaStatus(models.TextChoices):
+    PASS1 = "pass1", "Passagem 1"
+    PASS2 = "pass2", "Recontagem"
+    FECHADA = "fechada", "Fechada"
+    CANCELADA = "cancelada", "Cancelada"
+
+
+class ContagemCiclicaSessao(models.Model):
+    """Inventário cíclico multi-celular — estoque só grava no fechamento."""
+
+    deposito = models.CharField(max_length=20, db_index=True)
+    escopo_tipo = models.CharField(
+        max_length=20,
+        choices=ContagemCiclicaEscopo.choices,
+        db_index=True,
+    )
+    escopo_valor = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Categoria ou nome do corredor (vazio se loja inteira).",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=ContagemCiclicaStatus.choices,
+        default=ContagemCiclicaStatus.PASS1,
+        db_index=True,
+    )
+    passagem_atual = models.PositiveSmallIntegerField(default=1)
+    total_itens = models.PositiveIntegerField(default=0)
+    contados_pass1 = models.PositiveIntegerField(default=0)
+    contados_pass2 = models.PositiveIntegerField(default=0)
+    aberta_por_rotulo = models.CharField(max_length=120, blank=True, default="")
+    aberta_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contagens_ciclicas_abertas",
+    )
+    aberta_em = models.DateTimeField(auto_now_add=True)
+    pass1_fechada_em = models.DateTimeField(null=True, blank=True)
+    fechada_em = models.DateTimeField(null=True, blank=True)
+    observacao = models.TextField(blank=True, default="")
+
+    class Meta:
+        ordering = ["-aberta_em"]
+        indexes = [
+            models.Index(fields=["deposito", "status"]),
+            models.Index(fields=["deposito", "escopo_tipo", "escopo_valor", "status"]),
+        ]
+
+    def __str__(self):
+        return f"#{self.pk} {self.deposito} {self.escopo_tipo}:{self.escopo_valor} · {self.status}"
+
+
+class ContagemCiclicaLinha(models.Model):
+    sessao = models.ForeignKey(
+        ContagemCiclicaSessao,
+        on_delete=models.CASCADE,
+        related_name="linhas",
+    )
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    codigo_interno = models.CharField(max_length=100, blank=True, default="")
+    nome_produto = models.CharField(max_length=255, blank=True, default="")
+    categoria = models.CharField(max_length=200, blank=True, default="")
+    saldo_referencia = models.DecimalField(max_digits=12, decimal_places=3, default=0)
+    custo_ref = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    qtd_pass1 = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    qtd_pass2 = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    qtd_final = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    contado_pass1 = models.BooleanField(default=False, db_index=True)
+    contado_pass2 = models.BooleanField(default=False, db_index=True)
+    precisa_recontagem = models.BooleanField(default=False, db_index=True)
+    auto_zero_pass1 = models.BooleanField(default=False)
+    operador_pass1 = models.CharField(max_length=120, blank=True, default="")
+    operador_pass2 = models.CharField(max_length=120, blank=True, default="")
+    contado_pass1_em = models.DateTimeField(null=True, blank=True)
+    contado_pass2_em = models.DateTimeField(null=True, blank=True)
+    ajuste_id = models.PositiveIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["nome_produto", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sessao", "produto_externo_id"],
+                name="uniq_ciclica_sessao_produto",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["sessao", "contado_pass1"]),
+            models.Index(fields=["sessao", "precisa_recontagem"]),
+        ]
+
+    def __str__(self):
+        return f"{self.produto_externo_id} · sessão {self.sessao_id}"
+
+
+class ContagemCiclicaParticipante(models.Model):
+    sessao = models.ForeignKey(
+        ContagemCiclicaSessao,
+        on_delete=models.CASCADE,
+        related_name="participantes",
+    )
+    operador_rotulo = models.CharField(max_length=120)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="contagens_ciclicas_participacoes",
+    )
+    entrou_em = models.DateTimeField(auto_now_add=True)
+    ultimo_ping_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["operador_rotulo"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sessao", "operador_rotulo"],
+                name="uniq_ciclica_sessao_operador",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.operador_rotulo} · sessão {self.sessao_id}"
