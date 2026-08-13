@@ -1203,6 +1203,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO LOJA — DF-e XML fora do Aguarde 1h (`DFE-XML-AGUARDE` · **v15.95+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **já Live** (lote v15.99) · prova refeita 13/08 · **nada pendente** deste path |
+| **O quê** | Buscar lista = 1h no 137 · Buscar XML/chave só trava no **656** · auto Ciência+XML nas Só resumo · **Carregar na grade** manual |
+| **Prova** | `python scripts/verify_dfe_xml_aguarde_path.py` → **VERIFY_OK 31/31** · manifestação **26/26** · NSU-656 **12/12** |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · distNSU (continua 1h) |
+| **Você** | Ctrl+F5 SEFAZ · Buscar · notas em **Carregar na grade** sem esperar 1h |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (13/08)
+
+> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
+> **Fila deste path:** **vazia** — `DFE-XML-AGUARDE` já enviado. **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| — | *(nenhum)* | — | — |
+
 ### ✅ Deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
 
 | Item | Detalhe |
@@ -1215,10 +1235,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Base anterior** | Live v15.99 @ **ec76e89** |
 | **Você** | **Ctrl+F5** · badge **v16.07** · calendário CP · Entrada NF etapa 3 |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v16.07)
+### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v16.07) · **superado**
 
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460** · Render `dep-d9u8i7psrm7s73b67dhg`  
-> Vigente: este checklist. **NÃO** merge `teste`→`producao`.
+> Vigente: **CHECKLIST ÚNICO — pronto envio (13/08)** no topo (fila vazia neste path).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
