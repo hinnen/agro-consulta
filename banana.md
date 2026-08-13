@@ -1213,24 +1213,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.15** |
-| **O quê** | Ajuste Mobile **Cíclica**: cego · multi-celular (PG) · loja/categoria/corredor · pass1 → recontagem → grava só no final · origem `contagem_ciclica` |
+| **O quê** | Ajuste Mobile **Cíclica**: cego · multi-celular (PG) · loja/categoria/corredor · pass1 → recontagem → grava só no final |
 | **Prova** | path **VERIFY_OK** (42) · deep **VERIFY_DEEP_OK** (27) |
 | **Migrate** | **SIM** — `estoque.0016_contagem_ciclica` |
-| **Você** | migrate 0016 · Ctrl+F5 `/ajuste-mobile/` · Cíclica · categoria pequena · 2 celulares |
+| **Você** | migrate 0016 · Ctrl+F5 `/ajuste-mobile/` · Cíclica |
 
-### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.11**)
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.20**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
 > **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.11** · loja ainda **v16.07** |
-| **O quê** | `/repasse-vila/` + botão grande em **Retiradas** (abaixo Nova saída) → PDV overlay · CMV + % lucro + fiado · migrate **0087** |
-| **Prova** | path **VERIFY_OK** · deep **VERIFY_DEEP_OK** (37) · calc fiado fora · incremental zera · pendente→aplicado · APIs/tela OK |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.20** |
+| **O quê** | Botão grande em **Retiradas** (abaixo Nova saída) abre overlay na mesma tela (não outro PDV) · `/repasse-vila/` config/histórico · CMV + % lucro + fiado · migrate **0087** |
+| **Prova** | path **VERIFY_OK** (25) · deep **VERIFY_DEEP_OK** (44) · fiado fora · incremental · pendente→aplicado · Retiradas tem button+overlay |
 | **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
-| **Fora** | Card BI (adiado) |
-| **Você** | migrate 0087 · Ctrl+F5 · caixa Vila · Menu/PDV Repasse |
+| **Você** | migrate 0087 · Ctrl+F5 Retiradas · Repasse Vila → Centro |
 
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
 
@@ -1239,8 +1238,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** · loja ainda **v16.07** |
-| **O quê** | Resumo/DRE: balão no mouse · PE termômetro · subtítulos KPIs · `?` mantido |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** |
+| **O quê** | Resumo/DRE: balão no mouse · PE termômetro · subtítulos KPIs |
 | **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE **30/30** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Resumo |
@@ -1253,7 +1252,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.15** | **SIM** estoque.0016 |
-| 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.11** | **SIM** 0087 |
+| 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.20** | **SIM** 0087 |
 | 3 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
