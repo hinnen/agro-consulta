@@ -10,7 +10,7 @@
 {% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
 
 {% block admin_header_actions %}
-  <a href="{{ url_pdv_repasse }}" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Transferir no PDV</a>
+  <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Transferir</a>
 {% endblock %}
 
 {% block admin_content %}
@@ -99,9 +99,9 @@
         <div class="rv-val text-emerald-900" id="rv-total">R$ 0,00</div>
         <p class="mt-1 text-xs font-bold text-slate-600" id="rv-ja">Já enviado hoje: —</p>
       </div>
-      <a href="{{ url_pdv_repasse }}" id="rv-btn-transferir"
+      <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" id="rv-btn-transferir"
          class="inline-flex min-h-[3.5rem] items-center justify-center rounded-2xl bg-orange-500 px-6 text-base font-black uppercase text-white shadow-lg hover:bg-orange-600">
-        Transferir no PDV →
+        Transferir →
       </a>
     </div>
 
@@ -284,7 +284,7 @@
     q.set('lucro', chkLucro.checked ? '1' : '0');
     q.set('fiado', chkFiado.checked ? '1' : '0');
     q.set('cheio', chkCheio.checked ? '1' : '0');
-    a.href = '{% url "pdv_home" %}?' + q.toString();
+    a.href = '{% url "caixa_retiradas_historico" %}?' + q.toString();
   }
   [pctEl, chkCmv, chkLucro, chkFiado, chkCheio].forEach(function (el) {
     el.addEventListener('change', syncTransferUrl);

@@ -34,7 +34,7 @@ check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv
 check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/")
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")
 check("produtos/templates/produtos/dashboard_gerencial.html", "repasse_vila")
-check("produtos/templates/produtos/caixa_retiradas_historico.html", "Repasse Vila", "repasse=1")
+check("produtos/templates/produtos/caixa_retiradas_historico.html", "crh-btn-repasse", "pdv_repasse_vila.js")
 check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é este repasse")
 check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repasse da Vila")
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")

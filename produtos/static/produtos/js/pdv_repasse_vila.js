@@ -233,7 +233,10 @@
       });
   }
 
-  if (dom.btnOpen) dom.btnOpen.addEventListener('click', openOverlay);
+    var btnOpen =
+      document.getElementById('pdv-topbar-repasse-btn') ||
+      document.getElementById('crh-btn-repasse');
+    if (btnOpen) btnOpen.addEventListener('click', openOverlay);
   if (dom.fechar) dom.fechar.addEventListener('click', closeOverlay);
   if (dom.cancelar) dom.cancelar.addEventListener('click', closeOverlay);
   if (dom.confirmar) dom.confirmar.addEventListener('click', confirmar);
