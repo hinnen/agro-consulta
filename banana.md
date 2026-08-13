@@ -1205,14 +1205,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.15**)
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.22**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
 > **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.15** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.22** |
 | **O quê** | Ajuste Mobile **Cíclica**: cego · **sempre soma** (vários lugares) · multi-celular (PG) · loja/categoria/corredor · pass1 → recontagem → grava só no final |
 | **Prova** | path **VERIFY_OK** (44) · deep **VERIFY_DEEP_OK** (28) · soma 5+2=7 |
 | **Migrate** | **SIM** — `estoque.0016_contagem_ciclica` |
