@@ -629,7 +629,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08 + Mini DRE soma + card empréstimos 10/08):** Resumo 16:9. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Entrada empréstimo** → **Aporte sócio** → **Juros pago** → **Empréstimo pago** → **Retirada sócio** → **Saldo final** (= soma). Card Empréstimos: **empréstimo devido** + **juros devido** = bruto no filtro · **total devido** · **valor pago** (pago desses títulos, mesmo meses anteriores) · **emprestado** = entrada competência. Frases longas no **«?»** de cada card (fixas/var/fin, PDV, PE, comparativo, empréstimos). Comparativo e Mini DRE/emp **sem quebra** de rótulo. Indicadores permanece até 100%.
+- **DRE visual prévia (09/08 + Mini DRE soma + card empréstimos 10/08 + legível 13/08):** Resumo 16:9. Mini DRE: Receita → … → **Saldo final** (= soma). Card Empréstimos: devido/juros/total/pago/emprestado. **Balão no mouse** (`data-rg-tip`) em cada número + `?` para texto longo. PE = termômetro (Vendeu / Precisa / Folga). Indicadores permanece até 100%.
 - **Filtro loja (10/08):** **Centro + Vila** (padrão) · Centro · Vila. Vendas/CMV vendida = PDV da(s) loja(s). Despesas/empréstimos = empresa cadastrada (Vila sem empresa própria usa Centro). BI `/` mesmo recorte no filtro **Números** (não troca o PDV).
 
 ### 4.11 Caixa
@@ -1202,6 +1202,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
+
+> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto envio** · `teste` **v16.09** · loja ainda **v16.07** |
+| **O quê** | Resumo/DRE: balão no mouse em cada número · PE termômetro (Vendeu / Precisa / Folga) · subtítulos nos KPIs · `?` mantido |
+| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE 30/30 |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 Resumo · passe o mouse nos números · confira PE |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (13/08 · após DRE-VISUAL-LEGIVEL)
+
+> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto envio** / teste **v16.09** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
 
