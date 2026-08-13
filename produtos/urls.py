@@ -12,6 +12,7 @@ from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
+from . import views_repasse_vila
 from . import views_planos_conta
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -415,6 +416,36 @@ urlpatterns = [
         'emprestimos/',
         views.emprestimos_gestao_view,
         name='emprestimos_gestao',
+    ),
+    path(
+        'repasse-vila/',
+        views_repasse_vila.repasse_vila_view,
+        name='repasse_vila',
+    ),
+    path(
+        'api/repasse-vila/calc/',
+        views_repasse_vila.api_repasse_vila_calc,
+        name='api_repasse_vila_calc',
+    ),
+    path(
+        'api/repasse-vila/historico/',
+        views_repasse_vila.api_repasse_vila_historico,
+        name='api_repasse_vila_historico',
+    ),
+    path(
+        'api/repasse-vila/config/',
+        views_repasse_vila.api_repasse_vila_config,
+        name='api_repasse_vila_config',
+    ),
+    path(
+        'api/repasse-vila/meta/',
+        views_repasse_vila.api_repasse_vila_meta,
+        name='api_repasse_vila_meta',
+    ),
+    path(
+        'api/repasse-vila/confirmar/',
+        views_repasse_vila.api_repasse_vila_confirmar,
+        name='api_repasse_vila_confirmar',
     ),
     path(
         'emprestimos/externo/',

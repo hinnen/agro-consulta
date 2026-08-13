@@ -1,0 +1,89 @@
+{# Overlay Repasse Vila → Centro #}
+<style>
+  #pdv-repasse-overlay { z-index: 80; }
+  #pdv-repasse-overlay .rp-card {
+    border: 2px solid #d1fae5; border-radius: 0.9rem; background: #fff;
+    padding: 0.65rem 0.85rem; box-shadow: 0 1px 2px rgba(15,23,42,.05);
+  }
+  #pdv-repasse-overlay .rp-check {
+    display: flex; align-items: center; gap: 0.65rem; min-height: 3rem;
+    padding: 0.5rem 0.75rem; border: 2px solid #cbd5e1; border-radius: 0.75rem;
+    background: #f8fafc; cursor: pointer; font-weight: 800;
+  }
+  #pdv-repasse-overlay .rp-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
+  #pdv-repasse-overlay .rp-check input { width: 1.25rem; height: 1.25rem; accent-color: #059669; }
+  #pdv-repasse-overlay .rp-field {
+    min-height: 3rem; width: 100%; border-radius: 0.75rem; border: 2px solid #cbd5e1;
+    padding: 0.4rem 0.75rem; font-size: 1.1rem; font-weight: 800;
+  }
+  #pdv-repasse-overlay .rp-quem-btn {
+    min-height: 2.75rem; padding: 0.35rem 0.7rem; border-radius: 0.65rem;
+    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer;
+  }
+  #pdv-repasse-overlay .rp-quem-btn.is-on { border-color: #0284c7; background: #e0f2fe; color: #0c4a6e; }
+</style>
+
+<div id="pdv-repasse-overlay" class="fixed inset-0 hidden items-stretch justify-center bg-slate-900/55 p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-repasse-title">
+  <div class="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border-2 border-emerald-600 bg-slate-50 shadow-2xl max-h-[min(96dvh,56rem)]">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-200 bg-emerald-50 px-3 py-2.5">
+      <div class="min-w-0">
+        <h2 id="pdv-repasse-title" class="text-lg font-black uppercase text-emerald-950 truncate">Repasse Vila → Centro</h2>
+        <p class="text-xs font-bold text-emerald-800/80" id="pdv-repasse-sub">Caixa da Vila precisa estar aberto</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <a href="{% url 'repasse_vila' %}" class="min-h-[2.75rem] inline-flex items-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700">Tela / histórico</a>
+        <button type="button" id="pdv-repasse-fechar" class="min-h-[2.75rem] min-w-[2.75rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-3 space-y-3">
+      <div class="rp-card grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Receita</div><div class="text-lg font-black tabular-nums" id="pdv-rp-receita">—</div></div>
+        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">CMV</div><div class="text-lg font-black tabular-nums" id="pdv-rp-cmv-dia">—</div></div>
+        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Lucro</div><div class="text-lg font-black tabular-nums" id="pdv-rp-lucro-dia">—</div></div>
+        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Fiado pago</div><div class="text-lg font-black tabular-nums" id="pdv-rp-fiado-dia">—</div></div>
+      </div>
+
+      <div class="rp-card space-y-2">
+        <label class="block">
+          <span class="text-[0.7rem] font-black uppercase text-slate-500">% lucro bruto</span>
+          <input type="number" id="pdv-rp-pct" min="0" max="100" step="1" class="rp-field mt-1 max-w-[8rem]" value="50" />
+        </label>
+        <label class="rp-check"><input type="checkbox" id="pdv-rp-todos" checked /><span>Marcar todos</span></label>
+        <label class="rp-check"><input type="checkbox" id="pdv-rp-cmv" checked /><span class="flex-1">CMV <span id="pdv-rp-disp-cmv" class="tabular-nums text-emerald-800">R$ 0,00</span></span></label>
+        <label class="rp-check"><input type="checkbox" id="pdv-rp-lucro" checked /><span class="flex-1">% lucro <span id="pdv-rp-disp-lucro" class="tabular-nums text-sky-800">R$ 0,00</span></span></label>
+        <label class="rp-check"><input type="checkbox" id="pdv-rp-fiado" checked /><span class="flex-1">Fiado pago <span id="pdv-rp-disp-fiado" class="tabular-nums text-orange-800">R$ 0,00</span></span></label>
+        <label class="rp-check"><input type="checkbox" id="pdv-rp-cheio" /><span>Dia cheio de novo (padrão = só o que falta)</span></label>
+      </div>
+
+      <div class="rp-card space-y-2">
+        <div class="text-[0.7rem] font-black uppercase text-slate-500">Quem levou</div>
+        <div id="pdv-rp-quem-grid" class="flex flex-wrap gap-1.5"></div>
+        <input type="text" id="pdv-rp-quem-outros" class="rp-field hidden" placeholder="Nome de quem levou" />
+      </div>
+
+      <div class="rp-card grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <label class="block">
+          <span class="text-[0.7rem] font-black uppercase text-slate-500">Valor (deixe vazio = automático)</span>
+          <input type="text" id="pdv-rp-manual" class="rp-field mt-1" inputmode="decimal" placeholder="Automático" />
+        </label>
+        <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-3 flex flex-col justify-center">
+          <div class="text-[0.7rem] font-black uppercase text-emerald-800">Total a enviar</div>
+          <div class="text-2xl font-black tabular-nums text-emerald-950" id="pdv-rp-total">R$ 0,00</div>
+        </div>
+      </div>
+
+      <label class="block rp-card">
+        <span class="text-[0.7rem] font-black uppercase text-slate-500">PIN do operador</span>
+        <input type="password" id="pdv-rp-pin" class="rp-field mt-1 max-w-[12rem]" autocomplete="off" inputmode="numeric" />
+      </label>
+
+      <p id="pdv-rp-status" class="text-sm font-bold text-slate-600 min-h-[1.25rem]"></p>
+    </div>
+
+    <footer class="shrink-0 border-t-2 border-slate-200 bg-white p-3 flex flex-wrap gap-2 justify-end">
+      <button type="button" id="pdv-repasse-cancelar" class="min-h-[3.25rem] rounded-xl border-2 border-slate-300 px-5 font-black uppercase text-slate-700">Cancelar</button>
+      <button type="button" id="pdv-repasse-confirmar" class="min-h-[3.25rem] rounded-xl bg-orange-500 px-6 font-black uppercase text-white hover:bg-orange-600">Confirmar transferência</button>
+    </footer>
+  </div>
+</div>

@@ -646,6 +646,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **DiferenÃ§a abertura (21/07):** se contagem â‰  Ãºltimo fechamento â†’ grava `diferenca_abertura` Â· aparece em **ConferÃªncias Â· diferenÃ§as** como Â«Abertura Â· DinheiroÂ» Â· `usuario` (abriu) + `usuario_fechamento` (fechou) sempre.
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
+- **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 
 ### 4.12 RH
 
@@ -1203,27 +1204,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🟡 WIP — Repasse Vila → Centro (dinheiro / CMV + % lucro) · **13/08 · spec**
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.10**)
 
-> **Status:** desenho fechando · **ainda sem código**. Card BI **adiado**. Acesso: tela dedicada + botão no PDV (abre telinha de transferência).
+> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
+> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
 
-| Decisão | Regra |
-| ------- | ----- |
-| **Origem** | Só **Vila Elias** → **Centro** |
-| **Base** | CMV (custo × qtd vendida) **sempre** + % do **lucro bruto** (padrão **50%**, 0–100) |
-| **Formas** | Todas, **exceto venda fiado** (venda fiado **não** entra no CMV/receita deste cálculo) |
-| **Fiado pago na Vila** | Valor **integral** do pagamento entra no bolo (linha à parte). Fiado do Centro pago na Vila: **fora** (só Vila) |
-| **2ª transferência no dia** | Padrão = **só o que falta**. Checkbox = opção de recalcular/mandar o dia cheio de novo |
-| **Antes de mandar** | Checkboxes: CMV · % lucro · fiados pagos · Marcar todos · total |
-| **Caixa** | Sai **Vila** (precisa aberto). Entra **Centro** mesmo se fechado |
-| **Centro fechado / dinheiro pode não chegar** | Entrada automática no caixa Centro + **aviso ao abrir** (não trava) · se ignorar, fecha o dia com falta |
-| **Aviso abertura Centro** | *«Tem R$ X de repasse da Vila. Quem levou: Fulano. Confira se o dinheiro veio ou já foi usado; se foi usado, verificar com Fulano o motivo da retirada e fazer a retirada.»* |
-| **Histórico** | Dia a dia no mês (zera mês novo) · valor + % real do lucro enviado · total mês |
-| **Home** | **Sem card** por enquanto (não colar em Lucro líquido) |
-| **Ajuda** | Textos longos só no **?** |
-| **Dados** | Postgres (multi-PC) |
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto envio** · `teste` **v16.10** · loja ainda **v16.07** |
+| **O quê** | Tela `/repasse-vila/` (config % · checkboxes · histórico mês) · PDV botão **Repasse** + overlay · CMV + % lucro (padrão 50) + fiado pago Vila · saída caixa Vila · entrada Centro (pendente se fechado + aviso na abertura) · migrate **0087** |
+| **Prova** | `verify_repasse_vila_path.py` **VERIFY_OK** · `manage.py check` OK · migrate local OK |
+| **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
+| **Fora** | Card BI Lucro líquido (adiado) · estoque |
+| **Você** | Ctrl+F5 · Menu → **Repasse Vila → Centro** · PDV **Repasse** · abrir caixa Vila · testar envio |
 
-**Spec B:** ✅ fechado 13/08.
+**Regras:** só o que falta (checkbox dia cheio) · venda fiado ignora · pago fiado Vila integral · % real no histórico · textos no **?** · aviso abertura Centro com quem levou.
+
+### 🟡 WIP — Repasse Vila → Centro · **superado** (spec → código v16.10)
+
+> Spec fechada 13/08 · implementado em **REPASSE-VILA** acima.
 
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
 
@@ -1242,11 +1241,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (13/08)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **Fila:** só o pacote abaixo. **NÃO** merge `teste`→`producao` sem frase + senha.
+> **Fila:** pacotes abaixo. **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
+| 1 | **REPASSE-VILA** | ✅ **pronto envio** / teste **v16.10** | **SIM** 0087 |
+| 2 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
 

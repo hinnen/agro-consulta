@@ -1064,6 +1064,7 @@
             <div class="space-y-5 md:space-y-6 launch-col launch-col--financeiro">
                 <h3 class="text-red-500 font-black uppercase text-xs tracking-widest border-b border-red-500/25 pb-3">Financeiro</h3>
                 <button type="button" onclick="dashLaunchpadAbrir('Caixa', '{% url 'caixa_painel' %}', 'banknote')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="banknote"></i><span>Painel de caixa</span></span><span class="launch-key">X</span></button>
+                <button type="button" onclick="dashLaunchpadAbrir('Repasse Vila', '{% url 'repasse_vila' %}', 'arrow-right-left')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="arrow-right-left"></i><span>Repasse Vila → Centro</span></span><span class="launch-key">J</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Lançamentos', '{% url 'lancamentos_contas_pagar' %}', 'list-ordered')" data-prefetch-lancamentos="{% url 'lancamentos_contas_pagar' %}" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="list-ordered"></i><span>Lançamentos</span></span><span class="launch-key">F7</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('DRE', '{% url 'lancamentos_dre' %}', 'bar-chart-3')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="bar-chart-3"></i><span>Relatório DRE</span></span><span class="launch-key">F9</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Resumo gerencial', '{% url 'resumo_financeiro_gerencial' %}', 'pie-chart')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="pie-chart"></i><span>Resumo financeiro</span></span><span class="launch-key">F8</span></button>
@@ -1834,4 +1835,5 @@ document.addEventListener("keydown", function (e) {
 </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/includes/repasse_aviso_abertura.html" %}
 {% endblock %}
