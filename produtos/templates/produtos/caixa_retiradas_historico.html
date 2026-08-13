@@ -80,9 +80,9 @@
     </div>
     {% endif %}
 
-    <a href="{% url 'pdv_home' %}?repasse=1" class="crh-nova-saida shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-600 bg-emerald-600 text-white font-black uppercase hover:bg-emerald-700 hover:border-emerald-700 transition-colors" style="box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);" title="Repasse de dinheiro da Vila para o Centro">
+    <button type="button" id="crh-btn-repasse" class="crh-nova-saida shrink-0 inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-emerald-600 bg-emerald-600 text-white font-black uppercase hover:bg-emerald-700 hover:border-emerald-700 transition-colors" style="box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);" title="Repasse de dinheiro da Vila para o Centro">
       Repasse Vila → Centro
-    </a>
+    </button>
 
     <form method="get" id="crh-filtros" class="crh-filtros shrink-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm flex flex-wrap items-end gap-2">
       <input type="hidden" name="loja" id="crh-loja" value="{{ filtro_loja|default:'centro' }}">
@@ -254,6 +254,8 @@
   window.CRH_EXPORT = { urlExport: "{% url 'api_caixa_retiradas_export_xlsx' %}" };
   </script>
   <script src="{% static 'produtos/js/caixa_retiradas_export.js' %}"></script>
+  {% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
+  <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   <script>
   (function () {
     var API_QUEM = "{% url 'api_rh_caixa_quem_leva' %}";
