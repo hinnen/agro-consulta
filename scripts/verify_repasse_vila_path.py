@@ -29,7 +29,7 @@ check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_c
 check("produtos/urls.py", "repasse_vila", "api/repasse-vila/confirmar/")
 check("produtos/models.py", "RepasseVilaCentroAgro", "RepasseVilaConfigAgro")
 check("produtos/migrations/0087_repasse_vila_centro.py", "RepasseVilaCentroAgro")
-check("produtos/templates/produtos/repasse_vila.html", "Transferir no PDV", "repasse_help")
+check("produtos/templates/produtos/repasse_vila.html", "Transferir", "repasse_help")
 check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv-repasse-overlay")
 check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/")
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")
