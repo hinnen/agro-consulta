@@ -1252,7 +1252,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.13** | **SIM** estoque.0016 |
+| 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.15** | **SIM** estoque.0016 |
 | 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.11** | **SIM** 0087 |
 | 3 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
