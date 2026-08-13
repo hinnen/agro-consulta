@@ -284,7 +284,9 @@ def registrar_contagem(
 
     if sessao.status == ContagemCiclicaStatus.PASS1:
         ja = linha.contado_pass1
-        linha.qtd_pass1 = q
+        # Sempre soma: produto pode estar em 2+ lugares (prateleira + fundo).
+        base = _dec(linha.qtd_pass1) if ja and linha.qtd_pass1 is not None else Decimal("0")
+        linha.qtd_pass1 = base + q
         linha.contado_pass1 = True
         linha.auto_zero_pass1 = False
         linha.operador_pass1 = rot
@@ -314,7 +316,8 @@ def registrar_contagem(
         if not linha.precisa_recontagem:
             raise ValueError("Este item não está na fila de recontagem.")
         ja = linha.contado_pass2
-        linha.qtd_pass2 = q
+        base = _dec(linha.qtd_pass2) if ja and linha.qtd_pass2 is not None else Decimal("0")
+        linha.qtd_pass2 = base + q
         linha.contado_pass2 = True
         linha.operador_pass2 = rot
         linha.contado_pass2_em = now
