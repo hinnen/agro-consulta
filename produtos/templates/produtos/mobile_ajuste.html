@@ -642,7 +642,7 @@
             >
           </div>
         </div>
-        <p id="ma-ciclica-hint" class="hidden text-[10px] font-bold text-orange-800 leading-snug">Modo cíclico · digite o que tem na prateleira (saldo oculto). Estoque só muda no final.</p>
+        <p id="ma-ciclica-hint" class="hidden text-[10px] font-bold text-orange-800 leading-snug">Modo cíclico · <span class="text-orange-950">sempre soma</span> (mesmo produto em vários lugares). Saldo oculto. Estoque só no final.</p>
 
         {# Teclado na tela — BT HID = teclado físico; Android esconde o soft keyboard. #}
         <div id="ma-numpad" class="ma-numpad grid grid-cols-3" role="group" aria-label="Teclado numérico">
@@ -671,7 +671,7 @@
           </button>
         </div>
         <button type="button" id="ma-btn-ciclica-contar" onclick="salvarCiclica()" class="hidden w-full ma-btn-acao rounded-2xl font-black uppercase text-sm tracking-wide active:scale-[0.98] transition-transform text-white bg-orange-600 min-h-[3rem]">
-          Contar (cíclica)
+          Somar (cíclica)
         </button>
         <button type="button" onclick="fechar()" class="ma-btn-cancel w-full text-slate-500 font-bold text-sm uppercase">
           Cancelar
@@ -2441,7 +2441,7 @@ function salvarCiclica() {
   if (!pSel || !maCiclicaAtiva()) return;
   const qtd = parseDecimalBr(document.getElementById('m-novo').value);
   if (!Number.isFinite(qtd) || qtd < 0) {
-    alert('Digite a quantidade da prateleira (pode ser zero).');
+    alert('Digite a quantidade deste lugar (0 = vazio). Bipe de novo noutro lugar pra somar.');
     return;
   }
   const btn = document.getElementById('ma-btn-ciclica-contar');
@@ -2459,7 +2459,11 @@ function salvarCiclica() {
       if (d.sessao) maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
       maCiclicaPintarBar();
       fechar();
-      maMostrarToast && maMostrarToast('Contado (ainda não grava estoque)', true);
+      const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : qtd;
+      const msg = Number.isFinite(acum)
+        ? `Somou · total parcial ${acum} (ainda não grava estoque)`
+        : 'Somou (ainda não grava estoque)';
+      maMostrarToast && maMostrarToast(msg, true);
       buscar(document.getElementById('busca').value);
     })
     .catch((e) => alert(e.message || 'Erro'))

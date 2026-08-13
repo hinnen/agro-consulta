@@ -7,7 +7,7 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
-from estoque.models import ContagemCiclicaSessao
+from estoque.models import ContagemCiclicaSessao, ContagemCiclicaStatus
 from produtos.contagem_ciclica_util import (
     abrir_sessao,
     cancelar_sessao,
@@ -140,11 +140,22 @@ def api_ciclica_contar(request, pk: int):
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
     sessao.refresh_from_db()
+    ln.refresh_from_db()
+    if sessao.status == ContagemCiclicaStatus.PASS2:
+        q_acum = ln.qtd_pass2
+    else:
+        q_acum = ln.qtd_pass1
+    try:
+        q_f = float(q_acum if q_acum is not None else 0)
+    except (TypeError, ValueError):
+        q_f = 0.0
     return JsonResponse(
         {
             "ok": True,
             "linha_id": ln.pk,
             "produto_id": ln.produto_externo_id,
+            "qtd_acumulada": q_f,
+            "somou": True,
             "sessao": sessao_payload(sessao),
         }
     )

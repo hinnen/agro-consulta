@@ -50,6 +50,7 @@ check(
     "OrigemAjusteEstoque.CONTAGEM_CICLICA",
     "auto_zero_pass1",
     '"cego": True',
+    "Sempre soma",
 )
 check(
     "produtos/contagem_ciclica_views.py",
@@ -73,12 +74,13 @@ check(
     "ma-btn-ciclica",
     "maCiclicaAtiva",
     "salvarCiclica",
-    "Contar (cíclica)",
+    "Somar (cíclica)",
     "ma-ciclica-bar",
     "Fechar passagem 1",
     "Gravar estoque",
     "maCiclicaAtiva()",
     "Bip +1 fica desligado",
+    "sempre soma",
 )
 check(
     "produtos/pg_backup_registry.py",

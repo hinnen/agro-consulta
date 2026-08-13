@@ -141,9 +141,22 @@ try:
     ln_b.refresh_from_db()
 
     if not ln_a.contado_pass1 or not ln_b.contado_pass1:
-        fail("pass1 não marcou contado")
+        fail("pass1 nao marcou contado")
     else:
         ok("dois operadores contaram na pass1")
+
+    # Soma: mesmo produto em 2 lugares (5 + 2 = 7)
+    ln_a2 = registrar_contagem(
+        s1,
+        produto_externo_id=pid_a,
+        qtd="2",
+        operador_rotulo="Op1",
+        nome_produto=p_a.nome,
+    )
+    if Decimal(str(ln_a2.qtd_pass1)) != Decimal("7"):
+        fail(f"soma falhou qtd={ln_a2.qtd_pass1} esperado 7")
+    else:
+        ok("sempre soma (5+2=7)")
 
     # Payload cego
     pay = sessao_payload(s1, detalhe=True)

@@ -1213,10 +1213,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.15** |
-| **O quê** | Ajuste Mobile **Cíclica**: cego · multi-celular (PG) · loja/categoria/corredor · pass1 → recontagem → grava só no final |
-| **Prova** | path **VERIFY_OK** (42) · deep **VERIFY_DEEP_OK** (27) |
+| **O quê** | Ajuste Mobile **Cíclica**: cego · **sempre soma** (vários lugares) · multi-celular (PG) · loja/categoria/corredor · pass1 → recontagem → grava só no final |
+| **Prova** | path **VERIFY_OK** (44) · deep **VERIFY_DEEP_OK** (28) · soma 5+2=7 |
 | **Migrate** | **SIM** — `estoque.0016_contagem_ciclica` |
-| **Você** | migrate 0016 · Ctrl+F5 `/ajuste-mobile/` · Cíclica |
+| **Você** | migrate 0016 · Ctrl+F5 `/ajuste-mobile/` · Cíclica · bipar 2 lugares do mesmo produto |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
@@ -1252,7 +1252,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.15** | **SIM** estoque.0016 |
-| 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.20** | **SIM** 0087 |
+| 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 3 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
