@@ -1204,6 +1204,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🔧 Ajuste Mobile — Contagem cíclica (`AJUSTE-CICLICA` · **v16.12** · 13/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · prova local pendente Renan |
+| **O quê** | Modo **Cíclica** no `/ajuste-mobile/`: cego · multi-celular (PG) · escopo loja/categoria/corredor · passagem 1 → fila diferenças → recontagem → **grava estoque só no final** · origem `contagem_ciclica` · migrate **estoque.0016** |
+| **Migrate** | **SIM** — `estoque.0016_contagem_ciclica` |
+| **Você** | `migrate` · Ctrl+F5 `/ajuste-mobile/` · botão **Cíclica** · abrir categoria pequena · 2 celulares · fechar pass1 · recontar · gravar |
+| **Risco** | Médio (estoque só no fechar; Somar/Trocar intactos) |
+
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.11**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
