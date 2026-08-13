@@ -1203,6 +1203,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **já na loja** (desde lote ~v11.98) · loja hoje **v16.07** · **nada a subir** |
+| **Prova** | boleto 44→47 OK · Nova→reset · financeiro_ids · `pix_sicredi` no código `producao` |
+| **Branches velhas** | `deploy/entrada-nf-ux-v11.95` / `deploy/pdv-pix-sicredi-v11.94` = **obsoletas** (não re-cherry) |
+
 ### 📦 PACOTE PRONTO LOJA — DF-e XML fora do Aguarde 1h (`DFE-XML-AGUARDE` · **v15.95+**)
 
 | Item | Detalhe |
@@ -1217,7 +1225,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto envio (13/08)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **Fila deste path:** **vazia** — `DFE-XML-AGUARDE` já enviado. **NÃO** merge `teste`→`producao`.
+> **Fila deploy:** **vazia** — ENTRADA-NF-UX + PDV-PIX-SICREDI + DFE-XML-AGUARDE **já Live**. **NÃO** merge `teste`→`producao`.  
+> **Ainda abertos (não prontos):** Zap #7 · FL-052 · FL-030 · FL-054 · FL-031 · FL-053 · FL-033 · FL-058 (vale crédito) · FL-057 (painel Render)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -3380,7 +3389,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · branch `deploy/entrada-nf-ux-v11.95` @ **`425e16c`** · espera frase + senha |
+| **Status** | ✅ **já loja ~v11.98** · reconfirmado 13/08 em `producao` v16.07 · **não reenviar** |
 | **VERSION alvo loja** | **11.95** |
 | **Inclui** | 1) Boleto 44→47 · 2) Lista Concluída (nome/XML/chip «Sem a pagar») · 3) **Nova limpa** (antigo «v10.90») |
 | **NÃO inclui** | DF-e inbox · Transferência · PDV · migrate |
@@ -3394,7 +3403,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸ“¦ **PRONTO** Â· branch `deploy/pdv-pix-sicredi-v11.94` @ **`06db8c8`** Â· aguarda frase + senha |
+| **Status** | ✅ **já loja ~v11.98** · reconfirmado 13/08 em `producao` v16.07 · **não reenviar** |
 | **VERSION alvo loja** | **11.94** |
 | **Smoke OK** | lista + filtro notebook Â· sÃ³ arquivos PDV Â· migrate **NÃƒO** |
 | **Risco loja aberta** | **Baixo** â€” sÃ³ adiciona opÃ§Ã£o Sicredi Pix |
@@ -5538,7 +5547,7 @@ iews.py (compras enrich) |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · crédito → ver **FL-058 P0,2** |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
-| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **pronto envio** / teste **v15.59** · 80 mm |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **loja v15.62** (FIADO-RECIBO) |
 | **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega | 📋 **ainda aberto** |
 | **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | ✅ **código na loja** (`6af5cac`) — checklist mentia «teste» |
 | **P1,6** | **Zap #22** · **FL-024** | Cadastro cat/sub/marca só lista + PIN | ✅ **loja v10.57** — checklist mentia |
