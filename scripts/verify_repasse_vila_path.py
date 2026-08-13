@@ -37,6 +37,7 @@ check("produtos/templates/produtos/dashboard_gerencial.html", "repasse_vila")
 check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é este repasse")
 check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repasse da Vila")
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
+check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:

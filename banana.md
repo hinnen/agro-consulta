@@ -1204,25 +1204,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.10**)
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.11**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto envio** · `teste` **v16.10** · loja ainda **v16.07** |
-| **O quê** | Tela `/repasse-vila/` (config % · checkboxes · histórico mês) · PDV botão **Repasse** + overlay · CMV + % lucro (padrão 50) + fiado pago Vila · saída caixa Vila · entrada Centro (pendente se fechado + aviso na abertura) · migrate **0087** |
-| **Prova** | `verify_repasse_vila_path.py` **VERIFY_OK** · `manage.py check` OK · migrate local OK |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.11** · loja ainda **v16.07** |
+| **O quê** | `/repasse-vila/` + PDV **Repasse** · CMV + % lucro (50) + fiado pago Vila · sai Vila · entra Centro (pendente+aviso se fechado) · migrate **0087** |
+| **Prova** | path **VERIFY_OK** · deep **VERIFY_DEEP_OK** (37) · calc fiado fora · incremental zera · pendente→aplicado · APIs/tela OK |
 | **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
-| **Fora** | Card BI Lucro líquido (adiado) · estoque |
-| **Você** | Ctrl+F5 · Menu → **Repasse Vila → Centro** · PDV **Repasse** · abrir caixa Vila · testar envio |
-
-**Regras:** só o que falta (checkbox dia cheio) · venda fiado ignora · pago fiado Vila integral · % real no histórico · textos no **?** · aviso abertura Centro com quem levou.
-
-### 🟡 WIP — Repasse Vila → Centro · **superado** (spec → código v16.10)
-
-> Spec fechada 13/08 · implementado em **REPASSE-VILA** acima.
+| **Fora** | Card BI (adiado) |
+| **Você** | migrate 0087 · Ctrl+F5 · caixa Vila · Menu/PDV Repasse |
 
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
 
@@ -1232,20 +1226,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** · loja ainda **v16.07** |
-| **O quê** | Resumo/DRE: balão no mouse em cada número · PE termômetro (Vendeu / Precisa / Folga) · subtítulos nos KPIs · `?` mantido |
-| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE **30/30** · tip/thermo/KPI no JS+CSS · sem gauge pizza · Indicadores intacto |
+| **O quê** | Resumo/DRE: balão no mouse · PE termômetro · subtítulos KPIs · `?` mantido |
+| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE **30/30** |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · Indicadores HTML |
-| **Você** | Ctrl+F5 Resumo · passe o mouse · confira PE · depois frase + senha se for loja |
+| **Você** | Ctrl+F5 Resumo |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (13/08)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **Fila:** pacotes abaixo. **NÃO** merge `teste`→`producao` sem frase + senha.
+> **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-VILA** | ✅ **pronto envio** / teste **v16.10** | **SIM** 0087 |
+| 1 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.11** | **SIM** 0087 |
 | 2 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
