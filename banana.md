@@ -602,7 +602,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
-- **Contagem cíclica (13/08 · v16.12):** Ajuste Mobile botão **Cíclica** — sessão PG multi-celular, cego, escopo loja/categoria/corredor, 2 passagens, grava `AjusteRapidoEstoque` só no fechamento (`contagem_ciclica`).
+- **Contagem cíclica (13/08 · v16.12+):** Ajuste Mobile botão **Cíclica** — sessão PG multi-celular, cego, **sempre soma** (produto em vários lugares), escopo loja/categoria/corredor, 2 passagens, grava `AjusteRapidoEstoque` só no fechamento (`contagem_ciclica`).
 
 ### 4.9 Compras
 
