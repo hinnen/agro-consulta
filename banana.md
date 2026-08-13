@@ -1218,14 +1218,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** — `estoque.0016_contagem_ciclica` |
 | **Você** | migrate 0016 · Ctrl+F5 `/ajuste-mobile/` · Cíclica |
 
-### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.20**)
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
 > **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.20** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.21** |
 | **O quê** | Botão grande em **Retiradas** (abaixo Nova saída) abre overlay na mesma tela (não outro PDV) · `/repasse-vila/` config/histórico · CMV + % lucro + fiado · migrate **0087** |
 | **Prova** | path **VERIFY_OK** (25) · deep **VERIFY_DEEP_OK** (44) · fiado fora · incremental · pendente→aplicado · Retiradas tem button+overlay |
 | **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
