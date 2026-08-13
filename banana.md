@@ -1203,28 +1203,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🟡 WIP — Repasse Vila → Centro (dinheiro / CMV + % lucro) · **13/08 · spec**
+
+> **Status:** desenho fechando · **ainda sem código**. Card BI **adiado**. Acesso: tela dedicada + botão no PDV (abre telinha de transferência).
+
+| Decisão | Regra |
+| ------- | ----- |
+| **Origem** | Só **Vila Elias** → **Centro** |
+| **Base** | CMV (custo × qtd vendida) **sempre** + % do **lucro bruto** (padrão **50%**, 0–100) |
+| **Formas** | Todas, **exceto venda fiado** (venda fiado **não** entra no CMV/receita deste cálculo) |
+| **Fiado pago na Vila** | Valor **integral** do pagamento entra no bolo (linha à parte). Fiado do Centro pago na Vila: **fora** (só Vila) |
+| **2ª transferência no dia** | Padrão = **só o que falta**. Checkbox = opção de recalcular/mandar o dia cheio de novo |
+| **Antes de mandar** | Checkboxes: CMV · % lucro · fiados pagos · Marcar todos · total |
+| **Caixa** | Sai **Vila** (precisa aberto). Entra **Centro** mesmo se fechado |
+| **Centro fechado / dinheiro pode não chegar** | Entrada automática no caixa Centro + **aviso ao abrir** (não trava) · se ignorar, fecha o dia com falta |
+| **Aviso abertura Centro** | *«Tem R$ X de repasse da Vila. Quem levou: Fulano. Confira se o dinheiro veio ou já foi usado; se foi usado, verificar com Fulano o motivo da retirada e fazer a retirada.»* |
+| **Histórico** | Dia a dia no mês (zera mês novo) · valor + % real do lucro enviado · total mês |
+| **Home** | **Sem card** por enquanto (não colar em Lucro líquido) |
+| **Ajuda** | Textos longos só no **?** |
+| **Dados** | Postgres (multi-PC) |
+
+**Spec B:** ✅ fechado 13/08.
+
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao`. Este chat **não** autoriza loja.
+> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto envio** · `teste` **v16.09** · loja ainda **v16.07** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** · loja ainda **v16.07** |
 | **O quê** | Resumo/DRE: balão no mouse em cada número · PE termômetro (Vendeu / Precisa / Folga) · subtítulos nos KPIs · `?` mantido |
-| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE 30/30 |
+| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE **30/30** · tip/thermo/KPI no JS+CSS · sem gauge pizza · Indicadores intacto |
 | **Migrate** | **NÃO** |
 | **Fora** | PDV · caixa · wizard · Indicadores HTML |
-| **Você** | Ctrl+F5 Resumo · passe o mouse nos números · confira PE |
+| **Você** | Ctrl+F5 Resumo · passe o mouse · confira PE · depois frase + senha se for loja |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (13/08 · após DRE-VISUAL-LEGIVEL)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (13/08)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao`.
+> **Fila:** só o pacote abaixo. **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto envio** / teste **v16.09** | não |
+| 1 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
 
@@ -1245,15 +1267,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fora** | PDV · caixa · distNSU (continua 1h) |
 | **Você** | Ctrl+F5 SEFAZ · Buscar · notas em **Carregar na grade** sem esperar 1h |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (13/08)
+### ✅ CHECKLIST ÚNICO (legado 13/08 — fila vazia)
 
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **Fila deploy:** **vazia** — ENTRADA-NF-UX + PDV-PIX-SICREDI + DFE-XML-AGUARDE **já Live**. **NÃO** merge `teste`→`producao`.  
-> **Ainda abertos (não prontos):** Zap #7 · FL-052 · FL-030 · FL-054 · FL-031 · FL-053 · FL-033 · FL-058 (vale crédito) · FL-057 (painel Render)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| — | *(nenhum)* | — | — |
+> **Substituído** pelo checklist **pronto para envio** com **DRE-VISUAL-LEGIVEL** no topo do CHECKPOINT. ENTRADA-NF / PIX / DFE-XML **já Live**.
 
 ### ✅ Deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
 
