@@ -1214,26 +1214,49 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (`DRE-FILTRO-PADRAO` · **v16.42**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.42** |
+| **O quê** | Resumo/DRE abre com **Centro + Vila** · **dia 1 → hoje** · **Vencimento** · **Bruto** · **sempre carrega a API** (ignora «modo só cache» do PDV). Mudar filtro atualiza sozinho. |
+| **Prova** | `verify_dre_visual_path.py` · unit DRE |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Resumo · números devem aparecer sem clicar Atualizar |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
 > **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX.
+> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · DRE-FILTRO-PADRAO · AJUSTE-CICLICA-CANCEL.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste (este commit) | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.40** @ **bdb8541** | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.42** | não |
+| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** / teste **v16.41** @ **3708786** | não |
 
-### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX`)
+### 📦 PACOTE PRONTO — Cancelar contagem cíclica (`AJUSTE-CICLICA-CANCEL` · **v16.41**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **O quê** | `/repasse-vila/` denso: `?` só ícone · checks/dias baixos · sem faixas amarelas largas |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.41** @ **3708786** |
+| **O quê** | Botão vermelho **Cancelar contagem** · encerra pra todos · estoque não muda (só antes de Gravar) · 2 confirmações |
+| **Prova** | path cíclica **VERIFY_OK 62** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/repasse-vila/` |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Cancelar contagem |
+
+### 📦 PACOTE PRONTO — Repasse UX + forma (`REPASSE-VILA-UX` · **v16.40**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.40** @ **bdb8541** |
+| **O quê** | Tela densa · overlay **forma de pagamento** · anti-autofill do valor · Retiradas sem 2º PDV |
+| **Prova** | path **VERIFY_OK 32** · deep **VERIFY_DEEP_OK 55** (Dinheiro + PIX + manual) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Retiradas → Repasse · forma · valor vazio = automático |
 
 ### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.36**)
 
