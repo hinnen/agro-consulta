@@ -1,6 +1,6 @@
 /**
  * PDV — overlay Repasse Vila → Centro.
- * Abre com ?repasse=1 ou botão topbar.
+ * Abre com ?repasse=1 ou botão topbar / Retiradas.
  */
 (function () {
   'use strict';
@@ -10,11 +10,12 @@
 
   var calc = null;
   var funcionarios = [];
+  var formasPagamento = ['Dinheiro', 'PIX', 'Cartão de débito', 'Cartão de crédito', 'Outro'];
   var quem = '';
+  var formaPag = 'Dinheiro';
   var busy = false;
 
   var dom = {
-    btnOpen: document.getElementById('pdv-topbar-repasse-btn'),
     fechar: document.getElementById('pdv-repasse-fechar'),
     cancelar: document.getElementById('pdv-repasse-cancelar'),
     confirmar: document.getElementById('pdv-repasse-confirmar'),
@@ -30,6 +31,7 @@
     status: document.getElementById('pdv-rp-status'),
     quemGrid: document.getElementById('pdv-rp-quem-grid'),
     quemOutros: document.getElementById('pdv-rp-quem-outros'),
+    formaGrid: document.getElementById('pdv-rp-forma-grid'),
   };
 
   function money(n) {
@@ -52,6 +54,28 @@
     }
   }
 
+  /** Só dígitos / vírgula / ponto — limpa autofill tipo "renan". */
+  function sanitizeManualField() {
+    if (!dom.manual) return;
+    var raw = String(dom.manual.value || '');
+    if (!raw) return;
+    if (/[a-zA-Z]/.test(raw)) {
+      dom.manual.value = '';
+      return;
+    }
+    var cleaned = raw.replace(/[^\d.,]/g, '');
+    if (cleaned !== raw) dom.manual.value = cleaned;
+  }
+
+  function parseManualValor() {
+    sanitizeManualField();
+    var man = String(dom.manual.value || '').trim();
+    if (!man) return null;
+    var n = Number(man.replace(/\./g, '').replace(',', '.'));
+    if (isNaN(n) || n <= 0) return null;
+    return n;
+  }
+
   function applyQueryPrefs() {
     var q = qs();
     if (q.get('pct')) dom.pct.value = q.get('pct');
@@ -59,6 +83,7 @@
     if (q.get('lucro') === '0') dom.lucro.checked = false;
     if (q.get('fiado') === '0') dom.fiado.checked = false;
     if (q.get('cheio') === '1') dom.cheio.checked = true;
+    if (q.get('forma')) formaPag = q.get('forma');
     dom.todos.checked = dom.cmv.checked && dom.lucro.checked && dom.fiado.checked;
   }
 
@@ -76,11 +101,8 @@
     if (dom.cmv.checked) tot += Number(d.cmv || 0);
     if (dom.lucro.checked) tot += Number(d.lucro || 0);
     if (dom.fiado.checked) tot += Number(d.fiado || 0);
-    var man = String(dom.manual.value || '').trim().replace(/\./g, '').replace(',', '.');
-    if (man) {
-      var mv = Number(man);
-      if (!isNaN(mv) && mv > 0) tot = mv;
-    }
+    var mv = parseManualValor();
+    if (mv != null) tot = mv;
     document.getElementById('pdv-rp-total').textContent = money(tot);
   }
 
@@ -112,6 +134,24 @@
     dom.quemGrid.appendChild(outros);
   }
 
+  function renderForma() {
+    if (!dom.formaGrid) return;
+    dom.formaGrid.innerHTML = '';
+    if (!formasPagamento.length) formasPagamento = ['Dinheiro'];
+    if (formasPagamento.indexOf(formaPag) < 0) formaPag = formasPagamento[0];
+    formasPagamento.forEach(function (fn) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rp-forma-btn' + (formaPag === fn ? ' is-on' : '');
+      b.textContent = fn;
+      b.addEventListener('click', function () {
+        formaPag = fn;
+        renderForma();
+      });
+      dom.formaGrid.appendChild(b);
+    });
+  }
+
   function fetchCalc() {
     var pct = dom.pct.value || '50';
     var cheio = dom.cheio.checked ? '1' : '0';
@@ -134,6 +174,9 @@
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
     applyQueryPrefs();
+    if (dom.manual) dom.manual.value = '';
+    if (dom.pin) dom.pin.value = '';
+    sanitizeManualField();
     dom.status.textContent = 'Carregando…';
     fetch('/api/repasse-vila/meta/', { credentials: 'same-origin' })
       .then(function (r) {
@@ -145,6 +188,9 @@
           return;
         }
         funcionarios = j.funcionarios || [];
+        if (Array.isArray(j.formas_pagamento) && j.formas_pagamento.length) {
+          formasPagamento = j.formas_pagamento;
+        }
         if (!dom.pct.value || dom.pct.value === '50') {
           dom.pct.value = String(Math.round(j.percentual_padrao || 50));
         }
@@ -157,9 +203,12 @@
           dom.sub.classList.remove('text-red-700');
         }
         renderQuem();
+        renderForma();
         return fetchCalc();
       })
       .then(function () {
+        sanitizeManualField();
+        renderCalc();
         dom.status.textContent = '';
       })
       .catch(function () {
@@ -175,14 +224,25 @@
 
   function confirmar() {
     if (busy) return;
+    sanitizeManualField();
     var q = quem || String(dom.quemOutros.value || '').trim();
     if (q.length < 2) {
       dom.status.textContent = 'Informe quem levou';
       return;
     }
+    if (!formaPag) {
+      dom.status.textContent = 'Escolha a forma de pagamento';
+      return;
+    }
     var pin = String(dom.pin.value || '').trim();
     if (!pin) {
       dom.status.textContent = 'Digite o PIN';
+      return;
+    }
+    var manRaw = String(dom.manual.value || '').trim();
+    if (manRaw && /[a-zA-Z]/.test(manRaw)) {
+      dom.manual.value = '';
+      dom.status.textContent = 'Valor inválido — deixe vazio para automático ou digite o R$';
       return;
     }
     var body = {
@@ -193,10 +253,10 @@
       incluir_lucro: dom.lucro.checked,
       incluir_fiado: dom.fiado.checked,
       modo_dia_cheio: dom.cheio.checked,
-      forma_pagamento: 'Dinheiro',
+      forma_pagamento: formaPag || 'Dinheiro',
     };
-    var man = String(dom.manual.value || '').trim();
-    if (man) body.valor_manual = man.replace(/\./g, '').replace(',', '.');
+    var mv = parseManualValor();
+    if (mv != null) body.valor_manual = String(mv);
 
     busy = true;
     dom.status.textContent = 'Transferindo…';
@@ -222,8 +282,9 @@
           return;
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
-        dom.status.textContent = 'OK — enviado ' + money(tot);
+        dom.status.textContent = 'OK — enviado ' + money(tot) + ' · ' + (formaPag || '');
         dom.pin.value = '';
+        if (dom.manual) dom.manual.value = '';
         fetchCalc();
         setTimeout(closeOverlay, 900);
       })
@@ -233,10 +294,10 @@
       });
   }
 
-    var btnOpen =
-      document.getElementById('pdv-topbar-repasse-btn') ||
-      document.getElementById('crh-btn-repasse');
-    if (btnOpen) btnOpen.addEventListener('click', openOverlay);
+  var btnOpen =
+    document.getElementById('pdv-topbar-repasse-btn') ||
+    document.getElementById('crh-btn-repasse');
+  if (btnOpen) btnOpen.addEventListener('click', openOverlay);
   if (dom.fechar) dom.fechar.addEventListener('click', closeOverlay);
   if (dom.cancelar) dom.cancelar.addEventListener('click', closeOverlay);
   if (dom.confirmar) dom.confirmar.addEventListener('click', confirmar);

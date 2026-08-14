@@ -295,12 +295,24 @@ def main() -> int:
         else:
             ok("Transferir sem /pdv/repasse")
 
+    r = c.get("/api/repasse-vila/meta/")
+    if r.status_code == 200:
+        mj = r.json()
+        formas = mj.get("formas_pagamento") or []
+        ok("meta formas") if "Dinheiro" in formas and "PIX" in formas else fail(
+            f"meta formas: {formas}"
+        )
+    else:
+        fail("meta GET para formas")
+
     r = c.get("/caixa/retiradas/")
     body = r.content if r.status_code == 200 else b""
     ok("GET retiradas") if r.status_code == 200 else fail(f"GET retiradas {r.status_code}")
     ok("botao crh-btn-repasse") if b'id="crh-btn-repasse"' in body else fail("faltou crh-btn-repasse")
     ok("overlay na Retiradas") if b"pdv-repasse-overlay" in body else fail("faltou overlay")
     ok("js repasse na Retiradas") if b"pdv_repasse_vila.js" in body else fail("faltou js")
+    ok("forma grid no overlay") if b"pdv-rp-forma-grid" in body else fail("faltou forma grid")
+    ok("anti-autofill valor") if b"rp_valor_manual_somente" in body else fail("faltou anti-autofill")
     # botao deve ser <button>, nao <a href=pdv>
     idx = body.find(b'id="crh-btn-repasse"')
     if idx > 0:
@@ -320,6 +332,10 @@ def main() -> int:
             ok("sem navegacao PDV repasse")
     else:
         ok("Retiradas sem URL pdv")
+
+    js = (ROOT / "produtos/static/produtos/js/pdv_repasse_vila.js").read_text(encoding="utf-8")
+    ok("js manda forma_pagamento") if "forma_pagamento: formaPag" in js else fail("js sem forma")
+    ok("js limpa valor com letra") if "sanitizeManualField" in js else fail("js sem sanitize")
 
     r = c.post(
         "/api/repasse-vila/config/",

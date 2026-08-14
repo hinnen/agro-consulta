@@ -10,21 +10,26 @@
     padding: 0.55rem 0.75rem; box-shadow: 0 1px 2px rgba(15,23,42,.05);
   }
   #pdv-repasse-overlay .rp-check {
-    display: flex; align-items: center; gap: 0.55rem; min-height: 2.65rem;
-    padding: 0.35rem 0.65rem; border: 2px solid #cbd5e1; border-radius: 0.7rem;
-    background: #f8fafc; cursor: pointer; font-weight: 800; font-size: 0.95rem;
+    display: flex; align-items: center; gap: 0.45rem; min-height: 2.25rem;
+    padding: 0.25rem 0.55rem; border: 2px solid #cbd5e1; border-radius: 0.65rem;
+    background: #f8fafc; cursor: pointer; font-weight: 800; font-size: 0.9rem;
   }
   #pdv-repasse-overlay .rp-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
-  #pdv-repasse-overlay .rp-check input { width: 1.2rem; height: 1.2rem; accent-color: #059669; flex-shrink: 0; }
+  #pdv-repasse-overlay .rp-check input { width: 1.1rem; height: 1.1rem; accent-color: #059669; flex-shrink: 0; }
   #pdv-repasse-overlay .rp-field {
-    min-height: 2.75rem; width: 100%; border-radius: 0.7rem; border: 2px solid #cbd5e1;
-    padding: 0.35rem 0.7rem; font-size: 1.05rem; font-weight: 800;
+    min-height: 2.5rem; width: 100%; border-radius: 0.65rem; border: 2px solid #cbd5e1;
+    padding: 0.3rem 0.65rem; font-size: 1rem; font-weight: 800;
   }
   #pdv-repasse-overlay .rp-quem-btn {
-    min-height: 2.6rem; padding: 0.3rem 0.65rem; border-radius: 0.65rem;
-    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer;
+    min-height: 2.35rem; padding: 0.25rem 0.55rem; border-radius: 0.6rem;
+    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; font-size: 0.85rem;
   }
   #pdv-repasse-overlay .rp-quem-btn.is-on { border-color: #0284c7; background: #e0f2fe; color: #0c4a6e; }
+  #pdv-repasse-overlay .rp-forma-btn {
+    min-height: 2.35rem; padding: 0.25rem 0.55rem; border-radius: 0.6rem;
+    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; font-size: 0.85rem;
+  }
+  #pdv-repasse-overlay .rp-forma-btn.is-on { border-color: #059669; background: #ecfdf5; color: #065f46; }
   #pdv-repasse-overlay .rp-body {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -74,12 +79,23 @@
           <div class="rp-card space-y-1.5">
             <div class="text-[0.7rem] font-black uppercase text-slate-500">Quem levou</div>
             <div id="pdv-rp-quem-grid" class="flex flex-wrap gap-1.5"></div>
-            <input type="text" id="pdv-rp-quem-outros" class="rp-field hidden" placeholder="Nome de quem levou" />
+            <input type="text" id="pdv-rp-quem-outros" class="rp-field hidden" placeholder="Nome de quem levou" autocomplete="off" name="rp_quem_outros" />
+          </div>
+          <div class="rp-card space-y-1.5">
+            <div class="text-[0.7rem] font-black uppercase text-slate-500">Forma de pagamento</div>
+            <div id="pdv-rp-forma-grid" class="flex flex-wrap gap-1.5"></div>
+          </div>
+          {# Armadilha anti-autofill do Chrome (usuário/senha → campo valor) #}
+          <div class="sr-only" aria-hidden="true">
+            <input type="text" tabindex="-1" autocomplete="username" />
+            <input type="password" tabindex="-1" autocomplete="current-password" />
           </div>
           <div class="rp-card grid grid-cols-2 gap-2">
             <label class="block min-w-0">
               <span class="text-[0.7rem] font-black uppercase text-slate-500">Valor (vazio = automático)</span>
-              <input type="text" id="pdv-rp-manual" class="rp-field mt-1" inputmode="decimal" placeholder="Automático" />
+              <input type="text" id="pdv-rp-manual" class="rp-field mt-1" inputmode="decimal"
+                     placeholder="Automático" autocomplete="off" name="rp_valor_manual_somente"
+                     data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
             </label>
             <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-2.5 flex flex-col justify-center min-w-0">
               <div class="text-[0.7rem] font-black uppercase text-emerald-800">Total a enviar</div>
@@ -88,7 +104,7 @@
           </div>
           <label class="block rp-card">
             <span class="text-[0.7rem] font-black uppercase text-slate-500">PIN do operador</span>
-            <input type="password" id="pdv-rp-pin" class="rp-field mt-1 max-w-[12rem]" autocomplete="off" inputmode="numeric" />
+            <input type="password" id="pdv-rp-pin" class="rp-field mt-1 max-w-[12rem]" autocomplete="new-password" inputmode="numeric" name="rp_pin_operador" data-lpignore="true" />
           </label>
           <p id="pdv-rp-status" class="text-sm font-bold text-slate-600 min-h-[1.1rem] px-1"></p>
         </div>
