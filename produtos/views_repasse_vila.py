@@ -161,6 +161,9 @@ def api_repasse_vila_meta(request):
         label = f"{nome} ({ap})" if ap else nome
         funcionarios.append({"id": f.pk, "nome": label})
     calc = calcular_disponivel(timezone.localdate())
+    from produtos.caixa_util import FORMAS_PAGAMENTO_CAIXA
+
+    formas = [f for f in FORMAS_PAGAMENTO_CAIXA if f not in ("Fiado", "Vale crédito", "Cashback")]
     return JsonResponse(
         {
             "ok": True,
@@ -168,6 +171,7 @@ def api_repasse_vila_meta(request):
             "caixa_vila_aberto": bool(vila),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
             "funcionarios": funcionarios,
+            "formas_pagamento": formas,
             "calc": calc,
             "url_tela": reverse("repasse_vila"),
         }
