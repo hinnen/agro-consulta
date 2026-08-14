@@ -1234,17 +1234,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
 | 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.37** @ **ae6563f** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.39** @ **d044a52** | não |
 | 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** @ **fd2522f** | não |
 
-### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX` · **v16.37**)
+### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX` · **v16.39**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.37** @ **ae6563f** |
-| **O quê** | `/repasse-vila/` denso: `?` só ícone · checks/dias baixos · sem faixas amarelas largas |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.39** @ **d044a52** |
+| **O quê** | Tela densa · overlay: **forma de pagamento** · valor não preenche “renan” (anti-autofill) |
+| **Prova** | deep **VERIFY_DEEP_OK 49** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/repasse-vila/` |
+| **Você** | Ctrl+F5 Retiradas → Repasse · escolher forma · valor vazio = automático |
 
 ### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.36**)
 
