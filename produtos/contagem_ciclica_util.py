@@ -556,23 +556,62 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
     if detalhe:
         qs = ContagemCiclicaLinha.objects.filter(sessao=sessao)
         if sessao.status == ContagemCiclicaStatus.PASS2:
-            qs = qs.filter(precisa_recontagem=True).order_by("-saldo_referencia", "nome_produto")
+            qs = qs.filter(precisa_recontagem=True).order_by(
+                "contado_pass2", "-saldo_referencia", "nome_produto"
+            )
         else:
             qs = qs.order_by("contado_pass1", "nome_produto")
+        linhas_raw = list(qs[:800])
+        # Completa nome/código pelo cadastro PG quando a linha veio vazia (Mongo id).
+        pids_vazios = [
+            str(ln.produto_externo_id).strip()
+            for ln in linhas_raw
+            if not str(ln.nome_produto or "").strip()
+        ]
+        nome_map: dict[str, tuple[str, str]] = {}
+        if pids_vazios:
+            from produtos.models import Produto
+
+            for p in Produto.objects.filter(produto_externo_id__in=pids_vazios).only(
+                "produto_externo_id", "nome", "codigo_nfe", "codigo_interno"
+            ):
+                pid = str(p.produto_externo_id or "").strip()
+                if not pid:
+                    continue
+                cod = (
+                    str(p.codigo_nfe or "").strip()
+                    or str(p.codigo_interno or "").strip()
+                )
+                nome_map[pid] = (str(p.nome or "").strip(), cod)
         linhas = []
-        for ln in qs[:800]:
+        for ln in linhas_raw:
+            pid = str(ln.produto_externo_id or "").strip()
+            nome = str(ln.nome_produto or "").strip()
+            codigo = str(ln.codigo_interno or "").strip()
+            if not nome and pid in nome_map:
+                nome, cod_alt = nome_map[pid]
+                if not codigo:
+                    codigo = cod_alt
+            if not nome:
+                nome = codigo or f"Produto {pid[:8]}"
             item = {
                 "id": ln.pk,
-                "produto_id": ln.produto_externo_id,
-                "codigo": ln.codigo_interno,
-                "nome": ln.nome_produto,
+                "produto_id": pid,
+                "codigo": codigo,
+                "nome": nome,
                 "categoria": ln.categoria,
-                "contado": ln.contado_pass2 if sessao.status == ContagemCiclicaStatus.PASS2 else ln.contado_pass1,
+                "contado": ln.contado_pass2
+                if sessao.status == ContagemCiclicaStatus.PASS2
+                else ln.contado_pass1,
                 "operador": ln.operador_pass2
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.operador_pass1,
                 "auto_zero": ln.auto_zero_pass1,
-                # cego: não envia saldo_referencia nem qtd anterior
+                "faltando": not (
+                    ln.contado_pass2
+                    if sessao.status == ContagemCiclicaStatus.PASS2
+                    else ln.contado_pass1
+                ),
             }
             linhas.append(item)
         out["linhas"] = linhas

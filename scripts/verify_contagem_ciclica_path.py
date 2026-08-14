@@ -91,6 +91,8 @@ check(
     "sempre soma",
     "ma-ciclica-dias",
     "60 dias (padrão)",
+    "FALTA",
+    "Recontagem · faltam",
 )
 check(
     "produtos/pg_backup_registry.py",
