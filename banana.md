@@ -1241,7 +1241,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.32** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.32** @ **ba08fae** |
 | **O quê** | Cíclica cego · multi-celular · filtro dias · Incluir fora · UX smartphone (teclado/overlays/scroll) · Scan EAN rápido |
 | **Prova** | path **57** · deep **31** · UX+HTTP **VERIFY_OK 16** (login, gate, overlays, forcar, cego) |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
