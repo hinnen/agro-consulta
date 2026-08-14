@@ -1237,15 +1237,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
 | **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.29**)
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.30**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.29** @ **8874dde** |
-| **O quê** | Cíclica cego · sempre soma · filtro dias (padrão 60 + personalizado) · multi-celular · grava no final · **UX celular** (teclado, scroll lock, header, Bip+1 off, aviso 800+) |
-| **Prova** | path **56** · deep **30** · UX+HTTP `verify_ajuste_mobile_ux` **VERIFY_OK 13** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.30** |
+| **O quê** | Cíclica cego · sempre soma · filtro dias · multi-celular · grava no final · UX celular · **Scan câmera mais rápido** (EAN/UPC, fps 12, caixa larga, BarcodeDetector) |
+| **Prova** | path/deep/UX HTTP OK · Scan: path estático (câmera real = você no celular) |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
-| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` no **celular** |
+| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` · **Scan** · bipar EAN |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
