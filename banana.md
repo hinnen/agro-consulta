@@ -1241,7 +1241,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.30** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.30** @ **312face** |
 | **O quê** | Cíclica cego · sempre soma · filtro dias · multi-celular · grava no final · UX celular · **Scan câmera mais rápido** (EAN/UPC, fps 12, caixa larga, BarcodeDetector) |
 | **Prova** | path/deep/UX HTTP OK · Scan: path estático (câmera real = você no celular) |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
