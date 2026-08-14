@@ -396,6 +396,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - VersÃ£o do commit no Render (nÃ£o hardcoded).
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
+- **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
+- **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
@@ -503,7 +505,16 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - `GET /api/nfce/export-xml/?ano=&mes=` (ZIP contabilidade)
 - `/contabilidade/` painel
 
-**ProduÃ§Ã£o GM Agro:** CNPJ `48900774000103`, municÃ­pio `3524600` Jacupiranga, `NFC_E_TP_AMB=1`. Checklist completo: `docs/NFCE-PRODUCAO.md`.
+**Produção GM Agro — emitente NFC-e:**
+
+| Loja | CNPJ | IE | Endereço |
+| ---- | ---- | -- | -------- |
+| **Centro (matriz)** | `48900774000103` | env `NFC_E_IE` | env `NFC_E_LOGRADOURO`… |
+| **Vila Elias (filial)** | `48900774000286` | `394051450113` | Joaquim Mauricio Grothe, 173 · Vila Elias · CEP 11940-000 |
+
+Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **depósito da venda** (caixa Vila → `/0002`, caixa Centro → `/0001`). Numeração **independente** por CNPJ (`NfceNumeracaoAgro.emitente_cnpj`). Município `3524600` Jacupiranga, `NFC_E_TP_AMB=1`. Checklist: `docs/NFCE-PRODUCAO.md`.
+
+**Não confundir** com CNPJ `03230457000180` (empresa **Agro Mais Vila Elias** no financeiro/entrada NF) — isso **não** é o CNPJ fiscal da filial GM.
 
 **HistÃ³rico de dor SEFAZ (jÃ¡ resolvido no cÃ³digo):** QR no XML antes da assinatura, SHA1 QR v2 SP, retry nÃºmero duplicado 539/204, CA bundle ICP-Brasil no Render, SOAP 4.00 sem `nfeCabecMsg` errado.
 
@@ -576,6 +587,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - `/entrada-nota/` â€” wizard 8 passos (fornecedor â†’ â€¦ â†’ financeiro â†’ finalizar PIN).
 - **Dist DF-e (31/07):** certificado `NFE_DIST_DFE_*` **ou** `NFC_E_*`. Cursor PG só avança em **137/138**. Caixa de entrada PG (~80): Buscar grava · Pendentes antigas primeiro · Concluídas. Recuperar por chave se precisar. **XML** se nota antiga.
 - **Só resumo / Ciência (05/08):** evento oficial **210210** no Ambiente Nacional; grava protocolo no PG, não repete e tenta baixar o XML completo para Carregar na grade.
+- **XML vs Aguarde 1h (12/08):** Buscar lista (distNSU) continua com 1h após 137; **Buscar XML / chave** só trava no **656**. Após Buscar, sistema tenta Ciência+XML sozinho nas «Só resumo» — fica pronto para **Carregar na grade** (manual, uma nota por vez).
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
@@ -590,6 +602,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
+- **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 
 ### 4.8 Estoque Agro
 
@@ -598,6 +611,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
+- **Contagem cíclica (13/08 · v16.12+):** Ajuste Mobile botão **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento (`contagem_ciclica`).
 
 ### 4.9 Compras
 
@@ -608,7 +622,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - RelatÃ³rios: A4 fornecedor, planilhas impressas por categoria/unidade (A4 ou A6).
 - **Folha Compras (08/07):** fornecedor / categoria / unidade abrem em **popup na prÃ³pria tela** (nÃ£o nova aba) â€” evita limite de 3 abas SisVale e layout bugado. BotÃ£o **Nova aba** no popup se precisar. PÃ¡ginas planilha com `?embed=1` nÃ£o montam barra lateral.
 - **Popup Folha (27/07):** modal compacto (padrÃ£o ERP) Â· Folha de saldo com filtros **botÃ£o+chip** iguais ao cadastro Â· facetas no HTML.
-- **Folha por fornecedor (27/07):** com catÃ¡logo PG **nÃ£o** depende de Mongo â€” usa cadastro + Entrada NF Agro.
+- **Folha por fornecedor (27/07 + 11/08):** catálogo PG — cadastro + Entrada NF Agro. **11/08 (`FOLHA-FORN-HIST`):** lista = cadastro **∪** histórico de NFs (não só último pedido); 1º token do nome (ex. ADIMAX).
 - **Folha de saldo (28/07):** overlay grande · filtros salvos **online** (Postgres) com 1 padrão global · tipografia maior nos filtros.
 - **Atalho PDV Estoque Vila (28/07):** botão no PDV (`/pdv/checkout/`) abre as 5 opções da Folha Compras e manda pra `/compras/?folha=…` com overlay já aberto (rótulo só — não força Vila).
 
@@ -625,7 +639,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
-- **DRE visual prévia (09/08, `DRE-VISUAL-PREVIA` + `DRE-VISUAL-POLISH` + `DRE-PLANOS-CADASTRO`):** Resumo gerencial visual 16:9 (fluxo + donut despesas + receita PDV por categoria + **PE barras modernas** + mini DRE + empréstimos). Cards de cima: **vs mês passado** e **vs média 90d**. Despesas por categoria = **cadastro oficial** (grafia antiga → nome novo) · mesmo recorte do card Despesas. Mini DRE: Receita → CMV → Lucro bruto → Resultado op. → Líquido → **Juros empréstimo** → **Empréstimo** → **Saldo final**. Indicadores permanece até 100%.
+- **DRE visual prévia (09/08 + Mini DRE soma + card empréstimos 10/08 + legível 13/08):** Resumo 16:9. Mini DRE: Receita → … → **Saldo final** (= soma). Card Empréstimos: devido/juros/total/pago/emprestado. **Balão no mouse** (`data-rg-tip`) em cada número + `?` para texto longo. PE = termômetro (Vendeu / Precisa / Folga). Indicadores permanece até 100%.
+- **Filtro loja (10/08):** **Centro + Vila** (padrão) · Centro · Vila. Vendas/CMV vendida = PDV da(s) loja(s). Despesas/empréstimos = empresa cadastrada (Vila sem empresa própria usa Centro). BI `/` mesmo recorte no filtro **Números** (não troca o PDV).
 
 ### 4.11 Caixa
 
@@ -641,6 +656,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **DiferenÃ§a abertura (21/07):** se contagem â‰  Ãºltimo fechamento â†’ grava `diferenca_abertura` Â· aparece em **ConferÃªncias Â· diferenÃ§as** como Â«Abertura Â· DinheiroÂ» Â· `usuario` (abriu) + `usuario_fechamento` (fechou) sempre.
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
+- **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 
 ### 4.12 RH
 
@@ -1198,31 +1214,318 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⏳ PREP produção — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
+### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32)
 
-> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
-> **Esta mensagem NÃO sobe a loja.** Próximo chat: pausar vendas + frase + senha.
+> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f** · Render `dep-d9vn5fbncjis73elco4g`  
+> **NÃO** merge `teste`→`producao` sem frase + senha.  
+> Fila de envio deste lote: **vazia** (4 pacotes Live).
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NFCE-VILA-EMIT** | ✅ enviado / Live v16.32 | **SIM** 0088 |
+| 2 | **AJUSTE-CICLICA** | ✅ enviado / Live v16.32 | **SIM** estoque.0016+**0017** |
+| 3 | **REPASSE-VILA** | ✅ enviado / Live v16.32 | **SIM** 0087 |
+| 4 | **DRE-VISUAL-LEGIVEL** | ✅ enviado / Live v16.32 | não |
+
+### ✅ Deploy loja — lote checklist 14/08 (`deploy/lote-checklist-1408` · **v16.32**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ⏳ **PREP pronto** · `deploy/dre-planos-cadastro-1008` · **não** merge `teste`→`producao` |
-| **Pacote** | **DRE-PLANOS-CADASTRO** só |
-| **Base loja** | `2f6d05e` (v15.50) |
-| **Rollback** | tag `rollback/pre-dre-planos-cadastro-v15.50` @ `2f6d05e` · `git push origin 2f6d05e:producao` |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** · Render `dep-d9vn5fbncjis73elco4g` |
+| **Pacotes** | NFCE-VILA-EMIT · AJUSTE-CICLICA · REPASSE-VILA · DRE-VISUAL-LEGIVEL |
+| **Prova** | path cíclica **57** · repasse **25** · DRE **229** · `manage.py check` OK · parity `teste` |
+| **Migrate** | **SIM** — `produtos.0087` · `produtos.0088` · `estoque.0016` · `estoque.0017` (build Render) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1408-v16.07` @ **262d460** · frase+senha |
+| **Base anterior** | Live v16.07 @ **262d460** |
+| **Você** | **Ctrl+F5** · badge **v16.32** · PIX Vila CNPJ `/0002` · Retiradas Repasse · `/ajuste-mobile/` cíclica · liberar vendas |
+
+### 🚀 PREP deploy loja — lote checklist 14/08 (`deploy/lote-checklist-1408` · **v16.32**) · **superado**
+
+> Vigente: **Deploy loja — lote checklist 14/08 Live v16.32** no topo.
+
+### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**) · **Live v16.32**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
+| **O quê** | Caixa **Vila** → CNPJ `/0002-86` · Centro → `/0001-03` · migrate **0088** |
+| **Prova** | SEFAZ local · `verify_nfce_vila_path` **VERIFY_OK** |
+| **Migrate** | **SIM** 0088 |
+| **Você** | Ctrl+F5 · PIX Vila → CNPJ `/0002` |
+
+### 📦 PACOTE PRONTO — Contagem cíclica / Ajuste Mobile (`AJUSTE-CICLICA` · **v16.32**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
+| **O quê** | Cíclica cego · multi-celular · filtro dias · Incluir fora · UX smartphone (teclado/overlays/scroll) · Scan EAN rápido |
+| **Prova** | path **57** · deep **31** · UX+HTTP **VERIFY_OK 16** (login, gate, overlays, forcar, cego) |
+| **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` no **celular** |
+
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**) · **Live v16.32**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
+| **O quê** | Retiradas → Repasse · CMV/%/fiado · migrate **0087** |
+| **Prova** | path **25** · deep **44** |
+| **Migrate** | **SIM** 0087 |
+| **Você** | Ctrl+F5 Retiradas |
+
+### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**) · **Live v16.32**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
+| **O quê** | Resumo/DRE legível (balão, PE, KPIs) |
+| **Prova** | `verify_dre_visual_path` **VERIFY_OK** |
 | **Migrate** | **NÃO** |
-| **Fora** | PDV · caixa · wizard · `views.py` · Indicadores HTML |
-| **Arquivos** | `plano_conta_dre_util.py` · `resumo_operacional_mongo.py` · `dre_visual_util.py` · `views_planos_conta.py` · template resumo · tests/verify · VERSION **15.52** |
-| **Prova worktree** | tests **34/34** · planos **42/42** · visual **201/201** · CMV **55/55** · PDV-DRE **33/33** · RG **79/79** · PDV/caixa diff **vazio** |
-| **Você no próximo chat** | Zap pausa vendas → *«pode subir para produção - 99738595»* |
+| **Você** | Ctrl+F5 Resumo |
 
-### ✅ CHECKLIST ÚNICO — PREP (aguarda senha)
+### ✅ CHECKLIST ÚNICO — (13/08) · **superado**
 
-> **Loja hoje:** ✅ **Live v15.50** · `producao` @ **2f6d05e**  
+> Vigente: **CHECKLIST ÚNICO (14/08)** no topo.
+
+### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **já na loja** (desde lote ~v11.98) · loja hoje **v16.07** · **nada a subir** |
+| **Prova** | boleto 44→47 OK · Nova→reset · financeiro_ids · `pix_sicredi` no código `producao` |
+| **Branches velhas** | `deploy/entrada-nf-ux-v11.95` / `deploy/pdv-pix-sicredi-v11.94` = **obsoletas** (não re-cherry) |
+
+### 📦 PACOTE PRONTO LOJA — DF-e XML fora do Aguarde 1h (`DFE-XML-AGUARDE` · **v15.95+**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **já Live** (lote v15.99) · prova refeita 13/08 · **nada pendente** deste path |
+| **O quê** | Buscar lista = 1h no 137 · Buscar XML/chave só trava no **656** · auto Ciência+XML nas Só resumo · **Carregar na grade** manual |
+| **Prova** | `python scripts/verify_dfe_xml_aguarde_path.py` → **VERIFY_OK 31/31** · manifestação **26/26** · NSU-656 **12/12** |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · distNSU (continua 1h) |
+| **Você** | Ctrl+F5 SEFAZ · Buscar · notas em **Carregar na grade** sem esperar 1h |
+
+### ✅ CHECKLIST ÚNICO (legado 13/08 — fila vazia)
+
+> **Substituído** pelo checklist **pronto para envio** com **DRE-VISUAL-LEGIVEL** no topo do CHECKPOINT. ENTRADA-NF / PIX / DFE-XML **já Live**.
+
+### ✅ Deploy loja — lote checklist 12/08b (`deploy/lote-checklist-1208b` · **v16.07**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.07** · `producao` @ **262d460** · Render `dep-d9u8i7psrm7s73b67dhg` |
+| **Pacotes** | CP-CAL-PG · NF-BIP-ET3 |
+| **Prova** | VERIFY **31/31** · **40/40** (+ irmã 31/31) |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1208b-v15.99` @ **ec76e89** |
+| **Base anterior** | Live v15.99 @ **ec76e89** |
+| **Você** | **Ctrl+F5** · badge **v16.07** · calendário CP · Entrada NF etapa 3 |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v16.07) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — pronto envio (13/08)** no topo (fila vazia neste path).
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-CAL-PG** | ✅ enviado / Live v16.07 | não |
+| 2 | **NF-BIP-ET3** | ✅ enviado / Live v16.07 | não |
+
+### ✅ Deploy loja — lote checklist 12/08 (`deploy/lote-checklist-1208` · **v15.99**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.99** · `producao` @ **ec76e89** · Render `dep-d9u7bmu7bikc739ncamg` |
+| **Pacotes** | COMPRAS-SLIM-DADOS · NF-BIP-CAD · DFE-XML-AGUARDE |
+| **Prova** | VERIFY **41/41** · **31/31** · **26/26** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1208-v15.82` @ **5bbebbe** |
+| **Base anterior** | Live v15.82 @ **5bbebbe** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (12/08 · loja v15.99) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — pronto envio (12/08)** no topo. Loja permanece **v15.99** até o próximo envio.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-DADOS** | ✅ enviado / v15.99 | não |
+| 2 | **NF-BIP-CAD** | ✅ enviado / v15.99 | não |
+| 3 | **DFE-XML-AGUARDE** | ✅ enviado / v15.99 | não |
+
+### ✅ Deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**) · **superado**
+
+> **Loja hoje:** ✅ **Live v15.82** · `producao` @ **5bbebbe** · Render `dep-d9tn7foae00c73bg8sb0`  
+> Vigente checklist: **pronto envio (12/08)** no topo.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.82** · `producao` @ **5bbebbe** |
+| **O quê** | slim v4 com fornecedor · cache v4 |
+| **Rollback** | tag `rollback/pre-compras-slim-forn-v15.77` @ `b226e66` |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.82) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — pronto envio (12/08)** no topo. Loja permanece **v15.82** até o próximo envio.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FORN** | ✅ enviado / Live v15.82 | não |
+
+### 🚀 PREP deploy loja — COMPRAS-SLIM-FORN (`deploy/compras-slim-forn-1108` · **v15.82**) · **superado**
+
+> Vigente: **Deploy loja — COMPRAS-SLIM-FORN Live v15.82** no topo.
+
+### ✅ Deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**)
+
+> **Loja hoje:** ✅ **Live v15.77** · `producao` @ **b226e66** · Render `dep-d9tn2heq1p3s73b2ai9g`  
 > **⚠️** **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-PLANOS-CADASTRO** (v15.52) | ⏳ PREP · aguarda pausa+senha | não |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ enviado / Live v15.77 | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.77** · `producao` @ **b226e66** · base era `75288b5` (v15.68) |
+| **Branch** | `deploy/compras-slim-1108` (FF → `producao`) |
+| **O quê** | `/compras/` fallback slim com freio catalogo-full-off · cache v3 |
+| **Arquivos** | só compras.html + mobile_ajuste.html + VERSION |
+| **Prova** | **44/44** · sem migrate |
+| **Rollback** | tag `rollback/pre-compras-slim-v15.68` @ `75288b5` · frase+senha |
+| **Você agora** | **Ctrl+F5** `/compras/` · badge **v15.77** · digitar 2 letras |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.77)
+
+> **Loja hoje:** ✅ **Live v15.77** · `producao` @ **b226e66**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **COMPRAS-SLIM-FALLBACK** | ✅ enviado / Live v15.77 | não |
+
+### 🚀 PREP deploy loja — COMPRAS-SLIM-FALLBACK (`deploy/compras-slim-1108` · **v15.77**) · **superado**
+
+> Vigente: **Deploy loja — COMPRAS-SLIM-FALLBACK Live v15.77** no topo.
+
+### ✅ Deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
+
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5** · Render `dep-d9tmfcoae00c73bfb9o0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FOLHA-FAMILIA** | ✅ enviado / Live v15.68 | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.68** · `producao` @ **75288b5** · base era `e0d19a3` (v15.62) |
+| **Branch** | `deploy/folha-familia-1108` (FF → `producao`) |
+| **O quê** | Folha: granel some; venda × fator soma no saco · decimal |
+| **Prova** | **42/42** · sem migrate |
+| **Rollback** | tag `rollback/pre-folha-familia-v15.62` @ `e0d19a3` · frase+senha |
+| **Você agora** | **Ctrl+F5** · badge **v15.68** · Folha ADIMAX · granel fora · saco com fração |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.68)
+
+> **Loja hoje:** ✅ **Live v15.68** · `producao` @ **75288b5**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FOLHA-FAMILIA** | ✅ enviado / Live v15.68 | não |
+
+### 🚀 PREP deploy loja — FOLHA-FAMILIA (`deploy/folha-familia-1108` · **v15.68**) · **superado**
+
+> Vigente: **Deploy loja — FOLHA-FAMILIA Live v15.68** no topo.
+
+### ✅ Deploy loja — lote checklist 11/08 (`deploy/lote-checklist-1108` · **v15.62**)
+
+> **Loja hoje:** ✅ **Live v15.62** · `producao` @ **e0d19a3** · Render `dep-d9tm20hsrm7s73alh9g0`  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-TOPBAR-COMPACT** | ✅ enviado / Live v15.62 | não |
+| 2 | **FIADO-RECIBO** | ✅ enviado / Live v15.62 | não |
+| 3 | **FOLHA-FORN-HIST** | ✅ enviado / Live v15.62 | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.62** · `producao` @ **e0d19a3** · base era `1f50976` (v15.55) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1108-v15.55` @ `1f50976` |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (11/08 · loja v15.62) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — pronto envio (11/08 · loja v15.62)** no topo.
+
+### 🐛 FIX — Folha Compras por fornecedor (`FOLHA-FORN-HIST` · **teste v15.61**) · VERIFY_OK
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · prova **28/28** · no checklist envio |
+| **Commit** | `9e0efc2` |
+| **Sintoma** | Folha (PDV + Compras) parecia só o **último pedido** (ex. ADIMAX) |
+| **Fix** | Cadastro **∪** histórico Entrada NF Agro · 1º token do nome · pré-filtro NF id **ou** nome |
+| **Migrate** | **NÃO** |
+
+### ✅ Deploy loja — filtro loja DRE + BI (`deploy/dre-loja-filtro-1008` · **v15.55**)
+
+> **Loja hoje:** ✅ **Live v15.55** · `producao` @ **1f50976**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.55** · `producao` @ **1f50976** · base era `4bf3410` (v15.54) |
+| **Pacote** | **DRE-LOJA-FILTRO** |
+| **O quê** | DRE + BI: **Centro + Vila** (padrão) · Centro · Vila. Vendas/CMV = PDV. Despesas/emp. = empresa (Vila sem cadastro → Centro). |
+| **Rollback** | `git push origin 4bf3410:producao` ou tag `rollback/pre-dre-loja-filtro-v15.54` |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE + BI `/` · badge **v15.55** · filtro **Loja** / **Números** · padrão as duas |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.55) · **superado**
+
+> **Vigente:** **CHECKLIST ÚNICO — pronto envio (10/08)** no topo. Loja permanece **v15.55** até o próximo envio.
+
+### ✅ Deploy loja — DRE-EMP-CARD (`deploy/dre-emp-card-1008` · **v15.54**)
+
+> **Loja hoje:** ✅ **Live v15.54** · `producao` @ **4bf3410**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.54** · `producao` @ **4bf3410** · base era `674901d` (v15.52) |
+| **Pacote** | **DRE-EMP-CARD** |
+| **O quê** | Card Empréstimos (devido bruto + juros + total + pago + emprestado) · Mini DRE **Saldo final = soma** · frases no **«?»** · rótulos sem quebra |
+| **Rollback** | `git push origin 674901d:producao` ou tag `rollback/pre-dre-emp-card-v15.52` |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE · badge **v15.54** · Jul/2026 Centro vencimento: emp. devido ~42.601 · juros ~4.658 |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.54) · **superado**
+
+> **Vigente:** **CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.55)** no topo.
+
+### ✅ Deploy loja — DRE cadastro oficial de planos (`deploy/dre-planos-cadastro-1008` · **v15.52**)
+
+> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v15.52** · `producao` @ **674901d** · base era `2f6d05e` (v15.50) |
+| **Pacote** | **DRE-PLANOS-CADASTRO** |
+| **Rollback** | `git push origin 2f6d05e:producao` ou tag `rollback/pre-dre-planos-cadastro-v15.50` |
+| **Migrate** | **NÃO** |
+| **Fora** | PDV · caixa · wizard · Indicadores HTML |
+| **Você** | Ctrl+F5 DRE · badge **v15.52** · despesas com nome oficial do cadastro |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (10/08 · loja v15.52)
+
+> **Loja hoje:** ✅ **Live v15.52** · `producao` @ **674901d**  
+> **⚠️** **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-PLANOS-CADASTRO** | ✅ enviado / Live v15.52 | não |
 
 ### ✅ Deploy loja — DRE visual polish (`deploy/dre-visual-polish-0908` · **v15.50**)
 
@@ -3164,7 +3467,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto** · branch `deploy/entrada-nf-ux-v11.95` @ **`425e16c`** · espera frase + senha |
+| **Status** | ✅ **já loja ~v11.98** · reconfirmado 13/08 em `producao` v16.07 · **não reenviar** |
 | **VERSION alvo loja** | **11.95** |
 | **Inclui** | 1) Boleto 44→47 · 2) Lista Concluída (nome/XML/chip «Sem a pagar») · 3) **Nova limpa** (antigo «v10.90») |
 | **NÃO inclui** | DF-e inbox · Transferência · PDV · migrate |
@@ -3178,7 +3481,7 @@ Loja hoje **v11.93**. Ordem sugerida (um por vez ou lote, sempre com frase + `99
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ðŸ“¦ **PRONTO** Â· branch `deploy/pdv-pix-sicredi-v11.94` @ **`06db8c8`** Â· aguarda frase + senha |
+| **Status** | ✅ **já loja ~v11.98** · reconfirmado 13/08 em `producao` v16.07 · **não reenviar** |
 | **VERSION alvo loja** | **11.94** |
 | **Smoke OK** | lista + filtro notebook Â· sÃ³ arquivos PDV Â· migrate **NÃƒO** |
 | **Risco loja aberta** | **Baixo** â€” sÃ³ adiciona opÃ§Ã£o Sicredi Pix |
@@ -5322,7 +5625,7 @@ iews.py (compras enrich) |
 | **P1,1** | **FL-029** | Baixa parcial fiado + crédito | ⚠️ **parcial**: baixa ✅ loja v7.61 · crédito → ver **FL-058 P0,2** |
 | **P1,1** | **FL-052** | NFC-e na baixa fiado | 📋 **ainda aberto** |
 | **P1,3** | **FL-030** | Ignorar bloqueio fiado vencido (PIN) | 📋 **ainda aberto** |
-| **P1,5** | **FL-019** | Recibo pagamento fiado | 📋 **ainda aberto** |
+| **P1,5** | **FL-019** | Recibo pagamento fiado | ✅ **loja v15.62** (FIADO-RECIBO) |
 | **P1,5** | **Zap #20** · **FL-054** | Reimprimir papéis entrega | 📋 **ainda aberto** |
 | **P1,5** | **FL-049** | CPF no cliente PDV → NFC-e | ✅ **código na loja** (`6af5cac`) — checklist mentia «teste» |
 | **P1,6** | **Zap #22** · **FL-024** | Cadastro cat/sub/marca só lista + PIN | ✅ **loja v10.57** — checklist mentia |
@@ -7800,7 +8103,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-016** | **P1** | Caixa | **Reset da contagem** do caixa (dia anterior) | ✅ **loja v6.75** | 03/07 |
 | **FL-017** | **P1** | Caixa / devoluÃ§Ã£o | **DevoluÃ§Ã£o duplicada** no caixa â€” apaga venda e ainda registra **saÃ­da** (dobra o efeito) | **âœ… loja v5.22** Â· validado teste | 29/06 |
 | **FL-018** | **P2** | Vendas | **Frete** no total da venda (`VendaAgro.frete`) | âœ… parcial 12/07 | 29/06 |
-| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ðŸ“‹ Pendente | 29/06 |
+| **FL-019** | **P1,5** | Fiado | **Recibo de pagamentos** no fiado (comprovante ao cliente) | ✅ **teste v15.59** · PDV pergunta + Reimprimir `/fiado/` · 80 mm | 29/06 |
 | **FL-020** | **P1,5** | PDV / fiscal | **Taxa de entrega** no cupom fiscal e cupom de venda (Renan 12/07: **deve sair**) | âœ… 12/07 | 29/06 |
 | **FL-021** | **P1,1** | CP | BotÃ£o **NF** nÃ£o aparece na lista â€” ex.: tÃ­tulo **RBS R$ 781,64** | âœ… **loja v8.68** | 29/06 |
 | **FL-022** | **P1,1** | CP | **Busca** no campo de filtros **inconsistente** (resultados variam / nÃ£o acha) | âœ… **#17** Renan testou Â· ðŸ“¦ pronto produÃ§Ã£o (fecha) | 29/06 |
