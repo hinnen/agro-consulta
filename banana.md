@@ -1223,7 +1223,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
-| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.31** | **SIM** estoque.0016+**0017** |
+| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.32** | **SIM** estoque.0016+**0017** |
 | 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
@@ -1232,29 +1232,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.24** @ **957bab5** |
-| **O quê** | Caixa **Vila** → CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` · mesmo cert/CSC · migrate **0088** |
-| **Prova** | SEFAZ local venda **#74** · `verify_nfce_vila_path` **VERIFY_OK** |
-| **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
-| **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` |
+| **O quê** | Caixa **Vila** → CNPJ `/0002-86` · Centro → `/0001-03` · migrate **0088** |
+| **Prova** | SEFAZ local · `verify_nfce_vila_path` **VERIFY_OK** |
+| **Migrate** | **SIM** 0088 |
+| **Você** | migrate 0088 · Ctrl+F5 · PIX Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.31**)
+### 📦 PACOTE PRONTO — Contagem cíclica / Ajuste Mobile (`AJUSTE-CICLICA` · **v16.32**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.31** |
-| **O quê** | Cíclica + UX celular + Scan rápido + botão **Incluir fora** (forçar produto achado depois) |
-| **Prova** | path/deep OK · forcar pass2 VERIFY |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.32** |
+| **O quê** | Cíclica cego · multi-celular · filtro dias · Incluir fora · UX smartphone (teclado/overlays/scroll) · Scan EAN rápido |
+| **Prova** | path **57** · deep **31** · UX+HTTP **VERIFY_OK 16** (login, gate, overlays, forcar, cego) |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
-| **Você** | Ctrl+F5 · cíclica · **Incluir fora: ON** · bipar produto de fora |
+| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` no **celular** |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.21** |
-| **O quê** | Retiradas → Repasse overlay · CMV/% lucro/fiado · migrate **0087** |
+| **O quê** | Retiradas → Repasse · CMV/%/fiado · migrate **0087** |
 | **Prova** | path **25** · deep **44** |
-| **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
+| **Migrate** | **SIM** 0087 |
 | **Você** | migrate 0087 · Ctrl+F5 Retiradas |
 
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
@@ -1262,20 +1262,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** |
-| **O quê** | Resumo/DRE: balão no mouse · PE termômetro · subtítulos KPIs |
-| **Prova** | `verify_dre_visual_path` **VERIFY_OK** · unit DRE **30/30** |
+| **O quê** | Resumo/DRE legível (balão, PE, KPIs) |
+| **Prova** | `verify_dre_visual_path` **VERIFY_OK** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Resumo |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (13/08) · **superado**
+### ✅ CHECKLIST ÚNICO — (13/08) · **superado**
 
-> Vigente: **CHECKLIST ÚNICO — pronto envio (14/08)** no topo.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.22** | **SIM** estoque.0016 |
-| 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
-| 3 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
+> Vigente: **CHECKLIST ÚNICO (14/08)** no topo.
 
 ### ✅ Revisão path — ENTRADA-NF-UX + PDV-PIX-SICREDI (13/08)
 

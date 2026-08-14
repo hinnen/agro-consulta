@@ -49,6 +49,11 @@ check(
     "z-index: 170",
     "ma-ciclica-dias-custom",
     "Bip +1 off",
+    "Incluir fora",
+    "ma-ciclica-btn-incluir-fora",
+    "formatsToSupport",
+    "fps: 12",
+    "keepBusy",
     label="mobile_ajuste.html",
 )
 
@@ -67,6 +72,8 @@ check(
     "linhas_truncadas",
     "linhas_enviadas",
     "qs[:800]",
+    "forcar: bool",
+    "precisa_recontagem=(sessao.status == ContagemCiclicaStatus.PASS2)",
     label="contagem_ciclica_util.py",
 )
 
@@ -115,6 +122,13 @@ try:
         "Bip +1 off",
         "linhas_truncadas",
         "ma-scroll-lock",
+        "Incluir fora",
+        "ma-ciclica-btn-incluir-fora",
+        "formatsToSupport",
+        "ma-dep-modal",
+        "ma-pick",
+        "ma-offer",
+        "ma-ciclica-modal",
     )
     with override_settings(ALLOWED_HOSTS=["*", "testserver", "localhost", "127.0.0.1"]):
         c = Client(HTTP_HOST="127.0.0.1")
@@ -149,12 +163,24 @@ try:
         session.save()
 
         tag = f"uxhttp-{uuid.uuid4().hex[:8]}"
+        tag2 = f"{tag}-b"
         p = Produto.objects.create(
             produto_externo_id=tag,
             codigo_interno=f"GM-{tag[-6:]}",
             codigo_nfe=f"GM-{tag[-6:]}",
             nome=f"UX HTTP {tag}",
             categoria="UXTEST",
+            custo=Decimal("1"),
+            preco_venda=Decimal("2"),
+            ativo=True,
+            cadastro_inativo=False,
+        )
+        p2 = Produto.objects.create(
+            produto_externo_id=tag2,
+            codigo_interno=f"GM-{tag2[-6:]}",
+            codigo_nfe=f"GM-{tag2[-6:]}",
+            nome=f"UX FORA {tag2}",
+            categoria="OUTRA-CAT",
             custo=Decimal("1"),
             preco_venda=Decimal("2"),
             ativo=True,
@@ -180,12 +206,46 @@ try:
             if sid:
                 r5 = c.post(
                     reverse("api_ciclica_contar", kwargs={"pk": sid}),
-                    {"produto_id": tag, "quantidade": "3.5"},
+                    {
+                        "produto_id": tag,
+                        "qtd": "3.5",
+                        "nome_produto": p.nome,
+                        "codigo_interno": p.codigo_nfe,
+                    },
                 )
-                if (r5.json() or {}).get("ok"):
-                    ok("HTTP contar")
+                d5 = r5.json() if r5.status_code == 200 else {}
+                if d5.get("ok") and abs(float(d5.get("qtd_acumulada") or 0) - 3.5) < 0.01:
+                    ok("HTTP contar qtd=3.5")
                 else:
-                    fail("HTTP contar")
+                    fail(f"HTTP contar {r5.status_code} {r5.content[:200]}")
+
+                # Fora do escopo sem forcar → 400
+                r_nf = c.post(
+                    reverse("api_ciclica_contar", kwargs={"pk": sid}),
+                    {"produto_id": tag2, "qtd": "1", "nome_produto": p2.nome},
+                )
+                d_nf = r_nf.json() if r_nf.status_code in (200, 400) else {}
+                if r_nf.status_code == 400 and not d_nf.get("ok"):
+                    ok("HTTP bloqueia fora do escopo")
+                else:
+                    fail(f"HTTP deveria bloquear fora: {r_nf.status_code}")
+
+                r_f = c.post(
+                    reverse("api_ciclica_contar", kwargs={"pk": sid}),
+                    {
+                        "produto_id": tag2,
+                        "qtd": "2",
+                        "forcar": "1",
+                        "nome_produto": p2.nome,
+                        "codigo_interno": p2.codigo_nfe,
+                    },
+                )
+                d_f = r_f.json() if r_f.status_code == 200 else {}
+                if d_f.get("ok") and abs(float(d_f.get("qtd_acumulada") or 0) - 2) < 0.01:
+                    ok("HTTP forcar incluir fora")
+                else:
+                    fail(f"HTTP forcar {r_f.status_code} {r_f.content[:200]}")
+
                 r6 = c.get(reverse("api_ciclica_detalhe", kwargs={"pk": sid}))
                 s = ((r6.json() or {}).get("sessao") or {})
                 linhas = s.get("linhas") or []
@@ -206,9 +266,19 @@ try:
         finally:
             if sid:
                 ContagemCiclicaSessao.objects.filter(pk=sid).delete()
-            Produto.objects.filter(pk=p.pk).delete()
+            Produto.objects.filter(pk__in=[p.pk, p2.pk]).delete()
 except Exception as exc:
     fail(f"HTTP smoke: {exc}")
+
+# login template
+login = ROOT / "produtos" / "templates" / "produtos" / "ajuste_mobile_login.html"
+check(
+    login,
+    "interactive-widget=resizes-content",
+    "safe-area-inset",
+    "100dvh",
+    label="ajuste_mobile_login.html",
+)
 
 print()
 if fails:
