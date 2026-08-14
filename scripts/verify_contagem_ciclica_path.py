@@ -68,6 +68,7 @@ check(
     "api_ciclica_fechar_pass1",
     "api_ciclica_gravar",
     "api_ciclica_entrar",
+    "api_ciclica_cancelar",
     "sessao_gate_ok",
 )
 check(
@@ -76,6 +77,7 @@ check(
     "api/ajuste-mobile/ciclica/<int:pk>/contar/",
     "api/ajuste-mobile/ciclica/<int:pk>/fechar-pass1/",
     "api/ajuste-mobile/ciclica/<int:pk>/gravar/",
+    "api/ajuste-mobile/ciclica/<int:pk>/cancelar/",
     "contagem_ciclica_views",
 )
 check(
@@ -87,6 +89,9 @@ check(
     "ma-ciclica-bar",
     "Fechar passagem 1",
     "Gravar estoque",
+    "ma-ciclica-btn-cancelar",
+    "maCiclicaCancelarSessao",
+    "Cancelar contagem",
     "maCiclicaAtiva()",
     "Bip +1 fica desligado",
     "sempre soma",
