@@ -539,6 +539,8 @@ def gravar_fechamento(sessao: ContagemCiclicaSessao, *, user=None, operador_rotu
 def cancelar_sessao(sessao: ContagemCiclicaSessao) -> None:
     if sessao.status == ContagemCiclicaStatus.FECHADA:
         raise ValueError("Contagem já gravada — não cancela.")
+    if sessao.status == ContagemCiclicaStatus.CANCELADA:
+        return
     sessao.status = ContagemCiclicaStatus.CANCELADA
     sessao.fechada_em = timezone.now()
     sessao.save(update_fields=["status", "fechada_em"])
