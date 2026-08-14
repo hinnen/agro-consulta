@@ -81,6 +81,75 @@
     body.ma-page.ma-modal-open {
       overflow: hidden !important;
       touch-action: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-width: 28rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    @media (max-width: 28rem) {
+      body.ma-page.ma-modal-open { max-width: 100%; }
+    }
+    html.ma-scroll-lock {
+      overflow: hidden !important;
+      height: 100% !important;
+      touch-action: none;
+    }
+    .ma-head-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      flex: 1 1 auto;
+      max-width: 100%;
+    }
+    .ma-head-row:first-child {
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: flex-start;
+    }
+    .ma-head-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.5rem;
+      padding: 0 0.65rem;
+      border-radius: 0.75rem;
+      font-size: 0.6875rem !important;
+      font-weight: 900;
+      text-transform: uppercase;
+      line-height: 1 !important;
+      white-space: nowrap;
+      text-decoration: none;
+      border: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    .ma-head-btn.is-disabled,
+    .ma-head-btn[aria-disabled="true"] {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .ma-offer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 145;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0.75rem;
+      padding-bottom: calc(0.75rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
+    }
+    @media (min-width: 640px) {
+      .ma-offer-overlay { align-items: center; }
+    }
+    .ma-offer-overlay.hidden { display: none !important; }
+    .ma-offer-overlay > div {
+      max-height: min(88dvh, 40rem);
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     /* Sem FAB PDV / Aa / shell nesta tela. */
     #agro-pdv-fab-wrap,
@@ -139,23 +208,6 @@
       text-overflow: ellipsis;
     }
     .ma-head-title-txt span { color: #10b981; }
-    .ma-head-actions { display: flex; gap: 0.4rem; flex: 0 0 auto; }
-    .ma-head-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 2.4rem;
-      padding: 0 0.75rem;
-      border-radius: 0.75rem;
-      font-size: 0.6875rem !important;
-      font-weight: 900;
-      text-transform: uppercase;
-      line-height: 1 !important;
-      white-space: nowrap;
-      text-decoration: none;
-      border: 1px solid #e2e8f0;
-      box-sizing: border-box;
-    }
     .ma-head-btn--hist { background: #f1f5f9; color: #334155; }
     .ma-head-btn--scan { background: #0f172a; color: #fff; border-color: #0f172a; }
     .ma-head-row--op { background: #ecfdf5; }
@@ -446,9 +498,9 @@
     .ma-flash {
       position: fixed;
       left: 50%;
-      bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem));
+      bottom: max(5rem, calc(env(safe-area-inset-bottom) + 4rem + var(--ma-kb-inset)));
       transform: translateX(-50%);
-      z-index: 140;
+      z-index: 170;
       width: min(22rem, calc(100vw - 1.5rem));
       border-radius: 1rem;
       background: #064e3b;
@@ -460,13 +512,13 @@
     .ma-pick-overlay {
       position: fixed;
       inset: 0;
-      z-index: 130;
+      z-index: 150;
       background: rgba(15, 23, 42, 0.55);
       display: flex;
       align-items: flex-end;
       justify-content: center;
       padding: 0.75rem;
-      padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+      padding-bottom: calc(0.75rem + var(--ma-safe-bottom) + var(--ma-kb-inset));
     }
     .ma-pick-overlay.hidden { display: none !important; }
     .ma-pick-panel {
@@ -477,17 +529,6 @@
       border-radius: 1.25rem;
       padding: 0.85rem;
     }
-    .ma-offer-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 145;
-      background: rgba(15, 23, 42, 0.55);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-    }
-    .ma-offer-overlay.hidden { display: none !important; }
   </style>
 </head>
 <body class="ma-page bg-slate-100 touch-manipulation">
@@ -535,7 +576,7 @@
     </div>
   </div>
 
-  <div id="reader" class="fixed inset-0 z-[120] hidden bg-black">
+  <div id="reader" class="fixed inset-0 z-[165] hidden bg-black">
     <div id="reader-box" class="absolute inset-0"></div>
     <div class="absolute top-0 left-0 right-0 pt-[max(0.6rem,env(safe-area-inset-top))] px-3 flex items-center justify-between gap-2 bg-gradient-to-b from-black/75 to-transparent">
       <p class="text-white text-xs font-black uppercase tracking-wide">Scan ativo</p>
@@ -618,7 +659,7 @@
     </div>
   </div>
 
-  <div id="modal" class="fixed inset-0 z-[100] hidden flex-col justify-end bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="m-nome" aria-hidden="true" onclick="if (event.target === this) fechar()">
+  <div id="modal" class="fixed inset-0 z-[155] hidden flex-col justify-end bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="m-nome" aria-hidden="true" onclick="if (event.target === this) fechar()">
     <div id="modal-sheet" class="ma-sheet-ajuste bg-white w-full rounded-t-[1.75rem] shadow-2xl flex flex-col overflow-hidden outline-none" onclick="event.stopPropagation()" style="margin-bottom: var(--ma-kb-inset);">
       <div class="mx-auto mt-1.5 h-1 w-10 rounded-full bg-slate-200 shrink-0" aria-hidden="true"></div>
       <div class="ma-sheet-body">
@@ -808,6 +849,30 @@ let maFlashProduto = null;
 /** Após Bip+1: mantém o card do produto na lista (campo busca limpo pro próximo bip). */
 let maUltimoBipadoId = null;
 
+/** Trava scroll do fundo quando overlay/modal está aberto (iOS/Android). Refcount = vários overlays. */
+window.__maLockCount = 0;
+window.__maScrollY = 0;
+window.maLockScroll = function (on) {
+  const html = document.documentElement;
+  const body = document.body;
+  if (on) {
+    window.__maLockCount = (window.__maLockCount || 0) + 1;
+    if (window.__maLockCount === 1) {
+      window.__maScrollY = window.scrollY || window.pageYOffset || 0;
+      html.classList.add('ma-scroll-lock');
+      body.classList.add('ma-modal-open');
+      try { body.style.top = '-' + window.__maScrollY + 'px'; } catch (_) {}
+    }
+    return;
+  }
+  window.__maLockCount = Math.max(0, (window.__maLockCount || 0) - 1);
+  if (window.__maLockCount > 0) return;
+  html.classList.remove('ma-scroll-lock');
+  body.classList.remove('ma-modal-open', 'overflow-hidden');
+  try { body.style.top = ''; } catch (_) {}
+  try { window.scrollTo(0, window.__maScrollY || 0); } catch (_) {}
+};
+
 function mobileLerProdutosDoCacheUnificado() {
   for (let i = 0; i < MA_CAT_KEYS.length; i++) {
     try {
@@ -949,8 +1014,10 @@ function maFecharDepModal() {
   }
   const ov = document.getElementById('ma-dep-modal');
   if (!ov) return;
+  const estava = !ov.classList.contains('hidden');
   ov.classList.add('hidden');
   ov.setAttribute('aria-hidden', 'true');
+  if (estava && typeof window.maLockScroll === 'function') window.maLockScroll(false);
 }
 
 function maAbrirDepModal(opts) {
@@ -978,6 +1045,7 @@ function maAbrirDepModal(opts) {
   if (!ov) return;
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
+  if (typeof window.maLockScroll === 'function') window.maLockScroll(true);
 }
 
 function maAplicarDepositoUI(dep, label) {
@@ -1001,15 +1069,17 @@ function maTrocarDepositoPara(dep) {
   /* Fecha visual só se não for obrigatório; senão some depois do OK. */
   if (!maDepObrigatorio) {
     const ov = document.getElementById('ma-dep-modal');
-    if (ov) {
+    if (ov && !ov.classList.contains('hidden')) {
       ov.classList.add('hidden');
       ov.setAttribute('aria-hidden', 'true');
+      if (typeof window.maLockScroll === 'function') window.maLockScroll(false);
     }
   } else {
     const ov = document.getElementById('ma-dep-modal');
-    if (ov) {
+    if (ov && !ov.classList.contains('hidden')) {
       ov.classList.add('hidden');
       ov.setAttribute('aria-hidden', 'true');
+      if (typeof window.maLockScroll === 'function') window.maLockScroll(false);
     }
   }
   if (alvo === atual && !forcar) {
@@ -1432,9 +1502,19 @@ window.addEventListener('load', () => {
 function maBip1SyncBtn() {
   const btn = document.getElementById('ma-btn-bip1');
   if (!btn) return;
-  btn.classList.toggle('is-on', !!maBip1On);
-  btn.setAttribute('aria-pressed', maBip1On ? 'true' : 'false');
-  btn.textContent = maBip1On ? 'Bip +1 ON' : 'Bip +1';
+  const ciclica = typeof maCiclicaAtiva === 'function' && maCiclicaAtiva();
+  if (ciclica) {
+    maBip1On = false;
+    try { sessionStorage.setItem(MA_BIP1_KEY, '0'); } catch (_) {}
+  }
+  btn.classList.toggle('is-on', !!maBip1On && !ciclica);
+  btn.classList.toggle('is-disabled', !!ciclica);
+  btn.setAttribute('aria-pressed', maBip1On && !ciclica ? 'true' : 'false');
+  btn.setAttribute('aria-disabled', ciclica ? 'true' : 'false');
+  btn.textContent = ciclica ? 'Bip +1 off' : (maBip1On ? 'Bip +1 ON' : 'Bip +1');
+  btn.title = ciclica
+    ? 'Desligado na cíclica — bipe e digite a quantidade'
+    : 'Liga: bipar soma +1 no saldo';
 }
 
 function maBip1Toggle() {
@@ -1563,8 +1643,10 @@ document.getElementById('ma-flash-ajustar')?.addEventListener('click', () => {
 function maFecharPick() {
   const ov = document.getElementById('ma-pick');
   if (ov) {
+    const estava = !ov.classList.contains('hidden');
     ov.classList.add('hidden');
     ov.setAttribute('aria-hidden', 'true');
+    if (estava && typeof window.maLockScroll === 'function') window.maLockScroll(false);
   }
 }
 
@@ -1588,6 +1670,7 @@ function maAbrirPick(lista) {
   });
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
+  if (typeof window.maLockScroll === 'function') window.maLockScroll(true);
 }
 
 document.getElementById('ma-pick-cancel')?.addEventListener('click', maFecharPick);
@@ -1764,11 +1847,19 @@ function startScan() {
     }
     try { box.innerHTML = ''; } catch (_) {}
     reader.classList.remove('hidden');
+    if (typeof window.maLockScroll === 'function' && !window.__maScanLocked) {
+      window.__maScanLocked = true;
+      window.maLockScroll(true);
+    }
     try {
       scanner = new Html5Qrcode('reader-box');
     } catch (_) {
       maScanBusy = false;
       reader.classList.add('hidden');
+      if (window.__maScanLocked && typeof window.maLockScroll === 'function') {
+        window.__maScanLocked = false;
+        window.maLockScroll(false);
+      }
       if (typeof maMostrarToast === 'function') {
         maMostrarToast('Falha ao abrir câmera. Feche e tente de novo.', false);
       }
@@ -1813,6 +1904,10 @@ function stopScan() {
       try { box.innerHTML = ''; } catch (_) {}
     }
     scanner = null;
+    if (window.__maScanLocked && typeof window.maLockScroll === 'function') {
+      window.__maScanLocked = false;
+      window.maLockScroll(false);
+    }
   };
   if (!scanner) {
     finish();
@@ -2055,7 +2150,8 @@ function abrir() {
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   modal.setAttribute('aria-hidden', 'false');
-  document.body.classList.add('ma-modal-open');
+  if (typeof window.maLockScroll === 'function') window.maLockScroll(true);
+  else document.body.classList.add('ma-modal-open');
   syncMaKeyboardInset();
   /* Não foca o input: leitor Bluetooth = teclado físico e some o soft keyboard;
      quantidade entra pelo numpad na tela. */
@@ -2102,10 +2198,12 @@ document.getElementById('ma-numpad')?.addEventListener('click', (ev) => {
 
 function fechar() {
   const modal = document.getElementById('modal');
+  const estava = modal && !modal.classList.contains('hidden');
   modal.classList.add('hidden');
   modal.classList.remove('flex');
   modal.setAttribute('aria-hidden', 'true');
-  document.body.classList.remove('ma-modal-open', 'overflow-hidden');
+  if (estava && typeof window.maLockScroll === 'function') window.maLockScroll(false);
+  else document.body.classList.remove('ma-modal-open', 'overflow-hidden');
   syncMaKeyboardInset();
 }
 
@@ -2134,7 +2232,7 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', () => {
     syncMaKeyboardInset();
     const ae = document.activeElement;
-    if (ae && (ae.id === 'busca' || ae.id === 'm-novo')) {
+    if (ae && (ae.id === 'busca' || ae.id === 'm-novo' || ae.id === 'ma-ciclica-dias-custom' || ae.id === 'agro-loja-confirm-input')) {
       setTimeout(() => maScrollCampoVisivel(ae), 50);
     }
   });
@@ -2146,6 +2244,7 @@ window.addEventListener('load', () => setTimeout(syncMaKeyboardInset, 100));
 (function bindMaTecladoInputs() {
   const b = document.getElementById('busca');
   const m = document.getElementById('m-novo');
+  const dCustom = document.getElementById('ma-ciclica-dias-custom');
   function onFocus(el) {
     syncMaKeyboardInset();
     setTimeout(() => {
@@ -2153,14 +2252,11 @@ window.addEventListener('load', () => setTimeout(syncMaKeyboardInset, 100));
       maScrollCampoVisivel(el);
     }, 280);
   }
-  if (b) {
-    b.addEventListener('focus', () => onFocus(b));
-    b.addEventListener('blur', () => setTimeout(syncMaKeyboardInset, 280));
-  }
-  if (m) {
-    m.addEventListener('focus', () => onFocus(m));
-    m.addEventListener('blur', () => setTimeout(syncMaKeyboardInset, 280));
-  }
+  [b, m, dCustom].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('focus', () => onFocus(el));
+    el.addEventListener('blur', () => setTimeout(syncMaKeyboardInset, 280));
+  });
 })();
 
 function maMostrarToast(texto, ok) {
@@ -2177,8 +2273,10 @@ function maMostrarToast(texto, ok) {
 function maFecharOffer() {
   const ov = document.getElementById('ma-offer');
   if (ov) {
+    const estava = !ov.classList.contains('hidden');
     ov.classList.add('hidden');
     ov.setAttribute('aria-hidden', 'true');
+    if (estava && typeof window.maLockScroll === 'function') window.maLockScroll(false);
   }
 }
 
@@ -2208,6 +2306,7 @@ function maAbrirOfferGuardar(codigo, produto) {
   ov.dataset.nome = produto.nome || '';
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
+  if (typeof window.maLockScroll === 'function') window.maLockScroll(true);
 }
 
 function maGuardarCodigoPendente(codigo, produto) {
@@ -2400,9 +2499,19 @@ function maCiclicaPintarBar() {
 function maCiclicaAtivar(sessao) {
   maCiclicaSessao = sessao;
   try { sessionStorage.setItem(MA_CICLICA_KEY, String(sessao.id)); } catch (_) {}
+  /* Cíclica nunca grava na hora — força Bip+1 off (visual + storage). */
+  maBip1On = false;
+  try { sessionStorage.setItem(MA_BIP1_KEY, '0'); } catch (_) {}
+  maBip1SyncBtn();
   if (maCiclicaPoll) clearInterval(maCiclicaPoll);
   maCiclicaPoll = setInterval(() => maCiclicaRefresh(false), 12000);
   maCiclicaPintarBar();
+  if (sessao.linhas_truncadas || (Number(sessao.total_itens) > 800)) {
+    const tot = Number(sessao.total_itens) || 0;
+    const msg = 'Lista grande (' + tot + ' itens): o celular mostra até 800. Busque pelo nome/código o que faltar — a contagem no servidor está completa.';
+    if (typeof maMostrarToast === 'function') maMostrarToast(msg, false);
+    else alert(msg);
+  }
   const temLinhas = Array.isArray(sessao.linhas) && sessao.linhas.length;
   if (!temLinhas) {
     maCiclicaRefresh(true);
@@ -2419,6 +2528,7 @@ function maCiclicaSairModo() {
     maCiclicaPoll = null;
   }
   maCiclicaPintarBar();
+  maBip1SyncBtn();
   buscar(document.getElementById('busca')?.value || '');
 }
 
@@ -2450,15 +2560,19 @@ function maCiclicaAbrirModal() {
   if (!ov) return;
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
+  if (typeof window.maLockScroll === 'function') window.maLockScroll(true);
   maCiclicaCarregarLista();
   maCiclicaCarregarCats();
+  maCiclicaSyncDiasUI();
 }
 
 function maCiclicaFecharModal() {
   const ov = document.getElementById('ma-ciclica-modal');
   if (!ov) return;
+  const estava = !ov.classList.contains('hidden');
   ov.classList.add('hidden');
   ov.setAttribute('aria-hidden', 'true');
+  if (estava && typeof window.maLockScroll === 'function') window.maLockScroll(false);
 }
 
 function maCiclicaCarregarLista() {

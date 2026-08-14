@@ -561,7 +561,10 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
             )
         else:
             qs = qs.order_by("contado_pass1", "nome_produto")
+        total_qs = qs.count()
         linhas_raw = list(qs[:800])
+        out["linhas_enviadas"] = len(linhas_raw)
+        out["linhas_truncadas"] = total_qs > len(linhas_raw)
         # Completa nome/código pelo cadastro PG quando a linha veio vazia (Mongo id).
         pids_vazios = [
             str(ln.produto_externo_id).strip()
