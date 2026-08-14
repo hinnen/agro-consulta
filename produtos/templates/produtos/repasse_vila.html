@@ -7,7 +7,7 @@
 
 {% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
 {% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
-{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-4 py-4 sm:px-6 lg:px-8 sm:py-6 overflow-y-auto{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-3 py-2 sm:px-5 lg:px-6 sm:py-3 overflow-y-auto{% endblock %}
 
 {% block admin_header_actions %}
   <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Transferir</a>
@@ -18,66 +18,64 @@
 {% include "produtos/_agro_consulta_ui.html" %}
 
 <style>
-  .rv-card { border: 2px solid #cbd5e1; border-radius: 1rem; background: #fff; padding: 1rem 1.1rem; }
-  .rv-lbl { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; }
-  .rv-val { font-size: clamp(1.35rem, 2vw + 0.5rem, 2rem); font-weight: 900; font-variant-numeric: tabular-nums; color: #0f172a; }
-  .rv-check { display: flex; align-items: center; gap: 0.75rem; min-height: 3.25rem; padding: 0.65rem 0.85rem; border: 2px solid #cbd5e1; border-radius: 0.85rem; background: #f8fafc; cursor: pointer; }
+  .rv-card { border: 2px solid #cbd5e1; border-radius: 0.85rem; background: #fff; padding: 0.65rem 0.85rem; }
+  .rv-lbl { font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.03em; color: #64748b; line-height: 1.15; }
+  .rv-val { font-size: clamp(1.05rem, 1.2vw + 0.55rem, 1.45rem); font-weight: 900; font-variant-numeric: tabular-nums; color: #0f172a; line-height: 1.15; }
+  .rv-check { display: flex; align-items: center; gap: 0.5rem; min-height: 2.35rem; padding: 0.25rem 0.55rem; border: 2px solid #cbd5e1; border-radius: 0.65rem; background: #f8fafc; cursor: pointer; font-size: 0.9rem; line-height: 1.2; }
   .rv-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
-  .rv-check input { width: 1.35rem; height: 1.35rem; accent-color: #059669; }
-  .rv-day { display: grid; grid-template-columns: 3rem 1fr auto; gap: 0.5rem; align-items: center; min-height: 2.75rem; padding: 0.4rem 0.6rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; }
+  .rv-check input { width: 1.15rem; height: 1.15rem; accent-color: #059669; flex-shrink: 0; }
+  .rv-day { display: grid; grid-template-columns: 2.25rem minmax(0,1fr) auto; gap: 0.35rem; align-items: center; min-height: 1.85rem; padding: 0.15rem 0.45rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 0.875rem; line-height: 1.2; white-space: nowrap; }
+  .rv-day > span { overflow: hidden; text-overflow: ellipsis; }
   .rv-day--hoje { background: #ecfdf5; }
+  details.repasse-help > summary::-webkit-details-marker { display: none; }
 </style>
 
-<div class="grid grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-6 w-full max-w-[90rem]">
+<div class="grid grid-cols-1 gap-3 xl:grid-cols-2 xl:gap-4 w-full max-w-[90rem]">
   {# —— Config + preview —— #}
-  <section class="rv-card space-y-4">
-    <div class="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <h2 class="text-xl font-black uppercase text-slate-900">Configurar envio</h2>
-        <p class="text-sm font-semibold text-slate-500">Só Vila Elias → Centro</p>
+  <section class="rv-card space-y-2">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-base font-black uppercase text-slate-900 leading-tight">Configurar envio <span class="text-slate-500 font-bold normal-case text-xs">· Vila → Centro</span></h2>
+      <div class="flex items-center gap-1">
+        {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+        {% with repasse_help="transferir" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
       </div>
-      {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
     </div>
 
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
         <div class="rv-lbl">Receita (sem fiado)</div>
         <div class="rv-val text-emerald-800" id="rv-receita">—</div>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
         <div class="rv-lbl">CMV do dia</div>
         <div class="rv-val text-slate-800" id="rv-cmv-dia">—</div>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
         <div class="rv-lbl">Lucro bruto</div>
         <div class="rv-val text-sky-800" id="rv-lucro-dia">—</div>
       </div>
-      <div class="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
         <div class="rv-lbl">Fiado pago</div>
         <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
       </div>
     </div>
 
-    <label class="block">
-      <span class="rv-lbl">% do lucro bruto (padrão salvo)</span>
-      <div class="mt-1 flex flex-wrap items-center gap-2">
-        <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
-          class="min-h-[3rem] w-28 rounded-xl border-2 border-slate-300 px-3 text-xl font-black tabular-nums" />
-        <span class="text-lg font-black text-slate-600">%</span>
-        <button type="button" id="rv-salvar-pct" class="min-h-[3rem] rounded-xl border-2 border-emerald-600 bg-emerald-50 px-4 text-sm font-black uppercase text-emerald-900">Salvar padrão</button>
-      </div>
+    <label class="flex flex-wrap items-center gap-2">
+      <span class="rv-lbl shrink-0">% lucro bruto</span>
+      <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
+        class="min-h-[2.35rem] w-20 rounded-lg border-2 border-slate-300 px-2 text-lg font-black tabular-nums" />
+      <span class="font-black text-slate-600">%</span>
+      <button type="button" id="rv-salvar-pct" class="min-h-[2.35rem] rounded-lg border-2 border-emerald-600 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-900">Salvar padrão</button>
     </label>
 
-    {% with repasse_help="transferir" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
-
-    <div class="space-y-2">
+    <div class="space-y-1">
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-todos" checked />
-        <span class="font-black uppercase text-slate-800">Marcar todos</span>
+        <span class="font-black uppercase text-slate-800 text-xs tracking-wide">Marcar todos</span>
       </label>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-cmv" class="rv-linha" data-key="cmv" checked />
-        <span class="flex-1 font-bold text-slate-800">Custo da mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
+        <span class="flex-1 font-bold text-slate-800">Custo mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
       </label>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
@@ -85,51 +83,48 @@
       </label>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
-        <span class="flex-1 font-bold text-slate-800">Fiado pago na Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
+        <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
       </label>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-dia-cheio" />
-        <span class="font-bold text-slate-800">Dia cheio de novo <span class="text-slate-500 font-semibold">(padrão = só o que falta)</span></span>
+        <span class="font-bold text-slate-800">Dia cheio <span class="text-slate-500 font-semibold text-xs">(padrão = só o que falta)</span></span>
       </label>
     </div>
 
-    <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
+    <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+      <div class="min-w-0">
         <div class="rv-lbl text-emerald-800">Total a enviar</div>
         <div class="rv-val text-emerald-900" id="rv-total">R$ 0,00</div>
-        <p class="mt-1 text-xs font-bold text-slate-600" id="rv-ja">Já enviado hoje: —</p>
+        <p class="text-[0.7rem] font-bold text-slate-600 leading-tight" id="rv-ja">Já enviado hoje: —</p>
       </div>
       <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" id="rv-btn-transferir"
-         class="inline-flex min-h-[3.5rem] items-center justify-center rounded-2xl bg-orange-500 px-6 text-base font-black uppercase text-white shadow-lg hover:bg-orange-600">
+         class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-5 text-sm font-black uppercase text-white shadow hover:bg-orange-600">
         Transferir →
       </a>
     </div>
 
     {% if not caixa_vila_aberto %}
-    <p class="rounded-xl border-2 border-amber-400 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950">Caixa da Vila fechado — abra o caixa da Vila antes de transferir.</p>
+    <p class="rounded-lg border-2 border-amber-400 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-950">Caixa da Vila fechado — abra antes de transferir.</p>
     {% endif %}
-    <p id="rv-status" class="text-sm font-bold text-slate-600"></p>
+    <p id="rv-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
   </section>
 
   {# —— Histórico —— #}
-  <section class="rv-card flex flex-col min-h-[28rem]">
-    <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
-      <div>
-        <h2 class="text-xl font-black uppercase text-slate-900">Histórico do mês</h2>
-        <p class="text-sm font-semibold text-slate-500">Dia a dia · zera no mês novo</p>
-      </div>
+  <section class="rv-card flex flex-col min-h-0">
+    <div class="flex items-center justify-between gap-2 mb-1.5">
+      <h2 class="text-base font-black uppercase text-slate-900 leading-tight">Histórico do mês</h2>
       {% with repasse_help="historico" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
     </div>
-    <div class="mb-3 flex flex-wrap items-center gap-2">
-      <div class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2">
+    <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1">
         <span class="rv-lbl">Total do mês</span>
-        <div class="text-2xl font-black tabular-nums text-slate-900" id="rv-tot-mes">R$ 0,00</div>
+        <div class="text-lg font-black tabular-nums text-slate-900 leading-tight" id="rv-tot-mes">R$ 0,00</div>
       </div>
-      <button type="button" id="rv-mes-ant" class="min-h-[2.75rem] rounded-xl border-2 border-slate-300 px-3 font-black">‹</button>
-      <span id="rv-mes-lbl" class="min-w-[8rem] text-center text-sm font-black uppercase text-slate-700"></span>
-      <button type="button" id="rv-mes-prox" class="min-h-[2.75rem] rounded-xl border-2 border-slate-300 px-3 font-black">›</button>
+      <button type="button" id="rv-mes-ant" class="min-h-[2.1rem] min-w-[2.1rem] rounded-lg border-2 border-slate-300 font-black">‹</button>
+      <span id="rv-mes-lbl" class="min-w-[6.5rem] text-center text-xs font-black uppercase text-slate-700"></span>
+      <button type="button" id="rv-mes-prox" class="min-h-[2.1rem] min-w-[2.1rem] rounded-lg border-2 border-slate-300 font-black">›</button>
     </div>
-    <div id="rv-dias" class="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white max-h-[min(55vh,32rem)]"></div>
+    <div id="rv-dias" class="flex-1 overflow-y-auto rounded-lg border border-slate-200 bg-white max-h-[min(62vh,36rem)]"></div>
   </section>
 </div>
 
@@ -203,8 +198,8 @@
       var pct = row.pct_lucro_real == null ? '—' : (Number(row.pct_lucro_real).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '% lucro');
       div.innerHTML =
         '<span class="font-black text-slate-500">' + row.dia + '</span>' +
-        '<span class="tabular-nums">' + money(row.valor) + (row.n ? ' · ' + row.n + ' envio(s)' : '') + '</span>' +
-        '<span class="text-xs font-black uppercase text-sky-800">' + pct + '</span>';
+        '<span class="tabular-nums">' + money(row.valor) + (row.n ? ' · ' + row.n + '×' : '') + '</span>' +
+        '<span class="text-[0.7rem] font-black uppercase text-sky-800">' + pct + '</span>';
       box.appendChild(div);
     });
   }

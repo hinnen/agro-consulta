@@ -1218,28 +1218,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA.
+> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.35** @ **b84a756** | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.35** @ **b84a756** | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste (este commit) | não |
 
-### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.35**)
+### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.35** @ **b84a756** |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | `/repasse-vila/` denso: `?` só ícone · checks/dias baixos · sem faixas amarelas largas |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/repasse-vila/` |
+
+### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.36**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.36** @ **952be59** |
 | **O quê** | Sync sequência PK + retry ao criar numeração Vila (evita 1ª emissão travada pós-0088) |
 | **Prova** | path CTB+SEQ **VERIFY_OK 52** · loja já emite Vila (seq OK no PG) |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · venda teste Vila |
 
-### 📦 PACOTE PRONTO — Contabilidade NFC-e por loja (`CTB-NFCE-LOJA` · **v16.35**)
+### 📦 PACOTE PRONTO — Contabilidade NFC-e por loja (`CTB-NFCE-LOJA` · **v16.36**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.35** @ **b84a756** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.36** @ **952be59** |
 | **O quê** | `/contabilidade/` · botões grandes Centro/Vila/Ambas · ZIP/CSV/Excel por CNPJ |
 | **Prova** | `verify_contabilidade_nfce_loja_path` **VERIFY_OK 52** · ZIP smoke OK |
 | **Migrate** | **NÃO** |
