@@ -577,6 +577,10 @@
         <button type="button" id="ma-ciclica-btn-painel" class="min-h-[2.5rem] rounded-xl bg-white border border-orange-200 text-orange-900 text-[10px] font-black uppercase">Painel</button>
         <button type="button" id="ma-ciclica-btn-sair" class="min-h-[2.5rem] rounded-xl bg-white border border-slate-200 text-slate-600 text-[10px] font-black uppercase">Sair do modo</button>
       </div>
+      <button type="button" id="ma-ciclica-btn-cancelar" class="w-full min-h-[2.75rem] rounded-xl border-2 border-rose-500 bg-rose-600 text-white text-[11px] font-black uppercase tracking-wide shadow-sm">
+        Cancelar contagem
+      </button>
+      <p class="text-[9px] font-bold text-rose-900/80 leading-snug">Encerra pra todos · estoque não muda (só antes de Gravar)</p>
     </div>
   </div>
 
@@ -2588,6 +2592,31 @@ function maCiclicaSairModo() {
   buscar(document.getElementById('busca')?.value || '');
 }
 
+function maCiclicaCancelarSessao() {
+  if (!maCiclicaAtiva()) {
+    alert('Nenhuma contagem cíclica aberta neste celular.');
+    return;
+  }
+  const id = maCiclicaSessao.id;
+  const msg =
+    'CANCELAR a contagem #' + id + ' para TODOS os celulares?\n\n'
+    + '• Contagens bipadas serão descartadas\n'
+    + '• Estoque NÃO muda (ainda não gravou)\n'
+    + '• Depois de Gravar estoque não dá pra cancelar\n\n'
+    + 'Confirma cancelar?';
+  if (!confirm(msg)) return;
+  if (!confirm('Última confirmação: cancelar de verdade a cíclica #' + id + '?')) return;
+  if (window.gmLoadingBar) window.gmLoadingBar.show();
+  maCiclicaPost(maCiclicaUrl('cancelar'), {})
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao cancelar');
+      maMostrarToast && maMostrarToast('Contagem cíclica cancelada.', true);
+      maCiclicaSairModo();
+    })
+    .catch((e) => alert(e.message || 'Erro ao cancelar'))
+    .finally(() => maResetLoading());
+}
+
 function maCiclicaRefresh(forceDetalhe) {
   if (!maCiclicaSessao || !maCiclicaSessao.id) return Promise.resolve();
   const url = maCiclicaUrl('detalhe') + (forceDetalhe ? '?t=1' : '');
@@ -2870,6 +2899,7 @@ document.getElementById('ma-ciclica-btn-sair')?.addEventListener('click', () => 
   if (!confirm('Sair do modo cíclico neste celular? A sessão continua aberta pros outros.')) return;
   maCiclicaSairModo();
 });
+document.getElementById('ma-ciclica-btn-cancelar')?.addEventListener('click', maCiclicaCancelarSessao);
 document.getElementById('ma-ciclica-btn-painel')?.addEventListener('click', maCiclicaAbrirModal);
 document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
