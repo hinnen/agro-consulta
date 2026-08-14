@@ -1234,14 +1234,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
 | 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.39+** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.40** @ **bdb8541** | não |
 | 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** | não |
 
-### 📦 PACOTE PRONTO — Repasse UX + forma (`REPASSE-VILA-UX` · **v16.39**)
+### 📦 PACOTE PRONTO — Repasse UX + forma (`REPASSE-VILA-UX` · **v16.40**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.39** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.40** @ **bdb8541** |
 | **O quê** | Tela densa · overlay **forma de pagamento** · anti-autofill do valor · Retiradas sem 2º PDV |
 | **Prova** | path **VERIFY_OK 32** · deep **VERIFY_DEEP_OK 55** (Dinheiro + PIX + manual) |
 | **Migrate** | **NÃO** |
