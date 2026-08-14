@@ -33,7 +33,7 @@ check(
 check(
     "estoque/migrations/0017_contagem_ciclica_dias_mov.py",
     "dias_movimentacao",
-    "ContagemCiclicaSessao",
+    "contagemciclicasessao",
 )
 check(
     "estoque/models.py",

@@ -1248,18 +1248,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Cert/CSC** | **Mesmo** da matriz (ID `000001`) |
 | **Status** | ✅ prova local SEFAZ · ver **PACOTE PRONTO NFCE-VILA-EMIT** |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.26+**)
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.27**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
 > **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` (inclui filtro dias) |
-| **O quê** | Cíclica: cego · sempre soma · **só quem mexeu nos últimos X dias (padrão 60)** · multi-celular · loja/categoria/corredor · grava só no final |
-| **Prova** | path **VERIFY_OK** (48) · deep **VERIFY_DEEP_OK** (30) · filtro 60d |
-| **Migrate** | **SIM** — `estoque.0016` + **`0017`** (dias_movimentacao) |
-| **Você** | migrate · Ctrl+F5 `/ajuste-mobile/` · Cíclica · dias 60 |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.27** @ **8cdba24** |
+| **O quê** | Cíclica: cego · sempre soma · filtro **dias movimento (padrão 60)** · multi-celular · loja/categoria/corredor · grava só no final |
+| **Prova** | path **VERIFY_OK** (48+) · deep **VERIFY_DEEP_OK** (30) · soma 5+2 · filtro 60d · HTTP+PIN |
+| **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
+| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` · Cíclica · dias 60 |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
