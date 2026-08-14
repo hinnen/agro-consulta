@@ -1214,82 +1214,62 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**)
-
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.24** @ **957bab5** |
-| **O quê** | Caixa **Vila** → cupom CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` · mesmo cert A1 + CSC · migrate **0088** |
-| **Prova** | local SEFAZ venda **#74** autorizada (nº 1 / série 21 / `/0002`) · `verify_nfce_vila_path.py` **VERIFY_OK** (5) · unit `tests_nfce_loja` 2/2 |
-| **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
-| **Render** | **sem** var nova (defaults Vila no código) |
-| **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` no cupom |
-
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **NÃO** merge `teste`→`producao` sem frase + senha.
+> **NÃO** merge `teste`→`producao` sem frase + senha.  
+> **Só no teste (subir juntos):** NFCE-VILA-EMIT · AJUSTE-CICLICA · REPASSE-VILA · DRE-VISUAL-LEGIVEL.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
-| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.28** | **SIM** estoque.0016+**0017** |
+| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.29** | **SIM** estoque.0016+**0017** |
 | 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
-### NFC-e Vila — emitente por caixa (`NFCE-VILA-EMIT` · 14/08)
+### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Regra** | Caixa **Vila** → CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` |
-| **Cert/CSC** | **Mesmo** da matriz (ID `000001`) |
-| **Status** | ✅ prova local SEFAZ · ver **PACOTE PRONTO NFCE-VILA-EMIT** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.24** @ **957bab5** |
+| **O quê** | Caixa **Vila** → CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` · mesmo cert/CSC · migrate **0088** |
+| **Prova** | SEFAZ local venda **#74** · `verify_nfce_vila_path` **VERIFY_OK** |
+| **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
+| **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.27**)
-
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.28**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.27** @ **8cdba24** |
-| **O quê** | Cíclica: cego · sempre soma · filtro **dias movimento (padrão 60)** · multi-celular · loja/categoria/corredor · grava só no final |
-| **Prova** | path **VERIFY_OK** (50) · deep **VERIFY_DEEP_OK** (30) · soma 5+2 · filtro 60d · HTTP+PIN |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.28** @ **a453aba** |
+| **O quê** | Cíclica cego · sempre soma · filtro dias (padrão 60 + personalizado) · multi-celular · grava no final · **UX celular** (teclado, scroll lock, header, Bip+1 off, aviso 800+) |
+| **Prova** | path **56** · deep **30** · UX estática **OK** · HTTP página+API **10/10** |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
-| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` · Cíclica · dias 60 |
+| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` no **celular** |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
-
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.21** |
-| **O quê** | Botão grande em **Retiradas** (abaixo Nova saída) abre overlay na mesma tela (não outro PDV) · `/repasse-vila/` config/histórico · CMV + % lucro + fiado · migrate **0087** |
-| **Prova** | path **VERIFY_OK** (25) · deep **VERIFY_DEEP_OK** (44) · fiado fora · incremental · pendente→aplicado · Retiradas tem button+overlay |
+| **O quê** | Retiradas → Repasse overlay · CMV/% lucro/fiado · migrate **0087** |
+| **Prova** | path **25** · deep **44** |
 | **Migrate** | **SIM** — `produtos.0087_repasse_vila_centro` |
-| **Você** | migrate 0087 · Ctrl+F5 Retiradas · Repasse Vila → Centro |
+| **Você** | migrate 0087 · Ctrl+F5 Retiradas |
 
 ### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
-
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** |
 | **O quê** | Resumo/DRE: balão no mouse · PE termômetro · subtítulos KPIs |
-| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (226) · unit DRE **30/30** |
+| **Prova** | `verify_dre_visual_path` **VERIFY_OK** · unit DRE **30/30** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Resumo |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (13/08) · **superado**
 
-> Vigente: **CHECKLIST ÚNICO — pronto envio (14/08)** no topo (inclui **NFCE-VILA-EMIT**).
+> Vigente: **CHECKLIST ÚNICO — pronto envio (14/08)** no topo.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
