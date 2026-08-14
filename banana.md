@@ -1214,15 +1214,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (`DRE-FILTRO-PADRAO` · **v16.38**)
+### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (`DRE-FILTRO-PADRAO` · **v16.42**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.38** @ **fd2522f** |
-| **O quê** | Resumo/DRE abre com **Centro + Vila** · **dia 1 → hoje** · **Vencimento** · **Bruto** · resultado **já carrega**. Mudar filtro atualiza sozinho. |
-| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (235) · unit DRE 30/30 |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.42** |
+| **O quê** | Resumo/DRE abre com **Centro + Vila** · **dia 1 → hoje** · **Vencimento** · **Bruto** · **sempre carrega a API** (ignora «modo só cache» do PDV). Mudar filtro atualiza sozinho. |
+| **Prova** | `verify_dre_visual_path.py` · unit DRE |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Resumo · confira filtros e números na hora |
+| **Você** | Ctrl+F5 Resumo · números devem aparecer sem clicar Atualizar |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
@@ -1235,7 +1235,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
 | 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
 | 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.40** @ **bdb8541** | não |
-| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.42** | não |
 | 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** / teste **v16.41** @ **3708786** | não |
 
 ### 📦 PACOTE PRONTO — Cancelar contagem cíclica (`AJUSTE-CICLICA-CANCEL` · **v16.41**)

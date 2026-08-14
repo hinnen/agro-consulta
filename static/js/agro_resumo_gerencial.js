@@ -1335,17 +1335,8 @@
     if (el("f-por") && !el("f-por").value) el("f-por").value = "vencimento";
     if (el("f-valor") && !el("f-valor").value) el("f-valor").value = "bruto";
     atualizarResumoFiltroVisivel();
-    if (!window.AGRO_MANUAL_SYNC_ONLY) {
-      atualizar();
-    } else {
-      setLoading(false);
-      var info = el("msg-info");
-      if (info) {
-        info.textContent =
-          "Modo só cache: use Atualizar ou F5 (fora de campos) para buscar indicadores na API.";
-        info.classList.remove("hidden");
-      }
-    }
+    // DRE não usa cache de catálogo do PDV — sempre busca a API ao abrir.
+    atualizar();
 
     if (typeof AgroEstoqueSync !== "undefined" && AgroEstoqueSync.mount) {
       AgroEstoqueSync.mount({

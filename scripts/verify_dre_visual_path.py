@@ -118,7 +118,7 @@ def test_arquivos() -> None:
     check("js_loja_key", "agro_dre_loja_v1" in js)
     check("js_padrao_mes", "padraoPeriodoMesAtual" in js and "isoLocal" in js)
     check("js_padrao_venc", 'el("f-por").value = "vencimento"' in js or 'value = "vencimento"' in js)
-    check("js_auto_load", "AGRO_MANUAL_SYNC_ONLY" in js and "atualizar();" in js)
+    check("js_auto_load", "atualizar();" in js and "Modo só cache" not in js)
     check("resumo_por_loja", "def consolidar_por_loja_pg" in resumo)
     check("api_anexa_cmv", api.count("anexar_cmv_modos=True") >= 4)
     gap = api.split("class GapEquilibrioAPIView")[1] if "class GapEquilibrioAPIView" in api else ""
