@@ -1214,39 +1214,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08)
+### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32)
 
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
+> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f** · Render `dep-d9vn5fbncjis73elco4g`  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** NFCE-VILA-EMIT · AJUSTE-CICLICA · REPASSE-VILA · DRE-VISUAL-LEGIVEL.
+> Fila de envio deste lote: **vazia** (4 pacotes Live).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
-| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.32** @ **ba08fae** | **SIM** estoque.0016+**0017** |
-| 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
-| 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
+| 1 | **NFCE-VILA-EMIT** | ✅ enviado / Live v16.32 | **SIM** 0088 |
+| 2 | **AJUSTE-CICLICA** | ✅ enviado / Live v16.32 | **SIM** estoque.0016+**0017** |
+| 3 | **REPASSE-VILA** | ✅ enviado / Live v16.32 | **SIM** 0087 |
+| 4 | **DRE-VISUAL-LEGIVEL** | ✅ enviado / Live v16.32 | não |
 
-### 🚀 PREP deploy loja — lote checklist 14/08 (`deploy/lote-checklist-1408` · **v16.32**)
-
-> **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
-> **⚠️ NÃO** merge `teste`→`producao`. **NÃO** FF ainda — aguarda **pausa vendas** + frase + senha no próximo chat.  
-> Worktree: `_wt_prep_lote_1408`.
+### ✅ Deploy loja — lote checklist 14/08 (`deploy/lote-checklist-1408` · **v16.32**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **PREP pronto** · branch `deploy/lote-checklist-1408` @ **544b31f** · tip **v16.32** |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** · Render `dep-d9vn5fbncjis73elco4g` |
 | **Pacotes** | NFCE-VILA-EMIT · AJUSTE-CICLICA · REPASSE-VILA · DRE-VISUAL-LEGIVEL |
-| **Base** | `origin/producao` **262d460** (v16.07) + cherry-picks (sem merge inteiro do `teste`) |
-| **Migrate (loja)** | **SIM** — `produtos.0087` · `produtos.0088` · `estoque.0016` · `estoque.0017` |
-| **Prova (prep)** | path cíclica **57** · repasse **25** · DRE visual **229** · `manage.py check` OK · arquivos do pacote = `teste` |
-| **Prova (já no teste)** | cíclica path/deep/UX · nfce_vila · repasse path/deep |
-| **Rollback** | tag `rollback/pre-lote-checklist-1408-v16.07` @ **262d460** |
-| **Risco venda** | **Alto no NFC-e Vila** (CNPJ `/0002`) → **pausar vendas** no deploy · Repasse toca Retiradas/PDV overlay · Ajuste/DRE fora do checkout |
-| **Você no deploy** | 1) pausar vendas · 2) frase + senha · 3) FF `deploy/lote-checklist-1408` → `producao` · 4) migrate 0087+0088+0016+0017 · 5) Ctrl+F5 · badge **v16.32** · PIX Vila CNPJ `/0002` · Retiradas Repasse · `/ajuste-mobile/` cíclica |
-| **Autorizar (próximo chat)** | *pode subir lote checklist 14/08 / deploy/lote-checklist-1408 para produção* + **99738595** |
+| **Prova** | path cíclica **57** · repasse **25** · DRE **229** · `manage.py check` OK · parity `teste` |
+| **Migrate** | **SIM** — `produtos.0087` · `produtos.0088` · `estoque.0016` · `estoque.0017` (build Render) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1408-v16.07` @ **262d460** · frase+senha |
+| **Base anterior** | Live v16.07 @ **262d460** |
+| **Você** | **Ctrl+F5** · badge **v16.32** · PIX Vila CNPJ `/0002` · Retiradas Repasse · `/ajuste-mobile/` cíclica · liberar vendas |
 
-### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**)
+### 🚀 PREP deploy loja — lote checklist 14/08 (`deploy/lote-checklist-1408` · **v16.32**) · **superado**
+
+> Vigente: **Deploy loja — lote checklist 14/08 Live v16.32** no topo.
+
+### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**) · **Live v16.32**
 
 | Item | Detalhe |
 | ---- | ------- |
