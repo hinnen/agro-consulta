@@ -25,20 +25,20 @@ def check(path: str, *needles: str) -> None:
 
 
 check("produtos/repasse_vila_util.py", "calcular_disponivel", "confirmar_repasse", "aplicar_repasses_pendentes_centro")
-check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_confirmar")
+check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_confirmar", "formas_pagamento")
 check("produtos/urls.py", "repasse_vila", "api/repasse-vila/confirmar/")
 check("produtos/models.py", "RepasseVilaCentroAgro", "RepasseVilaConfigAgro")
 check("produtos/migrations/0087_repasse_vila_centro.py", "RepasseVilaCentroAgro")
-check("produtos/templates/produtos/repasse_vila.html", "Transferir", "repasse_help")
-check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv-repasse-overlay")
-check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/")
+check("produtos/templates/produtos/repasse_vila.html", "Transferir", "repasse_help", "rv-day")
+check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv-repasse-overlay", "pdv-rp-forma-grid", "rp_valor_manual_somente")
+check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/", "forma_pagamento: formaPag", "sanitizeManualField")
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")
 check("produtos/templates/produtos/dashboard_gerencial.html", "repasse_vila")
 check("produtos/templates/produtos/caixa_retiradas_historico.html", "crh-btn-repasse", "pdv_repasse_vila.js")
 check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é este repasse")
 check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repasse da Vila")
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
-check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse")
+check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
