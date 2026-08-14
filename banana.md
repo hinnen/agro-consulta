@@ -1247,37 +1247,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.24** @ **957bab5** |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
 | **O quê** | Caixa **Vila** → CNPJ `/0002-86` · Centro → `/0001-03` · migrate **0088** |
 | **Prova** | SEFAZ local · `verify_nfce_vila_path` **VERIFY_OK** |
 | **Migrate** | **SIM** 0088 |
-| **Você** | migrate 0088 · Ctrl+F5 · PIX Vila → CNPJ `/0002` |
+| **Você** | Ctrl+F5 · PIX Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica / Ajuste Mobile (`AJUSTE-CICLICA` · **v16.32**)
+### 📦 PACOTE PRONTO — Contagem cíclica / Ajuste Mobile (`AJUSTE-CICLICA` · **v16.32**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.32** @ **ba08fae** |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
 | **O quê** | Cíclica cego · multi-celular · filtro dias · Incluir fora · UX smartphone (teclado/overlays/scroll) · Scan EAN rápido |
 | **Prova** | path **57** · deep **31** · UX+HTTP **VERIFY_OK 16** (login, gate, overlays, forcar, cego) |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
-| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` no **celular** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` no **celular** |
 
-### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
+### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**) · **Live v16.32**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.21** |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
 | **O quê** | Retiradas → Repasse · CMV/%/fiado · migrate **0087** |
 | **Prova** | path **25** · deep **44** |
 | **Migrate** | **SIM** 0087 |
-| **Você** | migrate 0087 · Ctrl+F5 Retiradas |
+| **Você** | Ctrl+F5 Retiradas |
 
-### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**)
+### 📦 PACOTE PRONTO — DRE visual legível (`DRE-VISUAL-LEGIVEL` · **v16.09**) · **Live v16.32**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.09** @ **5ae797b** |
+| **Status** | ✅ **enviado / Live v16.32** · `producao` @ **544b31f** |
 | **O quê** | Resumo/DRE legível (balão, PE, KPIs) |
 | **Prova** | `verify_dre_visual_path` **VERIFY_OK** |
 | **Migrate** | **NÃO** |

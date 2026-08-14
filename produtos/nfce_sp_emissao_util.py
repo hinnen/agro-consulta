@@ -18,8 +18,9 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any
 
 import requests
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Max
+from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from produtos.caixa_util import normalizar_forma_pagamento_caixa, pagamentos_lista_de_venda
@@ -227,17 +228,50 @@ def _montar_det_pag(pag: ET.Element, pg: dict[str, Any]) -> None:
         _sub(card, "tpIntegra", "2")
 
 
+def _sync_nfcenumeracao_pk_sequence() -> None:
+    """Postgres: sequência do PK fora de sincronia após 1ª linha (Centro) quebra get_or_create da Vila."""
+    if connection.vendor != "postgresql":
+        return
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            SELECT setval(
+                pg_get_serial_sequence('produtos_nfcenumeracaoagro', 'id'),
+                COALESCE((SELECT MAX(id) FROM produtos_nfcenumeracaoagro), 1)
+            )
+            """
+        )
+
+
+def _get_or_create_numeracao(
+    *,
+    cnpj: str,
+    serie: int,
+    proximo_default: int = 1,
+) -> tuple[NfceNumeracaoAgro, bool]:
+    """get_or_create com retry se a sequência do PK estiver atrasada (IntegrityError pkey)."""
+    try:
+        return NfceNumeracaoAgro.objects.select_for_update().get_or_create(
+            emitente_cnpj=cnpj,
+            serie=serie,
+            defaults={"proximo_numero": max(1, int(proximo_default or 1))},
+        )
+    except IntegrityError:
+        _sync_nfcenumeracao_pk_sequence()
+        return NfceNumeracaoAgro.objects.select_for_update().get_or_create(
+            emitente_cnpj=cnpj,
+            serie=serie,
+            defaults={"proximo_numero": max(1, int(proximo_default or 1))},
+        )
+
+
 def _garantir_numeracao_inicial(cfg: dict[str, Any]) -> None:
     """Série/número alinhados por CNPJ emitente (Centro e Vila separados)."""
     serie_cfg = int(cfg["serie"])
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
     piso = int(cfg.get("proximo_numero_inicial") or 1)
     with transaction.atomic():
-        num, _ = NfceNumeracaoAgro.objects.select_for_update().get_or_create(
-            emitente_cnpj=cnpj,
-            serie=serie_cfg,
-            defaults={"proximo_numero": piso},
-        )
+        num, _ = _get_or_create_numeracao(cnpj=cnpj, serie=serie_cfg, proximo_default=piso)
         qs = NfceDocumentoAgro.objects.filter(serie=serie_cfg, emitente_cnpj=cnpj)
         max_doc = qs.aggregate(m=Max("numero")).get("m") or 0
         # Legado: docs sem emitente_cnpj (só Centro, antes da filial)
@@ -258,13 +292,10 @@ def _garantir_numeracao_inicial(cfg: dict[str, Any]) -> None:
 def _proximo_numero_serie(cfg: dict[str, Any]) -> tuple[int, int]:
     cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
     serie_cfg = int(cfg["serie"])
+    piso = int(cfg.get("proximo_numero_inicial") or 1)
     with transaction.atomic():
-        num, _ = NfceNumeracaoAgro.objects.select_for_update().get_or_create(
-            emitente_cnpj=cnpj,
-            serie=serie_cfg,
-            defaults={"proximo_numero": 1},
-        )
-        n = int(num.proximo_numero or 1)
+        num, _ = _get_or_create_numeracao(cnpj=cnpj, serie=serie_cfg, proximo_default=piso)
+        n = max(int(num.proximo_numero or 1), piso)
         num.proximo_numero = n + 1
         num.save(update_fields=["proximo_numero", "atualizado_em"])
         return serie_cfg, n
