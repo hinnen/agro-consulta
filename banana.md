@@ -1214,19 +1214,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
+
+> **Status:** ✅ **PREP pronto** · **NÃO** enviado · **aguarda** pausa vendas nas lojas + frase + senha no próximo chat.  
+> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
+> **⚠️ Lojas abertas agora:** **não** subir neste chat.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Branch** | `deploy/lote-checklist-1408b` @ **e96f998** (FF → `producao` no chat autorizado) |
+| **Pacotes (5)** | **NFCE-VILA-SEQ** · **CTB-NFCE-LOJA** · **REPASSE-VILA-UX** · **DRE-FILTRO-PADRAO** · **AJUSTE-CICLICA-CANCEL** |
+| **Prova (teste)** | CTB+SEQ **52** · Repasse **32** + deep **55** · DRE **235** + unit **30** · Cíclica **65** · `manage.py check` OK · parity arquivos **MATCH** deploy↔teste |
+| **Migrate** | **NÃO** (nenhuma migration neste lote) |
+| **Risco loja** | SEQ toca emissão NFC-e Vila · Repasse = Retiradas (não carrinho) · DRE/Cancel = sem PDV checkout |
+| **Rollback** | tag `rollback/pre-lote-checklist-1408b-v16.32` @ **544b31f** · frase+senha |
+| **Próximo chat** | pausar vendas → *«pode subir…»* + senha → FF branch → `producao` → Render · Ctrl+F5 · liberar |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
 > **Loja hoje:** ✅ **Live v16.32** · producao @ **544b31f**  
-> **NÃO** merge teste→producao sem frase + senha.  
-> **Só no teste (subir juntos):** tip **v16.43** @ **28f46d3** · **sem migrate** nestes 5.
+> **PREP:** `deploy/lote-checklist-1408b` **v16.44** @ **e96f998** · **sem migrate**.  
+> **NÃO** merge teste→producao — só a branch PREP no chat com senha.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** | não |
-| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** | não |
-| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** · no PREP | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** · no PREP | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** · no PREP | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** · no PREP | não |
+| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** · no PREP | não |
 
 ### 📦 PACOTE PRONTO — Cancelar contagem cíclica (AJUSTE-CICLICA-CANCEL · **v16.43**)
 
