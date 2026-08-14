@@ -1257,7 +1257,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** · `teste` **v16.27** @ **8cdba24** |
 | **O quê** | Cíclica: cego · sempre soma · filtro **dias movimento (padrão 60)** · multi-celular · loja/categoria/corredor · grava só no final |
-| **Prova** | path **VERIFY_OK** (48+) · deep **VERIFY_DEEP_OK** (30) · soma 5+2 · filtro 60d · HTTP+PIN |
+| **Prova** | path **VERIFY_OK** (50) · deep **VERIFY_DEEP_OK** (30) · soma 5+2 · filtro 60d · HTTP+PIN |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
 | **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` · Cíclica · dias 60 |
 
