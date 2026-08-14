@@ -752,8 +752,13 @@
             <option value="90">90 dias</option>
             <option value="180">180 dias</option>
             <option value="365">1 ano</option>
+            <option value="custom">Personalizado…</option>
             <option value="0">Todos os produtos (sem filtro)</option>
           </select>
+        </label>
+        <label id="ma-ciclica-dias-custom-wrap" class="hidden block space-y-1">
+          <span class="text-[10px] font-black uppercase text-slate-500">Quantos dias?</span>
+          <input id="ma-ciclica-dias-custom" type="number" inputmode="numeric" min="1" max="3650" step="1" placeholder="Ex.: 45" class="w-full min-h-[2.75rem] rounded-xl border border-orange-300 bg-orange-50 px-3 text-sm font-black tabular-nums text-slate-900" />
         </label>
         <p class="text-[10px] font-bold text-slate-500 leading-snug">Ex.: 60 dias = só o que vendeu / entrou NF / ajustou neste estoque. Evita puxar os 3000+ do cadastro. Corredor ignora (só o que bipar).</p>
         <button type="button" id="ma-ciclica-abrir" class="w-full min-h-[3rem] rounded-xl bg-orange-600 text-white text-xs font-black uppercase">Abrir contagem</button>
@@ -2523,6 +2528,38 @@ function maCiclicaSyncEscopoUI() {
   if (corr) corr.classList.toggle('hidden', tipo !== 'corredor');
 }
 
+function maCiclicaSyncDiasUI() {
+  const sel = document.getElementById('ma-ciclica-dias');
+  const wrap = document.getElementById('ma-ciclica-dias-custom-wrap');
+  const inp = document.getElementById('ma-ciclica-dias-custom');
+  const custom = sel && sel.value === 'custom';
+  if (wrap) wrap.classList.toggle('hidden', !custom);
+  if (custom && inp) {
+    try { inp.focus({ preventScroll: true }); } catch (_) {}
+  }
+}
+
+/** Dias do filtro: preset, personalizado ou 0 = todos. */
+function maCiclicaDiasEscolhidos() {
+  const sel = document.getElementById('ma-ciclica-dias');
+  const v = sel ? String(sel.value || '60') : '60';
+  if (v === 'custom') {
+    const raw = String(document.getElementById('ma-ciclica-dias-custom')?.value || '').trim();
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n) || n < 1) {
+      return { ok: false, erro: 'Digite quantos dias (mínimo 1).' };
+    }
+    if (n > 3650) {
+      return { ok: false, erro: 'Máximo 3650 dias (10 anos).' };
+    }
+    return { ok: true, dias: String(n) };
+  }
+  if (v === '0') return { ok: true, dias: '0' };
+  const n = parseInt(v, 10);
+  if (!Number.isFinite(n) || n < 0) return { ok: true, dias: '60' };
+  return { ok: true, dias: String(n) };
+}
+
 function salvarCiclica() {
   if (!pSel || !maCiclicaAtiva()) return;
   const qtd = parseDecimalBr(document.getElementById('m-novo').value);
@@ -2578,6 +2615,7 @@ function salvarCiclica() {
 document.getElementById('ma-btn-ciclica')?.addEventListener('click', maCiclicaAbrirModal);
 document.getElementById('ma-ciclica-fechar-modal')?.addEventListener('click', maCiclicaFecharModal);
 document.getElementById('ma-ciclica-escopo')?.addEventListener('change', maCiclicaSyncEscopoUI);
+document.getElementById('ma-ciclica-dias')?.addEventListener('change', maCiclicaSyncDiasUI);
 document.getElementById('ma-ciclica-abrir')?.addEventListener('click', () => {
   const tipo = document.getElementById('ma-ciclica-escopo')?.value || 'loja';
   let valor = '';
@@ -2591,12 +2629,17 @@ document.getElementById('ma-ciclica-abrir')?.addEventListener('click', () => {
     alert('Digite o nome do corredor.');
     return;
   }
+  const diasPick = maCiclicaDiasEscolhidos();
+  if (!diasPick.ok) {
+    alert(diasPick.erro || 'Informe os dias.');
+    return;
+  }
   if (window.gmLoadingBar) window.gmLoadingBar.show();
   maCiclicaPost(MA_API_CICLICA_ABRIR, {
     deposito: getDepositoSelecionado(),
     escopo_tipo: tipo,
     escopo_valor: valor,
-    dias_movimentacao: document.getElementById('ma-ciclica-dias')?.value || '60',
+    dias_movimentacao: diasPick.dias,
   })
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao abrir');
