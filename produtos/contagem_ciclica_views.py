@@ -79,6 +79,7 @@ def api_ciclica_abrir(request):
             deposito=_get(request, "deposito", "centro"),
             escopo_tipo=_get(request, "escopo_tipo", "loja"),
             escopo_valor=_get(request, "escopo_valor", ""),
+            dias_movimentacao=_get(request, "dias_movimentacao", "60"),
             operador_rotulo=rot,
             user=user,
         )

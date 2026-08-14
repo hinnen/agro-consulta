@@ -51,6 +51,8 @@ check(
     "auto_zero_pass1",
     '"cego": True',
     "Sempre soma",
+    "_pids_com_movimento",
+    "dias_movimentacao",
 )
 check(
     "produtos/contagem_ciclica_views.py",
@@ -81,6 +83,8 @@ check(
     "maCiclicaAtiva()",
     "Bip +1 fica desligado",
     "sempre soma",
+    "ma-ciclica-dias",
+    "60 dias (padrão)",
 )
 check(
     "produtos/pg_backup_registry.py",

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -118,6 +119,26 @@ def _sessao_aberta_conflito(deposito: str, escopo_tipo: str, escopo_valor: str):
     )
 
 
+def _pids_com_movimento(deposito: str, dias: int) -> set[str] | None:
+    """None = sem filtro. set vazio = ninguém mexeu no período."""
+    try:
+        n = int(dias)
+    except (TypeError, ValueError):
+        n = 60
+    if n <= 0:
+        return None
+    n = min(n, 3650)
+    dep = str(deposito or "centro").strip().lower() or "centro"
+    desde = timezone.now() - timedelta(days=n)
+    rows = (
+        AjusteRapidoEstoque.objects.filter(deposito=dep, criado_em__gte=desde)
+        .exclude(produto_externo_id="")
+        .values_list("produto_externo_id", flat=True)
+        .distinct()
+    )
+    return {str(pid).strip() for pid in rows if str(pid).strip()}
+
+
 @transaction.atomic
 def abrir_sessao(
     *,
@@ -126,6 +147,7 @@ def abrir_sessao(
     escopo_valor: str,
     operador_rotulo: str,
     user=None,
+    dias_movimentacao: int = 60,
 ) -> ContagemCiclicaSessao:
     dep = str(deposito or "centro").strip().lower() or "centro"
     if dep not in ("centro", "vila"):
@@ -145,6 +167,14 @@ def abrir_sessao(
     if tipo == ContagemCiclicaEscopo.LOJA:
         valor = ""
 
+    try:
+        dias = int(dias_movimentacao)
+    except (TypeError, ValueError):
+        dias = 60
+    if dias < 0:
+        dias = 60
+    dias = min(dias, 3650)
+
     conflito = _sessao_aberta_conflito(dep, tipo, valor)
     if conflito is not None:
         raise ValueError(
@@ -152,10 +182,13 @@ def abrir_sessao(
             "Entre nela ou cancele a outra."
         )
 
+    mov_pids = _pids_com_movimento(dep, dias) if tipo != ContagemCiclicaEscopo.CORREDOR else None
+
     sessao = ContagemCiclicaSessao.objects.create(
         deposito=dep,
         escopo_tipo=tipo,
         escopo_valor=valor[:200],
+        dias_movimentacao=dias,
         status=ContagemCiclicaStatus.PASS1,
         passagem_atual=1,
         aberta_por_rotulo=(operador_rotulo or "")[:120],
@@ -169,6 +202,18 @@ def abrir_sessao(
 
     if tipo != ContagemCiclicaEscopo.CORREDOR:
         produtos = list(_qs_produtos_escopo(tipo, valor))
+        if mov_pids is not None:
+            produtos = [
+                p
+                for p in produtos
+                if str(p.produto_externo_id or "").strip() in mov_pids
+            ]
+            if not produtos:
+                sessao.delete()
+                raise ValueError(
+                    f"Nenhum produto com movimento nos últimos {dias} dias neste estoque. "
+                    "Aumente os dias ou use «Todos»."
+                )
         pids = [str(p.produto_externo_id).strip() for p in produtos if p.produto_externo_id]
         saldos = _mapa_saldos(pids, dep)
         batch: list[ContagemCiclicaLinha] = []
@@ -494,6 +539,7 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
         "deposito": sessao.deposito,
         "escopo_tipo": sessao.escopo_tipo,
         "escopo_valor": sessao.escopo_valor,
+        "dias_movimentacao": int(getattr(sessao, "dias_movimentacao", 60) or 0),
         "status": sessao.status,
         "passagem_atual": sessao.passagem_atual,
         "total_itens": total,

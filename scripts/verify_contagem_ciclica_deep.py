@@ -282,6 +282,7 @@ try:
         escopo_tipo=ContagemCiclicaEscopo.CATEGORIA,
         escopo_valor=cat,
         operador_rotulo="OpCat",
+        dias_movimentacao=0,
     )
     n = ContagemCiclicaLinha.objects.filter(sessao=s2).count()
     if n < 2:
@@ -321,13 +322,59 @@ try:
     if s2.status != ContagemCiclicaStatus.CANCELADA:
         fail("cancelar falhou")
     else:
-        ok("cancelar sessão")
+        ok("cancelar sessao")
 
 except Exception as e:
     fail(f"fluxo categoria: {e}")
 finally:
     if s2:
         _cleanup_sessoes(s2.pk)
+
+# --- 2b) Filtro dias_movimentacao ---
+s3 = None
+try:
+    cat3 = f"{TAG}-cat3"
+    pid_e = f"{TAG}-e"
+    pid_f = f"{TAG}-f"
+    _mk_produto(pid=pid_e, nome=f"{TAG} Eco", cat=cat3)
+    _mk_produto(pid=pid_f, nome=f"{TAG} Fox", cat=cat3)
+    # Só E teve movimento recente
+    AjusteRapidoEstoque.objects.create(
+        produto_externo_id=pid_e,
+        deposito="centro",
+        saldo_erp_referencia=0,
+        saldo_informado=1,
+        origem=OrigemAjusteEstoque.AJUSTE_PIN,
+        nome_produto="mov recent",
+    )
+    s3 = abrir_sessao(
+        deposito="centro",
+        escopo_tipo=ContagemCiclicaEscopo.CATEGORIA,
+        escopo_valor=cat3,
+        operador_rotulo="OpDias",
+        dias_movimentacao=60,
+    )
+    pids3 = set(
+        ContagemCiclicaLinha.objects.filter(sessao=s3).values_list(
+            "produto_externo_id", flat=True
+        )
+    )
+    if pids3 == {pid_e}:
+        ok("filtro 60d so quem moveu")
+    else:
+        fail(f"filtro dias pids={pids3}")
+    if int(s3.dias_movimentacao) != 60:
+        fail(f"dias_movimentacao={s3.dias_movimentacao}")
+    else:
+        ok("sessao guarda dias_movimentacao=60")
+    cancelar_sessao(s3)
+
+except Exception as e:
+    fail(f"fluxo dias: {e}")
+finally:
+    if s3:
+        _cleanup_sessoes(s3.pk)
+    AjusteRapidoEstoque.objects.filter(produto_externo_id__startswith=TAG).delete()
 
 # --- 3) HTTP gate + APIs com sessão PIN ---
 try:
