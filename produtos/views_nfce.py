@@ -34,11 +34,13 @@ from produtos.nfce_config_util import (
 from produtos.nfce_contabilidade_util import (
     linhas_planilha_nfce_mes,
     montar_zip_nfce_mes,
+    normalizar_loja_filtro,
     pendencias_nfce_csv_bytes,
     pendencias_nfce_resumo_json,
     planilha_nfce_csv_bytes,
     planilha_nfce_xlsx_bytes,
     resumo_nfce_mes,
+    rotulo_loja_filtro,
     urls_exportacao_mes,
 )
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
@@ -338,15 +340,20 @@ def _parse_ano_mes_request(request) -> tuple[int, int] | tuple[None, None]:
     return ano, mes
 
 
+def _parse_loja_request(request) -> str:
+    return normalizar_loja_filtro(request.GET.get("loja"))
+
+
 @contabilidade_login_required
 @require_GET
 def api_nfce_contabilidade_resumo(request):
     ano, mes = _parse_ano_mes_request(request)
     if ano is None:
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
-    data = resumo_nfce_mes(ano, mes)
+    loja = _parse_loja_request(request)
+    data = resumo_nfce_mes(ano, mes, loja)
     data["links"] = urls_exportacao_mes(ano, mes)
-    data["pendencias"] = pendencias_nfce_resumo_json(ano, mes)
+    data["pendencias"] = pendencias_nfce_resumo_json(ano, mes, loja=loja)
     return JsonResponse({"ok": True, "resumo": data})
 
 
@@ -356,14 +363,21 @@ def api_nfce_export_pendencias(request):
     ano, mes = _parse_ano_mes_request(request)
     if ano is None:
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
-    if not pendencias_nfce_resumo_json(ano, mes)["total"]:
+    loja = _parse_loja_request(request)
+    if not pendencias_nfce_resumo_json(ano, mes, loja=loja)["total"]:
         return JsonResponse(
-            {"ok": False, "erro": f"Nenhuma pendência em {mes:02d}/{ano}."},
+            {
+                "ok": False,
+                "erro": f"Nenhuma pendência em {mes:02d}/{ano} ({rotulo_loja_filtro(loja)}).",
+            },
             status=404,
         )
-    blob = pendencias_nfce_csv_bytes(ano, mes)
+    blob = pendencias_nfce_csv_bytes(ano, mes, loja)
+    suf = "" if loja == "todas" else f"-{loja}"
     resp = HttpResponse(blob, content_type="text/csv; charset=utf-8")
-    resp["Content-Disposition"] = f'attachment; filename="nfce-pendencias-{ano}-{mes:02d}.csv"'
+    resp["Content-Disposition"] = (
+        f'attachment; filename="nfce-pendencias{suf}-{ano}-{mes:02d}.csv"'
+    )
     return resp
 
 
@@ -373,24 +387,31 @@ def api_nfce_export_planilha(request):
     ano, mes = _parse_ano_mes_request(request)
     if ano is None:
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
+    loja = _parse_loja_request(request)
     fmt = (request.GET.get("formato") or "csv").strip().lower()
-    linhas = linhas_planilha_nfce_mes(ano, mes)
+    linhas = linhas_planilha_nfce_mes(ano, mes, loja)
     if not linhas:
         return JsonResponse(
-            {"ok": False, "erro": f"Nenhuma NFC-e em {mes:02d}/{ano}."},
+            {
+                "ok": False,
+                "erro": f"Nenhuma NFC-e em {mes:02d}/{ano} ({rotulo_loja_filtro(loja)}).",
+            },
             status=404,
         )
+    suf = "" if loja == "todas" else f"-{loja}"
     if fmt == "xlsx":
-        blob = planilha_nfce_xlsx_bytes(ano, mes)
+        blob = planilha_nfce_xlsx_bytes(ano, mes, loja)
         resp = HttpResponse(
             blob,
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
-        resp["Content-Disposition"] = f'attachment; filename="nfce-planilha-{ano}-{mes:02d}.xlsx"'
+        resp["Content-Disposition"] = (
+            f'attachment; filename="nfce-planilha{suf}-{ano}-{mes:02d}.xlsx"'
+        )
         return resp
-    blob = planilha_nfce_csv_bytes(ano, mes)
+    blob = planilha_nfce_csv_bytes(ano, mes, loja)
     resp = HttpResponse(blob, content_type="text/csv; charset=utf-8")
-    resp["Content-Disposition"] = f'attachment; filename="nfce-planilha-{ano}-{mes:02d}.csv"'
+    resp["Content-Disposition"] = f'attachment; filename="nfce-planilha{suf}-{ano}-{mes:02d}.csv"'
     return resp
 
 
@@ -536,18 +557,23 @@ def api_venda_agro_nfce_cancelar(request, pk):
 @contabilidade_login_required
 @require_GET
 def api_nfce_export_xml_zip(request):
-    """ZIP mensal: index.csv + XMLs autorizadas/canceladas."""
+    """ZIP mensal: index.csv + XMLs autorizadas/canceladas (por loja)."""
     ano, mes = _parse_ano_mes_request(request)
     if ano is None:
         return JsonResponse({"ok": False, "erro": "Parâmetros ano/mês inválidos."}, status=400)
 
-    blob, count_xml = montar_zip_nfce_mes(ano, mes)
+    loja = _parse_loja_request(request)
+    blob, count_xml = montar_zip_nfce_mes(ano, mes, loja)
     if not blob:
         return JsonResponse(
-            {"ok": False, "erro": f"Nenhuma NFC-e em {mes:02d}/{ano}."},
+            {
+                "ok": False,
+                "erro": f"Nenhuma NFC-e em {mes:02d}/{ano} ({rotulo_loja_filtro(loja)}).",
+            },
             status=404,
         )
+    suf = "" if loja == "todas" else f"-{loja}"
     resp = HttpResponse(blob, content_type="application/zip")
-    resp["Content-Disposition"] = f'attachment; filename="nfce-xml-{ano}-{mes:02d}.zip"'
+    resp["Content-Disposition"] = f'attachment; filename="nfce-xml{suf}-{ano}-{mes:02d}.zip"'
     resp["X-Nfce-Xml-Count"] = str(count_xml)
     return resp

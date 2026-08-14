@@ -65,6 +65,14 @@
   <section class="rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2.5 sm:px-4 sm:py-3">
     <div class="ctb-toolbar">
       <label>
+        <span class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Loja</span>
+        <select id="ctb-loja" class="w-full min-h-[42px] rounded-lg border border-slate-600 bg-slate-900 px-2.5 text-sm font-bold text-white focus:border-emerald-500 focus:outline-none sm:min-h-[44px] sm:text-base">
+          <option value="centro">Centro (/0001)</option>
+          <option value="vila">Vila (/0002)</option>
+          <option value="todas">Ambas</option>
+        </select>
+      </label>
+      <label>
         <span class="mb-0.5 block text-[9px] font-black uppercase text-slate-500">Mês</span>
         <select id="ctb-mes" class="w-full min-h-[42px] rounded-lg border border-slate-600 bg-slate-900 px-2.5 text-sm font-bold text-white focus:border-emerald-500 focus:outline-none sm:min-h-[44px] sm:text-base">
           <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
@@ -82,11 +90,16 @@
         <i class="fas fa-sync-alt" aria-hidden="true"></i> Atualizar
       </button>
     </div>
+    <p class="mt-2 text-[10px] leading-snug text-slate-500 sm:text-xs">
+      Para o escritório: baixe <strong class="text-slate-300">Centro</strong> e <strong class="text-slate-300">Vila</strong> em ZIPs separados (CNPJ diferente).
+    </p>
   </section>
 
   <div class="ctb-body">
     <section id="ctb-resumo-wrap" class="flex min-h-0 flex-col rounded-xl border border-emerald-500/35 bg-slate-800/90 p-3 sm:p-4">
-      <h2 class="text-sm font-black uppercase tracking-wide text-white sm:text-base">Resumo NFC-e</h2>
+      <h2 class="text-sm font-black uppercase tracking-wide text-white sm:text-base">
+        Resumo NFC-e · <span id="ctb-resumo-loja" class="text-emerald-400">Centro</span>
+      </h2>
       {% if not nfce.ativo %}
       <p class="mt-1 text-xs font-bold text-amber-400">NFC-e não configurada no servidor.</p>
       {% endif %}
@@ -181,20 +194,33 @@
 (function () {
   var mesEl = document.getElementById('ctb-mes');
   var anoEl = document.getElementById('ctb-ano');
+  var lojaEl = document.getElementById('ctb-loja');
   var resumoUrl = '{{ resumo_url|escapejs }}';
   var exportXmlBase = '{{ export_xml_url|escapejs }}';
   var exportPlanBase = '{{ export_planilha_url|escapejs }}';
   var exportPendBase = '{{ export_pendencias_url|escapejs }}';
   var somenteContabilidade = {{ somente_contabilidade|yesno:"true,false" }};
-  if (!mesEl || !anoEl) return;
+  if (!mesEl || !anoEl || !lojaEl) return;
 
   mesEl.value = String({{ mes_default }});
+  lojaEl.value = 'centro';
 
   function periodo() {
     var mes = parseInt(mesEl.value, 10);
     var ano = parseInt(anoEl.value, 10);
+    var loja = (lojaEl.value || 'centro').toLowerCase();
     if (!mes || mes < 1 || mes > 12 || !ano) return null;
-    return { mes: mes, ano: ano };
+    if (loja !== 'centro' && loja !== 'vila' && loja !== 'todas') loja = 'centro';
+    return { mes: mes, ano: ano, loja: loja };
+  }
+
+  function qsPeriodo(p) {
+    return 'ano=' + p.ano + '&mes=' + p.mes + '&loja=' + encodeURIComponent(p.loja);
+  }
+
+  function nomeArquivo(prefix, p, ext) {
+    var suf = p.loja === 'todas' ? '' : '-' + p.loja;
+    return prefix + suf + '-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.' + ext;
   }
 
   function fmtRs(n) {
@@ -253,6 +279,7 @@
     var loadEl = document.getElementById('ctb-resumo-loading');
     var gridEl = document.getElementById('ctb-resumo-grid');
     var errEl = document.getElementById('ctb-resumo-erro');
+    var lojaTit = document.getElementById('ctb-resumo-loja');
     if (!p) {
       if (errEl) { errEl.textContent = 'Informe mês e ano válidos.'; errEl.classList.remove('hidden'); }
       return;
@@ -263,11 +290,12 @@
     var pendWrap = document.getElementById('ctb-pendencias-wrap');
     if (pendWrap) pendWrap.classList.add('hidden');
 
-    fetch(resumoUrl + '?ano=' + p.ano + '&mes=' + p.mes, { credentials: 'same-origin' })
+    fetch(resumoUrl + '?' + qsPeriodo(p), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.ok || !d.resumo) throw new Error((d && d.erro) || 'Resumo indisponível.');
         var r = d.resumo;
+        if (lojaTit) lojaTit.textContent = r.loja_rotulo || '—';
         document.getElementById('ctb-r-aut').textContent = String(r.autorizadas || 0);
         document.getElementById('ctb-r-can').textContent = String(r.canceladas || 0);
         document.getElementById('ctb-r-rs').textContent = fmtRs(r.total_autorizado_rs);
@@ -276,6 +304,9 @@
           numTxt = 'Série ' + (r.serie || '—') + ' · nº ' + r.numero_min + ' – ' + r.numero_max;
         } else if (r.serie) {
           numTxt = 'Série ' + r.serie;
+        }
+        if (r.emitente_cnpj) {
+          numTxt += (numTxt === '—' ? '' : ' · ') + 'CNPJ …' + String(r.emitente_cnpj).slice(-6);
         }
         document.getElementById('ctb-r-num').textContent = numTxt;
         renderPendencias(r.pendencias);
@@ -327,26 +358,27 @@
   document.getElementById('btn-ctb-atualizar').addEventListener('click', carregarResumo);
   mesEl.addEventListener('change', carregarResumo);
   anoEl.addEventListener('change', carregarResumo);
+  lojaEl.addEventListener('change', carregarResumo);
 
   document.getElementById('btn-nfce-xml-export').addEventListener('click', function () {
     var p = periodo();
     if (!p) return;
-    baixarBlob(exportXmlBase + '?ano=' + p.ano + '&mes=' + p.mes, 'nfce-xml-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.zip', this);
+    baixarBlob(exportXmlBase + '?' + qsPeriodo(p), nomeArquivo('nfce-xml', p, 'zip'), this);
   });
   document.getElementById('btn-nfce-csv').addEventListener('click', function () {
     var p = periodo();
     if (!p) return;
-    baixarBlob(exportPlanBase + '?ano=' + p.ano + '&mes=' + p.mes + '&formato=csv', 'nfce-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.csv', this);
+    baixarBlob(exportPlanBase + '?' + qsPeriodo(p) + '&formato=csv', nomeArquivo('nfce-planilha', p, 'csv'), this);
   });
   document.getElementById('btn-nfce-xlsx').addEventListener('click', function () {
     var p = periodo();
     if (!p) return;
-    baixarBlob(exportPlanBase + '?ano=' + p.ano + '&mes=' + p.mes + '&formato=xlsx', 'nfce-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.xlsx', this);
+    baixarBlob(exportPlanBase + '?' + qsPeriodo(p) + '&formato=xlsx', nomeArquivo('nfce-planilha', p, 'xlsx'), this);
   });
   document.getElementById('btn-nfce-pend-csv').addEventListener('click', function () {
     var p = periodo();
     if (!p) return;
-    baixarBlob(exportPendBase + '?ano=' + p.ano + '&mes=' + p.mes, 'nfce-pendencias-' + p.ano + '-' + String(p.mes).padStart(2, '0') + '.csv', this);
+    baixarBlob(exportPendBase + '?' + qsPeriodo(p), nomeArquivo('nfce-pendencias', p, 'csv'), this);
   });
 
   carregarResumo();
