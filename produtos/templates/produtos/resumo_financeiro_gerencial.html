@@ -23,7 +23,7 @@
     .rg-modal__btn:hover { filter: brightness(1.08); }
   </style>
 </head>
-<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v1" class="bg-slate-100 overflow-hidden text-slate-800 flex flex-col" style="height:100dvh;max-height:100dvh">
+<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v2" class="bg-slate-100 overflow-hidden text-slate-800 flex flex-col" style="height:100dvh;max-height:100dvh">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="rg-head shrink-0">
@@ -58,14 +58,14 @@
             <span class="rg-field__label">Data</span>
             <select id="f-por" title="Data dos lançamentos">
               <option value="competencia">Competência</option>
-              <option value="vencimento">Vencimento</option>
+              <option value="vencimento" selected>Vencimento</option>
               <option value="pagamento">Pagamento</option>
             </select>
           </div>
           <div class="rg-field rg-field--valor">
             <span class="rg-field__label">Valor</span>
             <select id="f-valor">
-              <option value="bruto">Bruto</option>
+              <option value="bruto" selected>Bruto</option>
               <option value="realizado">Já pago</option>
             </select>
           </div>
@@ -159,6 +159,7 @@
       <ul>
         <li>Números dos <strong>lançamentos financeiros do SisVale</strong> (contas a pagar e a receber) + receita do <strong>PDV</strong>.</li>
         <li><strong>Loja:</strong> padrão <strong>Centro + Vila</strong> (as duas). Centro ou Vila filtra as <strong>vendas do PDV</strong> daquela loja. Despesas/empréstimos seguem a empresa cadastrada (se a Vila não tiver empresa própria, usam a do Centro).</li>
+        <li><strong>Abertura:</strong> já vem <strong>Centro + Vila</strong> · <strong>dia 1 do mês → hoje</strong> · <strong>Vencimento</strong> · <strong>Bruto</strong> · e o resultado carrega sozinho. Depois você muda o que quiser.</li>
         <li><strong>CMV vendida</strong> = custo do cadastro × quantidade vendida. <strong>CMV paga</strong> = compras lançadas no período. Lucro, operacional, líquido e ponto de equilíbrio acompanham.</li>
         <li><strong>Saldo final</strong> = soma da Mini DRE: líquido (PDV) + <strong>entrada empréstimo</strong> + <strong>aporte sócio</strong> − <strong>juros</strong> − <strong>empréstimo</strong> (principal) − <strong>retirada sócio</strong>, no recorte do filtro.</li>
         <li><strong>Despesas por categoria</strong> = cadastro oficial de planos (grafia antiga vira o nome novo) · mesmos planos e datas do card Despesas.</li>

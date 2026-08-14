@@ -85,6 +85,21 @@
     } catch (e2) {}
   }
 
+  /** YYYY-MM-DD no fuso local (evita virar dia anterior com toISOString). */
+  function isoLocal(d) {
+    var y = d.getFullYear();
+    var m = String(d.getMonth() + 1).padStart(2, "0");
+    var day = String(d.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + day;
+  }
+
+  /** Padrão de abertura: dia 1 do mês atual → hoje. */
+  function padraoPeriodoMesAtual() {
+    var hoje = new Date();
+    var ini = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    return { ini: isoLocal(ini), fim: isoLocal(hoje) };
+  }
+
   function labelLoja(v) {
     if (v === "centro") return "Centro";
     if (v === "vila") return "Vila";
@@ -1046,9 +1061,11 @@
     }
 
     function carregarCtx() {
+      var tinhaSessao = false;
       try {
         var raw = sessionStorage.getItem(CK);
         if (raw) {
+          tinhaSessao = true;
           var o = JSON.parse(raw);
           if (o.loja && el("f-loja")) el("f-loja").value = o.loja;
           if (o.data_inicio) el("f-ini").value = o.data_inicio;
@@ -1057,8 +1074,18 @@
           if (o.valor) el("f-valor").value = o.valor;
         }
       } catch (e) {}
-      if (el("f-loja") && !el("f-loja").value) el("f-loja").value = lojaSalva();
-      else if (el("f-loja") && !sessionStorage.getItem(CK)) el("f-loja").value = lojaSalva();
+      if (!tinhaSessao) {
+        if (el("f-loja")) el("f-loja").value = lojaSalva();
+        if (el("f-por")) el("f-por").value = "vencimento";
+        if (el("f-valor")) el("f-valor").value = "bruto";
+        var pad = padraoPeriodoMesAtual();
+        if (el("f-ini")) el("f-ini").value = pad.ini;
+        if (el("f-fim")) el("f-fim").value = pad.fim;
+      } else {
+        if (el("f-loja") && !el("f-loja").value) el("f-loja").value = lojaSalva();
+        if (el("f-por") && !el("f-por").value) el("f-por").value = "vencimento";
+        if (el("f-valor") && !el("f-valor").value) el("f-valor").value = "bruto";
+      }
     }
 
     function atualizarResumoFiltroVisivel() {
@@ -1277,6 +1304,7 @@
       el(id).addEventListener("change", function () {
         salvarCtx();
         atualizarResumoFiltroVisivel();
+        atualizar();
       });
     });
 
@@ -1301,14 +1329,11 @@
     });
 
     carregarCtx();
-    var hoje = new Date();
-    var iso = hoje.toISOString().slice(0, 10);
-    if (!el("f-fim").value) el("f-fim").value = iso;
-    if (!el("f-ini").value) {
-      var u = new Date(hoje);
-      u.setDate(u.getDate() - 29);
-      el("f-ini").value = u.toISOString().slice(0, 10);
-    }
+    var padFallback = padraoPeriodoMesAtual();
+    if (!el("f-fim").value) el("f-fim").value = padFallback.fim;
+    if (!el("f-ini").value) el("f-ini").value = padFallback.ini;
+    if (el("f-por") && !el("f-por").value) el("f-por").value = "vencimento";
+    if (el("f-valor") && !el("f-valor").value) el("f-valor").value = "bruto";
     atualizarResumoFiltroVisivel();
     if (!window.AGRO_MANUAL_SYNC_ONLY) {
       atualizar();
