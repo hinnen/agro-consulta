@@ -1228,24 +1228,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · **DRE-FILTRO-PADRAO**.
+> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · DRE-FILTRO-PADRAO.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.39** @ **d044a52** | não |
-| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** @ **fd2522f** | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.39+** | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** | não |
 
-### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX` · **v16.39**)
+### 📦 PACOTE PRONTO — Repasse UX + forma (`REPASSE-VILA-UX` · **v16.39**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.39** @ **d044a52** |
-| **O quê** | Tela densa · overlay: **forma de pagamento** · valor não preenche “renan” (anti-autofill) |
-| **Prova** | deep **VERIFY_DEEP_OK 49** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.39** |
+| **O quê** | Tela densa · overlay **forma de pagamento** · anti-autofill do valor · Retiradas sem 2º PDV |
+| **Prova** | path **VERIFY_OK 32** · deep **VERIFY_DEEP_OK 55** (Dinheiro + PIX + manual) |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Retiradas → Repasse · escolher forma · valor vazio = automático |
+| **Você** | Ctrl+F5 Retiradas → Repasse · forma · valor vazio = automático |
 
 ### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.36**)
 
