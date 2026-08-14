@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v16.32** · producao @ **544b31f**  
 > **NÃO** merge teste→producao sem frase + senha.  
-> **Só no teste (subir juntos):** tip **v16.43** · **sem migrate** nestes 5.
+> **Só no teste (subir juntos):** tip **v16.43** @ **28f46d3** · **sem migrate** nestes 5.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1272,11 +1272,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v16.43** |
-| **O quê** | Resumo/DRE abre Centro+Vila · dia 1→hoje · Vencimento · Bruto · sempre carrega a API |
-| **Prova** | verify_dre_visual_path · unit DRE |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.43** · commits **fd2522f** + **5f9dc10** |
+| **O quê** | Abre **Centro+Vila** · **dia 1→hoje** · **Vencimento** · **Bruto** · **sempre carrega a API** (sem aviso «só cache») · mudar filtro atualiza sozinho |
+| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK 235** · unit DRE **30/30** · node OK · sem `AGRO_MANUAL_SYNC_ONLY` no JS do Resumo |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Resumo |
+| **Você** | Ctrl+F5 Resumo · números na hora · sem banner azul |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32) · **superado**
 
