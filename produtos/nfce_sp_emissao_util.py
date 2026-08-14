@@ -24,7 +24,13 @@ from django.utils import timezone
 
 from produtos.caixa_util import normalizar_forma_pagamento_caixa, pagamentos_lista_de_venda
 from produtos.models import ItemVendaAgro, NfceDocumentoAgro, NfceNumeracaoAgro, VendaAgro
-from produtos.nfce_config_util import nfce_cfg, nfce_configurada
+from produtos.nfce_config_util import (
+    nfce_cfg,
+    nfce_configurada,
+    nfce_cnpj_da_chave,
+    nfce_loja_de_cnpj,
+    nfce_loja_de_venda,
+)
 from produtos.sefaz_soap_util import (
     montar_envelope_nfe_dados_msg,
     normalizar_xml_envio,
@@ -222,36 +228,46 @@ def _montar_det_pag(pag: ET.Element, pg: dict[str, Any]) -> None:
 
 
 def _garantir_numeracao_inicial(cfg: dict[str, Any]) -> None:
-    """Série/número alinhados ao ERP (ex.: série 20, próximo 1183)."""
+    """Série/número alinhados por CNPJ emitente (Centro e Vila separados)."""
     serie_cfg = int(cfg["serie"])
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
     piso = int(cfg.get("proximo_numero_inicial") or 1)
     with transaction.atomic():
         num, _ = NfceNumeracaoAgro.objects.select_for_update().get_or_create(
-            pk=1,
-            defaults={"serie": serie_cfg, "proximo_numero": piso},
+            emitente_cnpj=cnpj,
+            serie=serie_cfg,
+            defaults={"proximo_numero": piso},
         )
-        max_doc = (
-            NfceDocumentoAgro.objects.filter(serie=serie_cfg).aggregate(m=Max("numero")).get("m") or 0
-        )
+        qs = NfceDocumentoAgro.objects.filter(serie=serie_cfg, emitente_cnpj=cnpj)
+        max_doc = qs.aggregate(m=Max("numero")).get("m") or 0
+        # Legado: docs sem emitente_cnpj (só Centro, antes da filial)
+        if nfce_loja_de_cnpj(cnpj) == "centro":
+            max_legado = (
+                NfceDocumentoAgro.objects.filter(serie=serie_cfg, emitente_cnpj="")
+                .aggregate(m=Max("numero"))
+                .get("m")
+                or 0
+            )
+            max_doc = max(int(max_doc), int(max_legado))
         alvo = max(piso, int(max_doc) + 1)
-        if num.serie != serie_cfg or int(num.proximo_numero or 1) < alvo:
-            num.serie = serie_cfg
+        if int(num.proximo_numero or 1) < alvo:
             num.proximo_numero = alvo
-            num.save(update_fields=["serie", "proximo_numero", "atualizado_em"])
+            num.save(update_fields=["proximo_numero", "atualizado_em"])
 
 
 def _proximo_numero_serie(cfg: dict[str, Any]) -> tuple[int, int]:
+    cnpj = re.sub(r"\D", "", str(cfg.get("cnpj") or ""))[:14]
+    serie_cfg = int(cfg["serie"])
     with transaction.atomic():
         num, _ = NfceNumeracaoAgro.objects.select_for_update().get_or_create(
-            pk=1,
-            defaults={"serie": cfg["serie"], "proximo_numero": 1},
+            emitente_cnpj=cnpj,
+            serie=serie_cfg,
+            defaults={"proximo_numero": 1},
         )
-        if num.serie != cfg["serie"]:
-            num.serie = cfg["serie"]
         n = int(num.proximo_numero or 1)
         num.proximo_numero = n + 1
-        num.save(update_fields=["serie", "proximo_numero", "atualizado_em"])
-        return num.serie, n
+        num.save(update_fields=["proximo_numero", "atualizado_em"])
+        return serie_cfg, n
 
 
 def _cert_pem_temporario(cert_path: str, cert_password: str) -> tuple[str, str, list[str]]:
@@ -774,9 +790,14 @@ def emitir_nfce_para_venda(
             "reutilizada": True,
         }
     NfceDocumentoAgro.objects.filter(venda=venda).exclude(status=NfceDocumentoAgro.Status.AUTORIZADA).delete()
-    if not nfce_configurada(warmup=True, tentativas=3):
-        return {"ok": False, "erro": "NFC-e não configurada (NFC_E_ENABLED e demais variáveis no .env)."}
-    cfg = nfce_cfg()
+    loja = nfce_loja_de_venda(venda)
+    if not nfce_configurada(warmup=True, tentativas=3, loja=loja):
+        rotulo = "Vila Elias" if loja == "vila" else "Centro"
+        return {
+            "ok": False,
+            "erro": f"NFC-e {rotulo} não configurada (NFC_E_ENABLED e dados do emitente no .env).",
+        }
+    cfg = nfce_cfg(loja)
     tp_amb = int(cfg["tp_amb"])
     cpf = re.sub(r"\D", "", cpf_dest)[:11]
     if cpf and not cpf_valido(cpf):
@@ -876,6 +897,7 @@ def emitir_nfce_para_venda(
                 status=NfceDocumentoAgro.Status.ERRO,
                 numero=numero,
                 serie=serie,
+                emitente_cnpj=cfg["cnpj"],
                 mensagem_sefaz=str(exc)[:2000],
                 tp_amb=int(cfg["tp_amb"]),
                 dest_cpf=cpf,
@@ -891,6 +913,7 @@ def emitir_nfce_para_venda(
                 chave=chave,
                 numero=numero,
                 serie=serie,
+                emitente_cnpj=cfg["cnpj"],
                 mensagem_sefaz=err_sign or "Falha ao assinar.",
                 tp_amb=int(cfg["tp_amb"]),
                 dest_cpf=cpf,
@@ -909,6 +932,7 @@ def emitir_nfce_para_venda(
                 chave=chave,
                 numero=numero,
                 serie=serie,
+                emitente_cnpj=cfg["cnpj"],
                 mensagem_sefaz=str(exc)[:2000],
                 tp_amb=int(cfg["tp_amb"]),
                 dest_cpf=cpf,
@@ -942,6 +966,7 @@ def emitir_nfce_para_venda(
             chave=chave,
             numero=numero,
             serie=serie,
+            emitente_cnpj=cfg["cnpj"],
             mensagem_sefaz=err_http or "Sem resposta SEFAZ.",
             tp_amb=int(cfg["tp_amb"]),
             dest_cpf=cpf,
@@ -960,6 +985,7 @@ def emitir_nfce_para_venda(
         chave=ret.get("chave") or chave,
         numero=numero,
         serie=serie,
+        emitente_cnpj=cfg["cnpj"],
         protocolo=ret.get("protocolo") or "",
         xml_autorizado=xml_save,
         qr_code_url=qr_url,
@@ -1246,7 +1272,22 @@ def cancelar_nfce_autorizada(
     if not nfce_configurada():
         return {"ok": False, "erro": "NFC-e não configurada no servidor.", "documento_id": doc.pk}
 
-    cfg = nfce_cfg()
+    cnpj_doc = (doc.emitente_cnpj or "").strip() or nfce_cnpj_da_chave(doc.chave)
+    loja = nfce_loja_de_cnpj(cnpj_doc)
+    if getattr(doc, "venda_id", None):
+        try:
+            loja = nfce_loja_de_venda(doc.venda)
+        except Exception:
+            pass
+    if not nfce_configurada(loja=loja):
+        rotulo = "Vila Elias" if loja == "vila" else "Centro"
+        return {
+            "ok": False,
+            "erro": f"NFC-e {rotulo} não configurada no servidor.",
+            "documento_id": doc.pk,
+        }
+
+    cfg = nfce_cfg(loja)
     cfg_evt = dict(cfg)
     cfg_evt["tp_amb"] = int(doc.tp_amb or cfg["tp_amb"])
     protocolo = _extrair_nprot_xml_autorizado(doc)

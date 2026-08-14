@@ -517,8 +517,15 @@ class VendaAgro(models.Model):
 
 
 class NfceNumeracaoAgro(models.Model):
-    """Controle sequencial de numeração NFC-e (série única por instalação)."""
+    """Controle sequencial NFC-e — um contador por CNPJ emitente + série."""
 
+    emitente_cnpj = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="CNPJ do emitente (Centro ou Vila). Numeração independente por CNPJ.",
+    )
     serie = models.PositiveSmallIntegerField(default=1)
     proximo_numero = models.PositiveIntegerField(default=1)
     atualizado_em = models.DateTimeField(auto_now=True)
@@ -526,9 +533,15 @@ class NfceNumeracaoAgro(models.Model):
     class Meta:
         verbose_name = "Numeração NFC-e"
         verbose_name_plural = "Numerações NFC-e"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["emitente_cnpj", "serie"],
+                name="nfce_numeracao_cnpj_serie_uniq",
+            ),
+        ]
 
     def __str__(self):
-        return f"Série {self.serie} — próximo nº {self.proximo_numero}"
+        return f"{self.emitente_cnpj or '?'} · Série {self.serie} — próximo nº {self.proximo_numero}"
 
 
 class NfceDocumentoAgro(models.Model):
@@ -549,6 +562,13 @@ class NfceDocumentoAgro(models.Model):
     chave = models.CharField(max_length=44, blank=True, default="", db_index=True)
     numero = models.PositiveIntegerField(default=0)
     serie = models.PositiveSmallIntegerField(default=1)
+    emitente_cnpj = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="CNPJ no XML emit (Centro /0001 ou Vila /0002).",
+    )
     protocolo = models.CharField(max_length=20, blank=True, default="")
     dest_cpf = models.CharField(max_length=11, blank=True, default="")
     consumidor_sem_identificacao = models.BooleanField(default=False)

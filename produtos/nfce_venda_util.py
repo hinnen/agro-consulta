@@ -7,7 +7,7 @@ from typing import Any
 from django.utils import timezone
 
 from produtos.models import NfceDocumentoAgro, VendaAgro
-from produtos.nfce_config_util import nfce_config_resumo, nfce_configurada
+from produtos.nfce_config_util import nfce_cfg, nfce_config_resumo, nfce_configurada, nfce_loja_de_venda
 from produtos.sefaz_soap_util import sanitizar_erro_sefaz_exibicao
 
 _NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
@@ -65,8 +65,9 @@ def _erro_nfce_venda(venda: VendaAgro, nfce: NfceDocumentoAgro | None) -> str:
 
 
 def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -> dict[str, Any]:
-    cfg = _cfg if _cfg is not None else nfce_config_resumo()
-    ativo = bool(cfg.get("ativo"))
+    loja = nfce_loja_de_venda(venda)
+    cfg = _cfg if _cfg is not None else nfce_config_resumo(loja)
+    ativo = bool(cfg.get("ativo")) or nfce_configurada(loja=loja, warmup=False)
     nfce = getattr(venda, "nfce", None)
     solic = bool(getattr(venda, "nfce_solicitada", False))
     out: dict[str, Any] = {
@@ -111,7 +112,7 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
         out["autorizada"] = True
         out["status_label"] = "Autorizada"
         out["pode_imprimir_fiscal"] = True
-        out["pode_cancelar"] = nfce_configurada()
+        out["pode_cancelar"] = nfce_configurada(loja=loja, warmup=False)
         return out
 
     if nfce and nfce.status == NfceDocumentoAgro.Status.CANCELADA:
@@ -130,7 +131,7 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
     if venda_nfce_pendente(venda):
         out["pendente"] = True
         out["erro"] = _erro_nfce_venda(venda, nfce)
-        out["pode_reemitir"] = not venda.devolvida_em and nfce_configurada()
+        out["pode_reemitir"] = not venda.devolvida_em and nfce_configurada(loja=loja, warmup=False)
         if not out["status_label"]:
             out["status_label"] = "Pendente"
         return out
@@ -151,6 +152,12 @@ def registrar_nfce_erro_venda(
     NfceDocumentoAgro.objects.filter(venda=venda).exclude(
         status=NfceDocumentoAgro.Status.AUTORIZADA
     ).delete()
+    loja = nfce_loja_de_venda(venda)
+    emit_cnpj = ""
+    try:
+        emit_cnpj = nfce_cfg(loja).get("cnpj") or ""
+    except Exception:
+        emit_cnpj = ""
     return NfceDocumentoAgro.objects.create(
         venda=venda,
         status=NfceDocumentoAgro.Status.ERRO,
@@ -158,4 +165,5 @@ def registrar_nfce_erro_venda(
         dest_cpf=cpf_dest or "",
         consumidor_sem_identificacao=sem_identificacao,
         tp_amb=tp_amb,
+        emitente_cnpj=emit_cnpj,
     )

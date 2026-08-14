@@ -53,8 +53,11 @@ Copiar do staging e **conferir** estes valores:
 | `NFC_E_CNPJ` | `48900774000103` |
 | `NFC_E_CERT_BASE64` | Certificado A1 **produção** (não o de homologação) |
 | `NFC_E_CERT_PASSWORD` | Senha do .pfx |
-| `NFC_E_CSC_ID` / `NFC_E_CSC_TOKEN` | CSC **produção** (portal NFC-e SP) |
-| Demais emitente | IE, razão, endereço, CEP, fone — iguais ao cadastro SEFAZ |
+| `NFC_E_CSC_ID` / `NFC_E_CSC_TOKEN` | CSC **produção** (portal NFC-e SP) — **mesmo** para Centro e Vila (CNPJ base) |
+| Demais emitente Centro | IE, razão, endereço, CEP, fone — iguais ao cadastro SEFAZ |
+| **Filial Vila** (`NFC_E_VILA_*`) | CNPJ `48900774000286`, IE `394051450113`, endereço Joaquim Mauricio Grothe 173 — defaults no código; opcional no Render |
+
+Caixa **Vila** → NFC-e no CNPJ `/0002`. Caixa **Centro** → `/0001`. Mesmo certificado A1 da matriz.
 
 Opcional (Lei 12.741 / IBPT no cupom): `NFC_E_IBPT_TOKEN`, `NFC_E_IBPT_CNPJ`.
 

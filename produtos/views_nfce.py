@@ -28,6 +28,7 @@ from produtos.nfce_config_util import (
     nfce_configurada,
     nfce_emissao_automatica,
     nfce_emissao_solicitada,
+    nfce_loja_de_venda,
     nfce_venda_tem_forma_pagamento_auto,
 )
 from produtos.nfce_contabilidade_util import (
@@ -90,9 +91,10 @@ def _emitir_nfce_pos_venda_sync(
     sefaz_perfil: str = "sync",
 ) -> dict | None:
     """Tenta emitir NFC-e na thread da requisição."""
-    cfg = nfce_config_resumo()
+    loja = nfce_loja_de_venda(venda)
+    cfg = nfce_config_resumo(loja)
     tp_amb = int(cfg.get("tp_amb") or 2)
-    if not nfce_configurada(warmup=True, tentativas=3):
+    if not nfce_configurada(warmup=True, tentativas=3, loja=loja):
         return None
     cpf, sem_id = _nfce_opts_payload(data)
     if not cpf and not sem_id:
@@ -168,9 +170,9 @@ def _nfce_pos_venda_background_worker(venda_id: int, data: dict) -> None:
             return
         if _nfce_ja_autorizada(venda):
             return
-        cfg = nfce_config_resumo()
+        cfg = nfce_config_resumo(nfce_loja_de_venda(venda))
         tp_amb = int(cfg.get("tp_amb") or 2)
-        if not nfce_configurada(warmup=True, tentativas=3):
+        if not nfce_configurada(warmup=True, tentativas=3, loja=nfce_loja_de_venda(venda)):
             registrar_nfce_erro_venda(venda, _ERRO_NFCE_CFG, tp_amb=tp_amb)
             logger.warning(
                 "NFC-e retry esgotado — config indisponível (venda %s).",
@@ -450,7 +452,7 @@ def api_venda_agro_nfce_emitir(request, pk):
             },
             status=409,
         )
-    if not nfce_configurada(warmup=True, tentativas=3):
+    if not nfce_configurada(warmup=True, tentativas=3, loja=nfce_loja_de_venda(v)):
         return JsonResponse(
             {"ok": False, "erro": _ERRO_NFCE_CFG},
             status=503,
@@ -476,7 +478,7 @@ def api_venda_agro_nfce_emitir(request, pk):
         )
     except Exception:
         logger.exception("NFC-e reemitir falhou (venda %s)", v.pk)
-        cfg = nfce_config_resumo()
+        cfg = nfce_config_resumo(nfce_loja_de_venda(v))
         doc = registrar_nfce_erro_venda(
             v,
             "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
@@ -512,7 +514,7 @@ def api_venda_agro_nfce_cancelar(request, pk):
             {"ok": False, "erro": "Esta venda não tem NFC-e autorizada para cancelar."},
             status=400,
         )
-    if not nfce_configurada(warmup=True, tentativas=3):
+    if not nfce_configurada(warmup=True, tentativas=3, loja=nfce_loja_de_venda(v)):
         return JsonResponse(
             {"ok": False, "erro": _ERRO_NFCE_CFG},
             status=503,
