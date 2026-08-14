@@ -1838,7 +1838,8 @@ function startScan() {
     return;
   }
   maScanBusy = true;
-  stopScan().then(() => {
+  /* keepBusy: stopScan() não zera o busy no meio do reopen (evita double-start). */
+  stopScan({ keepBusy: true }).then(() => {
     const reader = document.getElementById('reader');
     const box = document.getElementById('reader-box');
     if (!reader || !box) {
@@ -1866,10 +1867,26 @@ function startScan() {
       return;
     }
     scanningActive = true;
-    const side = Math.max(160, Math.min(240, Math.floor(Math.min(window.innerWidth || 360, 360) * 0.7)));
+    /* Só formatos de loja (EAN/UPC/Code128…) — mais rápido que “todos”. */
+    const Fmt = window.Html5QrcodeSupportedFormats;
+    const formats = Fmt ? [
+      Fmt.EAN_13, Fmt.EAN_8, Fmt.UPC_A, Fmt.UPC_E,
+      Fmt.CODE_128, Fmt.CODE_39, Fmt.ITF, Fmt.QR_CODE,
+    ].filter((x) => x != null) : undefined;
+    const config = {
+      fps: 12,
+      /* Caixa larga: EAN é horizontal — quadrado pequeno demora/erra. */
+      qrbox: (viewW, viewH) => {
+        const w = Math.max(220, Math.min(Math.floor(viewW * 0.92), 420));
+        const h = Math.max(90, Math.min(Math.floor(w * 0.42), Math.floor(viewH * 0.32)));
+        return { width: w, height: h };
+      },
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+    };
+    if (formats && formats.length) config.formatsToSupport = formats;
     scanner.start(
       { facingMode: 'environment' },
-      { fps: 8, qrbox: { width: side, height: side } },
+      config,
       (txt) => {
         if (!scanningActive) return;
         scanningActive = false;
@@ -1893,11 +1910,12 @@ function startScan() {
   });
 }
 
-function stopScan() {
+function stopScan(opts) {
+  const keepBusy = !!(opts && opts.keepBusy);
   const reader = document.getElementById('reader');
   const finish = () => {
     scanningActive = false;
-    maScanBusy = false;
+    if (!keepBusy) maScanBusy = false;
     if (reader) reader.classList.add('hidden');
     const box = document.getElementById('reader-box');
     if (box) {

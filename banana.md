@@ -1223,7 +1223,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
-| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.29** @ **8874dde** | **SIM** estoque.0016+**0017** |
+| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.30** | **SIM** estoque.0016+**0017** |
 | 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
@@ -1241,7 +1241,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.29** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.29** @ **8874dde** |
 | **O quê** | Cíclica cego · sempre soma · filtro dias (padrão 60 + personalizado) · multi-celular · grava no final · **UX celular** (teclado, scroll lock, header, Bip+1 off, aviso 800+) |
 | **Prova** | path **56** · deep **30** · UX+HTTP `verify_ajuste_mobile_ux` **VERIFY_OK 13** |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
