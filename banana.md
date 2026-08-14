@@ -1214,16 +1214,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.23**)
+### 📦 PACOTE PRONTO — NFC-e Vila pelo caixa (`NFCE-VILA-EMIT` · **v16.24**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
 > **⚠️** **NÃO** merge `teste`→`producao` sem frase + senha.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.23** @ **40285ff** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.24** @ **957bab5** |
 | **O quê** | Caixa **Vila** → cupom CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` · mesmo cert A1 + CSC · migrate **0088** |
-| **Prova** | local SEFAZ venda **#74** autorizada (nº 1 / série 21 / `/0002`) · `verify_nfce_vila_path.py` **VERIFY_OK** · unit `tests_nfce_loja` 2/2 |
+| **Prova** | local SEFAZ venda **#74** autorizada (nº 1 / série 21 / `/0002`) · `verify_nfce_vila_path.py` **VERIFY_OK** (5) · unit `tests_nfce_loja` 2/2 |
 | **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
 | **Render** | **sem** var nova (defaults Vila no código) |
 | **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` no cupom |
@@ -1235,7 +1235,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.23** @ **40285ff** | **SIM** 0088 |
+| 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
 | 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.22** | **SIM** estoque.0016 |
 | 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
