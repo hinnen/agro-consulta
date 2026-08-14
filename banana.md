@@ -1214,17 +1214,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (`DRE-FILTRO-PADRAO` · **v16.38**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.38** @ **fd2522f** |
+| **O quê** | Resumo/DRE abre com **Centro + Vila** · **dia 1 → hoje** · **Vencimento** · **Bruto** · resultado **já carrega**. Mudar filtro atualiza sozinho. |
+| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK** (235) · unit DRE 30/30 |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Resumo · confira filtros e números na hora |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
 > **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX.
+> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · **DRE-FILTRO-PADRAO**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
 | 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
 | 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste **v16.37** @ **ae6563f** | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** / teste **v16.38** @ **fd2522f** | não |
 
 ### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX` · **v16.37**)
 
