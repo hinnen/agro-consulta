@@ -1237,15 +1237,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
 | **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.30**)
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.31**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.30** @ **312face** |
-| **O quê** | Cíclica cego · sempre soma · filtro dias · multi-celular · grava no final · UX celular · **Scan câmera mais rápido** (EAN/UPC, fps 12, caixa larga, BarcodeDetector) |
-| **Prova** | path/deep/UX HTTP OK · Scan: path estático (câmera real = você no celular) |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.31** |
+| **O quê** | Cíclica + UX celular + Scan rápido + botão **Incluir fora** (forçar produto achado depois) |
+| **Prova** | path/deep OK · forcar pass2 VERIFY |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
-| **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` · **Scan** · bipar EAN |
+| **Você** | Ctrl+F5 · cíclica · **Incluir fora: ON** · bipar produto de fora |
 
 ### 📦 PACOTE PRONTO — Repasse Vila → Centro (`REPASSE-VILA` · **v16.21**)
 
