@@ -25,6 +25,17 @@ def check(path: str, *needles: str) -> None:
 
 
 check(
+    "estoque/migrations/0016_contagem_ciclica.py",
+    "ContagemCiclicaSessao",
+    "contagem_ciclica",
+    "uniq_ciclica_sessao_produto",
+)
+check(
+    "estoque/migrations/0017_contagem_ciclica_dias_mov.py",
+    "dias_movimentacao",
+    "contagemciclicasessao",
+)
+check(
     "estoque/models.py",
     "CONTAGEM_CICLICA",
     "ContagemCiclicaSessao",
@@ -32,12 +43,7 @@ check(
     "ContagemCiclicaParticipante",
     "ContagemCiclicaEscopo",
     "ContagemCiclicaStatus",
-)
-check(
-    "estoque/migrations/0016_contagem_ciclica.py",
-    "ContagemCiclicaSessao",
-    "contagem_ciclica",
-    "uniq_ciclica_sessao_produto",
+    "dias_movimentacao",
 )
 check(
     "produtos/contagem_ciclica_util.py",
