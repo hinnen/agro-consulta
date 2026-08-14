@@ -1220,6 +1220,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
 > Fila de envio deste lote: **vazia** (4 pacotes Live).
 
+### 🐛 Hotfix NFC-e Vila — sequência PK (14/08 · pós Live v16.32)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Sintoma** | Vila: demora + «EMITINDO…» / cupom pendente na 1ª venda pós-deploy |
+| **Causa** | `get_or_create` da numeração Vila → `IntegrityError` pkey (`nfcenumeracaoagro` seq atrasada; só existia id=1 Centro) |
+| **Estado agora** | Venda **#5426** **autorizada** (nNF=2 CNPJ `/0002`) · linha Vila id=2 · seq OK · próximas emissões devem ir |
+| **Código** | reforço em `nfce_sp_emissao_util` (sync seq + retry) no `teste` — sobe loja **só** com frase+senha |
+| **Você** | Ctrl+F5 · venda teste R$1,50 Vila · se falhar de novo: **Reemitir NFC-e** na venda |
+
+### 📦 WIP — Contabilidade NFC-e por loja (`CTB-NFCE-LOJA`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | no `teste` · filtro Centro / Vila / Ambas em `/contabilidade/` |
+| **O quê** | Resumo + ZIP/CSV/Excel/pendências separados por CNPJ (`loja=`); arquivo `nfce-xml-centro-…` / `nfce-xml-vila-…` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Contabilidade · escolher Vila → ZIP |
+
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-EMIT** | ✅ enviado / Live v16.32 | **SIM** 0088 |
