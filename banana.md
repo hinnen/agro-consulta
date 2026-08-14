@@ -1214,37 +1214,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
+### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
 
-> **Status:** ✅ **PREP pronto** · **NÃO** enviado · **aguarda** pausa vendas nas lojas + frase + senha no próximo chat.  
-> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
-> **⚠️ Lojas abertas agora:** **não** subir neste chat.
+> **Status:** ✅ **enviado / Live v16.44** · `producao` @ **e96f998** · Render `dep-d9vo8t3ncjis73emftqg`  
+> **Base anterior:** Live v16.32 @ **544b31f**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Branch** | `deploy/lote-checklist-1408b` @ **e96f998** (FF → `producao` no chat autorizado) |
-| **Pacotes (5)** | **NFCE-VILA-SEQ** · **CTB-NFCE-LOJA** · **REPASSE-VILA-UX** · **DRE-FILTRO-PADRAO** · **AJUSTE-CICLICA-CANCEL** |
-| **Prova (teste)** | CTB+SEQ **52** · Repasse **32** + deep **55** · DRE **235** + unit **30** · Cíclica **65** · `manage.py check` OK · parity arquivos **MATCH** deploy↔teste |
-| **Migrate** | **NÃO** (nenhuma migration neste lote) |
-| **Risco loja** | SEQ toca emissão NFC-e Vila · Repasse = Retiradas (não carrinho) · DRE/Cancel = sem PDV checkout |
+| **Pacotes** | NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · DRE-FILTRO-PADRAO · AJUSTE-CICLICA-CANCEL |
+| **Prova pré-envio** | CTB+SEQ **52** · Repasse **32**/deep **55** · DRE **235** · Cíclica **65** · parity MATCH |
+| **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-lote-checklist-1408b-v16.32` @ **544b31f** · frase+senha |
-| **Próximo chat** | pausar vendas → *«pode subir…»* + senha → FF branch → `producao` → Render · Ctrl+F5 · liberar |
+| **Você** | **Ctrl+F5** · badge **v16.44** · DRE abre sozinho · Contabilidade Centro/Vila · Cancelar cíclica · liberar vendas |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
+### ✅ CHECKLIST ÚNICO — enviado produção (14/08b · loja v16.44)
 
-> **Loja hoje:** ✅ **Live v16.32** · producao @ **544b31f**  
-> **PREP:** `deploy/lote-checklist-1408b` **v16.44** @ **e96f998** · **sem migrate**.  
-> **NÃO** merge teste→producao — só a branch PREP no chat com senha.
+> **Loja hoje:** ✅ **Live v16.44** · `producao` @ **e96f998**  
+> **Fila deploy:** **vazia**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** · no PREP | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** · no PREP | não |
-| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** · no PREP | não |
-| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** · no PREP | não |
-| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** · no PREP | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ enviado / Live v16.44 | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ enviado / Live v16.44 | não |
+| 3 | **REPASSE-VILA-UX** | ✅ enviado / Live v16.44 | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ enviado / Live v16.44 | não |
+| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ enviado / Live v16.44 | não |
 
-### 📦 PACOTE PRONTO — Cancelar contagem cíclica (AJUSTE-CICLICA-CANCEL · **v16.43**)
+### 🚀 PREP deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**) · **superado**
+
+> Vigente: **Deploy loja — lote checklist 14/08b Live v16.44** no topo.
+
+### ✅ CHECKLIST ÚNICO — pronto envio (14/08b) · **superado**
+
+> Vigente: checklist **enviado produção (14/08b · loja v16.44)**.
+
+### 📦 PACOTE PRONTO — Cancelar contagem cíclica (AJUSTE-CICLICA-CANCEL · **v16.43**) · **Live v16.44**
 
 | Item | Detalhe |
 | ---- | ------- |
