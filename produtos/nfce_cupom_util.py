@@ -6,7 +6,7 @@ from typing import Any
 
 from produtos.caixa_util import format_moeda_br, pagamentos_lista_de_venda
 from produtos.models import NfceDocumentoAgro, VendaAgro
-from produtos.nfce_config_util import nfce_cfg
+from produtos.nfce_config_util import nfce_cfg, nfce_loja_de_venda
 from produtos.nfce_ibpt_util import calcular_ibpt_venda_itens
 from produtos.venda_cupom_util import _formatar_data_venda, _forma_pagamento_cupom
 
@@ -45,7 +45,12 @@ def serializar_nfce_cupom_80mm(
     db=None,
     col_p: str | None = None,
 ) -> dict[str, Any]:
-    cfg = nfce_cfg()
+    cfg = nfce_cfg(nfce_loja_de_venda(venda))
+    # Preferir CNPJ gravado no documento (autorizado) se houver
+    if getattr(nfce, "emitente_cnpj", None):
+        from produtos.nfce_config_util import nfce_loja_de_cnpj
+
+        cfg = nfce_cfg(nfce_loja_de_cnpj(nfce.emitente_cnpj))
     itens_qs = list(venda.itens.all().order_by("pk"))
     itens = []
     for it in itens_qs:

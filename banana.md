@@ -505,7 +505,16 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - `GET /api/nfce/export-xml/?ano=&mes=` (ZIP contabilidade)
 - `/contabilidade/` painel
 
-**ProduÃ§Ã£o GM Agro:** CNPJ `48900774000103`, municÃ­pio `3524600` Jacupiranga, `NFC_E_TP_AMB=1`. Checklist completo: `docs/NFCE-PRODUCAO.md`.
+**Produção GM Agro — emitente NFC-e:**
+
+| Loja | CNPJ | IE | Endereço |
+| ---- | ---- | -- | -------- |
+| **Centro (matriz)** | `48900774000103` | env `NFC_E_IE` | env `NFC_E_LOGRADOURO`… |
+| **Vila Elias (filial)** | `48900774000286` | `394051450113` | Joaquim Mauricio Grothe, 173 · Vila Elias · CEP 11940-000 |
+
+Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **depósito da venda** (caixa Vila → `/0002`, caixa Centro → `/0001`). Numeração **independente** por CNPJ (`NfceNumeracaoAgro.emitente_cnpj`). Município `3524600` Jacupiranga, `NFC_E_TP_AMB=1`. Checklist: `docs/NFCE-PRODUCAO.md`.
+
+**Não confundir** com CNPJ `03230457000180` (empresa **Agro Mais Vila Elias** no financeiro/entrada NF) — isso **não** é o CNPJ fiscal da filial GM.
 
 **HistÃ³rico de dor SEFAZ (jÃ¡ resolvido no cÃ³digo):** QR no XML antes da assinatura, SHA1 QR v2 SP, retry nÃºmero duplicado 539/204, CA bundle ICP-Brasil no Render, SOAP 4.00 sem `nfeCabecMsg` errado.
 
@@ -1205,6 +1214,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### NFC-e Vila — emitente por caixa (`NFCE-VILA-EMIT` · 14/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Regra** | Caixa **Vila** → CNPJ `/0002-86` · Caixa **Centro** → `/0001-03` |
+| **Cert/CSC** | **Mesmo** da matriz (ID `000001`) |
+| **Endereço Vila** | Joaquim Mauricio Grothe, 173 · Vila Elias · 11940-000 · Jacupiranga/SP |
+| **IE Vila** | `394.051.450.113` |
+| **Código** | `nfce_cfg(loja)` · numeração por `emitente_cnpj` · migrate **0088** |
+| **Você** | migrate 0088 · Ctrl+F5 · venda PIX no **caixa Vila** · cupom com CNPJ `/0002` |
+| **Render** | opcional `NFC_E_VILA_*` (defaults já no código) · **não** precisa 2º cert |
+| **Não** | CNPJ `0323…` no cupom · revogar CSC do Centro |
+
+### NFC-e Vila — CNPJ filial + endereço + CSC (14/08 · Renan)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Fato** | Vila **é filial** da GM: CNPJ `48.900.774/0002-86` · IE `394.051.450.113` |
+| **Status** | ✅ código `NFCE-VILA-EMIT` — ver bloco acima |
+
 ### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.22**)
 
 > **Loja hoje:** ✅ **Live v16.07** · `producao` @ **262d460**  
@@ -1251,7 +1280,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.15** | **SIM** estoque.0016 |
+| 1 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.22** | **SIM** estoque.0016 |
 | 2 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 3 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 

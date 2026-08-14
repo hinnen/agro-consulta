@@ -170,10 +170,62 @@ def nfce_emissao_solicitada(data: dict | None) -> bool:
     return _nfce_emitir_explicito(data)
 
 
-def nfce_cfg() -> dict[str, Any]:
+# Filial Vila Elias (GM Agro) — defaults; sobrescreve com NFC_E_VILA_* no .env
+_VILA_CNPJ_DEFAULT = "48900774000286"
+_VILA_IE_DEFAULT = "394051450113"
+_VILA_LOGRADOURO_DEFAULT = "Joaquim Mauricio Grothe"
+_VILA_NUMERO_DEFAULT = "173"
+_VILA_BAIRRO_DEFAULT = "Vila Elias"
+_VILA_CEP_DEFAULT = "11940000"
+_VILA_FANTASIA_DEFAULT = "Agro Mais Vila Elias"
+
+
+def nfce_normalizar_loja(loja: str | None) -> str:
+    """centro | vila — depósito do caixa / venda."""
+    d = str(loja or "").strip().lower()
+    if d in ("vila", "2", "vila_elias", "vila-elias"):
+        return "vila"
+    return "centro"
+
+
+def nfce_loja_de_venda(venda: Any) -> str:
+    """Loja fiscal da NFC-e = depósito da venda (herdado do caixa)."""
+    dep = ""
+    if venda is not None:
+        dep = str(getattr(venda, "deposito", "") or "").strip().lower()
+        if not dep:
+            sessao = getattr(venda, "sessao_caixa", None)
+            if sessao is not None:
+                try:
+                    from produtos.caixa_util import deposito_de_ponto_caixa
+
+                    dep = deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
+                except Exception:
+                    dep = ""
+    return nfce_normalizar_loja(dep)
+
+
+def nfce_loja_de_cnpj(cnpj: str | None) -> str:
+    c = re.sub(r"\D", "", str(cnpj or ""))[:14]
+    vila = re.sub(r"\D", "", _cfg("NFC_E_VILA_CNPJ") or _VILA_CNPJ_DEFAULT)[:14]
+    if c and vila and c == vila:
+        return "vila"
+    return "centro"
+
+
+def nfce_cnpj_da_chave(chave: str | None) -> str:
+    """CNPJ emitente na chave NFC-e (posições 6–20)."""
+    ch = re.sub(r"\D", "", str(chave or ""))
+    if len(ch) < 20:
+        return ""
+    return ch[6:20]
+
+
+def nfce_cfg(loja: str | None = "centro") -> dict[str, Any]:
+    """Config NFC-e. ``loja`` = centro|vila — mesmo cert/CSC; emitente muda."""
+    loja_n = nfce_normalizar_loja(loja)
     cert_path = nfce_resolve_cert_path()
     cert_password = _cfg("NFC_E_CERT_PASSWORD") or _cfg("NFE_DIST_DFE_CERT_PASSWORD")
-    cnpj = re.sub(r"\D", "", _cfg("NFC_E_CNPJ") or _cfg("NFE_DIST_DFE_CNPJ"))[:14]
     try:
         tp_amb = int(_cfg("NFC_E_TP_AMB", "2") or 2)
     except (TypeError, ValueError):
@@ -181,13 +233,21 @@ def nfce_cfg() -> dict[str, Any]:
     if tp_amb not in (1, 2):
         tp_amb = 2
     try:
-        serie = int(_cfg("NFC_E_SERIE", "20") or 20)
+        serie_centro = int(_cfg("NFC_E_SERIE", "20") or 20)
     except (TypeError, ValueError):
-        serie = 20
+        serie_centro = 20
     try:
-        proximo_numero_inicial = int(_cfg("NFC_E_PROXIMO_NUMERO", "1") or 1)
+        serie_vila = int(_cfg("NFC_E_VILA_SERIE") or _cfg("NFC_E_SERIE", "20") or 20)
     except (TypeError, ValueError):
-        proximo_numero_inicial = 1
+        serie_vila = serie_centro
+    try:
+        proximo_centro = int(_cfg("NFC_E_PROXIMO_NUMERO", "1") or 1)
+    except (TypeError, ValueError):
+        proximo_centro = 1
+    try:
+        proximo_vila = int(_cfg("NFC_E_VILA_PROXIMO_NUMERO", "1") or 1)
+    except (TypeError, ValueError):
+        proximo_vila = 1
     try:
         csc_id = int(re.sub(r"\D", "", _cfg("NFC_E_CSC_ID", "1") or "1") or 1)
     except (TypeError, ValueError):
@@ -197,32 +257,59 @@ def nfce_cfg() -> dict[str, Any]:
     # Jacupiranga/SP = 3524600 (3521900 é Guaiçara — valor errado no setup inicial)
     if cidade.strip().lower() == "jacupiranga":
         cmun = "3524600"
-    return {
+    razao = _cfg("NFC_E_RAZAO_SOCIAL")[:150]
+    base = {
         "ativo": config("NFC_E_ENABLED", default=False, cast=bool),
+        "loja": loja_n,
         "cert_path": cert_path,
         "cert_password": cert_password,
-        "cnpj": cnpj,
-        "ie": re.sub(r"\D", "", _cfg("NFC_E_IE"))[:14],
-        "razao_social": _cfg("NFC_E_RAZAO_SOCIAL")[:150],
-        "fantasia": (_cfg("NFC_E_FANTASIA") or _cfg("NFC_E_RAZAO_SOCIAL"))[:60],
-        "logradouro": _cfg("NFC_E_LOGRADOURO")[:60],
-        "numero": _cfg("NFC_E_NUMERO", "S/N")[:60],
-        "bairro": _cfg("NFC_E_BAIRRO")[:60],
+        "razao_social": razao,
         "cmun": cmun,
         "cidade": cidade,
         "uf": (_cfg("NFC_E_UF", "SP") or "SP").upper()[:2],
-        "cep": re.sub(r"\D", "", _cfg("NFC_E_CEP"))[:8],
         "fone": re.sub(r"\D", "", _cfg("NFC_E_FONE"))[:14],
         "csc_id": csc_id,
         "csc_token": _cfg("NFC_E_CSC_TOKEN"),
-        "serie": max(1, min(serie, 999)),
-        "proximo_numero_inicial": max(1, proximo_numero_inicial),
         "tp_amb": tp_amb,
     }
+    if loja_n == "vila":
+        base.update(
+            {
+                "cnpj": re.sub(r"\D", "", _cfg("NFC_E_VILA_CNPJ") or _VILA_CNPJ_DEFAULT)[:14],
+                "ie": re.sub(r"\D", "", _cfg("NFC_E_VILA_IE") or _VILA_IE_DEFAULT)[:14],
+                "fantasia": (
+                    _cfg("NFC_E_VILA_FANTASIA")
+                    or _VILA_FANTASIA_DEFAULT
+                    or _cfg("NFC_E_FANTASIA")
+                    or razao
+                )[:60],
+                "logradouro": (_cfg("NFC_E_VILA_LOGRADOURO") or _VILA_LOGRADOURO_DEFAULT)[:60],
+                "numero": (_cfg("NFC_E_VILA_NUMERO") or _VILA_NUMERO_DEFAULT or "S/N")[:60],
+                "bairro": (_cfg("NFC_E_VILA_BAIRRO") or _VILA_BAIRRO_DEFAULT)[:60],
+                "cep": re.sub(r"\D", "", _cfg("NFC_E_VILA_CEP") or _VILA_CEP_DEFAULT)[:8],
+                "serie": max(1, min(serie_vila, 999)),
+                "proximo_numero_inicial": max(1, proximo_vila),
+            }
+        )
+    else:
+        base.update(
+            {
+                "cnpj": re.sub(r"\D", "", _cfg("NFC_E_CNPJ") or _cfg("NFE_DIST_DFE_CNPJ"))[:14],
+                "ie": re.sub(r"\D", "", _cfg("NFC_E_IE"))[:14],
+                "fantasia": (_cfg("NFC_E_FANTASIA") or razao)[:60],
+                "logradouro": _cfg("NFC_E_LOGRADOURO")[:60],
+                "numero": _cfg("NFC_E_NUMERO", "S/N")[:60],
+                "bairro": _cfg("NFC_E_BAIRRO")[:60],
+                "cep": re.sub(r"\D", "", _cfg("NFC_E_CEP"))[:8],
+                "serie": max(1, min(serie_centro, 999)),
+                "proximo_numero_inicial": max(1, proximo_centro),
+            }
+        )
+    return base
 
 
-def _nfce_configurada_once() -> bool:
-    c = nfce_cfg()
+def _nfce_configurada_once(loja: str | None = "centro") -> bool:
+    c = nfce_cfg(loja)
     if not c["ativo"]:
         return False
     cert_ok = bool(c["cert_path"] and os.path.isfile(c["cert_path"]) and c["cert_password"])
@@ -239,9 +326,14 @@ def _nfce_configurada_once() -> bool:
     )
 
 
-def nfce_configurada(*, warmup: bool = True, tentativas: int = 1) -> bool:
+def nfce_configurada(
+    *,
+    warmup: bool = True,
+    tentativas: int = 1,
+    loja: str | None = "centro",
+) -> bool:
     """
-    True se NFC-e está pronta para emitir.
+    True se NFC-e está pronta para emitir na loja (centro|vila).
     warmup: recria .pfx temporário se sumiu (Render / cold start).
     tentativas: repete após re-materializar certificado (transiente).
     """
@@ -249,7 +341,7 @@ def nfce_configurada(*, warmup: bool = True, tentativas: int = 1) -> bool:
     for idx in range(tries):
         if warmup:
             nfce_garantir_certificado(force=idx > 0)
-        if _nfce_configurada_once():
+        if _nfce_configurada_once(loja):
             return True
         if idx + 1 < tries:
             time.sleep(0.15 * (idx + 1))
@@ -257,15 +349,24 @@ def nfce_configurada(*, warmup: bool = True, tentativas: int = 1) -> bool:
     return False
 
 
-def nfce_config_resumo() -> dict[str, Any]:
-    c = nfce_cfg()
+def nfce_config_resumo(loja: str | None = "centro") -> dict[str, Any]:
+    loja_n = nfce_normalizar_loja(loja)
+    c = nfce_cfg(loja_n)
+    vila = nfce_cfg("vila")
     return {
-        "ativo": nfce_configurada(),
+        "ativo": nfce_configurada(loja=loja_n),
+        "ativo_centro": nfce_configurada(loja="centro", warmup=False),
+        "ativo_vila": nfce_configurada(loja="vila", warmup=False),
+        "loja": loja_n,
         "modo": "auto" if nfce_emissao_automatica() else "por_forma",
         "formas_auto": nfce_formas_pagamento_auto(),
         "tp_amb": c["tp_amb"],
         "serie": c["serie"],
         "cnpj": c["cnpj"][:8] + "…" if len(c["cnpj"]) == 14 else "",
+        "cnpj_centro": (nfce_cfg("centro")["cnpj"][:8] + "…")
+        if len(nfce_cfg("centro")["cnpj"]) == 14
+        else "",
+        "cnpj_vila": vila["cnpj"][:8] + "…" if len(vila["cnpj"]) == 14 else "",
         "uf": c["uf"],
         "cmun": c["cmun"],
         "cidade": c["cidade"],
