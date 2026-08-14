@@ -215,22 +215,64 @@ def main() -> int:
         rep1.observacao = tag
         rep1.save(update_fields=["observacao"])
         ok(f"confirmar1 total={rep1.valor_total} status={rep1.status_centro}")
+        ok("forma padrao Dinheiro") if (rep1.forma_pagamento or "") == "Dinheiro" else fail(
+            f"forma={rep1.forma_pagamento!r}"
+        )
         if (
             rep1.movimento_saida_id
             and rep1.movimento_saida.tipo == MovimentoCaixa.Tipo.RETIRADA
             and rep1.movimento_saida.sessao_caixa_id == s_vila.pk
         ):
             ok("movimento saida Vila OK")
+            ok("saida forma Dinheiro") if rep1.movimento_saida.forma_pagamento == "Dinheiro" else fail(
+                "saida forma"
+            )
         else:
             fail("movimento saida")
         if s_gav and s_gav.fechado_em is None:
             ok("entrada Centro aplicada") if (
                 rep1.status_centro == "aplicado" and rep1.movimento_entrada_id
             ) else fail("Centro aberto sem aplicar")
+            if rep1.movimento_entrada_id:
+                ok("entrada forma Dinheiro") if (
+                    rep1.movimento_entrada.forma_pagamento == "Dinheiro"
+                ) else fail("entrada forma")
         else:
             ok("entrada pendente") if rep1.status_centro == "pendente" else fail(
                 "deveria pendente"
             )
+
+    # 2º envio: forma PIX + valor manual (dia cheio parcial)
+    rep_pix, err_pix = confirmar_repasse(
+        request=req,
+        quem_levou="Bot PIX",
+        percentual_lucro=50,
+        incluir_cmv=True,
+        incluir_lucro=False,
+        incluir_fiado=False,
+        modo_dia_cheio=True,
+        valor_manual=Decimal("7.77"),
+        forma_pagamento="PIX",
+        operador="bot",
+    )
+    if err_pix:
+        fail(f"confirmar PIX: {err_pix}")
+    else:
+        assert rep_pix is not None
+        rep_pix.observacao = tag
+        rep_pix.save(update_fields=["observacao"])
+        ok("forma PIX gravada") if (rep_pix.forma_pagamento or "") == "PIX" else fail(
+            f"pix forma={rep_pix.forma_pagamento!r}"
+        )
+        ok("PIX valor manual") if abs(float(rep_pix.valor_total) - 7.77) < 0.02 else fail(
+            f"pix total={rep_pix.valor_total}"
+        )
+        if rep_pix.movimento_saida_id:
+            ok("saida PIX") if rep_pix.movimento_saida.forma_pagamento == "PIX" else fail(
+                "saida nao PIX"
+            )
+        else:
+            fail("PIX sem saida")
 
     calc2 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=False)
     calc3 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=True)
