@@ -1223,7 +1223,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-VILA-EMIT** | ✅ **pronto para envio à produção** / teste **v16.24** @ **957bab5** | **SIM** 0088 |
-| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.29** | **SIM** estoque.0016+**0017** |
+| 2 | **AJUSTE-CICLICA** | ✅ **pronto para envio à produção** / teste **v16.29** @ **8874dde** | **SIM** estoque.0016+**0017** |
 | 3 | **REPASSE-VILA** | ✅ **pronto para envio à produção** / teste **v16.21** | **SIM** 0087 |
 | 4 | **DRE-VISUAL-LEGIVEL** | ✅ **pronto para envio à produção** / teste **v16.09** @ **5ae797b** | não |
 
@@ -1237,13 +1237,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** — `produtos.0088_nfce_emitente_por_loja` |
 | **Você** | migrate 0088 · Ctrl+F5 · 1 PIX caixa Vila → CNPJ `/0002` |
 
-### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.28**)
+### 📦 PACOTE PRONTO — Contagem cíclica (`AJUSTE-CICLICA` · **v16.29**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.28** @ **a453aba** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.29** |
 | **O quê** | Cíclica cego · sempre soma · filtro dias (padrão 60 + personalizado) · multi-celular · grava no final · **UX celular** (teclado, scroll lock, header, Bip+1 off, aviso 800+) |
-| **Prova** | path **56** · deep **30** · UX estática **OK** · HTTP página+API **10/10** |
+| **Prova** | path **56** · deep **30** · UX+HTTP `verify_ajuste_mobile_ux` **VERIFY_OK 13** |
 | **Migrate** | **SIM** — `estoque.0016` + **`0017`** |
 | **Você** | migrate 0016+0017 · Ctrl+F5 `/ajuste-mobile/` no **celular** |
 
