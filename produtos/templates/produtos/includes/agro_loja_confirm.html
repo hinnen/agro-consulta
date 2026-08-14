@@ -1,11 +1,11 @@
-{# Modal: digitar centro ou vila para confirmar troca de loja #}
-<div id="agro-loja-confirm-modal" class="fixed inset-0 z-[120] hidden items-center justify-center bg-slate-900/70 p-4" role="dialog" aria-modal="true" aria-labelledby="agro-loja-confirm-title">
-  <div class="w-full max-w-md rounded-2xl border-2 border-amber-400 bg-white p-5 shadow-2xl">
+{# Modal: digitar centro ou vila para confirmar troca de loja (teclado-safe no celular). #}
+<div id="agro-loja-confirm-modal" class="fixed inset-0 z-[160] hidden items-end sm:items-center justify-center bg-slate-900/70 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4" role="dialog" aria-modal="true" aria-labelledby="agro-loja-confirm-title" style="padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px) + var(--ma-kb-inset, 0px));">
+  <div class="w-full max-w-md rounded-2xl border-2 border-amber-400 bg-white p-5 shadow-2xl max-h-[min(85dvh,36rem)] overflow-y-auto">
     <p id="agro-loja-confirm-title" class="text-[11px] font-black uppercase text-amber-800">Confirmar loja</p>
     <p id="agro-loja-confirm-msg" class="mt-2 text-base font-bold text-slate-900 leading-snug">Digite a loja para confirmar.</p>
     <label class="mt-4 block">
       <span class="text-[10px] font-black uppercase text-slate-600">Digite exatamente: <span id="agro-loja-confirm-palavra" class="text-emerald-700">centro</span></span>
-      <input type="text" id="agro-loja-confirm-input" autocomplete="off" autocapitalize="off" spellcheck="false" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-400 bg-amber-50/40 px-4 text-lg font-black tracking-wide" placeholder="centro ou vila">
+      <input type="text" id="agro-loja-confirm-input" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-amber-400 bg-amber-50/40 px-4 text-lg font-black tracking-wide" placeholder="centro ou vila">
     </label>
     <p id="agro-loja-confirm-erro" class="mt-2 hidden text-sm font-black text-red-700" role="alert">Ainda não está certo — digite exatamente a palavra pedida.</p>
     <p id="agro-loja-confirm-ok-hint" class="mt-2 hidden text-sm font-black text-emerald-700">Certo. Pode confirmar.</p>
@@ -32,6 +32,18 @@
     return n === 'centro' || n === 'central' || n === 'loja centro';
   }
   function el(id) { return document.getElementById(id); }
+  function lockScroll(on) {
+    try {
+      if (typeof window.maLockScroll === 'function') {
+        window.maLockScroll(!!on);
+        return;
+      }
+    } catch (e0) {}
+    try {
+      document.documentElement.classList.toggle('ma-scroll-lock', !!on);
+      document.body.classList.toggle('ma-modal-open', !!on);
+    } catch (e1) {}
+  }
   window.AgroLojaConfirm = {
     bate: bate,
     pedir: function (opts) {
@@ -67,7 +79,15 @@
       ok.disabled = true;
       modal.classList.remove('hidden');
       modal.classList.add('flex');
-      setTimeout(function () { try { inp.focus(); } catch (e0) {} }, 50);
+      lockScroll(true);
+      setTimeout(function () {
+        try {
+          inp.focus({ preventScroll: false });
+          if (typeof inp.scrollIntoView === 'function') {
+            inp.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          }
+        } catch (e0) {}
+      }, 80);
 
       function limpar() {
         ok.onclick = null;
@@ -76,6 +96,7 @@
         inp.onkeydown = null;
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        lockScroll(false);
       }
       function mostrarErro() {
         inp.className = CLS_ERR;
@@ -99,7 +120,6 @@
           if (okHint) okHint.classList.remove('hidden');
           return;
         }
-        // Digitou algo incompleto/errado → feedback imediato
         mostrarErro();
       }
       inp.oninput = syncOk;

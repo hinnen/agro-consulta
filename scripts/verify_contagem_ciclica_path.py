@@ -59,6 +59,7 @@ check(
     "Sempre soma",
     "_pids_com_movimento",
     "dias_movimentacao",
+    "linhas_truncadas",
 )
 check(
     "produtos/contagem_ciclica_views.py",
@@ -93,6 +94,8 @@ check(
     "60 dias (padrão)",
     "FALTA",
     "Recontagem · faltam",
+    "maLockScroll",
+    "Bip +1 off",
 )
 check(
     "produtos/pg_backup_registry.py",
