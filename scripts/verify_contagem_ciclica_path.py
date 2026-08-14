@@ -110,6 +110,51 @@ check(
 )
 check("scripts/verify_contagem_ciclica_deep.py", "VERIFY_DEEP_OK", "gravar_fechamento")
 
+# Runtime: cancelar sessão descartável (não toca sessão real da loja)
+try:
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    import django
+
+    django.setup()
+    from estoque.models import (
+        ContagemCiclicaEscopo,
+        ContagemCiclicaSessao,
+        ContagemCiclicaStatus,
+    )
+    from produtos.contagem_ciclica_util import cancelar_sessao
+
+    s = ContagemCiclicaSessao.objects.create(
+        deposito="centro",
+        escopo_tipo=ContagemCiclicaEscopo.LOJA,
+        escopo_valor="",
+        status=ContagemCiclicaStatus.PASS1,
+        passagem_atual=1,
+        aberta_por_rotulo="verify-path-cancel",
+        dias_movimentacao=60,
+    )
+    cancelar_sessao(s)
+    s.refresh_from_db()
+    if s.status != ContagemCiclicaStatus.CANCELADA:
+        fails.append(f"cancelar_sessao status={s.status}")
+    else:
+        oks += 1
+    cancelar_sessao(s)  # idempotente
+    oks += 1
+    s.status = ContagemCiclicaStatus.FECHADA
+    s.save(update_fields=["status"])
+    try:
+        cancelar_sessao(s)
+        fails.append("cancelar FECHADA deveria falhar")
+    except ValueError:
+        oks += 1
+    ContagemCiclicaSessao.objects.filter(pk=s.pk).delete()
+except Exception as e:
+    fails.append(f"runtime cancel: {e}")
+
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
     print("FAIL", f)
