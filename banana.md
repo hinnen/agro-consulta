@@ -1214,30 +1214,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
-> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f** · Render `dep-d9vn5fbncjis73elco4g`  
+> **Loja hoje:** ✅ **Live v16.32** · `producao` @ **544b31f**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> Fila de envio deste lote: **vazia** (4 pacotes Live).
+> **Só no teste (subir juntos):** NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX.
 
-### 🐛 Hotfix NFC-e Vila — sequência PK (14/08 · pós Live v16.32)
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** / teste **v16.36** @ **952be59** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** / teste (este commit) | não |
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Sintoma** | Vila: demora + «EMITINDO…» / cupom pendente na 1ª venda pós-deploy |
-| **Causa** | `get_or_create` da numeração Vila → `IntegrityError` pkey (`nfcenumeracaoagro` seq atrasada; só existia id=1 Centro) |
-| **Estado agora** | Venda **#5426** **autorizada** (nNF=2 CNPJ `/0002`) · linha Vila id=2 · seq OK · próximas emissões devem ir |
-| **Código** | reforço em `nfce_sp_emissao_util` (sync seq + retry) no `teste` — sobe loja **só** com frase+senha |
-| **Você** | Ctrl+F5 · venda teste R$1,50 Vila · se falhar de novo: **Reemitir NFC-e** na venda |
-
-### 📦 WIP — Contabilidade NFC-e por loja (`CTB-NFCE-LOJA`)
+### 📦 PACOTE PRONTO — Repasse tela compacta (`REPASSE-VILA-UX`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | no `teste` · filtro Centro / Vila / Ambas em `/contabilidade/` |
-| **O quê** | Resumo + ZIP/CSV/Excel/pendências separados por CNPJ (`loja=`); arquivo `nfce-xml-centro-…` / `nfce-xml-vila-…` |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | `/repasse-vila/` denso: `?` só ícone · checks/dias baixos · sem faixas amarelas largas |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Contabilidade · escolher Vila → ZIP |
+| **Você** | Ctrl+F5 `/repasse-vila/` |
+
+### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (`NFCE-VILA-SEQ` · **v16.36**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.36** @ **952be59** |
+| **O quê** | Sync sequência PK + retry ao criar numeração Vila (evita 1ª emissão travada pós-0088) |
+| **Prova** | path CTB+SEQ **VERIFY_OK 52** · loja já emite Vila (seq OK no PG) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · venda teste Vila |
+
+### 📦 PACOTE PRONTO — Contabilidade NFC-e por loja (`CTB-NFCE-LOJA` · **v16.36**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.36** @ **952be59** |
+| **O quê** | `/contabilidade/` · botões grandes Centro/Vila/Ambas · ZIP/CSV/Excel por CNPJ |
+| **Prova** | `verify_contabilidade_nfce_loja_path` **VERIFY_OK 52** · ZIP smoke OK |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Contabilidade · Centro ZIP · Vila ZIP |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32) · **superado**
+
+> Vigente: **CHECKLIST ÚNICO — pronto envio (14/08b)** no topo. Loja permanece **v16.32** até o próximo envio.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
