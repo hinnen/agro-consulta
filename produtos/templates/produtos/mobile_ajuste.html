@@ -1823,10 +1823,70 @@ function stopScan() {
     .then(finish, finish);
 }
 
+function maCiclicaLinhas() {
+  const s = maCiclicaSessao;
+  return (s && Array.isArray(s.linhas)) ? s.linhas : [];
+}
+
+/** Monta cards da fila cíclica (pass1 = escopo · pass2 = só diferenças). */
+function maCiclicaProdutosDaFila(termoN) {
+  const linhas = maCiclicaLinhas();
+  if (!linhas.length) return null;
+  const byId = new Map();
+  (baseProdutos || []).forEach((p) => {
+    if (p && p.id != null) byId.set(String(p.id), p);
+  });
+  const out = [];
+  linhas.forEach((ln) => {
+    const pid = String(ln.produto_id || '').trim();
+    if (!pid) return;
+    const cat = byId.get(pid);
+    const nome = String((cat && cat.nome) || ln.nome || '').trim() || ('Produto ' + pid.slice(0, 8));
+    const codigo = String((cat && (cat.codigo_nfe || cat.codigo)) || ln.codigo || '').trim();
+    const marca = String((cat && cat.marca) || '').trim() || '—';
+    if (termoN && termoN.length >= 2) {
+      const blob = normalizar([nome, codigo, marca, pid].join(' '));
+      if (blob.indexOf(termoN) < 0) return;
+    }
+    const p = cat
+      ? Object.assign({}, cat, { nome: nome, codigo_nfe: codigo || cat.codigo_nfe })
+      : {
+          id: pid,
+          nome: nome,
+          codigo: codigo,
+          codigo_nfe: codigo,
+          marca: marca,
+          categoria: ln.categoria || '',
+          saldo_centro: 0,
+          saldo_vila: 0,
+        };
+    p._ciclicaContado = !!ln.contado;
+    p._ciclicaFalta = !!ln.faltando || !ln.contado;
+    out.push(p);
+  });
+  // Pass2: faltando primeiro
+  if (maCiclicaSessao && maCiclicaSessao.status === 'pass2') {
+    out.sort((a, b) => Number(!!b._ciclicaFalta) - Number(!!a._ciclicaFalta) || String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+  }
+  return out;
+}
+
 function buscar(q) {
   const termoOriginal = String(q || '').trim();
   const termoN = normalizarBuscaLocal(termoOriginal);
   if (termoN.length >= 2) maUltimoBipadoId = null;
+
+  // Recontagem / escopo cíclico: lista = fila da sessão (não o catálogo inteiro).
+  if (maCiclicaAtiva() && maCiclicaLinhas().length) {
+    const fila = maCiclicaProdutosDaFila(termoN) || [];
+    const falta = fila.filter((p) => p._ciclicaFalta).length;
+    const rotulo = (maCiclicaSessao.status === 'pass2')
+      ? `Recontagem · faltam ${falta} de ${fila.length}`
+      : `Cíclica · ${fila.length} no escopo`;
+    maPintarResultados(fila, rotulo);
+    return;
+  }
+
   const saldoFiltro = filtrosAplicados.saldo || 'all';
   const extraFiltro = filtrosAplicados.extra || 'all';
   const ordem = filtrosAplicados.ordem || 'nome';
@@ -1887,7 +1947,7 @@ function maPintarResultados(resultados, resumoTxt) {
     const d = document.createElement('div');
     d.className = 'ma-card';
     const numsHtml = maCiclicaAtiva()
-      ? `<div class="ma-card-nums"><span class="ma-card-contagem is-pendente">cego</span></div>`
+      ? `<div class="ma-card-nums"><span class="ma-card-contagem ${p._ciclicaFalta ? 'is-pendente' : 'is-ok'}">${p._ciclicaFalta ? 'FALTA' : 'OK'}</span></div>`
       : `<div class="ma-card-nums">
           <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
           <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
@@ -2338,7 +2398,12 @@ function maCiclicaAtivar(sessao) {
   if (maCiclicaPoll) clearInterval(maCiclicaPoll);
   maCiclicaPoll = setInterval(() => maCiclicaRefresh(false), 12000);
   maCiclicaPintarBar();
-  buscar(document.getElementById('busca')?.value || '');
+  const temLinhas = Array.isArray(sessao.linhas) && sessao.linhas.length;
+  if (!temLinhas) {
+    maCiclicaRefresh(true);
+  } else {
+    buscar(document.getElementById('busca')?.value || '');
+  }
 }
 
 function maCiclicaSairModo() {
@@ -2364,8 +2429,13 @@ function maCiclicaRefresh(forceDetalhe) {
         maCiclicaSairModo();
         return;
       }
+      const prevLinhas = maCiclicaLinhas();
       maCiclicaSessao = d.sessao;
+      if (!Array.isArray(maCiclicaSessao.linhas) && prevLinhas.length) {
+        maCiclicaSessao.linhas = prevLinhas;
+      }
       maCiclicaPintarBar();
+      buscar(document.getElementById('busca')?.value || '');
     })
     .catch(() => {});
 }
@@ -2472,7 +2542,20 @@ function salvarCiclica() {
   })
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
-      if (d.sessao) maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
+      if (d.sessao) {
+        const prev = maCiclicaLinhas();
+        maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
+        if (!Array.isArray(maCiclicaSessao.linhas) && prev.length) {
+          maCiclicaSessao.linhas = prev;
+        }
+      }
+      const pid = String(pSel.id || '');
+      (maCiclicaLinhas() || []).forEach((ln) => {
+        if (String(ln.produto_id) === pid) {
+          ln.contado = true;
+          ln.faltando = false;
+        }
+      });
       maCiclicaPintarBar();
       fechar();
       const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : qtd;
@@ -2480,6 +2563,9 @@ function salvarCiclica() {
         ? `Somou · total parcial ${acum} (ainda não grava estoque)`
         : 'Somou (ainda não grava estoque)';
       maMostrarToast && maMostrarToast(msg, true);
+      return maCiclicaRefresh(true);
+    })
+    .then(() => {
       buscar(document.getElementById('busca').value);
     })
     .catch((e) => alert(e.message || 'Erro'))
@@ -2542,7 +2628,14 @@ document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () =>
       maCiclicaSessao = d.sessao;
       maCiclicaPintarBar();
       const n = (d.resumo && d.resumo.recontagem) || 0;
-      alert(`Passagem 1 ok. ${n} itens pra recontar (maiores diferenças).`);
+      const nomes = ((d.sessao && d.sessao.linhas) || [])
+        .filter((ln) => ln && (ln.faltando || !ln.contado))
+        .map((ln) => ln.nome || ln.codigo || ln.produto_id)
+        .slice(0, 12);
+      const listaTxt = nomes.length
+        ? ('\n\nFila:\n• ' + nomes.join('\n• ') + (n > nomes.length ? '\n…' : ''))
+        : '';
+      alert(`Passagem 1 ok. ${n} itens pra recontar.${listaTxt}`);
       buscar(document.getElementById('busca').value);
     })
     .catch((e) => alert(e.message || 'Erro'))
