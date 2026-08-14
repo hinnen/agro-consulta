@@ -89,7 +89,8 @@ check(
     "FALTA",
     "Recontagem · faltam",
     "maLockScroll",
-    "Bip +1 off",
+    "Incluir fora",
+    "forcar",
 )
 check(
     "produtos/pg_backup_registry.py",

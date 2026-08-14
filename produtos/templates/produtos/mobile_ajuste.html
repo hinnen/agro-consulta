@@ -385,6 +385,7 @@
     }
     .ma-card-contagem.is-pendente { color: #b45309; }
     .ma-card-contagem.is-ok { color: #475569; }
+    .ma-card-contagem.is-fora { color: #7c2d12; background: #ffedd5; padding: 0.15rem 0.35rem; border-radius: 0.4rem; }
     .ma-card-saldo {
       font-size: 1.05rem !important;
       font-weight: 900;
@@ -567,6 +568,9 @@
   <div id="ma-ciclica-bar" class="hidden px-3 pt-2">
     <div class="rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2.5 space-y-2">
       <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
+      <button type="button" id="ma-ciclica-btn-incluir-fora" class="w-full min-h-[2.5rem] rounded-xl border border-orange-300 bg-white text-orange-950 text-[10px] font-black uppercase" aria-pressed="false" title="Permite bipar/contar produto que não está na lista">
+        Incluir fora: OFF
+      </button>
       <div class="grid grid-cols-2 gap-2">
         <button type="button" id="ma-ciclica-btn-pass1" class="min-h-[2.5rem] rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase">Fechar passagem 1</button>
         <button type="button" id="ma-ciclica-btn-gravar" class="min-h-[2.5rem] rounded-xl bg-emerald-700 text-white text-[10px] font-black uppercase hidden">Gravar estoque</button>
@@ -836,6 +840,8 @@ const MA_CICLICA_KEY = 'ma_ciclica_sessao_id_v1';
 
 let maCiclicaSessao = null;
 let maCiclicaPoll = null;
+/** Liga busca/contagem de produto fora da fila (achado depois). */
+let maCiclicaIncluirFora = false;
 
 let maBip1On = false;
 let maCodigoOrfao = null;
@@ -1963,7 +1969,9 @@ function maCiclicaProdutosDaFila(termoN) {
     const codigo = String((cat && (cat.codigo_nfe || cat.codigo)) || ln.codigo || '').trim();
     const marca = String((cat && cat.marca) || '').trim() || '—';
     if (termoN && termoN.length >= 2) {
-      const blob = normalizar([nome, codigo, marca, pid].join(' '));
+      const barras = Array.isArray(cat && cat.index_codigos) ? cat.index_codigos.join(' ') : '';
+      const ean = String((cat && (cat.codigo_barras || cat.ean || '')) || '');
+      const blob = normalizar([nome, codigo, marca, pid, ean, barras].join(' '));
       if (blob.indexOf(termoN) < 0) return;
     }
     const p = cat
@@ -1996,12 +2004,41 @@ function buscar(q) {
 
   // Recontagem / escopo cíclico: lista = fila da sessão (não o catálogo inteiro).
   if (maCiclicaAtiva() && maCiclicaLinhas().length) {
-    const fila = maCiclicaProdutosDaFila(termoN) || [];
+    let fila = maCiclicaProdutosDaFila(termoN) || [];
+    /* «Incluir fora»: com busca, também mostra produtos do catálogo que não estão na fila. */
+    if (maCiclicaIncluirFora && termoN.length >= 2 && baseProdutos.length) {
+      const idsFila = new Set(fila.map((p) => String(p.id)));
+      const extra = filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal')
+        .filter((p) => p && !idsFila.has(String(p.id)))
+        .slice(0, 30)
+        .map((p) => Object.assign({}, p, {
+          _ciclicaFora: true,
+          _ciclicaFalta: true,
+          _ciclicaContado: false,
+        }));
+      fila = fila.concat(extra);
+    }
     const falta = fila.filter((p) => p._ciclicaFalta).length;
     const rotulo = (maCiclicaSessao.status === 'pass2')
-      ? `Recontagem · faltam ${falta} de ${fila.length}`
-      : `Cíclica · ${fila.length} no escopo`;
+      ? (maCiclicaIncluirFora
+        ? `Recontagem · faltam ${falta} · incluir fora ON`
+        : `Recontagem · faltam ${falta} de ${fila.length}`)
+      : (maCiclicaIncluirFora
+        ? `Cíclica · ${fila.length} · incluir fora ON`
+        : `Cíclica · ${fila.length} no escopo`);
     maPintarResultados(fila, rotulo);
+    return;
+  }
+  /* Cíclica corredor / fila vazia + incluir fora: busca no catálogo. */
+  if (maCiclicaAtiva() && maCiclicaIncluirFora && termoN.length >= 2 && baseProdutos.length) {
+    const extra = filtrarProdutosBuscaInteligente(baseProdutos, termoN, 'normal')
+      .slice(0, 40)
+      .map((p) => Object.assign({}, p, {
+        _ciclicaFora: true,
+        _ciclicaFalta: true,
+        _ciclicaContado: false,
+      }));
+    maPintarResultados(extra, `Incluir fora · ${extra.length} achados`);
     return;
   }
 
@@ -2065,7 +2102,7 @@ function maPintarResultados(resultados, resumoTxt) {
     const d = document.createElement('div');
     d.className = 'ma-card';
     const numsHtml = maCiclicaAtiva()
-      ? `<div class="ma-card-nums"><span class="ma-card-contagem ${p._ciclicaFalta ? 'is-pendente' : 'is-ok'}">${p._ciclicaFalta ? 'FALTA' : 'OK'}</span></div>`
+      ? `<div class="ma-card-nums"><span class="ma-card-contagem ${p._ciclicaFora ? 'is-fora' : (p._ciclicaFalta ? 'is-pendente' : 'is-ok')}">${p._ciclicaFora ? 'FORA' : (p._ciclicaFalta ? 'FALTA' : 'OK')}</span></div>`
       : `<div class="ma-card-nums">
           <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
           <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
@@ -2521,6 +2558,7 @@ function maCiclicaAtivar(sessao) {
   maBip1On = false;
   try { sessionStorage.setItem(MA_BIP1_KEY, '0'); } catch (_) {}
   maBip1SyncBtn();
+  maCiclicaSyncIncluirForaBtn();
   if (maCiclicaPoll) clearInterval(maCiclicaPoll);
   maCiclicaPoll = setInterval(() => maCiclicaRefresh(false), 12000);
   maCiclicaPintarBar();
@@ -2699,16 +2737,28 @@ function salvarCiclica() {
     alert('Digite a quantidade deste lugar (0 = vazio). Bipe de novo noutro lugar pra somar.');
     return;
   }
+  const pid = String(pSel.id || '');
+  const naFila = (maCiclicaLinhas() || []).some((ln) => String(ln.produto_id) === pid);
+  let forcar = !!(maCiclicaIncluirFora || pSel._ciclicaFora || !naFila);
+  if (!naFila && !maCiclicaIncluirFora && !pSel._ciclicaFora) {
+    const ok = confirm('Este produto não está na lista de conferência. Incluir mesmo assim?');
+    if (!ok) return;
+    forcar = true;
+  } else if (!naFila && (maCiclicaIncluirFora || pSel._ciclicaFora)) {
+    /* já autorizado pelo botão Incluir fora */
+  }
   const btn = document.getElementById('ma-btn-ciclica-contar');
   if (btn) btn.disabled = true;
   if (window.gmLoadingBar) window.gmLoadingBar.show();
-  maCiclicaPost(maCiclicaUrl('contar'), {
+  const payload = {
     produto_id: pSel.id,
     qtd: String(qtd),
     nome_produto: pSel.nome || '',
     codigo_interno: pSel.codigo_nfe || pSel.codigo || '',
     categoria: pSel.categoria || '',
-  })
+  };
+  if (forcar) payload.forcar = '1';
+  maCiclicaPost(maCiclicaUrl('contar'), payload)
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
       if (d.sessao) {
@@ -2718,7 +2768,6 @@ function salvarCiclica() {
           maCiclicaSessao.linhas = prev;
         }
       }
-      const pid = String(pSel.id || '');
       (maCiclicaLinhas() || []).forEach((ln) => {
         if (String(ln.produto_id) === pid) {
           ln.contado = true;
@@ -2737,17 +2786,51 @@ function salvarCiclica() {
     .then(() => {
       buscar(document.getElementById('busca').value);
     })
-    .catch((e) => alert(e.message || 'Erro'))
+    .catch((e) => {
+      const msg = String((e && e.message) || 'Erro');
+      if (/Incluir fora|fila|escopo/i.test(msg) && !forcar) {
+        if (confirm(msg + '\n\nIncluir este produto agora?')) {
+          maCiclicaIncluirFora = true;
+          maCiclicaSyncIncluirForaBtn();
+          pSel._ciclicaFora = true;
+          salvarCiclica();
+          return;
+        }
+      }
+      alert(msg);
+    })
     .finally(() => {
       maResetLoading();
       if (btn) btn.disabled = false;
     });
 }
 
+function maCiclicaSyncIncluirForaBtn() {
+  const btn = document.getElementById('ma-ciclica-btn-incluir-fora');
+  if (!btn) return;
+  btn.setAttribute('aria-pressed', maCiclicaIncluirFora ? 'true' : 'false');
+  btn.textContent = maCiclicaIncluirFora ? 'Incluir fora: ON' : 'Incluir fora: OFF';
+  btn.classList.toggle('bg-orange-200', !!maCiclicaIncluirFora);
+  btn.classList.toggle('border-orange-500', !!maCiclicaIncluirFora);
+}
+
 document.getElementById('ma-btn-ciclica')?.addEventListener('click', maCiclicaAbrirModal);
 document.getElementById('ma-ciclica-fechar-modal')?.addEventListener('click', maCiclicaFecharModal);
 document.getElementById('ma-ciclica-escopo')?.addEventListener('change', maCiclicaSyncEscopoUI);
 document.getElementById('ma-ciclica-dias')?.addEventListener('change', maCiclicaSyncDiasUI);
+document.getElementById('ma-ciclica-btn-incluir-fora')?.addEventListener('click', () => {
+  maCiclicaIncluirFora = !maCiclicaIncluirFora;
+  maCiclicaSyncIncluirForaBtn();
+  if (typeof maMostrarToast === 'function') {
+    maMostrarToast(
+      maCiclicaIncluirFora
+        ? 'Incluir fora ON · busque/bipe o produto achado'
+        : 'Incluir fora OFF · só a lista da conferência',
+      true
+    );
+  }
+  buscar(document.getElementById('busca')?.value || '');
+});
 document.getElementById('ma-ciclica-abrir')?.addEventListener('click', () => {
   const tipo = document.getElementById('ma-ciclica-escopo')?.value || 'loja';
   let valor = '';

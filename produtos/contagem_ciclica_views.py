@@ -126,6 +126,8 @@ def api_ciclica_contar(request, pk: int):
     if sessao is None:
         return JsonResponse({"ok": False, "erro": "Sessão não encontrada."}, status=404)
     rot, _user = _operador_da_request(request)
+    forcar_raw = str(_get(request, "forcar", "") or "").strip().lower()
+    forcar = forcar_raw in ("1", "true", "sim", "yes", "on")
     try:
         ln = registrar_contagem(
             sessao,
@@ -135,6 +137,7 @@ def api_ciclica_contar(request, pk: int):
             nome_produto=_get(request, "nome_produto"),
             codigo_interno=_get(request, "codigo_interno"),
             categoria=_get(request, "categoria"),
+            forcar=forcar,
         )
     except ValueError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)

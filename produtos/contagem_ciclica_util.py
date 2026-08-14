@@ -291,6 +291,7 @@ def registrar_contagem(
     nome_produto: str = "",
     codigo_interno: str = "",
     categoria: str = "",
+    forcar: bool = False,
 ) -> ContagemCiclicaLinha:
     if sessao.status not in (ContagemCiclicaStatus.PASS1, ContagemCiclicaStatus.PASS2):
         raise ValueError("Contagem fechada — não dá para lançar.")
@@ -310,10 +311,20 @@ def registrar_contagem(
     )
 
     if linha is None:
-        if sessao.escopo_tipo != ContagemCiclicaEscopo.CORREDOR and sessao.status == ContagemCiclicaStatus.PASS1:
-            raise ValueError("Produto fora do escopo desta contagem.")
-        if sessao.status == ContagemCiclicaStatus.PASS2:
-            raise ValueError("Na recontagem só entram itens da fila de diferenças.")
+        # Sem forçar: loja/categoria na pass1 só escopo; pass2 só fila de diferenças.
+        # Corredor na pass1 já nasce ao bipar. forcar=True = achou produto depois.
+        if not forcar:
+            if (
+                sessao.escopo_tipo != ContagemCiclicaEscopo.CORREDOR
+                and sessao.status == ContagemCiclicaStatus.PASS1
+            ):
+                raise ValueError(
+                    "Produto fora do escopo desta contagem. Ligue «Incluir fora» pra forçar."
+                )
+            if sessao.status == ContagemCiclicaStatus.PASS2:
+                raise ValueError(
+                    "Na recontagem só entram itens da fila. Ligue «Incluir fora» pra forçar."
+                )
         saldos = _mapa_saldos([pid], sessao.deposito)
         linha = ContagemCiclicaLinha.objects.create(
             sessao=sessao,
@@ -322,6 +333,8 @@ def registrar_contagem(
             nome_produto=(nome_produto or "")[:255],
             categoria=(categoria or "")[:200],
             saldo_referencia=_dec(saldos.get(pid, 0)),
+            # Pass2 forçada: já entra na fila de recontagem.
+            precisa_recontagem=(sessao.status == ContagemCiclicaStatus.PASS2),
         )
         ContagemCiclicaSessao.objects.filter(pk=sessao.pk).update(
             total_itens=ContagemCiclicaLinha.objects.filter(sessao=sessao).count()
@@ -359,19 +372,30 @@ def registrar_contagem(
             )
     else:
         if not linha.precisa_recontagem:
-            raise ValueError("Este item não está na fila de recontagem.")
+            if not forcar:
+                raise ValueError(
+                    "Este item não está na fila de recontagem. Ligue «Incluir fora» pra forçar."
+                )
+            linha.precisa_recontagem = True
+            linha.save(update_fields=["precisa_recontagem"])
         ja = linha.contado_pass2
         base = _dec(linha.qtd_pass2) if ja and linha.qtd_pass2 is not None else Decimal("0")
         linha.qtd_pass2 = base + q
         linha.contado_pass2 = True
         linha.operador_pass2 = rot
         linha.contado_pass2_em = now
+        if nome_produto and not linha.nome_produto:
+            linha.nome_produto = nome_produto[:255]
+        if codigo_interno and not linha.codigo_interno:
+            linha.codigo_interno = codigo_interno[:100]
         linha.save(
             update_fields=[
                 "qtd_pass2",
                 "contado_pass2",
                 "operador_pass2",
                 "contado_pass2_em",
+                "nome_produto",
+                "codigo_interno",
             ]
         )
         if not ja:

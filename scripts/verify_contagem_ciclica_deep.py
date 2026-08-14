@@ -225,6 +225,19 @@ try:
     except ValueError:
         ok("pass2 só fila")
 
+    # Forçar entrada (produto achado depois / fora da conferência)
+    ln_bf = registrar_contagem(
+        s1,
+        produto_externo_id=pid_b,
+        qtd="11",
+        operador_rotulo="Op1",
+        forcar=True,
+    )
+    if (not ln_bf.precisa_recontagem) or Decimal(str(ln_bf.qtd_pass2)) != Decimal("11"):
+        fail(f"forcar pass2 falhou precisa={ln_bf.precisa_recontagem} qtd={ln_bf.qtd_pass2}")
+    else:
+        ok("forcar pass2 inclui fora da fila")
+
     registrar_contagem(s1, produto_externo_id=pid_a, qtd="4", operador_rotulo="Op2")
     out = gravar_fechamento(s1, operador_rotulo="Op1")
     s1.refresh_from_db()
@@ -249,13 +262,13 @@ try:
     else:
         ok(f"ajuste origem contagem_ciclica (ajustes={out.get('ajustes')})")
 
-    # B sem diff → sem ajuste
+    # B forçado (11 ≠ ref 3) → também ajusta
     if AjusteRapidoEstoque.objects.filter(
         produto_externo_id=pid_b, origem=OrigemAjusteEstoque.CONTAGEM_CICLICA
     ).exists():
-        fail("criou ajuste para item sem diferença")
+        ok("forcar gravou ajuste do item incluso")
     else:
-        ok("sem ajuste quando qtd=ref")
+        fail("forcar não gerou ajuste no gravar")
 
 except Exception as e:
     fail(f"fluxo corredor: {e}")
