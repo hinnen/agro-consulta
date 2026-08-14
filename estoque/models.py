@@ -258,6 +258,10 @@ class ContagemCiclicaSessao(models.Model):
         default="",
         help_text="Categoria ou nome do corredor (vazio se loja inteira).",
     )
+    dias_movimentacao = models.PositiveIntegerField(
+        default=60,
+        help_text="Só produtos com movimento Agro no depósito nos últimos N dias. 0 = sem filtro.",
+    )
     status = models.CharField(
         max_length=20,
         choices=ContagemCiclicaStatus.choices,
