@@ -92,3 +92,46 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
         qs.filter(deposito__iexact="vila").aggregate(soma=Sum("total")).get("soma")
     )
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
+
+
+def vendas_lojas_meta_c_soma(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> Decimal:
+    """
+    Soma da Meta C do BI no intervalo (mesma regra do gráfico).
+    ``deposito=centro|vila`` filtra a loja; ``None`` = as duas (como o BI sem filtro).
+    """
+    from produtos.views import _dashboard_serie_meta_c_vendas
+
+    dep = deposito if deposito in ("centro", "vila") else None
+    serie = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito=dep)
+    return _q2(sum(float(x or 0) for x in serie))
+
+
+def vendas_lojas_cmp_meta(vendido, esperado) -> dict:
+    """Vendido vs média esperada: diferença em R$ e % acima/abaixo."""
+    vendido_q = _q2(vendido)
+    esperado_q = _q2(esperado)
+    if esperado_q <= 0:
+        return {
+            "esperado": esperado_q,
+            "diff": None,
+            "pct": None,
+            "pct_signed": None,
+            "sentido": "sem",
+        }
+    diff = (vendido_q - esperado_q).quantize(Decimal("0.01"))
+    pct_signed = (diff / esperado_q * Decimal("100")).quantize(Decimal("0.1"))
+    if abs(diff) < Decimal("0.005"):
+        sentido = "igual"
+    elif diff > 0:
+        sentido = "acima"
+    else:
+        sentido = "abaixo"
+    return {
+        "esperado": esperado_q,
+        "diff": diff,
+        "pct": abs(pct_signed),
+        "pct_signed": pct_signed,
+        "sentido": sentido,
+    }

@@ -8401,19 +8401,26 @@ def _dashboard_meta_c_meses_anteriores() -> int:
 
 
 def _dashboard_meta_c_meses_por_dia(
-    d: date, cache: dict[tuple[date, date], dict] | None = None
+    d: date,
+    cache: dict | None = None,
+    deposito: str | None = None,
 ) -> list[tuple[date, date, dict]]:
-    """M-1, M-2, M-3… por_dia para o dia ``d`` (cache opcional por intervalo de mês)."""
+    """M-1, M-2, M-3… por_dia para o dia ``d`` (cache opcional por intervalo + loja)."""
     if cache is None:
         cache = {}
+    dep_key = deposito if deposito in ("centro", "vila") else None
     meses: list[tuple[date, date, dict]] = []
     cur = d
     for _ in range(_dashboard_meta_c_meses_anteriores()):
         fp, lp = _dashboard_bounds_mes_anterior_para_dia(cur)
-        key = (fp, lp)
+        key = (fp, lp, dep_key)
         if key not in cache:
-            ser = _dashboard_vendas_serie_meta_historico(fp, lp)
-            cache[key] = ser.get("por_dia") or {}
+            legacy = (fp, lp)
+            if dep_key is None and legacy in cache:
+                cache[key] = cache[legacy]
+            else:
+                ser = _dashboard_vendas_serie_meta_historico(fp, lp, deposito=dep_key)
+                cache[key] = ser.get("por_dia") or {}
         meses.append((fp, lp, cache[key]))
         cur = fp
     return meses
@@ -8439,36 +8446,50 @@ def _dashboard_vendas_meta_c_para_dia(
     return round(sum(partes) / len(partes), 2)
 
 
-def _dashboard_serie_meta_c_vendas(data_ini: date, data_fim: date) -> list[float]:
+def _dashboard_serie_meta_c_vendas(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> list[float]:
     """Uma meta C por dia no intervalo (visão anual mensal não aplica esta regra)."""
+    dep_key = deposito if deposito in ("centro", "vila") else None
+    ck = f"dash:metac:v1:{dep_key or 'todas'}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    cached = cache.get(ck)
+    if isinstance(cached, list) and len(cached) == (data_fim - data_ini).days + 1:
+        return cached
     dias = (data_fim - data_ini).days + 1
-    cache: dict[tuple[date, date], dict] = {}
+    hist_cache: dict = {}
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
         out.append(
-            _dashboard_vendas_meta_c_para_dia(d, _dashboard_meta_c_meses_por_dia(d, cache))
+            _dashboard_vendas_meta_c_para_dia(
+                d, _dashboard_meta_c_meses_por_dia(d, hist_cache, deposito=dep_key)
+            )
         )
+    cache.set(ck, out, timeout=120)
     return out
 
 
-def _dashboard_vendas_serie_meta_historico(data_ini: date, data_fim: date) -> dict:
+def _dashboard_vendas_serie_meta_historico(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict:
     """
     Base histórica (M-1 / M-2 / M-3…) para meta C.
     Com catálogo PG: planilha importada + VendaAgro (PDV sobrescreve o dia).
+    ``deposito=centro|vila``: mesma regra do gráfico do BI por loja.
     """
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
 
+    dep_key = deposito if deposito in ("centro", "vila") else None
     if _dashboard_vendas_fonte_pdv() and agro_catalogo_usa_postgres():
         from produtos.dashboard_vendas_historico_util import dashboard_vendas_serie_meta_merged
 
-        return dashboard_vendas_serie_meta_merged(data_ini, data_fim)
+        return dashboard_vendas_serie_meta_merged(data_ini, data_fim, deposito=dep_key)
     if _dashboard_vendas_fonte_pdv():
-        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim)
+        ser = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=dep_key)
         if float(ser.get("total") or 0) > 0:
             return ser
-        return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim)
-    return _dashboard_mongo_vendas_serie(data_ini, data_fim)
+        return _dashboard_vendas_serie_erp_mongo(data_ini, data_fim, deposito=dep_key)
+    return _dashboard_mongo_vendas_serie(data_ini, data_fim, deposito=dep_key)
 
 
 def _dashboard_vendas_fonte_modo() -> str:
@@ -10893,15 +10914,50 @@ def api_pdv_relacionamento_cliente_extras(request):
     return JsonResponse({"ok": True, "extras": extras})
 
 
+def _vendas_lojas_pct_br(val) -> str:
+    if val is None:
+        return ""
+    return f"{Decimal(str(val)).quantize(Decimal('0.1')):.1f}".replace(".", ",")
+
+
+def _vendas_lojas_cmp_ctx(vendido, esperado) -> dict:
+    from produtos.vendas_lojas_util import vendas_lojas_cmp_meta
+
+    c = vendas_lojas_cmp_meta(vendido, esperado)
+    sentido = c["sentido"]
+    out = {
+        "esperado_fmt": _format_moeda_br(c["esperado"]),
+        "sentido": sentido,
+        "diff_fmt": "",
+        "pct_fmt": "",
+        "tem_media": sentido != "sem",
+    }
+    if sentido == "sem" or c["diff"] is None:
+        return out
+    out["diff_fmt"] = _format_moeda_br(abs(c["diff"]))
+    out["pct_fmt"] = _vendas_lojas_pct_br(c["pct"])
+    return out
+
+
 @never_cache
 @login_required(login_url="/admin/login/")
 @require_GET
 def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
-    from produtos.vendas_lojas_util import vendas_lojas_totais
+    from produtos.vendas_lojas_util import vendas_lojas_meta_c_soma, vendas_lojas_totais
 
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
     centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    try:
+        esp_centro = vendas_lojas_meta_c_soma(data_ini, data_fim, "centro")
+        esp_vila = vendas_lojas_meta_c_soma(data_ini, data_fim, "vila")
+        esp_total = vendas_lojas_meta_c_soma(data_ini, data_fim, None)
+    except Exception:
+        logging.getLogger(__name__).exception("vendas_lojas_resumo meta C")
+        esp_centro = esp_vila = esp_total = Decimal("0.00")
+    cmp_c = _vendas_lojas_cmp_ctx(centro, esp_centro)
+    cmp_v = _vendas_lojas_cmp_ctx(vila, esp_vila)
+    cmp_t = _vendas_lojas_cmp_ctx(total, esp_total)
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -10916,6 +10972,18 @@ def vendas_lojas_resumo(request):
             "centro_val": centro,
             "vila_val": vila,
             "total_val": total,
+            "centro_esp_fmt": cmp_c["esperado_fmt"],
+            "vila_esp_fmt": cmp_v["esperado_fmt"],
+            "total_esp_fmt": cmp_t["esperado_fmt"],
+            "centro_diff_fmt": cmp_c["diff_fmt"],
+            "vila_diff_fmt": cmp_v["diff_fmt"],
+            "total_diff_fmt": cmp_t["diff_fmt"],
+            "centro_pct_fmt": cmp_c["pct_fmt"],
+            "vila_pct_fmt": cmp_v["pct_fmt"],
+            "total_pct_fmt": cmp_t["pct_fmt"],
+            "centro_sentido": cmp_c["sentido"],
+            "vila_sentido": cmp_v["sentido"],
+            "total_sentido": cmp_t["sentido"],
             "hoje_iso": timezone.localdate().isoformat(),
             "data_iso": data_ini.isoformat(),
         },

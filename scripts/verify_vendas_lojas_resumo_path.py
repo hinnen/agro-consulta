@@ -101,6 +101,26 @@ def test_arquivos() -> None:
     check("util_vila_iexact", 'deposito__iexact="vila"' in util)
     check("util_centro_exclude_vila", "exclude(deposito__iexact=" in util)
     check("util_soma_total", "centro + vila" in util)
+    check("view_usa_meta", "vendas_lojas_meta_c_soma" in view_fn)
+    check("view_meta_centro", '"centro"' in view_fn or "'centro'" in view_fn)
+    check("view_meta_vila", '"vila"' in view_fn or "'vila'" in view_fn)
+    check("view_pass_sentido", "centro_sentido" in view_fn and "vila_sentido" in view_fn)
+    check("view_pass_esp", "centro_esp_fmt" in view_fn and "total_esp_fmt" in view_fn)
+    check("tpl_card_tap", "data-media" in tpl and "data-sentido" in tpl)
+    check("tpl_hint_toque", "Toque para a média" in tpl)
+    check("tpl_sheet_media", "vl-sheet-media" in tpl and "vl-media-esperado" in tpl)
+    check("tpl_media_pct", "acima" in tpl and "abaixo" in tpl)
+    check("tpl_media_bi", "Mesma média do BI" in tpl)
+    check("util_cmp_meta", "def vendas_lojas_cmp_meta" in util)
+    check("util_meta_soma", "def vendas_lojas_meta_c_soma" in util)
+    check("util_meta_bi", "_dashboard_serie_meta_c_vendas" in util)
+    meta_fn = _fn_src("produtos/views.py", "_dashboard_serie_meta_c_vendas")
+    hist_fn = _fn_src("produtos/views.py", "_dashboard_vendas_serie_meta_historico")
+    meses_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_meses_por_dia")
+    check("meta_c_param_deposito", "deposito" in meta_fn and "dep_key" in meta_fn)
+    check("meta_c_cache_loja", "dash:metac:v1:" in meta_fn)
+    check("hist_param_deposito", "deposito" in hist_fn and "dashboard_vendas_serie_meta_merged" in hist_fn)
+    check("meses_cache_loja", "dep_key" in meses_fn and "(fp, lp, dep_key)" in meses_fn)
 
 
 def test_periodo() -> None:
@@ -166,10 +186,32 @@ def test_totais_mock() -> None:
     check("soma_zero", (_q2(0) + _q2(0)).quantize(Decimal("0.01")) == Decimal("0.00"))
 
 
+def test_cmp_meta() -> None:
+    print("== Média esperada vs vendido ==")
+    from produtos.vendas_lojas_util import vendas_lojas_cmp_meta
+
+    acima = vendas_lojas_cmp_meta("120.00", "100.00")
+    check("cmp_acima", acima["sentido"] == "acima" and acima["diff"] == Decimal("20.00"))
+    check("cmp_acima_pct", acima["pct"] == Decimal("20.0"))
+
+    abaixo = vendas_lojas_cmp_meta("80.00", "100.00")
+    check("cmp_abaixo", abaixo["sentido"] == "abaixo" and abaixo["diff"] == Decimal("-20.00"))
+    check("cmp_abaixo_pct", abaixo["pct"] == Decimal("20.0"))
+
+    igual = vendas_lojas_cmp_meta("100.00", "100.00")
+    check("cmp_igual", igual["sentido"] == "igual" and igual["diff"] == Decimal("0.00"))
+
+    sem = vendas_lojas_cmp_meta("50.00", "0")
+    check("cmp_sem_media", sem["sentido"] == "sem" and sem["diff"] is None)
+
+    zero_vendido = vendas_lojas_cmp_meta("0", "100")
+    check("cmp_zero_vendido_abaixo", zero_vendido["sentido"] == "abaixo" and zero_vendido["pct"] == Decimal("100.0"))
+
+
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.47", ver)
+    check("version_bump", ver >= "16.48", ver)
 
 
 def main() -> int:
@@ -177,6 +219,7 @@ def main() -> int:
     test_arquivos()
     test_periodo()
     test_totais_mock()
+    test_cmp_meta()
     test_versao()
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
     if fails:
