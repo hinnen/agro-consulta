@@ -1221,7 +1221,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **teste v16.50** · app no Chrome + números grandes / tela limpa · **não** subiu loja |
 | **O quê** | `/ajuste-mobile/` no celular: PIN · ícone na tela · saldo e quantidade grandes · botões de toque |
 | **Igual** | PWA das vendas · não cacheia contagem · PIN / bip / cíclica iguais |
-| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` |
+| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 27/27** |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
 | **Produção** | ⏳ frase + senha |
