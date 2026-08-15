@@ -1256,7 +1256,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v16.49** · Instalar no Chrome vira app · **não** subiu loja |
+| **Status** | ✅ **Live no lote v16.51** · Instalar no Chrome vira app |
 | **O quê** | `/ajuste-mobile/` no celular: mesmo PIN · ícone na tela inicial · tela cheia |
 | **Igual** | PWA das vendas (`/vendas/lojas/`) · não cacheia contagem |
 | **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 23/23** |
