@@ -277,7 +277,17 @@ check(
     "interactive-widget=resizes-content",
     "safe-area-inset",
     "100dvh",
+    "ajuste_mobile_manifest",
+    "ajuste_mobile_sw",
     label="ajuste_mobile_login.html",
+)
+
+check(
+    ma,
+    "ajuste_mobile_manifest",
+    "ajuste_mobile_sw",
+    'scope: "/ajuste-mobile/"',
+    label="mobile_ajuste.html PWA",
 )
 
 print()

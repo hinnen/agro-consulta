@@ -20616,6 +20616,63 @@ def api_lancamentos_definir_recorrente(request):
     )
 
 
+def ajuste_mobile_manifest(request):
+    """Manifest PWA do Ajuste mobile (público — Chrome precisa baixar sem login)."""
+    icon_192 = request.build_absolute_uri("/static/produtos/pwa/ajuste-mobile-192.png")
+    icon_512 = request.build_absolute_uri("/static/produtos/pwa/ajuste-mobile-512.png")
+    payload = {
+        "id": "/ajuste-mobile/",
+        "name": "Ajuste Mobile",
+        "short_name": "Ajuste",
+        "description": "Contagem de estoque",
+        "start_url": "/ajuste-mobile/",
+        "scope": "/ajuste-mobile/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "portrait",
+        "lang": "pt-BR",
+        "dir": "ltr",
+        "background_color": "#0f172a",
+        "theme_color": "#10b981",
+        "icons": [
+            {
+                "src": icon_192,
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": icon_512,
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": icon_512,
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+        ],
+    }
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+def ajuste_mobile_sw(request):
+    """Service worker mínimo — critério de instalação no Chrome. Não cacheia contagem."""
+    js = (
+        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+        "self.addEventListener('fetch',function(e){e.respondWith(fetch(e.request));});\n"
+    )
+    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/ajuste-mobile/"
+    resp["Cache-Control"] = "no-cache"
+    return resp
+
+
 def ajuste_mobile_view(request):
     """
     PIN obrigatório a cada abertura desta tela (não reaproveita o PIN do PDV/descanso).

@@ -192,6 +192,8 @@ urlpatterns = [
         views.api_entregas_ordenar_rota,
         name='api_entregas_ordenar_rota',
     ),
+    path('ajuste-mobile/manifest.webmanifest', views.ajuste_mobile_manifest, name='ajuste_mobile_manifest'),
+    path('ajuste-mobile/sw.js', views.ajuste_mobile_sw, name='ajuste_mobile_sw'),
     path('ajuste-mobile/', views.ajuste_mobile_view, name='ajuste_mobile'), # <-- A rota que faltava
     path('compras/', views.compras_view, name='compras_view'),
     path('promocoes/', promocoes_views.promocoes_lista_view, name='promocoes_lista'),

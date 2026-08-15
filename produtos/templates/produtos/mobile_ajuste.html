@@ -8,7 +8,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ajuste">
   <meta name="theme-color" content="#10b981">
+  <link rel="manifest" href="{% url 'ajuste_mobile_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/ajuste-mobile-192.png">
   <script>
   /* Fora do shell/BI: URL própria em tela cheia no celular. */
   (function () {
@@ -2959,6 +2963,9 @@ try {
       .catch(() => {});
   }
 } catch (_) {}
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'ajuste_mobile_sw' %}", { scope: "/ajuste-mobile/" }).catch(function () {});
+  }
 </script>
 </body>
 </html>
