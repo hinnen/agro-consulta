@@ -1222,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | `/pdv/` botão **Pedir loja** + overlay: pedir produto da outra loja (Centro ↔ Vila) |
-| **Tela** | Celular: números grandes · toques altos · observação escondida · badge na loja que recebe |
+| **Tela** | Celular: números grandes · toques altos · observação escondida · badge na loja que recebe · Ajuda em faixa larga (não corta) · tirar item com × |
 | **Estoque** | Pedir / Aceitar / Pronto = só status · **Transferir** move Agro (saldo negativo ok) |
 | **PIN** | Grava operador em cada etapa · usa PIN já logado no PDV |
 | **Fora** | `/consulta/` · `/transferencias/` · WhatsApp (fase 2) |

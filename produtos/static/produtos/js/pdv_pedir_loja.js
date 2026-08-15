@@ -208,9 +208,14 @@
       .map(function (it, idx) {
         return (
           '<div class="pl-card">' +
+          '<div class="pl-card-top">' +
           '<p class="pl-name">' +
           escapeHtml(it.nome) +
           '</p>' +
+          '<button type="button" class="pl-rm" data-pl-rm="' +
+          idx +
+          '" aria-label="Tirar da lista">×</button>' +
+          '</div>' +
           '<p class="pl-stock"><small>Na outra loja</small>' +
           escapeHtml(String(it[outra] != null ? it[outra] : '—')) +
           '</p>' +
@@ -224,11 +229,7 @@
           '<button type="button" class="pl-qty-btn" data-pl-q="1" data-i="' +
           idx +
           '" aria-label="Mais">+</button>' +
-          '</div>' +
-          '<button type="button" class="pl-btn pl-btn--link mt-1" data-pl-rm="' +
-          idx +
-          '">Tirar</button>' +
-          '</div>'
+          '</div></div>'
         );
       })
       .join('');

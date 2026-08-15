@@ -200,7 +200,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 **PDV — Pedir loja (transferência entre lojas)** 
 
 - Só no wizard `/pdv/`: botão **Pedir loja** na topbar + overlay (não mexe em `/consulta/` nem em `/transferencias/`).
-- Overlay **celular**: coluna ~28rem, números grandes (qtd / saldo), toques altos, observação no «?».
+- Overlay **celular**: coluna ~28rem, números grandes (qtd / saldo), toques altos, observação recolhida, Ajuda em faixa larga, tirar item com ×.
 - Pedido 1 produto ou vários; lista **pendente** na loja de origem; o mesmo botão ganha **badge**.
 - Status: Pedir / Aceitar / Pronto = só fila. **Transferir** move estoque Agro (saldo negativo ok).
 - PIN/usuário gravado em cada etapa; usa o PIN já logado no PDV (sem redigitar). WhatsApp = fase 2.

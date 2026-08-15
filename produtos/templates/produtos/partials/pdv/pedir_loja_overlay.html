@@ -26,6 +26,7 @@
     }
   }
   #pdv-pedir-loja-overlay .pl-head {
+    position: relative;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -237,7 +238,8 @@
     color: #c2410c;
   }
   #pdv-pedir-loja-overlay .pl-help {
-    position: relative;
+    position: static;
+    flex-shrink: 0;
   }
   #pdv-pedir-loja-overlay .pl-help > summary {
     list-style: none;
@@ -245,19 +247,41 @@
   #pdv-pedir-loja-overlay .pl-help > summary::-webkit-details-marker { display: none; }
   #pdv-pedir-loja-overlay .pl-help-pop {
     position: absolute;
-    right: 0;
-    top: calc(100% + 0.4rem);
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+    top: calc(100% + 0.35rem);
     z-index: 30;
-    width: min(20.5rem, calc(100vw - 1.4rem));
     border-radius: 1rem;
     border: 2px solid #fdba74;
     background: #fff;
-    padding: 0.85rem 0.95rem;
-    font-size: 0.95rem;
+    padding: 0.9rem 1rem;
+    font-size: 1.02rem;
     font-weight: 650;
     color: #334155;
     box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16);
-    line-height: 1.35;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+  #pdv-pedir-loja-overlay .pl-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+  #pdv-pedir-loja-overlay .pl-card-top .pl-name { flex: 1; min-width: 0; }
+  #pdv-pedir-loja-overlay .pl-rm {
+    flex-shrink: 0;
+    width: 2.85rem;
+    height: 2.85rem;
+    margin: -0.35rem -0.25rem 0 0;
+    border: 0;
+    border-radius: 0.85rem;
+    background: transparent;
+    font-size: 1.85rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #94a3b8;
+    cursor: pointer;
   }
   #pdv-pedir-loja-overlay .pl-obs > summary {
     list-style: none;

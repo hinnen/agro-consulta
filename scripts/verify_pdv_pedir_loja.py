@@ -64,6 +64,8 @@ def main() -> int:
     check("overlay_toque_qty", "3.5rem" in html)
     check("overlay_busca_alta", "3.4rem" in html)
     check("overlay_obs_recolhida", "Observação (opcional)" in html)
+    check("overlay_ajuda_larga", "left: 0.75rem" in html and "right: 0.75rem" in html)
+    check("js_tirar_x", 'aria-label="Tirar da lista"' in js)
     check("js_status_sem_estoque", "transferir" in js and "aceitar" in js)
     check("js_pin_sessao", "precisa_pin" in js)
     check("js_qty_class", "pl-qty" in js)
