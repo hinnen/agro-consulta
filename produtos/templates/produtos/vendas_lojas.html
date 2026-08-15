@@ -1,0 +1,166 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full overflow-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <title>Vendas das lojas | SisVale</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+  {% include "produtos/_agro_consulta_ui.html" %}
+  <style>
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100dvh;
+      max-height: 100dvh;
+    }
+    .vl-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    .vl-btn {
+      min-height: 2.75rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 0.85rem;
+      border: 2px solid #e2e8f0;
+      background: #fff;
+      font-weight: 900;
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #334155;
+    }
+    .vl-btn.is-on {
+      border-color: #059669;
+      background: #ecfdf5;
+      color: #065f46;
+    }
+    .vl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .vl-nav {
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+      border-radius: 0.85rem;
+      border: 2px solid #cbd5e1;
+      background: #fff;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #0f172a;
+    }
+    .vl-card {
+      border-radius: 1.25rem;
+      border: 2px solid #e2e8f0;
+      background: #fff;
+      padding: clamp(0.9rem, 1.6vw, 1.6rem);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      min-height: 0;
+    }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+    .vl-val {
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+{% include "produtos/_gm_loading_bar.html" %}
+  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="vl-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap justify-between items-center gap-2">
+      <div class="min-w-0">
+        <h1 class="text-[clamp(1.15rem,0.9vw+1rem,1.6rem)] font-black uppercase text-slate-900 leading-tight">Vendas das lojas</h1>
+        <p class="text-[11px] font-bold text-slate-500">Só o valor · Centro, Vila e soma</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <a href="{% url 'home' %}" class="vl-btn">BI</a>
+        {% include "produtos/_pdv_voltar_link.html" %}
+      </div>
+    </div>
+  </header>
+
+  <main class="vl-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-3 gap-3 overflow-hidden">
+    <div class="shrink-0 flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap gap-1.5" role="group" aria-label="Período">
+        <a class="vl-btn{% if periodo == 'dia' %} is-on{% endif %}" href="?periodo=dia">Dia</a>
+        <a class="vl-btn{% if periodo == 'semana' %} is-on{% endif %}" href="?periodo=semana">Semana</a>
+        <a class="vl-btn{% if periodo == 'mes' %} is-on{% endif %}" href="?periodo=mes">Mês</a>
+        <a class="vl-btn{% if periodo == 'ano' %} is-on{% endif %}" href="?periodo=ano">Ano</a>
+      </div>
+      <div class="flex items-center gap-1.5 min-w-0">
+        <a class="vl-nav inline-flex items-center justify-center" href="?periodo={{ vl.periodo }}&amp;ref={{ vl.prev_ref }}" aria-label="Anterior">‹</a>
+        <span id="vl-rotulo" class="px-2 text-[clamp(0.95rem,0.4vw+0.85rem,1.2rem)] font-black text-slate-900 tabular-nums">{{ vl.rotulo }}</span>
+        {% if vl.pode_avancar %}
+        <a class="vl-nav inline-flex items-center justify-center" href="?periodo={{ vl.periodo }}&amp;ref={{ vl.next_ref }}" aria-label="Próximo">›</a>
+        {% else %}
+        <button type="button" class="vl-nav" disabled aria-label="Próximo">›</button>
+        {% endif %}
+      </div>
+      <label class="sr-only" for="vl-data">Escolher data</label>
+      <input id="vl-data" type="date" value="{{ vl.ref }}" max="{{ vl.hoje }}" class="min-h-[2.75rem] rounded-xl border-2 border-slate-200 bg-white px-3 text-sm font-bold text-slate-900">
+    </div>
+
+    <div class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+      <section class="vl-card flex flex-col justify-center">
+        <p class="text-[clamp(0.8rem,0.3vw+0.7rem,1rem)] font-black uppercase tracking-widest text-sky-700">Centro</p>
+        <p id="vl-centro" class="vl-val mt-2 text-sky-700" style="font-size:clamp(2.1rem,6.2vw,4.6rem)">R$ {{ vl.centro_fmt }}</p>
+      </section>
+      <section class="vl-card flex flex-col justify-center">
+        <p class="text-[clamp(0.8rem,0.3vw+0.7rem,1rem)] font-black uppercase tracking-widest text-slate-600">Vila Elias</p>
+        <p id="vl-vila" class="vl-val mt-2 text-slate-800" style="font-size:clamp(2.1rem,6.2vw,4.6rem)">R$ {{ vl.vila_fmt }}</p>
+      </section>
+    </div>
+
+    <section class="vl-card shrink-0 border-emerald-300 bg-emerald-50">
+      <p class="text-[clamp(0.8rem,0.3vw+0.7rem,1rem)] font-black uppercase tracking-widest text-emerald-800">Soma das duas</p>
+      <p id="vl-soma" class="vl-val mt-1 text-emerald-900" style="font-size:clamp(2.4rem,7vw,5.2rem)">R$ {{ vl.soma_fmt }}</p>
+    </section>
+
+    <p id="vl-atualizado" class="shrink-0 text-[11px] font-bold text-slate-500">PDV · atualiza sozinho no dia de hoje</p>
+  </main>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+<script>
+(function () {
+  var periodo = "{{ vl.periodo|escapejs }}";
+  var inp = document.getElementById("vl-data");
+  if (inp) {
+    inp.addEventListener("change", function () {
+      if (!inp.value) return;
+      location.href = "?periodo=" + encodeURIComponent(periodo) + "&ref=" + encodeURIComponent(inp.value);
+    });
+  }
+  var hoje = "{{ vl.hoje|escapejs }}";
+  var ref = "{{ vl.ref|escapejs }}";
+  if (periodo !== "dia" || ref !== hoje) return;
+  function pintar(j) {
+    if (!j || !j.ok) return;
+    var c = document.getElementById("vl-centro");
+    var v = document.getElementById("vl-vila");
+    var s = document.getElementById("vl-soma");
+    var r = document.getElementById("vl-rotulo");
+    if (c) c.textContent = "R$ " + j.centro_fmt;
+    if (v) v.textContent = "R$ " + j.vila_fmt;
+    if (s) s.textContent = "R$ " + j.soma_fmt;
+    if (r) r.textContent = j.rotulo;
+    var a = document.getElementById("vl-atualizado");
+    if (a) {
+      var d = new Date();
+      var hh = String(d.getHours()).padStart(2, "0");
+      var mm = String(d.getMinutes()).padStart(2, "0");
+      a.textContent = "PDV · atualizado " + hh + ":" + mm;
+    }
+  }
+  function tick() {
+    fetch("?periodo=dia&fmt=json", { credentials: "same-origin" })
+      .then(function (r) { return r.json(); })
+      .then(pintar)
+      .catch(function () {});
+  }
+  setInterval(tick, 30000);
+})();
+</script>
+</body>
+</html>

@@ -166,6 +166,7 @@
     <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
       <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex flex-wrap items-center gap-2">
         <span>Faturamento por Unidade</span>
+        <a href="{% url 'vendas_lojas' %}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Tela só valores</a>
         {% if dashboard_vendas_fonte == "pdv" %}
         <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
         {% endif %}

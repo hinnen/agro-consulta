@@ -399,6 +399,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
+- **Vendas das lojas (15/08):** `/vendas/lojas/` — só valores Centro × Vila + soma. Padrão **hoje**. Filtros dia / semana / mês / ano. Atalhos **S**.
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
 
 ### 4.2 PDV â€” ponto de venda
@@ -1213,6 +1214,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — Vendas das lojas (VENDAS-LOJAS · **v16.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | WIP no `teste` · **não** sobe loja sem frase+senha |
+| **O quê** | Tela `/vendas/lojas/` só com valor Centro, Vila e **soma**. Filtro **Dia** (padrão hoje) · Semana · Mês · Ano. Atalhos **S** · Menu BI. |
+| **Prova** | `python scripts/verify_vendas_lojas_path.py` · testes `produtos/tests_vendas_lojas.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · atalhos **Vendas das lojas** ou Menu BI · conferir totais do dia |
 
 ### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
 

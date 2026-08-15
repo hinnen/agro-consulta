@@ -7761,6 +7761,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Vendas das lojas",
+            "href": reverse("vendas_lojas"),
+            "icon": "store",
+            "shortcut": "S",
+            "shortcut_key": "s",
+            "pin_protected": True,
+        },
+        {
             "title": "DRE (off)" if not dre_ativo else "DRE simples",
             "href": reverse("lancamentos_dre") if dre_ativo else "",
             "icon": "bar-chart-3",
