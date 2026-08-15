@@ -84,10 +84,10 @@
   <main class="vl-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-3 gap-3 overflow-hidden">
     <div class="shrink-0 flex flex-wrap items-center gap-2">
       <div class="flex flex-wrap gap-1.5" role="group" aria-label="Período">
-        <a class="vl-btn{% if periodo == 'dia' %} is-on{% endif %}" href="?periodo=dia">Dia</a>
-        <a class="vl-btn{% if periodo == 'semana' %} is-on{% endif %}" href="?periodo=semana">Semana</a>
-        <a class="vl-btn{% if periodo == 'mes' %} is-on{% endif %}" href="?periodo=mes">Mês</a>
-        <a class="vl-btn{% if periodo == 'ano' %} is-on{% endif %}" href="?periodo=ano">Ano</a>
+        <a class="vl-btn{% if periodo == 'dia' %} is-on{% endif %}" href="?periodo=dia&amp;ref={{ vl.ref }}">Dia</a>
+        <a class="vl-btn{% if periodo == 'semana' %} is-on{% endif %}" href="?periodo=semana&amp;ref={{ vl.ref }}">Semana</a>
+        <a class="vl-btn{% if periodo == 'mes' %} is-on{% endif %}" href="?periodo=mes&amp;ref={{ vl.ref }}">Mês</a>
+        <a class="vl-btn{% if periodo == 'ano' %} is-on{% endif %}" href="?periodo=ano&amp;ref={{ vl.ref }}">Ano</a>
       </div>
       <div class="flex items-center gap-1.5 min-w-0">
         <a class="vl-nav inline-flex items-center justify-center" href="?periodo={{ vl.periodo }}&amp;ref={{ vl.prev_ref }}" aria-label="Anterior">‹</a>

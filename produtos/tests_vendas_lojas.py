@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -18,10 +18,7 @@ def _marcar_dia(venda: VendaAgro, dia: date) -> None:
     VendaAgro.objects.filter(pk=venda.pk).update(criado_em=dt)
 
 
-@override_settings(
-    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
-)
-class PeriodoVendasLojasTests(TestCase):
+class PeriodoVendasLojasTests(SimpleTestCase):
     def test_padrao_e_dia_atual(self):
         hoje = date(2026, 8, 15)
         p = resolver_periodo_vendas_lojas(modo=None, ref=None, hoje=hoje)
