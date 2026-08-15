@@ -1,0 +1,131 @@
+<style>
+  #pdv-pedir-loja-overlay .pl-tab {
+    min-height: 2.75rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.75rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #334155;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-tab.is-on {
+    border-color: #ea580c;
+    background: #fff7ed;
+    color: #9a3412;
+  }
+  #pdv-pedir-loja-overlay .pl-field {
+    min-height: 2.75rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid #cbd5e1;
+    background: #fff;
+    padding: 0.4rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    width: 100%;
+  }
+  #pdv-pedir-loja-overlay .pl-hit,
+  #pdv-pedir-loja-overlay .pl-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.65rem 0.75rem;
+  }
+  #pdv-pedir-loja-overlay .pl-btn {
+    min-height: 2.65rem;
+    border-radius: 0.75rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--ok {
+    border: 2px solid #0d9488;
+    background: #0d9488;
+    color: #fff;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--warn {
+    border: 2px solid #ea580c;
+    background: #ea580c;
+    color: #fff;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--ghost {
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    color: #334155;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--danger {
+    border: 2px solid #dc2626;
+    background: #fef2f2;
+    color: #991b1b;
+  }
+  #pdv-pedir-loja-overlay[data-pl-aba="pedir"] .pl-view-lista { display: none !important; }
+  #pdv-pedir-loja-overlay[data-pl-aba="recebidos"] .pl-view-pedir,
+  #pdv-pedir-loja-overlay[data-pl-aba="enviados"] .pl-view-pedir,
+  #pdv-pedir-loja-overlay[data-pl-aba="historico"] .pl-view-pedir { display: none !important; }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pedir-loja-alerta {
+    border-color: #ea580c !important;
+    background: linear-gradient(90deg, #ea580c, #f59e0b) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.32) !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pedir-loja-alerta .pdv-topbar-pedir-loja-count {
+    background: #fff !important;
+    color: #c2410c !important;
+  }
+  .pdv-topbar-pedir-loja-count {
+    background: #475569;
+    color: #fff;
+  }
+</style>
+
+<div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
+  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-orange-500 bg-gradient-to-b from-orange-50/90 via-white to-white shadow-2xl" role="document">
+    <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-orange-100 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <h2 id="pdv-pedir-loja-title" class="text-[clamp(1rem,1.2vw+0.85rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Pedir loja</h2>
+        <p id="pdv-pedir-loja-sub" class="text-sm font-semibold text-orange-800">Pedido de produto para a outra loja</p>
+      </div>
+      <details class="relative">
+        <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+        <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+          <p>Peça 1 ou vários produtos. O pedido fica <strong>pendente</strong> na outra loja — o botão dela acende.</p>
+          <p>Lá: <strong>Aceitar</strong> → <strong>Pronto</strong> (opcional) → <strong>Transferir</strong> (aí o estoque muda).</p>
+          <p>O PIN já logado no PDV é gravado em cada etapa. WhatsApp fica para a fase 2.</p>
+        </div>
+      </details>
+      <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
+    </header>
+
+    <div class="flex shrink-0 flex-wrap gap-1.5 px-3 pt-2.5 sm:px-4">
+      <button type="button" class="pl-tab is-on" data-pl-aba="pedir">Pedir</button>
+      <button type="button" class="pl-tab" data-pl-aba="recebidos">Recebidos <span id="pdv-pedir-loja-badge-rec" class="hidden ml-1 rounded-full bg-orange-600 px-1.5 text-[10px] text-white">0</span></button>
+      <button type="button" class="pl-tab" data-pl-aba="enviados">Enviados</button>
+      <button type="button" class="pl-tab" data-pl-aba="historico">Histórico</button>
+    </div>
+
+    <p id="pdv-pedir-loja-pin-aviso" class="hidden mx-3 mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950 sm:mx-4">Entre com o PIN do PDV para gravar quem pediu. <button type="button" id="pdv-pedir-loja-abrir-pin" class="underline">Abrir PIN</button></p>
+    <p id="pdv-pedir-loja-status" class="hidden mx-3 mt-2 text-sm font-bold text-slate-700 sm:mx-4" role="status"></p>
+
+    <div class="pl-view-pedir flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2 sm:px-4">
+      <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
+      <input type="search" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
+      <div id="pdv-pedir-loja-hits" class="mt-2 max-h-[10rem] space-y-1.5 overflow-y-auto"></div>
+      <div id="pdv-pedir-loja-cart" class="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto"></div>
+      <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-obs">Observação</label>
+      <input type="text" id="pdv-pedir-loja-obs" class="pl-field shrink-0" maxlength="400" placeholder="Opcional — ex.: cliente esperando" />
+      <div class="mt-2 flex shrink-0 flex-wrap gap-2">
+        <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--ghost">Limpar lista</button>
+        <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn flex-1">Enviar pedido</button>
+      </div>
+    </div>
+
+    <div class="pl-view-lista hidden min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 sm:px-4">
+      <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
+    </div>
+  </div>
+</div>

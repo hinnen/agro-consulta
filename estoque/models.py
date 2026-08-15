@@ -366,3 +366,137 @@ class ContagemCiclicaParticipante(models.Model):
 
     def __str__(self):
         return f"{self.operador_rotulo} · sessão {self.sessao_id}"
+
+
+class SolicitacaoTransferenciaPdv(models.Model):
+    """Pedido de transferência entre lojas feito no PDV (Centro ↔ Vila)."""
+
+    STATUS_PENDENTE = "pendente"
+    STATUS_ACEITO = "aceito"
+    STATUS_PRONTO = "pronto"
+    STATUS_CONCLUIDO = "concluido"
+    STATUS_CANCELADO = "cancelado"
+    STATUS_CHOICES = (
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_ACEITO, "Aceito"),
+        (STATUS_PRONTO, "Pronto"),
+        (STATUS_CONCLUIDO, "Concluído"),
+        (STATUS_CANCELADO, "Cancelado"),
+    )
+    STATUS_ABERTOS = (STATUS_PENDENTE, STATUS_ACEITO, STATUS_PRONTO)
+
+    loja_origem = models.CharField(max_length=20, db_index=True)
+    loja_destino = models.CharField(max_length=20, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDENTE,
+        db_index=True,
+    )
+    observacao = models.CharField(max_length=400, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    criado_por_label = models.CharField(max_length=150, blank=True, default="")
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_transf_pdv_criadas",
+    )
+    aceito_em = models.DateTimeField(null=True, blank=True)
+    aceito_por_label = models.CharField(max_length=150, blank=True, default="")
+    aceito_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_transf_pdv_aceitas",
+    )
+    pronto_em = models.DateTimeField(null=True, blank=True)
+    pronto_por_label = models.CharField(max_length=150, blank=True, default="")
+    pronto_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_transf_pdv_prontas",
+    )
+    concluido_em = models.DateTimeField(null=True, blank=True)
+    concluido_por_label = models.CharField(max_length=150, blank=True, default="")
+    concluido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_transf_pdv_concluidas",
+    )
+    cancelado_em = models.DateTimeField(null=True, blank=True)
+    cancelado_por_label = models.CharField(max_length=150, blank=True, default="")
+    cancelado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="solicitacoes_transf_pdv_canceladas",
+    )
+    cancelado_motivo = models.CharField(max_length=300, blank=True, default="")
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "Solicitação de transferência PDV"
+        verbose_name_plural = "Solicitações de transferência PDV"
+        indexes = [
+            models.Index(fields=["loja_origem", "status"]),
+            models.Index(fields=["loja_destino", "status"]),
+        ]
+
+    def __str__(self):
+        return f"#{self.pk} {self.loja_origem}→{self.loja_destino} {self.status}"
+
+
+class SolicitacaoTransferenciaPdvItem(models.Model):
+    solicitacao = models.ForeignKey(
+        SolicitacaoTransferenciaPdv,
+        on_delete=models.CASCADE,
+        related_name="itens",
+    )
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    nome_produto = models.CharField(max_length=255)
+    codigo_interno = models.CharField(max_length=100, blank=True, default="")
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "Item de solicitação PDV"
+        verbose_name_plural = "Itens de solicitação PDV"
+
+    def __str__(self):
+        return f"{self.nome_produto} × {self.quantidade}"
+
+
+class SolicitacaoTransferenciaPdvEvento(models.Model):
+    solicitacao = models.ForeignKey(
+        SolicitacaoTransferenciaPdv,
+        on_delete=models.CASCADE,
+        related_name="eventos",
+    )
+    acao = models.CharField(max_length=30, db_index=True)
+    status_de = models.CharField(max_length=20, blank=True, default="")
+    status_para = models.CharField(max_length=20, blank=True, default="")
+    operador_label = models.CharField(max_length=150, blank=True, default="")
+    operador = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_transf_pdv",
+    )
+    observacao = models.CharField(max_length=400, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "Evento de solicitação PDV"
+        verbose_name_plural = "Eventos de solicitação PDV"

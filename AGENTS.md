@@ -197,6 +197,13 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - Botão **Cancelar** no extrato (`rh_funcionario_vale_cancelar`): `cancelado=True`, recalcula folhas abertas, tenta `sincronizar_valores_titulo_salario_mongo` na competência do vale. Alternativa: **Admin** Django em *Vales / adiantamentos*.
 
+**PDV — Pedir loja (transferência entre lojas)** 
+
+- Só no wizard `/pdv/`: botão **Pedir loja** na topbar + overlay (não mexe em `/consulta/` nem em `/transferencias/`).
+- Pedido 1 produto ou vários; lista **pendente** na loja de origem; o mesmo botão ganha **badge**.
+- Status: Pedir / Aceitar / Pronto = só fila. **Transferir** move estoque Agro (saldo negativo ok).
+- PIN/usuário gravado em cada etapa; usa o PIN já logado no PDV (sem redigitar). WhatsApp = fase 2.
+
 **Empréstimo interno (sócio) — pagamento em contas a pagar**  
 
 - Cadastro do aporte continua só em `AgroEmprestimo`. Cada pagamento em **Consulta → Gerenciar** (`registrar_pagamento_emprestimo_interno_agro`) gera `DtoLancamento` quitado (plano dívida padrão, marca `EMP-INT` nas observações). Exclusão do pagamento remove o título vinculado. Na lista de Lançamentos use situação **Quitados** ou **Todos** (não aparece em **Em aberto**).
