@@ -10920,10 +10920,13 @@ def _vendas_lojas_pct_br(val) -> str:
     return f"{Decimal(str(val)).quantize(Decimal('0.1')):.1f}".replace(".", ",")
 
 
-def _vendas_lojas_cmp_ctx(vendido, esperado) -> dict:
-    from produtos.vendas_lojas_util import vendas_lojas_cmp_meta
+def _vendas_lojas_cmp_ctx(vendido, esperado, *, esperado_dia=None) -> dict:
+    from produtos.vendas_lojas_util import vendas_lojas_cmp_meta, vendas_lojas_cmp_meta_agora
 
-    c = vendas_lojas_cmp_meta(vendido, esperado)
+    if esperado_dia is not None:
+        c = vendas_lojas_cmp_meta_agora(vendido, esperado, esperado_dia)
+    else:
+        c = vendas_lojas_cmp_meta(vendido, esperado)
     sentido = c["sentido"]
     out = {
         "esperado_fmt": _format_moeda_br(c["esperado"]),
@@ -10944,20 +10947,33 @@ def _vendas_lojas_cmp_ctx(vendido, esperado) -> dict:
 @require_GET
 def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
-    from produtos.vendas_lojas_util import vendas_lojas_meta_c_soma, vendas_lojas_totais
+    from produtos.vendas_lojas_util import vendas_lojas_meta_c_modos, vendas_lojas_totais
 
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
     centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    hoje = timezone.localdate()
+    agora = timezone.localtime()
     try:
-        esp_centro = vendas_lojas_meta_c_soma(data_ini, data_fim, "centro")
-        esp_vila = vendas_lojas_meta_c_soma(data_ini, data_fim, "vila")
-        esp_total = vendas_lojas_meta_c_soma(data_ini, data_fim, None)
+        dia_c, agora_c, toggle_c = vendas_lojas_meta_c_modos(
+            data_ini, data_fim, "centro", hoje=hoje, agora=agora
+        )
+        dia_v, agora_v, toggle_v = vendas_lojas_meta_c_modos(
+            data_ini, data_fim, "vila", hoje=hoje, agora=agora
+        )
+        dia_t, agora_t, toggle_t = vendas_lojas_meta_c_modos(
+            data_ini, data_fim, None, hoje=hoje, agora=agora
+        )
     except Exception:
         logging.getLogger(__name__).exception("vendas_lojas_resumo meta C")
-        esp_centro = esp_vila = esp_total = Decimal("0.00")
-    cmp_c = _vendas_lojas_cmp_ctx(centro, esp_centro)
-    cmp_v = _vendas_lojas_cmp_ctx(vila, esp_vila)
-    cmp_t = _vendas_lojas_cmp_ctx(total, esp_total)
+        dia_c = agora_c = dia_v = agora_v = dia_t = agora_t = Decimal("0.00")
+        toggle_c = toggle_v = toggle_t = False
+    cmp_c = _vendas_lojas_cmp_ctx(centro, agora_c, esperado_dia=dia_c)
+    cmp_v = _vendas_lojas_cmp_ctx(vila, agora_v, esperado_dia=dia_v)
+    cmp_t = _vendas_lojas_cmp_ctx(total, agora_t, esperado_dia=dia_t)
+    cmp_c_dia = _vendas_lojas_cmp_ctx(centro, dia_c)
+    cmp_v_dia = _vendas_lojas_cmp_ctx(vila, dia_v)
+    cmp_t_dia = _vendas_lojas_cmp_ctx(total, dia_t)
+    mostra_toggle = bool(toggle_c or toggle_v or toggle_t)
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -10984,7 +11000,20 @@ def vendas_lojas_resumo(request):
             "centro_sentido": cmp_c["sentido"],
             "vila_sentido": cmp_v["sentido"],
             "total_sentido": cmp_t["sentido"],
-            "hoje_iso": timezone.localdate().isoformat(),
+            "centro_esp_dia_fmt": cmp_c_dia["esperado_fmt"],
+            "vila_esp_dia_fmt": cmp_v_dia["esperado_fmt"],
+            "total_esp_dia_fmt": cmp_t_dia["esperado_fmt"],
+            "centro_diff_dia_fmt": cmp_c_dia["diff_fmt"],
+            "vila_diff_dia_fmt": cmp_v_dia["diff_fmt"],
+            "total_diff_dia_fmt": cmp_t_dia["diff_fmt"],
+            "centro_pct_dia_fmt": cmp_c_dia["pct_fmt"],
+            "vila_pct_dia_fmt": cmp_v_dia["pct_fmt"],
+            "total_pct_dia_fmt": cmp_t_dia["pct_fmt"],
+            "centro_sentido_dia": cmp_c_dia["sentido"],
+            "vila_sentido_dia": cmp_v_dia["sentido"],
+            "total_sentido_dia": cmp_t_dia["sentido"],
+            "mostra_toggle_media": mostra_toggle,
+            "hoje_iso": hoje.isoformat(),
             "data_iso": data_ini.isoformat(),
         },
     )
