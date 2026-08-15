@@ -1214,11 +1214,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Vendas lojas média no toque (VENDAS-LOJAS-MEDIA · **v16.48**)
+### ✅ Deploy loja — Vendas lojas média no toque (VENDAS-LOJAS-MEDIA · **v16.48**)
+
+> **Status:** ✅ **enviado / Live v16.48** · `producao` @ **be452979**  
+> **Base anterior:** Live v16.46 @ **a202214e**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🔧 **teste v16.48** · toque no valor → média esperada (Meta C do BI) + % e R$ acima/abaixo · sobe loja neste chat após checkpoint |
+| **O quê** | Toque no valor → média esperada (Meta C do BI) + R$ e % acima/abaixo · PWA + calendário + Ontem/Mês ant. |
+| **Tela** | `/vendas/lojas/` celular · números grandes · limpa |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 91/91** |
+| **Migrate** | **NÃO** |
+| **Rollback desta atualização** | tag `rollback/pre-vendas-lojas-media-v16.46` @ **a202214e** · branch `producao-backup-pre-v1648-vendas-lojas-media-20260815` · frase+senha |
+| **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · toque num valor · badge **v16.48** |
+
+### 📦 PACOTE PRONTO — Vendas lojas média no toque (VENDAS-LOJAS-MEDIA · **v16.48**) · **superado — Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.48** · `producao` @ **be452979** |
 | **O quê** | `/vendas/lojas/` · clicar Centro / Vila / Total abre folha: vendido, média esperada, diferença em R$ e % |
 | **Cálculo** | Mesma **Meta C** do BI · Centro / Vila / total (sem filtro = as duas) · soma dos dias do período |
 | **Tela** | Celular · números grandes · limpa · PWA + calendário + Ontem/Mês ant. (v16.47) |
@@ -1227,17 +1241,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback desta atualização** | tag `rollback/pre-vendas-lojas-media-v16.46` @ **a202214e** (Live v16.46, **sem** média/PWA/calendário) · branch `producao-backup-pre-v1648-vendas-lojas-media-20260815` · frase+senha |
 | **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · toque num valor · badge **v16.48** |
 
-### 📦 PACOTE PRONTO — Vendas lojas PWA + calendário (VENDAS-LOJAS-PWA · **v16.47**) · **entra no lote v16.48**
+### 📦 PACOTE PRONTO — Vendas lojas PWA + calendário (VENDAS-LOJAS-PWA · **v16.47**) · **Live no lote v16.48**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v16.47** · PWA + calendário + Ontem/Mês ant. · sobe junto com v16.48 |
+| **Status** | ✅ **Live no lote v16.48** · PWA + calendário + Ontem/Mês ant. |
 | **O quê** | Instalar no Chrome vira app · calendário caprichado (escolhe o dia) · atalhos **Ontem** e **Mês ant.** |
 | **Tela** | Prints OK · R$ 0,00 no Dia = ainda sem venda hoje; Semana soma os dias anteriores |
 | **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 67/67** |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/vendas/lojas/` · Ctrl+F5 · Chrome → **Instalar aplicativo** · testar calendário / ontem |
-| **Produção** | ⏳ lote v16.48 |
+| **Produção** | ✅ lote v16.48 Live |
 
 ### ✅ Deploy loja — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**)
 
