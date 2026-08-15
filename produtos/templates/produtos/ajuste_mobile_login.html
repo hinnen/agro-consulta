@@ -60,13 +60,15 @@
 <body class="ma-login-shell bg-slate-900 flex items-center justify-center min-h-[100dvh] p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] touch-manipulation">
 {% include "produtos/_gm_loading_bar.html" %}
     <div class="w-full max-w-sm text-center">
-        <h1 class="text-white text-2xl font-black mb-2 italic uppercase tracking-tight">Ajuste <span class="text-emerald-500">Mobile</span></h1>
-        <p class="text-slate-400 text-[11px] font-bold uppercase tracking-widest mb-8">Contagem de estoque</p>
-        <div class="bg-white p-6 rounded-[2rem] shadow-2xl">
-            <p class="text-slate-400 font-bold text-[11px] uppercase mb-5 tracking-widest">PIN DE ACESSO</p>
+        <p class="text-emerald-400 text-[0.72rem] font-black uppercase tracking-[0.16em] mb-1">Estoque</p>
+        <h1 class="text-white font-black mb-2 uppercase tracking-tight" style="font-size: clamp(1.55rem, 6vw + 0.4rem, 2rem); letter-spacing: -0.03em;">Ajuste <span class="text-emerald-400">Mobile</span></h1>
+        <p class="text-slate-400 text-sm font-bold uppercase tracking-widest mb-8">Contagem de estoque</p>
+        <div class="bg-white p-7 rounded-[2rem] shadow-2xl">
+            <p class="text-slate-400 font-black text-sm uppercase mb-5 tracking-widest">PIN</p>
             <input type="password" id="pin" inputmode="numeric" maxlength="4" placeholder="••••" enterkeyhint="go" autocomplete="one-time-code"
-                class="w-full text-center text-3xl font-black tracking-[0.75rem] p-4 min-h-[3.5rem] bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20">
-            <button type="button" onclick="entrar()" class="w-full mt-5 min-h-[3.25rem] bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase italic text-base active:scale-[0.99] transition-transform">Entrar</button>
+                class="w-full text-center font-black tracking-[0.55rem] p-4 min-h-[4.25rem] bg-slate-50 rounded-2xl outline-none focus:ring-4 focus:ring-emerald-500/20"
+                style="font-size: clamp(2.15rem, 8vw + 0.4rem, 2.75rem); letter-spacing: 0.35em;">
+            <button type="button" onclick="entrar()" class="w-full mt-5 min-h-[3.5rem] bg-emerald-500 text-white font-black py-4 rounded-2xl uppercase text-lg active:scale-[0.99] transition-transform">Entrar</button>
         </div>
     </div>
 <script>

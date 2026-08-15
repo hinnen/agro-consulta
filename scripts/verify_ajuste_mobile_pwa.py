@@ -70,8 +70,12 @@ def main() -> int:
     check("tpl_apple_icon", "ajuste-mobile-192.png" in ma and "ajuste-mobile-192.png" in login)
     check("tpl_apple_title", "Ajuste" in ma and "apple-mobile-web-app-title" in ma)
     check("sw_scope_js", 'scope: "/ajuste-mobile/"' in ma and 'scope: "/ajuste-mobile/"' in login)
+    check("tpl_numeros_grandes", "clamp(2.15rem" in ma and "clamp(1.55rem" in ma)
+    check("tpl_numpad_toque", "min-height: 2.95rem" in ma)
+    check("tpl_busca_alta", "min-height: 3.25rem" in ma)
+    check("tpl_login_pin_grande", "min-h-[4.25rem]" in login)
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.49", ver)
+    check("version_bump", ver >= "16.50", ver)
 
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
     if fails:
