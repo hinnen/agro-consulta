@@ -1,0 +1,106 @@
+{% extends "layouts/base_pdv.html" %}
+
+{% block pdv_title %}Vendas por loja | SisVale{% endblock %}
+{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
+
+{% block head_extra %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    .vendas-loja-card {
+      border-radius: 1.25rem;
+      border: 2px solid #334155;
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
+      padding: clamp(1.25rem, 2vw + 0.75rem, 2rem);
+    }
+    .vendas-loja-valor {
+      font-size: clamp(2rem, 5vw + 1rem, 3.5rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+    .vendas-loja-total {
+      border-color: #f97316;
+      background: linear-gradient(165deg, rgba(234, 88, 12, 0.12) 0%, rgba(15, 23, 42, 0.95) 55%);
+    }
+    .vendas-loja-filtro {
+      min-height: 2.75rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      border: 2px solid #475569;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #cbd5e1;
+      background: #1e293b;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .vendas-loja-filtro:hover {
+      border-color: #64748b;
+      color: #fff;
+    }
+    .vendas-loja-filtro.ativo {
+      border-color: #10b981;
+      background: #064e3b;
+      color: #ecfdf5;
+    }
+  </style>
+{% endblock %}
+
+{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
+{% block pdv_section_class %}mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-8{% endblock %}
+
+{% block pdv_header %}
+<header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
+  <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
+    <div class="min-w-0">
+      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Vendas</p>
+      <h1 class="mt-0.5 text-2xl font-black tracking-tight text-white">Faturamento por loja</h1>
+      <p class="mt-1 text-sm font-medium text-slate-400">{{ periodo_label }}</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'relatorios_hub' %}"
+        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">
+        Relatórios
+      </a>
+      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-orange-500 hover:text-white" %}
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+<div class="space-y-6 p-1 sm:p-2">
+  <form method="get" class="flex flex-wrap gap-2" aria-label="Filtrar período">
+    <button type="submit" name="periodo" value="hoje"
+      class="vendas-loja-filtro {% if periodo_key == 'hoje' %}ativo{% endif %}">Dia</button>
+    <button type="submit" name="periodo" value="semana"
+      class="vendas-loja-filtro {% if periodo_key == 'semana' %}ativo{% endif %}">Semana</button>
+    <button type="submit" name="periodo" value="mes"
+      class="vendas-loja-filtro {% if periodo_key == 'mes' %}ativo{% endif %}">Mês</button>
+    <button type="submit" name="periodo" value="ano"
+      class="vendas-loja-filtro {% if periodo_key == 'ano' %}ativo{% endif %}">Ano</button>
+  </form>
+
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <article class="vendas-loja-card">
+      <p class="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Centro</p>
+      <p class="vendas-loja-valor mt-3 text-sky-300">R$ {{ centro_fmt }}</p>
+    </article>
+    <article class="vendas-loja-card">
+      <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Vila Elias</p>
+      <p class="vendas-loja-valor mt-3 text-slate-200">R$ {{ vila_fmt }}</p>
+    </article>
+  </div>
+
+  <article class="vendas-loja-card vendas-loja-total text-center">
+    <p class="text-xs font-black uppercase tracking-[0.2em] text-orange-400">Total das duas lojas</p>
+    <p class="vendas-loja-valor mt-3 text-orange-300">R$ {{ total_fmt }}</p>
+  </article>
+
+  <p class="text-center text-xs text-slate-500">
+    Vendas do PDV no período · sem devoluções · atualizado ao abrir a tela
+  </p>
+</div>
+{% endblock %}
