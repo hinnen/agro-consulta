@@ -7785,6 +7785,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Vendas Centro × Vila",
+            "href": reverse("vendas_lojas_placar"),
+            "icon": "store",
+            "shortcut": "S",
+            "shortcut_key": "s",
+            "pin_protected": True,
+        },
+        {
             "title": "Clientes",
             "href": reverse("clientes_lista"),
             "icon": "users",

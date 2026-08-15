@@ -13,6 +13,7 @@ from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_repasse_vila
+from . import views_vendas_placar
 from . import views_planos_conta
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -516,6 +517,11 @@ urlpatterns = [
     path('estoque/sincronizacao/', views.estoque_sincronizacao_view, name='estoque_sincronizacao'),
     path('pdv/checkout/', views.pdv_checkout, name='pdv_checkout'),
     path('vendas/exportar-csv/', views.vendas_exportar_csv, name='vendas_exportar_csv'),
+    path(
+        'vendas/lojas/',
+        views_vendas_placar.vendas_lojas_placar_view,
+        name='vendas_lojas_placar',
+    ),
     path('vendas/', views.vendas_lista, name='vendas_lista'),
     path('fiado/', fiado_views.fiado_gestao, name='fiado_gestao'),
     path('api/fiado/resumo/', fiado_views.api_fiado_resumo, name='api_fiado_resumo'),

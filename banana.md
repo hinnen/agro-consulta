@@ -400,6 +400,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
+- **Placar vendas Centro × Vila (15/08 · v16.45):** `/vendas/lojas/` — só os totais das duas lojas + soma; Dia/Semana/Mês/Ano (padrão hoje).
 
 ### 4.2 PDV â€” ponto de venda
 
@@ -520,7 +521,8 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.4 Vendas
 
-- Lista: `/vendas/` Â· detalhe: `/venda/<pk>/`
+- Lista: `/vendas/` · detalhe: `/venda/<pk>/`
+- **Placar Centro × Vila:** `/vendas/lojas/` (`vendas_lojas_placar`) — totais + soma; filtro dia/semana/mês/ano (padrão hoje).
 - ReimpressÃ£o cupom simples e fiscal (se NFC-e autorizada).
 - DevoluÃ§Ã£o, reenvio ERP, reversÃ£o ERP â€” APIs em `views.py`.
 - Export CSV: `/vendas/exportar-csv/`.
@@ -1212,7 +1214,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
-## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+## CHECKPOINT DE ATUALIZAÇÃO
+
+### 📦 PACOTE PRONTO — Placar vendas Centro × Vila (`VENDAS-PLACAR-LOJAS` · **v16.45**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | teste **v16.45** · **não** sobe loja sem frase+senha |
+| **O quê** | Tela `/vendas/lojas/` — só valor **Centro**, **Vila** e **soma**. Filtro Dia (padrão=hoje) · Semana · Mês · Ano. Mesma fonte do BI (`VendaAgro`). Atalho no BI (S), atalhos e Relatórios. |
+| **Prova** | `python scripts/verify_vendas_lojas_placar_path.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · Menu BI → **Vendas Centro × Vila** · conferir hoje + troca de período |
 
 ### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
 
