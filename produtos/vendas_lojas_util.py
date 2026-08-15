@@ -94,6 +94,33 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
 
 
+# Expediente da loja — média «até agora» cresce da abertura até o fechamento.
+VL_EXPEDIENTE_INI = time(7, 30)
+VL_EXPEDIENTE_FIM = time(18, 30)
+
+
+def vendas_lojas_fracao_expediente(agora: datetime) -> Decimal:
+    """
+    0 antes de abrir · 1 depois de fechar · linear no meio (7h30–18h30).
+    Usado só na média em tempo real; o dia todo continua 100 %.
+    """
+    t = agora.time().replace(tzinfo=None)
+    if t <= VL_EXPEDIENTE_INI:
+        return Decimal("0")
+    if t >= VL_EXPEDIENTE_FIM:
+        return Decimal("1")
+    elapsed = datetime.combine(date.min, t) - datetime.combine(date.min, VL_EXPEDIENTE_INI)
+    total = datetime.combine(date.min, VL_EXPEDIENTE_FIM) - datetime.combine(
+        date.min, VL_EXPEDIENTE_INI
+    )
+    frac = Decimal(str(elapsed.total_seconds())) / Decimal(str(total.total_seconds()))
+    if frac < 0:
+        return Decimal("0")
+    if frac > 1:
+        return Decimal("1")
+    return frac.quantize(Decimal("0.0001"))
+
+
 def vendas_lojas_meta_c_soma(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> Decimal:
@@ -106,6 +133,37 @@ def vendas_lojas_meta_c_soma(
     dep = deposito if deposito in ("centro", "vila") else None
     serie = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito=dep)
     return _q2(sum(float(x or 0) for x in serie))
+
+
+def vendas_lojas_meta_c_modos(
+    data_ini: date,
+    data_fim: date,
+    deposito: str | None,
+    *,
+    hoje: date,
+    agora: datetime,
+) -> tuple[Decimal, Decimal, bool]:
+    """
+    (dia_todo, ate_agora, mostra_toggle).
+    Dias fechados entram 100 %. Só o dia de hoje é cortado pelo expediente.
+    """
+    from produtos.views import _dashboard_serie_meta_c_vendas
+
+    dep = deposito if deposito in ("centro", "vila") else None
+    serie = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito=dep)
+    dia_todo = _q2(sum(float(x or 0) for x in serie))
+    inclui_hoje = data_ini <= hoje <= data_fim
+    if not inclui_hoje:
+        return dia_todo, dia_todo, False
+    idx = (hoje - data_ini).days
+    if idx < 0 or idx >= len(serie):
+        return dia_todo, dia_todo, False
+    frac = vendas_lojas_fracao_expediente(agora)
+    hoje_val = _q2(serie[idx])
+    resto = (dia_todo - hoje_val).quantize(Decimal("0.01"))
+    ate_agora = (resto + (hoje_val * frac)).quantize(Decimal("0.01"))
+    mostra_toggle = frac < Decimal("1")
+    return dia_todo, ate_agora, mostra_toggle
 
 
 def vendas_lojas_cmp_meta(vendido, esperado) -> dict:
@@ -134,4 +192,28 @@ def vendas_lojas_cmp_meta(vendido, esperado) -> dict:
         "pct": abs(pct_signed),
         "pct_signed": pct_signed,
         "sentido": sentido,
+    }
+
+
+def vendas_lojas_cmp_meta_agora(vendido, esperado_agora, esperado_dia) -> dict:
+    """Comparação «até agora»: se ainda não abriu, não trata como «sem média»."""
+    if _q2(esperado_dia) <= 0:
+        return vendas_lojas_cmp_meta(vendido, 0)
+    if _q2(esperado_agora) > 0:
+        return vendas_lojas_cmp_meta(vendido, esperado_agora)
+    vendido_q = _q2(vendido)
+    if vendido_q <= 0:
+        return {
+            "esperado": Decimal("0.00"),
+            "diff": Decimal("0.00"),
+            "pct": Decimal("0.0"),
+            "pct_signed": Decimal("0.0"),
+            "sentido": "igual",
+        }
+    return {
+        "esperado": Decimal("0.00"),
+        "diff": vendido_q,
+        "pct": None,
+        "pct_signed": None,
+        "sentido": "acima",
     }

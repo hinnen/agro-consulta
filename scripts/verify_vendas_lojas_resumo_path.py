@@ -101,18 +101,26 @@ def test_arquivos() -> None:
     check("util_vila_iexact", 'deposito__iexact="vila"' in util)
     check("util_centro_exclude_vila", "exclude(deposito__iexact=" in util)
     check("util_soma_total", "centro + vila" in util)
-    check("view_usa_meta", "vendas_lojas_meta_c_soma" in view_fn)
+    check("view_usa_meta", "vendas_lojas_meta_c_modos" in view_fn)
     check("view_meta_centro", '"centro"' in view_fn or "'centro'" in view_fn)
     check("view_meta_vila", '"vila"' in view_fn or "'vila'" in view_fn)
     check("view_pass_sentido", "centro_sentido" in view_fn and "vila_sentido" in view_fn)
     check("view_pass_esp", "centro_esp_fmt" in view_fn and "total_esp_fmt" in view_fn)
+    check("view_pass_esp_dia", "centro_esp_dia_fmt" in view_fn and "mostra_toggle_media" in view_fn)
     check("tpl_card_tap", "data-media" in tpl and "data-sentido" in tpl)
     check("tpl_hint_toque", "Toque para a média" in tpl)
     check("tpl_sheet_media", "vl-sheet-media" in tpl and "vl-media-esperado" in tpl)
     check("tpl_media_pct", "acima" in tpl and "abaixo" in tpl)
-    check("tpl_media_bi", "Mesma média do BI" in tpl)
+    check("tpl_media_toggle", "data-media-modo" in tpl and "Até agora" in tpl and "Dia todo" in tpl)
+    check("tpl_media_padrao_agora", "O que já deveria ter saído até agora" in tpl)
+    check("tpl_media_dia_todo", "Média do período inteiro" in tpl)
+    check("tpl_ls_modo", "vl_media_modo_v1" in tpl)
     check("util_cmp_meta", "def vendas_lojas_cmp_meta" in util)
+    check("util_cmp_agora", "def vendas_lojas_cmp_meta_agora" in util)
     check("util_meta_soma", "def vendas_lojas_meta_c_soma" in util)
+    check("util_meta_modos", "def vendas_lojas_meta_c_modos" in util)
+    check("util_fracao", "def vendas_lojas_fracao_expediente" in util)
+    check("util_expediente", "VL_EXPEDIENTE_INI" in util and "VL_EXPEDIENTE_FIM" in util)
     check("util_meta_bi", "_dashboard_serie_meta_c_vendas" in util)
     meta_fn = _fn_src("produtos/views.py", "_dashboard_serie_meta_c_vendas")
     hist_fn = _fn_src("produtos/views.py", "_dashboard_vendas_serie_meta_historico")
@@ -207,11 +215,41 @@ def test_cmp_meta() -> None:
     zero_vendido = vendas_lojas_cmp_meta("0", "100")
     check("cmp_zero_vendido_abaixo", zero_vendido["sentido"] == "abaixo" and zero_vendido["pct"] == Decimal("100.0"))
 
+    from produtos.vendas_lojas_util import vendas_lojas_cmp_meta_agora
+
+    cedo_zero = vendas_lojas_cmp_meta_agora("0", "0", "1000")
+    check("agora_antes_abrir_igual", cedo_zero["sentido"] == "igual")
+    cedo_vendeu = vendas_lojas_cmp_meta_agora("50", "0", "1000")
+    check("agora_antes_abrir_acima", cedo_vendeu["sentido"] == "acima" and cedo_vendeu["pct"] is None)
+    agora_meio = vendas_lojas_cmp_meta_agora("600", "500", "1000")
+    check("agora_meio_acima", agora_meio["sentido"] == "acima" and agora_meio["diff"] == Decimal("100.00"))
+    sem_base = vendas_lojas_cmp_meta_agora("10", "0", "0")
+    check("agora_sem_base", sem_base["sentido"] == "sem")
+
+
+def test_fracao_expediente() -> None:
+    print("== Fração expediente (tempo real) ==")
+    from datetime import datetime
+
+    from produtos.vendas_lojas_util import vendas_lojas_fracao_expediente
+
+    check("antes_abrir", vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 6, 50)) == Decimal("0"))
+    check("abre_730", vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 7, 30)) == Decimal("0"))
+    meio = vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 13, 0))
+    check("meio_1300", meio == Decimal("0.5000"), str(meio))
+    manha = vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 10, 15))
+    check("manha_lt_meio", manha > 0 and manha < Decimal("0.5"), str(manha))
+    check("fecha_1830", vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 18, 30)) == Decimal("1"))
+    check("depois_fechar", vendas_lojas_fracao_expediente(datetime(2026, 8, 15, 21, 0)) == Decimal("1"))
+    dia = Decimal("1000.00")
+    ate = (dia * manha).quantize(Decimal("0.01"))
+    check("manha_nao_e_dia_todo", ate < dia)
+
 
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.48", ver)
+    check("version_bump", ver >= "16.52", ver)
 
 
 def main() -> int:
@@ -220,6 +258,7 @@ def main() -> int:
     test_periodo()
     test_totais_mock()
     test_cmp_meta()
+    test_fracao_expediente()
     test_versao()
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
     if fails:

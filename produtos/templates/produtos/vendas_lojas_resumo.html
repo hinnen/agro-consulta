@@ -350,6 +350,28 @@
       font-weight: 700;
       color: #94a3b8;
     }
+    .vl-media-modos {
+      display: flex;
+      gap: 1rem;
+      margin: 0.4rem 0 0;
+    }
+    .vl-media-modos[hidden] { display: none; }
+    .vl-media-modos button {
+      border: 0;
+      background: none;
+      padding: 0.35rem 0;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      touch-action: manipulation;
+    }
+    .vl-media-modos button.ativo {
+      color: var(--green);
+      text-decoration: underline;
+      text-underline-offset: 0.22rem;
+    }
   </style>
 </head>
 <body
@@ -398,7 +420,11 @@
         data-esperado="{{ centro_esp_fmt }}"
         data-diff="{{ centro_diff_fmt }}"
         data-pct="{{ centro_pct_fmt }}"
-        data-sentido="{{ centro_sentido }}">
+        data-sentido="{{ centro_sentido }}"
+        data-esperado-dia="{{ centro_esp_dia_fmt }}"
+        data-diff-dia="{{ centro_diff_dia_fmt }}"
+        data-pct-dia="{{ centro_pct_dia_fmt }}"
+        data-sentido-dia="{{ centro_sentido_dia }}">
         <h2>Centro</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ centro_fmt }}</p>
         <p class="vl-hint">Toque para a média</p>
@@ -409,7 +435,11 @@
         data-esperado="{{ vila_esp_fmt }}"
         data-diff="{{ vila_diff_fmt }}"
         data-pct="{{ vila_pct_fmt }}"
-        data-sentido="{{ vila_sentido }}">
+        data-sentido="{{ vila_sentido }}"
+        data-esperado-dia="{{ vila_esp_dia_fmt }}"
+        data-diff-dia="{{ vila_diff_dia_fmt }}"
+        data-pct-dia="{{ vila_pct_dia_fmt }}"
+        data-sentido-dia="{{ vila_sentido_dia }}">
         <h2>Vila Elias</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ vila_fmt }}</p>
         <p class="vl-hint">Toque para a média</p>
@@ -420,7 +450,11 @@
         data-esperado="{{ total_esp_fmt }}"
         data-diff="{{ total_diff_fmt }}"
         data-pct="{{ total_pct_fmt }}"
-        data-sentido="{{ total_sentido }}">
+        data-sentido="{{ total_sentido }}"
+        data-esperado-dia="{{ total_esp_dia_fmt }}"
+        data-diff-dia="{{ total_diff_dia_fmt }}"
+        data-pct-dia="{{ total_pct_dia_fmt }}"
+        data-sentido-dia="{{ total_sentido_dia }}">
         <h2>Total das duas lojas</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
         <p class="vl-hint">Toque para a média</p>
@@ -454,13 +488,17 @@
       <p class="vl-media-v"><span class="vl-rs">R$</span><span id="vl-media-vendido">0,00</span></p>
       <p class="vl-media-k">Média esperada</p>
       <p class="vl-media-v"><span class="vl-rs">R$</span><span id="vl-media-esperado">0,00</span></p>
+      <div id="vl-media-modos" class="vl-media-modos"{% if not mostra_toggle_media %} hidden{% endif %}>
+        <button type="button" data-media-modo="agora" class="ativo">Até agora</button>
+        <button type="button" data-media-modo="dia">Dia todo</button>
+      </div>
       <div id="vl-media-cmp" class="vl-media-cmp">
         <p class="vl-media-k">Diferença</p>
         <p class="vl-media-v vl-media-diff"><span class="vl-rs">R$</span><span id="vl-media-diff">0,00</span></p>
         <p class="vl-media-pct" id="vl-media-pct"></p>
       </div>
       <p id="vl-media-sem" class="vl-media-sem" hidden>Ainda não tem média para este período.</p>
-      <p class="vl-media-nota">Mesma média do BI (Meta C)</p>
+      <p class="vl-media-nota" id="vl-media-nota">O que já deveria ter saído até agora</p>
       <button type="button" class="vl-cal-hoje" data-fechar-media>Fechar</button>
     </div>
   </div>
@@ -539,11 +577,35 @@
       irDia(new Date(btn.getAttribute("data-iso") + "T12:00:00"));
     });
     var sheetMedia = document.getElementById("vl-sheet-media");
-    function abrirMedia(btn) {
-      var sentido = btn.getAttribute("data-sentido") || "sem";
-      document.getElementById("vl-media-titulo").textContent = btn.getAttribute("data-titulo") || "";
-      document.getElementById("vl-media-vendido").textContent = btn.getAttribute("data-vendido") || "0,00";
-      document.getElementById("vl-media-esperado").textContent = btn.getAttribute("data-esperado") || "0,00";
+    var mediaBtn = null;
+    var LS_MODO = "vl_media_modo_v1";
+    function modoSalvo() {
+      try {
+        var m = localStorage.getItem(LS_MODO);
+        if (m === "dia") return "dia";
+      } catch (e) {}
+      return "agora";
+    }
+    function gravarModo(m) {
+      try { localStorage.setItem(LS_MODO, m); } catch (e) {}
+    }
+    function pintarModos(modo) {
+      document.querySelectorAll("[data-media-modo]").forEach(function (b) {
+        b.classList.toggle("ativo", b.getAttribute("data-media-modo") === modo);
+      });
+    }
+    function textoPct(sentido, p) {
+      if (sentido === "igual") return "Na média";
+      if (!p) return sentido === "acima" ? "Acima" : "Abaixo";
+      if (sentido === "acima") return "+" + p + "% acima";
+      if (sentido === "abaixo") return p + "% abaixo";
+      return "";
+    }
+    function aplicarMedia(btn, modo) {
+      var suf = modo === "dia" ? "-dia" : "";
+      var sentido = btn.getAttribute("data-sentido" + suf) || btn.getAttribute("data-sentido") || "sem";
+      document.getElementById("vl-media-esperado").textContent =
+        btn.getAttribute("data-esperado" + suf) || btn.getAttribute("data-esperado") || "0,00";
       var cmp = document.getElementById("vl-media-cmp");
       var sem = document.getElementById("vl-media-sem");
       var pct = document.getElementById("vl-media-pct");
@@ -555,21 +617,40 @@
       } else {
         cmp.hidden = false;
         sem.hidden = true;
-        document.getElementById("vl-media-diff").textContent = btn.getAttribute("data-diff") || "0,00";
-        var p = btn.getAttribute("data-pct") || "0,0";
-        if (sentido === "acima") pct.textContent = "+" + p + "% acima";
-        else if (sentido === "abaixo") pct.textContent = p + "% abaixo";
-        else pct.textContent = "Na média";
+        document.getElementById("vl-media-diff").textContent =
+          btn.getAttribute("data-diff" + suf) || btn.getAttribute("data-diff") || "0,00";
+        pct.textContent = textoPct(sentido, btn.getAttribute("data-pct" + suf) || btn.getAttribute("data-pct") || "");
       }
+      document.getElementById("vl-media-nota").textContent = modo === "dia"
+        ? "Média do período inteiro (igual o BI)"
+        : "O que já deveria ter saído até agora";
+    }
+    function abrirMedia(btn) {
+      mediaBtn = btn;
+      var modos = document.getElementById("vl-media-modos");
+      var modo = modos.hidden ? "agora" : modoSalvo();
+      document.getElementById("vl-media-titulo").textContent = btn.getAttribute("data-titulo") || "";
+      document.getElementById("vl-media-vendido").textContent = btn.getAttribute("data-vendido") || "0,00";
+      pintarModos(modo);
+      aplicarMedia(btn, modo);
       sheetMedia.hidden = false;
       sheetMedia.classList.add("aberto");
     }
     function fecharMedia() {
       sheetMedia.classList.remove("aberto");
       sheetMedia.hidden = true;
+      mediaBtn = null;
     }
     document.querySelectorAll("[data-media]").forEach(function (btn) {
       btn.addEventListener("click", function () { abrirMedia(btn); });
+    });
+    document.querySelectorAll("[data-media-modo]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var modo = b.getAttribute("data-media-modo") || "agora";
+        gravarModo(modo);
+        pintarModos(modo);
+        if (mediaBtn) aplicarMedia(mediaBtn, modo);
+      });
     });
     sheetMedia.querySelectorAll("[data-fechar-media]").forEach(function (el) {
       el.addEventListener("click", fecharMedia);
