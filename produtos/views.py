@@ -7606,7 +7606,9 @@ def _vendas_lojas_periodo_from_request(request):
     from produtos.vendas_lojas_util import vendas_lojas_periodo_bounds
 
     return vendas_lojas_periodo_bounds(
-        timezone.localdate(), request.GET.get("periodo")
+        timezone.localdate(),
+        request.GET.get("periodo"),
+        request.GET.get("data") or request.GET.get("dia"),
     )
 
 
@@ -10914,8 +10916,67 @@ def vendas_lojas_resumo(request):
             "centro_val": centro,
             "vila_val": vila,
             "total_val": total,
+            "hoje_iso": timezone.localdate().isoformat(),
+            "data_iso": data_ini.isoformat(),
         },
     )
+
+
+def vendas_lojas_manifest(request):
+    """Manifest PWA da tela de vendas por loja (público — Chrome precisa baixar sem login)."""
+    icon_192 = request.build_absolute_uri("/static/produtos/pwa/vendas-lojas-192.png")
+    icon_512 = request.build_absolute_uri("/static/produtos/pwa/vendas-lojas-512.png")
+    payload = {
+        "id": "/vendas/lojas/",
+        "name": "Vendas das lojas",
+        "short_name": "Vendas",
+        "description": "Faturamento Centro e Vila Elias",
+        "start_url": "/vendas/lojas/",
+        "scope": "/vendas/lojas/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "portrait",
+        "lang": "pt-BR",
+        "dir": "ltr",
+        "background_color": "#f8fafc",
+        "theme_color": "#ea580c",
+        "icons": [
+            {
+                "src": icon_192,
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": icon_512,
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any",
+            },
+            {
+                "src": icon_512,
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "maskable",
+            },
+        ],
+    }
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+def vendas_lojas_sw(request):
+    """Service worker mínimo — critério de instalação no Chrome."""
+    js = (
+        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+        "self.addEventListener('fetch',function(e){e.respondWith(fetch(e.request));});\n"
+    )
+    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/vendas/lojas/"
+    resp["Cache-Control"] = "no-cache"
+    return resp
 
 
 @login_required(login_url="/admin/login/")

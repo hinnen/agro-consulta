@@ -72,6 +72,19 @@ def test_arquivos() -> None:
     check("tpl_filtro_semana", 'value="semana"' in tpl)
     check("tpl_filtro_mes", 'value="mes"' in tpl)
     check("tpl_filtro_ano", 'value="ano"' in tpl)
+    check("tpl_filtro_ontem", 'value="ontem"' in tpl)
+    check("tpl_filtro_mes_ant", 'value="mes_ant"' in tpl)
+    check("tpl_calendario", "vl-abrir-cal" in tpl and "Calendário" in tpl)
+    check("tpl_cal_sheet", "vl-sheet" in tpl and "vl-cal-grid" in tpl)
+    check("tpl_pwa_manifest", "vendas_lojas_manifest" in tpl)
+    check("tpl_pwa_sw", "serviceWorker" in tpl and "vendas_lojas_sw" in tpl)
+    check("url_manifest", "vendas_lojas_manifest" in urls)
+    check("url_sw", "vendas_lojas_sw" in urls)
+    check("icon_192", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-192.png").is_file())
+    check("icon_512", (ROOT / "produtos/static/produtos/pwa/vendas-lojas-512.png").is_file())
+    check("view_manifest", "def vendas_lojas_manifest" in views)
+    check("view_sw", "def vendas_lojas_sw" in views)
+    check("view_pass_data", 'request.GET.get("data")' in views)
     check("tpl_voltar", "vl-voltar" in tpl and "relatorios_hub" in tpl)
     check("tpl_mobile_viewport", "viewport-fit=cover" in tpl)
     check("tpl_mobile_dvh", "100dvh" in tpl)
@@ -124,6 +137,21 @@ def test_periodo() -> None:
     ini, fim, _l, key = vendas_lojas_periodo_bounds(date(2026, 1, 1), "mes")
     check("dia1_mes", ini == fim == date(2026, 1, 1))
 
+    ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "ontem")
+    check("ontem", key == "ontem" and ini == fim == date(2026, 8, 14), f"{ini} {label}")
+
+    ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "mes_ant")
+    check("mes_ant", key == "mes_ant" and ini == date(2026, 7, 1) and fim == date(2026, 7, 31), f"{ini}→{fim}")
+
+    ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "dia", "2026-08-10")
+    check("dia_cal", key == "dia" and ini == fim == date(2026, 8, 10) and "10/08/2026" in label)
+
+    ini, fim, _l, key = vendas_lojas_periodo_bounds(sab, "dia", "2026-12-31")
+    check("dia_futuro_corta", key == "dia" and ini == sab)
+
+    ini, fim, _l, key = vendas_lojas_periodo_bounds(date(2026, 3, 5), "mes_ant")
+    check("mes_ant_fev", ini == date(2026, 2, 1) and fim == date(2026, 2, 28))
+
 
 def test_totais_mock() -> None:
     print("== Soma Centro + Vila ==")
@@ -141,7 +169,7 @@ def test_totais_mock() -> None:
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.46", ver)
+    check("version_bump", ver >= "16.47", ver)
 
 
 def main() -> int:
