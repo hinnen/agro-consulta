@@ -1214,31 +1214,45 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.51**)
+### ✅ Deploy loja — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.51**)
+
+> **Status:** ✅ **enviado / Live v16.51** · código útil `b0b565e8`  
+> **Base anterior:** Live v16.48 @ **3fa550c0**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v16.51** · app no Chrome · números grandes · cabeçalho limpo (grade 5) · **não** subiu loja |
-| **O quê** | `/ajuste-mobile/` no celular: PIN · ícone na tela · saldo e quantidade grandes · título sozinho + 5 botões em grade · estoque numa linha |
+| **O quê** | `/ajuste-mobile/` vira app no Chrome · números grandes · cabeçalho limpo (título sozinho + 5 botões em grade) |
+| **Igual** | PIN a cada abertura · Bip +1 · cíclica · scan · SW **não** cacheia contagem |
+| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 29/29** |
+| **Migrate** | **NÃO** |
+| **Rollback desta atualização** | tag `rollback/pre-ajuste-mobile-pwa-v16.48` @ **3fa550c0** · branch `producao-backup-pre-v1651-ajuste-mobile-pwa-20260815` · frase+senha |
+| **Você** | celular `/ajuste-mobile/` · **Ctrl+F5** · Chrome → **Instalar aplicativo** · badge **v16.51** |
+
+### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.51**) · **superado — Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.51** |
+| **O quê** | `/ajuste-mobile/` no celular: PIN · ícone na tela · saldo e quantidade grandes · título sozinho + 5 botões em grade |
 | **Igual** | PWA das vendas · não cacheia contagem · PIN / bip / cíclica iguais |
-| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 29/29** (HTTP smoke Django ausente neste ambiente — pré-existente) |
+| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 29/29** |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
-| **Produção** | ⏳ frase + senha |
+| **Produção** | ✅ Live v16.51 |
 
-### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.50**) · **superado por v16.51**
+### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.50**) · **superado — Live no lote v16.51**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v16.50** · app no Chrome + números grandes / tela limpa · **superado** |
+| **Status** | ✅ **Live no lote v16.51** |
 | **O quê** | `/ajuste-mobile/` no celular: PIN · ícone na tela · saldo e quantidade grandes · botões de toque |
 | **Igual** | PWA das vendas · não cacheia contagem · PIN / bip / cíclica iguais |
 | **Prova** | `scripts/verify_ajuste_mobile_pwa.py` |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
-| **Produção** | ⏳ lote v16.51 |
+| **Produção** | ✅ lote v16.51 |
 
-### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.49**) · **superado por v16.51**
+### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.49**) · **superado — Live no lote v16.51**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1248,7 +1262,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 23/23** |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
-| **Produção** | ⏳ frase + senha |
+| **Produção** | ✅ Live no lote v16.51 |
 
 ### ✅ Deploy loja — Vendas lojas média no toque (VENDAS-LOJAS-MEDIA · **v16.48**)
 
