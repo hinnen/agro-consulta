@@ -3,7 +3,10 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from functools import wraps
 
+from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -11,12 +14,19 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
 from produtos.vendas_placar_util import resolver_periodo
-from produtos.views import (
-    _dashboard_float,
-    _dashboard_login_required,
-    _dashboard_mongo_vendas_serie,
-    _format_moeda_br,
-)
+
+
+def _login_placar(view_func):
+    """Igual ao BI: login, salvo painel público."""
+    protected = login_required(login_url="/admin/login/")(view_func)
+
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if getattr(settings, "AGRO_PUBLIC_DASHBOARD", False):
+            return view_func(request, *args, **kwargs)
+        return protected(request, *args, **kwargs)
+
+    return wrapper
 
 
 def _parse_data(raw) -> date | None:
@@ -30,6 +40,8 @@ def _parse_data(raw) -> date | None:
 
 
 def _totais_lojas(data_ini: date, data_fim: date) -> tuple[Decimal, Decimal, Decimal]:
+    from produtos.views import _dashboard_float, _dashboard_mongo_vendas_serie
+
     ser = _dashboard_mongo_vendas_serie(data_ini, data_fim, deposito=None)
     vpl = ser.get("vendas_por_loja") if isinstance(ser, dict) else None
     centro = Decimal("0.00")
@@ -49,6 +61,8 @@ def _totais_lojas(data_ini: date, data_fim: date) -> tuple[Decimal, Decimal, Dec
 
 
 def montar_contexto_placar(request) -> dict:
+    from produtos.views import _format_moeda_br
+
     hoje = timezone.localdate()
     recorte = resolver_periodo(
         request.GET.get("periodo"),
@@ -95,7 +109,7 @@ def json_placar(ctx: dict) -> dict:
 
 
 @never_cache
-@_dashboard_login_required
+@_login_placar
 @require_GET
 def vendas_lojas_placar_view(request):
     ctx = montar_contexto_placar(request)

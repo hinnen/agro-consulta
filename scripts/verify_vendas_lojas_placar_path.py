@@ -113,7 +113,7 @@ def test_runtime() -> None:
         ]
     }
     factory = RequestFactory()
-    with patch("produtos.views_vendas_placar._dashboard_mongo_vendas_serie", return_value=fake):
+    with patch("produtos.views._dashboard_mongo_vendas_serie", return_value=fake):
         ctx = montar_contexto_placar(factory.get("/vendas/lojas/"))
     check("ctx_periodo_dia", ctx["periodo"] == "dia")
     check("ctx_centro", ctx["centro"] == Decimal("100.50"))
