@@ -1214,6 +1214,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.49**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste v16.49** · Instalar no Chrome vira app · **não** subiu loja |
+| **O quê** | `/ajuste-mobile/` no celular: mesmo PIN · ícone na tela inicial · tela cheia |
+| **Igual** | PWA das vendas (`/vendas/lojas/`) · não cacheia contagem |
+| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 23/23** |
+| **Migrate** | **NÃO** |
+| **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
+| **Produção** | ⏳ frase + senha |
+
 ### ✅ Deploy loja — Vendas lojas média no toque (VENDAS-LOJAS-MEDIA · **v16.48**)
 
 > **Status:** ✅ **enviado / Live v16.48** · `producao` @ **be452979**  
