@@ -1214,6 +1214,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Vendas lojas PWA + calendário (VENDAS-LOJAS-PWA · **v16.47**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste v16.47** · PWA + calendário + Ontem/Mês ant. · **não** subiu loja (sem senha neste pedido) |
+| **O quê** | Instalar no Chrome vira app · calendário caprichado (escolhe o dia) · atalhos **Ontem** e **Mês ant.** |
+| **Tela** | Prints OK · R$ 0,00 no Dia = ainda sem venda hoje; Semana soma os dias anteriores |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 67/67** |
+| **Migrate** | **NÃO** |
+| **Você** | celular `/vendas/lojas/` · Ctrl+F5 · Chrome → **Instalar aplicativo** · testar calendário / ontem |
+| **Produção** | ⏳ frase + senha |
+
 ### ✅ Deploy loja — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**)
 
 > **Status:** ✅ **enviado / Live v16.46** · `producao` @ **a202214e**  
