@@ -74,8 +74,10 @@ def main() -> int:
     check("tpl_numpad_toque", "min-height: 2.95rem" in ma)
     check("tpl_busca_alta", "min-height: 3.25rem" in ma)
     check("tpl_login_pin_grande", "min-h-[4.25rem]" in login)
+    check("tpl_cabecalho_grade5", "repeat(5, minmax(0, 1fr))" in ma)
+    check("tpl_cabecalho_titulo_sozinho", "ma-head-row--title" in ma)
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.50", ver)
+    check("version_bump", ver >= "16.51", ver)
 
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
     if fails:

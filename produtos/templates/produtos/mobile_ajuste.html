@@ -103,31 +103,32 @@
       height: 100% !important;
       touch-action: none;
     }
-    .ma-head-actions {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 0.35rem;
-      flex: 1 1 auto;
-      max-width: 100%;
+    .ma-head-row--title {
+      padding-top: 0.7rem;
+      padding-bottom: 0.35rem;
     }
-    .ma-head-row:first-child {
-      flex-wrap: wrap;
-      gap: 0.45rem;
-      align-items: flex-start;
+    .ma-head-actions {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0.3rem;
+      padding: 0 0.75rem 0.6rem;
+      width: 100%;
+      box-sizing: border-box;
     }
     .ma-head-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 100%;
       min-height: 2.85rem;
-      padding: 0 0.7rem;
+      padding: 0.3rem 0.15rem;
       border-radius: 0.85rem;
-      font-size: 0.78rem !important;
+      font-size: 0.68rem !important;
       font-weight: 900;
       text-transform: uppercase;
-      line-height: 1 !important;
-      white-space: nowrap;
+      line-height: 1.1 !important;
+      text-align: center;
+      white-space: normal;
       text-decoration: none;
       border: 2px solid #e2e8f0;
       box-sizing: border-box;
@@ -241,39 +242,34 @@
       line-height: 1 !important;
     }
     .ma-head-row--sync {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
+      align-items: center;
+      gap: 0.45rem;
       background: linear-gradient(90deg, #ecfdf5 0%, #fff 55%, #f8fafc 100%);
-      padding-top: 0.65rem;
-      padding-bottom: 0.7rem;
+      padding-top: 0.5rem;
+      padding-bottom: 0.55rem;
     }
     .ma-head-dep {
-      display: block;
-      width: 100%;
-      font-size: 0.88rem !important;
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 0.82rem !important;
       font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       color: #334155;
-      line-height: 1.35 !important;
-      word-break: break-word;
-    }
-    .ma-head-sync-line {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 0.5rem;
-      width: 100%;
+      line-height: 1.25 !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     #ma-saldos-ultima {
-      flex: 1 1 auto;
+      flex: 0 1 auto;
       min-width: 0;
-      font-size: 0.78rem !important;
+      max-width: 42%;
+      font-size: 0.72rem !important;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
-      color: #1e293b;
-      line-height: 1.3 !important;
+      color: #64748b;
+      line-height: 1.2 !important;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -565,15 +561,15 @@
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="ma-head">
-    <div class="ma-head-row">
+    <div class="ma-head-row ma-head-row--title">
       <h1 class="ma-head-title-txt">Ajuste <span>Mobile</span></h1>
-      <div class="ma-head-actions">
-        <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
-        <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
-        <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
-        <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
-        <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
-      </div>
+    </div>
+    <div class="ma-head-actions">
+      <button type="button" id="ma-btn-bip1" class="ma-head-btn ma-btn-bip1" title="Liga: bipar soma +1 no saldo">Bip +1</button>
+      <button type="button" id="ma-btn-ciclica" class="ma-head-btn ma-head-btn--hist" title="Contagem cíclica (cego, multi-celular)">Cíclica</button>
+      <a href="{% url 'ajuste_codigos_pendentes_lista' %}" class="ma-head-btn ma-head-btn--hist" title="Códigos bipados sem cadastro">Cód.</a>
+      <a href="/historico/?from=ajuste" target="_top" class="ma-head-btn ma-head-btn--hist">Hist.</a>
+      <button type="button" onclick="startScan()" class="ma-head-btn ma-head-btn--scan">Scan</button>
     </div>
     {% if ajuste_operador %}
     <div class="ma-head-row ma-head-row--op">
@@ -588,9 +584,7 @@
         <button type="button" id="ma-btn-trocar-dep" class="ma-head-op-link ml-1">Trocar</button>
         {% endif %}
       </div>
-      <div class="ma-head-sync-line">
-        <span id="ma-saldos-ultima" title="Última atualização automática">Atualizando…</span>
-      </div>
+      <span id="ma-saldos-ultima" title="Última atualização automática">Atualizando…</span>
     </div>
   </header>
 

@@ -89,10 +89,10 @@ if "Bip +1 off" in text:
 else:
     fail("falta rótulo Bip+1 off")
 
-if "flex-wrap" in text and "ma-head-actions" in text:
-    ok("header actions wrap")
+if "grid-template-columns: repeat(5, minmax(0, 1fr))" in text and "ma-head-actions" in text:
+    ok("header actions grade 5 no celular")
 else:
-    fail("header sem wrap")
+    fail("header sem grade de 5 botões")
 
 # --- HTTP (Django client): login · página com gate · API cíclica cega ---
 try:
