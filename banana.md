@@ -1214,19 +1214,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.52**)
+### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
+
+> **Status:** ✅ **enviado / Live v16.53**  
+> **Base anterior:** Live v16.51 @ **fade5b8f**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste v16.52** · **não** subiu loja |
-| **O quê** | `/vendas/lojas/` toque no valor: média **até agora** (padrão) ou **dia todo** |
+| **O quê** | `/vendas/lojas/` celular: números grandes · média **até agora** (padrão) · **dia todo** discreto |
 | **Por quê** | De manhã a média do dia inteiro parece impossível — as vendas ainda vão acontecer |
-| **Cálculo** | Mesma Meta C do BI · expediente **7h30–18h30** · dias já fechados entram 100 % · só hoje é cortado no relógio |
-| **Tela** | Folha: **Até agora** (verde) · **Dia todo** (discreto) · lembra a escolha no celular |
-| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` |
+| **Cálculo** | Mesma Meta C do BI · expediente **7h30–18h30** · dias já fechados 100 % · só hoje é cortado no relógio |
+| **Tela** | Coluna de celular · cartões só com o valor · folha: **Até agora** / **Dia todo** |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 111/111** |
 | **Migrate** | **NÃO** |
-| **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · toque num valor de manhã · badge **v16.52** |
-| **Produção** | ⏳ frase + senha |
+| **Rollback desta atualização** | tag `rollback/pre-vendas-lojas-media-agora-v16.51` @ **fade5b8f** · branch `producao-backup-pre-v1653-vendas-lojas-media-agora-20260815` · frase+senha |
+| **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · toque num valor de manhã · badge **v16.53** |
+
+### 📦 PACOTE PRONTO — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**) · **superado — Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.53** |
+| **O quê** | `/vendas/lojas/` celular: números grandes · tela limpa · média **até agora** (padrão) ou **dia todo** |
+| **Produção** | ✅ Live v16.53 |
 
 ### ✅ Deploy loja — Ajuste mobile app (AJUSTE-MOBILE-PWA · **v16.51**)
 
