@@ -1214,6 +1214,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Tela vendas por loja (`/vendas/lojas/` · **v16.44** teste)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tela simples: faturamento **Centro** + **Vila Elias** + **total** · filtros Dia (padrão) / Semana / Mês / Ano |
+| **Rota** | `/vendas/lojas/` · link na Central de Relatórios |
+| **Fonte** | Mesma agregação do BI (`VendaAgro` / `_dashboard_vendas_por_loja`) |
+| **Produção** | ⏳ aguarda teste local + frase+senha |
+
 ### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
 
 > **Status:** ✅ **enviado / Live v16.44** · `producao` @ **e96f998** · Render `dep-d9vo8t3ncjis73emftqg`  
