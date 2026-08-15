@@ -1214,7 +1214,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**)
+### 📦 PACOTE PRONTO — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** · teste **v16.46** · celular (números grandes, tela limpa) |
+| **O quê** | `/vendas/lojas/` · Centro + Vila + total · Dia/Semana/Mês/Ano (padrão hoje) · layout smartphone |
+| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 49/49** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-vendas-lojas-v16.44` (loja anterior Live v16.44) · frase+senha |
+| **Você** | celular: `/vendas/lojas/` · Ctrl+F5 · conferir Dia/Semana/Mês/Ano |
+
+### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**) · **superado por v16.46**
 
 | Item | Detalhe |
 | ---- | ------- |

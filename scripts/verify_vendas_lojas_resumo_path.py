@@ -72,7 +72,16 @@ def test_arquivos() -> None:
     check("tpl_filtro_semana", 'value="semana"' in tpl)
     check("tpl_filtro_mes", 'value="mes"' in tpl)
     check("tpl_filtro_ano", 'value="ano"' in tpl)
-    check("tpl_voltar_pdv", "_pdv_voltar_link.html" in tpl)
+    check("tpl_voltar", "vl-voltar" in tpl and "relatorios_hub" in tpl)
+    check("tpl_mobile_viewport", "viewport-fit=cover" in tpl)
+    check("tpl_mobile_dvh", "100dvh" in tpl)
+    check("tpl_mobile_safe", "safe-area-inset" in tpl)
+    check("tpl_numeros_grandes", "clamp(2.15rem" in tpl and "clamp(2.45rem" in tpl)
+    check("tpl_filtro_toque", "min-height: 3rem" in tpl)
+    check("tpl_grade_4", "repeat(4, minmax(0, 1fr))" in tpl)
+    check("tpl_sem_scale", "agro_display_scale" not in tpl and "_agro_consulta_ui" not in tpl)
+    check("tpl_sem_fa", "font-awesome" not in tpl.lower())
+    check("tpl_standalone", "<!DOCTYPE html>" in tpl and "extends" not in tpl)
     check("util_sem_cache", "cache." not in util)
     check("util_sem_mongo", "obter_conexao_mongo" not in util and "DtoVenda" not in util)
     check("util_exclui_devolvida", "devolvida_em__isnull=True" in util)
@@ -132,7 +141,7 @@ def test_totais_mock() -> None:
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.45", ver)
+    check("version_bump", ver >= "16.46", ver)
 
 
 def main() -> int:

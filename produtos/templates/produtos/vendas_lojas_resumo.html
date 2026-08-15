@@ -1,106 +1,204 @@
-{% extends "layouts/base_pdv.html" %}
-
-{% block pdv_title %}Vendas por loja | SisVale{% endblock %}
-{% block body_class %}min-h-screen bg-slate-950 text-slate-100{% endblock %}
-
-{% block head_extra %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f8fafc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Vendas por loja | SisVale</title>
+  {% include "produtos/_head_perf_mpa.html" %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <style>
-    .vendas-loja-card {
-      border-radius: 1.25rem;
-      border: 2px solid #334155;
-      background: linear-gradient(165deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.85) 100%);
-      padding: clamp(1.25rem, 2vw + 0.75rem, 2rem);
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --sky: #0369a1;
+      --orange: #c2410c;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
     }
-    .vendas-loja-valor {
-      font-size: clamp(2rem, 5vw + 1rem, 3.5rem);
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100dvh;
+      background: #f8fafc;
+      color: var(--ink);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    body {
+      overflow-x: hidden;
+    }
+    .vl-shell {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: max(0.75rem, var(--safe-t)) max(1rem, var(--safe-r)) max(1rem, var(--safe-b)) max(1rem, var(--safe-l));
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+    .vl-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.85rem;
+    }
+    .vl-kicker {
+      margin: 0;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #ea580c;
+    }
+    .vl-title {
+      margin: 0.15rem 0 0;
+      font-size: clamp(1.25rem, 5vw + 0.4rem, 1.65rem);
       font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.1;
-      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
     }
-    .vendas-loja-total {
-      border-color: #f97316;
-      background: linear-gradient(165deg, rgba(234, 88, 12, 0.12) 0%, rgba(15, 23, 42, 0.95) 55%);
+    .vl-periodo {
+      margin: 0.25rem 0 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--muted);
     }
-    .vendas-loja-filtro {
+    .vl-voltar {
+      flex-shrink: 0;
       min-height: 2.75rem;
-      padding: 0.5rem 1rem;
-      border-radius: 0.75rem;
-      border: 2px solid #475569;
-      font-size: 0.75rem;
+      min-width: 2.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.85rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: #334155;
+      font-size: 0.72rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #cbd5e1;
-      background: #1e293b;
-      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
-    .vendas-loja-filtro:hover {
-      border-color: #64748b;
+    .vl-filtros {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.4rem;
+      margin: 0 0 1rem;
+    }
+    .vl-filtro {
+      min-height: 3rem;
+      border: 2px solid var(--line);
+      border-radius: 0.9rem;
+      background: #fff;
+      color: #334155;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      touch-action: manipulation;
+    }
+    .vl-filtro.ativo {
+      border-color: #059669;
+      background: #059669;
       color: #fff;
     }
-    .vendas-loja-filtro.ativo {
-      border-color: #10b981;
-      background: #064e3b;
-      color: #ecfdf5;
+    .vl-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      flex: 1;
     }
+    .vl-card {
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 1.15rem;
+      padding: 0.95rem 1rem 1.05rem;
+    }
+    .vl-card h2 {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .vl-card.centro h2 { color: var(--sky); }
+    .vl-card.vila h2 { color: #475569; }
+    .vl-card.total {
+      border-color: #fdba74;
+      background: #fff7ed;
+    }
+    .vl-card.total h2 { color: var(--orange); }
+    .vl-valor {
+      margin: 0.35rem 0 0;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .vl-card.centro .vl-valor,
+    .vl-card.vila .vl-valor {
+      font-size: clamp(2.15rem, 9.5vw + 0.35rem, 3.15rem);
+      color: var(--ink);
+    }
+    .vl-card.total .vl-valor {
+      font-size: clamp(2.45rem, 11vw + 0.4rem, 3.55rem);
+      color: var(--orange);
+    }
+    .vl-rs {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.1rem;
+    }
+    .vl-card.total .vl-rs { color: #ea580c; }
   </style>
-{% endblock %}
+</head>
+<body>
+  <div class="vl-shell">
+    <header class="vl-top">
+      <div>
+        <p class="vl-kicker">Vendas</p>
+        <h1 class="vl-title">As duas lojas</h1>
+        <p class="vl-periodo">{{ periodo_label }}</p>
+      </div>
+      <a class="vl-voltar" href="{% url 'relatorios_hub' %}">Voltar</a>
+    </header>
 
-{% block pdv_shell_class %}min-h-screen bg-slate-950{% endblock %}
-{% block pdv_section_class %}mx-auto w-full max-w-4xl px-3 py-4 sm:px-5 sm:py-8{% endblock %}
+    <form method="get" class="vl-filtros" aria-label="Filtrar período">
+      <button type="submit" name="periodo" value="hoje"
+        class="vl-filtro {% if periodo_key == 'hoje' %}ativo{% endif %}">Dia</button>
+      <button type="submit" name="periodo" value="semana"
+        class="vl-filtro {% if periodo_key == 'semana' %}ativo{% endif %}">Semana</button>
+      <button type="submit" name="periodo" value="mes"
+        class="vl-filtro {% if periodo_key == 'mes' %}ativo{% endif %}">Mês</button>
+      <button type="submit" name="periodo" value="ano"
+        class="vl-filtro {% if periodo_key == 'ano' %}ativo{% endif %}">Ano</button>
+    </form>
 
-{% block pdv_header %}
-<header class="border-b border-slate-800 bg-slate-900/90 shadow-sm">
-  <div class="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-3 py-3 sm:px-5">
-    <div class="min-w-0">
-      <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Vendas</p>
-      <h1 class="mt-0.5 text-2xl font-black tracking-tight text-white">Faturamento por loja</h1>
-      <p class="mt-1 text-sm font-medium text-slate-400">{{ periodo_label }}</p>
-    </div>
-    <div class="flex flex-wrap items-center gap-2">
-      <a href="{% url 'relatorios_hub' %}"
-        class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-600 bg-slate-800 px-4 py-2 text-xs font-black uppercase text-slate-200 hover:border-slate-500">
-        Relatórios
-      </a>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-slate-600 bg-slate-800 px-3 py-2 text-xs font-black uppercase text-slate-100 shadow-sm hover:border-orange-500 hover:text-white" %}
+    <div class="vl-cards">
+      <article class="vl-card centro">
+        <h2>Centro</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ centro_fmt }}</p>
+      </article>
+      <article class="vl-card vila">
+        <h2>Vila Elias</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ vila_fmt }}</p>
+      </article>
+      <article class="vl-card total">
+        <h2>Total das duas lojas</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
+      </article>
     </div>
   </div>
-</header>
-{% endblock %}
-
-{% block pdv_content %}
-<div class="space-y-6 p-1 sm:p-2">
-  <form method="get" class="flex flex-wrap gap-2" aria-label="Filtrar período">
-    <button type="submit" name="periodo" value="hoje"
-      class="vendas-loja-filtro {% if periodo_key == 'hoje' %}ativo{% endif %}">Dia</button>
-    <button type="submit" name="periodo" value="semana"
-      class="vendas-loja-filtro {% if periodo_key == 'semana' %}ativo{% endif %}">Semana</button>
-    <button type="submit" name="periodo" value="mes"
-      class="vendas-loja-filtro {% if periodo_key == 'mes' %}ativo{% endif %}">Mês</button>
-    <button type="submit" name="periodo" value="ano"
-      class="vendas-loja-filtro {% if periodo_key == 'ano' %}ativo{% endif %}">Ano</button>
-  </form>
-
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-    <article class="vendas-loja-card">
-      <p class="text-xs font-black uppercase tracking-[0.2em] text-sky-400">Centro</p>
-      <p class="vendas-loja-valor mt-3 text-sky-300">R$ {{ centro_fmt }}</p>
-    </article>
-    <article class="vendas-loja-card">
-      <p class="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Vila Elias</p>
-      <p class="vendas-loja-valor mt-3 text-slate-200">R$ {{ vila_fmt }}</p>
-    </article>
-  </div>
-
-  <article class="vendas-loja-card vendas-loja-total text-center">
-    <p class="text-xs font-black uppercase tracking-[0.2em] text-orange-400">Total das duas lojas</p>
-    <p class="vendas-loja-valor mt-3 text-orange-300">R$ {{ total_fmt }}</p>
-  </article>
-
-  <p class="text-center text-xs text-slate-500">
-    Vendas do PDV no período · sem devoluções · atualizado ao abrir a tela
-  </p>
-</div>
-{% endblock %}
+</body>
+</html>
