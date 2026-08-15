@@ -1,0 +1,262 @@
+{# Overlay Pedir loja — pedido de transferência Centro ↔ Vila (padrão Uso loja) #}
+<style>
+  #pdv-pedir-loja-overlay { z-index: 2147483012; }
+  #pdv-pedir-loja-overlay .pt-card {
+    border: 2px solid #dbeafe;
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.55rem 0.75rem 0.65rem;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    flex-shrink: 0;
+  }
+  #pdv-pedir-loja-overlay .pt-card-h {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-bottom: 0.45rem;
+  }
+  #pdv-pedir-loja-overlay .pt-card-num {
+    flex-shrink: 0;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 999px;
+    background: #0284c7;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 900;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #pdv-pedir-loja-overlay .pt-card-title {
+    font-size: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0f172a;
+  }
+  #pdv-pedir-loja-overlay .pt-card-hint {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-left: auto;
+  }
+  #pdv-pedir-loja-overlay .pt-field {
+    min-height: 2.75rem;
+    border-radius: 0.65rem;
+    border: 1.5px solid #cbd5e1;
+    background: #fff;
+    padding: 0.4rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    width: 100%;
+  }
+  #pdv-pedir-loja-overlay .pt-field:focus {
+    outline: none;
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
+  }
+  #pdv-pedir-loja-overlay .pt-busca-wrap { position: relative; }
+  #pdv-pedir-loja-hits {
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    z-index: 30;
+    max-height: min(42dvh, 18rem);
+    overflow: hidden;
+    border-radius: 0.75rem;
+    border: 2px solid #7dd3fc;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  }
+  #pdv-pedir-loja-hits.hidden { display: none !important; }
+  #pdv-pedir-loja-hits .pt-hits-scroll { max-height: min(42dvh, 18rem); overflow-y: auto; }
+  #pdv-pedir-loja-hits .pt-hits-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  #pdv-pedir-loja-hits .pt-hits-table col.pt-col-gm { width: 6.5rem; }
+  #pdv-pedir-loja-hits .pt-hits-table col.pt-col-nome { width: auto; }
+  #pdv-pedir-loja-hits .pt-hits-table col.pt-col-stk { width: 4.4rem; }
+  #pdv-pedir-loja-hits .pt-hits-table col.pt-col-add { width: 2.4rem; }
+  #pdv-pedir-loja-hits .pt-hits-table thead th {
+    position: sticky; top: 0; z-index: 1;
+    background: #f0f9ff;
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase;
+    color: #0369a1; padding: 0.35rem 0.4rem; text-align: left;
+  }
+  #pdv-pedir-loja-hits .pt-hits-table tbody tr { cursor: pointer; }
+  #pdv-pedir-loja-hits .pt-hits-table tbody td {
+    padding: 0.4rem; font-size: 0.92rem; font-weight: 700; color: #0f172a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #pdv-pedir-loja-hits .pt-hits-table tbody tr:hover td { background: #ecfeff; }
+  #pdv-pedir-loja-hits .pt-hits-table tbody tr.pt-hit-selected td { background: #e0f2fe; }
+  #pdv-pedir-loja-hits .pt-td-stk { text-align: right; font-variant-numeric: tabular-nums; }
+  #pdv-pedir-loja-overlay .pt-cart-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  #pdv-pedir-loja-overlay .pt-cart-table col.pt-col-gm { width: 6.5rem; }
+  #pdv-pedir-loja-overlay .pt-cart-table col.pt-col-nome { width: auto; }
+  #pdv-pedir-loja-overlay .pt-cart-table col.pt-col-stk { width: 4.4rem; }
+  #pdv-pedir-loja-overlay .pt-cart-table col.pt-col-qtd { width: 5.4rem; }
+  #pdv-pedir-loja-overlay .pt-cart-table col.pt-col-rm { width: 2.5rem; }
+  #pdv-pedir-loja-overlay .pt-cart-table thead th {
+    font-size: 0.68rem; font-weight: 900; text-transform: uppercase;
+    color: #64748b; padding: 0.3rem 0.35rem; text-align: left;
+  }
+  #pdv-pedir-loja-overlay .pt-cart-table tbody td {
+    padding: 0.28rem 0.35rem; font-size: 0.95rem; font-weight: 700;
+    color: #0f172a; border-top: 1px solid #e2e8f0;
+  }
+  #pdv-pedir-loja-overlay .pt-cart-table .pt-td-stk,
+  #pdv-pedir-loja-overlay .pt-cart-table .pt-td-qtd { text-align: right; }
+  #pdv-pedir-loja-overlay .pt-cart-table .pt-td-qtd .pt-field {
+    min-height: 2.35rem; width: 100%; text-align: center; font-size: 1rem; padding: 0.2rem;
+  }
+  #pdv-pedir-loja-overlay .pt-cart-rm {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.35rem; min-width: 2.35rem; border-radius: 0.55rem;
+    border: 1.5px solid #fecaca; background: #fef2f2; color: #b91c1c;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pt-row {
+    border: 1.5px solid #e2e8f0; border-radius: 0.8rem; padding: 0.55rem 0.65rem;
+    background: #fff;
+  }
+  #pdv-pedir-loja-overlay .pt-row.is-in {
+    border-color: #fb923c; background: #fff7ed;
+  }
+  #pdv-pedir-loja-overlay .pt-row-title {
+    font-size: 0.95rem; font-weight: 900; text-transform: uppercase; color: #0f172a;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #pdv-pedir-loja-overlay .pt-row-meta {
+    font-size: 0.78rem; font-weight: 700; color: #475569;
+  }
+  #pdv-pedir-loja-overlay .pt-act {
+    min-height: 2.45rem; padding: 0.25rem 0.65rem; border-radius: 0.6rem;
+    border: 2px solid #cbd5e1; background: #fff; font-size: 0.78rem;
+    font-weight: 900; text-transform: uppercase; cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pt-act--ok { border-color: #059669; background: #ecfdf5; color: #065f46; }
+  #pdv-pedir-loja-overlay .pt-act--go { border-color: #0284c7; background: #0284c7; color: #fff; }
+  #pdv-pedir-loja-overlay .pt-act--no { border-color: #f87171; background: #fef2f2; color: #991b1b; }
+  #pdv-pedir-loja-overlay[data-pt-view="pedidos"] .pt-view-pedir { display: none !important; }
+  #pdv-pedir-loja-overlay[data-pt-view="pedir"] .pt-view-pedidos { display: none !important; }
+  #pdv-pedir-loja-pin-pop.hidden { display: none !important; }
+  #pdv-pedir-loja-pin-pop {
+    position: absolute; inset: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0.75rem; background: rgba(15, 23, 42, 0.45);
+  }
+  #pdv-pedir-loja-pin-pop .pt-pin-panel {
+    width: min(26rem, 100%); border-radius: 1rem; border: 3px solid #0284c7;
+    background: #fff; padding: 1rem; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.28);
+  }
+</style>
+
+<div id="pdv-pedir-loja-overlay" class="fixed inset-0 hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pt-view="pedir">
+  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-sky-500 bg-gradient-to-b from-sky-50/90 via-white to-white shadow-2xl" role="document" id="pdv-pedir-loja-panel">
+    <div id="pdv-pedir-loja-hits" class="hidden" role="listbox" aria-label="Resultados"></div>
+    <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-sky-100 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+      <div class="min-w-0 flex-1">
+        <h2 id="pdv-pedir-loja-title" class="text-[clamp(1rem,1.2vw+0.85rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Pedir loja</h2>
+        <p id="pdv-pedir-loja-sub" class="text-sm font-semibold text-sky-800">Pedido para a outra loja</p>
+      </div>
+      <button type="button" id="pdv-pedir-loja-btn-pedidos" class="relative inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-orange-300 bg-orange-50 px-3 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100">
+        Pedidos
+        <span id="pdv-pedir-loja-btn-pedidos-count" class="ml-1 hidden min-w-[1.15rem] rounded-full bg-orange-600 px-1 text-[10px] font-black text-white tabular-nums">0</span>
+      </button>
+      <button type="button" id="pdv-pedir-loja-btn-pedir" class="hidden inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-sky-400 bg-sky-50 px-3 text-[11px] font-black uppercase text-sky-950 hover:bg-sky-100">Novo pedido</button>
+      <a href="{% url 'sugestao_transferencia' %}" id="pdv-pedir-loja-link-logistica" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-slate-300 bg-white px-3 text-[11px] font-black uppercase text-slate-700 hover:bg-slate-50 no-underline">Tela logística</a>
+      <details class="relative">
+        <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-sky-600 bg-white text-lg font-black text-sky-900 hover:bg-sky-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
+        <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-sky-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
+          <p>Este PDV <strong>pede</strong> produto à outra loja (Centro ↔ Vila). O pedido fica <strong>pendente</strong> — o estoque não sai agora.</p>
+          <p>Na loja que recebe, o botão <strong>Pedir loja</strong> mostra aviso. Lá dá para <strong>aceitar</strong>, <strong>recusar</strong> ou <strong>transferir agora</strong> (PIN).</p>
+          <p>Saldo zerado ou negativo <strong>não impede</strong> a transferência. Histórico completo na tela Logística.</p>
+        </div>
+      </details>
+      <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-sky-700 bg-sky-700 px-3.5 text-[11px] font-black uppercase text-white hover:bg-sky-800">Fechar</button>
+    </header>
+
+    <div class="pt-view-pedir flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex shrink-0 flex-col gap-2.5 px-3 pt-2.5 sm:px-4 sm:pt-3">
+        <section class="pt-card" aria-label="Buscar produto">
+          <div class="pt-card-h">
+            <span class="pt-card-num" aria-hidden="true">1</span>
+            <span class="pt-card-title">Buscar produto</span>
+            <span class="pt-card-hint">mostra estoque C e V</span>
+          </div>
+          <div class="pt-busca-wrap">
+            <input type="search" id="pdv-pedir-loja-busca" class="pt-field" placeholder="Nome, GM, EAN ou código de barras." autocomplete="off" />
+          </div>
+        </section>
+      </div>
+      <div class="flex min-h-0 flex-1 flex-col px-3 pb-2.5 pt-2.5 sm:px-4 sm:pb-3">
+        <section class="pt-card flex min-h-0 flex-1 flex-col" aria-label="Lista do pedido">
+          <div class="pt-card-h">
+            <span class="pt-card-num" aria-hidden="true">2</span>
+            <span class="pt-card-title">Lista do pedido</span>
+            <button type="button" id="pdv-pedir-loja-limpar" class="pt-card-hint underline decoration-slate-300 hover:text-red-700">Limpar</button>
+          </div>
+          <div id="pdv-pedir-loja-cart" class="min-h-[4rem] flex-1 overflow-y-auto"></div>
+        </section>
+      </div>
+      <footer class="flex shrink-0 flex-col gap-2 border-t-2 border-sky-100 bg-white px-3 py-2.5 sm:px-4">
+        <button type="button" id="pdv-pedir-loja-enviar" class="inline-flex min-h-[3.1rem] w-full items-center justify-center rounded-[0.9rem] bg-sky-600 px-4 text-[1.05rem] font-black uppercase tracking-wide text-white shadow-md hover:bg-sky-700">Enviar pedido</button>
+        <p id="pdv-pedir-loja-status" class="text-sm font-bold text-slate-600" role="status"></p>
+      </footer>
+    </div>
+
+    <div class="pt-view-pedidos hidden min-h-0 flex-1 flex-col overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto overscroll-contain px-3 py-3 sm:px-4">
+        <section class="pt-card" aria-label="Recebidos">
+          <div class="pt-card-h">
+            <span class="pt-card-num" aria-hidden="true">1</span>
+            <span class="pt-card-title">Pedidos para esta loja</span>
+            <span id="pdv-pedir-loja-in-hint" class="pt-card-hint">pendentes</span>
+          </div>
+          <div id="pdv-pedir-loja-recebidos" class="space-y-1.5"></div>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button type="button" id="pdv-pedir-loja-aceitar-todos" class="pt-act pt-act--ok">Aceitar todos</button>
+            <button type="button" id="pdv-pedir-loja-transferir-todos" class="pt-act pt-act--go">Transferir todos</button>
+          </div>
+        </section>
+        <section class="pt-card" aria-label="Enviados">
+          <div class="pt-card-h">
+            <span class="pt-card-num" aria-hidden="true">2</span>
+            <span class="pt-card-title">Pedidos que enviei</span>
+          </div>
+          <div id="pdv-pedir-loja-enviados" class="space-y-1.5"></div>
+        </section>
+        <section class="pt-card" aria-label="Histórico">
+          <div class="pt-card-h">
+            <span class="pt-card-num" aria-hidden="true">3</span>
+            <span class="pt-card-title">Recentes</span>
+          </div>
+          <div id="pdv-pedir-loja-historico" class="space-y-1.5"></div>
+        </section>
+      </div>
+      <footer class="shrink-0 border-t-2 border-sky-100 bg-white px-3 py-2 sm:px-4">
+        <p id="pdv-pedir-loja-pedidos-status" class="text-sm font-bold text-slate-600" role="status"></p>
+      </footer>
+    </div>
+
+    <div id="pdv-pedir-loja-pin-pop" class="hidden" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-pin-title">
+      <div class="pt-pin-panel" role="document">
+        <h3 id="pdv-pedir-loja-pin-title" class="text-lg font-black uppercase text-slate-900">PIN para transferir</h3>
+        <p class="mt-1 text-sm font-semibold text-slate-500">Move o estoque agora. Saldo negativo é permitido.</p>
+        <input type="password" id="pdv-pedir-loja-pin" class="pt-field mt-3 text-center text-xl tracking-[0.35em]" inputmode="numeric" autocomplete="off" maxlength="8" placeholder="••••" />
+        <p id="pdv-pedir-loja-pin-err" class="mt-2 hidden text-sm font-bold text-red-700" role="alert"></p>
+        <div class="mt-3 flex gap-2">
+          <button type="button" id="pdv-pedir-loja-pin-cancelar" class="pt-act flex-1">Cancelar</button>
+          <button type="button" id="pdv-pedir-loja-pin-ok" class="pt-act pt-act--go flex-[1.4]">Transferir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

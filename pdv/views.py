@@ -189,6 +189,22 @@ def pdv_home(request):
                 "apiPdvUsoLojaEstornarPattern": reverse(
                     "api_pdv_uso_loja_estornar", args=[0]
                 ).replace("/0/", "/__pk__/"),
+                "apiPdvPedidoTransferenciaResumo": reverse(
+                    "api_pdv_pedido_transferencia_resumo"
+                ),
+                "apiPdvPedidoTransferenciaLista": reverse(
+                    "api_pdv_pedido_transferencia_lista"
+                ),
+                "apiPdvPedidoTransferenciaCriar": reverse(
+                    "api_pdv_pedido_transferencia_criar"
+                ),
+                "apiPdvPedidoTransferenciaStatusPattern": reverse(
+                    "api_pdv_pedido_transferencia_status", args=[0]
+                ).replace("/0/", "/__pk__/"),
+                "apiPdvPedidoTransferenciaTransferir": reverse(
+                    "api_pdv_pedido_transferencia_transferir"
+                ),
+                "transferencias": reverse("sugestao_transferencia"),
             },
             "search": {
                 "mode": "wizard",

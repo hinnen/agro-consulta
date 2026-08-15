@@ -143,6 +143,50 @@ class HistoricoTransferencia(models.Model):
         verbose_name_plural = "Históricos de transferências"
 
 
+class SolicitacaoTransferencia(models.Model):
+    """Pedido PDV: uma loja pede produto à outra (Centro ↔ Vila). Não move estoque sozinho."""
+
+    STATUS_PENDENTE = "PENDENTE"
+    STATUS_ACEITO = "ACEITO"
+    STATUS_RECUSADO = "RECUSADO"
+    STATUS_TRANSFERIDO = "TRANSFERIDO"
+    STATUS_CANCELADO = "CANCELADO"
+    STATUS_CHOICES = (
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_ACEITO, "Aceito"),
+        (STATUS_RECUSADO, "Recusado"),
+        (STATUS_TRANSFERIDO, "Transferido"),
+        (STATUS_CANCELADO, "Cancelado"),
+    )
+
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    nome_produto = models.CharField(max_length=255, blank=True, default="")
+    codigo_interno = models.CharField(max_length=100, blank=True, default="")
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3)
+    loja_origem = models.CharField(max_length=20, db_index=True)
+    loja_destino = models.CharField(max_length=20, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDENTE,
+        db_index=True,
+    )
+    usuario_solicitante = models.CharField(max_length=200, blank=True, default="")
+    usuario_resposta = models.CharField(max_length=200, blank=True, default="")
+    observacao = models.TextField(blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "Solicitação de transferência PDV"
+        verbose_name_plural = "Solicitações de transferência PDV"
+        indexes = [
+            models.Index(fields=["loja_origem", "status"]),
+            models.Index(fields=["loja_destino", "status"]),
+        ]
+
+
 class PoliticaEstoque(models.Model):
     empresa = models.ForeignKey("base.Empresa", on_delete=models.CASCADE)
     loja = models.ForeignKey("base.Loja", on_delete=models.CASCADE)

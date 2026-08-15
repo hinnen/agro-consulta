@@ -120,6 +120,12 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
+**PDV — pedir transferência de outra loja** 
+
+- Botão **Pedir loja** no PDV (ao lado de Uso loja) abre overlay: busca + lista, envia pedido à outra loja (Centro ↔ Vila). Pedido **não** move estoque.
+- Na loja que recebe, o mesmo botão mostra **aviso (badge)**; dá para aceitar, recusar ou **transferir agora** (PIN). Saldo zerado/negativo permitido.
+- Reusa `_transferir_entre_depositos_exec` e o histórico da tela Logística (`/transferencias/`). Modelo `estoque.SolicitacaoTransferencia`.
+
 **Compras (`compras.html` + JS inline)**  
 
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  

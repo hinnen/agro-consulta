@@ -2100,6 +2100,25 @@
     background: #475569 !important;
     color: #fff !important;
   }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pedir-pendente {
+    border-color: #ea580c !important;
+    background: linear-gradient(90deg, #ea580c, #f59e0b) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 14px rgba(234, 88, 12, 0.32) !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pedir-pendente:hover {
+    border-color: #c2410c !important;
+    background: linear-gradient(90deg, #c2410c, #d97706) !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--pedir-pendente .pdv-topbar-pedir-loja-count {
+    background: #fff !important;
+    color: #c2410c !important;
+  }
+  .pdv-topbar-pedir-loja-count {
+    background: #ea580c;
+    color: #fff;
+  }
   .pdv-wiz-topbar-row {
     display: flex;
     flex-wrap: nowrap;
@@ -2431,6 +2450,15 @@
     color: #0369a1 !important;
   }
   .pdv-wiz-topbar-btn--sky:hover { background: #e0f2fe !important; }
+  .pdv-wiz-topbar-btn--pedir-pendente {
+    border-color: #ea580c !important;
+    background: linear-gradient(90deg, #ea580c, #f59e0b) !important;
+    color: #fff !important;
+  }
+  .pdv-wiz-topbar-btn--pedir-pendente:hover {
+    background: linear-gradient(90deg, #c2410c, #d97706) !important;
+    color: #fff !important;
+  }
   .pdv-wiz-topbar-btn--slate {
     border-color: #cbd5e1 !important;
     background: #fff !important;
@@ -3668,6 +3696,10 @@
               <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Consultar vendas</a>
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
               <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Saída de produto para uso interno da loja">Uso loja</button>
+              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--sky relative" title="Pedir produto à outra loja (Centro ↔ Vila). Aviso quando houver pedido para esta loja.">
+                Pedir loja
+                <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-orange-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+              </button>
               <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
@@ -3715,6 +3747,7 @@
 
 {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
 {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
+{% include "produtos/partials/pdv/pedido_transferencia_overlay.html" %}
 {% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
@@ -4471,6 +4504,7 @@
 <script src="{% static 'produtos/js/agro_busca_catalogo.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_pedido_transferencia.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% with sspin_pedir_pin_ao_abrir=True %}
 {% include "produtos/_screensaver_pin.html" %}

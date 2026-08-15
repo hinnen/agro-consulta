@@ -12,6 +12,7 @@ from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
+from . import views_pdv_pedido_transferencia
 from . import views_repasse_vila
 from . import views_planos_conta
 from . import bug_report_views
@@ -667,6 +668,31 @@ urlpatterns = [
         'api/pdv/uso-loja/estornar/<int:pk>/',
         views_uso_loja.api_pdv_uso_loja_estornar,
         name='api_pdv_uso_loja_estornar',
+    ),
+    path(
+        'api/pdv/pedido-transferencia/resumo/',
+        views_pdv_pedido_transferencia.api_pdv_pedido_transferencia_resumo,
+        name='api_pdv_pedido_transferencia_resumo',
+    ),
+    path(
+        'api/pdv/pedido-transferencia/',
+        views_pdv_pedido_transferencia.api_pdv_pedido_transferencia_lista,
+        name='api_pdv_pedido_transferencia_lista',
+    ),
+    path(
+        'api/pdv/pedido-transferencia/criar/',
+        views_pdv_pedido_transferencia.api_pdv_pedido_transferencia_criar,
+        name='api_pdv_pedido_transferencia_criar',
+    ),
+    path(
+        'api/pdv/pedido-transferencia/<int:pk>/status/',
+        views_pdv_pedido_transferencia.api_pdv_pedido_transferencia_status,
+        name='api_pdv_pedido_transferencia_status',
+    ),
+    path(
+        'api/pdv/pedido-transferencia/transferir/',
+        views_pdv_pedido_transferencia.api_pdv_pedido_transferencia_transferir,
+        name='api_pdv_pedido_transferencia_transferir',
     ),
     path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
     path(
