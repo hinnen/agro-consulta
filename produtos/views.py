@@ -7794,6 +7794,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "Vendas das lojas",
+            "href": reverse("vendas_lojas_resumo"),
+            "icon": "store",
+            "shortcut": "S",
+            "shortcut_key": "s",
+            "pin_protected": True,
+        },
+        {
             "title": "Clientes",
             "href": reverse("clientes_lista"),
             "icon": "users",
