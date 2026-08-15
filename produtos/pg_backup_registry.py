@@ -109,6 +109,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
             "estoque.ContagemCiclicaParticipante",
             "estoque.ConfiguracaoTransferencia",
             "estoque.PedidoTransferencia",
+            "estoque.SolicitacaoTransferenciaPdv",
             "estoque.HistoricoTransferencia",
             "estoque.PoliticaEstoque",
             "estoque.IndicadorProdutoLoja",

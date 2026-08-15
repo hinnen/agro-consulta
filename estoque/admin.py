@@ -5,6 +5,7 @@ from .models import (
     EstoqueSyncHealth,
     IndicadorProdutoLoja,
     PoliticaEstoque,
+    SolicitacaoTransferenciaPdv,
 )
 
 
@@ -90,3 +91,18 @@ class IndicadorProdutoLojaAdmin(admin.ModelAdmin):
     )
     list_filter = ("empresa", "loja", "data_base", "classe_abc")
     search_fields = ("produto__nome", "produto__codigo_interno")
+
+
+@admin.register(SolicitacaoTransferenciaPdv)
+class SolicitacaoTransferenciaPdvAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "nome_produto",
+        "quantidade",
+        "loja_origem",
+        "loja_destino",
+        "status",
+        "criado_em",
+    )
+    list_filter = ("status", "loja_origem", "loja_destino", "criado_em")
+    search_fields = ("nome_produto", "codigo_interno", "produto_externo_id")

@@ -245,6 +245,7 @@
                         <button type="button" onclick="limparBusca()" class="inline-flex items-center gap-1 rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-[11px] font-black uppercase text-slate-700 hover:bg-slate-50" title="F3">Limpar <kbd class="gm-kbd">F3</kbd></button>
                         <button type="button" onclick="gerarCupom()" class="inline-flex items-center gap-1 rounded-lg bg-sky-600 text-white px-3 py-2 text-[11px] font-black uppercase hover:bg-sky-700 shadow-sm ring-1 ring-sky-500/40" title="Novo cupom ou reimprimir último (F7)">Imprimir <kbd class="gm-kbd border border-white/30 bg-white/15 text-white">F7</kbd></button>
                         <button type="button" onclick="abrirModalPedidosTransfer()" class="inline-flex items-center gap-1 rounded-lg border-2 border-sky-300 bg-sky-50 px-3 py-2 text-[11px] font-black uppercase text-sky-900 hover:bg-sky-100">Pedidos</button>
+                        <button type="button" onclick="abrirModalPedidosPdv()" class="inline-flex items-center gap-1 rounded-lg border-2 border-orange-300 bg-orange-50 px-3 py-2 text-[11px] font-black uppercase text-orange-950 hover:bg-orange-100" title="Pedidos feitos no PDV (Pedir loja)">Pedidos PDV <span id="badge-pedidos-pdv" class="hidden min-w-[1.1rem] rounded-full bg-orange-600 px-1 text-[9px] font-black text-white tabular-nums">0</span></button>
                         <button type="button" onclick="abrirModalHistoricoTransfer()" class="inline-flex items-center gap-1 rounded-lg border-2 border-slate-300 bg-white px-3 py-2 text-[11px] font-black uppercase text-slate-800 hover:bg-slate-50">Histórico</button>
                         <button type="button" onclick="abrirModalTransferForcada()" class="inline-flex items-center gap-1 rounded-lg border-2 border-emerald-400 bg-emerald-600 px-3 py-2 text-[11px] font-black uppercase text-white hover:bg-emerald-700 shadow-sm" title="Montar lista e transferir Vila↔Centro (mesmo sem aparecer em Transferir)">Forçada Vila↔C</button>
                     </div>
@@ -368,6 +369,18 @@
             </div>
         </div>
         <div id="corpo-lotes-transferencia" class="text-[11px] text-slate-600 font-semibold overflow-y-auto min-h-0 flex-1 pr-1">Carregando…</div>
+    </div>
+
+    <div id="modal-pedidos-pdv" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-4 sm:p-5 z-[10110] hidden shadow-2xl w-11/12 max-w-[min(46rem,96vw)] max-h-[min(80vh,640px)] flex flex-col scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-pedidos-pdv-titulo">
+        <div class="flex items-start justify-between gap-2 shrink-0 mb-2">
+            <h3 id="modal-pedidos-pdv-titulo" class="text-sm font-black uppercase text-orange-950 leading-tight">Pedidos do PDV <span class="text-[10px] font-bold text-orange-800 normal-case">(Pedir loja)</span></h3>
+            <div class="flex items-center gap-1 shrink-0">
+                <button type="button" onclick="carregarPedidosPdv()" class="text-[9px] font-black uppercase text-orange-900 border border-orange-300 rounded-lg px-2 py-1 bg-orange-50 hover:bg-orange-100">Atualizar</button>
+                <button type="button" onclick="fecharModal('modal-pedidos-pdv', false)" class="text-slate-400 hover:text-slate-700 font-black text-lg leading-none px-1" aria-label="Fechar">×</button>
+            </div>
+        </div>
+        <p class="text-[11px] font-semibold text-slate-600 mb-2">Aceitar / recusar / transferir estoque (PIN). Saldo negativo não impede.</p>
+        <div id="corpo-pedidos-pdv" class="text-[11px] text-slate-600 font-semibold overflow-y-auto min-h-0 flex-1 pr-1">Carregando…</div>
     </div>
 
     <div id="modal-historico-transfer" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl p-4 sm:p-5 z-[10110] hidden shadow-2xl w-11/12 max-w-[min(48rem,96vw)] max-h-[min(80vh,640px)] flex flex-col scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-hist-titulo">
@@ -554,6 +567,107 @@
             abrirModal('modal-pedidos-transfer');
             carregarLotesPedidos();
         }
+
+        function abrirModalPedidosPdv() {
+            abrirModal('modal-pedidos-pdv');
+            carregarPedidosPdv();
+        }
+
+        function fmtQtdPdv(n) {
+            const x = Number(n);
+            if (!Number.isFinite(x)) return '0';
+            if (Math.abs(x - Math.round(x)) < 0.0005) return String(Math.round(x));
+            return x.toFixed(3).replace(/\.?0+$/, '');
+        }
+
+        function atualizarBadgePedidosPdv(n) {
+            const el = document.getElementById('badge-pedidos-pdv');
+            if (!el) return;
+            const q = Number(n) || 0;
+            el.textContent = String(q);
+            el.classList.toggle('hidden', q <= 0);
+        }
+
+        async function pingPedidosPdv() {
+            try {
+                const r = await fetch('/api/pdv/pedir-loja/lista/?papel=todos');
+                const d = await r.json();
+                if (d && d.ok) atualizarBadgePedidosPdv((d.itens || []).length);
+            } catch (_) {}
+        }
+
+        async function acaoPedidoPdv(pk, acao, depositoAtor) {
+            let pin = '';
+            if (acao === 'transferir') {
+                pin = await pedirPIN('PIN para transferir o estoque deste pedido');
+                if (!pin) return;
+            }
+            try {
+                const res = await fetch('/api/pdv/pedir-loja/' + pk + '/acao/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ acao: acao, pin: pin, deposito: depositoAtor }),
+                });
+                const d = await res.json();
+                if (!d.ok) {
+                    alert(d.erro || 'Falha na ação.');
+                    return;
+                }
+                await carregarPedidosPdv();
+            } catch (e) {
+                alert('Falha de rede.');
+            }
+        }
+
+        async function carregarPedidosPdv() {
+            const el = document.getElementById('corpo-pedidos-pdv');
+            if (!el) return;
+            el.textContent = 'Carregando…';
+            try {
+                const r = await fetch('/api/pdv/pedir-loja/lista/?papel=todos');
+                const d = await r.json();
+                if (!d.ok) {
+                    el.textContent = d.erro || 'Erro ao listar.';
+                    return;
+                }
+                const itens = d.itens || [];
+                atualizarBadgePedidosPdv(itens.length);
+                if (!itens.length) {
+                    el.innerHTML = '<p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Nenhum pedido do PDV em aberto.</p>';
+                    return;
+                }
+                el.innerHTML = itens.map((it) => {
+                    const st = String(it.status || '');
+                    const qtd = fmtQtdPdv(it.quantidade);
+                    const orig = it.loja_origem || '';
+                    const dest = it.loja_destino || '';
+                    let acts = '';
+                    if (st === 'PENDENTE') {
+                        acts += `<button type="button" class="text-[10px] font-black uppercase text-white bg-emerald-600 rounded-lg px-2 py-1.5" onclick="acaoPedidoPdv(${it.id}, 'aceitar', '${escHtml(orig)}')">Aceitar</button>`;
+                    }
+                    if (st === 'PENDENTE' || st === 'ACEITO') {
+                        acts += `<button type="button" class="text-[10px] font-black uppercase text-white bg-sky-600 rounded-lg px-2 py-1.5" onclick="acaoPedidoPdv(${it.id}, 'transferir', '${escHtml(orig)}')">Transferir</button>`;
+                        acts += `<button type="button" class="text-[10px] font-black uppercase text-slate-700 border border-slate-300 bg-white rounded-lg px-2 py-1.5" onclick="acaoPedidoPdv(${it.id}, 'recusar', '${escHtml(orig)}')">Recusar</button>`;
+                    }
+                    if (st === 'PENDENTE') {
+                        acts += `<button type="button" class="text-[10px] font-black uppercase text-red-700 border border-red-200 bg-red-50 rounded-lg px-2 py-1.5" onclick="acaoPedidoPdv(${it.id}, 'cancelar', '${escHtml(dest)}')">Cancelar</button>`;
+                    }
+                    const borda = st === 'PENDENTE' ? 'border-orange-300 bg-orange-50' : 'border-emerald-200 bg-emerald-50';
+                    return `<div class="mb-2 rounded-xl border ${borda} p-2.5">
+                        <div class="font-black text-slate-900 text-sm leading-snug">${escHtml(it.nome || it.produto_id)}</div>
+                        <div class="text-[11px] font-bold text-slate-600 mt-0.5">${escHtml(it.codigo || '')}${it.codigo ? ' · ' : ''}${qtd} · ${escHtml(it.loja_origem_label || '')} → ${escHtml(it.loja_destino_label || '')} · ${escHtml(st)} · ${escHtml(it.criado_em || '')}</div>
+                        <div class="flex flex-wrap gap-1.5 mt-2">${acts}</div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                el.textContent = 'Erro de rede ao listar pedidos do PDV.';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            pingPedidosPdv();
+            setInterval(pingPedidosPdv, 30000);
+        });
 
         async function abrirModalHistoricoTransfer() {
             abrirModal('modal-historico-transfer');

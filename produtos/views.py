@@ -10667,6 +10667,12 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
             "fiadoGestao": reverse("fiado_gestao"),
             "apiPromocoesAtivasPdv": reverse("api_promocoes_ativas_pdv"),
             "apiPdvDeposito": reverse("api_pdv_deposito"),
+            "apiPdvPedirLojaResumo": reverse("api_pdv_pedir_loja_resumo"),
+            "apiPdvPedirLojaLista": reverse("api_pdv_pedir_loja_lista"),
+            "apiPdvPedirLojaCriar": reverse("api_pdv_pedir_loja_criar"),
+            "apiPdvPedirLojaAcaoPattern": reverse(
+                "api_pdv_pedir_loja_acao", kwargs={"pk": 0}
+            ).replace("/0/", "/__pk__/"),
             "pdvRootUrl": pdv_root_url,
         },
         "assets": {

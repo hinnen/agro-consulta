@@ -121,6 +121,51 @@ class PedidoTransferencia(models.Model):
     impresso_em = models.DateTimeField(null=True, blank=True)
 
 
+class SolicitacaoTransferenciaPdv(models.Model):
+    """Pedido de produto entre lojas feito no PDV (Centro ↔ Vila Elias)."""
+
+    STATUS_PENDENTE = "PENDENTE"
+    STATUS_ACEITO = "ACEITO"
+    STATUS_RECUSADO = "RECUSADO"
+    STATUS_TRANSFERIDO = "TRANSFERIDO"
+    STATUS_CANCELADO = "CANCELADO"
+    STATUS_CHOICES = (
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_ACEITO, "Aceito"),
+        (STATUS_RECUSADO, "Recusado"),
+        (STATUS_TRANSFERIDO, "Transferido"),
+        (STATUS_CANCELADO, "Cancelado"),
+    )
+
+    produto_externo_id = models.CharField(max_length=100, db_index=True)
+    nome_produto = models.CharField(max_length=255, blank=True, default="")
+    codigo_interno = models.CharField(max_length=100, blank=True, default="")
+    quantidade = models.DecimalField(max_digits=10, decimal_places=3)
+    loja_origem = models.CharField(max_length=20, db_index=True)
+    loja_destino = models.CharField(max_length=20, db_index=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDENTE,
+        db_index=True,
+    )
+    grupo_uuid = models.UUIDField(null=True, blank=True, db_index=True)
+    usuario_solicitante = models.CharField(max_length=200, blank=True, default="")
+    usuario_resposta = models.CharField(max_length=200, blank=True, default="")
+    observacao = models.TextField(blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-criado_em", "-id"]
+        verbose_name = "Solicitação de transferência (PDV)"
+        verbose_name_plural = "Solicitações de transferência (PDV)"
+        indexes = [
+            models.Index(fields=["status", "loja_origem"]),
+            models.Index(fields=["status", "loja_destino"]),
+        ]
+
+
 class HistoricoTransferencia(models.Model):
     """Auditoria: impressão de lote, transferências e cancelamentos de separação."""
 
@@ -128,6 +173,9 @@ class HistoricoTransferencia(models.Model):
     TIPO_TRANSFER_ITEM = "TRANSFER_VILA_ITEM"
     TIPO_TRANSFER_LOTE = "TRANSFER_VILA_LOTE"
     TIPO_CANCEL_SEP = "CANCELAR_SEPARACAO"
+    TIPO_PEDIDO_PDV = "PEDIDO_PDV"
+    TIPO_PEDIDO_PDV_STATUS = "PEDIDO_PDV_STATUS"
+    TIPO_PEDIDO_PDV_TRANSFER = "PEDIDO_PDV_TRANSFER"
 
     tipo = models.CharField(max_length=32, db_index=True)
     criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
