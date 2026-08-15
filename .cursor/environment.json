@@ -1,0 +1,14 @@
+{
+  "name": "Agro Consulta (Django dev)",
+  "install": "bash .cursor/scripts/install.sh",
+  "terminals": [
+    {
+      "name": "web",
+      "command": ".venv/bin/python manage.py runserver 0.0.0.0:8000",
+      "description": "Servidor de desenvolvimento Django em http://localhost:8000 (health em /healthz)."
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 8000 }
+  ]
+}
