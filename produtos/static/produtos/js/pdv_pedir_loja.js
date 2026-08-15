@@ -78,7 +78,7 @@
     dom.status.textContent = msg;
     dom.status.classList.remove('hidden');
     dom.status.className =
-      'mx-3 mt-2 text-sm font-bold sm:mx-4 ' + (isErr ? 'text-red-700' : 'text-emerald-800');
+      'mx-3 mt-1 text-base font-bold ' + (isErr ? 'text-red-700' : 'text-emerald-800');
   }
 
   function setPinAviso(precisa) {
@@ -99,7 +99,7 @@
     }
     setAba(aba || 'pedir');
     refreshResumo();
-    if (dom.busca) {
+    if (dom.busca && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
       try {
         dom.busca.focus({ preventScroll: true });
       } catch (e) {}
@@ -147,9 +147,9 @@
     if (dom.badgeRec) {
       if (n > 0) {
         dom.badgeRec.textContent = String(n);
-        dom.badgeRec.classList.remove('hidden');
+        dom.badgeRec.classList.add('is-show');
       } else {
-        dom.badgeRec.classList.add('hidden');
+        dom.badgeRec.classList.remove('is-show');
       }
     }
   }
@@ -200,31 +200,32 @@
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="py-4 text-center text-sm font-semibold text-slate-500">Nenhum item — busque acima (1 ou vários).</p>';
+        '<p class="py-8 text-center text-base font-bold text-slate-500">Busque o produto acima.</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
     dom.cart.innerHTML = cart
       .map(function (it, idx) {
         return (
-          '<div class="pl-card flex flex-wrap items-center gap-2">' +
-          '<div class="min-w-0 flex-1"><p class="font-black text-slate-900 leading-tight">' +
+          '<div class="pl-card">' +
+          '<p class="pl-name">' +
           escapeHtml(it.nome) +
-          '</p><p class="text-[11px] font-bold text-slate-500">Na outra loja: ' +
+          '</p>' +
+          '<p class="pl-stock"><small>Na outra loja</small>' +
           escapeHtml(String(it[outra] != null ? it[outra] : '—')) +
-          '</p></div>' +
-          '<div class="flex items-center gap-1">' +
-          '<button type="button" class="pl-btn pl-btn--ghost" data-pl-q="-1" data-i="' +
+          '</p>' +
+          '<div class="pl-qty-row">' +
+          '<button type="button" class="pl-qty-btn" data-pl-q="-1" data-i="' +
           idx +
-          '">−</button>' +
-          '<span class="min-w-[2rem] text-center font-black tabular-nums">' +
+          '" aria-label="Menos">−</button>' +
+          '<span class="pl-qty">' +
           escapeHtml(String(it.qtd)) +
           '</span>' +
-          '<button type="button" class="pl-btn pl-btn--ghost" data-pl-q="1" data-i="' +
+          '<button type="button" class="pl-qty-btn" data-pl-q="1" data-i="' +
           idx +
-          '">+</button>' +
+          '" aria-label="Mais">+</button>' +
           '</div>' +
-          '<button type="button" class="pl-btn pl-btn--danger" data-pl-rm="' +
+          '<button type="button" class="pl-btn pl-btn--link mt-1" data-pl-rm="' +
           idx +
           '">Tirar</button>' +
           '</div>'
@@ -253,29 +254,29 @@
         if (!dom.hits) return;
         if (!lista.length) {
           dom.hits.innerHTML =
-            '<p class="text-sm font-bold text-slate-500">Nenhum produto.</p>';
+            '<p class="text-base font-bold text-slate-500">Nenhum produto.</p>';
           return;
         }
         dom.hits.innerHTML = lista
-          .slice(0, 12)
+          .slice(0, 8)
           .map(function (p) {
             var id = produtoId(p);
             return (
-              '<button type="button" class="pl-hit w-full text-left" data-pl-add="' +
+              '<button type="button" class="pl-hit" data-pl-add="' +
               escapeHtml(id) +
               '">' +
-              '<span class="block font-black text-slate-900">' +
+              '<span class="pl-name">' +
               escapeHtml(p.nome || '') +
               '</span>' +
-              '<span class="block text-[11px] font-bold text-slate-500">Centro: ' +
+              '<span class="pl-stock"><small>Centro · Vila</small>' +
               escapeHtml(String(p.saldo_centro != null ? p.saldo_centro : '—')) +
-              ' · Vila: ' +
+              ' · ' +
               escapeHtml(String(p.saldo_vila != null ? p.saldo_vila : '—')) +
               '</span></button>'
             );
           })
           .join('');
-    dom.hits._hits = lista;
+        dom.hits._hits = lista;
       })
       .catch(function () {
         if (dom.hits) {
@@ -366,31 +367,39 @@
     if (!dom.lista) return;
     if (!itens || !itens.length) {
       dom.lista.innerHTML =
-        '<p class="py-8 text-center text-sm font-bold text-slate-500">Nada nesta lista.</p>';
+        '<p class="py-10 text-center text-base font-bold text-slate-500">Nada aqui agora.</p>';
       return;
     }
     dom.lista.innerHTML = itens
       .map(function (row) {
+        var qtdHero = '';
+        var linhas = row.itens || [];
+        if (linhas.length === 1) {
+          qtdHero =
+            '<p class="pl-qty" style="text-align:left;margin-top:0.35rem">' +
+            escapeHtml(String(linhas[0].quantidade_texto || linhas[0].quantidade || '')) +
+            '</p>';
+        }
         return (
           '<article class="pl-card" data-pl-id="' +
           escapeHtml(String(row.id)) +
           '">' +
-          '<div class="flex flex-wrap items-start justify-between gap-2">' +
-          '<div class="min-w-0"><p class="text-[11px] font-black uppercase text-orange-800">' +
+          '<p class="pl-st">' +
           escapeHtml(row.status_label || row.status) +
-          ' · ' +
+          '</p>' +
+          '<p class="pl-name">' +
+          escapeHtml(row.resumo || '') +
+          '</p>' +
+          qtdHero +
+          '<p class="mt-1 text-base font-bold text-slate-500">' +
           escapeHtml(row.loja_origem_label) +
           ' → ' +
           escapeHtml(row.loja_destino_label) +
-          '</p><p class="font-black text-slate-900">' +
-          escapeHtml(row.resumo || '') +
-          '</p><p class="text-[11px] font-bold text-slate-500">Por ' +
-          escapeHtml(row.criado_por || '—') +
-          (row.observacao ? ' · ' + escapeHtml(row.observacao) : '') +
-          '</p></div>' +
-          '<div class="flex flex-wrap gap-1.5">' +
+          (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
+          '</p>' +
+          '<div class="pl-actions">' +
           acoesHtml(row) +
-          '</div></div></article>'
+          '</div></article>'
         );
       })
       .join('');

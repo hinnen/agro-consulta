@@ -1214,6 +1214,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — PDV Pedir loja celular (PDV-PEDIR-LOJA · **v16.54**)
+
+> **Status:** 📦 **pronto no teste** (ainda **não** Live)  
+> **Base anterior:** Live v16.53 @ **7f7b8022**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | `/pdv/` botão **Pedir loja** + overlay: pedir produto da outra loja (Centro ↔ Vila) |
+| **Tela** | Celular: números grandes · toques altos · observação escondida · badge na loja que recebe |
+| **Estoque** | Pedir / Aceitar / Pronto = só status · **Transferir** move Agro (saldo negativo ok) |
+| **PIN** | Grava operador em cada etapa · usa PIN já logado no PDV |
+| **Fora** | `/consulta/` · `/transferencias/` · WhatsApp (fase 2) |
+| **Prova** | `scripts/verify_pdv_pedir_loja.py` + `produtos.tests_pdv_transf_loja` |
+| **Migrate** | **SIM** `estoque/0018_solicitacao_transferencia_pdv` |
+| **Rollback desta atualização** | tag `rollback/pre-pdv-pedir-loja` @ **7f7b8022** · branch `backup/pre-pdv-pedir-loja-20260815` · ver `docs/ROLLBACK-PDV-PEDIR-LOJA.md` |
+| **Você** | `/pdv/` · **Ctrl+F5** · Pedir loja no celular · badge **v16.54** |
+
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
 > **Status:** ✅ **enviado / Live v16.53** · código útil `09463f8a`  

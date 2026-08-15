@@ -1,68 +1,273 @@
 <style>
-  #pdv-pedir-loja-overlay .pl-tab {
-    min-height: 2.75rem;
-    padding: 0.4rem 0.85rem;
-    border-radius: 0.75rem;
-    border: 2px solid #cbd5e1;
+  #pdv-pedir-loja-overlay {
+    --pl-safe-t: env(safe-area-inset-top, 0px);
+    --pl-safe-b: env(safe-area-inset-bottom, 0px);
+    --pl-ink: #0f172a;
+    --pl-muted: #64748b;
+    --pl-orange: #ea580c;
+  }
+  #pdv-pedir-loja-overlay .pl-shell {
+    width: 100%;
+    height: 100%;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
     background: #fff;
-    font-size: 0.82rem;
+    overflow: hidden;
+  }
+  @media (min-width: 640px) {
+    #pdv-pedir-loja-overlay .pl-shell {
+      width: min(28rem, 96vw);
+      height: min(94dvh, 52rem);
+      max-height: 94dvh;
+      border-radius: 1.35rem;
+      border: 3px solid #fb923c;
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+    }
+  }
+  #pdv-pedir-loja-overlay .pl-head {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: calc(0.65rem + var(--pl-safe-t)) 0.85rem 0.55rem;
+    border-bottom: 1px solid #ffedd5;
+  }
+  #pdv-pedir-loja-overlay .pl-title {
+    margin: 0;
+    font-size: clamp(1.35rem, 5.5vw, 1.7rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--pl-ink);
+  }
+  #pdv-pedir-loja-overlay .pl-sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--pl-orange);
+  }
+  #pdv-pedir-loja-overlay .pl-icon-btn {
+    flex-shrink: 0;
+    width: 3.1rem;
+    height: 3.1rem;
+    border-radius: 999px;
+    border: 2px solid #fdba74;
+    background: #fff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #9a3412;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-fechar {
+    flex-shrink: 0;
+    min-height: 3.1rem;
+    padding: 0 1rem;
+    border-radius: 0.95rem;
+    border: 0;
+    background: #0d9488;
+    color: #fff;
+    font-size: 0.95rem;
     font-weight: 900;
     text-transform: uppercase;
-    color: #334155;
     cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-tabs {
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.55rem 0.7rem 0.35rem;
+  }
+  #pdv-pedir-loja-overlay .pl-tab {
+    min-height: 3.15rem;
+    padding: 0.25rem 0.2rem;
+    border-radius: 0.85rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: #475569;
+    cursor: pointer;
+    line-height: 1.15;
   }
   #pdv-pedir-loja-overlay .pl-tab.is-on {
     border-color: #ea580c;
     background: #fff7ed;
     color: #9a3412;
   }
+  #pdv-pedir-loja-overlay .pl-tab-n {
+    display: none;
+    margin-left: 0.15rem;
+    min-width: 1.35rem;
+    border-radius: 999px;
+    background: #ea580c;
+    color: #fff;
+    font-size: 0.78rem;
+    padding: 0 0.3rem;
+  }
+  #pdv-pedir-loja-overlay .pl-tab-n.is-show { display: inline-block; }
   #pdv-pedir-loja-overlay .pl-field {
-    min-height: 2.75rem;
-    border-radius: 0.65rem;
-    border: 1.5px solid #cbd5e1;
+    min-height: 3.4rem;
+    border-radius: 0.95rem;
+    border: 2px solid #cbd5e1;
     background: #fff;
-    padding: 0.4rem 0.75rem;
-    font-size: 1rem;
-    font-weight: 700;
-    color: #0f172a;
+    padding: 0.45rem 0.9rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--pl-ink);
     width: 100%;
   }
   #pdv-pedir-loja-overlay .pl-hit,
   #pdv-pedir-loja-overlay .pl-card {
     border: 2px solid #e2e8f0;
-    border-radius: 0.85rem;
+    border-radius: 1.05rem;
     background: #fff;
-    padding: 0.65rem 0.75rem;
+    padding: 0.85rem 0.9rem;
+  }
+  #pdv-pedir-loja-overlay .pl-hit {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-name {
+    font-size: clamp(1.05rem, 3.6vw, 1.25rem);
+    font-weight: 900;
+    line-height: 1.2;
+    color: var(--pl-ink);
+  }
+  #pdv-pedir-loja-overlay .pl-stock {
+    margin-top: 0.25rem;
+    font-size: clamp(1.35rem, 5.2vw, 1.75rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    color: #0f766e;
+    line-height: 1;
+  }
+  #pdv-pedir-loja-overlay .pl-stock small {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pl-muted);
+    display: block;
+    margin-bottom: 0.15rem;
+  }
+  #pdv-pedir-loja-overlay .pl-qty-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    margin-top: 0.65rem;
+  }
+  #pdv-pedir-loja-overlay .pl-qty-btn {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+    color: var(--pl-ink);
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-qty {
+    min-width: 3.2rem;
+    text-align: center;
+    font-size: clamp(2.45rem, 12vw, 3.4rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    color: var(--pl-ink);
   }
   #pdv-pedir-loja-overlay .pl-btn {
-    min-height: 2.65rem;
-    border-radius: 0.75rem;
-    padding: 0.35rem 0.85rem;
-    font-size: 0.78rem;
+    min-height: 3.25rem;
+    width: 100%;
+    border-radius: 0.95rem;
+    padding: 0.45rem 0.85rem;
+    font-size: 1.05rem;
     font-weight: 900;
     text-transform: uppercase;
     cursor: pointer;
   }
   #pdv-pedir-loja-overlay .pl-btn--ok {
-    border: 2px solid #0d9488;
+    border: 0;
     background: #0d9488;
     color: #fff;
   }
   #pdv-pedir-loja-overlay .pl-btn--warn {
-    border: 2px solid #ea580c;
+    border: 0;
     background: #ea580c;
     color: #fff;
   }
   #pdv-pedir-loja-overlay .pl-btn--ghost {
-    border: 2px solid #cbd5e1;
+    border: 2px solid #e2e8f0;
     background: #fff;
     color: #334155;
   }
   #pdv-pedir-loja-overlay .pl-btn--danger {
-    border: 2px solid #dc2626;
-    background: #fef2f2;
-    color: #991b1b;
+    border: 2px solid #fecaca;
+    background: #fff;
+    color: #b91c1c;
   }
+  #pdv-pedir-loja-overlay .pl-btn--link {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    min-height: 2.6rem;
+    font-size: 0.95rem;
+  }
+  #pdv-pedir-loja-overlay .pl-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.75rem;
+  }
+  #pdv-pedir-loja-overlay .pl-st {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #c2410c;
+  }
+  #pdv-pedir-loja-overlay .pl-help {
+    position: relative;
+  }
+  #pdv-pedir-loja-overlay .pl-help > summary {
+    list-style: none;
+  }
+  #pdv-pedir-loja-overlay .pl-help > summary::-webkit-details-marker { display: none; }
+  #pdv-pedir-loja-overlay .pl-help-pop {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    z-index: 30;
+    width: min(20.5rem, calc(100vw - 1.4rem));
+    border-radius: 1rem;
+    border: 2px solid #fdba74;
+    background: #fff;
+    padding: 0.85rem 0.95rem;
+    font-size: 0.95rem;
+    font-weight: 650;
+    color: #334155;
+    box-shadow: 0 14px 36px rgba(15, 23, 42, 0.16);
+    line-height: 1.35;
+  }
+  #pdv-pedir-loja-overlay .pl-obs > summary {
+    list-style: none;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--pl-muted);
+    padding: 0.35rem 0;
+  }
+  #pdv-pedir-loja-overlay .pl-obs > summary::-webkit-details-marker { display: none; }
   #pdv-pedir-loja-overlay[data-pl-aba="pedir"] .pl-view-lista { display: none !important; }
   #pdv-pedir-loja-overlay[data-pl-aba="recebidos"] .pl-view-pedir,
   #pdv-pedir-loja-overlay[data-pl-aba="enviados"] .pl-view-pedir,
@@ -83,49 +288,50 @@
   }
 </style>
 
-<div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-1 sm:p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
-  <div class="relative flex h-[min(94dvh,52rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-orange-500 bg-gradient-to-b from-orange-50/90 via-white to-white shadow-2xl" role="document">
-    <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-orange-100 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+<div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-end justify-center bg-slate-950/50 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
+  <div class="pl-shell" role="document">
+    <header class="pl-head">
       <div class="min-w-0 flex-1">
-        <h2 id="pdv-pedir-loja-title" class="text-[clamp(1rem,1.2vw+0.85rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Pedir loja</h2>
-        <p id="pdv-pedir-loja-sub" class="text-sm font-semibold text-orange-800">Pedido de produto para a outra loja</p>
+        <h2 id="pdv-pedir-loja-title" class="pl-title">Pedir loja</h2>
+        <p id="pdv-pedir-loja-sub" class="pl-sub">Outra loja</p>
       </div>
-      <details class="relative">
-        <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
-        <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
-          <p>Peça 1 ou vários produtos. O pedido fica <strong>pendente</strong> na outra loja — o botão dela acende.</p>
-          <p>Lá: <strong>Aceitar</strong> → <strong>Pronto</strong> (opcional) → <strong>Transferir</strong> (aí o estoque muda).</p>
-          <p>O PIN já logado no PDV é gravado em cada etapa. WhatsApp fica para a fase 2.</p>
+      <details class="pl-help">
+        <summary class="pl-icon-btn" aria-label="Ajuda" title="Ajuda">?</summary>
+        <div class="pl-help-pop">
+          <p>Peça um ou vários produtos. O pedido fica <strong>pendente</strong> na outra loja — o botão dela acende.</p>
+          <p class="mt-2">Lá: <strong>Aceitar</strong> → <strong>Pronto</strong> (se quiser) → <strong>Transferir</strong> (aí o estoque muda).</p>
         </div>
       </details>
-      <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
+      <button type="button" id="pdv-pedir-loja-fechar" class="pl-fechar">Fechar</button>
     </header>
 
-    <div class="flex shrink-0 flex-wrap gap-1.5 px-3 pt-2.5 sm:px-4">
+    <div class="pl-tabs" role="tablist">
       <button type="button" class="pl-tab is-on" data-pl-aba="pedir">Pedir</button>
-      <button type="button" class="pl-tab" data-pl-aba="recebidos">Recebidos <span id="pdv-pedir-loja-badge-rec" class="hidden ml-1 rounded-full bg-orange-600 px-1.5 text-[10px] text-white">0</span></button>
-      <button type="button" class="pl-tab" data-pl-aba="enviados">Enviados</button>
-      <button type="button" class="pl-tab" data-pl-aba="historico">Histórico</button>
+      <button type="button" class="pl-tab" data-pl-aba="recebidos">Recebe <span id="pdv-pedir-loja-badge-rec" class="pl-tab-n">0</span></button>
+      <button type="button" class="pl-tab" data-pl-aba="enviados">Enviei</button>
+      <button type="button" class="pl-tab" data-pl-aba="historico">Hist.</button>
     </div>
 
-    <p id="pdv-pedir-loja-pin-aviso" class="hidden mx-3 mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950 sm:mx-4">Entre com o PIN do PDV para gravar quem pediu. <button type="button" id="pdv-pedir-loja-abrir-pin" class="underline">Abrir PIN</button></p>
-    <p id="pdv-pedir-loja-status" class="hidden mx-3 mt-2 text-sm font-bold text-slate-700 sm:mx-4" role="status"></p>
+    <p id="pdv-pedir-loja-pin-aviso" class="hidden mx-3 mt-1 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2.5 text-base font-bold text-amber-950">Entre com o PIN. <button type="button" id="pdv-pedir-loja-abrir-pin" class="underline">Abrir PIN</button></p>
+    <p id="pdv-pedir-loja-status" class="hidden mx-3 mt-1 text-base font-bold text-slate-700" role="status"></p>
 
-    <div class="pl-view-pedir flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-3 pt-2 sm:px-4">
+    <div class="pl-view-pedir flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[calc(0.85rem+var(--pl-safe-b))] pt-1">
       <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
-      <input type="search" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
-      <div id="pdv-pedir-loja-hits" class="mt-2 max-h-[10rem] space-y-1.5 overflow-y-auto"></div>
-      <div id="pdv-pedir-loja-cart" class="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto"></div>
-      <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-obs">Observação</label>
-      <input type="text" id="pdv-pedir-loja-obs" class="pl-field shrink-0" maxlength="400" placeholder="Opcional — ex.: cliente esperando" />
-      <div class="mt-2 flex shrink-0 flex-wrap gap-2">
-        <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--ghost">Limpar lista</button>
-        <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn flex-1">Enviar pedido</button>
+      <input type="search" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome ou código" autocomplete="off" inputmode="search" />
+      <div id="pdv-pedir-loja-hits" class="mt-2 max-h-[28vh] space-y-2 overflow-y-auto"></div>
+      <div id="pdv-pedir-loja-cart" class="mt-2 min-h-0 flex-1 space-y-2 overflow-y-auto"></div>
+      <details class="pl-obs shrink-0 mt-1">
+        <summary>Observação (opcional)</summary>
+        <input type="text" id="pdv-pedir-loja-obs" class="pl-field mt-1" maxlength="400" placeholder="Ex.: cliente esperando" />
+      </details>
+      <div class="mt-2 flex shrink-0 flex-col gap-1">
+        <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn">Enviar pedido</button>
+        <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--link">Limpar lista</button>
       </div>
     </div>
 
-    <div class="pl-view-lista hidden min-h-0 flex-1 overflow-y-auto px-3 pb-3 pt-2 sm:px-4">
-      <div id="pdv-pedir-loja-lista" class="space-y-2"></div>
+    <div class="pl-view-lista hidden min-h-0 flex-1 overflow-y-auto px-3 pb-[calc(0.85rem+var(--pl-safe-b))] pt-1">
+      <div id="pdv-pedir-loja-lista" class="space-y-2.5"></div>
     </div>
   </div>
 </div>
