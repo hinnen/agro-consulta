@@ -1223,7 +1223,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Por quê** | De manhã a média do dia inteiro parece impossível — as vendas ainda vão acontecer |
 | **Cálculo** | Mesma Meta C do BI · expediente **7h30–18h30** · dias já fechados entram 100 % · só hoje é cortado no relógio |
 | **Tela** | Folha: **Até agora** (verde) · **Dia todo** (discreto) · lembra a escolha no celular |
-| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 110/110** |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · toque num valor de manhã · badge **v16.52** |
 | **Produção** | ⏳ frase + senha |
