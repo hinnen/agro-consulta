@@ -1214,6 +1214,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**)
+
+> **Status:** ✅ **enviado** · `producao` a partir de **e96f998** · rollback pronto  
+> **Base anterior:** Live v16.44 @ **e96f998**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | `/vendas/lojas/` no celular: Centro + Vila + total · Dia/Semana/Mês/Ano (padrão hoje) · números grandes |
+| **Atalho** | Menu BI tecla **S** · Relatórios · card Faturamento |
+| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 49/49** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-vendas-lojas-v16.44` @ **e96f998** · branch `producao-backup-pre-v1646-vendas-lojas-20260815` · frase+senha |
+| **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · badge **v16.46** |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
 > **Loja hoje:** ✅ **Live v16.32** · producao @ **544b31f**  

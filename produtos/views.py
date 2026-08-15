@@ -7601,6 +7601,15 @@ def _periodo_vendas_from_request(request, *, default_preset="7d"):
     return di, df, label
 
 
+def _vendas_lojas_periodo_from_request(request):
+    """Período da tela simples Centro × Vila: hoje (padrão), semana, mês, ano."""
+    from produtos.vendas_lojas_util import vendas_lojas_periodo_bounds
+
+    return vendas_lojas_periodo_bounds(
+        timezone.localdate(), request.GET.get("periodo")
+    )
+
+
 def _vendas_periodo_datetime_bounds(di: date, df: date) -> tuple[datetime, datetime]:
     """Intervalo [início do dia di, fim do dia df] — usa índice em ``criado_em`` (sem ``__date``)."""
     tz = timezone.get_current_timezone()
@@ -7842,6 +7851,14 @@ def _home_admin_navegacao():
             "icon": "receipt",
             "shortcut": "F11",
             "shortcut_key": "f11",
+            "pin_protected": True,
+        },
+        {
+            "title": "Vendas das lojas",
+            "href": reverse("vendas_lojas_resumo"),
+            "icon": "store",
+            "shortcut": "S",
+            "shortcut_key": "s",
             "pin_protected": True,
         },
         {
@@ -10872,6 +10889,33 @@ def api_pdv_relacionamento_cliente_extras(request):
         return JsonResponse({"ok": False, "erro": "Cliente não encontrado."}, status=404)
     extras = salvar_relacionamento_extras_cliente(cli, body)
     return JsonResponse({"ok": True, "extras": extras})
+
+
+@never_cache
+@login_required(login_url="/admin/login/")
+@require_GET
+def vendas_lojas_resumo(request):
+    """Tela simples: faturamento Centro × Vila Elias + total das duas."""
+    from produtos.vendas_lojas_util import vendas_lojas_totais
+
+    data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
+    centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    return render(
+        request,
+        "produtos/vendas_lojas_resumo.html",
+        {
+            "periodo_key": periodo_key,
+            "periodo_label": periodo_label,
+            "data_ini": data_ini,
+            "data_fim": data_fim,
+            "centro_fmt": _format_moeda_br(centro),
+            "vila_fmt": _format_moeda_br(vila),
+            "total_fmt": _format_moeda_br(total),
+            "centro_val": centro,
+            "vila_val": vila,
+            "total_val": total,
+        },
+    )
 
 
 @login_required(login_url="/admin/login/")
