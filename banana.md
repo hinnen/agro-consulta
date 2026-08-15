@@ -1214,7 +1214,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**)
+### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.46**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.46** · aguarda frase+senha no próximo chat |
+| **O quê** | Tela `/vendas/lojas/`: **Centro** + **Vila Elias** + **total** · Dia (padrão) / Semana / Mês / Ano |
+| **Atalho** | `/atalhos/` tecla **S** · Menu BI · Relatórios · link no card Faturamento por Unidade |
+| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas · Vila = depósito vila; resto = Centro |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` |
+| **Migrate** | **NÃO** |
+| **Você** | `git pull` · Ctrl+F5 · atalhos **Vendas das lojas** (S) |
+| **Produção** | ⏳ próximo chat: frase explícita + senha |
+
+### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**) · **superado atalho v16.46**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1223,7 +1236,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas · Vila = depósito vila; resto = Centro |
 | **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 40/40** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/vendas/lojas/` · conferir Dia/Semana/Mês/Ano · comparar com lista `/vendas/` |
+| **Você** | Ctrl+F5 `/vendas/lojas/` · atalhos **S** · Relatórios · Menu BI · conferir Dia/Semana/Mês/Ano |
 | **Produção** | ⏳ próximo chat: frase explícita + senha |
 
 ### ✅ Tela vendas por loja (`/vendas/lojas/` · **v16.44** teste) · **superado por v16.45**
