@@ -7543,26 +7543,11 @@ def _periodo_vendas_from_request(request, *, default_preset="7d"):
 
 def _vendas_lojas_periodo_from_request(request):
     """Período da tela simples Centro × Vila: hoje (padrão), semana, mês, ano."""
-    hoje = timezone.localdate()
-    periodo = (request.GET.get("periodo") or "hoje").strip().lower()
-    if periodo == "semana":
-        wd = hoje.weekday()
-        ini = hoje - timedelta(days=wd)
-        fim = ini + timedelta(days=6)
-        label = f"Semana {ini.strftime('%d/%m')} — {fim.strftime('%d/%m/%Y')}"
-    elif periodo == "mes":
-        ini = hoje.replace(day=1)
-        fim = hoje
-        label = f"Mês {ini.strftime('%m/%Y')}"
-    elif periodo == "ano":
-        ini = hoje.replace(month=1, day=1)
-        fim = hoje
-        label = f"Ano {hoje.year}"
-    else:
-        periodo = "hoje"
-        ini = fim = hoje
-        label = f"Hoje — {hoje.strftime('%d/%m/%Y')}"
-    return ini, fim, label, periodo
+    from produtos.vendas_lojas_util import vendas_lojas_periodo_bounds
+
+    return vendas_lojas_periodo_bounds(
+        timezone.localdate(), request.GET.get("periodo")
+    )
 
 
 def _vendas_periodo_datetime_bounds(di: date, df: date) -> tuple[datetime, datetime]:
@@ -10830,18 +10815,10 @@ def api_pdv_relacionamento_cliente_extras(request):
 @require_GET
 def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
+    from produtos.vendas_lojas_util import vendas_lojas_totais
+
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
-    vpl = _dashboard_vendas_por_loja(data_ini, data_fim)
-    centro = Decimal("0")
-    vila = Decimal("0")
-    for item in vpl or []:
-        nome = str(item.get("loja") or "").lower()
-        tot = Decimal(str(item.get("total") or 0))
-        if "vila" in nome:
-            vila = tot
-        else:
-            centro = tot
-    total = (centro + vila).quantize(Decimal("0.01"))
+    centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",

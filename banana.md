@@ -1214,14 +1214,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Tela vendas por loja (`/vendas/lojas/` · **v16.44** teste)
+### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Tela simples: faturamento **Centro** + **Vila Elias** + **total** · filtros Dia (padrão) / Semana / Mês / Ano |
-| **Rota** | `/vendas/lojas/` · link na Central de Relatórios |
-| **Fonte** | Mesma agregação do BI (`VendaAgro` / `_dashboard_vendas_por_loja`) |
-| **Produção** | ⏳ aguarda teste local + frase+senha |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.45** · aguarda frase+senha no próximo chat |
+| **O quê** | Tela `/vendas/lojas/`: **Centro** + **Vila Elias** + **total** · Dia (padrão) / Semana / Mês / Ano |
+| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas · Vila = depósito vila; resto = Centro |
+| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 40/40** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/vendas/lojas/` · conferir Dia/Semana/Mês/Ano · comparar com lista `/vendas/` |
+| **Produção** | ⏳ próximo chat: frase explícita + senha |
+
+### ✅ Tela vendas por loja (`/vendas/lojas/` · **v16.44** teste) · **superado por v16.45**
 
 ### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
 
