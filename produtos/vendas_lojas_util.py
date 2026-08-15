@@ -5,14 +5,40 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 
 
+def _parse_iso(s: str | None) -> date | None:
+    raw = (s or "").strip()[:10]
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
 def vendas_lojas_periodo_bounds(
-    hoje: date, periodo: str | None
+    hoje: date,
+    periodo: str | None,
+    dia_iso: str | None = None,
 ) -> tuple[date, date, str, str]:
     """
-    Dia (padrão) · semana (segunda até hoje) · mês até hoje · ano até hoje.
+    Dia (padrão) · ontem · semana (segunda até hoje) · mês até hoje ·
+    mês anterior (mês civil completo) · ano até hoje · um dia do calendário.
     Período inválido cai em hoje.
     """
     raw = (periodo or "hoje").strip().lower()
+    if raw == "ontem":
+        d = hoje - timedelta(days=1)
+        return d, d, f"Ontem — {d.strftime('%d/%m/%Y')}", "ontem"
+    if raw in ("mes_ant", "mes_anterior"):
+        primeiro_este = hoje.replace(day=1)
+        ultimo = primeiro_este - timedelta(days=1)
+        primeiro = ultimo.replace(day=1)
+        return primeiro, ultimo, f"Mês anterior — {primeiro.strftime('%m/%Y')}", "mes_ant"
+    if raw in ("dia", "data", "calendario"):
+        d = _parse_iso(dia_iso) or hoje
+        if d > hoje:
+            d = hoje
+        return d, d, d.strftime("%d/%m/%Y"), "dia"
     if raw == "semana":
         ini = hoje - timedelta(days=hoje.weekday())
         fim = hoje

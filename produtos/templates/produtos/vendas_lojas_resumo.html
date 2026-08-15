@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f8fafc">
+  <meta name="theme-color" content="#ea580c">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Vendas">
   <title>Vendas por loja | SisVale</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
   {% include "produtos/_head_perf_mpa.html" %}
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
   <style>
@@ -16,6 +20,7 @@
       --line: #e2e8f0;
       --sky: #0369a1;
       --orange: #c2410c;
+      --green: #059669;
       --safe-t: env(safe-area-inset-top, 0px);
       --safe-b: env(safe-area-inset-bottom, 0px);
       --safe-l: env(safe-area-inset-left, 0px);
@@ -30,9 +35,7 @@
       font-family: Inter, system-ui, sans-serif;
       -webkit-text-size-adjust: 100%;
     }
-    body {
-      overflow-x: hidden;
-    }
+    body { overflow-x: hidden; }
     .vl-shell {
       min-height: 100dvh;
       display: flex;
@@ -86,29 +89,40 @@
       align-items: center;
       justify-content: center;
     }
-    .vl-filtros {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 0.4rem;
-      margin: 0 0 1rem;
+    @media (display-mode: standalone) {
+      .vl-voltar { display: none; }
     }
+    .vl-filtros, .vl-filtros-extra {
+      display: grid;
+      gap: 0.4rem;
+      margin: 0 0 0.45rem;
+    }
+    .vl-filtros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .vl-filtros-extra { grid-template-columns: 1fr 1fr 1.15fr; margin-bottom: 1rem; }
     .vl-filtro {
       min-height: 3rem;
       border: 2px solid var(--line);
       border-radius: 0.9rem;
       background: #fff;
       color: #334155;
-      font-size: 0.78rem;
+      font-size: 0.74rem;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.02em;
       touch-action: manipulation;
     }
     .vl-filtro.ativo {
-      border-color: #059669;
-      background: #059669;
+      border-color: var(--green);
+      background: var(--green);
       color: #fff;
     }
+    .vl-filtro-cal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .vl-filtro-cal svg { width: 1.05rem; height: 1.05rem; }
     .vl-cards {
       display: flex;
       flex-direction: column;
@@ -161,9 +175,119 @@
       margin-bottom: 0.1rem;
     }
     .vl-card.total .vl-rs { color: #ea580c; }
+    .vl-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+    }
+    .vl-sheet.aberto { display: block; }
+    .vl-sheet-bg {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .vl-sheet-panel {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: #fff;
+      border-radius: 1.4rem 1.4rem 0 0;
+      padding: 0.5rem 1rem calc(1.1rem + var(--safe-b));
+      box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.18);
+      max-width: 32rem;
+      margin: 0 auto;
+    }
+    .vl-sheet-handle {
+      width: 2.6rem;
+      height: 0.28rem;
+      border-radius: 99px;
+      background: #cbd5e1;
+      margin: 0.35rem auto 0.85rem;
+    }
+    .vl-cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .vl-cal-nav h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .vl-cal-nav button {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.85rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--ink);
+      touch-action: manipulation;
+    }
+    .vl-cal-week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.2rem;
+      margin-bottom: 0.35rem;
+    }
+    .vl-cal-week span {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.2rem 0;
+    }
+    .vl-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.28rem;
+    }
+    .vl-cal-grid button {
+      min-height: 2.85rem;
+      border: 0;
+      border-radius: 0.8rem;
+      background: transparent;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--ink);
+      touch-action: manipulation;
+    }
+    .vl-cal-grid button.outro { color: #cbd5e1; }
+    .vl-cal-grid button:disabled { color: #e2e8f0; }
+    .vl-cal-grid button.hoje {
+      box-shadow: inset 0 0 0 2px #ea580c;
+      color: #c2410c;
+    }
+    .vl-cal-grid button.sel {
+      background: var(--green);
+      color: #fff;
+      box-shadow: none;
+    }
+    .vl-cal-hoje {
+      width: 100%;
+      margin-top: 0.85rem;
+      min-height: 3rem;
+      border-radius: 0.95rem;
+      border: 2px solid #fdba74;
+      background: #fff7ed;
+      color: var(--orange);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      touch-action: manipulation;
+    }
   </style>
 </head>
-<body>
+<body
+  data-hoje="{{ hoje_iso }}"
+  data-sel="{{ data_iso }}"
+  data-key="{{ periodo_key }}">
   <div class="vl-shell">
     <header class="vl-top">
       <div>
@@ -184,6 +308,20 @@
       <button type="submit" name="periodo" value="ano"
         class="vl-filtro {% if periodo_key == 'ano' %}ativo{% endif %}">Ano</button>
     </form>
+    <form method="get" class="vl-filtros-extra" aria-label="Atalhos de data">
+      <button type="submit" name="periodo" value="ontem"
+        class="vl-filtro {% if periodo_key == 'ontem' %}ativo{% endif %}">Ontem</button>
+      <button type="submit" name="periodo" value="mes_ant"
+        class="vl-filtro {% if periodo_key == 'mes_ant' %}ativo{% endif %}">Mês ant.</button>
+      <button type="button" id="vl-abrir-cal"
+        class="vl-filtro vl-filtro-cal {% if periodo_key == 'dia' %}ativo{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="2.2"></rect>
+          <path d="M8 3.5v3M16 3.5v3M3.5 10h17"></path>
+        </svg>
+        Calendário
+      </button>
+    </form>
 
     <div class="vl-cards">
       <article class="vl-card centro">
@@ -200,5 +338,101 @@
       </article>
     </div>
   </div>
+
+  <div id="vl-sheet" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-label="Escolher dia">
+      <div class="vl-sheet-handle"></div>
+      <div class="vl-cal-nav">
+        <button type="button" id="vl-cal-prev" aria-label="Mês anterior">‹</button>
+        <h3 id="vl-cal-titulo">—</h3>
+        <button type="button" id="vl-cal-next" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="vl-cal-week">
+        <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div id="vl-cal-grid" class="vl-cal-grid"></div>
+      <button type="button" class="vl-cal-hoje" id="vl-cal-hoje">Ir para hoje</button>
+    </div>
+  </div>
+
+  <form id="vl-goto-dia" method="get" hidden>
+    <input type="hidden" name="periodo" value="dia">
+    <input type="hidden" name="data" id="vl-goto-data" value="">
+  </form>
+
+  <script>
+  (function () {
+    var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    var hoje = new Date(document.body.getAttribute("data-hoje") + "T12:00:00");
+    var sel = new Date((document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
+    var view = new Date(sel.getTime());
+    view.setDate(1);
+    var sheet = document.getElementById("vl-sheet");
+    var grid = document.getElementById("vl-cal-grid");
+    var titulo = document.getElementById("vl-cal-titulo");
+
+    function iso(d) {
+      return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    }
+    function sameDay(a, b) {
+      return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+    }
+    function abrir() {
+      sheet.hidden = false;
+      sheet.classList.add("aberto");
+      desenhar();
+    }
+    function fechar() {
+      sheet.classList.remove("aberto");
+      sheet.hidden = true;
+    }
+    function irDia(d) {
+      document.getElementById("vl-goto-data").value = iso(d);
+      document.getElementById("vl-goto-dia").submit();
+    }
+    function desenhar() {
+      var y = view.getFullYear(), m = view.getMonth();
+      titulo.textContent = MESES[m] + " " + y;
+      var first = new Date(y, m, 1);
+      var startPad = (first.getDay() + 6) % 7;
+      var days = new Date(y, m + 1, 0).getDate();
+      var html = "";
+      var i;
+      for (i = 0; i < startPad; i++) html += "<button type='button' class='outro' disabled></button>";
+      for (i = 1; i <= days; i++) {
+        var d = new Date(y, m, i, 12);
+        var cls = [];
+        if (sameDay(d, hoje)) cls.push("hoje");
+        if (sameDay(d, sel) && document.body.getAttribute("data-key") === "dia") cls.push("sel");
+        var dis = d > hoje ? " disabled" : "";
+        html += "<button type='button' class='" + cls.join(" ") + "'" + dis + " data-iso='" + iso(d) + "'>" + i + "</button>";
+      }
+      grid.innerHTML = html;
+      document.getElementById("vl-cal-next").disabled = (y > hoje.getFullYear()) || (y === hoje.getFullYear() && m >= hoje.getMonth());
+    }
+    document.getElementById("vl-abrir-cal").addEventListener("click", abrir);
+    sheet.querySelector("[data-fechar]").addEventListener("click", fechar);
+    document.getElementById("vl-cal-prev").addEventListener("click", function () {
+      view.setMonth(view.getMonth() - 1);
+      desenhar();
+    });
+    document.getElementById("vl-cal-next").addEventListener("click", function () {
+      view.setMonth(view.getMonth() + 1);
+      desenhar();
+    });
+    document.getElementById("vl-cal-hoje").addEventListener("click", function () {
+      window.location.href = "?periodo=hoje";
+    });
+    grid.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("button[data-iso]");
+      if (!btn || btn.disabled) return;
+      irDia(new Date(btn.getAttribute("data-iso") + "T12:00:00"));
+    });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+    }
+  })();
+  </script>
 </body>
 </html>
