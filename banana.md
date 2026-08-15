@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
-> **Status:** ✅ **enviado / Live v16.53**  
+> **Status:** ✅ **enviado / Live v16.53** · código útil `09463f8a`  
 > **Base anterior:** Live v16.51 @ **fade5b8f**
 
 | Item | Detalhe |
