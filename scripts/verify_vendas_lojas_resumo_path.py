@@ -89,9 +89,10 @@ def test_arquivos() -> None:
     check("tpl_mobile_viewport", "viewport-fit=cover" in tpl)
     check("tpl_mobile_dvh", "100dvh" in tpl)
     check("tpl_mobile_safe", "safe-area-inset" in tpl)
-    check("tpl_numeros_grandes", "clamp(2.15rem" in tpl and "clamp(2.45rem" in tpl)
+    check("tpl_numeros_grandes", "clamp(2.45rem" in tpl and "clamp(2.75rem" in tpl)
     check("tpl_filtro_toque", "min-height: 3rem" in tpl)
     check("tpl_grade_4", "repeat(4, minmax(0, 1fr))" in tpl)
+    check("tpl_coluna_celular", "max-width: 28rem" in tpl)
     check("tpl_sem_scale", "agro_display_scale" not in tpl and "_agro_consulta_ui" not in tpl)
     check("tpl_sem_fa", "font-awesome" not in tpl.lower())
     check("tpl_standalone", "<!DOCTYPE html>" in tpl and "extends" not in tpl)
@@ -249,7 +250,7 @@ def test_fracao_expediente() -> None:
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.52", ver)
+    check("version_bump", ver >= "16.53", ver)
 
 
 def main() -> int:
