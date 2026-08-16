@@ -22,6 +22,7 @@ from produtos.pdv_transf_loja_util import (
 class UrlsPdvTransfTests(SimpleTestCase):
     def test_rotas_existem(self):
         self.assertIn("transf-loja/resumo", reverse("api_pdv_transf_loja_resumo"))
+        self.assertIn("transf-loja/saldos", reverse("api_pdv_transf_loja_saldos"))
         self.assertIn("transf-loja/criar", reverse("api_pdv_transf_loja_criar"))
         self.assertIn("/1/", reverse("api_pdv_transf_loja_acao", args=[1]))
         try:

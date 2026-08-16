@@ -173,6 +173,30 @@
     return String((p && (p.id || p.produto_id || p.produto_externo_id)) || '').trim();
   }
 
+  function numSaldo(p, chave) {
+    var v = p && (p[chave] != null ? p[chave] : p[chave === 'saldo_centro' ? 'estoque_centro' : 'estoque_vila']);
+    var n = Number(v);
+    return isFinite(n) ? n : 0;
+  }
+
+  function fmtSaldo(n) {
+    var x = Number(n);
+    if (!isFinite(x)) return '—';
+    if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
+    return String(Math.round(x * 100) / 100).replace('.', ',');
+  }
+
+  function aplicarSaldos(lista, mapa) {
+    if (!mapa) return lista;
+    (lista || []).forEach(function (p) {
+      var s = mapa[produtoId(p)];
+      if (!s) return;
+      if (s.saldo_centro != null) p.saldo_centro = s.saldo_centro;
+      if (s.saldo_vila != null) p.saldo_vila = s.saldo_vila;
+    });
+    return lista;
+  }
+
   function addCart(p) {
     var id = produtoId(p);
     if (!id) return;
@@ -187,8 +211,8 @@
         nome: p.nome || p.nome_produto || 'Produto',
         codigo: p.codigo_interno || p.codigo || '',
         qtd: 1,
-        saldo_centro: Number(p.saldo_centro || 0),
-        saldo_vila: Number(p.saldo_vila || 0),
+        saldo_centro: numSaldo(p, 'saldo_centro'),
+        saldo_vila: numSaldo(p, 'saldo_vila'),
       });
     }
     renderCart();
@@ -200,7 +224,7 @@
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="py-8 text-center text-sm font-bold text-slate-500">Nenhum item ainda — busque acima (1 ou vários).</p>';
+        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda e toque no produto.</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
@@ -221,7 +245,7 @@
           '<div class="pl-saldo-pill"><small>' +
           escapeHtml(outraLbl) +
           '</small><b>' +
-          escapeHtml(String(it[outra] != null ? it[outra] : '—')) +
+          escapeHtml(fmtSaldo(it[outra])) +
           '</b></div>' +
           '</div>' +
           '<div class="pl-qty-row">' +
@@ -257,14 +281,33 @@
       .then(function (d) {
         var lista = (d && (d.produtos || d.itens || d.results)) || [];
         if (!Array.isArray(lista)) lista = [];
-        if (!dom.hits) return;
+        lista = lista.slice(0, 12);
+        var ids = lista.map(produtoId).filter(Boolean);
+        var saldosUrl = urls.apiPdvTransfLojaSaldos;
+        if (!saldosUrl || !ids.length) return { lista: lista };
+        return fetch(saldosUrl + '?ids=' + encodeURIComponent(ids.join(',')), {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+        })
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (s) {
+            return { lista: aplicarSaldos(lista, s && s.saldos) };
+          })
+          .catch(function () {
+            return { lista: lista };
+          });
+      })
+      .then(function (pack) {
+        if (!dom.hits || !pack) return;
+        var lista = pack.lista || [];
         if (!lista.length) {
           dom.hits.innerHTML =
             '<p class="text-base font-bold text-slate-500">Nenhum produto.</p>';
           return;
         }
         dom.hits.innerHTML = lista
-          .slice(0, 12)
           .map(function (p) {
             var id = produtoId(p);
             return (
@@ -276,10 +319,10 @@
               '</span>' +
               '<span class="pl-saldos">' +
               '<span class="pl-saldo-pill"><small>Saldo Centro</small><b>' +
-              escapeHtml(String(p.saldo_centro != null ? p.saldo_centro : '—')) +
+              escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +
               '</b></span>' +
               '<span class="pl-saldo-pill"><small>Saldo Vila</small><b>' +
-              escapeHtml(String(p.saldo_vila != null ? p.saldo_vila : '—')) +
+              escapeHtml(fmtSaldo(numSaldo(p, 'saldo_vila'))) +
               '</b></span>' +
               '</span></button>'
             );

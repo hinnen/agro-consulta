@@ -661,6 +661,11 @@ urlpatterns = [
         name='api_pdv_transf_loja_resumo',
     ),
     path(
+        'api/pdv/transf-loja/saldos/',
+        views_pdv_transf_loja.api_pdv_transf_loja_saldos,
+        name='api_pdv_transf_loja_saldos',
+    ),
+    path(
         'api/pdv/transf-loja/lista/',
         views_pdv_transf_loja.api_pdv_transf_loja_lista,
         name='api_pdv_transf_loja_lista',
