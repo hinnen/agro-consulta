@@ -108,7 +108,7 @@ def pdv_home(request):
         "caixa_rotulo": rotulo_caixa_browser(request, caixa_aberto) if caixa_aberto else "Caixa fechado",
         "pdv_deposito": dep_boot.get("deposito") or "centro",
         "pdv_deposito_label": dep_boot.get("depositoLabel") or "Centro",
-        "pdv_estoque_ativo_label": dep_boot.get("estoqueAtivoLabel") or "Estoque: Centro",
+        "pdv_estoque_ativo_label": dep_boot.get("estoqueAtivoLabel") or "Esto: Centro",
         "pdv_bootstrap": {
             "csrfToken": get_token(request),
             "usuarioSalvamento": u_pdv,

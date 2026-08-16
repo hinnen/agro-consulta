@@ -10639,7 +10639,7 @@ def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
     dep_boot = bootstrap_deposito(request)
     ctx["pdv_deposito"] = dep_boot.get("deposito") or "centro"
     ctx["pdv_deposito_label"] = dep_boot.get("depositoLabel") or "Centro"
-    ctx["pdv_estoque_ativo_label"] = dep_boot.get("estoqueAtivoLabel") or "Estoque: Centro"
+    ctx["pdv_estoque_ativo_label"] = dep_boot.get("estoqueAtivoLabel") or "Esto: Centro"
 
     ctx["pdv_bootstrap"] = {
         "csrfToken": get_token(request),

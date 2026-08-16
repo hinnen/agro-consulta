@@ -63,6 +63,14 @@ def rotulo_deposito(deposito: str) -> str:
     return ROTULO_DEPOSITO.get(normalizar_deposito(deposito), "Centro")
 
 
+def rotulo_estoque_badge(deposito: str, *, travado: bool = False) -> str:
+    """Rótulo curto do badge PDV/BI — cabe na topbar (Esto: Vila / Esto: Centro)."""
+    curto = "Vila" if normalizar_deposito(deposito) == DEPOSITO_VILA else "Centro"
+    if travado:
+        return f"Trav: {curto}"
+    return f"Esto: {curto}"
+
+
 def resolver_deposito_request(request: HttpRequest | None) -> str:
     """Sessão → cookie → env (fallback histórico = Centro)."""
     if request is None:
@@ -181,7 +189,7 @@ def trava_loja_por_caixa(request: HttpRequest | None) -> dict | None:
         "lojaId": loja_id_de_deposito(dep),
         "sessaoPk": int(s.pk),
         "rotulo": f"Travado: {rotulo_deposito(dep)}",
-        "estoqueAtivoLabel": f"Travado: {rotulo_deposito(dep)}",
+        "estoqueAtivoLabel": rotulo_estoque_badge(dep, travado=True),
     }
 
 
@@ -194,7 +202,7 @@ def bootstrap_deposito(request: HttpRequest | None) -> dict:
         "deposito": dep,
         "depositoLabel": rotulo_deposito(dep),
         "lojaId": loja_id_de_deposito(dep),
-        "estoqueAtivoLabel": f"Estoque: {rotulo_deposito(dep)}",
+        "estoqueAtivoLabel": rotulo_estoque_badge(dep),
         "caixaTravado": bool(trava),
         "trava": trava,
     }

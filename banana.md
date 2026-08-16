@@ -418,6 +418,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
+- **Topbar PDV — espaço + Transf. (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** (ex-Estoque Vila) · **Vendas** (ex-Consultar vendas) · botão **Transf.** (rosa) → `/transferencias/`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1214,6 +1215,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP — Topbar PDV Transf. + rótulos curtos (`PDV-TOPBAR-TRANSF` · **v16.54**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · aguarda Ctrl+F5 local |
+| **O quê** | Badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão **Transf.** rosa → `/transferencias/` |
+| **Arquivos** | `pdv_wizard.html` · `pdv_deposito_util.py` · `pdv_wizard.js` · topbar parcial · BI fallback |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 PDV · conferir rótulos · clicar **Transf.** |
+
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
 > **Status:** ✅ **enviado / Live v16.53** · código útil `09463f8a`  
@@ -1413,7 +1424,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 /ajuste-mobile/ · Cíclica → Cancelar contagem |
 
-### 📦 PACOTE PRONTO — Contabilidade NFC-e por loja (CTB-NFCE-LOJA · **v16.43**)
+### 📦 PACOTE PRONTO — Contabilidade NFC-e por loja (CTB-NFCE-LOJA · **v16.43**) · **Live v16.44**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1423,7 +1434,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Contabilidade · Centro ZIP · Vila ZIP |
 
-### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (NFCE-VILA-SEQ · **v16.43**)
+### 📦 PACOTE PRONTO — NFC-e Vila sequência PK (NFCE-VILA-SEQ · **v16.43**) · **Live v16.44**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1433,7 +1444,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · venda teste Vila |
 
-### 📦 PACOTE PRONTO — Repasse UX + forma (REPASSE-VILA-UX · **v16.43**)
+### 📦 PACOTE PRONTO — Repasse UX + forma (REPASSE-VILA-UX · **v16.43**) · **Live v16.44**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1443,7 +1454,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Retiradas → Repasse |
 
-### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (DRE-FILTRO-PADRAO · **v16.43**)
+### 📦 PACOTE PRONTO — DRE filtro padrão ao abrir (DRE-FILTRO-PADRAO · **v16.43**) · **Live v16.44**
 
 | Item | Detalhe |
 | ---- | ------- |
