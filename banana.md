@@ -1216,6 +1216,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
+
+> **Status:** ✅ **enviado / Live v16.69** · `producao` (este push) · base Live **v16.68** @ **677b3a1**
+> **Incluiu:** só CSS — coluna Código GM `7.25rem` → `9.75rem` · **sem migrate** · **risco baixo**
+> **Rollback:** tag `rollback/pre-pdv-pedir-loja-gm-col-v16.68` · branch `producao-backup-pre-v1669-pedir-gm-col-20260816` · frase+senha
+> **Você:** PDV loja · **Ctrl+F5** · badge **v16.69** · Pedir loja · busca milho · GM sem `…`
+
 ### ✅ Deploy loja — Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-UX7` · **v16.68**)
 
 > **Status:** ✅ **enviado / Live v16.68** · `producao` @ **df2fd39** · base Live **v16.59** @ **16663c7**
@@ -1241,9 +1248,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux2-v16.56` @ **cd261d6** · branch `producao-backup-pre-v1658-pedir-loja-ux2-20260815` · frase+senha
 > **Você:** PDV loja · **Ctrl+F5** · badge **v16.58** · Pedir loja · busca milho
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX7 · loja v16.68)
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · coluna GM · loja v16.69)
 
-> **Loja hoje:** ✅ **Live v16.68** (após Render) · pacote Pedir loja UX5–UX7  
+> **Loja hoje:** ✅ **Live v16.69** (após Render) · só largura coluna Código GM  
+> **Fila deploy:** **vazia**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-LOJA-GM-COL** | ✅ enviado / Live v16.69 | não |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX7 · loja v16.68) · **superado — Live v16.69**
+
+> **Loja hoje:** ✅ **Live v16.68** · pacote Pedir loja UX5–UX7  
 > **Fila deploy:** **vazia**.
 
 | # | Pacote | Status | Migrate |
