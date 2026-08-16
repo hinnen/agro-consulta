@@ -326,6 +326,41 @@ def calcular_disponivel(
     }
 
 
+def _receita_e_cmv_vila_periodo(d0: date, d1: date) -> dict[str, Any]:
+    """Receita/CMV/lucro bruto Vila no intervalo (um scan — card do mês)."""
+    from produtos.relatorios_vendas_util import cmv_vendida_de_rows, mapa_produtos_meta
+
+    desde, ate = _aware_bounds(d0, d1)
+    ids = _vendas_vila_sem_fiado(desde, ate)
+    if not ids:
+        return {
+            "receita": ZERO,
+            "cmv": ZERO,
+            "lucro_bruto": ZERO,
+            "n_vendas": 0,
+        }
+    receita = _dec(
+        VendaAgro.objects.filter(pk__in=ids).aggregate(t=Sum("total")).get("t")
+    )
+    rows = list(
+        ItemVendaAgro.objects.filter(venda_id__in=ids)
+        .exclude(produto_id_externo="")
+        .values("produto_id_externo")
+        .annotate(qtd=Sum("quantidade"))
+    )
+    pids = [str(r.get("produto_id_externo") or "").strip() for r in rows]
+    meta = mapa_produtos_meta(pids)
+    cmv, _skus_ok, _skus_sem = cmv_vendida_de_rows(rows, meta)
+    cmv = _dec(cmv)
+    lucro = (receita - cmv).quantize(Decimal("0.01"))
+    return {
+        "receita": receita,
+        "cmv": cmv,
+        "lucro_bruto": lucro,
+        "n_vendas": len(ids),
+    }
+
+
 def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, Any]:
     hoje = timezone.localdate()
     ano = int(ano or hoje.year)
@@ -341,6 +376,7 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
     )
     por_dia: dict[str, dict[str, Any]] = {}
     total_mes = ZERO
+    lucro_enviado_mes = ZERO
     for e in envios:
         key = e.data_ref.isoformat()
         bucket = por_dia.setdefault(
@@ -352,11 +388,13 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
                 "valor_lucro": ZERO,
                 "n": 0,
                 "envios": [],
+                "lucro_bruto_snap": ZERO,
             },
         )
         bucket["valor"] += _dec(e.valor_total)
         bucket["valor_lucro"] += _dec(e.valor_lucro)
         bucket["n"] += 1
+        bucket["lucro_bruto_snap"] = _dec(e.lucro_bruto_dia)  # último do dia (ordem)
         bucket["envios"].append(
             {
                 "id": e.pk,
@@ -372,6 +410,11 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
             }
         )
         total_mes += _dec(e.valor_total)
+        lucro_enviado_mes += _dec(e.valor_lucro)
+
+    base_mes = _receita_e_cmv_vila_periodo(d0, d1)
+    lucro_bruto_mes = max(ZERO, _dec(base_mes["lucro_bruto"]))
+    lucro_ficou_vila = max(ZERO, (lucro_bruto_mes - lucro_enviado_mes).quantize(Decimal("0.01")))
 
     dias_out = []
     for day in range(1, ultimo + 1):
@@ -390,15 +433,8 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
                 }
             )
             continue
-        # % real = lucro enviado / lucro bruto do dia (snapshot do último envio do dia)
-        lucro_dia = ZERO
-        last = (
-            RepasseVilaCentroAgro.objects.filter(data_ref=d).order_by("-criado_em").first()
-        )
-        if last:
-            lucro_dia = _dec(last.lucro_bruto_dia)
+        lucro_dia = _dec(b.get("lucro_bruto_snap") or 0)
         if lucro_dia <= 0:
-            # recalcula se snapshot zerado
             lucro_dia = max(ZERO, _dec(_receita_e_cmv_vila(d)["lucro_bruto"]))
         pct_real = None
         if lucro_dia > 0:
@@ -421,6 +457,9 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
         "ano": ano,
         "mes": mes,
         "total_mes": float(_dec(total_mes)),
+        "lucro_bruto_mes": float(lucro_bruto_mes),
+        "lucro_enviado_mes": float(_dec(lucro_enviado_mes)),
+        "lucro_ficou_vila": float(lucro_ficou_vila),
         "dias": dias_out,
     }
 
