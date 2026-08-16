@@ -1216,16 +1216,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja aviso pós-PIN (`PDV-PEDIR-LOJA-UX7` · **v16.65**)
+### ✅ Verificação Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-AUDIT` · **v16.65** · 16/08)
 
-> **Status:** no `teste` · **não** sobe loja sem frase+senha
+> **Status:** path **OK** no `teste` @ **eeda598** · loja Live ainda **v16.59** (UX3)
+> **Provas:** verify **54/54** · testes **20/20** (+ parse qtd `0` int) · rotas reverse OK · HTML `/pdv/` com overlay/ajuste/aviso · CDP boot URLs (resumo/saldos/criar/ajustar/lista/acao)
+> **Pacote loja (quando frase+senha):** UX5 furado/bip · UX6 Ajustar na busca · UX7 aviso pós-PIN · **sem migrate nova** (já tem `estoque.0018`)
+> **Produção:** **parado** nesta msg — frase «enviar produção» **sem** senha `99738595`
+> **Você:** Ctrl+F5 local · PIN com pedido · Ajustar · Transferir furado · bip
+
+### ✅ Pedir loja aviso pós-PIN (`PDV-PEDIR-LOJA-UX7` · **v16.65**)
+
+> **Status:** no `teste` @ **eeda598** · **não** sobe loja sem frase+senha
 > **Feito:** após digitar PIN, se tem pedido → aviso curto + **Fechar** grande (**Enter**)
 > **Você:** PDV local · Ctrl+F5 · com pedido pendente · digitar PIN · ver aviso
 
-### WIP — Pedir loja ajuste na busca (`PDV-PEDIR-LOJA-UX6` · **v16.64**)
+### ✅ Pedir loja ajuste na busca (`PDV-PEDIR-LOJA-UX6` · **v16.64**)
 
-> **Status:** no `teste` @ **3a0c705** · **não** sobe loja sem frase+senha
-> **Feito:** botão **Ajustar** na lista de busca · modal Centro+Vila · API `transf-loja/ajustar/` · fix parse qtd **0** (útil **2cebd2a**)
+> **Status:** no `teste` @ **3a0c705** / útil ajuste **2cebd2a** · **não** sobe loja sem frase+senha
+> **Feito:** botão **Ajustar** na lista de busca · modal Centro+Vila · API `transf-loja/ajustar/` · fix parse qtd **0**
 > **Você:** PDV local · Ctrl+F5 · Pedir loja · busca produto · **Ajustar** · salvar saldo
 
 ### ✅ Pedir loja furado + bip + modal (`PDV-PEDIR-LOJA-UX5` · **v16.61**)

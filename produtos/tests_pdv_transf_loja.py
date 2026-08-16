@@ -50,6 +50,8 @@ class UtilBasicoTests(SimpleTestCase):
 
         self.assertEqual(qtd_decimal_ou_zero(""), Decimal("0.000"))
         self.assertEqual(qtd_decimal_ou_zero("0"), Decimal("0.000"))
+        self.assertEqual(qtd_decimal_ou_zero(0), Decimal("0.000"))
+        self.assertEqual(qtd_decimal_ou_zero(0.0), Decimal("0.000"))
         self.assertEqual(qtd_decimal_ou_zero("2,5"), Decimal("2.500"))
         self.assertIsNone(qtd_decimal_ou_zero("-1"))
         self.assertIsNone(qtd_decimal_ou_zero("x"))
