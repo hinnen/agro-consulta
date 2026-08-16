@@ -1236,7 +1236,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** | não |
-| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.73** @ **ecaf8d9** | não |
+| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.74** @ **3e8bc92** | não |
 | 3 | **PDV-BALANCA-GRANEL** | 🧪 teste **v16.71** · prova balança | **sim** 0089 |
 
 ### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.73**)
