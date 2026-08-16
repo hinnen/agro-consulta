@@ -1270,14 +1270,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Rollback:** `git push origin producao-rollback-pre-balanca-hotfix3-20260816:producao --force-with-lease` (só com senha)
 
-### ✅ CHECKLIST ÚNICO — após loja v16.89 (16/08i)
+### ✅ Deploy loja — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.90**)
 
-> **Loja hoje:** ✅ **Live v16.89** · `producao` @ **c70d195**  
-> **Pronto envio:** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c**
+> **Status:** ✅ **enviado / Live v16.90** · `producao` @ **215d0a9** · Render `dep-da0u5661egvs739p14h0`  
+> **Base:** Live v16.89 @ **c70d195** · tag `producao-rollback-pre-repasse-manual-20260816`  
+> **Cherry:** `8f64f1d` (fix) · `215d0a9` (VERSION) · **sem migrate** · em cima da balança (não sobrescreveu)
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **REPASSE-VALOR-MANUAL** | ✅ enviado / Live v16.90 |
+
+**Você:** Ctrl+F5 Retiradas → Repasse · digitar **600** → Confirmar → deve sair **600**.
+
+**Rollback:** `git push origin producao-rollback-pre-repasse-manual-20260816:producao --force-with-lease` (só com senha)
+
+### ✅ CHECKLIST ÚNICO — após loja v16.90 (16/08j)
+
+> **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
+> **Pronto envio (outros):** ver blocos SAVE-ORC-CAIXA / balança COM no topo se ainda pendentes.
+
+### ✅ CHECKLIST ÚNICO — após loja v16.89 (16/08i) · **superado**
+
+> Hotfix manual → **Live v16.90**.
 
 ### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
