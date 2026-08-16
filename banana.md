@@ -1224,13 +1224,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste (este push) | não |
+| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** @ **0f86a6f** | não |
 
-### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO`)
+### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO` · **v16.70**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.70** @ **0f86a6f** |
 | **O quê** | Escolher **dia** (hoje ou atrasado até 180d) no overlay/tela · histórico clicável · dinheiro sai do caixa **agora** · bloqueia futuro |
 | **Prova** | path **VERIFY_OK 36** · deep **VERIFY_DEEP_OK 63** (ontem + futuro 400) |
 | **Migrate** | **NÃO** |
