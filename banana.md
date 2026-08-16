@@ -1245,16 +1245,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **REPASSE-ELET-MAQUINAS** | ✅ enviado / Live v16.74 |
 | 3 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
 
-### ✅ CHECKLIST ÚNICO — após loja v16.74 (16/08f)
+### ✅ CHECKLIST ÚNICO — após loja v16.82 (16/08g)
 
-> **Loja hoje:** ✅ **Live v16.74** · `producao` @ **1c41e50**  
-> **Só falta (com senha):** **PDV-BALANCA-GRANEL** — ver **PREP DEPLOY LOTE B** no topo.
+> **Loja hoje:** ✅ **Live v16.82** · `producao` @ **3fd7cd3**  
+> **Pronto envio (hotfix):** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c** · **sem migrate**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-BALANCA-GRANEL** | ✅ **pronto** / teste **v16.76** @ **e9e6eec** · aguarda senha | **sim** 0089 |
+| 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
 
-### 📦 PACOTE PRONTO — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.76**)
+### 📦 PACOTE PRONTO — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Digitar R$ (ex. 600) **manda** — não corta mais no automático |
+| **Prova** | deep **68** · path **43** |
+| **Migrate** | **NÃO** |
+| **Cherry** | `ab71c8c` |
+| **Você** | Ctrl+F5 Retiradas → Repasse |
+
+### ✅ CHECKLIST ÚNICO — após loja v16.74 (16/08f) · **superado**
+
+> Loja **v16.82** (balança) · hotfix manual = checklist **16/08g**.
+
+### 📦 PACOTE PRONTO — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.76**) · **Live v16.82**
 
 | Item | Detalhe |
 | ---- | ------- |
