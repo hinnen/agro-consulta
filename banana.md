@@ -1216,28 +1216,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (15/08 · Pedir loja)
+### ✅ Deploy loja — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
 
-> **Loja hoje:** ✅ **Live v16.53**  
-> **Fila deploy:** 1 pacote abaixo · aguarda frase + senha.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-LOJA** | 📦 **pronto para envio à produção** · teste **v16.55** | **SIM** `estoque.0018` |
-
-### 📦 PACOTE PRONTO LOJA — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
+> **Status:** ✅ **enviado / Live v16.55** · `producao` @ **5da53b3** · Render `dep-da0hv4m1egvs739guu70`  
+> **Base anterior:** Live v16.53 @ **fc01036**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **pronto para envio à produção** · teste **v16.55** · `af04458` |
-| **O quê** | Botão rosa **Pedir loja** no PDV · overlay Pedir/Recebidos/Enviados/Histórico · Aceitar→Pronto→**Transferir** (estoque) · PIN sessão · layout **PC primeiro** |
-| **Prova** | unit **15/15** · verify **28/28** · path DB+API **PATH_OK** · `manage.py check` OK · migrate local **0018** OK |
-| **Migrate** | **SIM** — `estoque.0018_solicitacao_transferencia_pdv` |
-| **NÃO inclui** | WhatsApp auto · Logística `/transferencias/` |
-| **Risco loja aberta** | **Baixo-médio** — só PDV overlay novo + migrate; Logística intocada |
-| **Você pré** | Ctrl+F5 PDV · PIN · Pedir 1 item · outra loja badge · Aceitar→Transferir |
-| **Autorizar** | *pode subir Pedir loja / PDV-PEDIR-LOJA para produção* + **99738595** |
-| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-LOJA.md` · tag `rollback/pre-pdv-pedir-loja` @ `7f7b8022` |
+| **Incluiu** | Pedir loja overlay · rótulos topbar (Esto / Saldo Vila / Vendas) |
+| **Migrate** | **SIM** `estoque.0018` (Render no build) |
+| **Prova pré** | 15/15 · verify 28/28 · PATH_OK |
+| **Rollback** | tag `rollback/pre-pdv-pedir-loja-prod-v16.53` @ **fc01036** · branch `producao-backup-pre-v1655-pedir-loja-20260815` · frase+senha |
+| **Você** | Ctrl+F5 PDV · badge **v16.55** · Pedir loja · 1 pedido teste |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (15/08 · Pedir loja · loja v16.55)
+
+> **Loja hoje:** ✅ **Live v16.55** · `producao` @ **5da53b3**  
+> **Fila deploy:** **vazia**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-LOJA** | ✅ enviado / Live v16.55 | **SIM** 0018 |
+
+### 📦 PACOTE PRONTO LOJA — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**) · **superado — Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.55** |
+| **Produção** | ✅ Live v16.55 · `5da53b3` |
 
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
@@ -1296,7 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live no lote v16.51** |
 | **O quê** | `/ajuste-mobile/` no celular: PIN · ícone na tela · saldo e quantidade grandes · botões de toque |
 | **Igual** | PWA das vendas · não cacheia contagem · PIN / bip / cíclica iguais |
-| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` **VERIFY OK 27/27** |
+| **Prova** | `scripts/verify_ajuste_mobile_pwa.py` |
 | **Migrate** | **NÃO** |
 | **Você** | celular `/ajuste-mobile/` · Ctrl+F5 · Chrome → **Instalar aplicativo** |
 | **Produção** | ✅ lote v16.51 |
@@ -1354,7 +1360,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**)
 
-> **Status:** ✅ **enviado / Live v16.46** · `producao` @ **a202214e**  
+> **Status:** ✅ **enviado** · `producao` a partir de **e96f998** · rollback pronto  
 > **Base anterior:** Live v16.44 @ **e96f998**
 
 | Item | Detalhe |
@@ -1367,68 +1373,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-vendas-lojas-v16.44` @ **e96f998** · branch `producao-backup-pre-v1646-vendas-lojas-20260815` · frase+senha |
 | **Você** | celular `/vendas/lojas/` · **Ctrl+F5** · badge **v16.46** |
 
-### 📦 PACOTE PRONTO — Vendas por loja celular (VENDAS-LOJAS-RESUMO · **v16.46**) · **superado — Live**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (14/08b)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio** · teste **v16.46** · celular (números grandes, tela limpa) |
-| **O quê** | `/vendas/lojas/` · Centro + Vila + total · Dia/Semana/Mês/Ano (padrão hoje) · layout smartphone |
-| **Atalho** | `/atalhos/` tecla **S** · Menu BI · Relatórios · link no card Faturamento por Unidade |
-| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas |
-| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 49/49** |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-vendas-lojas-v16.44` (loja anterior Live v16.44) · frase+senha |
-| **Você** | celular `/vendas/lojas/` · Ctrl+F5 · atalhos **S** |
-
-### 📦 PACOTE PRONTO — Vendas por loja (VENDAS-LOJAS-RESUMO · **v16.45**) · **superado por v16.46**
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v16.45** · aguarda frase+senha no próximo chat |
-| **O quê** | Tela `/vendas/lojas/`: **Centro** + **Vila Elias** + **total** · Dia (padrão) / Semana / Mês / Ano |
-| **Fonte** | Só PDV `VendaAgro` · sem cache · sem Mongo · sem devolvidas · Vila = depósito vila; resto = Centro |
-| **Prova** | `scripts/verify_vendas_lojas_resumo_path.py` **VERIFY OK 40/40** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/vendas/lojas/` · atalhos **S** · Relatórios · Menu BI · conferir Dia/Semana/Mês/Ano |
-| **Produção** | ⏳ próximo chat: frase explícita + senha |
-
-### ✅ Tela vendas por loja (`/vendas/lojas/` · **v16.44** teste) · **superado por v16.45**
-
-### ✅ Deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**)
-
-> **Status:** ✅ **enviado / Live v16.44** · `producao` @ **e96f998** · Render `dep-d9vo8t3ncjis73emftqg`  
-> **Base anterior:** Live v16.32 @ **544b31f**
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Pacotes** | NFCE-VILA-SEQ · CTB-NFCE-LOJA · REPASSE-VILA-UX · DRE-FILTRO-PADRAO · AJUSTE-CICLICA-CANCEL |
-| **Prova pré-envio** | CTB+SEQ **52** · Repasse **32**/deep **55** · DRE **235** · Cíclica **65** · parity MATCH |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1408b-v16.32` @ **544b31f** · frase+senha |
-| **Você** | **Ctrl+F5** · badge **v16.44** · DRE abre sozinho · Contabilidade Centro/Vila · Cancelar cíclica · liberar vendas |
-
-### ✅ CHECKLIST ÚNICO — enviado produção (14/08b · loja v16.44)
-
-> **Loja hoje:** ✅ **Live v16.44** · `producao` @ **e96f998**  
-> **Fila deploy:** **vazia**.
+> **Loja hoje:** ✅ **Live v16.32** · producao @ **544b31f**  
+> **NÃO** merge teste→producao sem frase + senha.  
+> **Só no teste (subir juntos):** tip **v16.43** · **sem migrate** nestes 5.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-VILA-SEQ** | ✅ enviado / Live v16.44 | não |
-| 2 | **CTB-NFCE-LOJA** | ✅ enviado / Live v16.44 | não |
-| 3 | **REPASSE-VILA-UX** | ✅ enviado / Live v16.44 | não |
-| 4 | **DRE-FILTRO-PADRAO** | ✅ enviado / Live v16.44 | não |
-| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ enviado / Live v16.44 | não |
+| 1 | **NFCE-VILA-SEQ** | ✅ **pronto para envio à produção** | não |
+| 2 | **CTB-NFCE-LOJA** | ✅ **pronto para envio à produção** | não |
+| 3 | **REPASSE-VILA-UX** | ✅ **pronto para envio à produção** | não |
+| 4 | **DRE-FILTRO-PADRAO** | ✅ **pronto para envio à produção** | não |
+| 5 | **AJUSTE-CICLICA-CANCEL** | ✅ **pronto para envio à produção** | não |
 
-### 🚀 PREP deploy loja — lote checklist 14/08b (`deploy/lote-checklist-1408b` · **v16.44**) · **superado**
-
-> Vigente: **Deploy loja — lote checklist 14/08b Live v16.44** no topo.
-
-### ✅ CHECKLIST ÚNICO — pronto envio (14/08b) · **superado**
-
-> Vigente: checklist **enviado produção (14/08b · loja v16.44)**.
-
-### 📦 PACOTE PRONTO — Cancelar contagem cíclica (AJUSTE-CICLICA-CANCEL · **v16.43**) · **Live v16.44**
+### 📦 PACOTE PRONTO — Cancelar contagem cíclica (AJUSTE-CICLICA-CANCEL · **v16.43**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1472,11 +1431,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v16.43** · commits **fd2522f** + **5f9dc10** |
-| **O quê** | Abre **Centro+Vila** · **dia 1→hoje** · **Vencimento** · **Bruto** · **sempre carrega a API** (sem aviso «só cache») · mudar filtro atualiza sozinho |
-| **Prova** | `verify_dre_visual_path.py` **VERIFY_OK 235** · unit DRE **30/30** · node OK · sem `AGRO_MANUAL_SYNC_ONLY` no JS do Resumo |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.43** |
+| **O quê** | Resumo/DRE abre Centro+Vila · dia 1→hoje · Vencimento · Bruto · sempre carrega a API |
+| **Prova** | verify_dre_visual_path · unit DRE |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Resumo · números na hora · sem banner azul |
+| **Você** | Ctrl+F5 Resumo |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (14/08 · loja v16.32) · **superado**
 
