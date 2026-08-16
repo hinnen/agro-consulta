@@ -763,6 +763,8 @@
             if (item.precos_por_forma && typeof item.precos_por_forma === 'object') {
                 row.precos_por_forma = Object.assign({}, item.precos_por_forma);
             }
+            var uni = String((item && item.unidade) || '').trim();
+            if (uni) row.unidade = uni;
             return row;
         }) : [];
         var nomeLinha = String(entry.cliente || '').trim();
@@ -853,6 +855,8 @@
             if (i && i.precos_por_forma && typeof i.precos_por_forma === 'object') {
                 row.precos_por_forma = Object.assign({}, i.precos_por_forma);
             }
+            var uni = String((i && i.unidade) || '').trim();
+            if (uni) row.unidade = uni;
             return row;
         });
         var nomeLinha = String(draft.cliente || '').trim();
