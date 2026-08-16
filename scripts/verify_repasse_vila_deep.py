@@ -378,6 +378,66 @@ def main() -> int:
     js = (ROOT / "produtos/static/produtos/js/pdv_repasse_vila.js").read_text(encoding="utf-8")
     ok("js manda forma_pagamento") if "forma_pagamento: formaPag" in js else fail("js sem forma")
     ok("js limpa valor com letra") if "sanitizeManualField" in js else fail("js sem sanitize")
+    ok("js manda data_ref") if "data_ref: dataRef()" in js or 'data_ref: dataRef()' in js else fail("js sem data_ref")
+    ok("overlay tem dia") if b'id="pdv-rp-data"' in body else fail("faltou campo dia")
+
+    from datetime import timedelta
+
+    from produtos.repasse_vila_util import validar_data_ref_repasse
+
+    d_ok, e_ok = validar_data_ref_repasse(hoje - timedelta(days=1))
+    ok("valida ontem") if d_ok == hoje - timedelta(days=1) and not e_ok else fail(f"ontem {e_ok}")
+    d_fut, e_fut = validar_data_ref_repasse(hoje + timedelta(days=1))
+    ok("bloqueia futuro") if d_fut is None and e_fut else fail("futuro deveria falhar")
+    r = c.get("/api/repasse-vila/calc/", {"data": (hoje - timedelta(days=1)).isoformat(), "pct": "50"})
+    ok("calc dia passado") if r.status_code == 200 and r.json().get("ok") else fail("calc passado")
+    r = c.get("/api/repasse-vila/calc/", {"data": (hoje + timedelta(days=2)).isoformat(), "pct": "50"})
+    ok("calc futuro 400") if r.status_code == 400 and r.json().get("ok") is False else fail("calc futuro")
+
+    # confirmar dia passado (valor manual pequeno) — precisa venda ontem
+    ontem = hoje - timedelta(days=1)
+    desde_o, ate_o = _aware_bounds(ontem, ontem)
+    v_ont = VendaAgro.objects.create(
+        total=Decimal("50.00"),
+        forma_pagamento="Dinheiro",
+        deposito="vila",
+        cliente_nome=tag,
+        usuario_registro="bot",
+        pagamentos_json=[{"forma": "Dinheiro", "valor": 50}],
+    )
+    ItemVendaAgro.objects.create(
+        venda=v_ont,
+        produto_id_externo=pid,
+        descricao="Verify ontem",
+        quantidade=Decimal("1"),
+        valor_unitario=Decimal("50"),
+        valor_total=Decimal("50"),
+    )
+    VendaAgro.objects.filter(pk=v_ont.pk).update(criado_em=desde_o + timedelta(hours=12))
+
+    rep_pass, err_pass = confirmar_repasse(
+        request=req,
+        quem_levou="Bot Ontem",
+        percentual_lucro=50,
+        incluir_cmv=True,
+        incluir_lucro=False,
+        incluir_fiado=False,
+        modo_dia_cheio=True,
+        valor_manual=Decimal("3.33"),
+        forma_pagamento="Dinheiro",
+        operador="bot",
+        data_ref=ontem,
+    )
+    if err_pass:
+        fail(f"confirmar ontem: {err_pass}")
+    else:
+        assert rep_pass is not None
+        rep_pass.observacao = tag
+        rep_pass.save(update_fields=["observacao"])
+        ok("confirmar ontem data_ref") if rep_pass.data_ref == ontem else fail("data_ref ontem")
+        ok("obs tem ref data") if ontem.strftime("%d/%m/%Y") in (rep_pass.movimento_saida.observacao or "") else fail(
+            "obs sem data"
+        )
 
     r = c.post(
         "/api/repasse-vila/config/",

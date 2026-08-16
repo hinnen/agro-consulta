@@ -26,6 +26,7 @@ from produtos.repasse_vila_util import (
     obter_config,
     salvar_percentual_padrao,
     serializar_repasse,
+    validar_data_ref_repasse,
 )
 
 logger = logging.getLogger(__name__)
@@ -86,14 +87,19 @@ def repasse_vila_view(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_repasse_vila_calc(request):
-    dia = _parse_date(request.GET.get("data")) or timezone.localdate()
+    dia_raw = _parse_date(request.GET.get("data"))
+    dia, err = validar_data_ref_repasse(dia_raw)
+    if err or dia is None:
+        return JsonResponse({"ok": False, "erro": err or "Data inválida"}, status=400)
     pct = request.GET.get("pct")
     modo = _parse_bool(request.GET.get("dia_cheio"), False)
     try:
         pct_v = Decimal(str(pct).replace(",", ".")) if pct not in (None, "") else None
     except Exception:
         pct_v = None
-    return JsonResponse(calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo))
+    out = calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo)
+    out["ok"] = True
+    return JsonResponse(out)
 
 
 @login_required(login_url="/admin/login/")
