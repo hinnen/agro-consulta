@@ -1216,21 +1216,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja PDV (PC primeiro) (`PDV-PEDIR-LOJA` · **v16.55**)
+### ✅ Deploy loja — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
+
+> **Status:** ✅ **enviado / Live v16.55** · `producao` @ **5da53b3** · Render `dep-da0hv4m1egvs739guu70`  
+> **Base anterior:** Live v16.53 @ **fc01036**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · migrate `estoque.0018` · prova 15/15 + verify |
-| **O quê** | Overlay **Pedir loja** no wizard (não é `/transferencias/`) · botão rosa na topbar · layout **largo no PC** |
-| **Fluxo** | Pedir → outra loja badge → Aceitar → Pronto → **Transferir** (aí estoque) · PIN sessão |
-| **Você** | `migrate` · Ctrl+F5 PDV · Pedir loja · pedir 1 item · abrir PDV da outra loja |
-| **NÃO** | WhatsApp auto (fase 2) · confusão com Logística `/transferencias/` |
+| **Incluiu** | Pedir loja overlay · rótulos topbar (Esto / Saldo Vila / Vendas) |
+| **Migrate** | **SIM** `estoque.0018` (Render no build) |
+| **Prova pré** | 15/15 · verify 28/28 · PATH_OK |
+| **Rollback** | tag `rollback/pre-pdv-pedir-loja-prod-v16.53` @ **fc01036** · branch `producao-backup-pre-v1655-pedir-loja-20260815` · frase+senha |
+| **Você** | Ctrl+F5 PDV · badge **v16.55** · Pedir loja · 1 pedido teste |
 
-### WIP — Topbar PDV Transf. + rótulos curtos (`PDV-TOPBAR-TRANSF` · **v16.54**) · **absorvido**
+### ✅ CHECKLIST ÚNICO — enviado produção (15/08 · Pedir loja · loja v16.55)
+
+> **Loja hoje:** ✅ **Live v16.55** · `producao` @ **5da53b3**  
+> **Fila deploy:** **vazia**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-LOJA** | ✅ enviado / Live v16.55 | **SIM** 0018 |
+
+### 📦 PACOTE PRONTO LOJA — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**) · **superado — Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ➡️ rótulos curtos mantidos · botão **Transf.→/transferencias/** trocado por **Pedir loja** (acima) |
+| **Status** | ✅ **enviado / Live v16.55** |
+| **Produção** | ✅ Live v16.55 · `5da53b3` |
 
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
