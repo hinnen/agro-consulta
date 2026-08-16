@@ -1236,12 +1236,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Risco PDV aberto:** baixo se ninguém abrir **Pesar** — feature dorme até F10+COM. Migrate `0089` só AddField `unidade` default `UN`. NFC-e: unidades estranhas → `UN` (igual hoje).
 
+**Serial loja (confirmado):** COM4 · USE-P2 · **9600 8N1** · frame `[STX]001000[CR]` = 1,000 kg (parser gramas/1000). Stop bits **1** (corrigido no teste).
+
 **Pré no próximo chat:**
 1. Pausar Finalizar venda (cron pausa ou Zap loja)
 2. Frase + senha na mesma mensagem
 3. Assistente: tag rollback → cherry 2 commits → push `producao` → migrate Render → smoke → despausa
 
-**Smoke pós-deploy:** Ctrl+F5 PDV · venda normal UN · badge versão · (opcional) F10 sem balança = aviso Conectar
+**Smoke pós-deploy:** Ctrl+F5 PDV · venda normal UN · F10 → Conectar → escolher **COM4** · pesar 1 kg deve mostrar ~1,000
 
 **Rollback:** tag `producao-rollback-pre-balanca-YYYYMMDD` (criar no deploy)
 
