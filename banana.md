@@ -1218,6 +1218,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
+
+> **Status:** ✅ **enviado / Live v16.84** · `producao` @ **a6d3fbf** · base Live **v16.82** @ **3fd7cd3**  
+> **Cherry:** `ea4cbe9` → `a6d3fbf` · tag `producao-rollback-pre-balanca-hotfix-20260816`  
+> **Migrate:** **NÃO**
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **PDV-BALANCA-HOTFIX** | ✅ enviado / Live v16.84 |
+
+**Você:** Ctrl+F5 PDV · F10 · **10** ou **0010** · peso ao vivo · entra sozinho.
+
+**Rollback:** `git push origin producao-rollback-pre-balanca-hotfix-20260816:producao --force-with-lease` (só com senha)
+
+### ✅ CHECKLIST ÚNICO — após loja v16.84 (16/08h)
+
+> **Loja hoje:** ✅ **Live v16.84** · `producao` @ **a6d3fbf**  
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c** · **sem migrate**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
+
+### 📦 PACOTE PRONTO — Balança hotfix produto+peso (`PDV-BALANCA-HOTFIX` · **v16.84**) · **Live v16.84**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.84** |
+| **O quê** | Casa `0010` / `GM0010-1` · catálogo local · serial em bytes |
+| **Migrate** | **NÃO** |
+| **Produção** | `a6d3fbf` · tag rollback `producao-rollback-pre-balanca-hotfix-20260816` |
+| **Você** | Ctrl+F5 PDV · F10 · digite **10** ou **0010** · peso deve aparecer |
+
 ### ✅ Deploy loja — LOTE B balança (`PDV-BALANCA-GRANEL` · **v16.82**)
 
 > **Status:** ✅ **enviado / Live v16.82** · `producao` @ **3fd7cd3** · base Live **v16.74** @ **1c41e50**  
@@ -1245,26 +1278,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **REPASSE-ELET-MAQUINAS** | ✅ enviado / Live v16.74 |
 | 3 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
 
-### ✅ CHECKLIST ÚNICO — após loja v16.82 (16/08g)
+### ✅ CHECKLIST ÚNICO — após loja v16.82 (16/08g) · **superado**
 
-> **Loja hoje:** ✅ **Live v16.82** · `producao` @ **3fd7cd3**  
-> **Pronto envio:** **REPASSE-VALOR-MANUAL** (v16.83) · **PDV-BALANCA-HOTFIX** (v16.84) · **sem migrate**
+> **Loja hoje:** ✅ **Live v16.84** (hotfix balança) · ver checklist **16/08h**  
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** (ainda pendente loja)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
-| 2 | **PDV-BALANCA-HOTFIX** | ✅ **pronto para envio** / teste **v16.84** @ **ea4cbe9** | não |
+| 2 | **PDV-BALANCA-HOTFIX** | ✅ **enviado / Live v16.84** | não |
 
-### 📦 PACOTE PRONTO — Balança hotfix produto+peso (`PDV-BALANCA-HOTFIX` · **v16.84**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Casa `0010` / `GM0010-1` · busca no catálogo local · leitura serial em **bytes** (peso ao vivo) |
-| **Prova** | sintaxe OK · falta teste PC/loja com COM4 |
-| **Migrate** | **NÃO** |
-| **Cherry** | `ea4cbe9` |
-| **Você** | Ctrl+F5 PDV · F10 · digite **10** ou **0010** · peso deve aparecer |
+### ~~📦 PACOTE PRONTO — Balança hotfix~~ → ver bloco Live acima
 
 ### 📦 PACOTE PRONTO — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.83**)
 
