@@ -1,5 +1,25 @@
 # Rollback — PDV Pedir loja
 
+## Produção — Pedir loja UX2 (**v16.58**) — ponto **antes** deste pacote (Live v16.56)
+
+| Item | Valor |
+| ---- | ----- |
+| **Commit** | `cd261d64e7ef569211ec0f5735e65c9e9d9a8438` (Live v16.56) |
+| **Tag** | `rollback/pre-pdv-pedir-loja-ux2-v16.56` |
+| **Branch backup** | `producao-backup-pre-v1658-pedir-loja-ux2-20260815` |
+| **Prep (ainda não loja)** | `prep/producao-v1658-pedir-loja-ux2` @ `3805ab2` |
+| **O quê reverte** | layout busca\|pedido · API saldos Agro · sem migrate |
+| **Migrate** | **nenhuma** |
+
+```bash
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-pdv-pedir-loja-ux2-v16.56
+git push origin producao --force-with-lease
+```
+
+**Só** com frase + senha do Renan. Volta para Live **v16.56**.
+
 ## Produção — hotfix UX PC + rosa (**v16.56**) — ponto **antes** deste hotfix
 
 | Item | Valor |
