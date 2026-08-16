@@ -1218,78 +1218,59 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Orçamentos + contagem caixa no Postgres (`SAVE-ORC-CAIXA` · **v16.92**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08k)
 
-> **Status:** ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** · **migrate SIM** `0090`  
-> **Prova path:** `scripts/verify_save_orc_caixa_path.py` → **31/31 OK** (16/08)  
-> **Causa:** Orçamento **já gravava** no PG — lista F2/BI só lia navegador. Contagem fechar caixa vivia na **sessão** e sumia.
+> **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
+> **Pronto envio:** 2 pacotes abaixo · path SAVE-ORC revalidado **31/31** (16/08 tarde)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
+| 2 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** | não |
+
+### 📦 PACOTE PRONTO — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA` · **v16.92**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | F2/orçamentos lista lê Postgres (`?recentes=1`) · contagem cédulas/valores no PG (`dia::loja`) multi-PC |
-| **Você** | Ctrl+F5 · F2 Orçamentos · deve listar os de hoje · Fechar caixa digita contagem · outro PC mesma loja vê |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | F2 lista orçamentos do Postgres · contagem fechar caixa (`dia::loja`) multi-PC |
+| **Prova** | `verify_save_orc_caixa_path.py` **31/31** (revalidado 16/08) |
+| **Migrate** | **SIM** 0090 |
 | **Cherry** | `b9bd96b` |
-| **Prova** | deep **31** · path script OK |
-
-### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
-
-> **Status:** ✅ **enviado / Live v16.84** · `producao` @ **a6d3fbf** · base Live **v16.82** @ **3fd7cd3**  
-> **Cherry:** `ea4cbe9` → `a6d3fbf` · tag `producao-rollback-pre-balanca-hotfix-20260816`  
-> **Migrate:** **NÃO**
-
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **PDV-BALANCA-HOTFIX** | ✅ enviado / Live v16.84 |
-
-**Você:** Ctrl+F5 PDV · F10 · **10** ou **0010** · peso ao vivo · entra sozinho.
-
-**Rollback:** `git push origin producao-rollback-pre-balanca-hotfix-20260816:producao --force-with-lease` (só com senha)
+| **Você** | Ctrl+F5 · F2 · Fechar caixa digita → outro PC vê |
 
 ### 📦 PACOTE PRONTO — Balança COM errada/ESC (`PDV-BALANCA-COM-ESC` · **v16.93**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** |
-| **O quê** | Detecta RX `ESC` (impressora) · força CONECTAR · grava fingerprint USB da balança |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Detecta RX `ESC` (impressora) · força CONECTAR · grava fingerprint da balança |
 | **Migrate** | **NÃO** |
-| **Você** | Na loja **já agora**: F10 → **CONECTAR** → escolher COM da **balança** (não impressora). RX bom = `02 … 0d` (STX), não `1b …` |
-
-### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · **v16.89**)
-
-> **Status:** ✅ **enviado / Live v16.89** · `producao` @ **c70d195** · base **v16.84** @ **a6d3fbf**  
-> **Cherry:** `52100f8` → `14b37af` · tag `producao-rollback-pre-balanca-hotfix3-20260816`  
-> **Migrate:** **NÃO** · Provas **17/17** OK · Bugbot corrigido · Security limpo
-
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **PDV-BALANCA-HOTFIX3** | ✅ enviado / Live v16.89 |
-
-**Você:** Ctrl+F5 PDV · badge **v16.89** · F10 · **10** · barras `0010` · linha **RX:**
-
-**Rollback:** `git push origin producao-rollback-pre-balanca-hotfix3-20260816:producao --force-with-lease` (só com senha)
+| **Cherry** | `c87ae4a` |
+| **Você** | F10 → **CONECTAR** → COM da **balança** (não impressora) |
 
 ### ✅ Deploy loja — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.90**)
 
-> **Status:** ✅ **enviado / Live v16.90** · `producao` @ **215d0a9** · Render `dep-da0u5661egvs739p14h0`  
-> **Base:** Live v16.89 @ **c70d195** · tag `producao-rollback-pre-repasse-manual-20260816`  
-> **Cherry:** `8f64f1d` (fix) · `215d0a9` (VERSION) · **sem migrate** · em cima da balança (não sobrescreveu)
+> **Status:** ✅ **enviado / Live v16.90** · `producao` @ **215d0a9**  
+> **Cherry:** `8f64f1d` · tag `producao-rollback-pre-repasse-manual-20260816` · **sem migrate**
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ enviado / Live v16.90 |
 
-**Você:** Ctrl+F5 Retiradas → Repasse · digitar **600** → Confirmar → deve sair **600**.
+**Você:** Ctrl+F5 Repasse · digitar **600** → Confirmar.
 
-**Rollback:** `git push origin producao-rollback-pre-repasse-manual-20260816:producao --force-with-lease` (só com senha)
+### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · **v16.89**)
 
-### ✅ CHECKLIST ÚNICO — após loja v16.90 (16/08j)
+> **Status:** ✅ **enviado / Live v16.89** · `producao` @ **c70d195** · **sem migrate**
 
-> **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
-> **Pronto envio (outros):** ver blocos SAVE-ORC-CAIXA / balança COM no topo se ainda pendentes.
+### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
+
+> **Status:** ✅ **enviado / Live v16.84** · `producao` @ **a6d3fbf** · **sem migrate**
+
+### ✅ CHECKLIST ÚNICO — após loja v16.90 (16/08j) · **superado**
+
+> Substituído pelo checklist **16/08k** (pronto envio).
 
 ### ✅ CHECKLIST ÚNICO — após loja v16.89 (16/08i) · **superado**
 
