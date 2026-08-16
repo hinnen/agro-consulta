@@ -303,6 +303,35 @@ def main() -> int:
         else:
             fail("PIX sem saida")
 
+    # Manual acima do automático (sem dia cheio) — não pode cortar no disponível
+    calc_falt = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=False)
+    falta = Decimal(str(calc_falt["disponivel"]["total"]))
+    if falta > 0:
+        vm_acima = (falta + Decimal("50.00")).quantize(Decimal("0.01"))
+        rep_man, err_man = confirmar_repasse(
+            request=req,
+            quem_levou="Bot Manual Acima",
+            percentual_lucro=50,
+            incluir_cmv=True,
+            incluir_lucro=True,
+            incluir_fiado=True,
+            modo_dia_cheio=False,
+            valor_manual=vm_acima,
+            forma_pagamento="Dinheiro",
+            operador="bot",
+        )
+        if err_man:
+            fail(f"manual acima: {err_man}")
+        else:
+            assert rep_man is not None
+            rep_man.observacao = tag
+            rep_man.save(update_fields=["observacao"])
+            ok("manual acima do automatico") if abs(float(rep_man.valor_total) - float(vm_acima)) < 0.02 else fail(
+                f"manual cortado total={rep_man.valor_total} esperado={vm_acima}"
+            )
+    else:
+        ok("manual acima skipped (sem falta)")
+
     calc2 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=False)
     calc3 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=True)
     ok(f"incremental total={calc2['disponivel']['total']}")
@@ -388,6 +417,7 @@ def main() -> int:
     ok("js repasse na Retiradas") if b"pdv_repasse_vila.js" in body else fail("faltou js")
     ok("forma grid no overlay") if b"pdv-rp-forma-grid" in body else fail("faltou forma grid")
     ok("anti-autofill valor") if b"rp_valor_manual_somente" in body else fail("faltou anti-autofill")
+    ok("hint valor manual") if b"Digitado manda" in body else fail("faltou hint manual")
     # botao deve ser <button>, nao <a href=pdv>
     idx = body.find(b'id="crh-btn-repasse"')
     if idx > 0:
