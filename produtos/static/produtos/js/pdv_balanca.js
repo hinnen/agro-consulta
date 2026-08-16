@@ -40,6 +40,10 @@
   var readLoopActive = false;
   var pollTimer = null;
   var buf = '';
+  var byteBuf = [];
+  var lastRawHint = '';
+  var lastByteAt = 0;
+  var silenceTimer = null;
   var lastKg = 0;
   var stableKg = 0;
   var stableSince = 0;
@@ -149,15 +153,30 @@
   }
 
   function productCodes(p) {
-    var list = [p.codigo, p.codigo_nfe, p.codigo_barras, p.Codigo, p.CodigoBarras];
+    var list = [
+      p.codigo,
+      p.codigo_nfe,
+      p.codigo_barras,
+      p.codigo_gm,
+      p.Codigo,
+      p.CodigoBarras,
+      p.codigoGm,
+    ];
     if (Array.isArray(p.index_codigos)) list = list.concat(p.index_codigos);
     return list;
   }
 
+  /** Casa 10 com barcode 0010 e com GM0010 / GM0010-1 (não usar todos os dígitos do GM). */
   function productMatchesGranelNum(p, num) {
     var codes = productCodes(p);
     for (var i = 0; i < codes.length; i++) {
-      if (numericCodeOf(codes[i]) === num) return true;
+      var c = String(codes[i] == null ? '' : codes[i]).trim();
+      if (!c) continue;
+      if (/^\d{1,4}$/.test(c) && parseInt(c, 10) === num) return true;
+      var mGm = c.match(/^GM0*(\d{1,3})(?:-.*)?$/i);
+      if (mGm && parseInt(mGm[1], 10) === num) return true;
+      /* index às vezes traz só o número sem zeros */
+      if (/^\d+$/.test(c) && c.length <= 4 && parseInt(c, 10) === num) return true;
     }
     return false;
   }
@@ -195,32 +214,95 @@
       });
   }
 
-  function resolveProduto(num) {
-    var variants = codeVariants(num);
-    return Promise.all(variants.map(fetchBusca)).then(function (lists) {
-      var flat = [];
-      lists.forEach(function (L) {
-        flat = flat.concat(L || []);
-      });
-      var hits = uniqById(flat).filter(function (p) {
-        return productMatchesGranelNum(p, num);
-      });
-      if (!hits.length) {
-        return { ok: false, erro: 'Produto ' + num + ' não encontrado.' };
+  function catalogListsLocal() {
+    var out = [];
+    function pushPayload(raw) {
+      if (!raw) return;
+      try {
+        var d = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        var list = (d && d.produtos) || (Array.isArray(d) ? d : null);
+        if (list && list.length) out.push(list);
+      } catch (e) {}
+    }
+    try {
+      pushPayload(sessionStorage.getItem('agro_pdv_wizard_catalog_v11'));
+    } catch (e1) {}
+    try {
+      pushPayload(localStorage.getItem('agro_pdv_catalog_cache_v2'));
+    } catch (e2) {}
+    try {
+      if (window.AgroPdvWizardCatalog && Array.isArray(window.AgroPdvWizardCatalog)) {
+        out.push(window.AgroPdvWizardCatalog);
       }
-      if (hits.length > 1) {
-        return {
-          ok: false,
-          erro:
-            'Código ' +
-            num +
-            ' ambíguo (' +
-            hits.length +
-            ' produtos). Ajuste o cadastro.',
-          ambiguo: true,
-        };
-      }
-      return { ok: true, produto: hits[0] };
+    } catch (e3) {}
+    return out;
+  }
+
+  function hitsFromLists(lists, num) {
+    var flat = [];
+    (lists || []).forEach(function (L) {
+      flat = flat.concat(L || []);
+    });
+    return uniqById(flat).filter(function (p) {
+      return productMatchesGranelNum(p, num);
+    });
+  }
+
+  function packResolveHits(hits, num, pad4) {
+    if (!hits.length) {
+      return {
+        ok: false,
+        erro:
+          'Produto ' +
+          num +
+          ' não encontrado. Cadastre barras ' +
+          pad4 +
+          ' ou GM' +
+          pad4 +
+          '.',
+      };
+    }
+    if (hits.length > 1) {
+      return {
+        ok: false,
+        erro:
+          'Código ' +
+          num +
+          ' ambíguo (' +
+          hits.length +
+          ' produtos). Ajuste o cadastro.',
+        ambiguo: true,
+      };
+    }
+    return { ok: true, produto: hits[0] };
+  }
+
+  function resolveProduto(num, typedRaw) {
+    var pad4 = String(num).padStart(4, '0');
+    var localHits = hitsFromLists(catalogListsLocal(), num);
+    if (localHits.length === 1) {
+      return Promise.resolve(packResolveHits(localHits, num, pad4));
+    }
+    var variants = codeVariants(num).concat([
+      pad4,
+      'GM' + pad4,
+      'GM' + pad4 + '-1',
+      'GM' + String(num),
+      'GM' + String(num) + '-1',
+      String(typedRaw || '').trim(),
+    ]);
+    var seenQ = {};
+    var uniqQ = [];
+    variants.forEach(function (q) {
+      var s = String(q || '').trim();
+      if (!s || seenQ[s]) return;
+      seenQ[s] = true;
+      uniqQ.push(s);
+    });
+    return Promise.all(uniqQ.map(fetchBusca)).then(function (lists) {
+      var hits = hitsFromLists(lists.concat(catalogListsLocal()), num);
+      if (!hits.length && localHits.length) hits = localHits;
+      return packResolveHits(hits, num, pad4);
     });
   }
 
@@ -301,7 +383,6 @@
   /**
    * USE-P2 (US20/2 POP-S): frame [STX]dddddd[CR]
    * Ex.: STX + "001000" + CR → 1,000 kg (6 dígitos = gramas).
-   * Aceita também peso com ponto/vírgula (outros firmwares).
    */
   function parseWeightFromChunk(text) {
     if (!text) return null;
@@ -313,18 +394,21 @@
       return null;
     }
 
-    /* Principal: STX + 6 dígitos (gramas) → kg */
     var mStx = raw.match(/\x02\s*(\d{4,7})\s*/);
     if (!mStx) mStx = raw.match(/(?:^|[^\d])(\d{6})(?:[^\d]|$)/);
+    if (!mStx) {
+      var only = raw.replace(/[^\d]/g, '');
+      if (only.length >= 4 && only.length <= 7) mStx = [null, only.slice(-6)];
+    }
     if (mStx) {
       var grams = parseInt(mStx[1], 10);
       if (Number.isFinite(grams) && grams >= 0) {
         var kgG = grams / 1000;
         if (kgG >= MIN_KG && kgG <= MAX_KG) return { kg: kgG };
+        if (grams === 0) return { kg: 0 };
       }
     }
 
-    /* Fallback: "1.000" / "1,250" */
     var cleaned = raw.replace(/[^\x20-\x7E\r\n]/g, ' ');
     var m =
       cleaned.match(/(?:^|[\s,;])([+-]?\d{1,2}[.,]\d{1,3})\s*(?:kg)?(?:$|[\s\r\n,;])/i) ||
@@ -340,7 +424,6 @@
   function feedSerialText(chunk) {
     buf += chunk;
     if (buf.length > 4000) buf = buf.slice(-2000);
-    /* Frames terminam em CR (USE-P2); LF também. */
     var parts = buf.split(/[\r\n]+/);
     if (parts.length > 1) {
       buf = parts.pop() || '';
@@ -348,10 +431,87 @@
         var parsed = parseWeightFromChunk(parts[i]);
         if (parsed) onWeightSample(parsed.kg);
       }
-    } else if (buf.indexOf('\x02') >= 0 && /\d{6}/.test(buf)) {
-      /* Buffer ainda sem CR, mas já tem STX+dígitos — tenta. */
+    } else if (buf.indexOf('\x02') >= 0 && /\d{4,}/.test(buf)) {
       var p2 = parseWeightFromChunk(buf);
       if (p2) onWeightSample(p2.kg);
+    }
+  }
+
+  function feedSerialBytes(u8) {
+    if (!u8 || !u8.length) return;
+    lastByteAt = Date.now();
+    for (var i = 0; i < u8.length; i++) byteBuf.push(u8[i]);
+    if (byteBuf.length > 8000) byteBuf = byteBuf.slice(-4000);
+    while (true) {
+      var cr = -1;
+      for (var j = 0; j < byteBuf.length; j++) {
+        if (byteBuf[j] === 0x0d || byteBuf[j] === 0x0a) {
+          cr = j;
+          break;
+        }
+      }
+      if (cr < 0) {
+        var stx = -1;
+        for (var s = 0; s < byteBuf.length; s++) {
+          if (byteBuf[s] === 0x02) {
+            stx = s;
+            break;
+          }
+        }
+        if (stx >= 0 && byteBuf.length - stx >= 7) {
+          var digs = '';
+          for (var d = stx + 1; d < byteBuf.length && digs.length < 6; d++) {
+            if (byteBuf[d] >= 0x30 && byteBuf[d] <= 0x39) {
+              digs += String.fromCharCode(byteBuf[d]);
+            } else break;
+          }
+          if (digs.length === 6) {
+            byteBuf.splice(0, stx + 1 + 6);
+            var pStx = parseWeightFromChunk('\x02' + digs);
+            if (pStx) onWeightSample(pStx.kg);
+            continue;
+          }
+        }
+        break;
+      }
+      var frame = byteBuf.splice(0, cr + 1);
+      var chars = '';
+      for (var k = 0; k < frame.length; k++) chars += String.fromCharCode(frame[k]);
+      var parsedB = parseWeightFromChunk(chars);
+      if (parsedB) {
+        onWeightSample(parsedB.kg);
+      } else {
+        lastRawHint = frame
+          .slice(0, 14)
+          .map(function (b) {
+            return ('0' + b.toString(16)).slice(-2);
+          })
+          .join(' ');
+        if (isOpen() && lastKg < MIN_KG) {
+          setStatus('COM ok, frame sem peso: ' + lastRawHint, 'err');
+        }
+      }
+    }
+  }
+
+  function startSilenceWatch() {
+    stopSilenceWatch();
+    lastByteAt = Date.now();
+    silenceTimer = setInterval(function () {
+      if (!connected || !isOpen()) return;
+      if (lastKg >= MIN_KG) return;
+      if (Date.now() - lastByteAt < 2800) return;
+      setStatus(
+        'COM ok, mas sem dados da balança. Confira COM4, cabo e protocolo USE-P2.',
+        'err'
+      );
+    }, 1200);
+  }
+
+  function stopSilenceWatch() {
+    if (silenceTimer) {
+      clearInterval(silenceTimer);
+      silenceTimer = null;
     }
   }
 
@@ -389,14 +549,18 @@
       });
     }
     connected = true;
+    byteBuf = [];
+    buf = '';
     setConnChip('COM ok', 'ok');
     setStatus('Balança conectada (USE-P2 · 9600 8N1). Escolha COM4 se pedir.', 'ok');
     startReadLoop();
     startPoll();
+    startSilenceWatch();
   }
 
   async function closePortSoft() {
     stopPoll();
+    stopSilenceWatch();
     readLoopActive = false;
     try {
       if (reader) {
@@ -443,14 +607,13 @@
   async function startReadLoop() {
     if (!port || !port.readable || readLoopActive) return;
     readLoopActive = true;
-    var decoder = new TextDecoderStream();
-    var input = port.readable.pipeThrough(decoder);
-    reader = input.getReader();
+    /* Bytes crus — STX (0x02) não se perde como no TextDecoderStream. */
+    reader = port.readable.getReader();
     try {
       while (readLoopActive) {
         var r = await reader.read();
         if (r.done) break;
-        if (r.value) feedSerialText(r.value);
+        if (r.value) feedSerialBytes(r.value);
       }
     } catch (e) {
       if (isOpen()) {
@@ -505,8 +668,9 @@
       return Promise.resolve(false);
     }
     var seq = ++resolveSeq;
+    var typedRaw = dom.codigo ? String(dom.codigo.value || '').trim() : '';
     setStatus('Buscando produto ' + num + '…');
-    return resolveProduto(num).then(function (res) {
+    return resolveProduto(num, typedRaw).then(function (res) {
       if (seq !== resolveSeq) return false;
       if (!res.ok) {
         setProdutoUi(null, res.erro || 'Não encontrado');
