@@ -2267,49 +2267,68 @@ async function pdvSalvarClienteRapidoPdv() {
 
 function abrirHistoricoLocal() {
     const container = document.getElementById('lista-historico-local');
-    let historico = [];
-    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
-    container.innerHTML = '';
-    if (historico.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo neste navegador.</div>';
-    } else {
+    if (!container) return;
+    container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Carregando orçamentos…</div>';
+    document.getElementById('modal-historico-vendas').classList.remove('hidden');
+    document.getElementById('modal-historico-vendas').classList.add('flex');
+    document.body.classList.add('modal-open');
+
+    function paint(historico) {
+        container.innerHTML = '';
+        if (!historico.length) {
+            container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo.</div>';
+            return;
+        }
         historico.forEach(h => {
             const hid = Number(h.id);
             const uRaw = String((h.usuario != null && h.usuario !== '') ? h.usuario : (h.operador || '')).trim();
             const op = uRaw ? escapeHtml(uRaw) : '';
             const opLinha = op
-                ? `<span class="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[7px] font-black uppercase text-slate-600 ring-1 ring-slate-300/60" title="Usuário que salvou o orçamento">👤 ${op}</span>`
+                ? '<span class="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[7px] font-black uppercase text-slate-600 ring-1 ring-slate-300/60" title="Usuário que salvou o orçamento">👤 ' + op + '</span>'
                 : '<span class="text-[9px] font-bold text-slate-400">— usuário</span>';
-            container.innerHTML += `
-                <div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">
-                    <div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">
-                        <div class="min-w-0 flex-1">
-                            <div class="font-black text-slate-800 text-sm uppercase leading-snug">${escapeHtml(h.cliente)}${h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : ''}</div>
-                            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">
-                                <span>${escapeHtml(h.data)}</span>
-                                <span class="text-slate-300">·</span>
-                                <span>${Number(h.itens && h.itens.length) || 0} itens</span>
-                                ${h.forma_pagamento ? `<span class="text-slate-300">·</span><span>${escapeHtml(h.forma_pagamento)}</span>` : ''}
-                            </div>
-                            <div class="mt-1.5 flex flex-wrap items-center gap-2">${opLinha}</div>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="font-black text-emerald-600 text-lg tabular-nums">${escapeHtml(h.total)}</div>
-                            ${h.orc_barcode ? `<div class="text-[9px] font-mono font-bold text-slate-400 mt-0.5">${escapeHtml(String(h.orc_barcode))}</div>` : ''}
-                        </div>
-                    </div>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <button type="button" onclick="recuperarOrcamento(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-sky-400 bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como orçamento</button>
-                        <button type="button" onclick="abrirOrcamentoComoVendaPdv(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como venda (PDV)</button>
-                        <button type="button" onclick="excluirOrcamentoHistorico(${hid})" class="flex-1 min-w-[6rem] py-2.5 rounded-xl border-2 border-red-200 bg-white text-red-700 hover:bg-red-50 text-[10px] font-black uppercase tracking-wide">Excluir</button>
-                    </div>
-                </div>
-            `;
+            const wa = String(h.origem || '').toLowerCase() === 'whatsapp'
+                ? ' <span class="text-emerald-600 font-black" title="Enviado pelo WhatsApp">Zap</span>'
+                : '';
+            container.innerHTML +=
+                '<div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">' +
+                '<div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">' +
+                '<div class="min-w-0 flex-1">' +
+                '<div class="font-black text-slate-800 text-sm uppercase leading-snug">' + escapeHtml(h.cliente) + (h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : '') + wa + '</div>' +
+                '<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">' +
+                '<span>' + escapeHtml(h.data) + '</span><span class="text-slate-300">·</span><span>' + (Number(h.itens && h.itens.length) || 0) + ' itens</span>' +
+                (h.forma_pagamento ? '<span class="text-slate-300">·</span><span>' + escapeHtml(h.forma_pagamento) + '</span>' : '') +
+                '</div><div class="mt-1.5 flex flex-wrap items-center gap-2">' + opLinha + '</div></div>' +
+                '<div class="text-right shrink-0"><div class="font-black text-emerald-600 text-lg tabular-nums">' + escapeHtml(h.total) + '</div>' +
+                (h.orc_barcode ? '<div class="text-[9px] font-mono font-bold text-slate-400 mt-0.5">' + escapeHtml(String(h.orc_barcode)) + '</div>' : '') +
+                '</div></div><div class="mt-3 flex flex-wrap gap-2">' +
+                '<button type="button" onclick="recuperarOrcamento(' + hid + ')" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-sky-400 bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como orçamento</button>' +
+                '<button type="button" onclick="abrirOrcamentoComoVendaPdv(' + hid + ')" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como venda (PDV)</button>' +
+                '<button type="button" onclick="excluirOrcamentoHistorico(' + hid + ')" class="flex-1 min-w-[6rem] py-2.5 rounded-xl border-2 border-red-200 bg-white text-red-700 hover:bg-red-50 text-[10px] font-black uppercase tracking-wide">Excluir</button>' +
+                '</div></div>';
         });
     }
-    document.getElementById('modal-historico-vendas').classList.remove('hidden');
-    document.getElementById('modal-historico-vendas').classList.add('flex');
-    document.body.classList.add('modal-open');
+
+    let local = [];
+    try { local = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch (e) { local = []; }
+    if (!Array.isArray(local)) local = [];
+    paint(local.slice(0, 80));
+
+    var url = apiPdvOrcamentosUrlConsulta();
+    if (!url) return;
+    fetch(url + '?recentes=1&limite=80', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || !data.ok || !Array.isArray(data.items)) return;
+            var map = {};
+            local.forEach(function (item) { if (item && item.id != null) map[String(item.id)] = item; });
+            data.items.forEach(function (item) { if (item && item.id != null) map[String(item.id)] = item; });
+            var merged = Object.keys(map).map(function (k) { return map[k]; })
+                .sort(function (a, b) { return Number(b.id) - Number(a.id); });
+            if (merged.length > 300) merged.length = 300;
+            try { localStorage.setItem('historicoOrcamentos', JSON.stringify(merged)); } catch (eW) {}
+            paint(merged.slice(0, 80));
+        })
+        .catch(function () {});
 }
 
 function fecharHistoricoLocal() {
@@ -2320,26 +2339,46 @@ function fecharHistoricoLocal() {
 
 function recuperarOrcamento(id) {
     let historico = [];
-    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
     const h = historico.find(x => Number(x.id) === Number(id));
-    if (h) {
+    function aplicar(orc) {
+        if (!orc) {
+            alert('Orçamento não encontrado.');
+            return;
+        }
         if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
-        carrinho = JSON.parse(JSON.stringify(h.itens));
-        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+        carrinho = JSON.parse(JSON.stringify(orc.itens || []));
+        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(orc.cliente)
             ? CLIENTE_PADRAO_PDV
-            : h.cliente;
+            : orc.cliente;
         clienteSelecionado =
-            h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+            orc.cliente_extra && typeof orc.cliente_extra === 'object' ? orc.cliente_extra : null;
         const fpRec = document.getElementById('forma-pagamento-pdv');
-        if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
-            fpRec.value = h.forma_pagamento || '';
+        if (fpRec && Object.prototype.hasOwnProperty.call(orc, 'forma_pagamento')) {
+            fpRec.value = orc.forma_pagamento || '';
         }
         const chkRec = document.getElementById('pdv-orcamento-entrega');
-        if (chkRec) chkRec.checked = !!h.entrega;
+        if (chkRec) chkRec.checked = !!orc.entrega;
         if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
         else atualizarCarrinho();
         fecharHistoricoLocal();
     }
+    if (h) {
+        aplicar(h);
+        return;
+    }
+    fetchOrcamentoPdvServidor(id).then(function (remote) {
+        if (remote) {
+            try {
+                var h2 = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
+                if (!Array.isArray(h2)) h2 = [];
+                h2 = h2.filter(function (x) { return String(x.id) !== String(remote.id); });
+                h2.unshift(remote);
+                localStorage.setItem('historicoOrcamentos', JSON.stringify(h2));
+            } catch (eM) {}
+        }
+        aplicar(remote);
+    });
 }
 
 function excluirOrcamentoHistorico(id) {

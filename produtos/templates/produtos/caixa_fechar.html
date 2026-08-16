@@ -1793,11 +1793,18 @@
       mostrarStatusContagem('Contagem só neste aparelho (sem sessão). Recarregue a página.', false);
       return;
     }
+    var depFechar = '{{ deposito_fechar|default:"centro"|escapejs }}';
+    var turnoKeyPg = '{{ contagem_turno_key|default:""|escapejs }}';
     fetch(saveUrl, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
-      body: JSON.stringify({ rascunho: payload, cedulas: cedulasPayload })
+      body: JSON.stringify({
+        rascunho: payload,
+        cedulas: cedulasPayload,
+        deposito: depFechar,
+        turno_key: turnoKeyPg
+      })
     }).then(function (r) {
       return r.json().then(function (data) {
         return { httpOk: r.ok, data: data };

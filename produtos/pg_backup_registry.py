@@ -68,6 +68,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         models=(
             "produtos.SessaoCaixa",
             "produtos.MovimentoCaixa",
+            "produtos.CaixaConferenciaRascunhoAgro",
         ),
     ),
     PgBackupCategory(

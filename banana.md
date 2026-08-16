@@ -1218,6 +1218,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Orçamentos + contagem caixa no Postgres (`SAVE-ORC-CAIXA` · **v16.92**)
+
+> **Status:** ✅ **pronto para envio** / teste **v16.92** · **migrate SIM** `0090`  
+> **Causa:** Orçamento **já gravava** no PG (loja tinha 67 hoje) — lista F2/BI só lia navegador. Contagem fechar caixa vivia na **sessão** e sumia.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** | **SIM** 0090 |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | F2/orçamentos lista lê Postgres (`?recentes=1`) · contagem cédulas/valores no PG (`dia::loja`) multi-PC |
+| **Você** | Ctrl+F5 · F2 Orçamentos · deve listar os de hoje · Fechar caixa digita contagem · outro PC mesma loja vê |
+| **Cherry** | (após push) |
+
 ### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
 > **Status:** ✅ **enviado / Live v16.84** · `producao` @ **a6d3fbf** · base Live **v16.82** @ **3fd7cd3**  

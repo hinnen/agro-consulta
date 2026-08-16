@@ -2315,6 +2315,28 @@ class RelacionamentoItemHistoricoErpAgro(models.Model):
         return f"{self.descricao[:40]} × {self.quantidade}"
 
 
+class CaixaConferenciaRascunhoAgro(models.Model):
+    """
+    Contagem (valores + cédulas) do fechar caixa — Postgres multi-PC.
+    Chave estável: ``YYYY-MM-DD::centro`` ou ``YYYY-MM-DD::vila`` (não depende da lista de PKs).
+    """
+
+    turno_key = models.CharField(max_length=64, unique=True, db_index=True)
+    rascunho_json = models.JSONField(default=dict, blank=True)
+    cedulas_json = models.JSONField(default=dict, blank=True)
+    atualizado_por = models.CharField(max_length=120, blank=True, default="")
+    atualizado_em = models.DateTimeField(auto_now=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Rascunho contagem fechar caixa"
+        verbose_name_plural = "Rascunhos contagem fechar caixa"
+        ordering = ["-atualizado_em"]
+
+    def __str__(self):
+        return f"Contagem {self.turno_key}"
+
+
 class OrcamentoPdvAgro(models.Model):
     """Orçamento salvo no PDV — espelho do histórico local (GMORC…) por cliente."""
 
