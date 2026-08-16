@@ -1216,21 +1216,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja PDV (PC primeiro) (`PDV-PEDIR-LOJA` · **v16.55**)
+### ✅ CHECKLIST ÚNICO — pronto envio (15/08 · Pedir loja)
+
+> **Loja hoje:** ✅ **Live v16.53**  
+> **Fila deploy:** 1 pacote abaixo · aguarda frase + senha.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-LOJA** | 📦 **pronto para envio à produção** · teste **v16.55** | **SIM** `estoque.0018` |
+
+### 📦 PACOTE PRONTO LOJA — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · migrate `estoque.0018` · prova **15/15** · verify **28/28** |
-| **O quê** | Overlay **Pedir loja** no wizard (não é `/transferencias/`) · botão rosa na topbar · layout **largo no PC** |
-| **Fluxo** | Pedir → outra loja badge → Aceitar → Pronto → **Transferir** (aí estoque) · PIN sessão |
-| **Você** | `migrate` · Ctrl+F5 PDV · Pedir loja · pedir 1 item · abrir PDV da outra loja |
-| **NÃO** | WhatsApp auto (fase 2) · confusão com Logística `/transferencias/` |
-
-### WIP — Topbar PDV Transf. + rótulos curtos (`PDV-TOPBAR-TRANSF` · **v16.54**) · **absorvido**
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ➡️ rótulos curtos mantidos · botão **Transf.→/transferencias/** trocado por **Pedir loja** (acima) |
+| **Status** | 📦 **pronto para envio à produção** · teste **v16.55** · `af04458` |
+| **O quê** | Botão rosa **Pedir loja** no PDV · overlay Pedir/Recebidos/Enviados/Histórico · Aceitar→Pronto→**Transferir** (estoque) · PIN sessão · layout **PC primeiro** |
+| **Prova** | unit **15/15** · verify **28/28** · path DB+API **PATH_OK** · `manage.py check` OK · migrate local **0018** OK |
+| **Migrate** | **SIM** — `estoque.0018_solicitacao_transferencia_pdv` |
+| **NÃO inclui** | WhatsApp auto · Logística `/transferencias/` |
+| **Risco loja aberta** | **Baixo-médio** — só PDV overlay novo + migrate; Logística intocada |
+| **Você pré** | Ctrl+F5 PDV · PIN · Pedir 1 item · outra loja badge · Aceitar→Transferir |
+| **Autorizar** | *pode subir Pedir loja / PDV-PEDIR-LOJA para produção* + **99738595** |
+| **Rollback** | `docs/ROLLBACK-PDV-PEDIR-LOJA.md` · tag `rollback/pre-pdv-pedir-loja` @ `7f7b8022` |
 
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
