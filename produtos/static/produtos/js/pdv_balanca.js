@@ -7,7 +7,8 @@
 
   var CFG_KEY = 'agro_pdv_balanca_cfg_v1';
   var BAUD = 9600;
-  var STOP_BITS = 2;
+  /* Urano US20/2 POP-S USE-P2 na loja: 9600 8N1 (Gemini + teste COM4). */
+  var STOP_BITS = 1;
   var STABLE_MS = 500;
   var MIN_KG = 0.001;
   var MAX_KG = 99.999;
@@ -297,22 +298,39 @@
     updatePesoUi();
   }
 
+  /**
+   * USE-P2 (US20/2 POP-S): frame [STX]dddddd[CR]
+   * Ex.: STX + "001000" + CR → 1,000 kg (6 dígitos = gramas).
+   * Aceita também peso com ponto/vírgula (outros firmwares).
+   */
   function parseWeightFromChunk(text) {
     if (!text) return null;
-    var cleaned = String(text).replace(/[^\x20-\x7E\r\n]/g, ' ');
+    var raw = String(text);
     if (
-      /instav|instável|unstable|------/i.test(cleaned) ||
-      /sobrecarga|overload/i.test(cleaned)
+      /instav|instável|unstable|------/i.test(raw) ||
+      /sobrecarga|overload/i.test(raw)
     ) {
       return null;
     }
-    /* PROT F / linhas curtas com peso */
+
+    /* Principal: STX + 6 dígitos (gramas) → kg */
+    var mStx = raw.match(/\x02\s*(\d{4,7})\s*/);
+    if (!mStx) mStx = raw.match(/(?:^|[^\d])(\d{6})(?:[^\d]|$)/);
+    if (mStx) {
+      var grams = parseInt(mStx[1], 10);
+      if (Number.isFinite(grams) && grams >= 0) {
+        var kgG = grams / 1000;
+        if (kgG >= MIN_KG && kgG <= MAX_KG) return { kg: kgG };
+      }
+    }
+
+    /* Fallback: "1.000" / "1,250" */
+    var cleaned = raw.replace(/[^\x20-\x7E\r\n]/g, ' ');
     var m =
       cleaned.match(/(?:^|[\s,;])([+-]?\d{1,2}[.,]\d{1,3})\s*(?:kg)?(?:$|[\s\r\n,;])/i) ||
       cleaned.match(/([+-]?\d{1,2}[.,]\d{3})/);
     if (!m) return null;
-    var raw = m[1].replace(',', '.');
-    var n = parseFloat(raw);
+    var n = parseFloat(m[1].replace(',', '.'));
     if (!Number.isFinite(n)) return null;
     n = Math.abs(n);
     if (n > MAX_KG) return null;
@@ -322,6 +340,7 @@
   function feedSerialText(chunk) {
     buf += chunk;
     if (buf.length > 4000) buf = buf.slice(-2000);
+    /* Frames terminam em CR (USE-P2); LF também. */
     var parts = buf.split(/[\r\n]+/);
     if (parts.length > 1) {
       buf = parts.pop() || '';
@@ -329,7 +348,8 @@
         var parsed = parseWeightFromChunk(parts[i]);
         if (parsed) onWeightSample(parsed.kg);
       }
-    } else {
+    } else if (buf.indexOf('\x02') >= 0 && /\d{6}/.test(buf)) {
+      /* Buffer ainda sem CR, mas já tem STX+dígitos — tenta. */
       var p2 = parseWeightFromChunk(buf);
       if (p2) onWeightSample(p2.kg);
     }
@@ -346,7 +366,14 @@
       return port;
     }
     port = await navigator.serial.requestPort();
-    saveCfg({ asked: 1, modelo: 'US20/2 POP-S', protocolo: 'USE-P2' });
+    saveCfg({
+      asked: 1,
+      modelo: 'US20/2 POP-S',
+      protocolo: 'USE-P2',
+      baud: BAUD,
+      stopBits: STOP_BITS,
+      hintPorta: 'COM4',
+    });
     return port;
   }
 
@@ -363,7 +390,7 @@
     }
     connected = true;
     setConnChip('COM ok', 'ok');
-    setStatus('Balança conectada (USE-P2 · 9600).', 'ok');
+    setStatus('Balança conectada (USE-P2 · 9600 8N1). Escolha COM4 se pedir.', 'ok');
     startReadLoop();
     startPoll();
   }
@@ -740,6 +767,12 @@
       stableSince = Date.now() - STABLE_MS - 10;
       isStable = n >= MIN_KG;
       updatePesoUi();
+    },
+    /* Simula frame USE-P2: AgroPdvBalanca.mockFrame('\x02001000\r') → 1 kg */
+    mockFrame: function (frame) {
+      connected = true;
+      setConnChip('Mock', 'ok');
+      feedSerialText(String(frame || ''));
     },
   };
 })();
