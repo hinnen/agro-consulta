@@ -1248,11 +1248,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — após loja v16.82 (16/08g)
 
 > **Loja hoje:** ✅ **Live v16.82** · `producao` @ **3fd7cd3**  
-> **Pronto envio (hotfix):** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c** · **sem migrate**
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** (v16.83) · **PDV-BALANCA-HOTFIX** (v16.84) · **sem migrate**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
+| 2 | **PDV-BALANCA-HOTFIX** | ✅ **pronto para envio** / teste **v16.84** @ **ea4cbe9** | não |
+
+### 📦 PACOTE PRONTO — Balança hotfix produto+peso (`PDV-BALANCA-HOTFIX` · **v16.84**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Casa `0010` / `GM0010-1` · busca no catálogo local · leitura serial em **bytes** (peso ao vivo) |
+| **Prova** | sintaxe OK · falta teste PC/loja com COM4 |
+| **Migrate** | **NÃO** |
+| **Cherry** | `ea4cbe9` |
+| **Você** | Ctrl+F5 PDV · F10 · digite **10** ou **0010** · peso deve aparecer |
 
 ### 📦 PACOTE PRONTO — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.83**)
 
