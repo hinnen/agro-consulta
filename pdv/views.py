@@ -189,6 +189,12 @@ def pdv_home(request):
                 "apiPdvUsoLojaEstornarPattern": reverse(
                     "api_pdv_uso_loja_estornar", args=[0]
                 ).replace("/0/", "/__pk__/"),
+                "apiPdvTransfLojaResumo": reverse("api_pdv_transf_loja_resumo"),
+                "apiPdvTransfLojaLista": reverse("api_pdv_transf_loja_lista"),
+                "apiPdvTransfLojaCriar": reverse("api_pdv_transf_loja_criar"),
+                "apiPdvTransfLojaAcaoPattern": reverse(
+                    "api_pdv_transf_loja_acao", args=[0]
+                ).replace("/0/", "/__pk__/"),
             },
             "search": {
                 "mode": "wizard",

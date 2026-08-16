@@ -136,15 +136,18 @@ def _transferir_entre_depositos_exec(
     destino="centro",
     registrar_historico=True,
     invalidar_cache=True,
+    pular_validacao_pin=False,
+    usuario_label_override="",
 ):
     """
     Transferência entre depósitos Agro (Vila ↔ Centro).
     ``origem`` / ``destino``: ``vila`` ou ``centro``.
     """
-    if pin == "1234":
-        return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
-        return {"ok": False, "erro": "PIN incorreto.", "status": 403}
+    if not pular_validacao_pin:
+        if pin == "1234":
+            return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
+        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+            return {"ok": False, "erro": "PIN incorreto.", "status": 403}
 
     origem = (origem or "vila").strip().lower()
     destino = (destino or "centro").strip().lower()
@@ -241,7 +244,11 @@ def _transferir_entre_depositos_exec(
     PedidoTransferencia.objects.filter(produto_externo_id=produto_id).delete()
 
     if registrar_historico:
-        rotulo = _rotulo_usuario_pin(pin) or _rotulo_usuario_request(request)
+        rotulo = (
+            (usuario_label_override or "").strip()
+            or _rotulo_usuario_pin(pin)
+            or _rotulo_usuario_request(request)
+        )
         _historico_transferencia(
             HistoricoTransferencia.TIPO_TRANSFER_ITEM,
             usuario_label=rotulo,

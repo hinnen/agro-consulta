@@ -418,7 +418,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
-- **Topbar PDV — espaço + Transf. (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** (ex-Estoque Vila) · **Vendas** (ex-Consultar vendas) · botão **Transf.** (rosa) → `/transferencias/`.
+- **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
+- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** move saldo · PIN da sessão · layout **PC primeiro** (modal largo; celular ok) · WhatsApp fase 2 · migrate `estoque.0018`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1215,15 +1216,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Topbar PDV Transf. + rótulos curtos (`PDV-TOPBAR-TRANSF` · **v16.54**)
+### WIP — Pedir loja PDV (PC primeiro) (`PDV-PEDIR-LOJA` · **v16.55**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · aguarda Ctrl+F5 local |
-| **O quê** | Badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão **Transf.** rosa → `/transferencias/` |
-| **Arquivos** | `pdv_wizard.html` · `pdv_deposito_util.py` · `pdv_wizard.js` · topbar parcial · BI fallback |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 PDV · conferir rótulos · clicar **Transf.** |
+| **Status** | ✅ **teste** · migrate `estoque.0018` · prova 15/15 + verify |
+| **O quê** | Overlay **Pedir loja** no wizard (não é `/transferencias/`) · botão rosa na topbar · layout **largo no PC** |
+| **Fluxo** | Pedir → outra loja badge → Aceitar → Pronto → **Transferir** (aí estoque) · PIN sessão |
+| **Você** | `migrate` · Ctrl+F5 PDV · Pedir loja · pedir 1 item · abrir PDV da outra loja |
+| **NÃO** | WhatsApp auto (fase 2) · confusão com Logística `/transferencias/` |
+
+### WIP — Topbar PDV Transf. + rótulos curtos (`PDV-TOPBAR-TRANSF` · **v16.54**) · **absorvido**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ➡️ rótulos curtos mantidos · botão **Transf.→/transferencias/** trocado por **Pedir loja** (acima) |
 
 ### ✅ Deploy loja — Vendas lojas média até agora (VENDAS-LOJAS-MEDIA-AGORA · **v16.53**)
 
