@@ -1247,6 +1247,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Rollback:** `git push origin producao-rollback-pre-balanca-hotfix-20260816:producao --force-with-lease` (só com senha)
 
+### 📦 PACOTE PRONTO — Balança COM errada/ESC (`PDV-BALANCA-COM-ESC` · **v16.93**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** |
+| **O quê** | Detecta RX `ESC` (impressora) · força CONECTAR · grava fingerprint USB da balança |
+| **Migrate** | **NÃO** |
+| **Você** | Na loja **já agora**: F10 → **CONECTAR** → escolher COM da **balança** (não impressora). RX bom = `02 … 0d` (STX), não `1b …` |
+
 ### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · **v16.89**)
 
 > **Status:** ✅ **enviado / Live v16.89** · `producao` @ **c70d195** · base **v16.84** @ **a6d3fbf**  
