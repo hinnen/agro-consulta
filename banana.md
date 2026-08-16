@@ -1231,7 +1231,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **O quê** | F2/orçamentos lista lê Postgres (`?recentes=1`) · contagem cédulas/valores no PG (`dia::loja`) multi-PC |
 | **Você** | Ctrl+F5 · F2 Orçamentos · deve listar os de hoje · Fechar caixa digita contagem · outro PC mesma loja vê |
-| **Cherry** | (após push) |
+| **Cherry** | `b9bd96b` |
 
 ### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
