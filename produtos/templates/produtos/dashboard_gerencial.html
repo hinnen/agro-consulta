@@ -1734,7 +1734,7 @@ document.addEventListener("keydown", function (e) {
     sel.title = travado
       ? ((j.trava && j.trava.rotulo) || 'Travado pelo caixa — feche o caixa para trocar')
       : 'Unidade deste aparelho — Centro ou Vila Elias';
-    var label = (j && j.estoqueAtivoLabel) || (sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro');
+    var label = (j && j.estoqueAtivoLabel) || (sel.value === '2' ? 'Esto: Vila' : 'Esto: Centro');
     updateBadge(label, sel.value === '2', travado);
     try { localStorage.setItem(LS_LOJA, sel.value); } catch (e1) {}
     setCookie(sel.value === '2' ? 'vila' : 'centro');
@@ -1789,7 +1789,7 @@ document.addEventListener("keydown", function (e) {
         } catch (e2) {}
       }
       prev = sel.value;
-      updateBadge(bootData.estoqueAtivoLabel || (sel.value === '2' ? 'Estoque: Vila Elias' : 'Estoque: Centro'), sel.value === '2', false);
+      updateBadge(bootData.estoqueAtivoLabel || (sel.value === '2' ? 'Esto: Vila' : 'Esto: Centro'), sel.value === '2', false);
       sync(sel.value, null, function (j) {
         if (j && j.ok) {
           aplicarTrava(sel, j);

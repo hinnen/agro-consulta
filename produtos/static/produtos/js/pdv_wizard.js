@@ -133,7 +133,7 @@
             return;
         }
         badge.classList.remove('hidden');
-        var label = depBoot.estoqueAtivoLabel || ('Estoque: ' + (depBoot.depositoLabel || 'Centro'));
+        var label = depBoot.estoqueAtivoLabel || ('Esto: ' + ((String(depBoot.deposito || '') === 'vila') ? 'Vila' : 'Centro'));
         badge.textContent = label;
         var isVila = String(depBoot.deposito || '') === 'vila';
         badge.className = isVila
