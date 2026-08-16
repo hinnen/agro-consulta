@@ -299,7 +299,11 @@
   function hitsHint(msg) {
     if (!dom.hits) return;
     dom.hits.innerHTML =
-      '<tr class="pl-hint-row"><td colspan="3" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+      '<tr class="pl-hint-row"><td colspan="4" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+  }
+
+  function codigoGm(p) {
+    return String((p && (p.codigo_interno || p.codigo || p.gm || '')) || '').trim();
   }
 
   function aplicarSaldos(lista, mapa) {
@@ -434,6 +438,9 @@
               '">' +
               '<td class="pl-td-nome">' +
               escapeHtml(p.nome || '') +
+              '</td>' +
+              '<td class="pl-td-gm">' +
+              escapeHtml(codigoGm(p) || '—') +
               '</td>' +
               '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +

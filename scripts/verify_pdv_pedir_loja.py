@@ -64,6 +64,8 @@ def main() -> int:
     check("overlay_altura_unica", "h-[min(92dvh" not in html)
     check("overlay_grid_pc", "pl-pedir-grid" in html and "pl-col--pedido" in html)
     check("overlay_hits_tabela", "pl-table" in html and "table-layout: fixed" in html)
+    check("overlay_col_gm", "Código GM" in html and "pl-td-gm" in js)
+    check("overlay_fonte_lista", "font-size: 1.15rem" in html)
     check("overlay_nome_legivel", "text-overflow: ellipsis" not in html)
     check("js_hits_tr", "<tr class=\"pl-hit\"" in js or "<tr class='pl-hit'" in js or 'class="pl-hit"' in js)
     check("overlay_sem_maxh_hits", "max-h-[11rem]" not in html)

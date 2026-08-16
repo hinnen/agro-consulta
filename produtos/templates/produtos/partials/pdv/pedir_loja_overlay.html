@@ -40,10 +40,11 @@
     table-layout: fixed;
     border-collapse: collapse;
   }
-  #pdv-pedir-loja-overlay .pl-table col.pl-col-n { width: 7.5rem; }
+  #pdv-pedir-loja-overlay .pl-table col.pl-col-gm { width: 7.25rem; }
+  #pdv-pedir-loja-overlay .pl-table col.pl-col-n { width: 7.25rem; }
   #pdv-pedir-loja-overlay .pl-table th {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.7rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.78rem;
     font-weight: 900;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -56,7 +57,7 @@
   }
   #pdv-pedir-loja-overlay .pl-table th.pl-th-n { text-align: right; }
   #pdv-pedir-loja-overlay .pl-table td {
-    padding: 0.4rem 0.5rem;
+    padding: 0.5rem 0.5rem;
     border-bottom: 1px solid #e2e8f0;
     vertical-align: middle;
   }
@@ -64,15 +65,25 @@
   #pdv-pedir-loja-overlay .pl-table tr.pl-hit:hover td { background: #fff7ed; }
   #pdv-pedir-loja-overlay .pl-td-nome {
     text-align: left;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #0f172a;
     line-height: 1.25;
     overflow-wrap: anywhere;
   }
+  #pdv-pedir-loja-overlay .pl-td-gm {
+    text-align: left;
+    font-size: 1.1rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #0f172a;
+  }
   #pdv-pedir-loja-overlay .pl-td-n {
     text-align: right;
-    font-size: 0.95rem;
+    font-size: 1.15rem;
     font-weight: 900;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -427,18 +438,20 @@
           <table class="pl-table">
             <colgroup>
               <col>
+              <col class="pl-col-gm">
               <col class="pl-col-n">
               <col class="pl-col-n">
             </colgroup>
             <thead>
               <tr>
                 <th>Produto</th>
+                <th>Código GM</th>
                 <th class="pl-th-n">Centro</th>
                 <th class="pl-th-n">Vila</th>
               </tr>
             </thead>
             <tbody id="pdv-pedir-loja-hits">
-              <tr class="pl-hint-row"><td colspan="3" class="pl-hint">Digite o nome, GM ou código.</td></tr>
+              <tr class="pl-hint-row"><td colspan="4" class="pl-hint">Digite o nome, GM ou código.</td></tr>
             </tbody>
           </table>
         </div>
