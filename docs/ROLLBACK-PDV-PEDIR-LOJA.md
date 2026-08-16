@@ -1,6 +1,25 @@
 # Rollback — PDV Pedir loja
 
-## Produção (loja) — ponto **antes** deste pacote
+## Produção — hotfix UX PC + rosa (**v16.56**) — ponto **antes** deste hotfix
+
+| Item | Valor |
+| ---- | ----- |
+| **Commit** | `d3175b313115d8118b17c5df228767cb522bb23c` (Live v16.55) |
+| **Tag** | `rollback/pre-pdv-pedir-loja-ux-v16.55` |
+| **Branch backup** | `producao-backup-pre-v1656-pedir-loja-ux-20260815` |
+| **O quê reverte** | layout PC coluna única + botão rosa + Transferir rosa |
+| **Migrate** | **nenhuma** (só front/JS) |
+
+```bash
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-pdv-pedir-loja-ux-v16.55
+git push origin producao --force-with-lease
+```
+
+**Só** com frase + senha do Renan. Volta para Live **v16.55** (Pedir loja ainda existe; layout antigo).
+
+## Produção (loja) — ponto **antes** do pacote Pedir loja (feature inteira)
 
 | Item | Valor |
 | ---- | ----- |
@@ -8,7 +27,7 @@
 | **Tag** | `rollback/pre-pdv-pedir-loja-prod-v16.53` |
 | **Branch backup** | `producao-backup-pre-v1655-pedir-loja-20260815` |
 | **Migrate desta feature** | `estoque/migrations/0018_solicitacao_transferencia_pdv.py` |
-| **Live após pacote** | **v16.55** @ `5da53b3` |
+| **Live após pacote** | **v16.55** @ `5da53b3` · depois hotfix **v16.56** |
 
 ```bash
 git fetch origin
@@ -37,6 +56,5 @@ Remove `SolicitacaoTransferenciaPdv` / itens / eventos. Pedidos já transferidos
 
 ## Conferir que voltou
 
-- `/pdv/` **sem** botão **Pedir loja**
-- `/transferencias/` igual a antes
-- badge `VERSION` **16.53**
+- Hotfix UX: badge **v16.55** · Pedir loja ainda no PDV (layout antigo)
+- Feature inteira: `/pdv/` **sem** botão **Pedir loja** · badge **v16.53** · `/transferencias/` igual

@@ -1216,11 +1216,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja PC + cor rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
+### ✅ Deploy loja — Pedir loja UX PC + rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
 
-> **Status:** 🔧 **só no teste** · aguarda Ctrl+F5 local · **não** loja sem frase+senha
-> **O quê:** overlay coluna única PC (~64rem) · **Pedir loja** rosa (fora do whitewash da topbar) · **Transferir estoque** rosa · pills Saldo Centro/Vila
-> **Você:** PDV local · Ctrl+F5 · ver botão rosa · abrir overlay · busca milho
+> **Status:** 🚀 **enviando** · `producao` cherry-pick `81157fc` · base Live v16.55
+> **Base anterior:** Live v16.55 @ **d3175b3** / feature **5da53b3**
+> **Incluiu:** overlay coluna única PC · botão Pedir loja rosa · Transferir rosa · **sem migrate**
+> **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux-v16.55` @ **d3175b3** · branch `producao-backup-pre-v1656-pedir-loja-ux-20260815` · frase+senha
+> **Você:** Ctrl+F5 PDV · badge **v16.56** · botão rosa · overlay
 
 ### ✅ Deploy loja — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
 
