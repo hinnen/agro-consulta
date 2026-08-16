@@ -163,6 +163,7 @@ from .entrega_pdv_pendente_util import (
 )
 from .models import (
     ClienteAgro,
+    CaixaConferenciaRascunhoAgro,
     ComprasFolhaSaldoFiltroPreset,
     ItemVendaAgro,
     LancamentoAtalhoFiltro,
@@ -10467,6 +10468,7 @@ def home(request):
             "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),
             "pdvWizardHome": reverse("pdv_home"),
             "apiPdvDeposito": reverse("api_pdv_deposito"),
+            "apiPdvOrcamentos": reverse("api_pdv_orcamentos"),
         },
     }
     stats = _home_quick_stats(request)
@@ -11455,7 +11457,64 @@ CAIXA_CONFERENCIA_TURNO_SESSION_KEY = "caixa_conferencia_turno"
 CAIXA_LIMPAR_CONTAGEM_LS_SESSION_KEY = "caixa_limpar_contagem_ls"
 
 
-def _limpar_rascunho_conferencia_caixa(req):
+def _caixa_contagem_turno_key_loja(deposito: str) -> str:
+    """Chave estável multi-PC: dia local + loja (centro|vila)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    dia = timezone.localdate().isoformat()
+    return f"{dia}::{dep}"
+
+
+def _caixa_contagem_pg_carregar(turno_key: str) -> tuple[dict, dict]:
+    key = str(turno_key or "").strip()
+    if not key:
+        return {}, {}
+    row = CaixaConferenciaRascunhoAgro.objects.filter(turno_key=key).first()
+    if not row:
+        return {}, {}
+    rasc = row.rascunho_json if isinstance(row.rascunho_json, dict) else {}
+    ced = row.cedulas_json if isinstance(row.cedulas_json, dict) else {}
+    return dict(rasc), dict(ced)
+
+
+def _caixa_contagem_pg_salvar(
+    turno_key: str,
+    rascunho: dict,
+    cedulas: dict | None,
+    *,
+    usuario: str = "",
+) -> tuple[dict, dict]:
+    key = str(turno_key or "").strip()
+    if not key:
+        return dict(rascunho or {}), dict(cedulas or {}) if isinstance(cedulas, dict) else {}
+    clean = {str(k)[:80]: str(v)[:32] for k, v in (rascunho or {}).items() if str(k).strip()}
+    clean_ced: dict[str, str] = {}
+    if isinstance(cedulas, dict):
+        clean_ced = {
+            str(k)[:16]: str(v)[:12]
+            for k, v in cedulas.items()
+            if str(k).strip() and str(v).strip()
+        }
+    CaixaConferenciaRascunhoAgro.objects.update_or_create(
+        turno_key=key,
+        defaults={
+            "rascunho_json": clean,
+            "cedulas_json": clean_ced,
+            "atualizado_por": str(usuario or "")[:120],
+        },
+    )
+    return clean, clean_ced
+
+
+def _caixa_contagem_pg_limpar(turno_key: str) -> None:
+    key = str(turno_key or "").strip()
+    if not key:
+        return
+    CaixaConferenciaRascunhoAgro.objects.filter(turno_key=key).delete()
+
+
+def _limpar_rascunho_conferencia_caixa(req, deposito: str | None = None):
     changed = False
     for key in (
         CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY,
@@ -11467,6 +11526,8 @@ def _limpar_rascunho_conferencia_caixa(req):
             changed = True
     if changed:
         req.session.modified = True
+    if deposito is not None:
+        _caixa_contagem_pg_limpar(_caixa_contagem_turno_key_loja(deposito))
 
 
 def _turno_sessoes_operacional_key(sessoes) -> str:
@@ -11478,7 +11539,14 @@ def _sincronizar_turno_conferencia_caixa(req, sessoes_operacional):
     turno_atual = _turno_sessoes_operacional_key(sessoes_operacional)
     turno_salvo = str(req.session.get(CAIXA_CONFERENCIA_TURNO_SESSION_KEY) or "")
     if turno_atual != turno_salvo:
-        _limpar_rascunho_conferencia_caixa(req)
+        # Só limpa sessão (legado). Postgres usa chave dia+loja — não apaga ao mudar PKs.
+        for key in (
+            CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY,
+            CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY,
+        ):
+            if key in req.session:
+                del req.session[key]
+                req.session.modified = True
     if turno_atual:
         req.session[CAIXA_CONFERENCIA_TURNO_SESSION_KEY] = turno_atual
         req.session.modified = True
@@ -11490,12 +11558,23 @@ def _sincronizar_turno_conferencia_caixa(req, sessoes_operacional):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_caixa_conferencia_rascunho(request):
-    """Valores contados no fechamento (por forma), autosave na sessão Django."""
-    raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
-    rascunho = raw if isinstance(raw, dict) else {}
-    raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
-    cedulas = raw_ced if isinstance(raw_ced, dict) else {}
-    return JsonResponse({"ok": True, "rascunho": rascunho, "cedulas": cedulas})
+    """Valores contados no fechamento (por forma) — Postgres multi-PC + espelho sessão."""
+    dep = str(request.GET.get("deposito") or request.session.get("pdv_deposito") or "centro")
+    turno_key = _caixa_contagem_turno_key_loja(dep)
+    rasc, cedulas = _caixa_contagem_pg_carregar(turno_key)
+    if not rasc and not cedulas:
+        raw = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+        rasc = raw if isinstance(raw, dict) else {}
+        raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+        cedulas = raw_ced if isinstance(raw_ced, dict) else {}
+    return JsonResponse(
+        {
+            "ok": True,
+            "rascunho": rasc,
+            "cedulas": cedulas,
+            "turno_key": turno_key,
+        }
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -11508,6 +11587,8 @@ def api_caixa_conferencia_rascunho_salvar(request):
     raw = payload.get("rascunho")
     if not isinstance(raw, dict):
         return JsonResponse({"ok": False, "erro": "Campo rascunho inválido."}, status=400)
+    dep = str(payload.get("deposito") or request.session.get("pdv_deposito") or "centro")
+    turno_key = str(payload.get("turno_key") or "").strip() or _caixa_contagem_turno_key_loja(dep)
     prev = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
     base = prev if isinstance(prev, dict) else {}
     clean: dict[str, str] = dict(base)
@@ -11538,6 +11619,17 @@ def api_caixa_conferencia_rascunho_salvar(request):
                 clean_ced.pop(kk, None)
         request.session[CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY] = clean_ced
         cedulas_resp = clean_ced
+    else:
+        prev_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+        cedulas_resp = prev_ced if isinstance(prev_ced, dict) else {}
+    u_nome = ""
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        u_nome = (request.user.get_full_name() or "").strip() or (
+            request.user.get_username() if hasattr(request.user, "get_username") else ""
+        )
+    clean, cedulas_resp = _caixa_contagem_pg_salvar(
+        turno_key, clean, cedulas_resp, usuario=u_nome
+    )
     try:
         request.session.save()
     except Exception:
@@ -11548,6 +11640,7 @@ def api_caixa_conferencia_rascunho_salvar(request):
             "salvo_em": timezone.now().isoformat(),
             "rascunho": clean,
             "cedulas": cedulas_resp,
+            "turno_key": turno_key,
         }
     )
 
@@ -12295,7 +12388,8 @@ def caixa_abrir(request):
         else:
             limpar_navegador_host_mp_point(request)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA):
-            _limpar_rascunho_conferencia_caixa(request)
+            dep_abrir = "vila" if ponto == PONTO_CAIXA_VILA else "centro"
+            _limpar_rascunho_conferencia_caixa(request, deposito=dep_abrir)
         rotulo = rotulo_ponto_caixa(ponto)
         messages.success(
             request,
@@ -12373,7 +12467,7 @@ def caixa_fechar(request):
             pass
 
     def _limpar_rascunho_conferencia(req):
-        _limpar_rascunho_conferencia_caixa(req)
+        _limpar_rascunho_conferencia_caixa(req, deposito=dep_fechar)
 
     sessoes_operacional = filtrar_sessoes_operacional(sessoes)
     sessoes_teste = filtrar_sessoes_teste(sessoes)
@@ -12523,11 +12617,14 @@ def caixa_fechar(request):
         r["com_movimento"] = bool(row.get("com_movimento"))
         linhas_conferencia.append(r)
 
-    rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
-    if not isinstance(rasc, dict):
-        rasc = {}
-    raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
-    cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
+    turno_key_loja = _caixa_contagem_turno_key_loja(dep_fechar)
+    rasc, cedulas_rasc = _caixa_contagem_pg_carregar(turno_key_loja)
+    if not rasc and not cedulas_rasc:
+        rasc = request.session.get(CAIXA_CONFERENCIA_RASCUNHO_SESSION_KEY) or {}
+        if not isinstance(rasc, dict):
+            rasc = {}
+        raw_ced = request.session.get(CAIXA_CONFERENCIA_CEDULAS_SESSION_KEY) or {}
+        cedulas_rasc = raw_ced if isinstance(raw_ced, dict) else {}
     fiado_vendas_wizard = listar_fiado_vendas_conferencia_caixa(sessoes_lote)
     fiado_baixas_wizard = listar_fiado_baixas_conferencia_caixa(sessoes_lote)
     fiado_vendas_conferencia, fiado_baixas_conferencia = fiado_conferencia_operacional(
@@ -12562,6 +12659,7 @@ def caixa_fechar(request):
             "conferencia_turno_json": json.dumps(
                 _turno_sessoes_operacional_key(sessoes_lote), ensure_ascii=False
             ),
+            "contagem_turno_key": turno_key_loja,
             "denominacoes_cedulas": CEDULAS_DENOMINACOES_CAIXA,
             "fiado_vendas_wizard": fiado_vendas_wizard,
             "fiado_baixas_wizard": fiado_baixas_wizard,
@@ -28392,15 +28490,27 @@ def _orcamento_pdv_trim_cliente(cliente_key: str, *, keep: int = 30) -> None:
 
 @login_required(login_url="/admin/login/")
 def api_pdv_orcamentos(request):
-    """GET: lista por cliente_key · POST: grava orçamento (payload completo do PDV)."""
+    """GET: lista por cliente_key ou recentes=1 (todas as lojas) · POST: grava orçamento."""
     if request.method == "GET":
+        recentes = str(request.GET.get("recentes") or "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        limite = min(max(int(request.GET.get("limite") or (60 if recentes else 30)), 1), 100)
+        if recentes:
+            qs = OrcamentoPdvAgro.objects.order_by("-criado_em")[:limite]
+            items = [_orcamento_pdv_entry_from_model(o) for o in qs]
+            return JsonResponse({"ok": True, "items": items, "escopo": "recentes"})
         key = str(request.GET.get("cliente_key") or "").strip()
         if not key:
-            return JsonResponse({"ok": False, "erro": "cliente_key obrigatório"}, status=400)
-        limite = min(max(int(request.GET.get("limite") or 30), 1), 60)
+            return JsonResponse(
+                {"ok": False, "erro": "cliente_key ou recentes=1 obrigatório"},
+                status=400,
+            )
         qs = OrcamentoPdvAgro.objects.filter(cliente_key=key).order_by("-criado_em")[:limite]
         items = [_orcamento_pdv_entry_from_model(o) for o in qs]
-        return JsonResponse({"ok": True, "items": items})
+        return JsonResponse({"ok": True, "items": items, "escopo": "cliente"})
 
     if request.method != "POST":
         return HttpResponseNotAllowed(["GET", "POST"])
