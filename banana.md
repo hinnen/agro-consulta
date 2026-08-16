@@ -1220,7 +1220,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v16.56** · `producao` @ **cd261d6** — **não** subir neste chat.  
 > **NÃO** merge `teste`→`producao` (teste tem centenas de arquivos a mais).  
-> **Sobe só:** cherry-picks já aplicados em `prep/producao-v1658-pedir-loja-ux2` @ **3805ab2** (9 arquivos · **sem migrate**).
+> **Sobe só:** `prep/producao-v1658-pedir-loja-ux2` @ **3009c03** (9 arquivos código + docs · **sem migrate**).
 
 | Item | Detalhe |
 | ---- | ------- |
