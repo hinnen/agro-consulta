@@ -1216,7 +1216,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Verificação Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-AUDIT` · **v16.66** · 16/08)
+### ✅ Verificação Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-AUDIT` · **v16.67** · 16/08)
 
 > **Status:** path **OK** no `teste` @ **2f78bdd** (útil UX7 **eeda598**) · loja Live ainda **v16.59** (UX3)
 > **Provas:** verify **54/54** · testes **20/20** (+ parse qtd `0` int) · rotas reverse OK · HTML `/pdv/` com overlay/ajuste/aviso · CDP boot URLs (resumo/saldos/criar/ajustar/lista/acao)
