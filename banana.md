@@ -1231,12 +1231,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO** · **PDV-BALANCA-GRANEL** (ainda em prova).
+> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO** · **REPASSE-ELET-MAQUINAS** · **PDV-BALANCA-GRANEL** (ainda em prova).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** @ **0f86a6f** | não |
-| 2 | **PDV-BALANCA-GRANEL** | 🧪 teste **v16.71** · prova balança | **sim** 0089 |
+| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** | não |
+| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.73** @ **ecaf8d9** | não |
+| 3 | **PDV-BALANCA-GRANEL** | 🧪 teste **v16.71** · prova balança | **sim** 0089 |
+
+### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.73**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.73** @ **ecaf8d9** |
+| **O quê** | Vila: MP Vila (manual) + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · sem Sicoob · repasse desconta cartão/PIX · Confirmar = falta em dinheiro |
+| **Prova** | path **42** · deep **66** · MAQ_OK |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 PDV Vila/Centro · Retiradas Repasse |
 
 ### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO` · **v16.70**)
 
