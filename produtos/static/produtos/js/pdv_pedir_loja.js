@@ -26,8 +26,11 @@
   var searchTimer = null;
   var buscaSeq = 0;
   var pollTimer = null;
+  var beepTimer = null;
+  var pendentesBeep = 0;
   var busy = false;
   var aba = 'pedir';
+  var confirmCb = null;
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-pedir-loja-btn'),
@@ -45,7 +48,27 @@
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
     abrirPin: document.getElementById('pdv-pedir-loja-abrir-pin'),
     badgeRec: document.getElementById('pdv-pedir-loja-badge-rec'),
+    confirm: document.getElementById('pdv-pedir-loja-confirm'),
+    confirmTitle: document.getElementById('pdv-pedir-loja-confirm-title'),
+    confirmBody: document.getElementById('pdv-pedir-loja-confirm-body'),
+    confirmExtra: document.getElementById('pdv-pedir-loja-confirm-extra'),
+    confirmFurado: document.getElementById('pdv-pedir-loja-confirm-furado'),
+    confirmAjustar: document.getElementById('pdv-pedir-loja-confirm-ajustar'),
+    confirmAjusteWrap: document.getElementById('pdv-pedir-loja-confirm-ajuste-wrap'),
+    confirmQtd: document.getElementById('pdv-pedir-loja-confirm-qtd'),
+    confirmSim: document.getElementById('pdv-pedir-loja-confirm-sim'),
+    confirmNao: document.getElementById('pdv-pedir-loja-confirm-nao'),
+    ajuste: document.getElementById('pdv-pedir-loja-ajuste'),
+    ajusteNome: document.getElementById('pdv-pedir-loja-ajuste-nome'),
+    ajusteCentro: document.getElementById('pdv-pedir-loja-ajuste-centro'),
+    ajusteVila: document.getElementById('pdv-pedir-loja-ajuste-vila'),
+    ajusteSim: document.getElementById('pdv-pedir-loja-ajuste-sim'),
+    ajusteNao: document.getElementById('pdv-pedir-loja-ajuste-nao'),
+    temPedido: document.getElementById('pdv-pedir-loja-tem-pedido'),
+    temPedidoMsg: document.getElementById('pdv-pedir-loja-tem-pedido-msg'),
+    temPedidoOk: document.getElementById('pdv-pedir-loja-tem-pedido-ok'),
   };
+  var ajusteProduto = null;
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -88,6 +111,101 @@
     else dom.pinAviso.classList.add('hidden');
   }
 
+  function plBeep() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.type = 'square';
+      o.frequency.value = 880;
+      g.gain.value = 0.08;
+      o.start();
+      o.stop(ctx.currentTime + 0.18);
+      setTimeout(function () {
+        var o2 = ctx.createOscillator();
+        var g2 = ctx.createGain();
+        o2.connect(g2);
+        g2.connect(ctx.destination);
+        o2.type = 'square';
+        o2.frequency.value = 660;
+        g2.gain.value = 0.08;
+        o2.start();
+        o2.stop(ctx.currentTime + 0.22);
+      }, 200);
+    } catch (e) {}
+  }
+
+  function syncBeepPendentes(n) {
+    pendentesBeep = Number(n || 0);
+    if (pendentesBeep > 0) {
+      if (!beepTimer) {
+        plBeep();
+        beepTimer = setInterval(function () {
+          if (pendentesBeep > 0) plBeep();
+        }, 60000);
+      }
+    } else if (beepTimer) {
+      clearInterval(beepTimer);
+      beepTimer = null;
+    }
+  }
+
+  function syncFuradoUi() {
+    if (!dom.confirmAjusteWrap || !dom.confirmFurado) return;
+    if (dom.confirmFurado.checked) dom.confirmAjusteWrap.classList.add('is-on');
+    else dom.confirmAjusteWrap.classList.remove('is-on');
+  }
+
+  function fecharConfirm(ok) {
+    if (dom.confirm) {
+      dom.confirm.classList.remove('is-open');
+      dom.confirm.setAttribute('aria-hidden', 'true');
+    }
+    var cb = confirmCb;
+    confirmCb = null;
+    if (cb) cb(!!ok);
+  }
+
+  function abrirConfirm(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      if (!dom.confirm) {
+        resolve({ ok: false });
+        return;
+      }
+      confirmCb = function (ok) {
+        if (!ok) {
+          resolve({ ok: false });
+          return;
+        }
+        var furado = !!(dom.confirmFurado && dom.confirmFurado.checked);
+        var ajustar = !!(furado && dom.confirmAjustar && dom.confirmAjustar.checked);
+        var qtd = dom.confirmQtd ? String(dom.confirmQtd.value || '0') : '0';
+        resolve({ ok: true, estoque_furado: furado, ajustar_estoque: ajustar, ajuste_quantidade: qtd });
+      };
+      if (dom.confirmTitle) dom.confirmTitle.textContent = opts.title || 'Confirmar';
+      if (dom.confirmBody) dom.confirmBody.textContent = opts.body || '';
+      if (dom.confirmSim) dom.confirmSim.textContent = opts.confirmLabel || 'Confirmar';
+      if (dom.confirmExtra) {
+        if (opts.furado) {
+          dom.confirmExtra.classList.remove('hidden');
+          if (dom.confirmFurado) dom.confirmFurado.checked = false;
+          if (dom.confirmAjustar) dom.confirmAjustar.checked = true;
+          if (dom.confirmQtd) dom.confirmQtd.value = '0';
+          syncFuradoUi();
+        } else {
+          dom.confirmExtra.classList.add('hidden');
+        }
+      }
+      dom.confirm.classList.add('is-open');
+      dom.confirm.setAttribute('aria-hidden', 'false');
+    });
+  }
+
   function abrirPin() {
     if (typeof window.gmSspinAbrirEntrada === 'function') window.gmSspinAbrirEntrada();
   }
@@ -110,6 +228,8 @@
   function fechar() {
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
+    fecharAjuste();
+    if (dom.confirm && dom.confirm.classList.contains('is-open')) fecharConfirm(false);
   }
 
   function setAba(nome) {
@@ -155,7 +275,31 @@
     }
   }
 
-  function refreshResumo() {
+  function fecharTemPedido() {
+    if (!dom.temPedido) return;
+    dom.temPedido.classList.remove('is-open');
+    dom.temPedido.setAttribute('aria-hidden', 'true');
+  }
+
+  function abrirTemPedido(n) {
+    if (!dom.temPedido) return;
+    n = Number(n || 0);
+    if (n <= 0) return;
+    if (dom.temPedidoMsg) {
+      dom.temPedidoMsg.textContent =
+        n === 1 ? 'Tem pedido da outra loja.' : 'Tem ' + n + ' pedidos da outra loja.';
+    }
+    dom.temPedido.classList.add('is-open');
+    dom.temPedido.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () {
+      try {
+        if (dom.temPedidoOk) dom.temPedidoOk.focus();
+      } catch (e) {}
+    }, 40);
+  }
+
+  function refreshResumo(opts) {
+    opts = opts || {};
     var url = urls.apiPdvTransfLojaResumo;
     if (!url) return;
     fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
@@ -164,8 +308,14 @@
       })
       .then(function (d) {
         if (!d || !d.ok) return;
-        applyBadge(d.recebidos_abertos || 0);
+        var n = Number(d.recebidos_abertos || 0);
+        var pend = Number(
+          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
+        );
+        applyBadge(n);
+        syncBeepPendentes(pend);
         setPinAviso(!!d.precisa_pin);
+        if (opts.aposPin && !d.precisa_pin && n > 0) abrirTemPedido(n);
       })
       .catch(function () {});
   }
@@ -185,6 +335,110 @@
     if (!isFinite(x)) return '—';
     if (Math.abs(x - Math.round(x)) < 0.001) return String(Math.round(x));
     return String(Math.round(x * 100) / 100).replace('.', ',');
+  }
+
+  function hitsHint(msg) {
+    if (!dom.hits) return;
+    dom.hits.innerHTML =
+      '<tr class="pl-hint-row"><td colspan="5" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+  }
+
+  function fecharAjuste() {
+    if (dom.ajuste) {
+      dom.ajuste.classList.remove('is-open');
+      dom.ajuste.setAttribute('aria-hidden', 'true');
+    }
+    ajusteProduto = null;
+  }
+
+  function abrirAjuste(p) {
+    if (!dom.ajuste || !p) return;
+    ajusteProduto = p;
+    var nome = p.nome || p.nome_produto || 'Produto';
+    var gm = codigoGm(p);
+    if (dom.ajusteNome) {
+      dom.ajusteNome.textContent =
+        nome + (gm ? ' · GM ' + gm : '') + ' · digite o saldo real de cada loja';
+    }
+    if (dom.ajusteCentro) dom.ajusteCentro.value = String(numSaldo(p, 'saldo_centro'));
+    if (dom.ajusteVila) dom.ajusteVila.value = String(numSaldo(p, 'saldo_vila'));
+    dom.ajuste.classList.add('is-open');
+    dom.ajuste.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () {
+      try {
+        if (dom.ajusteCentro) {
+          dom.ajusteCentro.focus();
+          dom.ajusteCentro.select();
+        }
+      } catch (e) {}
+    }, 30);
+  }
+
+  function salvarAjuste() {
+    if (!ajusteProduto || busy) return;
+    var url = urls.apiPdvTransfLojaAjustar;
+    if (!url) {
+      setStatus('URL de ajuste indisponível.', true);
+      return;
+    }
+    var pid = produtoId(ajusteProduto);
+    if (!pid) {
+      setStatus('Produto inválido.', true);
+      return;
+    }
+    busy = true;
+    if (dom.ajusteSim) dom.ajusteSim.disabled = true;
+    setStatus('Ajustando estoque…');
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf(),
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        produto_id: pid,
+        nome: ajusteProduto.nome || ajusteProduto.nome_produto || '',
+        codigo_interno: codigoGm(ajusteProduto),
+        saldo_centro: dom.ajusteCentro ? String(dom.ajusteCentro.value || '0') : '0',
+        saldo_vila: dom.ajusteVila ? String(dom.ajusteVila.value || '0') : '0',
+      }),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) {
+          return { ok: r.ok, data: d };
+        });
+      })
+      .then(function (res) {
+        busy = false;
+        if (dom.ajusteSim) dom.ajusteSim.disabled = false;
+        if (res.data && res.data.precisa_pin) {
+          setPinAviso(true);
+          setStatus(res.data.erro || 'Entre com o PIN.', true);
+          return;
+        }
+        if (!res.ok || !res.data || !res.data.ok) {
+          setStatus((res.data && res.data.erro) || 'Não ajustou.', true);
+          return;
+        }
+        if (res.data.saldo_centro != null) ajusteProduto.saldo_centro = res.data.saldo_centro;
+        if (res.data.saldo_vila != null) ajusteProduto.saldo_vila = res.data.saldo_vila;
+        fecharAjuste();
+        setStatus(res.data.mensagem || 'Estoque ajustado.');
+        if (dom.busca && String(dom.busca.value || '').trim().length >= 2) {
+          buscar(dom.busca.value);
+        }
+      })
+      .catch(function () {
+        busy = false;
+        if (dom.ajusteSim) dom.ajusteSim.disabled = false;
+        setStatus('Erro de rede ao ajustar.', true);
+      });
+  }
+
+  function codigoGm(p) {
+    return String((p && (p.codigo_interno || p.codigo || p.gm || '')) || '').trim();
   }
 
   function aplicarSaldos(lista, mapa) {
@@ -217,9 +471,7 @@
       });
     }
     renderCart();
-    if (dom.hits) {
-      dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
-    }
+    hitsHint('Digite o nome, GM ou código.');
     if (dom.busca) dom.busca.value = '';
   }
 
@@ -271,9 +523,7 @@
     q = String(q || '').trim();
     if (q.length < 2) {
       buscaSeq += 1;
-      if (dom.hits) {
-        dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
-      }
+      hitsHint('Digite o nome, GM ou código.');
       return;
     }
     var seq = ++buscaSeq;
@@ -311,37 +561,40 @@
         if (!dom.hits || !pack) return;
         var lista = pack.lista || [];
         if (!lista.length) {
-          dom.hits.innerHTML =
-            '<p class="text-base font-bold text-slate-500">Nenhum produto.</p>';
+          hitsHint('Nenhum produto.');
           return;
         }
         dom.hits.innerHTML = lista
           .map(function (p) {
             var id = produtoId(p);
             return (
-              '<button type="button" class="pl-hit" data-pl-add="' +
+              '<tr class="pl-hit" data-pl-add="' +
               escapeHtml(id) +
               '">' +
-              '<span class="pl-name">' +
+              '<td class="pl-td-nome">' +
               escapeHtml(p.nome || '') +
-              '</span>' +
-              '<span class="pl-saldos">' +
-              '<span class="pl-saldo-pill"><b>' +
+              '</td>' +
+              '<td class="pl-td-gm">' +
+              escapeHtml(codigoGm(p) || '—') +
+              '</td>' +
+              '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +
-              '</b></span>' +
-              '<span class="pl-saldo-pill"><b>' +
+              '</td>' +
+              '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_vila'))) +
-              '</b></span>' +
-              '</span></button>'
+              '</td>' +
+              '<td class="pl-td-aj">' +
+              '<button type="button" class="pl-btn-aj" data-pl-aj="' +
+              escapeHtml(id) +
+              '" title="Ajustar estoque">Ajustar</button>' +
+              '</td></tr>'
             );
           })
           .join('');
         dom.hits._hits = lista;
       })
       .catch(function () {
-        if (dom.hits) {
-          dom.hits.innerHTML = '<p class="text-sm font-bold text-red-700">Erro na busca.</p>';
-        }
+        hitsHint('Erro na busca.');
       });
   }
 
@@ -432,14 +685,6 @@
     }
     dom.lista.innerHTML = itens
       .map(function (row) {
-        var qtdHero = '';
-        var linhas = row.itens || [];
-        if (linhas.length === 1) {
-          qtdHero =
-            '<p class="pl-qty" style="text-align:left;margin-top:0.35rem">' +
-            escapeHtml(String(linhas[0].quantidade_texto || linhas[0].quantidade || '')) +
-            '</p>';
-        }
         return (
           '<article class="pl-card" data-pl-id="' +
           escapeHtml(String(row.id)) +
@@ -450,8 +695,7 @@
           '<p class="pl-name">' +
           escapeHtml(row.resumo || '') +
           '</p>' +
-          qtdHero +
-          '<p class="mt-1 text-base font-bold text-slate-500">' +
+          '<p class="mt-1 text-sm font-bold text-slate-500">' +
           escapeHtml(row.loja_origem_label) +
           ' → ' +
           escapeHtml(row.loja_destino_label) +
@@ -482,6 +726,9 @@
           return;
         }
         applyBadge(d.recebidos_abertos || 0);
+        syncBeepPendentes(
+          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
+        );
         renderLista(d.itens || []);
       })
       .catch(function () {
@@ -489,14 +736,12 @@
       });
   }
 
-  function postAcao(id, acao) {
+  function postAcao(id, acao, extra) {
     if (busy) return;
     var pattern = urls.apiPdvTransfLojaAcaoPattern || '';
     var url = pattern.replace('__pk__', String(id));
     if (!url) return;
-    if (acao === 'cancelar' && !window.confirm('Cancelar este pedido?')) return;
-    if (acao === 'transferir' && !window.confirm('Transferir o estoque agora? Some na origem e entra na loja que pediu.'))
-      return;
+    var body = Object.assign({ acao: acao, loja: depositoAtual() }, extra || {});
     busy = true;
     setStatus('Salvando…');
     fetch(url, {
@@ -507,7 +752,7 @@
         'X-CSRFToken': csrf(),
         Accept: 'application/json',
       },
-      body: JSON.stringify({ acao: acao, loja: depositoAtual() }),
+      body: JSON.stringify(body),
     })
       .then(function (r) {
         return r.json().then(function (d) {
@@ -526,13 +771,54 @@
           return;
         }
         applyBadge(res.data.recebidos_abertos || 0);
+        syncBeepPendentes(
+          res.data.recebidos_pendentes != null ? res.data.recebidos_pendentes : res.data.recebidos_abertos || 0
+        );
         setStatus(res.data.mensagem || 'Ok.');
         carregarLista(aba);
+        refreshResumo();
       })
       .catch(function () {
         busy = false;
         setStatus('Erro de rede.', true);
       });
+  }
+
+  function pedirAcao(id, acao) {
+    if (acao === 'cancelar') {
+      abrirConfirm({
+        title: 'Cancelar pedido?',
+        body: 'O pedido some da fila. Se o estoque estiver errado, marque furado e ajuste o saldo.',
+        confirmLabel: 'Cancelar pedido',
+        furado: true,
+      }).then(function (r) {
+        if (!r.ok) return;
+        postAcao(id, 'cancelar', {
+          estoque_furado: !!r.estoque_furado,
+          ajustar_estoque: !!r.ajustar_estoque,
+          ajuste_quantidade: r.ajuste_quantidade,
+          motivo: r.estoque_furado ? 'Estoque furado' : '',
+        });
+      });
+      return;
+    }
+    if (acao === 'transferir') {
+      abrirConfirm({
+        title: 'Transferir estoque?',
+        body: 'Some na origem e entra na loja que pediu. Se o saldo estiver errado, marque estoque furado e ajuste (padrão 0).',
+        confirmLabel: 'Transferir',
+        furado: true,
+      }).then(function (r) {
+        if (!r.ok) return;
+        postAcao(id, 'transferir', {
+          estoque_furado: !!r.estoque_furado,
+          ajustar_estoque: !!r.ajustar_estoque,
+          ajuste_quantidade: r.ajuste_quantidade,
+        });
+      });
+      return;
+    }
+    postAcao(id, acao);
   }
 
   if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrir);
@@ -563,10 +849,21 @@
   }
   if (dom.hits) {
     dom.hits.addEventListener('click', function (e) {
+      var lista = dom.hits._hits || [];
+      var aj = e.target.closest('[data-pl-aj]');
+      if (aj) {
+        e.preventDefault();
+        e.stopPropagation();
+        var idAj = aj.getAttribute('data-pl-aj');
+        var pAj = lista.filter(function (x) {
+          return produtoId(x) === idAj;
+        })[0];
+        if (pAj) abrirAjuste(pAj);
+        return;
+      }
       var btn = e.target.closest('[data-pl-add]');
       if (!btn) return;
       var id = btn.getAttribute('data-pl-add');
-      var lista = dom.hits._hits || [];
       var p = lista.filter(function (x) {
         return produtoId(x) === id;
       })[0];
@@ -597,21 +894,69 @@
       if (!btn) return;
       var card = btn.closest('[data-pl-id]');
       if (!card) return;
-      postAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'));
+      pedirAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'));
+    });
+  }
+
+  if (dom.confirmSim) dom.confirmSim.addEventListener('click', function () { fecharConfirm(true); });
+  if (dom.confirmNao) dom.confirmNao.addEventListener('click', function () { fecharConfirm(false); });
+  if (dom.confirm) {
+    dom.confirm.addEventListener('click', function (e) {
+      if (e.target === dom.confirm) fecharConfirm(false);
+    });
+  }
+  if (dom.confirmFurado) dom.confirmFurado.addEventListener('change', syncFuradoUi);
+  if (dom.ajusteSim) dom.ajusteSim.addEventListener('click', salvarAjuste);
+  if (dom.ajusteNao) dom.ajusteNao.addEventListener('click', fecharAjuste);
+  if (dom.ajuste) {
+    dom.ajuste.addEventListener('click', function (e) {
+      if (e.target === dom.ajuste) fecharAjuste();
     });
   }
 
   document.addEventListener('keydown', function (e) {
+    if (dom.temPedido && dom.temPedido.classList.contains('is-open')) {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        fecharTemPedido();
+      }
+      return;
+    }
+    if (e.key === 'Escape' && dom.ajuste && dom.ajuste.classList.contains('is-open')) {
+      e.preventDefault();
+      fecharAjuste();
+      return;
+    }
+    if (e.key === 'Escape' && dom.confirm && dom.confirm.classList.contains('is-open')) {
+      e.preventDefault();
+      fecharConfirm(false);
+      return;
+    }
     if (e.key === 'Escape' && overlay.classList.contains('flex')) {
       e.preventDefault();
       fechar();
     }
   });
 
+  if (dom.temPedidoOk) dom.temPedidoOk.addEventListener('click', fecharTemPedido);
+  if (dom.temPedido) {
+    dom.temPedido.addEventListener('click', function (e) {
+      if (e.target === dom.temPedido) fecharTemPedido();
+    });
+  }
+
   renderCart();
   refreshResumo();
-  pollTimer = setInterval(refreshResumo, 25000);
-  window.addEventListener('gm-sspin-operador', function () {
+  pollTimer = setInterval(function () {
     refreshResumo();
+  }, 25000);
+  window.addEventListener('gm-sspin-operador', function (ev) {
+    var nome = ev && ev.detail && ev.detail.nome;
+    if (!nome) {
+      refreshResumo();
+      return;
+    }
+    refreshResumo({ aposPin: true });
   });
 })();

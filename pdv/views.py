@@ -193,6 +193,7 @@ def pdv_home(request):
                 "apiPdvTransfLojaSaldos": reverse("api_pdv_transf_loja_saldos"),
                 "apiPdvTransfLojaLista": reverse("api_pdv_transf_loja_lista"),
                 "apiPdvTransfLojaCriar": reverse("api_pdv_transf_loja_criar"),
+                "apiPdvTransfLojaAjustar": reverse("api_pdv_transf_loja_ajustar"),
                 "apiPdvTransfLojaAcaoPattern": reverse(
                     "api_pdv_transf_loja_acao", args=[0]
                 ).replace("/0/", "/__pk__/"),

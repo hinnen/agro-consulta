@@ -1,5 +1,24 @@
 # Rollback — PDV Pedir loja
 
+## Produção — Pedir loja UX5–UX7 (**v16.68**) — ponto **antes** deste pacote (Live v16.59)
+
+| Item | Valor |
+| ---- | ----- |
+| **Commit** | `16663c7` (Live v16.59) |
+| **Tag** | `rollback/pre-pdv-pedir-loja-ux7-v16.59` |
+| **Branch backup** | `producao-backup-pre-v1668-pedir-loja-ux7-20260816` |
+| **O quê reverte** | furado/bip · Ajustar na busca · aviso pós-PIN · GM/fonte · **sem migrate nova** |
+| **Migrate** | **nenhuma** (já tinha `estoque.0018`) |
+
+```bash
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-pdv-pedir-loja-ux7-v16.59
+git push origin producao --force-with-lease
+```
+
+**Só** com frase + senha do Renan. Volta para Live **v16.59**.
+
 ## Produção — Pedir loja UX3 (**v16.59**) — ponto **antes** deste pacote (Live v16.58)
 
 | Item | Valor |

@@ -419,7 +419,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
-- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** (modal **um tamanho**, ~96rem / tela cheia, **busca | pedido**, colunas fixas Produto \| Centro \| Vila, nome 1 linha) · saldo **Agro** (não wizard lite) · botão topbar rosa ao lado de Saldo Vila · WhatsApp fase 2 · migrate `estoque.0018`.
+- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** (tela cheia, **busca | pedido**, Produto \| GM \| Centro \| Vila) · **Ajustar** saldo na busca · aviso pós-PIN se tem pedido · modal próprio · **estoque furado** + ajuste qtd 0 · **bip 1/min** · saldo **Agro** · WhatsApp fase 2 · migrate `estoque.0018`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1216,7 +1216,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3` · **v16.59**)
+### ✅ Deploy loja — Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-UX7` · **v16.68**)
+
+> **Status:** ✅ **enviado / Live v16.68** · `producao` (push deste pacote) · base Live **v16.59** @ **16663c7**
+> **Incluiu:** furado + bip 1/min · Ajustar Centro/Vila na busca · aviso pós-PIN · GM/fonte · **sem migrate**
+> **Prova:** verify 54/54 · testes 20/20 · só arquivos Pedir loja (+ rota ajustar em urls)
+> **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux7-v16.59` · branch `producao-backup-pre-v1668-pedir-loja-ux7-20260816` · frase+senha
+> **Você:** PDV loja · **Ctrl+F5** · badge **v16.68** · PIN com pedido · Ajustar · Transferir furado
+
+### ✅ Deploy loja — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3` · **v16.59**) · **superado — Live v16.68**
 
 > **Status:** ✅ **enviado / Live v16.59** · `producao` @ **b4f3807** · Render `dep-da0ip8bncjis738oftcg`
 > **Base anterior:** Live v16.58 @ **7fcf7e9** / útil **3964a07**
@@ -1233,14 +1241,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux2-v16.56` @ **cd261d6** · branch `producao-backup-pre-v1658-pedir-loja-ux2-20260815` · frase+senha
 > **Você:** PDV loja · **Ctrl+F5** · badge **v16.58** · Pedir loja · busca milho
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX3 · loja v16.59)
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX7 · loja v16.68)
 
-> **Loja hoje:** ✅ **Live v16.59** · `producao` @ **b4f3807**  
+> **Loja hoje:** ✅ **Live v16.68** (após Render) · pacote Pedir loja UX5–UX7  
 > **Fila deploy:** **vazia**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-LOJA-UX3** | ✅ enviado / Live v16.59 | não |
+| 1 | **PDV-PEDIR-LOJA-UX7** | ✅ enviado / Live v16.68 | não |
 
 ### 📦 PACOTE PRONTO LOJA — Pedir loja layout + saldo (`PDV-PEDIR-LOJA-UX2` · **v16.58**) · **superado — Live**
 
