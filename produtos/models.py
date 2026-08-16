@@ -1051,6 +1051,12 @@ class ItemVendaAgro(models.Model):
     quantidade = models.DecimalField(max_digits=14, decimal_places=4, default=0)
     valor_unitario = models.DecimalField(max_digits=12, decimal_places=4, default=0)
     valor_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    unidade = models.CharField(
+        max_length=12,
+        blank=True,
+        default="UN",
+        help_text="UN, KG, etc. — usado na NFC-e (uCom/uTrib).",
+    )
     quantidade_devolvida = models.DecimalField(
         max_digits=14,
         decimal_places=4,

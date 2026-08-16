@@ -435,6 +435,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
+**Balança granel (16/08 · teste v16.71):** botão **Pesar** / **F10** → overlay · Web Serial Chrome (Urano US20/2 POP-S · USE-P2) · códigos **1–199** (sem zeros) · auto-add ao estabilizar · Unidade **KG** no cadastro · migrate `0089`.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -1216,15 +1218,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE TESTE — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.71**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · prova local pendente (precisa balança + cabo) |
+| **O quê** | Overlay **Pesar** / **F10** · Web Serial Chrome (Urano **US20/2 POP-S** · USE-P2) · códigos **1–199** sem zeros · auto-add ao estabilizar · unidade **KG** no carrinho/NFC-e |
+| **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
+| **Você** | Cadastro granel Unidade **KG** · plug RS232→USB · PDV **Ctrl+F5** · F10 · Conectar COM · digitar `1` · pesar · balança: **F→3→USE-P2** · sem hardware: console `AgroPdvBalanca.mockKg(1.25)` |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b)
 
 > **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO**.
+> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO** · **PDV-BALANCA-GRANEL** (ainda em prova).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** @ **0f86a6f** | não |
+| 2 | **PDV-BALANCA-GRANEL** | 🧪 teste **v16.71** · prova balança | **sim** 0089 |
 
 ### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO` · **v16.70**)
 

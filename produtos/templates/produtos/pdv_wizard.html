@@ -3678,6 +3678,7 @@
                 Pedir loja
                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
+              <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
@@ -3733,6 +3734,7 @@
 {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
 {% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
 {% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
+{% include "produtos/partials/pdv/balanca_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
   <div id="pdv-quick-client-picker" class="pdv-client-picker-16x9 relative flex flex-col overflow-hidden rounded-2xl border-2 border-sky-400 bg-white shadow-2xl" role="document">
@@ -4490,6 +4492,7 @@
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_balanca.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% with sspin_pedir_pin_ao_abrir=True %}
 {% include "produtos/_screensaver_pin.html" %}
 {% endwith %}
