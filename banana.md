@@ -1228,7 +1228,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **PDV-BALANCA-GRANEL** | ✅ **pronto** · aguarda senha · teste **e9e6eec** | **sim** 0089 |
 
-**Cherry (ordem):** `88310f0` → `e9e6eec`  
+**Cherry (ordem):** `88310f0` → `e9e6eec` → `9d6c878` (parser USE-P2 + 8N1)  
 **Conflitos previstos (dry-run OK):**
 - `VERSION` → manter loja e bump no commit
 - `banana.md` → `--ours` + bloco Live no fim
