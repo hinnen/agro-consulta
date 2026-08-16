@@ -1,16 +1,17 @@
 <style>
-  /* Pedir loja — PC: um tamanho (caixa-shell), busca | pedido, colunas fixas. */
+  /* Pedir loja — PC: tela cheia, tabela alinhada (padrão Uso loja). */
   #pdv-pedir-loja-overlay .pl-panel {
     display: flex;
     flex-direction: column;
-    width: min(100%, 96rem);
+    width: 100%;
     height: 100%;
     min-height: 0;
     overflow: hidden;
+    background: #fff;
   }
   #pdv-pedir-loja-overlay .pl-pedir-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+    grid-template-columns: minmax(0, 1fr) 20rem;
     min-height: 0;
     flex: 1 1 auto;
     overflow: hidden;
@@ -26,35 +27,57 @@
     border-left: 2px solid #fed7aa;
     background: #fff7ed;
   }
-  #pdv-pedir-loja-overlay .pl-hits-head,
-  #pdv-pedir-loja-overlay .pl-hit {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 6.25rem 6.25rem;
-    column-gap: 0.65rem;
-    align-items: center;
-  }
-  #pdv-pedir-loja-overlay .pl-hits-head {
-    flex-shrink: 0;
-    margin-top: 0.45rem;
-    padding: 0 0.65rem 0.25rem;
-    font-size: 0.68rem;
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #64748b;
-  }
-  #pdv-pedir-loja-overlay .pl-hits-head span:nth-child(2),
-  #pdv-pedir-loja-overlay .pl-hits-head span:nth-child(3) {
-    text-align: right;
-  }
-  #pdv-pedir-loja-overlay .pl-hits,
+  #pdv-pedir-loja-overlay .pl-hits-wrap,
   #pdv-pedir-loja-overlay .pl-cart-box {
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
   }
-  #pdv-pedir-loja-overlay .pl-hits { margin-top: 0.25rem; flex: 1 1 auto; }
+  #pdv-pedir-loja-overlay .pl-hits-wrap { margin-top: 0.35rem; flex: 1 1 auto; }
   #pdv-pedir-loja-overlay .pl-cart-box { margin-top: 0.4rem; flex: 1 1 auto; }
+  #pdv-pedir-loja-overlay .pl-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+  #pdv-pedir-loja-overlay .pl-table col.pl-col-n { width: 7.5rem; }
+  #pdv-pedir-loja-overlay .pl-table th {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+    text-align: left;
+    border-bottom: 2px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background: #fff;
+  }
+  #pdv-pedir-loja-overlay .pl-table th.pl-th-n { text-align: right; }
+  #pdv-pedir-loja-overlay .pl-table td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: middle;
+  }
+  #pdv-pedir-loja-overlay .pl-table tr.pl-hit { cursor: pointer; }
+  #pdv-pedir-loja-overlay .pl-table tr.pl-hit:hover td { background: #fff7ed; }
+  #pdv-pedir-loja-overlay .pl-td-nome {
+    text-align: left;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  #pdv-pedir-loja-overlay .pl-td-n {
+    text-align: right;
+    font-size: 0.95rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: #0f172a;
+  }
   #pdv-pedir-loja-overlay .pl-hint {
     margin: 0.75rem 0.15rem;
     font-size: 0.95rem;
@@ -117,18 +140,7 @@
     border-color: #fb923c;
     box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.22);
   }
-  #pdv-pedir-loja-overlay .pl-hit {
-    width: 100%;
-    min-height: 2.65rem;
-    text-align: left;
-    border: 2px solid #e2e8f0;
-    border-radius: 0.7rem;
-    background: #fff;
-    padding: 0.35rem 0.65rem;
-    cursor: pointer;
-  }
-  #pdv-pedir-loja-overlay .pl-hit:hover { border-color: #fdba74; background: #fff7ed; }
-  #pdv-pedir-loja-overlay .pl-hit .pl-saldos { display: contents; }
+  #pdv-pedir-loja-overlay .pl-hit-row { cursor: pointer; }
   #pdv-pedir-loja-overlay .pl-card {
     border: 2px solid #e2e8f0;
     border-radius: 0.85rem;
@@ -141,11 +153,9 @@
     font-size: 0.95rem;
     font-weight: 900;
     color: #0f172a;
-    line-height: 1.2;
+    line-height: 1.25;
     text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow-wrap: anywhere;
   }
   #pdv-pedir-loja-overlay .pl-saldos {
     display: flex;
@@ -307,8 +317,8 @@
   }
 </style>
 
-<div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-stretch justify-center bg-slate-950/55 p-1.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
-  <div class="pl-panel relative max-w-full rounded-2xl border-[3px] border-orange-500 bg-gradient-to-b from-orange-50/90 via-white to-white shadow-2xl" role="document">
+<div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-stretch justify-stretch bg-slate-950/40 p-1" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
+  <div class="pl-panel relative rounded-xl border-[3px] border-orange-500 shadow-2xl" role="document">
     <header class="relative flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-orange-100 bg-white px-4 py-3">
       <div class="min-w-0 flex-1">
         <h2 id="pdv-pedir-loja-title" class="text-[clamp(1.05rem,0.4vw+1rem,1.3rem)] font-black uppercase tracking-tight text-slate-900">Pedir loja</h2>
@@ -339,9 +349,24 @@
       <div class="pl-col pl-col--busca">
         <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
         <input type="text" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
-        <div class="pl-hits-head" aria-hidden="true"><span>Produto</span><span>Centro</span><span>Vila</span></div>
-        <div id="pdv-pedir-loja-hits" class="pl-hits space-y-1">
-          <p class="pl-hint">Digite o nome, GM ou código.</p>
+        <div class="pl-hits-wrap">
+          <table class="pl-table">
+            <colgroup>
+              <col>
+              <col class="pl-col-n">
+              <col class="pl-col-n">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th class="pl-th-n">Centro</th>
+                <th class="pl-th-n">Vila</th>
+              </tr>
+            </thead>
+            <tbody id="pdv-pedir-loja-hits">
+              <tr class="pl-hint-row"><td colspan="3" class="pl-hint">Digite o nome, GM ou código.</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
       <div class="pl-col pl-col--pedido">

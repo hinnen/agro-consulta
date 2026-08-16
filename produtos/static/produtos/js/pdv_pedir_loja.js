@@ -187,6 +187,12 @@
     return String(Math.round(x * 100) / 100).replace('.', ',');
   }
 
+  function hitsHint(msg) {
+    if (!dom.hits) return;
+    dom.hits.innerHTML =
+      '<tr class="pl-hint-row"><td colspan="3" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+  }
+
   function aplicarSaldos(lista, mapa) {
     if (!mapa) return lista;
     (lista || []).forEach(function (p) {
@@ -217,9 +223,7 @@
       });
     }
     renderCart();
-    if (dom.hits) {
-      dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
-    }
+    hitsHint('Digite o nome, GM ou código.');
     if (dom.busca) dom.busca.value = '';
   }
 
@@ -271,9 +275,7 @@
     q = String(q || '').trim();
     if (q.length < 2) {
       buscaSeq += 1;
-      if (dom.hits) {
-        dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
-      }
+      hitsHint('Digite o nome, GM ou código.');
       return;
     }
     var seq = ++buscaSeq;
@@ -311,37 +313,32 @@
         if (!dom.hits || !pack) return;
         var lista = pack.lista || [];
         if (!lista.length) {
-          dom.hits.innerHTML =
-            '<p class="text-base font-bold text-slate-500">Nenhum produto.</p>';
+          hitsHint('Nenhum produto.');
           return;
         }
         dom.hits.innerHTML = lista
           .map(function (p) {
             var id = produtoId(p);
             return (
-              '<button type="button" class="pl-hit" data-pl-add="' +
+              '<tr class="pl-hit" data-pl-add="' +
               escapeHtml(id) +
               '">' +
-              '<span class="pl-name">' +
+              '<td class="pl-td-nome">' +
               escapeHtml(p.nome || '') +
-              '</span>' +
-              '<span class="pl-saldos">' +
-              '<span class="pl-saldo-pill"><b>' +
+              '</td>' +
+              '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +
-              '</b></span>' +
-              '<span class="pl-saldo-pill"><b>' +
+              '</td>' +
+              '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_vila'))) +
-              '</b></span>' +
-              '</span></button>'
+              '</td></tr>'
             );
           })
           .join('');
         dom.hits._hits = lista;
       })
       .catch(function () {
-        if (dom.hits) {
-          dom.hits.innerHTML = '<p class="text-sm font-bold text-red-700">Erro na busca.</p>';
-        }
+        hitsHint('Erro na busca.');
       });
   }
 
