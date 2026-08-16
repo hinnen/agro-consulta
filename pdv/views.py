@@ -53,6 +53,12 @@ _DEFAULT_MAQUININHAS_PIX_PDV = [
         "lojas": ["vila"],
     },
     {"id": "pix_sicredi", "nome": "Sicredi — Pix", "rede": "sicredi", "lojas": ["vila"]},
+    {
+        "id": "pix_sicoob_chave",
+        "nome": "Sicoob — Chave Pix (WhatsApp)",
+        "rede": "sicoob",
+        "lojas": ["centro", "vila"],
+    },
 ]
 
 
