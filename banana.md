@@ -1221,12 +1221,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08k)
 
 > **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
-> **Pronto envio:** 2 pacotes abaixo · path SAVE-ORC revalidado **31/31** (16/08 tarde)
+> **Pronto envio:** 3 pacotes abaixo
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
-| 2 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** | não |
+| 1 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio** / tip teste | não |
+| 2 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
+| 3 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** | não |
+
+### 📦 PACOTE PRONTO — Repasse tela + cards mês (`REPASSE-HIST-CARDS`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Visual Display Scale · cards **Enviado ao Centro** + **Lucro ficou na Vila** |
+| **Prova** | path **48** · deep **70** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/repasse-vila/` |
 
 ### 📦 PACOTE PRONTO — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA` · **v16.92**)
 
