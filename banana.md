@@ -1216,6 +1216,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b)
+
+> **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
+> **NÃO** merge `teste`→`producao` sem frase + senha.  
+> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste (este push) | não |
+
+### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Escolher **dia** (hoje ou atrasado até 180d) no overlay/tela · histórico clicável · dinheiro sai do caixa **agora** · bloqueia futuro |
+| **Prova** | path **VERIFY_OK 36** · deep **VERIFY_DEEP_OK 63** (ontem + futuro 400) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Retiradas → Repasse · mudar **Dia do repasse** · ou clicar o dia no histórico |
+
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
 > **Status:** ✅ **enviado / Live v16.69** · `producao` @ **11d4d5b** · base Live **v16.68** @ **677b3a1**
