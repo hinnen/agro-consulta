@@ -1218,53 +1218,66 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08k)
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**)
 
-> **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
-> **Pronto envio:** 4 pacotes
+> **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40`  
+> **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **FECHAR-CAIXA-LOJA** | ✅ **pronto para envio** / tip teste | não |
-| 2 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio** / teste **v16.99** @ **6c29d73** | não |
-| 3 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
-| 4 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v17.00** @ **6aa7f4d** | não |
+| 1 | **FECHAR-CAIXA-LOJA** | ✅ enviado / Live v17.01 | não |
+| 2 | **REPASSE-HIST-CARDS** | ✅ enviado / Live v17.01 | não |
+| 3 | **SAVE-ORC-CAIXA** | ✅ enviado / Live v17.01 | **SIM** 0090 (Render) |
+| 4 | **PDV-BALANCA-COM-ESC** | ✅ enviado / Live v17.01 | não |
 
-### 📦 PACOTE PRONTO — Fechar caixa Vila/Centro (`FECHAR-CAIXA-LOJA`)
+### ✅ Deploy loja — checklist 16/08k (`deploy/lote-checklist-1608k` · **v17.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
+| **Status** | ✅ **enviado / Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40` |
+| **Pacotes** | SAVE-ORC-CAIXA · REPASSE-HIST-CARDS · PDV-BALANCA-COM-ESC · FECHAR-CAIXA-LOJA |
+| **Cherry** | `b9bd96b` → `6c29d73` → `c87ae4a` → `6aa7f4d` → `6493599` (tips loja: `901f06d`…`09a07d6`) |
+| **Prova** | fechar **26/26** · save-orc **31/31** · repasse path+deep · balança JS OK · autosave contado preservado |
+| **Migrate** | **SIM** 0090 (`CaixaConferenciaRascunhoAgro`) — Render no deploy |
+| **Rollback** | tag `producao-rollback-v16.90-20260816` @ **215d0a9** |
+| **Base anterior** | Live v16.90 @ **215d0a9** |
+| **Você** | **Ctrl+F5** · badge **v17.01** · Fechar caixa (Vila/Centro) · F2 orçamentos · `/repasse-vila/` · F10 balança |
+
+### 📦 PACOTE — Fechar caixa Vila/Centro (`FECHAR-CAIXA-LOJA`) · **Live v17.01**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** |
 | **O quê** | Fiado/vale/cashback auto + ocultos · Centro: Point MP auto oculto · PIX/débito/crédito num campo · **autosave contado intacto** |
 | **Prova** | `verify_caixa_fechar_loja_path.py` **26** · save-orc **31/31** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Fechar caixa Vila e Centro |
 
-### 📦 PACOTE PRONTO — Repasse tela + cards mês (`REPASSE-HIST-CARDS`)
+### 📦 PACOTE — Repasse tela + cards mês (`REPASSE-HIST-CARDS`) · **Live v17.01**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | ✅ **enviado / Live v17.01** |
 | **O quê** | Visual Display Scale · cards **Enviado ao Centro** + **Lucro ficou na Vila** |
 | **Migrate** | **NÃO** |
 | **Cherry** | `6c29d73` |
 | **Você** | Ctrl+F5 `/repasse-vila/` |
 
-### 📦 PACOTE PRONTO — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA` · **v16.92**)
+### 📦 PACOTE — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA`) · **Live v17.01**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | ✅ **enviado / Live v17.01** |
 | **O quê** | F2 lista orçamentos Postgres · contagem fechar caixa multi-PC |
 | **Prova** | `verify_save_orc_caixa_path.py` **31/31** |
 | **Migrate** | **SIM** 0090 |
 | **Cherry** | `b9bd96b` |
 
-### 📦 PACOTE PRONTO — Balança COM/ESC (`PDV-BALANCA-COM-ESC` · **v17.00**)
+### 📦 PACOTE — Balança COM/ESC (`PDV-BALANCA-COM-ESC`) · **Live v17.01**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | ✅ **enviado / Live v17.01** |
 | **O quê** | Detecta impressora (ESC) · CONECTAR reabre picker · fingerprint · só peso com STX · barcode `0010` |
 | **Prova** | Bugbot corrigido · `scripts/_test_pdv_balanca_logic.js` **22/22** |
 | **Migrate** | **NÃO** |
