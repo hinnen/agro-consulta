@@ -1221,71 +1221,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08k)
 
 > **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
-> **Pronto envio:** 3 pacotes abaixo
+> **Pronto envio:** 3 pacotes · balança revalidada (Bugbot + **22/22**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio** / tip teste | não |
-| 2 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
-| 3 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v16.93** @ **c87ae4a** | não |
+| 1 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio à produção** / teste **v16.99** @ **6c29d73** | não |
+| 2 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio à produção** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
+| 3 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio à produção** / teste **v17.00** @ **6aa7f4d** | não |
 
 ### 📦 PACOTE PRONTO — Repasse tela + cards mês (`REPASSE-HIST-CARDS`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
+| **Status** | ✅ **pronto para envio à produção** |
 | **O quê** | Visual Display Scale · cards **Enviado ao Centro** + **Lucro ficou na Vila** |
-| **Prova** | path **48** · deep **70** |
 | **Migrate** | **NÃO** |
+| **Cherry** | `6c29d73` |
 | **Você** | Ctrl+F5 `/repasse-vila/` |
 
 ### 📦 PACOTE PRONTO — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA` · **v16.92**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | F2 lista orçamentos do Postgres · contagem fechar caixa (`dia::loja`) multi-PC |
-| **Prova** | `verify_save_orc_caixa_path.py` **31/31** (revalidado 16/08) |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | F2 lista orçamentos Postgres · contagem fechar caixa multi-PC |
+| **Prova** | `verify_save_orc_caixa_path.py` **31/31** |
 | **Migrate** | **SIM** 0090 |
 | **Cherry** | `b9bd96b` |
-| **Você** | Ctrl+F5 · F2 · Fechar caixa digita → outro PC vê |
 
-### 📦 PACOTE PRONTO — Balança COM errada/ESC (`PDV-BALANCA-COM-ESC` · **v16.93**)
+### 📦 PACOTE PRONTO — Balança COM/ESC (`PDV-BALANCA-COM-ESC`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Detecta RX `ESC` (impressora) · força CONECTAR · grava fingerprint da balança |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Detecta impressora (ESC) · CONECTAR reabre picker · fingerprint · só peso com STX · barcode `0010` |
+| **Prova** | Bugbot corrigido · `scripts/_test_pdv_balanca_logic.js` **22/22** |
 | **Migrate** | **NÃO** |
-| **Cherry** | `c87ae4a` |
 | **Você** | F10 → **CONECTAR** → COM da **balança** (não impressora) |
 
-### ✅ Deploy loja — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.90**)
+### ✅ Live recente (não reenviar)
 
-> **Status:** ✅ **enviado / Live v16.90** · `producao` @ **215d0a9**  
-> **Cherry:** `8f64f1d` · tag `producao-rollback-pre-repasse-manual-20260816` · **sem migrate**
-
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | **REPASSE-VALOR-MANUAL** | ✅ enviado / Live v16.90 |
-
-**Você:** Ctrl+F5 Repasse · digitar **600** → Confirmar.
-
-### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · **v16.89**)
-
-> **Status:** ✅ **enviado / Live v16.89** · `producao` @ **c70d195** · **sem migrate**
-
-### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
-
-> **Status:** ✅ **enviado / Live v16.84** · `producao` @ **a6d3fbf** · **sem migrate**
-
-### ✅ CHECKLIST ÚNICO — após loja v16.90 (16/08j) · **superado**
-
-> Substituído pelo checklist **16/08k** (pronto envio).
-
-### ✅ CHECKLIST ÚNICO — após loja v16.89 (16/08i) · **superado**
-
-> Hotfix manual → **Live v16.90**.
+| Pacote | Live |
+| ------ | ---- |
+| **REPASSE-VALOR-MANUAL** | v16.90 @ `215d0a9` |
+| **PDV-BALANCA-HOTFIX3** | v16.89 @ `c70d195` |
 
 ### ✅ Deploy loja — LOTE B balança (`PDV-BALANCA-GRANEL` · **v16.82**)
 
