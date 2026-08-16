@@ -10,6 +10,7 @@ from produtos.caixa_util import (
     PONTO_CAIXA_NOTEBOOK,
     adotar_sessao_caixa_unica_aberta,
     filtrar_maquininhas_pdv_sem_mp,
+    filtrar_maquininhas_por_loja,
     navegador_pode_mp_point_automatico,
     obter_sessao_caixa_aberta_request,
     ponto_operacao_browser,
@@ -19,18 +20,39 @@ from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
-    {"id": "mp_balcao", "nome": "Mercado Pago — Balcão (automático)", "rede": "mp"},
-    {"id": "cielo_1", "nome": "Cielo", "rede": "cielo"},
-    {"id": "sicredi_1", "nome": "Sicredi", "rede": "sicredi"},
-    {"id": "mp_renan", "nome": "Mercado Pago Renan", "rede": "mp"},
+    {
+        "id": "mp_balcao",
+        "nome": "Mercado Pago Centro (automático)",
+        "rede": "mp",
+        "lojas": ["centro"],
+    },
+    {"id": "cielo_1", "nome": "Cielo", "rede": "cielo", "lojas": ["centro"]},
+    {"id": "mp_renan", "nome": "Mercado Pago Renan", "rede": "mp", "lojas": ["centro"]},
+    {"id": "mp_vila", "nome": "Mercado Pago Vila", "rede": "mp", "lojas": ["vila"]},
+    {"id": "sicredi_1", "nome": "Sicredi", "rede": "sicredi", "lojas": ["vila"]},
 ]
 
 _DEFAULT_MAQUININHAS_PIX_PDV = [
-    {"id": "pix_mp_qr", "nome": "Mercado Pago — Pix (automático)", "rede": "mp"},
-    {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo"},
-    {"id": "pix_sicredi", "nome": "Sicredi — Pix", "rede": "sicredi"},
-    {"id": "pix_sicoob_chave", "nome": "Sicoob — Chave Pix", "rede": "sicoob"},
-    {"id": "pix_mp_renan", "nome": "Mercado Pago Renan", "rede": "mp"},
+    {
+        "id": "pix_mp_qr",
+        "nome": "Mercado Pago Centro — Pix (automático)",
+        "rede": "mp",
+        "lojas": ["centro"],
+    },
+    {"id": "pix_cielo", "nome": "Cielo — Pix", "rede": "cielo", "lojas": ["centro"]},
+    {
+        "id": "pix_mp_renan",
+        "nome": "Mercado Pago Renan — Pix",
+        "rede": "mp",
+        "lojas": ["centro"],
+    },
+    {
+        "id": "pix_mp_vila",
+        "nome": "Mercado Pago Vila — Pix",
+        "rede": "mp",
+        "lojas": ["vila"],
+    },
+    {"id": "pix_sicredi", "nome": "Sicredi — Pix", "rede": "sicredi", "lojas": ["vila"]},
 ]
 
 
@@ -103,6 +125,12 @@ def pdv_home(request):
     from produtos.campanha_pdv_util import bootstrap_campanha
 
     dep_boot = bootstrap_deposito(request)
+    dep_loja = str(dep_boot.get("deposito") or "centro").strip().lower()
+    maq_cartao = filtrar_maquininhas_por_loja(_maquininhas_cartao_effective(), dep_loja)
+    maq_pix = filtrar_maquininhas_por_loja(_maquininhas_pix_effective(), dep_loja)
+    if not mp_point_enabled:
+        maq_cartao = filtrar_maquininhas_pdv_sem_mp(maq_cartao)
+        maq_pix = filtrar_maquininhas_pdv_sem_mp(maq_pix)
     ctx = {
         "caixa_aberto": caixa_aberto,
         "caixa_rotulo": rotulo_caixa_browser(request, caixa_aberto) if caixa_aberto else "Caixa fechado",
@@ -223,7 +251,7 @@ def pdv_home(request):
                 "mpPointEnabled": mp_point_enabled,
                 "mpPointMotivoBloqueio": (
                     "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
-                    "Neste PDV use Cielo, Sicredi ou Sicoob."
+                    "Neste PDV use as máquinas manuais da loja."
                     if mp_point_configurado
                     and not mp_point_nav
                     and ponto_nav == PONTO_CAIXA_NOTEBOOK
@@ -238,16 +266,8 @@ def pdv_home(request):
                 "chavePixSicob": settings.PDV_CHAVE_PIX_SICOB,
                 "saldoValeCredito": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_VALE_CREDITO, 0.0),
                 "saldoCashback": _safe_float_ptbr(settings.PDV_WIZARD_SALDO_CASHBACK, 0.0),
-                "maquininhasCartao": (
-                    _maquininhas_cartao_effective()
-                    if mp_point_enabled
-                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_cartao_effective())
-                ),
-                "maquininhasPix": (
-                    _maquininhas_pix_effective()
-                    if mp_point_enabled
-                    else filtrar_maquininhas_pdv_sem_mp(_maquininhas_pix_effective())
-                ),
+                "maquininhasCartao": maq_cartao,
+                "maquininhasPix": maq_pix,
             },
             "nfce": nfce_config_resumo(),
         },

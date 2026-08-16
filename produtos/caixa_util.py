@@ -1203,7 +1203,7 @@ def limpar_navegador_host_mp_point(request) -> None:
         request.session.modified = True
 
 
-# Só Point/Pix automático — maquininha manual «Mercado Pago Renan» permanece no notebook.
+# Só Point/Pix automático — maquininha manual «Mercado Pago Renan» / «MP Vila» permanecem.
 _MAQUININHAS_MP_POINT_AUTO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
 
 
@@ -1217,6 +1217,25 @@ def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
         if mid in _MAQUININHAS_MP_POINT_AUTO_IDS:
             continue
         out.append(m)
+    return out
+
+
+def filtrar_maquininhas_por_loja(maquininhas: list | None, deposito: str | None) -> list:
+    """Mantém só máquinas da loja (centro|vila). Sem campo ``lojas`` = todas (legado)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    out: list = []
+    for m in maquininhas or []:
+        if not isinstance(m, dict):
+            continue
+        lojas = m.get("lojas")
+        if not lojas:
+            out.append(m)
+            continue
+        allowed = {str(x).strip().lower() for x in lojas if str(x).strip()}
+        if dep in allowed:
+            out.append(m)
     return out
 
 

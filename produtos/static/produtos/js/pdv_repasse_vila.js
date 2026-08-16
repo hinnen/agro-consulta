@@ -138,6 +138,12 @@
     document.getElementById('pdv-rp-cmv-dia').textContent = money(c.cmv_dia);
     document.getElementById('pdv-rp-lucro-dia').textContent = money(c.lucro_bruto_dia);
     document.getElementById('pdv-rp-fiado-dia').textContent = money(c.fiado_pago_dia);
+    var eletEl = document.getElementById('pdv-rp-elet');
+    if (eletEl) eletEl.textContent = money(c.ja_eletronico);
+    var jaDin = document.getElementById('pdv-rp-ja-din');
+    if (jaDin) jaDin.textContent = money((c.ja_enviado || {}).total);
+    var faltaEl = document.getElementById('pdv-rp-falta');
+    if (faltaEl) faltaEl.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
     document.getElementById('pdv-rp-disp-cmv').textContent = money(d.cmv);
     document.getElementById('pdv-rp-disp-lucro').textContent = money(d.lucro);
     document.getElementById('pdv-rp-disp-fiado').textContent = money(d.fiado);

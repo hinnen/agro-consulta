@@ -159,11 +159,40 @@ def main() -> int:
     ok("fiado fora") if vf.pk not in ids else fail("fiado no calc")
     ok("normal no calc") if v.pk in ids else fail("normal fora")
 
-    lucro = Decimal(str(calc["lucro_bruto_dia"]))
-    alvo = (max(Decimal("0"), lucro) * Decimal("50") / Decimal("100")).quantize(
+    # Venda PIX — já no Centro, reduz falta em dinheiro
+    v_pix = VendaAgro.objects.create(
+        total=Decimal("100.00"),
+        forma_pagamento="PIX",
+        deposito="vila",
+        cliente_nome=tag,
+        usuario_registro="bot",
+        pagamentos_json=[{"forma": "PIX", "valor": 100}],
+    )
+    ItemVendaAgro.objects.create(
+        venda=v_pix,
+        produto_id_externo=pid,
+        descricao="Pix item",
+        quantidade=Decimal("1"),
+        valor_unitario=Decimal("100"),
+        valor_total=Decimal("100"),
+    )
+    calc_e = calcular_disponivel(hoje, percentual_lucro=50)
+    ok("ja_eletronico>=100") if float(calc_e.get("ja_eletronico") or 0) >= 99.9 else fail(
+        f"elet={calc_e.get('ja_eletronico')}"
+    )
+    # bolo sobe com a receita PIX; falta dinheiro < bolo se eletrônico cobrir parte
+    alvo = float(calc_e.get("alvo_total") or 0)
+    falta = float(calc_e.get("falta_dinheiro") or 0)
+    elet = float(calc_e.get("ja_eletronico") or 0)
+    ok("falta < alvo com PIX") if falta < alvo - 0.01 and elet >= 99.9 else fail(
+        f"alvo={alvo} falta={falta} elet={elet}"
+    )
+
+    lucro = Decimal(str(calc_e["lucro_bruto_dia"]))
+    alvo_lucro = (max(Decimal("0"), lucro) * Decimal("50") / Decimal("100")).quantize(
         Decimal("0.01")
     )
-    ok("alvo lucro 50%") if abs(Decimal(str(calc["alvos"]["lucro"])) - alvo) <= Decimal(
+    ok("alvo lucro 50%") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
         "0.02"
     ) else fail("alvo lucro")
 
@@ -277,9 +306,13 @@ def main() -> int:
     calc2 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=False)
     calc3 = calcular_disponivel(hoje, percentual_lucro=50, modo_dia_cheio=True)
     ok(f"incremental total={calc2['disponivel']['total']}")
-    ok("dia cheio CMV=alvo") if abs(
-        calc3["disponivel"]["cmv"] - calc3["alvos"]["cmv"]
-    ) <= 0.02 else fail("dia cheio")
+    # Dia cheio ignora dinheiro já enviado, mas ainda credita cartão/PIX
+    ok("dia cheio > incremental") if float(calc3["disponivel"]["total"]) + 0.01 >= float(
+        calc2["disponivel"]["total"]
+    ) else fail("dia cheio")
+    ok("dia cheio credita elet") if float(calc3.get("ja_eletronico") or 0) >= 99.9 else fail(
+        "dia cheio sem elet"
+    )
 
     pendentes = list(
         RepasseVilaCentroAgro.objects.filter(status_centro="pendente", observacao=tag)

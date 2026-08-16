@@ -21,6 +21,14 @@ from produtos.models import (
 ZERO = Decimal("0.00")
 # Limite para transferência de dia atrasado (esqueci ontem / semana).
 REPASSE_MAX_DIAS_ATRASO = 180
+FORMAS_ELETRONICAS_REPASSE = frozenset(
+    {
+        "PIX",
+        "Cartão de débito",
+        "Cartão de crédito",
+        "Cartão de crédito parcelado",
+    }
+)
 
 
 def _dec(v) -> Decimal:
@@ -139,20 +147,105 @@ def _fiado_pago_vila(dia: date) -> Decimal:
     return _dec(qs.aggregate(t=Sum("valor")).get("t"))
 
 
+def _forma_eh_eletronica(forma: str) -> bool:
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+
+    return normalizar_forma_pagamento_caixa(forma) in FORMAS_ELETRONICAS_REPASSE
+
+
+def _forma_eh_dinheiro(forma: str) -> bool:
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
+
+    return normalizar_forma_pagamento_caixa(forma or "Dinheiro") == "Dinheiro"
+
+
+def _ja_eletronico_vila(dia: date) -> Decimal:
+    """Cartão/PIX da Vila no dia — já cai na conta do Centro (não precisa levar)."""
+    from produtos.caixa_util import pagamentos_por_forma_venda
+
+    desde, ate = _aware_bounds(dia, dia)
+    ids = _vendas_vila_sem_fiado(desde, ate)
+    total = ZERO
+    if ids:
+        for v in VendaAgro.objects.filter(pk__in=ids).only(
+            "pk", "pagamentos_json", "forma_pagamento", "total"
+        ):
+            por = pagamentos_por_forma_venda(v)
+            for fn, val in por.items():
+                if fn in FORMAS_ELETRONICAS_REPASSE:
+                    total += _dec(val)
+    # Fiado pago na Vila com cartão/PIX também já está no Centro
+    baixas = FiadoBaixaAgro.objects.filter(
+        criado_em__gte=desde,
+        criado_em__lte=ate,
+        sessao_caixa__ponto_caixa="vila",
+        titulo__venda_agro__deposito__iexact="vila",
+    ).only("valor", "forma_pagamento")
+    for b in baixas:
+        if _forma_eh_eletronica(b.forma_pagamento):
+            total += _dec(b.valor)
+    return total.quantize(Decimal("0.01"))
+
+
 def _ja_enviado_dia(dia: date) -> dict[str, Decimal]:
+    """Só repasses físicos em dinheiro (completo do bolo em espécie)."""
     qs = RepasseVilaCentroAgro.objects.filter(data_ref=dia)
-    agg = qs.aggregate(
-        cmv=Sum("valor_cmv"),
-        lucro=Sum("valor_lucro"),
-        fiado=Sum("valor_fiado"),
-        total=Sum("valor_total"),
-    )
+    cmv = lucro = fiado = total = ZERO
+    for e in qs.only(
+        "valor_cmv", "valor_lucro", "valor_fiado", "valor_total", "forma_pagamento"
+    ):
+        if not _forma_eh_dinheiro(e.forma_pagamento):
+            # legado / outras formas contam como físico também se não for eletrônico
+            if _forma_eh_eletronica(e.forma_pagamento):
+                continue
+        cmv += _dec(e.valor_cmv)
+        lucro += _dec(e.valor_lucro)
+        fiado += _dec(e.valor_fiado)
+        total += _dec(e.valor_total)
     return {
-        "cmv": _dec(agg.get("cmv")),
-        "lucro": _dec(agg.get("lucro")),
-        "fiado": _dec(agg.get("fiado")),
-        "total": _dec(agg.get("total")),
+        "cmv": cmv.quantize(Decimal("0.01")),
+        "lucro": lucro.quantize(Decimal("0.01")),
+        "fiado": fiado.quantize(Decimal("0.01")),
+        "total": total.quantize(Decimal("0.01")),
     }
+
+
+def _aplicar_credito_eletronico(
+    disp_cmv: Decimal,
+    disp_lucro: Decimal,
+    disp_fiado: Decimal,
+    ja_elet: Decimal,
+) -> tuple[Decimal, Decimal, Decimal, Decimal]:
+    """Desconta cartão/PIX do restante a levar, proporcional aos componentes."""
+    total = (disp_cmv + disp_lucro + disp_fiado).quantize(Decimal("0.01"))
+    if total <= 0 or ja_elet <= 0:
+        return disp_cmv, disp_lucro, disp_fiado, ZERO
+    elet = min(ja_elet, total)
+    # proporção
+    f_cmv = (disp_cmv / total) if total else ZERO
+    f_lucro = (disp_lucro / total) if total else ZERO
+    f_fiado = (disp_fiado / total) if total else ZERO
+    c = (disp_cmv - (elet * f_cmv)).quantize(Decimal("0.01"))
+    l = (disp_lucro - (elet * f_lucro)).quantize(Decimal("0.01"))
+    fi = (disp_fiado - (elet * f_fiado)).quantize(Decimal("0.01"))
+    if c < 0:
+        c = ZERO
+    if l < 0:
+        l = ZERO
+    if fi < 0:
+        fi = ZERO
+    # ajusta centavos no maior
+    soma = (c + l + fi).quantize(Decimal("0.01"))
+    esperado = (total - elet).quantize(Decimal("0.01"))
+    dif = (esperado - soma).quantize(Decimal("0.01"))
+    if dif != 0:
+        if c >= l and c >= fi:
+            c = (c + dif).quantize(Decimal("0.01"))
+        elif l >= fi:
+            l = (l + dif).quantize(Decimal("0.01"))
+        else:
+            fi = (fi + dif).quantize(Decimal("0.01"))
+    return c, l, fi, elet.quantize(Decimal("0.01"))
 
 
 def calcular_disponivel(
@@ -184,7 +277,9 @@ def calcular_disponivel(
     fiado_alvo = fiado_dia
 
     ja = _ja_enviado_dia(dia)
+    ja_elet = _ja_eletronico_vila(dia)
     if modo_dia_cheio:
+        # Dia cheio = ignora dinheiro já enviado; cartão/PIX do dia ainda credita
         disp_cmv = cmv_alvo
         disp_lucro = lucro_alvo
         disp_fiado = fiado_alvo
@@ -193,7 +288,12 @@ def calcular_disponivel(
         disp_lucro = max(ZERO, lucro_alvo - ja["lucro"])
         disp_fiado = max(ZERO, fiado_alvo - ja["fiado"])
 
+    disp_cmv, disp_lucro, disp_fiado, elet_aplicado = _aplicar_credito_eletronico(
+        disp_cmv, disp_lucro, disp_fiado, ja_elet
+    )
+
     total_disp = (disp_cmv + disp_lucro + disp_fiado).quantize(Decimal("0.01"))
+    alvo_total = (cmv_alvo + lucro_alvo + fiado_alvo).quantize(Decimal("0.01"))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
@@ -208,6 +308,10 @@ def calcular_disponivel(
         "skus_com_custo": base["skus_com_custo"],
         "skus_sem_custo": base["skus_sem_custo"],
         "ja_enviado": {k: float(v) for k, v in ja.items()},
+        "ja_eletronico": float(ja_elet),
+        "ja_eletronico_aplicado": float(elet_aplicado),
+        "alvo_total": float(alvo_total),
+        "falta_dinheiro": float(total_disp),
         "disponivel": {
             "cmv": float(disp_cmv),
             "lucro": float(disp_lucro),
@@ -410,9 +514,10 @@ def confirmar_repasse(
             total = vm
 
     if total <= 0:
-        return None, "Nada a transferir com as opções marcadas."
+        return None, "Nada a levar em dinheiro (cartão/PIX já cobriu ou já enviado)."
 
     fn = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
+    # Completar o dia = físico; se mandar eletrônico de novo, ainda registra no caixa
     user = (
         request.user
         if getattr(request, "user", None) and request.user.is_authenticated
@@ -424,7 +529,10 @@ def confirmar_repasse(
         tipo=MovimentoCaixa.Tipo.RETIRADA,
         forma_pagamento=fn,
         valor=total,
-        observacao=f"Repasse Vila→Centro · ref {dia.strftime('%d/%m/%Y')} · {quem}"[:500],
+        observacao=(
+            f"Repasse Vila→Centro · ref {dia.strftime('%d/%m/%Y')} · {quem} · "
+            f"falta dinheiro (máquinas já no Centro)"
+        )[:500],
         usuario=user,
     )
 
