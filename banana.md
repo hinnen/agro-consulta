@@ -419,7 +419,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
-- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** move saldo · PIN da sessão · layout **PC primeiro** (modal largo; celular ok) · WhatsApp fase 2 · migrate `estoque.0018`.
+- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** (modal ~64rem, coluna única) · botão topbar rosa ao lado de Saldo Vila · WhatsApp fase 2 · migrate `estoque.0018`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1216,9 +1216,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP — Pedir loja PC + cor rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
+
+> **Status:** 🔧 **só no teste** · aguarda Ctrl+F5 local · **não** loja sem frase+senha
+> **O quê:** overlay coluna única PC (~64rem) · **Pedir loja** rosa (fora do whitewash da topbar) · **Transferir estoque** rosa · pills Saldo Centro/Vila
+> **Você:** PDV local · Ctrl+F5 · ver botão rosa · abrir overlay · busca milho
+
 ### ✅ Deploy loja — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**)
 
-> **Status:** ✅ **enviado / Live v16.55** · `producao` @ **5da53b3** · Render `dep-da0hv4m1egvs739guu70`  
+> **Status:** ✅ **enviado / Live v16.55** · `producao` @ **5da53b3** · Render `dep-da0hv4m1egvs739guu70`
 > **Base anterior:** Live v16.53 @ **fc01036**
 
 | Item | Detalhe |

@@ -128,13 +128,13 @@
   function applyBadge(n) {
     n = Number(n || 0);
     if (dom.btnOpen) {
-      var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
+      var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--rose relative';
       if (n > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
       dom.btnOpen.className = base;
       dom.btnOpen.title =
         n > 0
           ? n + ' pedido(s) da outra loja'
-          : 'Pedir produto da outra loja';
+          : 'Pedir produto da outra loja (Centro ↔ Vila)';
     }
     if (dom.btnCount) {
       if (n > 0) {
@@ -200,10 +200,11 @@
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="py-8 text-center text-base font-bold text-slate-500">Busque o produto acima.</p>';
+        '<p class="py-8 text-center text-sm font-bold text-slate-500">Nenhum item ainda — busque acima (1 ou vários).</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
+    var outraLbl = depositoAtual() === 'vila' ? 'Saldo Centro' : 'Saldo Vila';
     dom.cart.innerHTML = cart
       .map(function (it, idx) {
         return (
@@ -216,9 +217,13 @@
           idx +
           '" aria-label="Tirar da lista">×</button>' +
           '</div>' +
-          '<p class="pl-stock"><small>Na outra loja</small>' +
+          '<div class="pl-saldos mt-2">' +
+          '<div class="pl-saldo-pill"><small>' +
+          escapeHtml(outraLbl) +
+          '</small><b>' +
           escapeHtml(String(it[outra] != null ? it[outra] : '—')) +
-          '</p>' +
+          '</b></div>' +
+          '</div>' +
           '<div class="pl-qty-row">' +
           '<button type="button" class="pl-qty-btn" data-pl-q="-1" data-i="' +
           idx +
@@ -269,10 +274,13 @@
               '<span class="pl-name">' +
               escapeHtml(p.nome || '') +
               '</span>' +
-              '<span class="pl-stock"><small>Centro · Vila</small>' +
+              '<span class="pl-saldos">' +
+              '<span class="pl-saldo-pill"><small>Saldo Centro</small><b>' +
               escapeHtml(String(p.saldo_centro != null ? p.saldo_centro : '—')) +
-              ' · ' +
+              '</b></span>' +
+              '<span class="pl-saldo-pill"><small>Saldo Vila</small><b>' +
               escapeHtml(String(p.saldo_vila != null ? p.saldo_vila : '—')) +
+              '</b></span>' +
               '</span></button>'
             );
           })
@@ -356,7 +364,7 @@
       btns.push('<button type="button" class="pl-btn pl-btn--ok" data-pl-acao="pronto">Pronto</button>');
     }
     if ((st === 'aceito' || st === 'pronto') && (aba === 'recebidos' || aba === 'enviados')) {
-      btns.push('<button type="button" class="pl-btn pl-btn--warn" data-pl-acao="transferir">Transferir estoque</button>');
+      btns.push('<button type="button" class="pl-btn pl-btn--transf" data-pl-acao="transferir">Transferir estoque</button>');
     }
     if (st === 'pendente' || st === 'aceito' || st === 'pronto') {
       btns.push('<button type="button" class="pl-btn pl-btn--danger" data-pl-acao="cancelar">Cancelar</button>');
