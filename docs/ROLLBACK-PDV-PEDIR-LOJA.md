@@ -7,7 +7,7 @@
 | **Commit** | `cd261d64e7ef569211ec0f5735e65c9e9d9a8438` (Live v16.56) |
 | **Tag** | `rollback/pre-pdv-pedir-loja-ux2-v16.56` |
 | **Branch backup** | `producao-backup-pre-v1658-pedir-loja-ux2-20260815` |
-| **Prep (ainda não loja)** | `prep/producao-v1658-pedir-loja-ux2` @ `3805ab2` |
+| **Prep (ainda não loja)** | `prep/producao-v1658-pedir-loja-ux2` @ `3009c03` |
 | **O quê reverte** | layout busca\|pedido · API saldos Agro · sem migrate |
 | **Migrate** | **nenhuma** |
 
