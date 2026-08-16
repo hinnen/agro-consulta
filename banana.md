@@ -1276,16 +1276,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > Hotfix manual → **Live v16.90**.
 
-### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **enviado / Live v16.84** |
-| **O quê** | Casa `0010` / `GM0010-1` · catálogo local · serial em bytes |
-| **Migrate** | **NÃO** |
-| **Produção** | `a6d3fbf` · tag rollback `producao-rollback-pre-balanca-hotfix-20260816` |
-| **Você** | Ctrl+F5 PDV · F10 · digite **10** ou **0010** · peso deve aparecer |
-
 ### ✅ Deploy loja — LOTE B balança (`PDV-BALANCA-GRANEL` · **v16.82**)
 
 > **Status:** ✅ **enviado / Live v16.82** · `producao` @ **3fd7cd3** · base Live **v16.74** @ **1c41e50**  
