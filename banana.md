@@ -1218,51 +1218,91 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08e)
+### 🚀 PREP DEPLOY LOJA — próximo chat (16/08f) · **aguardando senha**
 
 > **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
-> **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Subir juntos** (migrate **0089** no deploy da balança):
+> **NÃO** merge `teste` inteiro. **NÃO** subir sem frase + senha.  
+> **Recomendado com loja aberta:** só **LOTE A** (sem migrate · PDV venda não mexe).  
+> **Balança = LOTE B** (migrate 0089 + PDV) — **só se Renan pedir** no mesmo chat.
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** | não |
-| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.74** | não |
-| 3 | **PDV-BALANCA-GRANEL** | ✅ **pronto para envio à produção** / teste **v16.76** @ **e9e6eec** | **sim** 0089 |
+#### LOTE A — subir 1º (recomendado) · sem migrate
+
+| # | Pacote | Cherry-pick (ordem) | Migrate |
+| - | ------ | ------------------- | ------- |
+| 1 | **REPASSE-DIA-PASSADO** | `0f86a6f` | não |
+| 2 | **REPASSE-ELET-MAQUINAS** | `ecaf8d9` → `3e8bc92` | não |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Badge loja alvo** | **v16.74** (após cherry) |
+| **Prova** | path **43** · deep **66** · Opus **GO** · dry-run worktree OK · `manage.py check` OK |
+| **Risco PDV/caixa** | **Baixo** — confirm repasse só escreve MovimentoCaixa + Repasse · venda/checkout intocado |
+| **Máquinas** | Centro: Cielo + MP Centro + MP Renan · Vila: MP Vila + Sicredi · Sicoob PIX nas 2 · Point auto = `mp_balcao`/`pix_mp_qr` |
+| **Sicredi** | Só **Vila** (intencional) |
+| **Env** | `settings` **não** lê `PDV_WIZARD_MAQUININHAS*` — usa defaults do código |
+
+**Playbook próximo chat (com senha):**
+1. Zap: *pausar finalizar venda ~2 min* (FL-038 ainda manual)
+2. Tag rollback: `producao-rollback-v16.69-20260816` = `11d4d5b` + push tag
+3. Worktree `origin/producao` → cherry `0f86a6f` `ecaf8d9` `3e8bc92` (conflito só `VERSION` → **16.74**)
+4. `manage.py check` + `verify_repasse_vila_path.py` → VERIFY_OK
+5. Push `producao` · aguardar Render Live
+6. Ctrl+F5 PDV Centro **e** Vila · smoke: 1 venda Cielo/Sicredi + Sicoob PIX · Repasse hoje
+7. Banana: Live v16.74 · limpar «pronto envio» do LOTE A
+
+**Rollback:** `git push origin 11d4d5b:producao --force-with-lease` (só com autorização)
+
+#### LOTE B — balança (opcional · **não** no mesmo push sem pedir)
+
+| Pacote | Commits | Migrate | Nota |
+| ------ | ------- | ------- | ---- |
+| **PDV-BALANCA-GRANEL** | `88310f0` → `e9e6eec` | **SIM** 0089 | Mexe PDV/NFC-e · subir **depois** do LOTE A se quiser |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08f)
+
+> **Loja:** Live **v16.69**. Vigente prep: **PREP DEPLOY 16/08f** acima.
+
+| # | Pacote | Status | Migrate | Lote |
+| - | ------ | ------ | ------- | ---- |
+| 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio** / v16.70 | não | **A** |
+| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio** / v16.74 | não | **A** |
+| 3 | **PDV-BALANCA-GRANEL** | ✅ **pronto** / v16.76 @ **e9e6eec** · **só se pedir** | **sim** 0089 | **B** |
 
 ### 📦 PACOTE PRONTO — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.76**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.76** @ **e9e6eec** |
-| **O quê** | Overlay **Pesar** / **F10** · Web Serial (Urano US20/2 POP-S) · códigos 1–199 · auto-add estável · KG no item/NFC-e |
-| **Prova** | review Opus + fixes (hold 500ms, força KG, Enter async, hydrate, F10 só Produtos, NFC whitelist) |
-| **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
-| **Você** | Cadastro Unidade **KG** · balança **F→3→USE-P2** · Ctrl+F5 · F10 · Conectar COM |
+| **Status** | ✅ pronto · **LOTE B** · não default com loja aberta |
+| **O quê** | Pesar / F10 · Web Serial · KG |
+| **Migrate** | **SIM** 0089 |
+| **Você** | Cadastro KG · prova balança · Ctrl+F5 |
 
 ### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.74**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.74** |
-| **O quê** | Vila: MP Vila + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · Sicoob Chave Pix (2 lojas, só PIX) · repasse: já no Centro / falta dinheiro |
-| **Prova** | path **VERIFY_OK 43** · deep **VERIFY_DEEP_OK 66** · review Opus · MAQ_OK |
+| **Status** | ✅ **pronto para envio** · **LOTE A** · Opus GO |
+| **O quê** | Máquinas por loja · repasse desconta cartão/PIX · falta dinheiro |
+| **Prova** | path 43 · deep 66 |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 PDV Vila/Centro · Retiradas Repasse |
+| **Cherry** | `ecaf8d9` + `3e8bc92` |
 
 ### 📦 PACOTE PRONTO — Repasse dia que passou (`REPASSE-DIA-PASSADO` · **v16.70**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.70** |
-| **O quê** | Dia do repasse (hoje ou atrasado) · histórico clicável |
-| **Prova** | deep ontem + futuro bloqueado |
+| **Status** | ✅ **pronto para envio** · **LOTE A** |
+| **O quê** | Dia hoje/atrasado · histórico clicável |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Retiradas → Repasse · mudar dia |
+| **Cherry** | `0f86a6f` |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08e) · **superado**
+
+> Vigente: **16/08f** + PREP DEPLOY no topo.
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d) · **superado**
 
-> Vigente: **16/08e** no topo.
+> Vigente: **16/08f**.
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b) · **superado**
 
