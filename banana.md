@@ -1218,34 +1218,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP DEPLOY LOJA — LOTE B balança (`PDV-BALANCA-GRANEL`) · **aguarda senha**
+### ✅ Deploy loja — LOTE B balança (`PDV-BALANCA-GRANEL` · **v16.82**)
 
-> **Loja hoje:** ✅ **Live v16.74** · `producao` @ **1c41e50** (LOTE A repasse já Live)  
-> **Próximo chat:** pausar vendas → frase + senha → só este LOTE B.  
-> **NÃO** merge `teste`→`producao` (1220 commits ahead). Só cherry-pick.
+> **Status:** ✅ **enviado / Live v16.82** · `producao` @ **3fd7cd3** · base Live **v16.74** @ **1c41e50**  
+> **Cherry:** `88310f0` → `e9e6eec` → `9d6c878` · tag `producao-rollback-pre-balanca-20260816`  
+> **Migrate:** **SIM** 0089 (Render no deploy) · Serial COM4 USE-P2 9600 8N1
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PDV-BALANCA-GRANEL** | ✅ **pronto** · aguarda senha · teste **e9e6eec** | **sim** 0089 |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
 
-**Cherry (ordem):** `88310f0` → `e9e6eec` → `9d6c878` (parser USE-P2 + 8N1)  
-**Conflitos previstos (dry-run OK):**
-- `VERSION` → manter loja e bump no commit
-- `banana.md` → `--ours` + bloco Live no fim
-- `pdv_state.js` (só no 2º cherry) → **keep-both**: preservar `precos_*` da loja **e** linhas `unidade` da balança; no hunk do `codigoGm`, manter o da loja
+**Você:** Ctrl+F5 PDV · F10 · Conectar **COM4** · pesar 1 kg ≈ 1,000.
 
-**Risco PDV aberto:** baixo se ninguém abrir **Pesar** — feature dorme até F10+COM. Migrate `0089` só AddField `unidade` default `UN`. NFC-e: unidades estranhas → `UN` (igual hoje).
-
-**Serial loja (confirmado):** COM4 · USE-P2 · **9600 8N1** · frame `[STX]001000[CR]` = 1,000 kg (parser gramas/1000). Stop bits **1** (corrigido no teste).
-
-**Pré no próximo chat:**
-1. Pausar Finalizar venda (cron pausa ou Zap loja)
-2. Frase + senha na mesma mensagem
-3. Assistente: tag rollback → cherry 2 commits → push `producao` → migrate Render → smoke → despausa
-
-**Smoke pós-deploy:** Ctrl+F5 PDV · venda normal UN · F10 → Conectar → escolher **COM4** · pesar 1 kg deve mostrar ~1,000
-
-**Rollback:** tag `producao-rollback-pre-balanca-YYYYMMDD` (criar no deploy)
+**Rollback:** `git push origin producao-rollback-pre-balanca-20260816:producao --force-with-lease` (só com senha)
 
 ### ✅ Deploy loja — LOTE A repasse (`REPASSE-DIA-PASSADO` + `REPASSE-ELET-MAQUINAS` · **v16.74**)
 
