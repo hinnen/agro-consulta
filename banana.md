@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
-> **Status:** ✅ **enviado / Live v16.69** · `producao` (este push) · base Live **v16.68** @ **677b3a1**
+> **Status:** ✅ **enviado / Live v16.69** · `producao` @ **11d4d5b** · base Live **v16.68** @ **677b3a1**
 > **Incluiu:** só CSS — coluna Código GM `7.25rem` → `9.75rem` · **sem migrate** · **risco baixo**
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-gm-col-v16.68` · branch `producao-backup-pre-v1669-pedir-gm-col-20260816` · frase+senha
 > **Você:** PDV loja · **Ctrl+F5** · badge **v16.69** · Pedir loja · busca milho · GM sem `…`
