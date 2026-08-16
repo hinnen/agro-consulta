@@ -24,6 +24,7 @@
 
   var cart = [];
   var searchTimer = null;
+  var buscaSeq = 0;
   var pollTimer = null;
   var busy = false;
   var aba = 'pedir';
@@ -267,9 +268,11 @@
   function buscar(q) {
     q = String(q || '').trim();
     if (q.length < 2) {
+      buscaSeq += 1;
       if (dom.hits) dom.hits.innerHTML = '';
       return;
     }
+    var seq = ++buscaSeq;
     var base = urls.apiBuscarProdutos || '/api/buscar/';
     fetch(base + '?wizard=1&q=' + encodeURIComponent(q), {
       credentials: 'same-origin',
@@ -300,6 +303,7 @@
           });
       })
       .then(function (pack) {
+        if (seq !== buscaSeq) return;
         if (!dom.hits || !pack) return;
         var lista = pack.lista || [];
         if (!lista.length) {

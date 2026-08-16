@@ -237,3 +237,35 @@ class ApiViewsTests(SimpleTestCase):
         body = json.loads(resp.content)
         self.assertTrue(body["ok"])
         self.assertIn("Vila", body["mensagem"])
+
+    def test_saldos_vazio(self):
+        from produtos.views_pdv_transf_loja import api_pdv_transf_loja_saldos
+
+        req = self._authed(self.rf.get("/api/pdv/transf-loja/saldos/"))
+        resp = api_pdv_transf_loja_saldos(req)
+        self.assertEqual(resp.status_code, 200)
+        body = json.loads(resp.content)
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["saldos"], {})
+
+    def test_saldos_agro(self):
+        from produtos.views_pdv_transf_loja import api_pdv_transf_loja_saldos
+
+        req = self._authed(self.rf.get("/api/pdv/transf-loja/saldos/", {"ids": "P1,P2"}))
+        with patch(
+            "produtos.views.obter_conexao_mongo",
+            return_value=(None, None),
+        ), patch(
+            "produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro",
+            return_value={
+                "P1": {"saldo_centro": 12.0, "saldo_vila": 3.5},
+                "P2": {"saldo_centro": 0.0, "saldo_vila": 8.0},
+            },
+        ):
+            resp = api_pdv_transf_loja_saldos(req)
+        self.assertEqual(resp.status_code, 200)
+        body = json.loads(resp.content)
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["saldos"]["P1"]["saldo_centro"], 12.0)
+        self.assertEqual(body["saldos"]["P1"]["saldo_vila"], 3.5)
+        self.assertEqual(body["saldos"]["P2"]["saldo_vila"], 8.0)
