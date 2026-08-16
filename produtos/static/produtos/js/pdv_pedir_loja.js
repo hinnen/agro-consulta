@@ -217,7 +217,9 @@
       });
     }
     renderCart();
-    if (dom.hits) dom.hits.innerHTML = '';
+    if (dom.hits) {
+      dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
+    }
     if (dom.busca) dom.busca.value = '';
   }
 
@@ -269,7 +271,9 @@
     q = String(q || '').trim();
     if (q.length < 2) {
       buscaSeq += 1;
-      if (dom.hits) dom.hits.innerHTML = '';
+      if (dom.hits) {
+        dom.hits.innerHTML = '<p class="pl-hint">Digite o nome, GM ou código.</p>';
+      }
       return;
     }
     var seq = ++buscaSeq;
@@ -322,10 +326,10 @@
               escapeHtml(p.nome || '') +
               '</span>' +
               '<span class="pl-saldos">' +
-              '<span class="pl-saldo-pill"><small>Saldo Centro</small><b>' +
+              '<span class="pl-saldo-pill"><b>' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_centro'))) +
               '</b></span>' +
-              '<span class="pl-saldo-pill"><small>Saldo Vila</small><b>' +
+              '<span class="pl-saldo-pill"><b>' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_vila'))) +
               '</b></span>' +
               '</span></button>'
