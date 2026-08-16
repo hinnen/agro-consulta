@@ -1222,7 +1222,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · prova local pendente (precisa balança + cabo) |
+| **Status** | ✅ **teste v16.71** @ **88310f0** · prova local pendente (precisa balança + cabo) |
 | **O quê** | Overlay **Pesar** / **F10** · Web Serial Chrome (Urano **US20/2 POP-S** · USE-P2) · códigos **1–199** sem zeros · auto-add ao estabilizar · unidade **KG** no carrinho/NFC-e |
 | **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
 | **Você** | Cadastro granel Unidade **KG** · plug RS232→USB · PDV **Ctrl+F5** · F10 · Conectar COM · digitar `1` · pesar · balança: **F→3→USE-P2** · sem hardware: console `AgroPdvBalanca.mockKg(1.25)` |
