@@ -25,13 +25,13 @@ def check(path: str, *needles: str) -> None:
 
 
 check("produtos/caixa_util.py", "filtrar_maquininhas_por_loja", "filtrar_maquininhas_pdv_sem_mp")
-check("pdv/views.py", "mp_vila", "pix_mp_vila", "filtrar_maquininhas_por_loja", "lojas")
-check("produtos/repasse_vila_util.py", "ja_eletronico", "falta_dinheiro", "_ja_eletronico_vila", "validar_data_ref_repasse")
+check("pdv/views.py", "mp_vila", "pix_mp_vila", "pix_sicoob_chave", "filtrar_maquininhas_por_loja", "lojas")
+check("produtos/repasse_vila_util.py", "ja_eletronico", "falta_dinheiro", "_ja_eletronico_vila", "validar_data_ref_repasse", "lucro_ficou_vila", "_receita_e_cmv_vila_periodo")
 check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_confirmar", "formas_pagamento", "validar_data_ref_repasse")
 check("produtos/urls.py", "repasse_vila", "api/repasse-vila/confirmar/")
 check("produtos/models.py", "RepasseVilaCentroAgro", "RepasseVilaConfigAgro")
 check("produtos/migrations/0087_repasse_vila_centro.py", "RepasseVilaCentroAgro")
-check("produtos/templates/produtos/repasse_vila.html", "Transferir", "rv-data", "rv-day")
+check("produtos/templates/produtos/repasse_vila.html", "Transferir", "rv-data", "rv-day", "rv-lucro-ficou", "Enviado ao Centro", "Lucro ficou na Vila")
 check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv-repasse-overlay", "pdv-rp-forma-grid", "pdv-rp-data")
 check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/", "forma_pagamento: formaPag", "data_ref: dataRef()")
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")

@@ -389,12 +389,22 @@ def main() -> int:
         ok(f"GET {path}") if r.status_code == 200 and r.json().get("ok") else fail(
             f"GET {path}"
         )
+    r = c.get("/api/repasse-vila/historico/")
+    if r.status_code == 200:
+        hj = r.json()
+        ok("hist lucro_ficou") if "lucro_ficou_vila" in hj and "lucro_bruto_mes" in hj else fail(
+            "hist sem cards lucro"
+        )
     r = c.get("/repasse-vila/")
     ok("GET tela") if r.status_code == 200 and b"Repasse" in r.content else fail("tela")
     if r.status_code == 200:
-        if b"caixa/retiradas" in r.content and b"repasse=1" in r.content:
+        body_tela = r.content
+        ok("cards mes UI") if (
+            b"Enviado ao Centro" in body_tela and b"Lucro ficou na Vila" in body_tela
+        ) else fail("faltou cards mes na tela")
+        if b"caixa/retiradas" in body_tela and b"repasse=1" in body_tela:
             ok("Transferir aponta Retiradas?repasse=1")
-        elif b"/pdv/" in r.content and b"repasse=1" in r.content:
+        elif b"/pdv/" in body_tela and b"repasse=1" in body_tela:
             fail("Transferir ainda aponta /pdv/")
         else:
             ok("Transferir sem /pdv/repasse")
