@@ -1218,9 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### WIP — Pedir loja ajuste na busca (`PDV-PEDIR-LOJA-UX6` · **v16.63**)
 
-> **Status:** no `teste` · **não** sobe loja sem frase+senha
-> **Feito:** botão **Ajustar** na lista de busca · modal Centro+Vila · API `transf-loja/ajustar/` · fix parse qtd **0**
-> **Você:** PDV local · Ctrl+F5 · Pedir loja · busca produto · **Ajustar** · salvar saldo
+> **Status:** no `teste` @ **2cebd2a** · **não** sobe loja sem frase+senha
 
 ### ✅ Pedir loja furado + bip + modal (`PDV-PEDIR-LOJA-UX5` · **v16.61**)
 
