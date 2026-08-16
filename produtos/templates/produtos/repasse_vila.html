@@ -24,9 +24,11 @@
   .rv-check { display: flex; align-items: center; gap: 0.5rem; min-height: 2.35rem; padding: 0.25rem 0.55rem; border: 2px solid #cbd5e1; border-radius: 0.65rem; background: #f8fafc; cursor: pointer; font-size: 0.9rem; line-height: 1.2; }
   .rv-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
   .rv-check input { width: 1.15rem; height: 1.15rem; accent-color: #059669; flex-shrink: 0; }
-  .rv-day { display: grid; grid-template-columns: 2.25rem minmax(0,1fr) auto; gap: 0.35rem; align-items: center; min-height: 1.85rem; padding: 0.15rem 0.45rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 0.875rem; line-height: 1.2; white-space: nowrap; }
+  .rv-day { display: grid; grid-template-columns: 2.25rem minmax(0,1fr) auto; gap: 0.35rem; align-items: center; min-height: 1.85rem; padding: 0.15rem 0.45rem; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 0.875rem; line-height: 1.2; white-space: nowrap; cursor: pointer; }
+  .rv-day:hover { background: #f0fdf4; }
   .rv-day > span { overflow: hidden; text-overflow: ellipsis; }
   .rv-day--hoje { background: #ecfdf5; }
+  .rv-day--sel { outline: 2px solid #059669; outline-offset: -2px; background: #d1fae5; }
   details.repasse-help > summary::-webkit-details-marker { display: none; }
 </style>
 
@@ -59,6 +61,12 @@
         <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
       </div>
     </div>
+
+    <label class="flex flex-wrap items-center gap-2">
+      <span class="rv-lbl shrink-0">Dia do repasse</span>
+      <input id="rv-data" type="date" class="min-h-[2.35rem] rounded-lg border-2 border-slate-300 px-2 text-sm font-black" />
+      <span id="rv-data-hint" class="text-xs font-bold text-slate-500">Hoje ou dia que passou</span>
+    </label>
 
     <label class="flex flex-wrap items-center gap-2">
       <span class="rv-lbl shrink-0">% lucro bruto</span>
@@ -154,12 +162,46 @@
   state.mes = state.hist.mes || ((new Date()).getMonth() + 1);
 
   var pctEl = document.getElementById('rv-pct');
+  var dataEl = document.getElementById('rv-data');
+  var dataHint = document.getElementById('rv-data-hint');
   var chkCmv = document.getElementById('rv-chk-cmv');
   var chkLucro = document.getElementById('rv-chk-lucro');
   var chkFiado = document.getElementById('rv-chk-fiado');
   var chkTodos = document.getElementById('rv-chk-todos');
   var chkCheio = document.getElementById('rv-chk-dia-cheio');
   var statusEl = document.getElementById('rv-status');
+
+  function hojeIso() {
+    var hoje = new Date();
+    return hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+  }
+  function minDataIso() {
+    var d = new Date();
+    d.setDate(d.getDate() - 180);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function dataRef() {
+    return (dataEl && dataEl.value) ? String(dataEl.value).slice(0, 10) : hojeIso();
+  }
+  function updateDataHint() {
+    if (!dataHint) return;
+    var d = dataRef();
+    var h = hojeIso();
+    if (d === h) {
+      dataHint.textContent = 'Repasse de hoje';
+      dataHint.className = 'text-xs font-bold text-slate-500';
+    } else {
+      var p = d.split('-');
+      dataHint.textContent = 'Dia passado ' + (p[2]||'') + '/' + (p[1]||'') + '/' + (p[0]||'') + ' · dinheiro sai agora';
+      dataHint.className = 'text-xs font-bold text-amber-800';
+    }
+  }
+  if (dataEl) {
+    dataEl.max = hojeIso();
+    dataEl.min = minDataIso();
+    if (!dataEl.value) dataEl.value = hojeIso();
+    updateDataHint();
+  }
 
   function renderCalc() {
     var c = state.calc || {};
@@ -178,7 +220,7 @@
     document.getElementById('rv-total').textContent = money(tot);
     var ja = c.ja_enviado || {};
     document.getElementById('rv-ja').textContent =
-      'Já enviado hoje: ' + money(ja.total) +
+      'Já enviado neste dia: ' + money(ja.total) +
       ' (CMV ' + money(ja.cmv) + ' · lucro ' + money(ja.lucro) + ' · fiado ' + money(ja.fiado) + ')';
   }
 
@@ -189,17 +231,30 @@
     document.getElementById('rv-mes-lbl').textContent = (meses[h.mes] || h.mes) + ' / ' + h.ano;
     var box = document.getElementById('rv-dias');
     box.innerHTML = '';
-    var hoje = new Date();
-    var hojeIso = hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+    var hoje = hojeIso();
+    var sel = dataRef();
     (h.dias || []).forEach(function (row) {
-      if (!row.n && row.valor <= 0 && row.data > hojeIso) return;
+      if (!row.n && row.valor <= 0 && row.data > hoje) return;
       var div = document.createElement('div');
-      div.className = 'rv-day' + (row.data === hojeIso ? ' rv-day--hoje' : '');
+      var cls = 'rv-day';
+      if (row.data === hoje) cls += ' rv-day--hoje';
+      if (row.data === sel) cls += ' rv-day--sel';
+      div.className = cls;
+      div.title = 'Transferir este dia';
+      div.setAttribute('data-data', row.data);
       var pct = row.pct_lucro_real == null ? '—' : (Number(row.pct_lucro_real).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '% lucro');
       div.innerHTML =
         '<span class="font-black text-slate-500">' + row.dia + '</span>' +
         '<span class="tabular-nums">' + money(row.valor) + (row.n ? ' · ' + row.n + '×' : '') + '</span>' +
         '<span class="text-[0.7rem] font-black uppercase text-sky-800">' + pct + '</span>';
+      div.addEventListener('click', function () {
+        if (row.data > hoje) return;
+        if (dataEl) dataEl.value = row.data;
+        updateDataHint();
+        fetchCalc();
+        syncTransferUrl();
+        renderHist();
+      });
       box.appendChild(div);
     });
   }
@@ -208,7 +263,7 @@
     var pct = pctEl.value || '50';
     var cheio = chkCheio.checked ? '1' : '0';
     statusEl.textContent = 'Atualizando…';
-    fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio, { credentials: 'same-origin' })
+    fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio + '&data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
         if (j && j.ok) { state.calc = j; renderCalc(); statusEl.textContent = ''; }
@@ -237,6 +292,14 @@
     });
   });
   chkCheio.addEventListener('change', fetchCalc);
+  if (dataEl) {
+    dataEl.addEventListener('change', function () {
+      updateDataHint();
+      fetchCalc();
+      syncTransferUrl();
+      renderHist();
+    });
+  }
   var pctTimer = null;
   pctEl.addEventListener('input', function () {
     clearTimeout(pctTimer);
@@ -268,7 +331,7 @@
     fetchHist();
   });
 
-  // Persist checkbox choices for PDV overlay via querystring
+  // Persist prefs for overlay via querystring (+ botão Transferir do header)
   function syncTransferUrl() {
     var a = document.getElementById('rv-btn-transferir');
     if (!a) return;
@@ -279,7 +342,11 @@
     q.set('lucro', chkLucro.checked ? '1' : '0');
     q.set('fiado', chkFiado.checked ? '1' : '0');
     q.set('cheio', chkCheio.checked ? '1' : '0');
+    q.set('data', dataRef());
     a.href = '{% url "caixa_retiradas_historico" %}?' + q.toString();
+    document.querySelectorAll('a[href*="caixa/retiradas"][href*="repasse=1"]').forEach(function (el) {
+      if (el !== a) el.href = a.href;
+    });
   }
   [pctEl, chkCmv, chkLucro, chkFiado, chkCheio].forEach(function (el) {
     el.addEventListener('change', syncTransferUrl);

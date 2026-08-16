@@ -55,6 +55,13 @@
     </header>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-3">
+      <div class="rp-card mb-3 flex flex-wrap items-end gap-3">
+        <label class="block min-w-0">
+          <span class="text-[0.7rem] font-black uppercase text-slate-500">Dia do repasse</span>
+          <input type="date" id="pdv-rp-data" class="rp-field mt-1 max-w-[11rem]" />
+        </label>
+        <p class="text-xs font-bold text-slate-600 pb-1" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
+      </div>
       <div class="rp-card grid grid-cols-4 gap-2 mb-3">
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Receita</div><div class="text-lg font-black tabular-nums" id="pdv-rp-receita">—</div></div>
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">CMV</div><div class="text-lg font-black tabular-nums" id="pdv-rp-cmv-dia">—</div></div>

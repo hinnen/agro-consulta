@@ -20,6 +20,8 @@
     cancelar: document.getElementById('pdv-repasse-cancelar'),
     confirmar: document.getElementById('pdv-repasse-confirmar'),
     sub: document.getElementById('pdv-repasse-sub'),
+    data: document.getElementById('pdv-rp-data'),
+    dataHint: document.getElementById('pdv-rp-data-hint'),
     pct: document.getElementById('pdv-rp-pct'),
     cmv: document.getElementById('pdv-rp-cmv'),
     lucro: document.getElementById('pdv-rp-lucro'),
@@ -33,6 +35,46 @@
     quemOutros: document.getElementById('pdv-rp-quem-outros'),
     formaGrid: document.getElementById('pdv-rp-forma-grid'),
   };
+
+  function todayIso() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function minDataIso() {
+    var d = new Date();
+    d.setDate(d.getDate() - 180);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function setupDataField() {
+    if (!dom.data) return;
+    var hoje = todayIso();
+    dom.data.max = hoje;
+    dom.data.min = minDataIso();
+    if (!dom.data.value) dom.data.value = hoje;
+    updateDataHint();
+  }
+
+  function dataRef() {
+    if (!dom.data || !dom.data.value) return todayIso();
+    return String(dom.data.value).slice(0, 10);
+  }
+
+  function updateDataHint() {
+    if (!dom.dataHint) return;
+    var d = dataRef();
+    var hoje = todayIso();
+    if (d === hoje) {
+      dom.dataHint.textContent = 'Repasse de hoje';
+      dom.dataHint.className = 'text-xs font-bold text-slate-600 pb-1';
+    } else {
+      var parts = d.split('-');
+      var br = (parts[2] || '') + '/' + (parts[1] || '') + '/' + (parts[0] || '');
+      dom.dataHint.textContent = 'Dia passado: ' + br + ' · dinheiro sai do caixa de agora';
+      dom.dataHint.className = 'text-xs font-bold text-amber-800 pb-1';
+    }
+  }
 
   function money(n) {
     return 'R$ ' + Number(n || 0).toLocaleString('pt-BR', {
@@ -84,7 +126,9 @@
     if (q.get('fiado') === '0') dom.fiado.checked = false;
     if (q.get('cheio') === '1') dom.cheio.checked = true;
     if (q.get('forma')) formaPag = q.get('forma');
+    if (q.get('data') && dom.data) dom.data.value = String(q.get('data')).slice(0, 10);
     dom.todos.checked = dom.cmv.checked && dom.lucro.checked && dom.fiado.checked;
+    updateDataHint();
   }
 
   function renderCalc() {
@@ -155,9 +199,16 @@
   function fetchCalc() {
     var pct = dom.pct.value || '50';
     var cheio = dom.cheio.checked ? '1' : '0';
-    return fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio, {
-      credentials: 'same-origin',
-    })
+    var data = dataRef();
+    return fetch(
+      '/api/repasse-vila/calc/?pct=' +
+        encodeURIComponent(pct) +
+        '&dia_cheio=' +
+        cheio +
+        '&data=' +
+        encodeURIComponent(data),
+      { credentials: 'same-origin' }
+    )
       .then(function (r) {
         return r.json();
       })
@@ -165,6 +216,9 @@
         if (j && j.ok) {
           calc = j;
           renderCalc();
+          if (dom.status) dom.status.textContent = '';
+        } else if (dom.status) {
+          dom.status.textContent = (j && j.erro) || 'Falha ao calcular';
         }
       });
   }
@@ -173,10 +227,12 @@
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
+    setupDataField();
     applyQueryPrefs();
     if (dom.manual) dom.manual.value = '';
     if (dom.pin) dom.pin.value = '';
     sanitizeManualField();
+    updateDataHint();
     dom.status.textContent = 'Carregando…';
     fetch('/api/repasse-vila/meta/', { credentials: 'same-origin' })
       .then(function (r) {
@@ -194,7 +250,9 @@
         if (!dom.pct.value || dom.pct.value === '50') {
           dom.pct.value = String(Math.round(j.percentual_padrao || 50));
         }
-        calc = j.calc || null;
+        if (!qs().get('data')) {
+          calc = j.calc || null;
+        }
         if (!j.caixa_vila_aberto) {
           dom.sub.textContent = 'Caixa da Vila FECHADO — abra antes de transferir';
           dom.sub.classList.add('text-red-700');
@@ -209,7 +267,7 @@
       .then(function () {
         sanitizeManualField();
         renderCalc();
-        dom.status.textContent = '';
+        if (dom.status && dom.status.textContent === 'Carregando…') dom.status.textContent = '';
       })
       .catch(function () {
         dom.status.textContent = 'Falha de rede';
@@ -254,6 +312,7 @@
       incluir_fiado: dom.fiado.checked,
       modo_dia_cheio: dom.cheio.checked,
       forma_pagamento: formaPag || 'Dinheiro',
+      data_ref: dataRef(),
     };
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
@@ -322,6 +381,12 @@
     t = setTimeout(fetchCalc, 300);
   });
   dom.cheio.addEventListener('change', fetchCalc);
+  if (dom.data) {
+    dom.data.addEventListener('change', function () {
+      updateDataHint();
+      fetchCalc();
+    });
+  }
   if (dom.quemOutros) {
     dom.quemOutros.addEventListener('input', function () {
       quem = String(dom.quemOutros.value || '').trim();

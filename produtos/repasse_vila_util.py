@@ -19,6 +19,8 @@ from produtos.models import (
 )
 
 ZERO = Decimal("0.00")
+# Limite para transferência de dia atrasado (esqueci ontem / semana).
+REPASSE_MAX_DIAS_ATRASO = 180
 
 
 def _dec(v) -> Decimal:
@@ -26,6 +28,18 @@ def _dec(v) -> Decimal:
         return Decimal(str(v or 0)).quantize(Decimal("0.01"))
     except Exception:
         return ZERO
+
+
+def validar_data_ref_repasse(dia: date | None) -> tuple[date | None, str]:
+    """Aceita hoje ou dia passado (até REPASSE_MAX_DIAS_ATRASO). Bloqueia futuro."""
+    hoje = timezone.localdate()
+    d = dia or hoje
+    if d > hoje:
+        return None, "Não dá para transferir dia futuro."
+    atraso = (hoje - d).days
+    if atraso > REPASSE_MAX_DIAS_ATRASO:
+        return None, f"Data muito antiga (máximo {REPASSE_MAX_DIAS_ATRASO} dias)."
+    return d, ""
 
 
 def _aware_bounds(d0: date, d1: date) -> tuple[datetime, datetime]:
@@ -358,6 +372,9 @@ def confirmar_repasse(
             return None, "Notebook precisa estar vinculado ao caixa da Vila."
 
     dia = data_ref or timezone.localdate()
+    dia, err_dia = validar_data_ref_repasse(dia)
+    if err_dia or dia is None:
+        return None, err_dia or "Data inválida."
     calc = calcular_disponivel(dia, percentual_lucro=percentual_lucro, modo_dia_cheio=modo_dia_cheio)
     disp = calc["disponivel"]
     v_cmv = _dec(disp["cmv"]) if incluir_cmv else ZERO
@@ -407,7 +424,7 @@ def confirmar_repasse(
         tipo=MovimentoCaixa.Tipo.RETIRADA,
         forma_pagamento=fn,
         valor=total,
-        observacao=f"Repasse Vila→Centro · {quem}"[:500],
+        observacao=f"Repasse Vila→Centro · ref {dia.strftime('%d/%m/%Y')} · {quem}"[:500],
         usuario=user,
     )
 
