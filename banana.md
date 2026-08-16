@@ -1218,31 +1218,50 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP DEPLOY LOJA — LOTE B balança (`PDV-BALANCA-GRANEL`) · **aguarda senha**
+
+> **Loja hoje:** ✅ **Live v16.74** · `producao` @ **1c41e50** (LOTE A repasse já Live)  
+> **Próximo chat:** pausar vendas → frase + senha → só este LOTE B.  
+> **NÃO** merge `teste`→`producao` (1220 commits ahead). Só cherry-pick.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-GRANEL** | ✅ **pronto** · aguarda senha · teste **e9e6eec** | **sim** 0089 |
+
+**Cherry (ordem):** `88310f0` → `e9e6eec`  
+**Conflitos previstos (dry-run OK):**
+- `VERSION` → manter loja e bump no commit
+- `banana.md` → `--ours` + bloco Live no fim
+- `pdv_state.js` (só no 2º cherry) → **keep-both**: preservar `precos_*` da loja **e** linhas `unidade` da balança; no hunk do `codigoGm`, manter o da loja
+
+**Risco PDV aberto:** baixo se ninguém abrir **Pesar** — feature dorme até F10+COM. Migrate `0089` só AddField `unidade` default `UN`. NFC-e: unidades estranhas → `UN` (igual hoje).
+
+**Pré no próximo chat:**
+1. Pausar Finalizar venda (cron pausa ou Zap loja)
+2. Frase + senha na mesma mensagem
+3. Assistente: tag rollback → cherry 2 commits → push `producao` → migrate Render → smoke → despausa
+
+**Smoke pós-deploy:** Ctrl+F5 PDV · venda normal UN · badge versão · (opcional) F10 sem balança = aviso Conectar
+
+**Rollback:** tag `producao-rollback-pre-balanca-YYYYMMDD` (criar no deploy)
+
 ### ✅ Deploy loja — LOTE A repasse (`REPASSE-DIA-PASSADO` + `REPASSE-ELET-MAQUINAS` · **v16.74**)
 
 > **Status:** ✅ **enviado / Live v16.74** · `producao` @ **1c41e50** · Render `dep-da0tglm1egvs739oedi0`  
 > **Base:** Live v16.69 @ **447123a** · tag rollback `producao-rollback-v16.69-20260816`  
 > **Cherry:** `f10e2c4` (dia) · `3774aea` (máquinas+elet) · `1c41e50` (Sicoob PIX)  
-> **Migrate:** **NÃO** · **Balança NÃO subiu** (LOTE B ainda só no teste)
+> **Migrate:** **NÃO** · **Balança NÃO subiu** (LOTE B abaixo)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ enviado / Live v16.74 |
 | 2 | **REPASSE-ELET-MAQUINAS** | ✅ enviado / Live v16.74 |
-| 3 | **PDV-BALANCA-GRANEL** | 🧪 ainda só teste · migrate 0089 |
-
-**Você agora:** Ctrl+F5 PDV Centro **e** Vila · conferir máquinas · Repasse (dia + falta dinheiro).
-
-**Rollback:** `git push origin producao-rollback-v16.69-20260816:producao --force-with-lease` (só com senha)
-
-### 🚀 PREP DEPLOY LOJA — 16/08f · **superado — Live v16.74**
-
-> LOTE A enviado. LOTE B (balança) continua pendente.
+| 3 | **PDV-BALANCA-GRANEL** | ⏳ PREP acima · aguarda senha |
 
 ### ✅ CHECKLIST ÚNICO — após loja v16.74 (16/08f)
 
 > **Loja hoje:** ✅ **Live v16.74** · `producao` @ **1c41e50**  
-> **Só no teste:** **PDV-BALANCA-GRANEL** (v16.76 · migrate 0089)
+> **Só falta (com senha):** **PDV-BALANCA-GRANEL** — ver **PREP DEPLOY LOTE B** no topo.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1252,11 +1271,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ pronto · **ainda não Live** |
-| **O quê** | Pesar / F10 · Web Serial · KG |
+| **Status** | ✅ pronto · **ainda não Live** · PREP no topo |
+| **O quê** | Pesar / F10 · Web Serial · KG · hold 500ms · força KG |
 | **Migrate** | **SIM** 0089 |
 | **Cherry** | `88310f0` → `e9e6eec` |
-| **Você** | Cadastro KG · prova balança · Ctrl+F5 |
+| **Prova** | review Opus + fixes + dry-run cherry na base Live v16.74 |
+| **Você** | Cadastro KG · no deploy: pausa + senha |
 
 ### 📦 PACOTE — Máquinas + repasse elet (`REPASSE-ELET-MAQUINAS`) · **Live v16.74**
 
@@ -1273,11 +1293,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio (16/08f prep) · **superado — Live v16.74**
 
-> Vigente: deploy Live acima.
+> Vigente: PREP LOTE B no topo.
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08e) · **superado**
 
-> Vigente: Live **v16.74**.
+> Vigente: Live **v16.74** + PREP LOTE B.
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d) · **superado**
 
@@ -1285,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b) · **superado**
 
-> Vigente: **16/08e** no topo.
+> Vigente: Live **v16.74**.
 
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
