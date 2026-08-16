@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — Pedir loja UX PC + rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
 
-> **Status:** 🚀 **enviando** · `producao` cherry-pick `81157fc` · base Live v16.55
+> **Status:** ✅ **enviado / Live v16.56** · código útil `81157fc` · `producao` @ **197a6ac** · Render `dep-da0i81bncjis738o6meg`
 > **Base anterior:** Live v16.55 @ **d3175b3** / feature **5da53b3**
 > **Incluiu:** overlay coluna única PC · botão Pedir loja rosa · Transferir rosa · **sem migrate**
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux-v16.55` @ **d3175b3** · branch `producao-backup-pre-v1656-pedir-loja-ux-20260815` · frase+senha
