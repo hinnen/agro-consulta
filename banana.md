@@ -1221,13 +1221,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08k)
 
 > **Loja hoje:** ✅ **Live v16.90** · `producao` @ **215d0a9**  
-> **Pronto envio:** 3 pacotes · balança revalidada (Bugbot + **22/22**)
+> **Pronto envio:** 4 pacotes
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio à produção** / teste **v16.99** @ **6c29d73** | não |
-| 2 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio à produção** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
-| 3 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio à produção** / teste **v17.00** @ **6aa7f4d** | não |
+| 1 | **FECHAR-CAIXA-LOJA** | ✅ **pronto para envio** / tip teste | não |
+| 2 | **REPASSE-HIST-CARDS** | ✅ **pronto para envio** / teste **v16.99** @ **6c29d73** | não |
+| 3 | **SAVE-ORC-CAIXA** | ✅ **pronto para envio** / teste **v16.92** @ **b9bd96b** | **SIM** 0090 |
+| 4 | **PDV-BALANCA-COM-ESC** | ✅ **pronto para envio** / teste **v17.00** @ **6aa7f4d** | não |
+
+### 📦 PACOTE PRONTO — Fechar caixa Vila/Centro (`FECHAR-CAIXA-LOJA`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Fiado/vale/cashback auto + ocultos · Centro: Point MP auto oculto · PIX/débito/crédito num campo · **autosave contado intacto** |
+| **Prova** | `verify_caixa_fechar_loja_path.py` **26** · save-orc **31/31** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Fechar caixa Vila e Centro |
 
 ### 📦 PACOTE PRONTO — Repasse tela + cards mês (`REPASSE-HIST-CARDS`)
 
