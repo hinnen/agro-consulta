@@ -25526,8 +25526,9 @@ def api_login_mobile(request):
         return JsonResponse({"ok": True, "operador": operador})
     request.session["mobile_auth"] = True
     if operador:
-        request.session["pdv_operador_nome"] = operador[:120]
-        request.session.modified = True
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        gravar_operador_sessao_pdv(request, pin)
     return JsonResponse({"ok": True, "operador": operador})
 
 
@@ -25633,16 +25634,16 @@ def api_pdv_registrar_operador(request):
     op_req = str(data.get("operador") or data.get("operador_pdv") or "").strip()
 
     if pin:
-        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        ok_pin, label, _user, err_pin = gravar_operador_sessao_pdv(request, pin)
         if not ok_pin:
             return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-        request.session["pdv_operador_nome"] = label[:120]
-        request.session["mobile_auth"] = True
-        request.session.modified = True
         return JsonResponse({"ok": True, "operador": label[:120]})
 
     if not op_req:
         request.session.pop("pdv_operador_nome", None)
+        request.session.pop("pdv_operador_user_id", None)
         request.session.modified = True
         return JsonResponse({"ok": True, "operador": ""})
 

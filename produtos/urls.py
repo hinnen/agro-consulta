@@ -12,6 +12,7 @@ from . import relatorios_central_views as relatorios_views
 from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
+from . import views_pdv_transf_loja
 from . import views_repasse_vila
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -653,6 +654,26 @@ urlpatterns = [
         'api/pdv/uso-loja/estornar/<int:pk>/',
         views_uso_loja.api_pdv_uso_loja_estornar,
         name='api_pdv_uso_loja_estornar',
+    ),
+    path(
+        'api/pdv/transf-loja/resumo/',
+        views_pdv_transf_loja.api_pdv_transf_loja_resumo,
+        name='api_pdv_transf_loja_resumo',
+    ),
+    path(
+        'api/pdv/transf-loja/lista/',
+        views_pdv_transf_loja.api_pdv_transf_loja_lista,
+        name='api_pdv_transf_loja_lista',
+    ),
+    path(
+        'api/pdv/transf-loja/criar/',
+        views_pdv_transf_loja.api_pdv_transf_loja_criar,
+        name='api_pdv_transf_loja_criar',
+    ),
+    path(
+        'api/pdv/transf-loja/<int:pk>/acao/',
+        views_pdv_transf_loja.api_pdv_transf_loja_acao,
+        name='api_pdv_transf_loja_acao',
     ),
     path('api/produtos/cadastro/', views.api_produtos_cadastro, name='api_produtos_cadastro'),
     path(

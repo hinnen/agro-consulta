@@ -2016,6 +2016,7 @@
   }
   #pdv-topbar-compact .pdv-wiz-topbar-btn,
   #pdv-topbar-compact #pdv-topbar-entregas-btn,
+  #pdv-topbar-compact #pdv-topbar-pedir-loja-btn,
   #pdv-topbar-compact .pdv-wiz-stepper .pdv-step-nav {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: var(--pdv-topbar-fs) !important;
@@ -2065,6 +2066,16 @@
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--slate:hover {
     background: #f8fafc !important;
     color: #334155 !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--rose,
+  #pdv-topbar-compact .pdv-wiz-topbar-actions #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--rose:hover {
+    border-color: #fb7185 !important;
+    background: #e11d48 !important;
+    color: #fff !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions #pdv-topbar-pedir-loja-btn.pdv-wiz-topbar-btn--rose:hover {
+    background: #be123c !important;
+    border-color: #be123c !important;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert {
     border-color: #64748b !important;
@@ -3691,13 +3702,16 @@
                   <a href="{% url 'compras_relatorio_saldo' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--saldo" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Folha de saldo (A4 · A5 · 80mm)</a>
                 </div>
               </details>
-              <a href="{% url 'sugestao_transferencia' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--rose no-underline" title="Transferência de produtos entre lojas (Vila ↔ Centro)">Transf.</a>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
               <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Vendas</a>
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
               <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Saída de produto para uso interno da loja">Uso loja</button>
+              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--rose relative" title="Pedir produto da outra loja (Centro ↔ Vila)">
+                Pedir loja
+                <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+              </button>
               <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
@@ -3745,6 +3759,7 @@
 
 {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
 {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
+{% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
 {% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
 
 <div id="pdv-quick-client-modal" class="fixed inset-0 z-[135] hidden items-center justify-center bg-slate-950/60 p-1 sm:p-2 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-modal-title">
@@ -4496,6 +4511,7 @@
 
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 {% with sspin_pedir_pin_ao_abrir=True %}
 {% include "produtos/_screensaver_pin.html" %}
