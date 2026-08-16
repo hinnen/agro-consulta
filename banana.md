@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ✅ Deploy loja — Pedir loja UX5–UX7 (`PDV-PEDIR-LOJA-UX7` · **v16.68**)
 
-> **Status:** ✅ **enviado / Live v16.68** · `producao` (push deste pacote) · base Live **v16.59** @ **16663c7**
+> **Status:** ✅ **enviado / Live v16.68** · `producao` @ **df2fd39** · base Live **v16.59** @ **16663c7**
 > **Incluiu:** furado + bip 1/min · Ajustar Centro/Vila na busca · aviso pós-PIN · GM/fonte · **sem migrate**
 > **Prova:** verify 54/54 · testes 20/20 · só arquivos Pedir loja (+ rota ajustar em urls)
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux7-v16.59` · branch `producao-backup-pre-v1668-pedir-loja-ux7-20260816` · frase+senha
