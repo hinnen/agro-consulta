@@ -1216,6 +1216,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — LOTE B balança (PDV-BALANCA-GRANEL · **v16.82**)
+
+> **Status:** ✅ **enviado / Live v16.82** · producao @ *(push)* · base Live **v16.74** @ **1c41e50**
+> **Cherry:** 88310f0 → e9e6eec → 9d6c878 · tag rollback producao-rollback-pre-balanca-20260816
+> **Migrate:** **SIM** · produtos.0089_itemvendaagro_unidade (Render sobe no deploy)
+> **Serial:** COM4 · USE-P2 · 9600 8N1 · [STX]001000[CR]=1kg
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
+
+**Você:** Ctrl+F5 PDV · F10 · Conectar **COM4** · pesar.
+
+
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
 > **Status:** ✅ **enviado / Live v16.69** · `producao` @ **11d4d5b** · base Live **v16.68** @ **677b3a1**
