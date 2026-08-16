@@ -1216,9 +1216,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja furado + bip + modal (`PDV-PEDIR-LOJA-UX5`)
+### WIP — Pedir loja furado + bip + modal (`PDV-PEDIR-LOJA-UX5` · **v16.61**)
 
-> **Status:** WIP no `teste` · **não** sobe loja sem frase+senha
+> **Status:** no `teste` @ **b2153c4** · **não** sobe loja sem frase+senha
 > **Feito:** modal próprio · **estoque furado** + ajuste qtd padrão **0** · bip **1/min** enquanto pendente · tabela tela cheia (UX4)
 > **Você:** PDV local · Ctrl+F5 · Pedir loja · Recebidos · Cancelar/Transferir (furado) · bip
 
