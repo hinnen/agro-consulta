@@ -1218,26 +1218,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE TESTE — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.71**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **teste v16.71** @ **88310f0** · prova local pendente (precisa balança + cabo) |
-| **O quê** | Overlay **Pesar** / **F10** · Web Serial Chrome (Urano **US20/2 POP-S** · USE-P2) · códigos **1–199** sem zeros · auto-add ao estabilizar · unidade **KG** no carrinho/NFC-e |
-| **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
-| **Você** | Cadastro granel Unidade **KG** · plug RS232→USB · PDV **Ctrl+F5** · F10 · Conectar COM · digitar `1` · pesar · balança: **F→3→USE-P2** · sem hardware: console `AgroPdvBalanca.mockKg(1.25)` |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08e)
 
 > **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Pronto (sem migrate):** REPASSE-DIA-PASSADO · REPASSE-ELET-MAQUINAS.  
-> **Ainda em prova (não subir junto sem balança):** PDV-BALANCA-GRANEL (migrate 0089).
+> **Subir juntos** (migrate **0089** no deploy da balança):
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** | não |
 | 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.74** | não |
+| 3 | **PDV-BALANCA-GRANEL** | ✅ **pronto para envio à produção** / teste **v16.76** @ **e9e6eec** | **sim** 0089 |
+
+### 📦 PACOTE PRONTO — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.76**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.76** @ **e9e6eec** |
+| **O quê** | Overlay **Pesar** / **F10** · Web Serial (Urano US20/2 POP-S) · códigos 1–199 · auto-add estável · KG no item/NFC-e |
+| **Prova** | review Opus + fixes (hold 500ms, força KG, Enter async, hydrate, F10 só Produtos, NFC whitelist) |
+| **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
+| **Você** | Cadastro Unidade **KG** · balança **F→3→USE-P2** · Ctrl+F5 · F10 · Conectar COM |
 
 ### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.74**)
 
@@ -1259,18 +1260,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 Retiradas → Repasse · mudar dia |
 
-### 📦 PACOTE TESTE — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.71**) · **ainda em prova**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d) · **superado**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🧪 teste · **não** marcar pronto envio até prova com balança |
-| **O quê** | Overlay Pesar / F10 · Web Serial · KG |
-| **Migrate** | **SIM** 0089 |
-| **Você** | prova com balança antes de subir |
+> Vigente: **16/08e** no topo.
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b) · **superado**
 
-> Vigente: **16/08d** no topo.
+> Vigente: **16/08e** no topo.
 
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
