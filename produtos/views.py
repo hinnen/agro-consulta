@@ -27121,6 +27121,11 @@ def _persistir_venda_agro(
         vu = _decimal_item_pedido(i.get("preco"), "0")
         vt = (qtd * vu).quantize(Decimal("0.01"))
         total += vt
+        un_raw = str(i.get("unidade") or i.get("Unidade") or "UN").strip().upper() or "UN"
+        if len(un_raw) > 12:
+            un_raw = un_raw[:12]
+        if un_raw in ("KG.", "QUILO", "KILO", "KGS"):
+            un_raw = "KG"
         itens_payload.append(
             {
                 "produto_id_externo": str(i.get("id") or "").strip()[:64],
@@ -27129,6 +27134,7 @@ def _persistir_venda_agro(
                 "quantidade": qtd,
                 "valor_unitario": vu,
                 "valor_total": vt,
+                "unidade": un_raw,
             }
         )
 

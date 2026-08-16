@@ -448,6 +448,12 @@
         if (existing) {
             existing.qtd = normalizeQty(toNumber(existing.qtd) + qtd, qtd);
             if (existing.preco_padrao == null) existing.preco_padrao = precoPadrao;
+            if (!existing.unidade) {
+                var uEx = String(
+                    produto.unidade || produto.Unidade || produto.sigla_unidade || ''
+                ).trim();
+                if (uEx) existing.unidade = uEx;
+            }
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }
@@ -467,6 +473,9 @@
             }
             if (!existing.preco_manual) recalcularTodasPromocoes();
         } else {
+            var unidadeItem = String(
+                produto.unidade || produto.Unidade || produto.sigla_unidade || ''
+            ).trim();
             var novo = {
                 id: pid,
                 nome: String(produto.nome || ''),
@@ -480,6 +489,7 @@
                 desconto: 0,
                 observacao: ''
             };
+            if (unidadeItem) novo.unidade = unidadeItem;
             if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
                 novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
             }

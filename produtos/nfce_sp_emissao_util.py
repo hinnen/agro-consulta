@@ -458,12 +458,17 @@ def _montar_xml_nfce(
         if len(cest) == 7:
             _sub(prod, "CEST", cest)
         _sub(prod, "CFOP", fis["cfop"])
-        _sub(prod, "uCom", "UN")
+        u_com = str(getattr(item, "unidade", None) or "UN").strip().upper() or "UN"
+        if u_com in ("KG.", "QUILO", "KILO", "KGS"):
+            u_com = "KG"
+        if len(u_com) > 6:
+            u_com = u_com[:6]
+        _sub(prod, "uCom", u_com)
         _sub(prod, "qCom", _q4(qtd))
         _sub(prod, "vUnCom", _q4(vu))
         _sub(prod, "vProd", _q2(vt))
         _sub(prod, "cEANTrib", "SEM GTIN")
-        _sub(prod, "uTrib", "UN")
+        _sub(prod, "uTrib", u_com)
         _sub(prod, "qTrib", _q4(qtd))
         _sub(prod, "vUnTrib", _q4(vu))
         if v_frete_item > 0:

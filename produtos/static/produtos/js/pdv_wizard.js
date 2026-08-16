@@ -9181,6 +9181,7 @@
                 preco: precoEnvio,
                 codigo: item.codigo
             };
+            if (item.unidade) row.unidade = item.unidade;
             if (precoBase != null && isFinite(Number(precoBase)) && Number(precoBase) > 0) {
                 row.preco_base = precoBase;
             }
@@ -14890,19 +14891,52 @@
         return refreshCaixaBootstrap();
     };
 
-    window.AgroPdvAddProductByCode = function (code) {
+    window.AgroPdvAddProductByCode = function (code, opts) {
+        opts = opts || {};
         var c = String(code || '').trim();
         if (!c) return Promise.resolve(false);
-        var relOpts = { query: c, explicitPick: true, forceServer: false, okMsg: '', skipSearchUiReset: true };
+        var qty = opts.qty != null ? opts.qty : 1;
+        var relOpts = {
+            query: c,
+            explicitPick: true,
+            forceServer: false,
+            okMsg: '',
+            skipSearchUiReset: true,
+            qty: qty,
+        };
         var picked = pickProductForQuery(wizardProductCatalog, c);
         if (picked) {
             var localResult = tryAddProductFromSearch(picked, relOpts);
             return Promise.resolve(localResult).then(function (ok) {
                 if (ok) return ok;
-                return tryAddProductFromSearch({}, { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true });
+                return tryAddProductFromSearch(
+                    {},
+                    {
+                        query: c,
+                        forceServer: true,
+                        okMsg: '',
+                        skipSearchUiReset: true,
+                        qty: qty,
+                    }
+                );
             });
         }
-        return tryAddProductFromSearch({}, { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true });
+        return tryAddProductFromSearch(
+            {},
+            { query: c, forceServer: true, okMsg: '', skipSearchUiReset: true, qty: qty }
+        );
+    };
+
+    window.AgroPdvAddResolvedProduct = function (produto, qty) {
+        if (!produto) return false;
+        var q = qty != null ? qty : 1;
+        return tryAddProductFromSearch(produto, {
+            qty: q,
+            explicitPick: true,
+            forceServer: false,
+            okMsg: '',
+            skipSearchUiReset: true,
+        });
     };
 
     (function syncDepositoPdvBoot() {
