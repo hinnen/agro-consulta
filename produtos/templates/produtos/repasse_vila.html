@@ -61,6 +61,20 @@
         <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
       </div>
     </div>
+    <div class="grid grid-cols-3 gap-1.5">
+      <div class="rounded-lg border border-sky-200 bg-sky-50 px-2 py-1.5">
+        <div class="rv-lbl text-sky-700">Já no Centro (cartão/PIX)</div>
+        <div class="rv-val text-sky-900" id="rv-elet">R$ 0,00</div>
+      </div>
+      <div class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5">
+        <div class="rv-lbl">Já enviado (dinheiro)</div>
+        <div class="rv-val text-slate-800" id="rv-ja-din">R$ 0,00</div>
+      </div>
+      <div class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5">
+        <div class="rv-lbl text-emerald-800">Falta em dinheiro</div>
+        <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
+      </div>
+    </div>
 
     <label class="flex flex-wrap items-center gap-2">
       <span class="rv-lbl shrink-0">Dia do repasse</span>
@@ -101,9 +115,9 @@
 
     <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
       <div class="min-w-0">
-        <div class="rv-lbl text-emerald-800">Total a enviar</div>
+        <div class="rv-lbl text-emerald-800">Total a levar (dinheiro)</div>
         <div class="rv-val text-emerald-900" id="rv-total">R$ 0,00</div>
-        <p class="text-[0.7rem] font-bold text-slate-600 leading-tight" id="rv-ja">Já enviado hoje: —</p>
+        <p class="text-[0.7rem] font-bold text-slate-600 leading-tight" id="rv-ja">Já enviado neste dia: —</p>
       </div>
       <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" id="rv-btn-transferir"
          class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-5 text-sm font-black uppercase text-white shadow hover:bg-orange-600">
@@ -213,6 +227,12 @@
     document.getElementById('rv-disp-cmv').textContent = money(d.cmv);
     document.getElementById('rv-disp-lucro').textContent = money(d.lucro);
     document.getElementById('rv-disp-fiado').textContent = money(d.fiado);
+    var elet = document.getElementById('rv-elet');
+    if (elet) elet.textContent = money(c.ja_eletronico);
+    var jaDin = document.getElementById('rv-ja-din');
+    if (jaDin) jaDin.textContent = money((c.ja_enviado || {}).total);
+    var falta = document.getElementById('rv-falta');
+    if (falta) falta.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
     var tot = 0;
     if (chkCmv.checked) tot += Number(d.cmv || 0);
     if (chkLucro.checked) tot += Number(d.lucro || 0);
@@ -220,8 +240,9 @@
     document.getElementById('rv-total').textContent = money(tot);
     var ja = c.ja_enviado || {};
     document.getElementById('rv-ja').textContent =
-      'Já enviado neste dia: ' + money(ja.total) +
-      ' (CMV ' + money(ja.cmv) + ' · lucro ' + money(ja.lucro) + ' · fiado ' + money(ja.fiado) + ')';
+      'Dinheiro já enviado: ' + money(ja.total) +
+      ' · cartão/PIX no Centro: ' + money(c.ja_eletronico) +
+      ' · falta: ' + money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
   }
 
   function renderHist() {

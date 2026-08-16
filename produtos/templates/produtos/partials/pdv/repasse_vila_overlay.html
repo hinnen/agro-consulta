@@ -62,11 +62,25 @@
         </label>
         <p class="text-xs font-bold text-slate-600 pb-1" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
       </div>
-      <div class="rp-card grid grid-cols-4 gap-2 mb-3">
+      <div class="rp-card grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Receita</div><div class="text-lg font-black tabular-nums" id="pdv-rp-receita">—</div></div>
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">CMV</div><div class="text-lg font-black tabular-nums" id="pdv-rp-cmv-dia">—</div></div>
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Lucro</div><div class="text-lg font-black tabular-nums" id="pdv-rp-lucro-dia">—</div></div>
         <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Fiado pago</div><div class="text-lg font-black tabular-nums" id="pdv-rp-fiado-dia">—</div></div>
+      </div>
+      <div class="rp-card grid grid-cols-3 gap-2 mb-3">
+        <div>
+          <div class="text-[0.65rem] font-black uppercase text-sky-700">Já no Centro (cartão/PIX)</div>
+          <div class="text-lg font-black tabular-nums text-sky-900" id="pdv-rp-elet">R$ 0,00</div>
+        </div>
+        <div>
+          <div class="text-[0.65rem] font-black uppercase text-slate-500">Já enviado (dinheiro)</div>
+          <div class="text-lg font-black tabular-nums text-slate-800" id="pdv-rp-ja-din">R$ 0,00</div>
+        </div>
+        <div>
+          <div class="text-[0.65rem] font-black uppercase text-emerald-700">Falta em dinheiro</div>
+          <div class="text-lg font-black tabular-nums text-emerald-900" id="pdv-rp-falta">R$ 0,00</div>
+        </div>
       </div>
 
       <div class="rp-body">
@@ -105,7 +119,7 @@
                      data-lpignore="true" data-1p-ignore="true" data-form-type="other" />
             </label>
             <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-2.5 flex flex-col justify-center min-w-0">
-              <div class="text-[0.7rem] font-black uppercase text-emerald-800">Total a enviar</div>
+              <div class="text-[0.7rem] font-black uppercase text-emerald-800">Total a levar (dinheiro)</div>
               <div class="text-2xl font-black tabular-nums text-emerald-950 leading-tight" id="pdv-rp-total">R$ 0,00</div>
             </div>
           </div>
