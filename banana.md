@@ -1232,28 +1232,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Rollback:** `git push origin producao-rollback-pre-balanca-hotfix-20260816:producao --force-with-lease` (só com senha)
 
-### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · próximo)
+### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · **v16.89**)
 
-> **Status:** subindo agora após provas unitárias + review Bugbot
+> **Status:** ✅ **enviado / Live v16.89** · `producao` @ **c70d195** · base **v16.84** @ **a6d3fbf**  
+> **Cherry:** `52100f8` → `14b37af` · tag `producao-rollback-pre-balanca-hotfix3-20260816`  
+> **Migrate:** **NÃO** · Provas **17/17** OK · Bugbot corrigido · Security limpo
 
-### ✅ CHECKLIST ÚNICO — após loja v16.84 (16/08h)
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **PDV-BALANCA-HOTFIX3** | ✅ enviado / Live v16.89 |
 
-> **Loja hoje:** ✅ **Live v16.84** · `producao` @ **a6d3fbf** (antes deste deploy)  
-> **Pronto envio / subindo:** **PDV-BALANCA-HOTFIX3** · **REPASSE-VALOR-MANUAL**
+**Você:** Ctrl+F5 PDV · badge **v16.89** · F10 · **10** · barras `0010` · linha **RX:**
+
+**Rollback:** `git push origin producao-rollback-pre-balanca-hotfix3-20260816:producao --force-with-lease` (só com senha)
+
+### ✅ CHECKLIST ÚNICO — após loja v16.89 (16/08i)
+
+> **Loja hoje:** ✅ **Live v16.89** · `producao` @ **c70d195**  
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
-| 2 | **PDV-BALANCA-HOTFIX2** | ✅ absorvido em HOTFIX3 | não |
-| 3 | **PDV-BALANCA-HOTFIX3** | ✅ review + provas · commit a seguir | não |
-
-### 📦 PACOTE — Balança review (`PDV-BALANCA-HOTFIX3`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | barras 0010/010/10 · API sempre · ETX+CR · sem STX cego · anti double-add · RX · provas `scripts/_test_pdv_balanca_logic.js` |
-| **Prova** | 17/17 OK · Bugbot fixes · Security limpo |
-| **Migrate** | **NÃO** |
 
 ### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
