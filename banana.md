@@ -1216,13 +1216,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO LOJA — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3` · **v16.59**)
+### ✅ Deploy loja — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3` · **v16.59**)
 
-> **Status:** prova local OK · sobe loja nesta mensagem (frase+senha)
-> **Código:** `teste` @ **7501bec** · overlay + JS (sem migrate)
-> **Prova:** verify 40/40 · testes 17/17 · `/pdv/` local com overlay um tamanho + colunas fixas
-> **Inclui:** overlay **um tamanho** (96rem / 100% altura) · Produto \| Centro \| Vila · nome 1 linha
-> **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux3-v16.58` @ Live v16.58 `3964a07`
+> **Status:** ✅ **enviado / Live v16.59** · `producao` @ **b4f3807** · Render `dep-da0ip8bncjis738oftcg`
+> **Base anterior:** Live v16.58 @ **7fcf7e9** / útil **3964a07**
+> **Incluiu:** overlay **um tamanho** · colunas Produto \| Centro \| Vila · nome 1 linha · **sem migrate**
+> **Prova:** verify 40/40 · testes 17/17 · `/pdv/` local com overlay novo
+> **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux3-v16.58` · branch `producao-backup-pre-v1659-pedir-loja-ux3-20260816` · frase+senha
+> **Você:** PDV loja · **Ctrl+F5** · badge **v16.59** · Pedir loja · busca milho
 
 ### ✅ Deploy loja — Pedir loja UX2 (`PDV-PEDIR-LOJA-UX2` · **v16.58**)
 
@@ -1232,14 +1233,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 > **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux2-v16.56` @ **cd261d6** · branch `producao-backup-pre-v1658-pedir-loja-ux2-20260815` · frase+senha
 > **Você:** PDV loja · **Ctrl+F5** · badge **v16.58** · Pedir loja · busca milho
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX2 · loja v16.58)
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08 · Pedir loja UX3 · loja v16.59)
 
-> **Loja hoje:** ✅ **Live v16.58** · `producao` @ **3964a07**  
+> **Loja hoje:** ✅ **Live v16.59** · `producao` @ **b4f3807**  
 > **Fila deploy:** **vazia**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-LOJA-UX2** | ✅ enviado / Live v16.58 | não |
+| 1 | **PDV-PEDIR-LOJA-UX3** | ✅ enviado / Live v16.59 | não |
 
 ### 📦 PACOTE PRONTO LOJA — Pedir loja layout + saldo (`PDV-PEDIR-LOJA-UX2` · **v16.58**) · **superado — Live**
 
