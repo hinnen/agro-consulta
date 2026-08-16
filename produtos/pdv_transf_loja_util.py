@@ -65,7 +65,14 @@ def qtd_decimal_ou_zero(valor) -> Decimal | None:
 def _parse_decimal(valor) -> Decimal | None:
     if isinstance(valor, Decimal):
         return valor
-    raw = str(valor or "").strip().replace(" ", "")
+    if isinstance(valor, bool):
+        return None
+    if isinstance(valor, (int, float)):
+        try:
+            return Decimal(str(valor))
+        except (InvalidOperation, ValueError):
+            return None
+    raw = str("" if valor is None else valor).strip().replace(" ", "")
     if not raw:
         return None
     if "," in raw and "." in raw:

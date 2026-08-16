@@ -58,7 +58,14 @@
     confirmQtd: document.getElementById('pdv-pedir-loja-confirm-qtd'),
     confirmSim: document.getElementById('pdv-pedir-loja-confirm-sim'),
     confirmNao: document.getElementById('pdv-pedir-loja-confirm-nao'),
+    ajuste: document.getElementById('pdv-pedir-loja-ajuste'),
+    ajusteNome: document.getElementById('pdv-pedir-loja-ajuste-nome'),
+    ajusteCentro: document.getElementById('pdv-pedir-loja-ajuste-centro'),
+    ajusteVila: document.getElementById('pdv-pedir-loja-ajuste-vila'),
+    ajusteSim: document.getElementById('pdv-pedir-loja-ajuste-sim'),
+    ajusteNao: document.getElementById('pdv-pedir-loja-ajuste-nao'),
   };
+  var ajusteProduto = null;
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -218,6 +225,8 @@
   function fechar() {
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
+    fecharAjuste();
+    if (dom.confirm && dom.confirm.classList.contains('is-open')) fecharConfirm(false);
   }
 
   function setAba(nome) {
@@ -299,7 +308,101 @@
   function hitsHint(msg) {
     if (!dom.hits) return;
     dom.hits.innerHTML =
-      '<tr class="pl-hint-row"><td colspan="4" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+      '<tr class="pl-hint-row"><td colspan="5" class="pl-hint">' + escapeHtml(msg) + '</td></tr>';
+  }
+
+  function fecharAjuste() {
+    if (dom.ajuste) {
+      dom.ajuste.classList.remove('is-open');
+      dom.ajuste.setAttribute('aria-hidden', 'true');
+    }
+    ajusteProduto = null;
+  }
+
+  function abrirAjuste(p) {
+    if (!dom.ajuste || !p) return;
+    ajusteProduto = p;
+    var nome = p.nome || p.nome_produto || 'Produto';
+    var gm = codigoGm(p);
+    if (dom.ajusteNome) {
+      dom.ajusteNome.textContent =
+        nome + (gm ? ' · GM ' + gm : '') + ' · digite o saldo real de cada loja';
+    }
+    if (dom.ajusteCentro) dom.ajusteCentro.value = String(numSaldo(p, 'saldo_centro'));
+    if (dom.ajusteVila) dom.ajusteVila.value = String(numSaldo(p, 'saldo_vila'));
+    dom.ajuste.classList.add('is-open');
+    dom.ajuste.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () {
+      try {
+        if (dom.ajusteCentro) {
+          dom.ajusteCentro.focus();
+          dom.ajusteCentro.select();
+        }
+      } catch (e) {}
+    }, 30);
+  }
+
+  function salvarAjuste() {
+    if (!ajusteProduto || busy) return;
+    var url = urls.apiPdvTransfLojaAjustar;
+    if (!url) {
+      setStatus('URL de ajuste indisponível.', true);
+      return;
+    }
+    var pid = produtoId(ajusteProduto);
+    if (!pid) {
+      setStatus('Produto inválido.', true);
+      return;
+    }
+    busy = true;
+    if (dom.ajusteSim) dom.ajusteSim.disabled = true;
+    setStatus('Ajustando estoque…');
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrf(),
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        produto_id: pid,
+        nome: ajusteProduto.nome || ajusteProduto.nome_produto || '',
+        codigo_interno: codigoGm(ajusteProduto),
+        saldo_centro: dom.ajusteCentro ? String(dom.ajusteCentro.value || '0') : '0',
+        saldo_vila: dom.ajusteVila ? String(dom.ajusteVila.value || '0') : '0',
+      }),
+    })
+      .then(function (r) {
+        return r.json().then(function (d) {
+          return { ok: r.ok, data: d };
+        });
+      })
+      .then(function (res) {
+        busy = false;
+        if (dom.ajusteSim) dom.ajusteSim.disabled = false;
+        if (res.data && res.data.precisa_pin) {
+          setPinAviso(true);
+          setStatus(res.data.erro || 'Entre com o PIN.', true);
+          return;
+        }
+        if (!res.ok || !res.data || !res.data.ok) {
+          setStatus((res.data && res.data.erro) || 'Não ajustou.', true);
+          return;
+        }
+        if (res.data.saldo_centro != null) ajusteProduto.saldo_centro = res.data.saldo_centro;
+        if (res.data.saldo_vila != null) ajusteProduto.saldo_vila = res.data.saldo_vila;
+        fecharAjuste();
+        setStatus(res.data.mensagem || 'Estoque ajustado.');
+        if (dom.busca && String(dom.busca.value || '').trim().length >= 2) {
+          buscar(dom.busca.value);
+        }
+      })
+      .catch(function () {
+        busy = false;
+        if (dom.ajusteSim) dom.ajusteSim.disabled = false;
+        setStatus('Erro de rede ao ajustar.', true);
+      });
   }
 
   function codigoGm(p) {
@@ -447,6 +550,11 @@
               '</td>' +
               '<td class="pl-td-n">' +
               escapeHtml(fmtSaldo(numSaldo(p, 'saldo_vila'))) +
+              '</td>' +
+              '<td class="pl-td-aj">' +
+              '<button type="button" class="pl-btn-aj" data-pl-aj="' +
+              escapeHtml(id) +
+              '" title="Ajustar estoque">Ajustar</button>' +
               '</td></tr>'
             );
           })
@@ -709,10 +817,21 @@
   }
   if (dom.hits) {
     dom.hits.addEventListener('click', function (e) {
+      var lista = dom.hits._hits || [];
+      var aj = e.target.closest('[data-pl-aj]');
+      if (aj) {
+        e.preventDefault();
+        e.stopPropagation();
+        var idAj = aj.getAttribute('data-pl-aj');
+        var pAj = lista.filter(function (x) {
+          return produtoId(x) === idAj;
+        })[0];
+        if (pAj) abrirAjuste(pAj);
+        return;
+      }
       var btn = e.target.closest('[data-pl-add]');
       if (!btn) return;
       var id = btn.getAttribute('data-pl-add');
-      var lista = dom.hits._hits || [];
       var p = lista.filter(function (x) {
         return produtoId(x) === id;
       })[0];
@@ -755,8 +874,20 @@
     });
   }
   if (dom.confirmFurado) dom.confirmFurado.addEventListener('change', syncFuradoUi);
+  if (dom.ajusteSim) dom.ajusteSim.addEventListener('click', salvarAjuste);
+  if (dom.ajusteNao) dom.ajusteNao.addEventListener('click', fecharAjuste);
+  if (dom.ajuste) {
+    dom.ajuste.addEventListener('click', function (e) {
+      if (e.target === dom.ajuste) fecharAjuste();
+    });
+  }
 
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && dom.ajuste && dom.ajuste.classList.contains('is-open')) {
+      e.preventDefault();
+      fecharAjuste();
+      return;
+    }
     if (e.key === 'Escape' && dom.confirm && dom.confirm.classList.contains('is-open')) {
       e.preventDefault();
       fecharConfirm(false);

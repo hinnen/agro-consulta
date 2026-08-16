@@ -24,6 +24,7 @@ class UrlsPdvTransfTests(SimpleTestCase):
         self.assertIn("transf-loja/resumo", reverse("api_pdv_transf_loja_resumo"))
         self.assertIn("transf-loja/saldos", reverse("api_pdv_transf_loja_saldos"))
         self.assertIn("transf-loja/criar", reverse("api_pdv_transf_loja_criar"))
+        self.assertIn("transf-loja/ajustar", reverse("api_pdv_transf_loja_ajustar"))
         self.assertIn("/1/", reverse("api_pdv_transf_loja_acao", args=[1]))
         try:
             reverse("sugestao_transferencia")
@@ -278,3 +279,45 @@ class ApiViewsTests(SimpleTestCase):
         self.assertEqual(body["saldos"]["P1"]["saldo_centro"], 12.0)
         self.assertEqual(body["saldos"]["P1"]["saldo_vila"], 3.5)
         self.assertEqual(body["saldos"]["P2"]["saldo_vila"], 8.0)
+
+    def test_ajustar_403_sem_operador(self):
+        from produtos.views_pdv_transf_loja import api_pdv_transf_loja_ajustar
+
+        req = self._authed(
+            self.rf.post(
+                "/api/pdv/transf-loja/ajustar/",
+                data=b'{"produto_id":"P1","saldo_centro":0,"saldo_vila":0}',
+                content_type="application/json",
+            )
+        )
+        resp = api_pdv_transf_loja_ajustar(req)
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(json.loads(resp.content).get("precisa_pin"))
+
+    def test_ajustar_ok(self):
+        from produtos.views_pdv_transf_loja import api_pdv_transf_loja_ajustar
+
+        req = self._authed(
+            self.rf.post(
+                "/api/pdv/transf-loja/ajustar/",
+                data=b'{"produto_id":"P1","nome":"Milho","saldo_centro":0,"saldo_vila":2}',
+                content_type="application/json",
+            ),
+            session={"pdv_pin_user_id": 1, "pdv_pin_label": "Op"},
+        )
+        with patch(
+            "produtos.views_pdv_transf_loja._operador",
+            return_value=(True, "Op", self.user, ""),
+        ), patch(
+            "produtos.pdv_transf_loja_util._aplicar_ajuste_absoluto_origem",
+            return_value=(True, ""),
+        ), patch(
+            "produtos.views._invalidar_caches_apos_ajuste_pin",
+            return_value=None,
+        ):
+            resp = api_pdv_transf_loja_ajustar(req)
+        self.assertEqual(resp.status_code, 200)
+        body = json.loads(resp.content)
+        self.assertTrue(body["ok"])
+        self.assertEqual(body["saldo_centro"], 0.0)
+        self.assertEqual(body["saldo_vila"], 2.0)

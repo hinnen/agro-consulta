@@ -42,6 +42,7 @@
   }
   #pdv-pedir-loja-overlay .pl-table col.pl-col-gm { width: 7.25rem; }
   #pdv-pedir-loja-overlay .pl-table col.pl-col-n { width: 7.25rem; }
+  #pdv-pedir-loja-overlay .pl-table col.pl-col-aj { width: 5.5rem; }
   #pdv-pedir-loja-overlay .pl-table th {
     padding: 0.4rem 0.5rem;
     font-size: 0.78rem;
@@ -88,6 +89,58 @@
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: #0f172a;
+  }
+  #pdv-pedir-loja-overlay .pl-td-aj {
+    text-align: center;
+  }
+  #pdv-pedir-loja-overlay .pl-btn-aj {
+    min-height: 2.35rem;
+    padding: 0.25rem 0.45rem;
+    border-radius: 0.55rem;
+    border: 2px solid #0d9488;
+    background: #ccfbf1;
+    color: #0f766e;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-overlay .pl-btn-aj:hover {
+    background: #0d9488;
+    color: #fff;
+  }
+  #pdv-pedir-loja-ajuste {
+    position: absolute;
+    inset: 0;
+    z-index: 41;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+    padding: 1rem;
+  }
+  #pdv-pedir-loja-ajuste.is-open { display: flex; }
+  #pdv-pedir-loja-ajuste .pl-ajuste-box {
+    width: min(28rem, 100%);
+    border-radius: 1rem;
+    border: 3px solid #0d9488;
+    background: #fff;
+    padding: 1rem 1.1rem 1.1rem;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.28);
+  }
+  #pdv-pedir-loja-ajuste .pl-ajuste-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+  }
+  #pdv-pedir-loja-ajuste .pl-ajuste-grid label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #64748b;
+    margin-bottom: 0.25rem;
   }
   #pdv-pedir-loja-overlay .pl-hint {
     margin: 0.75rem 0.15rem;
@@ -441,6 +494,7 @@
               <col class="pl-col-gm">
               <col class="pl-col-n">
               <col class="pl-col-n">
+              <col class="pl-col-aj">
             </colgroup>
             <thead>
               <tr>
@@ -448,10 +502,11 @@
                 <th>Código GM</th>
                 <th class="pl-th-n">Centro</th>
                 <th class="pl-th-n">Vila</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="pdv-pedir-loja-hits">
-              <tr class="pl-hint-row"><td colspan="4" class="pl-hint">Digite o nome, GM ou código.</td></tr>
+              <tr class="pl-hint-row"><td colspan="5" class="pl-hint">Digite o nome, GM ou código.</td></tr>
             </tbody>
           </table>
         </div>
@@ -493,6 +548,26 @@
         <div class="pl-confirm-btns">
           <button type="button" id="pdv-pedir-loja-confirm-nao" class="pl-btn pl-btn--ghost">Voltar</button>
           <button type="button" id="pdv-pedir-loja-confirm-sim" class="pl-btn pl-btn--warn">Confirmar</button>
+        </div>
+      </div>
+    </div>
+    <div id="pdv-pedir-loja-ajuste" aria-hidden="true">
+      <div class="pl-ajuste-box" role="document">
+        <p class="pl-confirm-title" style="color:#0f766e">Ajustar estoque</p>
+        <p class="pl-confirm-body" id="pdv-pedir-loja-ajuste-nome"></p>
+        <div class="pl-ajuste-grid">
+          <div>
+            <label for="pdv-pedir-loja-ajuste-centro">Saldo Centro</label>
+            <input type="number" id="pdv-pedir-loja-ajuste-centro" class="pl-field" min="0" step="0.001" value="0" />
+          </div>
+          <div>
+            <label for="pdv-pedir-loja-ajuste-vila">Saldo Vila</label>
+            <input type="number" id="pdv-pedir-loja-ajuste-vila" class="pl-field" min="0" step="0.001" value="0" />
+          </div>
+        </div>
+        <div class="pl-confirm-btns" style="margin-top:1rem;display:flex;gap:0.55rem">
+          <button type="button" id="pdv-pedir-loja-ajuste-nao" class="pl-btn pl-btn--ghost" style="flex:1">Voltar</button>
+          <button type="button" id="pdv-pedir-loja-ajuste-sim" class="pl-btn pl-btn--ok" style="flex:1">Salvar saldo</button>
         </div>
       </div>
     </div>
