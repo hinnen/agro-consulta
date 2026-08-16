@@ -267,15 +267,11 @@
     maybeAutoAdd();
   }
 
-  function onWeightSample(kg, fromScaleStable) {
+  function onWeightSample(kg) {
     if (!Number.isFinite(kg) || kg < 0) return;
     if (kg > MAX_KG) return;
     var now = Date.now();
-    if (Math.abs(kg - lastKg) < 0.0005 && fromScaleStable == null) {
-      /* same */
-    } else {
-      lastKg = kg;
-    }
+    lastKg = kg;
 
     if (armAfterKg != null) {
       if (kg < MIN_KG || Math.abs(kg - armAfterKg) >= RESET_DELTA_KG) {
@@ -286,11 +282,8 @@
       }
     }
 
-    if (fromScaleStable === true) {
-      stableKg = kg;
-      isStable = kg >= MIN_KG;
-      stableSince = now;
-    } else if (Math.abs(kg - stableKg) <= 0.002 && kg >= MIN_KG) {
+    /* Sempre hold local (STABLE_MS) — evita add no ramp-up. */
+    if (Math.abs(kg - stableKg) <= 0.002 && kg >= MIN_KG) {
       if (!stableSince) stableSince = now;
       if (now - stableSince >= STABLE_MS) {
         isStable = true;
@@ -307,6 +300,12 @@
   function parseWeightFromChunk(text) {
     if (!text) return null;
     var cleaned = String(text).replace(/[^\x20-\x7E\r\n]/g, ' ');
+    if (
+      /instav|instável|unstable|------/i.test(cleaned) ||
+      /sobrecarga|overload/i.test(cleaned)
+    ) {
+      return null;
+    }
     /* PROT F / linhas curtas com peso */
     var m =
       cleaned.match(/(?:^|[\s,;])([+-]?\d{1,2}[.,]\d{1,3})\s*(?:kg)?(?:$|[\s\r\n,;])/i) ||
@@ -317,10 +316,7 @@
     if (!Number.isFinite(n)) return null;
     n = Math.abs(n);
     if (n > MAX_KG) return null;
-    var unstable =
-      /instav|instável|unstable|------/i.test(cleaned) ||
-      /sobrecarga|overload/i.test(cleaned);
-    return { kg: n, stableHint: !unstable };
+    return { kg: n };
   }
 
   function feedSerialText(chunk) {
@@ -331,11 +327,11 @@
       buf = parts.pop() || '';
       for (var i = 0; i < parts.length; i++) {
         var parsed = parseWeightFromChunk(parts[i]);
-        if (parsed) onWeightSample(parsed.kg, parsed.stableHint);
+        if (parsed) onWeightSample(parsed.kg);
       }
     } else {
       var p2 = parseWeightFromChunk(buf);
-      if (p2) onWeightSample(p2.kg, p2.stableHint);
+      if (p2) onWeightSample(p2.kg);
     }
   }
 
@@ -479,20 +475,21 @@
       } else {
         setStatus('');
       }
-      return;
+      return Promise.resolve(false);
     }
     var seq = ++resolveSeq;
     setStatus('Buscando produto ' + num + '…');
-    resolveProduto(num).then(function (res) {
-      if (seq !== resolveSeq) return;
+    return resolveProduto(num).then(function (res) {
+      if (seq !== resolveSeq) return false;
       if (!res.ok) {
         setProdutoUi(null, res.erro || 'Não encontrado');
         setStatus(res.erro || 'Não encontrado', 'err');
-        return;
+        return false;
       }
       setProdutoUi(res.produto);
       setStatus('Produto ok. Aguarde peso estável.', 'ok');
       maybeAutoAdd();
+      return true;
     });
   }
 
@@ -516,6 +513,11 @@
       setStatus('Digite o código do produto (1–199).', 'err');
       return;
     }
+    var codeNow = parseGranelCode(dom.codigo && dom.codigo.value);
+    if (codeNow != null && !productMatchesGranelNum(produtoAtual, codeNow)) {
+      setStatus('Aguardando produto do código digitado…', 'err');
+      return;
+    }
     var kg = isStable ? stableKg : lastKg;
     if (kg < MIN_KG) {
       setStatus('Sem peso na balança.', 'err');
@@ -528,9 +530,8 @@
     if (busyAdd) return;
     busyAdd = true;
 
-    var row = Object.assign({}, produtoAtual, {
-      unidade: String(produtoAtual.unidade || produtoAtual.Unidade || 'KG').trim() || 'KG',
-    });
+    /* Pesar granel = sempre KG (peso físico), independente do cadastro. */
+    var row = Object.assign({}, produtoAtual, { unidade: 'KG' });
     var State = window.AgroPdvState;
     var addPromise;
     try {
@@ -591,6 +592,20 @@
   }
 
   function openOverlay() {
+    var st =
+      window.AgroPdvState && window.AgroPdvState.getState
+        ? window.AgroPdvState.getState()
+        : null;
+    if (st && st.currentStep && st.currentStep !== 'produtos') {
+      setStatus('Pesar só na etapa Produtos. Volte antes.', 'err');
+      if (typeof window.showPdvAviso === 'function') {
+        window.showPdvAviso('Pesar granel só na etapa Produtos.', {
+          title: 'Pesar',
+          tone: 'error',
+        });
+      }
+      return;
+    }
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     setStatus('');
@@ -663,14 +678,17 @@
   }
   if (dom.codigo) {
     dom.codigo.addEventListener('input', function () {
+      var v = String(dom.codigo.value || '').replace(/\D/g, '').slice(0, 4);
+      if (v !== dom.codigo.value) dom.codigo.value = v;
       scheduleResolve();
     });
     dom.codigo.addEventListener('keydown', function (ev) {
       if (ev.key === 'Enter') {
         ev.preventDefault();
         ev.stopPropagation();
-        runResolve();
-        doAdd(true);
+        Promise.resolve(runResolve()).then(function (ok) {
+          if (ok) doAdd(true);
+        });
       }
     });
   }
@@ -679,10 +697,19 @@
     if (ev.target === overlay) closeOverlay();
   });
 
+  function outroOverlayAberto() {
+    return !!document.querySelector(
+      '#pdv-pedir-loja-overlay:not(.hidden),#pdv-uso-loja-overlay:not(.hidden),' +
+        '#pdv-repasse-vila-overlay:not(.hidden),#pdv-quick-client-modal:not(.hidden),' +
+        '#pdv-quick-client-edit-overlay:not(.hidden),#pdv-quick-product-edit-overlay:not(.hidden)'
+    );
+  }
+
   document.addEventListener(
     'keydown',
     function (ev) {
       if (ev.code === 'F10' && !ev.altKey && !ev.ctrlKey && !ev.metaKey) {
+        if (outroOverlayAberto()) return;
         ev.preventDefault();
         toggleOverlay();
         return;
@@ -705,7 +732,14 @@
     mockKg: function (kg) {
       connected = true;
       setConnChip('Mock', 'ok');
-      onWeightSample(Number(kg) || 0, true);
+      var n = Number(kg) || 0;
+      onWeightSample(n);
+      /* mock: força estável após hold mínimo */
+      lastKg = n;
+      stableKg = n;
+      stableSince = Date.now() - STABLE_MS - 10;
+      isStable = n >= MIN_KG;
+      updatePesoUi();
     },
   };
 })();

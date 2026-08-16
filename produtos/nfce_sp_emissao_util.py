@@ -461,6 +461,9 @@ def _montar_xml_nfce(
         u_com = str(getattr(item, "unidade", None) or "UN").strip().upper() or "UN"
         if u_com in ("KG.", "QUILO", "KILO", "KGS"):
             u_com = "KG"
+        # Só unidades fiscais curtas; cadastro sujo → UN (comportamento antigo).
+        if u_com not in ("UN", "KG", "G", "L", "ML", "M", "CM", "PC", "CX", "FD", "PCT", "DZ"):
+            u_com = "UN"
         if len(u_com) > 6:
             u_com = u_com[:6]
         _sub(prod, "uCom", u_com)

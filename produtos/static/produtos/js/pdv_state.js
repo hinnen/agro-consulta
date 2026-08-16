@@ -730,7 +730,7 @@
         state.itens = Array.isArray(entry.itens) ? entry.itens.map(function (item) {
             var cod = String(item.codigo || '');
             var gm = String(item.codigoGm || item.codigo_nfe || '').trim();
-            return {
+            var row = {
                 id: String(item.id || ''),
                 nome: String(item.nome || ''),
                 preco: toNumber(item.preco || 0),
@@ -742,6 +742,9 @@
                 desconto: 0,
                 observacao: ''
             };
+            var uni = String((item && item.unidade) || '').trim();
+            if (uni) row.unidade = uni;
+            return row;
         }) : [];
         var nomeLinha = String(entry.cliente || '').trim();
         var ex = entry.cliente_extra;
@@ -801,7 +804,7 @@
         if (!itens.length) return false;
         state.itens = itens.map(function (i) {
             var cod = String((i && i.codigo) || '').trim();
-            return {
+            var row = {
                 id: String((i && i.id) || ''),
                 nome: String((i && i.nome) || ''),
                 preco: toNumber(i && i.preco),
@@ -813,6 +816,9 @@
                 desconto: 0,
                 observacao: ''
             };
+            var uni = String((i && i.unidade) || '').trim();
+            if (uni) row.unidade = uni;
+            return row;
         });
         var nomeLinha = String(draft.cliente || '').trim();
         if (!nomeLinha) nomeLinha = 'CONSUMIDOR NÃO IDENTIFICADO...';
