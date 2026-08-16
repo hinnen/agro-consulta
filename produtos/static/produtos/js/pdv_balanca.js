@@ -443,31 +443,17 @@
     }
 
     var mStx = raw.match(/\x02\s*(\d{4,7})\s*[\x03\r\n]?/);
-    if (!mStx) mStx = raw.match(/(?:^|[^\d])(\d{6})(?:[^\d]|$)/);
-    if (!mStx) {
-      var only = raw.replace(/[^\d]/g, '');
-      if (only.length >= 4 && only.length <= 7) mStx = [null, only.slice(-6)];
-    }
     if (mStx) {
       var grams = parseInt(mStx[1], 10);
       if (Number.isFinite(grams) && grams >= 0) {
-        /* Se veio "1.000" capturado errado como dígitos — já tratado acima */
         var kgG = grams / 1000;
         if (kgG >= MIN_KG && kgG <= MAX_KG) return { kg: kgG };
         if (grams === 0) return { kg: 0 };
       }
     }
 
-    var cleaned = raw.replace(/[^\x20-\x7E\r\n]/g, ' ');
-    var m =
-      cleaned.match(/(?:^|[\s,;])([+-]?\d{1,2}[.,]\d{1,3})\s*(?:kg)?(?:$|[\s\r\n,;])/i) ||
-      cleaned.match(/([+-]?\d{1,2}[.,]\d{3})/);
-    if (!m) return null;
-    var n = parseFloat(m[1].replace(',', '.'));
-    if (!Number.isFinite(n)) return null;
-    n = Math.abs(n);
-    if (n > MAX_KG) return null;
-    return { kg: n };
+    /* Sem STX: não aceitar — evita texto de impressora virar peso. */
+    return null;
   }
 
   function feedSerialText(chunk) {
@@ -558,8 +544,10 @@
   function warnWrongDeviceEsc() {
     if (escNoiseWarned) return;
     escNoiseWarned = true;
-    saveCfg({ lastWasEsc: 1 });
+    /* Não reabrir esta COM como “balança salva”. */
+    saveCfg({ lastWasEsc: 1, usbVendorId: null, usbProductId: null });
     stopPoll();
+    byteBuf = [];
     setConnChip('COM errada?', 'err');
     setStatus(
       'Isso é impressora (ESC…), não balança. Toque CONECTAR e escolha a COM da BALANÇA (COM4). Na balança: F → 3 → USE-P2.',
@@ -588,8 +576,20 @@
     lastByteAt = Date.now();
     var arr = Array.prototype.slice.call(u8);
     setRxHint(bytesToHint(arr), bytesToAsciiHint(arr));
-    if (looksLikeEscPos(arr) && lastKg < MIN_KG) {
+    if (looksLikeEscPos(arr)) {
       warnWrongDeviceEsc();
+      return;
+    }
+    if (escNoiseWarned) {
+      /* Só sai do modo impressora com frame STX de balança. */
+      var hasStx = false;
+      for (var hi = 0; hi < arr.length; hi++) {
+        if (arr[hi] === 0x02) {
+          hasStx = true;
+          break;
+        }
+      }
+      if (!hasStx) return;
     }
     for (var i = 0; i < u8.length; i++) byteBuf.push(u8[i]);
     if (byteBuf.length > 8000) byteBuf = byteBuf.slice(-4000);
@@ -605,14 +605,21 @@
       var frame = byteBuf.splice(0, end + 1);
       var chars = '';
       for (var k = 0; k < frame.length; k++) chars += String.fromCharCode(frame[k]);
+      if (looksLikeEscPos(frame)) {
+        warnWrongDeviceEsc();
+        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
+        continue;
+      }
+      /* Só aceita peso com STX — evita texto de impressora virar kg. */
+      if (chars.indexOf('\x02') < 0) {
+        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
+        continue;
+      }
       var parsedB = parseWeightFromChunk(chars);
       if (parsedB) {
         escNoiseWarned = false;
         saveCfg({ lastWasEsc: 0 });
         onWeightSample(parsedB.kg);
-      } else if (looksLikeEscPos(frame)) {
-        warnWrongDeviceEsc();
-        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
       } else {
         setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
       }
@@ -649,14 +656,22 @@
     if (!('serial' in navigator)) {
       throw new Error('Este Chrome não tem Web Serial. Use Chrome atualizado.');
     }
-    if (port && !opts.forcePick) {
-      /* Já escolhida (ainda fechada ou aberta). */
-      return port;
-    }
 
     if (opts.forcePick) {
       port = await navigator.serial.requestPort();
       savePortFingerprint(port);
+      escNoiseWarned = false;
+      return port;
+    }
+
+    var cfg = loadCfg();
+    if (cfg.lastWasEsc) {
+      throw new Error(
+        'Última porta era impressora. Toque em CONECTAR e escolha a COM da BALANÇA (COM4).'
+      );
+    }
+
+    if (port) {
       return port;
     }
 
@@ -667,12 +682,6 @@
       return port;
     }
 
-    var cfg = loadCfg();
-    if (cfg.lastWasEsc) {
-      throw new Error(
-        'Última porta era impressora. Toque em CONECTAR e escolha a COM da BALANÇA (COM4).'
-      );
-    }
     if (ports && ports.length === 1) {
       port = ports[0];
       return port;
@@ -1002,12 +1011,18 @@
     dom.conectar.addEventListener('click', function () {
       closePortSoft()
         .then(function () {
+          var pClose = Promise.resolve();
           try {
-            if (port && port.close) return port.close();
+            if (port && typeof port.close === 'function') {
+              pClose = Promise.resolve(port.close()).catch(function () {});
+            }
           } catch (eClose) {}
-          port = null;
-          return ensurePort({ forcePick: true }).then(function () {
-            return openPort();
+          return pClose.then(function () {
+            port = null;
+            escNoiseWarned = false;
+            return ensurePort({ forcePick: true }).then(function () {
+              return openPort();
+            });
           });
         })
         .catch(function (err) {

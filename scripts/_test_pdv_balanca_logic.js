@@ -74,7 +74,6 @@ function parseWeightFromChunk(text) {
     }
   }
   var mStx = raw.match(/\x02\s*(\d{4,7})\s*[\x03\r\n]?/);
-  if (!mStx) mStx = raw.match(/(?:^|[^\d])(\d{6})(?:[^\d]|$)/);
   if (mStx) {
     var grams = parseInt(mStx[1], 10);
     if (Number.isFinite(grams) && grams >= 0) {
@@ -84,6 +83,13 @@ function parseWeightFromChunk(text) {
     }
   }
   return null;
+}
+
+function looksLikeEscPos(arr) {
+  for (var i = 0; i < (arr || []).length; i++) {
+    if (arr[i] === 0x1b) return true;
+  }
+  return false;
 }
 
 function feedFrames(byteArrays) {
@@ -157,6 +163,14 @@ var f4 = feedFrames([Buffer.from([0x02, 0x30, 0x30, 0x31, 0x30, 0x30, 0x30, 0x30
 assert(f4.samples.length === 0 && f4.leftover === 8, '7 dígitos sem delimitador NÃO consome');
 
 assert(preferHits([pBar10], 10)[0].id === '4', 'barras "10" casa');
+
+assert(parseWeightFromChunk('001000\r') == null, 'sem STX não vira peso');
+assert(parseWeightFromChunk('1.000') == null, 'decimal solto não vira peso');
+assert(looksLikeEscPos([0x1b, 0x45, 0x1b, 0x50, 0x31]), 'detecta ESC impressora');
+assert(!looksLikeEscPos([0x02, 0x30, 0x30, 0x31, 0x30, 0x30, 0x30, 0x0d]), 'STX+peso não é ESC');
+
+var fEsc = feedFrames([Buffer.from([0x1b, 0x45, 0x1b, 0x50, 0x31, 0x0d])]);
+assert(fEsc.samples.length === 0, 'frame ESC não vira peso');
 
 if (failed) {
   console.error('\n' + failed + ' falha(s)');
