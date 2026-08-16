@@ -1,5 +1,51 @@
 <style>
-  /* Pedir loja — layout PC (modal largo, coluna única) */
+  /* Pedir loja — PC: busca | pedido. Altura pelo conteúdo; scroll só se a lista passar. */
+  #pdv-pedir-loja-overlay .pl-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(96vw, 68rem);
+    max-height: min(90dvh, 44rem);
+    overflow: hidden;
+  }
+  #pdv-pedir-loja-overlay .pl-pedir-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  #pdv-pedir-loja-overlay .pl-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    padding: 0.75rem 1rem 1rem;
+  }
+  #pdv-pedir-loja-overlay .pl-col--pedido {
+    border-left: 2px solid #fed7aa;
+    background: #fff7ed;
+  }
+  #pdv-pedir-loja-overlay .pl-hits,
+  #pdv-pedir-loja-overlay .pl-cart-box {
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  #pdv-pedir-loja-overlay .pl-hits { margin-top: 0.5rem; flex: 1 1 auto; }
+  #pdv-pedir-loja-overlay .pl-hits:empty { display: none; flex: 0; }
+  #pdv-pedir-loja-overlay .pl-cart-box { margin-top: 0.4rem; flex: 1 1 auto; }
+  #pdv-pedir-loja-overlay .pl-foot {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+  }
+  #pdv-pedir-loja-overlay .pl-foot .pl-btn--warn { width: 100%; }
+  #pdv-pedir-loja-overlay #pdv-pedir-loja-busca::-webkit-search-cancel-button,
+  #pdv-pedir-loja-overlay #pdv-pedir-loja-busca::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+  }
   #pdv-pedir-loja-overlay .pl-tab {
     min-height: 2.75rem;
     padding: 0.4rem 0.95rem;
@@ -228,7 +274,7 @@
 </style>
 
 <div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-center justify-center bg-slate-950/55 p-2 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
-  <div class="relative flex h-[min(92dvh,50rem)] w-[min(96vw,64rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-orange-500 bg-gradient-to-b from-orange-50/90 via-white to-white shadow-2xl" role="document">
+  <div class="pl-panel relative max-w-full rounded-2xl border-[3px] border-orange-500 bg-gradient-to-b from-orange-50/90 via-white to-white shadow-2xl" role="document">
     <header class="relative flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-orange-100 bg-white px-4 py-3">
       <div class="min-w-0 flex-1">
         <h2 id="pdv-pedir-loja-title" class="text-[clamp(1.05rem,0.4vw+1rem,1.3rem)] font-black uppercase tracking-tight text-slate-900">Pedir loja</h2>
@@ -255,17 +301,21 @@
     <p id="pdv-pedir-loja-pin-aviso" class="hidden mx-4 mt-2 rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-950">Entre com o PIN do PDV para gravar quem pediu. <button type="button" id="pdv-pedir-loja-abrir-pin" class="underline">Abrir PIN</button></p>
     <p id="pdv-pedir-loja-status" class="hidden mx-4 mt-2 text-sm font-bold text-slate-700" role="status"></p>
 
-    <div class="pl-view-pedir flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4 pt-2">
-      <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
-      <input type="search" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
-      <div id="pdv-pedir-loja-hits" class="mt-2 max-h-[11rem] space-y-1.5 overflow-y-auto"></div>
-      <p class="mt-2 shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-500">Lista do pedido</p>
-      <div id="pdv-pedir-loja-cart" class="mt-1 min-h-0 flex-1 space-y-1.5 overflow-y-auto"></div>
-      <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-obs">Observação</label>
-      <input type="text" id="pdv-pedir-loja-obs" class="pl-field shrink-0" maxlength="400" placeholder="Opcional — ex.: cliente esperando" />
-      <div class="mt-2 flex shrink-0 flex-wrap gap-2">
-        <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--ghost">Limpar lista</button>
-        <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn flex-1">Enviar pedido</button>
+    <div class="pl-view-pedir pl-pedir-grid min-h-0">
+      <div class="pl-col pl-col--busca">
+        <label class="sr-only" for="pdv-pedir-loja-busca">Buscar produto</label>
+        <input type="text" id="pdv-pedir-loja-busca" class="pl-field shrink-0" placeholder="Nome, GM ou código de barras" autocomplete="off" />
+        <div id="pdv-pedir-loja-hits" class="pl-hits space-y-1.5"></div>
+      </div>
+      <div class="pl-col pl-col--pedido">
+        <p class="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-500">Lista do pedido</p>
+        <div id="pdv-pedir-loja-cart" class="pl-cart-box space-y-1.5"></div>
+        <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-obs">Observação</label>
+        <input type="text" id="pdv-pedir-loja-obs" class="pl-field shrink-0" maxlength="400" placeholder="Opcional — ex.: cliente esperando" />
+        <div class="pl-foot shrink-0">
+          <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--ghost">Limpar lista</button>
+          <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn">Enviar pedido</button>
+        </div>
       </div>
     </div>
 

@@ -50,6 +50,34 @@ def _operador(request, payload=None):
 
 @login_required(login_url="/admin/login/")
 @require_GET
+def api_pdv_transf_loja_saldos(request):
+    """Saldo Agro (ledger/ajuste) para os produtos da busca — wizard=1 zera isso."""
+    raw = str(request.GET.get("ids") or "")
+    ids = [x.strip()[:64] for x in raw.split(",") if x.strip()][:40]
+    if not ids:
+        return JsonResponse({"ok": True, "saldos": {}})
+    db = client = None
+    try:
+        from produtos.views import obter_conexao_mongo
+
+        client, db = obter_conexao_mongo()
+    except Exception:
+        db = client = None
+    from produtos.estoque_saldo_agro_util import mapa_saldos_operacionais_agro
+
+    m = mapa_saldos_operacionais_agro(ids, db=db, client=client) or {}
+    out = {}
+    for pid in ids:
+        info = m.get(pid) or {}
+        out[pid] = {
+            "saldo_centro": float(info.get("saldo_centro") or 0),
+            "saldo_vila": float(info.get("saldo_vila") or 0),
+        }
+    return JsonResponse({"ok": True, "saldos": out})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
 def api_pdv_transf_loja_resumo(request):
     loja = _loja_atual(request)
     ok, label, _user, _err = resolver_operador_pdv(request, "")
