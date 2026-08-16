@@ -1216,11 +1216,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — Pedir loja layout + saldo Agro (`PDV-PEDIR-LOJA-UX2` · **v16.58**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (15/08 · Pedir loja UX2)
 
-> **Status:** 🔧 **só no teste** · Ctrl+F5 local · **não** loja sem frase+senha
-> **O quê:** modal sem altura forçada (acaba vazio/scroll à toa) · busca | pedido · saldo Agro (não o 0 do wizard lite)
-> **Você:** PDV local · Ctrl+F5 · Pedir loja · busca milho · confere saldo e layout
+> **Loja hoje:** ✅ **Live v16.56** · `producao` @ **197a6ac** / **cd261d6**  
+> **NÃO** merge teste→producao sem frase + senha.  
+> **Só no teste:** tip **v16.58** · **sem migrate**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PEDIR-LOJA-UX2** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO LOJA — Pedir loja layout + saldo (`PDV-PEDIR-LOJA-UX2` · **v16.58**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.58** |
+| **O quê** | Overlay PC **busca \| pedido** · sem altura forçada (acaba vazio/scroll) · saldo **Agro** (não o 0 do wizard) · botão rosa |
+| **Prova** | `scripts/verify_pdv_pedir_loja.py` **VERIFY OK 38/38** · `tests_pdv_transf_loja` **17/17** |
+| **Commit** | `6a37b64` + path check |
+| **Migrate** | **NÃO** |
+| **Você** | PDV local · **Ctrl+F5** · Pedir loja · busca milho · confere saldo e layout |
 
 ### ✅ Deploy loja — Pedir loja UX PC + rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
 
@@ -1243,14 +1258,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-pdv-pedir-loja-prod-v16.53` @ **fc01036** · branch `producao-backup-pre-v1655-pedir-loja-20260815` · frase+senha |
 | **Você** | Ctrl+F5 PDV · badge **v16.55** · Pedir loja · 1 pedido teste |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (15/08 · Pedir loja · loja v16.55)
-
-> **Loja hoje:** ✅ **Live v16.55** · `producao` @ **5da53b3**  
-> **Fila deploy:** **vazia**.
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-LOJA** | ✅ enviado / Live v16.55 | **SIM** 0018 |
+### ✅ CHECKLIST ÚNICO — enviado produção (15/08 · Pedir loja · loja v16.55) · **superado — Live v16.56; fila agora UX2 v16.58**
 
 ### 📦 PACOTE PRONTO LOJA — Pedir loja PDV (`PDV-PEDIR-LOJA` · **v16.55**) · **superado — Live**
 

@@ -65,6 +65,9 @@ def main() -> int:
     check("overlay_grid_pc", "pl-pedir-grid" in html and "pl-col--pedido" in html)
     check("overlay_sem_maxh_hits", "max-h-[11rem]" not in html)
     check("js_saldos_agro", "apiPdvTransfLojaSaldos" in js and "fmtSaldo" in js)
+    check("js_busca_seq", "buscaSeq" in js)
+    check("view_saldos", "def api_pdv_transf_loja_saldos" in views)
+    check("tests_saldos", "test_saldos_agro" in tests)
     check("overlay_saldo_pills", "Saldo Centro" in js and "Saldo Vila" in js)
     check("overlay_abas_completas", "Recebidos" in html and "Histórico" in html)
     check("overlay_obs_visivel", 'id="pdv-pedir-loja-obs"' in html)
@@ -87,7 +90,7 @@ def main() -> int:
     check("rollback_doc", "7f7b8022" in rollback and "rollback/pre-pdv-pedir-loja" in rollback)
     check("rollback_migrate", "0018_solicitacao_transferencia_pdv" in rollback)
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.57", ver)
+    check("version_bump", ver >= "16.58", ver)
 
     print()
     print(f"VERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
