@@ -1235,13 +1235,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — após loja v16.84 (16/08h)
 
 > **Loja hoje:** ✅ **Live v16.84** · `producao` @ **a6d3fbf**  
-> **Pronto envio:** **REPASSE-VALOR-MANUAL** · teste **v16.83** @ **ab71c8c** · **sem migrate**
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** · **PDV-BALANCA-HOTFIX2** (v16.87) · **sem migrate**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
+| 2 | **PDV-BALANCA-HOTFIX2** | ✅ **pronto para envio** / teste (próximo commit) | não |
 
-### 📦 PACOTE PRONTO — Balança hotfix produto+peso (`PDV-BALANCA-HOTFIX` · **v16.84**) · **Live v16.84**
+### 📦 PACOTE PRONTO — Balança ambiguo+ETX (`PDV-BALANCA-HOTFIX2`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Prioriza barras `0010` · mostra nomes se ambíguo · parse **ETX** + linha RX |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · F10 · digite 10 · se ambíguo, lê os nomes · olhe linha **RX:** |
+
+### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
 | Item | Detalhe |
 | ---- | ------- |
