@@ -1220,7 +1220,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** · migrate `estoque.0018` · prova 15/15 + verify |
+| **Status** | ✅ **teste** · migrate `estoque.0018` · prova **15/15** · verify **28/28** |
 | **O quê** | Overlay **Pedir loja** no wizard (não é `/transferencias/`) · botão rosa na topbar · layout **largo no PC** |
 | **Fluxo** | Pedir → outra loja badge → Aceitar → Pronto → **Transferir** (aí estoque) · PIN sessão |
 | **Você** | `migrate` · Ctrl+F5 PDV · Pedir loja · pedir 1 item · abrir PDV da outra loja |
