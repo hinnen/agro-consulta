@@ -1090,8 +1090,14 @@
             <span class="hidden sm:inline">Ajuda</span>
           </summary>
           <div class="cf-help-panel">
-            <p>Some o turno da loja <strong>{{ loja_fechar_label|default:"Centro" }}</strong> ({{ qtd_caixas_operacional }} caixa{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>. Linhas <strong>— Mercado Pago</strong> batem com o app MP (balcão automático e <strong>Mercado Pago Renan</strong>); as demais somam Cielo, Sicredi e Sicoob. Caixa Teste e a outra loja fecham à parte.</p>
-            <p class="mt-2 text-slate-600">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas.</p>
+            <p>Some o turno da loja <strong>{{ loja_fechar_label|default:"Centro" }}</strong> ({{ qtd_caixas_operacional }} caixa{% if qtd_caixas_operacional > 1 %}s{% endif %}), conte na gaveta e nas maquininhas e informe o <strong>total por forma</strong>.
+              {% if deposito_fechar == "vila" %}
+              Na <strong>Vila</strong>: PIX / débito / crédito somam Sicredi, MP Vila e Sicoob. Fiado, vale e cashback vão auto no bloco de baixo.
+              {% else %}
+              No <strong>Centro</strong>: PIX / débito / crédito somam Cielo, Sicredi, Sicoob e MP Renan. O <strong>Mercado Pago automático</strong> (pinpad) preenche sozinho no bloco de baixo.
+              {% endif %}
+            </p>
+            <p class="mt-2 text-slate-600">Em <strong>Dinheiro</strong>, o esperado inclui fundo de abertura + vendas + reforços − retiradas. Contagem salva sozinha (mesmo sem fechar).</p>
           </div>
         </details>
       </div>
@@ -1158,46 +1164,23 @@
                 <span class="cf-conf-head-label">Variação</span>
               </div>
             </div>
-          {% for L in linhas_conferencia %}
-          <div class="cf-conf-row{% if L.forma == 'Dinheiro' %} cf-conf-row--dinheiro{% endif %}{% if not L.com_movimento %} cf-conf-row--zero{% endif %}" role="row">
-            <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
-            <div class="cf-conf-col cf-conf-col--esperado" role="cell">
-              <span class="cf-pay-forma cf-t-forma">{{ L.forma }}</span>
-              <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
-            </div>
-            <div class="cf-conf-col cf-conf-col--contado" role="cell">
-              {% if L.forma == 'Dinheiro' %}
-              <div class="cf-conf-contado-field cf-contado-with-cedulas">
-                <div class="cf-contado-inline-wrap">
-                  <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Informe o total contado">
-                  <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas (opcional)">Cédulas</button>
-                </div>
-                <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Opcional: contar por cédulas</span>
-              </div>
-              {% else %}
-              <label class="cf-conf-contado-field min-w-0">
-                <span class="sr-only">Contado {{ L.forma }}</span>
-                <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" class="caixa-contado cf-contado-input" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="Valor contado">
-              </label>
-              {% endif %}
-              <details class="cf-mini-help relative justify-self-end self-start">
-                <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
-                <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
-                  <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
-                  <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
-                  <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
-                  {% if L.forma == 'Dinheiro' %}
-                  <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
-                  {% endif %}
-                </div>
-              </details>
-            </div>
-            <div class="cf-conf-col cf-conf-col--variacao" role="cell">
-              <p class="caixa-diff cf-conf-variacao caixa-diff--vazio" aria-live="polite">—</p>
-            </div>
-          </div>
+          {% for L in linhas_visiveis %}
+          {% include "produtos/includes/caixa_fechar_linha_conf.html" with L=L %}
           {% endfor %}
           </div>
+          {% if linhas_ocultas %}
+          <details class="cf-auto-bloco mt-2 rounded-xl border-2 border-slate-200 bg-slate-50 open:bg-white">
+            <summary class="cursor-pointer list-none select-none px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 font-black uppercase text-xs tracking-wide text-slate-700 hover:bg-slate-100 rounded-xl">
+              <span>Auto · fiado / vale / cashback{% if deposito_fechar != "vila" %} / MP pinpad{% endif %}</span>
+              <span class="text-slate-500 font-bold normal-case tracking-normal">{{ linhas_ocultas|length }} linha{% if linhas_ocultas|length != 1 %}s{% endif %} · toque para ver</span>
+            </summary>
+            <div class="cf-conf-table border-t border-slate-200 px-1 pb-2" role="table" aria-label="Formas auto-preenchidas">
+              {% for L in linhas_ocultas %}
+              {% include "produtos/includes/caixa_fechar_linha_conf.html" with L=L %}
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
           {% else %}
           <p class="text-sm font-bold text-slate-500 py-4 text-center">Nenhuma forma para conferir — abra o caixa se precisar.</p>
           {% endif %}
@@ -1558,6 +1541,21 @@
     });
   }
   aplicarContagemNosCampos(contagemMap);
+  // Auto (fiado/vale/cashback/Point): preenche esperado só se ainda vazio — ver bloco após persistirContagemLocalAgora.
+  function aplicarAutoContadoEsperado() {
+    var mudou = false;
+    document.querySelectorAll('.caixa-contado[data-auto-contado="1"]').forEach(function (inp) {
+      if (String(inp.value || '').trim() !== '') return;
+      var esp = String(inp.getAttribute('data-esperado') || '').trim();
+      if (!esp) return;
+      var n = parseFloat(esp.replace(',', '.'));
+      if (!Number.isFinite(n)) return;
+      inp.value = fmtBr(n);
+      mudou = true;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    return mudou;
+  }
 
   var dinheiroInp = document.querySelector('.caixa-contado[data-forma="Dinheiro"]');
   var dinheiroDigitadoManual = false;
@@ -1833,6 +1831,9 @@
     inp.addEventListener('input', agendarSalvarContagem);
     inp.addEventListener('change', agendarSalvarContagem);
   });
+  if (aplicarAutoContadoEsperado()) {
+    agendarSalvarContagem();
+  }
   document.querySelectorAll('form.form-fechar-um, #form-fechar-todos').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       if (form.id === 'form-fechar-todos') {

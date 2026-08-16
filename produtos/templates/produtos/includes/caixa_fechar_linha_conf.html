@@ -1,0 +1,41 @@
+{# Linha de conferência Fechar caixa — L: forma, idx, esperado, vendas, …, auto_contado #}
+<div class="cf-conf-row{% if L.forma == 'Dinheiro' %} cf-conf-row--dinheiro{% endif %}{% if not L.com_movimento %} cf-conf-row--zero{% endif %}{% if L.auto_contado %} cf-conf-row--auto{% endif %}" role="row" {% if L.auto_contado %}data-auto-contado="1"{% endif %}>
+  <input type="hidden" name="forma_{{ L.idx }}" value="{{ L.forma }}">
+  <div class="cf-conf-col cf-conf-col--esperado" role="cell">
+    <span class="cf-pay-forma cf-t-forma">{{ L.forma }}{% if L.auto_contado %} <span class="text-[0.65rem] font-bold normal-case text-emerald-700 tracking-normal">(auto)</span>{% endif %}</span>
+    <span class="cf-pay-esperado cf-t-money cf-esperado-val" data-forma="{{ L.forma }}">R$ {{ L.esperado }}</span>
+  </div>
+  <div class="cf-conf-col cf-conf-col--contado" role="cell">
+    {% if L.forma == 'Dinheiro' %}
+    <div class="cf-conf-contado-field cf-contado-with-cedulas">
+      <div class="cf-contado-inline-wrap">
+        <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" {% if L.auto_contado %}data-auto-contado="1"{% endif %} class="caixa-contado cf-contado-input min-w-0 flex-1" placeholder="0,00" autocomplete="off" aria-label="Contado em dinheiro" title="Informe o total contado">
+        <button type="button" id="cf-cedulas-abrir" class="cf-cedulas-open-btn--inline cf-t-label" aria-haspopup="dialog" aria-controls="cf-cedulas-modal" title="Abrir contagem de cédulas e moedas (opcional)">Cédulas</button>
+      </div>
+      <span id="cf-cedulas-resumo" class="cf-cedulas-open-resumo">Opcional: contar por cédulas</span>
+    </div>
+    {% else %}
+    <label class="cf-conf-contado-field min-w-0">
+      <span class="sr-only">Contado {{ L.forma }}</span>
+      <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" {% if L.auto_contado %}data-auto-contado="1"{% endif %} class="caixa-contado cf-contado-input{% if L.auto_contado %} cf-contado-auto{% endif %}" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="{% if L.auto_contado %}Preenchido com o esperado (pode editar){% else %}Valor contado{% endif %}">
+    </label>
+    {% endif %}
+    <details class="cf-mini-help relative justify-self-end self-start">
+      <summary class="cursor-pointer list-none inline-flex h-9 w-9 items-center justify-center rounded-full border-2 border-slate-300 bg-white text-sm font-black text-slate-600 hover:border-emerald-400 select-none" title="Detalhe">?</summary>
+      <div class="cf-detalhe absolute z-20 top-full mt-1 right-0 w-[min(17rem,calc(100vw-2rem))] rounded-xl border-2 border-slate-200 bg-white p-2.5 text-xs font-bold text-slate-700 shadow-lg" data-forma="{{ L.forma }}">
+        <p class="cf-det-vendas">Vendas R$ {{ L.vendas }}</p>
+        <p class="cf-det-reforcos mt-1">+ Reforços R$ {{ L.reforcos }}</p>
+        <p class="cf-det-retiradas mt-1">− Retiradas R$ {{ L.retiradas }}</p>
+        {% if L.forma == 'Dinheiro' %}
+        <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
+        {% endif %}
+        {% if L.auto_contado %}
+        <p class="mt-1.5 text-emerald-800">Auto = esperado (salvo no rascunho se você alterar).</p>
+        {% endif %}
+      </div>
+    </details>
+  </div>
+  <div class="cf-conf-col cf-conf-col--variacao" role="cell">
+    <p class="caixa-diff cf-conf-variacao caixa-diff--vazio" aria-live="polite">—</p>
+  </div>
+</div>
