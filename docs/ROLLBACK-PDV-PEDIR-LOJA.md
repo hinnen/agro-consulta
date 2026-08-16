@@ -1,5 +1,24 @@
 # Rollback — PDV Pedir loja
 
+## Produção — coluna Código GM (**v16.69**) — ponto **antes** deste pacote (Live v16.68)
+
+| Item | Valor |
+| ---- | ----- |
+| **Commit** | `677b3a1` (Live v16.68) |
+| **Tag** | `rollback/pre-pdv-pedir-loja-gm-col-v16.68` |
+| **Branch backup** | `producao-backup-pre-v1669-pedir-gm-col-20260816` |
+| **O quê reverte** | só largura CSS da coluna Código GM · **sem migrate** |
+| **Migrate** | **nenhuma** |
+
+```bash
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-pdv-pedir-loja-gm-col-v16.68
+git push origin producao --force-with-lease
+```
+
+**Só** com frase + senha do Renan. Volta para Live **v16.68**.
+
 ## Produção — Pedir loja UX5–UX7 (**v16.68**) — ponto **antes** deste pacote (Live v16.59)
 
 | Item | Valor |
