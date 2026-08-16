@@ -1243,7 +1243,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ enviado / Live v16.74 |
 | 2 | **REPASSE-ELET-MAQUINAS** | ✅ enviado / Live v16.74 |
-| 3 | **PDV-BALANCA-GRANEL** | ⏳ PREP acima · aguarda senha |
+| 3 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
 
 ### ✅ CHECKLIST ÚNICO — após loja v16.74 (16/08f)
 
