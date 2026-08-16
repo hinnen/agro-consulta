@@ -492,47 +492,129 @@
       .join(' ');
   }
 
-  function setRxHint(txt) {
+  var escNoiseWarned = false;
+
+  function portInfoOf(p) {
+    try {
+      return (p && typeof p.getInfo === 'function' && p.getInfo()) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function savePortFingerprint(p) {
+    var info = portInfoOf(p);
+    saveCfg({
+      asked: 1,
+      modelo: 'US20/2 POP-S',
+      protocolo: 'USE-P2',
+      baud: BAUD,
+      stopBits: STOP_BITS,
+      hintPorta: 'COM4',
+      usbVendorId: info.usbVendorId != null ? info.usbVendorId : null,
+      usbProductId: info.usbProductId != null ? info.usbProductId : null,
+      lastWasEsc: 0,
+    });
+  }
+
+  function findSavedPort(ports) {
+    var cfg = loadCfg();
+    if (cfg.usbVendorId == null) return null;
+    for (var i = 0; i < (ports || []).length; i++) {
+      var info = portInfoOf(ports[i]);
+      if (
+        info.usbVendorId === cfg.usbVendorId &&
+        (cfg.usbProductId == null || info.usbProductId === cfg.usbProductId)
+      ) {
+        return ports[i];
+      }
+    }
+    return null;
+  }
+
+  function bytesToAsciiHint(arr) {
+    var out = '';
+    for (var i = 0; i < (arr || []).length && i < 16; i++) {
+      var b = arr[i];
+      if (b === 0x1b) out += 'ESC ';
+      else if (b === 0x02) out += 'STX ';
+      else if (b === 0x03) out += 'ETX ';
+      else if (b === 0x05) out += 'ENQ ';
+      else if (b === 0x0d) out += 'CR ';
+      else if (b === 0x0a) out += 'LF ';
+      else if (b >= 0x20 && b <= 0x7e) out += String.fromCharCode(b) + ' ';
+      else out += '? ';
+    }
+    return out.trim();
+  }
+
+  function looksLikeEscPos(arr) {
+    for (var i = 0; i < (arr || []).length; i++) {
+      if (arr[i] === 0x1b) return true;
+    }
+    return false;
+  }
+
+  function warnWrongDeviceEsc() {
+    if (escNoiseWarned) return;
+    escNoiseWarned = true;
+    saveCfg({ lastWasEsc: 1 });
+    stopPoll();
+    setConnChip('COM errada?', 'err');
+    setStatus(
+      'Isso é impressora (ESC…), não balança. Toque CONECTAR e escolha a COM da BALANÇA (COM4). Na balança: F → 3 → USE-P2.',
+      'err'
+    );
+    if (dom.estavel) {
+      dom.estavel.textContent = 'Porta errada — escolha a balança';
+      dom.estavel.className = 'mt-1 text-xs font-bold text-red-700';
+    }
+  }
+
+  function setRxHint(txt, asciiExtra) {
     lastRawHint = txt || '';
     if (dom.rx) {
-      dom.rx.textContent = lastRawHint
-        ? 'RX: ' + lastRawHint
-        : connected
-          ? 'RX: (aguardando bytes…)'
-          : '';
+      if (!lastRawHint) {
+        dom.rx.textContent = connected ? 'RX: (aguardando bytes…)' : '';
+      } else {
+        dom.rx.textContent =
+          'RX: ' + lastRawHint + (asciiExtra ? '  ·  ' + asciiExtra : '');
+      }
     }
   }
 
   function feedSerialBytes(u8) {
     if (!u8 || !u8.length) return;
     lastByteAt = Date.now();
-    setRxHint(bytesToHint(Array.prototype.slice.call(u8)));
+    var arr = Array.prototype.slice.call(u8);
+    setRxHint(bytesToHint(arr), bytesToAsciiHint(arr));
+    if (looksLikeEscPos(arr) && lastKg < MIN_KG) {
+      warnWrongDeviceEsc();
+    }
     for (var i = 0; i < u8.length; i++) byteBuf.push(u8[i]);
     if (byteBuf.length > 8000) byteBuf = byteBuf.slice(-4000);
     while (true) {
       var end = -1;
       for (var j = 0; j < byteBuf.length; j++) {
-        /* CR, LF ou ETX (0x03) — Urano costuma fechar com ETX */
         if (byteBuf[j] === 0x0d || byteBuf[j] === 0x0a || byteBuf[j] === 0x03) {
           end = j;
           break;
         }
       }
-      if (end < 0) {
-        /* Sem CR/LF/ETX: não consumir STX+dígitos à força (7 dígitos quebram o frame). */
-        break;
-      }
+      if (end < 0) break;
       var frame = byteBuf.splice(0, end + 1);
       var chars = '';
       for (var k = 0; k < frame.length; k++) chars += String.fromCharCode(frame[k]);
       var parsedB = parseWeightFromChunk(chars);
       if (parsedB) {
+        escNoiseWarned = false;
+        saveCfg({ lastWasEsc: 0 });
         onWeightSample(parsedB.kg);
+      } else if (looksLikeEscPos(frame)) {
+        warnWrongDeviceEsc();
+        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
       } else {
-        setRxHint(bytesToHint(frame));
-        if (isOpen() && lastKg < MIN_KG && !produtoAtual) {
-          setStatus('COM ok, frame sem peso: ' + lastRawHint, 'err');
-        }
+        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
       }
     }
   }
@@ -562,25 +644,46 @@
     }
   }
 
-  async function ensurePort() {
+  async function ensurePort(opts) {
+    opts = opts || {};
     if (!('serial' in navigator)) {
       throw new Error('Este Chrome não tem Web Serial. Use Chrome atualizado.');
     }
-    if (port && port.readable) return port;
+    if (port && !opts.forcePick) {
+      /* Já escolhida (ainda fechada ou aberta). */
+      return port;
+    }
+
+    if (opts.forcePick) {
+      port = await navigator.serial.requestPort();
+      savePortFingerprint(port);
+      return port;
+    }
+
     var ports = await navigator.serial.getPorts();
-    if (ports && ports.length) {
+    var saved = findSavedPort(ports);
+    if (saved) {
+      port = saved;
+      return port;
+    }
+
+    var cfg = loadCfg();
+    if (cfg.lastWasEsc) {
+      throw new Error(
+        'Última porta era impressora. Toque em CONECTAR e escolha a COM da BALANÇA (COM4).'
+      );
+    }
+    if (ports && ports.length === 1) {
       port = ports[0];
       return port;
     }
+    if (ports && ports.length > 1) {
+      throw new Error(
+        'Há várias portas COM. Toque em CONECTAR e escolha a da BALANÇA (COM4), não a impressora.'
+      );
+    }
     port = await navigator.serial.requestPort();
-    saveCfg({
-      asked: 1,
-      modelo: 'US20/2 POP-S',
-      protocolo: 'USE-P2',
-      baud: BAUD,
-      stopBits: STOP_BITS,
-      hintPorta: 'COM4',
-    });
+    savePortFingerprint(port);
     return port;
   }
 
@@ -596,10 +699,11 @@
       });
     }
     connected = true;
+    escNoiseWarned = false;
     byteBuf = [];
     buf = '';
     setConnChip('COM ok', 'ok');
-    setStatus('Balança conectada (USE-P2 · 9600 8N1). Escolha COM4 se pedir.', 'ok');
+    setStatus('Balança conectada (USE-P2 · 9600 8N1). Se o RX mostrar ESC, troque a porta.', 'ok');
     startReadLoop();
     startPoll();
     startSilenceWatch();
@@ -896,22 +1000,20 @@
   }
   if (dom.conectar) {
     dom.conectar.addEventListener('click', function () {
-      closePortSoft().then(function () {
-        port = null;
-        return navigator.serial
-          .requestPort()
-          .then(function (p) {
-            port = p;
-            saveCfg({ asked: 1, modelo: 'US20/2 POP-S', protocolo: 'USE-P2' });
+      closePortSoft()
+        .then(function () {
+          try {
+            if (port && port.close) return port.close();
+          } catch (eClose) {}
+          port = null;
+          return ensurePort({ forcePick: true }).then(function () {
             return openPort();
-          })
-          .catch(function (err) {
-            setStatus(
-              (err && err.message) || 'Porta não escolhida.',
-              'err'
-            );
           });
-      });
+        })
+        .catch(function (err) {
+          setStatus((err && err.message) || 'Porta não escolhida.', 'err');
+          setConnChip('Sem porta', 'warn');
+        });
     });
   }
   if (dom.addManual) {
