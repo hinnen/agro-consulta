@@ -1218,7 +1218,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### Entrega teste — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3`)
 
-> **Status:** no `teste` · **não** sobe loja sem frase+senha
+> **Status:** no `teste` @ **7501bec** · **v16.59** · **não** sobe loja sem frase+senha
 > **Por quê:** Live v16.58 ainda tinha 2 tamanhos de overlay, tela sobrando, nome quebrando, colunas da busca tortas
 > **Feito:** overlay **um tamanho** (96rem / 100% altura) · cabeçalho Produto \| Centro \| Vila · nome 1 linha · Display Scale §11
 > **Você:** PDV local · **Ctrl+F5** · Pedir loja · busca milho · conferir tamanho único e colunas
