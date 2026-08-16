@@ -64,6 +64,9 @@
     ajusteVila: document.getElementById('pdv-pedir-loja-ajuste-vila'),
     ajusteSim: document.getElementById('pdv-pedir-loja-ajuste-sim'),
     ajusteNao: document.getElementById('pdv-pedir-loja-ajuste-nao'),
+    temPedido: document.getElementById('pdv-pedir-loja-tem-pedido'),
+    temPedidoMsg: document.getElementById('pdv-pedir-loja-tem-pedido-msg'),
+    temPedidoOk: document.getElementById('pdv-pedir-loja-tem-pedido-ok'),
   };
   var ajusteProduto = null;
 
@@ -272,7 +275,31 @@
     }
   }
 
-  function refreshResumo() {
+  function fecharTemPedido() {
+    if (!dom.temPedido) return;
+    dom.temPedido.classList.remove('is-open');
+    dom.temPedido.setAttribute('aria-hidden', 'true');
+  }
+
+  function abrirTemPedido(n) {
+    if (!dom.temPedido) return;
+    n = Number(n || 0);
+    if (n <= 0) return;
+    if (dom.temPedidoMsg) {
+      dom.temPedidoMsg.textContent =
+        n === 1 ? 'Tem pedido da outra loja.' : 'Tem ' + n + ' pedidos da outra loja.';
+    }
+    dom.temPedido.classList.add('is-open');
+    dom.temPedido.setAttribute('aria-hidden', 'false');
+    window.setTimeout(function () {
+      try {
+        if (dom.temPedidoOk) dom.temPedidoOk.focus();
+      } catch (e) {}
+    }, 40);
+  }
+
+  function refreshResumo(opts) {
+    opts = opts || {};
     var url = urls.apiPdvTransfLojaResumo;
     if (!url) return;
     fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
@@ -281,9 +308,14 @@
       })
       .then(function (d) {
         if (!d || !d.ok) return;
-        applyBadge(d.recebidos_abertos || 0);
-        syncBeepPendentes(d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0);
+        var n = Number(d.recebidos_abertos || 0);
+        var pend = Number(
+          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
+        );
+        applyBadge(n);
+        syncBeepPendentes(pend);
         setPinAviso(!!d.precisa_pin);
+        if (opts.aposPin && !d.precisa_pin && n > 0) abrirTemPedido(n);
       })
       .catch(function () {});
   }
@@ -883,6 +915,14 @@
   }
 
   document.addEventListener('keydown', function (e) {
+    if (dom.temPedido && dom.temPedido.classList.contains('is-open')) {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        fecharTemPedido();
+      }
+      return;
+    }
     if (e.key === 'Escape' && dom.ajuste && dom.ajuste.classList.contains('is-open')) {
       e.preventDefault();
       fecharAjuste();
@@ -899,10 +939,24 @@
     }
   });
 
+  if (dom.temPedidoOk) dom.temPedidoOk.addEventListener('click', fecharTemPedido);
+  if (dom.temPedido) {
+    dom.temPedido.addEventListener('click', function (e) {
+      if (e.target === dom.temPedido) fecharTemPedido();
+    });
+  }
+
   renderCart();
   refreshResumo();
-  pollTimer = setInterval(refreshResumo, 25000);
-  window.addEventListener('gm-sspin-operador', function () {
+  pollTimer = setInterval(function () {
     refreshResumo();
+  }, 25000);
+  window.addEventListener('gm-sspin-operador', function (ev) {
+    var nome = ev && ev.detail && ev.detail.nome;
+    if (!nome) {
+      refreshResumo();
+      return;
+    }
+    refreshResumo({ aposPin: true });
   });
 })();

@@ -452,6 +452,54 @@
     margin-top: 1rem;
   }
   #pdv-pedir-loja-confirm .pl-confirm-btns .pl-btn { flex: 1; }
+  #pdv-pedir-loja-tem-pedido {
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 1rem;
+  }
+  #pdv-pedir-loja-tem-pedido.is-open { display: flex; }
+  #pdv-pedir-loja-tem-pedido .pl-aviso-box {
+    width: min(26rem, 100%);
+    border-radius: 1.1rem;
+    border: 4px solid #ea580c;
+    background: #fff7ed;
+    padding: 1.35rem 1.25rem 1.25rem;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.35);
+    text-align: center;
+  }
+  #pdv-pedir-loja-tem-pedido .pl-aviso-msg {
+    margin: 0;
+    font-size: 1.45rem;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #9a3412;
+  }
+  #pdv-pedir-loja-tem-pedido .pl-aviso-ok {
+    display: block;
+    width: 100%;
+    margin-top: 1.15rem;
+    min-height: 3.75rem;
+    border-radius: 0.9rem;
+    border: 3px solid #c2410c;
+    background: #ea580c;
+    color: #fff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+  #pdv-pedir-loja-tem-pedido .pl-aviso-ok:hover { background: #c2410c; }
+  #pdv-pedir-loja-tem-pedido .pl-aviso-hint {
+    margin: 0.55rem 0 0;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #9a3412;
+  }
 </style>
 
 <div id="pdv-pedir-loja-overlay" class="fixed inset-0 z-[140] hidden items-stretch justify-stretch bg-slate-950/40 p-1" role="dialog" aria-modal="true" aria-labelledby="pdv-pedir-loja-title" data-pl-aba="pedir">
@@ -571,5 +619,12 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+<div id="pdv-pedir-loja-tem-pedido" aria-hidden="true">
+  <div class="pl-aviso-box" role="alertdialog" aria-labelledby="pdv-pedir-loja-tem-pedido-msg">
+    <p class="pl-aviso-msg" id="pdv-pedir-loja-tem-pedido-msg">Tem pedido da outra loja.</p>
+    <button type="button" id="pdv-pedir-loja-tem-pedido-ok" class="pl-aviso-ok">Fechar</button>
+    <p class="pl-aviso-hint">Enter também fecha</p>
   </div>
 </div>
