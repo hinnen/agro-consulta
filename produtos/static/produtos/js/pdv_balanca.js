@@ -32,6 +32,7 @@
     status: document.getElementById('pdv-balanca-status'),
     connChip: document.getElementById('pdv-balanca-conn-chip'),
     addManual: document.getElementById('pdv-balanca-add-manual'),
+    rx: document.getElementById('pdv-balanca-rx'),
   };
 
   var port = null;
@@ -166,19 +167,69 @@
     return list;
   }
 
-  /** Casa 10 com barcode 0010 e com GM0010 / GM0010-1 (não usar todos os dígitos do GM). */
+  /** Casa 10 com barcode 0010 / 10. GM0010 só como reserva (não conta sozinho se houver barras). */
+  function barcodeOf(p) {
+    return String(p.codigo_barras || p.CodigoBarras || '').trim();
+  }
+
+  function gmGranelNum(c) {
+    var m = String(c || '').trim().match(/^GM0*(\d{1,3})(?:-.*)?$/i);
+    if (!m) return null;
+    var n = parseInt(m[1], 10);
+    return n >= CODE_MIN && n <= CODE_MAX ? n : null;
+  }
+
   function productMatchesGranelNum(p, num) {
     var codes = productCodes(p);
     for (var i = 0; i < codes.length; i++) {
       var c = String(codes[i] == null ? '' : codes[i]).trim();
       if (!c) continue;
       if (/^\d{1,4}$/.test(c) && parseInt(c, 10) === num) return true;
-      var mGm = c.match(/^GM0*(\d{1,3})(?:-.*)?$/i);
-      if (mGm && parseInt(mGm[1], 10) === num) return true;
-      /* index às vezes traz só o número sem zeros */
-      if (/^\d+$/.test(c) && c.length <= 4 && parseInt(c, 10) === num) return true;
+      if (gmGranelNum(c) === num) return true;
     }
     return false;
+  }
+
+  function productLabelShort(p) {
+    var nome = String(p.nome || p.Nome || '').trim() || '(sem nome)';
+    var cb = barcodeOf(p);
+    var gm = String(p.codigo_nfe || p.codigo || '').trim();
+    var bits = [];
+    if (cb) bits.push('barras ' + cb);
+    if (gm) bits.push(gm);
+    return nome.slice(0, 42) + (bits.length ? ' [' + bits.join(' · ') + ']' : '');
+  }
+
+  /** Preferência: barcode exato (0010) > único hit > lista ambígua com nomes. */
+  function preferHits(hits, num, typedRaw) {
+    var pad4 = String(num).padStart(4, '0');
+    var typed = String(typedRaw || '').trim();
+    var wantBars = [];
+    if (typed && /^\d{1,4}$/.test(typed)) wantBars.push(typed);
+    wantBars.push(pad4, String(num));
+    var seenB = {};
+    wantBars = wantBars.filter(function (b) {
+      if (seenB[b]) return false;
+      seenB[b] = true;
+      return true;
+    });
+
+    var byBar = hits.filter(function (p) {
+      var b = barcodeOf(p);
+      return b && wantBars.indexOf(b) >= 0;
+    });
+    if (byBar.length === 1) return byBar;
+    if (byBar.length > 1) return byBar;
+
+    var byGm = hits.filter(function (p) {
+      var codes = productCodes(p);
+      for (var i = 0; i < codes.length; i++) {
+        if (gmGranelNum(codes[i]) === num) return true;
+      }
+      return false;
+    });
+    if (byGm.length === 1) return byGm;
+    return hits;
   }
 
   function uniqById(arr) {
@@ -248,7 +299,8 @@
     });
   }
 
-  function packResolveHits(hits, num, pad4) {
+  function packResolveHits(hits, num, pad4, typedRaw) {
+    hits = preferHits(hits || [], num, typedRaw);
     if (!hits.length) {
       return {
         ok: false,
@@ -263,6 +315,10 @@
       };
     }
     if (hits.length > 1) {
+      var nomes = hits
+        .slice(0, 5)
+        .map(productLabelShort)
+        .join(' · ');
       return {
         ok: false,
         erro:
@@ -270,7 +326,11 @@
           num +
           ' ambíguo (' +
           hits.length +
-          ' produtos). Ajuste o cadastro.',
+          '): ' +
+          nomes +
+          '. Deixe só 1 com barras ' +
+          pad4 +
+          '.',
         ambiguo: true,
       };
     }
@@ -280,8 +340,8 @@
   function resolveProduto(num, typedRaw) {
     var pad4 = String(num).padStart(4, '0');
     var localHits = hitsFromLists(catalogListsLocal(), num);
-    if (localHits.length === 1) {
-      return Promise.resolve(packResolveHits(localHits, num, pad4));
+    if (preferHits(localHits, num, typedRaw).length === 1) {
+      return Promise.resolve(packResolveHits(localHits, num, pad4, typedRaw));
     }
     var variants = codeVariants(num).concat([
       pad4,
@@ -302,7 +362,7 @@
     return Promise.all(uniqQ.map(fetchBusca)).then(function (lists) {
       var hits = hitsFromLists(lists.concat(catalogListsLocal()), num);
       if (!hits.length && localHits.length) hits = localHits;
-      return packResolveHits(hits, num, pad4);
+      return packResolveHits(hits, num, pad4, typedRaw);
     });
   }
 
@@ -381,8 +441,9 @@
   }
 
   /**
-   * USE-P2 (US20/2 POP-S): frame [STX]dddddd[CR]
-   * Ex.: STX + "001000" + CR → 1,000 kg (6 dígitos = gramas).
+   * USE-P2 / Urano POP-S:
+   * - [STX]001000[CR]  → gramas/1000 (1,000 kg)
+   * - [STX]1.000[ETX]  → kg com ponto (nodebal / LePeso)
    */
   function parseWeightFromChunk(text) {
     if (!text) return null;
@@ -394,7 +455,17 @@
       return null;
     }
 
-    var mStx = raw.match(/\x02\s*(\d{4,7})\s*/);
+    /* STX … ETX com peso decimal (ex.: 1.000 ou 0,045) */
+    var mEt = raw.match(/\x02\s*([+-]?\d{1,2}[.,]\d{1,4})\s*\x03/);
+    if (mEt) {
+      var nEt = parseFloat(mEt[1].replace(',', '.'));
+      if (Number.isFinite(nEt)) {
+        nEt = Math.abs(nEt);
+        if (nEt <= MAX_KG) return { kg: nEt };
+      }
+    }
+
+    var mStx = raw.match(/\x02\s*(\d{4,7})\s*[\x03\r\n]?/);
     if (!mStx) mStx = raw.match(/(?:^|[^\d])(\d{6})(?:[^\d]|$)/);
     if (!mStx) {
       var only = raw.replace(/[^\d]/g, '');
@@ -403,6 +474,7 @@
     if (mStx) {
       var grams = parseInt(mStx[1], 10);
       if (Number.isFinite(grams) && grams >= 0) {
+        /* Se veio "1.000" capturado errado como dígitos — já tratado acima */
         var kgG = grams / 1000;
         if (kgG >= MIN_KG && kgG <= MAX_KG) return { kg: kgG };
         if (grams === 0) return { kg: 0 };
@@ -437,20 +509,42 @@
     }
   }
 
+  function bytesToHint(arr) {
+    return (arr || [])
+      .slice(0, 16)
+      .map(function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+      })
+      .join(' ');
+  }
+
+  function setRxHint(txt) {
+    lastRawHint = txt || '';
+    if (dom.rx) {
+      dom.rx.textContent = lastRawHint
+        ? 'RX: ' + lastRawHint
+        : connected
+          ? 'RX: (aguardando bytes…)'
+          : '';
+    }
+  }
+
   function feedSerialBytes(u8) {
     if (!u8 || !u8.length) return;
     lastByteAt = Date.now();
+    setRxHint(bytesToHint(Array.prototype.slice.call(u8)));
     for (var i = 0; i < u8.length; i++) byteBuf.push(u8[i]);
     if (byteBuf.length > 8000) byteBuf = byteBuf.slice(-4000);
     while (true) {
-      var cr = -1;
+      var end = -1;
       for (var j = 0; j < byteBuf.length; j++) {
-        if (byteBuf[j] === 0x0d || byteBuf[j] === 0x0a) {
-          cr = j;
+        /* CR, LF ou ETX (0x03) — Urano costuma fechar com ETX */
+        if (byteBuf[j] === 0x0d || byteBuf[j] === 0x0a || byteBuf[j] === 0x03) {
+          end = j;
           break;
         }
       }
-      if (cr < 0) {
+      if (end < 0) {
         var stx = -1;
         for (var s = 0; s < byteBuf.length; s++) {
           if (byteBuf[s] === 0x02) {
@@ -474,20 +568,15 @@
         }
         break;
       }
-      var frame = byteBuf.splice(0, cr + 1);
+      var frame = byteBuf.splice(0, end + 1);
       var chars = '';
       for (var k = 0; k < frame.length; k++) chars += String.fromCharCode(frame[k]);
       var parsedB = parseWeightFromChunk(chars);
       if (parsedB) {
         onWeightSample(parsedB.kg);
       } else {
-        lastRawHint = frame
-          .slice(0, 14)
-          .map(function (b) {
-            return ('0' + b.toString(16)).slice(-2);
-          })
-          .join(' ');
-        if (isOpen() && lastKg < MIN_KG) {
+        setRxHint(bytesToHint(frame));
+        if (isOpen() && lastKg < MIN_KG && !produtoAtual) {
           setStatus('COM ok, frame sem peso: ' + lastRawHint, 'err');
         }
       }
@@ -497,14 +586,18 @@
   function startSilenceWatch() {
     stopSilenceWatch();
     lastByteAt = Date.now();
+    setRxHint('');
     silenceTimer = setInterval(function () {
       if (!connected || !isOpen()) return;
       if (lastKg >= MIN_KG) return;
       if (Date.now() - lastByteAt < 2800) return;
-      setStatus(
-        'COM ok, mas sem dados da balança. Confira COM4, cabo e protocolo USE-P2.',
-        'err'
-      );
+      if (dom.estavel) {
+        dom.estavel.textContent =
+          'Sem bytes da balança · confira COM4 / USE-P2 / cabo';
+      }
+      if (!lastRawHint) {
+        setRxHint('(nenhum byte em 3s)');
+      }
     }, 1200);
   }
 
