@@ -1249,7 +1249,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** 0090 |
 | **Cherry** | `b9bd96b` |
 
-### 📦 PACOTE PRONTO — Balança COM/ESC (`PDV-BALANCA-COM-ESC`)
+### 📦 PACOTE PRONTO — Balança COM/ESC (`PDV-BALANCA-COM-ESC` · **v17.00**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1257,6 +1257,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Detecta impressora (ESC) · CONECTAR reabre picker · fingerprint · só peso com STX · barcode `0010` |
 | **Prova** | Bugbot corrigido · `scripts/_test_pdv_balanca_logic.js` **22/22** |
 | **Migrate** | **NÃO** |
+| **Cherry** | `6aa7f4d` (inclui `c87ae4a`) |
 | **Você** | F10 → **CONECTAR** → COM da **balança** (não impressora) |
 
 ### ✅ Live recente (não reenviar)

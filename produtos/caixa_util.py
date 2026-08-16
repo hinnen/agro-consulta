@@ -23,26 +23,46 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
 )
 
 # Fechar caixa: ordem fixa de conferência (não reordenar por «com movimento»).
-# Fiado não entra — conferência operacional é outra (wizard de notas), não por valor.
+# Linhas «— Mercado Pago» = só Point automático (Centro). Vale/Cashback/Fiado = bloco oculto auto.
 FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
     "Dinheiro",
-    "Pix — Mercado Pago",
     "PIX",
-    "Cartão de débito — Mercado Pago",
     "Cartão de débito",
-    "Cartão de crédito — Mercado Pago",
     "Cartão de crédito",
+    "Outro",
+    "Pix — Mercado Pago",
+    "Cartão de débito — Mercado Pago",
+    "Cartão de crédito — Mercado Pago",
     "Vale crédito",
     "Cashback",
-    "Outro",
+    "Fiado",
 )
 
-# Formas que existem no caixa mas não pedem contagem na tela Fechar.
-FORMAS_CONFERENCIA_OCULTAS: frozenset[str] = frozenset({"Fiado"})
+# Formas que existem no caixa mas não pedem contagem na tela Fechar (legado — Fiado agora entra no bloco auto).
+FORMAS_CONFERENCIA_OCULTAS: frozenset[str] = frozenset()
 
 _FORMAS_SPLIT_MP_CONFERENCIA = frozenset(
     {"PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"}
 )
+
+# Só Point/Pix automático (pinpad) — Renan / MP Vila / Cielo / Sicredi ficam no balde único.
+_MAQUININHAS_MP_POINT_AUTO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+
+FORMAS_MP_POINT_AUTO_CONFERENCIA: frozenset[str] = frozenset(
+    {
+        "Pix — Mercado Pago",
+        "Cartão de débito — Mercado Pago",
+        "Cartão de crédito — Mercado Pago",
+    }
+)
+
+FORMAS_AUTO_OCULTAS_FECHAR: frozenset[str] = frozenset(
+    {
+        "Vale crédito",
+        "Cashback",
+        "Fiado",
+    }
+) | FORMAS_MP_POINT_AUTO_CONFERENCIA
 
 _PAGAMENTO_JSON_META_KEYS = (
     "maquinaId",
@@ -146,7 +166,7 @@ def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
 
 
 def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
-    """Indica cobrança na maquininha Mercado Pago (Point / Pix MP)."""
+    """Indica cobrança na maquininha Mercado Pago (Point / Pix MP / Renan / Vila)."""
     if not isinstance(row, dict):
         return False
     if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
@@ -155,7 +175,7 @@ def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
         return True
     mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
     # Point automático + maquininhas manuais Mercado Pago (ex.: Renan)
-    if mid in ("mp_balcao", "pix_mp_qr", "mp_renan", "pix_mp_renan") or mid.startswith(
+    if mid in ("mp_balcao", "pix_mp_qr", "mp_renan", "pix_mp_renan", "mp_vila", "pix_mp_vila") or mid.startswith(
         "pix_mp"
     ):
         return True
@@ -165,8 +185,22 @@ def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
     return rede == "mp"
 
 
+def pagamento_linha_eh_mp_point_auto(row: dict) -> bool:
+    """Só Point/Pix automático do PDV (interligado) — não Renan/Vila/Cielo manuais."""
+    if not isinstance(row, dict):
+        return False
+    mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
+    if mid in _MAQUININHAS_MP_POINT_AUTO_IDS:
+        return True
+    if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
+        return True
+    if str(row.get("mpBalcaoModo") or "").strip().lower() == "point":
+        return True
+    return False
+
+
 def linha_conferencia_caixa_de_pagamento(forma: str, *, mercado_pago: bool) -> str:
-    """Rótulo na conferência do fechar caixa (MP vs demais maquininhas)."""
+    """Rótulo na conferência do fechar caixa (Point automático vs demais)."""
     base = agrupar_forma_para_fechamento_caixa(forma)
     if mercado_pago and base in _FORMAS_SPLIT_MP_CONFERENCIA:
         if base == "PIX":
@@ -243,12 +277,13 @@ def pagamentos_por_linha_conferencia_venda(
             if not parsed:
                 continue
             fn, vp = parsed
-            eh_mp = pagamento_linha_eh_mercado_pago(row) or (
+            # Split «— Mercado Pago» só para Point automático (pinpad).
+            eh_mp_auto = pagamento_linha_eh_mp_point_auto(row) or (
                 fallback_mp
                 and len(pj) == 1
                 and fn in _FORMAS_SPLIT_MP_CONFERENCIA
             )
-            linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=eh_mp)
+            linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=eh_mp_auto)
             totais[linha] += vp
         if totais:
             return dict(totais)
@@ -589,9 +624,31 @@ def linha_conferencia_tem_movimento(linha: dict) -> bool:
     return False
 
 
-def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
+def forma_fechamento_auto_ocultavel(forma: str, *, deposito: str | None = None) -> bool:
+    """Linhas auto-preenchidas e recolhidas no Fechar caixa (por loja)."""
+    fn = str(forma or "").strip()
+    dep = str(deposito or "centro").strip().lower()
+    if fn in FORMAS_AUTO_OCULTAS_FECHAR:
+        # Point automático: só faz sentido no Centro (Vila não usa pinpad MP).
+        if fn in FORMAS_MP_POINT_AUTO_CONFERENCIA and dep == "vila":
+            return False
+        return True
+    return False
+
+
+def serializar_estado_conferencia_fechar(
+    sessoes, *, deposito: str | None = None
+) -> dict[str, Any]:
     """JSON para tela Fechar caixa (valores esperados após reforço/retirada)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
+    # Vila: não lista baldes Point (sempre zerados / sem pinpad).
+    if dep == "vila":
+        linhas_todos_raw = [
+            L for L in linhas_todos_raw if L["forma"] not in FORMAS_MP_POINT_AUTO_CONFERENCIA
+        ]
     tot_esperado_din = Decimal("0")
     for L in linhas_todos_raw:
         if L["forma"] == "Dinheiro":
@@ -603,6 +660,9 @@ def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
         row = dict(L)
         row["idx"] = i
         row["com_movimento"] = linha_conferencia_tem_movimento(L)
+        auto = forma_fechamento_auto_ocultavel(L["forma"], deposito=dep)
+        row["auto_contado"] = auto
+        row["grupo_oculto"] = auto
         linhas.append(row)
     cards: list[dict[str, Any]] = []
     for c in montar_cards_caixas_abertos(sessoes):
@@ -620,6 +680,7 @@ def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
         "qtd_caixas": len(sessoes),
         "tot_esperado_dinheiro": str(tot_esperado_din.quantize(Decimal("0.01"))),
         "linhas": linhas,
+        "deposito": dep,
         "cards": cards,
     }
 
@@ -1204,7 +1265,7 @@ def limpar_navegador_host_mp_point(request) -> None:
 
 
 # Só Point/Pix automático — maquininha manual «Mercado Pago Renan» / «MP Vila» permanecem.
-_MAQUININHAS_MP_POINT_AUTO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+# (constante canônica no topo do módulo: _MAQUININHAS_MP_POINT_AUTO_IDS)
 
 
 def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:

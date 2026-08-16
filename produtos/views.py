@@ -11575,7 +11575,9 @@ def api_caixa_conferencia_estado(request):
                 "cards": [],
             }
         )
-    estado = serializar_estado_conferencia_fechar(alvo)
+    estado = serializar_estado_conferencia_fechar(
+        alvo, deposito=deposito_caixa_browser(request)
+    )
     return JsonResponse({"ok": True, **estado})
 
 
@@ -12497,17 +12499,20 @@ def caixa_fechar(request):
     _sincronizar_turno_conferencia_caixa(request, sessoes_lote)
 
     estado_conf = serializar_estado_conferencia_fechar(
-        sessoes_lote if sessoes_lote else []
+        sessoes_lote if sessoes_lote else [],
+        deposito=dep_fechar,
     )
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
-    # Ordem fixa FORMAS_CONFERENCIA_CAIXA — não sobe «com movimento» pro topo.
+    # Ordem fixa FORMAS_CONFERENCIA_CAIXA — bloco auto (Vale/Cashback/Fiado/Point) no final.
     linhas_conferencia = []
     for row in estado_conf.get("linhas") or []:
-        if str(row.get("forma") or "").strip() == "Fiado":
-            continue
         r = {k: v for k, v in row.items() if k != "com_movimento"}
         r["com_movimento"] = bool(row.get("com_movimento"))
+        r["auto_contado"] = bool(row.get("auto_contado"))
+        r["grupo_oculto"] = bool(row.get("grupo_oculto"))
         linhas_conferencia.append(r)
+    linhas_visiveis = [L for L in linhas_conferencia if not L.get("grupo_oculto")]
+    linhas_ocultas = [L for L in linhas_conferencia if L.get("grupo_oculto")]
 
     turno_key_loja = _caixa_contagem_turno_key_loja(dep_fechar)
     rasc, cedulas_rasc = _caixa_contagem_pg_carregar(turno_key_loja)
@@ -12539,6 +12544,8 @@ def caixa_fechar(request):
             "qtd_caixas_teste": len(sessoes_teste),
             "tem_caixa_operacional": bool(sessoes_lote),
             "linhas_conferencia": linhas_conferencia,
+            "linhas_visiveis": linhas_visiveis,
+            "linhas_ocultas": linhas_ocultas,
             "linhas_com_movimento": [L for L in linhas_conferencia if L.get("com_movimento")],
             "linhas_sem_movimento": [L for L in linhas_conferencia if not L.get("com_movimento")],
             "tot_esperado_dinheiro": str(tot_esperado_din),
