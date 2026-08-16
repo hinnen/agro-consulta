@@ -1216,26 +1216,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚦 PREP deploy loja — Pedir loja UX2 (`PDV-PEDIR-LOJA-UX2` · **v16.58**) · **aguarda frase+senha**
+
+> **Loja hoje:** ✅ **Live v16.56** · `producao` @ **cd261d6** — **não** subir neste chat.  
+> **NÃO** merge `teste`→`producao` (teste tem centenas de arquivos a mais).  
+> **Sobe só:** cherry-picks já aplicados em `prep/producao-v1658-pedir-loja-ux2` @ **3805ab2** (9 arquivos · **sem migrate**).
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pacote** | overlay PC busca \| pedido · saldo Agro · botão rosa |
+| **Prova** | verify **38/38** · tests **17/17** · cherry-pick limpo · `pdv_wizard` **intocado** |
+| **Risco venda** | não mexe carrinho / finalizar / caixa / NFC-e · Render ~1–3 min |
+| **Checkpoint** | tag `rollback/pre-pdv-pedir-loja-ux2-v16.56` @ **cd261d6** · branch `producao-backup-pre-v1658-pedir-loja-ux2-20260815` |
+| **Próximo chat** | lojas **pausam vendas** → frase + senha → `git push origin producao` a partir do prep |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (15/08 · Pedir loja UX2)
 
-> **Loja hoje:** ✅ **Live v16.56** · `producao` @ **197a6ac** / **cd261d6**  
+> **Loja hoje:** ✅ **Live v16.56** · `producao` @ **cd261d6**  
 > **NÃO** merge teste→producao sem frase + senha.  
-> **Só no teste:** tip **v16.58** · **sem migrate**.
+> **Prep pronta:** `prep/producao-v1658-pedir-loja-ux2` · **sem migrate**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PEDIR-LOJA-UX2** | ✅ **pronto para envio à produção** | não |
+| 1 | **PDV-PEDIR-LOJA-UX2** | ✅ **pronto para envio à produção** · prep OK | não |
 
 ### 📦 PACOTE PRONTO LOJA — Pedir loja layout + saldo (`PDV-PEDIR-LOJA-UX2` · **v16.58**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v16.58** |
-| **O quê** | Overlay PC **busca \| pedido** · sem altura forçada (acaba vazio/scroll) · saldo **Agro** (não o 0 do wizard) · botão rosa |
-| **Prova** | `scripts/verify_pdv_pedir_loja.py` **VERIFY OK 38/38** · `tests_pdv_transf_loja` **17/17** |
-| **Commit** | `6a37b64` + path check |
+| **Status** | ✅ **pronto para envio à produção** · teste **v16.58** · prep **3805ab2** |
+| **O quê** | Overlay PC **busca \| pedido** · sem altura forçada · saldo **Agro** · botão rosa |
+| **Prova** | verify **38/38** · tests **17/17** |
+| **Cherry-pick** | `6a37b64` + `85f0129` + revert VERSION |
 | **Migrate** | **NÃO** |
-| **Você** | PDV local · **Ctrl+F5** · Pedir loja · busca milho · confere saldo e layout |
+| **Rollback** | tag `rollback/pre-pdv-pedir-loja-ux2-v16.56` · frase+senha |
+| **Você** | no próximo chat: pausar vendas + frase + senha |
 
 ### ✅ Deploy loja — Pedir loja UX PC + rosa (`PDV-PEDIR-LOJA-UX` · **v16.56**)
 
