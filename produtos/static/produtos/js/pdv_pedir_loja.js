@@ -26,8 +26,11 @@
   var searchTimer = null;
   var buscaSeq = 0;
   var pollTimer = null;
+  var beepTimer = null;
+  var pendentesBeep = 0;
   var busy = false;
   var aba = 'pedir';
+  var confirmCb = null;
 
   var dom = {
     btnOpen: document.getElementById('pdv-topbar-pedir-loja-btn'),
@@ -45,6 +48,16 @@
     pinAviso: document.getElementById('pdv-pedir-loja-pin-aviso'),
     abrirPin: document.getElementById('pdv-pedir-loja-abrir-pin'),
     badgeRec: document.getElementById('pdv-pedir-loja-badge-rec'),
+    confirm: document.getElementById('pdv-pedir-loja-confirm'),
+    confirmTitle: document.getElementById('pdv-pedir-loja-confirm-title'),
+    confirmBody: document.getElementById('pdv-pedir-loja-confirm-body'),
+    confirmExtra: document.getElementById('pdv-pedir-loja-confirm-extra'),
+    confirmFurado: document.getElementById('pdv-pedir-loja-confirm-furado'),
+    confirmAjustar: document.getElementById('pdv-pedir-loja-confirm-ajustar'),
+    confirmAjusteWrap: document.getElementById('pdv-pedir-loja-confirm-ajuste-wrap'),
+    confirmQtd: document.getElementById('pdv-pedir-loja-confirm-qtd'),
+    confirmSim: document.getElementById('pdv-pedir-loja-confirm-sim'),
+    confirmNao: document.getElementById('pdv-pedir-loja-confirm-nao'),
   };
 
   function csrf() {
@@ -86,6 +99,101 @@
     if (!dom.pinAviso) return;
     if (precisa) dom.pinAviso.classList.remove('hidden');
     else dom.pinAviso.classList.add('hidden');
+  }
+
+  function plBeep() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var o = ctx.createOscillator();
+      var g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.type = 'square';
+      o.frequency.value = 880;
+      g.gain.value = 0.08;
+      o.start();
+      o.stop(ctx.currentTime + 0.18);
+      setTimeout(function () {
+        var o2 = ctx.createOscillator();
+        var g2 = ctx.createGain();
+        o2.connect(g2);
+        g2.connect(ctx.destination);
+        o2.type = 'square';
+        o2.frequency.value = 660;
+        g2.gain.value = 0.08;
+        o2.start();
+        o2.stop(ctx.currentTime + 0.22);
+      }, 200);
+    } catch (e) {}
+  }
+
+  function syncBeepPendentes(n) {
+    pendentesBeep = Number(n || 0);
+    if (pendentesBeep > 0) {
+      if (!beepTimer) {
+        plBeep();
+        beepTimer = setInterval(function () {
+          if (pendentesBeep > 0) plBeep();
+        }, 60000);
+      }
+    } else if (beepTimer) {
+      clearInterval(beepTimer);
+      beepTimer = null;
+    }
+  }
+
+  function syncFuradoUi() {
+    if (!dom.confirmAjusteWrap || !dom.confirmFurado) return;
+    if (dom.confirmFurado.checked) dom.confirmAjusteWrap.classList.add('is-on');
+    else dom.confirmAjusteWrap.classList.remove('is-on');
+  }
+
+  function fecharConfirm(ok) {
+    if (dom.confirm) {
+      dom.confirm.classList.remove('is-open');
+      dom.confirm.setAttribute('aria-hidden', 'true');
+    }
+    var cb = confirmCb;
+    confirmCb = null;
+    if (cb) cb(!!ok);
+  }
+
+  function abrirConfirm(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      if (!dom.confirm) {
+        resolve({ ok: false });
+        return;
+      }
+      confirmCb = function (ok) {
+        if (!ok) {
+          resolve({ ok: false });
+          return;
+        }
+        var furado = !!(dom.confirmFurado && dom.confirmFurado.checked);
+        var ajustar = !!(furado && dom.confirmAjustar && dom.confirmAjustar.checked);
+        var qtd = dom.confirmQtd ? String(dom.confirmQtd.value || '0') : '0';
+        resolve({ ok: true, estoque_furado: furado, ajustar_estoque: ajustar, ajuste_quantidade: qtd });
+      };
+      if (dom.confirmTitle) dom.confirmTitle.textContent = opts.title || 'Confirmar';
+      if (dom.confirmBody) dom.confirmBody.textContent = opts.body || '';
+      if (dom.confirmSim) dom.confirmSim.textContent = opts.confirmLabel || 'Confirmar';
+      if (dom.confirmExtra) {
+        if (opts.furado) {
+          dom.confirmExtra.classList.remove('hidden');
+          if (dom.confirmFurado) dom.confirmFurado.checked = false;
+          if (dom.confirmAjustar) dom.confirmAjustar.checked = true;
+          if (dom.confirmQtd) dom.confirmQtd.value = '0';
+          syncFuradoUi();
+        } else {
+          dom.confirmExtra.classList.add('hidden');
+        }
+      }
+      dom.confirm.classList.add('is-open');
+      dom.confirm.setAttribute('aria-hidden', 'false');
+    });
   }
 
   function abrirPin() {
@@ -165,6 +273,7 @@
       .then(function (d) {
         if (!d || !d.ok) return;
         applyBadge(d.recebidos_abertos || 0);
+        syncBeepPendentes(d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0);
         setPinAviso(!!d.precisa_pin);
       })
       .catch(function () {});
@@ -429,14 +538,6 @@
     }
     dom.lista.innerHTML = itens
       .map(function (row) {
-        var qtdHero = '';
-        var linhas = row.itens || [];
-        if (linhas.length === 1) {
-          qtdHero =
-            '<p class="pl-qty" style="text-align:left;margin-top:0.35rem">' +
-            escapeHtml(String(linhas[0].quantidade_texto || linhas[0].quantidade || '')) +
-            '</p>';
-        }
         return (
           '<article class="pl-card" data-pl-id="' +
           escapeHtml(String(row.id)) +
@@ -447,8 +548,7 @@
           '<p class="pl-name">' +
           escapeHtml(row.resumo || '') +
           '</p>' +
-          qtdHero +
-          '<p class="mt-1 text-base font-bold text-slate-500">' +
+          '<p class="mt-1 text-sm font-bold text-slate-500">' +
           escapeHtml(row.loja_origem_label) +
           ' → ' +
           escapeHtml(row.loja_destino_label) +
@@ -479,6 +579,9 @@
           return;
         }
         applyBadge(d.recebidos_abertos || 0);
+        syncBeepPendentes(
+          d.recebidos_pendentes != null ? d.recebidos_pendentes : d.recebidos_abertos || 0
+        );
         renderLista(d.itens || []);
       })
       .catch(function () {
@@ -486,14 +589,12 @@
       });
   }
 
-  function postAcao(id, acao) {
+  function postAcao(id, acao, extra) {
     if (busy) return;
     var pattern = urls.apiPdvTransfLojaAcaoPattern || '';
     var url = pattern.replace('__pk__', String(id));
     if (!url) return;
-    if (acao === 'cancelar' && !window.confirm('Cancelar este pedido?')) return;
-    if (acao === 'transferir' && !window.confirm('Transferir o estoque agora? Some na origem e entra na loja que pediu.'))
-      return;
+    var body = Object.assign({ acao: acao, loja: depositoAtual() }, extra || {});
     busy = true;
     setStatus('Salvando…');
     fetch(url, {
@@ -504,7 +605,7 @@
         'X-CSRFToken': csrf(),
         Accept: 'application/json',
       },
-      body: JSON.stringify({ acao: acao, loja: depositoAtual() }),
+      body: JSON.stringify(body),
     })
       .then(function (r) {
         return r.json().then(function (d) {
@@ -523,13 +624,54 @@
           return;
         }
         applyBadge(res.data.recebidos_abertos || 0);
+        syncBeepPendentes(
+          res.data.recebidos_pendentes != null ? res.data.recebidos_pendentes : res.data.recebidos_abertos || 0
+        );
         setStatus(res.data.mensagem || 'Ok.');
         carregarLista(aba);
+        refreshResumo();
       })
       .catch(function () {
         busy = false;
         setStatus('Erro de rede.', true);
       });
+  }
+
+  function pedirAcao(id, acao) {
+    if (acao === 'cancelar') {
+      abrirConfirm({
+        title: 'Cancelar pedido?',
+        body: 'O pedido some da fila. Se o estoque estiver errado, marque furado e ajuste o saldo.',
+        confirmLabel: 'Cancelar pedido',
+        furado: true,
+      }).then(function (r) {
+        if (!r.ok) return;
+        postAcao(id, 'cancelar', {
+          estoque_furado: !!r.estoque_furado,
+          ajustar_estoque: !!r.ajustar_estoque,
+          ajuste_quantidade: r.ajuste_quantidade,
+          motivo: r.estoque_furado ? 'Estoque furado' : '',
+        });
+      });
+      return;
+    }
+    if (acao === 'transferir') {
+      abrirConfirm({
+        title: 'Transferir estoque?',
+        body: 'Some na origem e entra na loja que pediu. Se o saldo estiver errado, marque estoque furado e ajuste (padrão 0).',
+        confirmLabel: 'Transferir',
+        furado: true,
+      }).then(function (r) {
+        if (!r.ok) return;
+        postAcao(id, 'transferir', {
+          estoque_furado: !!r.estoque_furado,
+          ajustar_estoque: !!r.ajustar_estoque,
+          ajuste_quantidade: r.ajuste_quantidade,
+        });
+      });
+      return;
+    }
+    postAcao(id, acao);
   }
 
   if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrir);
@@ -594,11 +736,25 @@
       if (!btn) return;
       var card = btn.closest('[data-pl-id]');
       if (!card) return;
-      postAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'));
+      pedirAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'));
     });
   }
 
+  if (dom.confirmSim) dom.confirmSim.addEventListener('click', function () { fecharConfirm(true); });
+  if (dom.confirmNao) dom.confirmNao.addEventListener('click', function () { fecharConfirm(false); });
+  if (dom.confirm) {
+    dom.confirm.addEventListener('click', function (e) {
+      if (e.target === dom.confirm) fecharConfirm(false);
+    });
+  }
+  if (dom.confirmFurado) dom.confirmFurado.addEventListener('change', syncFuradoUi);
+
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && dom.confirm && dom.confirm.classList.contains('is-open')) {
+      e.preventDefault();
+      fecharConfirm(false);
+      return;
+    }
     if (e.key === 'Escape' && overlay.classList.contains('flex')) {
       e.preventDefault();
       fechar();

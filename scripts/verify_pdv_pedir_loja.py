@@ -79,7 +79,11 @@ def main() -> int:
     check("js_tirar_x", 'aria-label="Tirar da lista"' in js)
     check("js_status_sem_estoque", "transferir" in js and "aceitar" in js)
     check("js_pin_sessao", "precisa_pin" in js)
-    check("js_qty_class", "pl-qty" in js)
+    check("js_confirm_modal", "abrirConfirm" in js and "estoque_furado" in js)
+    check("js_bip_pendente", "syncBeepPendentes" in js and "60000" in js)
+    check("js_sem_window_confirm", "window.confirm" not in js)
+    check("overlay_confirm_furado", "pdv-pedir-loja-confirm-furado" in html)
+    check("util_ajuste_furado", "qtd_decimal_ou_zero" in util and "_aplicar_ajuste_absoluto_origem" in util)
     check("util_a_mais_b", "STATUS_ACEITO" in util and "concluir_transferencia" in util)
     check(
         "util_sem_reserva",

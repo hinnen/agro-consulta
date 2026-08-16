@@ -176,12 +176,23 @@ def api_pdv_transf_loja_acao(request, pk: int):
         return JsonResponse({"ok": False, "erro": "Pedido não encontrado."}, status=404)
     acao = str(payload.get("acao") or "").strip().lower()
     if acao == "transferir":
+        furado = bool(payload.get("estoque_furado") or payload.get("furado"))
+        ajustar = bool(payload.get("ajustar_estoque") or payload.get("ajustar"))
+        ajustes = payload.get("ajustes_por_produto") or payload.get("ajustes")
+        if not isinstance(ajustes, dict):
+            ajustes = None
         ok_t, err_t, _res = concluir_transferencia(
             request,
             sol,
             loja_atual=loja,
             operador_label=label,
             usuario=user,
+            estoque_furado=furado,
+            ajustar_estoque=ajustar,
+            ajuste_quantidade=payload.get("ajuste_quantidade")
+            if payload.get("ajuste_quantidade") is not None
+            else payload.get("ajuste_qtd"),
+            ajustes_por_produto=ajustes,
         )
         if not ok_t:
             return JsonResponse({"ok": False, "erro": err_t}, status=400)
@@ -191,14 +202,60 @@ def api_pdv_transf_loja_acao(request, pk: int):
             .filter(pk=sol.pk)
             .first()
         )
+        msg = "Estoque transferido."
+        if furado:
+            msg = "Estoque transferido · marcado furado."
+            if ajustar:
+                msg = "Estoque transferido · furado · saldo da origem ajustado."
         return JsonResponse(
             {
                 "ok": True,
-                "mensagem": "Estoque transferido.",
+                "mensagem": msg,
                 "solicitacao": serializar_solicitacao(sol, com_eventos=True),
                 **resumo_loja(loja),
             }
         )
+    # Cancelar com estoque furado + ajuste opcional (sem transferir)
+    if acao == "cancelar":
+        furado = bool(payload.get("estoque_furado") or payload.get("furado"))
+        ajustar = bool(payload.get("ajustar_estoque") or payload.get("ajustar"))
+        if furado and ajustar:
+            from produtos.pdv_transf_loja_util import (
+                _aplicar_ajuste_absoluto_origem,
+                qtd_decimal_ou_zero,
+            )
+
+            ajustes = payload.get("ajustes_por_produto") or payload.get("ajustes")
+            if not isinstance(ajustes, dict):
+                ajustes = {}
+            q_padrao = qtd_decimal_ou_zero(
+                payload.get("ajuste_quantidade")
+                if payload.get("ajuste_quantidade") is not None
+                else payload.get("ajuste_qtd")
+            )
+            if q_padrao is None:
+                return JsonResponse({"ok": False, "erro": "Quantidade de ajuste inválida."}, status=400)
+            for it in sol.itens.all():
+                q_aj = qtd_decimal_ou_zero(ajustes.get(it.produto_externo_id)) if ajustes else q_padrao
+                if q_aj is None:
+                    q_aj = q_padrao
+                ok_a, err_a = _aplicar_ajuste_absoluto_origem(
+                    request,
+                    produto_id=it.produto_externo_id,
+                    deposito=sol.loja_origem,
+                    saldo_informado=q_aj,
+                    nome_produto=it.nome_produto,
+                    codigo_interno=it.codigo_interno,
+                    observacao=f"Estoque furado · cancelar Pedir loja #{sol.pk} · {label}"[:500],
+                    usuario=user,
+                )
+                if not ok_a:
+                    return JsonResponse({"ok": False, "erro": err_a}, status=400)
+            motivo = str(payload.get("motivo") or payload.get("observacao") or "Estoque furado")
+            if "furado" not in motivo.lower():
+                motivo = f"Estoque furado · {motivo}".strip(" ·")
+            payload = {**payload, "motivo": motivo[:300]}
+
     ok_s, err_s = aplicar_status(
         sol,
         acao,

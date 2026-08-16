@@ -45,23 +45,37 @@ def loja_oposta(deposito: str) -> str:
 
 
 def qtd_decimal(valor) -> Decimal | None:
-    if isinstance(valor, Decimal):
-        q = valor
-    else:
-        raw = str(valor or "").strip().replace(" ", "")
-        if not raw:
-            return None
-        if "," in raw and "." in raw:
-            raw = raw.replace(".", "").replace(",", ".")
-        elif "," in raw:
-            raw = raw.replace(",", ".")
-        try:
-            q = Decimal(raw)
-        except (InvalidOperation, ValueError):
-            return None
-    if q <= 0:
+    q = _parse_decimal(valor)
+    if q is None or q <= 0:
         return None
     return q.quantize(Decimal("0.001"))
+
+
+def qtd_decimal_ou_zero(valor) -> Decimal | None:
+    """Aceita zero (ajuste de estoque furado). Vazio → 0."""
+    raw = str(valor if valor is not None else "").strip()
+    if raw == "":
+        return Decimal("0.000")
+    q = _parse_decimal(valor)
+    if q is None or q < 0:
+        return None
+    return q.quantize(Decimal("0.001"))
+
+
+def _parse_decimal(valor) -> Decimal | None:
+    if isinstance(valor, Decimal):
+        return valor
+    raw = str(valor or "").strip().replace(" ", "")
+    if not raw:
+        return None
+    if "," in raw and "." in raw:
+        raw = raw.replace(".", "").replace(",", ".")
+    elif "," in raw:
+        raw = raw.replace(",", ".")
+    try:
+        return Decimal(raw)
+    except (InvalidOperation, ValueError):
+        return None
 
 
 def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | None, str]:
@@ -229,6 +243,56 @@ def aplicar_status(
     return True, ""
 
 
+def _aplicar_ajuste_absoluto_origem(
+    request,
+    *,
+    produto_id: str,
+    deposito: str,
+    saldo_informado: Decimal,
+    nome_produto: str,
+    codigo_interno: str,
+    observacao: str,
+    usuario,
+) -> tuple[bool, str]:
+    """Zera/corrige saldo Agro na origem (estoque furado)."""
+    from decimal import Decimal as Dec
+
+    from estoque.models import AjusteRapidoEstoque, OrigemAjusteEstoque
+    from produtos.views import (
+        _empresa_loja_padrao_agro_estoque,
+        _saldo_erp_produto_deposito_mongo,
+        obter_conexao_mongo,
+    )
+
+    produto_id = (produto_id or "").strip()[:100]
+    deposito = normalizar_deposito(deposito)
+    if not produto_id or deposito not in DEPOSITOS_VALIDOS:
+        return False, "Produto/depósito inválido para ajuste."
+    try:
+        client_m, db = obter_conexao_mongo()
+    except Exception:
+        client_m = db = None
+    if db is None:
+        saldo_erp = Dec("0")
+    else:
+        saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, produto_id, deposito)
+    empresa, loja = _empresa_loja_padrao_agro_estoque(deposito)
+    AjusteRapidoEstoque.objects.create(
+        empresa=empresa,
+        loja=loja,
+        produto_externo_id=produto_id,
+        codigo_interno=(codigo_interno or "")[:100],
+        nome_produto=(nome_produto or "Produto")[:255],
+        deposito=deposito,
+        saldo_erp_referencia=saldo_erp,
+        saldo_informado=saldo_informado,
+        observacao=(observacao or "")[:500],
+        origem=OrigemAjusteEstoque.TRANSFERENCIA_UI,
+        usuario=usuario if getattr(usuario, "pk", None) else None,
+    )
+    return True, ""
+
+
 def concluir_transferencia(
     request,
     sol: SolicitacaoTransferenciaPdv,
@@ -236,6 +300,10 @@ def concluir_transferencia(
     loja_atual: str,
     operador_label: str,
     usuario,
+    estoque_furado: bool = False,
+    ajustar_estoque: bool = False,
+    ajuste_quantidade=None,
+    ajustes_por_produto: dict | None = None,
 ) -> tuple[bool, str, list]:
     ok, err = pode_agir(sol, loja_atual, "transferir")
     if not ok:
@@ -245,8 +313,46 @@ def concluir_transferencia(
     itens = list(sol.itens.all())
     if not itens:
         return False, "Pedido sem itens.", []
+
+    mapa_ajuste: dict[str, Decimal] = {}
+    if estoque_furado and ajustar_estoque:
+        if isinstance(ajustes_por_produto, dict) and ajustes_por_produto:
+            for pid, raw in ajustes_por_produto.items():
+                q = qtd_decimal_ou_zero(raw)
+                if q is None:
+                    return False, "Quantidade de ajuste inválida.", []
+                mapa_ajuste[str(pid).strip()] = q
+        else:
+            q_padrao = qtd_decimal_ou_zero(ajuste_quantidade)
+            if q_padrao is None:
+                return False, "Quantidade de ajuste inválida.", []
+            for it in itens:
+                mapa_ajuste[it.produto_externo_id] = q_padrao
+
     resultados = []
+    obs_evento = ""
+    if estoque_furado:
+        obs_evento = "Estoque furado"
+        if ajustar_estoque:
+            obs_evento += " · ajuste origem"
     with transaction.atomic():
+        if mapa_ajuste:
+            for it in itens:
+                q_aj = mapa_ajuste.get(it.produto_externo_id)
+                if q_aj is None:
+                    continue
+                ok_a, err_a = _aplicar_ajuste_absoluto_origem(
+                    request,
+                    produto_id=it.produto_externo_id,
+                    deposito=sol.loja_origem,
+                    saldo_informado=q_aj,
+                    nome_produto=it.nome_produto,
+                    codigo_interno=it.codigo_interno,
+                    observacao=f"Estoque furado · Pedir loja #{sol.pk} · {operador_label}"[:500],
+                    usuario=usuario,
+                )
+                if not ok_a:
+                    return False, err_a or "Falha ao ajustar estoque furado.", resultados
         for it in itens:
             res = _transferir_entre_depositos_exec(
                 request,
@@ -272,6 +378,11 @@ def concluir_transferencia(
         sol.concluido_em = agora
         sol.concluido_por_label = (operador_label or "")[:150]
         sol.concluido_por = usuario
+        if estoque_furado:
+            extra = (sol.observacao or "").strip()
+            marca = "ESTOQUE FURADO"
+            if marca not in extra.upper():
+                sol.observacao = (f"{extra} · {marca}" if extra else marca)[:400]
         sol.save()
         _registrar_evento(
             sol,
@@ -280,7 +391,7 @@ def concluir_transferencia(
             status_para=STATUS_CONCLUIDO,
             operador_label=operador_label,
             usuario=usuario,
-            observacao="",
+            observacao=obs_evento,
         )
     from produtos.views import _invalidar_caches_apos_ajuste_pin
 
