@@ -1,5 +1,24 @@
 # Rollback — PDV Pedir loja
 
+## Produção — Pedir loja UX3 (**v16.59**) — ponto **antes** deste pacote (Live v16.58)
+
+| Item | Valor |
+| ---- | ----- |
+| **Commit** | `3964a07` (Live v16.58) |
+| **Tag** | `rollback/pre-pdv-pedir-loja-ux3-v16.58` |
+| **Branch backup** | `producao-backup-pre-v1659-pedir-loja-ux3-20260816` |
+| **O quê reverte** | overlay um tamanho · colunas Produto\|Centro\|Vila · nome 1 linha · sem migrate |
+| **Migrate** | **nenhuma** |
+
+```bash
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-pdv-pedir-loja-ux3-v16.58
+git push origin producao --force-with-lease
+```
+
+**Só** com frase + senha do Renan. Volta para Live **v16.58**.
+
 ## Produção — Pedir loja UX2 (**v16.58**) — ponto **antes** deste pacote (Live v16.56)
 
 | Item | Valor |

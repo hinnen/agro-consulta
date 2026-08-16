@@ -1216,12 +1216,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### Entrega teste — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3`)
+### 📦 PACOTE PRONTO LOJA — Pedir loja layout PC (`PDV-PEDIR-LOJA-UX3` · **v16.59**)
 
-> **Status:** no `teste` @ **7501bec** · **v16.59** · **não** sobe loja sem frase+senha
-> **Por quê:** Live v16.58 ainda tinha 2 tamanhos de overlay, tela sobrando, nome quebrando, colunas da busca tortas
-> **Feito:** overlay **um tamanho** (96rem / 100% altura) · cabeçalho Produto \| Centro \| Vila · nome 1 linha · Display Scale §11
-> **Você:** PDV local · **Ctrl+F5** · Pedir loja · busca milho · conferir tamanho único e colunas
+> **Status:** prova local OK · sobe loja nesta mensagem (frase+senha)
+> **Código:** `teste` @ **7501bec** · overlay + JS (sem migrate)
+> **Prova:** verify 40/40 · testes 17/17 · `/pdv/` local com overlay um tamanho + colunas fixas
+> **Inclui:** overlay **um tamanho** (96rem / 100% altura) · Produto \| Centro \| Vila · nome 1 linha
+> **Rollback:** tag `rollback/pre-pdv-pedir-loja-ux3-v16.58` @ Live v16.58 `3964a07`
 
 ### ✅ Deploy loja — Pedir loja UX2 (`PDV-PEDIR-LOJA-UX2` · **v16.58**)
 
