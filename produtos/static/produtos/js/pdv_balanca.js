@@ -200,35 +200,14 @@
     return nome.slice(0, 42) + (bits.length ? ' [' + bits.join(' · ') + ']' : '');
   }
 
-  /** Preferência: barcode exato (0010) > único hit > lista ambígua com nomes. */
+  /** Preferência: barcode numérico (0010/010/10) > demais; sem barcode, lista completa. */
   function preferHits(hits, num, typedRaw) {
-    var pad4 = String(num).padStart(4, '0');
-    var typed = String(typedRaw || '').trim();
-    var wantBars = [];
-    if (typed && /^\d{1,4}$/.test(typed)) wantBars.push(typed);
-    wantBars.push(pad4, String(num));
-    var seenB = {};
-    wantBars = wantBars.filter(function (b) {
-      if (seenB[b]) return false;
-      seenB[b] = true;
-      return true;
-    });
-
+    hits = hits || [];
     var byBar = hits.filter(function (p) {
       var b = barcodeOf(p);
-      return b && wantBars.indexOf(b) >= 0;
+      return b && /^\d{1,4}$/.test(b) && parseInt(b, 10) === num;
     });
-    if (byBar.length === 1) return byBar;
-    if (byBar.length > 1) return byBar;
-
-    var byGm = hits.filter(function (p) {
-      var codes = productCodes(p);
-      for (var i = 0; i < codes.length; i++) {
-        if (gmGranelNum(codes[i]) === num) return true;
-      }
-      return false;
-    });
-    if (byGm.length === 1) return byGm;
+    if (byBar.length >= 1) return byBar;
     return hits;
   }
 
@@ -340,9 +319,7 @@
   function resolveProduto(num, typedRaw) {
     var pad4 = String(num).padStart(4, '0');
     var localHits = hitsFromLists(catalogListsLocal(), num);
-    if (preferHits(localHits, num, typedRaw).length === 1) {
-      return Promise.resolve(packResolveHits(localHits, num, pad4, typedRaw));
-    }
+    /* Sempre consulta API — cache local sozinho pode preferir GM errado. */
     var variants = codeVariants(num).concat([
       pad4,
       'GM' + pad4,
@@ -496,16 +473,13 @@
   function feedSerialText(chunk) {
     buf += chunk;
     if (buf.length > 4000) buf = buf.slice(-2000);
-    var parts = buf.split(/[\r\n]+/);
+    var parts = buf.split(/[\r\n\x03]+/);
     if (parts.length > 1) {
       buf = parts.pop() || '';
       for (var i = 0; i < parts.length; i++) {
         var parsed = parseWeightFromChunk(parts[i]);
         if (parsed) onWeightSample(parsed.kg);
       }
-    } else if (buf.indexOf('\x02') >= 0 && /\d{4,}/.test(buf)) {
-      var p2 = parseWeightFromChunk(buf);
-      if (p2) onWeightSample(p2.kg);
     }
   }
 
@@ -545,27 +519,7 @@
         }
       }
       if (end < 0) {
-        var stx = -1;
-        for (var s = 0; s < byteBuf.length; s++) {
-          if (byteBuf[s] === 0x02) {
-            stx = s;
-            break;
-          }
-        }
-        if (stx >= 0 && byteBuf.length - stx >= 7) {
-          var digs = '';
-          for (var d = stx + 1; d < byteBuf.length && digs.length < 6; d++) {
-            if (byteBuf[d] >= 0x30 && byteBuf[d] <= 0x39) {
-              digs += String.fromCharCode(byteBuf[d]);
-            } else break;
-          }
-          if (digs.length === 6) {
-            byteBuf.splice(0, stx + 1 + 6);
-            var pStx = parseWeightFromChunk('\x02' + digs);
-            if (pStx) onWeightSample(pStx.kg);
-            continue;
-          }
-        }
+        /* Sem CR/LF/ETX: não consumir STX+dígitos à força (7 dígitos quebram o frame). */
         break;
       }
       var frame = byteBuf.splice(0, end + 1);
@@ -811,6 +765,11 @@
       setStatus('Aguarde o peso estabilizar.', 'err');
       return;
     }
+    if (armAfterKg != null) {
+      setStatus('Já adicionado. Tire o peso da balança e pese de novo.', 'err');
+      return;
+    }
+    if (Date.now() - lastAddedAt < 700) return;
     if (busyAdd) return;
     busyAdd = true;
 
