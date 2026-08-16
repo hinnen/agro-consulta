@@ -490,13 +490,13 @@ def confirmar_repasse(
         vm = _dec(valor_manual)
         if vm <= 0:
             return None, "Valor manual inválido."
-        # Distribui o manual nas linhas marcadas (proporção do disponível)
+        if vm > Decimal("99999.99"):
+            return None, "Valor manual alto demais — confira o número."
+        # Valor digitado manda: pode ser maior que o automático (ex. levar R$ 600
+        # quando o cálculo deu R$ 512). Distribui nas linhas marcadas (proporção).
         base_soma = total
         if base_soma <= 0:
             return None, "Não há valor disponível nas linhas marcadas para o valor manual."
-        if vm > base_soma and not modo_dia_cheio:
-            # permite até o disponível (evita estouro acidental)
-            vm = base_soma
         fator = vm / base_soma
         v_cmv = (v_cmv * fator).quantize(Decimal("0.01"))
         v_lucro = (v_lucro * fator).quantize(Decimal("0.01"))
