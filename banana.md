@@ -1243,9 +1243,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.73** @ **ecaf8d9** |
-| **O quê** | Vila: MP Vila (manual) + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · sem Sicoob · repasse desconta cartão/PIX · Confirmar = falta em dinheiro |
-| **Prova** | path **42** · deep **66** · MAQ_OK |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.74** @ **3e8bc92** |
+| **O quê** | Vila: MP Vila (manual) + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · **Sicoob Chave Pix** nas 2 lojas · repasse desconta cartão/PIX · Confirmar = falta em dinheiro |
+| **Prova** | path **42** · deep **66** · MAQ_OK (+ Sicoob PIX) |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 PDV Vila/Centro · Retiradas Repasse |
 
