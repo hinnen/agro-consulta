@@ -1232,24 +1232,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Rollback:** `git push origin producao-rollback-pre-balanca-hotfix-20260816:producao --force-with-lease` (só com senha)
 
+### ✅ Deploy loja — balança review (`PDV-BALANCA-HOTFIX3` · próximo)
+
+> **Status:** subindo agora após provas unitárias + review Bugbot
+
 ### ✅ CHECKLIST ÚNICO — após loja v16.84 (16/08h)
 
-> **Loja hoje:** ✅ **Live v16.84** · `producao` @ **a6d3fbf**  
-> **Pronto envio:** **REPASSE-VALOR-MANUAL** · **PDV-BALANCA-HOTFIX2** (v16.87) · **sem migrate**
+> **Loja hoje:** ✅ **Live v16.84** · `producao` @ **a6d3fbf** (antes deste deploy)  
+> **Pronto envio / subindo:** **PDV-BALANCA-HOTFIX3** · **REPASSE-VALOR-MANUAL**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
-| 2 | **PDV-BALANCA-HOTFIX2** | ✅ **pronto para envio** / teste (próximo commit) | não |
+| 2 | **PDV-BALANCA-HOTFIX2** | ✅ absorvido em HOTFIX3 | não |
+| 3 | **PDV-BALANCA-HOTFIX3** | ✅ review + provas · commit a seguir | não |
 
-### 📦 PACOTE PRONTO — Balança ambiguo+ETX (`PDV-BALANCA-HOTFIX2`)
+### 📦 PACOTE — Balança review (`PDV-BALANCA-HOTFIX3`)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Prioriza barras `0010` · mostra nomes se ambíguo · parse **ETX** + linha RX |
+| **O quê** | barras 0010/010/10 · API sempre · ETX+CR · sem STX cego · anti double-add · RX · provas `scripts/_test_pdv_balanca_logic.js` |
+| **Prova** | 17/17 OK · Bugbot fixes · Security limpo |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · F10 · digite 10 · se ambíguo, lê os nomes · olhe linha **RX:** |
 
 ### ✅ Deploy loja — balança hotfix (`PDV-BALANCA-HOTFIX` · **v16.84**)
 
