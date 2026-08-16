@@ -25,7 +25,7 @@ def check(path: str, *needles: str) -> None:
 
 
 check("produtos/caixa_util.py", "filtrar_maquininhas_por_loja", "filtrar_maquininhas_pdv_sem_mp")
-check("pdv/views.py", "mp_vila", "pix_mp_vila", "filtrar_maquininhas_por_loja", "lojas")
+check("pdv/views.py", "mp_vila", "pix_mp_vila", "pix_sicoob_chave", "filtrar_maquininhas_por_loja", "lojas")
 check("produtos/repasse_vila_util.py", "ja_eletronico", "falta_dinheiro", "_ja_eletronico_vila", "validar_data_ref_repasse")
 check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_confirmar", "formas_pagamento", "validar_data_ref_repasse")
 check("produtos/urls.py", "repasse_vila", "api/repasse-vila/confirmar/")

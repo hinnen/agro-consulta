@@ -1227,25 +1227,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** · `produtos.0089_itemvendaagro_unidade` |
 | **Você** | Cadastro granel Unidade **KG** · plug RS232→USB · PDV **Ctrl+F5** · F10 · Conectar COM · digitar `1` · pesar · balança: **F→3→USE-P2** · sem hardware: console `AgroPdvBalanca.mockKg(1.25)` |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d)
 
 > **Loja hoje:** ✅ **Live v16.69** · `producao` @ **11d4d5b**  
 > **NÃO** merge `teste`→`producao` sem frase + senha.  
-> **Só no teste (subir juntos):** **REPASSE-DIA-PASSADO** · **REPASSE-ELET-MAQUINAS** · **PDV-BALANCA-GRANEL** (ainda em prova).
+> **Pronto (sem migrate):** REPASSE-DIA-PASSADO · REPASSE-ELET-MAQUINAS.  
+> **Ainda em prova (não subir junto sem balança):** PDV-BALANCA-GRANEL (migrate 0089).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-DIA-PASSADO** | ✅ **pronto para envio à produção** / teste **v16.70** | não |
-| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.74** @ **3e8bc92** | não |
-| 3 | **PDV-BALANCA-GRANEL** | 🧪 teste **v16.71** · prova balança | **sim** 0089 |
+| 2 | **REPASSE-ELET-MAQUINAS** | ✅ **pronto para envio à produção** / teste **v16.74** | não |
 
-### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.73**)
+### 📦 PACOTE PRONTO — Máquinas por loja + repasse cartão/PIX (`REPASSE-ELET-MAQUINAS` · **v16.74**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.74** @ **3e8bc92** |
-| **O quê** | Vila: MP Vila (manual) + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · **Sicoob Chave Pix** nas 2 lojas · repasse desconta cartão/PIX · Confirmar = falta em dinheiro |
-| **Prova** | path **42** · deep **66** · MAQ_OK (+ Sicoob PIX) |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.74** |
+| **O quê** | Vila: MP Vila + Sicredi · Centro: Cielo + MP Centro (auto) + MP Renan · Sicoob Chave Pix (2 lojas, só PIX) · repasse: já no Centro / falta dinheiro |
+| **Prova** | path **VERIFY_OK 43** · deep **VERIFY_DEEP_OK 66** · review Opus · MAQ_OK |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 PDV Vila/Centro · Retiradas Repasse |
 
@@ -1253,11 +1253,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.70** @ **0f86a6f** |
-| **O quê** | Escolher **dia** (hoje ou atrasado até 180d) no overlay/tela · histórico clicável · dinheiro sai do caixa **agora** · bloqueia futuro |
-| **Prova** | path **VERIFY_OK 36** · deep **VERIFY_DEEP_OK 63** (ontem + futuro 400) |
+| **Status** | ✅ **pronto para envio à produção** · `teste` **v16.70** |
+| **O quê** | Dia do repasse (hoje ou atrasado) · histórico clicável |
+| **Prova** | deep ontem + futuro bloqueado |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 Retiradas → Repasse · mudar **Dia do repasse** · ou clicar o dia no histórico |
+| **Você** | Ctrl+F5 Retiradas → Repasse · mudar dia |
+
+### 📦 PACOTE TESTE — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.71**) · **ainda em prova**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🧪 teste · **não** marcar pronto envio até prova com balança |
+| **O quê** | Overlay Pesar / F10 · Web Serial · KG |
+| **Migrate** | **SIM** 0089 |
+| **Você** | prova com balança antes de subir |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b) · **superado**
+
+> Vigente: **16/08d** no topo.
 
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
