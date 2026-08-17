@@ -11,10 +11,18 @@ from produtos.caixa_util import (
     adotar_sessao_caixa_unica_aberta,
     filtrar_maquininhas_pdv_sem_mp,
     filtrar_maquininhas_por_loja,
+    mp_point_host_conta,
     navegador_pode_mp_point_automatico,
     obter_sessao_caixa_aberta_request,
     ponto_operacao_browser,
     rotulo_caixa_browser,
+)
+from produtos.agro_fonte_config import agro_staging_readonly
+from produtos.nfce_config_util import nfce_config_resumo
+from produtos.mercado_pago_point import (
+    MAQUININHAS_MP_POINT_AUTO_CENTRO,
+    MAQUININHAS_MP_POINT_AUTO_VILA,
+    mp_point_conta_configurada,
 )
 from produtos.agro_fonte_config import agro_staging_readonly
 from produtos.nfce_config_util import nfce_config_resumo
@@ -95,13 +103,13 @@ def _safe_float_ptbr(val, default=0.0):
 @ensure_csrf_cookie
 def pdv_home(request):
     caixa_aberto = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
-    mp_point_configurado = bool(
-        getattr(settings, "MP_POINT_ENABLED", False)
-        and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
-        and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
-    )
+    host_conta = mp_point_host_conta(request)
+    centro_cfg = mp_point_conta_configurada("centro")
+    vila_cfg = mp_point_conta_configurada("vila")
+    centro_ok = centro_cfg and host_conta == "centro"
+    vila_ok = vila_cfg and host_conta == "vila"
     mp_point_nav = navegador_pode_mp_point_automatico(request)
-    mp_point_enabled = mp_point_configurado and mp_point_nav
+    mp_point_enabled = centro_ok or vila_ok
     ponto_nav = ponto_operacao_browser(request)
     pdv_reabrir_from_consulta = None
     if request.GET.get("reabrir") == "1":
@@ -134,9 +142,24 @@ def pdv_home(request):
     dep_loja = str(dep_boot.get("deposito") or "centro").strip().lower()
     maq_cartao = filtrar_maquininhas_por_loja(_maquininhas_cartao_effective(), dep_loja)
     maq_pix = filtrar_maquininhas_por_loja(_maquininhas_pix_effective(), dep_loja)
-    if not mp_point_enabled:
-        maq_cartao = filtrar_maquininhas_pdv_sem_mp(maq_cartao)
-        maq_pix = filtrar_maquininhas_pdv_sem_mp(maq_pix)
+    if not centro_ok:
+        maq_cartao = filtrar_maquininhas_pdv_sem_mp(maq_cartao, MAQUININHAS_MP_POINT_AUTO_CENTRO)
+        maq_pix = filtrar_maquininhas_pdv_sem_mp(maq_pix, MAQUININHAS_MP_POINT_AUTO_CENTRO)
+    if vila_cfg and not vila_ok:
+        maq_cartao = filtrar_maquininhas_pdv_sem_mp(maq_cartao, MAQUININHAS_MP_POINT_AUTO_VILA)
+        maq_pix = filtrar_maquininhas_pdv_sem_mp(maq_pix, MAQUININHAS_MP_POINT_AUTO_VILA)
+    if vila_ok:
+        maq_cartao = [dict(m) if isinstance(m, dict) else m for m in maq_cartao]
+        maq_pix = [dict(m) if isinstance(m, dict) else m for m in maq_pix]
+        for lista in (maq_cartao, maq_pix):
+            for m in lista:
+                if not isinstance(m, dict):
+                    continue
+                mid = str(m.get("id") or "").strip().lower()
+                if mid == "mp_vila":
+                    m["nome"] = "Mercado Pago Vila (automático)"
+                elif mid == "pix_mp_vila":
+                    m["nome"] = "Mercado Pago Vila — Pix (automático)"
     ctx = {
         "caixa_aberto": caixa_aberto,
         "caixa_rotulo": rotulo_caixa_browser(request, caixa_aberto) if caixa_aberto else "Caixa fechado",
@@ -274,15 +297,28 @@ def pdv_home(request):
             },
             "pagamentoUi": {
                 "mpPointEnabled": mp_point_enabled,
+                "mpPointCentroEnabled": centro_ok,
+                "mpPointVilaEnabled": vila_ok,
                 "mpPointMotivoBloqueio": (
-                    "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
-                    "Neste PDV use as máquinas manuais da loja."
-                    if mp_point_configurado
+                    (
+                        "Mercado Pago automático da Vila só no computador do Caixa Vila Elias. "
+                        "Neste PDV use Sicredi."
+                        if vila_cfg and dep_loja == "vila"
+                        else (
+                            "Mercado Pago automático só no computador do Caixa Gaveta (aberto primeiro). "
+                            "Neste PDV use as máquinas manuais da loja."
+                        )
+                    )
+                    if (centro_cfg or vila_cfg)
                     and not mp_point_nav
                     and ponto_nav == PONTO_CAIXA_NOTEBOOK
                     else (
-                        "Abra o Caixa Gaveta neste computador para usar Mercado Pago automático."
-                        if mp_point_configurado and not mp_point_nav
+                        (
+                            "Abra o Caixa Vila Elias neste computador para usar Mercado Pago automático."
+                            if vila_cfg and dep_loja == "vila"
+                            else "Abra o Caixa Gaveta neste computador para usar Mercado Pago automático."
+                        )
+                        if (centro_cfg or vila_cfg) and not mp_point_nav
                         else ""
                     )
                 ),

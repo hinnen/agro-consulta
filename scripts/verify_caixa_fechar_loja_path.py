@@ -67,8 +67,9 @@ def main() -> int:
 
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_balcao"}), "mp_balcao = point")
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_qr"}), "pix_mp_qr = point")
+    check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}), "mp_vila = point")
+    check(pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_vila"}), "pix_mp_vila = point")
     check(not pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_renan"}), "mp_renan != point")
-    check(not pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}), "mp_vila != point")
     check(
         linha_conferencia_caixa_de_pagamento("PIX", mercado_pago=False) == "PIX",
         "PIX unico campo",
@@ -100,13 +101,13 @@ def main() -> int:
         "centro point auto",
     )
     check(
-        not forma_fechamento_auto_ocultavel("Pix — Mercado Pago", deposito="vila"),
-        "vila sem point auto",
+        forma_fechamento_auto_ocultavel("Pix — Mercado Pago", deposito="vila"),
+        "vila point auto",
     )
 
     st_v = serializar_estado_conferencia_fechar([], deposito="vila")
     formas_v = [L["forma"] for L in st_v["linhas"]]
-    check("Pix — Mercado Pago" not in formas_v, "vila sem linhas point")
+    check("Pix — Mercado Pago" in formas_v, "vila tem linhas point")
     check(any(L["forma"] == "Fiado" and L.get("grupo_oculto") for L in st_v["linhas"]), "vila fiado oculto")
 
     st_c = serializar_estado_conferencia_fechar([], deposito="centro")

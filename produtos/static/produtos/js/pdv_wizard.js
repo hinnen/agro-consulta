@@ -158,8 +158,8 @@
                 if (data && data.caixa) {
                     bootstrap.caixa = data.caixa;
                 }
-                // Após abrir Gaveta, a sessão já marca host MP — sem isto o PDV fica
-                // com mpPointEnabled=false até F5 (mensagem «Abra o Caixa Gaveta…»).
+                // Após abrir Gaveta/Vila, a sessão já marca host MP — sem isto o PDV fica
+                // com mpPointEnabled=false até F5.
                 if (data && data.pagamentoUi && typeof data.pagamentoUi === 'object') {
                     bootstrap.pagamentoUi = data.pagamentoUi;
                     pagamentoUi = data.pagamentoUi;
@@ -2350,11 +2350,18 @@
     }
 
     function isMaquinaMpPointAuto(maquinaId, forma) {
-        if (!pagamentoUi.mpPointEnabled) return false;
         var mid = String(maquinaId || '').trim();
         var f = String(forma || '').trim();
-        if (mid === 'mp_balcao' && f !== 'PIX') return true;
-        if (mid === 'pix_mp_qr' && f === 'PIX') return true;
+        var centroOn =
+            pagamentoUi.mpPointCentroEnabled != null
+                ? !!pagamentoUi.mpPointCentroEnabled
+                : !!pagamentoUi.mpPointEnabled;
+        var vilaOn = !!pagamentoUi.mpPointVilaEnabled;
+        if (!centroOn && !vilaOn) return false;
+        if (centroOn && mid === 'mp_balcao' && f !== 'PIX') return true;
+        if (centroOn && mid === 'pix_mp_qr' && f === 'PIX') return true;
+        if (vilaOn && mid === 'mp_vila' && f !== 'PIX') return true;
+        if (vilaOn && mid === 'pix_mp_vila' && f === 'PIX') return true;
         return false;
     }
 
@@ -6681,9 +6688,7 @@
         };
         var hasMaquina = !!(state.pagamento.maquinaId && String(state.pagamento.maquinaId).trim());
         var mpPixAuto =
-            pagamentoUi.mpPointEnabled &&
-            hasMaquina &&
-            String(state.pagamento.maquinaId || '').trim() === 'pix_mp_qr';
+            hasMaquina && isMaquinaMpPointAuto(String(state.pagamento.maquinaId || '').trim(), 'PIX');
         var needMaquinaBar = requiresMaquina(forma);
         var barMaquina = document.getElementById('pdv-pay-maquina-bar');
         var lblMaquina = document.getElementById('pdv-pay-maquina-label');
@@ -6720,7 +6725,7 @@
             };
             if (hasMaquina) {
                 var pMid = String(state.pagamento.maquinaId || '').trim();
-                var narrowMp = pMid === 'pix_mp_qr';
+                var narrowMp = pMid === 'pix_mp_qr' || pMid === 'pix_mp_vila';
                 var narrowCielo = pMid === 'pix_cielo';
                 var narrowScr = pMid === 'pix_sicredi';
                 var narrowSco = pMid === 'pix_sicoob_chave';

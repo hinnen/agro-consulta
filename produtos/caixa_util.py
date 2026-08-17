@@ -23,7 +23,7 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
 )
 
 # Fechar caixa: ordem fixa de conferência (não reordenar por «com movimento»).
-# Linhas «— Mercado Pago» = só Point automático (Centro). Vale/Cashback/Fiado = bloco oculto auto.
+# Linhas «— Mercado Pago» = Point automático (Centro e Vila). Vale/Cashback/Fiado = bloco oculto auto.
 FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
     "Dinheiro",
     "PIX",
@@ -45,8 +45,13 @@ _FORMAS_SPLIT_MP_CONFERENCIA = frozenset(
     {"PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"}
 )
 
-# Só Point/Pix automático (pinpad) — Renan / MP Vila / Cielo / Sicredi ficam no balde único.
-_MAQUININHAS_MP_POINT_AUTO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+# Point automático Centro (pinpad) + Vila (quando credencial preenchida).
+# Renan / Cielo / Sicredi ficam no balde único.
+_MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+_MAQUININHAS_MP_POINT_AUTO_VILA_IDS = frozenset({"mp_vila", "pix_mp_vila"})
+_MAQUININHAS_MP_POINT_AUTO_IDS = (
+    _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS | _MAQUININHAS_MP_POINT_AUTO_VILA_IDS
+)
 
 FORMAS_MP_POINT_AUTO_CONFERENCIA: frozenset[str] = frozenset(
     {
@@ -186,7 +191,7 @@ def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
 
 
 def pagamento_linha_eh_mp_point_auto(row: dict) -> bool:
-    """Só Point/Pix automático do PDV (interligado) — não Renan/Vila/Cielo manuais."""
+    """Só Point/Pix automático do PDV (interligado) — não Renan/Cielo/Sicredi manuais."""
     if not isinstance(row, dict):
         return False
     mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
@@ -627,11 +632,7 @@ def linha_conferencia_tem_movimento(linha: dict) -> bool:
 def forma_fechamento_auto_ocultavel(forma: str, *, deposito: str | None = None) -> bool:
     """Linhas auto-preenchidas e recolhidas no Fechar caixa (por loja)."""
     fn = str(forma or "").strip()
-    dep = str(deposito or "centro").strip().lower()
     if fn in FORMAS_AUTO_OCULTAS_FECHAR:
-        # Point automático: só faz sentido no Centro (Vila não usa pinpad MP).
-        if fn in FORMAS_MP_POINT_AUTO_CONFERENCIA and dep == "vila":
-            return False
         return True
     return False
 
@@ -644,11 +645,6 @@ def serializar_estado_conferencia_fechar(
     if dep not in ("centro", "vila"):
         dep = "centro"
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
-    # Vila: não lista baldes Point (sempre zerados / sem pinpad).
-    if dep == "vila":
-        linhas_todos_raw = [
-            L for L in linhas_todos_raw if L["forma"] not in FORMAS_MP_POINT_AUTO_CONFERENCIA
-        ]
     tot_esperado_din = Decimal("0")
     for L in linhas_todos_raw:
         if L["forma"] == "Dinheiro":
@@ -1241,20 +1237,44 @@ def ponto_operacao_browser(request) -> str:
         return PONTO_CAIXA_GAVETA
 
 
-def navegador_pode_mp_point_automatico(request) -> bool:
+def mp_point_host_conta(request) -> str | None:
+    """Conta Point deste navegador: centro | vila | None. Legado: sessão ``1`` = centro."""
+    v = str(request.session.get(SESSION_MP_POINT_HOST_KEY) or "").strip().lower()
+    if v in ("1", "centro", "teste"):
+        return "centro"
+    if v == "vila":
+        return "vila"
+    return None
+
+
+def navegador_pode_mp_point_automatico(request, conta: str | None = None) -> bool:
     """
-    Mercado Pago Point só no PC que abriu o Caixa Gaveta Centro (ou Teste).
-    Vila Elias e Notebook não mandam cobrança automática ao Point (evita aparelho errado).
+    Point só no PC que abriu o caixa pai daquela loja (Gaveta Centro / Vila / Teste).
+    Notebook não manda cobrança automática (evita aparelho errado).
     """
-    if request.session.get(SESSION_MP_POINT_HOST_KEY) != "1":
+    host = mp_point_host_conta(request)
+    if not host:
         return False
     ponto = ponto_operacao_browser(request)
-    return ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE)
+    if host == "centro":
+        if ponto not in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
+            return False
+        if conta and str(conta).strip().lower() not in ("", "centro"):
+            return False
+        return True
+    if host == "vila":
+        if ponto != PONTO_CAIXA_VILA:
+            return False
+        if conta and str(conta).strip().lower() not in ("", "vila"):
+            return False
+        return True
+    return False
 
 
-def marcar_navegador_host_mp_point(request) -> None:
-    """Marca este navegador como host da maquininha MP (abertura Gaveta Centro / Teste)."""
-    request.session[SESSION_MP_POINT_HOST_KEY] = "1"
+def marcar_navegador_host_mp_point(request, conta: str = "centro") -> None:
+    """Marca este navegador como host da maquininha MP (abertura Gaveta Centro / Vila / Teste)."""
+    c = str(conta or "centro").strip().lower()
+    request.session[SESSION_MP_POINT_HOST_KEY] = "vila" if c == "vila" else "centro"
     request.session.modified = True
 
 
@@ -1264,18 +1284,19 @@ def limpar_navegador_host_mp_point(request) -> None:
         request.session.modified = True
 
 
-# Só Point/Pix automático — maquininha manual «Mercado Pago Renan» / «MP Vila» permanecem.
-# (constante canônica no topo do módulo: _MAQUININHAS_MP_POINT_AUTO_IDS)
+# Só Point/Pix automático Centro — Vila entra na lista só se a conta Vila não estiver ligada.
+# (constantes canônicas no topo: _MAQUININHAS_MP_POINT_AUTO_* )
 
 
-def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None) -> list:
-    """Remove opções MP automático (notebook / 2º computador)."""
+def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None, ids: frozenset | None = None) -> list:
+    """Remove opções MP automático (notebook / 2º computador / conta desligada)."""
+    drop = ids if ids is not None else _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS
     out: list = []
     for m in maquininhas or []:
         if not isinstance(m, dict):
             continue
         mid = str(m.get("id") or "").strip().lower()
-        if mid in _MAQUININHAS_MP_POINT_AUTO_IDS:
+        if mid in drop:
             continue
         out.append(m)
     return out

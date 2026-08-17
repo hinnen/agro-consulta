@@ -427,7 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - EndereÃ§o oculto atÃ© escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualizaÃ§Ã£o manual + horÃ¡rio + standby.
 
-**APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
+**APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py` (Centro + Vila, contas separadas).
 
 **Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
@@ -657,7 +657,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Abrir caixa alinha o seletor de loja do PDV; venda usa depÃ³sito do `ponto_caixa` da sessÃ£o.
 - **Antiburro (v10.04):** abrir Gaveta/Vila e trocar Loja no BI exige digitar `centro` ou `vila`; com caixa aberto o seletor fica travado.
 - **Trava loja (v10.56):** reforÃ§o, retirada/saÃ­da, devoluÃ§Ã£o, fiado, assumir sessÃ£o e venda **sÃ³** no turno da loja do aparelho; caixa fechado = bloqueia.
-- MP Point automÃ¡tico: sÃ³ Gaveta Centro / Teste (nÃ£o Vila).
+- MP Point automático: Gaveta Centro / Teste = conta Centro · Caixa Vila = conta Vila (outra credencial). Notebook não dispara.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` â€” nÃ£o coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Abrir â€” CÃ©dulas (21/07):** botÃ£o **CÃ©dulas** na abertura (igual fechar) Â· campo valor comeÃ§a vazio Â· sugestÃ£o sÃ³ no card azul / placeholder Â· modal `includes/caixa_cedulas_abertura_modal.html`.
@@ -1158,7 +1158,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `NFC_E_*`                     | Toda config NFC-e (ver NFCE-PRODUCAO.md) |
 | `AGRO_DASHBOARD_GASTOS_PLANO` | Mostra grÃ¡fico gastos por plano no BI    |
 | `AGRO_RH_PLANO_SALARIO_FOLHA` | Plano Mongo do tÃ­tulo de salÃ¡rio         |
-| `ALERTA_VENDAS_CRON_TOKEN`    | Token crons HTTP                         |
+| `MP_POINT_*`                   | Point Centro (token + terminal)          |
+| `MP_POINT_VILA_*`              | Point Vila (outra conta MP)              |
 
 
 ---
@@ -1222,6 +1223,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Point MP Vila (`MP-POINT-VILA` · **v17.13**)
+
+> **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
+> Código no `teste`. **Ainda falta** colar token + ID do terminal da conta Vila. Sem isso a máquina Vila continua **manual**. Produção só com frase + senha **depois** de ligar a maquininha no modo PDV.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ código pronto · aguarda credencial Vila (Renan ~18h) |
+| **O quê** | 2ª conta Mercado Pago Point (CNPJ Vila). PDV Vila dispara sozinho, **sem** acender a máquina do Centro. Renan continua manual. |
+| **Env** | `MP_POINT_VILA_ACCESS_TOKEN` · `MP_POINT_VILA_TERMINAL_ID` (local `.env` e depois Render loja) |
+| **Você** | 1) modo **vincular com o caixa** na maquininha · 2) token Produção da conta Vila · 3) ID do terminal · 4) fechar e abrir **Caixa Vila** neste PC · Ctrl+F5 |
+| **Prova** | `verify_mp_point_vila_path.py` · `verify_caixa_fechar_loja_path.py` |
+| **Migrate** | **NÃO** |
+| **Fora** | NFC-e ainda CNPJ Centro · máquina Renan |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08c)
 
