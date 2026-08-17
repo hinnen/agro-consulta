@@ -12451,7 +12451,9 @@ def caixa_abrir(request):
         definir_ponto_operacao_browser(request, ponto, s.pk)
         sincronizar_deposito_com_ponto_caixa(request, ponto)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
-            marcar_navegador_host_mp_point(request)
+            marcar_navegador_host_mp_point(request, conta="centro")
+        elif ponto == PONTO_CAIXA_VILA:
+            marcar_navegador_host_mp_point(request, conta="vila")
         else:
             limpar_navegador_host_mp_point(request)
         if ponto in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA):

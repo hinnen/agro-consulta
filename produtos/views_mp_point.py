@@ -15,9 +15,14 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET, require_POST
 
 from .mercado_pago_point import (
+    MP_POINT_CONTA_CENTRO,
+    MP_POINT_CONTA_VILA,
     mp_point_cancel_order,
     mp_point_classe_forma_caixa,
+    mp_point_conta_configurada,
+    mp_point_conta_de_maquina,
     mp_point_create_order,
+    mp_point_credenciais,
     mp_point_extrair_tipo_pagamento,
     mp_point_forma_pdv_de_tipo_mp,
     mp_point_get_order,
@@ -25,10 +30,12 @@ from .mercado_pago_point import (
     mp_point_order_indica_cancelado,
     mp_point_order_indica_falha,
     mp_point_order_indica_pago,
+    normalizar_mp_point_conta,
 )
 from .caixa_util import (
     SessaoCaixaObrigatoriaError,
     exigir_sessao_caixa_para_venda,
+    mp_point_host_conta,
     navegador_pode_mp_point_automatico,
     normalizar_forma_pagamento_caixa,
     pagamento_linha_eh_mercado_pago,
@@ -69,6 +76,7 @@ _ERP_PAYLOAD_KEYS = frozenset(
         "cliente_agro_pk",
         "client_request_id",
         "observacao",
+        "mp_point_conta",
     }
 )
 
@@ -188,11 +196,12 @@ def _mp_point_payment_method_config(data: dict) -> dict | None:
     return None
 
 
-def _mp_point_marcar_metadados_pagamento(erp_data: dict) -> None:
+def _mp_point_marcar_metadados_pagamento(erp_data: dict, conta: str | None = None) -> None:
     """Grava maquinaId/cobrarNoPointMp para split MP no fechar caixa."""
     pag = erp_data.get("pagamentos")
     if not isinstance(pag, list):
         return
+    c = normalizar_mp_point_conta(conta or erp_data.get("mp_point_conta"))
     for i, row in enumerate(pag):
         if not isinstance(row, dict):
             continue
@@ -206,7 +215,10 @@ def _mp_point_marcar_metadados_pagamento(erp_data: dict) -> None:
         r = dict(row)
         mid = str(r.get("maquinaId") or r.get("maquina_id") or "").strip()
         if not mid:
-            r["maquinaId"] = "pix_mp_qr" if fn == "PIX" else "mp_balcao"
+            if c == MP_POINT_CONTA_VILA:
+                r["maquinaId"] = "pix_mp_vila" if fn == "PIX" else "mp_vila"
+            else:
+                r["maquinaId"] = "pix_mp_qr" if fn == "PIX" else "mp_balcao"
         r["cobrarNoPointMp"] = True
         r["mpBalcaoModo"] = "point"
         pag[i] = r
@@ -277,7 +289,7 @@ def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
         erp_data["forma_pagamento"] = label[:80]
         erp_data["formaPagamento"] = erp_data["forma_pagamento"]
 
-    _mp_point_marcar_metadados_pagamento(erp_data)
+    _mp_point_marcar_metadados_pagamento(erp_data, conta=erp_data.get("mp_point_conta"))
 
     return {
         "forma_pdv": forma_pdv,
@@ -297,12 +309,74 @@ def _mp_point_anexar_recon_payload(payload: dict, recon: dict) -> dict:
     return payload
 
 
-def _mp_point_configurado() -> bool:
-    return bool(
-        getattr(settings, "MP_POINT_ENABLED", False)
-        and (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
-        and (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+def _mp_point_configurado(conta: str | None = None) -> bool:
+    if conta:
+        return mp_point_conta_configurada(conta)
+    return mp_point_conta_configurada(MP_POINT_CONTA_CENTRO) or mp_point_conta_configurada(
+        MP_POINT_CONTA_VILA
     )
+
+
+def _mp_point_ids_do_payload(data: dict | None) -> list[str]:
+    if not isinstance(data, dict):
+        return []
+    out: list[str] = []
+    pag = data.get("pagamentos")
+    if isinstance(pag, list):
+        for row in pag:
+            if not isinstance(row, dict):
+                continue
+            mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip()
+            if mid:
+                out.append(mid)
+    mid_top = str(data.get("maquinaId") or data.get("maquina_id") or "").strip()
+    if mid_top:
+        out.append(mid_top)
+    return out
+
+
+def _resolver_mp_point_conta(request, *payloads: dict | None) -> str:
+    for data in payloads:
+        if not isinstance(data, dict):
+            continue
+        raw_c = str(data.get("mp_point_conta") or "").strip()
+        if raw_c:
+            return normalizar_mp_point_conta(raw_c)
+        for mid in _mp_point_ids_do_payload(data):
+            c = mp_point_conta_de_maquina(mid)
+            if c:
+                return c
+    host = mp_point_host_conta(request)
+    if host == MP_POINT_CONTA_VILA:
+        return MP_POINT_CONTA_VILA
+    return MP_POINT_CONTA_CENTRO
+
+
+def _token_da_conta(conta: str) -> str:
+    token, _terminal = mp_point_credenciais(conta)
+    return token
+
+
+def _conta_do_pedido_local(request, row, extra: dict | None = None) -> str:
+    erp = row.erp_payload if isinstance(getattr(row, "erp_payload", None), dict) else {}
+    return _resolver_mp_point_conta(request, extra, erp)
+
+
+def _resposta_mp_point_so_gaveta(conta: str | None = None):
+    c = normalizar_mp_point_conta(conta) if conta else ""
+    if c == MP_POINT_CONTA_VILA:
+        msg = (
+            "Mercado Pago automático da Vila só no computador do Caixa Vila Elias. "
+            "Neste PDV use Sicredi. "
+            "Se o caixa Vila já estava aberto, feche e abra de novo neste PC."
+        )
+    else:
+        msg = (
+            "Mercado Pago automático só no Caixa Gaveta (computador principal). "
+            "Use Cielo, Sicredi ou Sicoob neste PDV. "
+            "Se a gaveta já estava aberta antes da atualização, feche e abra de novo neste PC."
+        )
+    return JsonResponse({"ok": False, "erro": msg}, status=403)
 
 
 def _sanear_erp_payload(data: dict) -> dict:
@@ -311,20 +385,6 @@ def _sanear_erp_payload(data: dict) -> dict:
 
 def _sessao_key(request) -> str:
     return (getattr(request.session, "session_key", None) or "")[:50]
-
-
-def _resposta_mp_point_so_gaveta():
-    return JsonResponse(
-        {
-            "ok": False,
-            "erro": (
-                "Mercado Pago automático só no Caixa Gaveta (computador principal). "
-                "Use Cielo, Sicredi ou Sicoob neste PDV. "
-                "Se a gaveta já estava aberta antes da atualização, feche e abra de novo neste PC."
-            ),
-        },
-        status=403,
-    )
 
 
 @require_POST
@@ -340,13 +400,6 @@ def api_pdv_mp_point_criar(request):
 
 
 def _api_pdv_mp_point_criar_impl(request):
-    if not _mp_point_configurado():
-        return JsonResponse(
-            {"ok": False, "erro": "Integração Mercado Pago Point desativada ou incompleta (.env)."},
-            status=503,
-        )
-    if not navegador_pode_mp_point_automatico(request):
-        return _resposta_mp_point_so_gaveta()
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -356,6 +409,19 @@ def _api_pdv_mp_point_criar_impl(request):
         return JsonResponse({"ok": False, "erro": "Payload inválido"}, status=400)
 
     erp_payload = _sanear_erp_payload(raw)
+    conta = _resolver_mp_point_conta(request, raw, erp_payload)
+    if not _mp_point_configurado(conta):
+        loja = "Vila" if conta == MP_POINT_CONTA_VILA else "Centro"
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": f"Integração Mercado Pago Point ({loja}) desativada ou incompleta (.env).",
+            },
+            status=503,
+        )
+    if not navegador_pode_mp_point_automatico(request, conta=conta):
+        return _resposta_mp_point_so_gaveta(conta)
+    erp_payload["mp_point_conta"] = conta
     fiado_cobranca = bool(erp_payload.get("fiado_cobranca") or raw.get("fiado_cobranca"))
 
     if fiado_cobranca:
@@ -386,8 +452,7 @@ def _api_pdv_mp_point_criar_impl(request):
             valor_cobrar = _pdv_valor_cobranca_pdv(erp_payload, float(valor_final))
 
     external_reference = f"agro-{uuid.uuid4()}"
-    token = settings.MP_POINT_ACCESS_TOKEN.strip()
-    terminal_id = settings.MP_POINT_TERMINAL_ID.strip()
+    token, terminal_id = mp_point_credenciais(conta)
     exp = (getattr(settings, "MP_POINT_EXPIRATION", None) or "PT16M").strip()
     pm_cfg = _mp_point_payment_method_config(erp_payload)
 
@@ -466,11 +531,6 @@ def _mp_point_pagamento_valor_mp(erp_data: dict, valor_esperado: Decimal) -> boo
 @require_POST
 def api_pdv_mp_point_confirmar_tranche(request):
     """Pagamento confirmado no terminal; marca pedido PAID sem gravar venda ainda."""
-    if not _mp_point_configurado():
-        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
-    if not navegador_pode_mp_point_automatico(request):
-        return _resposta_mp_point_so_gaveta()
-
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -480,7 +540,18 @@ def api_pdv_mp_point_confirmar_tranche(request):
     if not order_id:
         return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
 
-    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    try:
+        row0 = PdvMercadoPagoPointOrder.objects.get(mp_order_id=order_id)
+    except PdvMercadoPagoPointOrder.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Pedido local não encontrado."}, status=404)
+
+    conta = _conta_do_pedido_local(request, row0, raw)
+    if not _mp_point_configurado(conta):
+        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request, conta=conta):
+        return _resposta_mp_point_so_gaveta(conta)
+
+    token = _token_da_conta(conta)
     ok_mp, st, body = mp_point_get_order(access_token=token, order_id=order_id)
     if not ok_mp or not isinstance(body, dict):
         return JsonResponse(
@@ -532,11 +603,6 @@ def api_pdv_mp_point_confirmar_tranche(request):
 
 @require_GET
 def api_pdv_mp_point_status(request):
-    if not _mp_point_configurado():
-        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
-    if not navegador_pode_mp_point_automatico(request):
-        return _resposta_mp_point_so_gaveta()
-
     order_id = (request.GET.get("order_id") or "").strip()
     if not order_id:
         return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
@@ -545,6 +611,12 @@ def api_pdv_mp_point_status(request):
         row = PdvMercadoPagoPointOrder.objects.get(mp_order_id=order_id)
     except PdvMercadoPagoPointOrder.DoesNotExist:
         return JsonResponse({"ok": False, "erro": "Pedido não encontrado."}, status=404)
+
+    conta = _conta_do_pedido_local(request, row)
+    if not _mp_point_configurado(conta):
+        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request, conta=conta):
+        return _resposta_mp_point_so_gaveta(conta)
 
     sk = _sessao_key(request)
     if row.django_session_key and sk and row.django_session_key != sk:
@@ -563,7 +635,7 @@ def api_pdv_mp_point_status(request):
             }
         )
 
-    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    token = _token_da_conta(conta)
     ok_mp, st, body = mp_point_get_order(access_token=token, order_id=order_id)
     if not ok_mp or not isinstance(body, dict):
         msg = mp_point_mensagem_erro(body)
@@ -599,11 +671,6 @@ def api_pdv_mp_point_status(request):
 
 @require_POST
 def api_pdv_mp_point_finalizar(request):
-    if not _mp_point_configurado():
-        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
-    if not navegador_pode_mp_point_automatico(request):
-        return _resposta_mp_point_so_gaveta()
-
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -613,12 +680,23 @@ def api_pdv_mp_point_finalizar(request):
     if not order_id:
         return JsonResponse({"ok": False, "erro": "order_id obrigatório."}, status=400)
 
+    try:
+        row0 = PdvMercadoPagoPointOrder.objects.get(mp_order_id=order_id)
+    except PdvMercadoPagoPointOrder.DoesNotExist:
+        return JsonResponse({"ok": False, "erro": "Pedido local não encontrado."}, status=404)
+
+    conta = _conta_do_pedido_local(request, row0, raw)
+    if not _mp_point_configurado(conta):
+        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request, conta=conta):
+        return _resposta_mp_point_so_gaveta(conta)
+
     erp_override = raw.get("erp_payload") or raw.get("erp")
     if not isinstance(erp_override, dict):
         erp_override = None
 
     client_m, db = obter_conexao_mongo_pdv()
-    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    token = _token_da_conta(conta)
     ok_mp, st, body = mp_point_get_order(access_token=token, order_id=order_id)
     if not ok_mp or not isinstance(body, dict):
         return JsonResponse(
@@ -919,11 +997,6 @@ def api_pdv_mp_point_finalizar(request):
 @require_POST
 def api_pdv_mp_point_abandon(request):
     """Operador desistiu da espera no Point; não finaliza venda e libera outra forma no PDV."""
-    if not _mp_point_configurado():
-        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
-    if not navegador_pode_mp_point_automatico(request):
-        return _resposta_mp_point_so_gaveta()
-
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -937,6 +1010,12 @@ def api_pdv_mp_point_abandon(request):
         row = PdvMercadoPagoPointOrder.objects.get(mp_order_id=order_id)
     except PdvMercadoPagoPointOrder.DoesNotExist:
         return JsonResponse({"ok": False, "erro": "Pedido não encontrado."}, status=404)
+
+    conta = _conta_do_pedido_local(request, row, raw)
+    if not _mp_point_configurado(conta):
+        return JsonResponse({"ok": False, "erro": "Point desativado."}, status=503)
+    if not navegador_pode_mp_point_automatico(request, conta=conta):
+        return _resposta_mp_point_so_gaveta(conta)
 
     sk = _sessao_key(request)
     if row.django_session_key and sk and row.django_session_key != sk:
@@ -958,7 +1037,7 @@ def api_pdv_mp_point_abandon(request):
         return JsonResponse({"ok": False, "erro": "Não é possível cancelar este pedido."}, status=409)
 
     aviso_terminal = ""
-    token = settings.MP_POINT_ACCESS_TOKEN.strip()
+    token = _token_da_conta(conta)
     ok_mp, st_cancel, body_cancel = mp_point_cancel_order(access_token=token, order_id=order_id)
     if not ok_mp:
         low = mp_point_mensagem_erro(body_cancel).lower()

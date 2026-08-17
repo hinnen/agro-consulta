@@ -16,6 +16,49 @@ logger = logging.getLogger(__name__)
 
 MP_ORDERS_URL = "https://api.mercadopago.com/v1/orders"
 
+MP_POINT_CONTA_CENTRO = "centro"
+MP_POINT_CONTA_VILA = "vila"
+MAQUININHAS_MP_POINT_AUTO_CENTRO = frozenset({"mp_balcao", "pix_mp_qr"})
+MAQUININHAS_MP_POINT_AUTO_VILA = frozenset({"mp_vila", "pix_mp_vila"})
+
+
+def normalizar_mp_point_conta(raw) -> str:
+    v = str(raw or "").strip().lower()
+    if v in ("vila", "vila_elias"):
+        return MP_POINT_CONTA_VILA
+    return MP_POINT_CONTA_CENTRO
+
+
+def mp_point_conta_de_maquina(maquina_id: str | None) -> str | None:
+    mid = str(maquina_id or "").strip().lower()
+    if mid in MAQUININHAS_MP_POINT_AUTO_VILA:
+        return MP_POINT_CONTA_VILA
+    if mid in MAQUININHAS_MP_POINT_AUTO_CENTRO:
+        return MP_POINT_CONTA_CENTRO
+    return None
+
+
+def mp_point_credenciais(conta: str) -> tuple[str, str]:
+    """Retorna (access_token, terminal_id) da conta Centro ou Vila."""
+    c = normalizar_mp_point_conta(conta)
+    if c == MP_POINT_CONTA_VILA:
+        token = (getattr(settings, "MP_POINT_VILA_ACCESS_TOKEN", "") or "").strip()
+        terminal = (getattr(settings, "MP_POINT_VILA_TERMINAL_ID", "") or "").strip()
+        return token, terminal
+    token = (getattr(settings, "MP_POINT_ACCESS_TOKEN", "") or "").strip()
+    terminal = (getattr(settings, "MP_POINT_TERMINAL_ID", "") or "").strip()
+    return token, terminal
+
+
+def mp_point_conta_configurada(conta: str) -> bool:
+    token, terminal = mp_point_credenciais(conta)
+    if not token or not terminal:
+        return False
+    c = normalizar_mp_point_conta(conta)
+    if c == MP_POINT_CONTA_VILA:
+        return bool(getattr(settings, "MP_POINT_VILA_ENABLED", True))
+    return bool(getattr(settings, "MP_POINT_ENABLED", False))
+
 
 def mp_point_order_indica_cancelado(doc: dict) -> bool:
     if not isinstance(doc, dict):

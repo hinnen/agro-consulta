@@ -468,6 +468,10 @@ MP_POINT_EXPIRATION = (config("MP_POINT_EXPIRATION", default="PT16M") or "PT16M"
 MP_POINT_PRINT_ON_TERMINAL = (
     config("MP_POINT_PRINT_ON_TERMINAL", default="seller_ticket") or "seller_ticket"
 ).strip()
+# Point Vila Elias — conta MP distinta (CNPJ Vila). Liga sozinho quando token + terminal estão preenchidos.
+MP_POINT_VILA_ENABLED = config("MP_POINT_VILA_ENABLED", default=True, cast=bool)
+MP_POINT_VILA_ACCESS_TOKEN = (config("MP_POINT_VILA_ACCESS_TOKEN", default="") or "").strip()
+MP_POINT_VILA_TERMINAL_ID = (config("MP_POINT_VILA_TERMINAL_ID", default="") or "").strip()
 PDV_QR_SICREDI_URL = config("PDV_QR_SICREDI_URL", default="").strip()
 PDV_CHAVE_PIX_SICOB = config("PDV_CHAVE_PIX_SICOB", default="").strip()
 # Venda ERP — POST Pedidos/Salvar: literal exato do status (enum no ERP; maiúsculas importam).

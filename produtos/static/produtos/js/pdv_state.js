@@ -192,7 +192,8 @@
                     var mid = String(row.maquinaId || '').trim();
                     var mpm = String(row.mpBalcaoModo || '').trim();
                     row.cobrarNoPointMp =
-                        !!row.cobrarNoPointMp || (mid === 'mp_balcao' && mpm === 'point');
+                        !!row.cobrarNoPointMp ||
+                        ((mid === 'mp_balcao' || mid === 'mp_vila') && mpm === 'point');
                     return row;
                 });
                 merged.entrega = Object.assign({}, def.entrega, (parsed && parsed.entrega) || {});
