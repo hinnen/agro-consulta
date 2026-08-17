@@ -1226,17 +1226,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio** / tip teste | **SIM** 0091 |
+| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio à produção** / teste **v17.03** | **SIM** 0091 |
 
-### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO`)
+### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO` · **v17.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · não marcado sai do que ficou na Vila · Postgres |
-| **Prova** | path + deep repasse |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · sem marca sai do que ficou na Vila · Postgres |
+| **Prova** | `verify_repasse_planos_path.py` **46/46** · path **60/60** · deep **73/73** |
+| **Cherry** | `f45576d` + prova |
 | **Migrate** | **SIM** 0091 (`planos_desconto_centro`) |
-| **Você** | Ctrl+F5 `/repasse-vila/` · Planos · marcar Alimentação · conferir valor |
+| **Você** | Ctrl+F5 `/repasse-vila/` · **Planos** · marcar Alimentação · Salvar · conferir valor |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado**
 
