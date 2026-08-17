@@ -1224,54 +1224,47 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Excel na Área de trabalho: `hidraulica_giro_alto.xlsx` (aba **Colar na sua planilha**). **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08) · 🚀 PREP aguarda senha
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**)
 
-> **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6**  
-> **PREP:** branch `deploy/lote-checklist-1708` · **NÃO** merge `teste`→`producao` · **não sobe** com loja aberta.
+> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg`  
+> **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-PLANOS-CENTRO** | 🚀 **PREP pronto — aguarda senha** / teste **v17.04** | **SIM** 0091 |
-| 2 | **PDV-CLI-CADASTRO** | 🚀 **PREP pronto — aguarda senha** / teste **v17.07** | **SIM** 0092 |
+| 1 | **REPASSE-PLANOS-CENTRO** | ✅ enviado / Live v17.07 | **SIM** 0091 |
+| 2 | **PDV-CLI-CADASTRO** | ✅ enviado / Live v17.07 | **SIM** 0092 |
 
-### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
+### ✅ Deploy loja — checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** (lojas abertas — **não** push `producao`) |
-| **Pacotes** | REPASSE-PLANOS-CENTRO + PDV-CLI-CADASTRO |
-| **Cherry origem** | `f45576d` → `d3d5c78` → `fa127bf` → `ab74687` → `054b396` + NFC-e isolado |
-| **Branch loja (ainda não FF)** | `deploy/lote-checklist-1708` @ **08e74d6** |
-| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** |
+| **Status** | ✅ **enviado / Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg` |
+| **Pacotes** | REPASSE-PLANOS-CENTRO · PDV-CLI-CADASTRO |
+| **Método** | FF `deploy/lote-checklist-1708` → `producao` (sem merge `teste`) |
+| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** · healthz **ok** |
 | **Migrate** | **SIM** 0091 + 0092 (Render no deploy) |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** |
-| **Risco PDV** | venda normal não vira vale · NFC-e da loja isolada · Planos só no repasse |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08 / deploy/lote-checklist-1708 para produção* + senha |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** · frase+senha |
+| **Você** | **Ctrl+F5** · badge **v17.07** · PDV venda · Editar cadastro · `/repasse-vila/` Planos · liberar vendas |
 
-### 📦 PACOTE PRONTO — Cadastro cliente PDV (`PDV-CLI-CADASTRO` · **v17.07**)
+### 📦 PACOTE — Cadastro cliente PDV (`PDV-CLI-CADASTRO`) · **Live v17.07**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Status** | ✅ **enviado / Live v17.07** |
 | **O quê** | Editar cadastro sem scroll · popup telefone duplicado (abrir / limpar número com PIN) · excluir + transferir cashback/vale · vale crédito pagar (caixa) ou manual (sem caixa) · histórico PIN · mesma tela `/clientes/` |
-| **Prova** | path **55/55** · deep **24/24** (ORM + API) |
-| **Feat** | `ab74687` |
 | **Migrate** | **SIM** 0092 (`ClienteAgroEventoAgro`) |
-| **Você** | Ctrl+F5 PDV · Editar cadastro · salvar telefone repetido · Vale crédito no painel de saldos · `/clientes/` editar |
+| **Você** | Ctrl+F5 PDV · Editar cadastro · Vale crédito no painel de saldos |
 
-### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO` · **v17.04**)
+### 📦 PACOTE — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO`) · **Live v17.07**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Status** | ✅ **enviado / Live v17.07** |
 | **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · sem marca sai do que ficou na Vila · Postgres |
-| **Prova** | `verify_repasse_planos_path.py` **49/49** · path **60/60** · deep **73/73** |
-| **Cherry** | `f45576d` (feat) · `d3d5c78` (prova) |
 | **Migrate** | **SIM** 0091 (`planos_desconto_centro`) |
-| **Você** | Ctrl+F5 `/repasse-vila/` · **Planos** · marcar Alimentação · Salvar · conferir valor |
+| **Você** | Ctrl+F5 `/repasse-vila/` · **Planos** |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado**
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado — Live v17.07**
 
 > **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40`  
 > **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
