@@ -23,8 +23,11 @@ from produtos.repasse_vila_util import (
     calcular_disponivel,
     confirmar_repasse,
     historico_mes,
+    listar_planos_repasse_config,
+    nomes_planos_desconto_centro,
     obter_config,
     salvar_percentual_padrao,
+    salvar_planos_desconto_centro,
     serializar_repasse,
     validar_data_ref_repasse,
 )
@@ -76,6 +79,7 @@ def repasse_vila_view(request):
         "produtos/repasse_vila.html",
         {
             "percentual_padrao": cfg.percentual_lucro_padrao,
+            "planos_repasse": listar_planos_repasse_config(cfg),
             "calc": calc,
             "hist": hist,
             "url_pdv_repasse": url_pdv,
@@ -123,6 +127,8 @@ def api_repasse_vila_config(request):
             {
                 "ok": True,
                 "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+                "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
+                "planos": listar_planos_repasse_config(cfg),
                 "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else "",
                 "atualizado_por": cfg.atualizado_por or "",
             }
@@ -133,18 +139,33 @@ def api_repasse_vila_config(request):
             "percentual_lucro_padrao": request.POST.get("percentual_lucro_padrao"),
             "operador": request.POST.get("operador"),
         }
-    try:
-        pct = Decimal(str(payload.get("percentual_lucro_padrao") or "50").replace(",", "."))
-    except Exception:
-        return JsonResponse({"ok": False, "erro": "Porcentagem inválida"}, status=400)
     op = str(payload.get("operador") or "").strip()
     if getattr(request, "user", None) and request.user.is_authenticated and not op:
         op = (request.user.get_username() or "")[:120]
-    cfg = salvar_percentual_padrao(pct, operador=op)
+    cfg = obter_config()
+    if "percentual_lucro_padrao" in payload and payload.get("percentual_lucro_padrao") not in (None, ""):
+        try:
+            pct = Decimal(str(payload.get("percentual_lucro_padrao") or "50").replace(",", "."))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Porcentagem inválida"}, status=400)
+        cfg = salvar_percentual_padrao(pct, operador=op)
+    if "planos_desconto_centro" in payload:
+        raw = payload.get("planos_desconto_centro")
+        if raw is None:
+            nomes = []
+        elif isinstance(raw, list):
+            nomes = raw
+        elif isinstance(raw, str):
+            nomes = [x.strip() for x in raw.split(",") if x.strip()]
+        else:
+            return JsonResponse({"ok": False, "erro": "Lista de planos inválida"}, status=400)
+        cfg = salvar_planos_desconto_centro(nomes, operador=op)
     return JsonResponse(
         {
             "ok": True,
             "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+            "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
+            "planos": listar_planos_repasse_config(cfg),
         }
     )
 

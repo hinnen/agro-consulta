@@ -38,7 +38,9 @@ from produtos.repasse_vila_util import (
     aplicar_repasses_pendentes_centro,
     calcular_disponivel,
     confirmar_repasse,
+    partir_despesas_centro_vila,
     salvar_percentual_padrao,
+    salvar_planos_desconto_centro,
     texto_aviso_abertura,
 )
 
@@ -85,6 +87,30 @@ def main() -> int:
     ok("clamp -5->0") if float(cfg.percentual_lucro_padrao) == 0.0 else fail("clamp -5")
     cfg = salvar_percentual_padrao(50, operador="bot")
     ok("clamp 50") if float(cfg.percentual_lucro_padrao) == 50.0 else fail("clamp 50")
+
+    c_cent, c_vila = partir_despesas_centro_vila(
+        {"Alimentação": Decimal("80.00"), "Combustível Strada": Decimal("20.00")},
+        ["Alimentação"],
+    )
+    if c_cent == Decimal("80.00") and c_vila == Decimal("20.00"):
+        ok("planos: marcado Centro / resto Vila")
+    else:
+        fail(f"planos split {c_cent}/{c_vila}")
+    z_cent, z_vila = partir_despesas_centro_vila(
+        {"Alimentação": Decimal("80.00")}, []
+    )
+    if z_cent == Decimal("0.00") and z_vila == Decimal("80.00"):
+        ok("planos: nenhum marcado = tudo Vila")
+    else:
+        fail(f"planos vazio {z_cent}/{z_vila}")
+    planos_antes = list(cfg.planos_desconto_centro or [])
+    cfg = salvar_planos_desconto_centro(["Alimentação", "alimentação", ""], operador="bot")
+    saved = list(cfg.planos_desconto_centro or [])
+    if saved == ["Alimentação"]:
+        ok("planos salvar dedup")
+    else:
+        fail(f"planos salvar {saved}")
+    salvar_planos_desconto_centro(planos_antes, operador="bot")
 
     for rep in RepasseVilaCentroAgro.objects.filter(observacao=tag):
         if rep.movimento_saida_id:
