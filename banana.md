@@ -611,6 +611,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
 - **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
+- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** loja tem dezenas com nome da NF (`… [EAN]`). Comando `reparar_cadastro_vinculo_nf` devolve o nome do histórico e limpa o overlay. **Não** mexe em preço. Rodar na loja só com frase + senha.
 
 ### 4.8 Estoque Agro
 
@@ -1248,6 +1249,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **NF-BIP-ET3-SNAP** | ✅ pronto para envio | não |
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ pronto para envio | não |
+| 3 | **NF-VINCULO-REPARO** | ✅ pronto para envio | não |
+
+### 📦 PACOTE PRONTO — Devolver nomes estragados pelo vínculo (`NF-VINCULO-REPARO` · **v17.14**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** · vai junto do vínculo se você autorizar a loja |
+| **O quê** | Na loja há **33** produtos com o nome da nota (`IVOMEC - 50 ML [789…]`). O comando devolve o nome antigo (histórico) e tira esse texto. Marca/categoria vazias também voltam. Preço não mexe. |
+| **Prova** | `verify_nf_vinculo_reparo.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Loja: frase + senha. Eu rodo o conserto lá. Sem senha o cadastro da loja continua errado. |
 
 ### 📦 PACOTE PRONTO — Vínculo NF não apaga cadastro (`NF-VINCULO-NAO-SOBRESCREVE` · **v17.12**)
 
