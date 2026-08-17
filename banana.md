@@ -608,7 +608,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
-- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · v17.09):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
+- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 
 ### 4.8 Estoque Agro
 
@@ -1221,49 +1221,45 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
+### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
 
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708b` @ **3b45abf**.
+> **Não** merge `teste`→`producao`. FF só o lote isolado.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.07** · `producao` @ **08e74d6** |
+| **Status** | ✅ **enviado / Live v17.09** · `producao` @ **3b45abf** · Render `dep-da1k1cp42hec73aqscrg` |
 | **Pacotes** | **NF-BIP-ET2** só |
 | **Arquivos** | `entrada_nota.html` · provas ET2/ET3 · `VERSION` 17.09 |
 | **Fora** | PDV · caixa · NFC-e · financeiro · estoque |
-| **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** (lote isolado da loja) |
+| **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08b / deploy/lote-checklist-1708b para produção* + senha |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** · frase+senha |
+| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** · bip na etapa 2 deve virar Ok na 3 · liberar vendas |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08b) · **superado — virou PREP acima**
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08b · loja **v17.09**)
 
-> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6**  
-> Lote isolado em `deploy/lote-checklist-1708b` @ **3b45abf**.
+> **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf** · Render `dep-da1k1cp42hec73aqscrg`
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-BIP-ET2** | 🚀 **PREP — aguarda senha** | não |
+| 1 | **NF-BIP-ET2** | ✅ enviado / Live v17.09 | não |
 
-### 📦 PACOTE PRONTO — Entrada NF bip etapa 2 (`NF-BIP-ET2` · **v17.09**)
+### 📦 PACOTE — Entrada NF bip etapa 2 (`NF-BIP-ET2`) · **Live v17.09**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP — aguarda senha** · teste **v17.09** · deploy **3b45abf** |
+| **Status** | ✅ **enviado / Live v17.09** · `producao` @ **3b45abf** |
 | **O quê** | Leitor no **Mudar**/busca da etapa 2 (8+ dígitos) vira **Ok** na etapa 3. XML casado por EAN no Postgres (`ean_pg` / `ean_overlay`) também. Código do fornecedor sem bip continua PEND. |
 | **Prova** | ET2 **68/68** · ET3 **48/48** · CAD **31/31** · custo NF **10/10** |
 | **Migrate** | **NÃO** |
 | **Arquivos** | `entrada_nota.html` · `scripts/verify_nf_bip_et2_path.py` |
-| **Você** | Próximo chat: pausar vendas · frase + senha · Ctrl+F5 `/entrada-nota/` |
+| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** |
 
 ### WIP — Hidráulica giro alto × cadastro (17/08)
 
 Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Excel na Área de trabalho: `hidraulica_giro_alto.xlsx` (aba **Colar na sua planilha**). **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
 
-### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**) · **superado — fila agora NF-BIP-ET2**
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**) · **superado — Live v17.09**
 
 > **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg`
 
