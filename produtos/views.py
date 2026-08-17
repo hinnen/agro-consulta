@@ -16738,6 +16738,7 @@ def api_entrada_nota_conferir_codigo(request):
                         "hits": hits,
                         "nome": hits[0]["nome"],
                         "produto_id": hits[0]["produto_id"],
+                        "mapa": mapa,
                     }
                 )
             return JsonResponse({"ok": True, "bate": False, "hits": [], "mapa": mapa})

@@ -152,6 +152,26 @@ def main() -> None:
     fn_erp = fn_erp[: fn_erp.find("function entradaNfeBipLimparDraftEBipIdx")]
     check("ui_lote_produto_ids", "produto_ids" in fn_erp)
     check("ui_sem_fetch_por_linha", "for (let i = 0; i < rows.length; i++)" not in fn_erp)
+    comb = html[html.find("async function entradaNfeBipBuscarMatchCombinado") :]
+    comb = comb[: comb.find("function entradaNfeBipAdicionarCodigoSimilar")]
+    check(
+        "ui_combinado_local_antes",
+        "entradaNfeBipBuscarMatchLocalNota" in comb
+        and comb.find("entradaNfeBipBuscarMatchLocalNota")
+        < comb.find("entradaNfeBipBuscarMatchNaNota"),
+    )
+    ver = html[html.find("async function entradaNfeBipVerificar") :]
+    ver = ver[: ver.find("function entradaNfeLoteDataParaInput")]
+    check("ui_busy", "entradaNfeBipBusy = true" in ver)
+    check(
+        "ui_limpa_antes_await",
+        ver.find("entradaNfeBipLimparCamposBip") < ver.find("entradaNfeBipBuscarMatchCombinado"),
+    )
+    check("ui_modal_miss", "entradaNfeBipModalVinculoAbrir" in ver)
+    check("ui_msg_ok_linha", "Ok · linha" in ver)
+    check("ui_scan_primeiro_mobile", "order-1 lg:order-2" in html)
+    check("ui_progress_nao_some", "el.hidden = n === 0" in html)
+    check("ui_hit_aplica_mapa", "j.mapa) entradaNfeBipAplicarMapaCadastro(j.mapa)" in html)
 
     print("== Markers API ==")
     api = views[views.find("def api_entrada_nota_conferir_codigo") :]
@@ -163,6 +183,7 @@ def main() -> None:
     check("api_nao_gm_docstring", "não GM" in api.lower() or "nao GM" in api.lower() or "não GM" in api)
     check("api_lote_fn", "def entrada_nfe_mapa_codigos_barras_lote" in views)
     check("api_lote_branch", "produto_ids" in api and "mapa" in api)
+    check("api_hit_devolve_mapa", '"mapa": mapa' in api)
 
     print("== Unit equivalência / match local (caso Renan NF 2255) ==")
     ean_papagaio = "7896194700818"
@@ -232,6 +253,38 @@ def main() -> None:
     ]
     m_c2 = _match_local(linhas_c2, ean_papagaio)
     check("local_via_cadastro", bool(m_c2 and m_c2["ix"] == 0), str(m_c2))
+
+    def _combinado(linhas, cod):
+        loc = _match_local(linhas, cod)
+        if loc:
+            return {"via": "local", **loc}
+        return {"via": "erp"}
+
+    def _pick_pend_first(linhas, hit_pids):
+        ordem = list(range(len(linhas)))
+        ordem.sort(
+            key=lambda i: (
+                0 if str(linhas[i].get("bip_conf") or "pendente") == "pendente" else 1,
+                i,
+            )
+        )
+        for i in ordem:
+            if str(linhas[i].get("produto_id") or "") in hit_pids:
+                return i
+        return None
+
+    c_loc = _combinado(linhas_a, ean_papagaio)
+    check("combinado_local_nao_erp", c_loc.get("via") == "local" and c_loc.get("ix") == 0, str(c_loc))
+    c_erp = _combinado(linhas_c, ean_papagaio)
+    check("combinado_erp_quando_local_falha", c_erp.get("via") == "erp", str(c_erp))
+    linhas_pf = [
+        {"produto_id": "p_ok", "ean": ean_papagaio, "bip_conf": "ok"},
+        {"produto_id": "p_pend", "cadastro": [ean_papagaio], "bip_conf": "pendente"},
+    ]
+    check(
+        "pick_pendente_nao_ja_ok",
+        _pick_pend_first(linhas_pf, ["p_ok", "p_pend"]) == 1,
+    )
 
     # Caso D: sem produto_id não casa
     linhas_d = [{"produto_id": "", "ean": ean_papagaio, "bip_conf": "pendente"}]
@@ -306,6 +359,8 @@ def main() -> None:
         user.save(update_fields=["password"])
 
     pid = "verify-et3-papagaio"
+    pid_b = "verify-et3-outro"
+    ean_b = "7891111111119"
     ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).delete()
     Produto.objects.filter(erp_produto_id=pid).delete()
     Produto.objects.filter(produto_externo_id=pid).delete()
@@ -398,15 +453,73 @@ def main() -> None:
         j8.get("status") == 200 and j8.get("bate") is True and j8.get("produto_id") == pid,
         str(j8)[:400],
     )
+    check(
+        "api_lote_hit_mapa",
+        ean_papagaio in (((j8.get("mapa") or {}).get(pid) or {}).get("codigos") or []),
+        str(j8)[:400],
+    )
+    check("api_lote_mapa_sem_gm", "GM-VERIFY-ET3" not in cands7)
 
     j9 = post_lote({"produto_ids": [pid], "codigo": "7890000000000"})
     check("api_lote_miss", j9.get("status") == 200 and j9.get("bate") is False, str(j9)[:400])
 
+    j_pad = post_lote({"produto_ids": [pid], "codigo": "0" + ean_papagaio})
+    check("api_lote_zero_pad", j_pad.get("status") == 200 and j_pad.get("bate") is True, str(j_pad)[:300])
+
+    j_gm = post_lote({"produto_ids": [pid], "codigo": "GM-VERIFY-ET3"})
+    check("api_lote_nao_gm", j_gm.get("status") == 200 and j_gm.get("bate") is False, str(j_gm)[:300])
+
+    j_empty = post_lote({"produto_ids": []})
+    check("api_lote_ids_vazios", j_empty.get("status") == 400, str(j_empty)[:200])
+
+    pid_b = "verify-et3-outro"
+    ean_b = "7891111111119"
+    ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_b).delete()
+    Produto.objects.filter(erp_produto_id=pid_b).delete()
+    Produto.objects.filter(codigo_interno="GM-VERIFY-ET3B").delete()
+    Produto.objects.create(
+        nome="VERIFY ET3 OUTRO",
+        codigo_interno="GM-VERIFY-ET3B",
+        codigo_nfe="GM-VERIFY-ET3B",
+        codigo_barras=ean_b,
+        produto_externo_id=pid_b,
+        erp_produto_id=pid_b,
+        ativo=True,
+        cadastro_somente_agro=True,
+    )
+    j_duo = post_lote({"produto_ids": [pid, pid_b], "codigo": ean_papagaio})
+    hits_duo = j_duo.get("hits") or []
+    pids_duo = [str(h.get("produto_id") or "") for h in hits_duo]
+    check(
+        "api_lote_nao_pega_outro",
+        j_duo.get("bate") is True and pids_duo == [pid],
+        str(j_duo)[:400],
+    )
+    j_duo_b = post_lote({"produto_ids": [pid, pid_b], "codigo": ean_b})
+    pids_b = [str(h.get("produto_id") or "") for h in (j_duo_b.get("hits") or [])]
+    check(
+        "api_lote_pega_so_b",
+        j_duo_b.get("bate") is True and pids_b == [pid_b],
+        str(j_duo_b)[:400],
+    )
+    from produtos.views import entrada_nfe_mapa_codigos_barras_lote, _entrada_nfe_hits_mapa_codigos
+
+    with patch("produtos.views.obter_conexao_mongo", return_value=(None, None)):
+        mapa_fn = entrada_nfe_mapa_codigos_barras_lote([pid, pid_b])
+    hits_fn = _entrada_nfe_hits_mapa_codigos(mapa_fn, [pid, pid_b], ean_papagaio)
+    check("fn_lote_hit_papagaio", [h["produto_id"] for h in hits_fn] == [pid], str(hits_fn))
+    hits_fn_b = _entrada_nfe_hits_mapa_codigos(mapa_fn, [pid, pid_b], ean_b)
+    check("fn_lote_hit_b", [h["produto_id"] for h in hits_fn_b] == [pid_b], str(hits_fn_b))
+    check("fn_lote_gm_fora", "GM-VERIFY-ET3" not in (mapa_fn.get(pid) or {}).get("codigos", []))
+
     # limpa fixture
     try:
         ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).delete()
+        ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid_b).delete()
         Produto.objects.filter(erp_produto_id=pid).delete()
+        Produto.objects.filter(erp_produto_id=pid_b).delete()
         Produto.objects.filter(codigo_interno="GM-VERIFY-ET3").delete()
+        Produto.objects.filter(codigo_interno="GM-VERIFY-ET3B").delete()
     except Exception:
         pass
 
