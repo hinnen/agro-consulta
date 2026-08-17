@@ -67,8 +67,12 @@ def main() -> int:
 
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_balcao"}), "mp_balcao = point")
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_qr"}), "pix_mp_qr = point")
-    check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}), "mp_vila = point")
-    check(pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_vila"}), "pix_mp_vila = point")
+    check(not pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}), "mp_vila manual != point")
+    check(
+        pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila", "cobrarNoPointMp": True}),
+        "mp_vila com marcador = point",
+    )
+    check(not pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_vila"}), "pix_mp_vila manual != point")
     check(not pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_renan"}), "mp_renan != point")
     check(
         linha_conferencia_caixa_de_pagamento("PIX", mercado_pago=False) == "PIX",

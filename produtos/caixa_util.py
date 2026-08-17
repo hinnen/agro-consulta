@@ -191,11 +191,16 @@ def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
 
 
 def pagamento_linha_eh_mp_point_auto(row: dict) -> bool:
-    """Só Point/Pix automático do PDV (interligado) — não Renan/Cielo/Sicredi manuais."""
+    """Só Point/Pix automático do PDV (interligado) — não Renan/Cielo/Sicredi manuais.
+
+    Vila (`mp_vila`) só entra no split quando a venda gravou o marcador Point
+    (`cobrarNoPointMp` / `mpBalcaoModo=point`). Sem credencial a máquina continua
+    manual e soma no PIX/cartão comum.
+    """
     if not isinstance(row, dict):
         return False
     mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
-    if mid in _MAQUININHAS_MP_POINT_AUTO_IDS:
+    if mid in _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS:
         return True
     if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
         return True

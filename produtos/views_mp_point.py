@@ -358,8 +358,9 @@ def _token_da_conta(conta: str) -> str:
 
 
 def _conta_do_pedido_local(request, row, extra: dict | None = None) -> str:
+    """Conta Point = a gravada no pedido local (não confiar no JSON do browser)."""
     erp = row.erp_payload if isinstance(getattr(row, "erp_payload", None), dict) else {}
-    return _resolver_mp_point_conta(request, extra, erp)
+    return _resolver_mp_point_conta(request, erp)
 
 
 def _resposta_mp_point_so_gaveta(conta: str | None = None):
