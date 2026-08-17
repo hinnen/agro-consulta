@@ -155,6 +155,12 @@
                 resumoTexto: '',
                 titulos: [],
                 emOverlay: false
+            },
+            compraValeCredito: {
+                ativo: false,
+                valor: 0,
+                clientePk: null,
+                pin: ''
             }
         };
     }
@@ -191,6 +197,11 @@
                 });
                 merged.entrega = Object.assign({}, def.entrega, (parsed && parsed.entrega) || {});
                 merged.fiadoCobranca = Object.assign({}, def.fiadoCobranca, (parsed && parsed.fiadoCobranca) || {});
+                merged.compraValeCredito = Object.assign(
+                    {},
+                    def.compraValeCredito,
+                    (parsed && parsed.compraValeCredito) || {}
+                );
                 ['logradouro', 'numero', 'bairro', 'plusCode'].forEach(function (k) {
                     if (merged.entrega[k] === undefined || merged.entrega[k] === null) {
                         merged.entrega[k] = '';
@@ -246,6 +257,20 @@
                 fiadoCobranca: true
             };
         }
+        if (state.compraValeCredito && state.compraValeCredito.ativo) {
+            var vv = Math.max(0, toNumber(state.compraValeCredito.valor));
+            return {
+                subtotal: vv,
+                desconto: 0,
+                frete: 0,
+                total: vv,
+                itemCount: 1,
+                flow: ['pagamento'],
+                isConsumidorFinal: false,
+                currentStep: state.currentStep,
+                compraValeCredito: true
+            };
+        }
         var subtotal = 0;
         var itemCount = 0;
         (state.itens || []).forEach(function (item) {
@@ -272,6 +297,7 @@
 
     function resolveFlow() {
         if (state.fiadoCobranca && state.fiadoCobranca.ativo) return ['pagamento'];
+        if (state.compraValeCredito && state.compraValeCredito.ativo) return ['pagamento'];
         var flow = ['produtos'];
         if (state.entrega.modoRetiradaEntrega !== 'retirada') flow.push('entrega');
         flow.push('pagamento');
@@ -1108,6 +1134,45 @@
         return true;
     }
 
+    function hydrateFromCompraValeCredito(opts) {
+        opts = opts || {};
+        var def = defaultState();
+        var valor = Math.max(0, toNumber(opts.valor));
+        var nome = String(opts.nome || (state.cliente && state.cliente.nome) || 'cliente');
+        var cliente = state.cliente ? sanitizeCliente(state.cliente) : (opts.cliente ? sanitizeCliente(opts.cliente) : null);
+        if (!cliente && opts.pk) {
+            cliente = sanitizeCliente({ nome: nome, cliente_agro_pk: opts.pk });
+        }
+        if (cliente && opts.pk) cliente.cliente_agro_pk = opts.pk;
+        state.compraValeCredito = {
+            ativo: true,
+            valor: valor,
+            clientePk: opts.pk != null ? opts.pk : (cliente && cliente.cliente_agro_pk) || null,
+            pin: String(opts.pin || '')
+        };
+        state.fiadoCobranca = Object.assign({}, def.fiadoCobranca);
+        state.clienteMode = cliente ? 'cliente' : state.clienteMode;
+        if (cliente) state.cliente = cliente;
+        state.itens = [
+            {
+                id: 'vale-credito',
+                nome: 'Vale crédito — ' + nome,
+                qtd: 1,
+                preco: valor,
+                desconto: 0,
+                unidade: 'UN'
+            }
+        ];
+        state.entrega = Object.assign({}, def.entrega);
+        state.pagamento = Object.assign({}, def.pagamento);
+        state.pagamento.lancamentos = [];
+        state.pagamento.nfceEmitir = false;
+        state.venda = Object.assign({}, def.venda);
+        state.currentStep = 'pagamento';
+        notify();
+        return true;
+    }
+
     window.AgroPdvState = {
         subscribe: function (listener) {
             if (typeof listener !== 'function') return function () {};
@@ -1145,6 +1210,7 @@
         hydrateFromSessionDraft: hydrateFromSessionDraft,
         hydrateFromEntregaPendente: hydrateFromEntregaPendente,
         hydrateFromFiadoCobranca: hydrateFromFiadoCobranca,
+        hydrateFromCompraValeCredito: hydrateFromCompraValeCredito,
         exportWizardStateSnapshot: exportWizardStateSnapshot,
         reset: reset,
         toNumber: toNumber,

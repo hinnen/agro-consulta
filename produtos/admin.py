@@ -2,6 +2,7 @@ from django.contrib import admin
 
 from .models import (
     ClienteAgro,
+    ClienteAgroEventoAgro,
     FiadoBaixaAgro,
     FiadoEventoAgro,
     FiadoTituloAgro,
@@ -57,6 +58,30 @@ class ClienteAgroAdmin(admin.ModelAdmin):
         "cep",
     )
     list_filter = ("ativo", "origem_import", "editado_local")
+
+
+@admin.register(ClienteAgroEventoAgro)
+class ClienteAgroEventoAgroAdmin(admin.ModelAdmin):
+    list_display = ("id", "tipo", "cliente_nome_snap", "usuario", "criado_em")
+    list_filter = ("tipo",)
+    search_fields = ("cliente_nome_snap", "destino_nome_snap", "usuario")
+    readonly_fields = (
+        "tipo",
+        "cliente_agro",
+        "cliente_pk_snap",
+        "cliente_nome_snap",
+        "destino_agro",
+        "destino_pk_snap",
+        "destino_nome_snap",
+        "payload_json",
+        "usuario",
+        "pin_operador",
+        "origem_tela",
+        "criado_em",
+    )
+
+    def has_add_permission(self, request):
+        return False
 
 
 @admin.register(SessaoCaixa)

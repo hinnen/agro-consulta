@@ -773,6 +773,11 @@
         return !!(st && st.fiadoCobranca && st.fiadoCobranca.ativo);
     }
 
+    function isCompraValeCreditoAtiva(st) {
+        st = st || State.getState();
+        return !!(st && st.compraValeCredito && st.compraValeCredito.ativo);
+    }
+
     function isPdvOverlayEmbed() {
         try {
             var st = State.getState();
@@ -2850,7 +2855,7 @@
         if (!caixaAbertoParaVenda()) {
             return MSG_CAIXA_FECHADO_VENDA;
         }
-        if (isFiadoCobrancaAtiva(state)) {
+        if (isFiadoCobrancaAtiva(state) || isCompraValeCreditoAtiva(state)) {
             if (state.currentStep === 'pagamento') {
                 var epFi = erroValidacaoPagamento(state, computed);
                 if (epFi) return epFi;
@@ -7172,6 +7177,11 @@
                     State.setCurrentStep('produtos');
                     return;
                 }
+                if (isCompraValeCreditoAtiva()) {
+                    State.reset(false);
+                    State.setCurrentStep('produtos');
+                    return;
+                }
                 resetWizardParaNovaVenda();
             })
             .finally(function () {
@@ -9751,6 +9761,96 @@
         }
     }
 
+    function abrirCadastroClientePorPk(dup) {
+        var pk = dup && dup.pk;
+        if (!pk) return;
+        var found = null;
+        (wizardClientesCache || []).some(function (c) {
+            if (String(c.cliente_agro_pk) === String(pk)) {
+                found = c;
+                return true;
+            }
+            return false;
+        });
+        function abrir(cli) {
+            if (!cli) return;
+            openQuickClientEditOverlay(Object.assign({}, cli, { cliente_agro_pk: pk }), -1);
+        }
+        if (found) {
+            abrir(found);
+            return;
+        }
+        var u = urls.apiBuscarClientes || '/api/buscar-clientes/';
+        jsonGet(u + '?q=' + encodeURIComponent(dup.nome || '')).then(function (res) {
+            var lista = (res.data && res.data.clientes) || [];
+            var hit = lista.filter(function (c) {
+                return String(c.cliente_agro_pk) === String(pk);
+            })[0];
+            abrir(hit || { nome: dup.nome, cliente_agro_pk: pk, telefone: dup.whatsapp || '' });
+        });
+    }
+
+    function iniciarCompraValeCredito(opts) {
+        opts = opts || {};
+        var st = State.getState();
+        if (isFiadoCobrancaAtiva(st)) {
+            showPdvAviso('Termine a cobrança de fiado antes de vender vale crédito.', { prominent: true });
+            return;
+        }
+        if (st.itens && st.itens.length && !isCompraValeCreditoAtiva(st)) {
+            showPdvAviso('Limpe o carrinho ou feche a venda antes de adicionar vale crédito pago.', {
+                prominent: true,
+                title: 'Carrinho com itens'
+            });
+            return;
+        }
+        if (!caixaAbertoParaVenda()) {
+            showPdvAviso(MSG_CAIXA_FECHADO_VENDA, { title: 'Caixa fechado', tone: 'error', prominent: true });
+            return;
+        }
+        closeQuickClientEditOverlay();
+        if (typeof State.hydrateFromCompraValeCredito === 'function') {
+            State.hydrateFromCompraValeCredito(opts);
+        }
+    }
+
+    function initClienteCadastroAcoesPdv() {
+        window.AGRO_CLI_BOOT = {
+            csrf: csrfToken(),
+            origemTela: 'pdv',
+            urls: urls
+        };
+        if (!window.AgroClienteCadastroAcoes) return;
+        window.AgroClienteCadastroAcoes.init({
+            onAbrirCadastro: abrirCadastroClientePorPk,
+            onAposMudanca: function (ev) {
+                ev = ev || {};
+                if (ev.tipo === 'excluir') {
+                    closeQuickClientEditOverlay();
+                    var st = State.getState();
+                    var curPk = clienteAgroPkFromCliente(st.cliente);
+                    if (curPk && String(curPk) === String(ev.pk)) {
+                        State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
+                    }
+                    showPdvAviso('Cadastro excluído.', { title: 'Cliente', tone: 'info', prominent: true });
+                    loadWizardClientesCache(true);
+                    return;
+                }
+                refreshCreditoFiadoCliente(0, {});
+                loadWizardClientesCache(true);
+                if (ev.tipo === 'vale_manual') {
+                    showPdvAviso('Vale crédito creditado (sem caixa).', {
+                        title: 'Vale crédito',
+                        tone: 'info',
+                        prominent: true
+                    });
+                    closeQuickClientEditOverlay();
+                }
+            },
+            onIniciarValePago: iniciarCompraValeCredito
+        });
+    }
+
     function saveQuickClientEditOverlay() {
         var pattern = urls.apiPdvClienteEditarPattern;
         if (!pattern || !quickClientEditPk) {
@@ -9824,6 +9924,19 @@
                     var err =
                         (res.data && (res.data.erro || res.data.error)) ||
                         'Não foi possível salvar o cliente.';
+                    var dup = res.data && res.data.duplicado;
+                    if (dup && window.AgroClienteCadastroAcoes) {
+                        window.AgroClienteCadastroAcoes.showDuplicado(dup, {
+                            onLimpo: function () {
+                                saveQuickClientEditOverlay();
+                            }
+                        });
+                        return;
+                    }
+                    if (window.AgroClienteCadastroAcoes && String(err).indexOf('já está cadastrado') >= 0) {
+                        window.AgroClienteCadastroAcoes.showDuplicado({ nome: 'outro cliente' });
+                        return;
+                    }
                     if (dom.quickClientEditErro) {
                         dom.quickClientEditErro.textContent = err;
                         dom.quickClientEditErro.classList.remove('hidden');
@@ -10365,6 +10478,10 @@
             itens: payloadItens(state),
             forma_pagamento: formaPagamentoParaErp(state, computed || State.getComputed())
         };
+        if (isCompraValeCreditoAtiva(state)) {
+            payload.compra_vale_credito = true;
+            payload.nfce_emitir = false;
+        }
         var pag = pagamentosDetalheParaErp(state);
         if (pag && pag.length) payload.pagamentos = pag;
         if (cliente.cliente_agro_pk != null) {
@@ -11337,6 +11454,9 @@
         if (isFiadoCobrancaAtiva()) {
             confirmFiadoCobranca();
             return;
+        }
+        if (isCompraValeCreditoAtiva()) {
+            withPrint = false;
         }
         if (isProcessingSale) return;
         var state = State.getState();
@@ -13107,6 +13227,49 @@
         if (dom.quickClientEditCancelar) {
             dom.quickClientEditCancelar.addEventListener('click', closeQuickClientEditOverlay);
         }
+        var btnExc = document.getElementById('pdv-quick-client-edit-excluir');
+        if (btnExc) {
+            btnExc.addEventListener('click', function () {
+                if (quickClientEditPk && window.AgroClienteCadastroAcoes) {
+                    window.AgroClienteCadastroAcoes.openExcluir(quickClientEditPk);
+                }
+            });
+        }
+        var btnVale = document.getElementById('pdv-quick-client-edit-vale');
+        if (btnVale) {
+            btnVale.addEventListener('click', function () {
+                if (quickClientEditPk && window.AgroClienteCadastroAcoes) {
+                    var nome = dom.quickClientEditNome ? dom.quickClientEditNome.value : '';
+                    window.AgroClienteCadastroAcoes.openVale(quickClientEditPk, nome);
+                }
+            });
+        }
+        var btnHist = document.getElementById('pdv-quick-client-edit-hist');
+        if (btnHist) {
+            btnHist.addEventListener('click', function () {
+                if (quickClientEditPk && window.AgroClienteCadastroAcoes) {
+                    window.AgroClienteCadastroAcoes.openHistorico(quickClientEditPk);
+                }
+            });
+        }
+        var btnValeSide = document.getElementById('pdv-vale-credito-open');
+        if (btnValeSide) {
+            btnValeSide.addEventListener('click', function () {
+                var st = State.getState();
+                var pk = clienteAgroPkFromCliente(st.cliente);
+                if (!pk || st.clienteMode === 'consumidor_final') {
+                    showPdvAviso('Selecione um cliente cadastrado para adicionar vale crédito.', {
+                        prominent: true,
+                        title: 'Vale crédito'
+                    });
+                    return;
+                }
+                if (window.AgroClienteCadastroAcoes) {
+                    window.AgroClienteCadastroAcoes.openVale(pk, (st.cliente && st.cliente.nome) || '');
+                }
+            });
+        }
+        initClienteCadastroAcoesPdv();
         if (dom.quickClientEditFechar) {
             dom.quickClientEditFechar.addEventListener('click', closeQuickClientEditOverlay);
         }

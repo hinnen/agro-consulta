@@ -11198,8 +11198,43 @@ def clientes_lista(request):
     )
 
 
+def _cli_acoes_boot(request, cliente=None, duplicado=None) -> dict:
+    from django.middleware.csrf import get_token
+
+    urls_boot = {
+        "apiBuscarClientes": reverse("api_buscar_clientes"),
+        "apiClienteWhatsappDuplicado": reverse("api_cliente_whatsapp_duplicado"),
+        "apiClienteLimparWhatsappPattern": reverse("api_cliente_limpar_whatsapp", args=[0]).replace(
+            "/0/", "/__pk__/"
+        ),
+        "apiClienteExclusaoPreviewPattern": reverse("api_cliente_exclusao_preview", args=[0]).replace(
+            "/0/", "/__pk__/"
+        ),
+        "apiClienteTransferirSaldosPattern": reverse("api_cliente_transferir_saldos", args=[0]).replace(
+            "/0/", "/__pk__/"
+        ),
+        "apiClienteExcluirPattern": reverse("api_cliente_excluir", args=[0]).replace("/0/", "/__pk__/"),
+        "apiClienteValeManualPattern": reverse("api_cliente_vale_credito_manual", args=[0]).replace(
+            "/0/", "/__pk__/"
+        ),
+        "apiClienteEventosPattern": reverse("api_cliente_eventos", args=[0]).replace("/0/", "/__pk__/"),
+        "clientesLista": reverse("clientes_lista"),
+        "clienteEditarPattern": reverse("cliente_editar", args=[0]).replace("/0/editar/", "/__pk__/editar/"),
+        "pdvHome": reverse("pdv_home"),
+    }
+    return {
+        "csrf": get_token(request),
+        "origemTela": "clientes",
+        "clientePk": getattr(cliente, "pk", None),
+        "clienteNome": (getattr(cliente, "nome", None) or ""),
+        "duplicado": duplicado,
+        "urls": urls_boot,
+    }
+
+
 @login_required(login_url="/admin/login/")
 def cliente_novo(request):
+    duplicado_whatsapp = None
     if request.method == "POST":
         form = ClienteAgroForm(request.POST)
         if form.is_valid():
@@ -11208,14 +11243,26 @@ def cliente_novo(request):
             obj.save()
             messages.success(request, "Cliente cadastrado.")
             return redirect("clientes_lista")
+        from produtos.cliente_whatsapp_util import info_whatsapp_duplicado
+
+        duplicado_whatsapp = info_whatsapp_duplicado(request.POST.get("whatsapp") or "")
     else:
         form = ClienteAgroForm()
-    return render(request, "produtos/cliente_form.html", {"form": form, "titulo": "Novo cliente"})
+    return render(
+        request,
+        "produtos/cliente_form.html",
+        {
+            "form": form,
+            "titulo": "Novo cliente",
+            "cli_acoes_boot": _cli_acoes_boot(request, None, duplicado_whatsapp),
+        },
+    )
 
 
 @login_required(login_url="/admin/login/")
 def cliente_editar(request, pk):
     cli = get_object_or_404(ClienteAgro, pk=pk)
+    duplicado_whatsapp = None
     if request.method == "POST":
         form = ClienteAgroForm(request.POST, instance=cli)
         if form.is_valid():
@@ -11224,12 +11271,24 @@ def cliente_editar(request, pk):
             obj.save()
             messages.success(request, "Cliente atualizado.")
             return redirect("clientes_lista")
+        from produtos.cliente_whatsapp_util import info_whatsapp_duplicado
+
+        duplicado_whatsapp = info_whatsapp_duplicado(
+            request.POST.get("whatsapp") or "",
+            excluir_pk=cli.pk,
+        )
     else:
         form = ClienteAgroForm(instance=cli)
     return render(
         request,
         "produtos/cliente_form.html",
-        {"form": form, "titulo": f"Editar: {cli.nome}", "cliente": cli},
+        {
+            "form": form,
+            "titulo": f"Editar: {cli.nome}",
+            "cliente": cli,
+            "duplicado_whatsapp": duplicado_whatsapp,
+            "cli_acoes_boot": _cli_acoes_boot(request, cli, duplicado_whatsapp),
+        },
     )
 
 
@@ -15876,6 +15935,10 @@ def aplicar_baixa_estoque_venda_agro(
     for it in venda.itens.all():
         pid = str(it.produto_id_externo or "").strip()
         if not pid or pid.lower().startswith("local:"):
+            continue
+        from produtos.cliente_operacoes_util import item_id_e_servico_pdv
+
+        if item_id_e_servico_pdv(pid):
             continue
         try:
             qtd = Decimal(str(it.quantidade))
@@ -26983,8 +27046,11 @@ def _persistir_venda_agro(
     nfce_solicitada = False
     try:
         from produtos.nfce_config_util import nfce_emissao_solicitada
+        from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
 
         nfce_solicitada = bool(nfce_emissao_solicitada(data))
+        if payload_e_compra_vale_credito(data, raw_itens):
+            nfce_solicitada = False
     except Exception:
         nfce_solicitada = False
 
@@ -27053,6 +27119,20 @@ def _persistir_venda_agro(
                 agro_pk_cb = None
         _erp_cb, _pk_cb, cli_cb = resolver_cliente_fiado(cid, cliente_agro_pk=agro_pk_cb)
         aplicar_movimento_cashback_venda(data, raw_itens, cliente_agro=cli_cb)
+        from produtos.cliente_operacoes_util import (
+            aplicar_vale_pago_apos_venda,
+            payload_e_compra_vale_credito,
+            valor_compra_vale_credito,
+        )
+
+        if payload_e_compra_vale_credito(data, raw_itens) and cli_cb is not None:
+            aplicar_vale_pago_apos_venda(
+                cliente=cli_cb,
+                valor=valor_compra_vale_credito(raw_itens),
+                venda_pk=v.pk,
+                usuario=user_label,
+                origem_tela="pdv",
+            )
         from produtos.fiado_credito_util import venda_local_tem_fiado
         from produtos.fiado_gestao_util import criar_titulos_de_venda
 
@@ -27643,6 +27723,40 @@ def api_enviar_pedido_erp(request):
         exigir_sessao_caixa_para_venda(request, data)
     except SessaoCaixaObrigatoriaError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
+
+    if payload_e_compra_vale_credito(data, raw_itens_cb):
+        agro_pk_raw = data.get("cliente_agro_pk")
+        try:
+            agro_pk_v = int(agro_pk_raw) if agro_pk_raw not in (None, "") else None
+        except (TypeError, ValueError):
+            agro_pk_v = None
+        if not agro_pk_v:
+            return JsonResponse(
+                {"ok": False, "erro": "Vale crédito exige cliente cadastrado."},
+                status=400,
+            )
+        cli_v = ClienteAgro.objects.filter(pk=agro_pk_v, ativo=True).first()
+        if not cli_v:
+            return JsonResponse({"ok": False, "erro": "Cliente do vale crédito não encontrado."}, status=400)
+        venda_local = _persistir_venda_agro(
+            request,
+            data,
+            raw_itens_cb,
+            None,
+            None,
+            False,
+            erp_sync_status=VendaAgro.ErpSyncStatus.ACEITO,
+        )
+        vid = venda_local.pk if venda_local else None
+        return _resposta_venda(
+            data,
+            venda_local,
+            ok=True,
+            venda_id=vid,
+            erp_pendente=False,
+            mensagem="Vale crédito pago e creditado na conta do cliente.",
+        )
     try:
         client_m, db = obter_conexao_mongo_pdv()
         if venda_payload_tem_fiado(data):
@@ -30358,7 +30472,16 @@ def api_pdv_cliente_rapido(request):
         obrigatorio=True,
     )
     if wa_err:
-        return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+        from produtos.cliente_whatsapp_util import info_whatsapp_duplicado, extrair_whatsapp_digits
+
+        dup = info_whatsapp_duplicado(
+            extrair_whatsapp_digits(data.get("whatsapp") or data.get("telefone") or "")
+        )
+        payload = {"ok": False, "erro": wa_err}
+        if dup:
+            payload["codigo"] = "whatsapp_duplicado"
+            payload["duplicado"] = dup
+        return JsonResponse(payload, status=400)
     cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
     if cpf_err:
         return JsonResponse({"ok": False, "erro": cpf_err}, status=400)
@@ -30474,7 +30597,17 @@ def api_pdv_cliente_editar(request, pk):
         excluir_pk=cli.pk,
     )
     if wa_err:
-        return JsonResponse({"ok": False, "erro": wa_err}, status=400)
+        from produtos.cliente_whatsapp_util import info_whatsapp_duplicado, extrair_whatsapp_digits
+
+        dup = info_whatsapp_duplicado(
+            extrair_whatsapp_digits(data.get("whatsapp") or data.get("telefone") or ""),
+            excluir_pk=cli.pk,
+        )
+        payload = {"ok": False, "erro": wa_err}
+        if dup:
+            payload["codigo"] = "whatsapp_duplicado"
+            payload["duplicado"] = dup
+        return JsonResponse(payload, status=400)
     cpf_val, cpf_err = _pdv_cpf_field_from_payload(data)
     if cpf_err:
         return JsonResponse({"ok": False, "erro": cpf_err}, status=400)

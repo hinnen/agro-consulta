@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
+  {% load static %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
@@ -122,12 +123,64 @@
         {% if form.ativo.errors %}<p class="text-xs text-red-600 font-bold">{{ form.ativo.errors.0 }}</p>{% endif %}
       </div>
 
-      <div class="flex gap-2 pt-2">
+      <div class="flex flex-wrap gap-2 pt-2">
         <button type="submit" class="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm">Salvar</button>
         <a href="{% url 'clientes_lista' %}" class="px-4 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600">Cancelar</a>
+        {% if cliente %}
+        <button type="button" id="cli-form-vale" class="px-4 py-3 rounded-xl border-2 border-sky-300 bg-white font-black uppercase text-sm text-sky-800">Vale crédito</button>
+        <button type="button" id="cli-form-hist" class="px-4 py-3 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-sm text-slate-700">Histórico</button>
+        <button type="button" id="cli-form-excluir" class="px-4 py-3 rounded-xl border-2 border-red-300 bg-white font-black uppercase text-sm text-red-700">Excluir</button>
+        {% endif %}
       </div>
     </form>
   </main>
+{% include "produtos/includes/cliente_cadastro_acoes.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{{ cli_acoes_boot|json_script:"agro-cli-acoes-boot" }}
+<script src="{% static 'produtos/js/cliente_cadastro_acoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  var boot = {};
+  try {
+    boot = JSON.parse(document.getElementById('agro-cli-acoes-boot').textContent || '{}');
+  } catch (e) { boot = {}; }
+  window.AGRO_CLI_BOOT = boot;
+  if (!window.AgroClienteCadastroAcoes) return;
+  window.AgroClienteCadastroAcoes.init({
+    onAbrirCadastro: function (dup) {
+      if (dup && dup.pk) window.location.href = (boot.urls && boot.urls.clienteEditarPattern)
+        ? String(boot.urls.clienteEditarPattern).replace('__pk__', String(dup.pk))
+        : '/clientes/' + dup.pk + '/editar/';
+    },
+    onAposMudanca: function (ev) {
+      ev = ev || {};
+      if (ev.tipo === 'excluir') {
+        window.location.href = boot.urls && boot.urls.clientesLista ? boot.urls.clientesLista : '/clientes/';
+        return;
+      }
+      window.location.reload();
+    },
+    onIniciarValePago: function (opts) {
+      var pdv = (boot.urls && boot.urls.pdvHome) ? boot.urls.pdvHome : '/pdv/';
+      alert('No PDV: clique em Vale crédito do cliente e escolha «Pagar na hora».\n\nVou abrir o PDV.');
+      window.location.href = pdv;
+    }
+  });
+  var pk = boot.clientePk;
+  var nome = boot.clienteNome || '';
+  var btnE = document.getElementById('cli-form-excluir');
+  if (btnE && pk) btnE.addEventListener('click', function () { window.AgroClienteCadastroAcoes.openExcluir(pk); });
+  var btnV = document.getElementById('cli-form-vale');
+  if (btnV && pk) btnV.addEventListener('click', function () { window.AgroClienteCadastroAcoes.openVale(pk, nome); });
+  var btnH = document.getElementById('cli-form-hist');
+  if (btnH && pk) btnH.addEventListener('click', function () { window.AgroClienteCadastroAcoes.openHistorico(pk); });
+  var dup = boot.duplicado;
+  if (dup && dup.pk) {
+    window.AgroClienteCadastroAcoes.showDuplicado(dup, {
+      onLimpo: function () { document.querySelector('form') && document.querySelector('form').submit(); }
+    });
+  }
+})();
+</script>
 </body>
 </html>

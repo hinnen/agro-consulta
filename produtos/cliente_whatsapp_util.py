@@ -38,14 +38,27 @@ def mensagem_whatsapp_duplicado(cliente) -> str:
     nome = (getattr(cliente, "nome", None) or "outro cliente").strip()
     return (
         f'Este telefone já está cadastrado para "{nome}". '
-        "Busque o cliente na lista ou edite o cadastro existente."
+        "Abra o outro cadastro ou limpe o número dali."
     )
 
 
-def erro_whatsapp_duplicado(digits: str, *, excluir_pk=None) -> str | None:
+def info_whatsapp_duplicado(digits: str, *, excluir_pk=None) -> dict | None:
     dup = cliente_agro_por_whatsapp(digits, excluir_pk=excluir_pk)
-    if dup:
-        return mensagem_whatsapp_duplicado(dup)
+    if not dup:
+        return None
+    nome = (dup.nome or "outro cliente").strip()
+    return {
+        "pk": dup.pk,
+        "nome": nome,
+        "whatsapp": extrair_whatsapp_digits(dup.whatsapp),
+        "erro": mensagem_whatsapp_duplicado(dup),
+    }
+
+
+def erro_whatsapp_duplicado(digits: str, *, excluir_pk=None) -> str | None:
+    info = info_whatsapp_duplicado(digits, excluir_pk=excluir_pk)
+    if info:
+        return info.get("erro")
     return None
 
 

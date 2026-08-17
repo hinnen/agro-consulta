@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_repasse_vila
+from . import views_cliente_cadastro
 from . import views_planos_conta
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -1140,6 +1141,41 @@ urlpatterns = [
         'api/pdv/cliente/<int:pk>/editar/',
         views.api_pdv_cliente_editar,
         name='api_pdv_cliente_editar',
+    ),
+    path(
+        'api/pdv/cliente/whatsapp-duplicado/',
+        views_cliente_cadastro.api_cliente_whatsapp_duplicado,
+        name='api_cliente_whatsapp_duplicado',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/limpar-whatsapp/',
+        views_cliente_cadastro.api_cliente_limpar_whatsapp,
+        name='api_cliente_limpar_whatsapp',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/exclusao-preview/',
+        views_cliente_cadastro.api_cliente_exclusao_preview,
+        name='api_cliente_exclusao_preview',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/transferir-saldos/',
+        views_cliente_cadastro.api_cliente_transferir_saldos,
+        name='api_cliente_transferir_saldos',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/excluir/',
+        views_cliente_cadastro.api_cliente_excluir,
+        name='api_cliente_excluir',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/vale-credito-manual/',
+        views_cliente_cadastro.api_cliente_vale_credito_manual,
+        name='api_cliente_vale_credito_manual',
+    ),
+    path(
+        'api/pdv/cliente/<int:pk>/eventos/',
+        views_cliente_cadastro.api_cliente_eventos,
+        name='api_cliente_eventos',
     ),
     path('api/pdv/geocode-plus/', views.api_pdv_geocode_plus, name='api_pdv_geocode_plus'),
     path('api/pdv/checkout-draft/', views.api_pdv_salvar_checkout_draft, name='api_pdv_salvar_checkout_draft'),
