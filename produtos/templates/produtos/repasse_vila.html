@@ -167,6 +167,7 @@
           class="min-h-[2.5rem] w-[4.5rem] rounded-lg border-2 border-slate-300 px-2 text-lg font-black tabular-nums" />
         <span class="font-black text-slate-600">%</span>
         <button type="button" id="rv-salvar-pct" class="min-h-[2.5rem] rounded-lg border-2 border-emerald-600 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-900">Salvar padrão</button>
+        <button type="button" id="rv-btn-planos" class="min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900">Planos</button>
       </label>
     </div>
 
@@ -183,6 +184,7 @@
         <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
         <span class="flex-1 font-bold text-slate-800">% lucro bruto <span class="tabular-nums text-sky-800" id="rv-disp-lucro">R$ 0,00</span></span>
       </label>
+      <p id="rv-desp-hint" class="hidden text-[0.7rem] font-bold text-slate-600 leading-tight px-1">− planos no envio ao Centro: —</p>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
         <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
@@ -229,10 +231,10 @@
         <div class="rv-val-lg text-sky-950" id="rv-tot-mes">R$ 0,00</div>
         <p class="text-[0.65rem] font-bold text-sky-700/90 leading-tight">Total em dinheiro no mês</p>
       </div>
-      <div class="rv-sum rv-sum--vila" title="Lucro bruto da Vila no mês menos o lucro já enviado no repasse">
+      <div class="rv-sum rv-sum--vila" title="Lucro bruto da Vila no mês menos o lucro já enviado e as despesas que ficam na Vila">
         <div class="rv-lbl text-emerald-800">Lucro ficou na Vila</div>
         <div class="rv-val-lg text-emerald-950" id="rv-lucro-ficou">R$ 0,00</div>
-        <p class="text-[0.65rem] font-bold text-emerald-800/90 leading-tight" id="rv-lucro-ficou-hint">Lucro bruto − lucro enviado</p>
+        <p class="text-[0.65rem] font-bold text-emerald-800/90 leading-tight" id="rv-lucro-ficou-hint">Lucro bruto − lucro enviado − gastos da Vila</p>
       </div>
     </div>
 
@@ -242,8 +244,29 @@
 
 {% include "produtos/_atalho_voltar_pdv.html" %}
 
+<div id="rv-planos-modal" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-900/50 p-3" role="dialog" aria-modal="true" aria-labelledby="rv-planos-title">
+  <div class="w-full max-w-[min(36rem,96vw)] max-h-[min(88dvh,40rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-sky-200 bg-sky-50 px-3 py-2">
+      <div class="min-w-0">
+        <h3 id="rv-planos-title" class="text-sm font-black uppercase text-sky-950">Planos no lucro do envio</h3>
+        <p class="text-[0.7rem] font-bold text-sky-800/90 leading-tight">Marcado = desconta do dinheiro que vai ao Centro. Sem marca = sai do que ficou na Vila.</p>
+      </div>
+      <button type="button" id="rv-planos-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="px-3 py-2">
+      <input id="rv-planos-busca" type="search" placeholder="Buscar plano…" class="w-full min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-3 text-sm font-bold" />
+    </div>
+    <div id="rv-planos-lista" class="flex-1 overflow-y-auto px-3 pb-2 space-y-1 min-h-[10rem]"></div>
+    <footer class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2">
+      <p id="rv-planos-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+      <button type="button" id="rv-planos-salvar" class="min-h-[2.6rem] rounded-xl bg-sky-600 px-4 text-sm font-black uppercase text-white">Salvar</button>
+    </footer>
+  </div>
+</div>
+
 {{ calc|json_script:"rv-calc-boot" }}
 {{ hist|json_script:"rv-hist-boot" }}
+{{ planos_repasse|json_script:"rv-planos-boot" }}
 
 <script>
 (function () {
@@ -316,6 +339,18 @@
     document.getElementById('rv-fiado-dia').textContent = money(c.fiado_pago_dia);
     document.getElementById('rv-disp-cmv').textContent = money(d.cmv);
     document.getElementById('rv-disp-lucro').textContent = money(d.lucro);
+    var despHint = document.getElementById('rv-desp-hint');
+    if (despHint) {
+      var dc = Number(c.despesas_centro_dia || 0);
+      var nPlanos = (c.planos_desconto_centro || []).length;
+      if (dc > 0 || nPlanos > 0) {
+        despHint.classList.remove('hidden');
+        despHint.textContent = '− planos no envio ao Centro: ' + money(dc) +
+          (nPlanos ? ' · ' + nPlanos + ' plano(s) marcado(s)' : '');
+      } else {
+        despHint.classList.add('hidden');
+      }
+    }
     document.getElementById('rv-disp-fiado').textContent = money(d.fiado);
     var elet = document.getElementById('rv-elet');
     if (elet) elet.textContent = money(c.ja_eletronico);
@@ -343,7 +378,9 @@
     var hintEl = document.getElementById('rv-lucro-ficou-hint');
     if (hintEl) {
       hintEl.textContent =
-        'Bruto ' + money(h.lucro_bruto_mes) + ' − enviado ' + money(h.lucro_enviado_mes);
+        'Bruto ' + money(h.lucro_bruto_mes) +
+        ' − enviado ' + money(h.lucro_enviado_mes) +
+        ' − gastos Vila ' + money(h.despesas_vila_mes);
     }
     var meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     document.getElementById('rv-mes-lbl').textContent = (meses[h.mes] || h.mes) + ' / ' + h.ano;
@@ -437,6 +474,88 @@
         if (j.ok) fetchCalc();
       })
       .catch(function () { statusEl.textContent = 'Falha ao salvar'; });
+  });
+
+  var planosState = bootJson('rv-planos-boot');
+  if (!Array.isArray(planosState)) planosState = [];
+  var planosModal = document.getElementById('rv-planos-modal');
+  var planosLista = document.getElementById('rv-planos-lista');
+  var planosBusca = document.getElementById('rv-planos-busca');
+  var planosStatus = document.getElementById('rv-planos-status');
+  function csrfToken() {
+    return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+  }
+  function abrirPlanos() {
+    if (!planosModal) return;
+    renderPlanosLista();
+    planosModal.classList.remove('hidden');
+    planosModal.classList.add('flex');
+    if (planosBusca) { planosBusca.value = ''; planosBusca.focus(); }
+  }
+  function fecharPlanos() {
+    if (!planosModal) return;
+    planosModal.classList.add('hidden');
+    planosModal.classList.remove('flex');
+  }
+  function renderPlanosLista() {
+    if (!planosLista) return;
+    var q = ((planosBusca && planosBusca.value) || '').trim().toLowerCase();
+    planosLista.innerHTML = '';
+    (planosState || []).forEach(function (p, idx) {
+      var nome = String(p.nome || '');
+      if (q && nome.toLowerCase().indexOf(q) < 0) return;
+      var lab = document.createElement('label');
+      lab.className = 'rv-check';
+      lab.innerHTML = '<input type="checkbox" data-idx="' + idx + '"' + (p.marcado ? ' checked' : '') + ' />' +
+        '<span class="flex-1 font-bold text-slate-800">' + nome.replace(/</g, '') + '</span>';
+      var inp = lab.querySelector('input');
+      inp.addEventListener('change', function () {
+        planosState[idx].marcado = inp.checked;
+      });
+      planosLista.appendChild(lab);
+    });
+    if (!planosLista.children.length) {
+      planosLista.innerHTML = '<p class="text-sm font-bold text-slate-500 px-1 py-2">Nenhum plano nesta busca.</p>';
+    }
+  }
+  var btnPlanos = document.getElementById('rv-btn-planos');
+  if (btnPlanos) btnPlanos.addEventListener('click', abrirPlanos);
+  var btnFecharPlanos = document.getElementById('rv-planos-fechar');
+  if (btnFecharPlanos) btnFecharPlanos.addEventListener('click', fecharPlanos);
+  if (planosModal) {
+    planosModal.addEventListener('click', function (ev) {
+      if (ev.target === planosModal) fecharPlanos();
+    });
+  }
+  if (planosBusca) planosBusca.addEventListener('input', renderPlanosLista);
+  var btnSalvarPlanos = document.getElementById('rv-planos-salvar');
+  if (btnSalvarPlanos) {
+    btnSalvarPlanos.addEventListener('click', function () {
+      var nomes = (planosState || []).filter(function (p) { return p.marcado; }).map(function (p) { return p.nome; });
+      if (planosStatus) planosStatus.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/config/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ planos_desconto_centro: nomes }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) {
+            planosState = j.planos || planosState;
+            if (planosStatus) planosStatus.textContent = 'Salvo · ' + nomes.length + ' no envio ao Centro';
+            fetchCalc();
+            fetchHist();
+            setTimeout(fecharPlanos, 500);
+          } else if (planosStatus) planosStatus.textContent = (j && j.erro) || 'Erro';
+        })
+        .catch(function () { if (planosStatus) planosStatus.textContent = 'Falha ao salvar'; });
+    });
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && planosModal && !planosModal.classList.contains('hidden')) {
+      fecharPlanos();
+    }
   });
   document.getElementById('rv-mes-ant').addEventListener('click', function () {
     state.mes -= 1;

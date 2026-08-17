@@ -80,6 +80,141 @@ def salvar_percentual_padrao(pct, *, operador: str = "") -> RepasseVilaConfigAgr
     return cfg
 
 
+def _norm_plano_nome(nome: str) -> str:
+    return " ".join(str(nome or "").strip().split())
+
+
+def nomes_planos_desconto_centro(cfg: RepasseVilaConfigAgro | None = None) -> list[str]:
+    cfg = cfg or obter_config()
+    raw = cfg.planos_desconto_centro if isinstance(cfg.planos_desconto_centro, list) else []
+    out: list[str] = []
+    seen: set[str] = set()
+    for x in raw:
+        n = _norm_plano_nome(x)
+        if not n:
+            continue
+        k = n.casefold()
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(n)
+    return out
+
+
+def salvar_planos_desconto_centro(nomes, *, operador: str = "") -> RepasseVilaConfigAgro:
+    limpos: list[str] = []
+    seen: set[str] = set()
+    for x in nomes or []:
+        n = _norm_plano_nome(x)
+        if not n:
+            continue
+        k = n.casefold()
+        if k in seen:
+            continue
+        seen.add(k)
+        limpos.append(n[:200])
+        if len(limpos) >= 300:
+            break
+    cfg = obter_config()
+    cfg.planos_desconto_centro = limpos
+    cfg.atualizado_por = (operador or "")[:120]
+    cfg.save(update_fields=["planos_desconto_centro", "atualizado_em", "atualizado_por"])
+    return cfg
+
+
+def _mapa_grafia_plano_oficial() -> dict[str, str]:
+    from produtos.models import PlanoContaAgro, PlanoContaAliasAgro
+
+    mapa: dict[str, str] = {}
+    for p in PlanoContaAgro.objects.filter(ativo=True).only("nome"):
+        n = _norm_plano_nome(p.nome)
+        if n:
+            mapa[n.casefold()] = n
+    for a in PlanoContaAliasAgro.objects.select_related("plano").only("grafia", "plano__nome"):
+        g = _norm_plano_nome(a.grafia)
+        of = _norm_plano_nome(getattr(a.plano, "nome", "") or "")
+        if g and of:
+            mapa[g.casefold()] = of
+    return mapa
+
+
+def _oficializar_plano(nome: str, mapa: dict[str, str] | None = None) -> str:
+    n = _norm_plano_nome(nome)
+    if not n:
+        return ""
+    mp = mapa if mapa is not None else _mapa_grafia_plano_oficial()
+    return mp.get(n.casefold(), n)
+
+
+def _plano_eh_deposito(nome: str) -> bool:
+    k = _norm_plano_nome(nome).casefold()
+    return k.startswith("depósito") or k.startswith("deposito")
+
+
+def despesas_caixa_vila_por_plano(d0: date, d1: date) -> dict[str, Decimal]:
+    """Saídas de caixa da Vila no período, agrupadas pelo plano oficial."""
+    from produtos.caixa_retiradas_util import listar_retiradas_historico
+
+    hist = listar_retiradas_historico(
+        data_de=d0,
+        data_ate=d1,
+        deposito="vila",
+        exportar=True,
+    )
+    mapa = _mapa_grafia_plano_oficial()
+    por: dict[str, Decimal] = {}
+    for row in hist.get("linhas") or []:
+        oficial = _oficializar_plano(str(row.get("plano") or ""), mapa)
+        if not oficial or oficial in ("-", "—"):
+            continue
+        if _plano_eh_deposito(oficial):
+            continue
+        por[oficial] = (por.get(oficial, ZERO) + _dec(row.get("valor"))).quantize(Decimal("0.01"))
+    return por
+
+
+def partir_despesas_centro_vila(
+    por_plano: dict[str, Decimal],
+    selecionados: list[str] | set[str] | None,
+) -> tuple[Decimal, Decimal]:
+    """Marcado → desconta do envio ao Centro; o resto → do que ficou na Vila."""
+    sel = {_oficializar_plano(x).casefold() for x in (selecionados or []) if _norm_plano_nome(x)}
+    centro = ZERO
+    vila = ZERO
+    for nome, val in (por_plano or {}).items():
+        v = _dec(val)
+        if v <= 0:
+            continue
+        if _oficializar_plano(nome).casefold() in sel:
+            centro += v
+        else:
+            vila += v
+    return centro.quantize(Decimal("0.01")), vila.quantize(Decimal("0.01"))
+
+
+def listar_planos_repasse_config(cfg: RepasseVilaConfigAgro | None = None) -> list[dict[str, Any]]:
+    from produtos.models import PlanoContaAgro
+
+    cfg = cfg or obter_config()
+    sel = {_norm_plano_nome(x).casefold() for x in nomes_planos_desconto_centro(cfg)}
+    out: list[dict[str, Any]] = []
+    vistos: set[str] = set()
+    for p in PlanoContaAgro.objects.filter(ativo=True).order_by("nome").only("nome")[:300]:
+        n = _norm_plano_nome(p.nome)
+        if not n:
+            continue
+        k = n.casefold()
+        vistos.add(k)
+        out.append({"nome": n, "marcado": k in sel})
+    for extra in nomes_planos_desconto_centro(cfg):
+        k = extra.casefold()
+        if k in vistos:
+            continue
+        vistos.add(k)
+        out.append({"nome": extra, "marcado": True})
+    return out
+
+
 def _vendas_vila_sem_fiado(desde: datetime, ate: datetime) -> list[int]:
     from produtos.fiado_credito_util import venda_local_tem_fiado
 
@@ -276,6 +411,11 @@ def calcular_disponivel(
     lucro_alvo = (lucro * pct / Decimal("100")).quantize(Decimal("0.01"))
     fiado_alvo = fiado_dia
 
+    por_desp = despesas_caixa_vila_por_plano(dia, dia)
+    sel_planos = nomes_planos_desconto_centro(cfg)
+    desp_centro, desp_vila = partir_despesas_centro_vila(por_desp, sel_planos)
+    lucro_alvo = max(ZERO, (lucro_alvo - desp_centro).quantize(Decimal("0.01")))
+
     ja = _ja_enviado_dia(dia)
     ja_elet = _ja_eletronico_vila(dia)
     if modo_dia_cheio:
@@ -323,6 +463,9 @@ def calcular_disponivel(
             "lucro": float(lucro_alvo),
             "fiado": float(fiado_alvo),
         },
+        "despesas_centro_dia": float(desp_centro),
+        "despesas_vila_dia": float(desp_vila),
+        "planos_desconto_centro": sel_planos,
     }
 
 
@@ -414,7 +557,14 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
 
     base_mes = _receita_e_cmv_vila_periodo(d0, d1)
     lucro_bruto_mes = max(ZERO, _dec(base_mes["lucro_bruto"]))
-    lucro_ficou_vila = max(ZERO, (lucro_bruto_mes - lucro_enviado_mes).quantize(Decimal("0.01")))
+    cfg = obter_config()
+    por_desp = despesas_caixa_vila_por_plano(d0, d1)
+    desp_centro, desp_vila = partir_despesas_centro_vila(
+        por_desp, nomes_planos_desconto_centro(cfg)
+    )
+    lucro_ficou_vila = max(
+        ZERO, (lucro_bruto_mes - lucro_enviado_mes - desp_vila).quantize(Decimal("0.01"))
+    )
 
     dias_out = []
     for day in range(1, ultimo + 1):
@@ -460,6 +610,8 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
         "lucro_bruto_mes": float(lucro_bruto_mes),
         "lucro_enviado_mes": float(_dec(lucro_enviado_mes)),
         "lucro_ficou_vila": float(lucro_ficou_vila),
+        "despesas_centro_mes": float(desp_centro),
+        "despesas_vila_mes": float(desp_vila),
         "dias": dias_out,
     }
 

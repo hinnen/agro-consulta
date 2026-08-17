@@ -2783,6 +2783,12 @@ class RepasseVilaConfigAgro(models.Model):
         default=50,
         help_text="0 a 100. Padrão na tela/PDV ao montar o envio.",
     )
+    planos_desconto_centro = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Nomes de plano de conta que descontam do lucro enviado ao Centro. "
+        "Os demais descontam do que ficou na Vila.",
+    )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
 

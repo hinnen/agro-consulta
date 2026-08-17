@@ -69,6 +69,8 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
             "produtos.SessaoCaixa",
             "produtos.MovimentoCaixa",
             "produtos.CaixaConferenciaRascunhoAgro",
+            "produtos.RepasseVilaConfigAgro",
+            "produtos.RepasseVilaCentroAgro",
         ),
     ),
     PgBackupCategory(

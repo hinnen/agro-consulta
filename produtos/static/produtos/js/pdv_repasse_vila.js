@@ -146,6 +146,17 @@
     if (faltaEl) faltaEl.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
     document.getElementById('pdv-rp-disp-cmv').textContent = money(d.cmv);
     document.getElementById('pdv-rp-disp-lucro').textContent = money(d.lucro);
+    var despHint = document.getElementById('pdv-rp-desp-hint');
+    if (despHint) {
+      var dc = Number(c.despesas_centro_dia || 0);
+      if (dc > 0) {
+        despHint.classList.remove('hidden');
+        despHint.textContent = '− planos no envio ao Centro: ' + money(dc);
+      } else {
+        despHint.classList.add('hidden');
+        despHint.textContent = '';
+      }
+    }
     document.getElementById('pdv-rp-disp-fiado').textContent = money(d.fiado);
     var tot = 0;
     if (dom.cmv.checked) tot += Number(d.cmv || 0);

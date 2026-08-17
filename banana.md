@@ -661,6 +661,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
+- **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
 
@@ -1218,7 +1219,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08)
+
+> **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6**  
+> **Pronto envio:** 1 pacote · **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio** / tip teste | **SIM** 0091 |
+
+### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · não marcado sai do que ficou na Vila · Postgres |
+| **Prova** | path + deep repasse |
+| **Migrate** | **SIM** 0091 (`planos_desconto_centro`) |
+| **Você** | Ctrl+F5 `/repasse-vila/` · Planos · marcar Alimentação · conferir valor |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado**
 
 > **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40`  
 > **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
