@@ -1889,11 +1889,7 @@ def registrar_lote_validade_apos_entrada_nf(
         dep = ""
     ov, _ = ProdutoGestaoOverlayAgro.objects.get_or_create(
         produto_externo_id=str(pid)[:64],
-        defaults={"nome": (nome_produto or "")[:255]},
     )
-    if nome_produto and not (getattr(ov, "nome", None) or "").strip():
-        ov.nome = str(nome_produto)[:255]
-        ov.save(update_fields=["nome", "atualizado_em"])
     el = EstoqueLote.objects.filter(overlay=ov, lote_codigo=lote_cod).first()
     if el is not None:
         nova = (Decimal(el.quantidade_atual or 0) + q_add).quantize(Decimal("0.01"))

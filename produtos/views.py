@@ -3174,7 +3174,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
                 logger.warning("overlay salvar: sync Modelo Mongo", exc_info=True)
 
     with transaction.atomic():
-        hist_depois = snapshot_overlay(ov)
+        hist_depois = enriquecer_snapshot_antes_com_catalogo(pid, snapshot_overlay(ov))
         if variacoes_novas is not None:
             hist_depois["variacoes"] = snapshot_variacoes_resumo(variacoes_novas)
         else:
@@ -3256,10 +3256,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     if agro_catalogo_usa_postgres():
         from produtos import catalogo_agro as cat_agro
 
-        p_mod = cat_agro.sincronizar_modelo_produto_de_overlay(
-            pid, ov, custo_payload=custo_payload, payload=payload
-        )
-        row = cat_agro.produto_model_para_resposta_salvar(p_mod, ov)
+        if cat_agro.payload_overlay_deve_sincronizar_produto(payload, custo_payload):
+            p_mod = cat_agro.sincronizar_modelo_produto_de_overlay(
+                pid, ov, custo_payload=custo_payload, payload=payload
+            )
+        else:
+            p_mod = cat_agro.obter_produto_model(pid)
+        if p_mod is None:
+            row = {"id": pid, "tem_overlay": True, "fonte": "agro_pg"}
+        else:
+            row = cat_agro.produto_model_para_resposta_salvar(p_mod, ov)
         uid = int(getattr(request.user, "pk", None) or 0)
         resp_pg: dict = {"ok": True, "produto": row, "fonte": "agro_pg", "somente_agro": True}
         if prop_familia and prop_familia.get("atualizados"):
@@ -15721,10 +15727,8 @@ def aplicar_entrada_nota_estoque_agro(
         saldo_final_depois = (saldo_final_antes + qtd).quantize(Decimal("0.001"))
 
         doc = _produto_mongo_por_id_externo(db, client_m, pid) if db is not None and client_m is not None else None
-        nome_p = str((doc or {}).get("Nome") or ln.get("x_prod") or "")[:200]
-        codigo = str((doc or {}).get("CodigoNFe") or (doc or {}).get("Codigo") or ln.get("c_prod") or "")[
-            :100
-        ]
+        nome_p = str((doc or {}).get("Nome") or "")[:200]
+        codigo = str((doc or {}).get("CodigoNFe") or (doc or {}).get("Codigo") or "")[:100]
         if not nome_p or not codigo:
             try:
                 from produtos.catalogo_agro import obter_produto_model
@@ -15737,6 +15741,10 @@ def aplicar_entrada_nota_estoque_agro(
                         codigo = str(p_pg.codigo_nfe or p_pg.codigo_interno or "")[:100]
             except Exception:
                 pass
+        if not nome_p:
+            nome_p = str(ln.get("x_prod") or "")[:200]
+        if not codigo:
+            codigo = str(ln.get("c_prod") or "")[:100]
 
         try:
             custo_ln = None
@@ -18658,7 +18666,10 @@ def api_entrada_nota_produto_margem(request):
                 ov.preco_venda = Decimal(str(pvr))
             ov.save()
             if agro_catalogo_usa_postgres():
-                sincronizar_modelo_produto_de_overlay(pid[:64], ov)
+                sync_payload = {"preco_venda": str(pvr)} if pvr is not None else {}
+                sincronizar_modelo_produto_de_overlay(
+                    pid[:64], ov, payload=sync_payload or None
+                )
             elif pvr is not None:
                 p = obter_produto_model(pid)
                 if p is not None:

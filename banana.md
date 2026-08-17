@@ -610,6 +610,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
+- **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
 
 ### 4.8 Estoque Agro
 
@@ -1225,11 +1226,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08c)
 
 > **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> **Não** merge `teste`→`producao`. Isolar só este pacote na hora do envio.
+> **Não** merge `teste`→`producao`. Isolar o pacote na hora do envio (não mandar os dois de uma vez sem você pedir).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NF-BIP-ET3-SNAP** | ✅ pronto para envio | não |
+| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ pronto para envio | não |
+
+### 📦 PACOTE PRONTO — Vínculo NF não apaga cadastro (`NF-VINCULO-NAO-SOBRESCREVE` · **v17.12**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · teste **v17.12** · loja **v17.09** |
+| **O quê** | «Mudar» na Entrada NF só lembra o código da nota. **Não** apaga nome, marca, categoria, GM nem preço. Validade também não troca o nome pelo da NF. |
+| **Prova** | `verify_nf_vinculo_nao_sobrescreve.py` **28/28** |
+| **Migrate** | **NÃO** |
+| **Arquivos** | `catalogo_agro.py` · `views.py` · `entrada_nota.html` · `models.py` · histórico cadastro |
+| **Você** | Local: Ctrl+F5 `/entrada-nota/` · casar um item no **Mudar** · abrir o cadastro — nome igual. Produto já estragado (ex. Ivomec GM1097) **não volta sozinho** — corrigir no lápis. Loja: frase + senha. |
 
 ### 📦 PACOTE PRONTO — Entrada NF etapa 3 rápida (`NF-BIP-ET3-SNAP` · **v17.11**)
 

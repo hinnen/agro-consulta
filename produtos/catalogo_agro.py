@@ -491,22 +491,140 @@ def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro 
     return row
 
 
+# Overlay parcial (vínculo NF: cProd / EAN embalagem) NÃO é edição de cadastro.
+_PAYLOAD_KEYS_SYNC_PRODUTO = frozenset(
+    {
+        "nome",
+        "marca",
+        "categoria",
+        "subcategoria",
+        "subcategoria_2",
+        "subcategoria_3",
+        "subcategoria_4",
+        "fornecedor_texto",
+        "unidade",
+        "peso_etiqueta",
+        "codigo_barras",
+        "codigo_nfe",
+        "codigo",
+        "descricao",
+        "preco_venda",
+        "preco_custo",
+        "modelo",
+        "ativo_exibicao",
+        "inativar_erp",
+        "codigo_barras_bip_entrada_nf",
+        "codigos_barras_opcionais",
+        "codigos_barras_opcionais_adicionar",
+    }
+)
+
+
+def payload_overlay_deve_sincronizar_produto(
+    payload: dict | None,
+    custo_payload: Decimal | None = None,
+) -> bool:
+    """True só se o POST mexe em campo do cadastro (não só cProd/EAN da NF)."""
+    if custo_payload is not None:
+        return True
+    if not isinstance(payload, dict):
+        return False
+    return bool(_PAYLOAD_KEYS_SYNC_PRODUTO.intersection(payload.keys()))
+
+
 def sincronizar_modelo_produto_de_overlay(
     pid: str,
     ov: ProdutoGestaoOverlayAgro,
     *,
     custo_payload: Decimal | None = None,
     payload: dict | None = None,
-) -> Produto:
-    """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``)."""
+) -> Produto | None:
+    """Espelha overlay + payload no ``Produto``. Overlay vazio não apaga cadastro existente."""
     pid64 = str(pid or "").strip()[:64]
     payload = payload or {}
     p = obter_produto_model(pid64)
+    keys = set(payload.keys())
+    mexe_catalogo = payload_overlay_deve_sincronizar_produto(payload, custo_payload)
 
     def _txt(key: str, mx: int = 300) -> str:
         return str(payload.get(key) or "").strip()[:mx]
 
     from produtos.cadastro_codigo_sequencial_util import gm_sugerido_de_codigo_sistema
+
+    custo = custo_payload
+    if custo is None and "preco_custo" in keys and ov.cadastro_extras and isinstance(
+        ov.cadastro_extras, dict
+    ):
+        raw_ce = ov.cadastro_extras.get("preco_custo_overlay")
+        if raw_ce is not None:
+            custo = _dec_opt(raw_ce)
+    if custo is None and p is not None:
+        custo = p.custo
+    if custo is None:
+        custo = Decimal("0")
+
+    if p is not None and not mexe_catalogo:
+        return p
+
+    if p is not None:
+        if "nome" in keys:
+            p.nome = (ov.nome.strip() or _txt("nome", 300) or p.nome or "—")[:300]
+        if "marca" in keys:
+            p.marca = ov.marca.strip()[:120]
+        if "categoria" in keys:
+            p.categoria = ov.categoria.strip()[:200] or None
+        if "subcategoria" in keys:
+            p.subcategoria = ov.subcategoria.strip()[:200]
+        if "subcategoria_2" in keys:
+            p.subcategoria_2 = ov.subcategoria_2.strip()[:200]
+        if "subcategoria_3" in keys:
+            p.subcategoria_3 = ov.subcategoria_3.strip()[:200]
+        if "subcategoria_4" in keys:
+            p.subcategoria_4 = ov.subcategoria_4.strip()[:200]
+        if "fornecedor_texto" in keys:
+            p.fornecedor_texto = ov.fornecedor_texto.strip()[:300]
+        if "unidade" in keys:
+            p.unidade = (ov.unidade.strip() or p.unidade or "UN")[:20]
+        if "descricao" in keys:
+            p.descricao = ov.descricao.strip()[:16000]
+        if "modelo" in keys:
+            p.modelo = _txt("modelo", 200)
+        if (
+            "codigo_barras" in keys
+            or "codigo_barras_bip_entrada_nf" in keys
+            or "codigos_barras_opcionais" in keys
+            or "codigos_barras_opcionais_adicionar" in keys
+        ):
+            cb = ov.codigo_barras.strip()
+            p.codigo_barras = cb[:50] if cb else p.codigo_barras
+        if "codigo_nfe" in keys or "codigo" in keys:
+            cod_sys = _txt("codigo", 50)
+            codigo_interno = (
+                cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or p.codigo_interno)
+            )
+            codigo_nfe_val = (
+                ov.codigo_nfe.strip()
+                or _txt("codigo_nfe", 64)
+                or gm_sugerido_de_codigo_sistema(cod_sys)
+                or p.codigo_nfe
+                or codigo_interno
+            )[:64]
+            p.codigo_interno = (codigo_interno or p.codigo_interno)[:50]
+            p.codigo_nfe = codigo_nfe_val
+        if "preco_venda" in keys and ov.preco_venda is not None:
+            p.preco_venda = ov.preco_venda
+        if custo_payload is not None or "preco_custo" in keys:
+            p.custo = custo
+        if "ativo_exibicao" in keys or "inativar_erp" in keys:
+            if ov.ativo_exibicao is not None:
+                p.ativo = bool(ov.ativo_exibicao)
+                p.cadastro_inativo = not p.ativo
+        p.save()
+        return p
+
+    # Produto novo: só cria se o POST realmente editou cadastro (não vínculo NF).
+    if not mexe_catalogo:
+        return None
 
     cod_sys = _txt("codigo", 50)
     codigo_interno = cod_sys[:50] if cod_sys else (_txt("codigo_nfe", 64)[:50] or pid64[:50])
@@ -517,31 +635,17 @@ def sincronizar_modelo_produto_de_overlay(
         or codigo_interno
     )[:64]
     nome = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or "—"
-    custo = custo_payload
-    if custo is None and ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
-        raw_ce = ov.cadastro_extras.get("preco_custo_overlay")
-        if raw_ce is not None:
-            custo = _dec_opt(raw_ce)
-    if custo is None and p is not None:
-        custo = p.custo
-    if custo is None:
-        custo = Decimal("0")
-
-    pv = ov.preco_venda if ov.preco_venda is not None else (p.preco_venda if p else Decimal("0"))
+    pv = ov.preco_venda if ov.preco_venda is not None else Decimal("0")
     ativo = True
     cad_inativo = False
     if ov.ativo_exibicao is not None:
         ativo = bool(ov.ativo_exibicao)
         cad_inativo = not ativo
-
     modelo_val = ""
     if "modelo" in payload:
         modelo_val = _txt("modelo", 200)
     elif ov.cadastro_extras and isinstance(ov.cadastro_extras, dict):
         modelo_val = str(ov.cadastro_extras.get("modelo") or "").strip()[:200]
-    elif p is not None:
-        modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
-
     defaults = {
         "codigo_interno": codigo_interno,
         "codigo_nfe": codigo_nfe_val,
@@ -562,13 +666,7 @@ def sincronizar_modelo_produto_de_overlay(
         "ativo": ativo,
         "cadastro_inativo": cad_inativo,
     }
-    if p is None:
-        p = Produto.objects.create(produto_externo_id=pid64, **defaults)
-    else:
-        for k, v in defaults.items():
-            setattr(p, k, v)
-        p.save()
-    return p
+    return Produto.objects.create(produto_externo_id=pid64, **defaults)
 
 
 def try_criar_produto_postgres_somente_agro(payload: dict) -> tuple[dict | None, str | None]:

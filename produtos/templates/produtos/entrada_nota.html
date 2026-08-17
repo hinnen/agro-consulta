@@ -10169,7 +10169,7 @@
       const tok = getCookie('csrftoken');
       if (!tok) return;
       const oldId = String(pidAnterior || '').trim();
-      const body = { produto_id: pid, c_prod_nf: cProd };
+      const body = { produto_id: pid, c_prod_nf: cProd, origem_entrada_nf: true };
       if (oldId && oldId !== pid && !oldId.toLowerCase().startsWith('local:')) {
         body.c_prod_nf_desvincular_de = oldId;
       }
@@ -10195,7 +10195,7 @@
       const tok = getCookie('csrftoken');
       if (!tok) return;
       const oldId = String(pidAnterior || '').trim();
-      const body = { produto_id: pid, ean_embalagem_nf: eanNf };
+      const body = { produto_id: pid, ean_embalagem_nf: eanNf, origem_entrada_nf: true };
       if (oldId && oldId !== pid && !oldId.toLowerCase().startsWith('local:')) {
         body.ean_embalagem_nf_desvincular_de = oldId;
       }
