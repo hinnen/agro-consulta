@@ -1226,16 +1226,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio à produção** / teste **v17.03** | **SIM** 0091 |
+| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio à produção** / teste **v17.04** | **SIM** 0091 |
 
-### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO` · **v17.03**)
+### 📦 PACOTE PRONTO — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO` · **v17.04**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** |
 | **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · sem marca sai do que ficou na Vila · Postgres |
-| **Prova** | `verify_repasse_planos_path.py` **46/46** · path **60/60** · deep **73/73** |
-| **Cherry** | `f45576d` + prova |
+| **Prova** | `verify_repasse_planos_path.py` **49/49** · path **60/60** · deep **73/73** |
+| **Cherry** | `f45576d` (feat) · `d3d5c78` (prova) |
 | **Migrate** | **SIM** 0091 (`planos_desconto_centro`) |
 | **Você** | Ctrl+F5 `/repasse-vila/` · **Planos** · marcar Alimentação · Salvar · conferir valor |
 

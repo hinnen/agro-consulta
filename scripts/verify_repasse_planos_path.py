@@ -26,6 +26,7 @@ from produtos.models import RepasseVilaConfigAgro
 from produtos.repasse_vila_util import (
     calcular_disponivel,
     despesas_caixa_vila_por_plano,
+    historico_mes,
     listar_planos_repasse_config,
     nomes_planos_desconto_centro,
     obter_config,
@@ -294,6 +295,40 @@ def main() -> int:
             ok("teto: lucro enviado não desce de zero")
         else:
             fail(f"teto lucro {calc_cap['alvos']['lucro']}")
+
+        fake_base_mes = {
+            "receita": Decimal("1000.00"),
+            "cmv": Decimal("400.00"),
+            "lucro_bruto": Decimal("600.00"),
+            "n_vendas": 1,
+        }
+        salvar_planos_desconto_centro(["Alimentação"], operador="planos-verify")
+        with (
+            patch(
+                "produtos.repasse_vila_util._receita_e_cmv_vila_periodo",
+                return_value=fake_base_mes,
+            ),
+            patch(
+                "produtos.repasse_vila_util.despesas_caixa_vila_por_plano",
+                return_value=fake_desp,
+            ),
+        ):
+            hist_on = historico_mes(hoje.year, hoje.month)
+        enviado = Decimal(str(hist_on.get("lucro_enviado_mes") or 0))
+        ficou = Decimal(str(hist_on.get("lucro_ficou_vila") or 0))
+        esperado_ficou = max(ZERO, (Decimal("600.00") - enviado - Decimal("10.00")).quantize(Decimal("0.01")))
+        if Decimal(str(hist_on.get("despesas_centro_mes") or 0)) == Decimal("30.00"):
+            ok("hist: marcado vai para Centro (30)")
+        else:
+            fail(f"hist desp centro {hist_on.get('despesas_centro_mes')}")
+        if Decimal(str(hist_on.get("despesas_vila_mes") or 0)) == Decimal("10.00"):
+            ok("hist: nao marcado fica na Vila (10)")
+        else:
+            fail(f"hist desp vila {hist_on.get('despesas_vila_mes')}")
+        if ficou == esperado_ficou:
+            ok("hist: ficou = bruto - enviado - gastos Vila")
+        else:
+            fail(f"hist ficou {ficou} esperado {esperado_ficou} enviado {enviado}")
 
         user, _ = User.objects.get_or_create(
             username="repasse_planos_verify_bot", defaults={"is_staff": True}
