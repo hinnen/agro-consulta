@@ -611,7 +611,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
 - **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
-- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** loja tem dezenas com nome da NF (`… [EAN]`). Comando `reparar_cadastro_vinculo_nf` devolve o nome do histórico e limpa o overlay. **Não** mexe em preço. Rodar na loja só com frase + senha.
+- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** 33 na loja com `… [EAN]`. Devolve histórico (14) ou só tira overlay / corta o colchete. **Não** mexe preço, GM, barras. `--aplicar` grava. Loja: frase + senha.
 
 ### 4.8 Estoque Agro
 
@@ -1225,25 +1225,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Point MP Vila (`MP-POINT-VILA` · **v17.13**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08d)
 
 > **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> Código no `teste`. **Ainda falta** colar token + ID do terminal da conta Vila. Sem isso a máquina Vila continua **manual**. Produção só com frase + senha **depois** de ligar a maquininha no modo PDV.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ código pronto · aguarda credencial Vila (Renan ~18h) |
-| **O quê** | 2ª conta Mercado Pago Point (CNPJ Vila). PDV Vila dispara sozinho, **sem** acender a máquina do Centro. Renan continua manual. |
-| **Env** | `MP_POINT_VILA_ACCESS_TOKEN` · `MP_POINT_VILA_TERMINAL_ID` (local `.env` e depois Render loja) |
-| **Você** | 1) modo **vincular com o caixa** na maquininha · 2) token Produção da conta Vila · 3) ID do terminal · 4) fechar e abrir **Caixa Vila** neste PC · Ctrl+F5 |
-| **Prova** | `verify_mp_point_vila_path.py` · `verify_caixa_fechar_loja_path.py` |
-| **Migrate** | **NÃO** |
-| **Fora** | NFC-e ainda CNPJ Centro · máquina Renan |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08c)
-
-> **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> **Não** merge `teste`→`producao`. Isolar o pacote na hora do envio (não mandar os dois de uma vez sem você pedir).
+> **Não** merge `teste`→`producao`. Isolar na hora do envio. **Fora deste lote:** Point Vila (falta token).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1251,37 +1236,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ pronto para envio | não |
 | 3 | **NF-VINCULO-REPARO** | ✅ pronto para envio | não |
 
-### 📦 PACOTE PRONTO — Devolver nomes estragados pelo vínculo (`NF-VINCULO-REPARO` · **v17.14**)
+### 📦 PACOTE PRONTO — Entrada NF cadastro + etapa 3 (`v17.16`)
+
+| Pacote | O quê | Prova |
+| ------ | ----- | ----- |
+| **NF-BIP-ET3-SNAP** | Bip na etapa 3 casa na hora (lote, barra, som). | ET3 **83/83** · ET2 **68/68** |
+| **NF-VINCULO-NAO-SOBRESCREVE** | «Mudar» só lembra o código da nota. Nome/marca/preço ficam. | **28/28** |
+| **NF-VINCULO-REPARO** | Devolve os **33** nomes colados da NF. Histórico se houver; senão tira o `[EAN]`. Preço/GM não mexem. Só grava com `--aplicar`. | **35/35** |
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** · vai junto do vínculo se você autorizar a loja |
-| **O quê** | Na loja há **33** produtos com o nome da nota (`IVOMEC - 50 ML [789…]`). O comando devolve o nome antigo (histórico) e tira esse texto. Marca/categoria vazias também voltam. Preço não mexe. |
-| **Prova** | `verify_nf_vinculo_reparo.py` |
+| **Status** | ✅ **pronto para envio à produção** · teste **v17.16** · loja **v17.09** |
 | **Migrate** | **NÃO** |
-| **Você** | Loja: frase + senha. Eu rodo o conserto lá. Sem senha o cadastro da loja continua errado. |
+| **Você** | Local: Ctrl+F5 `/entrada-nota/` · casar no **Mudar** · nome do cadastro igual. Loja: frase + senha · depois eu corro o reparo dos 33. |
 
-### 📦 PACOTE PRONTO — Vínculo NF não apaga cadastro (`NF-VINCULO-NAO-SOBRESCREVE` · **v17.12**)
+### 📦 PACOTE — Point MP Vila (`MP-POINT-VILA` · **v17.13**) · **não sobe neste lote**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v17.12** · loja **v17.09** |
-| **O quê** | «Mudar» na Entrada NF só lembra o código da nota. **Não** apaga nome, marca, categoria, GM nem preço. Validade também não troca o nome pelo da NF. |
-| **Prova** | `verify_nf_vinculo_nao_sobrescreve.py` **28/28** |
-| **Migrate** | **NÃO** |
-| **Arquivos** | `catalogo_agro.py` · `views.py` · `entrada_nota.html` · `models.py` · histórico cadastro |
-| **Você** | Local: Ctrl+F5 `/entrada-nota/` · casar um item no **Mudar** · abrir o cadastro — nome igual. Produto já estragado (ex. Ivomec GM1097) **não volta sozinho** — corrigir no lápis. Loja: frase + senha. |
+Aguarda token + ID do terminal da conta Vila. Sem isso a máquina Vila continua manual.
 
-### 📦 PACOTE PRONTO — Entrada NF etapa 3 rápida (`NF-BIP-ET3-SNAP` · **v17.11**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v17.11** · loja **v17.09** |
-| **O quê** | Bip na etapa 3 casa na hora (lote de códigos, não 1 a 1). Barra Conferidos, item pisca, som, leitor em cima no celular. Não pega o produto errado nem código GM. |
-| **Prova** | ET3 **83/83** · ET2 **68/68** · custo NF **10/10** |
-| **Migrate** | **NÃO** |
-| **Arquivos** | `entrada_nota.html` · `views.py` (lote conferir-codigo) · `verify_nf_bip_et3_path.py` |
-| **Você** | Local: Ctrl+F5 `/entrada-nota/` etapa 3 · bipar. Loja: frase + senha. |
+### ✅ CHECKLIST ÚNICO — 17/08c · **superado — fila agora 17/08d**
 
 ### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
 

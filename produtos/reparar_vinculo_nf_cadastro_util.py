@@ -13,19 +13,23 @@ from produtos.models import (
 _RE_EAN_COLCHETE = re.compile(r"\[[0-9]{8,}\]")
 _NOME_LIXO = frozenset({"", "—", "-", "–", "[NOME QUEBRADO]", "..."})
 
+# Só ficha visual. Não mexe GM, barras, unidade nem preço.
 _CAMPOS_TXT = (
-    ("nome", "nome", 300),
     ("marca", "marca", 120),
     ("categoria", "categoria", 200),
-    ("unidade", "unidade", 20),
-    ("codigo_nfe", "codigo_nfe", 64),
-    ("codigo_barras", "codigo_barras", 50),
 )
 
 
 def parece_nome_nf(texto: str) -> bool:
     """Nome da nota: descrição do XML com EAN entre colchetes."""
     return bool(_RE_EAN_COLCHETE.search(str(texto or "")))
+
+
+def nome_sem_ean_colchete(texto: str) -> str:
+    """Tira só o ``[789…]``; não inventa nome. Vazio se sobrar pouco."""
+    s = _RE_EAN_COLCHETE.sub("", str(texto or ""))
+    s = re.sub(r"\s{2,}", " ", s).strip(" -")
+    return s if len(s) >= 8 else ""
 
 
 def _limpo(val: Any) -> str:
@@ -61,7 +65,7 @@ def _ultimo_antes_wipe(pid: str, campo: str) -> str:
             continue
         depois = _limpo(row.valor_depois)
         if depois not in ("", "—", "-", "–") and _hist_bom(depois):
-            return ""
+            return depois
     return _limpo(wipe_row.valor_antes)
 
 
@@ -101,20 +105,18 @@ def planejar_reparo_vinculo_nf(*, pid: str = "") -> list[dict[str, Any]]:
             bom = _ultimo_antes_wipe(pid_k, "nome")
             if _hist_bom(bom):
                 patch_p["nome"] = bom[:300]
+            else:
+                cortado = nome_sem_ean_colchete(p.nome)
+                if cortado and cortado != _limpo(p.nome):
+                    patch_p["nome"] = cortado[:300]
 
         for campo, attr, mx in _CAMPOS_TXT:
-            if campo == "nome":
-                continue
             cur_p = _limpo(getattr(p, attr, None))
             cur_ov = _limpo(getattr(ov, attr, None) if ov is not None else "")
-            if campo == "unidade" and cur_p.upper() not in ("", "UN") and cur_ov.upper() not in ("", "UN"):
-                continue
-            if campo != "unidade" and (cur_p or cur_ov):
+            if cur_p or cur_ov:
                 continue
             bom = _ultimo_antes_wipe(pid_k, campo)
             if not _hist_bom(bom):
-                continue
-            if campo == "unidade" and bom.upper() == "UN" and cur_p.upper() == "UN":
                 continue
             patch_p[attr] = bom[:mx]
 
