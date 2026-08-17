@@ -5199,6 +5199,57 @@
     } catch (_) {}
   }
 
+  /** Leitor: só dígitos, 8+. Código interno 230… também conta — é bip físico da embalagem. */
+  function entradaNfeBuscaTermoEhBip(raw) {
+    const compacto = String(raw || '').replace(/\s/g, '');
+    return /^\d{8,}$/.test(compacto);
+  }
+
+  /**
+   * Bip na etapa 2 (Mudar / busca / sentinela) vale como Ok na etapa 3.
+   * Nome/GM digitado continua lookup/modal (PEND. até conferir o leitor).
+   */
+  function entradaNfeViaPorTermoBusca(raw, viaPadrao, p) {
+    if (entradaNfeBuscaTermoEhBip(raw)) return 'scan';
+    const qDigits = entradaNfeCatalogOnlyDigits(raw);
+    if (qDigits.length >= 8 && p) {
+      const ean = entradaNfeCatalogOnlyDigits(p.codigo_barras || '');
+      if (ean && entradaNfeCodigosEquivalentes(qDigits, ean)) return 'scan';
+      const ix = p.index_codigos;
+      if (Array.isArray(ix)) {
+        for (let i = 0; i < ix.length; i += 1) {
+          if (entradaNfeCodigosEquivalentes(qDigits, String(ix[i] || ''))) return 'scan';
+        }
+      }
+    }
+    return viaPadrao || 'lookup';
+  }
+
+  /** Casado no XML/catálogo por EAN (Mongo e Postgres). Código do fornecedor não entra. */
+  function entradaNfeMatchTipoConfereBarras(mt) {
+    const t = String(mt || '').trim().toLowerCase();
+    if (!t) return false;
+    if (t === 'ean' || t === 'ean_nfe' || t === 'ean_pg' || t === 'ean_overlay' || t === 'codigo_barras') return true;
+    return t.indexOf('ean') === 0;
+  }
+
+  function entradaNfeBipConfInicialDaLinha(d) {
+    const viaCat = String((d && d.catalogo_via) || '').trim();
+    const mtBip = String((d && d.match_tipo) || '').trim().toLowerCase();
+    let bc = String(d && d.bip_conf != null ? d.bip_conf : '').trim().toLowerCase();
+    if (bc === 'pendente' || bc === 'pending') bc = '';
+    if (!bc && (viaCat === 'scan' || entradaNfeMatchTipoConfereBarras(mtBip))) bc = 'ok';
+    if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') return bc;
+    return '';
+  }
+
+  function entradaNfeBipAutoOkLinhaSeCasadoEtapa2(tr) {
+    if (!tr || entradaNfeBipEstadoLinha(tr) !== 'pendente') return;
+    const via = String(tr.dataset.nfeCatVia || '').trim();
+    const mt = String(tr.dataset.nfeMatchTipo || '').trim();
+    if (via === 'scan' || entradaNfeMatchTipoConfereBarras(mt)) tr.dataset.bipConf = 'ok';
+  }
+
   function entradaNfeBipEstadoLinha(tr) {
     const v = (tr && tr.dataset && String(tr.dataset.bipConf || '').trim()) || '';
     if (v === 'ok' || v === 'similar' || v === 'divergente' || v === 'dispensado') return v;
@@ -5456,6 +5507,7 @@
       hint.setAttribute('hidden', 'hidden');
     }
     rows.forEach((tr, i) => {
+      entradaNfeBipAutoOkLinhaSeCasadoEtapa2(tr);
       const est = entradaNfeBipEstadoLinha(tr);
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -6221,7 +6273,7 @@
         titulo: 'Ajuda rápida · Código de barras',
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
-          'Verde (Ok): bip bate com o EAN da linha/NF ou com o barras do cadastro daquele item — ou o produto já veio casado por EAN/bip na etapa 2. Código GM da NF não basta.',
+          'Verde (Ok): bip bate com o EAN da linha/NF ou com o barras do cadastro daquele item — ou o produto já veio casado por EAN/bip na etapa 2 (leitor no Mudar ou na busca). Código GM da NF não basta.',
           'Se não casar, abre a janela: toque na linha do produto certo. Código interno 230… vira opcional e o bipado passa a principal; senão o bipado entra como opcional.',
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
@@ -7902,12 +7954,8 @@
     const viaCat = String(d.catalogo_via || '').trim();
     if (viaCat === 'scan' || viaCat === 'modal' || viaCat === 'lookup') tr.dataset.nfeCatVia = viaCat;
     else delete tr.dataset.nfeCatVia;
-    const mtBip = String(d.match_tipo || '').trim().toLowerCase();
-    let bc = String(d.bip_conf != null ? d.bip_conf : '').trim();
+    const bc = entradaNfeBipConfInicialDaLinha(d);
     /* Casado por EAN/bip na etapa 2 → já confere barras (verde na etapa 3). */
-    if (!bc && (viaCat === 'scan' || mtBip === 'ean' || mtBip === 'ean_nfe' || mtBip === 'codigo_barras')) {
-      bc = 'ok';
-    }
     if (bc === 'ok' || bc === 'similar' || bc === 'divergente' || bc === 'dispensado') tr.dataset.bipConf = bc;
     else delete tr.dataset.bipConf;
     entradaNfeLoteAplicarDadosLinha(tr, d);
@@ -9640,9 +9688,7 @@
       }
       const p = entradaNfeEscolherProdutoDaBusca(arr, raw);
       if (!p || tr.dataset.nfeLinhaModo !== 'compact') return;
-      const compacto = raw.replace(/\s/g, '');
-      const via = /^\d{8,}$/.test(compacto) ? 'scan' : 'lookup';
-      entradaNfeAplicarProdutoNaLinha(tr, p, via);
+      entradaNfeAplicarProdutoNaLinha(tr, p, entradaNfeViaPorTermoBusca(raw, 'lookup', p));
     } finally {
       try {
         delete tr.dataset.nfeCompactBusy;
@@ -9740,7 +9786,8 @@
     function aplicarSugIx(ix) {
       const p = lastArr[ix];
       if (!p || tr.dataset.nfeLinhaModo !== 'compact') return;
-      entradaNfeAplicarProdutoNaLinha(tr, p, 'lookup');
+      const qSug = String(busca.value || '').trim();
+      entradaNfeAplicarProdutoNaLinha(tr, p, entradaNfeViaPorTermoBusca(qSug, 'lookup', p));
       entradaNfeLinhaCompactaFecharDd(tr);
     }
 
@@ -9966,7 +10013,7 @@
     entradaNfeAplicarVUnNaLinhaTr(tr, unit);
   }
 
-  /** via: 'scan' = Enter/bip em EAN·código na linha já expandida (confere OK); 'lookup' = busca na linha sentinela (fica pendente); 'modal' = escolha no popup. */
+  /** via: 'scan' = leitor (EAN 8+) na sentinela, Mudar ou campo EAN — Ok na etapa 3; 'lookup'/'modal' = nome/GM — fica PEND. */
   function entradaNfeAplicarProdutoNaLinha(tr, p, via) {
     if (!tr || !p) return;
     if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(p.id)) {
@@ -10109,7 +10156,8 @@
             document.getElementById('modal-prod').classList.add('hidden');
             trProdAlvo = null;
             modProdHlIdx = -1;
-            entradaNfeAplicarProdutoNaLinha(trSel, p, 'modal');
+            const qModal = String(document.getElementById('modal-prod-q')?.value || '').trim();
+            entradaNfeAplicarProdutoNaLinha(trSel, p, entradaNfeViaPorTermoBusca(qModal, 'modal', p));
           });
         }
         ul.appendChild(li);

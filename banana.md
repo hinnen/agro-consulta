@@ -608,6 +608,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
+- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2`):** leitor no **Mudar**/busca (8+ dígitos) passa a valer como Ok; casamento XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND.
 
 ### 4.8 Estoque Agro
 
@@ -1219,6 +1220,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — Entrada NF etapa 3 PEND (`NF-BIP-ET2`) · **v17.08 teste**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🧪 **teste** · v17.08 · aguarda Ctrl+F5 local |
+| **O quê** | Bip no **Mudar**/busca da etapa 2 (leitor 8+ dígitos) vira **Ok** na etapa 3. XML casado por EAN no Postgres (`ean_pg` / `ean_overlay`) também. Código do fornecedor sem bip continua PEND. |
+| **Arquivos** | `entrada_nota.html` · `scripts/verify_nf_bip_et3_path.py` |
+| **Prova** | `verify_nf_bip_et3_path.py` **48/48** |
+| **Você** | Ctrl+F5 `/entrada-nota/` · nota que já bipou na etapa 2: etapa 3 deve vir verde nos itens lidos pelo leitor. Itens só casados pelo código da NF ainda pedem bip. |
 
 ### WIP — Hidráulica giro alto × cadastro (17/08)
 
