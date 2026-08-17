@@ -608,7 +608,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
-- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2`):** leitor no **Mudar**/busca (8+ dígitos) passa a valer como Ok; casamento XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND.
+- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · v17.09):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 
 ### 4.8 Estoque Agro
 
@@ -1221,24 +1221,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — Entrada NF etapa 3 PEND (`NF-BIP-ET2`) · **v17.08 teste**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08b)
+
+> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6**  
+> **NÃO** merge `teste`→`producao` sem frase + senha.  
+> **Só no teste:** **NF-BIP-ET2** · **v17.09** · **sem migrate**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-BIP-ET2** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — Entrada NF bip etapa 2 (`NF-BIP-ET2` · **v17.09**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🧪 **teste** · v17.08 · aguarda Ctrl+F5 local |
-| **O quê** | Bip no **Mudar**/busca da etapa 2 (leitor 8+ dígitos) vira **Ok** na etapa 3. XML casado por EAN no Postgres (`ean_pg` / `ean_overlay`) também. Código do fornecedor sem bip continua PEND. |
-| **Arquivos** | `entrada_nota.html` · `scripts/verify_nf_bip_et3_path.py` |
-| **Prova** | `verify_nf_bip_et3_path.py` **48/48** |
-| **Você** | Ctrl+F5 `/entrada-nota/` · nota que já bipou na etapa 2: etapa 3 deve vir verde nos itens lidos pelo leitor. Itens só casados pelo código da NF ainda pedem bip. |
+| **Status** | ✅ **pronto para envio à produção** · teste **v17.09** |
+| **O quê** | Leitor no **Mudar**/busca da etapa 2 (8+ dígitos) vira **Ok** na etapa 3. XML casado por EAN no Postgres (`ean_pg` / `ean_overlay`) também. Código do fornecedor sem bip continua PEND. |
+| **Prova** | ET2 **68/68** · ET3 **48/48** · CAD **31/31** · custo NF **10/10** |
+| **Migrate** | **NÃO** |
+| **Arquivos** | `entrada_nota.html` · `scripts/verify_nf_bip_et2_path.py` |
+| **Você** | Ctrl+F5 `/entrada-nota/` · bipar no Mudar → etapa 3 verde. Loja só com frase + senha. |
 
 ### WIP — Hidráulica giro alto × cadastro (17/08)
 
 Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Excel na Área de trabalho: `hidraulica_giro_alto.xlsx` (aba **Colar na sua planilha**). **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
 
-### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**)
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**) · **superado — fila agora NF-BIP-ET2**
 
-> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg`  
-> **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
+> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg`
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

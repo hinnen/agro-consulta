@@ -8170,6 +8170,7 @@
     const linhas = [];
     rows.forEach((tr) => {
       if (tr.dataset.nfeLinhaModo === 'compact') return;
+      entradaNfeBipAutoOkLinhaSeCasadoEtapa2(tr);
       const desc = tr.querySelector('.in-desc').value.trim();
       const qtd = Number(tr.querySelector('.in-qtd').value) || 0;
       if (!desc && qtd === 0) return;
