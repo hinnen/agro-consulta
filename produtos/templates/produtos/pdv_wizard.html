@@ -1014,12 +1014,11 @@
     max-width: 98vw;
     max-height: 98vh;
   }
-  /* Pop-up edição: 16×9 dentro de ~90% da tela */
+  /* Pop-up edição cliente: cabe na tela sem scroll interno */
   .pdv-client-edit-panel {
-    width: min(90vw, calc(90vh * 16 / 9));
-    height: min(90vh, calc(90vw * 9 / 16));
-    max-width: 98vw;
-    max-height: 98vh;
+    width: min(96vw, 78rem);
+    max-height: 96dvh;
+    height: auto;
   }
   #pdv-step1-client-bar {
     flex-wrap: nowrap;
@@ -2870,13 +2869,14 @@
     font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.85rem);
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-label {
-    font-size: clamp(0.95rem, 0.5vw + 0.85rem, 1.15rem);
-    margin-bottom: 0.25rem;
+    font-size: clamp(0.68rem, 0.25vw + 0.62rem, 0.82rem);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.15rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-input {
-    min-height: 4.75rem;
-    padding: 0.9rem 1.05rem;
-    font-size: clamp(1.55rem, 0.75vw + 1.35rem, 2rem);
+    min-height: 2.55rem;
+    padding: 0.4rem 0.7rem;
+    font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.1rem);
     font-weight: 800;
     width: 100%;
     box-sizing: border-box;
@@ -2908,18 +2908,18 @@
     padding: 0.7rem 0.9rem;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-section-title {
-    font-size: clamp(1.05rem, 0.5vw + 0.95rem, 1.25rem);
-    margin: 0 0 0.35rem;
+    font-size: clamp(0.85rem, 0.3vw + 0.75rem, 1rem);
+    margin: 0.15rem 0 0;
     grid-column: 1 / -1;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-body {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-height: 0;
-    overflow-y: auto;
+    overflow: hidden;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-form {
     display: grid;
-    gap: 0.55rem 0.75rem;
+    gap: 0.35rem 0.55rem;
     grid-template-columns: 1fr;
     width: 100%;
   }
@@ -2930,10 +2930,11 @@
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-nome { grid-column: 1 / 4; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-ref { grid-column: 4 / 7; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-wa { grid-column: 1 / 3; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus { grid-column: 3 / 7; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-log { grid-column: 1 / 7; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-num { grid-column: 1 / 2; }
-    #pdv-quick-client-edit-overlay .pdv-client-edit-f-bai { grid-column: 2 / 3; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-cpf { grid-column: 3 / 5; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-plus { grid-column: 5 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-log { grid-column: 1 / 5; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-num { grid-column: 5 / 7; }
+    #pdv-quick-client-edit-overlay .pdv-client-edit-f-bai { grid-column: 1 / 3; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-cid { grid-column: 3 / 5; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-uf { grid-column: 5 / 6; }
     #pdv-quick-client-edit-overlay .pdv-client-edit-f-cep { grid-column: 6 / 7; }
@@ -2947,8 +2948,8 @@
     }
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-footer-btn {
-    min-height: 4.25rem;
-    font-size: clamp(1.15rem, 0.55vw + 1rem, 1.4rem);
+    min-height: 3.4rem;
+    font-size: clamp(0.95rem, 0.4vw + 0.85rem, 1.15rem);
     font-weight: 900;
   }
   #pdv-quick-client-edit-overlay .pdv-client-edit-field {
@@ -3790,7 +3791,7 @@
         </div>
         <button type="button" id="pdv-quick-client-edit-fechar" class="inline-flex min-h-[3.5rem] min-w-[3.5rem] shrink-0 items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-[clamp(1.75rem,0.9vw+1.4rem,2.25rem)] font-black leading-none text-slate-700 hover:border-red-300 hover:bg-red-50" title="Fechar · Esc" aria-label="Fechar edição">×</button>
       </header>
-      <div class="pdv-wizard-scroll pdv-client-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
+      <div class="pdv-client-edit-body px-3 py-2 sm:px-4 sm:py-2.5">
         <div class="pdv-client-edit-form">
           <label class="pdv-client-edit-field pdv-client-edit-f-nome">
             <span class="pdv-client-edit-label block font-black uppercase text-slate-500">Nome <span class="text-red-600">*</span></span>
@@ -3848,12 +3849,16 @@
           <p id="pdv-quick-client-edit-erro" class="hidden text-[clamp(1rem,0.45vw+0.9rem,1.2rem)] font-bold text-red-600" role="alert" style="grid-column:1/-1"></p>
         </div>
       </div>
-      <footer class="flex shrink-0 gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+      <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
+        <button type="button" id="pdv-quick-client-edit-excluir" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-red-300 bg-white text-red-700 hover:bg-red-50">Excluir</button>
+        <button type="button" id="pdv-quick-client-edit-vale" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-sky-300 bg-white text-sky-800 hover:bg-sky-50">Vale crédito</button>
+        <button type="button" id="pdv-quick-client-edit-hist" class="pdv-action-btn pdv-client-edit-footer-btn border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Histórico</button>
         <button type="button" id="pdv-quick-client-edit-cancelar" class="pdv-action-btn pdv-client-edit-footer-btn flex-1 border-2 border-slate-200 bg-white text-slate-700 hover:bg-slate-100">Cancelar</button>
         <button type="button" id="pdv-quick-client-edit-salvar" class="pdv-action-btn pdv-client-edit-footer-btn flex-1 bg-emerald-600 uppercase text-white shadow-md hover:bg-emerald-700">Salvar</button>
       </footer>
     </div>
   </div>
+{% include "produtos/includes/cliente_cadastro_acoes.html" %}
 
 <div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title">
   <div class="pdv-product-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document">
@@ -4416,6 +4421,7 @@
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/precos_forma_pagamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/cliente_cadastro_acoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/agro_picklist.js' %}?v=1"></script>
 <div id="pdv-cadastro-rapido-overlay" class="fixed inset-0 z-[139] hidden items-center justify-center bg-slate-950/55 p-1.5 backdrop-blur-[2px] sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-cadastro-rapido-title">

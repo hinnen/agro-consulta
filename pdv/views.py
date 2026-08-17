@@ -158,6 +158,25 @@ def pdv_home(request):
                 "apiPdvClienteEditarPattern": reverse("api_pdv_cliente_editar", args=[0]).replace(
                     "/0/", "/__pk__/"
                 ),
+                "apiClienteWhatsappDuplicado": reverse("api_cliente_whatsapp_duplicado"),
+                "apiClienteLimparWhatsappPattern": reverse(
+                    "api_cliente_limpar_whatsapp", args=[0]
+                ).replace("/0/", "/__pk__/"),
+                "apiClienteExclusaoPreviewPattern": reverse(
+                    "api_cliente_exclusao_preview", args=[0]
+                ).replace("/0/", "/__pk__/"),
+                "apiClienteTransferirSaldosPattern": reverse(
+                    "api_cliente_transferir_saldos", args=[0]
+                ).replace("/0/", "/__pk__/"),
+                "apiClienteExcluirPattern": reverse("api_cliente_excluir", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
+                "apiClienteValeManualPattern": reverse(
+                    "api_cliente_vale_credito_manual", args=[0]
+                ).replace("/0/", "/__pk__/"),
+                "apiClienteEventosPattern": reverse("api_cliente_eventos", args=[0]).replace(
+                    "/0/", "/__pk__/"
+                ),
                 "apiPdvGeocodePlus": reverse("api_pdv_geocode_plus"),
                 "apiListCustomers": reverse("api_list_customers"),
                 "apiPdvSalvarCheckoutDraft": reverse("api_pdv_salvar_checkout_draft"),

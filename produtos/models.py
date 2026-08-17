@@ -260,6 +260,53 @@ class ClienteAgro(models.Model):
         return self.nome
 
 
+class ClienteAgroEventoAgro(models.Model):
+    """Log de operações no cadastro do cliente (PIN + histórico)."""
+
+    class Tipo(models.TextChoices):
+        LIMPAR_WHATSAPP = "limpar_whatsapp", "Limpar telefone"
+        TRANSFERIR_SALDOS = "transferir_saldos", "Transferir cashback/vale"
+        EXCLUIR = "excluir", "Excluir cadastro"
+        VALE_MANUAL = "vale_manual", "Vale crédito manual"
+        VALE_PAGO = "vale_pago", "Vale crédito pago (caixa)"
+
+    tipo = models.CharField(max_length=24, choices=Tipo.choices, db_index=True)
+    cliente_agro = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_cadastro",
+    )
+    cliente_pk_snap = models.PositiveIntegerField(null=True, blank=True, db_index=True)
+    cliente_nome_snap = models.CharField(max_length=200, blank=True, default="")
+    destino_agro = models.ForeignKey(
+        ClienteAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_cadastro_destino",
+    )
+    destino_pk_snap = models.PositiveIntegerField(null=True, blank=True)
+    destino_nome_snap = models.CharField(max_length=200, blank=True, default="")
+    payload_json = models.JSONField(default=dict, blank=True)
+    usuario = models.CharField(max_length=150, blank=True, default="")
+    pin_operador = models.CharField(max_length=150, blank=True, default="")
+    origem_tela = models.CharField(max_length=32, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+        verbose_name = "Evento cadastro cliente"
+        verbose_name_plural = "Eventos cadastro cliente"
+        indexes = [
+            models.Index(fields=["cliente_pk_snap", "-criado_em"], name="cli_evt_pk_dt_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.cliente_nome_snap or self.pk}"
+
+
 class SessaoCaixa(models.Model):
     """Turno de caixa: abertura com fundo de troco; vendas podem ser vinculadas até o fechamento."""
 

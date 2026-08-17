@@ -90,6 +90,10 @@ def calcular_cashback_gerado_itens(
         pid = str(i.get("id") or "").strip()[:64]
         if not pid:
             continue
+        from produtos.cliente_operacoes_util import item_id_e_servico_pdv
+
+        if item_id_e_servico_pdv(pid):
+            continue
         qtd = _dec(i.get("qtd"))
         vu = _dec(i.get("preco"))
         if qtd <= 0 or vu < 0:
