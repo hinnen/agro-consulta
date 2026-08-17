@@ -178,14 +178,19 @@ def partir_despesas_centro_vila(
     selecionados: list[str] | set[str] | None,
 ) -> tuple[Decimal, Decimal]:
     """Marcado → desconta do envio ao Centro; o resto → do que ficou na Vila."""
-    sel = {_oficializar_plano(x).casefold() for x in (selecionados or []) if _norm_plano_nome(x)}
+    mapa = _mapa_grafia_plano_oficial()
+    sel = {
+        _oficializar_plano(x, mapa).casefold()
+        for x in (selecionados or [])
+        if _norm_plano_nome(x)
+    }
     centro = ZERO
     vila = ZERO
     for nome, val in (por_plano or {}).items():
         v = _dec(val)
         if v <= 0:
             continue
-        if _oficializar_plano(nome).casefold() in sel:
+        if _oficializar_plano(nome, mapa).casefold() in sel:
             centro += v
         else:
             vila += v

@@ -42,6 +42,7 @@ check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é
 check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repasse da Vila")
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
 check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX", "confirmar ontem")
+check("scripts/verify_repasse_planos_path.py", "VERIFY_PLANOS_OK", "planos_desconto_centro")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
