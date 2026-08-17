@@ -100,7 +100,14 @@ def main() -> int:
     ids_v = [m["id"] for m in sem_v]
     check("mp_vila" not in ids_v and "sicredi_1" in ids_v, "filtro vila remove so Point Vila")
 
-    check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}), "conferencia mp_vila auto")
+    check(
+        not pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila"}),
+        "conferencia mp_vila manual",
+    )
+    check(
+        pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_vila", "cobrarNoPointMp": True}),
+        "conferencia mp_vila com marcador",
+    )
     check("mp_vila" in _MAQUININHAS_MP_POINT_AUTO_VILA_IDS, "caixa_util ids vila")
 
     # Sem credencial Vila, a conta não liga (não dispara Point na loja até colar token+ID).

@@ -24,8 +24,6 @@ from produtos.mercado_pago_point import (
     MAQUININHAS_MP_POINT_AUTO_VILA,
     mp_point_conta_configurada,
 )
-from produtos.agro_fonte_config import agro_staging_readonly
-from produtos.nfce_config_util import nfce_config_resumo
 
 _DEFAULT_MAQUININHAS_CARTAO_PDV = [
     {
