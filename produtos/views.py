@@ -27344,13 +27344,17 @@ def _persistir_venda_agro(
     nfce_solicitada = False
     try:
         from produtos.nfce_config_util import nfce_emissao_solicitada
-        from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
 
         nfce_solicitada = bool(nfce_emissao_solicitada(data))
+    except Exception:
+        nfce_solicitada = False
+    try:
+        from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
+
         if payload_e_compra_vale_credito(data, raw_itens):
             nfce_solicitada = False
     except Exception:
-        nfce_solicitada = False
+        pass
 
     with transaction.atomic():
         v = VendaAgro.objects.create(

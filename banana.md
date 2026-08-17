@@ -1216,6 +1216,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
+
+> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward só desta branch.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.01** · `producao` @ **09a07d6** |
+| **Pacotes** | **REPASSE-PLANOS-CENTRO** + **PDV-CLI-CADASTRO** |
+| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** · cherry na loja: wizard/views auto-merge |
+| **Migrate** | **SIM** 0091 + 0092 (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** |
+| **Risco PDV** | venda normal **não** vira vale · NFC-e da loja **não** cai se o helper falhar · Planos só em `/repasse-vila/` |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 17/08 / deploy/lote-checklist-1708 para produção* + senha |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado — fila 17/08 em PREP**
+
 ### ✅ Deploy loja — LOTE B balança (PDV-BALANCA-GRANEL · **v16.82**)
 
 > **Status:** ✅ **enviado / Live v16.82** · producao @ *(push)* · base Live **v16.74** @ **1c41e50**
