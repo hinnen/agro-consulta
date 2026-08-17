@@ -1220,6 +1220,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP — Hidráulica giro alto × cadastro (17/08)
+
+Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Painel: canvas `hidraulica-giro-alto`. **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08)
 
 > **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6**  
@@ -1228,15 +1232,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio à produção** / teste **v17.04** | **SIM** 0091 |
-| 2 | **PDV-CLI-CADASTRO** | ✅ **pronto para envio à produção** | **SIM** 0092 |
+| 2 | **PDV-CLI-CADASTRO** | ✅ **pronto para envio à produção** / teste **v17.06** | **SIM** 0092 |
 
-### 📦 PACOTE PRONTO — Cadastro cliente PDV (`PDV-CLI-CADASTRO` · 17/08)
+### 📦 PACOTE PRONTO — Cadastro cliente PDV (`PDV-CLI-CADASTRO` · **v17.06**)
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** |
 | **O quê** | Editar cadastro sem scroll · popup telefone duplicado (abrir / limpar número com PIN) · excluir + transferir cashback/vale · vale crédito pagar (caixa) ou manual (sem caixa) · histórico PIN · mesma tela `/clientes/` |
-| **Prova** | `verify_pdv_cli_cadastro_path.py` **35/35** |
+| **Prova** | path **53/53** · deep **24/24** (ORM + API) |
+| **Feat** | `ab74687` |
 | **Migrate** | **SIM** 0092 (`ClienteAgroEventoAgro`) |
 | **Você** | Ctrl+F5 PDV · Editar cadastro · salvar telefone repetido · Vale crédito no painel de saldos · `/clientes/` editar |
 

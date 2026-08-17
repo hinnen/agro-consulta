@@ -12,13 +12,12 @@ from django.views.decorators.http import require_GET, require_POST
 from produtos.cliente_operacoes_util import (
     creditar_vale_manual,
     excluir_cliente,
-    info_whatsapp_duplicado,
     limpar_whatsapp_duplicado,
     listar_eventos_cliente,
     preview_exclusao,
     transferir_saldos,
 )
-from produtos.cliente_whatsapp_util import extrair_whatsapp_digits
+from produtos.cliente_whatsapp_util import extrair_whatsapp_digits, info_whatsapp_duplicado
 from produtos.models import ClienteAgro
 
 logger = logging.getLogger(__name__)
