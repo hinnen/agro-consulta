@@ -46,9 +46,9 @@ def payload_e_compra_vale_credito(data: dict | None, raw_itens=None) -> bool:
     for i in itens:
         if not isinstance(i, dict):
             continue
-        if item_id_e_servico_pdv(str(i.get("id") or i.get("produto_id") or "")):
-            if str(i.get("id") or "").strip().lower().startswith("vale"):
-                return True
+        pid = str(i.get("id") or i.get("produto_id") or "").strip().lower()
+        if pid == PID_VALE_CREDITO or pid.startswith("vale-credito"):
+            return True
     return False
 
 
@@ -169,10 +169,11 @@ def preview_exclusao(pk: int) -> dict:
         n_rh = 0
     bloqueio = ""
     if fiado.get("bloqueia"):
+        saldo_txt = f"{fiado['saldo']:.2f}".replace(".", ",")
         bloqueio = (
-            f"Este cliente tem fiado em aberto (R$ {fiado['saldo']:.2f}). "
+            f"Este cliente tem fiado em aberto (R$ {saldo_txt}). "
             "Quite o fiado antes de excluir."
-        ).replace(".", ",")
+        )
     elif n_rh:
         bloqueio = "Este cadastro está ligado a um funcionário no RH. Não dá para excluir."
     return {

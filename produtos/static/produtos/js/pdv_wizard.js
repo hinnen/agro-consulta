@@ -9531,6 +9531,10 @@
         }
         if (nfceOpts.semIdentificacao) payload.nfce_sem_identificacao = true;
         if (nfceUsuarioQuerEmitir(state)) payload.nfce_emitir = true;
+        if (isCompraValeCreditoAtiva(state)) {
+            payload.compra_vale_credito = true;
+            payload.nfce_emitir = false;
+        }
         if (nfceDeveSerSincrona(state)) {
             payload.nfce_sincrona = true;
             if (nfceOpts.semIdentificacao || nfceOpts.cpf) payload.nfce_escolha_explicita = true;

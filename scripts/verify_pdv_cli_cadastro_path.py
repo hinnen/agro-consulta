@@ -66,11 +66,19 @@ def test_arquivos() -> None:
     check("js_acoes", "AgroClienteCadastroAcoes" in js and "showDuplicado" in js)
     check("js_wizard_dup", "whatsapp_duplicado" in wizard or "duplicado" in wizard)
     check("js_wizard_vale", "hydrateFromCompraValeCredito" in wizard)
+    check("js_vale_sem_nfce", "payload.nfce_emitir = false" in wizard and "isCompraValeCreditoAtiva" in wizard)
+    check("js_vale_carrinho", "Limpe o carrinho" in wizard)
+    check("js_dup_pin", "showDuplicado" in js and "apiClienteLimparWhatsappPattern" in js and "Digite o PIN" in js)
+    check("js_excluir_pin", "apiClienteExcluirPattern" in js and "precisa_transferir" in js)
     check("state_vale", "compraValeCredito" in state and "hydrateFromCompraValeCredito" in state)
+    check("state_nfce_off", "nfceEmitir = false" in state)
     check("boot_urls", "apiClienteExcluirPattern" in pdv_views)
     check("persist_vale", "aplicar_vale_pago_apos_venda" in views)
+    check("nfce_skip_vale", "payload_e_compra_vale_credito" in views and "nfce_solicitada = False" in views)
+    check("erp_early_vale", "Vale crédito exige cliente cadastrado" in views)
     check("estoque_skip", "item_id_e_servico_pdv" in views)
     check("cashback_skip", "item_id_e_servico_pdv" in cash)
+    check("view_import_dup", "from produtos.cliente_whatsapp_util import extrair_whatsapp_digits, info_whatsapp_duplicado" in views_c)
     check("form_clientes", "cli-form-excluir" in form and "cliente_cadastro_acoes.js" in form)
     check("side_vale", "pdv-vale-credito-open" in _read("produtos/templates/produtos/partials/pdv/step_produtos.html"))
 
@@ -105,6 +113,33 @@ def test_util_django() -> None:
         "valor_vale",
         valor_compra_vale_credito([{"id": "vale-credito", "qtd": 1, "preco": "25,50"}]) == Decimal("25.50"),
     )
+    check(
+        "payload_nao_fiado",
+        not payload_e_compra_vale_credito({}, [{"id": "fiado-cobranca", "qtd": 1, "preco": 10}]),
+    )
+    check(
+        "payload_produto_id_vale",
+        payload_e_compra_vale_credito({}, [{"produto_id": "vale-credito", "qtd": 1, "preco": 10}]),
+    )
+    from produtos.views_cliente_cadastro import api_cliente_whatsapp_duplicado
+
+    check("views_c_importa", callable(api_cliente_whatsapp_duplicado))
+    from django.urls import reverse
+
+    for name in (
+        "api_cliente_whatsapp_duplicado",
+        "api_cliente_limpar_whatsapp",
+        "api_cliente_exclusao_preview",
+        "api_cliente_transferir_saldos",
+        "api_cliente_excluir",
+        "api_cliente_vale_credito_manual",
+        "api_cliente_eventos",
+    ):
+        try:
+            reverse(name, args=[1] if name != "api_cliente_whatsapp_duplicado" else [])
+            check(f"url_{name}", True)
+        except Exception as exc:
+            check(f"url_{name}", False, str(exc)[:120])
 
 
 def main() -> int:
