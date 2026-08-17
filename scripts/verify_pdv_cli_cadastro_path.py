@@ -75,6 +75,7 @@ def test_arquivos() -> None:
     check("boot_urls", "apiClienteExcluirPattern" in pdv_views)
     check("persist_vale", "aplicar_vale_pago_apos_venda" in views)
     check("nfce_skip_vale", "payload_e_compra_vale_credito" in views and "nfce_solicitada = False" in views)
+    check("nfce_vale_isolado", "from produtos.cliente_operacoes_util import payload_e_compra_vale_credito" in views)
     check("erp_early_vale", "Vale crédito exige cliente cadastrado" in views)
     check("estoque_skip", "item_id_e_servico_pdv" in views)
     check("cashback_skip", "item_id_e_servico_pdv" in cash)
@@ -120,6 +121,12 @@ def test_util_django() -> None:
     check(
         "payload_produto_id_vale",
         payload_e_compra_vale_credito({}, [{"produto_id": "vale-credito", "qtd": 1, "preco": 10}]),
+    )
+    check(
+        "payload_sku_normal",
+        not payload_e_compra_vale_credito(
+            {}, [{"id": "68a1b2c3d4e5f678901234ab", "qtd": 1, "preco": 19.9}]
+        ),
     )
     from produtos.views_cliente_cadastro import api_cliente_whatsapp_duplicado
 

@@ -1222,25 +1222,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### WIP — Hidráulica giro alto × cadastro (17/08)
 
-Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Painel: canvas `hidraulica-giro-alto`. **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
+Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Excel na Área de trabalho: `hidraulica_giro_alto.xlsx` (aba **Colar na sua planilha**). **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08) · 🚀 PREP aguarda senha
 
 > **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6**  
-> **Pronto envio:** 2 pacotes · **NÃO** merge `teste`→`producao`.
+> **PREP:** branch `deploy/lote-checklist-1708` · **NÃO** merge `teste`→`producao` · **não sobe** com loja aberta.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-PLANOS-CENTRO** | ✅ **pronto para envio à produção** / teste **v17.04** | **SIM** 0091 |
-| 2 | **PDV-CLI-CADASTRO** | ✅ **pronto para envio à produção** / teste **v17.06** | **SIM** 0092 |
+| 1 | **REPASSE-PLANOS-CENTRO** | 🚀 **PREP pronto — aguarda senha** / teste **v17.04** | **SIM** 0091 |
+| 2 | **PDV-CLI-CADASTRO** | 🚀 **PREP pronto — aguarda senha** / teste **v17.07** | **SIM** 0092 |
 
-### 📦 PACOTE PRONTO — Cadastro cliente PDV (`PDV-CLI-CADASTRO` · **v17.06**)
+### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | 🚀 **PREP pronto — aguarda senha** (lojas abertas — **não** push `producao`) |
+| **Pacotes** | REPASSE-PLANOS-CENTRO + PDV-CLI-CADASTRO |
+| **Cherry origem** | `f45576d` → `d3d5c78` → `fa127bf` → `ab74687` → `054b396` + NFC-e isolado |
+| **Branch loja (ainda não FF)** | `deploy/lote-checklist-1708` @ **08e74d6** |
+| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** |
+| **Migrate** | **SIM** 0091 + 0092 (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** |
+| **Risco PDV** | venda normal não vira vale · NFC-e da loja isolada · Planos só no repasse |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 17/08 / deploy/lote-checklist-1708 para produção* + senha |
+
+### 📦 PACOTE PRONTO — Cadastro cliente PDV (`PDV-CLI-CADASTRO` · **v17.07**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
 | **O quê** | Editar cadastro sem scroll · popup telefone duplicado (abrir / limpar número com PIN) · excluir + transferir cashback/vale · vale crédito pagar (caixa) ou manual (sem caixa) · histórico PIN · mesma tela `/clientes/` |
-| **Prova** | path **53/53** · deep **24/24** (ORM + API) |
+| **Prova** | path **55/55** · deep **24/24** (ORM + API) |
 | **Feat** | `ab74687` |
 | **Migrate** | **SIM** 0092 (`ClienteAgroEventoAgro`) |
 | **Você** | Ctrl+F5 PDV · Editar cadastro · salvar telefone repetido · Vale crédito no painel de saldos · `/clientes/` editar |
@@ -1249,7 +1264,7 @@ Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** n
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
 | **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · sem marca sai do que ficou na Vila · Postgres |
 | **Prova** | `verify_repasse_planos_path.py` **49/49** · path **60/60** · deep **73/73** |
 | **Cherry** | `f45576d` (feat) · `d3d5c78` (prova) |
