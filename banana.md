@@ -609,6 +609,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
+- **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py`.
 
 ### 4.8 Estoque Agro
 
@@ -1220,6 +1221,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Entrada NF etapa 3 rápida (`NF-BIP-ET3-SNAP` · **v17.10**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ pronto no **teste** · **ainda não Live** · loja **v17.09** |
+| **O quê** | Bip na etapa 3 não pergunta o cadastro um por um. Barra Conferidos, item pisca, som curto, campo do leitor em cima no celular. |
+| **Prova** | ET3 **61/61** · ET2 **68/68** |
+| **Migrate** | **NÃO** |
+| **Arquivos** | `entrada_nota.html` · `views.py` (lote conferir-codigo) · `verify_nf_bip_et3_path.py` |
+| **Você** | Local: Ctrl+F5 `/entrada-nota/` etapa 3 · bipar e ver Ok na hora. Loja só com frase + senha. |
 
 ### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
 

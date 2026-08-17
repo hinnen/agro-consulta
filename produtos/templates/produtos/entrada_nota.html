@@ -830,6 +830,45 @@
       white-space: normal;
       word-break: break-word;
     }
+    #nfe-bip-linha-list {
+      max-height: min(52vh, 28rem);
+      overflow-y: auto;
+    }
+    @keyframes nfe-bip-flash-ok {
+      0% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0.65); transform: scale(1); }
+      35% { box-shadow: 0 0 0 0.55rem rgb(16 185 129 / 0.12); transform: scale(1.03); }
+      100% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0); transform: scale(1); }
+    }
+    @keyframes nfe-bip-flash-miss {
+      0% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0.55); }
+      40% { box-shadow: 0 0 0 0.45rem rgb(245 158 11 / 0.12); }
+      100% { box-shadow: 0 0 0 0 rgb(245 158 11 / 0); }
+    }
+    .nfe-bip-flash-ok { animation: nfe-bip-flash-ok 0.55s ease-out; }
+    .nfe-bip-flash-miss { animation: nfe-bip-flash-miss 0.5s ease-out; }
+    #nfe-bip-cod.nfe-bip-cod-ok {
+      border-color: rgb(16 185 129);
+      background: rgb(236 253 245);
+    }
+    #nfe-bip-cod.nfe-bip-cod-miss {
+      border-color: rgb(245 158 11);
+      background: rgb(255 251 235);
+    }
+    #nfe-bip-msg.nfe-bip-msg-ok {
+      background: rgb(236 253 245);
+      border: 2px solid rgb(52 211 153);
+      color: rgb(6 78 59);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.75rem;
+      font-size: 1.05rem;
+    }
+    #nfe-bip-msg.nfe-bip-msg-miss {
+      background: rgb(255 251 235);
+      border: 2px solid rgb(252 211 77);
+      color: rgb(120 53 15);
+      border-radius: 0.75rem;
+      padding: 0.55rem 0.75rem;
+    }
     .nfe-bip-vinculo-cat {
       min-width: 0;
       font-size: 0.84rem;
@@ -1512,14 +1551,23 @@
           <h2 class="text-sm font-black uppercase text-violet-950 tracking-tight">3 · Código de barras</h2>
           <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-violet-400 bg-white text-sm font-black text-violet-900 hover:bg-violet-50" data-help-w="3" title="Ajuda">?</button>
         </div>
+        <div id="nfe-bip-progress" class="rounded-xl border-2 border-violet-200 bg-white px-3 py-2">
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="text-[10px] font-black uppercase tracking-wide text-violet-950">Conferidos</span>
+            <span id="nfe-bip-progress-txt" class="text-sm font-black tabular-nums text-violet-950">0 / 0</span>
+          </div>
+          <div class="mt-1.5 h-2.5 rounded-full bg-violet-100 overflow-hidden" aria-hidden="true">
+            <div id="nfe-bip-progress-bar" class="h-full rounded-full bg-emerald-500 transition-[width] duration-200" style="width:0%"></div>
+          </div>
+        </div>
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-          <div class="lg:col-span-5 space-y-1 min-w-0">
+          <div class="lg:col-span-5 space-y-1 min-w-0 order-2 lg:order-1">
             <label class="block"><span class="sr-only">Selecionar linha</span>
               <div id="nfe-bip-linha-list" class="mt-1 w-full rounded-xl border-2 border-violet-200 bg-white p-1 space-y-1" role="listbox" aria-label="Produtos da nota para conferência de código"></div>
             </label>
             <p id="nfe-bip-linha-hint" class="text-[10px] font-bold text-violet-950/90 leading-snug" hidden></p>
           </div>
-          <div class="lg:col-span-7 space-y-3 min-w-0">
+          <div class="lg:col-span-7 space-y-3 min-w-0 order-1 lg:order-2">
             <label class="block"><span class="text-[10px] font-black uppercase text-violet-950">Código lido pelo leitor *</span>
               <input type="text" id="nfe-bip-cod" autocomplete="off" class="mt-1 w-full min-h-[54px] rounded-xl border-2 border-violet-300 px-3 text-lg font-mono font-bold bg-white shadow-inner focus:border-indigo-500 outline-none" placeholder="EAN ou código…" inputmode="numeric">
             </label>
@@ -1538,7 +1586,7 @@
             </div>
           </div>
         </div>
-        <p id="nfe-bip-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status"></p>
+        <p id="nfe-bip-msg" class="text-sm font-bold text-slate-700 min-h-[1.25rem]" role="status" aria-live="polite"></p>
       </div>
       </div>
 
@@ -2803,6 +2851,9 @@
   const entradaNfeBipDraftPorLinha = {};
   /** Estado do modal «vincular código similar». */
   let entradaNfeBipVinculoPendente = null;
+  let entradaNfeBipBusy = false;
+  let entradaNfeBipPrefetchP = null;
+  let entradaNfeBipAudioCtx = null;
 
   const ENTRADA_STATUS_PILL = {
     com_pendencias: 'rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-wide inline-flex shrink-0 bg-amber-100 text-amber-950 border-2 border-amber-400',
@@ -4532,10 +4583,12 @@
     if (step === 3) {
       entradaNfeBipRebuildSelect();
       entradaNfeBipAplicarDraftLinhaAtual();
+      void entradaNfeBipPrefetchCodigosCadastro();
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           entradaNfeBipRebuildSelect();
           entradaNfeBipAplicarDraftLinhaAtual();
+          entradaNfeBipFocusCod();
         });
       });
     }
@@ -5310,6 +5363,10 @@
       const arr = JSON.parse((tr && tr.dataset && tr.dataset.bipSimilarCodigos) || '[]');
       if (Array.isArray(arr)) arr.forEach(push);
     } catch (_) {}
+    try {
+      const cad = JSON.parse((tr && tr.dataset && tr.dataset.bipCadastroCodigos) || '[]');
+      if (Array.isArray(cad)) cad.forEach(push);
+    } catch (_) {}
     return out;
   }
 
@@ -5384,6 +5441,73 @@
     tr.dataset.bipSimilarCodigos = JSON.stringify(arr.slice(0, 20));
   }
 
+  function entradaNfeBipMesclarCodigosCadastro(tr, lista) {
+    if (!tr) return;
+    let arr = [];
+    try {
+      arr = JSON.parse(tr.dataset.bipCadastroCodigos || '[]');
+      if (!Array.isArray(arr)) arr = [];
+    } catch (_) {
+      arr = [];
+    }
+    const seen = new Set();
+    const out = [];
+    const push = (raw) => {
+      const dig = entradaNfeCatalogOnlyDigits(String(raw || ''));
+      if (dig.length < 8 || dig.length > 20) return;
+      if (seen.has(dig)) return;
+      seen.add(dig);
+      out.push(dig);
+    };
+    arr.forEach(push);
+    (lista || []).forEach(push);
+    tr.dataset.bipCadastroCodigos = JSON.stringify(out.slice(0, 30));
+    tr.dataset.bipCadastroPronto = '1';
+  }
+
+  function entradaNfeBipAplicarMapaCadastro(mapa) {
+    if (!mapa || typeof mapa !== 'object') return;
+    entradaNfeBipLinhasConferencia().forEach((tr) => {
+      const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (!pid) return;
+      const item = mapa[pid];
+      if (!item) return;
+      entradaNfeBipMesclarCodigosCadastro(tr, item.codigos || []);
+    });
+  }
+
+  async function entradaNfeBipPrefetchCodigosCadastro() {
+    const rows = entradaNfeBipLinhasConferencia();
+    const ids = [];
+    rows.forEach((tr) => {
+      const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (pid && tr.dataset.bipCadastroPronto !== '1') ids.push(pid);
+    });
+    if (!ids.length) return;
+    if (entradaNfeBipPrefetchP) return entradaNfeBipPrefetchP;
+    entradaNfeBipPrefetchP = (async () => {
+      try {
+        const r = await fetch(URL_CONF_COD, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ produto_ids: ids }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j && j.ok && j.mapa) entradaNfeBipAplicarMapaCadastro(j.mapa);
+        rows.forEach((tr) => {
+          const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+          if (pid && ids.indexOf(pid) >= 0) tr.dataset.bipCadastroPronto = '1';
+        });
+      } catch (_) {}
+      entradaNfeBipPrefetchP = null;
+    })();
+    return entradaNfeBipPrefetchP;
+  }
+
   /**
    * Grava no cadastro o EAN bipado na etapa 3 (regra B):
    * principal 230… → bip vira principal e 230… vai a opcionais; senão só opcional.
@@ -5413,6 +5537,7 @@
       if (lista.length > 1) {
         body.codigos_barras_opcionais_adicionar = lista.slice(1);
       }
+      entradaNfeBipMesclarCodigosCadastro(tr, lista);
       const r = await fetch(URL_OVERLAY_SALVAR, {
         method: 'POST',
         credentials: 'same-origin',
@@ -5427,26 +5552,48 @@
     const c0 = String(codigo || '').trim();
     if (!c0) return null;
     const cAlt = String(codigoAlt || '').trim();
-    for (let i = 0; i < rows.length; i++) {
-      const tr = rows[i];
-      const pid = tr.querySelector('.in-prod-id')?.value?.trim();
-      if (!pid) continue;
-      try {
-        const r = await fetch(URL_CONF_COD, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({ produto_id: pid, codigo: c0, codigo_alt: cAlt }),
-        });
-        const j = await r.json();
-        if (j && j.ok && j.bate) return { tr, ix: i, payload: j };
-      } catch (_) {
-        // tenta próxima linha
+    const ids = [];
+    rows.forEach((tr) => {
+      const pid = String(tr.querySelector('.in-prod-id')?.value || '').trim();
+      if (pid) ids.push(pid);
+    });
+    if (!ids.length) return null;
+    try {
+      const r = await fetch(URL_CONF_COD, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({ produto_ids: ids, codigo: c0, codigo_alt: cAlt }),
+      });
+      const j = await r.json();
+      if (j && j.ok && j.mapa) entradaNfeBipAplicarMapaCadastro(j.mapa);
+      const locApos = entradaNfeBipBuscarMatchLocalNota(rows, c0, cAlt);
+      if (locApos) return locApos;
+      const hits = Array.isArray(j && j.hits) ? j.hits : [];
+      const ordemPid = hits.length
+        ? hits.map((h) => String(h.produto_id || ''))
+        : (j && j.bate && j.produto_id ? [String(j.produto_id)] : []);
+      if (!ordemPid.length) return null;
+      const pendFirst = rows.map((_, i) => i).sort((a, b) => {
+        const pa = entradaNfeBipEstadoLinha(rows[a]) === 'pendente' ? 0 : 1;
+        const pb = entradaNfeBipEstadoLinha(rows[b]) === 'pendente' ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return a - b;
+      });
+      for (const i of pendFirst) {
+        const pid = String(rows[i].querySelector('.in-prod-id')?.value || '').trim();
+        if (!pid || ordemPid.indexOf(pid) < 0) continue;
+        const hit = hits.find((h) => String(h.produto_id || '') === pid) || {};
+        return {
+          tr: rows[i],
+          ix: i,
+          payload: { nome: hit.nome || (j && j.nome) || '', bate: true },
+        };
       }
-    }
+    } catch (_) {}
     return null;
   }
 
@@ -5525,9 +5672,87 @@
 
   function entradaNfeBipAtualizarProgress() {
     const el = document.getElementById('nfe-bip-progress');
+    const txt = document.getElementById('nfe-bip-progress-txt');
+    const bar = document.getElementById('nfe-bip-progress-bar');
+    const rows = entradaNfeBipLinhasConferencia();
+    const n = rows.length;
+    let ok = 0;
+    rows.forEach((tr) => {
+      const est = entradaNfeBipEstadoLinha(tr);
+      if (est === 'ok' || est === 'similar' || est === 'dispensado') ok += 1;
+    });
+    if (el) el.hidden = n === 0;
+    if (txt) txt.textContent = n ? `${ok} / ${n}` : '0 / 0';
+    if (bar) bar.style.width = n ? `${Math.round((ok / n) * 100)}%` : '0%';
+  }
+
+  function entradaNfeBipSom(tipo) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!entradaNfeBipAudioCtx) entradaNfeBipAudioCtx = new AC();
+      const ctx = entradaNfeBipAudioCtx;
+      if (ctx.state === 'suspended') void ctx.resume();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const t0 = ctx.currentTime;
+      if (tipo === 'ok') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(880, t0);
+        osc.frequency.exponentialRampToValueAtTime(1320, t0 + 0.07);
+        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.1, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.11);
+        osc.start(t0);
+        osc.stop(t0 + 0.12);
+      } else {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, t0);
+        gain.gain.setValueAtTime(0.001, t0);
+        gain.gain.exponentialRampToValueAtTime(0.07, t0 + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.14);
+        osc.start(t0);
+        osc.stop(t0 + 0.15);
+      }
+    } catch (_) {}
+  }
+
+  function entradaNfeBipFlashLinha(ix, ok) {
+    const box = document.getElementById('nfe-bip-linha-list');
+    const btn = box && box.children[ix];
+    if (!btn) return;
+    btn.classList.remove('nfe-bip-flash-ok', 'nfe-bip-flash-miss');
+    void btn.offsetWidth;
+    btn.classList.add(ok ? 'nfe-bip-flash-ok' : 'nfe-bip-flash-miss');
+    try { btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+  }
+
+  function entradaNfeBipFeedbackCampo(ok) {
+    const c = document.getElementById('nfe-bip-cod');
+    if (!c) return;
+    c.classList.remove('nfe-bip-cod-ok', 'nfe-bip-cod-miss');
+    void c.offsetWidth;
+    c.classList.add(ok ? 'nfe-bip-cod-ok' : 'nfe-bip-cod-miss');
+    setTimeout(() => {
+      c.classList.remove('nfe-bip-cod-ok', 'nfe-bip-cod-miss');
+    }, 700);
+  }
+
+  function entradaNfeBipMsgSet(el, texto, tipo) {
     if (!el) return;
-    el.hidden = true;
-    el.textContent = '';
+    el.textContent = texto || '';
+    el.classList.remove(
+      'text-emerald-800', 'text-red-700', 'text-violet-900', 'text-amber-800',
+      'nfe-bip-msg-ok', 'nfe-bip-msg-miss',
+    );
+    if (!texto) return;
+    if (tipo === 'ok') {
+      el.classList.add('nfe-bip-msg-ok', 'text-emerald-800');
+    } else {
+      el.classList.add('nfe-bip-msg-miss', 'text-amber-800');
+    }
   }
 
   function entradaNfeBipLimparCamposBip() {
@@ -5598,11 +5823,9 @@
         entradaNfeBipRebuildSelect();
         entradaNfeBipAplicarDraftLinhaAtual();
         entradaNfeCodigosConferenciaAlterada();
-        const msgEl = document.getElementById('nfe-bip-msg');
-        if (msgEl) {
-          msgEl.textContent = `${i + 1}º item vinculado como similar/opcional.`;
-          msgEl.classList.add('text-amber-800');
-        }
+        entradaNfeBipFlashLinha(i, true);
+        entradaNfeBipSom('ok');
+        entradaNfeBipMsgSet(document.getElementById('nfe-bip-msg'), `${i + 1}º item vinculado como similar/opcional.`, 'miss');
         entradaNfeBipAvancarSeEtapaCompleta();
         entradaNfeBipFocusCod();
       };
@@ -5648,20 +5871,19 @@
   }
 
   async function entradaNfeBipVerificar() {
+    if (entradaNfeBipBusy) return;
     const msg = document.getElementById('nfe-bip-msg');
-    if (msg) {
-      msg.textContent = '';
-      msg.classList.remove('text-emerald-800', 'text-red-700', 'text-violet-900', 'text-amber-800');
-    }
+    entradaNfeBipMsgSet(msg, '', 'ok');
     entradaNfeBipSalvarDraftAtual();
-    const tb = document.getElementById('tbody-itens');
     const rows = entradaNfeBipLinhasConferencia();
     if (!rows.length) {
-      if (msg) {
-        msg.textContent = entradaNfeTemLinhaCompactaDigitacaoPendente()
+      entradaNfeBipMsgSet(
+        msg,
+        entradaNfeTemLinhaCompactaDigitacaoPendente()
           ? 'Apague ou conclua a busca na linha de novo item antes da conferência.'
-          : 'Adicione linhas na grade primeiro.';
-      }
+          : 'Adicione linhas na grade primeiro.',
+        'miss',
+      );
       return;
     }
     const ix = Math.min(Math.max(0, entradaNfeBipLinhaIdx), rows.length - 1);
@@ -5672,12 +5894,12 @@
     const codAux = '';
     const ign = document.getElementById('nfe-bip-ignorar')?.checked;
     if (!ign && !String(codMain).trim()) {
-      if (msg) msg.textContent = 'Informe o código lido pelo leitor (principal).';
+      entradaNfeBipMsgSet(msg, 'Informe o código lido pelo leitor (principal).', 'miss');
       return;
     }
     if (ign) {
       if (!entradaNfeProdutoIdErpValido(trSel.querySelector('.in-prod-id')?.value)) {
-        if (msg) msg.textContent = 'Escolha na lista um item já casado no catálogo (botão Mudar) antes de dispensar sem código.';
+        entradaNfeBipMsgSet(msg, 'Escolha na lista um item já casado no catálogo (botão Mudar) antes de dispensar sem código.', 'miss');
         return;
       }
       trSel.dataset.bipConf = 'dispensado';
@@ -5685,49 +5907,47 @@
       entradaNfeBipLimparCamposBip();
       entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
       entradaNfeBipRebuildSelect();
+      entradaNfeBipFlashLinha(entradaNfeBipLinhaIdx, true);
+      entradaNfeBipSom('ok');
       entradaNfeCodigosConferenciaAlterada();
-      if (msg) {
-        msg.textContent = 'Sem código na embalagem — linha marcada como dispensada.';
-        msg.classList.add('text-amber-800');
-      }
+      entradaNfeBipMsgSet(msg, 'Sem código na embalagem — linha marcada como dispensada.', 'miss');
       entradaNfeBipAvancarSeEtapaCompleta();
       entradaNfeBipFocusCod();
       return;
     }
-    const match = await entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux);
-    if (match && match.tr) {
-      match.tr.dataset.bipConf = 'ok';
-      entradaNfeBipAdicionarCodigoSimilar(match.tr, codMain);
-      entradaNfeBipAdicionarCodigoSimilar(match.tr, codAux);
-      void entradaNfeLembrarBarrasOpcionaisAposBip(match.tr, codMain, codAux);
-      entradaNfeBipLinhaIdx = match.ix;
-      let det = '';
-      if (match.payload?.local) {
-        det = ' (bate com código de barras da linha / NF)';
-      } else if (match.payload?.bate) {
-        det = ' (bate com código de barras do cadastro)';
-      }
-      entradaNfeBipRebuildSelect();
-      entradaNfeBipLimparCamposBip();
-      entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
-      entradaNfeBipAplicarDraftLinhaAtual();
-      entradaNfeCodigosConferenciaAlterada();
-      if (msg) {
+    entradaNfeBipBusy = true;
+    entradaNfeBipLimparCamposBip();
+    entradaNfeBipDraftPorLinha[String(entradaNfeBipLinhaIdx)] = { cod: '', codAlt: '', ignorar: false };
+    try {
+      const match = await entradaNfeBipBuscarMatchCombinado(rows, codMain, codAux);
+      if (match && match.tr) {
+        match.tr.dataset.bipConf = 'ok';
+        entradaNfeBipAdicionarCodigoSimilar(match.tr, codMain);
+        entradaNfeBipAdicionarCodigoSimilar(match.tr, codAux);
+        void entradaNfeLembrarBarrasOpcionaisAposBip(match.tr, codMain, codAux);
+        entradaNfeBipLinhaIdx = match.ix;
         const nm = (match.payload && match.payload.nome) ? String(match.payload.nome).slice(0, 140) : '';
-        msg.textContent = nm
-          ? `Linha ${match.ix + 1}${det}: ${nm}`
-          : `Confirmado na linha ${match.ix + 1}${det}.`;
-        msg.classList.add('text-emerald-800');
+        const descLinha = (match.tr.querySelector('.in-desc')?.value || '').trim().slice(0, 80);
+        const titulo = nm || descLinha || `item ${match.ix + 1}`;
+        entradaNfeBipRebuildSelect();
+        entradaNfeBipAplicarDraftLinhaAtual();
+        entradaNfeCodigosConferenciaAlterada();
+        entradaNfeBipFlashLinha(match.ix, true);
+        entradaNfeBipFeedbackCampo(true);
+        entradaNfeBipSom('ok');
+        entradaNfeBipMsgSet(msg, `Ok · linha ${match.ix + 1}: ${titulo}`, 'ok');
+        entradaNfeBipAvancarSeEtapaCompleta();
+        entradaNfeBipFocusCod();
+        return;
       }
-      entradaNfeBipAvancarSeEtapaCompleta();
+      entradaNfeBipFeedbackCampo(false);
+      entradaNfeBipSom('erro');
+      entradaNfeBipMsgSet(msg, 'Não ficou igual na lista da NF. Na janela, toque na linha do produto que você acabou de bipar.', 'miss');
+      entradaNfeBipModalVinculoAbrir(rows, codMain, codAux);
+    } finally {
+      entradaNfeBipBusy = false;
       entradaNfeBipFocusCod();
-      return;
     }
-    if (msg) {
-      msg.textContent = 'Não ficou igual na lista da NF. Na janela, toque na linha do produto que você acabou de bipar.';
-      msg.classList.add('text-amber-800');
-    }
-    entradaNfeBipModalVinculoAbrir(rows, codMain, codAux);
   }
 
   function entradaNfeLoteDataParaInput(iso) {
@@ -6274,6 +6494,7 @@
         resumo: 'Bipe no campo principal; o sistema tenta casar automaticamente.',
         itens: [
           'Verde (Ok): bip bate com o EAN da linha/NF ou com o barras do cadastro daquele item — ou o produto já veio casado por EAN/bip na etapa 2 (leitor no Mudar ou na busca). Código GM da NF não basta.',
+          'A barra «Conferidos» e o som curto confirmam o bip. A lista sobe até o item que bateu.',
           'Se não casar, abre a janela: toque na linha do produto certo. Código interno 230… vira opcional e o bipado passa a principal; senão o bipado entra como opcional.',
           'Cores nos botões da lista: verde = bateu; âmbar = similar/opcional; cinza = pendente.',
           '“Sem código na embalagem” dispensa apenas a linha selecionada.',
@@ -10067,6 +10288,9 @@
       tr.querySelector('.in-cprod').value = String(p.codigo_nfe || p.codigo || '').trim();
     }
     if (p.codigo_barras) tr.querySelector('.in-ean').value = String(p.codigo_barras).replace(/\D/g, '').slice(0, 14);
+    const cadCodes = [p.codigo_barras];
+    if (Array.isArray(p.index_codigos)) cadCodes.push(...p.index_codigos);
+    entradaNfeBipMesclarCodigosCadastro(tr, cadCodes);
     const elDesc = tr.querySelector('.in-desc');
     if (!entradaNfeStrCampo(elDesc.value)) elDesc.value = nome;
     if (via === 'scan') {

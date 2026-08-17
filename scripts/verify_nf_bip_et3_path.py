@@ -53,7 +53,7 @@ def _equiv(a: str, b: str) -> bool:
     return False
 
 
-def _candidatos_linha(ean: str, ean_orig: str, similares: list[str] | None) -> list[str]:
+def _candidatos_linha(ean: str, ean_orig: str, similares: list[str] | None, cadastro: list[str] | None = None) -> list[str]:
     """Espelho de entradaNfeBipCodigosCandidatosLinha (JS)."""
     out: list[str] = []
     seen: set[str] = set()
@@ -72,6 +72,8 @@ def _candidatos_linha(ean: str, ean_orig: str, similares: list[str] | None) -> l
     push(ean)
     push(ean_orig)
     for x in similares or []:
+        push(x)
+    for x in cadastro or []:
         push(x)
     return out
 
@@ -95,6 +97,7 @@ def _match_local(
             str(ln.get("ean") or ""),
             str(ln.get("ean_orig") or ""),
             list(ln.get("similares") or []),
+            list(ln.get("cadastro") or []),
         )
         if not cands:
             continue
@@ -140,6 +143,15 @@ def main() -> None:
     check("ui_combinado_chama_erp", "entradaNfeBipBuscarMatchNaNota(rows, codMain, codAux)" in html)
     check("ui_url_conf_cod", "api_entrada_nota_conferir_codigo" in html or "URL_CONF_COD" in html)
     check("ui_help_cadastro", "barras do cadastro" in html)
+    check("ui_prefetch", "function entradaNfeBipPrefetchCodigosCadastro" in html)
+    check("ui_cadastro_candidato", "bipCadastroCodigos" in html)
+    check("ui_progress_txt", "nfe-bip-progress-txt" in html)
+    check("ui_flash_ok", "nfe-bip-flash-ok" in html)
+    check("ui_som", "function entradaNfeBipSom" in html)
+    fn_erp = html[html.find("async function entradaNfeBipBuscarMatchNaNota") :]
+    fn_erp = fn_erp[: fn_erp.find("function entradaNfeBipLimparDraftEBipIdx")]
+    check("ui_lote_produto_ids", "produto_ids" in fn_erp)
+    check("ui_sem_fetch_por_linha", "for (let i = 0; i < rows.length; i++)" not in fn_erp)
 
     print("== Markers API ==")
     api = views[views.find("def api_entrada_nota_conferir_codigo") :]
@@ -149,6 +161,8 @@ def main() -> None:
     check("api_overlay_ean_emb", "entrada_nfe_ean_embalagem" in api)
     check("api_mongo_fallback_overlay", "if not bate:" in api and "_bate_overlay_agro" in api)
     check("api_nao_gm_docstring", "não GM" in api.lower() or "nao GM" in api.lower() or "não GM" in api)
+    check("api_lote_fn", "def entrada_nfe_mapa_codigos_barras_lote" in views)
+    check("api_lote_branch", "produto_ids" in api and "mapa" in api)
 
     print("== Unit equivalência / match local (caso Renan NF 2255) ==")
     ean_papagaio = "7896194700818"
@@ -204,6 +218,20 @@ def main() -> None:
     ]
     m_c = _match_local(linhas_c, ean_papagaio)
     check("local_caixa_diff_falha", m_c is None, str(m_c))
+
+    # Caso C2: EAN só no cadastro (prefetch) → match local sem round-trip por linha
+    linhas_c2 = [
+        {
+            "produto_id": "p1",
+            "ean": ean_caixa,
+            "ean_orig": ean_caixa,
+            "cadastro": [ean_papagaio],
+            "bip_conf": "pendente",
+            "nome": "PAPAGAIO",
+        }
+    ]
+    m_c2 = _match_local(linhas_c2, ean_papagaio)
+    check("local_via_cadastro", bool(m_c2 and m_c2["ix"] == 0), str(m_c2))
 
     # Caso D: sem produto_id não casa
     linhas_d = [{"produto_id": "", "ean": ean_papagaio, "bip_conf": "pendente"}]
@@ -339,6 +367,40 @@ def main() -> None:
 
     j6 = post_conf2("pid-inexistente-xyz", ean_papagaio)
     check("api_404_pid", j6.get("status") == 404, str(j6))
+
+    def post_lote(body: dict) -> dict:
+        req = rf.post(
+            "/api/entrada-nota/conferir-codigo/",
+            data=json.dumps(body),
+            content_type="application/json",
+        )
+        req.user = user
+        with patch("produtos.views.obter_conexao_mongo", return_value=(None, None)):
+            r = api_entrada_nota_conferir_codigo(req)
+        try:
+            parsed = json.loads(r.content.decode("utf-8"))
+        except Exception:
+            parsed = {"raw": r.content.decode("utf-8", "replace")[:240]}
+        return {"status": r.status_code, **parsed}
+
+    j7 = post_lote({"produto_ids": [pid]})
+    mapa7 = j7.get("mapa") or {}
+    cands7 = (mapa7.get(pid) or {}).get("codigos") or []
+    check(
+        "api_lote_mapa",
+        j7.get("status") == 200 and j7.get("ok") is True and ean_papagaio in cands7 and ean_ferradura in cands7,
+        str(j7)[:400],
+    )
+
+    j8 = post_lote({"produto_ids": [pid], "codigo": ean_papagaio})
+    check(
+        "api_lote_hit",
+        j8.get("status") == 200 and j8.get("bate") is True and j8.get("produto_id") == pid,
+        str(j8)[:400],
+    )
+
+    j9 = post_lote({"produto_ids": [pid], "codigo": "7890000000000"})
+    check("api_lote_miss", j9.get("status") == 200 and j9.get("bate") is False, str(j9)[:400])
 
     # limpa fixture
     try:

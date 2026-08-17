@@ -16562,6 +16562,144 @@ def api_entrada_nota_fornecedores(request):
     )
 
 
+def _entrada_nfe_ean_digitos(s) -> str:
+    return "".join(ch for ch in str(s or "") if ch.isdigit())
+
+
+def _entrada_nfe_ean_equiv(a: str, b: str) -> bool:
+    xa = _entrada_nfe_ean_digitos(a)
+    xb = _entrada_nfe_ean_digitos(b)
+    if not xa or not xb:
+        return False
+    if xa == xb:
+        return True
+    return (xa.lstrip("0") or "0") == (xb.lstrip("0") or "0")
+
+
+def entrada_nfe_mapa_codigos_barras_lote(produto_ids: list[str]) -> dict[str, dict[str, Any]]:
+    """Barras do cadastro (PG + overlay + Mongo) para a etapa 3 — um round-trip."""
+    ids: list[str] = []
+    seen_id: set[str] = set()
+    for x in produto_ids or []:
+        s = str(x or "").strip()
+        if not s or s in seen_id:
+            continue
+        seen_id.add(s)
+        ids.append(s)
+        if len(ids) >= 200:
+            break
+    out: dict[str, dict[str, Any]] = {pid: {"nome": "", "codigos": []} for pid in ids}
+    seen_cod: dict[str, set[str]] = {pid: set() for pid in ids}
+
+    def _pid_key(raw) -> str:
+        s = str(raw or "").strip()
+        if s in out:
+            return s
+        try:
+            alt = str(int(s))
+        except Exception:
+            alt = ""
+        if alt and alt in out:
+            return alt
+        return s if s in out else ""
+
+    def push(pid_raw, raw, nome: str = "") -> None:
+        pid = _pid_key(pid_raw)
+        if not pid:
+            return
+        if nome and not out[pid]["nome"]:
+            out[pid]["nome"] = str(nome)[:300]
+        d = _entrada_nfe_ean_digitos(raw)
+        if len(d) < 8 or len(d) > 20:
+            return
+        if d in seen_cod[pid]:
+            return
+        seen_cod[pid].add(d)
+        out[pid]["codigos"].append(d)
+
+    from produtos.models import Produto, ProdutoGestaoOverlayAgro
+    from produtos.mongo_index_codigos import (
+        CAMPOS_SO_CODIGO_BARRAS_EAN_GTIN,
+        codigos_barras_opcionais_de_cadastro_extras,
+    )
+
+    try:
+        qs = Produto.objects.filter(
+            Q(erp_produto_id__in=ids) | Q(produto_externo_id__in=ids)
+        ).only("nome", "codigo_barras", "erp_produto_id", "produto_externo_id")
+        for p in qs:
+            nome_p = str(p.nome or "")
+            push(p.erp_produto_id, p.codigo_barras, nome_p)
+            push(p.produto_externo_id, p.codigo_barras, nome_p)
+    except Exception:
+        logger.exception("entrada_nfe_mapa_codigos_barras_lote produto")
+
+    try:
+        for ov in ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id__in=ids).only(
+            "produto_externo_id", "codigo_barras", "cadastro_extras"
+        ):
+            pid = str(ov.produto_externo_id or "").strip()
+            push(pid, ov.codigo_barras)
+            ce = getattr(ov, "cadastro_extras", None) or {}
+            if isinstance(ce, dict):
+                for x in codigos_barras_opcionais_de_cadastro_extras(ce):
+                    push(pid, x)
+                for k in ("entrada_nfe_ean_embalagem", "ean_embalagem_nf"):
+                    push(pid, ce.get(k))
+    except Exception:
+        logger.exception("entrada_nfe_mapa_codigos_barras_lote overlay")
+
+    try:
+        client, db = obter_conexao_mongo()
+        if db is not None and client is not None:
+            col = db[client.col_p]
+            id_int: list[int] = []
+            for pid in ids:
+                try:
+                    id_int.append(int(pid))
+                except Exception:
+                    pass
+            ors: list[dict[str, Any]] = [{"Id": {"$in": ids}}]
+            if id_int:
+                ors.append({"Id": {"$in": id_int}})
+            proj: dict[str, int] = {"Id": 1, "Nome": 1}
+            for fld in CAMPOS_SO_CODIGO_BARRAS_EAN_GTIN:
+                proj[fld] = 1
+            for doc in col.find({"$or": ors}, proj):
+                if not isinstance(doc, dict):
+                    continue
+                pid = str(doc.get("Id") or "").strip()
+                nome_m = str(doc.get("Nome") or "")
+                for fld in CAMPOS_SO_CODIGO_BARRAS_EAN_GTIN:
+                    push(pid, doc.get(fld), nome_m)
+    except Exception:
+        logger.exception("entrada_nfe_mapa_codigos_barras_lote mongo")
+    return out
+
+
+def _entrada_nfe_hits_mapa_codigos(
+    mapa: dict[str, dict[str, Any]], ordem_ids: list[str], codigo: str, codigo_alt: str = ""
+) -> list[dict[str, str]]:
+    hits: list[dict[str, str]] = []
+    termos = [codigo, codigo_alt]
+    for pid in ordem_ids:
+        item = mapa.get(pid) or {}
+        cands = item.get("codigos") or []
+        ok = False
+        for t in termos:
+            if not str(t or "").strip():
+                continue
+            for c in cands:
+                if _entrada_nfe_ean_equiv(t, c):
+                    ok = True
+                    break
+            if ok:
+                break
+        if ok:
+            hits.append({"produto_id": pid, "nome": str(item.get("nome") or "")[:300]})
+    return hits
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_entrada_nota_conferir_codigo(request):
@@ -16575,6 +16713,35 @@ def api_entrada_nota_conferir_codigo(request):
     produto_id = str(payload.get("produto_id") or "").strip()
     codigo = str(payload.get("codigo") or "").strip()
     codigo_alt = str(payload.get("codigo_alt") or "").strip()
+    ids_raw = payload.get("produto_ids")
+    if isinstance(ids_raw, list) and not produto_id:
+        ids = []
+        seen_ids: set[str] = set()
+        for x in ids_raw:
+            s = str(x or "").strip()
+            if not s or s in seen_ids:
+                continue
+            seen_ids.add(s)
+            ids.append(s)
+            if len(ids) >= 200:
+                break
+        if not ids:
+            return JsonResponse({"ok": False, "erro": "Informe os produtos."}, status=400)
+        mapa = entrada_nfe_mapa_codigos_barras_lote(ids)
+        if codigo:
+            hits = _entrada_nfe_hits_mapa_codigos(mapa, ids, codigo, codigo_alt)
+            if hits:
+                return JsonResponse(
+                    {
+                        "ok": True,
+                        "bate": True,
+                        "hits": hits,
+                        "nome": hits[0]["nome"],
+                        "produto_id": hits[0]["produto_id"],
+                    }
+                )
+            return JsonResponse({"ok": True, "bate": False, "hits": [], "mapa": mapa})
+        return JsonResponse({"ok": True, "mapa": mapa})
     if not produto_id or not codigo:
         return JsonResponse({"ok": False, "erro": "Informe produto e o código bipado."}, status=400)
 
