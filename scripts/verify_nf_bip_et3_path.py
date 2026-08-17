@@ -127,8 +127,13 @@ def main() -> None:
     check("ui_nfe_ean_orig_candidato", "nfeEanOrig" in html and "bipSimilarCodigos" in html)
     check(
         "ui_auto_ok_ean_scan",
-        "mtBip === 'ean'" in html and "viaCat === 'scan'" in html and "bc = 'ok'" in html,
+        "function entradaNfeBipConfInicialDaLinha" in html
+        and "viaCat === 'scan'" in html
+        and "bc = 'ok'" in html,
     )
+    check("ui_match_tipo_ean_pg", "ean_pg" in html and "function entradaNfeMatchTipoConfereBarras" in html)
+    check("ui_via_termo_bip", "function entradaNfeViaPorTermoBusca" in html)
+    check("ui_modal_usa_via_termo", "entradaNfeViaPorTermoBusca(qModal" in html)
     check("ui_persist_match_tipo", "match_tipo: String(tr.dataset.nfeMatchTipo" in html)
     check("ui_scan_sets_bip_ok", "via === 'scan'" in html and "tr.dataset.bipConf = 'ok'" in html)
     check("ui_lookup_clear_bip", "via === 'lookup'" in html and "delete tr.dataset.bipConf" in html)
@@ -223,23 +228,38 @@ def main() -> None:
     check("local_prio_pendente", bool(m_e and m_e["ix"] == 1), str(m_e))
 
     print("== Auto-ok regra montagem ==")
+    def match_tipo_ean(mt: str) -> bool:
+        t = (mt or "").strip().lower()
+        if t in ("ean", "ean_nfe", "ean_pg", "ean_overlay", "codigo_barras"):
+            return True
+        return t.startswith("ean")
+
     def auto_ok(via: str, match_tipo: str, bip_conf: str = "") -> str:
-        bc = (bip_conf or "").strip()
+        bc = (bip_conf or "").strip().lower()
         mt = (match_tipo or "").strip().lower()
         via_cat = (via or "").strip()
-        if not bc and (
-            via_cat == "scan"
-            or mt in ("ean", "ean_nfe", "codigo_barras")
-        ):
+        if bc in ("pendente", "pending"):
+            bc = ""
+        if not bc and (via_cat == "scan" or match_tipo_ean(mt)):
             bc = "ok"
         return bc or "pendente"
 
     check("auto_ok_scan", auto_ok("scan", "") == "ok")
     check("auto_ok_ean", auto_ok("", "ean") == "ok")
+    check("auto_ok_ean_pg", auto_ok("", "ean_pg") == "ok")
+    check("auto_ok_ean_overlay", auto_ok("", "ean_overlay") == "ok")
+    check("auto_ok_pendente_ean_pg", auto_ok("", "ean_pg", "pendente") == "ok")
     check("auto_ok_codigo_nao", auto_ok("", "codigo") == "pendente")
     check("auto_ok_modal_nao", auto_ok("modal", "") == "pendente")
     check("auto_ok_lookup_nao", auto_ok("lookup", "") == "pendente")
     check("auto_ok_preserva", auto_ok("lookup", "ean", "similar") == "similar")
+
+    def via_por_termo(raw: str, via_padrao: str) -> str:
+        compacto = (raw or "").replace(" ", "")
+        return "scan" if re.fullmatch(r"\d{8,}", compacto) else via_padrao
+
+    check("via_bip_modal", via_por_termo("7896194700818", "modal") == "scan")
+    check("via_nome_modal", via_por_termo("bota jetsky", "modal") == "modal")
 
     print("== API conferir_codigo (overlay / sem Mongo) ==")
     from django.contrib.auth import get_user_model

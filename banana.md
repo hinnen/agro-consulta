@@ -1216,6 +1216,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
+
+> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708b`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.07** · `producao` @ **08e74d6** |
+| **Pacotes** | **NF-BIP-ET2** só |
+| **Arquivos** | `entrada_nota.html` · `verify_nf_bip_et2_path.py` · `verify_nf_bip_et3_path.py` · `VERSION` |
+| **Fora** | PDV · caixa · NFC-e · financeiro · estoque |
+| **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** (no lote isolado) |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 17/08b / deploy/lote-checklist-1708b para produção* + senha |
+
 ### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
 
 > **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
