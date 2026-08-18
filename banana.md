@@ -1234,6 +1234,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
 | 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
+| 3 | **MP-POINT-VILA** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — Point MP Vila (`MP-POINT-VILA` · **v17.24**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · código no `teste` · **não** na loja (Live **v17.21**) |
+| **O quê** | Maquininha **automática** na conta MP da Vila (CNPJ separado). Centro Gaveta permanece na conta Centro. Notebook / PC Renan = só Sicredi manual. |
+| **Cherry-pick** | `181c5d3` + `4c1f11f` + este PREP · conflito esperado só em `VERSION`/`banana.md` (código auto-merge OK) |
+| **Render** | `MP_POINT_VILA_ENABLED=True` · `MP_POINT_VILA_ACCESS_TOKEN` · `MP_POINT_VILA_TERMINAL_ID=NEWLAND_N950__N950NCD500369056` (Renan colocou 18/08) |
+| **Prova** | `python scripts/verify_mp_point_vila_path.py` **41/41** · fechar caixa **28/28** · Django check OK · token+terminal validados na API MP |
+| **Migrate** | **NÃO** |
+| **Você** | Notebook **vendas Vila** → abrir **Caixa Vila Elias** · Ctrl+F5 PDV · venda pequena **Mercado Pago Vila (automático)** |
 
 ### 📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)
 
@@ -1343,9 +1356,8 @@ Autorizar rollback: tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf**
 | **Migrate** | **NÃO** |
 | **Você** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.19** · reparo 33: ✅ **`--aplicar` feito** (18/08). |
 
-### 📦 PACOTE — Point MP Vila (`MP-POINT-VILA` · **v17.13**) · **não sobe neste lote**
+### ~~📦 PACOTE — Point MP Vila (`MP-POINT-VILA`)~~ · **ver PACOTE PRONTO v17.24 no topo**
 
-Aguarda token + ID do terminal da conta Vila. Sem isso a máquina Vila continua manual.
 
 ### ✅ CHECKLIST ÚNICO — 17/08c · **superado — fila agora 17/08d**
 

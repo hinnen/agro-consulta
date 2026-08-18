@@ -193,7 +193,11 @@
                     var mpm = String(row.mpBalcaoModo || '').trim();
                     row.cobrarNoPointMp =
                         !!row.cobrarNoPointMp ||
-                        ((mid === 'mp_balcao' || mid === 'mp_vila') && mpm === 'point');
+                        ((mid === 'mp_balcao' ||
+                            mid === 'pix_mp_qr' ||
+                            mid === 'mp_vila' ||
+                            mid === 'pix_mp_vila') &&
+                            mpm === 'point');
                     return row;
                 });
                 merged.entrega = Object.assign({}, def.entrega, (parsed && parsed.entrega) || {});

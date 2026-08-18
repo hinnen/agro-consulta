@@ -16,11 +16,20 @@ django.setup()
 
 from django.conf import settings
 
+from types import SimpleNamespace
+
 from produtos.caixa_util import (
+    PONTO_CAIXA_GAVETA,
+    PONTO_CAIXA_NOTEBOOK,
+    PONTO_CAIXA_VILA,
+    SESSION_MP_POINT_HOST_KEY,
+    SESSION_PONTO_OPERACAO_KEY,
     _MAQUININHAS_MP_POINT_AUTO_VILA_IDS,
     filtrar_maquininhas_pdv_sem_mp,
+    navegador_pode_mp_point_automatico,
     pagamento_linha_eh_mp_point_auto,
 )
+from produtos.views_mp_point import _conta_do_pedido_local, _resolver_mp_point_conta
 from produtos.mercado_pago_point import (
     MAQUININHAS_MP_POINT_AUTO_CENTRO,
     MAQUININHAS_MP_POINT_AUTO_VILA,
@@ -59,6 +68,7 @@ def main() -> int:
     views_caixa = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     pdv_views = (ROOT / "pdv/views.py").read_text(encoding="utf-8")
     wizard = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
+    state_js = (ROOT / "produtos/static/produtos/js/pdv_state.js").read_text(encoding="utf-8")
     env_ex = (ROOT / ".env.example").read_text(encoding="utf-8")
 
     check("MP_POINT_VILA_ACCESS_TOKEN" in settings_py, "settings token Vila")
@@ -72,6 +82,7 @@ def main() -> int:
     check("mid === 'mp_vila'" in wizard, "JS cartao Vila auto")
     check("mid === 'pix_mp_vila'" in wizard, "JS Pix Vila auto")
     check("mpPointVilaEnabled" in wizard, "JS le flag Vila")
+    check("pix_mp_vila" in state_js, "JS state hidrata Pix Vila")
 
     check(normalizar_mp_point_conta("vila") == "vila", "normaliza vila")
     check(mp_point_conta_de_maquina("mp_vila") == "vila", "mp_vila conta vila")
@@ -115,6 +126,80 @@ def main() -> int:
         not mp_point_conta_configurada("vila")
         or bool((getattr(settings, "MP_POINT_VILA_ACCESS_TOKEN", "") or "").strip()),
         "Vila so configura com token",
+    )
+    check(ter_c != ter_v or not ter_v, "terminais Centro e Vila distintos")
+    check(
+        not ter_v or ter_v.startswith("NEWLAND_N950__"),
+        "terminal Vila formato NEWLAND",
+    )
+    check(
+        pagamento_linha_eh_mp_point_auto(
+            {"maquinaId": "pix_mp_vila", "mpBalcaoModo": "point"}
+        ),
+        "conferencia pix_mp_vila com modo point",
+    )
+
+    def _req(host: str | None, ponto: str) -> SimpleNamespace:
+        sess = {SESSION_PONTO_OPERACAO_KEY: ponto}
+        if host:
+            sess[SESSION_MP_POINT_HOST_KEY] = host
+        return SimpleNamespace(session=sess)
+
+    check(
+        navegador_pode_mp_point_automatico(_req("vila", PONTO_CAIXA_VILA), conta="vila"),
+        "host Vila + caixa Vila libera auto",
+    )
+    check(
+        not navegador_pode_mp_point_automatico(
+            _req("vila", PONTO_CAIXA_NOTEBOOK), conta="vila"
+        ),
+        "Notebook Vila bloqueia auto",
+    )
+    check(
+        not navegador_pode_mp_point_automatico(
+            _req("centro", PONTO_CAIXA_GAVETA), conta="vila"
+        ),
+        "host Centro nao cobra na conta Vila",
+    )
+    check(
+        not navegador_pode_mp_point_automatico(
+            _req("vila", PONTO_CAIXA_VILA), conta="centro"
+        ),
+        "host Vila nao cobra na conta Centro",
+    )
+    check(
+        navegador_pode_mp_point_automatico(
+            _req("centro", PONTO_CAIXA_GAVETA), conta="centro"
+        ),
+        "host Centro + gaveta libera auto Centro",
+    )
+    check(
+        not navegador_pode_mp_point_automatico(_req(None, PONTO_CAIXA_VILA), conta="vila"),
+        "sem host nao dispara Point",
+    )
+
+    req_vila = _req("vila", PONTO_CAIXA_VILA)
+    check(
+        _resolver_mp_point_conta(req_vila, {"maquinaId": "mp_vila"}) == "vila",
+        "resolver mp_vila = vila",
+    )
+    check(
+        _resolver_mp_point_conta(req_vila, {"maquinaId": "mp_balcao"}) == "centro",
+        "resolver mp_balcao = centro mesmo no host Vila",
+    )
+    check(
+        _resolver_mp_point_conta(_req("centro", PONTO_CAIXA_GAVETA), {}) == "centro",
+        "resolver vazio no host Centro = centro",
+    )
+    row_vila = SimpleNamespace(erp_payload={"mp_point_conta": "vila", "maquinaId": "mp_vila"})
+    check(
+        _conta_do_pedido_local(
+            _req("centro", PONTO_CAIXA_GAVETA),
+            row_vila,
+            {"mp_point_conta": "centro"},
+        )
+        == "vila",
+        "pedido local ignora override do browser",
     )
 
     print(f"---\noks={OKS} fails={len(FAILS)}")
