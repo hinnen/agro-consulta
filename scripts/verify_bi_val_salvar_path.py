@@ -233,10 +233,17 @@ def test_bi_por_loja() -> None:
         c = _contagem_validade_dashboard_por_loja(hoje, "centro")
     check(c["vencendo_mes"] == base_c["vencendo_mes"] + 1, "no mes conta no Centro")
 
-    # cache key v5
+    # cache key v6 (BI unificado)
     from produtos.views import VALIDADE_DASHBOARD_CACHE_KEY
 
-    check("v5" in VALIDADE_DASHBOARD_CACHE_KEY, "cache key v5")
+    check("v6" in VALIDADE_DASHBOARD_CACHE_KEY, "cache key v6")
+
+    from produtos.views import _contagem_validade_dashboard_lotes_agro_compute
+
+    u = _contagem_validade_dashboard_lotes_agro_compute(hoje, None)
+    uc = _contagem_validade_dashboard_lotes_agro_compute(hoje, "centro")
+    uv = _contagem_validade_dashboard_lotes_agro_compute(hoje, "vila")
+    check(u == uc == uv, "BI card compute: Centro = Vila = C+V")
 
     # empresa ainda soma lotes com qtd
     wipe()

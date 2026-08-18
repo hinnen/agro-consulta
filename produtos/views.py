@@ -31873,7 +31873,7 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     return a, b
 
 
-VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v5"
+VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v6"
 VALIDADE_DASHBOARD_CACHE_TTL = 180
 
 
@@ -31881,18 +31881,19 @@ def _contagem_validade_dashboard_lotes_agro(
     deposito: str | None = None,
 ) -> dict[str, int]:
     """
+    Card Validade do BI — contagem empresa (Renan 18/08 · passo 1):
+    **mesmo número** em Centro, Vila e Centro+Vila (filtro Números não altera KPI).
+
     Produtos distintos (overlay) com validade no prazo:
-    - com saldo (lote qtd>0 ou centro+vila>0): vencidos / vencendo_mes
+    - com lote qtd>0: vencidos / vencendo_mes
     - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
 
-    Com filtro de loja: saldo da loja **ou** lote com qtd>0 quando o C+V operacional
-    está zerado / mapa falhou (mesmo critério do relatório de validade).
+    Baixa por loja (passo 2) ainda pendente — hoje «Dar baixa» remove o lote para todos.
 
     Cache curto (3 min) + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
     """
     hoje = timezone.localdate()
-    dep_key = deposito if deposito in ("centro", "vila") else "all"
-    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:{dep_key}"
+    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:all"
     cached = cache.get(ck)
     if isinstance(cached, dict) and "vencidos" in cached:
         return cached
@@ -31904,8 +31905,8 @@ def _contagem_validade_dashboard_lotes_agro(
 def _contagem_validade_dashboard_lotes_agro_compute(
     hoje: date, deposito: str | None = None
 ) -> dict[str, int]:
-    if deposito in ("centro", "vila"):
-        return _contagem_validade_dashboard_por_loja(hoje, deposito)
+    # Filtro loja no BI Números não altera o card Validade (passo 1 — Renan 18/08).
+    del deposito
     return _contagem_validade_dashboard_empresa(hoje)
 
 

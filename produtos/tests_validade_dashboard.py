@@ -172,3 +172,46 @@ class ContagemValidadeEmpresaSmoke(SimpleTestCase):
         # Print Renan: 30/07 = vencido; 30/08 = no mês
         self.assertTrue(date(2026, 7, 30) < date(2026, 8, 1))
         self.assertTrue(date(2026, 8, 1) <= date(2026, 8, 30) <= b)
+
+
+@override_settings(
+    CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+)
+class ContagemValidadeBiMesmoNumeroTests(TestCase):
+    """Card BI: Centro / Vila / C+V exibem o mesmo KPI (passo 1 · Renan 18/08)."""
+
+    def setUp(self):
+        from django.core.cache import cache
+
+        cache.clear()
+
+    @patch("produtos.views.obter_conexao_mongo")
+    @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
+    def test_tres_filtros_iguais(self, mock_saldos, mock_mongo):
+        from produtos.views import _contagem_validade_dashboard_lotes_agro
+
+        mock_mongo.return_value = (None, None)
+        mock_saldos.return_value = {}
+        ov = ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id="PID-BI-3", nome="Venc BI"
+        )
+        EstoqueLote.objects.create(
+            overlay=ov,
+            lote_codigo="V1",
+            data_validade=date(2026, 7, 30),
+            quantidade_atual=1,
+            deposito="centro",
+        )
+        EstoqueLote.objects.create(
+            overlay=ov,
+            lote_codigo="V2",
+            data_validade=date(2026, 7, 28),
+            quantidade_atual=1,
+            deposito="vila",
+        )
+        c_all = _contagem_validade_dashboard_lotes_agro(None)
+        c_ctr = _contagem_validade_dashboard_lotes_agro("centro")
+        c_vil = _contagem_validade_dashboard_lotes_agro("vila")
+        self.assertEqual(c_all, c_ctr)
+        self.assertEqual(c_all, c_vil)
+        self.assertEqual(c_all["vencidos"], 1)
