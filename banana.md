@@ -1216,6 +1216,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **aguarda senha**
+
+> **Não sobe agora** (lojas abertas). Próximo chat: pausar PDV + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808h`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.21** · `producao` @ **ab3dbcf** |
+| **Pacote** | **MP-POINT-VILA** só |
+| **Fora deste lote** | TRANSF-FORCADA-UX · DRE-SALDO-DIARIO (prontos no `teste`, não mexem PDV) |
+| **Migrate** | **NÃO** |
+| **Rollback** | no deploy: tag em `ab3dbcf` (v17.21) |
+| **Prova no lote isolado** | MP Vila **41/41** · fechar caixa **28/28** · `manage.py check` OK · cherry código auto-merge |
+| **Centro aberto** | sessão antiga `1` continua Point Centro — **não** precisa reabrir Gaveta |
+| **Vila** | depois do Live: **fechar/abrir Caixa Vila Elias** no notebook de vendas · Ctrl+F5 PDV |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08h / deploy/lote-checklist-1808h / MP-POINT-VILA para produção* + senha |
+
 ### 🚀 PREP deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**)
 
 > **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
