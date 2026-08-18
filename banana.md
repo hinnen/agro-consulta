@@ -611,7 +611,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
 - **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
 - **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
-- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** 33 na loja com `… [EAN]`. Devolve histórico (14) ou só tira overlay / corta o colchete. **Não** mexe preço, GM, barras. `--aplicar` grava. Loja: frase + senha.
+- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** ✅ **33 corrigidos** (18/08 · `--aplicar` na loja). Devolve histórico ou tira overlay / colchete `[EAN]`. **Não** mexe preço, GM, barras.
 
 ### 4.8 Estoque Agro
 
@@ -666,6 +666,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
+- **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
@@ -1225,6 +1226,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP teste — Repasse acumulado (`REPASSE-ACUMULADO` · migrate **0093**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Saldo **acumulado** (dias anteriores): + falta levar · − crédito se levou a mais. **Total sugerido** = falta hoje + acumulado. Botão **Ver acumulado** + ajuste manual (PIN). Checkbox **Incluir acumulado**. |
+| **Onde** | `/repasse-vila/` · overlay PDV Repasse · APIs `/api/repasse-vila/acumulado/` |
+| **Migrate** | **SIM** `0093` (`RepasseVilaAcumuladoAjusteAgro`) |
+| **Prova** | `verify_repasse_vila_path` OK · migrate local OK |
+| **Você** | Ctrl+F5 Repasse · conferir acumulado após dias sem transferir ou com transferência a mais |
+
 ### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
 
 | Item | Detalhe |
@@ -1233,7 +1244,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pacote** | **AJUSTE-CICLICA-QTD-CB** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** + frase + senha |
-| **Você** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card |
+| **Você** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · reparo 33 nomes: ✅ feito 18/08 |
+
+### ✅ Operação dados — NF-VINCULO-REPARO (18/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **`--aplicar` na loja** · **33** nomes devolvidos |
+| **Comando** | `reparar_cadastro_vinculo_nf --aplicar` (Postgres produção) |
+| **Depois** | dry-run = zero pendentes |
+| **Deploy** | **NÃO** — só dados; loja continua **v17.19** |
 
 ### ✅ CHECKLIST ÚNICO — produção (18/08)
 
@@ -1243,7 +1263,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **NF-BIP-ET3-SNAP** | ✅ enviado / Live v17.19 | não |
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ enviado / Live v17.19 | não |
-| 3 | **NF-VINCULO-REPARO** | ✅ código Live · **`--aplicar` pendente** (operação) | não |
+| 3 | **NF-VINCULO-REPARO** | ✅ **Live + `--aplicar` feito** (33 nomes · 18/08) | não |
 | 4 | **AJUSTE-CICLICA-BIP1** | ✅ enviado / Live v17.19 | não |
 | 5 | **AJUSTE-CICLICA-QTD-CB** | ✅ enviado / Live v17.19 | não |
 
@@ -1279,7 +1299,7 @@ Autorizar rollback: tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf**
 | ---- | ------- |
 | **Status** | ✅ **enviado / Live v17.18** · `producao` @ **9fcecad** · loja **v17.18** |
 | **Migrate** | **NÃO** |
-| **Você** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.18** · reparo 33: ainda falta `--aplicar` (não rodei). |
+| **Você** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.19** · reparo 33: ✅ **`--aplicar` feito** (18/08). |
 
 ### 📦 PACOTE — Point MP Vila (`MP-POINT-VILA` · **v17.13**) · **não sobe neste lote**
 
