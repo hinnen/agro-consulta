@@ -1245,7 +1245,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Centro conferiu/baixou vencido → **Vila continua vendo** até conferir lá. Estoque só da loja que baixou. Lote some só quando as **duas** conferiram. |
 | **Por quê** | Antes «Dar baixa» apagava o lote para todo mundo e zerava o card da Vila |
 | **Migrate** | **SIM** `0096_estoque_lote_baixa_por_loja` |
-| **Commit** | **21d9c65** · teste **v17.50** · loja ainda **v17.42** |
+| **Commit** | fix **21d9c65** · prova **5ea6d7b** · teste **v17.51** · loja **v17.42** |
 | **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
 | **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
 | **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
