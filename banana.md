@@ -1226,15 +1226,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP teste — Repasse acumulado (`REPASSE-ACUMULADO` · migrate **0093**)
+### 📦 PACOTE PRONTO — Repasse acumulado (`REPASSE-ACUMULADO` · **v17.20**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Saldo **acumulado** (dias anteriores): + falta levar · − crédito se levou a mais. **Total sugerido** = falta hoje + acumulado. Botão **Ver acumulado** + ajuste manual (PIN). Checkbox **Incluir acumulado**. |
-| **Onde** | `/repasse-vila/` · overlay PDV Repasse · APIs `/api/repasse-vila/acumulado/` |
-| **Migrate** | **SIM** `0093` (`RepasseVilaAcumuladoAjusteAgro`) |
-| **Prova** | `verify_repasse_vila_path` OK · migrate local OK |
-| **Você** | Ctrl+F5 Repasse · conferir acumulado após dias sem transferir ou com transferência a mais |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Saldo **acumulado** (dias anteriores): + falta levar · − crédito se levou a mais. **Total sugerido** = falta hoje + acumulado. **Ver acumulado** + ajuste manual (PIN). |
+| **Onde** | `/repasse-vila/` · overlay PDV Repasse |
+| **Migrate** | **SIM** `0093` |
+| **Prova** | path **72** · deep **85** · planos **49** |
+| **Você** | Ctrl+F5 Repasse · badge **v17.20** · migrate na loja |
+
+### ✅ CHECKLIST ÚNICO — produção (18/08)
+
+> **Loja hoje:** ✅ **Live v17.19** · fila: **REPASSE-ACUMULADO v17.20**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-ACUMULADO** | ✅ **pronto para envio à produção** | **SIM** 0093 |
 
 ### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
 
@@ -1255,9 +1264,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Depois** | dry-run = zero pendentes |
 | **Deploy** | **NÃO** — só dados; loja continua **v17.19** |
 
-### ✅ CHECKLIST ÚNICO — produção (18/08)
 
-> **Loja hoje:** ✅ **Live v17.19** · `producao` @ **3c810ba** · badge **17.19**
+### ~~✅ CHECKLIST ÚNICO — produção (18/08) lote anterior~~ · **superado — Live v17.19**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

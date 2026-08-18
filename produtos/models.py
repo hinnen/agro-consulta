@@ -2923,3 +2923,30 @@ class RepasseVilaCentroAgro(models.Model):
 
     def __str__(self):
         return f"Repasse #{self.pk} {self.data_ref} R$ {self.valor_total}"
+
+
+class RepasseVilaAcumuladoAjusteAgro(models.Model):
+    """Ajuste manual no saldo acumulado do repasse Vila → Centro."""
+
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Positivo = falta levar mais. Negativo = crédito / desconto do acumulado.",
+    )
+    observacao = models.CharField(max_length=500)
+    operador = models.CharField(max_length=120, blank=True, default="")
+    data_ref = models.DateField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Dia de referência opcional (só registro).",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Repasse Vila · ajuste acumulado"
+        verbose_name_plural = "Repasse Vila · ajustes acumulado"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Ajuste acumulado {self.valor} · {self.criado_em:%d/%m/%Y}"

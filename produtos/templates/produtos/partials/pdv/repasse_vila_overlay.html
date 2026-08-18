@@ -82,6 +82,19 @@
           <div class="text-lg font-black tabular-nums text-emerald-900" id="pdv-rp-falta">R$ 0,00</div>
         </div>
       </div>
+      <div class="rp-card grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 items-end">
+        <div>
+          <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado (dias anteriores)</div>
+          <div class="text-lg font-black tabular-nums text-amber-950" id="pdv-rp-acum">R$ 0,00</div>
+        </div>
+        <div>
+          <div class="text-[0.65rem] font-black uppercase text-violet-800">Total sugerido</div>
+          <div class="text-lg font-black tabular-nums text-violet-950" id="pdv-rp-total-sug">R$ 0,00</div>
+        </div>
+        <div class="sm:justify-self-end">
+          <button type="button" id="pdv-rp-btn-acum" class="min-h-[2.35rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
+        </div>
+      </div>
 
       <div class="rp-body">
         <div class="rp-card space-y-1.5">
@@ -94,6 +107,7 @@
           <label class="rp-check"><input type="checkbox" id="pdv-rp-lucro" checked /><span class="flex-1">% lucro <span id="pdv-rp-disp-lucro" class="tabular-nums text-sky-800">R$ 0,00</span></span></label>
           <p id="pdv-rp-desp-hint" class="hidden text-[0.65rem] font-bold text-slate-600 leading-tight px-0.5"></p>
           <label class="rp-check"><input type="checkbox" id="pdv-rp-fiado" checked /><span class="flex-1">Fiado pago <span id="pdv-rp-disp-fiado" class="tabular-nums text-orange-800">R$ 0,00</span></span></label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-acumulado" checked /><span>Incluir acumulado no total automático</span></label>
           <label class="rp-check"><input type="checkbox" id="pdv-rp-cheio" /><span>Dia cheio de novo (padrão = só o que falta)</span></label>
         </div>
 
