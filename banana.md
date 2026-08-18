@@ -1228,23 +1228,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote 18/08j (`deploy/lote-checklist-1808j` · **v17.29**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808j`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.27** · `producao` @ **060b300** |
+| **Branch** | `deploy/lote-checklist-1808j` @ **bced5d4** · **5 arquivos** vs produção |
+| **Fora** | PDV venda/wizard · caixa fechar · NFC-e SEFAZ · Entrada NF · repasse · cíclica · transferências |
+| **Prova (18/08 · lote isolado)** | saldo chart **15/15** · CMV toggle **55/55** · DRE visual **232/232** · `check` OK · diff **0** paths PDV/caixa/NF |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — só `/financeiro/resumo-gerencial/` + API saldo (leitura) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808j-v17.27` @ **060b300** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08j / deploy/lote-checklist-1808j para produção* + senha |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **DRE-SALDO-HOTFIX** | Gráfico saldo **com barras** · scroll na página · Mini DRE legível · tela não trava no equilíbrio | `/financeiro/resumo-gerencial/` |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08j)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **DRE-SALDO-HOTFIX** | ✅ **pronto para envio à produção** | não |
+| 1 | **DRE-SALDO-HOTFIX** | 🚀 **pronto para envio à produção** | não |
 
-### 📦 PACOTE PRONTO — DRE gráfico + scroll (`DRE-SALDO-HOTFIX` · **v17.29**)
+### ~~📦 PACOTE PRONTO — DRE gráfico + scroll~~ · **ver PREP 1808j no topo**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **Commit** | `039f237` |
-| **Tela** | `/financeiro/resumo-gerencial/` |
-| **O quê** | Fix gráfico saldo vazio · scroll na página · Mini DRE legível · carregamento mais rápido (equilíbrio em background · 1 consulta saldo) |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_dre_saldo_diario_chart` 15/15 · `verify_dre_cmv_toggle` 55/55 · `verify_dre_visual` 232/232 · `check` OK · integração PG ~520ms |
-| **Você** | Ctrl+F5 DRE gerencial · F5 · rolar rodapé · barras azul/vermelho + linha verde |
+| **Commit teste** | `039f237` (cherry → lote **bced5d4**) |
+| **O quê** | Fix gráfico saldo vazio · scroll · Mini DRE · equilíbrio em background · 1 consulta saldo |
 
 ### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — fila agora DRE-SALDO-HOTFIX v17.29**
 
