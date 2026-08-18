@@ -16,6 +16,7 @@ from produtos.models import (
     RepasseVilaAcumuladoAjusteAgro,
     RepasseVilaCentroAgro,
     RepasseVilaConfigAgro,
+    RepasseVilaDeltaDiaAgro,
     VendaAgro,
 )
 
@@ -416,6 +417,71 @@ def _ajustes_manuais_total() -> Decimal:
     )
 
 
+def _datas_com_atividade(d0: date, d1: date) -> list[date]:
+    """Dias no intervalo com repasse, venda Vila ou fiado pago — consulta em lote."""
+    if d0 > d1:
+        return []
+    datas: set[date] = set(
+        RepasseVilaCentroAgro.objects.filter(data_ref__gte=d0, data_ref__lte=d1).values_list(
+            "data_ref", flat=True
+        )
+    )
+    desde, ate = _aware_bounds(d0, d1)
+    for ts in VendaAgro.objects.filter(
+        criado_em__gte=desde,
+        criado_em__lte=ate,
+        deposito__iexact="vila",
+        devolvida_em__isnull=True,
+    ).values_list("criado_em", flat=True):
+        if ts:
+            datas.add(timezone.localtime(ts).date())
+    for ts in FiadoBaixaAgro.objects.filter(
+        criado_em__gte=desde,
+        criado_em__lte=ate,
+        sessao_caixa__ponto_caixa="vila",
+    ).values_list("criado_em", flat=True):
+        if ts:
+            datas.add(timezone.localtime(ts).date())
+    return sorted(d for d in datas if d0 <= d <= d1)
+
+
+def _atualizar_delta_cache(dia: date, *, percentual_lucro=None) -> RepasseVilaDeltaDiaAgro:
+    dd = delta_dia_repasse(dia, percentual_lucro=percentual_lucro)
+    obj, _ = RepasseVilaDeltaDiaAgro.objects.update_or_create(
+        data_ref=dia,
+        defaults={
+            "alvo_fisico": _dec(dd["alvo_fisico"]),
+            "enviado": _dec(dd["enviado"]),
+            "delta": _dec(dd["delta"]),
+        },
+    )
+    return obj
+
+
+def _preencher_cache_faltante(d0: date, d1: date) -> None:
+    """Só calcula dias com atividade que ainda não estão no cache."""
+    if d0 > d1:
+        return
+    cfg = obter_config()
+    pct = _dec(cfg.percentual_lucro_padrao)
+    cached = set(
+        RepasseVilaDeltaDiaAgro.objects.filter(data_ref__gte=d0, data_ref__lte=d1).values_list(
+            "data_ref", flat=True
+        )
+    )
+    for d in _datas_com_atividade(d0, d1):
+        if d not in cached:
+            _atualizar_delta_cache(d, percentual_lucro=pct)
+
+
+def _sum_delta_cache(d0: date, d1: date) -> Decimal:
+    return _dec(
+        RepasseVilaDeltaDiaAgro.objects.filter(data_ref__gte=d0, data_ref__lte=d1).aggregate(
+            t=Sum("delta")
+        ).get("t")
+    )
+
+
 def delta_dia_repasse(
     dia: date,
     *,
@@ -443,16 +509,13 @@ def acumulado_anterior(
     lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
 ) -> Decimal:
     """Saldo dos dias anteriores a `dia` + ajustes manuais. Positivo = ainda falta levar."""
-    saldo = _ajustes_manuais_total()
     d0 = dia - timedelta(days=lookback_days)
-    cfg = obter_config()
-    pct = _dec(cfg.percentual_lucro_padrao)
-    d = d0
-    while d < dia:
-        if _dia_tem_atividade_repasse(d):
-            dd = delta_dia_repasse(d, percentual_lucro=pct)
-            saldo += _dec(dd["delta"])
-        d += timedelta(days=1)
+    d_fim = dia - timedelta(days=1)
+    if d_fim >= d0:
+        _preencher_cache_faltante(d0, d_fim)
+    saldo = _ajustes_manuais_total()
+    if d_fim >= d0:
+        saldo += _sum_delta_cache(d0, d_fim)
     return saldo.quantize(Decimal("0.01"))
 
 
@@ -462,9 +525,10 @@ def listar_acumulado_detalhe(
     lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
 ) -> dict[str, Any]:
     """Extrato do acumulado até o dia anterior a `dia` (não inclui falta do próprio dia)."""
-    cfg = obter_config()
-    pct = _dec(cfg.percentual_lucro_padrao)
     d0 = dia - timedelta(days=lookback_days)
+    d_fim = dia - timedelta(days=1)
+    if d_fim >= d0:
+        _preencher_cache_faltante(d0, d_fim)
     linhas: list[dict[str, Any]] = []
     ajustes: list[dict[str, Any]] = []
     saldo = ZERO
@@ -483,25 +547,25 @@ def listar_acumulado_detalhe(
                 "saldo_apos": float(saldo),
             }
         )
-    d = d0
-    while d < dia:
-        if _dia_tem_atividade_repasse(d):
-            dd = delta_dia_repasse(d, percentual_lucro=pct)
-            delta = _dec(dd["delta"])
-            saldo = (saldo + delta).quantize(Decimal("0.01"))
-            linhas.append(
-                {
-                    "tipo": "dia",
-                    "data": d.isoformat(),
-                    "alvo_fisico": dd["alvo_fisico"],
-                    "enviado": dd["enviado"],
-                    "delta": float(delta),
-                    "saldo_apos": float(saldo),
-                    "n_vendas": dd["n_vendas"],
-                }
-            )
-        d += timedelta(days=1)
+    for row in RepasseVilaDeltaDiaAgro.objects.filter(
+        data_ref__gte=d0, data_ref__lte=d_fim
+    ).order_by("data_ref"):
+        delta = _dec(row.delta)
+        saldo = (saldo + delta).quantize(Decimal("0.01"))
+        linhas.append(
+            {
+                "tipo": "dia",
+                "data": row.data_ref.isoformat(),
+                "alvo_fisico": float(_dec(row.alvo_fisico)),
+                "enviado": float(_dec(row.enviado)),
+                "delta": float(delta),
+                "saldo_apos": float(saldo),
+                "n_vendas": 0,
+            }
+        )
     acum = acumulado_anterior(dia, lookback_days=lookback_days)
+    cfg = obter_config()
+    pct = _dec(cfg.percentual_lucro_padrao)
     calc_hoje = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
     falta_dia = _dec(calc_hoje.get("falta_dinheiro"))
     total_sug = (falta_dia + acum).quantize(Decimal("0.01"))
@@ -523,6 +587,7 @@ def registrar_ajuste_acumulado(
     observacao: str,
     operador: str = "",
     data_ref: date | None = None,
+    repasse: RepasseVilaCentroAgro | None = None,
 ) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
     v = _dec(valor)
     if v == 0:
@@ -537,8 +602,48 @@ def registrar_ajuste_acumulado(
         observacao=obs[:500],
         operador=(operador or "")[:120],
         data_ref=data_ref,
+        repasse=repasse,
     )
     return adj, ""
+
+
+def quitar_acumulado_zerar(
+    dia: date | None = None,
+    *,
+    observacao: str = "",
+    operador: str = "",
+) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
+    """Zera o acumulado (ex.: dinheiro já foi transferido antes da ferramenta)."""
+    dia = dia or timezone.localdate()
+    acum = acumulado_anterior(dia)
+    if acum <= 0:
+        return None, "Acumulado já está zerado ou é crédito — nada a quitar."
+    obs = (observacao or "").strip() or "Transferido antes da ferramenta / zerado manualmente"
+    return registrar_ajuste_acumulado(
+        -acum,
+        observacao=obs,
+        operador=operador,
+        data_ref=dia,
+    )
+
+
+def _quitar_acumulado_no_repasse(
+    rep: RepasseVilaCentroAgro,
+    *,
+    quitacao: Decimal,
+    operador: str = "",
+) -> None:
+    if quitacao <= 0:
+        return
+    registrar_ajuste_acumulado(
+        -quitacao,
+        observacao=(
+            f"Quitado no repasse #{rep.pk} · ref {rep.data_ref.strftime('%d/%m/%Y')}"
+        ),
+        operador=operador,
+        data_ref=rep.data_ref,
+        repasse=rep,
+    )
 
 
 def _redistribuir_tres(
@@ -866,6 +971,7 @@ def confirmar_repasse(
     if err_dia or dia is None:
         return None, err_dia or "Data inválida."
     calc = calcular_disponivel(dia, percentual_lucro=percentual_lucro, modo_dia_cheio=modo_dia_cheio)
+    falta_antes = _dec(calc.get("falta_dinheiro"))
     disp = calc["disponivel"]
     v_cmv = _dec(disp["cmv"]) if incluir_cmv else ZERO
     v_lucro = _dec(disp["lucro"]) if incluir_lucro else ZERO
@@ -979,6 +1085,11 @@ def confirmar_repasse(
     if mov_entrada:
         mov_entrada.observacao = _obs_repasse(rep, "entrada Centro")
         mov_entrada.save(update_fields=["observacao"])
+
+    _atualizar_delta_cache(dia, percentual_lucro=calc.get("percentual_lucro"))
+    quitacao = max(ZERO, (total - falta_antes).quantize(Decimal("0.01")))
+    if quitacao > 0:
+        _quitar_acumulado_no_repasse(rep, quitacao=quitacao, operador=operador)
 
     return rep, ""
 

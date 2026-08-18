@@ -293,6 +293,7 @@
     <div id="rv-acum-lista" class="flex-1 overflow-y-auto px-3 py-2 text-sm font-bold text-slate-700 min-h-[8rem]"></div>
     <footer class="border-t border-slate-200 px-3 py-2 space-y-2">
       <p class="text-[0.65rem] font-bold text-slate-600">Ajuste manual: positivo = falta levar mais · negativo = desconto/crédito</p>
+      <button type="button" id="rv-acum-zerar" class="w-full min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900 hover:bg-sky-100">Já transferi antes da ferramenta — zerar acumulado</button>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <input type="text" id="rv-acum-valor" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold" placeholder="Valor (+/−)" inputmode="decimal" />
         <input type="text" id="rv-acum-obs" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold sm:col-span-2" placeholder="Motivo (obrigatório)" />
@@ -703,6 +704,32 @@
             return;
           }
           if (acumStatus) acumStatus.textContent = 'Ajuste registrado';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () { if (acumStatus) acumStatus.textContent = 'Falha de rede'; });
+    });
+  }
+  var btnAcumZerar = document.getElementById('rv-acum-zerar');
+  if (btnAcumZerar) {
+    btnAcumZerar.addEventListener('click', function () {
+      var pin = String((document.getElementById('rv-acum-pin') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!window.confirm('Zerar o acumulado? Use se o dinheiro já foi transferido antes da ferramenta.')) return;
+      if (acumStatus) acumStatus.textContent = 'Zerando…';
+      fetch('/api/repasse-vila/acumulado/zerar/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ pin: pin, data_calc: dataRef() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Acumulado zerado';
           renderAcumModal(j.acumulado);
           fetchCalc();
         })

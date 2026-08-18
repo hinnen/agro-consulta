@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -216,6 +217,8 @@ def custo_mercadoria_vendida(
     deposito: str | None = None,
 ) -> dict[str, Any]:
     """Custo cadastro × quantidade vendida no período (todas as SKUs)."""
+    por_dia = cmv_vendida_por_dia(data_ini, data_fim, deposito=deposito)
+    total = sum(por_dia.values())
     desde = datetime.combine(data_ini, time.min)
     ate = datetime.combine(data_fim, time(23, 59, 59))
     desde, ate = _aware_bounds(desde, ate)
@@ -226,14 +229,61 @@ def custo_mercadoria_vendida(
     )
     pids = [str(r.get("produto_id_externo") or "").strip() for r in rows]
     meta = mapa_produtos_meta(pids)
-    total, skus_ok, skus_sem = cmv_vendida_de_rows(rows, meta)
+    _, skus_ok, skus_sem = cmv_vendida_de_rows(rows, meta)
     return {
         "ok": True,
-        "total": total,
+        "total": Decimal(str(round(total, 2))),
+        "por_dia": por_dia,
         "skus_com_custo": skus_ok,
         "skus_sem_custo": skus_sem,
         "deposito": deposito or "todas",
     }
+
+
+def cmv_vendida_por_dia(
+    data_ini: date,
+    data_fim: date,
+    *,
+    deposito: str | None = None,
+) -> dict[str, float]:
+    """CMV vendida (cadastro × qtd) por dia — chave ``YYYY-MM-DD``."""
+    from django.db.models.functions import TruncDate
+
+    desde = datetime.combine(data_ini, time.min)
+    ate = datetime.combine(data_fim, time(23, 59, 59))
+    desde, ate = _aware_bounds(desde, ate)
+    rows = list(
+        _qs_itens(desde, ate, deposito=deposito)
+        .annotate(dia=TruncDate("venda__criado_em"))
+        .values("dia", "produto_id_externo")
+        .annotate(qtd=Sum("quantidade"))
+    )
+    by_day: dict[str, list[dict]] = defaultdict(list)
+    all_pids: set[str] = set()
+    for r in rows:
+        dia = r.get("dia")
+        if dia is None:
+            continue
+        pid = str(r.get("produto_id_externo") or "").strip()
+        if not pid:
+            continue
+        k = dia.isoformat() if hasattr(dia, "isoformat") else str(dia)[:10]
+        by_day[k].append(r)
+        all_pids.add(pid)
+    meta = mapa_produtos_meta(list(all_pids))
+    out: dict[str, float] = {}
+    d = data_ini
+    while d <= data_fim:
+        k = d.isoformat()
+        day_rows = by_day.get(k) or []
+        if day_rows:
+            total, _, _ = cmv_vendida_de_rows(day_rows, meta)
+            out[k] = round(float(total), 2)
+        else:
+            out[k] = 0.0
+        d += timedelta(days=1)
+    return out
+
 
 
 def _parece_id_mongo_ou_sistema(s: str) -> bool:
@@ -261,113 +311,8 @@ def _codigo_gm_preferido(*candidatos: object) -> str:
     return humanos[0] if humanos else ""
 
 
-def _rotulo_sem(valor: object, vazio: str) -> str:
-    t = str(valor or "").strip()
-    return t if t else vazio
-
-
-def _as_filtro_lista(filtro: object) -> list[str]:
-    """Normaliza str | list | None → lista de rótulos não vazios."""
-    if filtro is None:
-        return []
-    if isinstance(filtro, (list, tuple, set)):
-        out: list[str] = []
-        for x in filtro:
-            t = str(x or "").strip()
-            if t and t not in out:
-                out.append(t)
-        return out
-    t = str(filtro or "").strip()
-    if not t:
-        return []
-    # aceita "Gato,Cachorro" num único param
-    parts = [p.strip() for p in t.split(",")]
-    return [p for p in parts if p]
-
-
-def _match_rotulos(valor: object, filtros: object) -> bool:
-    """True se sem filtro, ou se valor está em qualquer item da lista (OR)."""
-    lista = _as_filtro_lista(filtros)
-    if not lista:
-        return True
-    v = _rotulo_sem(valor, "").casefold()
-    return any(v == f.casefold() for f in lista)
-
-
-def _escolher_rotulos(candidatos: list[str], filtros: object) -> list[str]:
-    """Rótulos canônicos da lista que batem com o pedido (multi)."""
-    out: list[str] = []
-    for raw in _as_filtro_lista(filtros):
-        for c in candidatos:
-            if c.casefold() == raw.casefold():
-                if c not in out:
-                    out.append(c)
-                break
-    return out
-
-
-# Dimensões de catálogo: AND entre níveis; OR dentro do mesmo nível (multi-select).
-_DIMS_CATALOGO: tuple[tuple[str, str, str], ...] = (
-    ("categoria", "categorias", "Sem categoria"),
-    ("subcategoria", "subcategorias", "Sem subcategoria"),
-    ("subcategoria_2", "subcategorias_2", "Sem subcategoria 2"),
-    ("subcategoria_3", "subcategorias_3", "Sem subcategoria 3"),
-    ("subcategoria_4", "subcategorias_4", "Sem subcategoria 4"),
-)
-
-_AGRUPAR_OK = frozenset(d[0] for d in _DIMS_CATALOGO)
-
-
-def filtros_catalogo_request(request) -> dict[str, list[str] | None]:
-    """Lê GET multi: categoria=…&categoria=… (ou vírgula)."""
-    out: dict[str, list[str] | None] = {}
-    for campo, _lista, _vazio in _DIMS_CATALOGO:
-        brutos: list[str] = []
-        for raw in request.GET.getlist(campo):
-            brutos.extend(_as_filtro_lista(raw))
-        # dedupe preservando ordem
-        vistos: list[str] = []
-        for b in brutos:
-            if b not in vistos:
-                vistos.append(b)
-        out[campo] = vistos or None
-    return out
-
-
-def _meta_dims(m: dict) -> dict[str, str]:
-    return {
-        campo: (m.get(campo) or vazio)
-        for campo, _lista, vazio in _DIMS_CATALOGO
-    }
-
-
-def _passa_filtros(dims: dict[str, str], filtros: dict[str, object]) -> bool:
-    for campo, _lista, _vazio in _DIMS_CATALOGO:
-        if not _match_rotulos(dims.get(campo), filtros.get(campo)):
-            return False
-    return True
-
-
-def _label_agrupar(modo: str) -> str:
-    return {
-        "categoria": "Grupo / categoria",
-        "subcategoria": "Subcategoria",
-        "subcategoria_2": "Subcategoria 2",
-        "subcategoria_3": "Subcategoria 3",
-        "subcategoria_4": "Subcategoria 4",
-    }.get(modo, "Grupo")
-
-
-def _norm_filtros_kwargs(**kwargs: object) -> dict[str, list[str] | None]:
-    out: dict[str, list[str] | None] = {}
-    for campo, _lista, _vazio in _DIMS_CATALOGO:
-        lista = _as_filtro_lista(kwargs.get(campo))
-        out[campo] = lista or None
-    return out
-
-
 def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
-    """nome, codigo (GM), categoria, marca, sub 1–4, custo, comissao_% e comissao_R$."""
+    """nome, codigo (GM), categoria, marca, custo, comissao_% e comissao_R$."""
     from produtos.catalogo_agro import produto_agro_para_row
     from produtos.models import Produto
 
@@ -389,29 +334,8 @@ def mapa_produtos_meta(pids: list[str]) -> dict[str, dict]:
                     row.get("codigo"),
                     p.codigo_interno,
                 ),
-                "categoria": _rotulo_sem(
-                    row.get("categoria") or p.categoria, "Sem categoria"
-                ),
-                "marca": _rotulo_sem(
-                    row.get("marca") or getattr(p, "marca", None),
-                    "Sem marca",
-                ),
-                "subcategoria": _rotulo_sem(
-                    row.get("subcategoria") or getattr(p, "subcategoria", None),
-                    "Sem subcategoria",
-                ),
-                "subcategoria_2": _rotulo_sem(
-                    row.get("subcategoria_2") or getattr(p, "subcategoria_2", None),
-                    "Sem subcategoria 2",
-                ),
-                "subcategoria_3": _rotulo_sem(
-                    row.get("subcategoria_3") or getattr(p, "subcategoria_3", None),
-                    "Sem subcategoria 3",
-                ),
-                "subcategoria_4": _rotulo_sem(
-                    row.get("subcategoria_4") or getattr(p, "subcategoria_4", None),
-                    "Sem subcategoria 4",
-                ),
+                "categoria": (row.get("categoria") or p.categoria or "").strip() or "Sem categoria",
+                "marca": (row.get("marca") or p.marca or "").strip() or "Sem marca",
                 "custo": float(row.get("preco_custo") or p.custo or 0),
                 "comissao_pct": None,
                 "comissao_rs": None,
@@ -448,9 +372,6 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     "NomeCategoria": 1,
                     "Marca": 1,
                     "NomeMarca": 1,
-                    "SubGrupo": 1,
-                    "Subcategoria": 1,
-                    "NomeSubGrupo": 1,
                     "PrecoCusto": 1,
                     "ValorCusto": 1,
                     "ComissaoVendedor": 1,
@@ -489,24 +410,14 @@ def _mapa_meta_mongo(pids: list[str]) -> dict[str, dict]:
                     doc.get("Codigo"),
                     doc.get("CodigoInterno"),
                 ),
-                "categoria": _rotulo_sem(
-                    doc.get("Categoria") or doc.get("NomeCategoria"),
-                    "Sem categoria",
-                ),
-                "marca": _rotulo_sem(
-                    doc.get("Marca") or doc.get("NomeMarca"),
-                    "Sem marca",
-                ),
-                "subcategoria": _rotulo_sem(
-                    doc.get("SubGrupo")
-                    or doc.get("Subcategoria")
-                    or doc.get("NomeSubGrupo"),
-                    "Sem subcategoria",
-                ),
-                # Níveis 2–4 vivem no Postgres/overlay; Mongo legado não tem.
-                "subcategoria_2": "Sem subcategoria 2",
-                "subcategoria_3": "Sem subcategoria 3",
-                "subcategoria_4": "Sem subcategoria 4",
+                "categoria": (
+                    doc.get("Categoria") or doc.get("NomeCategoria") or "Sem categoria"
+                ).strip()
+                or "Sem categoria",
+                "marca": (
+                    doc.get("Marca") or doc.get("NomeMarca") or "Sem marca"
+                ).strip()
+                or "Sem marca",
                 "custo": custo,
                 "comissao_pct": pct_f,
                 "comissao_rs": rs_f,
@@ -521,158 +432,48 @@ def ranking_produtos(
     ordenar: str = "valor",
     sentido: str = "mais",
     limite: int = 100,
-    categoria: object = None,
-    subcategoria: object = None,
-    subcategoria_2: object = None,
-    subcategoria_3: object = None,
-    subcategoria_4: object = None,
 ) -> list[dict]:
-    filtros = _norm_filtros_kwargs(
-        categoria=categoria,
-        subcategoria=subcategoria,
-        subcategoria_2=subcategoria_2,
-        subcategoria_3=subcategoria_3,
-        subcategoria_4=subcategoria_4,
-    )
     rows = _agg_itens_por_produto(desde, ate)
     reverse = sentido != "menos"
     key = "qtd" if ordenar == "qtd" else "valor"
     rows.sort(key=lambda x: x[key], reverse=reverse)
+    lim = int(limite or 0)
+    if lim > 0:
+        rows = rows[: max(1, min(50000, lim))]
     pids = [str(r["produto_id_externo"]) for r in rows]
     meta = mapa_produtos_meta(pids)
     out: list[dict] = []
-    for r in rows:
+    for i, r in enumerate(rows, start=1):
         pid = str(r["produto_id_externo"])
         m = meta.get(pid) or {}
-        dims = _meta_dims(m)
-        if not _passa_filtros(dims, filtros):
-            continue
         qtd = float(r["qtd"] or 0)
         valor = float(r["valor"] or 0)
         out.append(
             {
+                "pos": i,
                 "produto_id": pid,
                 "codigo": m.get("codigo") or "",
                 "nome": m.get("nome") or pid,
-                **dims,
-                "custo": float(m.get("custo") or 0),
+                "categoria": m.get("categoria") or "Sem categoria",
                 "qtd": round(qtd, 3),
                 "valor": round(valor, 2),
                 "ticket_medio": round(valor / qtd, 2) if qtd else 0.0,
             }
         )
-    lim = int(limite or 0)
-    if lim > 0:
-        out = out[: max(1, min(50000, lim))]
-    for i, r in enumerate(out, start=1):
-        r["pos"] = i
-    return out
-
-
-def facetas_categoria_sub(
-    desde: datetime,
-    ate: datetime,
-    *,
-    categoria: object = None,
-    subcategoria: object = None,
-    subcategoria_2: object = None,
-    subcategoria_3: object = None,
-    subcategoria_4: object = None,
-    ordenar: str = "valor",
-    sentido: str = "mais",
-) -> tuple[dict[str, Any], list[dict]]:
-    """
-    Uma passagem: ranking do período + listas/rótulos ativos + linhas já filtradas.
-    Multi-select = OR no nível; AND entre níveis.
-    """
-    rows = ranking_produtos(
-        desde, ate, ordenar=ordenar, sentido=sentido, limite=0
-    )
-    pedidos = _norm_filtros_kwargs(
-        categoria=categoria,
-        subcategoria=subcategoria,
-        subcategoria_2=subcategoria_2,
-        subcategoria_3=subcategoria_3,
-        subcategoria_4=subcategoria_4,
-    )
-    ativos: dict[str, list[str]] = {}
-    listas: dict[str, list[str]] = {}
-    base = rows
-    for campo, lista_key, vazio in _DIMS_CATALOGO:
-        valores = sorted(
-            {(r.get(campo) or vazio) for r in base},
-            key=lambda x: x.casefold(),
-        )
-        listas[lista_key] = valores
-        escolhidos = _escolher_rotulos(valores, pedidos.get(campo))
-        ativos[campo] = escolhidos
-        if escolhidos:
-            base = [r for r in base if _match_rotulos(r.get(campo), escolhidos)]
-    for i, r in enumerate(base, start=1):
-        r["pos"] = i
-    return {**listas, **ativos}, base
-
-
-def limitar_ranking(rows: list[dict], limite: int) -> list[dict]:
-    lim = int(limite or 0)
-    if lim <= 0:
-        return rows
-    out = rows[: max(1, min(50000, lim))]
-    for i, r in enumerate(out, start=1):
-        r["pos"] = i
     return out
 
 
 def vendas_por_grupo(
-    desde: datetime,
-    ate: datetime,
-    *,
-    agrupar: str = "categoria",
-    categoria: object = None,
-    subcategoria: object = None,
-    subcategoria_2: object = None,
-    subcategoria_3: object = None,
-    subcategoria_4: object = None,
-    deposito: str | None = None,
-) -> tuple[list[dict], dict]:
-    """Agrupa vendas por uma dimensão; filtros AND entre níveis (OR no nível)."""
-    modo = (agrupar or "categoria").strip().lower()
-    if modo not in _AGRUPAR_OK:
-        modo = "categoria"
-    filtros = _norm_filtros_kwargs(
-        categoria=categoria,
-        subcategoria=subcategoria,
-        subcategoria_2=subcategoria_2,
-        subcategoria_3=subcategoria_3,
-        subcategoria_4=subcategoria_4,
-    )
+    desde: datetime, ate: datetime, deposito: str | None = None
+) -> list[dict]:
     agg = _agg_itens_por_produto(desde, ate, deposito=deposito)
     pids = [str(r["produto_id_externo"]) for r in agg]
     meta = mapa_produtos_meta(pids)
-
-    itens_dims: list[dict[str, str]] = []
-    for r in agg:
-        m = meta.get(str(r["produto_id_externo"])) or {}
-        itens_dims.append(_meta_dims(m))
-
-    ativos: dict[str, list[str]] = {}
-    listas: dict[str, list[str]] = {}
-    base_dims = itens_dims
-    for campo, lista_key, vazio in _DIMS_CATALOGO:
-        valores = sorted({d.get(campo) or vazio for d in base_dims}, key=lambda x: x.casefold())
-        listas[lista_key] = valores
-        escolhidos = _escolher_rotulos(valores, filtros.get(campo))
-        ativos[campo] = escolhidos
-        if escolhidos:
-            base_dims = [d for d in base_dims if _match_rotulos(d.get(campo), escolhidos)]
-
-    vazio_modo = next(v for c, _l, v in _DIMS_CATALOGO if c == modo)
     buckets: dict[str, dict] = {}
-    for r, dims in zip(agg, itens_dims):
-        if not _passa_filtros(dims, ativos):
-            continue
-        chave = dims.get(modo) or vazio_modo
-        b = buckets.setdefault(chave, {"grupo": chave, "qtd": 0.0, "valor": 0.0, "itens": 0})
+    for r in agg:
+        pid = str(r["produto_id_externo"])
+        cat = (meta.get(pid) or {}).get("categoria") or "Sem categoria"
+        b = buckets.setdefault(cat, {"grupo": cat, "qtd": 0.0, "valor": 0.0, "itens": 0})
         b["qtd"] += float(r["qtd"] or 0)
         b["valor"] += float(r["valor"] or 0)
         b["itens"] += 1
@@ -690,12 +491,7 @@ def vendas_por_grupo(
                 "pct": round(100.0 * r["valor"] / total, 1),
             }
         )
-    return out, {
-        "agrupar": modo,
-        "col_grupo": _label_agrupar(modo),
-        **listas,
-        **ativos,
-    }
+    return out
 
 
 def receita_categorias_pdv(
@@ -709,8 +505,7 @@ def receita_categorias_pdv(
     desde = datetime.combine(data_ini, time.min)
     ate = datetime.combine(data_fim, time(23, 59, 59))
     desde, ate = _aware_bounds(desde, ate)
-    raw = vendas_por_grupo(desde, ate, deposito=deposito)
-    rows = list(raw[0] if isinstance(raw, tuple) else (raw or []))
+    rows = vendas_por_grupo(desde, ate, deposito=deposito)
     total = float(sum(float(r.get("valor") or 0) for r in rows))
     if total <= 0:
         return {"ok": True, "total": 0.0, "fatias": []}
@@ -787,27 +582,32 @@ def curva_abc(
     todos: bool = False,
     lim_tela: int = 500,
     categoria: str | None = None,
-    subcategoria: str | None = None,
-    subcategoria_2: str | None = None,
-    subcategoria_3: str | None = None,
-    subcategoria_4: str | None = None,
 ) -> tuple[list[dict], dict]:
     """
-    Classifica produtos do período (ou de um recorte cat/sub 1–4).
+    Classifica produtos do período (ou de uma categoria).
     Por padrão mostra só os primeiros ``lim_tela``; com ``todos=True`` lista inteira.
-    % e classes usam o faturamento **total** do recorte.
+    % e classes usam o faturamento **total** do recorte (período ou categoria).
     """
-    facetas, rows = facetas_categoria_sub(
-        desde,
-        ate,
-        categoria=categoria,
-        subcategoria=subcategoria,
-        subcategoria_2=subcategoria_2,
-        subcategoria_3=subcategoria_3,
-        subcategoria_4=subcategoria_4,
-        ordenar="valor",
-        sentido="mais",
+    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=0)
+    categorias = sorted(
+        {(r.get("categoria") or "Sem categoria").strip() or "Sem categoria" for r in rows},
+        key=lambda x: x.casefold(),
     )
+    cat_raw = (categoria or "").strip()
+    cat_ativa = ""
+    if cat_raw:
+        for c in categorias:
+            if c.casefold() == cat_raw.casefold():
+                cat_ativa = c
+                break
+        if not cat_ativa:
+            cat_ativa = cat_raw
+        rows = [
+            r
+            for r in rows
+            if ((r.get("categoria") or "Sem categoria").strip() or "Sem categoria").casefold()
+            == cat_ativa.casefold()
+        ]
     total_bruto = sum(r["valor"] for r in rows)
     total = total_bruto or 1.0
     acum = 0.0
@@ -834,27 +634,15 @@ def curva_abc(
     lim = max(1, int(lim_tela or 500))
     truncado = (not todos) and n_total > lim
     mostrar = out if todos else out[:lim]
-    ativos = [
-        facetas.get(c)
-        for c, _l, _v in _DIMS_CATALOGO
-        if _as_filtro_lista(facetas.get(c))
-    ]
-    if len(ativos) >= 2:
-        recorte = "filtros"
-    elif ativos:
-        recorte = "filtro"
-    else:
-        recorte = "período"
     return mostrar, {
         "total_periodo": round(total_bruto, 2),
         "n_total": n_total,
         "n_tela": len(mostrar),
         "truncado": truncado,
         "todos": bool(todos),
-        "recorte": recorte,
-        **facetas,
+        "categorias": categorias,
+        "categoria": cat_ativa,
     }
-
 
 
 def margem_produtos(
@@ -863,35 +651,14 @@ def margem_produtos(
     *,
     ordenar: str = "margem_rs",
     limite: int = 100,
-    categoria: str | None = None,
-    subcategoria: str | None = None,
-    subcategoria_2: str | None = None,
-    subcategoria_3: str | None = None,
-    subcategoria_4: str | None = None,
-    rows: list[dict] | None = None,
 ) -> list[dict]:
-    if rows is None:
-        rows = ranking_produtos(
-            desde,
-            ate,
-            ordenar="valor",
-            sentido="mais",
-            limite=limite,
-            categoria=categoria,
-            subcategoria=subcategoria,
-            subcategoria_2=subcategoria_2,
-            subcategoria_3=subcategoria_3,
-            subcategoria_4=subcategoria_4,
-        )
-    else:
-        rows = limitar_ranking(list(rows), limite)
-    # custo já veio em mapa_produtos_meta no ranking; reaproveita se presente
+    rows = ranking_produtos(desde, ate, ordenar="valor", sentido="mais", limite=limite)
+    pids = [r["produto_id"] for r in rows]
+    meta = mapa_produtos_meta(pids)
     out = []
     for r in rows:
-        custo_u = float(r.get("custo") or 0)
-        if not custo_u:
-            # fallback — ranking antigo sem custo no row
-            custo_u = 0.0
+        m = meta.get(r["produto_id"]) or {}
+        custo_u = float(m.get("custo") or 0)
         custo_tot = round(custo_u * r["qtd"], 2)
         margem_rs = round(r["valor"] - custo_tot, 2)
         margem_pct = round(100.0 * margem_rs / r["valor"], 1) if r["valor"] else 0.0

@@ -9,6 +9,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/agro_resumo_gerencial.css' %}?v={{ agro_asset_v|default:'0' }}">
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
     /* Modal ajuda — mínimo; restante no CSS do painel */
@@ -77,6 +78,7 @@
             </div>
             <p id="rg-cmv-hint" class="rg-cmv__hint visually-hidden">Custo do cadastro × quantidade vendida (o que saiu da loja).</p>
           </div>
+          <button type="button" id="btn-planos-gasto" class="rg-btn-planos" title="Quais planos de conta entram como gasto no DRE e no gráfico de saldo">Planos gasto</button>
           <button type="button" id="btn-atualizar" class="rg-btn-atualizar" title="Recarregar indicadores">
             Atualizar
             <kbd class="gm-kbd-rg">F5</kbd>
@@ -151,7 +153,37 @@
         </div>
       </div>
     </section>
+
+    <section id="sec-saldo-diario" class="rg-saldo-diario hidden" aria-label="Saldo dia a dia do mês">
+      <div class="rg-saldo-diario__head">
+        <h2>
+          <span class="rg-saldo-diario__dot" aria-hidden="true"></span>
+          Saldo (R$) · mês atual · dia a dia
+        </h2>
+        <div class="rg-saldo-diario__meta">
+          <span id="rg-saldo-total" class="rg-saldo-diario__badge">Total: —</span>
+          <span id="rg-saldo-loja" class="rg-saldo-diario__loja"></span>
+        </div>
+      </div>
+      <p id="rg-saldo-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
+      <div id="rg-saldo-chart" class="rg-saldo-diario__chart"></div>
+    </section>
   </main>
+
+  <div id="modal-planos-gasto" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="rg-planos-titulo">
+    <div class="rg-modal rg-modal--planos">
+      <h3 id="rg-planos-titulo">Planos de conta — gasto no DRE</h3>
+      <p class="rg-planos-lead">Marque quais planos entram como <strong>despesa</strong> nos cards, na lista «Despesas por categoria» e no gráfico de saldo. Padrão: todos. A escolha fica salva neste navegador.</p>
+      <div class="rg-planos-actions">
+        <button type="button" id="btn-planos-todos" class="rg-btn-ghost">Marcar todos</button>
+      </div>
+      <div id="rg-planos-lista" class="rg-planos-lista"></div>
+      <div class="rg-planos-foot">
+        <button type="button" id="btn-fechar-planos" class="rg-modal__btn rg-modal__btn--ghost">Cancelar</button>
+        <button type="button" id="btn-aplicar-planos" class="rg-modal__btn">Aplicar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal-ajuda" class="rg-modal-backdrop hidden" role="dialog" aria-modal="true">
     <div class="rg-modal">
@@ -166,6 +198,8 @@
         <li><strong>vs mês passado / vs média 90d:</strong> valor comparável aos <strong>mesmos dias</strong> do filtro (mês calendário anterior e média diária dos 90 dias anteriores × dias atuais) + variação %. Despesa e CMV: subir é ruim; receita, lucro e markup: subir é bom.</li>
         <li><strong>Empréstimos:</strong> <strong>empréstimo devido</strong> e <strong>juros devido</strong> = bruto dos títulos no filtro da tela (vencimento/competência/pagamento). <strong>Total devido</strong> = soma. <strong>Valor pago</strong> = pago desses títulos (mesmo se pago em meses anteriores). <strong>Valor emprestado</strong> = entrada no período pela <strong>competência</strong>.</li>
         <li><strong>Receita por categoria:</strong> vendas do <strong>PDV</strong> no período, agrupadas pela categoria do cadastro (top 6 + Outros).</li>
+        <li><strong>Planos gasto:</strong> botão na barra de filtros — escolhe quais planos de conta entram como despesa (padrão: todos). Vale para cards, categorias e gráfico de saldo. Fica salvo neste navegador.</li>
+        <li><strong>Saldo dia a dia (rodapé):</strong> cada barra = vendas PDV − <strong>CMV</strong> (modo vendida/paga) − despesas dos planos selecionados. Azul = positivo · vermelho = negativo. Linha verde = previsto (média 90d). Todos os dias do mês.</li>
         <li>A tela <strong>Indicadores · Financeiro gerencial</strong> continua no menu — esta é a prévia visual nova.</li>
         <li><kbd style="border:1px solid #cbd5e1;padding:1px 4px;border-radius:4px;font-size:10px">F1</kbd> fora de campos volta ao PDV.</li>
       </ul>

@@ -35,10 +35,13 @@ from produtos.relatorios_vendas_util import mapa_produtos_meta
 from produtos.repasse_vila_util import (
     _aware_bounds,
     _vendas_vila_sem_fiado,
+    acumulado_anterior,
     aplicar_repasses_pendentes_centro,
     calcular_disponivel,
     confirmar_repasse,
     partir_despesas_centro_vila,
+    quitar_acumulado_zerar,
+    registrar_ajuste_acumulado,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
     texto_aviso_abertura,
@@ -559,9 +562,10 @@ def main() -> int:
         acumulado_anterior,
         listar_acumulado_detalhe,
         registrar_ajuste_acumulado,
+        quitar_acumulado_zerar,
     )
 
-    for name in ("api_repasse_vila_acumulado", "api_repasse_vila_acumulado_ajuste"):
+    for name in ("api_repasse_vila_acumulado", "api_repasse_vila_acumulado_ajuste", "api_repasse_vila_acumulado_zerar"):
         try:
             reverse(name)
             ok(f"url {name}")
@@ -590,9 +594,13 @@ def main() -> int:
     ok("acum reflete ajuste") if acum_depois == esperado else fail(
         f"acum {acum_depois} != {esperado}"
     )
+    adj_z, err_z = quitar_acumulado_zerar(hoje, operador="bot", observacao=f"{tag} zerar")
+    ok("zerar acumulado") if adj_z and not err_z else fail(f"zerar: {err_z}")
+    acum_zero = acumulado_anterior(hoje)
+    ok("acum apos zerar <= 0") if acum_zero <= 0 else fail(f"acum pos zerar={acum_zero}")
 
     det = listar_acumulado_detalhe(hoje)
-    ok("detalhe ok") if det.get("ok") and abs(float(det["acumulado_anterior"]) - float(acum_depois)) < 0.02 else fail(
+    ok("detalhe ok") if det.get("ok") and abs(float(det["acumulado_anterior"]) - float(acum_zero)) < 0.02 else fail(
         "detalhe diverge"
     )
     ok("detalhe tem ajustes") if any(a.get("tipo") == "ajuste" for a in (det.get("ajustes") or [])) else fail(

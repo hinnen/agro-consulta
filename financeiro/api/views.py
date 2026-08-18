@@ -14,8 +14,10 @@ from financeiro.models import GrupoEmpresarial
 from financeiro.api.serializers import (
     DebugMongoResumoQuerySerializer,
     ResumoOperacionalQuerySerializer,
+    SaldoDiarioMesQuerySerializer,
 )
 from financeiro.services.consolidacao import ConsolidacaoFinanceiraService
+from financeiro.services.dre_planos_filtro_util import parse_planos_gasto_param
 from financeiro.services.equilibrio import EquilibrioFinanceiroService
 
 _log_resumo = logging.getLogger("financeiro.resumo_diagnostico")
@@ -133,6 +135,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
 
         params = serializer.validated_data
         diagnostico = _resumo_diagnostico_ativo(request)
+        planos_incluir = parse_planos_gasto_param(params.get("planos_gasto"))
 
         if _resumo_usa_titulos_pg(params):
             from financeiro.services.resumo_operacional_pg import (
@@ -155,6 +158,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     filtro_contas=fc,
                     diagnostico=diagnostico,
                     anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
                 )
             elif modo == "empresa":
                 data = consolidar_empresa_pg(
@@ -166,6 +170,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     filtro_contas=fc,
                     diagnostico=diagnostico,
                     anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
                 )
             else:
                 get_object_or_404(
@@ -180,6 +185,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     filtro_contas=fc,
                     diagnostico=diagnostico,
                     anexar_cmv_modos=True,
+                    planos_incluir=planos_incluir,
                 )
                 if pack.get("erro"):
                     return Response(
@@ -214,6 +220,7 @@ class ResumoOperacionalAPIView(_AuthAPIView):
                     data_fim=params["data_fim"],
                     empresa_nome=data.get("empresa_nome_filtro"),
                     valor=valor,
+                    planos_incluir=planos_incluir,
                     **vis_kw,
                 )
         else:
@@ -352,4 +359,53 @@ class GapEquilibrioAPIView(_AuthAPIView):
                 json_safe(data),
                 resumo.get("receita_operacional"),
             )
+        return Response(json_safe(data), status=status.HTTP_200_OK)
+
+
+class SaldoDiarioMesAPIView(_AuthAPIView):
+    """Saldo dia a dia do mês (vendas PDV − despesas) + previsão 90d."""
+
+    def get(self, request):
+        serializer = SaldoDiarioMesQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        params = serializer.validated_data
+
+        if not _resumo_usa_titulos_pg({"fonte": "postgres"}):
+            return Response(
+                {"ok": False, "detail": "Disponível somente com financeiro Postgres."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        from datetime import date as date_cls
+
+        from django.utils import timezone
+
+        from financeiro.services.dre_saldo_diario_util import dre_saldo_diario_mes_pg
+
+        ref = timezone.localdate()
+        mes_raw = (params.get("mes") or "").strip()
+        if mes_raw:
+            try:
+                y, m = mes_raw.split("-", 1)
+                ref = date_cls(int(y), int(m), 1)
+            except (TypeError, ValueError):
+                return Response(
+                    {"ok": False, "detail": "mes inválido (use YYYY-MM)."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        fc = (params.get("contas") or "").strip() or "resultado"
+        planos_incluir = parse_planos_gasto_param(params.get("planos_gasto"))
+        cmv_modo = (params.get("cmv") or "vendida").strip().lower()
+        if cmv_modo not in ("vendida", "paga"):
+            cmv_modo = "vendida"
+        data = dre_saldo_diario_mes_pg(
+            loja=params.get("loja") or "todas",
+            por=params.get("por") or "vencimento",
+            valor=params.get("valor") or "bruto",
+            ref=ref,
+            filtro_contas=fc,
+            planos_incluir=planos_incluir,
+            cmv_modo=cmv_modo,
+        )
         return Response(json_safe(data), status=status.HTTP_200_OK)

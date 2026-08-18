@@ -1357,3 +1357,163 @@
 .rg-mini [data-rg-tip]:hover::after {
   transform: translateX(0) translateY(0);
 }
+
+/* ——— Saldo dia a dia (rodapé full-width) ——— */
+.rg-saldo-diario {
+  flex-shrink: 0;
+  width: 100%;
+  margin-top: 0.15rem;
+  padding: 0.55rem 0.65rem 0.65rem;
+  background: #fff;
+  border: var(--rg-border);
+  border-radius: var(--rg-radius);
+  box-shadow: var(--rg-shadow);
+  min-height: 0;
+}
+.rg-saldo-diario.hidden {
+  display: none !important;
+}
+.rg-saldo-diario__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-bottom: 0.35rem;
+}
+.rg-saldo-diario__head h2 {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.rg-saldo-diario__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+  flex-shrink: 0;
+}
+.rg-saldo-diario__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+}
+.rg-saldo-diario__badge {
+  font-size: 0.6875rem;
+  font-weight: 900;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.2rem 0.45rem;
+  font-variant-numeric: tabular-nums;
+}
+.rg-saldo-diario__loja {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: none;
+}
+.rg-saldo-diario__chart {
+  width: 100%;
+  min-height: 11.5rem;
+  height: clamp(11rem, 22vh, 16rem);
+}
+.rg-saldo-diario .apexcharts-xaxis-label tspan {
+  font-size: 9px !important;
+  font-weight: 700;
+}
+@media (max-width: 900px) {
+  .rg-main {
+    overflow-y: auto;
+  }
+  .rg-saldo-diario__chart {
+    min-height: 10rem;
+    height: 12.5rem;
+  }
+}
+
+.rg-btn-planos {
+  align-self: flex-end;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.625rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rg-btn-planos:hover {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+.rg-modal--planos {
+  max-width: min(36rem, 96vw);
+  max-height: min(88vh, 42rem);
+  display: flex;
+  flex-direction: column;
+}
+.rg-planos-lead {
+  margin: 0 0 0.65rem;
+  font-size: 0.8125rem;
+  color: #475569;
+  line-height: 1.45;
+}
+.rg-planos-actions {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+.rg-planos-lista {
+  flex: 1 1 auto;
+  min-height: 8rem;
+  max-height: min(50vh, 22rem);
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.35rem 0.45rem;
+  background: #f8fafc;
+}
+.rg-planos-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 0.28rem 0.15rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+}
+.rg-planos-item input {
+  margin-top: 0.15rem;
+  flex-shrink: 0;
+}
+.rg-planos-empty {
+  margin: 0.5rem 0.25rem;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+.rg-planos-foot {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+.rg-modal__btn--ghost {
+  background: #fff !important;
+  color: #334155 !important;
+  border: 1px solid #cbd5e1 !important;
+}

@@ -159,6 +159,22 @@
         #modal-transfer-forcada #tf-resultados .tf-busca-table td.tf-saldo.tf-neg {
             color: #b45309;
         }
+        /* Centro → Vila: carrinho à esquerda, busca à direita */
+        #modal-transfer-forcada.tf-layout-invertido #tf-painel-carrinho {
+            order: 1;
+        }
+        #modal-transfer-forcada.tf-layout-invertido #tf-painel-busca {
+            order: 2;
+        }
+        @media (min-width: 1024px) {
+            #modal-transfer-forcada.tf-layout-invertido #tf-painel-busca {
+                border-right: none;
+                border-left: 1px solid #e2e8f0;
+            }
+            #modal-transfer-forcada.tf-layout-invertido #tf-painel-carrinho {
+                border-right: 1px solid #e2e8f0;
+            }
+        }
         @media (max-width: 900px) {
             #modal-transfer-forcada .tf-grid-head,
             #modal-transfer-forcada .tf-grid-row {
@@ -392,18 +408,27 @@
         <div id="modal-hist-det-corpo" class="text-[11px] overflow-y-auto min-h-0 flex-1 pr-1"></div>
     </div>
 
+    <div id="modal-transfer-forcada-direcao" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl z-[10115] hidden shadow-2xl w-11/12 max-w-[min(28rem,96vw)] scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-tf-dir-titulo">
+        <div class="px-5 sm:px-6 pt-5 pb-4 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 rounded-t-2xl">
+            <h3 id="modal-tf-dir-titulo" class="text-lg sm:text-xl font-black uppercase text-emerald-950 leading-tight text-center">Transferência forçada</h3>
+            <p class="text-sm font-semibold text-slate-600 text-center mt-2">Qual a direção da transferência?</p>
+        </div>
+        <div class="p-5 sm:p-6 space-y-3">
+            <button type="button" onclick="tfIniciarTransferForcada('vila_centro')" class="w-full rounded-xl border-2 border-emerald-400 bg-emerald-600 text-white font-black uppercase text-base sm:text-lg py-4 hover:bg-emerald-700 shadow-md shadow-emerald-200">Vila → Centro</button>
+            <button type="button" onclick="tfIniciarTransferForcada('centro_vila')" class="w-full rounded-xl border-2 border-sky-400 bg-sky-600 text-white font-black uppercase text-base sm:text-lg py-4 hover:bg-sky-700 shadow-md shadow-sky-200">Centro → Vila</button>
+            <button type="button" onclick="fecharModal('modal-transfer-forcada-direcao', false)" class="w-full rounded-xl bg-slate-100 text-slate-700 font-black uppercase text-sm py-3 hover:bg-slate-200">Cancelar</button>
+        </div>
+    </div>
+
     <div id="modal-transfer-forcada" class="gm-transf-modal-layer fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl z-[10110] hidden shadow-2xl flex flex-col scale-95 opacity-0 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-tf-titulo">
         <div class="shrink-0 flex flex-wrap items-center justify-between gap-3 px-5 sm:px-6 pt-4 pb-3 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 rounded-t-2xl">
             <div class="min-w-0 flex flex-wrap items-center gap-2.5">
                 <h3 id="modal-tf-titulo" class="text-base sm:text-xl font-black uppercase text-emerald-950 leading-tight">Transferência forçada</h3>
-                <div class="inline-flex rounded-xl border-2 border-emerald-300 bg-white p-0.5 shadow-sm" role="group" aria-label="Direção">
-                    <button type="button" id="tf-dir-vc" onclick="tfSetDirecao('vila_centro')" class="rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-white bg-emerald-600">Vila → C</button>
-                    <button type="button" id="tf-dir-cv" onclick="tfSetDirecao('centro_vila')" class="rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-slate-600 bg-transparent hover:bg-slate-50">C → Vila</button>
-                </div>
+                <span id="modal-tf-direcao-badge" class="inline-flex rounded-lg border-2 border-emerald-300 bg-white px-3 py-1 text-[11px] sm:text-xs font-black uppercase text-emerald-800 shadow-sm">Vila → C</span>
                 <details class="relative shrink-0">
                     <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-emerald-900 font-black text-sm hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
                     <div class="absolute left-0 top-full z-20 mt-1 w-[min(22rem,85vw)] rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-700 font-semibold leading-relaxed shadow-xl space-y-2">
-                        <p>Escolha a direção: <b>Vila → Centro</b> ou <b>Centro → Vila</b>.</p>
+                        <p>A direção foi escolhida ao abrir. Para trocar, <b>feche</b> e abra de novo.</p>
                         <p>Monte o carrinho mesmo se o produto <b>não</b> aparecer na aba Transferir.</p>
                         <p>Saldo da origem zerado/negativo: transferência <b>permitida</b> (ajuste Agro).</p>
                         <p><b>Busca:</b> Enter/clique → Qtd (1 selecionado) · Enter na Qtd volta pra busca.</p>
@@ -413,8 +438,8 @@
             </div>
             <button type="button" onclick="fecharModalTransferForcada()" class="text-slate-400 hover:text-slate-700 font-black text-3xl leading-none px-1 shrink-0" aria-label="Fechar">×</button>
         </div>
-        <div class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] gap-0 overflow-hidden">
-            <div class="flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-200 p-4 sm:p-5 gap-2">
+        <div id="tf-grid-corpo" class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] gap-0 overflow-hidden">
+            <div id="tf-painel-busca" class="flex flex-col min-h-0 border-b lg:border-b-0 lg:border-r border-slate-200 p-4 sm:p-5 gap-2">
                 <div class="flex items-center justify-between gap-2 shrink-0">
                     <label for="tf-busca" class="text-xs font-black uppercase text-slate-500 tracking-wide">1 · Buscar</label>
                     <span id="tf-busca-status" class="text-xs font-bold text-slate-500 tabular-nums"></span>
@@ -434,7 +459,7 @@
                     </div>
                 </details>
             </div>
-            <div class="flex flex-col min-h-0 p-4 sm:p-5 gap-2 bg-white">
+            <div id="tf-painel-carrinho" class="flex flex-col min-h-0 p-4 sm:p-5 gap-2 bg-white">
                 <div class="flex items-center justify-between gap-2 shrink-0">
                     <label class="text-xs font-black uppercase text-slate-500 tracking-wide">2 · Carrinho <span id="tf-carrinho-count" class="text-emerald-700 tabular-nums text-sm">(0)</span></label>
                     <button type="button" onclick="tfLimparCarrinho()" class="text-xs font-black uppercase text-slate-500 hover:text-red-600 border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50">Limpar</button>
@@ -893,26 +918,11 @@
             if (window.gmLoader) window.gmLoader.show('🐭 carregando sugestões...');
             else if (window.gmLoadingBar) window.gmLoadingBar.show();
             try {
-                const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-                const tOut = window.setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, 45000);
-                const response = await fetch('/estoque/api_sugestoes_transferencia/', {
-                    credentials: 'same-origin',
-                    signal: ctrl ? ctrl.signal : undefined,
-                });
-                window.clearTimeout(tOut);
-                const raw = await response.text();
-                let data = null;
-                try {
-                    data = raw ? JSON.parse(raw) : null;
-                } catch (_) {
-                    document.getElementById("tabela-corpo").innerHTML =
-                        `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Servidor ocupado ou resposta inválida (HTTP ${response.status}). Atualize (F5).</td></tr>`;
-                    return;
-                }
-                if (!response.ok || (data && data.erro)) {
-                    const msg = (data && data.erro) ? data.erro : (`HTTP ${response.status}`);
-                    document.getElementById("tabela-corpo").innerHTML =
-                        `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold uppercase">Falha ao carregar sugestões:<br><span class="text-xs text-slate-500 normal-case mt-2 block">${msg}</span></td></tr>`;
+                const response = await fetch('/estoque/api_sugestoes_transferencia/');
+                const data = await response.json();
+
+                if (data.erro) {
+                    document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold uppercase">ERRO DE CONEXÃO COM O ERP:<br><span class="text-xs text-slate-500 normal-case mt-2 block">${data.erro}</span></td></tr>`;
                     return;
                 }
 
@@ -930,10 +940,7 @@
                 if (window.gmLoader) window.gmLoader.hide(180);
             } catch (error) {
                 console.error(error);
-                const aborted = error && (error.name === 'AbortError' || error.name === 'TimeoutError');
-                document.getElementById("tabela-corpo").innerHTML = aborted
-                    ? `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Tempo esgotado ao carregar. Atualize (F5) e tente de novo.</td></tr>`
-                    : `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
+                document.getElementById("tabela-corpo").innerHTML = `<tr><td colspan="7" class="p-10 text-center text-red-500 font-bold">Erro ao conectar com servidor.</td></tr>`;
             } finally {
                 if (window.gmLoader) window.gmLoader.hide(180);
                 else if (window.gmLoadingBar) window.gmLoadingBar.hide();
@@ -1352,29 +1359,38 @@
 
         function tfSetDirecao(dir) {
             tfDirecao = (dir === 'centro_vila') ? 'centro_vila' : 'vila_centro';
-            const btnVc = document.getElementById('tf-dir-vc');
-            const btnCv = document.getElementById('tf-dir-cv');
             const btnOk = document.getElementById('tf-btn-transferir');
-            const on = 'rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-white bg-emerald-600';
-            const off = 'rounded-lg px-3 py-1.5 text-[11px] sm:text-xs font-black uppercase text-slate-600 bg-transparent hover:bg-slate-50';
-            if (btnVc) btnVc.className = tfDirecao === 'vila_centro' ? on : off;
-            if (btnCv) btnCv.className = tfDirecao === 'centro_vila' ? on : off;
+            const badge = document.getElementById('modal-tf-direcao-badge');
+            const modalTf = document.getElementById('modal-transfer-forcada');
+            const rotulo = tfDirecao === 'centro_vila' ? 'Centro → Vila' : 'Vila → Centro';
+            if (badge) badge.textContent = rotulo;
             if (btnOk) btnOk.textContent = 'Transferir ' + (tfDirecao === 'centro_vila' ? 'C→Vila' : 'Vila→C');
+            if (modalTf) modalTf.classList.toggle('tf-layout-invertido', tfDirecao === 'centro_vila');
         }
 
         function abrirModalTransferForcada() {
+            abrirModal('modal-transfer-forcada-direcao');
+        }
+
+        function tfIniciarTransferForcada(dir) {
+            const elDir = document.getElementById('modal-transfer-forcada-direcao');
+            if (elDir) {
+                elDir.classList.remove('modal-enter');
+                elDir.classList.add('hidden');
+            }
             const elBusca = document.getElementById('tf-busca');
             const elRes = document.getElementById('tf-resultados');
             const elStatus = document.getElementById('tf-busca-status');
             const elColar = document.getElementById('tf-colar');
             const elColarSt = document.getElementById('tf-colar-status');
+            tfCarrinho = [];
             if (elRes) elRes.innerHTML = '<div class="p-6 text-center text-sm font-bold text-slate-400">—</div>';
             if (elStatus) elStatus.textContent = '';
             if (elColar) elColar.value = '';
             if (elColarSt) elColarSt.textContent = '';
             tfResultados = [];
             tfHighlightIdx = -1;
-            tfSetDirecao(tfDirecao || 'vila_centro');
+            tfSetDirecao(dir);
             tfRenderCarrinho();
             abrirModal('modal-transfer-forcada');
             setTimeout(() => { if (elBusca) { elBusca.value = ''; elBusca.focus(); } }, 40);
@@ -1833,7 +1849,7 @@
             }, 10);
         }
 
-        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada'];
+        const GM_TRANSF_MODAL_IDS = ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada-direcao', 'modal-transfer-forcada'];
 
         function fecharModal(id, confirmado) {
             const bd = document.getElementById('backdrop');
@@ -2227,7 +2243,7 @@
             if (document.body.classList.contains('sspin-locked')) return;
             if (!document.getElementById('backdrop').classList.contains('hidden')) {
                 if (e.key === 'Escape') {
-                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada'].forEach(id => {
+                    ['modal-pin', 'modal-troca-pin', 'modal-regra', 'modal-ajuste', 'modal-pedidos-transfer', 'modal-historico-transfer', 'modal-historico-transfer-detalhe', 'modal-transfer-forcada-direcao', 'modal-transfer-forcada'].forEach(id => {
                         const el = document.getElementById(id);
                         if (el && !el.classList.contains('hidden')) {
                             fecharModal(id, false);

@@ -494,6 +494,11 @@ urlpatterns = [
         name='api_repasse_vila_acumulado_ajuste',
     ),
     path(
+        'api/repasse-vila/acumulado/zerar/',
+        views_repasse_vila.api_repasse_vila_acumulado_zerar,
+        name='api_repasse_vila_acumulado_zerar',
+    ),
+    path(
         'emprestimos/externo/',
         views.emprestimos_externo_view,
         name='emprestimos_externo',

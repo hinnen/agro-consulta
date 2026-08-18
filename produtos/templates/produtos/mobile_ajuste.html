@@ -600,10 +600,12 @@
       padding-bottom: 0.35rem;
     }
     body.ma-ciclica-focus #busca {
-      min-height: 3.85rem;
-      font-size: 1.12rem;
-      padding-top: 0.95rem;
-      padding-bottom: 0.95rem;
+      min-height: 4.85rem;
+      font-size: 1.28rem;
+      padding-top: 1.15rem;
+      padding-bottom: 1.15rem;
+      padding-right: 3.25rem;
+      border-width: 3px;
     }
     body.ma-ciclica-focus #lista-scroll {
       flex: 1 1 auto;
@@ -611,6 +613,104 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+    #lista.ma-lista--ciclica-focus {
+      gap: 0.3rem;
+    }
+    .ma-ciclica-hint {
+      text-align: center;
+      padding: 1.5rem 0.75rem;
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .ma-card--ultimo {
+      border: 3px solid #10b981;
+      background: linear-gradient(180deg, #ecfdf5 0%, #fff 72%);
+      padding: 1rem 1rem 1.05rem;
+      margin-bottom: 0.35rem;
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.22);
+    }
+    .ma-card-badge-ultimo {
+      display: inline-block;
+      margin-bottom: 0.35rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: #059669;
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .ma-card--ultimo .ma-card-nome {
+      font-size: clamp(1.12rem, 4.2vw + 0.45rem, 1.5rem) !important;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+    }
+    .ma-card--ultimo .ma-card-meta {
+      margin-top: 0.45rem;
+      align-items: center;
+    }
+    .ma-card--ultimo .ma-card-contagem.is-qtd {
+      font-size: clamp(2.65rem, 13vw + 0.25rem, 3.75rem) !important;
+      color: #047857;
+    }
+    .ma-card--feito,
+    .ma-card--pendente {
+      padding: 0.38rem 0.62rem;
+      border-radius: 0.62rem;
+      border-width: 1px;
+      border-color: #e2e8f0;
+      box-shadow: none;
+    }
+    .ma-card--feito {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+    }
+    .ma-card--pendente {
+      background: #fff;
+      opacity: 0.88;
+    }
+    .ma-card-linha {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      min-height: 1.65rem;
+    }
+    .ma-card-linha .ma-card-nome {
+      flex: 1 1 auto;
+      min-width: 0;
+      margin: 0;
+      font-size: 0.8rem !important;
+      font-weight: 800;
+      -webkit-line-clamp: 1;
+      line-clamp: 1;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ma-card-linha .ma-card-linha-qtd {
+      flex: 0 0 auto;
+    }
+    .ma-card-linha .ma-card-contagem.is-qtd {
+      font-size: 1.05rem !important;
+      color: #059669;
+    }
+    .ma-card-linha .ma-card-contagem.is-pendente,
+    .ma-card-linha .ma-card-contagem.is-fora {
+      font-size: 0.72rem !important;
+    }
+    .ma-ciclica-sec-label {
+      margin: 0.45rem 0.15rem 0.2rem;
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
     }
     body.ma-ciclica-focus #ma-ciclica-bar {
       display: none !important;
@@ -1001,6 +1101,7 @@ let maFlashTimer = null;
 let maFlashProduto = null;
 /** Após Bip+1: mantém o card do produto na lista (campo busca limpo pro próximo bip). */
 let maUltimoBipadoId = null;
+let maCiclicaBipHistorico = [];
 
 /** Trava scroll do fundo quando overlay/modal está aberto (iOS/Android). Refcount = vários overlays. */
 window.__maLockCount = 0;
@@ -1955,10 +2056,144 @@ function maSalvarBipMaisUm(p) {
     .finally(() => { maBipBusy = false; });
 }
 
+function maCiclicaRegistrarBip(produtoId) {
+  const id = String(produtoId || '');
+  if (!id) return;
+  maCiclicaBipHistorico = maCiclicaBipHistorico.filter((x) => x !== id);
+  maCiclicaBipHistorico.unshift(id);
+}
+
+function maCiclicaSyncHistoricoContados() {
+  const linhas = maCiclicaLinhas() || [];
+  linhas.forEach((ln) => {
+    if (!ln || !ln.contado) return;
+    const id = String(ln.produto_id || '');
+    if (id && !maCiclicaBipHistorico.includes(id)) maCiclicaBipHistorico.push(id);
+  });
+  if (maUltimoBipadoId) {
+    maCiclicaBipHistorico = maCiclicaBipHistorico.filter((x) => x !== maUltimoBipadoId);
+    maCiclicaBipHistorico.unshift(maUltimoBipadoId);
+  }
+}
+
+function maCiclicaFocusAtivo() {
+  return maCiclicaAtiva() && document.body.classList.contains('ma-ciclica-focus');
+}
+
+function maEscCiclicaHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function maCriarCardCiclica(p, variant) {
+  const escMa = maEscCiclicaHtml;
+  const d = document.createElement('div');
+  d.className = 'ma-card ma-card--' + variant;
+  if (variant === 'feito' || variant === 'pendente') {
+    d.innerHTML = `
+      <div class="ma-card-linha">
+        <span class="ma-card-nome">${escMa(p.nome)}</span>
+        <span class="ma-card-linha-qtd">${maCiclicaNumHtml(p, escMa)}</span>
+      </div>`;
+  } else {
+    d.innerHTML = `
+      <div class="ma-card-badge-ultimo">Último bip</div>
+      <div class="ma-card-nome">${escMa(p.nome)}</div>
+      <div class="ma-card-meta">
+        <div class="ma-card-info">
+          <span class="ma-card-gm">GM: ${escMa(p.codigo_nfe || p.codigo)}</span>
+        </div>
+        <div class="ma-card-nums">${maCiclicaNumHtml(p, escMa)}</div>
+      </div>`;
+  }
+  d.onclick = () => maEscolherProduto(p);
+  return d;
+}
+
+function maPintarCiclicaFocus(fila, resumoTxt) {
+  const l = document.getElementById('lista');
+  if (!l) return;
+  const lista = Array.isArray(fila) ? fila : [];
+  maUltimosIdsExibidos = lista.map((p) => String(p.id || '')).filter(Boolean);
+  const resumo = document.getElementById('f-resumo');
+  if (resumo) resumo.textContent = resumoTxt || '—';
+
+  maCiclicaSyncHistoricoContados();
+  const heroId = maUltimoBipadoId ? String(maUltimoBipadoId) : '';
+  let hero = heroId ? lista.find((p) => String(p.id) === heroId) : null;
+  if (hero && !hero._ciclicaContado && maFmtQtdContada(hero._ciclicaQtd) === '') hero = null;
+
+  const feitos = [];
+  maCiclicaBipHistorico.forEach((id) => {
+    if (id === heroId) return;
+    const p = lista.find((x) => String(x.id) === id);
+    if (!p) return;
+    if (p._ciclicaContado || maFmtQtdContada(p._ciclicaQtd) !== '') feitos.push(p);
+  });
+
+  const idsMostrados = new Set([heroId, ...feitos.map((p) => String(p.id))].filter(Boolean));
+  const pendentes = lista.filter((p) => {
+    const id = String(p.id);
+    if (idsMostrados.has(id)) return false;
+    return p._ciclicaFalta || !p._ciclicaContado;
+  });
+
+  l.classList.add('ma-lista--ciclica-focus');
+  l.innerHTML = '';
+
+  if (!hero && !feitos.length && !pendentes.length) {
+    l.innerHTML = '<div class="ma-ciclica-hint">Bipe ou busque um produto</div>';
+    return;
+  }
+
+  if (hero) l.appendChild(maCriarCardCiclica(hero, 'ultimo'));
+  else if (!feitos.length) {
+    l.innerHTML = '<div class="ma-ciclica-hint">Bipe ou busque um produto</div>';
+  }
+
+  if (feitos.length) {
+    const lbl = document.createElement('p');
+    lbl.className = 'ma-ciclica-sec-label';
+    lbl.textContent = `Já contados · ${feitos.length}`;
+    l.appendChild(lbl);
+    feitos.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'feito')));
+  }
+
+  const maxPend = 24;
+  if (pendentes.length > 0 && pendentes.length <= maxPend) {
+    const lblP = document.createElement('p');
+    lblP.className = 'ma-ciclica-sec-label';
+    lblP.textContent = `Faltam · ${pendentes.length}`;
+    l.appendChild(lblP);
+    pendentes.forEach((p) => l.appendChild(maCriarCardCiclica(p, 'pendente')));
+  } else if (pendentes.length > maxPend) {
+    const lblP = document.createElement('p');
+    lblP.className = 'ma-ciclica-sec-label';
+    lblP.textContent = `Faltam ${pendentes.length} · busque pelo nome ou código`;
+    l.appendChild(lblP);
+  }
+  if (hero) {
+    const scroll = document.getElementById('lista-scroll');
+    if (scroll) scroll.scrollTop = 0;
+  }
+  agendarFetchContagemVisivel();
+}
+
 /** Lista só o último produto bipado (+1), com saldo já atualizado. */
 function maMostrarUltimoBipado(p) {
   if (!p) return;
   maUltimoBipadoId = String(p.id);
+  maCiclicaRegistrarBip(maUltimoBipadoId);
+  if (maCiclicaFocusAtivo()) {
+    const q = String(document.getElementById('busca')?.value || '').trim();
+    if (!q) {
+      buscar('');
+      return;
+    }
+  }
   const fresh = Object.assign({}, baseProdutos.find((x) => String(x.id) === maUltimoBipadoId) || p);
   if (maCiclicaAtiva()) {
     const ln = (maCiclicaLinhas() || []).find((x) => String(x.produto_id) === maUltimoBipadoId);
@@ -2195,7 +2430,7 @@ function maCiclicaProdutosDaFila(termoN) {
 function buscar(q) {
   const termoOriginal = String(q || '').trim();
   const termoN = normalizarBuscaLocal(termoOriginal);
-  if (termoN.length >= 2) maUltimoBipadoId = null;
+  if (termoN.length >= 2 && !maCiclicaFocusAtivo()) maUltimoBipadoId = null;
 
   // Recontagem / escopo cíclico: lista = fila da sessão (não o catálogo inteiro).
   if (maCiclicaAtiva() && maCiclicaLinhas().length) {
@@ -2221,7 +2456,11 @@ function buscar(q) {
       : (maCiclicaIncluirFora
         ? `Cíclica · ${fila.length} · incluir fora ON`
         : `Cíclica · ${fila.length} no escopo`);
-    maPintarResultados(fila, rotulo);
+    if (maCiclicaFocusAtivo() && !termoN.length) {
+      maPintarCiclicaFocus(fila, rotulo);
+    } else {
+      maPintarResultados(fila, rotulo);
+    }
     return;
   }
   /* Cíclica corredor / fila vazia + incluir fora: busca no catálogo. */
@@ -2234,6 +2473,11 @@ function buscar(q) {
         _ciclicaContado: false,
       }));
     maPintarResultados(extra, `Incluir fora · ${extra.length} achados`);
+    return;
+  }
+  /* Corredor vazio / ainda sem linhas: não despejar o catálogo no modo foco. */
+  if (maCiclicaFocusAtivo() && !termoN.length) {
+    maPintarCiclicaFocus([], 'Cíclica · bipar');
     return;
   }
 
@@ -2281,6 +2525,7 @@ function maCiclicaNumHtml(p, escMa) {
 function maPintarResultados(resultados, resumoTxt) {
   const l = document.getElementById('lista');
   if (!l) return;
+  l.classList.remove('ma-lista--ciclica-focus');
   const lista = Array.isArray(resultados) ? resultados : [];
   maUltimosIdsExibidos = lista.map((p) => String(p.id || '')).filter(Boolean);
 
@@ -2331,7 +2576,7 @@ function maPintarResultados(resultados, resumoTxt) {
 }
 
 document.getElementById('busca').addEventListener('input', (e) => {
-  if (String(e.target.value || '').trim()) maUltimoBipadoId = null;
+  if (String(e.target.value || '').trim() && !maCiclicaFocusAtivo()) maUltimoBipadoId = null;
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => buscar(e.target.value), 120);
 });
@@ -2830,15 +3075,30 @@ function maCiclicaPodeSomarBip(p) {
   return { ok: false };
 }
 
-function maCiclicaAplicarQtdLocal(pid, qtd) {
+function maCiclicaAplicarQtdLocal(pid, qtd, p) {
   const n = Number(qtd);
-  (maCiclicaLinhas() || []).forEach((ln) => {
+  if (!maCiclicaSessao) return;
+  if (!Array.isArray(maCiclicaSessao.linhas)) maCiclicaSessao.linhas = [];
+  let hit = false;
+  maCiclicaSessao.linhas.forEach((ln) => {
     if (String(ln.produto_id) === String(pid)) {
       ln.contado = true;
       ln.faltando = false;
       if (Number.isFinite(n)) ln.qtd_contada = n;
+      hit = true;
     }
   });
+  if (!hit) {
+    maCiclicaSessao.linhas.push({
+      produto_id: String(pid),
+      nome: (p && p.nome) || '',
+      codigo: (p && (p.codigo_nfe || p.codigo)) || '',
+      categoria: (p && p.categoria) || '',
+      contado: true,
+      faltando: false,
+      qtd_contada: Number.isFinite(n) ? n : 1,
+    });
+  }
 }
 
 function maCiclicaBipMaisUm(p) {
@@ -2876,11 +3136,11 @@ function maCiclicaBipFilaDrain() {
       if (d.sessao) {
         const prev = maCiclicaLinhas();
         maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
-        if (!Array.isArray(maCiclicaSessao.linhas) && prev.length) {
-          maCiclicaSessao.linhas = prev;
+        if (!Array.isArray(maCiclicaSessao.linhas)) {
+          maCiclicaSessao.linhas = prev.slice();
         }
       }
-      maCiclicaAplicarQtdLocal(p.id, acum);
+      maCiclicaAplicarQtdLocal(p.id, acum, p);
       maCiclicaPintarBar();
       maPrepCampoProximoBip();
       maMostrarUltimoBipado(p);
@@ -2929,6 +3189,8 @@ function maCiclicaAtivar(sessao) {
 function maCiclicaSairModo() {
   maCiclicaSessao = null;
   maCiclicaBipFila = [];
+  maCiclicaBipHistorico = [];
+  maUltimoBipadoId = null;
   maCiclicaToggleCtrl(false);
   document.body.classList.remove('ma-ciclica-focus', 'ma-ciclica-ctrl-open');
   try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
@@ -3144,18 +3406,12 @@ function salvarCiclica() {
       if (d.sessao) {
         const prev = maCiclicaLinhas();
         maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
-        if (!Array.isArray(maCiclicaSessao.linhas) && prev.length) {
-          maCiclicaSessao.linhas = prev;
+        if (!Array.isArray(maCiclicaSessao.linhas)) {
+          maCiclicaSessao.linhas = prev.slice();
         }
       }
-      (maCiclicaLinhas() || []).forEach((ln) => {
-        if (String(ln.produto_id) === pid) {
-          ln.contado = true;
-          ln.faltando = false;
-        }
-      });
       const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : qtd;
-      maCiclicaAplicarQtdLocal(pid, acum);
+      maCiclicaAplicarQtdLocal(pid, acum, pSel);
       maCiclicaPintarBar();
       fechar();
       const msg = Number.isFinite(acum)

@@ -51,6 +51,7 @@ def consolidar_empresa_pg(
     usar_receita_pdv: bool = True,
     anexar_cmv_modos: bool = False,
     deposito: str | None = None,
+    planos_incluir: list[str] | None = None,
 ) -> dict[str, Any]:
     """``deposito``: centro | vila | todas | None (None = deriva do nome da empresa)."""
     empresa = get_object_or_none_empresa(empresa_id)
@@ -86,7 +87,10 @@ def consolidar_empresa_pg(
             "linhas_dre": [],
         }
 
-    core = agregar_linhas_dre_em_resumo(raw.get("linhas") or [])
+    from financeiro.services.dre_planos_filtro_util import filtrar_linhas_dre_planos
+
+    linhas = filtrar_linhas_dre_planos(raw.get("linhas") or [], planos_incluir)
+    core = agregar_linhas_dre_em_resumo(linhas)
     core["fonte"] = "postgres"
     core["empresa_id"] = empresa_id
     core["empresa_nome_filtro"] = nome
@@ -94,7 +98,8 @@ def consolidar_empresa_pg(
     core["campo_data_pg"] = raw.get("por")
     core["valor_modo_pg"] = raw.get("valor")
     core["filtro_contas_pg"] = raw.get("filtro_contas")
-    core["linhas_dre"] = raw.get("linhas") or []
+    core["linhas_dre"] = linhas
+    core["planos_gasto_filtrados"] = bool(planos_incluir)
     core["ajustes_eliminacao"] = {
         "receitas_internas_eliminadas": Decimal("0"),
         "transferencias_internas": Decimal("0"),
@@ -133,6 +138,7 @@ def consolidar_grupo_pg(
     filtro_contas: str = "",
     diagnostico: bool = False,
     anexar_cmv_modos: bool = False,
+    planos_incluir: list[str] | None = None,
 ) -> dict[str, Any]:
     grupo = GrupoEmpresarial.objects.filter(pk=grupo_id, ativo=True).first()
     if not grupo:
@@ -176,6 +182,7 @@ def consolidar_grupo_pg(
             filtro_contas=filtro_contas,
             diagnostico=diagnostico,
             anexar_cmv_modos=anexar_cmv_modos,
+            planos_incluir=planos_incluir,
         )
         if sub.get("erro"):
             por_empresa_limpo.append({"empresa_id": v.empresa_id, "erro": sub["erro"]})
@@ -211,6 +218,7 @@ def consolidar_grupo_pg(
         ),
     }
     consolidado["linhas_dre"] = todas_linhas
+    consolidado["planos_gasto_filtrados"] = bool(planos_incluir)
 
     return {
         "fonte": "postgres",
@@ -233,6 +241,7 @@ def consolidar_por_loja_pg(
     filtro_contas: str = "",
     diagnostico: bool = False,
     anexar_cmv_modos: bool = True,
+    planos_incluir: list[str] | None = None,
 ) -> dict[str, Any]:
     """DRE por loja física: Centro + Vila (padrão), Centro ou Vila."""
     from financeiro.services.receita_pdv_util import (
@@ -272,6 +281,7 @@ def consolidar_por_loja_pg(
             diagnostico=diagnostico,
             anexar_cmv_modos=anexar_cmv_modos,
             deposito=dep,
+            planos_incluir=planos_incluir,
         )
         if isinstance(sub, dict) and not sub.get("erro"):
             subs.append(sub)
@@ -305,4 +315,5 @@ def consolidar_por_loja_pg(
     out["loja_label"] = label_loja_filtro(loja_n)
     out["empresa_ids"] = eids
     out["deposito_pdv"] = dep_filtro or "todas"
+    out["planos_gasto_filtrados"] = bool(planos_incluir)
     return out

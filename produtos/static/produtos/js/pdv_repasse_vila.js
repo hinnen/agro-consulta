@@ -545,4 +545,30 @@
         });
     });
   }
+  var acumZerar = document.getElementById('pdv-rp-acum-zerar');
+  if (acumZerar) {
+    acumZerar.addEventListener('click', function () {
+      var pin = String((document.getElementById('pdv-rp-acum-pin') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!window.confirm('Zerar o acumulado? Use se o dinheiro já foi transferido antes da ferramenta.')) return;
+      if (acumStatus) acumStatus.textContent = 'Zerando…';
+      fetch('/api/repasse-vila/acumulado/zerar/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ pin: pin, data_calc: dataRef() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Acumulado zerado';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () { if (acumStatus) acumStatus.textContent = 'Falha de rede'; });
+    });
+  }
 })();

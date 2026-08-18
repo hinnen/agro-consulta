@@ -4,6 +4,7 @@ from financeiro.api.views import (
     DebugMongoResumoAPIView,
     GapEquilibrioAPIView,
     ResumoOperacionalAPIView,
+    SaldoDiarioMesAPIView,
 )
 
 urlpatterns = [
@@ -21,5 +22,10 @@ urlpatterns = [
         "gap-equilibrio",
         GapEquilibrioAPIView.as_view(),
         name="financeiro-gap-equilibrio",
+    ),
+    path(
+        "saldo-diario-mes",
+        SaldoDiarioMesAPIView.as_view(),
+        name="financeiro-saldo-diario-mes",
     ),
 ]
