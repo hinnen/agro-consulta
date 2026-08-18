@@ -1230,20 +1230,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **O quê** | Saldo **acumulado** (dias anteriores): + falta levar · − crédito se levou a mais. **Total sugerido** = falta hoje + acumulado. **Ver acumulado** + ajuste manual (PIN). |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Branch** | `deploy/lote-repasse-acumulado-1808` @ **937859a** (13 arquivos vs `producao` @ **3c810ba**) |
+| **O quê** | Saldo **acumulado** (+ falta levar · − crédito). **Total sugerido** = falta hoje + acumulado. **Ver acumulado** + ajuste manual (PIN). |
 | **Onde** | `/repasse-vila/` · overlay PDV Repasse |
-| **Migrate** | **SIM** `0093` |
-| **Prova** | path **72** · deep **85** · planos **49** |
-| **Você** | Ctrl+F5 Repasse · badge **v17.20** · migrate na loja |
+| **Fora** | PDV · caixa · NFC-e · financeiro · Entrada NF |
+| **Prova (18/08)** | repasse path **72** · deep **85** · planos **49** · NF reparo **35/35** · loja reparo **0** pendentes · `check` OK |
+| **Migrate** | **SIM** `0093` (0090–0092 já na loja) |
+| **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** |
+| **Autorizar** | *pode subir lote repasse acumulado / deploy/lote-repasse-acumulado-1808 para produção* + senha |
+| **Você** | Ctrl+F5 Repasse · badge **v17.20** |
 
 ### ✅ CHECKLIST ÚNICO — produção (18/08)
 
-> **Loja hoje:** ✅ **Live v17.19** · fila: **REPASSE-ACUMULADO v17.20**
+> **Loja hoje:** ✅ **Live v17.19** · `producao` @ **3c810ba**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-ACUMULADO** | ✅ **pronto para envio à produção** | **SIM** 0093 |
+| 1 | **REPASSE-ACUMULADO** | 🚀 **pronto para envio à produção** | **SIM** 0093 |
+
+| Operação (sem deploy) | Status |
+| --------------------- | ------ |
+| **NF-VINCULO-REPARO** `--aplicar` | ✅ **33** nomes · dry-run **0** |
 
 ### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
 
@@ -1255,14 +1263,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** + frase + senha |
 | **Você** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · reparo 33 nomes: ✅ feito 18/08 |
 
-### ✅ Operação dados — NF-VINCULO-REPARO (18/08)
+### ✅ Operação dados — NF-VINCULO-REPARO (18/08) · **feito**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **`--aplicar` na loja** · **33** nomes devolvidos |
-| **Comando** | `reparar_cadastro_vinculo_nf --aplicar` (Postgres produção) |
-| **Depois** | dry-run = zero pendentes |
-| **Deploy** | **NÃO** — só dados; loja continua **v17.19** |
+| **Status** | ✅ **`--aplicar` na loja** · **33** corrigidos · re-verificado **35/35** · dry-run **0** |
+| **Deploy** | **NÃO** — só dados |
 
 
 ### ~~✅ CHECKLIST ÚNICO — produção (18/08) lote anterior~~ · **superado — Live v17.19**
