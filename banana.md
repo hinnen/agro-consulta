@@ -1228,11 +1228,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08j)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| — | — | **Nenhum pendente** — loja **Live v17.27** (lote 1808i) | — |
+| 1 | **DRE-SALDO-HOTFIX** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — DRE gráfico + scroll (`DRE-SALDO-HOTFIX` · **v17.29**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Commit** | `039f237` |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **O quê** | Fix gráfico saldo vazio · scroll na página · Mini DRE legível · carregamento mais rápido (equilíbrio em background · 1 consulta saldo) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_dre_saldo_diario_chart` 15/15 · `verify_dre_cmv_toggle` 55/55 · `verify_dre_visual` 232/232 · `check` OK · integração PG ~520ms |
+| **Você** | Ctrl+F5 DRE gerencial · F5 · rolar rodapé · barras azul/vermelho + linha verde |
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — fila agora DRE-SALDO-HOTFIX v17.29**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| — | — | Loja **Live v17.27** (lote 1808i) · hotfix DRE **só no teste** | — |
 
 ### 📦 PACOTE PRONTO — Repasse acumulado fix (`REPASSE-ACUMULADO-FIX` · **v17.27**) · **Live**
 
