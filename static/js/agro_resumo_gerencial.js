@@ -1169,9 +1169,16 @@
 
   function rgSaldoChartHeight() {
     var host = document.getElementById("rg-saldo-chart");
-    if (!host) return 220;
+    if (!host) return 280;
     var h = host.clientHeight || host.offsetHeight;
-    return h > 80 ? h : 220;
+    return h > 120 ? h : 280;
+  }
+
+  function rgSaldoSetLoading(on) {
+    var loadEl = document.getElementById("rg-saldo-loading");
+    var host = document.getElementById("rg-saldo-chart");
+    if (loadEl) loadEl.classList.toggle("hidden", !on);
+    if (host) host.style.visibility = on ? "hidden" : "visible";
   }
 
   function destroyRgSaldoChart() {
@@ -1212,14 +1219,8 @@
     var labels = dias.map(function (d) {
       return d.label;
     });
-    var barras = dias.map(function (d) {
-      var v = d.saldo;
-      if (v == null) return null;
-      return {
-        x: d.label,
-        y: v,
-        fillColor: v >= 0 ? "#2563eb" : "#dc2626",
-      };
+    var barrasNums = dias.map(function (d) {
+      return d.saldo != null ? Number(d.saldo) : null;
     });
     var previsto = dias.map(function (d) {
       return d.previsto != null ? Number(d.previsto) : 0;
@@ -1246,9 +1247,9 @@
     }
 
     var chartH = rgSaldoChartHeight();
-    _rgSaldoChart = new ApexCharts(host, {
+    var chartOpts = {
       series: [
-        { name: "Saldo", type: "column", data: barras },
+        { name: "Saldo", type: "column", data: barrasNums },
         { name: "Previsto (90d)", type: "line", data: previsto },
       ],
       chart: {
@@ -1257,7 +1258,7 @@
         stacked: false,
         toolbar: { show: false },
         background: "transparent",
-        animations: { enabled: true, speed: 350 },
+        animations: { enabled: true, speed: 280 },
       },
       colors: ["#2563eb", "#16a34a"],
       stroke: { width: [0, 3], curve: "smooth" },
@@ -1315,16 +1316,41 @@
             return brl(val);
           },
         },
-        custom: undefined,
       },
       markers: { size: [0, 0], hover: { size: 4 } },
       theme: { mode: "light" },
+    };
+
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        try {
+          host.innerHTML = "";
+          _rgSaldoChart = new ApexCharts(host, chartOpts);
+          var p = _rgSaldoChart.render();
+          if (p && typeof p.then === "function") {
+            p.catch(function (err) {
+              if (errEl) {
+                errEl.textContent =
+                  "Não foi possível desenhar o gráfico." +
+                  (err && err.message ? " " + String(err.message).slice(0, 120) : "");
+                errEl.classList.remove("hidden");
+              }
+            });
+          }
+        } catch (errRender) {
+          if (errEl) {
+            errEl.textContent = "Erro ao montar gráfico de saldo.";
+            errEl.classList.remove("hidden");
+          }
+        }
+      });
     });
-    _rgSaldoChart.render();
   }
 
   async function fetchRgSaldoDiario(qBase) {
     var sec = document.getElementById("sec-saldo-diario");
+    rgSaldoSetLoading(true);
+    if (sec) sec.classList.remove("hidden");
     try {
       var q =
         qBase +
@@ -1348,7 +1374,10 @@
       var data = await r.json();
       renderRgSaldoDiario(data);
     } catch (e) {
-      if (sec) sec.classList.add("hidden");
+      if (sec) sec.classList.remove("hidden");
+      renderRgSaldoDiario({ ok: false, detail: "Falha ao carregar gráfico de saldo." });
+    } finally {
+      rgSaldoSetLoading(false);
     }
   }
 
@@ -1588,23 +1617,29 @@
           "&valor=" +
           encodeURIComponent(el("f-valor").value) +
           "&fonte=postgres";
+        setLoading(false);
         fetchRgSaldoDiario(qSaldo);
         if (!pintarEquilibrio(cEq)) {
           var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
-          var re = await fetch("/api/financeiro/gap-equilibrio?" + dq, {
+          fetch("/api/financeiro/gap-equilibrio?" + dq, {
             credentials: "same-origin",
-          });
-          if (re.ok) {
-            var eq = await re.json();
-            var brutoEq = coreDoPayload(lastPayload, modo);
-            if (brutoEq) {
-              brutoEq.faturamento_equilibrio = eq.faturamento_equilibrio;
-              brutoEq.margem_contribuicao_pct = eq.margem_contribuicao_pct;
-              brutoEq.faturamento_diario_equilibrio = eq.faturamento_diario_equilibrio;
-            }
-            renderResumo(lastPayload, modo);
-            pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, modo)));
-          }
+          })
+            .then(function (re) {
+              if (!re.ok) return null;
+              return re.json();
+            })
+            .then(function (eq) {
+              if (!eq) return;
+              var brutoEq = coreDoPayload(lastPayload, modo);
+              if (brutoEq) {
+                brutoEq.faturamento_equilibrio = eq.faturamento_equilibrio;
+                brutoEq.margem_contribuicao_pct = eq.margem_contribuicao_pct;
+                brutoEq.faturamento_diario_equilibrio = eq.faturamento_diario_equilibrio;
+              }
+              renderResumo(lastPayload, modo);
+              pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, modo)));
+            })
+            .catch(function () {});
         }
       } catch (e) {
         mostrarErro("Falha de rede.");

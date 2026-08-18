@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ **pronto para envio à produção** |
 | **Tela** | `/financeiro/resumo-gerencial/` |
-| **O quê** | Rodapé: gráfico **saldo dia a dia** (vendas − CMV − despesas) · linha previsto 90d · botão **Planos gasto** (toda a tela · localStorage) |
+| **O quê** | Rodapé: gráfico saldo dia a dia · CMV · **Planos gasto** · scroll na página · fix gráfico vazio + Mini DRE |
 | **API** | `GET /api/financeiro/saldo-diario-mes/` · `planos_gasto` também no resumo operacional |
 | **Migrate** | **NÃO** |
 | **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` · Django check · integração PG OK |
