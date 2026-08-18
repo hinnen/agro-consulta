@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full overflow-hidden" style="height:100dvh">
+<html lang="pt-br" class="h-full" style="min-height:100dvh">
 <head>
   <meta charset="UTF-8">
   <title>SisVale | DRE gerencial</title>
@@ -24,7 +24,7 @@
     .rg-modal__btn:hover { filter: brightness(1.08); }
   </style>
 </head>
-<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v2" class="bg-slate-100 overflow-hidden text-slate-800 flex flex-col" style="height:100dvh;max-height:100dvh">
+<body id="agro-resumo-gerencial-root" data-storage-key="agro_resumo_fin_sess_v2" class="bg-slate-100 overflow-y-auto overflow-x-hidden text-slate-800 flex flex-col" style="min-height:100dvh">
 {% include "produtos/_gm_loading_bar.html" %}
 
   <header class="rg-head shrink-0">
@@ -166,6 +166,7 @@
         </div>
       </div>
       <p id="rg-saldo-erro" class="rg-msg rg-msg--error hidden" role="alert"></p>
+      <p id="rg-saldo-loading" class="rg-saldo-diario__loading hidden" aria-live="polite">Carregando gráfico…</p>
       <div id="rg-saldo-chart" class="rg-saldo-diario__chart"></div>
     </section>
   </main>

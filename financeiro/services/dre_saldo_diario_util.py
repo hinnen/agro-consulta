@@ -224,20 +224,24 @@ def dre_saldo_diario_mes_pg(
     dep = deposito_de_loja(loja_n)
     empresas = _empresas_nomes_loja(loja_n)
 
-    fat = faturamento_pdv_periodo(grid_ini, grid_fim, deposito=dep)
-    vendas_map = {k: float(v) for k, v in (fat.get("por_dia") or {}).items()}
-    despesas_map = _despesas_por_dia_pg(
-        data_de=grid_ini,
-        data_ate=grid_fim,
+    look_ini = hoje - timedelta(days=max(int(dias_previsao), 1) - 1)
+    fetch_ini = min(grid_ini, look_ini)
+    fetch_fim = max(grid_fim, hoje)
+
+    fat_all = faturamento_pdv_periodo(fetch_ini, fetch_fim, deposito=dep)
+    vendas_all = {k: float(v) for k, v in (fat_all.get("por_dia") or {}).items()}
+    despesas_all = _despesas_por_dia_pg(
+        data_de=fetch_ini,
+        data_ate=fetch_fim,
         por=por,
         valor=valor,
         empresas_nomes=empresas,
         filtro_contas=filtro_contas,
         planos_incluir=planos_incluir,
     )
-    cmv_map = _cmv_por_dia(
-        data_de=grid_ini,
-        data_ate=grid_fim,
+    cmv_all = _cmv_por_dia(
+        data_de=fetch_ini,
+        data_ate=fetch_fim,
         deposito=dep,
         cmv_modo=cmv_modo,
         por=por,
@@ -246,28 +250,22 @@ def dre_saldo_diario_mes_pg(
         filtro_contas=filtro_contas,
     )
 
-    look_ini = hoje - timedelta(days=max(int(dias_previsao), 1) - 1)
-    fat90 = faturamento_pdv_periodo(look_ini, hoje, deposito=dep)
-    vendas90 = {k: float(v) for k, v in (fat90.get("por_dia") or {}).items()}
-    despesas90 = _despesas_por_dia_pg(
-        data_de=look_ini,
-        data_ate=hoje,
-        por=por,
-        valor=valor,
-        empresas_nomes=empresas,
-        filtro_contas=filtro_contas,
-        planos_incluir=planos_incluir,
-    )
-    cmv90 = _cmv_por_dia(
-        data_de=look_ini,
-        data_ate=hoje,
-        deposito=dep,
-        cmv_modo=cmv_modo,
-        por=por,
-        valor=valor,
-        empresas_nomes=empresas,
-        filtro_contas=filtro_contas,
-    )
+    def _slice_map(src: dict[str, float], ini: date, fim: date) -> dict[str, float]:
+        out: dict[str, float] = {}
+        d = ini
+        while d <= fim:
+            k = d.isoformat()
+            if k in src:
+                out[k] = src[k]
+            d += timedelta(days=1)
+        return out
+
+    vendas_map = _slice_map(vendas_all, grid_ini, grid_fim)
+    despesas_map = _slice_map(despesas_all, grid_ini, grid_fim)
+    cmv_map = _slice_map(cmv_all, grid_ini, grid_fim)
+    vendas90 = _slice_map(vendas_all, look_ini, hoje)
+    despesas90 = _slice_map(despesas_all, look_ini, hoje)
+    cmv90 = _slice_map(cmv_all, look_ini, hoje)
     avg_v_dow, avg_d_dow, avg_c_dow = _medias_dow_trio(
         vendas90, despesas90, cmv90, dias_previsao
     )
