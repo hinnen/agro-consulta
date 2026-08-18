@@ -1228,6 +1228,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| — | — | **Nenhum pendente** — loja **Live v17.27** (lote 1808i) | — |
+
+### 📦 PACOTE PRONTO — Repasse acumulado fix (`REPASSE-ACUMULADO-FIX` · **v17.27**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.27** |
+| **Tela** | `/repasse-vila/` + overlay PDV |
+| **Fix** | Quita acumulado ao transferir · **zerar acumulado** (PIN) · cache delta (rápido) |
+| **Migrate** | **SIM** `0094` |
+| **Prova (18/08 revalidado)** | path **84/84** · deep **88/88** · planos **49/49** · `check` OK · smoke acumulado OK |
+| **Você** | Ctrl+F5 · **Ver acumulado → zerar** se já transferiu antes da ferramenta |
+
 ### ✅ Deploy loja — lote 18/08i (`deploy/lote-checklist-1808i` · **v17.27**) · **Live**
 
 | Item | Detalhe |
@@ -1247,14 +1264,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🚀 PREP deploy loja — lote 18/08i~~ · **superado — Live v17.27**
 
-### ✅ CHECKLIST ÚNICO — enviado produção (18/08i · loja **v17.27**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA-HERO** | ✅ **enviado / Live v17.27** | não |
-| 2 | **DRE-SALDO-DIARIO** | ✅ **enviado / Live v17.27** | não |
-| 3 | **TRANSF-FORCADA-UX** | ✅ **enviado / Live v17.27** | não |
-| 4 | **REPASSE-ACUMULADO-FIX** | ✅ **enviado / Live v17.27** | **SIM** 0094 |
+### ~~✅ CHECKLIST ÚNICO — enviado produção (18/08i · loja **v17.27**)~~ · **ver CHECKLIST no topo**
 
 ### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — Live v17.27**
 
@@ -1282,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08h)~~ · **superado — Live v17.24**
 
-### 📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)
+### ~~📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)~~ · **Live v17.27**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1294,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` · Django check · integração PG OK |
 | **Você** | Ctrl+F5 DRE gerencial · F5 · **Planos gasto** · CMV vendida/paga · gráfico rodapé |
 
-### 📦 PACOTE PRONTO — Transferência forçada UX (`TRANSF-FORCADA-UX` · **v17.22**)
+### ~~📦 PACOTE PRONTO — Transferência forçada UX (`TRANSF-FORCADA-UX` · **v17.22**)~~ · **Live v17.27**
 
 | Item | Detalhe |
 | ---- | ------- |
