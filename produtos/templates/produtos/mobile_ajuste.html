@@ -580,6 +580,86 @@
       font-size: 0.82rem !important;
       min-height: 2.85rem;
     }
+
+    /* Cíclica — modo foco: só busca grande + lista (controles no ⋯). */
+    body.ma-ciclica-focus .ma-head,
+    body.ma-ciclica-focus #btn-toggle-filtros,
+    body.ma-ciclica-focus #f-drawer,
+    body.ma-ciclica-focus #f-resumo {
+      display: none !important;
+    }
+    body.ma-ciclica-focus {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    body.ma-ciclica-focus #ma-busca-wrap {
+      flex: 0 0 auto;
+      padding-top: max(0.45rem, env(safe-area-inset-top));
+      padding-bottom: 0.35rem;
+    }
+    body.ma-ciclica-focus #busca {
+      min-height: 3.85rem;
+      font-size: 1.12rem;
+      padding-top: 0.95rem;
+      padding-bottom: 0.95rem;
+    }
+    body.ma-ciclica-focus #lista-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+    body.ma-ciclica-focus #ma-ciclica-bar {
+      display: none !important;
+    }
+    body.ma-ciclica-focus.ma-ciclica-ctrl-open #ma-ciclica-ctrl-backdrop {
+      display: block;
+    }
+    body.ma-ciclica-focus.ma-ciclica-ctrl-open #ma-ciclica-bar {
+      display: block !important;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 185;
+      padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+      max-height: min(78dvh, 28rem);
+      overflow-y: auto;
+    }
+    #ma-ciclica-ctrl-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 180;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    #ma-ciclica-fab-ctrl {
+      display: none;
+      position: fixed;
+      top: max(0.45rem, env(safe-area-inset-top));
+      right: 0.65rem;
+      z-index: 175;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.75rem;
+      min-height: 2.75rem;
+      padding: 0 0.65rem;
+      border-radius: 999px;
+      border: 2px solid #fdba74;
+      background: rgba(255, 247, 237, 0.92);
+      color: #9a3412;
+      font-size: 1.35rem;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 2px 10px rgba(154, 52, 18, 0.15);
+    }
+    body.ma-ciclica-focus #ma-ciclica-fab-ctrl {
+      display: inline-flex;
+    }
+
     @media (display-mode: standalone) {
       html { background: #f8fafc; }
     }
@@ -616,6 +696,9 @@
     </div>
   </header>
 
+  <div id="ma-ciclica-ctrl-backdrop" aria-hidden="true"></div>
+  <button type="button" id="ma-ciclica-fab-ctrl" class="hidden" title="Controles da contagem" aria-label="Controles da contagem">⋯</button>
+
   <div id="ma-ciclica-bar" class="hidden px-3 pt-2">
     <div class="rounded-2xl border border-orange-300 bg-orange-50 px-3 py-2.5 space-y-2">
       <p id="ma-ciclica-bar-txt" class="text-xs font-black text-orange-950 leading-snug">Contagem cíclica</p>
@@ -645,7 +728,7 @@
     </div>
   </div>
 
-  <div class="px-3 pt-3 pb-1">
+  <div id="ma-busca-wrap" class="px-3 pt-3 pb-1">
     <label for="busca" class="sr-only">Buscar produto</label>
     <input
       type="search"
@@ -2678,17 +2761,46 @@ function maCiclicaPost(url, fields) {
   }).then((r) => r.json());
 }
 
+function maCiclicaSyncFocusUi() {
+  const on = maCiclicaAtiva();
+  document.body.classList.toggle('ma-ciclica-focus', on);
+  if (!on) document.body.classList.remove('ma-ciclica-ctrl-open');
+  const fab = document.getElementById('ma-ciclica-fab-ctrl');
+  if (fab) fab.classList.toggle('hidden', !on);
+  const busca = document.getElementById('busca');
+  if (on && busca) {
+    setTimeout(() => {
+      try { busca.focus({ preventScroll: true }); } catch (_) {}
+    }, 80);
+  }
+}
+
+function maCiclicaToggleCtrl(open) {
+  const want = typeof open === 'boolean'
+    ? open
+    : !document.body.classList.contains('ma-ciclica-ctrl-open');
+  document.body.classList.toggle('ma-ciclica-ctrl-open', want);
+  const bd = document.getElementById('ma-ciclica-ctrl-backdrop');
+  if (bd) bd.setAttribute('aria-hidden', want ? 'false' : 'true');
+}
+
 function maCiclicaPintarBar() {
   const bar = document.getElementById('ma-ciclica-bar');
   const txt = document.getElementById('ma-ciclica-bar-txt');
   const btnP1 = document.getElementById('ma-ciclica-btn-pass1');
   const btnG = document.getElementById('ma-ciclica-btn-gravar');
+  maCiclicaSyncFocusUi();
   if (!bar || !txt) return;
   if (!maCiclicaAtiva()) {
     bar.classList.add('hidden');
     return;
   }
-  bar.classList.remove('hidden');
+  /* Modo foco: barra só no painel ⋯ (não inline). */
+  if (document.body.classList.contains('ma-ciclica-focus')) {
+    bar.classList.toggle('hidden', !document.body.classList.contains('ma-ciclica-ctrl-open'));
+  } else {
+    bar.classList.remove('hidden');
+  }
   const s = maCiclicaSessao;
   const esc = s.escopo_tipo === 'loja'
     ? 'Loja inteira'
@@ -2817,6 +2929,8 @@ function maCiclicaAtivar(sessao) {
 function maCiclicaSairModo() {
   maCiclicaSessao = null;
   maCiclicaBipFila = [];
+  maCiclicaToggleCtrl(false);
+  document.body.classList.remove('ma-ciclica-focus', 'ma-ciclica-ctrl-open');
   try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
   if (maCiclicaPoll) {
     clearInterval(maCiclicaPoll);
@@ -3139,6 +3253,14 @@ document.getElementById('ma-ciclica-btn-sair')?.addEventListener('click', () => 
 });
 document.getElementById('ma-ciclica-btn-cancelar')?.addEventListener('click', maCiclicaCancelarSessao);
 document.getElementById('ma-ciclica-btn-painel')?.addEventListener('click', maCiclicaAbrirModal);
+document.getElementById('ma-ciclica-fab-ctrl')?.addEventListener('click', () => {
+  maCiclicaToggleCtrl();
+  maCiclicaPintarBar();
+});
+document.getElementById('ma-ciclica-ctrl-backdrop')?.addEventListener('click', () => {
+  maCiclicaToggleCtrl(false);
+  maCiclicaPintarBar();
+});
 document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;
   const s = maCiclicaSessao;
@@ -3152,6 +3274,7 @@ document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () =>
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha');
       maCiclicaSessao = d.sessao;
+      maCiclicaToggleCtrl(false);
       maCiclicaPintarBar();
       const n = (d.resumo && d.resumo.recontagem) || 0;
       const nomes = ((d.sessao && d.sessao.linhas) || [])
