@@ -60,6 +60,7 @@ check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_a
 check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX", "confirmar ontem", "envio extra zera acum do dia")
 check("scripts/verify_repasse_planos_path.py", "VERIFY_PLANOS_OK", "planos_desconto_centro")
 check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08", "abater_extras_do_acumulado")
+check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_vila", "fica na Vila", "valor manual ignora reserva")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:

@@ -1234,17 +1234,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Valor fixo **fica na Vila** desconta do envio · opções recolhidas · dias 1–15 / 16–31 |
+| **O quê** | Troco fixo **fica na Vila** e desconta do envio · opções recolhidas · dias 1–15 / 16–31 |
 | **Onde** | `/repasse-vila/` + overlay PDV · PG `RepasseVilaConfigAgro.reserva_vila` |
+| **Commit** | `e46671f` · **v17.47** |
 | **Migrate** | **SIM** `0095_repasse_vila_reserva` |
-| **Você** | PC local: `migrate` · Ctrl+F5 em `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
-| **Loja** | **não enviado** — só com frase + senha |
+| **Prova (18/08)** | path 115/115 · reserva **70/70** · deep 95/95 · acum-net 28/28 · planos 49/49 |
+| **Você** | Ctrl+F5 `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
+| **Loja** | ✅ **pronto para envio à produção** — só com frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08n)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
+| 2 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
 
 ### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`)
 

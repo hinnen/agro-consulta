@@ -203,21 +203,23 @@ def main() -> int:
     liq = _dec(calc.get("acumulado_anterior"))
     falta = _dec(calc.get("falta_dinheiro"))
     sug = _dec(calc.get("total_sugerido"))
+    reserva = _dec(calc.get("reserva_vila"))
     enviado = _dec((calc.get("ja_enviado") or {}).get("total"))
     extra_hoje = _extra_do_calc(calc)
     esp_liq = (bruto - extra_hoje).quantize(Decimal("0.01"))
     print(
         f"HOJE {hoje.isoformat()} enviado={enviado} falta={falta} "
-        f"bruto={bruto} extra={extra_hoje} liq={liq} sugerido={sug}"
+        f"bruto={bruto} extra={extra_hoje} liq={liq} reserva={reserva} sugerido={sug}"
     )
     if liq == esp_liq:
         ok("hoje: liquido = bruto - extra do dia")
     else:
         fail(f"hoje liq {liq} != {esp_liq}")
-    if sug == (falta + liq).quantize(Decimal("0.01")):
-        ok("hoje: sugerido = falta + líquido")
+    esp_sug = max(ZERO, (falta + liq - reserva).quantize(Decimal("0.01")))
+    if sug == esp_sug:
+        ok("hoje: sugerido = falta + líquido − reserva")
     else:
-        fail(f"hoje sug {sug} != falta+liq")
+        fail(f"hoje sug {sug} != {esp_sug}")
     if extra_hoje >= bruto and bruto > 0:
         if liq <= 0 and sug <= falta:
             ok("hoje: extra cobre o bruto -> nao pede acum de novo")
