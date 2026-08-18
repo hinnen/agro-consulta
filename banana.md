@@ -1226,33 +1226,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — Repasse acumulado (`deploy/lote-repasse-acumulado-1808` · **v17.20**)
+### 🚀 PREP deploy loja — lote 18/08f (`deploy/lote-checklist-1808f` · **v17.21**)
 
 > **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** esta branch.
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808f`.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
 | **Loja hoje** | ✅ Live **v17.19** · `producao` @ **3c810ba** |
-| **Pacote** | **REPASSE-ACUMULADO** só |
-| **Branch** | `deploy/lote-repasse-acumulado-1808` @ **ce1a67f** · **13 arquivos** vs produção |
-| **O quê** | Saldo **acumulado** (+ falta · − crédito). **Total sugerido** = falta hoje + acumulado. Ajuste manual (PIN). |
-| **Onde** | `/repasse-vila/` · overlay Repasse no caixa (JS `pdv_repasse_vila.js` — **não** mexe wizard PDV) |
-| **Fora** | PDV venda · caixa fechar · NFC-e · financeiro · Entrada NF · ajuste mobile |
-| **Prova (18/08 · lote isolado)** | repasse **72** · deep **85** · planos **49** · telas loja **14/14** · `check` OK |
-| **Migrate** | **SIM** `0093` (tabela nova; 0090–0092 já na loja) |
-| **Risco** | **Baixo** — só repasse; repasse antigo continua igual se não usar acumulado |
+| **Branch** | `deploy/lote-checklist-1808f` @ **ab3dbcf** · **15 arquivos** vs produção |
+| **Pacotes** | **REPASSE-ACUMULADO** + **AJUSTE-CICLICA-FOCUS** |
+| **Fora** | PDV venda/wizard · caixa fechar · NFC-e · financeiro · Entrada NF |
+| **Prova (18/08 · lote isolado)** | repasse **72+85+49** · cíclica UX **17** · bip1 **48** · path **75** · telas **14/14** · `check` OK |
+| **Migrate** | **SIM** `0093` (repasse) · cíclica focus **não** |
+| **Risco** | **Baixo** — repasse antigo igual; cíclica focus só na contagem (⋯ abre controles) |
 | **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** |
 | **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote repasse acumulado / deploy/lote-repasse-acumulado-1808 para produção* + senha |
-| **Depois do Live** | Ctrl+F5 `/repasse-vila/` · badge **v17.20** · conferir acumulado + total sugerido |
+| **Autorizar** | *pode subir lote checklist 18/08f / deploy/lote-checklist-1808f para produção* + senha |
+| **Depois do Live** | Ctrl+F5 `/repasse-vila/` + `/ajuste-mobile/` · badge **v17.21** |
+
+| Pacote | O quê |
+| ------ | ----- |
+| **REPASSE-ACUMULADO** | Saldo acumulado + total sugerido + ajuste manual (PIN) · `/repasse-vila/` |
+| **AJUSTE-CICLICA-FOCUS** | Cíclica: só **busca grande + lista** · controles no **⋯** (Fechar P1, Gravar, Cancelar) |
 
 ### ✅ CHECKLIST ÚNICO — produção (18/08)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **REPASSE-ACUMULADO** | 🚀 **pronto para envio à produção** | **SIM** 0093 |
+| 2 | **AJUSTE-CICLICA-FOCUS** | 🚀 **pronto para envio à produção** | não |
 
 | Operação (sem deploy) | Status |
 | --------------------- | ------ |
