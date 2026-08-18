@@ -28,6 +28,7 @@
     fiado: document.getElementById('pdv-rp-fiado'),
     todos: document.getElementById('pdv-rp-todos'),
     cheio: document.getElementById('pdv-rp-cheio'),
+    acumulado: document.getElementById('pdv-rp-acumulado'),
     manual: document.getElementById('pdv-rp-manual'),
     pin: document.getElementById('pdv-rp-pin'),
     status: document.getElementById('pdv-rp-status'),
@@ -144,6 +145,15 @@
     if (jaDin) jaDin.textContent = money((c.ja_enviado || {}).total);
     var faltaEl = document.getElementById('pdv-rp-falta');
     if (faltaEl) faltaEl.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
+    var acumEl = document.getElementById('pdv-rp-acum');
+    var acum = Number(c.acumulado_anterior || 0);
+    if (acumEl) {
+      acumEl.textContent = money(acum);
+      acumEl.className = 'text-lg font-black tabular-nums ' + (acum > 0 ? 'text-amber-950' : acum < 0 ? 'text-sky-900' : 'text-slate-600');
+    }
+    var sugEl = document.getElementById('pdv-rp-total-sug');
+    var sug = Number(c.total_sugerido != null ? c.total_sugerido : (Number(c.falta_dinheiro || d.total || 0) + acum));
+    if (sugEl) sugEl.textContent = money(Math.max(0, sug));
     document.getElementById('pdv-rp-disp-cmv').textContent = money(d.cmv);
     document.getElementById('pdv-rp-disp-lucro').textContent = money(d.lucro);
     var despHint = document.getElementById('pdv-rp-desp-hint');
@@ -163,7 +173,11 @@
     if (dom.lucro.checked) tot += Number(d.lucro || 0);
     if (dom.fiado.checked) tot += Number(d.fiado || 0);
     var mv = parseManualValor();
-    if (mv != null) tot = mv;
+    if (mv != null) {
+      tot = mv;
+    } else if (dom.acumulado && dom.acumulado.checked && acum !== 0) {
+      tot = Math.max(0, tot + acum);
+    }
     document.getElementById('pdv-rp-total').textContent = money(tot);
   }
 
@@ -330,6 +344,7 @@
       modo_dia_cheio: dom.cheio.checked,
       forma_pagamento: formaPag || 'Dinheiro',
       data_ref: dataRef(),
+      incluir_acumulado: !!(dom.acumulado && dom.acumulado.checked),
     };
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
@@ -385,7 +400,8 @@
     dom.fiado.checked = on;
     renderCalc();
   });
-  [dom.cmv, dom.lucro, dom.fiado, dom.manual].forEach(function (el) {
+  [dom.cmv, dom.lucro, dom.fiado, dom.manual, dom.acumulado].forEach(function (el) {
+    if (!el) return;
     el.addEventListener('change', function () {
       dom.todos.checked = dom.cmv.checked && dom.lucro.checked && dom.fiado.checked;
       renderCalc();
@@ -416,5 +432,117 @@
 
   if (qs().get('repasse') === '1') {
     setTimeout(openOverlay, 200);
+  }
+
+  var acumModal = document.getElementById('pdv-rp-acum-modal');
+  var acumBtn = document.getElementById('pdv-rp-btn-acum');
+  var acumFechar = document.getElementById('pdv-rp-acum-fechar');
+  var acumLista = document.getElementById('pdv-rp-acum-lista');
+  var acumStatus = document.getElementById('pdv-rp-acum-status');
+
+  function fmtDataIso(iso) {
+    if (!iso) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    return (p[2] || '') + '/' + (p[1] || '') + '/' + (p[0] || '');
+  }
+
+  function renderAcumModal(j) {
+    if (!j || !acumLista) return;
+    document.getElementById('pdv-rp-acum-modal-saldo').textContent = money(j.acumulado_anterior);
+    document.getElementById('pdv-rp-acum-modal-falta').textContent = money(j.falta_dia);
+    document.getElementById('pdv-rp-acum-modal-sug').textContent = money(Math.max(0, j.total_sugerido));
+    acumLista.innerHTML = '';
+    var rows = (j.ajustes || []).concat(j.linhas_dias || []);
+    if (!rows.length) {
+      acumLista.innerHTML = '<p class="text-slate-500 py-4 text-center">Nenhum dia anterior com diferença.</p>';
+      return;
+    }
+    rows.forEach(function (row) {
+      var div = document.createElement('div');
+      div.className = 'py-1.5 border-b border-slate-100 flex flex-wrap justify-between gap-1';
+      var delta = Number(row.delta || 0);
+      var lbl = row.tipo === 'ajuste'
+        ? 'Ajuste · ' + (row.observacao || '')
+        : fmtDataIso(row.data) + ' · alvo ' + money(row.alvo_fisico) + ' · enviado ' + money(row.enviado);
+      div.innerHTML =
+        '<span class="min-w-0 flex-1">' + lbl + '</span>' +
+        '<span class="tabular-nums font-black ' + (delta > 0 ? 'text-amber-800' : delta < 0 ? 'text-sky-800' : 'text-slate-600') + '">' +
+        (delta > 0 ? '+' : '') + money(delta) +
+        '</span>';
+      acumLista.appendChild(div);
+    });
+  }
+
+  function fetchAcumModal() {
+    if (acumStatus) acumStatus.textContent = 'Carregando…';
+    return fetch('/api/repasse-vila/acumulado/?data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) {
+          renderAcumModal(j);
+          if (acumStatus) acumStatus.textContent = '';
+        } else if (acumStatus) {
+          acumStatus.textContent = (j && j.erro) || 'Falha ao carregar';
+        }
+      });
+  }
+
+  function openAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.remove('hidden');
+    acumModal.classList.add('flex');
+    fetchAcumModal();
+  }
+
+  function closeAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.add('hidden');
+    acumModal.classList.remove('flex');
+  }
+
+  if (acumBtn) acumBtn.addEventListener('click', openAcumModal);
+  if (acumFechar) acumFechar.addEventListener('click', closeAcumModal);
+  if (acumModal) {
+    acumModal.addEventListener('click', function (ev) {
+      if (ev.target === acumModal) closeAcumModal();
+    });
+  }
+
+  var acumSalvar = document.getElementById('pdv-rp-acum-salvar');
+  if (acumSalvar) {
+    acumSalvar.addEventListener('click', function () {
+      var pin = String((document.getElementById('pdv-rp-acum-pin') || {}).value || '').trim();
+      var val = String((document.getElementById('pdv-rp-acum-valor') || {}).value || '').trim();
+      var obs = String((document.getElementById('pdv-rp-acum-obs') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!val) { if (acumStatus) acumStatus.textContent = 'Informe o valor'; return; }
+      if (acumStatus) acumStatus.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/acumulado/ajuste/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({
+          pin: pin,
+          valor: val,
+          observacao: obs,
+          data_calc: dataRef(),
+        }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Ajuste registrado';
+          var pinEl = document.getElementById('pdv-rp-acum-pin');
+          if (pinEl) pinEl.value = '';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () {
+          if (acumStatus) acumStatus.textContent = 'Falha de rede';
+        });
+    });
   }
 })();

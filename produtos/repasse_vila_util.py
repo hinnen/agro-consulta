@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from calendar import monthrange
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -13,6 +13,7 @@ from produtos.models import (
     FiadoBaixaAgro,
     ItemVendaAgro,
     MovimentoCaixa,
+    RepasseVilaAcumuladoAjusteAgro,
     RepasseVilaCentroAgro,
     RepasseVilaConfigAgro,
     VendaAgro,
@@ -388,11 +389,191 @@ def _aplicar_credito_eletronico(
     return c, l, fi, elet.quantize(Decimal("0.01"))
 
 
+def _alvo_fisico_de_calc(calc: dict[str, Any]) -> Decimal:
+    """Quanto deveria ir em dinheiro (alvo − cartão/PIX já no Centro)."""
+    alvos = calc.get("alvos") or {}
+    alvo = _dec(alvos.get("cmv")) + _dec(alvos.get("lucro")) + _dec(alvos.get("fiado"))
+    elet = _dec(calc.get("ja_eletronico_aplicado") or calc.get("ja_eletronico"))
+    return max(ZERO, (alvo - elet).quantize(Decimal("0.01")))
+
+
+def _dia_tem_atividade_repasse(dia: date) -> bool:
+    if RepasseVilaCentroAgro.objects.filter(data_ref=dia).exists():
+        return True
+    base = _receita_e_cmv_vila(dia)
+    if int(base.get("n_vendas") or 0) > 0:
+        return True
+    if _fiado_pago_vila(dia) > 0:
+        return True
+    if despesas_caixa_vila_por_plano(dia, dia):
+        return True
+    return False
+
+
+def _ajustes_manuais_total() -> Decimal:
+    return _dec(
+        RepasseVilaAcumuladoAjusteAgro.objects.aggregate(t=Sum("valor")).get("t")
+    )
+
+
+def delta_dia_repasse(
+    dia: date,
+    *,
+    percentual_lucro: Decimal | float | str | None = None,
+) -> dict[str, Any]:
+    """Delta do dia: alvo físico − enviado. Positivo = faltou levar; negativo = levou a mais."""
+    cfg = obter_config()
+    pct = _dec(percentual_lucro) if percentual_lucro is not None else _dec(cfg.percentual_lucro_padrao)
+    calc = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
+    alvo = _alvo_fisico_de_calc(calc)
+    enviado = _dec((calc.get("ja_enviado") or {}).get("total"))
+    delta = (alvo - enviado).quantize(Decimal("0.01"))
+    return {
+        "data": dia.isoformat(),
+        "alvo_fisico": float(alvo),
+        "enviado": float(enviado),
+        "delta": float(delta),
+        "n_vendas": int(calc.get("n_vendas") or 0),
+    }
+
+
+def acumulado_anterior(
+    dia: date,
+    *,
+    lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
+) -> Decimal:
+    """Saldo dos dias anteriores a `dia` + ajustes manuais. Positivo = ainda falta levar."""
+    saldo = _ajustes_manuais_total()
+    d0 = dia - timedelta(days=lookback_days)
+    cfg = obter_config()
+    pct = _dec(cfg.percentual_lucro_padrao)
+    d = d0
+    while d < dia:
+        if _dia_tem_atividade_repasse(d):
+            dd = delta_dia_repasse(d, percentual_lucro=pct)
+            saldo += _dec(dd["delta"])
+        d += timedelta(days=1)
+    return saldo.quantize(Decimal("0.01"))
+
+
+def listar_acumulado_detalhe(
+    dia: date,
+    *,
+    lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
+) -> dict[str, Any]:
+    """Extrato do acumulado até o dia anterior a `dia` (não inclui falta do próprio dia)."""
+    cfg = obter_config()
+    pct = _dec(cfg.percentual_lucro_padrao)
+    d0 = dia - timedelta(days=lookback_days)
+    linhas: list[dict[str, Any]] = []
+    ajustes: list[dict[str, Any]] = []
+    saldo = ZERO
+    for adj in RepasseVilaAcumuladoAjusteAgro.objects.order_by("criado_em", "pk"):
+        v = _dec(adj.valor)
+        saldo = (saldo + v).quantize(Decimal("0.01"))
+        ajustes.append(
+            {
+                "id": adj.pk,
+                "tipo": "ajuste",
+                "data": adj.data_ref.isoformat() if adj.data_ref else "",
+                "delta": float(v),
+                "observacao": adj.observacao,
+                "operador": adj.operador or "",
+                "criado_em": timezone.localtime(adj.criado_em).isoformat() if adj.criado_em else "",
+                "saldo_apos": float(saldo),
+            }
+        )
+    d = d0
+    while d < dia:
+        if _dia_tem_atividade_repasse(d):
+            dd = delta_dia_repasse(d, percentual_lucro=pct)
+            delta = _dec(dd["delta"])
+            saldo = (saldo + delta).quantize(Decimal("0.01"))
+            linhas.append(
+                {
+                    "tipo": "dia",
+                    "data": d.isoformat(),
+                    "alvo_fisico": dd["alvo_fisico"],
+                    "enviado": dd["enviado"],
+                    "delta": float(delta),
+                    "saldo_apos": float(saldo),
+                    "n_vendas": dd["n_vendas"],
+                }
+            )
+        d += timedelta(days=1)
+    acum = acumulado_anterior(dia, lookback_days=lookback_days)
+    calc_hoje = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
+    falta_dia = _dec(calc_hoje.get("falta_dinheiro"))
+    total_sug = (falta_dia + acum).quantize(Decimal("0.01"))
+    return {
+        "ok": True,
+        "data_ref": dia.isoformat(),
+        "acumulado_anterior": float(acum),
+        "falta_dia": float(falta_dia),
+        "total_sugerido": float(total_sug),
+        "credito": float(max(ZERO, -total_sug)) if total_sug < 0 else 0.0,
+        "linhas_dias": linhas,
+        "ajustes": ajustes,
+    }
+
+
+def registrar_ajuste_acumulado(
+    valor,
+    *,
+    observacao: str,
+    operador: str = "",
+    data_ref: date | None = None,
+) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
+    v = _dec(valor)
+    if v == 0:
+        return None, "Informe um valor diferente de zero."
+    obs = " ".join(str(observacao or "").strip().split())
+    if len(obs) < 3:
+        return None, "Descreva o motivo (mín. 3 caracteres)."
+    if v > Decimal("99999.99") or v < Decimal("-99999.99"):
+        return None, "Valor fora do limite."
+    adj = RepasseVilaAcumuladoAjusteAgro.objects.create(
+        valor=v,
+        observacao=obs[:500],
+        operador=(operador or "")[:120],
+        data_ref=data_ref,
+    )
+    return adj, ""
+
+
+def _redistribuir_tres(
+    v_cmv: Decimal,
+    v_lucro: Decimal,
+    v_fiado: Decimal,
+    novo_total: Decimal,
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Escala CMV/lucro/fiado para bater `novo_total` (centavos no maior)."""
+    base = (v_cmv + v_lucro + v_fiado).quantize(Decimal("0.01"))
+    if base <= 0 or novo_total <= 0:
+        return ZERO, ZERO, ZERO
+    if base == novo_total:
+        return v_cmv, v_lucro, v_fiado
+    fator = novo_total / base
+    c = (v_cmv * fator).quantize(Decimal("0.01"))
+    l = (v_lucro * fator).quantize(Decimal("0.01"))
+    fi = (v_fiado * fator).quantize(Decimal("0.01"))
+    dif = (novo_total - (c + l + fi)).quantize(Decimal("0.01"))
+    if dif != 0:
+        if c >= l and c >= fi:
+            c = (c + dif).quantize(Decimal("0.01"))
+        elif l >= fi:
+            l = (l + dif).quantize(Decimal("0.01"))
+        else:
+            fi = (fi + dif).quantize(Decimal("0.01"))
+    return c, l, fi
+
+
 def calcular_disponivel(
     dia: date | None = None,
     *,
     percentual_lucro: Decimal | float | str | None = None,
     modo_dia_cheio: bool = False,
+    _skip_acumulado: bool = False,
 ) -> dict[str, Any]:
     """Monta o bolo do dia e o que ainda falta enviar (ou o dia cheio)."""
     dia = dia or timezone.localdate()
@@ -439,6 +620,11 @@ def calcular_disponivel(
 
     total_disp = (disp_cmv + disp_lucro + disp_fiado).quantize(Decimal("0.01"))
     alvo_total = (cmv_alvo + lucro_alvo + fiado_alvo).quantize(Decimal("0.01"))
+    acum = ZERO
+    total_sugerido = total_disp
+    if not _skip_acumulado:
+        acum = acumulado_anterior(dia)
+        total_sugerido = (total_disp + acum).quantize(Decimal("0.01"))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
@@ -457,6 +643,9 @@ def calcular_disponivel(
         "ja_eletronico_aplicado": float(elet_aplicado),
         "alvo_total": float(alvo_total),
         "falta_dinheiro": float(total_disp),
+        "acumulado_anterior": float(acum),
+        "total_sugerido": float(total_sugerido),
+        "credito_acumulado": float(max(ZERO, -total_sugerido)) if total_sugerido < 0 else 0.0,
         "disponivel": {
             "cmv": float(disp_cmv),
             "lucro": float(disp_lucro),
@@ -641,6 +830,7 @@ def confirmar_repasse(
     forma_pagamento: str = "Dinheiro",
     operador: str = "",
     data_ref: date | None = None,
+    incluir_acumulado: bool = False,
 ) -> tuple[RepasseVilaCentroAgro | None, str]:
     """
     Saída no caixa Vila (obrigatório aberto) + entrada no Centro (agora ou pendente).
@@ -708,6 +898,17 @@ def confirmar_repasse(
             else:
                 v_fiado = (v_fiado + dif).quantize(Decimal("0.01"))
             total = vm
+    elif incluir_acumulado:
+        acum = acumulado_anterior(dia)
+        if acum != 0:
+            novo = max(ZERO, (total + acum).quantize(Decimal("0.01")))
+            if novo <= 0:
+                return None, (
+                    "Crédito acumulado cobre o dia — nada a levar agora. "
+                    "Desmarque «Incluir acumulado» ou ajuste o valor manual."
+                )
+            v_cmv, v_lucro, v_fiado = _redistribuir_tres(v_cmv, v_lucro, v_fiado, novo)
+            total = novo
 
     if total <= 0:
         return None, "Nada a levar em dinheiro (cartão/PIX já cobriu ou já enviado)."

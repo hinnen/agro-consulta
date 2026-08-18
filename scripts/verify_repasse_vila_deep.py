@@ -554,6 +554,72 @@ def main() -> int:
         "confirmar deveria falhar"
     )
 
+    from produtos.models import RepasseVilaAcumuladoAjusteAgro
+    from produtos.repasse_vila_util import (
+        acumulado_anterior,
+        listar_acumulado_detalhe,
+        registrar_ajuste_acumulado,
+    )
+
+    for name in ("api_repasse_vila_acumulado", "api_repasse_vila_acumulado_ajuste"):
+        try:
+            reverse(name)
+            ok(f"url {name}")
+        except Exception as e:
+            fail(f"url {name}: {e}")
+
+    calc_ac = calcular_disponivel(hoje)
+    if "acumulado_anterior" in calc_ac and "total_sugerido" in calc_ac:
+        ok("calc tem acumulado/total_sugerido")
+    else:
+        fail("calc sem campos acumulado")
+
+    RepasseVilaAcumuladoAjusteAgro.objects.filter(observacao__startswith=tag).delete()
+    acum_antes = acumulado_anterior(hoje)
+    adj, err_adj = registrar_ajuste_acumulado(
+        Decimal("-25.50"),
+        observacao=f"{tag} credito teste",
+        operador="bot",
+    )
+    if adj and not err_adj:
+        ok("registrar ajuste acumulado")
+    else:
+        fail(f"ajuste acumulado: {err_adj}")
+    acum_depois = acumulado_anterior(hoje)
+    esperado = (acum_antes - Decimal("25.50")).quantize(Decimal("0.01"))
+    ok("acum reflete ajuste") if acum_depois == esperado else fail(
+        f"acum {acum_depois} != {esperado}"
+    )
+
+    det = listar_acumulado_detalhe(hoje)
+    ok("detalhe ok") if det.get("ok") and abs(float(det["acumulado_anterior"]) - float(acum_depois)) < 0.02 else fail(
+        "detalhe diverge"
+    )
+    ok("detalhe tem ajustes") if any(a.get("tipo") == "ajuste" for a in (det.get("ajustes") or [])) else fail(
+        "detalhe sem ajuste"
+    )
+
+    r_ac = c.get("/api/repasse-vila/acumulado/", {"data": hoje.isoformat()})
+    j_ac = r_ac.json() if r_ac.status_code == 200 else {}
+    ok("GET api acumulado") if j_ac.get("ok") else fail("GET api acumulado")
+
+    r_adj = c.post(
+        "/api/repasse-vila/acumulado/ajuste/",
+        data=json.dumps({"valor": "10", "observacao": "ab", "data_calc": hoje.isoformat()}),
+        content_type="application/json",
+    )
+    ok("POST ajuste motivo curto 400") if r_adj.status_code == 400 else fail(
+        f"ajuste motivo curto deveria falhar ({r_adj.status_code})"
+    )
+
+    RepasseVilaAcumuladoAjusteAgro.objects.filter(observacao__startswith=tag).delete()
+
+    js_ac = (ROOT / "produtos/static/produtos/js/pdv_repasse_vila.js").read_text(
+        encoding="utf-8", errors="replace"
+    )
+    ok("js incluir_acumulado") if "incluir_acumulado" in js_ac else fail("js sem incluir_acumulado")
+    ok("js api acumulado") if "api/repasse-vila/acumulado/" in js_ac else fail("js sem api acumulado")
+
     for rep in RepasseVilaCentroAgro.objects.filter(observacao=tag):
         if rep.movimento_saida_id:
             MovimentoCaixa.objects.filter(pk=rep.movimento_saida_id).delete()
@@ -572,6 +638,7 @@ def main() -> int:
         "produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html",
         "produtos/templates/produtos/includes/repasse_help_agents.html",
         "produtos/migrations/0087_repasse_vila_centro.py",
+        "produtos/migrations/0093_repasse_vila_acumulado_ajuste.py",
     ):
         ok(f"file {rel}") if (ROOT / rel).exists() else fail(f"missing {rel}")
 
