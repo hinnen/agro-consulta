@@ -106,6 +106,9 @@ check(
     "maLockScroll",
     "Incluir fora",
     "forcar",
+    "qtd_contada",
+    "maEscolherProduto",
+    "is-qtd",
 )
 check(
     "produtos/pg_backup_registry.py",

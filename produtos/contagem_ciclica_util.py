@@ -623,24 +623,33 @@ def sessao_payload(sessao: ContagemCiclicaSessao, *, detalhe: bool = False) -> d
                     codigo = cod_alt
             if not nome:
                 nome = codigo or f"Produto {pid[:8]}"
+            contado = (
+                ln.contado_pass2
+                if sessao.status == ContagemCiclicaStatus.PASS2
+                else ln.contado_pass1
+            )
+            q_raw = (
+                ln.qtd_pass2
+                if sessao.status == ContagemCiclicaStatus.PASS2
+                else ln.qtd_pass1
+            )
+            try:
+                q_contada = float(q_raw) if contado and q_raw is not None else None
+            except (TypeError, ValueError):
+                q_contada = None
             item = {
                 "id": ln.pk,
                 "produto_id": pid,
                 "codigo": codigo,
                 "nome": nome,
                 "categoria": ln.categoria,
-                "contado": ln.contado_pass2
-                if sessao.status == ContagemCiclicaStatus.PASS2
-                else ln.contado_pass1,
+                "contado": contado,
                 "operador": ln.operador_pass2
                 if sessao.status == ContagemCiclicaStatus.PASS2
                 else ln.operador_pass1,
                 "auto_zero": ln.auto_zero_pass1,
-                "faltando": not (
-                    ln.contado_pass2
-                    if sessao.status == ContagemCiclicaStatus.PASS2
-                    else ln.contado_pass1
-                ),
+                "faltando": not contado,
+                "qtd_contada": q_contada,
             }
             linhas.append(item)
         out["linhas"] = linhas

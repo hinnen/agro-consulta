@@ -50,6 +50,12 @@ check_text(
     "maBip1AntesCiclica",
     "maBip1On = true",
     "estoque só no Gravar",
+    "maEscolherProduto",
+    "maTalvezOferecerCodigo",
+    "ma-bip-tela-n",
+    "is-qtd",
+    "qtd_contada",
+    "código de barras",
     label="js",
 )
 
@@ -114,7 +120,7 @@ if "pointer-events: none" not in js or ".ma-bip-tela" not in js:
     fail("overlay pisca sem pointer-events none")
 else:
     ok("pisca não bloqueia o próximo bip")
-if "maBipPiscarTela(true)" not in chunk:
+if "maBipPiscarTela(true," not in chunk and "maBipPiscarTela(true)" not in chunk:
     fail("sucesso sem pisca verde")
 else:
     ok("sucesso pisca verde")

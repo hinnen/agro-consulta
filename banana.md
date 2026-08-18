@@ -1216,24 +1216,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.18**)
+### 🚀 PREP deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**)
 
 > **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`.
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808e`.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.09** · `producao` @ **3b45abf** |
-| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando só lista; `--aplicar` **depois** do Live) + **AJUSTE-CICLICA-BIP1** |
-| **Arquivos** | Entrada NF (html/views/catalogo/models/histórico/reparo) · `mobile_ajuste.html` (Bip+1 na cíclica) · provas |
-| **Fora** | PDV wizard · caixa · NFC-e · financeiro · Point Vila |
-| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · cíclica bip1 **42/42** · cíclica path **72** · deep **31** · UX **17** · `manage.py check` OK |
+| **Loja hoje** | ✅ Live **v17.18** · `producao` @ **9fcecad** |
+| **Pacote** | **AJUSTE-CICLICA-QTD-CB** só |
+| **Arquivos** | `mobile_ajuste.html` · `contagem_ciclica_util.py` · provas · `VERSION` 17.19 |
+| **Fora** | PDV · caixa · NFC-e · financeiro · Entrada NF · Point Vila |
+| **Prova no lote isolado** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | no deploy: tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08e / deploy/lote-checklist-1808e para produção* + senha |
+| **Depois do Live** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · overlay código se bip não achar |
+
+### ✅ Deploy loja — checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.18**) · **já Live**
+
+> **Não** merge `teste`→`producao`. Fast-forward **só** o lote isolado da vez.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.18** · `producao` @ **9fcecad** |
+| **Pacotes** | NF etapa 3 + vínculo + reparo (código) + cíclica Bip+1 |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha |
-| **Depois do Live** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.18** · reparo dos 33 nomes com `--aplicar` (não roda sozinho) |
 
 ### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**) · **já Live**
 
