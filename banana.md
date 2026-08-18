@@ -1225,29 +1225,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🔧 WIP teste — Cíclica qtd visível + overlay código (`AJUSTE-CICLICA-QTD-CB` · **v17.19** · 18/08)
+### ✅ CHECKLIST ÚNICO — produção (18/08)
 
-> **Não** está na loja. Validar no PC local (`/ajuste-mobile/` Ctrl+F5). Produção só com frase + senha.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Card da cíclica mostra **quanto já bipou** (3, não só OK). Tela verde mostra o número. Bip que não acha → busca pelo nome → overlay **código opcional**. |
-| **Cego** | Continua **sem** estoque esperado do sistema. |
-| **Prova** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** |
-| **Migrate** | **NÃO** |
-| **Você** | Cíclica → bipar 3 vezes o mesmo item → ver **3** no card. Bipar código errado → escrever o nome → Sim no overlay. |
-
-### ✅ CHECKLIST ÚNICO — enviado produção (18/08 · loja **v17.18**)
-
-> **Loja hoje:** ✅ **Live v17.18** · `producao` @ **9fcecad** · site badge **17.18**  
-> **Não** merge `teste`→`producao`. **Fora:** Point Vila (falta token). Reparo 33 nomes: comando no código, **`--aplicar` ainda não rodou**.
+> **Loja hoje:** ✅ **Live v17.18** · `producao` @ **9fcecad** · badge **17.18**  
+> **GitHub `teste`:** **v17.19** · commits **60c524d** + **d0fb942** · aguarda senha pra loja.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NF-BIP-ET3-SNAP** | ✅ enviado / Live v17.18 | não |
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ enviado / Live v17.18 | não |
-| 3 | **NF-VINCULO-REPARO** | ✅ código Live · **aplicar pendente** | não |
+| 3 | **NF-VINCULO-REPARO** | ✅ código Live · **`--aplicar` pendente** (operação) | não |
 | 4 | **AJUSTE-CICLICA-BIP1** | ✅ enviado / Live v17.18 | não |
+| 5 | **AJUSTE-CICLICA-QTD-CB** | **pronto para envio à produção** · v17.19 | não |
+
+### 📦 PACOTE PRONTO — Cíclica qtd + overlay código (`AJUSTE-CICLICA-QTD-CB` · **v17.19**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | **pronto para envio à produção** · `teste` @ **d0fb942** |
+| **O quê** | Card cíclica mostra **quanto já bipou** (3, não só OK). Tela verde mostra o número. Bip sem cadastro → busca pelo nome → overlay **código opcional** (Sim → fila **Cód.**). |
+| **Cego** | Sem estoque esperado do sistema. |
+| **Prova** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Você** | PC local **Ctrl+F5** `/ajuste-mobile/` · Cíclica → 3 bips = **3** no card · código errado → nome → overlay. Loja: frase + senha. |
 
 ### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**) · **Live**
 
