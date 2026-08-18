@@ -620,7 +620,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
-- **Contagem cíclica (13/08 · v16.12+):** Ajuste Mobile botão **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento (`contagem_ciclica`).
+- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1 na cíclica** soma 1 na contagem (não no estoque); tela pisca verde/vermelho.
 
 ### 4.9 Compras
 
@@ -1224,6 +1224,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.17**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🧪 **teste** · loja **v17.09** |
+| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no Gravar). Tela inteira pisca **verde** (ok) / **vermelho** (código sem cadastro / fora da lista). Liga sozinho ao abrir a cíclica. Corredor = andar bipando sem olhar. |
+| **Prova** | `verify_contagem_ciclica_path` · `verify_ajuste_mobile_ux` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → Bip +1 ON · bipar |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08d)
 
