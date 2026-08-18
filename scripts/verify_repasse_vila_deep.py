@@ -34,7 +34,9 @@ from produtos.models import (
 from produtos.relatorios_vendas_util import mapa_produtos_meta
 from produtos.repasse_vila_util import (
     _aware_bounds,
+    _extra_do_calc,
     _vendas_vila_sem_fiado,
+    abater_extras_do_acumulado,
     acumulado_anterior,
     aplicar_repasses_pendentes_centro,
     calcular_disponivel,
@@ -578,6 +580,16 @@ def main() -> int:
     else:
         fail("calc sem campos acumulado")
 
+    calc_fake = {
+        "alvos": {"cmv": 0, "lucro": 0, "fiado": 0},
+        "ja_eletronico_aplicado": 0,
+        "ja_enviado": {"total": "1878.47"},
+    }
+    extra_f = _extra_do_calc(calc_fake)
+    ok("extra do envio") if extra_f == Decimal("1878.47") else fail(f"extra={extra_f}")
+    liq_f = abater_extras_do_acumulado(hoje, Decimal("1878.47"), calc_fake)
+    ok("envio extra zera acum do dia") if liq_f == Decimal("0.00") else fail(f"liq={liq_f}")
+
     RepasseVilaAcumuladoAjusteAgro.objects.filter(observacao__startswith=tag).delete()
     acum_antes = acumulado_anterior(hoje)
     adj, err_adj = registrar_ajuste_acumulado(
@@ -594,15 +606,20 @@ def main() -> int:
     ok("acum reflete ajuste") if acum_depois == esperado else fail(
         f"acum {acum_depois} != {esperado}"
     )
+    liq_antes_z = Decimal(str(calcular_disponivel(hoje).get("acumulado_anterior") or 0))
     adj_z, err_z = quitar_acumulado_zerar(hoje, operador="bot", observacao=f"{tag} zerar")
-    ok("zerar acumulado") if adj_z and not err_z else fail(f"zerar: {err_z}")
-    acum_zero = acumulado_anterior(hoje)
-    ok("acum apos zerar <= 0") if acum_zero <= 0 else fail(f"acum pos zerar={acum_zero}")
+    if liq_antes_z > 0:
+        ok("zerar acumulado") if adj_z and not err_z else fail(f"zerar: {err_z}")
+        liq_depois = Decimal(str(calcular_disponivel(hoje).get("acumulado_anterior") or 0))
+        ok("acum apos zerar <= 0") if liq_depois <= 0 else fail(f"acum pos zerar={liq_depois}")
+    else:
+        ok("zerar recusa se ja coberto") if err_z and not adj_z else fail("zerar deveria recusar")
 
     det = listar_acumulado_detalhe(hoje)
-    ok("detalhe ok") if det.get("ok") and abs(float(det["acumulado_anterior"]) - float(acum_zero)) < 0.02 else fail(
-        "detalhe diverge"
-    )
+    calc_liq = calcular_disponivel(hoje)
+    ok("detalhe ok") if det.get("ok") and abs(
+        float(det["acumulado_anterior"]) - float(calc_liq.get("acumulado_anterior") or 0)
+    ) < 0.02 else fail("detalhe diverge")
     ok("detalhe tem ajustes") if any(a.get("tipo") == "ajuste" for a in (det.get("ajustes") or [])) else fail(
         "detalhe sem ajuste"
     )

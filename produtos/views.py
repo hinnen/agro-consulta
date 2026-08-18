@@ -10424,11 +10424,8 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
         "entregas_painel_url": reverse("entregas_painel"),
         "relatorios_validade_url": (
             reverse("relatorios_validade")
-            + (
-                f"?loja={deposito_filtro}"
-                if deposito_filtro in ("centro", "vila")
-                else ""
-            )
+            + "?loja=todas"
+            + ("&status=vencido" if validade_vencidos_n > 0 else "")
         ),
         "total_entregas_pendentes": total_entregas_pendentes,
         "ultima_sinc_estoque": _dashboard_estoque_sync_label(),

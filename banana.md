@@ -397,6 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
+- **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
@@ -427,13 +428,15 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - EndereÃ§o oculto atÃ© escolher pagamento na entrega ou na loja.
 - Barra de estoque: atualizaÃ§Ã£o manual + horÃ¡rio + standby.
 
-**APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py`.
+**APIs PDV (amostra):** `api/buscar/`, `api/pdv/*`, `api/promocoes/ativas-pdv/`, Mercado Pago Point em `views_mp_point.py` (Centro + Vila, contas separadas).
 
 **Uso loja (31/07 · v12.31):** botão topbar → overlay · saída PG · quem = grade RH (toque avança / Outros digita) · motivo · PIN · histórico/estorno · não mexe no carrinho da venda.
 
 **Cadastro rápido PDV (04/08 · v13.82):** botão **+ Produto** na busca · bipar → checa EAN → lookup internet opcional · cria Agro (UN) · card **PDV conferir** no Cadastro ERP · VERIFY_OK.
 
 **Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
+
+**Balança granel (16/08 · teste v16.71):** botão **Pesar** / **F10** → overlay · Web Serial Chrome (Urano US20/2 POP-S · USE-P2) · códigos **1–199** (sem zeros) · auto-add ao estabilizar · Unidade **KG** no cadastro · migrate `0089`.
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -533,6 +536,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
+- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/`.
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 
@@ -605,6 +609,10 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
 - **Validade → tela Validade (06/08):** ao **lançar estoque**, se a linha tiver `lote_validade` (etapa 4), grava/soma `EstoqueLote` (antes só ficava no rascunho). Reabrir reduz o lote se a entrada tinha `nf_lote`/`nf_val`. Notas **já** lançadas antes do fix **não** voltam sozinhas.
 - **Etapa 3 cód. barras (12/08 · v16.06 `NF-BIP-ET3`):** bip casa com EAN da linha **e** barras do cadastro/overlay dos itens da NF; casado por EAN/bip na etapa 2 → Ok verde; prova `verify_nf_bip_et3_path.py`.
+- **Etapa 3 PEND após bip etapa 2 (17/08 · `NF-BIP-ET2` · **Live v17.09**):** leitor no **Mudar**/busca (8+ dígitos) vale como Ok; XML `ean_pg`/`ean_overlay` também. Código do fornecedor (sem bip) continua PEND. Prova `verify_nf_bip_et2_path.py`.
+- **Etapa 3 lenta + visual (17/08 · `NF-BIP-ET3-SNAP`):** um lote de códigos do cadastro (não 1 request por item); barra Conferidos; flash + som no Ok. Prova `verify_nf_bip_et3_path.py` **83/83**.
+- **Vínculo NF não sobrescreve cadastro (17/08 · `NF-VINCULO-NAO-SOBRESCREVE`):** «Mudar»/cProd/EAN grava só o vínculo. Nome, marca, categoria, GM e preços ficam. Lote/validade não copia xProd da NF no nome. Prova `verify_nf_vinculo_nao_sobrescreve.py`.
+- **Itens já estragados (17/08 · `NF-VINCULO-REPARO`):** ✅ **33 corrigidos** (18/08 · `--aplicar` na loja). Devolve histórico ou tira overlay / colchete `[EAN]`. **Não** mexe preço, GM, barras.
 
 ### 4.8 Estoque Agro
 
@@ -613,7 +621,9 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
-- **Contagem cíclica (13/08 · v16.12+):** Ajuste Mobile botão **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento (`contagem_ciclica`).
+- **Transferência forçada — layout C→Vila (18/08):** ao escolher **Centro → Vila**, modal inverte colunas (carrinho à esquerda, busca à direita); **Vila → C** mantém layout original.
+- **Transferência forçada — popup direção (18/08):** botão **Forçada Vila↔C** abre popup «Vila → Centro» / «Centro → Vila» antes da tela; sem toggle no cabeçalho.
+- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08 · **hero 18/08 · teste v17.25**):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**. **Modo foco:** só busca grande + lista; **último bip** em destaque no topo; já contados em linha estreita; **⋯** abre controles.
 
 ### 4.9 Compras
 
@@ -651,7 +661,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Abrir caixa alinha o seletor de loja do PDV; venda usa depÃ³sito do `ponto_caixa` da sessÃ£o.
 - **Antiburro (v10.04):** abrir Gaveta/Vila e trocar Loja no BI exige digitar `centro` ou `vila`; com caixa aberto o seletor fica travado.
 - **Trava loja (v10.56):** reforÃ§o, retirada/saÃ­da, devoluÃ§Ã£o, fiado, assumir sessÃ£o e venda **sÃ³** no turno da loja do aparelho; caixa fechado = bloqueia.
-- MP Point automÃ¡tico: sÃ³ Gaveta Centro / Teste (nÃ£o Vila).
+- MP Point automático: Gaveta Centro / Teste = conta Centro · Caixa Vila = conta Vila (outra credencial). Notebook não dispara.
 - Layout **16:9**, shell `.caixa-shell`, `100dvh` â€” nÃ£o coluna estreita.
 - Util: `produtos/caixa_util.py`.
 - **Abrir â€” CÃ©dulas (21/07):** botÃ£o **CÃ©dulas** na abertura (igual fechar) Â· campo valor comeÃ§a vazio Â· sugestÃ£o sÃ³ no card azul / placeholder Â· modal `includes/caixa_cedulas_abertura_modal.html`.
@@ -659,6 +669,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
+- **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
+- **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
 
@@ -1151,7 +1163,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `NFC_E_*`                     | Toda config NFC-e (ver NFCE-PRODUCAO.md) |
 | `AGRO_DASHBOARD_GASTOS_PLANO` | Mostra grÃ¡fico gastos por plano no BI    |
 | `AGRO_RH_PLANO_SALARIO_FOLHA` | Plano Mongo do tÃ­tulo de salÃ¡rio         |
-| `ALERTA_VENDAS_CRON_TOKEN`    | Token crons HTTP                         |
+| `MP_POINT_*`                   | Point Centro (token + terminal)          |
+| `MP_POINT_VILA_*`              | Point Vila (outra conta MP)              |
 
 
 ---
@@ -1216,102 +1229,517 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **aguarda senha**
+### 🚀 PREP deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**)
 
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar PDV + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808h`.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.21** · `producao` @ **ab3dbcf** |
-| **Pacote** | **MP-POINT-VILA** só |
-| **Fora deste lote** | TRANSF-FORCADA-UX · DRE-SALDO-DIARIO (prontos no `teste`, não mexem PDV) |
-| **Migrate** | **NÃO** |
-| **Rollback** | no deploy: tag em `ab3dbcf` (v17.21) |
-| **Prova no lote isolado** | MP Vila **41/41** · fechar caixa **28/28** · `manage.py check` OK · cherry código auto-merge |
-| **Centro aberto** | sessão antiga `1` continua Point Centro — **não** precisa reabrir Gaveta |
-| **Vila** | depois do Live: **fechar/abrir Caixa Vila Elias** no notebook de vendas · Ctrl+F5 PDV |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08h / deploy/lote-checklist-1808h / MP-POINT-VILA para produção* + senha |
-
-### 🚀 PREP deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**)
-
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808e`.
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808m`.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.18** · `producao` @ **9fcecad** |
-| **Pacote** | **AJUSTE-CICLICA-QTD-CB** só |
-| **Arquivos** | `mobile_ajuste.html` · `contagem_ciclica_util.py` · provas · `VERSION` 17.19 |
-| **Fora** | PDV · caixa · NFC-e · financeiro · Entrada NF · Point Vila |
-| **Prova no lote isolado** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** · `manage.py check` OK |
+| **Loja hoje** | ✅ Live **v17.30** · `producao` @ **1036967** |
+| **Branch** | `deploy/lote-checklist-1808m` · **9 arquivos** vs produção |
+| **Fora** | PDV venda/wizard · caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos |
+| **Prova** | BI-clique **10/10** · path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · 15 telas 200 · PDV rações OK · fechar caixa **28/28** · `check` OK · diff **0** PDV/caixa/NF |
 | **Migrate** | **NÃO** |
-| **Rollback** | no deploy: tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** |
+| **Risco** | **Baixo** — link Validade no BI + conta do acumulado no repasse |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
 | **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08e / deploy/lote-checklist-1808e para produção* + senha |
-| **Depois do Live** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · overlay código se bip não achar |
+| **Autorizar** | *pode subir lote checklist 18/08m / deploy/lote-checklist-1808m para produção* + senha |
 
-### ✅ Deploy loja — checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.18**) · **já Live**
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **BI-VAL-CLIQUE** | Conferir vencidos abre **Todas (C+V)** + só vencidos | `/` · filtro Centro · clicar Validade |
+| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` · Ctrl+F5 |
 
-> **Não** merge `teste`→`producao`. Fast-forward **só** o lote isolado da vez.
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08m · teste **v17.42**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-VAL-CLIQUE** | 🚀 **pronto para envio à produção** | não |
+| 2 | **REPASSE-ACUM-NET** | 🚀 **pronto para envio à produção** | não |
+
+### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **ver PREP 1808m no topo**
+
+### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **ver PREP 1808m no topo**
+
+### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.30** · `producao` @ **1036967** |
+| **Pacotes** | **BI-VAL-UNIFICADO** · **DRE-LUCRO-GRAFICO** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808l-v17.29` @ **bced5d4** + frase + senha |
+| **Você** | **Ctrl+F5** em `/` (Validade igual nas 3 lojas) · `/financeiro/resumo-gerencial/` (gráfico lucro = BI) · badge **17.30** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **BI-VAL-UNIFICADO** | Card **Validade** igual em Centro / Vila / C+V | `/` · trocar filtro Números |
+| **DRE-LUCRO-GRAFICO** | Barras = **lucro líquido/dia** (mesma conta do BI) · acum. = card BI | `/financeiro/resumo-gerencial/` |
+
+### ~~🚀 PREP deploy loja — lote 18/08l~~ · **superado — Live v17.30**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (18/08l · loja **v17.30**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-VAL-UNIFICADO** | ✅ **enviado / Live v17.30** | não |
+| 2 | **DRE-LUCRO-GRAFICO** | ✅ **enviado / Live v17.30** | não |
+
+### ~~📦 PACOTE PRONTO — DRE gráfico lucro = BI~~ · **Live v17.30**
+
+### ~~📦 PACOTE PRONTO LOJA — BI Validade~~ · **Live v17.30**
+
+### ✅ Deploy loja — lote 18/08j (`deploy/lote-checklist-1808j` · **v17.29**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.29** · `producao` @ **bced5d4** |
+| **Pacote** | **DRE-SALDO-HOTFIX** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808j-v17.27` @ **060b300** + frase + senha |
+| **Você** | **Ctrl+F5** em `/financeiro/resumo-gerencial/` · badge **17.29** · rolar rodapé · barras azul/vermelho + linha verde |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **DRE-SALDO-HOTFIX** | Gráfico saldo **com barras** · scroll na página · Mini DRE legível · tela não trava no equilíbrio | `/financeiro/resumo-gerencial/` |
+
+### ~~🚀 PREP deploy loja — lote 18/08j~~ · **superado — Live v17.29**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (18/08j · loja **v17.29**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-SALDO-HOTFIX** | ✅ **enviado / Live v17.29** | não |
+
+### ~~📦 PACOTE PRONTO — DRE gráfico + scroll~~ · **Live v17.29**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Commit teste** | `039f237` (cherry → lote **bced5d4**) |
+| **O quê** | Fix gráfico saldo vazio · scroll · Mini DRE · equilíbrio em background · 1 consulta saldo |
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — Live v17.29**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| — | — | Loja **Live v17.29** (hotfix DRE) · lote **1808i** já Live **v17.27** | — |
+
+### 📦 PACOTE PRONTO — Repasse acumulado fix (`REPASSE-ACUMULADO-FIX` · **v17.27**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.27** |
+| **Tela** | `/repasse-vila/` + overlay PDV |
+| **Fix** | Quita acumulado ao transferir · **zerar acumulado** (PIN) · cache delta (rápido) |
+| **Migrate** | **SIM** `0094` |
+| **Prova (18/08 revalidado)** | path **84/84** · deep **88/88** · planos **49/49** · `check` OK · smoke acumulado OK |
+| **Você** | Ctrl+F5 · **Ver acumulado → zerar** se já transferiu antes da ferramenta |
+
+### ✅ Deploy loja — lote 18/08i (`deploy/lote-checklist-1808i` · **v17.27**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.27** · `producao` @ **060b300** |
+| **Pacotes** | **AJUSTE-CICLICA-HERO** · **DRE-SALDO-DIARIO** · **TRANSF-FORCADA-UX** · **REPASSE-ACUMULADO-FIX** |
+| **Migrate** | **SIM** `0094` (repasse cache delta) · demais **não** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808i-v17.24` @ **5660d74** + frase + senha |
+| **Você** | **Ctrl+F5** em `/repasse-vila/` · `/ajuste-mobile/` (cíclica) · `/financeiro/resumo-gerencial/` · `/transferencias/` · badge **17.27** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **REPASSE-ACUMULADO-FIX** | Quita acumulado ao transferir · **zerar acumulado** (PIN) · abre rápido | `/repasse-vila/` |
+| **AJUSTE-CICLICA-HERO** | Último bip **grande** · já contados **estreito** · **⋯** controles | `/ajuste-mobile/` cíclica |
+| **DRE-SALDO-DIARIO** | Gráfico saldo dia a dia + **Planos gasto** | `/financeiro/resumo-gerencial/` |
+| **TRANSF-FORCADA-UX** | Popup direção · layout invertido C→Vila | `/transferencias/` forçada |
+
+### ~~🚀 PREP deploy loja — lote 18/08i~~ · **superado — Live v17.27**
+
+### ~~✅ CHECKLIST ÚNICO — enviado produção (18/08i · loja **v17.27**)~~ · **ver CHECKLIST no topo**
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — Live v17.27**
+
+### ✅ Deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.24** · `producao` @ **5660d74** |
+| **Pacote** | **MP-POINT-VILA** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808h-v17.21` @ **ab3dbcf** + frase + senha |
+| **Você** | **Vila:** fechar/abrir **Caixa Vila Elias** no notebook de vendas · **Ctrl+F5** PDV · venda pequena **Mercado Pago Vila (automático)** · **Centro:** sem mudança (Gaveta continua igual) |
+
+### ~~🚀 PREP deploy loja — lote 18/08h~~ · **superado — Live v17.24**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (18/08h · loja **v17.24**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-VILA** | ✅ **enviado / Live v17.24** | não |
+
+| Incluído no lote **1808i** (Live **v17.27**) | Status |
+| -------------------------------------------- | ------ |
+| **AJUSTE-CICLICA-HERO** · **DRE-SALDO-DIARIO** · **TRANSF-FORCADA-UX** · **REPASSE-ACUMULADO-FIX** | ✅ **enviado / Live v17.27** |
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08h)~~ · **superado — Live v17.24**
+
+### ~~📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)~~ · **Live v17.27**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **O quê** | Rodapé: gráfico saldo dia a dia · CMV · **Planos gasto** · scroll na página · fix gráfico vazio + Mini DRE |
+| **API** | `GET /api/financeiro/saldo-diario-mes/` · `planos_gasto` também no resumo operacional |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` · Django check · integração PG OK |
+| **Você** | Ctrl+F5 DRE gerencial · F5 · **Planos gasto** · CMV vendida/paga · gráfico rodapé |
+
+### ~~📦 PACOTE PRONTO — Transferência forçada UX (`TRANSF-FORCADA-UX` · **v17.22**)~~ · **Live v17.27**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/transferencias/` → **Forçada Vila↔C** |
+| **O quê** | Popup pergunta **Vila → Centro** ou **Centro → Vila** antes da tela · **C→Vila** inverte colunas (carrinho à esquerda, busca à direita) · sem toggle no cabeçalho |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_transf_forcada_ux.py` |
+| **Você** | Ctrl+F5 `/transferencias/` · abrir forçada · testar as duas direções |
+
+### ✅ Deploy loja — lote 18/08f (`deploy/lote-checklist-1808f` · **v17.21**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.21** · `producao` @ **ab3dbcf** |
+| **Pacotes** | **REPASSE-ACUMULADO** + **AJUSTE-CICLICA-FOCUS** |
+| **Migrate** | **SIM** `0093` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** + frase + senha |
+| **Você** | Ctrl+F5 `/repasse-vila/` + `/ajuste-mobile/` · badge **v17.21** |
+
+### ~~🚀 PREP deploy loja — lote 18/08f~~ · **superado — Live v17.21**
+
+### ~~✅ CHECKLIST ÚNICO — produção (18/08)~~ · **superado — Live v17.21**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-ACUMULADO** | ✅ **enviado / Live v17.21** | **SIM** 0093 |
+| 2 | **AJUSTE-CICLICA-FOCUS** | ✅ **enviado / Live v17.21** | não |
+
+| Operação (sem deploy) | Status |
+| --------------------- | ------ |
+| **NF-VINCULO-REPARO** | ✅ **33** nomes · dry-run **0** |
+
+### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.19** · `producao` @ **3c810ba** |
+| **Pacote** | **AJUSTE-CICLICA-QTD-CB** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** + frase + senha |
+| **Você** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · reparo 33 nomes: ✅ feito 18/08 |
+
+### ✅ Operação dados — NF-VINCULO-REPARO (18/08) · **feito**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **`--aplicar` na loja** · **33** corrigidos · re-verificado **35/35** · dry-run **0** |
+| **Deploy** | **NÃO** — só dados |
+
+
+### ~~✅ CHECKLIST ÚNICO — produção (18/08) lote anterior~~ · **superado — Live v17.19**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-BIP-ET3-SNAP** | ✅ enviado / Live v17.19 | não |
+| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ enviado / Live v17.19 | não |
+| 3 | **NF-VINCULO-REPARO** | ✅ **Live + `--aplicar` feito** (33 nomes · 18/08) | não |
+| 4 | **AJUSTE-CICLICA-BIP1** | ✅ enviado / Live v17.19 | não |
+| 5 | **AJUSTE-CICLICA-QTD-CB** | ✅ enviado / Live v17.19 | não |
+
+### 📦 PACOTE — Cíclica qtd + overlay (`AJUSTE-CICLICA-QTD-CB` · **v17.19**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.19** · `producao` @ **3c810ba** |
+| **O quê** | Card cíclica mostra **quanto já bipou**. Tela verde com número. Overlay código opcional (Sim → fila **Cód.**). |
+| **Migrate** | **NÃO** |
+
+### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **enviado / Live v17.18** · `producao` @ **9fcecad** |
-| **Pacotes** | NF etapa 3 + vínculo + reparo (código) + cíclica Bip+1 |
+| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no **Gravar**). Tela inteira pisca **verde** / **vermelho**. Liga sozinho. Mesmo EAN pode repetir (fila + gap 350 ms). |
+| **Prova** | bip1 path **42/42** · cíclica path **72** · deep **31** · UX **17** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
+| **Você** | **Ctrl+F5** `/ajuste-mobile/` · Cíclica → Corredor → bipar (verde = somou) · liberar vendas |
 
-### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**) · **já Live**
+Autorizar rollback: tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** + frase + senha. Point Vila **não** subiu.
 
-> **Não** merge `teste`→`producao`. Fast-forward **só** o lote isolado da vez.
+### 📦 PACOTE — Entrada NF cadastro + etapa 3 (`v17.16`) · **Live v17.18**
+
+| Pacote | O quê | Prova |
+| ------ | ----- | ----- |
+| **NF-BIP-ET3-SNAP** | Bip na etapa 3 casa na hora (lote, barra, som). | ET3 **83/83** · ET2 **68/68** |
+| **NF-VINCULO-NAO-SOBRESCREVE** | «Mudar» só lembra o código da nota. Nome/marca/preço ficam. | **28/28** |
+| **NF-VINCULO-REPARO** | Devolve os **33** nomes colados da NF. Histórico se houver; senão tira o `[EAN]`. Preço/GM não mexem. Só grava com `--aplicar`. | **35/35** |
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.18** · `producao` @ **9fcecad** · loja **v17.18** |
+| **Migrate** | **NÃO** |
+| **Você** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.19** · reparo 33: ✅ **`--aplicar` feito** (18/08). |
+
+### ~~📦 PACOTE — Point MP Vila (`MP-POINT-VILA`)~~ · **ver PACOTE PRONTO v17.24 no topo**
+
+
+### ✅ CHECKLIST ÚNICO — 17/08c · **superado — fila agora 17/08d**
+
+### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
+
+> **Não** merge `teste`→`producao`. FF só o lote isolado.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.09** · `producao` @ **3b45abf** · Render `dep-da1k1cp42hec73aqscrg` |
+| **Pacotes** | **NF-BIP-ET2** só |
+| **Arquivos** | `entrada_nota.html` · provas ET2/ET3 · `VERSION` 17.09 |
+| **Fora** | PDV · caixa · NFC-e · financeiro · estoque |
+| **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** · frase+senha |
+| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** · bip na etapa 2 deve virar Ok na 3 · liberar vendas |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08b · loja **v17.09**) · **superado — fila agora NF-BIP-ET3-SNAP**
+
+> **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf** · Render `dep-da1k1cp42hec73aqscrg`
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NF-BIP-ET2** | ✅ enviado / Live v17.09 | não |
+
+### 📦 PACOTE — Entrada NF bip etapa 2 (`NF-BIP-ET2`) · **Live v17.09**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **enviado / Live v17.09** · `producao` @ **3b45abf** |
-| **Pacotes** | **NF-BIP-ET2** só |
-| **Arquivos** | `entrada_nota.html` · `verify_nf_bip_et2_path.py` · `verify_nf_bip_et3_path.py` · `VERSION` |
-| **Fora** | PDV · caixa · NFC-e · financeiro · estoque |
-| **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** (no lote isolado) |
+| **O quê** | Leitor no **Mudar**/busca da etapa 2 (8+ dígitos) vira **Ok** na etapa 3. XML casado por EAN no Postgres (`ean_pg` / `ean_overlay`) também. Código do fornecedor sem bip continua PEND. |
+| **Prova** | ET2 **68/68** · ET3 **48/48** · CAD **31/31** · custo NF **10/10** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** |
-| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** · bip na etapa 2 deve virar Ok na 3 |
+| **Arquivos** | `entrada_nota.html` · `scripts/verify_nf_bip_et2_path.py` |
+| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** |
 
-### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
+### WIP — Hidráulica giro alto × cadastro (17/08)
 
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward só desta branch.
+Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** no cadastro da loja (Postgres). Excel na Área de trabalho: `hidraulica_giro_alto.xlsx` (aba **Colar na sua planilha**). **Falta certo:** luva PVC 1/2, Tê PVC 1/2, joelho cola/rosca 1/2, união PVC 3/4, bucha 1×3/4, macho/fêmea mangueira 1/2, fêmea 3/4, espigão 1/2 e 3/4, cola 175 g (só tem 17 g). Amarelos: conferir na gôndola. Próximo: giro médio quando ele mandar.
+
+### ✅ CHECKLIST ÚNICO — enviado produção (17/08 · loja **v17.07**) · **superado — Live v17.09**
+
+> **Loja hoje:** ✅ **Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg`
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-PLANOS-CENTRO** | ✅ enviado / Live v17.07 | **SIM** 0091 |
+| 2 | **PDV-CLI-CADASTRO** | ✅ enviado / Live v17.07 | **SIM** 0092 |
+
+### ✅ Deploy loja — checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.01** · `producao` @ **09a07d6** |
-| **Pacotes** | **REPASSE-PLANOS-CENTRO** + **PDV-CLI-CADASTRO** |
-| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** · cherry na loja: wizard/views auto-merge |
+| **Status** | ✅ **enviado / Live v17.07** · `producao` @ **08e74d6** · Render `dep-da1jdgid0e5s73bee3pg` |
+| **Pacotes** | REPASSE-PLANOS-CENTRO · PDV-CLI-CADASTRO |
+| **Método** | FF `deploy/lote-checklist-1708` → `producao` (sem merge `teste`) |
+| **Prova** | CLI path **55/55** · deep **24/24** · planos **49/49** · vila path **60/60** · healthz **ok** |
 | **Migrate** | **SIM** 0091 + 0092 (Render no deploy) |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** |
-| **Risco PDV** | venda normal **não** vira vale · NFC-e da loja **não** cai se o helper falhar · Planos só em `/repasse-vila/` |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08 / deploy/lote-checklist-1708 para produção* + senha |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708-v17.01` @ **09a07d6** · frase+senha |
+| **Você** | **Ctrl+F5** · badge **v17.07** · PDV venda · Editar cadastro · `/repasse-vila/` Planos · liberar vendas |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado — fila 17/08 em PREP**
+### 📦 PACOTE — Cadastro cliente PDV (`PDV-CLI-CADASTRO`) · **Live v17.07**
 
-### ✅ Deploy loja — LOTE B balança (PDV-BALANCA-GRANEL · **v16.82**)
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.07** |
+| **O quê** | Editar cadastro sem scroll · popup telefone duplicado (abrir / limpar número com PIN) · excluir + transferir cashback/vale · vale crédito pagar (caixa) ou manual (sem caixa) · histórico PIN · mesma tela `/clientes/` |
+| **Migrate** | **SIM** 0092 (`ClienteAgroEventoAgro`) |
+| **Você** | Ctrl+F5 PDV · Editar cadastro · Vale crédito no painel de saldos |
 
-> **Status:** ✅ **enviado / Live v16.82** · producao @ *(push)* · base Live **v16.74** @ **1c41e50**
-> **Cherry:** 88310f0 → e9e6eec → 9d6c878 · tag rollback producao-rollback-pre-balanca-20260816
-> **Migrate:** **SIM** · produtos.0089_itemvendaagro_unidade (Render sobe no deploy)
-> **Serial:** COM4 · USE-P2 · 9600 8N1 · [STX]001000[CR]=1kg
+### 📦 PACOTE — Planos no lucro do envio (`REPASSE-PLANOS-CENTRO`) · **Live v17.07**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.07** |
+| **O quê** | Botão **Planos** no `/repasse-vila/` · marcado desconta do envio ao Centro · sem marca sai do que ficou na Vila · Postgres |
+| **Migrate** | **SIM** 0091 (`planos_desconto_centro`) |
+| **Você** | Ctrl+F5 `/repasse-vila/` · **Planos** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (16/08k · loja **v17.01**) · **superado — Live v17.07**
+
+> **Loja hoje:** ✅ **Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40`  
+> **Fila deste path:** **vazia** — **NÃO** merge `teste`→`producao`.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FECHAR-CAIXA-LOJA** | ✅ enviado / Live v17.01 | não |
+| 2 | **REPASSE-HIST-CARDS** | ✅ enviado / Live v17.01 | não |
+| 3 | **SAVE-ORC-CAIXA** | ✅ enviado / Live v17.01 | **SIM** 0090 (Render) |
+| 4 | **PDV-BALANCA-COM-ESC** | ✅ enviado / Live v17.01 | não |
+
+### ✅ Deploy loja — checklist 16/08k (`deploy/lote-checklist-1608k` · **v17.01**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** · `producao` @ **09a07d6** · Render `dep-da125kou01pc73fi1f40` |
+| **Pacotes** | SAVE-ORC-CAIXA · REPASSE-HIST-CARDS · PDV-BALANCA-COM-ESC · FECHAR-CAIXA-LOJA |
+| **Cherry** | `b9bd96b` → `6c29d73` → `c87ae4a` → `6aa7f4d` → `6493599` (tips loja: `901f06d`…`09a07d6`) |
+| **Prova** | fechar **26/26** · save-orc **31/31** · repasse path+deep · balança JS OK · autosave contado preservado |
+| **Migrate** | **SIM** 0090 (`CaixaConferenciaRascunhoAgro`) — Render no deploy |
+| **Rollback** | tag `producao-rollback-v16.90-20260816` @ **215d0a9** |
+| **Base anterior** | Live v16.90 @ **215d0a9** |
+| **Você** | **Ctrl+F5** · badge **v17.01** · Fechar caixa (Vila/Centro) · F2 orçamentos · `/repasse-vila/` · F10 balança |
+
+### 📦 PACOTE — Fechar caixa Vila/Centro (`FECHAR-CAIXA-LOJA`) · **Live v17.01**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** |
+| **O quê** | Fiado/vale/cashback auto + ocultos · Centro: Point MP auto oculto · PIX/débito/crédito num campo · **autosave contado intacto** |
+| **Prova** | `verify_caixa_fechar_loja_path.py` **26** · save-orc **31/31** |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 Fechar caixa Vila e Centro |
+
+### 📦 PACOTE — Repasse tela + cards mês (`REPASSE-HIST-CARDS`) · **Live v17.01**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** |
+| **O quê** | Visual Display Scale · cards **Enviado ao Centro** + **Lucro ficou na Vila** |
+| **Migrate** | **NÃO** |
+| **Cherry** | `6c29d73` |
+| **Você** | Ctrl+F5 `/repasse-vila/` |
+
+### 📦 PACOTE — Orçamentos + contagem caixa (`SAVE-ORC-CAIXA`) · **Live v17.01**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** |
+| **O quê** | F2 lista orçamentos Postgres · contagem fechar caixa multi-PC |
+| **Prova** | `verify_save_orc_caixa_path.py` **31/31** |
+| **Migrate** | **SIM** 0090 |
+| **Cherry** | `b9bd96b` |
+
+### 📦 PACOTE — Balança COM/ESC (`PDV-BALANCA-COM-ESC`) · **Live v17.01**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.01** |
+| **O quê** | Detecta impressora (ESC) · CONECTAR reabre picker · fingerprint · só peso com STX · barcode `0010` |
+| **Prova** | Bugbot corrigido · `scripts/_test_pdv_balanca_logic.js` **22/22** |
+| **Migrate** | **NÃO** |
+| **Cherry** | `6aa7f4d` (inclui `c87ae4a`) |
+| **Você** | F10 → **CONECTAR** → COM da **balança** (não impressora) |
+
+### ✅ Live recente (não reenviar)
+
+| Pacote | Live |
+| ------ | ---- |
+| **REPASSE-VALOR-MANUAL** | v16.90 @ `215d0a9` |
+| **PDV-BALANCA-HOTFIX3** | v16.89 @ `c70d195` |
+
+### ✅ Deploy loja — LOTE B balança (`PDV-BALANCA-GRANEL` · **v16.82**)
+
+> **Status:** ✅ **enviado / Live v16.82** · `producao` @ **3fd7cd3** · base Live **v16.74** @ **1c41e50**  
+> **Cherry:** `88310f0` → `e9e6eec` → `9d6c878` · tag `producao-rollback-pre-balanca-20260816`  
+> **Migrate:** **SIM** 0089 (Render no deploy) · Serial COM4 USE-P2 9600 8N1
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
 
-**Você:** Ctrl+F5 PDV · F10 · Conectar **COM4** · pesar.
+**Você:** Ctrl+F5 PDV · F10 · Conectar **COM4** · pesar 1 kg ≈ 1,000.
 
+**Rollback:** `git push origin producao-rollback-pre-balanca-20260816:producao --force-with-lease` (só com senha)
+
+### ✅ Deploy loja — LOTE A repasse (`REPASSE-DIA-PASSADO` + `REPASSE-ELET-MAQUINAS` · **v16.74**)
+
+> **Status:** ✅ **enviado / Live v16.74** · `producao` @ **1c41e50** · Render `dep-da0tglm1egvs739oedi0`  
+> **Base:** Live v16.69 @ **447123a** · tag rollback `producao-rollback-v16.69-20260816`  
+> **Cherry:** `f10e2c4` (dia) · `3774aea` (máquinas+elet) · `1c41e50` (Sicoob PIX)  
+> **Migrate:** **NÃO** · **Balança NÃO subiu** (LOTE B abaixo)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | **REPASSE-DIA-PASSADO** | ✅ enviado / Live v16.74 |
+| 2 | **REPASSE-ELET-MAQUINAS** | ✅ enviado / Live v16.74 |
+| 3 | **PDV-BALANCA-GRANEL** | ✅ enviado / Live v16.82 |
+
+### ✅ CHECKLIST ÚNICO — após loja v16.82 (16/08g) · **superado**
+
+> **Loja hoje:** ✅ **Live v16.84** (hotfix balança) · ver checklist **16/08h**  
+> **Pronto envio:** **REPASSE-VALOR-MANUAL** (ainda pendente loja)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-VALOR-MANUAL** | ✅ **pronto para envio** / teste **v16.83** @ **ab71c8c** | não |
+| 2 | **PDV-BALANCA-HOTFIX** | ✅ **enviado / Live v16.84** | não |
+
+### ~~📦 PACOTE PRONTO — Balança hotfix~~ → ver bloco Live acima
+
+### 📦 PACOTE PRONTO — Valor manual no repasse (`REPASSE-VALOR-MANUAL` · **v16.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Digitar R$ (ex. 600) **manda** — não corta mais no automático |
+| **Prova** | deep **68** · path **43** |
+| **Migrate** | **NÃO** |
+| **Cherry** | `ab71c8c` |
+| **Você** | Ctrl+F5 Retiradas → Repasse |
+
+### ✅ CHECKLIST ÚNICO — após loja v16.74 (16/08f) · **superado**
+
+> Loja **v16.82** (balança) · hotfix manual = checklist **16/08g**.
+
+### 📦 PACOTE PRONTO — PDV balança granel (`PDV-BALANCA-GRANEL` · **v16.76**) · **Live v16.82**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ pronto · **ainda não Live** · PREP no topo |
+| **O quê** | Pesar / F10 · Web Serial · KG · hold 500ms · força KG |
+| **Migrate** | **SIM** 0089 |
+| **Cherry** | `88310f0` → `e9e6eec` |
+| **Prova** | review Opus + fixes + dry-run cherry na base Live v16.74 |
+| **Você** | Cadastro KG · no deploy: pausa + senha |
+
+### 📦 PACOTE — Máquinas + repasse elet (`REPASSE-ELET-MAQUINAS`) · **Live v16.74**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.74** |
+| **Produção** | `1c41e50` · Render `dep-da0tglm1egvs739oedi0` |
+
+### 📦 PACOTE — Repasse dia passado (`REPASSE-DIA-PASSADO`) · **Live v16.74**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v16.74** |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (16/08f prep) · **superado — Live v16.74**
+
+> Vigente: PREP LOTE B no topo.
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08e) · **superado**
+
+> Vigente: Live **v16.74** + PREP LOTE B.
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08d) · **superado**
+
+> Vigente: Live **v16.74**.
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (16/08b) · **superado**
+
+> Vigente: Live **v16.74**.
 
 ### ✅ Deploy loja — coluna Código GM (`PDV-PEDIR-LOJA-GM-COL` · **v16.69**)
 
@@ -8501,7 +8929,7 @@ Dry-run do import tambÃ©m lista **quantos itens** ficaram sem match no catÃ¡
 | **FL-055** | **P0,1** | NFC-e / frete | **Zap #23:** rejeiÃ§Ã£o **535** â€” frete no total sem `vFrete` nos itens | âœ… **loja v9.16** | 16/07 |
 | **FL-056** | **P0** | NFC-e / SEFAZ | RejeiÃ§Ãµes **963** (fiado+card) + **225** (CFOP/CEST pontuaÃ§Ã£o) â€” vendas #2812/#3347 | ðŸ“¦ **pronto pra envio** Â· teste **v9.21** | 17/07 |
 | **FL-057** | **P0,1** | Ops / Render / Postgres | **PgBouncer** na loja — `agro-db` pooling + `DATABASE_URL` porta **6432** + restart web | 📋 Pendente · Renan no painel | 21/07 |
-| **FL-058** | **P0,2** | PDV / Clientes / crédito | **Adicionar vale crédito** ao cliente **pelo PDV** (lançar crédito na conta do cliente na loja) · liga FL-029 crédito | 📋 Novo | 01/08 |
+| **FL-058** | **P0,2** | PDV / Clientes / crédito | **Adicionar vale crédito** ao cliente **pelo PDV** (lançar crédito na conta do cliente na loja) · liga FL-029 crédito | ✅ **PDV-CLI-CADASTRO** 17/08 | 01/08 |
 | **FL-034** | **P1,9** | PDV / Clientes | BotÃ£o **HistÃ³rico** nÃ£o filtra vendas do **cliente selecionado** â€” deve filtrar (relacionamento / devoluÃ§Ã£o) | ðŸ”„ **F8 modal rascunho** teste Â· fila loja | 29/06 16:20 |
 | **FL-035** | **P2** | DevoluÃ§Ã£o | **DevoluÃ§Ã£o parcial** da venda â€” ou **itens especÃ­ficos** | ðŸ“¦ **#12** pronto loja (fecha) Â· âœ… teste Renan | 29/06 16:20 |
 | **FL-036** | **P3** | PDV / Promo | **Faixa vertical** ou chaves ligando selos do **mesmo mix** no carrinho (opÃ§Ã£o visual 2) | ðŸ“‹ Pendente | 29/06 |
