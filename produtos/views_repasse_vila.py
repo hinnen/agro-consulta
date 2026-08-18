@@ -23,9 +23,11 @@ from produtos.repasse_vila_util import (
     calcular_disponivel,
     confirmar_repasse,
     historico_mes,
+    listar_acumulado_detalhe,
     listar_planos_repasse_config,
     nomes_planos_desconto_centro,
     obter_config,
+    registrar_ajuste_acumulado,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
     serializar_repasse,
@@ -116,6 +118,59 @@ def api_repasse_vila_historico(request):
     except Exception:
         ano, mes = hoje.year, hoje.month
     return JsonResponse(historico_mes(ano, mes))
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_acumulado(request):
+    dia_raw = _parse_date(request.GET.get("data"))
+    dia, err = validar_data_ref_repasse(dia_raw or timezone.localdate())
+    if err or dia is None:
+        return JsonResponse({"ok": False, "erro": err or "Data inválida"}, status=400)
+    return JsonResponse(listar_acumulado_detalhe(dia))
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_acumulado_ajuste(request):
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    pin = str(payload.get("pin") or "").strip()
+    operador = str(payload.get("operador") or "").strip()
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin or label or "PIN inválido"}, status=400)
+        operador = label or operador
+
+    try:
+        valor = Decimal(str(payload.get("valor") or "").replace(",", "."))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Valor inválido"}, status=400)
+
+    dia = _parse_date(payload.get("data_ref"))
+    adj, err = registrar_ajuste_acumulado(
+        valor,
+        observacao=str(payload.get("observacao") or ""),
+        operador=operador,
+        data_ref=dia,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    dia_calc = _parse_date(payload.get("data_calc")) or timezone.localdate()
+    return JsonResponse(
+        {
+            "ok": True,
+            "ajuste": {
+                "id": adj.pk,
+                "valor": float(adj.valor),
+                "observacao": adj.observacao,
+            },
+            "acumulado": listar_acumulado_detalhe(dia_calc),
+        }
+    )
 
 
 @login_required(login_url="/admin/login/")
@@ -248,6 +303,7 @@ def api_repasse_vila_confirmar(request):
         forma_pagamento=str(payload.get("forma_pagamento") or "Dinheiro"),
         operador=operador,
         data_ref=dia,
+        incluir_acumulado=_parse_bool(payload.get("incluir_acumulado"), False),
     )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)

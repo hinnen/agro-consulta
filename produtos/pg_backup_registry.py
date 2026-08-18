@@ -71,6 +71,7 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
             "produtos.CaixaConferenciaRascunhoAgro",
             "produtos.RepasseVilaConfigAgro",
             "produtos.RepasseVilaCentroAgro",
+            "produtos.RepasseVilaAcumuladoAjusteAgro",
         ),
     ),
     PgBackupCategory(
@@ -80,11 +81,11 @@ PG_BACKUP_CATEGORIES: tuple[PgBackupCategory, ...] = (
         models=(
             "financeiro.GrupoEmpresarial",
             "financeiro.GrupoEmpresarialEmpresa",
-            "produtos.PlanoContaAgro",
-    "produtos.PlanoContaAliasAgro",
-    "produtos.TituloFinanceiroAgro",
+            "produtos.TituloFinanceiroAgro",
             "financeiro.LancamentoFinanceiro",
             "produtos.OpcaoBaixaFinanceiroExtra",
+            "produtos.PlanoContaAgro",
+            "produtos.PlanoContaAliasAgro",
             "produtos.LancamentoAtalhoFiltro",
             "financeiro.GraficoGastosAtalhoAgro",
         ),

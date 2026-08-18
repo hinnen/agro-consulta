@@ -154,6 +154,17 @@
         <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
       </div>
     </div>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 items-end">
+      <div class="rv-metric border-amber-200 bg-amber-50">
+        <div class="rv-lbl text-amber-800 flex items-center gap-1">Acumulado (dias anteriores) {% with repasse_help="acumulado" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
+        <div class="rv-val text-amber-950" id="rv-acum">R$ 0,00</div>
+      </div>
+      <div class="rv-metric border-violet-200 bg-violet-50">
+        <div class="rv-lbl text-violet-800">Total sugerido</div>
+        <div class="rv-val text-violet-950" id="rv-total-sug">R$ 0,00</div>
+      </div>
+      <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
+    </div>
 
     <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
       <label class="block min-w-0">
@@ -188,6 +199,10 @@
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
         <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
+      </label>
+      <label class="rv-check">
+        <input type="checkbox" id="rv-chk-acumulado" checked />
+        <span class="font-bold text-slate-800">Incluir acumulado no total sugerido</span>
       </label>
       <label class="rv-check">
         <input type="checkbox" id="rv-chk-dia-cheio" />
@@ -264,6 +279,33 @@
   </div>
 </div>
 
+<div id="rv-acum-modal" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-900/50 p-3" role="dialog" aria-modal="true">
+  <div class="w-full max-w-[min(40rem,96vw)] max-h-[min(88dvh,36rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-amber-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-amber-200 bg-amber-50 px-3 py-2">
+      <h3 class="text-sm font-black uppercase text-amber-950">Acumulado · dias anteriores</h3>
+      <button type="button" id="rv-acum-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="px-3 py-2 grid grid-cols-3 gap-2 text-center border-b border-slate-200">
+      <div><div class="rv-lbl text-amber-800">Acumulado</div><div class="font-black tabular-nums" id="rv-acum-modal-saldo">—</div></div>
+      <div><div class="rv-lbl text-emerald-800">Falta hoje</div><div class="font-black tabular-nums" id="rv-acum-modal-falta">—</div></div>
+      <div><div class="rv-lbl text-violet-800">Total sugerido</div><div class="font-black tabular-nums" id="rv-acum-modal-sug">—</div></div>
+    </div>
+    <div id="rv-acum-lista" class="flex-1 overflow-y-auto px-3 py-2 text-sm font-bold text-slate-700 min-h-[8rem]"></div>
+    <footer class="border-t border-slate-200 px-3 py-2 space-y-2">
+      <p class="text-[0.65rem] font-bold text-slate-600">Ajuste manual: positivo = falta levar mais · negativo = desconto/crédito</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input type="text" id="rv-acum-valor" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold" placeholder="Valor (+/−)" inputmode="decimal" />
+        <input type="text" id="rv-acum-obs" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold sm:col-span-2" placeholder="Motivo (obrigatório)" />
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end">
+        <input type="password" id="rv-acum-pin" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 max-w-[10rem]" placeholder="PIN" />
+        <button type="button" id="rv-acum-salvar" class="min-h-[2.6rem] rounded-xl bg-amber-600 px-4 text-sm font-black uppercase text-white">Registrar ajuste</button>
+      </div>
+      <p id="rv-acum-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+    </footer>
+  </div>
+</div>
+
 {{ calc|json_script:"rv-calc-boot" }}
 {{ hist|json_script:"rv-hist-boot" }}
 {{ planos_repasse|json_script:"rv-planos-boot" }}
@@ -296,6 +338,7 @@
   var chkFiado = document.getElementById('rv-chk-fiado');
   var chkTodos = document.getElementById('rv-chk-todos');
   var chkCheio = document.getElementById('rv-chk-dia-cheio');
+  var chkAcum = document.getElementById('rv-chk-acumulado');
   var statusEl = document.getElementById('rv-status');
 
   function hojeIso() {
@@ -358,10 +401,17 @@
     if (jaDin) jaDin.textContent = money((c.ja_enviado || {}).total);
     var falta = document.getElementById('rv-falta');
     if (falta) falta.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
+    var acum = Number(c.acumulado_anterior || 0);
+    var acumEl = document.getElementById('rv-acum');
+    if (acumEl) acumEl.textContent = money(acum);
+    var sug = Number(c.total_sugerido != null ? c.total_sugerido : (Number(c.falta_dinheiro || d.total || 0) + acum));
+    var sugEl = document.getElementById('rv-total-sug');
+    if (sugEl) sugEl.textContent = money(Math.max(0, sug));
     var tot = 0;
     if (chkCmv.checked) tot += Number(d.cmv || 0);
     if (chkLucro.checked) tot += Number(d.lucro || 0);
     if (chkFiado.checked) tot += Number(d.fiado || 0);
+    if (chkAcum && chkAcum.checked && acum !== 0) tot = Math.max(0, tot + acum);
     document.getElementById('rv-total').textContent = money(tot);
     var ja = c.ja_enviado || {};
     document.getElementById('rv-ja').textContent =
@@ -440,7 +490,8 @@
     chkCmv.checked = on; chkLucro.checked = on; chkFiado.checked = on;
     renderCalc();
   });
-  [chkCmv, chkLucro, chkFiado].forEach(function (el) {
+  [chkCmv, chkLucro, chkFiado, chkAcum].forEach(function (el) {
+    if (!el) return;
     el.addEventListener('change', function () {
       chkTodos.checked = chkCmv.checked && chkLucro.checked && chkFiado.checked;
       renderCalc();
@@ -556,7 +607,109 @@
     if (ev.key === 'Escape' && planosModal && !planosModal.classList.contains('hidden')) {
       fecharPlanos();
     }
+    if (ev.key === 'Escape' && acumModal && !acumModal.classList.contains('hidden')) {
+      fecharAcumModal();
+    }
   });
+
+  var acumModal = document.getElementById('rv-acum-modal');
+  var acumStatus = document.getElementById('rv-acum-status');
+  var acumLista = document.getElementById('rv-acum-lista');
+
+  function fmtDataIso(iso) {
+    if (!iso) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    return (p[2] || '') + '/' + (p[1] || '') + '/' + (p[0] || '');
+  }
+
+  function renderAcumModal(j) {
+    if (!j || !acumLista) return;
+    document.getElementById('rv-acum-modal-saldo').textContent = money(j.acumulado_anterior);
+    document.getElementById('rv-acum-modal-falta').textContent = money(j.falta_dia);
+    document.getElementById('rv-acum-modal-sug').textContent = money(Math.max(0, j.total_sugerido));
+    acumLista.innerHTML = '';
+    var rows = (j.ajustes || []).concat(j.linhas_dias || []);
+    if (!rows.length) {
+      acumLista.innerHTML = '<p class="text-slate-500 py-4 text-center">Nenhum dia anterior com diferença.</p>';
+      return;
+    }
+    rows.forEach(function (row) {
+      var div = document.createElement('div');
+      div.className = 'py-1.5 border-b border-slate-100 flex flex-wrap justify-between gap-1';
+      var delta = Number(row.delta || 0);
+      var lbl = row.tipo === 'ajuste'
+        ? 'Ajuste · ' + (row.observacao || '')
+        : fmtDataIso(row.data) + ' · alvo ' + money(row.alvo_fisico) + ' · enviado ' + money(row.enviado);
+      div.innerHTML =
+        '<span class="min-w-0 flex-1">' + lbl + '</span>' +
+        '<span class="tabular-nums font-black">' + (delta > 0 ? '+' : '') + money(delta) + '</span>';
+      acumLista.appendChild(div);
+    });
+  }
+
+  function fetchAcumModal() {
+    if (acumStatus) acumStatus.textContent = 'Carregando…';
+    return fetch('/api/repasse-vila/acumulado/?data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) {
+          renderAcumModal(j);
+          if (acumStatus) acumStatus.textContent = '';
+        } else if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Falha';
+      });
+  }
+
+  function abrirAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.remove('hidden');
+    acumModal.classList.add('flex');
+    fetchAcumModal();
+  }
+
+  function fecharAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.add('hidden');
+    acumModal.classList.remove('flex');
+  }
+
+  var btnAcum = document.getElementById('rv-btn-acum');
+  if (btnAcum) btnAcum.addEventListener('click', abrirAcumModal);
+  var btnAcumFechar = document.getElementById('rv-acum-fechar');
+  if (btnAcumFechar) btnAcumFechar.addEventListener('click', fecharAcumModal);
+  if (acumModal) {
+    acumModal.addEventListener('click', function (ev) {
+      if (ev.target === acumModal) fecharAcumModal();
+    });
+  }
+  var btnAcumSalvar = document.getElementById('rv-acum-salvar');
+  if (btnAcumSalvar) {
+    btnAcumSalvar.addEventListener('click', function () {
+      var pin = String((document.getElementById('rv-acum-pin') || {}).value || '').trim();
+      var val = String((document.getElementById('rv-acum-valor') || {}).value || '').trim();
+      var obs = String((document.getElementById('rv-acum-obs') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!val) { if (acumStatus) acumStatus.textContent = 'Informe o valor'; return; }
+      if (acumStatus) acumStatus.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/acumulado/ajuste/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ pin: pin, valor: val, observacao: obs, data_calc: dataRef() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Ajuste registrado';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () { if (acumStatus) acumStatus.textContent = 'Falha de rede'; });
+    });
+  }
+
   document.getElementById('rv-mes-ant').addEventListener('click', function () {
     state.mes -= 1;
     if (state.mes < 1) { state.mes = 12; state.ano -= 1; }
