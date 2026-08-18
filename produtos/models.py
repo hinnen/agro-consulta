@@ -912,6 +912,72 @@ class PlanoUnificacaoLoteAgro(models.Model):
         return f"{self.criado_em:%d/%m/%Y %H:%M} · {self.n_titulos} tít. · {self.status}"
 
 
+class PlanoContaAgro(models.Model):
+    """Cadastro oficial de planos de despesa (CP) — Postgres, sem Mongo.
+
+    Títulos antigos podem ter grafias diferentes; aliases mapeiam sem apagar dados.
+    """
+
+    class Tipo(models.TextChoices):
+        FIXA = "fixa", "Fixa"
+        VARIAVEL = "variavel", "Variável"
+        OUTRA = "outra", "Outra"
+
+    nome = models.CharField(max_length=200, unique=True, db_index=True)
+    tipo = models.CharField(
+        max_length=16,
+        choices=Tipo.choices,
+        default=Tipo.OUTRA,
+        blank=True,
+    )
+    grupo = models.CharField(max_length=120, blank=True, default="")
+    observacao = models.CharField(max_length=400, blank=True, default="")
+    ativo = models.BooleanField(default=True, db_index=True)
+    exibir_pdv = models.BooleanField(
+        default=False,
+        db_index=True,
+        verbose_name="Mostrar no PDV",
+        help_text="Se marcado, aparece no select de plano da saída/retirada do caixa.",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nome"]
+        verbose_name = "Plano de conta Agro"
+        verbose_name_plural = "Planos de conta Agro"
+
+    def __str__(self):
+        return self.nome
+
+
+class PlanoContaAliasAgro(models.Model):
+    """Grafia encontrada em títulos → plano oficial (sem alterar ``TituloFinanceiroAgro``)."""
+
+    grafia = models.CharField(max_length=200, unique=True, db_index=True)
+    plano = models.ForeignKey(
+        PlanoContaAgro,
+        on_delete=models.CASCADE,
+        related_name="aliases",
+    )
+    criado_em = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="plano_conta_aliases",
+    )
+
+    class Meta:
+        ordering = ["grafia"]
+        verbose_name = "Alias plano de conta"
+        verbose_name_plural = "Aliases plano de conta"
+
+    def __str__(self):
+        return f"{self.grafia} → {self.plano_id}"
+
+
 class EntradaNotaRascunhoAgro(models.Model):
     """Rascunho do assistente Entrada NF (etapas 1–6); substitui ``AgroEntradaNotaRascunho`` no Mongo."""
 
@@ -945,7 +1011,7 @@ class EntradaNotaRascunhoAgro(models.Model):
 
 
 class AgroNfeDistDfeCursor(models.Model):
-    """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — Postgres/SQLite multi-PC."""
+    """Cursor ultNSU da Dist DF-e (SEFAZ) por CNPJ — sobrevive a restart (Postgres)."""
 
     cnpj = models.CharField(max_length=14, unique=True, db_index=True)
     ult_nsu = models.CharField(max_length=15, default="000000000000000")
@@ -957,7 +1023,6 @@ class AgroNfeDistDfeCursor(models.Model):
 
     def __str__(self):
         return f"{self.cnpj} · NSU {self.ult_nsu}"
-
 
 class AgroNfeDistDfeDocumento(models.Model):
     """Caixa de entrada Dist DF-e — notas puxadas da SEFAZ."""
@@ -1346,74 +1411,14 @@ class OpcaoBaixaFinanceiroExtra(models.Model):
             ),
         ]
 
-    def __str__(self):
-        return f"{self.get_tipo_display()}: {self.nome}"
-
-
-class PlanoContaAgro(models.Model):
-    """Cadastro oficial de planos de despesa (CP) — Postgres, sem Mongo.
-
-    Títulos antigos podem ter grafias diferentes; aliases mapeiam sem apagar dados.
-    """
-
-    class Tipo(models.TextChoices):
-        FIXA = "fixa", "Fixa"
-        VARIAVEL = "variavel", "Variável"
-        OUTRA = "outra", "Outra"
-
-    nome = models.CharField(max_length=200, unique=True, db_index=True)
-    tipo = models.CharField(
-        max_length=16,
-        choices=Tipo.choices,
-        default=Tipo.OUTRA,
-        blank=True,
-    )
-    grupo = models.CharField(max_length=120, blank=True, default="")
-    observacao = models.CharField(max_length=400, blank=True, default="")
-    ativo = models.BooleanField(default=True, db_index=True)
-    exibir_pdv = models.BooleanField(
-        default=False,
-        db_index=True,
-        verbose_name="Mostrar no PDV",
-        help_text="Se marcado, aparece no select de plano da saída/retirada do caixa.",
-    )
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["nome"]
-        verbose_name = "Plano de conta Agro"
-        verbose_name_plural = "Planos de conta Agro"
+    def save(self, *args, **kwargs):
+        self.nome = (self.nome or "").strip()[:300]
+        self.id_erp = (self.id_erp or "").strip()[:80]
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.nome
-
-
-class PlanoContaAliasAgro(models.Model):
-    """Grafia encontrada em títulos → plano oficial (sem alterar ``TituloFinanceiroAgro``)."""
-
-    grafia = models.CharField(max_length=200, unique=True, db_index=True)
-    plano = models.ForeignKey(
-        PlanoContaAgro,
-        on_delete=models.CASCADE,
-        related_name="aliases",
-    )
-    criado_em = models.DateTimeField(auto_now_add=True)
-    criado_por = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="plano_conta_aliases",
-    )
-
-    class Meta:
-        ordering = ["grafia"]
-        verbose_name = "Alias plano de conta"
-        verbose_name_plural = "Aliases plano de conta"
-
-    def __str__(self):
-        return f"{self.grafia} → {self.plano_id}"
+        suf = f" ({self.id_erp})" if self.id_erp else ""
+        return f"{self.get_tipo_display()}: {self.nome}{suf}"
 
 
 class LancamentoAtalhoFiltro(models.Model):
