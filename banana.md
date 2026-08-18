@@ -1216,24 +1216,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.18**)
+### ✅ Deploy loja — checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.18**)
 
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`.
+> **Não** merge `teste`→`producao`. Fast-forward **só** o lote isolado.
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.09** · `producao` @ **3b45abf** |
-| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando só lista; `--aplicar` **depois** do Live) + **AJUSTE-CICLICA-BIP1** |
-| **Arquivos** | Entrada NF (html/views/catalogo/models/histórico/reparo) · `mobile_ajuste.html` (Bip+1 na cíclica) · provas |
+| **Status** | ✅ **enviado / Live v17.18** · `producao` @ **9fcecad** · site `sistvale.com.br` badge **17.18** |
+| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando no código; `--aplicar` **ainda não** rodou) + **AJUSTE-CICLICA-BIP1** |
 | **Fora** | PDV wizard · caixa · NFC-e · financeiro · Point Vila |
-| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · cíclica bip1 **42/42** · cíclica path **72** · deep **31** · UX **17** · `manage.py check` OK |
+| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · cíclica bip1 **42/42** · path **72** · deep **31** · UX **17** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha |
-| **Depois do Live** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.18** · reparo dos 33 nomes com `--aplicar` (não roda sozinho) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** · frase+senha |
+| **Você** | **Ctrl+F5** `/entrada-nota/` e `/ajuste-mobile/` · badge **v17.18** · cíclica: Corredor → bipar (verde = somou) · liberar vendas |
 
 ### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**) · **já Live**
 
