@@ -670,6 +670,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
+- **Reserva / troco na Vila:** valor fixo salvo no Postgres (`reserva_vila`) desconta do envio ao Centro. Tela: campo **Fica na Vila** · opções (dia/%, checks) recolhidas · histórico em 2 colunas (1–15 | 16–31). Migrate `0095`.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
@@ -1228,6 +1229,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08n)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Gráfico do rodapé **não trava mais** em «carregando» · 1 leitura do período (não 1 DRE por dia) · mesma conta do Lucro Líquido do BI |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_dre_saldo_diario_chart` · ~760ms · acum. ≈ BI |
+| **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) |
 
 ### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
