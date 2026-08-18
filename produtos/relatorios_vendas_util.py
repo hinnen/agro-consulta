@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -216,6 +217,8 @@ def custo_mercadoria_vendida(
     deposito: str | None = None,
 ) -> dict[str, Any]:
     """Custo cadastro × quantidade vendida no período (todas as SKUs)."""
+    por_dia = cmv_vendida_por_dia(data_ini, data_fim, deposito=deposito)
+    total = sum(por_dia.values())
     desde = datetime.combine(data_ini, time.min)
     ate = datetime.combine(data_fim, time(23, 59, 59))
     desde, ate = _aware_bounds(desde, ate)
@@ -226,14 +229,60 @@ def custo_mercadoria_vendida(
     )
     pids = [str(r.get("produto_id_externo") or "").strip() for r in rows]
     meta = mapa_produtos_meta(pids)
-    total, skus_ok, skus_sem = cmv_vendida_de_rows(rows, meta)
+    _, skus_ok, skus_sem = cmv_vendida_de_rows(rows, meta)
     return {
         "ok": True,
-        "total": total,
+        "total": Decimal(str(round(total, 2))),
+        "por_dia": por_dia,
         "skus_com_custo": skus_ok,
         "skus_sem_custo": skus_sem,
         "deposito": deposito or "todas",
     }
+
+
+def cmv_vendida_por_dia(
+    data_ini: date,
+    data_fim: date,
+    *,
+    deposito: str | None = None,
+) -> dict[str, float]:
+    """CMV vendida (cadastro × qtd) por dia — chave ``YYYY-MM-DD``."""
+    from django.db.models.functions import TruncDate
+
+    desde = datetime.combine(data_ini, time.min)
+    ate = datetime.combine(data_fim, time(23, 59, 59))
+    desde, ate = _aware_bounds(desde, ate)
+    rows = list(
+        _qs_itens(desde, ate, deposito=deposito)
+        .annotate(dia=TruncDate("venda__criado_em"))
+        .values("dia", "produto_id_externo")
+        .annotate(qtd=Sum("quantidade"))
+    )
+    by_day: dict[str, list[dict]] = defaultdict(list)
+    all_pids: set[str] = set()
+    for r in rows:
+        dia = r.get("dia")
+        if dia is None:
+            continue
+        pid = str(r.get("produto_id_externo") or "").strip()
+        if not pid:
+            continue
+        k = dia.isoformat() if hasattr(dia, "isoformat") else str(dia)[:10]
+        by_day[k].append(r)
+        all_pids.add(pid)
+    meta = mapa_produtos_meta(list(all_pids))
+    out: dict[str, float] = {}
+    d = data_ini
+    while d <= data_fim:
+        k = d.isoformat()
+        day_rows = by_day.get(k) or []
+        if day_rows:
+            total, _, _ = cmv_vendida_de_rows(day_rows, meta)
+            out[k] = round(float(total), 2)
+        else:
+            out[k] = 0.0
+        d += timedelta(days=1)
+    return out
 
 
 

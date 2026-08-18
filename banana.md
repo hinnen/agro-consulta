@@ -1228,12 +1228,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08g)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08h)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
-| 2 | **DRE-SALDO-DIARIO** | ⏳ código local · validar PC | não |
+| 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **O quê** | Rodapé: gráfico **saldo dia a dia** (vendas − CMV − despesas) · linha previsto 90d · botão **Planos gasto** (toda a tela · localStorage) |
+| **API** | `GET /api/financeiro/saldo-diario-mes/` · `planos_gasto` também no resumo operacional |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` · Django check · integração PG OK |
+| **Você** | Ctrl+F5 DRE gerencial · F5 · **Planos gasto** · CMV vendida/paga · gráfico rodapé |
 
 ### 📦 PACOTE PRONTO — Transferência forçada UX (`TRANSF-FORCADA-UX` · **v17.22**)
 
@@ -1245,17 +1257,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | `python scripts/verify_transf_forcada_ux.py` |
 | **Você** | Ctrl+F5 `/transferencias/` · abrir forçada · testar as duas direções |
-
-### DRE gerencial — gráfico saldo dia a dia (18/08 · WIP teste)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Tela** | `/financeiro/resumo-gerencial/` |
-| **O quê** | Rodapé full-width: barras saldo diário (vendas PDV − despesas) · azul + / vermelho − · todos os dias do mês · linha verde previsto (média 90d por dia da semana) |
-| **API** | `GET /api/financeiro/saldo-diario-mes/` |
-| **Arquivos** | `dre_saldo_diario_util.py` · `financeiro/api/views.py` · `resumo_financeiro_gerencial.html` · `agro_resumo_gerencial.js/css` · `verify_dre_saldo_diario_chart.py` |
-| **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` |
-| **Status** | ✅ código local · validar no PC (`runserver` + DRE gerencial) |
 
 ### ✅ Deploy loja — lote 18/08f (`deploy/lote-checklist-1808f` · **v17.21**) · **Live**
 

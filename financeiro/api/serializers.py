@@ -31,6 +31,12 @@ class ResumoOperacionalQuerySerializer(serializers.Serializer):
     contas = serializers.CharField(required=False, allow_blank=True, default="")
     incluir_linhas = serializers.BooleanField(required=False, default=False)
     incluir_visual = serializers.BooleanField(required=False, default=False)
+    planos_gasto = serializers.CharField(required=False, allow_blank=True, default="")
+    cmv = serializers.ChoiceField(
+        choices=["vendida", "paga"],
+        required=False,
+        allow_blank=True,
+    )
 
     def validate(self, attrs):
         loja = attrs.get("loja")
@@ -53,6 +59,35 @@ class ResumoOperacionalQuerySerializer(serializers.Serializer):
                 "grupo_id é obrigatório quando modo=grupo"
             )
         return attrs
+
+
+class SaldoDiarioMesQuerySerializer(serializers.Serializer):
+    loja = serializers.ChoiceField(
+        choices=["todas", "centro", "vila"], required=False, default="todas"
+    )
+    por = serializers.ChoiceField(
+        choices=["competencia", "vencimento", "pagamento"],
+        default="vencimento",
+        required=False,
+    )
+    valor = serializers.ChoiceField(
+        choices=["bruto", "realizado"],
+        default="bruto",
+        required=False,
+    )
+    contas = serializers.CharField(required=False, allow_blank=True, default="resultado")
+    mes = serializers.RegexField(
+        regex=r"^\d{4}-\d{2}$",
+        required=False,
+        allow_blank=True,
+        help_text="YYYY-MM (padrão: mês atual)",
+    )
+    planos_gasto = serializers.CharField(required=False, allow_blank=True, default="")
+    cmv = serializers.ChoiceField(
+        choices=["vendida", "paga"],
+        required=False,
+        allow_blank=True,
+    )
 
 
 class DebugMongoResumoQuerySerializer(serializers.Serializer):

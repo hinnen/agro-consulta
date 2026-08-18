@@ -26,6 +26,7 @@ def despesas_categorias_dre_pg(
     data_fim,
     por: str = "competencia",
     valor: str = "bruto",
+    planos_incluir: list[str] | None = None,
 ) -> dict[str, Any]:
     """Despesas por plano no mesmo recorte do DRE (filtro + empresa + valor)."""
     from django.conf import settings
@@ -50,6 +51,9 @@ def despesas_categorias_dre_pg(
             "grupos": [],
             "total": 0.0,
         }
+    from financeiro.services.dre_planos_filtro_util import filtrar_linhas_dre_planos
+
+    linhas_raw = filtrar_linhas_dre_planos(raw.get("linhas") or [], planos_incluir)
     from financeiro.services.plano_conta_dre_util import nome_oficial_plano
 
     grupos = {
@@ -58,7 +62,7 @@ def despesas_categorias_dre_pg(
         "financeira": {"key": "financeira", "label": "Despesas financeiras", "total": 0.0},
     }
     agg: dict[str, dict[str, Any]] = {}
-    for row in raw.get("linhas") or []:
+    for row in linhas_raw:
         des = float(row.get("despesa") or 0)
         if des <= 0.005:
             continue
@@ -228,6 +232,7 @@ def montar_dre_visual(
     empresa_nome: str | None = None,
     valor: str = "bruto",
     deposito: str | None = None,
+    planos_incluir: list[str] | None = None,
 ) -> dict[str, Any]:
     from financeiro.services.gastos_variacao_pg import gastos_variacao_pg
 
@@ -290,6 +295,7 @@ def montar_dre_visual(
                     data_fim=data_fim,
                     por=por or "competencia",
                     valor=valor or "bruto",
+                    planos_incluir=planos_incluir,
                 )
             except Exception:
                 despesas_categorias = {"ok": False}

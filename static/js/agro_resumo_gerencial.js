@@ -37,6 +37,8 @@
 
   var CMV_KEY = "agro_dre_cmv_modo_v1";
   var LOJA_KEY = "agro_dre_loja_v1";
+  var PLANO_KEY = "agro_dre_planos_gasto_v1";
+  var rgPlanosCatalogo = [];
   var CMV_HINT = {
     vendida: "Custo do cadastro × quantidade vendida (o que saiu da loja).",
     paga: "Compras lançadas no período (o que você pagou / deve de mercadoria).",
@@ -83,6 +85,137 @@
     try {
       localStorage.setItem(LOJA_KEY, v === "centro" || v === "vila" ? v : "todas");
     } catch (e2) {}
+  }
+
+  function planosGastoIncluirSalvos() {
+    try {
+      var raw = localStorage.getItem(PLANO_KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      if (!o || !Array.isArray(o.incluir) || !o.incluir.length) return null;
+      return o.incluir.slice();
+    } catch (e) {}
+    return null;
+  }
+
+  function salvarPlanosGastoIncluir(list) {
+    try {
+      if (!list || !list.length) {
+        localStorage.removeItem(PLANO_KEY);
+        return;
+      }
+      localStorage.setItem(PLANO_KEY, JSON.stringify({ v: 1, incluir: list }));
+    } catch (e2) {}
+  }
+
+  function planosGastoQueryParam() {
+    var incl = planosGastoIncluirSalvos();
+    if (!incl || !incl.length) return "";
+    return "&planos_gasto=" + encodeURIComponent(incl.join(","));
+  }
+
+  function sincronizarCatalogoPlanos(visual) {
+    var top =
+      visual && visual.despesas_categorias && visual.despesas_categorias.top
+        ? visual.despesas_categorias.top
+        : [];
+    var names = [];
+    var seen = {};
+    top.forEach(function (r) {
+      var p = String(r.plano || "").trim();
+      if (!p || seen[p]) return;
+      seen[p] = 1;
+      names.push(p);
+    });
+    if (names.length) rgPlanosCatalogo = names;
+    atualizarBadgePlanos();
+  }
+
+  function atualizarBadgePlanos() {
+    var btn = document.getElementById("btn-planos-gasto");
+    if (!btn) return;
+    var incl = planosGastoIncluirSalvos();
+    var n = rgPlanosCatalogo.length;
+    if (!n) {
+      btn.textContent = "Planos gasto";
+      return;
+    }
+    if (!incl || incl.length >= n) {
+      btn.textContent = "Planos gasto";
+      btn.title = "Todos os planos de despesa entram no DRE e no gráfico de saldo.";
+    } else {
+      btn.textContent = "Planos (" + incl.length + "/" + n + ")";
+      btn.title = "Só os planos marcados entram como gasto no DRE e no gráfico.";
+    }
+  }
+
+  function planoEstaIncluido(nome) {
+    var incl = planosGastoIncluirSalvos();
+    if (!incl) return true;
+    var n = String(nome || "").trim().toLowerCase();
+    for (var i = 0; i < incl.length; i++) {
+      if (String(incl[i] || "").trim().toLowerCase() === n) return true;
+    }
+    return false;
+  }
+
+  function montarModalPlanosGasto() {
+    var list = document.getElementById("rg-planos-lista");
+    if (!list) return;
+    var incl = planosGastoIncluirSalvos();
+    var planos = rgPlanosCatalogo.slice();
+    if (!planos.length) {
+      list.innerHTML =
+        '<p class="rg-planos-empty">Carregue o período (Atualizar) para listar os planos de despesa.</p>';
+      return;
+    }
+    list.innerHTML = planos
+      .map(function (p) {
+        var ck = !incl || incl.indexOf(p) >= 0 ? " checked" : "";
+        return (
+          '<label class="rg-planos-item"><input type="checkbox" value="' +
+          escapeHtml(p) +
+          '"' +
+          ck +
+          "> <span>" +
+          escapeHtml(p) +
+          "</span></label>"
+        );
+      })
+      .join("");
+  }
+
+  function abrirModalPlanosGasto() {
+    montarModalPlanosGasto();
+    var m = document.getElementById("modal-planos-gasto");
+    if (m) m.classList.remove("hidden");
+  }
+
+  function fecharModalPlanosGasto() {
+    var m = document.getElementById("modal-planos-gasto");
+    if (m) m.classList.add("hidden");
+  }
+
+  function aplicarModalPlanosGasto() {
+    var list = document.getElementById("rg-planos-lista");
+    if (!list) return;
+    var checks = list.querySelectorAll('input[type="checkbox"]');
+    var sel = [];
+    checks.forEach(function (c) {
+      if (c.checked) sel.push(c.value);
+    });
+    if (!sel.length) {
+      alert("Marque pelo menos um plano de despesa.");
+      return;
+    }
+    if (rgPlanosCatalogo.length && sel.length >= rgPlanosCatalogo.length) {
+      salvarPlanosGastoIncluir(null);
+    } else {
+      salvarPlanosGastoIncluir(sel);
+    }
+    fecharModalPlanosGasto();
+    atualizarBadgePlanos();
+    if (typeof atualizarPainel === "function") atualizarPainel();
   }
 
   /** YYYY-MM-DD no fuso local (evita virar dia anterior com toISOString). */
@@ -1032,6 +1165,193 @@
     return p[2] + "/" + p[1] + "/" + p[0];
   }
 
+  var _rgSaldoChart = null;
+
+  function rgSaldoChartHeight() {
+    var host = document.getElementById("rg-saldo-chart");
+    if (!host) return 220;
+    var h = host.clientHeight || host.offsetHeight;
+    return h > 80 ? h : 220;
+  }
+
+  function destroyRgSaldoChart() {
+    if (_rgSaldoChart && typeof _rgSaldoChart.destroy === "function") {
+      try {
+        _rgSaldoChart.destroy();
+      } catch (e) {}
+    }
+    _rgSaldoChart = null;
+  }
+
+  function renderRgSaldoDiario(payload) {
+    var sec = document.getElementById("sec-saldo-diario");
+    var host = document.getElementById("rg-saldo-chart");
+    var errEl = document.getElementById("rg-saldo-erro");
+    var totalEl = document.getElementById("rg-saldo-total");
+    var lojaEl = document.getElementById("rg-saldo-loja");
+    if (!sec || !host) return;
+
+    if (!payload || !payload.ok || !payload.dias || !payload.dias.length) {
+      sec.classList.add("hidden");
+      destroyRgSaldoChart();
+      if (errEl) {
+        errEl.textContent =
+          (payload && payload.detail) || "Sem dados para o gráfico de saldo.";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    sec.classList.remove("hidden");
+    if (errEl) {
+      errEl.textContent = "";
+      errEl.classList.add("hidden");
+    }
+
+    var dias = payload.dias;
+    var labels = dias.map(function (d) {
+      return d.label;
+    });
+    var barras = dias.map(function (d) {
+      var v = d.saldo;
+      if (v == null) return null;
+      return {
+        x: d.label,
+        y: v,
+        fillColor: v >= 0 ? "#2563eb" : "#dc2626",
+      };
+    });
+    var previsto = dias.map(function (d) {
+      return d.previsto != null ? Number(d.previsto) : 0;
+    });
+
+    if (totalEl && payload.totais) {
+      totalEl.textContent =
+        "Acum. até hoje: " +
+        brl(payload.totais.saldo_real_ate_hoje) +
+        " · Prev. mês: " +
+        brl(payload.totais.previsto_mes);
+    }
+    if (lojaEl) {
+      lojaEl.textContent = payload.loja_label || "";
+    }
+
+    destroyRgSaldoChart();
+    if (typeof ApexCharts === "undefined") {
+      if (errEl) {
+        errEl.textContent = "Biblioteca de gráfico indisponível.";
+        errEl.classList.remove("hidden");
+      }
+      return;
+    }
+
+    var chartH = rgSaldoChartHeight();
+    _rgSaldoChart = new ApexCharts(host, {
+      series: [
+        { name: "Saldo", type: "column", data: barras },
+        { name: "Previsto (90d)", type: "line", data: previsto },
+      ],
+      chart: {
+        type: "line",
+        height: chartH,
+        stacked: false,
+        toolbar: { show: false },
+        background: "transparent",
+        animations: { enabled: true, speed: 350 },
+      },
+      colors: ["#2563eb", "#16a34a"],
+      stroke: { width: [0, 3], curve: "smooth" },
+      plotOptions: {
+        bar: {
+          borderRadius: 3,
+          columnWidth: "68%",
+          borderRadiusApplication: "end",
+          colors: {
+            ranges: [
+              { from: -1e12, to: -0.005, color: "#dc2626" },
+              { from: 0.005, to: 1e12, color: "#2563eb" },
+            ],
+          },
+        },
+      },
+      dataLabels: { enabled: false },
+      legend: {
+        show: true,
+        position: "top",
+        horizontalAlign: "right",
+        fontSize: "10px",
+        fontWeight: 700,
+        markers: { width: 8, height: 8, radius: 2 },
+      },
+      grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
+      xaxis: {
+        categories: labels,
+        labels: {
+          rotate: -45,
+          rotateAlways: dias.length > 20,
+          hideOverlappingLabels: false,
+          style: { colors: "#475569", fontSize: "9px", fontWeight: 700 },
+          maxHeight: 64,
+        },
+        tickAmount: dias.length,
+      },
+      yaxis: {
+        labels: {
+          style: { colors: "#475569", fontSize: "10px" },
+          formatter: function (v) {
+            return Number(v || 0).toLocaleString("pt-BR", {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            });
+          },
+        },
+      },
+      tooltip: {
+        shared: true,
+        intersect: false,
+        y: {
+          formatter: function (val) {
+            if (val == null) return "—";
+            return brl(val);
+          },
+        },
+        custom: undefined,
+      },
+      markers: { size: [0, 0], hover: { size: 4 } },
+      theme: { mode: "light" },
+    });
+    _rgSaldoChart.render();
+  }
+
+  async function fetchRgSaldoDiario(qBase) {
+    var sec = document.getElementById("sec-saldo-diario");
+    try {
+      var q =
+        qBase +
+        "&contas=resultado&cmv=" +
+        encodeURIComponent(cmvModoSalvo()) +
+        planosGastoQueryParam();
+      var r = await fetch("/api/financeiro/saldo-diario-mes?" + q, {
+        credentials: "same-origin",
+      });
+      if (!r.ok) {
+        var ej = {};
+        try {
+          ej = await r.json();
+        } catch (e2) {}
+        renderRgSaldoDiario({
+          ok: false,
+          detail: ej.detail || ej.erro || "Erro " + r.status,
+        });
+        return;
+      }
+      var data = await r.json();
+      renderRgSaldoDiario(data);
+    } catch (e) {
+      if (sec) sec.classList.add("hidden");
+    }
+  }
+
   /**
    * Inicialização do painel (DOM).
    */
@@ -1153,6 +1473,7 @@
         vis.innerHTML = renderVisualBoard(c, data.visual, modo);
         vis.classList.remove("hidden");
       }
+      sincronizarCatalogoPlanos(data.visual);
       el("painel-cards").innerHTML = renderKpiGrid(c);
       el("painel-cards").classList.remove("hidden");
       if (mais) mais.classList.remove("hidden");
@@ -1229,7 +1550,8 @@
         "&valor=" +
         encodeURIComponent(el("f-valor").value) +
         "&contas=resultado" +
-        "&incluir_visual=1";
+        "&incluir_visual=1" +
+        planosGastoQueryParam();
       try {
         var r = await fetch("/api/financeiro/resumo-operacional?" + q, {
           credentials: "same-origin",
@@ -1258,6 +1580,15 @@
         var data = await r.json();
         renderResumo(data, modo);
         var cEq = aplicarCmvNoCore(coreDoPayload(data, modo));
+        var qSaldo =
+          "loja=" +
+          encodeURIComponent(loja) +
+          "&por=" +
+          encodeURIComponent(el("f-por").value) +
+          "&valor=" +
+          encodeURIComponent(el("f-valor").value) +
+          "&fonte=postgres";
+        fetchRgSaldoDiario(qSaldo);
         if (!pintarEquilibrio(cEq)) {
           var dq = q + "&dias_periodo=" + diasNoPeriodo(ini, fim);
           var re = await fetch("/api/financeiro/gap-equilibrio?" + dq, {
@@ -1291,12 +1622,34 @@
       });
     }
     el("btn-atualizar").addEventListener("click", atualizar);
+    window.atualizarPainel = atualizar;
+    if (el("btn-planos-gasto")) {
+      el("btn-planos-gasto").addEventListener("click", abrirModalPlanosGasto);
+    }
+    if (el("btn-fechar-planos")) {
+      el("btn-fechar-planos").addEventListener("click", fecharModalPlanosGasto);
+    }
+    if (el("btn-aplicar-planos")) {
+      el("btn-aplicar-planos").addEventListener("click", aplicarModalPlanosGasto);
+    }
+    if (el("btn-planos-todos")) {
+      el("btn-planos-todos").addEventListener("click", function () {
+        var list = el("rg-planos-lista");
+        if (!list) return;
+        list.querySelectorAll('input[type="checkbox"]').forEach(function (c) {
+          c.checked = true;
+        });
+      });
+    }
+    if (el("modal-planos-gasto")) {
+      el("modal-planos-gasto").addEventListener("click", function (e) {
+        if (e.target.id === "modal-planos-gasto") fecharModalPlanosGasto();
+      });
+    }
     document.querySelectorAll("[data-dre-cmv]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         salvarCmvModo(btn.getAttribute("data-dre-cmv"));
-        if (!lastPayload) return;
-        renderResumo(lastPayload, lastModoTela);
-        pintarEquilibrio(aplicarCmvNoCore(coreDoPayload(lastPayload, lastModoTela)));
+        atualizar();
       });
     });
     ["f-ini", "f-fim", "f-por", "f-valor"].forEach(function (id) {
