@@ -1225,34 +1225,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+### ✅ CHECKLIST ÚNICO — 18/08 · **PREP pronto — aguarda senha** (`deploy/lote-checklist-1708d` · **v17.18**)
 
 > **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> **Não** merge `teste`→`producao`. **Não misturar** com o lote NF 17/08d (branch `deploy/lote-checklist-1708d`, PREP aguarda senha).
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA-BIP1** | ✅ **pronto para envio à produção** | não |
-
-### 📦 PACOTE PRONTO — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v17.18** · loja **v17.09** |
-| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no **Gravar**). Tela inteira pisca **verde** / **vermelho**. Liga sozinho. Mesmo EAN pode repetir (fila + gap 350 ms). |
-| **Prova** | bip1 path **42/42** · cíclica path **72** · deep **31** · UX **17** · `manage.py check` OK |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → bipar (verde = somou) |
-
-### 🚀 PREP — lote NF 17/08d (`deploy/lote-checklist-1708d` · **v17.16**) · **aguarda senha** (lote separado)
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`. **Fora:** Point Vila (falta token).
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **NF-BIP-ET3-SNAP** | 🚀 PREP — aguarda senha | não |
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | 🚀 PREP — aguarda senha | não |
 | 3 | **NF-VINCULO-REPARO** | 🚀 PREP — aguarda senha | não |
+| 4 | **AJUSTE-CICLICA-BIP1** | 🚀 PREP — aguarda senha | não |
 
-Autorizar NF: *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Point Vila **não** sobe (falta token).
+### 📦 PACOTE PRONTO — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**) · **no lote 17/08d**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP — aguarda senha** · branch `deploy/lote-checklist-1708d` · loja **v17.09** |
+| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no **Gravar**). Tela inteira pisca **verde** / **vermelho**. Liga sozinho. Mesmo EAN pode repetir (fila + gap 350 ms). |
+| **Prova** | bip1 path **42/42** · cíclica path **72** · deep **31** · UX **17** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Você** | Próximo chat: lojas pausam · frase + senha do lote 17/08d. Depois Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → bipar (verde = somou) |
+
+Autorizar: *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Point Vila **não** sobe (falta token).
 
 ### 📦 PACOTE PRONTO — Entrada NF cadastro + etapa 3 (`v17.16`) · **PREP 17/08d**
 
@@ -1264,9 +1259,9 @@ Autorizar NF: *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d pa
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** · branch `deploy/lote-checklist-1708d` · loja **v17.09** |
+| **Status** | 🚀 **PREP pronto — aguarda senha** · branch `deploy/lote-checklist-1708d` · **v17.18** · loja **v17.09** |
 | **Migrate** | **NÃO** |
-| **Você** | Próximo chat: lojas pausam vendas · *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Depois: Ctrl+F5 `/entrada-nota/` · reparo 33 com `--aplicar`. |
+| **Você** | Próximo chat: lojas pausam vendas · *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Depois: Ctrl+F5 `/entrada-nota/` e `/ajuste-mobile/` · reparo 33 com `--aplicar`. |
 
 ### 📦 PACOTE — Point MP Vila (`MP-POINT-VILA` · **v17.13**) · **não sobe neste lote**
 
