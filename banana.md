@@ -1235,8 +1235,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **AJUSTE-CICLICA-HERO** | ✅ **pronto para envio à produção** | não |
 | 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
 | 3 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
+| 4 | **REPASSE-ACUMULADO-FIX** | ✅ **pronto para envio à produção** | **SIM** 0094 |
 
 Loja hoje: ✅ Live **v17.24**. Não sobe sem frase + senha.
+
+### 📦 PACOTE PRONTO — Repasse acumulado fix (`REPASSE-ACUMULADO-FIX` · **v17.26**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/repasse-vila/` + overlay PDV |
+| **Bug Renan** | Transferiu acumulado mas sistema continuava pedindo o mesmo valor · tela lenta |
+| **Fix** | Cache delta dia (0094) · página abre sem recalcular 180 dias · ao transferir com acumulado **quita sozinho** · botão **zerar acumulado** (PIN) |
+| **Migrate** | **SIM** `0094` |
+| **Prova** | path **84/84** · deep **88/88** |
+| **Você (loja)** | Ctrl+F5 `/repasse-vila/` · **Ver acumulado** → **zerar acumulado** (PIN) se dinheiro já foi antes da ferramenta |
 
 ### 📦 PACOTE PRONTO — Cíclica último bip em destaque (`AJUSTE-CICLICA-HERO` · **v17.25**)
 
