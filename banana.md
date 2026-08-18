@@ -1238,7 +1238,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
 | **Loja hoje** | ✅ Live **v17.30** · `producao` @ **1036967** |
-| **Branch** | `deploy/lote-checklist-1808m` · **9 arquivos** vs produção |
+| **Branch** | `deploy/lote-checklist-1808m` @ **fd8462c** · **10 arquivos** vs produção |
 | **Fora** | PDV venda/wizard · caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos |
 | **Prova** | BI-clique **10/10** · path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · 15 telas 200 · PDV rações OK · fechar caixa **28/28** · `check` OK · diff **0** PDV/caixa/NF |
 | **Migrate** | **NÃO** |
