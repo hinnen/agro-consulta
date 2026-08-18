@@ -1229,11 +1229,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (18/08k · teste **v17.33**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (18/08l · teste)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **BI-VAL-UNIFICADO** | 🟡 **pronto para envio** | não |
+| 2 | **DRE-LUCRO-GRAFICO** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — DRE gráfico lucro = BI (`DRE-LUCRO-GRAFICO`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Rodapé DRE: barras = **lucro líquido/dia** (mesma conta do BI) · linha = prev. lucro 90d · **Lucro acum.** = card BI |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_dre_saldo_diario_chart` · acum. mês = Lucro Líquido BI (match OK) |
+| **Você** | Ctrl+F5 DRE · **Bruto/Já pago** (filtro Valor) · comparar acum. com BI |
 
 ### 📦 PACOTE PRONTO LOJA — BI Validade igual nas 3 lojas (`BI-VAL-UNIFICADO` · **v17.33**)
 

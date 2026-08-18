@@ -1220,18 +1220,24 @@
       return d.label;
     });
     var barrasNums = dias.map(function (d) {
-      return d.saldo != null ? Number(d.saldo) : null;
+      var v = d.lucro != null ? d.lucro : d.saldo;
+      return v != null ? Number(v) : null;
     });
     var previsto = dias.map(function (d) {
       return d.previsto != null ? Number(d.previsto) : 0;
     });
 
     if (totalEl && payload.totais) {
+      var acum =
+        payload.totais.lucro_ate_hoje != null
+          ? payload.totais.lucro_ate_hoje
+          : payload.totais.saldo_real_ate_hoje;
+      var prev =
+        payload.totais.previsto_lucro_mes != null
+          ? payload.totais.previsto_lucro_mes
+          : payload.totais.previsto_mes;
       totalEl.textContent =
-        "Acum. até hoje: " +
-        brl(payload.totais.saldo_real_ate_hoje) +
-        " · Prev. mês: " +
-        brl(payload.totais.previsto_mes);
+        "Lucro acum.: " + brl(acum) + " · Prev. mês: " + brl(prev);
     }
     if (lojaEl) {
       lojaEl.textContent = payload.loja_label || "";
@@ -1249,8 +1255,8 @@
     var chartH = rgSaldoChartHeight();
     var chartOpts = {
       series: [
-        { name: "Saldo", type: "column", data: barrasNums },
-        { name: "Previsto (90d)", type: "line", data: previsto },
+        { name: "Lucro", type: "column", data: barrasNums },
+        { name: "Prev. lucro (90d)", type: "line", data: previsto },
       ],
       chart: {
         type: "line",
@@ -1352,11 +1358,7 @@
     rgSaldoSetLoading(true);
     if (sec) sec.classList.remove("hidden");
     try {
-      var q =
-        qBase +
-        "&contas=resultado&cmv=" +
-        encodeURIComponent(cmvModoSalvo()) +
-        planosGastoQueryParam();
+      var q = qBase + "&contas=resultado";
       var r = await fetch("/api/financeiro/saldo-diario-mes?" + q, {
         credentials: "same-origin",
       });
