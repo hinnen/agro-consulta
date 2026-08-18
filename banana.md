@@ -620,6 +620,8 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
+- **Transferência forçada — layout C→Vila (18/08):** ao escolher **Centro → Vila**, modal inverte colunas (carrinho à esquerda, busca à direita); **Vila → C** mantém layout original.
+- **Transferência forçada — popup direção (18/08):** botão **Forçada Vila↔C** abre popup «Vila → Centro» / «Centro → Vila» antes da tela; sem toggle no cabeçalho.
 - **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08 · **Live v17.21**):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional. **Modo foco:** durante cíclica, só busca grande + lista; **⋯** abre controles.
 
 ### 4.9 Compras
@@ -1226,6 +1228,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08g)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
+| 2 | **DRE-SALDO-DIARIO** | ⏳ código local · validar PC | não |
+
+### 📦 PACOTE PRONTO — Transferência forçada UX (`TRANSF-FORCADA-UX` · **v17.22**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/transferencias/` → **Forçada Vila↔C** |
+| **O quê** | Popup pergunta **Vila → Centro** ou **Centro → Vila** antes da tela · **C→Vila** inverte colunas (carrinho à esquerda, busca à direita) · sem toggle no cabeçalho |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_transf_forcada_ux.py` |
+| **Você** | Ctrl+F5 `/transferencias/` · abrir forçada · testar as duas direções |
+
 ### DRE gerencial — gráfico saldo dia a dia (18/08 · WIP teste)
 
 | Item | Detalhe |
@@ -1249,7 +1269,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🚀 PREP deploy loja — lote 18/08f~~ · **superado — Live v17.21**
 
-### ✅ CHECKLIST ÚNICO — produção (18/08) · **enviado**
+### ~~✅ CHECKLIST ÚNICO — produção (18/08)~~ · **superado — Live v17.21**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
