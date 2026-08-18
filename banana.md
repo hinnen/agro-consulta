@@ -1216,23 +1216,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**)
+### 🚀 PREP deploy loja — lote checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.16**)
 
 > **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708b`.
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.07** · `producao` @ **08e74d6** |
+| **Loja hoje** | ✅ Live **v17.09** · `producao` @ **3b45abf** |
+| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando só lista; `--aplicar` **depois** do Live) |
+| **Arquivos** | `entrada_nota.html` · `views.py` (lote etapa 3 + estoque nome) · `catalogo_agro.py` (lápis PDV **mantido**) · `models.py` (lote sem copiar xProd) · histórico cadastro · reparo util/comando · provas |
+| **Fora** | PDV wizard · caixa · NFC-e · financeiro · Point Vila · cíclica Bip+1 |
+| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha |
+| **Depois do Live** | **Ctrl+F5** `/entrada-nota/` · badge **v17.16** · reparo dos 33 nomes com `--aplicar` (não roda sozinho) |
+
+### ✅ Deploy loja — checklist 17/08b (`deploy/lote-checklist-1708b` · **v17.09**) · **já Live**
+
+> **Não** merge `teste`→`producao`. Fast-forward **só** o lote isolado da vez.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.09** · `producao` @ **3b45abf** |
 | **Pacotes** | **NF-BIP-ET2** só |
 | **Arquivos** | `entrada_nota.html` · `verify_nf_bip_et2_path.py` · `verify_nf_bip_et3_path.py` · `VERSION` |
 | **Fora** | PDV · caixa · NFC-e · financeiro · estoque |
 | **Prova** | ET2 **68/68** · ET3 **48/48** · custo NF **10/10** (no lote isolado) |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-lote-checklist-1708b-v17.07` @ **08e74d6** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08b / deploy/lote-checklist-1708b para produção* + senha |
+| **Você** | **Ctrl+F5** `/entrada-nota/` · badge **v17.09** · bip na etapa 2 deve virar Ok na 3 |
 
 ### 🚀 PREP deploy loja — lote checklist 17/08 (`deploy/lote-checklist-1708` · **v17.07**)
 

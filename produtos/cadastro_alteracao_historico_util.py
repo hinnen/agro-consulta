@@ -51,6 +51,7 @@ _CAMPOS_EXTRAS: list[tuple[str, str]] = [
     ("precos_grupos", "Preços grupos A/B"),
     ("ean_embalagem_nf", "EAN embalagem NF"),
     ("c_prods_nf", "Cód. produto na NF"),
+    ("c_prod_nf", "Cód. produto na NF"),
     ("codigos_barras_opcionais", "Barras opcionais"),
     ("custo_familia", "Custo do saco (família)"),
     ("variacoes", "Marcas / códigos"),
@@ -127,11 +128,16 @@ def snapshot_overlay(ov) -> dict[str, Any]:
     out["precos_por_forma"] = ex.get("precos_por_forma")
     out["precos_grupos"] = ex.get("precos_grupos")
     out["ean_embalagem_nf"] = ex.get("entrada_nfe_ean_embalagem") or ""
+    from produtos.mongo_index_codigos import _c_prods_nf_de_cadastro_extras
+
+    out["c_prod_nf"] = ", ".join(_c_prods_nf_de_cadastro_extras(ex))
     _cps = ex.get("entrada_nfe_c_prods")
     if isinstance(_cps, list) and _cps:
         out["c_prods_nf"] = ", ".join(str(x).strip() for x in _cps if str(x or "").strip())
     else:
         out["c_prods_nf"] = str(ex.get("entrada_nfe_c_prod") or "").strip()
+    if not out["c_prods_nf"] and out["c_prod_nf"]:
+        out["c_prods_nf"] = out["c_prod_nf"]
     out["codigos_barras_opcionais"] = ex.get("codigos_barras_opcionais") or []
     out["custo_familia"] = ex.get("custo_familia") if isinstance(ex.get("custo_familia"), dict) else None
     return out

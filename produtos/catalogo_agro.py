@@ -528,23 +528,81 @@ def produto_model_para_resposta_salvar(p: Produto, ov: ProdutoGestaoOverlayAgro 
     return row
 
 
+# Overlay parcial (vínculo NF: cProd / EAN embalagem) NÃO é edição de cadastro.
+_PAYLOAD_KEYS_SYNC_PRODUTO = frozenset(
+    {
+        "nome",
+        "marca",
+        "categoria",
+        "subcategoria",
+        "subcategoria_2",
+        "subcategoria_3",
+        "subcategoria_4",
+        "fornecedor_texto",
+        "unidade",
+        "peso_etiqueta",
+        "codigo_barras",
+        "codigo_nfe",
+        "codigo",
+        "descricao",
+        "preco_venda",
+        "preco_custo",
+        "modelo",
+        "ativo_exibicao",
+        "inativar_erp",
+        "codigo_barras_bip_entrada_nf",
+        "codigos_barras_opcionais",
+        "codigos_barras_opcionais_adicionar",
+        "pdv_edicao_rapida",
+    }
+)
+
+
+def payload_overlay_deve_sincronizar_produto(
+    payload: dict | None,
+    custo_payload: Decimal | None = None,
+) -> bool:
+    """True se o POST mexe em cadastro. Vínculo NF (só cProd/EAN) = False.
+
+    Payload vazio segue o comportamento da loja (cópia do overlay), para não
+    quebrar lápis PDV, planilha e custo família.
+    """
+    if custo_payload is not None:
+        return True
+    if not isinstance(payload, dict) or not payload:
+        return True
+    if _PAYLOAD_KEYS_SYNC_PRODUTO.intersection(payload.keys()):
+        return True
+    if payload.get("origem_entrada_nf") or payload.get("entrada_nfe"):
+        return False
+    if payload.keys() & {"c_prod_nf", "ean_embalagem_nf"}:
+        return False
+    return True
+
+
 def sincronizar_modelo_produto_de_overlay(
     pid: str,
     ov: ProdutoGestaoOverlayAgro,
     *,
     custo_payload: Decimal | None = None,
     payload: dict | None = None,
-) -> Produto:
+) -> Produto | None:
     """Espelha overlay + payload no modelo ``Produto`` (fonte cadastro ``agro_pg``).
 
     Com ``pdv_edicao_rapida``: nunca sobrescreve campo bom com vazio / «—» / ObjectId
     (bug do lápis PDV). Cadastro modal completo continua podendo limpar campo de propósito.
+    Overlay vazio não apaga cadastro existente.
+    Vínculo NF (cProd/EAN) não apaga nome/marca/preço.
     """
     import re
 
     pid64 = str(pid or "").strip()[:64]
     payload = payload or {}
     p = obter_produto_model(pid64)
+    if p is not None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
+        return p
+    if p is None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
+        return None
     _re_oid = re.compile(r"^[0-9a-f]{24}$", re.I)
     pdv_rapida = str(payload.get("pdv_edicao_rapida") or "").strip().lower() in (
         "1",
@@ -638,7 +696,24 @@ def sincronizar_modelo_produto_de_overlay(
         )[:64]
 
     nome_cand = (ov.nome.strip() if ov.nome.strip() else _txt("nome", 300)) or ""
+    keys = set(payload.keys())
     if pdv_rapida:
+        nome = (
+            _manter(
+                nome_cand,
+                p.nome if p is not None else "",
+                mx=300,
+                rejeitar_oid=True,
+            )
+            or "—"
+        )
+    else:
+        nome = nome_cand or (str(p.nome or "").strip() if p is not None else "") or "—"
+    if p is not None and _vazio_ou_traco(nome_cand):
+        if "nome" in keys:
+            nome = str(p.nome or "").strip() or nome
+        else:
+            nome = str(p.nome or "").strip() or nome
         nome = (
             _manter(
                 nome_cand,
