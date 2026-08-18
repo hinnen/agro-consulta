@@ -1225,48 +1225,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**)
-
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808e`.
+### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** · branch `deploy/lote-checklist-1808e` @ **3c810ba** |
-| **Loja hoje** | ✅ Live **v17.18** · `producao` @ **9fcecad** |
-| **Pacote** | **AJUSTE-CICLICA-QTD-CB** só |
-| **Arquivos** | `mobile_ajuste.html` · `contagem_ciclica_util.py` · provas · `VERSION` 17.19 |
-| **Fora** | PDV · caixa · NFC-e · financeiro · Entrada NF · Point Vila |
-| **Prova no lote isolado** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** · `manage.py check` OK |
+| **Status** | ✅ **enviado / Live v17.19** · `producao` @ **3c810ba** |
+| **Pacote** | **AJUSTE-CICLICA-QTD-CB** |
 | **Migrate** | **NÃO** |
-| **Rollback** | no deploy: tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08e / deploy/lote-checklist-1808e para produção* + senha |
-| **Depois do Live** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card · overlay código se bip não achar |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808e-v17.18` @ **9fcecad** + frase + senha |
+| **Você** | **Ctrl+F5** `/ajuste-mobile/` · badge **v17.19** · cíclica: 3 bips = **3** no card |
 
 ### ✅ CHECKLIST ÚNICO — produção (18/08)
 
-> **Loja hoje:** ✅ **Live v17.18** · `producao` @ **9fcecad** · badge **17.18**  
-> **Fila loja:** **AJUSTE-CICLICA-QTD-CB** · PREP `deploy/lote-checklist-1808e` @ **3c810ba**.
+> **Loja hoje:** ✅ **Live v17.19** · `producao` @ **3c810ba** · badge **17.19**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-BIP-ET3-SNAP** | ✅ enviado / Live v17.18 | não |
-| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ enviado / Live v17.18 | não |
+| 1 | **NF-BIP-ET3-SNAP** | ✅ enviado / Live v17.19 | não |
+| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ enviado / Live v17.19 | não |
 | 3 | **NF-VINCULO-REPARO** | ✅ código Live · **`--aplicar` pendente** (operação) | não |
-| 4 | **AJUSTE-CICLICA-BIP1** | ✅ enviado / Live v17.18 | não |
-| 5 | **AJUSTE-CICLICA-QTD-CB** | 🚀 **PREP pronto — aguarda senha** · v17.19 | não |
+| 4 | **AJUSTE-CICLICA-BIP1** | ✅ enviado / Live v17.19 | não |
+| 5 | **AJUSTE-CICLICA-QTD-CB** | ✅ enviado / Live v17.19 | não |
 
-### 📦 PACOTE PRONTO — Cíclica qtd + overlay código (`AJUSTE-CICLICA-QTD-CB` · **v17.19**)
+### 📦 PACOTE — Cíclica qtd + overlay (`AJUSTE-CICLICA-QTD-CB` · **v17.19**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** · `deploy/lote-checklist-1808e` @ **3c810ba** |
-| **O quê** | Card cíclica mostra **quanto já bipou** (3, não só OK). Tela verde mostra o número. Bip sem cadastro → busca pelo nome → overlay **código opcional** (Sim → fila **Cód.**). |
-| **Cego** | Sem estoque esperado do sistema. |
-| **Prova** | bip1 **48/48** · cíclica path **75** · deep **32** · UX **17** · `manage.py check` OK |
+| **Status** | ✅ **enviado / Live v17.19** · `producao` @ **3c810ba** |
+| **O quê** | Card cíclica mostra **quanto já bipou**. Tela verde com número. Overlay código opcional (Sim → fila **Cód.**). |
 | **Migrate** | **NÃO** |
-| **Você** | PC local **Ctrl+F5** `/ajuste-mobile/` · Cíclica → 3 bips = **3** no card · código errado → nome → overlay. Loja: frase + senha. |
 
 ### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**) · **Live**
 
