@@ -48,7 +48,8 @@ check(
     "z-[165]",
     "z-index: 170",
     "ma-ciclica-dias-custom",
-    "Bip +1 off",
+    "maCiclicaBipMaisUm",
+    "maBipPiscarTela",
     "Incluir fora",
     "ma-ciclica-btn-incluir-fora",
     "formatsToSupport",
@@ -84,10 +85,10 @@ if ".ma-offer-overlay" in text and "align-items: flex-end" in text:
 else:
     fail("offer overlay não é bottom-sheet")
 
-if "Bip +1 off" in text:
-    ok("rótulo Bip+1 off na cíclica")
+if "maCiclicaBipMaisUm" in text and "maBipPiscarTela" in text:
+    ok("Bip+1 na cíclica + pisca tela")
 else:
-    fail("falta rótulo Bip+1 off")
+    fail("falta Bip+1 cíclica / pisca tela")
 
 if "grid-template-columns: repeat(5, minmax(0, 1fr))" in text and "ma-head-actions" in text:
     ok("header actions grade 5 no celular")
@@ -119,7 +120,7 @@ try:
         "agro-loja-confirm-modal",
         "ma-kb-inset",
         "Somar (cíclica)",
-        "Bip +1 off",
+        "maCiclicaBipMaisUm",
         "linhas_truncadas",
         "ma-scroll-lock",
         "Incluir fora",

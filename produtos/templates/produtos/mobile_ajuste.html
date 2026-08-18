@@ -506,6 +506,17 @@
       color: #fff;
       box-shadow: 0 3px 10px rgba(4, 120, 87, 0.35);
     }
+    .ma-bip-tela {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.07s linear;
+    }
+    .ma-bip-tela.is-on { opacity: 1; }
+    .ma-bip-tela.is-ok { background: rgba(4, 180, 90, 0.88); }
+    .ma-bip-tela.is-err { background: rgba(220, 30, 40, 0.9); }
     .ma-flash {
       position: fixed;
       left: 50%;
@@ -714,7 +725,7 @@
             >
           </div>
         </div>
-        <p id="ma-ciclica-hint" class="hidden text-[10px] font-bold text-orange-800 leading-snug">Modo cíclico · <span class="text-orange-950">sempre soma</span> (mesmo produto em vários lugares). Saldo oculto. Estoque só no final.</p>
+        <p id="ma-ciclica-hint" class="hidden text-[10px] font-bold text-orange-800 leading-snug">Modo cíclico · <span class="text-orange-950">Bip +1 soma na contagem</span> (sempre soma). Saldo oculto. Estoque só no Gravar.</p>
 
         {# Teclado na tela — BT HID = teclado físico; Android esconde o soft keyboard. #}
         <div id="ma-numpad" class="ma-numpad grid grid-cols-3" role="group" aria-label="Teclado numérico">
@@ -751,6 +762,8 @@
       </div>
     </div>
   </div>
+
+  <div id="ma-bip-tela" class="ma-bip-tela" aria-hidden="true"></div>
 
   <div id="ma-flash" class="ma-flash hidden" role="status" aria-live="polite">
     <p id="ma-flash-nome" class="text-sm font-black leading-snug"></p>
@@ -871,10 +884,15 @@ let maCiclicaPoll = null;
 let maCiclicaIncluirFora = false;
 
 let maBip1On = false;
+/** Estado do Bip+1 antes de entrar na cíclica (restaura ao sair). */
+let maBip1AntesCiclica = false;
 let maCodigoOrfao = null;
 let maBipBusy = false;
 let maBipLastCode = '';
 let maBipLastAt = 0;
+/** Na cíclica o mesmo EAN pode repetir (várias caixas). 350 ms só corta duplo do leitor. */
+const MA_CICLICA_BIP_GAP_MS = 350;
+let maCiclicaBipFila = [];
 /** Depois de um bip/Enter: próximo caractere do leitor apaga o código antigo (não cola EAN+EAN). */
 let maBuscaLimparNoProximoChar = false;
 let maFlashTimer = null;
@@ -1532,29 +1550,37 @@ window.addEventListener('load', () => {
   }
 });
 
+function maBipPiscarTela(ok) {
+  const el = document.getElementById('ma-bip-tela');
+  if (!el) return;
+  el.classList.remove('is-on', 'is-ok', 'is-err');
+  void el.offsetWidth;
+  el.classList.add('is-on', ok ? 'is-ok' : 'is-err');
+  el.setAttribute('aria-hidden', 'false');
+  clearTimeout(maBipPiscarTela._t);
+  maBipPiscarTela._t = setTimeout(() => {
+    el.classList.remove('is-on', 'is-ok', 'is-err');
+    el.setAttribute('aria-hidden', 'true');
+  }, ok ? 280 : 420);
+}
+
 function maBip1SyncBtn() {
   const btn = document.getElementById('ma-btn-bip1');
   if (!btn) return;
   const ciclica = typeof maCiclicaAtiva === 'function' && maCiclicaAtiva();
-  if (ciclica) {
-    maBip1On = false;
-    try { sessionStorage.setItem(MA_BIP1_KEY, '0'); } catch (_) {}
-  }
-  btn.classList.toggle('is-on', !!maBip1On && !ciclica);
-  btn.classList.toggle('is-disabled', !!ciclica);
-  btn.setAttribute('aria-pressed', maBip1On && !ciclica ? 'true' : 'false');
-  btn.setAttribute('aria-disabled', ciclica ? 'true' : 'false');
-  btn.textContent = ciclica ? 'Bip +1 off' : (maBip1On ? 'Bip +1 ON' : 'Bip +1');
+  btn.classList.toggle('is-on', !!maBip1On);
+  btn.classList.toggle('is-disabled', false);
+  btn.setAttribute('aria-pressed', maBip1On ? 'true' : 'false');
+  btn.setAttribute('aria-disabled', 'false');
+  btn.textContent = maBip1On ? 'Bip +1 ON' : 'Bip +1';
   btn.title = ciclica
-    ? 'Desligado na cíclica — bipe e digite a quantidade'
+    ? (maBip1On
+      ? 'Cíclica: cada bip soma 1 na contagem (estoque só no Gravar)'
+      : 'Liga: bipar soma +1 na contagem cíclica')
     : 'Liga: bipar soma +1 no saldo';
 }
 
 function maBip1Toggle() {
-  if (maCiclicaAtiva()) {
-    alert('Na contagem cíclica o Bip +1 fica desligado (não grava estoque na hora). Bipe e digite a quantidade.');
-    return;
-  }
   maBip1On = !maBip1On;
   try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
   maBip1SyncBtn();
@@ -1568,7 +1594,12 @@ function maBip1Toggle() {
       try { busca.select(); } catch (_) {}
     }
     if (typeof maMostrarToast === 'function') {
-      maMostrarToast('Bip +1 ligado · Scan ou bipador no campo', true);
+      maMostrarToast(
+        maCiclicaAtiva()
+          ? 'Bip +1 na cíclica · cada bip soma 1 (estoque só no Gravar)'
+          : 'Bip +1 ligado · Scan ou bipador no campo',
+        true
+      );
     }
   } else if (scanningActive) {
     stopScan();
@@ -1697,6 +1728,10 @@ function maAbrirPick(lista) {
     b.addEventListener('click', () => {
       maFecharPick();
       pSel = p;
+      if (maCiclicaAtiva() && maBip1On) {
+        maCiclicaBipMaisUm(p);
+        return;
+      }
       abrir();
     });
     box.appendChild(b);
@@ -1785,13 +1820,16 @@ function maPrepCampoProximoBip() {
 }
 
 function maSalvarBipMaisUm(p) {
-  if (!p || maBipBusy) return Promise.resolve(false);
+  if (!p) return Promise.resolve(false);
+  if (maCiclicaAtiva()) return maCiclicaBipMaisUm(p);
+  if (maBipBusy) return Promise.resolve(false);
   maBipBusy = true;
   const saldoAgora = Number(getSaldoAtual(p) || 0);
   const novoSaldo = saldoAgora + 1;
   return maPostAjuste(p, novoSaldo)
     .then((r) => {
       maTocarSom('ok');
+      maBipPiscarTela(true);
       maMostrarFlash(p, r.novo_saldo);
       maPrepCampoProximoBip();
       /* Não zera a lista (buscar'') — card fica pra clicar se perder o aviso verde. */
@@ -1800,7 +1838,8 @@ function maSalvarBipMaisUm(p) {
     })
     .catch((err) => {
       maTocarSom('erro');
-      alert((err && err.message) || 'Falha ao somar +1.');
+      maBipPiscarTela(false);
+      maMostrarToast((err && err.message) || 'Falha ao somar +1.', false);
       return false;
     })
     .finally(() => { maBipBusy = false; });
@@ -1818,11 +1857,12 @@ function maProcessarCodigoBipado(codigo) {
   const c = maNormCodigo(codigo);
   if (!c) return;
   const now = Date.now();
-  if (c === maBipLastCode && (now - maBipLastAt) < 1200) return;
+  const gap = (maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200;
+  if (c === maBipLastCode && (now - maBipLastAt) < gap) return;
   maBipLastCode = c;
   maBipLastAt = now;
 
-  if (!maBip1On || maCiclicaAtiva()) {
+  if (!maBip1On) {
     const inp = document.getElementById('busca');
     if (inp) {
       inp.value = c;
@@ -1837,7 +1877,8 @@ function maProcessarCodigoBipado(codigo) {
 
   if (!baseProdutos.length) {
     maTocarSom('erro');
-    alert('Catálogo ainda não carregou. Aguarde a atualização automática.');
+    maBipPiscarTela(false);
+    maMostrarToast('Catálogo ainda não carregou. Aguarde.', false);
     return;
   }
 
@@ -1849,12 +1890,14 @@ function maProcessarCodigoBipado(codigo) {
   }
   if (hits.length === 0) {
     maTocarSom('erro');
+    maBipPiscarTela(false);
     stopScan();
     maPreencherBuscaOrfao(c);
     maBuscaLimparNoProximoChar = true;
     return;
   }
   maTocarSom('erro');
+  maBipPiscarTela(false);
   stopScan();
   maAbrirPick(hits.slice(0, 40));
   maPrepCampoProximoBip();
@@ -2578,12 +2621,89 @@ function maCiclicaPintarBar() {
   }
 }
 
+function maCiclicaPodeSomarBip(p) {
+  const pid = String((p && p.id) || '');
+  if (!pid || !maCiclicaAtiva()) return { ok: false };
+  const naFila = (maCiclicaLinhas() || []).some((ln) => String(ln.produto_id) === pid);
+  if (naFila) return { ok: true, forcar: false };
+  const tipo = String((maCiclicaSessao && maCiclicaSessao.escopo_tipo) || '');
+  const st = String((maCiclicaSessao && maCiclicaSessao.status) || '');
+  if (tipo === 'corredor' && st === 'pass1') return { ok: true, forcar: false };
+  if (maCiclicaIncluirFora) return { ok: true, forcar: true };
+  return { ok: false };
+}
+
+function maCiclicaBipMaisUm(p) {
+  if (!p) return Promise.resolve(false);
+  maCiclicaBipFila.push(p);
+  return maCiclicaBipFilaDrain();
+}
+
+function maCiclicaBipFilaDrain() {
+  if (maBipBusy) return Promise.resolve(false);
+  const p = maCiclicaBipFila.shift();
+  if (!p) return Promise.resolve(true);
+  const gate = maCiclicaPodeSomarBip(p);
+  if (!gate.ok) {
+    maTocarSom('erro');
+    maBipPiscarTela(false);
+    maPrepCampoProximoBip();
+    return maCiclicaBipFilaDrain();
+  }
+  maBipBusy = true;
+  const payload = {
+    produto_id: p.id,
+    qtd: '1',
+    nome_produto: p.nome || '',
+    codigo_interno: p.codigo_nfe || p.codigo || '',
+    categoria: p.categoria || '',
+  };
+  if (gate.forcar) payload.forcar = '1';
+  return maCiclicaPost(maCiclicaUrl('contar'), payload)
+    .then((d) => {
+      if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
+      maTocarSom('ok');
+      maBipPiscarTela(true);
+      if (d.sessao) {
+        const prev = maCiclicaLinhas();
+        maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
+        if (!Array.isArray(maCiclicaSessao.linhas) && prev.length) {
+          maCiclicaSessao.linhas = prev;
+        }
+      }
+      const pid = String(p.id || '');
+      (maCiclicaLinhas() || []).forEach((ln) => {
+        if (String(ln.produto_id) === pid) {
+          ln.contado = true;
+          ln.faltando = false;
+        }
+      });
+      maCiclicaPintarBar();
+      maPrepCampoProximoBip();
+      maMostrarUltimoBipado(p);
+      clearTimeout(maCiclicaBipMaisUm._ref);
+      maCiclicaBipMaisUm._ref = setTimeout(() => maCiclicaRefresh(false), 800);
+      return true;
+    })
+    .catch(() => {
+      maTocarSom('erro');
+      maBipPiscarTela(false);
+      maPrepCampoProximoBip();
+      return false;
+    })
+    .finally(() => {
+      maBipBusy = false;
+      if (maCiclicaBipFila.length) maCiclicaBipFilaDrain();
+    });
+}
+
 function maCiclicaAtivar(sessao) {
   maCiclicaSessao = sessao;
   try { sessionStorage.setItem(MA_CICLICA_KEY, String(sessao.id)); } catch (_) {}
-  /* Cíclica nunca grava na hora — força Bip+1 off (visual + storage). */
-  maBip1On = false;
-  try { sessionStorage.setItem(MA_BIP1_KEY, '0'); } catch (_) {}
+  /* Cíclica: Bip+1 soma na contagem (não grava estoque). Liga sozinho pra andar o corredor. */
+  maBip1AntesCiclica = !!maBip1On;
+  maBip1On = true;
+  try { sessionStorage.setItem(MA_BIP1_KEY, '1'); } catch (_) {}
   maBip1SyncBtn();
   maCiclicaSyncIncluirForaBtn();
   if (maCiclicaPoll) clearInterval(maCiclicaPoll);
@@ -2605,12 +2725,15 @@ function maCiclicaAtivar(sessao) {
 
 function maCiclicaSairModo() {
   maCiclicaSessao = null;
+  maCiclicaBipFila = [];
   try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
   if (maCiclicaPoll) {
     clearInterval(maCiclicaPoll);
     maCiclicaPoll = null;
   }
   maCiclicaPintarBar();
+  maBip1On = !!maBip1AntesCiclica;
+  try { sessionStorage.setItem(MA_BIP1_KEY, maBip1On ? '1' : '0'); } catch (_) {}
   maBip1SyncBtn();
   buscar(document.getElementById('busca')?.value || '');
 }
