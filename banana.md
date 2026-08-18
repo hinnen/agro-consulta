@@ -1226,24 +1226,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Repasse acumulado (`REPASSE-ACUMULADO` · **v17.20**)
+### 🚀 PREP deploy loja — Repasse acumulado (`deploy/lote-repasse-acumulado-1808` · **v17.20**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** esta branch.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Branch** | `deploy/lote-repasse-acumulado-1808` @ **937859a** (13 arquivos vs `producao` @ **3c810ba**) |
-| **O quê** | Saldo **acumulado** (+ falta levar · − crédito). **Total sugerido** = falta hoje + acumulado. **Ver acumulado** + ajuste manual (PIN). |
-| **Onde** | `/repasse-vila/` · overlay PDV Repasse |
-| **Fora** | PDV · caixa · NFC-e · financeiro · Entrada NF |
-| **Prova (18/08)** | repasse path **72** · deep **85** · planos **49** · NF reparo **35/35** · loja reparo **0** pendentes · `check` OK |
-| **Migrate** | **SIM** `0093` (0090–0092 já na loja) |
+| **Loja hoje** | ✅ Live **v17.19** · `producao` @ **3c810ba** |
+| **Pacote** | **REPASSE-ACUMULADO** só |
+| **Branch** | `deploy/lote-repasse-acumulado-1808` @ **ce1a67f** · **13 arquivos** vs produção |
+| **O quê** | Saldo **acumulado** (+ falta · − crédito). **Total sugerido** = falta hoje + acumulado. Ajuste manual (PIN). |
+| **Onde** | `/repasse-vila/` · overlay Repasse no caixa (JS `pdv_repasse_vila.js` — **não** mexe wizard PDV) |
+| **Fora** | PDV venda · caixa fechar · NFC-e · financeiro · Entrada NF · ajuste mobile |
+| **Prova (18/08 · lote isolado)** | repasse **72** · deep **85** · planos **49** · telas loja **14/14** · `check` OK |
+| **Migrate** | **SIM** `0093` (tabela nova; 0090–0092 já na loja) |
+| **Risco** | **Baixo** — só repasse; repasse antigo continua igual se não usar acumulado |
 | **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
 | **Autorizar** | *pode subir lote repasse acumulado / deploy/lote-repasse-acumulado-1808 para produção* + senha |
-| **Você** | Ctrl+F5 Repasse · badge **v17.20** |
+| **Depois do Live** | Ctrl+F5 `/repasse-vila/` · badge **v17.20** · conferir acumulado + total sugerido |
 
 ### ✅ CHECKLIST ÚNICO — produção (18/08)
-
-> **Loja hoje:** ✅ **Live v17.19** · `producao` @ **3c810ba**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1251,7 +1256,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Operação (sem deploy) | Status |
 | --------------------- | ------ |
-| **NF-VINCULO-REPARO** `--aplicar` | ✅ **33** nomes · dry-run **0** |
+| **NF-VINCULO-REPARO** | ✅ **33** nomes · dry-run **0** |
 
 ### ✅ Deploy loja — lote 18/08e (`deploy/lote-checklist-1808e` · **v17.19**) · **Live**
 
