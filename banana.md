@@ -1229,39 +1229,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**)
-
-> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808m`.
+### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.30** · `producao` @ **1036967** |
-| **Branch** | `deploy/lote-checklist-1808m` @ **453c041** · **10 arquivos** vs produção |
-| **Fora** | PDV venda/wizard · caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos |
-| **Prova** | BI-clique **10/10** · path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · 15 telas 200 · PDV rações OK · fechar caixa **28/28** · `check` OK · diff **0** PDV/caixa/NF |
+| **Status** | ✅ **enviado / Live v17.42** · `producao` @ **453c041** |
+| **Pacotes** | **BI-VAL-CLIQUE** · **REPASSE-ACUM-NET** |
 | **Migrate** | **NÃO** |
-| **Risco** | **Baixo** — link Validade no BI + conta do acumulado no repasse |
-| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08m / deploy/lote-checklist-1808m para produção* + senha |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** + frase + senha |
+| **Você** | **Ctrl+F5** em `/` (Validade = Todas + vencidos) · `/repasse-vila/` · badge **17.42** |
 
 | Pacote | O quê | Você valida |
 | ------ | ----- | ----------- |
 | **BI-VAL-CLIQUE** | Conferir vencidos abre **Todas (C+V)** + só vencidos | `/` · filtro Centro · clicar Validade |
-| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` · Ctrl+F5 |
+| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08m · teste **v17.42**)
+### ~~🚀 PREP deploy loja — lote 18/08m~~ · **superado — Live v17.42**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (18/08m · loja **v17.42**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-CLIQUE** | 🚀 **pronto para envio à produção** | não |
-| 2 | **REPASSE-ACUM-NET** | 🚀 **pronto para envio à produção** | não |
+| 1 | **BI-VAL-CLIQUE** | ✅ **enviado / Live v17.42** | não |
+| 2 | **REPASSE-ACUM-NET** | ✅ **enviado / Live v17.42** | não |
 
-### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **ver PREP 1808m no topo**
+### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **Live v17.42**
 
-### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **ver PREP 1808m no topo**
+### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **Live v17.42**
 
 ### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
 
