@@ -1225,6 +1225,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.16**)
+
+> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.09** · `producao` @ **3b45abf** |
+| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando só lista; `--aplicar` **depois** do Live) |
+| **Branch** | `deploy/lote-checklist-1708d` (isolada da loja; **não** é `teste`) |
+| **Fora** | PDV wizard · caixa · NFC-e · financeiro · Point Vila · cíclica Bip+1 |
+| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha |
+| **Depois do Live** | **Ctrl+F5** `/entrada-nota/` · badge **v17.16** · reparo dos 33 nomes com `--aplicar` (não roda sozinho) |
+
 ### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.17**)
 
 | Item | Detalhe |
@@ -1235,16 +1254,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → Bip +1 ON · bipar |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (17/08d)
+### ✅ CHECKLIST ÚNICO — 17/08d · **PREP pronto — aguarda senha** (`deploy/lote-checklist-1708d` · **v17.16**)
 
 > **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> **Não** merge `teste`→`producao`. Isolar na hora do envio. **Fora deste lote:** Point Vila (falta token).
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`. **Fora deste lote:** Point Vila (falta token) · cíclica Bip+1.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NF-BIP-ET3-SNAP** | ✅ pronto para envio | não |
-| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | ✅ pronto para envio | não |
-| 3 | **NF-VINCULO-REPARO** | ✅ pronto para envio | não |
+| 1 | **NF-BIP-ET3-SNAP** | 🚀 PREP — aguarda senha | não |
+| 2 | **NF-VINCULO-NAO-SOBRESCREVE** | 🚀 PREP — aguarda senha | não |
+| 3 | **NF-VINCULO-REPARO** | 🚀 PREP — aguarda senha | não |
 
 ### 📦 PACOTE PRONTO — Entrada NF cadastro + etapa 3 (`v17.16`)
 
@@ -1256,9 +1275,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · teste **v17.16** · loja **v17.09** |
+| **Status** | 🚀 **PREP pronto — aguarda senha** · branch `deploy/lote-checklist-1708d` · loja **v17.09** |
 | **Migrate** | **NÃO** |
-| **Você** | Local: Ctrl+F5 `/entrada-nota/` · casar no **Mudar** · nome do cadastro igual. Loja: frase + senha · depois eu corro o reparo dos 33. |
+| **Você** | Próximo chat: lojas pausam vendas · *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Depois: Ctrl+F5 `/entrada-nota/` · reparo 33 com `--aplicar`. |
 
 ### 📦 PACOTE — Point MP Vila (`MP-POINT-VILA` · **v17.13**) · **não sobe neste lote**
 
