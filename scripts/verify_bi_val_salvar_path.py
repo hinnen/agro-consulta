@@ -236,7 +236,7 @@ def test_bi_por_loja() -> None:
     # cache key v6 (BI unificado)
     from produtos.views import VALIDADE_DASHBOARD_CACHE_KEY
 
-    check("v6" in VALIDADE_DASHBOARD_CACHE_KEY, "cache key v6")
+    check("v7" in VALIDADE_DASHBOARD_CACHE_KEY, "cache key v7")
 
     from produtos.views import _contagem_validade_dashboard_lotes_agro_compute
 

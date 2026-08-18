@@ -48,6 +48,7 @@
     <div class="min-w-0">
       <p class="text-[10px] font-black uppercase tracking-[0.24em] text-orange-500">Perecíveis</p>
       <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-white">Relatório de validade</h1>
+      <p class="mt-1 text-[11px] font-semibold text-slate-400">Dar baixa vale só nesta loja ({{ deposito_baixa_label }}). A outra continua vendo até conferir.</p>
     </div>
     <div class="relative z-30 flex flex-wrap items-center justify-end gap-2 overflow-visible">
       {% with rel_help="validade" %}{% include "produtos/includes/relatorios_help_agents.html" %}{% endwith %}
@@ -230,10 +231,17 @@
             {% if pode_editar_validade %}
             <td class="no-print w-[6.75rem] min-w-[6.75rem] align-top">
               <div class="flex w-full min-w-0 flex-col gap-0.5">
-                {% if p.lote_id %}
-                <button type="button" class="rv-baixa flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-red-600 bg-red-700 px-2 text-[10px] font-black uppercase leading-none text-white hover:bg-red-600 sm:min-h-[40px] sm:px-2 sm:text-xs" title="Baixa por vencimento — registra motivo «Vencimento em Loja»">Dar baixa</button>
+                {% if p.lote_id and p.baixado_nesta_loja %}
+                <span class="block min-h-[38px] rounded border border-emerald-800/80 bg-emerald-950/40 px-1 py-1 text-center text-[9px] font-black uppercase leading-tight text-emerald-400">Conferido aqui</span>
+                {% elif p.lote_id %}
+                <button type="button" class="rv-baixa flex w-full min-h-[38px] items-center justify-center whitespace-nowrap rounded border-2 border-red-600 bg-red-700 px-2 text-[10px] font-black uppercase leading-none text-white hover:bg-red-600 sm:min-h-[40px] sm:px-2 sm:text-xs" title="Baixa só nesta loja — a outra continua vendo até conferir">Dar baixa</button>
                 {% else %}
                 <span class="block min-h-[38px] rounded border border-slate-700/80 bg-slate-900/40 px-1 py-1 text-center text-[9px] font-bold leading-tight text-slate-600" title="Sem linha de lote Agro nesta linha">—</span>
+                {% endif %}
+                {% if p.baixado_centro and deposito_baixa == 'vila' %}
+                <span class="block text-center text-[9px] font-bold text-slate-500">Centro já conferiu</span>
+                {% elif p.baixado_vila and deposito_baixa == 'centro' %}
+                <span class="block text-center text-[9px] font-bold text-slate-500">Vila já conferiu</span>
                 {% endif %}
                 <span class="rv-msg-baixa block min-h-[1em] text-center text-[9px] font-bold leading-tight text-slate-500" aria-live="polite"></span>
               </div>
@@ -618,7 +626,7 @@
           rowMsgBaixa(trb, 'Sem lote Agro.', false);
           return;
         }
-        if (!window.confirm('Dar baixa neste lote? O estoque operacional será reduzido e o motivo «Vencimento em Loja» ficará registrado.')) return;
+        if (!window.confirm('Dar baixa só nesta loja ({{ deposito_baixa_label|escapejs }})? O estoque desta loja será reduzido. A outra loja continua vendo até conferir.')) return;
         rowMsgBaixa(trb, '…', null);
         fetch(apiBaixa, {
           method: 'POST',
@@ -627,14 +635,14 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': csrf()
           },
-          body: JSON.stringify({ lote_id: parseInt(lid, 10) })
+          body: JSON.stringify({ lote_id: parseInt(lid, 10), deposito: "{{ deposito_baixa|escapejs }}" })
         }).then(function (r) {
           if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
           return r.json();
         }).then(function (j) {
           if (!j.ok) throw new Error(j.erro || 'Falha na baixa');
           if (j.aviso) rowMsgBaixa(trb, j.aviso, 'warn');
-          else rowMsgBaixa(trb, 'Baixa registrada.', true);
+          else rowMsgBaixa(trb, j.mensagem || 'Baixa registrada.', true);
           window.setTimeout(function () { window.location.reload(); }, j.aviso ? 900 : 450);
         }).catch(function (err) {
           rowMsgBaixa(trb, err.message || 'Erro', false);

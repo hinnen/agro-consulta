@@ -1733,6 +1733,18 @@ class EstoqueLote(models.Model):
         db_index=True,
         help_text="centro | vila — loja onde a entrada NF lançou o estoque; vazio = não definido.",
     )
+    baixado_centro_em = models.DateTimeField(
+        "Baixa validade Centro",
+        null=True,
+        blank=True,
+        help_text="Quando o Centro conferiu/baixou este lote. A Vila continua vendo até baixar.",
+    )
+    baixado_vila_em = models.DateTimeField(
+        "Baixa validade Vila",
+        null=True,
+        blank=True,
+        help_text="Quando a Vila conferiu/baixou este lote. O Centro continua vendo até baixar.",
+    )
     data_entrada = models.DateTimeField(auto_now_add=True)
 
     class Meta:

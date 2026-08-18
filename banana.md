@@ -397,7 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
-- **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
+- **Card Validade BI (18/08):** vencidos iguais nas 3 lojas **até** alguém baixar; baixa só cai o contador **daquela** loja. Clique **Conferir vencidos** abre **Todas + vencidos**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
@@ -1230,6 +1230,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-VAL-BAIXA-LOJA** | 🟡 **pronto para envio** | **SIM 0096** |
+| 2 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
+| 3 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
+
+### 📦 PACOTE PRONTO LOJA — baixa validade por loja (`BI-VAL-BAIXA-LOJA`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Centro conferiu/baixou vencido → **Vila continua vendo** até conferir lá. Estoque só da loja que baixou. Lote some só quando as **duas** conferiram. |
+| **Por quê** | Antes «Dar baixa» apagava o lote para todo mundo e zerava o card da Vila |
+| **Migrate** | **SIM** `0096_estoque_lote_baixa_por_loja` |
+| **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
+| **Prova** | baixa-loja **26/26** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
+| **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
+| **Autorizar** | *pode subir BI-VAL-BAIXA-LOJA para produção* + **99738595** |
+
 ### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`)
 
 | Item | Detalhe |
@@ -1241,13 +1261,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova (18/08)** | path 115/115 · reserva **70/70** · deep 95/95 · acum-net 28/28 · planos 49/49 |
 | **Você** | Ctrl+F5 `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
 | **Loja** | ✅ **pronto para envio à produção** — só com frase + senha |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08n)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
-| 2 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
 
 ### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`)
 
