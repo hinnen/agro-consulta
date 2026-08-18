@@ -1247,7 +1247,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0096_estoque_lote_baixa_por_loja` |
 | **Commit** | **21d9c65** · teste **v17.50** · loja ainda **v17.42** |
 | **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
-| **Prova** | baixa-loja **26/26** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
+| **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
 | **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
 | **Autorizar** | *pode subir BI-VAL-BAIXA-LOJA para produção* + **99738595** |
 
