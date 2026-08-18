@@ -1228,39 +1228,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+### 🚀 PREP deploy loja — lote 18/08i (`deploy/lote-checklist-1808i` · **v17.27**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808i`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.24** · `producao` @ **5660d74** (MP-POINT-VILA) |
+| **Branch** | `deploy/lote-checklist-1808i` @ **060b300** · **31 arquivos** vs produção |
+| **Fora** | PDV venda/wizard · caixa fechar · NFC-e SEFAZ · Entrada NF · cadastro/planilha |
+| **Prova (18/08 · lote isolado)** | repasse **84+88** · focus **66** · bip1 **48** · UX **17** · cíclica **78** · DRE chart OK · transf UX OK · telas **14/14** · `check` OK |
+| **Migrate** | **SIM** `0094` (repasse cache delta) · demais **não** |
+| **Risco** | **Baixo** — telas tocadas isoladas; PDV/checkout/caixa/NF intactos no diff |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808i-v17.24` @ **5660d74** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08i / deploy/lote-checklist-1808i para produção* + senha |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **REPASSE-ACUMULADO-FIX** | Quita acumulado ao transferir · **zerar acumulado** (PIN) · abre rápido | `/repasse-vila/` |
+| **AJUSTE-CICLICA-HERO** | Último bip **grande** · já contados **estreito** · **⋯** controles | `/ajuste-mobile/` cíclica |
+| **DRE-SALDO-DIARIO** | Gráfico saldo dia a dia + **Planos gasto** | `/financeiro/resumo-gerencial/` |
+| **TRANSF-FORCADA-UX** | Popup direção · layout invertido C→Vila | `/transferencias/` forçada |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08i)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CICLICA-HERO** | ✅ **pronto para envio à produção** | não |
-| 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
-| 3 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
-| 4 | **REPASSE-ACUMULADO-FIX** | ✅ **pronto para envio à produção** | **SIM** 0094 |
+| 1 | **AJUSTE-CICLICA-HERO** | 🚀 **pronto para envio à produção** | não |
+| 2 | **DRE-SALDO-DIARIO** | 🚀 **pronto para envio à produção** | não |
+| 3 | **TRANSF-FORCADA-UX** | 🚀 **pronto para envio à produção** | não |
+| 4 | **REPASSE-ACUMULADO-FIX** | 🚀 **pronto para envio à produção** | **SIM** 0094 |
 
-Loja hoje: ✅ Live **v17.24**. Não sobe sem frase + senha.
+Loja hoje: ✅ Live **v17.24**. **Não sobe** sem pausar vendas + frase + senha.
 
-### 📦 PACOTE PRONTO — Repasse acumulado fix (`REPASSE-ACUMULADO-FIX` · **v17.26**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **Tela** | `/repasse-vila/` + overlay PDV |
-| **Bug Renan** | Transferiu acumulado mas sistema continuava pedindo o mesmo valor · tela lenta |
-| **Fix** | Cache delta dia (0094) · página abre sem recalcular 180 dias · ao transferir com acumulado **quita sozinho** · botão **zerar acumulado** (PIN) |
-| **Migrate** | **SIM** `0094` |
-| **Prova** | path **84/84** · deep **88/88** |
-| **Você (loja)** | Ctrl+F5 `/repasse-vila/` · **Ver acumulado** → **zerar acumulado** (PIN) se dinheiro já foi antes da ferramenta |
-
-### 📦 PACOTE PRONTO — Cíclica último bip em destaque (`AJUSTE-CICLICA-HERO` · **v17.25**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **Tela** | `/ajuste-mobile/` (cíclica) |
-| **O quê** | Durante a contagem: **só busca grande + lista**. Último bip **card grande no topo**. Já contados em **linha estreita**. Botão **⋯** = Fechar P1 / Gravar / Cancelar. |
-| **Migrate** | **NÃO** |
-| **Prova** | focus path **66/66** · bip1 **48** · UX **17** · cíclica **78** · deep **32** · `check` OK |
-| **Você** | Ctrl+F5 `/ajuste-mobile/` · cíclica corredor · bipar 2 produtos: último grande em cima, o outro estreito |
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08)~~ · **superado — fila lote 1808i**
 
 ### ✅ Deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **Live**
 
@@ -1280,9 +1284,9 @@ Loja hoje: ✅ Live **v17.24**. Não sobe sem frase + senha.
 | - | ------ | ------ | ------- |
 | 1 | **MP-POINT-VILA** | ✅ **enviado / Live v17.24** | não |
 
-| Fora deste lote (ainda só no `teste`) | Status |
-| ------------------------------------ | ------ |
-| **AJUSTE-CICLICA-HERO** · **DRE-SALDO-DIARIO** · **TRANSF-FORCADA-UX** | ver **CHECKLIST ÚNICO** no topo |
+| Fora deste lote (fila **1808i**) | Status |
+| -------------------------------- | ------ |
+| **AJUSTE-CICLICA-HERO** · **DRE-SALDO-DIARIO** · **TRANSF-FORCADA-UX** · **REPASSE-ACUMULADO-FIX** | 🚀 PREP **1808i** @ **060b300** |
 
 ### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08h)~~ · **superado — Live v17.24**
 
