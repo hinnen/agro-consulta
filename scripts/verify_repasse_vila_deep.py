@@ -46,6 +46,7 @@ from produtos.repasse_vila_util import (
     registrar_ajuste_acumulado,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
+    salvar_reserva_vila,
     texto_aviso_abertura,
 )
 
@@ -92,6 +93,22 @@ def main() -> int:
     ok("clamp -5->0") if float(cfg.percentual_lucro_padrao) == 0.0 else fail("clamp -5")
     cfg = salvar_percentual_padrao(50, operador="bot")
     ok("clamp 50") if float(cfg.percentual_lucro_padrao) == 50.0 else fail("clamp 50")
+
+    res_antes = cfg.reserva_vila
+    cfg = salvar_reserva_vila(-8, operador="bot")
+    ok("reserva clamp neg") if float(cfg.reserva_vila) == 0.0 else fail("reserva neg")
+    cfg = salvar_reserva_vila(200, operador="bot")
+    ok("reserva 200") if float(cfg.reserva_vila) == 200.0 else fail("reserva 200")
+    calc_res = calcular_disponivel(hoje)
+    if "reserva_vila" in calc_res and "total_sugerido_bruto" in calc_res:
+        ok("calc tem reserva")
+        bruto = Decimal(str(calc_res["total_sugerido_bruto"]))
+        sug = Decimal(str(calc_res["total_sugerido"]))
+        esperado = max(Decimal("0.00"), (bruto - Decimal("200.00")).quantize(Decimal("0.01")))
+        ok("reserva desconta sugerido") if sug == esperado else fail(f"sug={sug} esperado={esperado} bruto={bruto}")
+    else:
+        fail("calc sem reserva/total_sugerido_bruto")
+    salvar_reserva_vila(res_antes, operador="bot")
 
     c_cent, c_vila = partir_despesas_centro_vila(
         {"Alimentação": Decimal("80.00"), "Combustível Strada": Decimal("20.00")},
@@ -664,6 +681,7 @@ def main() -> int:
         "produtos/templates/produtos/includes/repasse_help_agents.html",
         "produtos/migrations/0087_repasse_vila_centro.py",
         "produtos/migrations/0093_repasse_vila_acumulado_ajuste.py",
+        "produtos/migrations/0095_repasse_vila_reserva.py",
     ):
         ok(f"file {rel}") if (ROOT / rel).exists() else fail(f"missing {rel}")
 

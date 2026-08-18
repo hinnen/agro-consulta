@@ -1230,6 +1230,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Valor fixo **fica na Vila** desconta do envio · opções recolhidas · dias 1–15 / 16–31 |
+| **Onde** | `/repasse-vila/` + overlay PDV · PG `RepasseVilaConfigAgro.reserva_vila` |
+| **Migrate** | **SIM** `0095_repasse_vila_reserva` |
+| **Você** | PC local: `migrate` · Ctrl+F5 em `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
+| **Loja** | **não enviado** — só com frase + senha |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08n)
 
 | # | Pacote | Status | Migrate |
@@ -1240,11 +1250,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Gráfico do rodapé **não trava mais** em «carregando» · 1 leitura do período (não 1 DRE por dia) · mesma conta do Lucro Líquido do BI |
+| **O quê** | Gráfico do rodapé **não trava** em «carregando» · 1 leitura do período · barras = lucro líquido/dia (conta do BI) |
 | **Tela** | `/financeiro/resumo-gerencial/` |
+| **Commit** | `12b6ff7` · **v17.45** |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_dre_saldo_diario_chart` · ~760ms · acum. ≈ BI |
-| **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) |
+| **Prova (18/08)** | verify chart 16/16 · CMV 55/55 · visual 232/232 · `check` OK · **436ms** · BI bruto/pago/Centro/Vila **match** (≤ R$ 0,02) |
+| **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) · **Lucro acum.** ≈ card do BI |
 
 ### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 

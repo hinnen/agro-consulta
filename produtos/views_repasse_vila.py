@@ -31,6 +31,7 @@ from produtos.repasse_vila_util import (
     registrar_ajuste_acumulado,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
+    salvar_reserva_vila,
     serializar_repasse,
     validar_data_ref_repasse,
 )
@@ -82,6 +83,7 @@ def repasse_vila_view(request):
         "produtos/repasse_vila.html",
         {
             "percentual_padrao": cfg.percentual_lucro_padrao,
+            "reserva_padrao": cfg.reserva_vila,
             "planos_repasse": listar_planos_repasse_config(cfg),
             "calc": calc,
             "hist": hist,
@@ -214,6 +216,7 @@ def api_repasse_vila_config(request):
             {
                 "ok": True,
                 "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+                "reserva_vila": float(cfg.reserva_vila),
                 "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
                 "planos": listar_planos_repasse_config(cfg),
                 "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else "",
@@ -224,6 +227,7 @@ def api_repasse_vila_config(request):
     if not payload and request.POST:
         payload = {
             "percentual_lucro_padrao": request.POST.get("percentual_lucro_padrao"),
+            "reserva_vila": request.POST.get("reserva_vila"),
             "operador": request.POST.get("operador"),
         }
     op = str(payload.get("operador") or "").strip()
@@ -236,6 +240,13 @@ def api_repasse_vila_config(request):
         except Exception:
             return JsonResponse({"ok": False, "erro": "Porcentagem inválida"}, status=400)
         cfg = salvar_percentual_padrao(pct, operador=op)
+    if "reserva_vila" in payload:
+        raw_res = payload.get("reserva_vila")
+        try:
+            reserva = Decimal(str(raw_res or "0").replace(",", "."))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Valor que fica na Vila inválido"}, status=400)
+        cfg = salvar_reserva_vila(reserva, operador=op)
     if "planos_desconto_centro" in payload:
         raw = payload.get("planos_desconto_centro")
         if raw is None:
@@ -251,6 +262,7 @@ def api_repasse_vila_config(request):
         {
             "ok": True,
             "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
+            "reserva_vila": float(cfg.reserva_vila),
             "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
             "planos": listar_planos_repasse_config(cfg),
         }
@@ -284,6 +296,7 @@ def api_repasse_vila_meta(request):
             "caixa_aberto": bool(caixa),
             "caixa_vila_aberto": bool(vila),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
+            "reserva_vila": float(cfg.reserva_vila),
             "funcionarios": funcionarios,
             "formas_pagamento": formas,
             "calc": calc,

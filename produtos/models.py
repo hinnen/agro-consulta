@@ -2832,6 +2832,12 @@ class RepasseVilaConfigAgro(models.Model):
         help_text="Nomes de plano de conta que descontam do lucro enviado ao Centro. "
         "Os demais descontam do que ficou na Vila.",
     )
+    reserva_vila = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Valor fixo que fica na Vila (troco) e desconta do envio ao Centro.",
+    )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
 
