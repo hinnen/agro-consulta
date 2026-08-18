@@ -1243,8 +1243,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Por quê** | Com Centro no BI, a lista sumia (só estoque da loja) |
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só o link do card |
-| **Prova** | `verify_bi_val_unificado_path.py` · `verify_bi_val_salvar_path.py` |
-| **Você** | Ctrl+F5 `/` · filtro **Centro** · clicar **Conferir vencidos** → lista com os 2 · Loja = Todas |
+| **Prova** | unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** (`scripts/verify_bi_val_*` · `verify_validade_bi.py`) |
+| **Commit** | **4f7d83f** · teste **v17.37** · loja ainda **v17.30** |
+| **Você** | Ctrl+F5 `/` · filtro **Centro** · **Conferir vencidos** → Todas + vencidos (lista com os 2) |
 | **Autorizar** | *pode subir BI-VAL-CLIQUE para produção* + **99738595** |
 
 ### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
