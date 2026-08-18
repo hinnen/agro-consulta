@@ -27,6 +27,7 @@ from produtos.repasse_vila_util import (
     listar_planos_repasse_config,
     nomes_planos_desconto_centro,
     obter_config,
+    quitar_acumulado_zerar,
     registrar_ajuste_acumulado,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
@@ -73,7 +74,7 @@ def _parse_date(raw) -> date | None:
 def repasse_vila_view(request):
     cfg = obter_config()
     hoje = timezone.localdate()
-    calc = calcular_disponivel(hoje)
+    calc = calcular_disponivel(hoje, _skip_acumulado=True)
     hist = historico_mes(hoje.year, hoje.month)
     url_pdv = reverse("pdv_home") + "?repasse=1"
     return render(
@@ -174,6 +175,37 @@ def api_repasse_vila_acumulado_ajuste(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_acumulado_zerar(request):
+    """Zera acumulado — dinheiro já transferido antes da ferramenta."""
+    payload = _payload(request) or {}
+    pin = str(payload.get("pin") or "").strip()
+    operador = str(payload.get("operador") or "").strip()
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return JsonResponse({"ok": False, "erro": err_pin or label or "PIN inválido"}, status=400)
+        operador = label or operador
+
+    dia = _parse_date(payload.get("data_calc")) or timezone.localdate()
+    obs = str(payload.get("observacao") or "").strip()
+    adj, err = quitar_acumulado_zerar(
+        dia,
+        observacao=obs or "Transferido antes da ferramenta / zerado manualmente",
+        operador=operador,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "ajuste": {"id": adj.pk, "valor": float(adj.valor)},
+            "acumulado": listar_acumulado_detalhe(dia),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
 @require_http_methods(["GET", "POST"])
 def api_repasse_vila_config(request):
     if request.method == "GET":
@@ -242,7 +274,7 @@ def api_repasse_vila_meta(request):
         ap = (getattr(f, "apelido_interno", None) or "").strip()
         label = f"{nome} ({ap})" if ap else nome
         funcionarios.append({"id": f.pk, "nome": label})
-    calc = calcular_disponivel(timezone.localdate())
+    calc = calcular_disponivel(timezone.localdate(), _skip_acumulado=True)
     from produtos.caixa_util import FORMAS_PAGAMENTO_CAIXA
 
     formas = [f for f in FORMAS_PAGAMENTO_CAIXA if f not in ("Fiado", "Vale crédito", "Cashback")]

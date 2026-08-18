@@ -2941,6 +2941,14 @@ class RepasseVilaAcumuladoAjusteAgro(models.Model):
         db_index=True,
         help_text="Dia de referência opcional (só registro).",
     )
+    repasse = models.ForeignKey(
+        "RepasseVilaCentroAgro",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ajustes_acumulado",
+        help_text="Repasse que quitou parte do acumulado (automático).",
+    )
     criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -2950,3 +2958,21 @@ class RepasseVilaAcumuladoAjusteAgro(models.Model):
 
     def __str__(self):
         return f"Ajuste acumulado {self.valor} · {self.criado_em:%d/%m/%Y}"
+
+
+class RepasseVilaDeltaDiaAgro(models.Model):
+    """Cache — delta diário (alvo físico − enviado) para acumulado rápido."""
+
+    data_ref = models.DateField(unique=True, db_index=True)
+    alvo_fisico = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    enviado = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    delta = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Repasse Vila · delta dia (cache)"
+        verbose_name_plural = "Repasse Vila · deltas dia (cache)"
+        ordering = ["-data_ref"]
+
+    def __str__(self):
+        return f"Delta {self.data_ref} · {self.delta}"
