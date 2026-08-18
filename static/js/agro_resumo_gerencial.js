@@ -1199,11 +1199,11 @@
     if (!sec || !host) return;
 
     if (!payload || !payload.ok || !payload.dias || !payload.dias.length) {
-      sec.classList.add("hidden");
+      sec.classList.remove("hidden");
       destroyRgSaldoChart();
       if (errEl) {
         errEl.textContent =
-          (payload && payload.detail) || "Sem dados para o gráfico de saldo.";
+          (payload && payload.detail) || "Sem dados para o gráfico de lucro.";
         errEl.classList.remove("hidden");
       }
       return;
@@ -1357,10 +1357,19 @@
     var sec = document.getElementById("sec-saldo-diario");
     rgSaldoSetLoading(true);
     if (sec) sec.classList.remove("hidden");
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer =
+      ctrl &&
+      setTimeout(function () {
+        try {
+          ctrl.abort();
+        } catch (e3) {}
+      }, 25000);
     try {
       var q = qBase + "&contas=resultado";
       var r = await fetch("/api/financeiro/saldo-diario-mes?" + q, {
         credentials: "same-origin",
+        signal: ctrl ? ctrl.signal : undefined,
       });
       if (!r.ok) {
         var ej = {};
@@ -1377,8 +1386,15 @@
       renderRgSaldoDiario(data);
     } catch (e) {
       if (sec) sec.classList.remove("hidden");
-      renderRgSaldoDiario({ ok: false, detail: "Falha ao carregar gráfico de saldo." });
+      var aborted = e && (e.name === "AbortError" || e.message === "The user aborted a request.");
+      renderRgSaldoDiario({
+        ok: false,
+        detail: aborted
+          ? "Gráfico demorou demais. Atualize (F5)."
+          : "Falha ao carregar gráfico de lucro.",
+      });
     } finally {
+      if (timer) clearTimeout(timer);
       rgSaldoSetLoading(false);
     }
   }
