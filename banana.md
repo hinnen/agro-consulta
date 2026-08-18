@@ -1229,41 +1229,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08 · teste **v17.42**)
+### 🚀 PREP deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808m`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.30** · `producao` @ **1036967** |
+| **Branch** | `deploy/lote-checklist-1808m` @ **453c041** · **10 arquivos** vs produção |
+| **Fora** | PDV venda/wizard · caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos |
+| **Prova** | BI-clique **10/10** · path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · 15 telas 200 · PDV rações OK · fechar caixa **28/28** · `check` OK · diff **0** PDV/caixa/NF |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — link Validade no BI + conta do acumulado no repasse |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08m / deploy/lote-checklist-1808m para produção* + senha |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **BI-VAL-CLIQUE** | Conferir vencidos abre **Todas (C+V)** + só vencidos | `/` · filtro Centro · clicar Validade |
+| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` · Ctrl+F5 |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08m · teste **v17.42**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-CLIQUE** | ✅ **pronto para envio à produção** | não |
-| 2 | **REPASSE-ACUM-NET** | ✅ **pronto para envio à produção** | não |
+| 1 | **BI-VAL-CLIQUE** | 🚀 **pronto para envio à produção** | não |
+| 2 | **REPASSE-ACUM-NET** | 🚀 **pronto para envio à produção** | não |
 
-Loja hoje: ✅ Live **v17.30**. Não sobe sem frase + senha.
+### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **ver PREP 1808m no topo**
 
-### 📦 PACOTE PRONTO — Repasse não pede acumulado já enviado (`REPASSE-ACUM-NET` · **v17.42**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **O quê** | Dinheiro já levado **abate** o acumulado na hora — não pede o mesmo valor de novo |
-| **Tela** | `/repasse-vila/` + overlay PDV |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só a conta do total a levar |
-| **Prova** | path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · `check` OK |
-| **Você** | Ctrl+F5 `/repasse-vila/` · acumulado e total a levar **sem** o valor já transferido |
-| **Autorizar** | *pode subir REPASSE-ACUM-NET para produção* + **99738595** |
-
-### 📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas (`BI-VAL-CLIQUE` · **v17.37+**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
-| **O quê** | «Conferir vencidos» no BI abre relatório **Todas (C+V)** + **só vencidos** — não herda Centro/Vila do filtro Números |
-| **Por quê** | Com Centro no BI, a lista sumia (só estoque da loja) |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só o link do card |
-| **Prova** | unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** (`scripts/verify_bi_val_*` · `verify_validade_bi.py`) |
-| **Commit** | fix **4f7d83f** · prova **ba1573b** · teste **v17.40** · loja **v17.30** |
-| **Você** | Ctrl+F5 `/` · filtro **Centro** · **Conferir vencidos** → Todas + vencidos (lista com os 2) |
-| **Autorizar** | *pode subir BI-VAL-CLIQUE para produção* + **99738595** |
+### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **ver PREP 1808m no topo**
 
 ### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
 
