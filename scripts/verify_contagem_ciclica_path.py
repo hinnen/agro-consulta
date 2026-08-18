@@ -109,6 +109,9 @@ check(
     "qtd_contada",
     "maEscolherProduto",
     "is-qtd",
+    "maPintarCiclicaFocus",
+    "ma-card--ultimo",
+    "maCiclicaAplicarQtdLocal",
 )
 check(
     "produtos/pg_backup_registry.py",

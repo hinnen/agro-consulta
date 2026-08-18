@@ -57,6 +57,10 @@ check(
     "keepBusy",
     "maEscolherProduto",
     "qtd_contada",
+    "maPintarCiclicaFocus",
+    "ma-card--ultimo",
+    "min-height: 4.85rem",
+    "Cíclica · bipar",
     label="mobile_ajuste.html",
 )
 
@@ -130,6 +134,10 @@ try:
         "ma-ciclica-focus",
         "ma-ciclica-fab-ctrl",
         "maCiclicaSyncFocusUi",
+        "maPintarCiclicaFocus",
+        "ma-card--ultimo",
+        "ma-card--feito",
+        "Último bip",
         "formatsToSupport",
         "ma-dep-modal",
         "ma-pick",

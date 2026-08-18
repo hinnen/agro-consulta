@@ -622,7 +622,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
 - **Transferência forçada — layout C→Vila (18/08):** ao escolher **Centro → Vila**, modal inverte colunas (carrinho à esquerda, busca à direita); **Vila → C** mantém layout original.
 - **Transferência forçada — popup direção (18/08):** botão **Forçada Vila↔C** abre popup «Vila → Centro» / «Centro → Vila» antes da tela; sem toggle no cabeçalho.
-- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08 · **Live v17.21**):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional. **Modo foco:** durante cíclica, só busca grande + lista; **⋯** abre controles.
+- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08 · **hero 18/08 · teste v17.25**):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**. **Modo foco:** só busca grande + lista; **último bip** em destaque no topo; já contados em linha estreita; **⋯** abre controles.
 
 ### 4.9 Compras
 
@@ -1228,6 +1228,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AJUSTE-CICLICA-HERO** | ✅ **pronto para envio à produção** | não |
+| 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
+| 3 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
+
+Loja hoje: ✅ Live **v17.24**. Não sobe sem frase + senha.
+
+### 📦 PACOTE PRONTO — Cíclica último bip em destaque (`AJUSTE-CICLICA-HERO` · **v17.25**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **Tela** | `/ajuste-mobile/` (cíclica) |
+| **O quê** | Durante a contagem: **só busca grande + lista**. Último bip **card grande no topo**. Já contados em **linha estreita**. Botão **⋯** = Fechar P1 / Gravar / Cancelar. |
+| **Migrate** | **NÃO** |
+| **Prova** | focus path **66/66** · bip1 **48** · UX **17** · cíclica **78** · deep **32** · `check` OK |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · cíclica corredor · bipar 2 produtos: último grande em cima, o outro estreito |
+
 ### ✅ Deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **Live**
 
 | Item | Detalhe |
@@ -1248,8 +1269,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Fora deste lote (ainda só no `teste`) | Status |
 | ------------------------------------ | ------ |
-| **TRANSF-FORCADA-UX** | ✅ pronto para envio |
-| **DRE-SALDO-DIARIO** | ✅ pronto para envio |
+| **AJUSTE-CICLICA-HERO** · **DRE-SALDO-DIARIO** · **TRANSF-FORCADA-UX** | ver **CHECKLIST ÚNICO** no topo |
 
 ### ~~✅ CHECKLIST ÚNICO — pronto para envio (18/08h)~~ · **superado — Live v17.24**
 
