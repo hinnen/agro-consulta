@@ -26,7 +26,7 @@ def check(path: str, *needles: str) -> None:
 
 check("produtos/caixa_util.py", "filtrar_maquininhas_por_loja", "filtrar_maquininhas_pdv_sem_mp")
 check("pdv/views.py", "mp_vila", "pix_mp_vila", "pix_sicoob_chave", "filtrar_maquininhas_por_loja", "lojas")
-check("produtos/repasse_vila_util.py", "ja_eletronico", "falta_dinheiro", "_ja_eletronico_vila", "validar_data_ref_repasse", "lucro_ficou_vila", "_receita_e_cmv_vila_periodo", "partir_despesas_centro_vila", "planos_desconto_centro", "acumulado_anterior", "listar_acumulado_detalhe", "RepasseVilaAcumuladoAjusteAgro", "RepasseVilaDeltaDiaAgro", "quitar_acumulado_zerar", "_quitar_acumulado_no_repasse")
+check("produtos/repasse_vila_util.py", "ja_eletronico", "falta_dinheiro", "_ja_eletronico_vila", "validar_data_ref_repasse", "lucro_ficou_vila", "_receita_e_cmv_vila_periodo", "partir_despesas_centro_vila", "planos_desconto_centro", "acumulado_anterior", "listar_acumulado_detalhe", "RepasseVilaAcumuladoAjusteAgro", "RepasseVilaDeltaDiaAgro", "quitar_acumulado_zerar", "abater_extras_do_acumulado", "_extra_do_calc")
 check("produtos/views_repasse_vila.py", "repasse_vila_view", "api_repasse_vila_confirmar", "formas_pagamento", "validar_data_ref_repasse", "salvar_planos_desconto_centro", "api_repasse_vila_acumulado", "api_repasse_vila_acumulado_zerar", "_skip_acumulado")
 check("produtos/urls.py", "repasse_vila", "api/repasse-vila/confirmar/", "api/repasse-vila/acumulado/", "api/repasse-vila/acumulado/zerar/")
 check("produtos/models.py", "RepasseVilaCentroAgro", "RepasseVilaConfigAgro", "planos_desconto_centro", "RepasseVilaAcumuladoAjusteAgro", "RepasseVilaDeltaDiaAgro")
@@ -38,7 +38,7 @@ check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confi
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")
 check("produtos/templates/produtos/dashboard_gerencial.html", "repasse_vila")
 check("produtos/templates/produtos/caixa_retiradas_historico.html", "crh-btn-repasse", "pdv_repasse_vila.js")
-check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é este repasse", "hoje ou que passou", "Planos:", "Acumulado")
+check("produtos/templates/produtos/includes/repasse_help_agents.html", "O que é este repasse", "hoje ou que passou", "Planos:", "Acumulado", "abate sozinho")
 check("produtos/templates/produtos/includes/repasse_aviso_abertura.html", "Repasse da Vila")
 check("produtos/views.py", "aplicar_repasses_pendentes_centro", "repasse_aviso_abertura")
 check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repasse", "forma PIX", "confirmar ontem")

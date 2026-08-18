@@ -669,7 +669,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retirada / saÃ­da (2026-06-24):** botÃ£o do painel â†’ **`/caixa/retiradas/`** (histÃ³rico com filtros data Â· plano Â· quem levou; padrÃ£o **hoje**; calendÃ¡rio Agro Date Picker). BotÃ£o laranja **Nova saÃ­da** â†’ formulÃ¡rio existente (`?painel=retirada`). Popup fechar caixa tambÃ©m abre o histÃ³rico (`embed=1`). Layout **rem/clamp** + herda **Agro Display Scale** (perfil Ãºnico / iframe pai).
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
-- **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`.
+- **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
@@ -1229,11 +1229,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.39**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.41**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **BI-VAL-CLIQUE** | 🟡 **pronto para envio** | não |
+| 2 | **REPASSE-ACUM-NET** | 🟡 **pronto para envio** | não |
+
+### 📦 PACOTE PRONTO — Repasse não pede acumulado já enviado (`REPASSE-ACUM-NET` · **v17.41**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Dinheiro já levado a mais **abate** o acumulado na hora — Total a levar vai a R$ 0 se o valor já foi transferido |
+| **Por quê** | v17.27 subiu, mas o R$ 1.878,47 de hoje continuava no «total a levar» (conta não descontava o extra do próprio dia) |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só conta do `/repasse-vila/` |
+| **Prova** | path **86/86** · deep **90/90** · planos **49/49** |
+| **Você** | Ctrl+F5 `/repasse-vila/` · dia **18/08** · acumulado e total a levar **R$ 0** (não aperte Transferir de novo) |
+| **Autorizar** | *pode subir REPASSE-ACUM-NET para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas (`BI-VAL-CLIQUE` · **v17.37+**)
 
@@ -1244,7 +1257,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só o link do card |
 | **Prova** | unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** (`scripts/verify_bi_val_*` · `verify_validade_bi.py`) |
-| **Commit** | fix **4f7d83f** · prova **ba1573b** · teste **v17.39** · loja **v17.30** |
+| **Commit** | fix **4f7d83f** · prova **ba1573b** · teste **v17.40** · loja **v17.30** |
 | **Você** | Ctrl+F5 `/` · filtro **Centro** · **Conferir vencidos** → Todas + vencidos (lista com os 2) |
 | **Autorizar** | *pode subir BI-VAL-CLIQUE para produção* + **99738595** |
 

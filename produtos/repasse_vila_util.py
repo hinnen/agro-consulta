@@ -508,7 +508,7 @@ def acumulado_anterior(
     *,
     lookback_days: int = REPASSE_MAX_DIAS_ATRASO,
 ) -> Decimal:
-    """Saldo dos dias anteriores a `dia` + ajustes manuais. Positivo = ainda falta levar."""
+    """Saldo bruto dos dias anteriores a `dia` + ajustes manuais. Positivo = faltou levar."""
     d0 = dia - timedelta(days=lookback_days)
     d_fim = dia - timedelta(days=1)
     if d_fim >= d0:
@@ -517,6 +517,40 @@ def acumulado_anterior(
     if d_fim >= d0:
         saldo += _sum_delta_cache(d0, d_fim)
     return saldo.quantize(Decimal("0.01"))
+
+
+def _extra_do_calc(calc: dict[str, Any]) -> Decimal:
+    """Quanto o dinheiro do dia passou do alvo (abate acumulado)."""
+    alvo = _alvo_fisico_de_calc(calc)
+    enviado = _dec((calc.get("ja_enviado") or {}).get("total"))
+    return max(ZERO, (enviado - alvo).quantize(Decimal("0.01")))
+
+
+def _extra_enviado_apos(dia: date) -> Decimal:
+    """Soma do que foi levado a mais depois de `dia` (delta negativo no cache)."""
+    hoje = timezone.localdate()
+    d0 = dia + timedelta(days=1)
+    if d0 > hoje:
+        return ZERO
+    _preencher_cache_faltante(d0, hoje)
+    extra = ZERO
+    for row in RepasseVilaDeltaDiaAgro.objects.filter(
+        data_ref__gte=d0, data_ref__lte=hoje
+    ).only("delta"):
+        dlt = _dec(row.delta)
+        if dlt < 0:
+            extra += -dlt
+    return extra.quantize(Decimal("0.01"))
+
+
+def abater_extras_do_acumulado(
+    dia: date,
+    acum_bruto: Decimal,
+    calc_dia: dict[str, Any],
+) -> Decimal:
+    """Não pede de novo o que já saiu a mais neste dia ou nos dias seguintes."""
+    extra = _extra_do_calc(calc_dia) + _extra_enviado_apos(dia)
+    return (acum_bruto - extra).quantize(Decimal("0.01"))
 
 
 def listar_acumulado_detalhe(
@@ -563,16 +597,18 @@ def listar_acumulado_detalhe(
                 "n_vendas": 0,
             }
         )
-    acum = acumulado_anterior(dia, lookback_days=lookback_days)
+    acum_bruto = acumulado_anterior(dia, lookback_days=lookback_days)
     cfg = obter_config()
     pct = _dec(cfg.percentual_lucro_padrao)
     calc_hoje = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
+    acum = abater_extras_do_acumulado(dia, acum_bruto, calc_hoje)
     falta_dia = _dec(calc_hoje.get("falta_dinheiro"))
     total_sug = (falta_dia + acum).quantize(Decimal("0.01"))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
         "acumulado_anterior": float(acum),
+        "acumulado_bruto": float(acum_bruto),
         "falta_dia": float(falta_dia),
         "total_sugerido": float(total_sug),
         "credito": float(max(ZERO, -total_sug)) if total_sug < 0 else 0.0,
@@ -615,34 +651,16 @@ def quitar_acumulado_zerar(
 ) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
     """Zera o acumulado (ex.: dinheiro já foi transferido antes da ferramenta)."""
     dia = dia or timezone.localdate()
-    acum = acumulado_anterior(dia)
+    calc = calcular_disponivel(dia, _skip_acumulado=True)
+    acum = abater_extras_do_acumulado(dia, acumulado_anterior(dia), calc)
     if acum <= 0:
-        return None, "Acumulado já está zerado ou é crédito — nada a quitar."
+        return None, "Acumulado já está zerado, é crédito, ou já foi coberto pelo dinheiro enviado."
     obs = (observacao or "").strip() or "Transferido antes da ferramenta / zerado manualmente"
     return registrar_ajuste_acumulado(
         -acum,
         observacao=obs,
         operador=operador,
         data_ref=dia,
-    )
-
-
-def _quitar_acumulado_no_repasse(
-    rep: RepasseVilaCentroAgro,
-    *,
-    quitacao: Decimal,
-    operador: str = "",
-) -> None:
-    if quitacao <= 0:
-        return
-    registrar_ajuste_acumulado(
-        -quitacao,
-        observacao=(
-            f"Quitado no repasse #{rep.pk} · ref {rep.data_ref.strftime('%d/%m/%Y')}"
-        ),
-        operador=operador,
-        data_ref=rep.data_ref,
-        repasse=rep,
     )
 
 
@@ -726,9 +744,16 @@ def calcular_disponivel(
     total_disp = (disp_cmv + disp_lucro + disp_fiado).quantize(Decimal("0.01"))
     alvo_total = (cmv_alvo + lucro_alvo + fiado_alvo).quantize(Decimal("0.01"))
     acum = ZERO
+    acum_bruto = ZERO
     total_sugerido = total_disp
     if not _skip_acumulado:
-        acum = acumulado_anterior(dia)
+        acum_bruto = acumulado_anterior(dia)
+        mini = {
+            "alvos": {"cmv": cmv_alvo, "lucro": lucro_alvo, "fiado": fiado_alvo},
+            "ja_eletronico_aplicado": elet_aplicado,
+            "ja_enviado": ja,
+        }
+        acum = abater_extras_do_acumulado(dia, acum_bruto, mini)
         total_sugerido = (total_disp + acum).quantize(Decimal("0.01"))
     return {
         "ok": True,
@@ -749,6 +774,7 @@ def calcular_disponivel(
         "alvo_total": float(alvo_total),
         "falta_dinheiro": float(total_disp),
         "acumulado_anterior": float(acum),
+        "acumulado_bruto": float(acum_bruto),
         "total_sugerido": float(total_sugerido),
         "credito_acumulado": float(max(ZERO, -total_sugerido)) if total_sugerido < 0 else 0.0,
         "disponivel": {
@@ -971,7 +997,6 @@ def confirmar_repasse(
     if err_dia or dia is None:
         return None, err_dia or "Data inválida."
     calc = calcular_disponivel(dia, percentual_lucro=percentual_lucro, modo_dia_cheio=modo_dia_cheio)
-    falta_antes = _dec(calc.get("falta_dinheiro"))
     disp = calc["disponivel"]
     v_cmv = _dec(disp["cmv"]) if incluir_cmv else ZERO
     v_lucro = _dec(disp["lucro"]) if incluir_lucro else ZERO
@@ -1005,7 +1030,7 @@ def confirmar_repasse(
                 v_fiado = (v_fiado + dif).quantize(Decimal("0.01"))
             total = vm
     elif incluir_acumulado:
-        acum = acumulado_anterior(dia)
+        acum = _dec(calc.get("acumulado_anterior"))
         if acum != 0:
             novo = max(ZERO, (total + acum).quantize(Decimal("0.01")))
             if novo <= 0:
@@ -1087,9 +1112,8 @@ def confirmar_repasse(
         mov_entrada.save(update_fields=["observacao"])
 
     _atualizar_delta_cache(dia, percentual_lucro=calc.get("percentual_lucro"))
-    quitacao = max(ZERO, (total - falta_antes).quantize(Decimal("0.01")))
-    if quitacao > 0:
-        _quitar_acumulado_no_repasse(rep, quitacao=quitacao, operador=operador)
+    # Extra enviado neste dia já abate o acumulado na conta (não cria ajuste:
+    # senão o dia seguinte conta o extra duas vezes).
 
     return rep, ""
 
