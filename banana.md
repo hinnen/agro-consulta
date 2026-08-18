@@ -1225,39 +1225,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 17/08d (`deploy/lote-checklist-1708d` · **v17.16**)
-
-> **Não sobe agora** (lojas abertas). Próximo chat: pausar vendas + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.09** · `producao` @ **3b45abf** |
-| **Pacotes** | **NF-BIP-ET3-SNAP** + **NF-VINCULO-NAO-SOBRESCREVE** + **NF-VINCULO-REPARO** (comando só lista; `--aplicar` **depois** do Live) |
-| **Branch** | `deploy/lote-checklist-1708d` (isolada da loja; **não** é `teste`) |
-| **Fora** | PDV wizard · caixa · NFC-e · financeiro · Point Vila · cíclica Bip+1 |
-| **Prova** | ET3 **83/83** · ET2 **68/68** · vínculo **28/28** · reparo **35/35** · `manage.py check` OK |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1708d-v17.09` @ **3b45abf** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha |
-| **Depois do Live** | **Ctrl+F5** `/entrada-nota/` · badge **v17.16** · reparo dos 33 nomes com `--aplicar` (não roda sozinho) |
-
-### 📦 PACOTE — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.17**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🧪 **teste** · loja **v17.09** |
-| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no Gravar). Tela inteira pisca **verde** (ok) / **vermelho** (código sem cadastro / fora da lista). Liga sozinho ao abrir a cíclica. Corredor = andar bipando sem olhar. |
-| **Prova** | `verify_contagem_ciclica_path` · `verify_ajuste_mobile_ux` |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → Bip +1 ON · bipar |
-
-### ✅ CHECKLIST ÚNICO — 17/08d · **PREP pronto — aguarda senha** (`deploy/lote-checklist-1708d` · **v17.16**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
 
 > **Loja hoje:** ✅ **Live v17.09** · `producao` @ **3b45abf**  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1708d`. **Fora deste lote:** Point Vila (falta token) · cíclica Bip+1.
+> **Não** merge `teste`→`producao`. **Não misturar** com o lote NF 17/08d (branch `deploy/lote-checklist-1708d`, PREP aguarda senha).
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **AJUSTE-CICLICA-BIP1** | ✅ **pronto para envio à produção** | não |
+
+### 📦 PACOTE PRONTO — Cíclica Bip +1 (`AJUSTE-CICLICA-BIP1` · **v17.18**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** · teste **v17.18** · loja **v17.09** |
+| **O quê** | Na cíclica, **Bip +1** soma 1 na contagem (estoque só no **Gravar**). Tela inteira pisca **verde** / **vermelho**. Liga sozinho. Mesmo EAN pode repetir (fila + gap 350 ms). |
+| **Prova** | bip1 path **42/42** · cíclica path **72** · deep **31** · UX **17** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/ajuste-mobile/` · Cíclica → Corredor → bipar (verde = somou) |
+
+### 🚀 PREP — lote NF 17/08d (`deploy/lote-checklist-1708d` · **v17.16**) · **aguarda senha** (lote separado)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1265,7 +1252,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | **NF-VINCULO-NAO-SOBRESCREVE** | 🚀 PREP — aguarda senha | não |
 | 3 | **NF-VINCULO-REPARO** | 🚀 PREP — aguarda senha | não |
 
-### 📦 PACOTE PRONTO — Entrada NF cadastro + etapa 3 (`v17.16`)
+Autorizar NF: *pode subir lote checklist 17/08d / deploy/lote-checklist-1708d para produção* + senha. Point Vila **não** sobe (falta token).
+
+### 📦 PACOTE PRONTO — Entrada NF cadastro + etapa 3 (`v17.16`) · **PREP 17/08d**
 
 | Pacote | O quê | Prova |
 | ------ | ----- | ----- |

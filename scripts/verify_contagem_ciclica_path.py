@@ -95,6 +95,8 @@ check(
     "maCiclicaAtiva()",
     "Bip +1 soma na contagem",
     "maCiclicaBipMaisUm",
+    "maCiclicaBipFilaDrain",
+    "MA_CICLICA_BIP_GAP_MS",
     "maBipPiscarTela",
     "sempre soma",
     "ma-ciclica-dias",
@@ -111,6 +113,12 @@ check(
     "estoque.ContagemCiclicaLinha",
 )
 check("scripts/verify_contagem_ciclica_deep.py", "VERIFY_DEEP_OK", "gravar_fechamento")
+check(
+    "scripts/verify_ajuste_ciclica_bip1_path.py",
+    "VERIFY_BIP1_CICLICA_OK",
+    "3x qtd=1",
+    "maPostAjuste",
+)
 
 # Runtime: cancelar sessão descartável (não toca sessão real da loja)
 try:

@@ -890,6 +890,9 @@ let maCodigoOrfao = null;
 let maBipBusy = false;
 let maBipLastCode = '';
 let maBipLastAt = 0;
+/** Na cíclica o mesmo EAN pode repetir (várias caixas). 350 ms só corta duplo do leitor. */
+const MA_CICLICA_BIP_GAP_MS = 350;
+let maCiclicaBipFila = [];
 /** Depois de um bip/Enter: próximo caractere do leitor apaga o código antigo (não cola EAN+EAN). */
 let maBuscaLimparNoProximoChar = false;
 let maFlashTimer = null;
@@ -1817,8 +1820,9 @@ function maPrepCampoProximoBip() {
 }
 
 function maSalvarBipMaisUm(p) {
-  if (!p || maBipBusy) return Promise.resolve(false);
+  if (!p) return Promise.resolve(false);
   if (maCiclicaAtiva()) return maCiclicaBipMaisUm(p);
+  if (maBipBusy) return Promise.resolve(false);
   maBipBusy = true;
   const saldoAgora = Number(getSaldoAtual(p) || 0);
   const novoSaldo = saldoAgora + 1;
@@ -1853,7 +1857,8 @@ function maProcessarCodigoBipado(codigo) {
   const c = maNormCodigo(codigo);
   if (!c) return;
   const now = Date.now();
-  if (c === maBipLastCode && (now - maBipLastAt) < 1200) return;
+  const gap = (maCiclicaAtiva() && maBip1On) ? MA_CICLICA_BIP_GAP_MS : 1200;
+  if (c === maBipLastCode && (now - maBipLastAt) < gap) return;
   maBipLastCode = c;
   maBipLastAt = now;
 
@@ -2629,13 +2634,21 @@ function maCiclicaPodeSomarBip(p) {
 }
 
 function maCiclicaBipMaisUm(p) {
-  if (!p || maBipBusy) return Promise.resolve(false);
+  if (!p) return Promise.resolve(false);
+  maCiclicaBipFila.push(p);
+  return maCiclicaBipFilaDrain();
+}
+
+function maCiclicaBipFilaDrain() {
+  if (maBipBusy) return Promise.resolve(false);
+  const p = maCiclicaBipFila.shift();
+  if (!p) return Promise.resolve(true);
   const gate = maCiclicaPodeSomarBip(p);
   if (!gate.ok) {
     maTocarSom('erro');
     maBipPiscarTela(false);
     maPrepCampoProximoBip();
-    return Promise.resolve(false);
+    return maCiclicaBipFilaDrain();
   }
   maBipBusy = true;
   const payload = {
@@ -2678,7 +2691,10 @@ function maCiclicaBipMaisUm(p) {
       maPrepCampoProximoBip();
       return false;
     })
-    .finally(() => { maBipBusy = false; });
+    .finally(() => {
+      maBipBusy = false;
+      if (maCiclicaBipFila.length) maCiclicaBipFilaDrain();
+    });
 }
 
 function maCiclicaAtivar(sessao) {
@@ -2709,6 +2725,7 @@ function maCiclicaAtivar(sessao) {
 
 function maCiclicaSairModo() {
   maCiclicaSessao = null;
+  maCiclicaBipFila = [];
   try { sessionStorage.removeItem(MA_CICLICA_KEY); } catch (_) {}
   if (maCiclicaPoll) {
     clearInterval(maCiclicaPoll);
