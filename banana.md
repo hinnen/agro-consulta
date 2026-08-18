@@ -1228,25 +1228,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote 18/08h (`deploy/lote-checklist-1808h` · **v17.24**) · **aguarda senha**
+
+> **Não sobe agora** (lojas abertas). Próximo chat: pausar PDV + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808h`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.21** · `producao` @ **ab3dbcf** |
+| **Pacote** | **MP-POINT-VILA** só |
+| **Fora deste lote** | TRANSF-FORCADA-UX · DRE-SALDO-DIARIO (prontos, não mexem PDV) |
+| **Migrate** | **NÃO** |
+| **Rollback** | no deploy: tag em `ab3dbcf` (v17.21) |
+| **Prova** | MP Vila **41/41** · fechar caixa **28/28** · lote isolado check OK · token+terminal API MP OK |
+| **Centro aberto** | sessão antiga `1` continua Point Centro — **não** precisa reabrir Gaveta |
+| **Vila** | depois do Live: **fechar/abrir Caixa Vila Elias** no notebook de vendas · Ctrl+F5 PDV |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08h / MP-POINT-VILA para produção* + senha |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08h)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **TRANSF-FORCADA-UX** | ✅ **pronto para envio à produção** | não |
-| 2 | **DRE-SALDO-DIARIO** | ✅ **pronto para envio à produção** | não |
-| 3 | **MP-POINT-VILA** | ✅ **pronto para envio à produção** | não |
+| 1 | **MP-POINT-VILA** | 🚀 **PREP — aguarda senha** (`deploy/lote-checklist-1808h`) | não |
+| 2 | **TRANSF-FORCADA-UX** | ✅ pronto · **fora deste lote** | não |
+| 3 | **DRE-SALDO-DIARIO** | ✅ pronto · **fora deste lote** | não |
 
 ### 📦 PACOTE PRONTO — Point MP Vila (`MP-POINT-VILA` · **v17.24**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** · código no `teste` · **não** na loja (Live **v17.21**) |
-| **O quê** | Maquininha **automática** na conta MP da Vila (CNPJ separado). Centro Gaveta permanece na conta Centro. Notebook / PC Renan = só Sicredi manual. |
-| **Cherry-pick** | `181c5d3` + `4c1f11f` + este PREP · conflito esperado só em `VERSION`/`banana.md` (código auto-merge OK) |
-| **Render** | `MP_POINT_VILA_ENABLED=True` · `MP_POINT_VILA_ACCESS_TOKEN` · `MP_POINT_VILA_TERMINAL_ID=NEWLAND_N950__N950NCD500369056` (Renan colocou 18/08) |
-| **Prova** | `python scripts/verify_mp_point_vila_path.py` **41/41** · fechar caixa **28/28** · Django check OK · token+terminal validados na API MP |
+| **Status** | 🚀 **PREP — aguarda senha** · branch `deploy/lote-checklist-1808h` · loja Live **v17.21** |
+| **O quê** | Maquininha **automática** na conta MP da Vila. Centro Gaveta permanece na conta Centro. Notebook / PC Renan = só Sicredi manual. |
+| **Cherry-pick** | `181c5d3` + `4c1f11f` + `719dd5a` na loja · conflito só `VERSION`/`banana.md` |
+| **Render** | `MP_POINT_VILA_ENABLED=True` · `MP_POINT_VILA_ACCESS_TOKEN` · `MP_POINT_VILA_TERMINAL_ID=NEWLAND_N950__N950NCD500369056` |
+| **Prova** | **41/41** + fechar caixa **28/28** no lote isolado · Django check OK · token+terminal API MP OK |
 | **Migrate** | **NÃO** |
-| **Você** | Notebook **vendas Vila** → abrir **Caixa Vila Elias** · Ctrl+F5 PDV · venda pequena **Mercado Pago Vila (automático)** |
+| **Você** | próximo chat: pausar PDV · frase+senha · depois Live: abrir **Caixa Vila Elias** no notebook de vendas · Ctrl+F5 |
 
 ### 📦 PACOTE PRONTO — DRE saldo dia a dia + planos gasto (`DRE-SALDO-DIARIO` · **v17.23**)
 
