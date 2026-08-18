@@ -620,7 +620,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
-- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional. **Modo foco (fila deploy):** durante cíclica, só busca grande + lista; **⋯** abre controles.
+- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08 · **Live v17.21**):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional. **Modo foco:** durante cíclica, só busca grande + lista; **⋯** abre controles.
 
 ### 4.9 Compras
 
@@ -1226,37 +1226,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote 18/08f (`deploy/lote-checklist-1808f` · **v17.21**)
-
-> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808f`.
+### DRE gerencial — gráfico saldo dia a dia (18/08 · WIP teste)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.19** · `producao` @ **3c810ba** |
-| **Branch** | `deploy/lote-checklist-1808f` @ **ab3dbcf** · **15 arquivos** vs produção |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **O quê** | Rodapé full-width: barras saldo diário (vendas PDV − despesas) · azul + / vermelho − · todos os dias do mês · linha verde previsto (média 90d por dia da semana) |
+| **API** | `GET /api/financeiro/saldo-diario-mes/` |
+| **Arquivos** | `dre_saldo_diario_util.py` · `financeiro/api/views.py` · `resumo_financeiro_gerencial.html` · `agro_resumo_gerencial.js/css` · `verify_dre_saldo_diario_chart.py` |
+| **Prova** | `python scripts/verify_dre_saldo_diario_chart.py` |
+| **Status** | ✅ código local · validar no PC (`runserver` + DRE gerencial) |
+
+### ✅ Deploy loja — lote 18/08f (`deploy/lote-checklist-1808f` · **v17.21**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.21** · `producao` @ **ab3dbcf** |
 | **Pacotes** | **REPASSE-ACUMULADO** + **AJUSTE-CICLICA-FOCUS** |
-| **Fora** | PDV venda/wizard · caixa fechar · NFC-e · financeiro · Entrada NF |
-| **Prova (18/08 · lote isolado)** | repasse **72+85+49** · cíclica UX **17** · bip1 **48** · path **75** · telas **14/14** · `check` OK |
-| **Migrate** | **SIM** `0093` (repasse) · cíclica focus **não** |
-| **Risco** | **Baixo** — repasse antigo igual; cíclica focus só na contagem (⋯ abre controles) |
-| **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08f / deploy/lote-checklist-1808f para produção* + senha |
-| **Depois do Live** | Ctrl+F5 `/repasse-vila/` + `/ajuste-mobile/` · badge **v17.21** |
+| **Migrate** | **SIM** `0093` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-repasse-acumulado-v17.19` @ **3c810ba** + frase + senha |
+| **Você** | Ctrl+F5 `/repasse-vila/` + `/ajuste-mobile/` · badge **v17.21** |
 
-| Pacote | O quê |
-| ------ | ----- |
-| **REPASSE-ACUMULADO** | Saldo acumulado + total sugerido + ajuste manual (PIN) · `/repasse-vila/` |
-| **AJUSTE-CICLICA-FOCUS** | Cíclica: só **busca grande + lista** · controles no **⋯** (Fechar P1, Gravar, Cancelar) |
+### ~~🚀 PREP deploy loja — lote 18/08f~~ · **superado — Live v17.21**
 
-### ✅ CHECKLIST ÚNICO — produção (18/08)
+### ✅ CHECKLIST ÚNICO — produção (18/08) · **enviado**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-ACUMULADO** | 🚀 **pronto para envio à produção** | **SIM** 0093 |
-| 2 | **AJUSTE-CICLICA-FOCUS** | 🚀 **pronto para envio à produção** | não |
+| 1 | **REPASSE-ACUMULADO** | ✅ **enviado / Live v17.21** | **SIM** 0093 |
+| 2 | **AJUSTE-CICLICA-FOCUS** | ✅ **enviado / Live v17.21** | não |
 
 | Operação (sem deploy) | Status |
 | --------------------- | ------ |
