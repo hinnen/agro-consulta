@@ -79,6 +79,14 @@ def test_codigo_cache() -> None:
         in src,
         "dashboard passa deposito_filtro",
     )
+    check(
+        '?loja=todas"' in src.replace(" ", "")
+        or '"?loja=todas"' in src
+        or "+ \"?loja=todas\"" in src
+        or "+ '?loja=todas'" in src,
+        "clique card abre loja=todas",
+    )
+    check("&status=vencido" in src, "clique com vencidos abre status=vencido")
 
 
 def test_tres_filtros_iguais_db() -> None:

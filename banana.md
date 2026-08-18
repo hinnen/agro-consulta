@@ -397,7 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
-- **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); baixa por loja = passo 2 pendente.
+- **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
@@ -1228,6 +1228,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.37**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-VAL-CLIQUE** | 🟡 **pronto para envio** | não |
+
+### 📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas (`BI-VAL-CLIQUE` · **v17.37**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | «Conferir vencidos» no BI abre relatório **Todas (C+V)** + **só vencidos** — não herda Centro/Vila do filtro Números |
+| **Por quê** | Com Centro no BI, a lista sumia (só estoque da loja) |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só o link do card |
+| **Prova** | `verify_bi_val_unificado_path.py` · `verify_bi_val_salvar_path.py` |
+| **Você** | Ctrl+F5 `/` · filtro **Centro** · clicar **Conferir vencidos** → lista com os 2 · Loja = Todas |
+| **Autorizar** | *pode subir BI-VAL-CLIQUE para produção* + **99738595** |
 
 ### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
 

@@ -266,8 +266,8 @@ def test_bi_url_loja() -> None:
     print("\n== BI link Relatorio ==")
     src = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
     check(
-        'f"?loja={deposito_filtro}"' in src or "?loja=" in src,
-        "relatorios_validade_url passa loja",
+        '?loja=todas' in src and "&status=vencido" in src,
+        "card Validade abre relatorio Todas + vencidos",
     )
     check(
         "_contagem_validade_dashboard_lotes_agro,\n            deposito_filtro" in src
