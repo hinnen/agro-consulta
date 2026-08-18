@@ -1229,29 +1229,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.41**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08 · teste **v17.42**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-CLIQUE** | 🟡 **pronto para envio** | não |
-| 2 | **REPASSE-ACUM-NET** | 🟡 **pronto para envio** | não |
+| 1 | **BI-VAL-CLIQUE** | ✅ **pronto para envio à produção** | não |
+| 2 | **REPASSE-ACUM-NET** | ✅ **pronto para envio à produção** | não |
 
-### 📦 PACOTE PRONTO — Repasse não pede acumulado já enviado (`REPASSE-ACUM-NET` · **v17.41**)
+Loja hoje: ✅ Live **v17.30**. Não sobe sem frase + senha.
+
+### 📦 PACOTE PRONTO — Repasse não pede acumulado já enviado (`REPASSE-ACUM-NET` · **v17.42**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Dinheiro já levado a mais **abate** o acumulado na hora — Total a levar vai a R$ 0 se o valor já foi transferido |
-| **Por quê** | v17.27 subiu, mas o R$ 1.878,47 de hoje continuava no «total a levar» (conta não descontava o extra do próprio dia) |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Dinheiro já levado **abate** o acumulado na hora — não pede o mesmo valor de novo |
+| **Tela** | `/repasse-vila/` + overlay PDV |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo — só conta do `/repasse-vila/` |
-| **Prova** | path **86/86** · deep **90/90** · planos **49/49** |
-| **Você** | Ctrl+F5 `/repasse-vila/` · dia **18/08** · acumulado e total a levar **R$ 0** (não aperte Transferir de novo) |
+| **Risco** | Baixo — só a conta do total a levar |
+| **Prova** | path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · `check` OK |
+| **Você** | Ctrl+F5 `/repasse-vila/` · acumulado e total a levar **sem** o valor já transferido |
 | **Autorizar** | *pode subir REPASSE-ACUM-NET para produção* + **99738595** |
 
 ### 📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas (`BI-VAL-CLIQUE` · **v17.37+**)
 
 | Item | Detalhe |
 | ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
 | **O quê** | «Conferir vencidos» no BI abre relatório **Todas (C+V)** + **só vencidos** — não herda Centro/Vila do filtro Números |
 | **Por quê** | Com Centro no BI, a lista sumia (só estoque da loja) |
 | **Migrate** | **NÃO** |
