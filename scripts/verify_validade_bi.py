@@ -21,6 +21,7 @@ django.setup()
 
 from produtos.views import (
     _bounds_mes_atual,
+    _contagem_validade_dashboard_lotes_agro_compute,
     _contagem_validade_dashboard_por_loja,
 )
 
@@ -128,17 +129,19 @@ def main() -> int:
     check("30/07_vencido", (date(2026, 7, 30) - HOJE).days == -2)
     check("30/08_em_29d", (date(2026, 8, 30) - HOJE).days == 29)
 
-    print("\n=== Bug card 0/0: lote qtd + C+V operacional 0 ===")
+    print("\n=== Bug card 0/0: lote qtd + deposito centro ===")
     rows = [
         {
             "overlay_id": 1,
             "data_validade": date(2026, 7, 30),
             "overlay__produto_externo_id": "P1",
+            "deposito": "centro",
         },
         {
             "overlay_id": 2,
             "data_validade": date(2026, 8, 30),
             "overlay__produto_externo_id": "P2",
+            "deposito": "centro",
         },
     ]
     saldos0 = {
@@ -149,8 +152,8 @@ def main() -> int:
     v = run_por_loja(lotes_qtd=rows, saldos=saldos0, deposito="vila")
     check("centro_vencidos_1", c["vencidos"] == 1, str(c))
     check("centro_mes_1", c["vencendo_mes"] == 1, str(c))
-    check("vila_vencidos_1", v["vencidos"] == 1, str(v))
-    check("vila_mes_1", v["vencendo_mes"] == 1, str(v))
+    check("vila_vencidos_0", v["vencidos"] == 0, str(v))
+    check("vila_mes_0", v["vencendo_mes"] == 0, str(v))
 
     print("\n=== Duas datas mesmo overlay ===")
     multi = [
@@ -158,16 +161,19 @@ def main() -> int:
             "overlay_id": 9,
             "data_validade": date(2027, 1, 1),
             "overlay__produto_externo_id": "PM",
+            "deposito": "centro",
         },
         {
             "overlay_id": 9,
             "data_validade": date(2026, 7, 30),
             "overlay__produto_externo_id": "PM",
+            "deposito": "centro",
         },
         {
             "overlay_id": 9,
             "data_validade": date(2026, 8, 15),
             "overlay__produto_externo_id": "PM",
+            "deposito": "centro",
         },
     ]
     cm = run_por_loja(
@@ -183,6 +189,7 @@ def main() -> int:
             "overlay_id": 3,
             "data_validade": date(2026, 7, 30),
             "overlay__produto_externo_id": "PV",
+            "deposito": "",
         }
     ]
     saldos_v = {"PV": {"saldo_centro": 0.0, "saldo_vila": 5.0}}
@@ -192,14 +199,30 @@ def main() -> int:
     check("vila_conta_estoque_vila", vv["vencidos"] == 1, str(vv))
 
     print("\n=== Saldo só Centro ===")
+    row_c = [
+        {
+            "overlay_id": 3,
+            "data_validade": date(2026, 7, 30),
+            "overlay__produto_externo_id": "PV",
+            "deposito": "",
+        }
+    ]
     saldos_c = {"PV": {"saldo_centro": 2.0, "saldo_vila": 0.0}}
-    cc2 = run_por_loja(lotes_qtd=row_v, saldos=saldos_c, deposito="centro")
-    vv2 = run_por_loja(lotes_qtd=row_v, saldos=saldos_c, deposito="vila")
+    cc2 = run_por_loja(lotes_qtd=row_c, saldos=saldos_c, deposito="centro")
+    vv2 = run_por_loja(lotes_qtd=row_c, saldos=saldos_c, deposito="vila")
     check("centro_com_saldo", cc2["vencidos"] == 1, str(cc2))
     check("vila_sem_saldo", vv2["vencidos"] == 0, str(vv2))
 
     print("\n=== Mapa vazio: ainda conta lote ===")
-    cm2 = run_por_loja(lotes_qtd=row_v, saldos={}, deposito="centro")
+    row_map = [
+        {
+            "overlay_id": 3,
+            "data_validade": date(2026, 7, 30),
+            "overlay__produto_externo_id": "PV",
+            "deposito": "centro",
+        }
+    ]
+    cm2 = run_por_loja(lotes_qtd=row_map, saldos={}, deposito="centro")
     check("mapa_vazio", cm2["vencidos"] == 1, str(cm2))
 
     print("\n=== Lote qtd 0 não entra em lotes_qtd ===")
@@ -232,6 +255,16 @@ def main() -> int:
         deposito="centro",
     )
     check("extras_com_saldo_centro", cx["vencendo_mes"] == 1, str(cx))
+
+    print("\n=== BI passo 1: Centro / Vila / C+V mesmo KPI ===")
+    all_c = _contagem_validade_dashboard_lotes_agro_compute(HOJE, None)
+    ctr_c = _contagem_validade_dashboard_lotes_agro_compute(HOJE, "centro")
+    vil_c = _contagem_validade_dashboard_lotes_agro_compute(HOJE, "vila")
+    check(
+        "bi_tres_filtros_iguais",
+        all_c == ctr_c == vil_c,
+        f"all={all_c} ctr={ctr_c} vil={vil_c}",
+    )
 
     print(f"\n=== Resultado: {len(oks)} OK · {len(fails)} FAIL ===")
     if fails:
