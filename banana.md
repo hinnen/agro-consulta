@@ -1225,7 +1225,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🔧 WIP teste — Cíclica qtd visível + overlay código (`AJUSTE-CICLICA-QTD-CB` · 18/08)
+### 🔧 WIP teste — Cíclica qtd visível + overlay código (`AJUSTE-CICLICA-QTD-CB` · **v17.19** · 18/08)
 
 > **Não** está na loja. Validar no PC local (`/ajuste-mobile/` Ctrl+F5). Produção só com frase + senha.
 
