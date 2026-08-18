@@ -1229,7 +1229,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.38**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (18/08 · teste **v17.39**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1244,7 +1244,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Risco** | Baixo — só o link do card |
 | **Prova** | unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** (`scripts/verify_bi_val_*` · `verify_validade_bi.py`) |
-| **Commit** | fix **4f7d83f** · prova **95163d4** · teste **v17.38** · loja **v17.30** |
+| **Commit** | fix **4f7d83f** · prova **ba1573b** · teste **v17.39** · loja **v17.30** |
 | **Você** | Ctrl+F5 `/` · filtro **Centro** · **Conferir vencidos** → Todas + vencidos (lista com os 2) |
 | **Autorizar** | *pode subir BI-VAL-CLIQUE para produção* + **99738595** |
 
