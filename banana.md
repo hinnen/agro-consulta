@@ -1229,35 +1229,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (18/08l · teste)
+### 🚀 PREP deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808l`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.29** · `producao` @ **bced5d4** |
+| **Branch** | `deploy/lote-checklist-1808l` @ **1036967** · **10 arquivos** vs produção |
+| **Fora** | PDV venda/wizard · caixa fechar · NFC-e · Entrada NF · repasse · cíclica · transferências · lançamentos |
+| **Prova (18/08 · lote isolado)** | BI path **4/4** estático · DRE chart **16/16** · CMV **55/55** · visual **232/232** · `check` OK · diff **0** paths PDV/caixa/NF |
+| **Migrate** | **NÃO** |
+| **Risco** | **Baixo** — só home BI (card Validade) + DRE gerencial (rodapé gráfico) |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808l-v17.29` @ **bced5d4** |
+| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
+| **Autorizar** | *pode subir lote checklist 18/08l / deploy/lote-checklist-1808l para produção* + senha |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **BI-VAL-UNIFICADO** | Card **Validade** igual em Centro / Vila / C+V | `/` · trocar filtro Números |
+| **DRE-LUCRO-GRAFICO** | Barras = **lucro líquido/dia** (mesma conta do BI) · acum. = card BI | `/financeiro/resumo-gerencial/` |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08l)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-UNIFICADO** | 🟡 **pronto para envio** | não |
-| 2 | **DRE-LUCRO-GRAFICO** | ✅ **pronto para envio à produção** | não |
+| 1 | **BI-VAL-UNIFICADO** | 🚀 **pronto para envio à produção** | não |
+| 2 | **DRE-LUCRO-GRAFICO** | 🚀 **pronto para envio à produção** | não |
 
-### 📦 PACOTE PRONTO — DRE gráfico lucro = BI (`DRE-LUCRO-GRAFICO`)
+> **BI 🟡 passo 2** (baixa por loja) fica **fora** deste lote — só passo 1 (KPI unificado).
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Rodapé DRE: barras = **lucro líquido/dia** (mesma conta do BI) · linha = prev. lucro 90d · **Lucro acum.** = card BI |
-| **Tela** | `/financeiro/resumo-gerencial/` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_dre_saldo_diario_chart` · acum. mês = Lucro Líquido BI (match OK) |
-| **Você** | Ctrl+F5 DRE · **Bruto/Já pago** (filtro Valor) · comparar acum. com BI |
+### ~~📦 PACOTE PRONTO — DRE gráfico lucro = BI~~ · **ver PREP 1808l no topo**
 
-### 📦 PACOTE PRONTO LOJA — BI Validade igual nas 3 lojas (`BI-VAL-UNIFICADO` · **v17.33**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Card Validade do BI: **Centro**, **Vila** e **Centro+Vila** = **mesmo** vencidos / no mês / conferir |
-| **Arquivos** | `produtos/views.py` · cache `v6` · `:all` · testes + scripts verify |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só KPI Validade na home |
-| **Prova** | `verify_bi_val_unificado_path.py` **14/14** · `verify_validade_bi.py` **16/16** · `verify_bi_val_salvar_path.py` **18/18** |
-| **Pendente** | Passo 2: baixa por loja (só diminui contador da loja que baixou) |
-| **Você** | Ctrl+F5 `/` · trocar filtro Números · Validade **igual** nas 3 · conferir vencidos |
-| **Autorizar** | *pode subir BI-VAL-UNIFICADO para produção* + **99738595** |
+### ~~📦 PACOTE PRONTO LOJA — BI Validade~~ · **ver PREP 1808l no topo**
 
 ### ✅ Deploy loja — lote 18/08j (`deploy/lote-checklist-1808j` · **v17.29**) · **Live**
 
