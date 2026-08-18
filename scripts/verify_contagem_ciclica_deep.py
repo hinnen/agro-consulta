@@ -171,6 +171,13 @@ try:
                 break
     else:
         ok("linhas sem saldo/qtd (cego)")
+    counted = [r for r in (pay.get("linhas") or []) if r.get("contado")]
+    if not counted:
+        fail("payload sem linha contada")
+    elif counted[0].get("qtd_contada") is None:
+        fail("contado sem qtd_contada")
+    else:
+        ok("qtd_contada no payload cego")
 
     # Conflito mesma sessão
     try:

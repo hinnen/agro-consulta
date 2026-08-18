@@ -55,6 +55,8 @@ check(
     "formatsToSupport",
     "fps: 12",
     "keepBusy",
+    "maEscolherProduto",
+    "qtd_contada",
     label="mobile_ajuste.html",
 )
 

@@ -387,6 +387,11 @@
     }
     .ma-card-contagem.is-pendente { color: #b45309; }
     .ma-card-contagem.is-ok { color: #475569; }
+    .ma-card-contagem.is-qtd {
+      font-size: clamp(1.55rem, 6.5vw + 0.35rem, 2.15rem) !important;
+      color: #047857;
+      letter-spacing: -0.04em;
+    }
     .ma-card-contagem.is-fora { color: #7c2d12; background: #ffedd5; padding: 0.15rem 0.35rem; border-radius: 0.4rem; }
     .ma-card-saldo {
       font-size: clamp(1.55rem, 6.5vw + 0.35rem, 2.15rem) !important;
@@ -517,6 +522,18 @@
     .ma-bip-tela.is-on { opacity: 1; }
     .ma-bip-tela.is-ok { background: rgba(4, 180, 90, 0.88); }
     .ma-bip-tela.is-err { background: rgba(220, 30, 40, 0.9); }
+    .ma-bip-tela-n {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(4.2rem, 22vw, 8rem);
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+      letter-spacing: -0.06em;
+    }
     .ma-flash {
       position: fixed;
       left: 50%;
@@ -763,7 +780,7 @@
     </div>
   </div>
 
-  <div id="ma-bip-tela" class="ma-bip-tela" aria-hidden="true"></div>
+  <div id="ma-bip-tela" class="ma-bip-tela" aria-hidden="true"><span id="ma-bip-tela-n" class="ma-bip-tela-n"></span></div>
 
   <div id="ma-flash" class="ma-flash hidden" role="status" aria-live="polite">
     <p id="ma-flash-nome" class="text-sm font-black leading-snug"></p>
@@ -793,7 +810,7 @@
 
   <div id="ma-offer" class="ma-offer-overlay hidden" aria-hidden="true">
     <div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl space-y-3">
-      <p class="text-sm font-black text-slate-900 leading-snug">Guardar este código neste produto pra cadastro depois?</p>
+      <p class="text-sm font-black text-slate-900 leading-snug">Este código não está no cadastro. Adicionar como código de barras <span class="text-emerald-700">opcional</span> neste produto?</p>
       <p id="ma-offer-codigo" class="font-mono text-base font-black text-emerald-700 break-all"></p>
       <p id="ma-offer-produto" class="text-xs font-bold text-slate-500 leading-snug"></p>
       <div class="grid grid-cols-2 gap-2 pt-1">
@@ -887,6 +904,8 @@ let maBip1On = false;
 /** Estado do Bip+1 antes de entrar na cíclica (restaura ao sair). */
 let maBip1AntesCiclica = false;
 let maCodigoOrfao = null;
+/** Depois do overlay Sim/Não (ex.: abrir modal ou Bip+1). */
+let maOfferDepois = null;
 let maBipBusy = false;
 let maBipLastCode = '';
 let maBipLastAt = 0;
@@ -1550,9 +1569,21 @@ window.addEventListener('load', () => {
   }
 });
 
-function maBipPiscarTela(ok) {
+function maFmtQtdContada(n) {
+  if (n == null || n === '') return '';
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '';
+  if (Math.abs(v - Math.round(v)) < 0.0001) return String(Math.round(v));
+  return String(Math.round(v * 10) / 10).replace('.', ',');
+}
+
+function maBipPiscarTela(ok, n) {
   const el = document.getElementById('ma-bip-tela');
+  const num = document.getElementById('ma-bip-tela-n');
   if (!el) return;
+  if (num) {
+    num.textContent = (ok && n != null && Number.isFinite(Number(n))) ? maFmtQtdContada(n) : '';
+  }
   el.classList.remove('is-on', 'is-ok', 'is-err');
   void el.offsetWidth;
   el.classList.add('is-on', ok ? 'is-ok' : 'is-err');
@@ -1560,8 +1591,9 @@ function maBipPiscarTela(ok) {
   clearTimeout(maBipPiscarTela._t);
   maBipPiscarTela._t = setTimeout(() => {
     el.classList.remove('is-on', 'is-ok', 'is-err');
+    if (num) num.textContent = '';
     el.setAttribute('aria-hidden', 'true');
-  }, ok ? 280 : 420);
+  }, ok ? ((n != null && Number.isFinite(Number(n))) ? 650 : 280) : 420);
 }
 
 function maBip1SyncBtn() {
@@ -1727,12 +1759,7 @@ function maAbrirPick(lista) {
       <div class="text-[10px] font-bold text-slate-500 mt-0.5">GM ${String(p.codigo_nfe || p.codigo || '').replace(/</g, '&lt;')}${maCiclicaAtiva() ? '' : ' · saldo ' + Number(getSaldoAtual(p)).toFixed(1)}</div>`;
     b.addEventListener('click', () => {
       maFecharPick();
-      pSel = p;
-      if (maCiclicaAtiva() && maBip1On) {
-        maCiclicaBipMaisUm(p);
-        return;
-      }
-      abrir();
+      maEscolherProduto(p, { bipMaisUm: true });
     });
     box.appendChild(b);
   });
@@ -1849,7 +1876,21 @@ function maSalvarBipMaisUm(p) {
 function maMostrarUltimoBipado(p) {
   if (!p) return;
   maUltimoBipadoId = String(p.id);
-  const fresh = baseProdutos.find((x) => String(x.id) === maUltimoBipadoId) || p;
+  const fresh = Object.assign({}, baseProdutos.find((x) => String(x.id) === maUltimoBipadoId) || p);
+  if (maCiclicaAtiva()) {
+    const ln = (maCiclicaLinhas() || []).find((x) => String(x.produto_id) === maUltimoBipadoId);
+    if (ln) {
+      fresh._ciclicaContado = !!ln.contado;
+      fresh._ciclicaFalta = !!ln.faltando || !ln.contado;
+      fresh._ciclicaQtd = ln.qtd_contada;
+      fresh._ciclicaFora = false;
+    } else {
+      fresh._ciclicaContado = !!p._ciclicaContado;
+      fresh._ciclicaFalta = !!p._ciclicaFalta;
+      fresh._ciclicaQtd = p._ciclicaQtd;
+      fresh._ciclicaFora = !!p._ciclicaFora;
+    }
+  }
   maPintarResultados([fresh], 'Último bip');
 }
 
@@ -2058,6 +2099,7 @@ function maCiclicaProdutosDaFila(termoN) {
         };
     p._ciclicaContado = !!ln.contado;
     p._ciclicaFalta = !!ln.faltando || !ln.contado;
+    p._ciclicaQtd = ln.qtd_contada;
     out.push(p);
   });
   // Pass2: faltando primeiro
@@ -2143,6 +2185,16 @@ function buscar(q) {
   maPintarResultados(resultados, `${modo} · ${filtrados.length} · cat ${baseProdutos.length}${extra}`);
 }
 
+function maCiclicaNumHtml(p, escMa) {
+  if (p._ciclicaFora) return '<span class="ma-card-contagem is-fora">FORA</span>';
+  if (p._ciclicaFalta) return '<span class="ma-card-contagem is-pendente">FALTA</span>';
+  const n = maFmtQtdContada(p._ciclicaQtd);
+  if (n !== '') {
+    return `<span class="ma-card-contagem is-qtd" title="Já bipado neste produto">${escMa(n)}</span>`;
+  }
+  return '<span class="ma-card-contagem is-ok">OK</span>';
+}
+
 function maPintarResultados(resultados, resumoTxt) {
   const l = document.getElementById('lista');
   if (!l) return;
@@ -2172,7 +2224,7 @@ function maPintarResultados(resultados, resumoTxt) {
     const d = document.createElement('div');
     d.className = 'ma-card';
     const numsHtml = maCiclicaAtiva()
-      ? `<div class="ma-card-nums"><span class="ma-card-contagem ${p._ciclicaFora ? 'is-fora' : (p._ciclicaFalta ? 'is-pendente' : 'is-ok')}">${p._ciclicaFora ? 'FORA' : (p._ciclicaFalta ? 'FALTA' : 'OK')}</span></div>`
+      ? `<div class="ma-card-nums">${maCiclicaNumHtml(p, escMa)}</div>`
       : `<div class="ma-card-nums">
           <span class="ma-card-contagem ${contagem === 'Conferir' ? 'is-pendente' : 'is-ok'}" title="Última contagem">${escMa(contagem)}</span>
           <span class="ma-card-saldo ${saldoN < 0 ? 'is-neg' : 'is-ok'}">${saldoN.toFixed(1)}</span>
@@ -2188,8 +2240,7 @@ function maPintarResultados(resultados, resumoTxt) {
       </div>
     `;
     d.onclick = () => {
-      pSel = p;
-      abrir();
+      maEscolherProduto(p);
     };
     l.appendChild(d);
   });
@@ -2395,6 +2446,37 @@ function maMostrarToast(texto, ok) {
   maMostrarToast._t = setTimeout(() => el.classList.add('hidden'), 2200);
 }
 
+function maRodarOfferDepois() {
+  const fn = maOfferDepois;
+  maOfferDepois = null;
+  if (typeof fn === 'function') fn();
+}
+
+function maTalvezOferecerCodigo(p, depois) {
+  const orfao = maCodigoOrfao && !maProdutoJaTemCodigo(p, maCodigoOrfao)
+    ? maNormCodigo(maCodigoOrfao)
+    : null;
+  if (!orfao || !p) return false;
+  maOfferDepois = typeof depois === 'function' ? depois : null;
+  maAbrirOfferGuardar(orfao, p);
+  return true;
+}
+
+function maEscolherProduto(p, opts) {
+  if (!p) return;
+  pSel = p;
+  opts = opts || {};
+  const seguir = function () {
+    if (opts.bipMaisUm && maCiclicaAtiva() && maBip1On) {
+      maCiclicaBipMaisUm(p);
+      return;
+    }
+    abrir();
+  };
+  if (maTalvezOferecerCodigo(p, seguir)) return;
+  seguir();
+}
+
 function maFecharOffer() {
   const ov = document.getElementById('ma-offer');
   if (ov) {
@@ -2460,6 +2542,7 @@ function maGuardarCodigoPendente(codigo, produto) {
 document.getElementById('ma-offer-nao')?.addEventListener('click', () => {
   maCodigoOrfao = null;
   maFecharOffer();
+  maRodarOfferDepois();
 });
 document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
   const ov = document.getElementById('ma-offer');
@@ -2468,6 +2551,7 @@ document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
   const nome = ov && ov.dataset.nome;
   if (!codigo || !pid) {
     maFecharOffer();
+    maRodarOfferDepois();
     return;
   }
   const btn = document.getElementById('ma-offer-sim');
@@ -2476,7 +2560,8 @@ document.getElementById('ma-offer-sim')?.addEventListener('click', () => {
     .then(() => {
       maCodigoOrfao = null;
       maFecharOffer();
-      maMostrarToast('Código guardado na fila pra cadastro.', true);
+      maMostrarToast('Código opcional guardado.', true);
+      maRodarOfferDepois();
     })
     .catch((err) => {
       maMostrarToast((err && err.message) || 'Não deu para guardar o código.', false);
@@ -2633,6 +2718,17 @@ function maCiclicaPodeSomarBip(p) {
   return { ok: false };
 }
 
+function maCiclicaAplicarQtdLocal(pid, qtd) {
+  const n = Number(qtd);
+  (maCiclicaLinhas() || []).forEach((ln) => {
+    if (String(ln.produto_id) === String(pid)) {
+      ln.contado = true;
+      ln.faltando = false;
+      if (Number.isFinite(n)) ln.qtd_contada = n;
+    }
+  });
+}
+
 function maCiclicaBipMaisUm(p) {
   if (!p) return Promise.resolve(false);
   maCiclicaBipFila.push(p);
@@ -2662,8 +2758,9 @@ function maCiclicaBipFilaDrain() {
   return maCiclicaPost(maCiclicaUrl('contar'), payload)
     .then((d) => {
       if (!d || !d.ok) throw new Error((d && d.erro) || 'Falha ao contar');
+      const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : 1;
       maTocarSom('ok');
-      maBipPiscarTela(true);
+      maBipPiscarTela(true, Number.isFinite(acum) ? acum : 1);
       if (d.sessao) {
         const prev = maCiclicaLinhas();
         maCiclicaSessao = Object.assign({}, maCiclicaSessao, d.sessao);
@@ -2671,13 +2768,7 @@ function maCiclicaBipFilaDrain() {
           maCiclicaSessao.linhas = prev;
         }
       }
-      const pid = String(p.id || '');
-      (maCiclicaLinhas() || []).forEach((ln) => {
-        if (String(ln.produto_id) === pid) {
-          ln.contado = true;
-          ln.faltando = false;
-        }
-      });
+      maCiclicaAplicarQtdLocal(p.id, acum);
       maCiclicaPintarBar();
       maPrepCampoProximoBip();
       maMostrarUltimoBipado(p);
@@ -2949,9 +3040,10 @@ function salvarCiclica() {
           ln.faltando = false;
         }
       });
+      const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : qtd;
+      maCiclicaAplicarQtdLocal(pid, acum);
       maCiclicaPintarBar();
       fechar();
-      const acum = (d.qtd_acumulada != null) ? Number(d.qtd_acumulada) : qtd;
       const msg = Number.isFinite(acum)
         ? `Somou · total parcial ${acum} (ainda não grava estoque)`
         : 'Somou (ainda não grava estoque)';
