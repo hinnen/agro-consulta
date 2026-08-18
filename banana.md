@@ -620,7 +620,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Doc: `docs/ESTOQUE_AGRO_FONTE_DA_VERDADE.md`.
 - Cron: `estoque_mongo_ping` a cada 10 min no Render.
 - **Transferência forçada — bip vs digitar (06/08):** bip (código de barras numérico) → qtd 1 (+1 se já no carrinho) e foco volta na busca; digitar nome/GM → foco na quantidade (como antes).
-- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional.
+- **Contagem cíclica (13/08 · v16.12+ · Bip+1 18/08 · qtd+código 18/08 · foco 18/08):** Ajuste Mobile **Cíclica** — sessão PG multi-celular, cego, **sempre soma**, filtro **dias de movimento** (padrão 60), escopo loja/categoria/corredor, 2 passagens, grava só no fechamento. **Bip +1** soma 1 na contagem (não no estoque); tela pisca verde/vermelho **com o total já bipado**; card mostra o número (não só OK). Bip sem cadastro → busca pelo nome → overlay de código opcional. **Modo foco (fila deploy):** durante cíclica, só busca grande + lista; **⋯** abre controles.
 
 ### 4.9 Compras
 
