@@ -473,14 +473,16 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | Cliente **sem CPF** vÃ¡lido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
 | Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
 
-#### DevoluÃ§Ã£o de venda
+#### Devolução de venda
 
-- RepÃµe estoque + saÃ­da no caixa (como antes).
-- Se tinha NFC-e **autorizada** â†’ sistema **tenta cancelar na SEFAZ** com motivo padrÃ£o: *Â«Devolucao de mercadoria registrada no sistema Agro.Â»*
-- **Prazo SEFAZ (NFC-e mod. 65):** cancelamento por evento sÃ³ atÃ© **~30 minutos** apÃ³s a **autorizaÃ§Ã£o do cupom** (regra nacional â€” NT 2018.004 / Ajuste SINIEF 07/2018). O relÃ³gio **nÃ£o** recomeÃ§a na devoluÃ§Ã£o.
-- **Erro 501** = prazo esgotado na SEFAZ. DevoluÃ§Ã£o no Agro segue OK; cupom continua autorizado â†’ **NF-e de devoluÃ§Ã£o (mod. 55)** ou contador.
+- Repõe estoque + saída no caixa (como antes).
+- Se tinha NFC-e **autorizada** e a devolução **totaliza** a venda → na confirmação o sistema **pergunta**: **Devolver e cancelar cupom** ou **Devolver e manter cupom**.
+- Só tenta cancelar na SEFAZ se o operador escolher cancelar (motivo padrão: *«Devolucao de mercadoria registrada no sistema Agro.»*). Payload: `cancelar_nfce` true/false; sem chave → True (compat).
+- **Prazo SEFAZ (NFC-e mod. 65):** cancelamento por evento só até **~30 minutos** após a **autorização do cupom** (regra nacional — NT 2018.004 / Ajuste SINIEF 07/2018). O relógio **não** recomeça na devolução.
+- **Erro 501** = prazo esgotado na SEFAZ. Devolução no Agro segue OK; cupom continua autorizado → **NF-e de devolução (mod. 55)** ou contador.
 - Status local passa a **Cancelada** quando a SEFAZ aceita.
-- BotÃ£o **Cancelar NFC-e** na tela da venda (retry manual).
+- Botão **Cancelar NFC-e** na tela da venda (retry manual).
+- Devolução **parcial**: NFC-e permanece; não pergunta cancelamento.
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). ReemissÃ£o em `/vendas/` â†’ apÃ³s autorizar pergunta **Imprimir cupom / Agora nÃ£o**. Aviso pÃ³s-venda NFC-e falhou: toast **no topo**, depois da janela de impressÃ£o Windows.
 
@@ -1235,11 +1237,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
-| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.65** | **SIM 0097** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.67** | **SIM 0097** |
 
 **Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE: cherry/`teste` conforme o chat de auth.
 
-### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.65**)
+### 🩹 Devolução — pergunta cancelar NFC-e (`DEVOL-NFCE-ASK` · **v17.68**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** (aguarda prova local) |
+| **O quê** | Devolução **total** com NFC-e → na confirmação: **cancelar cupom** ou **manter cupom**. Parcial sem pergunta. |
+| **Arquivos** | `venda_agro_detalhe.html` · `views.py` (`cancelar_nfce`) · banana §4.3 |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 venda c/ NFC-e · devolver tudo → 2 botões · parcial → só «Sim, devolver» |
+
+### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.67**)
 
 | Item | Detalhe |
 | ---- | ------- |

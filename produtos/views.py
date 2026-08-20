@@ -12737,6 +12737,12 @@ def api_venda_agro_devolver(request, pk):
     motivo = str(payload.get("motivo") or "").strip()[:500]
     devolver_tudo = bool(payload.get("devolver_tudo"))
     devolver_frete = bool(payload.get("devolver_frete"))
+    # Opcional na UI: só cancela NFC-e se devolução total + operador pediu.
+    # Sem a chave → True (compat: comportamento antigo = tentar cancelar).
+    if "cancelar_nfce" not in payload:
+        cancelar_nfce_pedido = True
+    else:
+        cancelar_nfce_pedido = bool(payload.get("cancelar_nfce"))
     # Compat legado: sem chave "itens" e sem devolver_tudo → restante inteiro
     if devolver_tudo or "itens" not in payload:
         linhas, frete_v, err_sel = montar_selecao_devolucao(
@@ -12952,30 +12958,40 @@ def api_venda_agro_devolver(request, pk):
             if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
                 avisos.append(
                     "Devolução parcial: o cupom fiscal (NFC-e) permanece autorizado. "
-                    "Cancelamento na SEFAZ só na devolução total (e dentro do prazo)."
+                    "Cancelamento na SEFAZ só na devolução total, se você pedir "
+                    "na confirmação (e dentro do prazo)."
                 )
 
     nfce_cancelada = False
     if totalizou:
         nfce = getattr(venda, "nfce", None)
         if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-            from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
-
-            try:
-                r_nfce = cancelar_nfce_autorizada(nfce)
-            except Exception as exc:
-                logger.exception("devolucao venda nfce cancel: %s", exc)
-                r_nfce = {"ok": False, "erro": str(exc)[:200]}
-            if r_nfce.get("ok"):
-                nfce_cancelada = True
-                num = nfce.numero or "?"
-                avisos.append(f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ.")
-            else:
+            if not cancelar_nfce_pedido:
                 num = nfce.numero or "?"
                 avisos.append(
-                    f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
-                    f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
+                    f"Cupom fiscal NFC-e nº {num} mantido (não cancelado na SEFAZ) "
+                    "— escolha na confirmação da devolução."
                 )
+            else:
+                from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
+
+                try:
+                    r_nfce = cancelar_nfce_autorizada(nfce)
+                except Exception as exc:
+                    logger.exception("devolucao venda nfce cancel: %s", exc)
+                    r_nfce = {"ok": False, "erro": str(exc)[:200]}
+                if r_nfce.get("ok"):
+                    nfce_cancelada = True
+                    num = nfce.numero or "?"
+                    avisos.append(
+                        f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ."
+                    )
+                else:
+                    num = nfce.numero or "?"
+                    avisos.append(
+                        f"Devolução registrada, mas NFC-e nº {num} não foi cancelada: "
+                        f"{(r_nfce.get('erro') or 'erro desconhecido')[:200]}"
+                    )
 
     _dashboard_invalidar_cache_apos_venda_agro(venda)
 
