@@ -1263,11 +1263,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🚀 PREP deploy loja — CATALOGO-5N-PESO~~ · ver CHECKLIST / PACOTE PRONTO acima
 
-### ~~📦 PACOTE — Reserva no lucro~~ · virá **PACOTE PRONTO** acima
-| **Prova** | verify path **VERIFY_OK** (teste + branch deploy) · `node --check` · `manage.py check` |
-| **Risco** | Baixo — só `/catalogo/` + aba Delivery · **zero** PDV/caixa |
-| **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` · Ctrl+F5 |
-| **Autorizar** | *pode subir CATALOGO-5N-PESO para produção* + **99738595** |
+### ~~📦 PACOTE — Reserva no lucro~~ · ver **PACOTE PRONTO** acima
 
 ### ✅ Deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**) · **Live**
 
