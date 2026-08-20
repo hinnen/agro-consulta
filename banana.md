@@ -1239,11 +1239,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
 | 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.67** | **SIM 0097** |
 | 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · teste **v17.69** | **NÃO** |
-| 4 | **PLANILHA-DELIVERY** | ✅ **pronto para envio** · teste **v17.71** | **NÃO** |
+| 4 | **PLANILHA-DELIVERY** | ✅ **pronto para envio** · teste **v17.72** | **NÃO** |
 
 **Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE/DEVOL/PLANILHA: cherry/`teste` conforme o chat de auth.
 
-### 📦 PACOTE PRONTO — Planilha Excel Delivery (`PLANILHA-DELIVERY` · **v17.71**)
+### 📦 PACOTE PRONTO — Planilha Excel Delivery (`PLANILHA-DELIVERY` · **v17.72**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1251,6 +1251,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Cadastro Excel ↓/↑: colunas Delivery (ativo, título, descrição, ordem, destaque, estoque neg., peso, cat+sub 1–4, embalagens) |
 | **Migrate** | **NÃO** |
 | **Prova** | verify **VERIFY_OK** · tests **22/22** · `manage.py check` |
+| **Commit** | feat `2643889` · verify `9e01a4d` · push `origin/teste` |
 | **Risco loja** | Baixo — só cadastro Excel · zero PDV/caixa |
 | **Você** | Ctrl+F5 Cadastro · Excel ↓ Delivery · editar · Excel ↑ · `/catalogo/` |
 
