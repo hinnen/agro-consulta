@@ -1239,7 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Também** | 796 e 798 abandonados (mesmo valor/sessão) |
 | **Brecha (confirmada)** | Poll PDV ~3 min **sem** `abandon` · MP order vive ~16 min · status **não** promove PAID · abandon local mesmo se cancel MP falha · confirmar venda **não** trava Point PENDING/PAID da sessão |
 | **Aprendizado Vila** | **Mesmo código** Centro/Vila (só token/terminal diferente). Bidirecional v7.07 já era compartilhado — falha era o buraco timeout/abandon cego, não “só Centro” |
-| **Fix** | **MP-POINT-CANCEL-SAFE** no `teste` — timeout cancela de verdade · abandon só se MP confirmou · status promove PAID · gate bloqueia outra forma com Point vivo · poll ~5 min |
+| **Fix** | **MP-POINT-CANCEL-SAFE** · `teste` **v17.53** · commit **2fd5f98** · prova path **21/21** · **não** subiu loja |
 | **Auditoria** | Chat 20/08 + [Auditar brecha MP Point](02762599-16d7-45f7-b473-c86b2cb831d4) |
 | **Loja** | **Aguarda** frase + senha (não subiu produção) |
 
