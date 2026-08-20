@@ -1230,56 +1230,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.61**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **teste** · commit abaixo · **não** produção |
-| **O quê** | Valor manual **Fica na Vila** sai do **lucro bruto** *antes* do % (50%) · diário desde **18/08/2026** · log detalhado na tela |
-| **Antes (errado)** | Cortava o total no final (depois do %) |
-| **Agora** | lucro − manual = penúltimo → % ao Centro · CMV/fiado iguais |
-| **Migrate** | **SIM** `0097` (desde + log + snapshot no envio) |
-| **Prova** | path **129** · reserva **VERIFY_RESERVA_OK** |
-| **Commit** | `77da6a6` · teste **v17.61** · push `origin/teste` |
-| **Você** | Ctrl+F5 `/repasse-vila/` · digitar valor · ver penúltimo no texto · bloco **Log · valor manual** |
-
-### 🚀 PREP deploy loja — CATALOGO-5N-PESO (`deploy/catalogo-5n-peso` · **v17.60**)
-
-> **NÃO subir ainda** — lojas abertas. Próximo chat: pausar vendas + frase + senha.
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ **PREP pronto** · aguarda autorização loja |
-| **Checklist** | #1 **CATALOGO-5N-PESO** |
-| **Loja hoje** | **v17.43** @ **`5bd7f66`** |
-| **Branch deploy** | `deploy/catalogo-5n-peso` @ **`7158ce0`** (1 commit sobre producao) |
-| **Badge loja após** | **v17.60** |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-catalogo-5n-peso-v17.43` @ **`5bd7f66`** + frase + senha |
-| **Arquivos** | só catálogo delivery + aba Delivery no cadastro + 4 linhas em `views.py` (hash delivery) · **zero** PDV/caixa/consulta |
-| **Prova PREP** | verify path **VERIFY_OK** na branch deploy · `node --check` · `manage.py check` · PDV paths **não** no diff |
-| **Risco** | **Baixo** com loja aberta — vitrine `/catalogo/` + modal cadastro Delivery; venda balcão **não** muda |
-| **No chat de auth** | 1) pausar vendas se quiser 2) *pode subir CATALOGO-5N-PESO para produção* + **99738595** 3) assistente: FF `deploy/catalogo-5n-peso` → `producao` · **NÃO** merge `teste` |
-| **Você após Live** | Ctrl+F5 `/catalogo/` · gestão N5 · Delivery no cadastro · PDV venda normal |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.43**) · **PREP feito**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.43**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CATALOGO-5N-PESO** | ✅ **PREP pronto** · branch `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
+| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.63** | **SIM 0097** |
 
-**Autorizar loja (próximo chat):** *pode subir CATALOGO-5N-PESO / catálogo 5 níveis para produção* + **99738595**
+**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE: cherry/`teste` conforme o chat de auth.
+
+### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.63**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Valor manual **Fica na Vila** sai do **lucro bruto** *antes* do % (50%) · diário desde **18/08/2026** · log na tela |
+| **Migrate** | **SIM** `0097` |
+| **Prova** | path **131** · reserva **60** · deep **102** · `manage.py check` OK |
+| **Commit** | feature `77da6a6` · verify abaixo · push `origin/teste` |
+| **Você** | Ctrl+F5 `/repasse-vila/` · valor manual · penúltimo · **Log** |
 
 ### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.60**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **PREP pronto** · aguarda senha (lojas abertas — não subir agora) |
-| **O quê** | `/catalogo/` até **5** níveis · após folha: passo **peso** (grade PDV, só com produto) · lista filtrada · + Add mantém modal embalagens · tela não muda |
-| **Cadastro / gestão** | Selects nível 4–5 · criar até N5 em `/catalogo/gestao/` |
+| **Status** | ✅ **pronto para envio** · PREP branch (lojas abertas — subir com senha) |
+| **O quê** | `/catalogo/` até **5** níveis · passo **peso** · gestão N5 · Delivery no cadastro |
 | **Migrate** | **NÃO** |
-| **Commit teste** | feat **`5c275f2`** · verify **`3ad086c`** |
-| **Commit loja (prep)** | **`7158ce0`** em `deploy/catalogo-5n-peso` |
+| **Branch** | `deploy/catalogo-5n-peso` @ **`7158ce0`** |
+| **Rollback** | tag `rollback/pre-catalogo-5n-peso-v17.43` @ **`5bd7f66`** |
+| **Você** | Ctrl+F5 `/catalogo/` · gestão N5 · PDV normal |
+
+### ~~🚀 PREP deploy loja — CATALOGO-5N-PESO~~ · ver CHECKLIST / PACOTE PRONTO acima
+
+### ~~📦 PACOTE — Reserva no lucro~~ · virá **PACOTE PRONTO** acima
 | **Prova** | verify path **VERIFY_OK** (teste + branch deploy) · `node --check` · `manage.py check` |
 | **Risco** | Baixo — só `/catalogo/` + aba Delivery · **zero** PDV/caixa |
 | **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` · Ctrl+F5 |

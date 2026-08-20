@@ -100,14 +100,26 @@ def main() -> int:
     cfg = salvar_reserva_vila(200, operador="bot")
     ok("reserva 200") if float(cfg.reserva_vila) == 200.0 else fail("reserva 200")
     calc_res = calcular_disponivel(hoje)
-    if "reserva_vila" in calc_res and "total_sugerido_bruto" in calc_res:
+    if "reserva_vila" in calc_res and "lucro_penultimo_dia" in calc_res and "reserva_aplicada" in calc_res:
         ok("calc tem reserva")
         bruto = Decimal(str(calc_res["total_sugerido_bruto"]))
         sug = Decimal(str(calc_res["total_sugerido"]))
-        esperado = max(Decimal("0.00"), (bruto - Decimal("200.00")).quantize(Decimal("0.01")))
-        ok("reserva desconta sugerido") if sug == esperado else fail(f"sug={sug} esperado={esperado} bruto={bruto}")
+        # Nova regra: reserva entra no lucro antes do % — não corta o total de novo.
+        if sug == bruto or (bruto < 0 and sug == Decimal("0.00")):
+            ok("reserva nao corta total de novo")
+        else:
+            fail(f"sug={sug} esperado={bruto} bruto={bruto}")
+        lucro_b = max(Decimal("0.00"), Decimal(str(calc_res.get("lucro_bruto_dia") or 0)))
+        apl = Decimal(str(calc_res.get("reserva_aplicada") or 0))
+        pen = Decimal(str(calc_res.get("lucro_penultimo_dia") or 0))
+        esp_apl = min(Decimal("200.00"), lucro_b)
+        esp_pen = (lucro_b - esp_apl).quantize(Decimal("0.01"))
+        if apl == esp_apl and pen == esp_pen:
+            ok("penultimo = lucro - reserva")
+        else:
+            fail(f"apl={apl} pen={pen} esp_apl={esp_apl} esp_pen={esp_pen}")
     else:
-        fail("calc sem reserva/total_sugerido_bruto")
+        fail("calc sem reserva/penultimo")
     salvar_reserva_vila(res_antes, operador="bot")
 
     c_cent, c_vila = partir_despesas_centro_vila(
@@ -237,12 +249,50 @@ def main() -> int:
     )
 
     lucro = Decimal(str(calc_e["lucro_bruto_dia"]))
-    alvo_lucro = (max(Decimal("0"), lucro) * Decimal("50") / Decimal("100")).quantize(
-        Decimal("0.01")
+    pen = Decimal(str(calc_e.get("lucro_penultimo_dia") or lucro))
+    desp_c = Decimal(str(calc_e.get("despesas_centro_dia") or 0))
+    alvo_lucro = max(
+        Decimal("0.00"),
+        ((max(Decimal("0"), pen) * Decimal("50") / Decimal("100")) - desp_c).quantize(
+            Decimal("0.01")
+        ),
     )
-    ok("alvo lucro 50%") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
-        "0.02"
-    ) else fail("alvo lucro")
+    ok("alvo lucro 50% do penultimo") if abs(
+        Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro
+    ) <= Decimal("0.02") else fail(
+        f"alvo lucro {calc_e['alvos']['lucro']} != {alvo_lucro} pen={pen}"
+    )
+
+    # Com reserva conhecida: lucro - 100 -> 50% do penultimo
+    salvar_reserva_vila(Decimal("100.00"), operador="bot")
+    calc_r = calcular_disponivel(hoje, percentual_lucro=50)
+    lb = max(Decimal("0.00"), Decimal(str(calc_r.get("lucro_bruto_dia") or 0)))
+    apl_r = Decimal(str(calc_r.get("reserva_aplicada") or 0))
+    pen_r = Decimal(str(calc_r.get("lucro_penultimo_dia") or 0))
+    esp_apl_r = min(Decimal("100.00"), lb)
+    esp_pen_r = (lb - esp_apl_r).quantize(Decimal("0.01"))
+    if apl_r == esp_apl_r and pen_r == esp_pen_r:
+        ok(f"formula reserva 100: pen={pen_r}")
+    else:
+        fail(f"formula 100 apl={apl_r}/{esp_apl_r} pen={pen_r}/{esp_pen_r}")
+    desp_r = Decimal(str(calc_r.get("despesas_centro_dia") or 0))
+    alvo_r = max(
+        Decimal("0.00"),
+        ((pen_r * Decimal("50") / Decimal("100")) - desp_r).quantize(Decimal("0.01")),
+    )
+    if abs(Decimal(str(calc_r["alvos"]["lucro"])) - alvo_r) <= Decimal("0.02"):
+        ok("alvo lucro com reserva = % do penultimo")
+    else:
+        fail(f"alvo c/ reserva {calc_r['alvos']['lucro']} != {alvo_r}")
+    # Antes de 18/08/2026 nao aplica
+    from datetime import date as _date
+
+    calc_old = calcular_disponivel(_date(2026, 8, 17), percentual_lucro=50)
+    if Decimal(str(calc_old.get("reserva_aplicada") or 0)) == Decimal("0.00"):
+        ok("antes 18/08 reserva=0")
+    else:
+        fail(f"antes desde apl={calc_old.get('reserva_aplicada')}")
+    salvar_reserva_vila(res_antes, operador="bot")
 
     s_vila = SessaoCaixa.objects.filter(
         ponto_caixa="vila", fechado_em__isnull=True
@@ -269,6 +319,25 @@ def main() -> int:
 
     gravar_deposito_request(req, "vila")
     req.session.save()
+
+    # Garante dinheiro a levar (reservas/envios anteriores nao zeram o deep).
+    salvar_reserva_vila(Decimal("0"), operador="bot")
+    v_cash = VendaAgro.objects.create(
+        total=Decimal("150.00"),
+        forma_pagamento="Dinheiro",
+        deposito="vila",
+        cliente_nome=tag,
+        usuario_registro="bot",
+        pagamentos_json=[{"forma": "Dinheiro", "valor": 150}],
+    )
+    ItemVendaAgro.objects.create(
+        venda=v_cash,
+        produto_id_externo=pid,
+        descricao="Cash deep",
+        quantidade=Decimal("1"),
+        valor_unitario=Decimal("150"),
+        valor_total=Decimal("150"),
+    )
 
     sess = cu.obter_sessao_caixa_aberta_request(req)
     print("sessao_req", getattr(sess, "pk", None), getattr(sess, "ponto_caixa", None))
@@ -682,8 +751,23 @@ def main() -> int:
         "produtos/migrations/0087_repasse_vila_centro.py",
         "produtos/migrations/0093_repasse_vila_acumulado_ajuste.py",
         "produtos/migrations/0095_repasse_vila_reserva.py",
+        "produtos/migrations/0097_repasse_reserva_lucro_log.py",
     ):
         ok(f"file {rel}") if (ROOT / rel).exists() else fail(f"missing {rel}")
+
+    from django.urls import reverse as _rev
+
+    try:
+        _rev("api_repasse_vila_reserva_log")
+        ok("url api_repasse_vila_reserva_log")
+    except Exception as e:
+        fail(f"url reserva-log {e}")
+
+    rlog = c.get("/api/repasse-vila/reserva-log/?limit=5")
+    if rlog.status_code == 200 and isinstance(rlog.json().get("logs"), list):
+        ok("GET reserva-log deep")
+    else:
+        fail(f"reserva-log {rlog.status_code}")
 
     views_txt = (ROOT / "produtos/views.py").read_text(encoding="utf-8", errors="replace")
     ok("hook abertura") if "aplicar_repasses_pendentes_centro" in views_txt else fail(
