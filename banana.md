@@ -1230,25 +1230,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⚠️ INCIDENTE — MP Point Centro cobrou e PDV não fechou (19/08 · Manasses R$460)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Caso** | Point auto Centro cobrou · sistema não marcou pago · venda **#5754** fechada manual **mp_renan** (Geraldo) · cliente Manasses/Celi |
-| **Pedido-chave** | Point **797** `ORD01M0D833QSEQNH0KMFX0NFXP8J` — `pending`/`created` ~227s (= fingerprint timeout poll) · **ainda órfão** |
-| **Também** | 796 e 798 abandonados (mesmo valor/sessão) |
-| **Brecha (confirmada)** | Poll PDV ~3 min **sem** `abandon` · MP order vive ~16 min · status **não** promove PAID · abandon local mesmo se cancel MP falha · confirmar venda **não** trava Point PENDING/PAID da sessão |
-| **Aprendizado Vila** | **Mesmo código** Centro/Vila (só token/terminal diferente). Bidirecional v7.07 já era compartilhado — falha era o buraco timeout/abandon cego, não “só Centro” |
-| **Fix** | **MP-POINT-CANCEL-SAFE** · `teste` **v17.53+** · **PIN gerencial** (Geraldo / Geraldinho / Renan Hinnen) força liberar em emergência · util `pin_gerencial_util.py` reutilizável |
-| **Loja** | **Aguarda** frase + senha (não subiu produção) |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-BAIXA-LOJA** | 🟡 **pronto para envio** | **SIM 0096** |
-| 2 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
-| 3 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
+| 1 | **MP-POINT-CANCEL-SAFE** | ✅ **pronto para envio à produção** | não |
+| 2 | **BI-VAL-BAIXA-LOJA** | ✅ **pronto para envio à produção** | **SIM 0096** |
+| 3 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
+| 4 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
+
+### 📦 PACOTE PRONTO LOJA — Point cancel seguro + PIN gerencial (`MP-POINT-CANCEL-SAFE`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Timeout cancela na máquina · abandon só se MP confirmou · status grava PAID · trava outra forma com Point vivo · **PIN gerencial** (Geraldo / Geraldinho / Renan Hinnen) força liberar em emergência |
+| **Por quê** | Incidente 19/08 R$460 (Point cobrou, PDV não fechou, venda na Renan) |
+| **Migrate** | **NÃO** |
+| **Commits** | `2fd5f98` · `0e41e64` · teste **v17.56** · loja **v17.42** |
+| **Prova** | cancel-safe **21/21** · pin **23/23** · Vila path **41/41** · deep **40/40** |
+| **Risco** | Médio — PDV Point Centro/Vila · Ctrl+F5 obrigatório |
+| **Você** | Ctrl+F5 PDV · Point auto · cancelar no PDV = some na máquina · timeout cancela · se travar: PIN Geraldo/Geraldinho/Renan |
+| **Autorizar** | *pode subir MP-POINT-CANCEL-SAFE para produção* + **99738595** |
+
+### ⚠️ INCIDENTE — MP Point Centro (19/08 · Manasses R$460) · **fix no teste — ver PACOTE acima**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | **797** ainda órfão no PG · venda **#5754** mp_renan |
+| **Fix** | PACOTE **MP-POINT-CANCEL-SAFE** (checklist #1) |
 
 ### 📦 PACOTE PRONTO LOJA — baixa validade por loja (`BI-VAL-BAIXA-LOJA`)
 
@@ -1262,6 +1271,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
 | **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
 | **Autorizar** | *pode subir BI-VAL-BAIXA-LOJA para produção* + **99738595** |
+| **Loja** | ✅ **pronto para envio à produção** |
 
 ### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`)
 
@@ -1285,6 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova (18/08)** | verify chart 16/16 · CMV 55/55 · visual 232/232 · `check` OK · **436ms** · BI bruto/pago/Centro/Vila **match** (≤ R$ 0,02) |
 | **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) · **Lucro acum.** ≈ card do BI |
+| **Loja** | ✅ **pronto para envio à produção** |
 
 ### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
