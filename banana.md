@@ -1232,24 +1232,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 20/08b (`deploy/lote-checklist-2008b` · **v17.72**)
-
-> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-2008b`.
+### ✅ Deploy loja — lote 20/08b (`deploy/lote-checklist-2008b` · **v17.72**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.43** · `producao` @ **5bd7f66** |
-| **Branch** | `deploy/lote-checklist-2008b` @ **`26a947e`** · badge loja alvo **v17.72** |
+| **Status** | ✅ **enviado / Live v17.72** · `producao` @ **26a947e** |
 | **Pacotes** | **CATALOGO-5N-PESO** · **REPASSE-RESERVA-LUCRO** · **DEVOL-NFCE-ASK** · **PLANILHA-DELIVERY** |
-| **Migrate** | **SIM** `0097` (repasse reserva lucro log) — Render no deploy |
-| **Prova (branch)** | catalogo **VERIFY_OK** · planilha **VERIFY_OK** · repasse **VERIFY_RESERVA_OK 60** · devol **39/40** (1 = banana doc só no teste) · planilha tests **9/9** · `manage.py check` · views AST OK |
-| **Risco loja aberta** | **Baixo–médio** — PDV carrinho/caixa/Point **fora**; DEVOL só tela venda/devolver; REPASSE só `/repasse-vila/` + migrate; catálogo+planilha só Delivery/cadastro |
-| **Fora deste lote** | Caixa abrir/fechar · Point · Entrada NF · cíclica · CP · merge `teste` inteiro |
-| **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** |
-| **Zap** | *Atualização ~3–5 min (migrate 0097) — pause vendas; Ctrl+F5 após.* |
-| **Autorizar** | *pode subir lote checklist 20/08b / deploy/lote-checklist-2008b para produção* + **99738595** |
+| **Migrate** | **SIM** `0097` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** + frase + senha |
+| **Você** | **Ctrl+F5** `/catalogo/` · Cadastro Excel Delivery · `/repasse-vila/` · devolução NFC-e · badge **17.72** |
 
 | Pacote | O quê | Você valida |
 | ------ | ----- | ----------- |
@@ -1258,65 +1249,45 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **DEVOL-NFCE-ASK** | Devolução total pergunta NFC-e | venda c/ NFC-e · devolver tudo |
 | **PLANILHA-DELIVERY** | Excel Delivery em massa | Cadastro Excel ↓/↑ |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.43**)
+### ~~🚀 PREP deploy loja — lote checklist 20/08b~~ · **superado — Live v17.72**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (20/08b · loja **v17.72**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · no lote PREP `2008b` | **NÃO** |
-| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · no lote PREP `2008b` | **SIM 0097** |
-| 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · no lote PREP `2008b` | **NÃO** |
-| 4 | **PLANILHA-DELIVERY** | ✅ **pronto para envio** · no lote PREP `2008b` · **v17.72** | **NÃO** |
+| 1 | **CATALOGO-5N-PESO** | ✅ **enviado / Live v17.72** | **NÃO** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **enviado / Live v17.72** | **SIM 0097** |
+| 3 | **DEVOL-NFCE-ASK** | ✅ **enviado / Live v17.72** | **NÃO** |
+| 4 | **PLANILHA-DELIVERY** | ✅ **enviado / Live v17.72** | **NÃO** |
 
-**Autorizar loja:** frase do lote **2008b** + **99738595** · FF `deploy/lote-checklist-2008b` (não merge `teste`).
-
-### 📦 PACOTE PRONTO — Planilha Excel Delivery (`PLANILHA-DELIVERY` · **v17.72**)
+### ~~📦 PACOTE PRONTO — Planilha Excel Delivery~~ · **Live v17.72**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Cadastro Excel ↓/↑: colunas Delivery (ativo, título, descrição, ordem, destaque, estoque neg., peso, cat+sub 1–4, embalagens) |
-| **Migrate** | **NÃO** |
-| **Prova** | verify **VERIFY_OK** · tests **22/22** · `manage.py check` |
-| **Commit** | feat `2643889` · verify `9e01a4d` · push `origin/teste` |
-| **Risco loja** | Baixo — só cadastro Excel · zero PDV/caixa |
-| **Você** | Ctrl+F5 Cadastro · Excel ↓ Delivery · editar · Excel ↑ · `/catalogo/` |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **O quê** | Cadastro Excel ↓/↑: colunas Delivery |
+| **Loja** | `producao` @ **26a947e** |
 
-### 📦 PACOTE PRONTO — Devolução pergunta NFC-e (`DEVOL-NFCE-ASK` · **v17.69**)
+### ~~📦 PACOTE PRONTO — Devolução pergunta NFC-e~~ · **Live v17.72**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Devolução **total** c/ NFC-e → pergunta **cancelar** ou **manter** cupom. Parcial sem pergunta. |
-| **Arquivos** | `venda_agro_detalhe.html` · `views.py` · `scripts/verify_devol_nfce_ask_path.py` · banana §4.3 |
-| **Migrate** | **NÃO** |
-| **Prova** | path **VERIFY_OK 40/40** (UI + HTTP manter/cancelar/parcial/compat) |
-| **Você** | Ctrl+F5 venda c/ NFC-e · devolver tudo → 2 botões · parcial → só «Sim, devolver» |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **O quê** | Devolução **total** c/ NFC-e → pergunta **cancelar** ou **manter** cupom |
 
-### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.67**)
+### ~~📦 PACOTE PRONTO — Reserva no lucro antes do %~~ · **Live v17.72**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Valor manual **Fica na Vila** sai do **lucro bruto** *antes* do % (50%) · diário desde **18/08/2026** · log na tela |
+| **Status** | ✅ **enviado / Live v17.72** |
 | **Migrate** | **SIM** `0097` |
-| **Prova** | path **131** · reserva **60** · deep **102** · `manage.py check` OK |
-| **Commit** | feat `77da6a6` · verify `2192407` · docs `336413d` · push `origin/teste` |
-| **Você** | Ctrl+F5 `/repasse-vila/` · valor manual · penúltimo · **Log** |
 
-### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.60**)
+### ~~📦 PACOTE PRONTO — Catálogo 5 níveis + peso~~ · **Live v17.72**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** · PREP branch (lojas abertas — subir com senha) |
-| **O quê** | `/catalogo/` até **5** níveis · passo **peso** · gestão N5 · Delivery no cadastro |
-| **Migrate** | **NÃO** |
-| **Branch** | `deploy/catalogo-5n-peso` @ **`7158ce0`** |
-| **Rollback** | tag `rollback/pre-catalogo-5n-peso-v17.43` @ **`5bd7f66`** |
-| **Você** | Ctrl+F5 `/catalogo/` · gestão N5 · PDV normal |
-
-### ~~🚀 PREP deploy loja — CATALOGO-5N-PESO~~ · ver CHECKLIST / PACOTE PRONTO acima
-
-### ~~📦 PACOTE — Reserva no lucro~~ · ver **PACOTE PRONTO** acima
+| **Status** | ✅ **enviado / Live v17.72** |
+| **Branch** | estava em `deploy/catalogo-5n-peso` · agora no lote **2008b** |
 
 ### ✅ Deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**) · **Live**
 
