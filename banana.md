@@ -1238,17 +1238,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
 | 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.67** | **SIM 0097** |
+| 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · teste **v17.69** | **NÃO** |
 
-**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE: cherry/`teste` conforme o chat de auth.
+**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE/DEVOL: cherry/`teste` conforme o chat de auth.
 
-### 🩹 Devolução — pergunta cancelar NFC-e (`DEVOL-NFCE-ASK` · **v17.68**)
+### 📦 PACOTE PRONTO — Devolução pergunta NFC-e (`DEVOL-NFCE-ASK` · **v17.69**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **teste** (aguarda prova local) |
-| **O quê** | Devolução **total** com NFC-e → na confirmação: **cancelar cupom** ou **manter cupom**. Parcial sem pergunta. |
-| **Arquivos** | `venda_agro_detalhe.html` · `views.py` (`cancelar_nfce`) · banana §4.3 |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Devolução **total** c/ NFC-e → pergunta **cancelar** ou **manter** cupom. Parcial sem pergunta. |
+| **Arquivos** | `venda_agro_detalhe.html` · `views.py` · `scripts/verify_devol_nfce_ask_path.py` · banana §4.3 |
 | **Migrate** | **NÃO** |
+| **Prova** | path **VERIFY_OK 40/40** (UI + HTTP manter/cancelar/parcial/compat) |
 | **Você** | Ctrl+F5 venda c/ NFC-e · devolver tudo → 2 botões · parcial → só «Sim, devolver» |
 
 ### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.67**)
