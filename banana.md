@@ -1242,6 +1242,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** + frase + senha |
 | **Você** | **Ctrl+F5** `/catalogo/` · Cadastro Excel Delivery · `/repasse-vila/` · devolução NFC-e · badge **17.72** |
 
+### 🧪 WIP — Excluir categoria Delivery (`CAT-DEL-EXCLUIR`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Botão **−** na aba Delivery (cadastro) + Excluir/X na gestão `/catalogo/gestao/` · limpa vínculo nos produtos |
+| **API** | `POST /catalogo/api/categorias/excluir/` |
+| **Prova** | tests **3/3** · `manage.py check` |
+| **Você** | Ctrl+F5 Cadastro → Delivery → selecionar → **−** · ou `/catalogo/gestao/` → Excluir |
+
 | Pacote | O quê | Você valida |
 | ------ | ----- | ----------- |
 | **CATALOGO-5N-PESO** | `/catalogo/` 5 níveis + peso | `/catalogo/` · gestão N5 |
