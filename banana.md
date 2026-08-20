@@ -1230,6 +1230,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ⚠️ INCIDENTE — MP Point Centro cobrou e PDV não fechou (19/08 · Manasses R$460)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Caso** | Point auto Centro cobrou · sistema não marcou pago · venda **#5754** fechada manual **mp_renan** (Geraldo) · cliente Manasses/Celi |
+| **Pedido-chave** | Point **797** `ORD01M0D833QSEQNH0KMFX0NFXP8J` — `pending`/`created` ~227s (= fingerprint timeout poll) · **ainda órfão** |
+| **Também** | 796 e 798 abandonados (mesmo valor/sessão) |
+| **Brecha (confirmada)** | Poll PDV ~3 min **sem** `abandon` · MP order vive ~16 min · status **não** promove PAID · abandon local mesmo se cancel MP falha · confirmar venda **não** trava Point PENDING/PAID da sessão |
+| **Aprendizado Vila** | **Mesmo código** Centro/Vila (só token/terminal diferente). Bidirecional v7.07 já era compartilhado — falha era o buraco timeout/abandon cego, não “só Centro” |
+| **Fix** | **MP-POINT-CANCEL-SAFE** no `teste` — timeout cancela de verdade · abandon só se MP confirmou · status promove PAID · gate bloqueia outra forma com Point vivo · poll ~5 min |
+| **Auditoria** | Chat 20/08 + [Auditar brecha MP Point](02762599-16d7-45f7-b473-c86b2cb831d4) |
+| **Loja** | **Aguarda** frase + senha (não subiu produção) |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08)
 
 | # | Pacote | Status | Migrate |
@@ -1245,7 +1258,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Centro conferiu/baixou vencido → **Vila continua vendo** até conferir lá. Estoque só da loja que baixou. Lote some só quando as **duas** conferiram. |
 | **Por quê** | Antes «Dar baixa» apagava o lote para todo mundo e zerava o card da Vila |
 | **Migrate** | **SIM** `0096_estoque_lote_baixa_por_loja` |
-| **Commit** | fix **21d9c65** · prova **5ea6d7b** · teste **v17.51** · loja **v17.42** |
+| **Commit** | fix **21d9c65** · prova **5ea6d7b** · teste **v17.52** · loja **v17.42** |
 | **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
 | **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
 | **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
