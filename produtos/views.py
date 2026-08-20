@@ -13077,18 +13077,7 @@ def api_venda_agro_devolver(request, pk):
     if totalizou:
         nfce = getattr(venda, "nfce", None)
         if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
-<<<<<<< HEAD
-            from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada
-
-            r_nfce = cancelar_nfce_autorizada(nfce)
-            if r_nfce.get("ok"):
-                nfce_cancelada = True
-                num = nfce.numero or "?"
-                avisos.append(f"NFC-e nº {num} (série {nfce.serie or '?'}) cancelada na SEFAZ.")
-            else:
-=======
             if not cancelar_nfce_pedido:
->>>>>>> 0a779ad (feat(pdv): pergunta se cancela NFC-e na devolução total)
                 num = nfce.numero or "?"
                 avisos.append(
                     f"Cupom fiscal NFC-e nº {num} mantido (não cancelado na SEFAZ) "
