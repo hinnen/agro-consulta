@@ -17,10 +17,13 @@ from produtos.models import (
     RepasseVilaCentroAgro,
     RepasseVilaConfigAgro,
     RepasseVilaDeltaDiaAgro,
+    RepasseVilaReservaLogAgro,
     VendaAgro,
 )
 
 ZERO = Decimal("0.00")
+# Campo reserva_vila criado em 18/08/2026 — diário a partir desta data.
+RESERVA_VILA_DESDE_DEFAULT = date(2026, 8, 18)
 # Limite para transferência de dia atrasado (esqueci ontem / semana).
 REPASSE_MAX_DIAS_ATRASO = 180
 FORMAS_ELETRONICAS_REPASSE = frozenset(
@@ -83,22 +86,129 @@ def salvar_percentual_padrao(pct, *, operador: str = "") -> RepasseVilaConfigAgr
 
 
 def salvar_reserva_vila(valor, *, operador: str = "") -> RepasseVilaConfigAgro:
-    """Valor fixo que fica na Vila e desconta do que vai ao Centro."""
+    """Valor manual diário: desconta do lucro bruto antes do % ao Centro."""
     v = _dec(valor)
     if v < 0:
         v = ZERO
     if v > Decimal("99999.99"):
         v = Decimal("99999.99")
     cfg = obter_config()
+    antes = _dec(cfg.reserva_vila)
+    fields = ["reserva_vila", "atualizado_em", "atualizado_por"]
     cfg.reserva_vila = v
     cfg.atualizado_por = (operador or "")[:120]
-    cfg.save(update_fields=["reserva_vila", "atualizado_em", "atualizado_por"])
+    if getattr(cfg, "reserva_vila_desde", None) is None:
+        cfg.reserva_vila_desde = RESERVA_VILA_DESDE_DEFAULT
+        fields.append("reserva_vila_desde")
+        _registrar_log_reserva(
+            tipo=RepasseVilaReservaLogAgro.Tipo.DESDE,
+            operador=operador,
+            data_ref=cfg.reserva_vila_desde,
+            valor_antes=antes,
+            valor_depois=v,
+            mensagem=(
+                f"Data início diário definida: {cfg.reserva_vila_desde.strftime('%d/%m/%Y')}."
+            ),
+            detalhe={"reserva_vila_desde": cfg.reserva_vila_desde.isoformat()},
+        )
+    cfg.save(update_fields=fields)
+    if antes != v:
+        _registrar_log_reserva(
+            tipo=RepasseVilaReservaLogAgro.Tipo.CONFIG,
+            operador=operador,
+            valor_antes=antes,
+            valor_depois=v,
+            mensagem=(
+                f"Valor manual alterado de R$ {antes} para R$ {v} "
+                f"(desconta do lucro antes do % · diário desde "
+                f"{(cfg.reserva_vila_desde or RESERVA_VILA_DESDE_DEFAULT).strftime('%d/%m/%Y')})."
+            ),
+            detalhe={
+                "reserva_vila_antes": float(antes),
+                "reserva_vila_depois": float(v),
+                "reserva_vila_desde": (
+                    (cfg.reserva_vila_desde or RESERVA_VILA_DESDE_DEFAULT).isoformat()
+                ),
+                "regra": "lucro_bruto - reserva → depois aplica % ao Centro",
+            },
+        )
     return cfg
 
 
 def reserva_vila_config(cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
     cfg = cfg or obter_config()
     return max(ZERO, _dec(getattr(cfg, "reserva_vila", ZERO)))
+
+
+def reserva_vila_desde_config(cfg: RepasseVilaConfigAgro | None = None) -> date:
+    cfg = cfg or obter_config()
+    d = getattr(cfg, "reserva_vila_desde", None)
+    return d or RESERVA_VILA_DESDE_DEFAULT
+
+
+def reserva_aplicada_no_dia(
+    dia: date,
+    cfg: RepasseVilaConfigAgro | None = None,
+    *,
+    lucro_bruto: Decimal | None = None,
+) -> Decimal:
+    """Valor manual do dia: 0 se antes da data início; limitado ao lucro bruto."""
+    cfg = cfg or obter_config()
+    if dia < reserva_vila_desde_config(cfg):
+        return ZERO
+    v = reserva_vila_config(cfg)
+    if lucro_bruto is not None:
+        v = min(v, max(ZERO, _dec(lucro_bruto)))
+    return v.quantize(Decimal("0.01"))
+
+
+def _registrar_log_reserva(
+    *,
+    tipo: str,
+    operador: str = "",
+    data_ref: date | None = None,
+    valor_antes=ZERO,
+    valor_depois=ZERO,
+    mensagem: str = "",
+    detalhe: dict | None = None,
+    repasse: RepasseVilaCentroAgro | None = None,
+) -> RepasseVilaReservaLogAgro:
+    return RepasseVilaReservaLogAgro.objects.create(
+        tipo=tipo,
+        operador=(operador or "")[:120],
+        data_ref=data_ref,
+        valor_antes=_dec(valor_antes),
+        valor_depois=_dec(valor_depois),
+        mensagem=(mensagem or "")[:500],
+        detalhe=detalhe if isinstance(detalhe, dict) else {},
+        repasse=repasse,
+    )
+
+
+def listar_log_reserva(*, limit: int = 80) -> list[dict[str, Any]]:
+    lim = max(1, min(int(limit or 80), 200))
+    out: list[dict[str, Any]] = []
+    for row in RepasseVilaReservaLogAgro.objects.order_by("-criado_em", "-pk")[:lim]:
+        out.append(
+            {
+                "id": row.pk,
+                "tipo": row.tipo,
+                "tipo_label": row.get_tipo_display(),
+                "criado_em": (
+                    timezone.localtime(row.criado_em).strftime("%d/%m/%Y %H:%M:%S")
+                    if row.criado_em
+                    else ""
+                ),
+                "operador": row.operador or "",
+                "data_ref": row.data_ref.isoformat() if row.data_ref else "",
+                "valor_antes": float(_dec(row.valor_antes)),
+                "valor_depois": float(_dec(row.valor_depois)),
+                "mensagem": row.mensagem or "",
+                "detalhe": row.detalhe if isinstance(row.detalhe, dict) else {},
+                "repasse_id": row.repasse_id,
+            }
+        )
+    return out
 
 
 def _norm_plano_nome(nome: str) -> str:
@@ -622,9 +732,8 @@ def listar_acumulado_detalhe(
     calc_hoje = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
     acum = abater_extras_do_acumulado(dia, acum_bruto, calc_hoje)
     falta_dia = _dec(calc_hoje.get("falta_dinheiro"))
-    reserva = reserva_vila_config(cfg)
-    total_sug_bruto = (falta_dia + acum).quantize(Decimal("0.01"))
-    total_sug = max(ZERO, (total_sug_bruto - reserva).quantize(Decimal("0.01")))
+    reserva = _dec(calc_hoje.get("reserva_aplicada") or calc_hoje.get("reserva_vila"))
+    total_sug = (falta_dia + acum).quantize(Decimal("0.01"))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
@@ -632,8 +741,10 @@ def listar_acumulado_detalhe(
         "acumulado_bruto": float(acum_bruto),
         "falta_dia": float(falta_dia),
         "reserva_vila": float(reserva),
-        "total_sugerido_bruto": float(total_sug_bruto),
-        "total_sugerido": float(total_sug),
+        "reserva_aplicada": float(_dec(calc_hoje.get("reserva_aplicada"))),
+        "lucro_penultimo_dia": float(_dec(calc_hoje.get("lucro_penultimo_dia"))),
+        "total_sugerido_bruto": float(total_sug),
+        "total_sugerido": float(max(ZERO, total_sug)),
         "credito": float(max(ZERO, -total_sug)) if total_sug < 0 else 0.0,
         "linhas_dias": linhas,
         "ajustes": ajustes,
@@ -739,8 +850,14 @@ def calcular_disponivel(
     if lucro < 0:
         lucro = ZERO
 
+    # Valor manual fica na Vila: sai do lucro ANTES do % (penúltimo → divide).
+    reserva_cfg = reserva_vila_config(cfg)
+    desde = reserva_vila_desde_config(cfg)
+    reserva_apl = reserva_aplicada_no_dia(dia, cfg, lucro_bruto=lucro)
+    lucro_penultimo = max(ZERO, (lucro - reserva_apl).quantize(Decimal("0.01")))
+
     cmv_alvo = base["cmv"]
-    lucro_alvo = (lucro * pct / Decimal("100")).quantize(Decimal("0.01"))
+    lucro_alvo = (lucro_penultimo * pct / Decimal("100")).quantize(Decimal("0.01"))
     fiado_alvo = fiado_dia
 
     por_desp = despesas_caixa_vila_por_plano(dia, dia)
@@ -778,15 +895,17 @@ def calcular_disponivel(
         }
         acum = abater_extras_do_acumulado(dia, acum_bruto, mini)
         total_sugerido = (total_disp + acum).quantize(Decimal("0.01"))
-    reserva = reserva_vila_config(cfg)
+    # Reserva já entrou no lucro_penultimo — não corta de novo o total.
     total_sugerido_bruto = total_sugerido
-    total_sugerido = max(ZERO, (total_sugerido_bruto - reserva).quantize(Decimal("0.01")))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
         "percentual_lucro": float(pct),
         "percentual_padrao": float(_dec(cfg.percentual_lucro_padrao)),
-        "reserva_vila": float(reserva),
+        "reserva_vila": float(reserva_cfg),
+        "reserva_vila_desde": desde.isoformat(),
+        "reserva_aplicada": float(reserva_apl),
+        "lucro_penultimo_dia": float(lucro_penultimo),
         "modo_dia_cheio": bool(modo_dia_cheio),
         "receita_dia": float(base["receita"]),
         "cmv_dia": float(base["cmv"]),
@@ -803,7 +922,7 @@ def calcular_disponivel(
         "acumulado_anterior": float(acum),
         "acumulado_bruto": float(acum_bruto),
         "total_sugerido_bruto": float(total_sugerido_bruto),
-        "total_sugerido": float(total_sugerido),
+        "total_sugerido": float(max(ZERO, total_sugerido)),
         "credito_acumulado": float(max(ZERO, -total_sugerido)) if total_sugerido < 0 else 0.0,
         "disponivel": {
             "cmv": float(disp_cmv),
@@ -1069,15 +1188,7 @@ def confirmar_repasse(
             v_cmv, v_lucro, v_fiado = _redistribuir_tres(v_cmv, v_lucro, v_fiado, novo)
             total = novo
 
-    if valor_manual is None:
-        reserva = reserva_vila_config()
-        if reserva > 0:
-            novo = max(ZERO, (total - reserva).quantize(Decimal("0.01")))
-            if novo <= 0:
-                return None, "Nada a levar — o valor que fica na Vila cobre o envio."
-            if (v_cmv + v_lucro + v_fiado) > 0:
-                v_cmv, v_lucro, v_fiado = _redistribuir_tres(v_cmv, v_lucro, v_fiado, novo)
-            total = novo
+    # Reserva já descontada no lucro_penultimo (antes do %) — não corta o total de novo.
 
     if total <= 0:
         return None, "Nada a levar em dinheiro (cartão/PIX já cobriu ou já enviado)."
@@ -1118,6 +1229,8 @@ def confirmar_repasse(
         status = RepasseVilaCentroAgro.StatusCentro.APLICADO
         sessao_centro = gaveta
 
+    reserva_apl = _dec(calc.get("reserva_aplicada"))
+    lucro_pen = _dec(calc.get("lucro_penultimo_dia"))
     rep = RepasseVilaCentroAgro.objects.create(
         data_ref=dia,
         percentual_lucro=_dec(calc["percentual_lucro"]),
@@ -1132,6 +1245,8 @@ def confirmar_repasse(
         receita_dia=_dec(calc["receita_dia"]),
         cmv_dia=_dec(calc["cmv_dia"]),
         lucro_bruto_dia=_dec(calc["lucro_bruto_dia"]),
+        reserva_aplicada=reserva_apl,
+        lucro_penultimo_dia=lucro_pen,
         fiado_pago_dia=_dec(calc["fiado_pago_dia"]),
         quem_levou=quem[:120],
         forma_pagamento=fn,
@@ -1148,6 +1263,44 @@ def confirmar_repasse(
     if mov_entrada:
         mov_entrada.observacao = _obs_repasse(rep, "entrada Centro")
         mov_entrada.save(update_fields=["observacao"])
+
+    _registrar_log_reserva(
+        tipo=RepasseVilaReservaLogAgro.Tipo.APLICADO,
+        operador=operador or quem,
+        data_ref=dia,
+        valor_antes=ZERO,
+        valor_depois=reserva_apl,
+        mensagem=(
+            f"Envio #{rep.pk} · dia {dia.strftime('%d/%m/%Y')} · "
+            f"lucro bruto R$ {_dec(calc['lucro_bruto_dia'])} − reserva R$ {reserva_apl} "
+            f"= penúltimo R$ {lucro_pen} · {_dec(calc['percentual_lucro'])}% → lucro enviado "
+            f"R$ {v_lucro} · total R$ {total}."
+        ),
+        detalhe={
+            "repasse_id": rep.pk,
+            "data_ref": dia.isoformat(),
+            "reserva_vila_config": float(_dec(calc.get("reserva_vila"))),
+            "reserva_vila_desde": calc.get("reserva_vila_desde") or "",
+            "reserva_aplicada": float(reserva_apl),
+            "lucro_bruto_dia": float(_dec(calc.get("lucro_bruto_dia"))),
+            "lucro_penultimo_dia": float(lucro_pen),
+            "percentual_lucro": float(_dec(calc.get("percentual_lucro"))),
+            "valor_cmv": float(v_cmv),
+            "valor_lucro": float(v_lucro),
+            "valor_fiado": float(v_fiado),
+            "valor_total": float(total),
+            "valor_manual": float(_dec(valor_manual)) if valor_manual is not None and str(valor_manual).strip() != "" else None,
+            "modo_dia_cheio": bool(modo_dia_cheio),
+            "quem_levou": quem,
+            "forma_pagamento": fn,
+            "status_centro": status,
+            "alvos": calc.get("alvos") or {},
+            "disponivel": calc.get("disponivel") or {},
+            "acumulado_anterior": float(_dec(calc.get("acumulado_anterior"))),
+            "regra": "lucro_bruto - reserva_diaria → % ao Centro; CMV e fiado intactos",
+        },
+        repasse=rep,
+    )
 
     _atualizar_delta_cache(dia, percentual_lucro=calc.get("percentual_lucro"))
     # Extra enviado neste dia já abate o acumulado na conta (não cria ajuste:
@@ -1227,6 +1380,9 @@ def serializar_repasse(rep: RepasseVilaCentroAgro) -> dict[str, Any]:
         "valor_lucro": float(_dec(rep.valor_lucro)),
         "valor_fiado": float(_dec(rep.valor_fiado)),
         "percentual_lucro": float(_dec(rep.percentual_lucro)),
+        "lucro_bruto_dia": float(_dec(rep.lucro_bruto_dia)),
+        "reserva_aplicada": float(_dec(getattr(rep, "reserva_aplicada", ZERO))),
+        "lucro_penultimo_dia": float(_dec(getattr(rep, "lucro_penultimo_dia", ZERO))),
         "quem_levou": rep.quem_levou,
         "status_centro": rep.status_centro,
         "modo_dia_cheio": bool(rep.modo_dia_cheio),

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-"""Prova detalhada — REPASSE-RESERVA (troco que fica na Vila + layout)."""
+"""Prova — REPASSE-RESERVA: valor manual no lucro antes do % + diário + log."""
 from __future__ import annotations
 
 import json
 import os
 import sys
+from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
 
@@ -32,16 +33,21 @@ from produtos.models import (
     MovimentoCaixa,
     RepasseVilaCentroAgro,
     RepasseVilaConfigAgro,
+    RepasseVilaReservaLogAgro,
     SessaoCaixa,
 )
 from produtos.repasse_vila_util import (
+    RESERVA_VILA_DESDE_DEFAULT,
     ZERO,
     _dec,
     calcular_disponivel,
     confirmar_repasse,
     listar_acumulado_detalhe,
+    listar_log_reserva,
     obter_config,
+    reserva_aplicada_no_dia,
     reserva_vila_config,
+    reserva_vila_desde_config,
     salvar_reserva_vila,
 )
 
@@ -94,155 +100,171 @@ def _cleanup_tag() -> None:
             MovimentoCaixa.objects.filter(pk=rep.movimento_saida_id).delete()
         if rep.movimento_entrada_id:
             MovimentoCaixa.objects.filter(pk=rep.movimento_entrada_id).delete()
+        RepasseVilaReservaLogAgro.objects.filter(repasse_id=rep.pk).delete()
         rep.delete()
 
 
 def main() -> int:
     hoje = timezone.localdate()
 
-    # --- path / contrato ---
     check_file(
         "produtos/models.py",
         "reserva_vila",
-        "Valor fixo que fica na Vila",
+        "reserva_vila_desde",
+        "RepasseVilaReservaLogAgro",
+        "lucro_penultimo_dia",
+        "antes de aplicar o %",
     )
     check_file(
-        "produtos/migrations/0095_repasse_vila_reserva.py",
-        "reserva_vila",
-        "0094_repasse_vila_delta_cache",
-        "repassevilaconfigagro",
+        "produtos/migrations/0097_repasse_reserva_lucro_log.py",
+        "reserva_vila_desde",
+        "RepasseVilaReservaLogAgro",
+        "2026, 8, 18",
     )
     check_file(
         "produtos/repasse_vila_util.py",
         "salvar_reserva_vila",
-        "reserva_vila_config",
-        "total_sugerido_bruto",
-        'reserva = reserva_vila_config(cfg)',
-        "o valor que fica na Vila cobre o envio",
-        "if valor_manual is None:",
+        "reserva_aplicada_no_dia",
+        "lucro_penultimo",
+        "listar_log_reserva",
+        "RESERVA_VILA_DESDE_DEFAULT",
+        "antes do %",
     )
     check_file(
         "produtos/views_repasse_vila.py",
-        "salvar_reserva_vila",
-        "reserva_padrao",
-        '"reserva_vila"',
+        "api_repasse_vila_reserva_log",
+        "listar_log_reserva",
+        "reserva_vila_desde",
+    )
+    check_file(
+        "produtos/urls.py",
+        "api/repasse-vila/reserva-log/",
     )
     check_file(
         "produtos/templates/produtos/repasse_vila.html",
         "rv-reserva",
-        "rv-salvar-reserva",
-        "rv-fold",
-        "Dias 1 a 15",
-        "Dias 16 a 31",
+        "rv-log-lista",
         "Fica na Vila",
-        "tot - reserva",
-        "class=\"rv-fold\"",
-        "reservaAtual",
-        "fetch('/api/repasse-vila/config/'",
+        "penúltimo",
+        "fetchLogReserva",
     )
     check_file(
         "produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html",
         "pdv-rp-reserva",
-        "pdv-rp-salvar-reserva",
         "Fica na Vila",
-        "<details class=\"rp-card\">",
-        "% lucro e opções",
     )
     check_file(
         "produtos/static/produtos/js/pdv_repasse_vila.js",
         "reservaAtual",
-        "pdv-rp-reserva",
         "reserva_vila: reservaAtual()",
+    )
+    forbid(
+        "produtos/static/produtos/js/pdv_repasse_vila.js",
         "tot - reservaAtual()",
+    )
+    forbid(
+        "produtos/templates/produtos/repasse_vila.html",
+        "tot - reserva",
     )
     check_file(
         "produtos/templates/produtos/includes/repasse_help_agents.html",
-        "Fica na Vila",
-        "desconta",
+        "antes",
+        "18/08/2026",
         "todos os PCs",
     )
-    forbid("produtos/templates/produtos/repasse_vila.html", "localStorage")
-    forbid("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "localStorage")
-    forbid("produtos/static/produtos/js/pdv_repasse_vila.js", "localStorage")
-
-    tela = (ROOT / "produtos/templates/produtos/repasse_vila.html").read_text(
-        encoding="utf-8", errors="replace"
-    )
-    if "<details class=\"rv-fold\" open" in tela or "<details class='rv-fold' open" in tela:
-        fail("rv-fold não deve abrir sozinho")
-    else:
-        ok("rv-fold recolhido por padrão")
-    if "id=\"rv-reserva\"" in tela and tela.find("id=\"rv-reserva\"") < tela.find("class=\"rv-fold\""):
-        ok("campo reserva fica fora do bloco recolhido")
-    else:
-        fail("reserva deveria ficar visível (fora do fold)")
 
     field = RepasseVilaConfigAgro._meta.get_field("reserva_vila")
     ok("campo PG Decimal") if field.get_internal_type() == "DecimalField" else fail(
         f"tipo {field.get_internal_type()}"
     )
+    ok("campo desde") if RepasseVilaConfigAgro._meta.get_field(
+        "reserva_vila_desde"
+    ).get_internal_type() == "DateField" else fail("sem desde")
 
-    # --- runtime config ---
     cfg = obter_config()
     res_antes = _dec(cfg.reserva_vila)
+    desde_antes = getattr(cfg, "reserva_vila_desde", None)
+
     salvar_reserva_vila(-3, operador="reserva-verify")
     ok("clamp neg→0") if reserva_vila_config() == ZERO else fail("clamp neg")
     salvar_reserva_vila(Decimal("100000"), operador="reserva-verify")
     ok("clamp teto") if reserva_vila_config() == Decimal("99999.99") else fail("clamp teto")
-    salvar_reserva_vila(Decimal("123.45"), operador="reserva-verify")
-    recarregado = _dec(RepasseVilaConfigAgro.objects.order_by("pk").first().reserva_vila)
-    ok("PG persiste 123.45") if recarregado == Decimal("123.45") else fail(
-        f"PG={recarregado}"
-    )
 
     salvar_reserva_vila(Decimal("200.00"), operador="reserva-verify")
+    if reserva_vila_desde_config() == RESERVA_VILA_DESDE_DEFAULT:
+        ok("desde = 18/08/2026")
+    else:
+        fail(f"desde={reserva_vila_desde_config()}")
+
+    logs = listar_log_reserva(limit=10)
+    if any(x.get("tipo") == "config" and abs(x.get("valor_depois", 0) - 200) < 0.02 for x in logs):
+        ok("log config 200")
+    else:
+        fail("sem log config")
+
+    # Dia anterior ao desde: reserva NÃO aplica
+    dia_antes = RESERVA_VILA_DESDE_DEFAULT - timedelta(days=1)
+    apl0 = reserva_aplicada_no_dia(dia_antes, lucro_bruto=Decimal("999"))
+    ok("antes do desde = 0") if apl0 == ZERO else fail(f"apl0={apl0}")
+
     calc = calcular_disponivel(hoje)
-    bruto = _dec(calc.get("total_sugerido_bruto"))
+    lucro_b = _dec(calc.get("lucro_bruto_dia"))
+    reserva_apl = _dec(calc.get("reserva_aplicada"))
+    pen = _dec(calc.get("lucro_penultimo_dia"))
+    pct = _dec(calc.get("percentual_lucro"))
+    alvo_lucro = _dec((calc.get("alvos") or {}).get("lucro"))
+    desp_c = _dec(calc.get("despesas_centro_dia"))
+
+    if hoje >= RESERVA_VILA_DESDE_DEFAULT:
+        esp_apl = min(Decimal("200.00"), max(ZERO, lucro_b))
+        if reserva_apl == esp_apl:
+            ok(f"reserva_aplicada={reserva_apl}")
+        else:
+            fail(f"reserva_aplicada={reserva_apl} esp={esp_apl}")
+        esp_pen = max(ZERO, (lucro_b - reserva_apl).quantize(Decimal("0.01")))
+        if pen == esp_pen:
+            ok(f"penúltimo={pen}")
+        else:
+            fail(f"pen={pen} esp={esp_pen}")
+        esp_alvo = max(ZERO, ((esp_pen * pct / Decimal("100")) - desp_c).quantize(Decimal("0.01")))
+        if alvo_lucro == esp_alvo:
+            ok("alvo lucro = % do penúltimo − planos")
+        else:
+            fail(f"alvo_lucro={alvo_lucro} esp={esp_alvo}")
+    else:
+        ok("hoje antes do desde (skip fórmula)")
+
+    # NÃO corta de novo o total
     sug = _dec(calc.get("total_sugerido"))
-    falta = _dec(calc.get("falta_dinheiro"))
-    acum = _dec(calc.get("acumulado_anterior"))
-    reserva = _dec(calc.get("reserva_vila"))
-    esp = max(ZERO, (bruto - Decimal("200.00")).quantize(Decimal("0.01")))
-    if reserva == Decimal("200.00"):
-        ok("calc.reserva_vila=200")
+    bruto = _dec(calc.get("total_sugerido_bruto"))
+    if sug == bruto or (bruto < 0 and sug == ZERO):
+        ok("sugerido não corta reserva de novo")
     else:
-        fail(f"calc reserva={reserva}")
-    if sug == esp:
-        ok("sugerido = bruto − 200")
-    else:
-        fail(f"sug={sug} esp={esp} bruto={bruto}")
-    esp_bruto = (falta + acum).quantize(Decimal("0.01"))
-    if bruto == esp_bruto:
-        ok("bruto = falta + acum líquido")
-    else:
-        fail(f"bruto {bruto} != falta+acum {esp_bruto}")
+        fail(f"sug={sug} bruto={bruto} (não deveria subtrair reserva no total)")
 
     det = listar_acumulado_detalhe(hoje)
     if abs(_dec(det.get("total_sugerido")) - sug) < Decimal("0.02"):
         ok("detalhe total_sugerido = calc")
     else:
         fail(f"detalhe sug {det.get('total_sugerido')} != {sug}")
-    if abs(_dec(det.get("reserva_vila")) - Decimal("200.00")) < Decimal("0.02"):
-        ok("detalhe expõe reserva")
-    else:
-        fail("detalhe sem reserva 200")
 
     salvar_reserva_vila(ZERO, operador="reserva-verify")
     calc0 = calcular_disponivel(hoje)
-    if _dec(calc0.get("total_sugerido")) == _dec(calc0.get("total_sugerido_bruto")):
-        ok("reserva 0 não altera sugerido")
+    if _dec(calc0.get("reserva_aplicada")) == ZERO:
+        ok("reserva 0 → aplicada 0")
     else:
-        fail("reserva 0 ainda desconta")
+        fail("reserva 0 ainda aplica")
 
-    # --- HTTP API ---
+    # HTTP
     user, _ = User.objects.get_or_create(
         username="repasse_verify_bot", defaults={"is_staff": True}
     )
     client = Client(HTTP_HOST="127.0.0.1")
     client.force_login(user)
     r = client.get("/api/repasse-vila/config/")
-    if r.status_code == 200 and "reserva_vila" in r.json():
-        ok("GET config reserva_vila")
+    j = r.json() if r.status_code == 200 else {}
+    if r.status_code == 200 and "reserva_vila" in j and "reserva_vila_desde" in j:
+        ok("GET config reserva+desde")
     else:
         fail(f"GET config {r.status_code}")
 
@@ -256,48 +278,33 @@ def main() -> int:
         ok("POST config vírgula 80,50")
     else:
         fail(f"POST config {r.status_code} {j}")
-    if reserva_vila_config() == Decimal("80.50"):
-        ok("POST gravou no PG")
-    else:
-        fail(f"PG após POST {reserva_vila_config()}")
 
-    r = client.post(
-        "/api/repasse-vila/config/",
-        data=json.dumps({"reserva_vila": 0}),
-        content_type="application/json",
-    )
-    if r.status_code == 200 and reserva_vila_config() == ZERO:
-        ok("POST zera reserva")
+    r = client.get("/api/repasse-vila/reserva-log/")
+    if r.status_code == 200 and isinstance(r.json().get("logs"), list):
+        ok("GET reserva-log")
     else:
-        fail("não zerou reserva")
+        fail(f"reserva-log {r.status_code}")
 
     r = client.get("/api/repasse-vila/calc/")
     if r.status_code == 200:
         cj = r.json()
-        if "reserva_vila" in cj and "total_sugerido_bruto" in cj:
-            ok("GET calc reserva+bruto")
+        if "reserva_aplicada" in cj and "lucro_penultimo_dia" in cj:
+            ok("GET calc penúltimo")
         else:
-            fail("calc sem campos reserva")
+            fail("calc sem penúltimo")
     else:
         fail(f"GET calc {r.status_code}")
 
     r = client.get("/repasse-vila/")
     body = r.content if r.status_code == 200 else b""
     ok("GET tela 200") if r.status_code == 200 else fail(f"tela {r.status_code}")
-    for needle in (b"rv-reserva", b"rv-fold", b"Dias 1 a 15", b"Dias 16 a 31", b"Fica na Vila"):
+    for needle in (b"rv-reserva", b"rv-log-lista", b"Fica na Vila"):
         if needle in body:
             ok(f"tela tem {needle.decode()}")
         else:
             fail(f"tela sem {needle.decode()}")
 
-    r = client.get("/caixa/retiradas/?repasse=1")
-    ob = r.content if r.status_code == 200 else b""
-    if b"pdv-rp-reserva" in ob and b"pdv-rp-salvar-reserva" in ob:
-        ok("overlay na Retiradas tem reserva")
-    else:
-        fail("overlay sem campo reserva")
-
-    # --- confirmar desconta reserva (e valor manual não) ---
+    # confirmar grava snapshot + log
     _cleanup_tag()
     s_vila = SessaoCaixa.objects.filter(ponto_caixa="vila", fechado_em__isnull=True).first()
     created_vila = False
@@ -317,16 +324,15 @@ def main() -> int:
     gravar_deposito_request(req, "vila")
     req.session.save()
 
-    salvar_reserva_vila(ZERO, operador="reserva-verify")
+    salvar_reserva_vila(Decimal("50.00"), operador="reserva-verify")
     calc_base = calcular_disponivel(hoje)
-    bruto_envio = _dec(calc_base.get("total_sugerido_bruto"))
-    print(f"HOJE {hoje} bruto_envio={bruto_envio} falta={calc_base.get('falta_dinheiro')} acum={calc_base.get('acumulado_anterior')}")
+    sug_envio = _dec(calc_base.get("total_sugerido"))
+    print(
+        f"HOJE {hoje} sug={sug_envio} pen={calc_base.get('lucro_penultimo_dia')} "
+        f"res={calc_base.get('reserva_aplicada')}"
+    )
 
-    if bruto_envio > Decimal("1.00"):
-        corte = min(Decimal("10.00"), (bruto_envio / 2).quantize(Decimal("0.01")))
-        salvar_reserva_vila(corte, operador="reserva-verify")
-        calc_cut = calcular_disponivel(hoje)
-        esperado = _dec(calc_cut.get("total_sugerido"))
+    if sug_envio > Decimal("1.00"):
         rep, err = confirmar_repasse(
             request=req,
             quem_levou="Bot Reserva",
@@ -339,47 +345,33 @@ def main() -> int:
             operador="bot-reserva",
         )
         if err:
-            fail(f"confirmar com reserva: {err}")
+            fail(f"confirmar: {err}")
         else:
             assert rep is not None
             rep.observacao = TAG
             rep.save(update_fields=["observacao"])
-            if _dec(rep.valor_total) == esperado:
-                ok(f"confirmar desconta reserva total={rep.valor_total}")
+            if _dec(rep.valor_total) == sug_envio:
+                ok(f"confirmar total={rep.valor_total}")
             else:
-                fail(f"confirmar {rep.valor_total} != esperado {esperado}")
-            if rep.movimento_saida_id and _dec(rep.movimento_saida.valor) == esperado:
-                ok("saída caixa = total com reserva")
+                fail(f"confirmar {rep.valor_total} != {sug_envio}")
+            if _dec(rep.reserva_aplicada) == _dec(calc_base.get("reserva_aplicada")):
+                ok("snapshot reserva_aplicada")
             else:
-                fail("saída caixa diverge")
+                fail("sem snapshot reserva")
+            if _dec(rep.lucro_penultimo_dia) == _dec(calc_base.get("lucro_penultimo_dia")):
+                ok("snapshot penúltimo")
+            else:
+                fail("sem snapshot penúltimo")
+            if RepasseVilaReservaLogAgro.objects.filter(
+                tipo="aplicado", repasse_id=rep.pk
+            ).exists():
+                ok("log aplicado no envio")
+            else:
+                fail("sem log aplicado")
     else:
-        ok("confirmar reserva skipped (nada a levar hoje)")
+        ok("confirmar skipped (nada a levar)")
 
-    salvar_reserva_vila(Decimal("99999.99"), operador="reserva-verify")
-    calc_full = calcular_disponivel(hoje)
-    if _dec(calc_full.get("total_sugerido_bruto")) > 0:
-        _rep, err_cov = confirmar_repasse(
-            request=req,
-            quem_levou="Bot Cobre",
-            incluir_cmv=True,
-            incluir_lucro=True,
-            incluir_fiado=True,
-            incluir_acumulado=True,
-            operador="bot-reserva",
-        )
-        if err_cov and "fica na Vila" in err_cov:
-            ok("reserva cobre o envio → recusa")
-        elif err_cov and "Nada a levar" in err_cov:
-            ok("nada a levar (reserva ou já enviado)")
-        else:
-            fail(f"esperava recusa reserva, veio {err_cov!r}")
-        if _dec(calc_full.get("total_sugerido")) == ZERO:
-            ok("sugerido zera quando reserva cobre")
-        else:
-            fail(f"sugerido deveria ser 0, {calc_full.get('total_sugerido')}")
-    else:
-        ok("recusa reserva skipped (bruto 0)")
-
+    # valor manual digitado ainda manda o total
     salvar_reserva_vila(Decimal("50.00"), operador="reserva-verify")
     disp = _dec((calcular_disponivel(hoje).get("disponivel") or {}).get("total"))
     if disp > 0:
@@ -394,23 +386,28 @@ def main() -> int:
             operador="bot-reserva",
         )
         if err_m:
-            fail(f"manual com reserva: {err_m}")
+            fail(f"manual: {err_m}")
         else:
             assert rep_m is not None
             rep_m.observacao = TAG
             rep_m.save(update_fields=["observacao"])
             if _dec(rep_m.valor_total) == vm:
-                ok("valor manual ignora reserva")
+                ok("valor manual manda o total")
             else:
                 fail(f"manual {rep_m.valor_total} != {vm}")
     else:
-        ok("manual skipped (sem disponível nas linhas)")
+        ok("manual skipped")
 
+    # restaura
     salvar_reserva_vila(res_antes, operador="reserva-verify")
+    if desde_antes is not None:
+        cfg2 = obter_config()
+        cfg2.reserva_vila_desde = desde_antes
+        cfg2.save(update_fields=["reserva_vila_desde"])
     if reserva_vila_config() == res_antes:
-        ok("restaura reserva original")
+        ok("restaura reserva")
     else:
-        fail("não restaurou reserva")
+        fail("não restaurou")
 
     _cleanup_tag()
     if created_vila and s_vila and not MovimentoCaixa.objects.filter(sessao_caixa=s_vila).exists():

@@ -1230,6 +1230,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.61**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **teste** · commit abaixo · **não** produção |
+| **O quê** | Valor manual **Fica na Vila** sai do **lucro bruto** *antes* do % (50%) · diário desde **18/08/2026** · log detalhado na tela |
+| **Antes (errado)** | Cortava o total no final (depois do %) |
+| **Agora** | lucro − manual = penúltimo → % ao Centro · CMV/fiado iguais |
+| **Migrate** | **SIM** `0097` (desde + log + snapshot no envio) |
+| **Prova** | path **129** · reserva **VERIFY_RESERVA_OK** |
+| **Você** | Ctrl+F5 `/repasse-vila/` · digitar valor · ver penúltimo no texto · bloco **Log · valor manual** |
+
 ### 🚀 PREP deploy loja — CATALOGO-5N-PESO (`deploy/catalogo-5n-peso` · **v17.60**)
 
 > **NÃO subir ainda** — lojas abertas. Próximo chat: pausar vendas + frase + senha.

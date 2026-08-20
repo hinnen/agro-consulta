@@ -2848,7 +2848,15 @@ class RepasseVilaConfigAgro(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0,
-        help_text="Valor fixo que fica na Vila (troco) e desconta do envio ao Centro.",
+        help_text=(
+            "Valor manual diário que fica na Vila: desconta do lucro bruto "
+            "antes de aplicar o % enviado ao Centro."
+        ),
+    )
+    reserva_vila_desde = models.DateField(
+        null=True,
+        blank=True,
+        help_text="A partir desta data o valor manual entra todo dia (criação do campo: 18/08/2026).",
     )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
@@ -2885,6 +2893,18 @@ class RepasseVilaCentroAgro(models.Model):
     receita_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     cmv_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     lucro_bruto_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    reserva_aplicada = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Valor manual descontado do lucro bruto antes do % neste envio.",
+    )
+    lucro_penultimo_dia = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Lucro bruto − reserva (base do %).",
+    )
     fiado_pago_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     quem_levou = models.CharField(max_length=120)
     forma_pagamento = models.CharField(max_length=80, default="Dinheiro")
@@ -2941,6 +2961,43 @@ class RepasseVilaCentroAgro(models.Model):
 
     def __str__(self):
         return f"Repasse #{self.pk} {self.data_ref} R$ {self.valor_total}"
+
+
+class RepasseVilaReservaLogAgro(models.Model):
+    """Histórico do valor manual que fica na Vila (config + aplicação no envio)."""
+
+    class Tipo(models.TextChoices):
+        CONFIG = "config", "Alteração do valor"
+        APLICADO = "aplicado", "Aplicado no envio"
+        DESDE = "desde", "Data início diário"
+
+    tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    operador = models.CharField(max_length=120, blank=True, default="")
+    data_ref = models.DateField(null=True, blank=True, db_index=True)
+    valor_antes = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    valor_depois = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    mensagem = models.CharField(max_length=500, blank=True, default="")
+    detalhe = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Snapshot: lucro bruto, penúltimo, %, alvos, totais, etc.",
+    )
+    repasse = models.ForeignKey(
+        "RepasseVilaCentroAgro",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="logs_reserva",
+    )
+
+    class Meta:
+        verbose_name = "Repasse Vila · log reserva"
+        verbose_name_plural = "Repasse Vila · logs reserva"
+        ordering = ["-criado_em", "-pk"]
+
+    def __str__(self):
+        return f"Reserva log {self.tipo} · {self.criado_em:%d/%m/%Y %H:%M}"
 
 
 class RepasseVilaAcumuladoAjusteAgro(models.Model):
