@@ -115,6 +115,11 @@ urlpatterns = [
         name="api_catalogo_categoria_criar",
     ),
     path(
+        "catalogo/api/categorias/excluir/",
+        views_catalogo_delivery.api_catalogo_categoria_excluir,
+        name="api_catalogo_categoria_excluir",
+    ),
+    path(
         "catalogo/api/categorias/foto/",
         views_catalogo_delivery.api_catalogo_categoria_foto,
         name="api_catalogo_categoria_foto",

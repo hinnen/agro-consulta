@@ -77,7 +77,7 @@
 
   <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
     <h2 class="text-sm font-black uppercase text-slate-700">Categorias do catálogo</h2>
-    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). Foto do card: escolha o arquivo e toque em <strong>Salvar foto</strong> na categoria (o botão «Salvar loja» de cima não grava foto).</p>
+    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). Foto do card: escolha o arquivo e toque em <strong>Salvar foto</strong> na categoria (o botão «Salvar loja» de cima não grava foto). Para apagar uma criada por engano: <strong>Excluir</strong> / <strong>X</strong> (apaga também os níveis abaixo).</p>
 
     <form method="post" class="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
       {% csrf_token %}
@@ -122,7 +122,7 @@
           </div>
           <div class="flex gap-1 shrink-0">
             <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ c.id }}"><button class="text-xs font-bold px-2 py-1.5 rounded-lg border">On/Off</button></form>
-            <form method="post" onsubmit="return confirm('Excluir categoria?');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ c.id }}"><button class="text-xs font-bold px-2 py-1.5 rounded-lg border border-red-300 text-red-700">Excluir</button></form>
+            <form method="post" onsubmit="return confirm('Excluir «{{ c.nome|escapejs }}»?\n\nSe tiver níveis abaixo, eles também serão apagados.\nProdutos ligados ficam sem essa categoria.');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ c.id }}"><button type="submit" class="text-xs font-bold px-2 py-1.5 rounded-lg border border-red-300 text-red-700">Excluir</button></form>
           </div>
         </div>
         {% if c.filhos %}

@@ -22,6 +22,7 @@ from produtos.catalogo_delivery_util import (
     cliente_catalogo_json,
     comprimir_imagem_upload,
     criar_pedido_catalogo_delivery,
+    excluir_categoria_catalogo,
     listar_categorias_arvore,
     listar_itens_catalogo,
     listar_produtos_delivery_para_vinculo,
@@ -362,6 +363,41 @@ def api_catalogo_categoria_criar(request):
 @login_required(login_url="/admin/login/")
 @user_passes_test(_staff, login_url="/admin/login/")
 @require_POST
+def api_catalogo_categoria_excluir(request):
+    """Exclui categoria (e filhos) criada por engano — limpa vínculos nos produtos."""
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    try:
+        pk = int(payload.get("id") or payload.get("cat_id") or request.POST.get("id") or 0)
+    except (TypeError, ValueError):
+        pk = 0
+    if pk <= 0:
+        return JsonResponse({"ok": False, "erro": "Informe a categoria."}, status=400)
+    try:
+        resumo = excluir_categoria_catalogo(pk)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "erro": str(exc)}, status=404)
+    except Exception as exc:
+        return JsonResponse(
+            {"ok": False, "erro": f"Não foi possível excluir: {exc}"[:180]},
+            status=500,
+        )
+    return JsonResponse(
+        {
+            "ok": True,
+            "resumo": resumo,
+            "categorias": listar_categorias_arvore(so_ativas=True),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@user_passes_test(_staff, login_url="/admin/login/")
+@require_POST
 def api_catalogo_categoria_foto(request):
     """Foto do card da categoria (home do catálogo). Aceita JSON base64 ou multipart."""
     import base64
@@ -534,12 +570,25 @@ def catalogo_gestao_view(request):
             return redirect("/catalogo/gestao/?msg=cat")
 
         if acao == "excluir_categoria":
+            from urllib.parse import quote
+
             try:
                 pk = int(request.POST.get("cat_id") or 0)
             except (TypeError, ValueError):
                 pk = 0
-            CatalogoDeliveryCategoria.objects.filter(pk=pk).delete()
-            return redirect("/catalogo/gestao/?msg=cat")
+            try:
+                resumo = excluir_categoria_catalogo(pk)
+            except ValueError as exc:
+                return redirect("/catalogo/gestao/?erro=" + quote(str(exc)[:180]))
+            except Exception as exc:
+                return redirect(
+                    "/catalogo/gestao/?erro="
+                    + quote(f"Não foi possível excluir: {exc}"[:180])
+                )
+            return redirect(
+                "/catalogo/gestao/?msg=cat_del&nome="
+                + quote((resumo.get("nome") or "")[:80])
+            )
 
         if acao == "foto_categoria":
             from urllib.parse import quote
@@ -597,6 +646,13 @@ def catalogo_gestao_view(request):
         msg = "Dados da loja salvos."
     elif msg == "cat":
         msg = "Categorias atualizadas."
+    elif msg == "cat_del":
+        nome_del = (request.GET.get("nome") or "").strip()[:80]
+        msg = (
+            f"Categoria «{nome_del}» excluída (incluindo subníveis, se houver)."
+            if nome_del
+            else "Categoria excluída."
+        )
     elif msg == "foto":
         msg = "Foto da categoria salva."
     else:

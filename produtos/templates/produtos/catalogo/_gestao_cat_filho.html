@@ -7,7 +7,7 @@
     </span>
     <div class="flex gap-1">
       <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border">On/Off</button></form>
-      <form method="post" onsubmit="return confirm('Excluir?');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border border-red-300 text-red-700">X</button></form>
+      <form method="post" onsubmit="return confirm('Excluir «{{ no.nome|escapejs }}» (N{{ profundidade }})?\n\nNíveis abaixo também serão apagados.');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button type="submit" class="text-[0.65rem] font-bold px-2 py-1 rounded border border-red-300 text-red-700">X</button></form>
     </div>
   </div>
   {% if no.filhos and profundidade < 5 %}

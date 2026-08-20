@@ -756,6 +756,93 @@ def opcoes_pai_categoria(*, so_ativas: bool = True) -> list[dict]:
     return out
 
 
+_DELIVERY_CAT_ID_KEYS = (
+    "categoria_id",
+    "subcategoria_id",
+    "subcategoria2_id",
+    "subcategoria3_id",
+    "subcategoria4_id",
+)
+
+
+def ids_subarvore_categoria(raiz_pk: int) -> set[int]:
+    """PK da categoria + todos os descendentes."""
+    raiz_pk = int(raiz_pk or 0)
+    if raiz_pk <= 0:
+        return set()
+    by_parent: dict[int | None, list[int]] = {}
+    for c in CatalogoDeliveryCategoria.objects.all().only("pk", "parent_id"):
+        by_parent.setdefault(c.parent_id, []).append(int(c.pk))
+    out: set[int] = set()
+    stack = [raiz_pk]
+    while stack:
+        cur = stack.pop()
+        if cur in out:
+            continue
+        out.add(cur)
+        stack.extend(by_parent.get(cur, []))
+    return out
+
+
+def limpar_refs_delivery_categorias(ids: set[int]) -> int:
+    """Zera IDs de categoria Delivery no overlay dos produtos que apontavam para eles."""
+    ids = {int(x) for x in (ids or set()) if int(x or 0) > 0}
+    if not ids:
+        return 0
+    n = 0
+    for ov in ProdutoGestaoOverlayAgro.objects.iterator(chunk_size=200):
+        ex = ov.cadastro_extras if isinstance(ov.cadastro_extras, dict) else None
+        if not ex:
+            continue
+        d = ex.get("delivery")
+        if not isinstance(d, dict):
+            continue
+        mudou = False
+        for k in _DELIVERY_CAT_ID_KEYS:
+            try:
+                cur = int(d.get(k) or 0)
+            except (TypeError, ValueError):
+                cur = 0
+            if cur in ids:
+                d[k] = 0
+                mudou = True
+        if not mudou:
+            continue
+        ex = dict(ex)
+        ex["delivery"] = normalizar_delivery(d, processar_imagem=False)
+        ov.cadastro_extras = ex
+        ov.save(update_fields=["cadastro_extras", "atualizado_em"])
+        n += 1
+    return n
+
+
+def excluir_categoria_catalogo(pk: int) -> dict[str, Any]:
+    """
+    Apaga categoria (e filhos via CASCADE) e limpa vínculos nos produtos.
+    Retorna resumo; ValueError se não existir.
+    """
+    try:
+        pk = int(pk or 0)
+    except (TypeError, ValueError):
+        pk = 0
+    cat = CatalogoDeliveryCategoria.objects.filter(pk=pk).first()
+    if cat is None:
+        raise ValueError("Categoria não encontrada.")
+    nome = (cat.nome or "").strip() or f"#{pk}"
+    n_filhos = CatalogoDeliveryCategoria.objects.filter(parent_id=pk).count()
+    ids = ids_subarvore_categoria(pk)
+    n_limpos = limpar_refs_delivery_categorias(ids)
+    cat.delete()
+    return {
+        "ok": True,
+        "id": pk,
+        "nome": nome,
+        "n_apagadas": len(ids),
+        "n_filhos_diretos": n_filhos,
+        "produtos_limpos": n_limpos,
+    }
+
+
 def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: str = "") -> None:
     """Grava foto do card (limite ~1,2 MB de arquivo ≈ ~1,6 MB base64)."""
     b64, mime_guess = _strip_data_url(raw_b64 or "")
