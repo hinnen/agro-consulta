@@ -1246,7 +1246,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Timeout cancela na máquina · abandon só se MP confirmou · status grava PAID · trava outra forma com Point vivo · **PIN gerencial** (Geraldo / Geraldinho / Renan Hinnen) força liberar em emergência |
 | **Por quê** | Incidente 19/08 R$460 (Point cobrou, PDV não fechou, venda na Renan) |
 | **Migrate** | **NÃO** |
-| **Commits** | `2fd5f98` · `0e41e64` · teste **v17.56** · loja **v17.42** |
+| **Commits** | `2fd5f98` · `0e41e64` · prova deep `7199464` · teste **v17.57** · loja **v17.42** |
 | **Prova** | cancel-safe **21/21** · pin **23/23** · Vila path **41/41** · deep **40/40** |
 | **Risco** | Médio — PDV Point Centro/Vila · Ctrl+F5 obrigatório |
 | **Você** | Ctrl+F5 PDV · Point auto · cancelar no PDV = some na máquina · timeout cancela · se travar: PIN Geraldo/Geraldinho/Renan |
