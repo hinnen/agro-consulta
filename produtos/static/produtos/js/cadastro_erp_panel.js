@@ -2578,7 +2578,20 @@
         { key: 'peso_etiqueta', label: 'Peso' },
         { key: 'codigo_barras', label: 'Código barras' },
         { key: 'preco_custo', label: 'Preço custo' },
-        { key: 'preco_venda', label: 'Preço venda' }
+        { key: 'preco_venda', label: 'Preço venda' },
+        { key: 'delivery_ativo', label: 'Delivery ativo' },
+        { key: 'delivery_titulo', label: 'Delivery título' },
+        { key: 'delivery_descricao', label: 'Delivery descrição' },
+        { key: 'delivery_ordem', label: 'Delivery ordem' },
+        { key: 'delivery_destaque', label: 'Delivery destaque' },
+        { key: 'delivery_estoque_negativo', label: 'Delivery estoque neg.' },
+        { key: 'delivery_peso', label: 'Delivery peso' },
+        { key: 'delivery_categoria', label: 'Delivery categoria' },
+        { key: 'delivery_sub1', label: 'Delivery sub 1' },
+        { key: 'delivery_sub2', label: 'Delivery sub 2' },
+        { key: 'delivery_sub3', label: 'Delivery sub 3' },
+        { key: 'delivery_sub4', label: 'Delivery sub 4' },
+        { key: 'delivery_embalagens', label: 'Delivery embalagens' }
       ];
 
       function abrirExport() {
@@ -3129,7 +3142,20 @@
       subcategoria_4: 'Subcategoria 4',
       codigo_barras: 'Código barras',
       preco_custo: 'Preço custo',
-      preco_venda: 'Preço venda'
+      preco_venda: 'Preço venda',
+      delivery_ativo: 'Delivery ativo',
+      delivery_titulo: 'Delivery título',
+      delivery_descricao: 'Delivery descrição',
+      delivery_ordem: 'Delivery ordem',
+      delivery_destaque: 'Delivery destaque',
+      delivery_estoque_negativo: 'Delivery estoque neg.',
+      delivery_peso: 'Delivery peso',
+      delivery_categoria: 'Delivery categoria',
+      delivery_sub1: 'Delivery sub 1',
+      delivery_sub2: 'Delivery sub 2',
+      delivery_sub3: 'Delivery sub 3',
+      delivery_sub4: 'Delivery sub 4',
+      delivery_embalagens: 'Delivery embalagens'
     };
 
     function fmtDataIso(iso) {

@@ -36,6 +36,37 @@ COL_CODIGO_BARRAS = "codigo_barras"
 COL_PRECO_CUSTO = "preco_custo"
 COL_PRECO_VENDA = "preco_venda"
 
+# Aba Delivery / catálogo público (`cadastro_extras.delivery`)
+COL_DEL_ATIVO = "delivery_ativo"
+COL_DEL_TITULO = "delivery_titulo"
+COL_DEL_DESCRICAO = "delivery_descricao"
+COL_DEL_ORDEM = "delivery_ordem"
+COL_DEL_DESTAQUE = "delivery_destaque"
+COL_DEL_ESTOQUE_NEG = "delivery_estoque_negativo"
+COL_DEL_PESO = "delivery_peso"
+COL_DEL_CAT = "delivery_categoria"
+COL_DEL_SUB1 = "delivery_sub1"
+COL_DEL_SUB2 = "delivery_sub2"
+COL_DEL_SUB3 = "delivery_sub3"
+COL_DEL_SUB4 = "delivery_sub4"
+COL_DEL_EMBALAGENS = "delivery_embalagens"
+
+DELIVERY_IMPORT_KEYS = (
+    COL_DEL_ATIVO,
+    COL_DEL_TITULO,
+    COL_DEL_DESCRICAO,
+    COL_DEL_ORDEM,
+    COL_DEL_DESTAQUE,
+    COL_DEL_ESTOQUE_NEG,
+    COL_DEL_PESO,
+    COL_DEL_CAT,
+    COL_DEL_SUB1,
+    COL_DEL_SUB2,
+    COL_DEL_SUB3,
+    COL_DEL_SUB4,
+    COL_DEL_EMBALAGENS,
+)
+
 EXPORT_HEADERS: list[tuple[str, str]] = [
     ("ID", COL_ID),
     ("Código GM", COL_CODIGO_GM),
@@ -52,6 +83,19 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Código barras", COL_CODIGO_BARRAS),
     ("Preço custo", COL_PRECO_CUSTO),
     ("Preço venda", COL_PRECO_VENDA),
+    ("Delivery ativo", COL_DEL_ATIVO),
+    ("Delivery título", COL_DEL_TITULO),
+    ("Delivery descrição", COL_DEL_DESCRICAO),
+    ("Delivery ordem", COL_DEL_ORDEM),
+    ("Delivery destaque", COL_DEL_DESTAQUE),
+    ("Delivery estoque neg.", COL_DEL_ESTOQUE_NEG),
+    ("Delivery peso", COL_DEL_PESO),
+    ("Delivery categoria", COL_DEL_CAT),
+    ("Delivery sub 1", COL_DEL_SUB1),
+    ("Delivery sub 2", COL_DEL_SUB2),
+    ("Delivery sub 3", COL_DEL_SUB3),
+    ("Delivery sub 4", COL_DEL_SUB4),
+    ("Delivery embalagens", COL_DEL_EMBALAGENS),
 ]
 
 _COLS_TEXTO_EXCEL = frozenset(
@@ -66,6 +110,19 @@ _COLS_TEXTO_EXCEL = frozenset(
         COL_SUBCATEGORIA_2,
         COL_SUBCATEGORIA_3,
         COL_SUBCATEGORIA_4,
+        COL_DEL_ATIVO,
+        COL_DEL_TITULO,
+        COL_DEL_DESCRICAO,
+        COL_DEL_ORDEM,
+        COL_DEL_DESTAQUE,
+        COL_DEL_ESTOQUE_NEG,
+        COL_DEL_PESO,
+        COL_DEL_CAT,
+        COL_DEL_SUB1,
+        COL_DEL_SUB2,
+        COL_DEL_SUB3,
+        COL_DEL_SUB4,
+        COL_DEL_EMBALAGENS,
     }
 )
 
@@ -82,6 +139,19 @@ _MAX_TXT_IMPORT = {
     COL_PESO: 40,
     COL_MODELO: 200,
     COL_MARCA: 120,
+    COL_DEL_TITULO: 200,
+    COL_DEL_DESCRICAO: 2000,
+    COL_DEL_PESO: 40,
+    COL_DEL_CAT: 80,
+    COL_DEL_SUB1: 80,
+    COL_DEL_SUB2: 80,
+    COL_DEL_SUB3: 80,
+    COL_DEL_SUB4: 80,
+    COL_DEL_EMBALAGENS: 500,
+    COL_DEL_ORDEM: 10,
+    COL_DEL_ATIVO: 10,
+    COL_DEL_DESTAQUE: 10,
+    COL_DEL_ESTOQUE_NEG: 10,
 }
 
 # Colunas travadas no Excel (só ID — coluna oculta na planilha).
@@ -139,6 +209,7 @@ IMPORT_KEYS = {
     COL_CODIGO_BARRAS,
     COL_PRECO_CUSTO,
     COL_PRECO_VENDA,
+    *DELIVERY_IMPORT_KEYS,
 }
 
 OVERLAY_IMPORT_KEYS = (
@@ -155,6 +226,7 @@ OVERLAY_IMPORT_KEYS = (
     COL_SUBCATEGORIA_4,
     COL_CODIGO_BARRAS,
     COL_PRECO_VENDA,
+    *DELIVERY_IMPORT_KEYS,
 )
 
 HISTORICO_IMPORT_LISTA_LIMITE = 30
@@ -182,6 +254,8 @@ def _ler_overlay_import_campo(ov: ProdutoGestaoOverlayAgro | None, key: str):
         return str(val) if val is not None else None
     if key == COL_MODELO:
         return str(_extras_dict(ov).get("modelo") or "")
+    if key in DELIVERY_IMPORT_KEYS:
+        return _delivery_planilha_de_ov(ov).get(key, "")
     return str(getattr(ov, _overlay_model_field(key), "") or "")
 
 
@@ -201,7 +275,347 @@ def _gravar_overlay_import_campo(ov: ProdutoGestaoOverlayAgro, key: str, val) ->
             ex.pop("modelo", None)
         ov.cadastro_extras = ex
         return
+    if key in DELIVERY_IMPORT_KEYS:
+        # Gravação em lote via _aplicar_patch_delivery (evita reescrever N vezes).
+        return
     setattr(ov, _overlay_model_field(key), str(val or "")[: _max_txt_import(key)])
+
+
+def _sim_nao(flag: bool) -> str:
+    return "Sim" if flag else "Não"
+
+
+def _parse_bool_planilha(val) -> bool | None:
+    s = _cel_str(val).strip().lower()
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    if s in ("1", "s", "sim", "true", "yes", "y", "x", "ativo", "on"):
+        return True
+    if s in ("0", "n", "nao", "false", "no", "inativo", "off"):
+        return False
+    return None
+
+
+def _eh_limpar_planilha(val: str) -> bool:
+    s = (val or "").strip().lower()
+    return s in ("-", ".", "limpar", "apagar", "none", "null")
+
+
+def _mapa_cats_delivery() -> dict[int, Any]:
+    from produtos.models import CatalogoDeliveryCategoria
+
+    return {c.pk: c for c in CatalogoDeliveryCategoria.objects.all()}
+
+
+def _nome_cat_delivery(mapa: dict[int, Any], cid: int) -> str:
+    if not cid:
+        return ""
+    c = mapa.get(int(cid))
+    return (c.nome if c else "") or ""
+
+
+def _delivery_planilha_de_dict(d: dict, *, mapa_cats: dict[int, Any] | None = None) -> dict[str, str]:
+    from produtos.catalogo_delivery_util import normalizar_delivery
+
+    d = normalizar_delivery(d or {})
+    ids_cat = [
+        int(d.get("categoria_id") or 0),
+        int(d.get("subcategoria_id") or 0),
+        int(d.get("subcategoria2_id") or 0),
+        int(d.get("subcategoria3_id") or 0),
+        int(d.get("subcategoria4_id") or 0),
+    ]
+    if mapa_cats is not None:
+        mapa = mapa_cats
+    elif any(ids_cat):
+        mapa = _mapa_cats_delivery()
+    else:
+        mapa = {}
+    emb_parts: list[str] = []
+    for e in d.get("embalagens") or []:
+        pid = str(e.get("produto_id") or "").strip()
+        if not pid:
+            continue
+        rot = str(e.get("rotulo") or "").strip()
+        cod = _codigo_gm_de_pid(pid) or pid
+        emb_parts.append(f"{cod}:{rot}" if rot else cod)
+    return {
+        COL_DEL_ATIVO: _sim_nao(bool(d.get("ativo"))),
+        COL_DEL_TITULO: str(d.get("titulo") or ""),
+        COL_DEL_DESCRICAO: str(d.get("descricao") or ""),
+        COL_DEL_ORDEM: str(int(d.get("ordem") or 0)),
+        COL_DEL_DESTAQUE: _sim_nao(bool(d.get("destaque"))),
+        COL_DEL_ESTOQUE_NEG: _sim_nao(bool(d.get("permitir_estoque_negativo"))),
+        COL_DEL_PESO: str(d.get("peso_texto") or ""),
+        COL_DEL_CAT: _nome_cat_delivery(mapa, ids_cat[0]),
+        COL_DEL_SUB1: _nome_cat_delivery(mapa, ids_cat[1]),
+        COL_DEL_SUB2: _nome_cat_delivery(mapa, ids_cat[2]),
+        COL_DEL_SUB3: _nome_cat_delivery(mapa, ids_cat[3]),
+        COL_DEL_SUB4: _nome_cat_delivery(mapa, ids_cat[4]),
+        COL_DEL_EMBALAGENS: " | ".join(emb_parts),
+    }
+
+
+def _delivery_planilha_de_ov(ov: ProdutoGestaoOverlayAgro | None) -> dict[str, str]:
+    from produtos.catalogo_delivery_util import delivery_de_extras
+
+    if ov is None:
+        return _delivery_planilha_de_dict({})
+    return _delivery_planilha_de_dict(delivery_de_extras(_extras_dict(ov)))
+
+
+def _codigo_gm_de_pid(pid: str) -> str:
+    pid = str(pid or "").strip()[:64]
+    if not pid:
+        return ""
+    ov = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).only("codigo_nfe").first()
+    if ov and (ov.codigo_nfe or "").strip():
+        return (ov.codigo_nfe or "").strip()[:64]
+    try:
+        from produtos.models import Produto
+
+        p = Produto.objects.filter(produto_externo_id=pid).only("codigo_nfe").first()
+        if p and (p.codigo_nfe or "").strip():
+            return (p.codigo_nfe or "").strip()[:64]
+    except Exception:
+        pass
+    return ""
+
+
+def _pid_de_codigo_gm_ou_id(token: str) -> str:
+    t = str(token or "").strip()[:64]
+    if not t:
+        return ""
+    if _id_produto_planilha_valido(t) and (
+        re.fullmatch(r"[0-9a-f]{24}", t.lower())
+        or t.upper().startswith("AGRO")
+        or t.isdigit()
+    ):
+        if ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=t).exists():
+            return t
+        try:
+            from produtos.models import Produto
+
+            if Produto.objects.filter(produto_externo_id=t).exists():
+                return t
+        except Exception:
+            pass
+    ov = (
+        ProdutoGestaoOverlayAgro.objects.filter(codigo_nfe__iexact=t)
+        .only("produto_externo_id")
+        .first()
+    )
+    if ov and ov.produto_externo_id:
+        return str(ov.produto_externo_id)[:64]
+    try:
+        from produtos.models import Produto
+
+        p = Produto.objects.filter(codigo_nfe__iexact=t).only("produto_externo_id").first()
+        if p and p.produto_externo_id:
+            return str(p.produto_externo_id)[:64]
+    except Exception:
+        pass
+    return ""
+
+
+def _resolver_filho_categoria(parent_id: int | None, nome: str) -> tuple[int, str | None]:
+    from produtos.models import CatalogoDeliveryCategoria
+
+    nome = (nome or "").strip()
+    if not nome:
+        return 0, None
+    qs = CatalogoDeliveryCategoria.objects.filter(ativo=True, nome__iexact=nome)
+    if parent_id:
+        qs = qs.filter(parent_id=parent_id)
+    else:
+        qs = qs.filter(parent__isnull=True)
+    hit = qs.order_by("ordem", "pk").first()
+    if not hit:
+        nivel = "categoria" if not parent_id else "subcategoria"
+        return 0, f"«{nome}» não encontrada como {nivel} no catálogo Delivery."
+    return int(hit.pk), None
+
+
+def _resolver_caminho_delivery_nomes(
+    nomes: list[str],
+) -> tuple[dict[str, int], str | None]:
+    """nomes = [cat, sub1, sub2, sub3, sub4] — vazio = zera daí em diante se veio na lista."""
+    ids = [0, 0, 0, 0, 0]
+    parent: int | None = None
+    for i, nome in enumerate(nomes[:5]):
+        n = (nome or "").strip()
+        if not n or _eh_limpar_planilha(n):
+            for j in range(i, 5):
+                ids[j] = 0
+            break
+        cid, err = _resolver_filho_categoria(parent, n)
+        if err:
+            return {}, err
+        ids[i] = cid
+        parent = cid
+    return {
+        "categoria_id": ids[0],
+        "subcategoria_id": ids[1],
+        "subcategoria2_id": ids[2],
+        "subcategoria3_id": ids[3],
+        "subcategoria4_id": ids[4],
+    }, None
+
+
+def _parse_embalagens_planilha(raw: str) -> tuple[list[dict], str | None]:
+    s = str(raw or "").strip()
+    if not s or _eh_limpar_planilha(s):
+        return [], None
+    parts = re.split(r"[|;,]+", s)
+    out: list[dict] = []
+    seen: set[str] = set()
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        if ":" in part:
+            cod, rot = part.split(":", 1)
+            cod, rot = cod.strip(), rot.strip()[:40]
+        else:
+            cod, rot = part, ""
+        pid = _pid_de_codigo_gm_ou_id(cod)
+        if not pid:
+            return [], f"Embalagem «{cod}» não encontrada (use Código GM ou ID)."
+        if pid in seen:
+            continue
+        seen.add(pid)
+        out.append({"produto_id": pid, "rotulo": rot})
+        if len(out) >= 6:
+            break
+    return out, None
+
+
+def _enriquecer_row_delivery_planilha(
+    row: dict,
+    ov: ProdutoGestaoOverlayAgro | None = None,
+    *,
+    mapa_cats: dict[int, Any] | None = None,
+) -> None:
+    from produtos.catalogo_delivery_util import delivery_de_extras
+
+    if ov is None:
+        fields = _delivery_planilha_de_dict({}, mapa_cats=mapa_cats)
+    else:
+        fields = _delivery_planilha_de_dict(
+            delivery_de_extras(_extras_dict(ov)), mapa_cats=mapa_cats
+        )
+    row.update(fields)
+
+
+def _enriquecer_rows_delivery_batch(rows: list[dict], ovs: dict) -> None:
+    if not rows:
+        return
+    mapa = _mapa_cats_delivery()
+    for r in rows:
+        pid = str(r.get("id") or "")
+        _enriquecer_row_delivery_planilha(r, ovs.get(pid), mapa_cats=mapa)
+
+
+def _aplicar_patch_delivery(ov: ProdutoGestaoOverlayAgro, patch: dict) -> str | None:
+    """Aplica colunas Delivery no overlay. Retorna mensagem de erro ou None."""
+    from produtos.catalogo_delivery_util import delivery_de_extras, normalizar_delivery
+
+    if not any(k in patch for k in DELIVERY_IMPORT_KEYS):
+        return None
+    d = dict(delivery_de_extras(_extras_dict(ov)))
+    atual_pl = _delivery_planilha_de_dict(d)
+
+    if COL_DEL_ATIVO in patch:
+        b = _parse_bool_planilha(patch[COL_DEL_ATIVO])
+        if b is None:
+            return "Delivery ativo: use Sim ou Não."
+        d["ativo"] = b
+    if COL_DEL_TITULO in patch:
+        v = str(patch[COL_DEL_TITULO] or "").strip()
+        d["titulo"] = "" if _eh_limpar_planilha(v) else v[:200]
+    if COL_DEL_DESCRICAO in patch:
+        v = str(patch[COL_DEL_DESCRICAO] or "").strip()
+        d["descricao"] = "" if _eh_limpar_planilha(v) else v[:2000]
+    if COL_DEL_ORDEM in patch:
+        try:
+            d["ordem"] = max(0, min(9999, int(str(patch[COL_DEL_ORDEM]).strip() or "0")))
+        except (TypeError, ValueError):
+            return "Delivery ordem: número inválido."
+    if COL_DEL_DESTAQUE in patch:
+        b = _parse_bool_planilha(patch[COL_DEL_DESTAQUE])
+        if b is None:
+            return "Delivery destaque: use Sim ou Não."
+        d["destaque"] = b
+    if COL_DEL_ESTOQUE_NEG in patch:
+        b = _parse_bool_planilha(patch[COL_DEL_ESTOQUE_NEG])
+        if b is None:
+            return "Delivery estoque neg.: use Sim ou Não."
+        d["permitir_estoque_negativo"] = b
+    if COL_DEL_PESO in patch:
+        v = str(patch[COL_DEL_PESO] or "").strip()
+        d["peso_texto"] = "" if _eh_limpar_planilha(v) else v[:40]
+
+    path_cols = (COL_DEL_CAT, COL_DEL_SUB1, COL_DEL_SUB2, COL_DEL_SUB3, COL_DEL_SUB4)
+    if any(k in patch for k in path_cols):
+        nomes = [
+            str(patch[k]) if k in patch else atual_pl.get(k, "")
+            for k in path_cols
+        ]
+        # Se coluna veio no patch como limpar, força limpeza a partir daí
+        for i, k in enumerate(path_cols):
+            if k in patch and _eh_limpar_planilha(str(patch[k] or "")):
+                for j in range(i, 5):
+                    nomes[j] = "-"
+                break
+        ids, err = _resolver_caminho_delivery_nomes(nomes)
+        if err:
+            return err
+        d.update(ids)
+
+    if COL_DEL_EMBALAGENS in patch:
+        emb, err = _parse_embalagens_planilha(str(patch[COL_DEL_EMBALAGENS] or ""))
+        if err:
+            return err
+        d["embalagens"] = emb
+
+    d_norm = normalizar_delivery(d, processar_imagem=False)
+    ex = _extras_dict(ov)
+    if d_norm.get("ativo") or any(
+        (
+            d_norm.get("titulo"),
+            d_norm.get("descricao"),
+            d_norm.get("imagem_base64"),
+            d_norm.get("peso_texto"),
+            d_norm.get("permitir_estoque_negativo"),
+            d_norm.get("destaque"),
+            int(d_norm.get("ordem") or 0) > 0,
+            int(d_norm.get("categoria_id") or 0) > 0,
+            int(d_norm.get("subcategoria_id") or 0) > 0,
+            int(d_norm.get("subcategoria2_id") or 0) > 0,
+            int(d_norm.get("subcategoria3_id") or 0) > 0,
+            int(d_norm.get("subcategoria4_id") or 0) > 0,
+            bool(d_norm.get("embalagens")),
+        )
+    ):
+        ex["delivery"] = d_norm
+    else:
+        ex.pop("delivery", None)
+    ov.cadastro_extras = ex
+    return None
+
+
+def _validar_patch_delivery(atual: dict, patch: dict) -> str | None:
+    """Valida Delivery sem gravar (overlay temporário)."""
+    if not any(k in patch for k in DELIVERY_IMPORT_KEYS):
+        return None
+    pid = str(atual.get("id") or "").strip()[:64]
+    ov = ProdutoGestaoOverlayAgro(produto_externo_id=pid or "tmp")
+    real = ProdutoGestaoOverlayAgro.objects.filter(produto_externo_id=pid).first() if pid else None
+    if real and isinstance(real.cadastro_extras, dict):
+        ov.cadastro_extras = dict(real.cadastro_extras)
+    else:
+        ov.cadastro_extras = {}
+    return _aplicar_patch_delivery(ov, patch)
 
 
 # Produto PG: só os campos que a planilha mexeu (evita zerar Unidade ao gravar só Modelo/Peso/Sub 2).
@@ -349,6 +763,23 @@ def _map_headers(headers: list[str]) -> dict[str, str | None]:
         COL_CODIGO_BARRAS: ("codigo barras", "codigo de barras", "ean", "barras", "cb"),
         COL_PRECO_CUSTO: ("preco custo", "preço custo", "custo", "custo unitario", "custo unitário"),
         COL_PRECO_VENDA: ("preco venda", "preço venda", "venda", "preco de venda", "preço de venda"),
+        COL_DEL_ATIVO: ("delivery ativo", "catalogo ativo", "catálogo ativo", "ativo delivery"),
+        COL_DEL_TITULO: ("delivery titulo", "delivery título", "titulo delivery", "título delivery"),
+        COL_DEL_DESCRICAO: ("delivery descricao", "delivery descrição", "descricao delivery"),
+        COL_DEL_ORDEM: ("delivery ordem", "ordem delivery"),
+        COL_DEL_DESTAQUE: ("delivery destaque", "destaque delivery"),
+        COL_DEL_ESTOQUE_NEG: (
+            "delivery estoque neg.",
+            "delivery estoque negativo",
+            "estoque negativo delivery",
+        ),
+        COL_DEL_PESO: ("delivery peso", "peso delivery", "peso catalogo", "peso catálogo"),
+        COL_DEL_CAT: ("delivery categoria", "categoria delivery", "categoria catalogo"),
+        COL_DEL_SUB1: ("delivery sub 1", "delivery sub1", "subcategoria delivery"),
+        COL_DEL_SUB2: ("delivery sub 2", "delivery sub2"),
+        COL_DEL_SUB3: ("delivery sub 3", "delivery sub3"),
+        COL_DEL_SUB4: ("delivery sub 4", "delivery sub4"),
+        COL_DEL_EMBALAGENS: ("delivery embalagens", "embalagens delivery", "embalagens catalogo"),
     }
     out: dict[str, str | None] = {}
     for key, keys in aliases.items():
@@ -510,6 +941,7 @@ def coletar_linhas_export_cadastro(
             for r in chunk:
                 _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
                 rows.append(r)
+            _enriquecer_rows_delivery_batch(chunk, ovs)
             if not has_more:
                 break
             pagina += 1
@@ -535,12 +967,14 @@ def coletar_linhas_export_cadastro(
     ovs = _overlay_mapa_por_ids_chunked([str(r.get("id") or "") for r in rows])
     for r in rows:
         _aplicar_produto_gestao_overlay_em_dict(r, ovs.get(str(r.get("id") or "")))
+    _enriquecer_rows_delivery_batch(rows, ovs)
     rows = _filtrar_rows_categorias(rows, categorias or [])
     return rows, truncado
 
 
 def linha_export_planilha(row: dict) -> dict[str, Any]:
-    return {
+    empty = _delivery_planilha_de_dict({})
+    out = {
         COL_ID: str(row.get("id") or ""),
         COL_CODIGO_GM: str(row.get("codigo_nfe") or row.get("codigo") or ""),
         COL_NOME: str(row.get("nome") or ""),
@@ -557,6 +991,12 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
         COL_PRECO_CUSTO: float(row.get("preco_custo") or 0),
         COL_PRECO_VENDA: float(row.get("preco_venda") or 0),
     }
+    for k in DELIVERY_IMPORT_KEYS:
+        if k in row:
+            out[k] = str(row.get(k) or "")
+        else:
+            out[k] = empty.get(k, "")
+    return out
 
 
 def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> bytes:
@@ -655,6 +1095,7 @@ def _mapa_estado_atual_produtos(
             pid_key = str(p.produto_externo_id or pid)[:64]
             row = catalogo_agro.produto_agro_para_row(p, ovs.get(pid_key) or ovs.get(pid))
             out[pid] = row
+        _enriquecer_rows_delivery_batch(list(out.values()), ovs)
         return out
 
     client, db = obter_conexao_mongo()
@@ -738,6 +1179,7 @@ def _mapa_estado_atual_produtos(
         row = _produto_mongo_para_cadastro_row(doc)
         _aplicar_produto_gestao_overlay_em_dict(row, ovs.get(pid))
         out[pid] = row
+    _enriquecer_rows_delivery_batch(list(out.values()), ovs)
     return out
 
 
@@ -779,6 +1221,19 @@ def _patch_da_linha(raw: dict, colmap: dict[str, str | None]) -> dict[str, Any]:
     txt(COL_CODIGO_BARRAS, 80)
     dec(COL_PRECO_CUSTO)
     dec(COL_PRECO_VENDA)
+    txt(COL_DEL_ATIVO, 10)
+    txt(COL_DEL_TITULO, 200)
+    txt(COL_DEL_DESCRICAO, 2000)
+    txt(COL_DEL_ORDEM, 10)
+    txt(COL_DEL_DESTAQUE, 10)
+    txt(COL_DEL_ESTOQUE_NEG, 10)
+    txt(COL_DEL_PESO, 40)
+    txt(COL_DEL_CAT, 80)
+    txt(COL_DEL_SUB1, 80)
+    txt(COL_DEL_SUB2, 80)
+    txt(COL_DEL_SUB3, 80)
+    txt(COL_DEL_SUB4, 80)
+    txt(COL_DEL_EMBALAGENS, 500)
     return patch
 
 
@@ -901,6 +1356,11 @@ def preview_importacao_cadastro(
             ignoradas.append({"linha": i, "id": pid, "motivo": "Valores iguais ao cadastro atual."})
             continue
 
+        verr_del = _validar_patch_delivery(atual, patch)
+        if verr_del:
+            erros.append({"linha": i, "id": pid, "erro": verr_del})
+            continue
+
         merged = _merged_row(atual, patch)
         vmsg = _validar_merged(merged)
         if vmsg:
@@ -959,6 +1419,10 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
     overlay: dict[str, Any] = {}
     for k in OVERLAY_IMPORT_KEYS:
         overlay[k] = _ler_overlay_import_campo(ov, k)
+    from produtos.catalogo_delivery_util import delivery_de_extras
+
+    if any(k in patch for k in DELIVERY_IMPORT_KEYS):
+        overlay["_delivery_blob"] = delivery_de_extras(_extras_dict(ov) if ov else {})
 
     mongo: dict[str, Any] = {}
     if db is not None:
@@ -1001,12 +1465,17 @@ def _snapshot_antes_import(db, client, pid: str, patch: dict, nome: str = "") ->
 
 def _overlay_import_esta_vazio(ov: ProdutoGestaoOverlayAgro) -> bool:
     for k in OVERLAY_IMPORT_KEYS:
+        if k in DELIVERY_IMPORT_KEYS:
+            continue
         v = _ler_overlay_import_campo(ov, k)
         if k == COL_PRECO_VENDA:
             if v is not None:
                 return False
         elif str(v or "").strip():
             return False
+    ex = _extras_dict(ov)
+    if isinstance(ex.get("delivery"), dict) and ex.get("delivery"):
+        return False
     return True
 
 
@@ -1031,13 +1500,31 @@ def _reverter_item_import(item: dict, db, client, user) -> None:
         for k in patch_keys:
             if k not in OVERLAY_IMPORT_KEYS:
                 continue
+            if k in DELIVERY_IMPORT_KEYS:
+                continue
             _gravar_overlay_import_campo(ov, k, overlay_antes.get(k))
+        if any(k in DELIVERY_IMPORT_KEYS for k in patch_keys):
+            from produtos.catalogo_delivery_util import normalizar_delivery
+
+            ex = _extras_dict(ov)
+            blob = overlay_antes.get("_delivery_blob")
+            if isinstance(blob, dict) and blob:
+                ex["delivery"] = normalizar_delivery(blob, processar_imagem=False)
+            else:
+                ex.pop("delivery", None)
+            ov.cadastro_extras = ex
         ov.save()
     elif ov:
         for k in patch_keys:
             if k not in OVERLAY_IMPORT_KEYS:
                 continue
+            if k in DELIVERY_IMPORT_KEYS:
+                continue
             _gravar_overlay_import_campo(ov, k, None if k == COL_PRECO_VENDA else "")
+        if any(k in DELIVERY_IMPORT_KEYS for k in patch_keys):
+            ex = _extras_dict(ov)
+            ex.pop("delivery", None)
+            ov.cadastro_extras = ex
         if _overlay_import_esta_vazio(ov):
             ov.delete()
         else:
@@ -1180,8 +1667,11 @@ def _gravar_patch_produto(db, client, pid: str, patch: dict, user) -> None:
     )
     antes = snapshot_overlay(ov)
     for k in OVERLAY_IMPORT_KEYS:
-        if k in patch:
+        if k in patch and k not in DELIVERY_IMPORT_KEYS:
             _gravar_overlay_import_campo(ov, k, patch[k])
+    err_del = _aplicar_patch_delivery(ov, patch)
+    if err_del:
+        raise ValueError(err_del)
     ex = _extras_dict(ov)
     if COL_PRECO_CUSTO in patch:
         ex["preco_custo_overlay"] = float(patch[COL_PRECO_CUSTO])
@@ -1285,6 +1775,8 @@ def aplicar_importacao_cadastro(
         i = item["linha"]
         atual = mapa.get(pid)
         if not atual or not _tem_alteracao(atual, patch):
+            continue
+        if _validar_patch_delivery(atual, patch):
             continue
         merged = _merged_row(atual, patch)
         vmsg = _validar_merged(merged)

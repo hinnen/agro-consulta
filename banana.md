@@ -1239,8 +1239,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
 | 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.67** | **SIM 0097** |
 | 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · teste **v17.69** | **NÃO** |
+| 4 | **PLANILHA-DELIVERY** | 🧪 **só no teste** · Excel ↓/↑ colunas Delivery | **NÃO** |
 
-**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE/DEVOL: cherry/`teste` conforme o chat de auth.
+**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE/DEVOL: cherry/`teste` conforme o chat de auth · PLANILHA-DELIVERY: pode ir junto no próximo envio do catálogo.
+
+### 🧪 WIP — Planilha Excel Delivery / catálogo (`PLANILHA-DELIVERY`)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Cadastro → Excel ↓/↑: colunas Delivery (ativo, título, descrição, ordem, destaque, estoque neg., peso, categoria + sub 1–4, embalagens) |
+| **Como** | Célula vazia = não altera · Sim/Não · embalagens `GM001 \| GM002:Saco 15kg` · `-` limpa categoria |
+| **Prova** | tests delivery **9/9** · cols **13/13** · `manage.py check` |
+| **Risco loja** | Baixo — só cadastro Excel · zero PDV/caixa |
+| **Você** | Ctrl+F5 Cadastro · Excel ↓ marcar Delivery · editar · Excel ↑ |
 
 ### 📦 PACOTE PRONTO — Devolução pergunta NFC-e (`DEVOL-NFCE-ASK` · **v17.69**)
 
