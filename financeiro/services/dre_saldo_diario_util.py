@@ -4,47 +4,146 @@ from __future__ import annotations
 import calendar
 from collections import defaultdict
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Any
 
+from django.conf import settings
 from django.utils import timezone
 
+from financeiro.models import LancamentoFinanceiro as NF
 from financeiro.services.receita_pdv_util import (
     deposito_de_loja,
+    empresas_ids_para_deposito,
+    faturamento_pdv_periodo,
     label_loja_filtro,
     normalizar_loja_filtro,
 )
 
 _POR_LUCRO_BI = "vencimento"
+_NATS_DESPESA_LIQUIDO = {
+    NF.NATUREZA_DESPESA_FIXA,
+    NF.NATUREZA_DESPESA_VARIAVEL,
+    NF.NATUREZA_DESPESA_FINANCEIRA,
+}
 
 
-def _deposito_bi(loja: str) -> str | None:
+def _dec(x) -> Decimal:
+    try:
+        return Decimal(str(x or 0))
+    except Exception:
+        return Decimal("0")
+
+
+def _empresas_nomes_loja(loja: str) -> list[str]:
+    from base.models import Empresa
+
+    loja_n = normalizar_loja_filtro(loja)
+    dep = deposito_de_loja(loja_n)
+    eids = empresas_ids_para_deposito(dep)
+    nomes: list[str] = []
+    for e in Empresa.objects.filter(pk__in=eids).only("nome_fantasia"):
+        n = (e.nome_fantasia or "").strip()
+        if n:
+            nomes.append(n)
+    return nomes
+
+
+def _deposito_pdv(loja: str) -> str | None:
     dep = deposito_de_loja(normalizar_loja_filtro(loja))
     return dep if dep in ("centro", "vila") else None
 
 
-def _lucro_dia_bi(d: date, *, loja: str, valor: str) -> float:
-    from financeiro.services.indicadores_gerencial_pg import (
-        lucro_liquido_vencimento_bruto_pago,
-    )
-
-    pack = lucro_liquido_vencimento_bruto_pago(d, d, deposito=_deposito_bi(loja))
-    if not pack.get("ok"):
-        return 0.0
-    key = "pago" if (valor or "").strip().lower() == "realizado" else "bruto"
-    return round(float(pack.get(key) or 0), 2)
-
-
-def _lucro_por_dia_range(
+def _titulos_dre_por_dia(
+    *,
     data_de: date,
     data_ate: date,
+    valor: str,
+    empresas_nomes: list[str],
+    filtro_contas: str = "resultado",
+) -> tuple[dict[str, float], dict[str, float]]:
+    """Despesas do líquido (fixas+var+fin) e receita não operacional, por dia (vencimento)."""
+    from financeiro.services.resumo_operacional_mongo import (
+        classificar_despesa_plano,
+        classificar_receita_plano,
+    )
+    from produtos.lancamentos_financeiro_pg_analytics_util import (
+        _campo_data_titulo,
+        _plano_excluido_dre,
+        _titulos_no_periodo_pg,
+        _valor_titulo_dre,
+    )
+
+    por = _POR_LUCRO_BI
+    fc = (filtro_contas or "resultado").strip().lower()
+    extra = getattr(settings, "DRE_RESULTADO_EXCLUIR_REGEX_EXTRA", "") or ""
+    emp_set = {n.strip().casefold() for n in empresas_nomes if n.strip()}
+    titulos = _titulos_no_periodo_pg(
+        data_de=data_de, data_ate=data_ate, por=por, status="todos"
+    )
+    desp_dia: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    rec_no_dia: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    for t in titulos:
+        if fc in ("resultado", "resultado_erp") and _plano_excluido_dre(t.plano_conta, extra):
+            continue
+        if emp_set:
+            emp = str(t.empresa or "").strip().casefold()
+            if emp not in emp_set:
+                continue
+        dt = _campo_data_titulo(t, por)
+        if dt is None or dt < data_de or dt > data_ate:
+            continue
+        val = _valor_titulo_dre(t, valor)
+        if val <= Decimal("0.02"):
+            continue
+        k = dt.isoformat()
+        plano = str(t.plano_conta or "")
+        if getattr(t, "despesa", False):
+            nat = classificar_despesa_plano(plano)
+            if nat in _NATS_DESPESA_LIQUIDO:
+                desp_dia[k] += val
+        else:
+            if classificar_receita_plano(plano) == NF.NATUREZA_RECEITA_NAO_OPERACIONAL:
+                rec_no_dia[k] += val
+    return (
+        {k: round(float(v), 2) for k, v in desp_dia.items()},
+        {k: round(float(v), 2) for k, v in rec_no_dia.items()},
+    )
+
+
+def _lucro_maps(
     *,
+    fetch_ini: date,
+    fetch_fim: date,
     loja: str,
     valor: str,
+    filtro_contas: str,
 ) -> dict[str, float]:
+    """Lucro/dia = PDV + receita não op − CMV vendida − (fixas+var+fin) — conta do BI."""
+    dep = _deposito_pdv(loja)
+    empresas = _empresas_nomes_loja(loja)
+    fat = faturamento_pdv_periodo(fetch_ini, fetch_fim, deposito=dep)
+    pdv = {k: float(v) for k, v in (fat.get("por_dia") or {}).items()}
+    from produtos.relatorios_vendas_util import cmv_vendida_por_dia
+
+    cmv = cmv_vendida_por_dia(fetch_ini, fetch_fim, deposito=dep)
+    desp, rec_no = _titulos_dre_por_dia(
+        data_de=fetch_ini,
+        data_ate=fetch_fim,
+        valor=valor,
+        empresas_nomes=empresas,
+        filtro_contas=filtro_contas,
+    )
     out: dict[str, float] = {}
-    d = data_de
-    while d <= data_ate:
-        out[d.isoformat()] = _lucro_dia_bi(d, loja=loja, valor=valor)
+    d = fetch_ini
+    while d <= fetch_fim:
+        k = d.isoformat()
+        out[k] = round(
+            pdv.get(k, 0.0)
+            + rec_no.get(k, 0.0)
+            - cmv.get(k, 0.0)
+            - desp.get(k, 0.0),
+            2,
+        )
         d += timedelta(days=1)
     return out
 
@@ -78,10 +177,10 @@ def dre_saldo_diario_mes_pg(
     """
     Série dia a dia do mês calendário de ``ref`` (default: hoje).
 
-    Cada dia chama ``lucro_liquido_vencimento_bruto_pago`` (mesma função do BI).
-    A soma dos dias do mês = card Lucro Líquido do BI no mesmo recorte.
+    Mesma conta do card **Lucro Líquido** do BI (vencimento · CMV vendida),
+    em **uma** leitura do período — não um DRE por dia.
     """
-    del planos_incluir, cmv_modo, por, filtro_contas
+    del planos_incluir, cmv_modo, por
 
     hoje = ref or timezone.localdate()
     ano, mes = hoje.year, hoje.month
@@ -91,10 +190,17 @@ def dre_saldo_diario_mes_pg(
 
     loja_n = normalizar_loja_filtro(loja)
     look_ini = hoje - timedelta(days=max(int(dias_previsao), 1) - 1)
+    fetch_ini = min(grid_ini, look_ini)
+    fetch_fim = max(grid_fim, hoje)
 
-    lucro_mes = _lucro_por_dia_range(grid_ini, min(hoje, grid_fim), loja=loja_n, valor=valor)
-    lucro90 = _lucro_por_dia_range(look_ini, hoje, loja=loja_n, valor=valor)
-    avg_lucro_dow = _medias_dow_lucro(lucro90, dias_previsao)
+    lucro_all = _lucro_maps(
+        fetch_ini=fetch_ini,
+        fetch_fim=fetch_fim,
+        loja=loja_n,
+        valor=valor,
+        filtro_contas=filtro_contas,
+    )
+    avg_lucro_dow = _medias_dow_lucro(lucro_all, dias_previsao)
 
     nomes_dow = ("Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom")
     dias_out: list[dict[str, Any]] = []
@@ -104,7 +210,7 @@ def dre_saldo_diario_mes_pg(
     while d <= grid_fim:
         k = d.isoformat()
         passado = d <= hoje
-        lucro = round(lucro_mes.get(k, 0.0), 2) if passado else None
+        lucro = round(lucro_all.get(k, 0.0), 2) if passado else None
         previsto = round(avg_lucro_dow[d.weekday()], 2)
         if passado and lucro is not None:
             total_real += lucro
