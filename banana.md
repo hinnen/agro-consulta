@@ -1234,11 +1234,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio à produção** · teste **v17.59** | **NÃO** |
+| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio à produção** · teste **v17.60** | **NÃO** |
 
 **Autorizar loja:** *pode subir CATALOGO-5N-PESO / catálogo 5 níveis para produção* + **99738595**
 
-### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.59**)
+### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.60**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1246,7 +1246,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | `/catalogo/` até **5** níveis · após folha: passo **peso** (grade PDV, só com produto) · lista filtrada · + Add mantém modal embalagens · tela não muda |
 | **Cadastro / gestão** | Selects nível 4–5 · criar até N5 em `/catalogo/gestao/` |
 | **Migrate** | **NÃO** |
-| **Commit** | **`5c275f2`** · banana **`52ae0a4`** · verify **`scripts/verify_catalogo_5n_peso.py`** |
+| **Commit** | feat **`5c275f2`** · verify+banana **`3ad086c`** · script `scripts/verify_catalogo_5n_peso.py` |
 | **Prova** | verify path **VERIFY_OK** · `node --check` · `manage.py check` |
 | **Risco** | Baixo — só `/catalogo/` + aba Delivery · **zero** PDV/caixa |
 | **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` cascata → peso → lista → + Add · Ctrl+F5 |
