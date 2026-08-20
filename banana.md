@@ -1232,6 +1232,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.72**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAT-DEL-EXCLUIR** | ✅ **pronto para envio** · teste **v17.74** | **NÃO** |
+
+**Autorizar loja:** frase do pacote + **99738595** · cherry/`teste` ou branch deploy (não merge `teste` inteiro).
+
+### 📦 PACOTE PRONTO — Excluir categoria Delivery (`CAT-DEL-EXCLUIR` · **v17.74**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Botão **−** na aba Delivery (cadastro) + Excluir/X em `/catalogo/gestao/` · limpa vínculo nos produtos · apaga subníveis |
+| **Migrate** | **NÃO** |
+| **Prova** | verify **VERIFY_OK** · tests **3/3** · `manage.py check` |
+| **Risco loja** | Baixo — só catálogo/Delivery · zero PDV/caixa |
+| **Você** | Ctrl+F5 Cadastro → Delivery → select → **−** · ou `/catalogo/gestao/` → Excluir |
+
 ### ✅ Deploy loja — lote 20/08b (`deploy/lote-checklist-2008b` · **v17.72**) · **Live**
 
 | Item | Detalhe |
@@ -1241,15 +1260,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0097` (Render no deploy) |
 | **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** + frase + senha |
 | **Você** | **Ctrl+F5** `/catalogo/` · Cadastro Excel Delivery · `/repasse-vila/` · devolução NFC-e · badge **17.72** |
-
-### 🧪 WIP — Excluir categoria Delivery (`CAT-DEL-EXCLUIR`)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Botão **−** na aba Delivery (cadastro) + Excluir/X na gestão `/catalogo/gestao/` · limpa vínculo nos produtos |
-| **API** | `POST /catalogo/api/categorias/excluir/` |
-| **Prova** | tests **3/3** · `manage.py check` |
-| **Você** | Ctrl+F5 Cadastro → Delivery → selecionar → **−** · ou `/catalogo/gestao/` → Excluir |
 
 | Pacote | O quê | Você valida |
 | ------ | ----- | ----------- |
