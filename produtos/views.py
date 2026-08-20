@@ -28228,8 +28228,10 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
 @require_POST
 def api_enviar_pedido_erp(request):
     def _resposta_venda(data, venda, **payload):
+        from produtos.pin_gerencial_util import limpar_mp_point_forcar_bypass
         from produtos.views_nfce import anexar_nfce_resposta_venda
 
+        limpar_mp_point_forcar_bypass(request)
         payload = _anexar_pdv_patches_resposta_venda(venda, payload)
         return JsonResponse(anexar_nfce_resposta_venda(venda, data, payload))
 
@@ -28253,8 +28255,15 @@ def api_enviar_pedido_erp(request):
 
     bloqueio_mp = mp_point_bloqueio_venda_sessao(request)
     if bloqueio_mp:
+        from produtos.pin_gerencial_util import payload_hint_pin_gerencial
+
         return JsonResponse(
-            {"ok": False, "erro": bloqueio_mp, "mp_point_bloqueio": True},
+            {
+                "ok": False,
+                "erro": bloqueio_mp,
+                "mp_point_bloqueio": True,
+                **payload_hint_pin_gerencial(),
+            },
             status=409,
         )
     from produtos.cliente_operacoes_util import payload_e_compra_vale_credito

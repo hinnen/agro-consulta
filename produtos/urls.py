@@ -1228,6 +1228,11 @@ urlpatterns = [
         views_mp_point.api_pdv_mp_point_abandon,
         name='api_pdv_mp_point_abandon',
     ),
+    path(
+        'api/pdv/mp-point/forcar-liberar/',
+        views_mp_point.api_pdv_mp_point_forcar_liberar,
+        name='api_pdv_mp_point_forcar_liberar',
+    ),
     path('api/buscar-produto-id/<str:id>/', views.api_buscar_produto_id, name='api_buscar_produto_id'),
     path(
         'api/entrada-nota/sefaz-status/',

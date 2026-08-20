@@ -260,10 +260,16 @@ def mp_point_bloqueio_venda_sessao(request) -> str | None:
     Bloqueia fechar venda por outra forma se a sessão ainda tem Point PENDING/PAID
     (buraco que permitiu mp_renan com cobrança Point viva — incidente 19/08 R$460).
     Centro e Vila usam o mesmo critério (conta só muda o token).
+    Bypass: PIN gerencial (Geraldo / Geraldinho / Renan Hinnen) via forçar liberar.
     """
     from datetime import timedelta
 
     from django.utils import timezone
+
+    from produtos.pin_gerencial_util import mp_point_forcar_bypass_ativo
+
+    if mp_point_forcar_bypass_ativo(request):
+        return None
 
     sk = _sessao_key(request)
     if not sk:
@@ -287,11 +293,13 @@ def mp_point_bloqueio_venda_sessao(request) -> str | None:
     if row.status == PdvMercadoPagoPointOrder.Status.PAID:
         return (
             f"Há pagamento na maquininha Mercado Pago já confirmado nesta sessão (R$ {valor}). "
-            "Finalize essa venda pelo Point automático — não use outra máquina."
+            "Finalize essa venda pelo Point automático — não use outra máquina. "
+            "Em emergência, peça PIN gerencial (Geraldo, Geraldinho ou Renan Hinnen) para forçar."
         )
     return (
         f"Há cobrança aberta na maquininha Mercado Pago nesta sessão (R$ {valor}). "
-        "Cancele no PDV e na maquininha (ou aguarde o fim) antes de fechar com outra forma."
+        "Cancele no PDV e na maquininha (ou aguarde o fim) antes de fechar com outra forma. "
+        "Em emergência, peça PIN gerencial (Geraldo, Geraldinho ou Renan Hinnen) para forçar."
     )
 
 
@@ -1224,4 +1232,107 @@ def api_pdv_mp_point_abandon(request):
             "erro": aviso,
         },
         status=409,
+    )
+
+
+@require_POST
+def api_pdv_mp_point_forcar_liberar(request):
+    """
+    Emergência: PIN gerencial (Geraldo / Geraldinho / Renan Hinnen) libera a sessão
+    para fechar a venda com outra forma, mesmo com Point PENDING/PAID.
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from produtos.pin_gerencial_util import (
+        PIN_GERENCIAL_HINT,
+        PIN_GERENCIAL_NOMES_UI,
+        gravar_mp_point_forcar_bypass,
+        validar_pin_gerencial,
+    )
+
+    try:
+        raw = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+
+    ok_pin, rotulo, err_pin = validar_pin_gerencial(str(raw.get("pin") or ""))
+    if not ok_pin:
+        return JsonResponse({"ok": False, "erro": err_pin or "PIN gerencial inválido."}, status=403)
+
+    sk = _sessao_key(request)
+    if not sk:
+        return JsonResponse({"ok": False, "erro": "Sessão inválida. Recarregue o PDV (F5)."}, status=400)
+
+    cutoff = timezone.now() - timedelta(hours=2)
+    qs = PdvMercadoPagoPointOrder.objects.filter(
+        django_session_key=sk,
+        status__in=(
+            PdvMercadoPagoPointOrder.Status.PENDING,
+            PdvMercadoPagoPointOrder.Status.PAID,
+        ),
+        criado_em__gte=cutoff,
+    ).order_by("-criado_em")
+    rows = list(qs[:20])
+    order_ids = [r.mp_order_id for r in rows]
+    tinha_pago = any(r.status == PdvMercadoPagoPointOrder.Status.PAID for r in rows)
+
+    # Tenta cancelar PENDING no terminal; se falhar, ainda libera via bypass (emergência).
+    for row in rows:
+        if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
+            continue
+        conta = _conta_do_pedido_local(request, row, raw if isinstance(raw, dict) else None)
+        if not _mp_point_configurado(conta):
+            continue
+        token = _token_da_conta(conta)
+        ok_get, _st, body = mp_point_get_order(access_token=token, order_id=row.mp_order_id)
+        if ok_get and isinstance(body, dict) and _mp_point_promover_pago_local(row, body):
+            tinha_pago = True
+            continue
+        ok_cancel, _st_c, _body_c = mp_point_cancel_order(
+            access_token=token, order_id=row.mp_order_id
+        )
+        row.refresh_from_db()
+        if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+            tinha_pago = True
+            continue
+        # Força abandon local do PENDING (auditoria: gerente liberou).
+        row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+        row.mp_last_status = ("forced_by_" + rotulo.replace(" ", "_"))[:48]
+        row.save(update_fields=["status", "mp_last_status", "atualizado_em"])
+        if not ok_cancel:
+            logger.warning(
+                "MP Point forçar liberar: cancel MP falhou order=%s por=%s",
+                row.mp_order_id,
+                rotulo,
+            )
+
+    gravar_mp_point_forcar_bypass(request, por=rotulo, order_ids=order_ids)
+    logger.warning(
+        "MP Point forçar liberar: por=%s orders=%s tinha_pago=%s",
+        rotulo,
+        order_ids,
+        tinha_pago,
+    )
+
+    aviso_pago = ""
+    if tinha_pago:
+        aviso_pago = (
+            " Atenção: havia pagamento já confirmado no Point — confira no extrato MP "
+            "se não vai duplicar cobrança."
+        )
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "por": rotulo,
+            "mensagem": (
+                f"Liberado por {rotulo}. Pode fechar a venda com outra forma agora."
+                + aviso_pago
+            ),
+            "tinha_pago_point": tinha_pago,
+            "pin_gerencial_nomes": PIN_GERENCIAL_NOMES_UI,
+            "pin_gerencial_hint": PIN_GERENCIAL_HINT,
+        }
     )

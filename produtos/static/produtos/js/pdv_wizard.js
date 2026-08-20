@@ -353,6 +353,110 @@
         });
     }
 
+    /**
+     * Overlay PIN gerencial (Geraldo / Geraldinho / Renan Hinnen).
+     * Resolve { ok:true, pin } ou { ok:false }.
+     */
+    function showPdvPinGerencial(opts) {
+        opts = opts || {};
+        var nomes = String(opts.nomes || 'Geraldo, Geraldinho ou Renan Hinnen').trim();
+        var msgBase =
+            String(opts.mensagem || '').trim() ||
+            'Há cobrança da maquininha automática ainda aberta nesta venda.';
+        var hint =
+            'Para forçar esta ação, peça e digite o PIN de um usuário gerencial: ' + nomes + '.';
+        return new Promise(function (resolve) {
+            var host = document.getElementById('pdv-sale-toast');
+            if (!host) {
+                host = document.createElement('div');
+                host.id = 'pdv-sale-toast';
+                host.setAttribute('role', 'dialog');
+                host.setAttribute('aria-modal', 'true');
+                document.body.appendChild(host);
+            }
+            host.removeAttribute('aria-hidden');
+            host.className = 'pointer-events-auto fixed z-[9999] pdv-sale-toast--prominent';
+            host.innerHTML =
+                '<div class="pdv-sale-toast-panel rounded-3xl border-2 border-amber-500 bg-amber-50 text-amber-950 shadow-2xl shadow-amber-400/70">' +
+                '<div class="pdv-sale-toast-prominent-inner">' +
+                '<span class="pdv-sale-toast-icon flex shrink-0 items-center justify-center rounded-full bg-white/90 text-lg font-black" aria-hidden="true">PIN</span>' +
+                '<p class="pdv-sale-toast-title text-base font-black leading-tight">Forçar com PIN gerencial</p>' +
+                '<p class="pdv-sale-toast-body mt-1 text-sm font-semibold leading-snug whitespace-pre-line">' +
+                escapeHtml(msgBase) +
+                '</p>' +
+                '<p class="mt-2 text-sm font-black leading-snug text-amber-950">' +
+                escapeHtml(hint) +
+                '</p>' +
+                '<label class="mt-3 block text-left text-[11px] font-black uppercase tracking-wide text-amber-900">PIN gerencial' +
+                '<input type="password" inputmode="numeric" autocomplete="one-time-code" data-pdv-pin-gerencial ' +
+                'class="mt-1 w-full rounded-xl border-2 border-amber-600 bg-white px-3 py-3 text-center text-lg font-black tracking-[0.35em] text-slate-900" ' +
+                'placeholder="••••" maxlength="12" /></label>' +
+                '<p data-pdv-pin-gerencial-err class="mt-2 hidden text-sm font-bold text-rose-700"></p>' +
+                '<div class="mt-4 flex flex-wrap justify-center gap-3">' +
+                '<button type="button" data-pdv-pin-gerencial-cancel class="rounded-xl border-2 border-current/25 bg-white px-4 py-2 text-xs font-black uppercase tracking-wide hover:bg-white/80">Cancelar</button>' +
+                '<button type="button" data-pdv-pin-gerencial-ok class="rounded-xl border-2 border-amber-800 bg-amber-600 px-4 py-2 text-xs font-black uppercase tracking-wide text-white hover:bg-amber-700">Liberar venda</button>' +
+                '</div></div></div>';
+            if (showSaleDoneFeedback._timer) clearTimeout(showSaleDoneFeedback._timer);
+            showSaleDoneFeedback._timer = null;
+            showSaleDoneFeedback._onDismiss = null;
+            var inp = host.querySelector('[data-pdv-pin-gerencial]');
+            var errEl = host.querySelector('[data-pdv-pin-gerencial-err]');
+            var done = false;
+            var fechar = function (ok, pin) {
+                if (done) return;
+                done = true;
+                hideSaleDoneToast();
+                resolve(ok ? { ok: true, pin: String(pin || '').trim() } : { ok: false });
+            };
+            var tentar = function () {
+                var pin = inp ? String(inp.value || '').trim() : '';
+                if (!pin) {
+                    if (errEl) {
+                        errEl.textContent = 'Digite o PIN gerencial.';
+                        errEl.classList.remove('hidden');
+                    }
+                    if (inp) inp.focus();
+                    return;
+                }
+                fechar(true, pin);
+            };
+            var btnCancel = host.querySelector('[data-pdv-pin-gerencial-cancel]');
+            var btnOk = host.querySelector('[data-pdv-pin-gerencial-ok]');
+            if (btnCancel) btnCancel.addEventListener('click', function () { fechar(false); });
+            if (btnOk) btnOk.addEventListener('click', tentar);
+            if (inp) {
+                inp.addEventListener('keydown', function (ev) {
+                    if (ev.key === 'Enter') {
+                        ev.preventDefault();
+                        tentar();
+                    }
+                });
+                setTimeout(function () {
+                    try {
+                        inp.focus();
+                    } catch (eF) {}
+                }, 50);
+            }
+        });
+    }
+
+    function forcarLiberarMpPointComPin(pin) {
+        var url = String(urls.apiPdvMpPointForcarLiberar || '').trim();
+        if (!url) {
+            return Promise.reject(new Error('API de liberação gerencial indisponível.'));
+        }
+        return jsonPost(url, { pin: String(pin || '').trim() }).then(function (res) {
+            if (!res.ok || !res.data || !res.data.ok) {
+                var err = new Error(
+                    (res.data && (res.data.erro || res.data.mensagem)) || 'PIN gerencial inválido.'
+                );
+                err.pinGerencial = true;
+                throw err;
+            }
+            return res.data;
+        });
+    }
+
     function showMpPointAviso(msg, opts) {
         opts = opts || {};
         var texto = opts.keepNewlines ? String(msg || '').trim() : String(msg || '').replace(/\n+/g, ' ').trim();
@@ -10618,6 +10722,15 @@
             })
             .then(function (erpRes) {
                 if (!erpRes.ok || !erpRes.data.ok) {
+                    if (erpRes.data && erpRes.data.mp_point_bloqueio && erpRes.data.pode_forcar_pin_gerencial) {
+                        var eBloq = new Error(
+                            (erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) ||
+                                'Cobrança Point ainda aberta.'
+                        );
+                        eBloq.mpPointBloqueio = true;
+                        eBloq.mpPointBloqueioData = erpRes.data;
+                        throw eBloq;
+                    }
                     throw new Error(
                         (erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) || 'Falha ao confirmar venda.'
                     );
@@ -10710,6 +10823,36 @@
                     try {
                         printWin.close();
                     } catch (errC) {}
+                }
+                if (err && err.mpPointBloqueio) {
+                    var bloqData = err.mpPointBloqueioData || {};
+                    releaseSaleProcessingLock();
+                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    return showPdvPinGerencial({
+                        mensagem: err.message || bloqData.erro || '',
+                        nomes: bloqData.pin_gerencial_nomes || 'Geraldo, Geraldinho ou Renan Hinnen'
+                    }).then(function (pinRes) {
+                        if (!pinRes || !pinRes.ok || !pinRes.pin) return;
+                        if (window.gmLoadingBar) window.gmLoadingBar.show();
+                        return forcarLiberarMpPointComPin(pinRes.pin)
+                            .then(function (lib) {
+                                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                                showPdvAviso(
+                                    (lib && lib.mensagem) || 'Liberado. Confirme a venda de novo.',
+                                    { tone: 'info', title: 'PIN gerencial' }
+                                );
+                                setTimeout(function () {
+                                    confirmSaleProsseguir(withPrint);
+                                }, 400);
+                            })
+                            .catch(function (errPin) {
+                                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                                showPdvAviso(
+                                    (errPin && errPin.message) || 'PIN gerencial inválido.',
+                                    { tone: 'error', title: 'PIN gerencial' }
+                                );
+                            });
+                    });
                 }
                 showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', { tone: 'error' });
             })
