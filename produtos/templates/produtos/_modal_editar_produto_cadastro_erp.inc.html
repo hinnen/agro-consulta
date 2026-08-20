@@ -942,6 +942,7 @@
                 </select>
               </label>
               <button type="button" id="btn-delivery-nova-cat" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Nova categoria">+</button>
+              <button type="button" id="btn-delivery-excluir-cat" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-red-300 bg-red-50 text-red-700 text-xs font-black" title="Excluir categoria selecionada">−</button>
             </div>
             <div id="panel-delivery-nova-cat" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
               <input type="text" id="input-delivery-nova-cat" maxlength="80" placeholder="Ex.: Cães" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
@@ -960,6 +961,7 @@
                 </select>
               </label>
               <button type="button" id="btn-delivery-nova-sub" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Novo nível 2">+</button>
+              <button type="button" id="btn-delivery-excluir-sub" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-red-300 bg-red-50 text-red-700 text-xs font-black" title="Excluir nível 2 selecionado">−</button>
             </div>
             <div id="panel-delivery-nova-sub" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
               <input type="text" id="input-delivery-nova-sub" maxlength="80" placeholder="Ex.: Adulto" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
@@ -978,6 +980,7 @@
                 </select>
               </label>
               <button type="button" id="btn-delivery-nova-sub2" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Novo nível 3">+</button>
+              <button type="button" id="btn-delivery-excluir-sub2" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-red-300 bg-red-50 text-red-700 text-xs font-black" title="Excluir nível 3 selecionado">−</button>
             </div>
             <div id="panel-delivery-nova-sub2" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
               <input type="text" id="input-delivery-nova-sub2" maxlength="80" placeholder="Ex.: Premium" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
@@ -996,6 +999,7 @@
                 </select>
               </label>
               <button type="button" id="btn-delivery-nova-sub3" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Novo nível 4">+</button>
+              <button type="button" id="btn-delivery-excluir-sub3" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-red-300 bg-red-50 text-red-700 text-xs font-black" title="Excluir nível 4 selecionado">−</button>
             </div>
             <div id="panel-delivery-nova-sub3" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
               <input type="text" id="input-delivery-nova-sub3" maxlength="80" placeholder="Ex.: Raça grande" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
@@ -1014,6 +1018,7 @@
                 </select>
               </label>
               <button type="button" id="btn-delivery-nova-sub4" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-800 text-xs font-black" title="Novo nível 5">+</button>
+              <button type="button" id="btn-delivery-excluir-sub4" class="shrink-0 min-h-[40px] px-2.5 rounded-lg border-2 border-red-300 bg-red-50 text-red-700 text-xs font-black" title="Excluir nível 5 selecionado">−</button>
             </div>
             <div id="panel-delivery-nova-sub4" class="hidden mt-1.5 p-2 rounded-lg border border-emerald-200 bg-emerald-50/90 space-y-1.5">
               <input type="text" id="input-delivery-nova-sub4" maxlength="80" placeholder="Ex.: Sênior" class="w-full min-h-[36px] px-2 rounded-lg border-2 border-slate-200 text-sm font-bold" />
@@ -4076,6 +4081,44 @@
         if (typeof onDone === 'function') onDone();
       });
   }
+  function excluirDeliveryCategoriaInline(catId, rotulo, onOk, onDone) {
+    var id = String(catId || '').trim();
+    if (!id) {
+      if (typeof alert !== 'undefined') alert('Escolha a categoria no select antes de excluir.');
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
+    var nome = (rotulo || '').trim() || ('#' + id);
+    if (!window.confirm(
+      'Excluir «' + nome + '»?\n\n' +
+      'Se tiver níveis abaixo, eles também serão apagados.\n' +
+      'Produtos ligados ficam sem essa categoria.'
+    )) {
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
+    fetch('/catalogo/api/categorias/excluir/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfDeliveryTok() },
+      body: JSON.stringify({ id: Number(id) })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { okHttp: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.j || !res.j.ok) {
+          if (typeof alert !== 'undefined') alert((res.j && res.j.erro) || 'Não foi possível excluir.');
+          return;
+        }
+        _deliveryCatsCache = res.j.categorias || [];
+        if (typeof onOk === 'function') onOk(res.j.resumo || {});
+      })
+      .catch(function () {
+        if (typeof alert !== 'undefined') alert('Falha de rede ao excluir categoria.');
+      })
+      .finally(function () {
+        if (typeof onDone === 'function') onDone();
+      });
+  }
   (function bindDeliveryCats() {
     var sel = document.getElementById('edit-delivery-categoria');
     var selSub = document.getElementById('edit-delivery-subcategoria');
@@ -4179,6 +4222,39 @@
     bindNova('btn-delivery-nova-sub4', 'panel-delivery-nova-sub4', 'input-delivery-nova-sub4', function () { return selSub3 ? selSub3.value : ''; }, function (cat) {
       aplicarListaDeliveryCats(_deliveryCatsCache, sel.value, selSub.value, selSub2.value, selSub3.value, cat.id);
     });
+
+    function rotuloSelect(el) {
+      if (!el || !el.value) return '';
+      var opt = el.options[el.selectedIndex];
+      return opt ? String(opt.textContent || '').trim() : '';
+    }
+    function bindExcluir(btnId, getSel, afterLevel) {
+      var btn = document.getElementById(btnId);
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var el = getSel();
+        var id = el ? el.value : '';
+        if (!id) {
+          if (typeof alert !== 'undefined') alert('Escolha no select o que quer excluir.');
+          return;
+        }
+        btn.disabled = true;
+        excluirDeliveryCategoriaInline(id, rotuloSelect(el), function () {
+          var ids = idsAtuais();
+          if (afterLevel <= 1) ids.c1 = ids.c2 = ids.c3 = ids.c4 = ids.c5 = '';
+          else if (afterLevel === 2) ids.c2 = ids.c3 = ids.c4 = ids.c5 = '';
+          else if (afterLevel === 3) ids.c3 = ids.c4 = ids.c5 = '';
+          else if (afterLevel === 4) ids.c4 = ids.c5 = '';
+          else ids.c5 = '';
+          aplicarListaDeliveryCats(_deliveryCatsCache, ids.c1, ids.c2, ids.c3, ids.c4, ids.c5);
+        }, function () { btn.disabled = false; });
+      });
+    }
+    bindExcluir('btn-delivery-excluir-cat', function () { return sel; }, 1);
+    bindExcluir('btn-delivery-excluir-sub', function () { return selSub; }, 2);
+    bindExcluir('btn-delivery-excluir-sub2', function () { return selSub2; }, 3);
+    bindExcluir('btn-delivery-excluir-sub3', function () { return selSub3; }, 4);
+    bindExcluir('btn-delivery-excluir-sub4', function () { return selSub4; }, 5);
   })();
 
   bindClick('btn-excluir-somente-agro', function () {
