@@ -1240,6 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Agora** | lucro − manual = penúltimo → % ao Centro · CMV/fiado iguais |
 | **Migrate** | **SIM** `0097` (desde + log + snapshot no envio) |
 | **Prova** | path **129** · reserva **VERIFY_RESERVA_OK** |
+| **Commit** | `77da6a6` · teste **v17.61** · push `origin/teste` |
 | **Você** | Ctrl+F5 `/repasse-vila/` · digitar valor · ver penúltimo no texto · bloco **Log · valor manual** |
 
 ### 🚀 PREP deploy loja — CATALOGO-5N-PESO (`deploy/catalogo-5n-peso` · **v17.60**)
