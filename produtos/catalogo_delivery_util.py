@@ -17,6 +17,120 @@ from produtos.models import (
     ProdutoGestaoOverlayAgro,
     compor_endereco_resumo_cliente,
 )
+from produtos.pdv_racoes_util import parse_peso_racoes
+
+# Árvore delivery: raiz + até 4 níveis filhos (total 5).
+CATALOGO_MAX_NIVEIS = 5
+
+PESOS_GRADE_CATALOGO: list[dict[str, str]] = [
+    {"key": "kg:1", "label": "Granel"},
+    {"key": "kg:2.5", "label": "Saco 2,5 kg"},
+    {"key": "kg:5", "label": "Saco 5 kg"},
+    {"key": "kg:10", "label": "Saco 10 kg"},
+    {"key": "kg:15", "label": "Saco 15 kg"},
+    {"key": "kg:20", "label": "Saco 20 kg"},
+    {"key": "kg:25", "label": "Saco 25 kg"},
+]
+
+
+def profundidade_categoria(cat: CatalogoDeliveryCategoria | None) -> int:
+    """1 = raiz · 5 = folha máxima."""
+    if cat is None:
+        return 0
+    n = 1
+    seen: set[int] = set()
+    cur: CatalogoDeliveryCategoria | None = cat
+    while cur is not None and cur.parent_id:
+        if cur.pk in seen:
+            break
+        seen.add(cur.pk)
+        nxt = getattr(cur, "parent", None)
+        if nxt is None:
+            n += 1
+            break
+        cur = nxt
+        n += 1
+        if n > CATALOGO_MAX_NIVEIS + 2:
+            break
+    return n
+
+
+def profundidade_por_parent_id(parent: CatalogoDeliveryCategoria | None) -> int:
+    """Profundidade do *filho* se criado sob ``parent`` (None → nível 1)."""
+    if parent is None:
+        return 1
+    return profundidade_categoria(parent) + 1
+
+
+def _int_id(d: dict, key: str) -> int:
+    try:
+        v = int(d.get(key) or 0)
+    except (TypeError, ValueError):
+        return 0
+    return v if v > 0 else 0
+
+
+def _cadeia_de_folha(
+    cats: dict[int, CatalogoDeliveryCategoria],
+    *ids: int,
+) -> list[CatalogoDeliveryCategoria | None]:
+    """Resolve até 5 slots [raiz…folha] a partir dos ids informados (prefere o mais profundo)."""
+    leaf = None
+    for cid in ids:
+        if cid and cid in cats:
+            leaf = cats[cid]
+            break
+    chain: list[CatalogoDeliveryCategoria] = []
+    seen: set[int] = set()
+    cur = leaf
+    while cur is not None and cur.pk not in seen:
+        seen.add(cur.pk)
+        chain.append(cur)
+        pid = cur.parent_id
+        cur = cats.get(pid) if pid else None
+    chain.reverse()
+    # Se o 1º não é raiz (parent_id set), tenta subir pelo mapa
+    while chain and chain[0].parent_id and chain[0].parent_id in cats:
+        pai = cats[chain[0].parent_id]
+        if pai.pk in {c.pk for c in chain}:
+            break
+        chain.insert(0, pai)
+    out: list[CatalogoDeliveryCategoria | None] = list(chain[:CATALOGO_MAX_NIVEIS])
+    while len(out) < CATALOGO_MAX_NIVEIS:
+        out.append(None)
+    return out
+
+
+def pesos_keys_do_item(item: dict) -> list[str]:
+    """Chaves kg:* presentes no card (peso próprio + embalagens)."""
+    keys: list[str] = []
+    seen: set[str] = set()
+    candidatos = [item.get("peso_texto") or ""]
+    for e in item.get("embalagens") or []:
+        candidatos.append(e.get("peso_texto") or "")
+        candidatos.append(e.get("rotulo") or "")
+    for raw in candidatos:
+        k = parse_peso_racoes(raw)
+        if k and k.startswith("kg:") and k not in seen:
+            seen.add(k)
+            keys.append(k)
+    return keys
+
+
+def path_slugs_do_item(item: dict) -> list[str]:
+    path: list[str] = []
+    for key in (
+        "categoria_slug",
+        "subcategoria_slug",
+        "subcategoria2_slug",
+        "subcategoria3_slug",
+        "subcategoria4_slug",
+    ):
+        s = (item.get(key) or "").strip()
+        if not s:
+            break
+        path.append(s)
+    return path or ["_sem"]
 
 
 class ErroPedidoCatalogo(Exception):
@@ -258,21 +372,11 @@ def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
     mime = str(d.get("imagem_mime") or mime_guess or "image/jpeg").strip()[:40] or "image/jpeg"
     if processar_imagem and b64:
         b64, mime = _comprimir_imagem_base64_delivery(b64, mime)
-    cat_id = 0
-    sub_id = 0
-    sub2_id = 0
-    try:
-        cat_id = int(d.get("categoria_id") or 0)
-    except (TypeError, ValueError):
-        cat_id = 0
-    try:
-        sub_id = int(d.get("subcategoria_id") or 0)
-    except (TypeError, ValueError):
-        sub_id = 0
-    try:
-        sub2_id = int(d.get("subcategoria2_id") or 0)
-    except (TypeError, ValueError):
-        sub2_id = 0
+    cat_id = _int_id(d, "categoria_id")
+    sub_id = _int_id(d, "subcategoria_id")
+    sub2_id = _int_id(d, "subcategoria2_id")
+    sub3_id = _int_id(d, "subcategoria3_id")
+    sub4_id = _int_id(d, "subcategoria4_id")
     embalagens = normalizar_embalagens(d.get("embalagens"))
     return {
         "ativo": _bool(d.get("ativo")),
@@ -284,9 +388,11 @@ def normalizar_delivery(raw: Any, *, processar_imagem: bool = False) -> dict:
         "peso_texto": peso,
         "imagem_base64": b64,
         "imagem_mime": mime,
-        "categoria_id": cat_id if cat_id > 0 else 0,
-        "subcategoria_id": sub_id if sub_id > 0 else 0,
-        "subcategoria2_id": sub2_id if sub2_id > 0 else 0,
+        "categoria_id": cat_id,
+        "subcategoria_id": sub_id,
+        "subcategoria2_id": sub2_id,
+        "subcategoria3_id": sub3_id,
+        "subcategoria4_id": sub4_id,
         "embalagens": embalagens,
     }
 
@@ -338,7 +444,10 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
     cats = {
         c.pk: c
         for c in CatalogoDeliveryCategoria.objects.filter(ativo=True).select_related(
-            "parent", "parent__parent"
+            "parent",
+            "parent__parent",
+            "parent__parent__parent",
+            "parent__parent__parent__parent",
         )
     }
 
@@ -414,30 +523,15 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
         cat_id = int(d.get("categoria_id") or 0)
         sub_id = int(d.get("subcategoria_id") or 0)
         sub2_id = int(d.get("subcategoria2_id") or 0)
-        cat = cats.get(cat_id) if cat_id else None
-        sub = cats.get(sub_id) if sub_id else None
-        sub2 = cats.get(sub2_id) if sub2_id else None
-        if sub2:
-            if sub2.parent_id:
-                if not sub or sub.pk != sub2.parent_id:
-                    sub = cats.get(sub2.parent_id)
-                    sub_id = sub.pk if sub else 0
-            else:
-                sub2 = None
-                sub2_id = 0
-        if sub and sub.parent_id:
-            if not cat or cat.pk != sub.parent_id:
-                cat = cats.get(sub.parent_id)
-                cat_id = cat.pk if cat else 0
-        elif sub and not sub.parent_id:
-            if not cat:
-                cat = sub
-                cat_id = sub.pk
-            sub = None
-            sub_id = 0
-        if sub2 and sub and sub2.parent_id != sub.pk:
-            sub2 = None
-            sub2_id = 0
+        sub3_id = int(d.get("subcategoria3_id") or 0)
+        sub4_id = int(d.get("subcategoria4_id") or 0)
+        cadeia = _cadeia_de_folha(cats, sub4_id, sub3_id, sub2_id, sub_id, cat_id)
+        cat, sub, sub2, sub3, sub4 = cadeia
+        cat_id = cat.pk if cat else 0
+        sub_id = sub.pk if sub else 0
+        sub2_id = sub2.pk if sub2 else 0
+        sub3_id = sub3.pk if sub3 else 0
+        sub4_id = sub4.pk if sub4 else 0
 
         emb_raw = list(d.get("embalagens") or [])
         if not emb_raw:
@@ -491,34 +585,42 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
                 }
             ]
 
-        itens.append(
-            {
-                "id": pid,
-                "nome": nome,
-                "descricao": desc,
-                "preco": round(preco_f, 2),
-                "marca": marca,
-                "categoria_id": cat_id,
-                "categoria_nome": (cat.nome if cat else "") or "",
-                "categoria_slug": (cat.slug if cat else "") or "",
-                "subcategoria_id": sub_id,
-                "subcategoria_nome": (sub.nome if sub else "") or "",
-                "subcategoria_slug": (sub.slug if sub else "") or "",
-                "subcategoria2_id": sub2_id,
-                "subcategoria2_nome": (sub2.nome if sub2 else "") or "",
-                "subcategoria2_slug": (sub2.slug if sub2 else "") or "",
-                "peso_texto": d.get("peso_texto") or "",
-                "destaque": bool(d.get("destaque")),
-                "ordem": int(d.get("ordem") or 0),
-                "saldo_total": round(saldo_total, 3),
-                "saldo_centro": round(float((saldos.get(pid) or {}).get("centro") or 0), 3),
-                "saldo_vila": round(float((saldos.get(pid) or {}).get("vila") or 0), 3),
-                "permitir_estoque_negativo": forcar,
-                "imagem": _imagem_data_url(d),
-                "unidade": unidade,
-                "embalagens": embalagens,
-            }
-        )
+        item_row = {
+            "id": pid,
+            "nome": nome,
+            "descricao": desc,
+            "preco": round(preco_f, 2),
+            "marca": marca,
+            "categoria_id": cat_id,
+            "categoria_nome": (cat.nome if cat else "") or "",
+            "categoria_slug": (cat.slug if cat else "") or "",
+            "subcategoria_id": sub_id,
+            "subcategoria_nome": (sub.nome if sub else "") or "",
+            "subcategoria_slug": (sub.slug if sub else "") or "",
+            "subcategoria2_id": sub2_id,
+            "subcategoria2_nome": (sub2.nome if sub2 else "") or "",
+            "subcategoria2_slug": (sub2.slug if sub2 else "") or "",
+            "subcategoria3_id": sub3_id,
+            "subcategoria3_nome": (sub3.nome if sub3 else "") or "",
+            "subcategoria3_slug": (sub3.slug if sub3 else "") or "",
+            "subcategoria4_id": sub4_id,
+            "subcategoria4_nome": (sub4.nome if sub4 else "") or "",
+            "subcategoria4_slug": (sub4.slug if sub4 else "") or "",
+            "peso_texto": d.get("peso_texto") or "",
+            "destaque": bool(d.get("destaque")),
+            "ordem": int(d.get("ordem") or 0),
+            "saldo_total": round(saldo_total, 3),
+            "saldo_centro": round(float((saldos.get(pid) or {}).get("centro") or 0), 3),
+            "saldo_vila": round(float((saldos.get(pid) or {}).get("vila") or 0), 3),
+            "permitir_estoque_negativo": forcar,
+            "imagem": _imagem_data_url(d),
+            "unidade": unidade,
+            "embalagens": embalagens,
+        }
+        item_row["path_slugs"] = path_slugs_do_item(item_row)
+        item_row["path"] = "/".join(item_row["path_slugs"])
+        item_row["peso_keys"] = pesos_keys_do_item(item_row)
+        itens.append(item_row)
 
     # Dedupe: irmãos listados em família de outro âncora não geram card próprio
     itens.sort(
@@ -547,6 +649,8 @@ def listar_itens_catalogo(*, incluir_ocultos_estoque: bool = False) -> list[dict
             x.get("categoria_nome") or "ÿ",
             x.get("subcategoria_nome") or "",
             x.get("subcategoria2_nome") or "",
+            x.get("subcategoria3_nome") or "",
+            x.get("subcategoria4_nome") or "",
             x["ordem"],
             x["nome"].lower(),
         )
@@ -590,7 +694,7 @@ def listar_produtos_delivery_para_vinculo(*, q: str = "", limite: int = 40) -> l
 
 
 def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
-    """Categorias raiz → sub → sub2 (até 3 níveis) para gestão e selects."""
+    """Categorias raiz → filhos recursivos (até 5 níveis) para gestão e selects."""
     qs = CatalogoDeliveryCategoria.objects.all().order_by("ordem", "nome")
     if so_ativas:
         qs = qs.filter(ativo=True)
@@ -598,17 +702,20 @@ def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
     for c in qs:
         by_parent.setdefault(c.parent_id, []).append(c)
 
-    def _node(c, *, com_imagem: bool = False) -> dict:
-        filhos = [
-            _node(f, com_imagem=False)
-            for f in by_parent.get(c.pk, [])
-        ]
+    def _node(c, *, com_imagem: bool = False, profundidade: int = 1) -> dict:
+        filhos = []
+        if profundidade < CATALOGO_MAX_NIVEIS:
+            filhos = [
+                _node(f, com_imagem=False, profundidade=profundidade + 1)
+                for f in by_parent.get(c.pk, [])
+            ]
         out = {
             "id": c.pk,
             "nome": c.nome,
             "slug": c.slug,
             "ordem": c.ordem,
             "ativo": c.ativo,
+            "nivel": profundidade,
             "filhos": filhos,
         }
         if com_imagem:
@@ -620,21 +727,32 @@ def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
             out["imagem"] = img
         return out
 
-    return [_node(c, com_imagem=True) for c in by_parent.get(None, [])]
+    return [_node(c, com_imagem=True, profundidade=1) for c in by_parent.get(None, [])]
 
 
 def opcoes_pai_categoria(*, so_ativas: bool = True) -> list[dict]:
-    """Opções do select «pai» na gestão: raiz ou sub (para criar nível 2 ou 3)."""
-    out = []
-    for c in listar_categorias_arvore(so_ativas=so_ativas):
-        out.append({"id": c["id"], "label": f"Sub de: {c['nome']}"})
-        for f in c.get("filhos") or []:
-            out.append(
-                {
-                    "id": f["id"],
-                    "label": f"Sub-sub de: {c['nome']} › {f['nome']}",
-                }
-            )
+    """Opções do select «pai» na gestão: até nível 4 (filho vira nível 5)."""
+    out: list[dict] = []
+
+    def _walk(nodes: list[dict], prefix: str, nivel: int) -> None:
+        for n in nodes:
+            if nivel >= CATALOGO_MAX_NIVEIS:
+                continue
+            label = f"Nível {nivel + 1} de: {prefix}{n['nome']}" if prefix else f"Sub de: {n['nome']}"
+            if nivel == 1:
+                label = f"Sub de: {n['nome']}"
+            elif nivel == 2:
+                label = f"Nível 3 de: {prefix}{n['nome']}"
+            elif nivel == 3:
+                label = f"Nível 4 de: {prefix}{n['nome']}"
+            elif nivel == 4:
+                label = f"Nível 5 de: {prefix}{n['nome']}"
+            out.append({"id": n["id"], "label": label})
+            filhos = n.get("filhos") or []
+            if filhos and nivel < CATALOGO_MAX_NIVEIS - 1:
+                _walk(filhos, f"{prefix}{n['nome']} › ", nivel + 1)
+
+    _walk(listar_categorias_arvore(so_ativas=so_ativas), "", 1)
     return out
 
 
@@ -698,122 +816,92 @@ def cards_home_catalogo(itens: list[dict]) -> list[dict]:
 
 def arvore_navegacao_catalogo(itens: list[dict]) -> list[dict]:
     """
-    Árvore mobile: categoria → sub → sub2 → produtos.
-    Contagens por nível + «Geral» quando há produto sem nível inferior.
+    Árvore mobile recursiva (até 5 níveis).
+    Contagens por prefixo de path + ``qtd_exata`` (produto para neste nó).
     """
-    # (cat) -> (sub) -> (sub2) -> count
-    por3: dict[str, dict[str, dict[str, int]]] = {}
-    sem_sub2: dict[str, dict[str, int]] = {}  # cat -> sub -> count
-    sem_sub: dict[str, int] = {}  # cat -> count
+    paths = [path_slugs_do_item(it) for it in itens]
 
-    for it in itens:
-        ck = it.get("categoria_slug") or "_sem"
-        sk = (it.get("subcategoria_slug") or "").strip()
-        s2 = (it.get("subcategoria2_slug") or "").strip()
-        if sk and s2:
-            por3.setdefault(ck, {}).setdefault(sk, {})
-            por3[ck][sk][s2] = por3[ck][sk].get(s2, 0) + 1
-        elif sk:
-            sem_sub2.setdefault(ck, {})
-            sem_sub2[ck][sk] = sem_sub2[ck].get(sk, 0) + 1
-        else:
-            sem_sub[ck] = sem_sub.get(ck, 0) + 1
-
-    def _qtd_sub(ck: str, sk: str) -> int:
-        n = (sem_sub2.get(ck) or {}).get(sk, 0)
-        for q in (por3.get(ck) or {}).get(sk, {}).values():
-            n += q
+    def _conta_prefixo(prefix: tuple[str, ...]) -> int:
+        n = 0
+        plen = len(prefix)
+        for p in paths:
+            if len(p) >= plen and tuple(p[:plen]) == prefix:
+                n += 1
         return n
+
+    def _conta_exata(prefix: tuple[str, ...]) -> int:
+        n = 0
+        for p in paths:
+            if tuple(p) == prefix:
+                n += 1
+        return n
+
+    def _montar_no(node: dict, prefix: tuple[str, ...]) -> dict:
+        slug = node["slug"]
+        aqui = prefix + (slug,)
+        filhos_out = []
+        for f in node.get("filhos") or []:
+            filhos_out.append(_montar_no(f, aqui))
+        # Slugs de produtos mais profundos que não estão na árvore cadastrada
+        conhecidos = {x["slug"] for x in filhos_out}
+        extras: dict[str, int] = {}
+        plen = len(aqui)
+        for p in paths:
+            if len(p) > plen and tuple(p[:plen]) == aqui:
+                nxt = p[plen]
+                if nxt not in conhecidos:
+                    extras[nxt] = extras.get(nxt, 0) + 1
+        for slug_e, q in sorted(extras.items()):
+            filhos_out.append(
+                {
+                    "id": 0,
+                    "slug": slug_e,
+                    "nome": slug_e,
+                    "qtd": q,
+                    "qtd_exata": _conta_exata(aqui + (slug_e,)),
+                    "filhos": [],
+                }
+            )
+        return {
+            "id": node.get("id") or 0,
+            "slug": slug,
+            "nome": node["nome"],
+            "qtd": _conta_prefixo(aqui),
+            "qtd_exata": _conta_exata(aqui),
+            "filhos": filhos_out,
+        }
 
     out = []
     for c in listar_categorias_arvore(so_ativas=True):
-        filhos = []
-        for f in c.get("filhos") or []:
-            netos = []
-            for n in f.get("filhos") or []:
-                netos.append(
-                    {
-                        "id": n["id"],
-                        "slug": n["slug"],
-                        "nome": n["nome"],
-                        "qtd": ((por3.get(c["slug"]) or {}).get(f["slug"]) or {}).get(n["slug"], 0),
-                    }
-                )
-            conhecidos = {x["slug"] for x in netos}
-            for s2, q in ((por3.get(c["slug"]) or {}).get(f["slug"]) or {}).items():
-                if s2 not in conhecidos:
-                    netos.append({"id": 0, "slug": s2, "nome": s2, "qtd": q})
-            filhos.append(
-                {
-                    "id": f["id"],
-                    "slug": f["slug"],
-                    "nome": f["nome"],
-                    "qtd": _qtd_sub(c["slug"], f["slug"]),
-                    "filhos": netos,
-                    "qtd_sem_sub2": (sem_sub2.get(c["slug"]) or {}).get(f["slug"], 0),
-                }
-            )
-        conhecidos_sub = {x["slug"] for x in filhos}
-        for sk, q in (sem_sub2.get(c["slug"]) or {}).items():
-            if sk not in conhecidos_sub:
-                filhos.append(
-                    {
-                        "id": 0,
-                        "slug": sk,
-                        "nome": sk,
-                        "qtd": _qtd_sub(c["slug"], sk),
-                        "filhos": [
-                            {"id": 0, "slug": s2, "nome": s2, "qtd": qq}
-                            for s2, qq in ((por3.get(c["slug"]) or {}).get(sk) or {}).items()
-                        ],
-                        "qtd_sem_sub2": q,
-                    }
-                )
-        for sk, mapa_s2 in (por3.get(c["slug"]) or {}).items():
-            if sk not in conhecidos_sub and sk not in (sem_sub2.get(c["slug"]) or {}):
-                filhos.append(
-                    {
-                        "id": 0,
-                        "slug": sk,
-                        "nome": sk,
-                        "qtd": _qtd_sub(c["slug"], sk),
-                        "filhos": [
-                            {"id": 0, "slug": s2, "nome": s2, "qtd": qq}
-                            for s2, qq in mapa_s2.items()
-                        ],
-                        "qtd_sem_sub2": 0,
-                    }
-                )
-        out.append(
-            {
-                "slug": c["slug"],
-                "nome": c["nome"],
-                "filhos": filhos,
-                "qtd_sem_sub": sem_sub.get(c["slug"], 0),
-            }
-        )
-    if sem_sub.get("_sem") or sem_sub2.get("_sem") or por3.get("_sem"):
+        out.append(_montar_no(c, ()))
+
+    # Produtos sem categoria cadastrada
+    q_sem = _conta_prefixo(("_sem",))
+    if q_sem:
         filhos_sem = []
-        for sk in set(list((sem_sub2.get("_sem") or {}).keys()) + list((por3.get("_sem") or {}).keys())):
+        extras_sem: dict[str, int] = {}
+        for p in paths:
+            if p and p[0] == "_sem" and len(p) > 1:
+                extras_sem[p[1]] = extras_sem.get(p[1], 0) + 1
+        for slug_e, q in sorted(extras_sem.items()):
             filhos_sem.append(
                 {
                     "id": 0,
-                    "slug": sk,
-                    "nome": sk,
-                    "qtd": _qtd_sub("_sem", sk),
-                    "filhos": [
-                        {"id": 0, "slug": s2, "nome": s2, "qtd": qq}
-                        for s2, qq in ((por3.get("_sem") or {}).get(sk) or {}).items()
-                    ],
-                    "qtd_sem_sub2": (sem_sub2.get("_sem") or {}).get(sk, 0),
+                    "slug": slug_e,
+                    "nome": slug_e,
+                    "qtd": q,
+                    "qtd_exata": _conta_exata(("_sem", slug_e)),
+                    "filhos": [],
                 }
             )
         out.append(
             {
+                "id": 0,
                 "slug": "_sem",
                 "nome": "Outros",
+                "qtd": q_sem,
+                "qtd_exata": _conta_exata(("_sem",)),
                 "filhos": filhos_sem,
-                "qtd_sem_sub": sem_sub.get("_sem", 0),
             }
         )
     return out
@@ -836,7 +924,7 @@ def slugify_categoria(nome: str, *, exclude_pk: int | None = None) -> str:
 
 
 def agrupar_itens_por_categoria(itens: list[dict]) -> list[dict]:
-    """Monta seções para a vitrine (categoria → sub → sub2 → produtos)."""
+    """Seções da vitrine: uma por categoria raiz, produtos flat (filtro via data-path)."""
     ordem_cat: list[str] = []
     mapa: dict[str, dict] = {}
     for it in itens:
@@ -846,56 +934,18 @@ def agrupar_itens_por_categoria(itens: list[dict]) -> list[dict]:
             mapa[ck] = {
                 "slug": ck,
                 "nome": cn,
-                "subs": {},
-                "produtos_sem_sub": [],
+                "produtos": [],
             }
             ordem_cat.append(ck)
-        sk = it.get("subcategoria_slug") or ""
-        s2 = it.get("subcategoria2_slug") or ""
-        if not sk:
-            mapa[ck]["produtos_sem_sub"].append(it)
-            continue
-        if sk not in mapa[ck]["subs"]:
-            mapa[ck]["subs"][sk] = {
-                "slug": sk,
-                "nome": it.get("subcategoria_nome") or sk,
-                "subs2": {},
-                "produtos_sem_sub2": [],
-            }
-        bloco_sub = mapa[ck]["subs"][sk]
-        if s2:
-            if s2 not in bloco_sub["subs2"]:
-                bloco_sub["subs2"][s2] = {
-                    "slug": s2,
-                    "nome": it.get("subcategoria2_nome") or s2,
-                    "produtos": [],
-                }
-            bloco_sub["subs2"][s2]["produtos"].append(it)
-        else:
-            bloco_sub["produtos_sem_sub2"].append(it)
-
-    secoes = []
-    for ck in ordem_cat:
-        bloco = mapa[ck]
-        subs_list = []
-        for sub in bloco["subs"].values():
-            subs_list.append(
-                {
-                    "slug": sub["slug"],
-                    "nome": sub["nome"],
-                    "subs2": list(sub["subs2"].values()),
-                    "produtos_sem_sub2": sub["produtos_sem_sub2"],
-                }
-            )
-        secoes.append(
-            {
-                "slug": bloco["slug"],
-                "nome": bloco["nome"],
-                "subs": subs_list,
-                "produtos_sem_sub": bloco["produtos_sem_sub"],
-            }
-        )
-    return secoes
+        mapa[ck]["produtos"].append(it)
+    return [
+        {
+            "slug": mapa[ck]["slug"],
+            "nome": mapa[ck]["nome"],
+            "produtos": mapa[ck]["produtos"],
+        }
+        for ck in ordem_cat
+    ]
 
 
 def _montar_endereco_linha(

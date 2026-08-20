@@ -1,0 +1,20 @@
+<li class="py-1">
+  <div class="flex items-center justify-between gap-2 text-sm">
+    <span class="font-semibold text-slate-700">
+      {% if profundidade == 2 %}↳{% elif profundidade == 3 %}↳↳{% elif profundidade == 4 %}↳↳↳{% else %}↳↳↳↳{% endif %}
+      {{ no.nome }}{% if not no.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}
+      <span class="text-[0.6rem] font-bold text-slate-400 ml-1">N{{ profundidade }}</span>
+    </span>
+    <div class="flex gap-1">
+      <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border">On/Off</button></form>
+      <form method="post" onsubmit="return confirm('Excluir?');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border border-red-300 text-red-700">X</button></form>
+    </div>
+  </div>
+  {% if no.filhos and profundidade < 5 %}
+  <ul class="mt-1 ml-3 space-y-1 border-l-2 border-slate-200 pl-3">
+    {% for filho in no.filhos %}
+    {% include "produtos/catalogo/_gestao_cat_filho.html" with no=filho profundidade=profundidade|add:1 %}
+    {% endfor %}
+  </ul>
+  {% endif %}
+</li>
