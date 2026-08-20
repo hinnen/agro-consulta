@@ -193,7 +193,6 @@
     } else if (dom.acumulado && dom.acumulado.checked && acum !== 0) {
       tot = Math.max(0, tot + acum);
     }
-    if (mv == null) tot = Math.max(0, tot - reservaAtual());
     document.getElementById('pdv-rp-total').textContent = money(tot);
     var hintOp = document.getElementById('pdv-rp-opcoes-hint');
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';

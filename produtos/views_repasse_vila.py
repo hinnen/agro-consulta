@@ -24,11 +24,13 @@ from produtos.repasse_vila_util import (
     confirmar_repasse,
     historico_mes,
     listar_acumulado_detalhe,
+    listar_log_reserva,
     listar_planos_repasse_config,
     nomes_planos_desconto_centro,
     obter_config,
     quitar_acumulado_zerar,
     registrar_ajuste_acumulado,
+    reserva_vila_desde_config,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
     salvar_reserva_vila,
@@ -84,6 +86,7 @@ def repasse_vila_view(request):
         {
             "percentual_padrao": cfg.percentual_lucro_padrao,
             "reserva_padrao": cfg.reserva_vila,
+            "reserva_desde": reserva_vila_desde_config(cfg),
             "planos_repasse": listar_planos_repasse_config(cfg),
             "calc": calc,
             "hist": hist,
@@ -217,6 +220,7 @@ def api_repasse_vila_config(request):
                 "ok": True,
                 "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
                 "reserva_vila": float(cfg.reserva_vila),
+                "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
                 "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
                 "planos": listar_planos_repasse_config(cfg),
                 "atualizado_em": cfg.atualizado_em.isoformat() if cfg.atualizado_em else "",
@@ -263,10 +267,21 @@ def api_repasse_vila_config(request):
             "ok": True,
             "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
+            "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
             "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
             "planos": listar_planos_repasse_config(cfg),
         }
     )
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_reserva_log(request):
+    try:
+        lim = int(request.GET.get("limit") or 80)
+    except Exception:
+        lim = 80
+    return JsonResponse({"ok": True, "logs": listar_log_reserva(limit=lim)})
 
 
 @login_required(login_url="/admin/login/")
@@ -297,6 +312,7 @@ def api_repasse_vila_meta(request):
             "caixa_vila_aberto": bool(vila),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
+            "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
             "funcionarios": funcionarios,
             "formas_pagamento": formas,
             "calc": calc,

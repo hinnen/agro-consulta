@@ -28,6 +28,7 @@
   @media (min-width: 1100px) {
     .rv-shell { grid-template-columns: minmax(22rem, 0.92fr) minmax(26rem, 1.08fr); gap: 1rem; }
   }
+  .rv-log-card { grid-column: 1 / -1; }
   .rv-card {
     border: 2px solid #cbd5e1;
     border-radius: 1rem;
@@ -225,13 +226,14 @@
         <div class="rv-val text-violet-950" id="rv-total-sug">R$ 0,00</div>
       </div>
       <div class="rv-metric border-rose-200 bg-rose-50">
-        <div class="rv-lbl text-rose-800">Fica na Vila (troco)</div>
+        <div class="rv-lbl text-rose-800 flex items-center gap-1">Fica na Vila (manual/dia) {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
         <div class="flex items-center gap-1.5 mt-0.5">
           <input id="rv-reserva" type="text" inputmode="decimal" autocomplete="off"
             value="{{ reserva_padrao|default:0|floatformat:2 }}"
             class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-rose-300 bg-white px-2 text-lg font-black tabular-nums text-rose-950" />
           <button type="button" id="rv-salvar-reserva" class="min-h-[2.5rem] shrink-0 rounded-lg border-2 border-rose-600 bg-white px-2.5 text-[0.65rem] font-black uppercase text-rose-950">Salvar</button>
         </div>
+        <p id="rv-reserva-hint" class="text-[0.65rem] font-bold text-rose-800 leading-tight mt-1">Sai do lucro antes do % · diário desde {{ reserva_desde|date:"d/m/Y" }}</p>
       </div>
       <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
     </div>
@@ -332,6 +334,15 @@
     </div>
 
     <div id="rv-dias" class="rv-dias-grid"></div>
+  </section>
+
+  <section class="rv-card rv-log-card flex flex-col min-h-0 gap-2 mt-0">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Log · valor manual</h2>
+      <button type="button" id="rv-log-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-slate-400 bg-white px-3 text-xs font-black uppercase text-slate-800">Atualizar</button>
+    </div>
+    <p class="text-[0.7rem] font-bold text-slate-600 leading-tight">Alterações do valor e cada envio com a conta (lucro → reserva → penúltimo → %). Serve pra achar erro.</p>
+    <div id="rv-log-lista" class="max-h-[14rem] overflow-y-auto rounded-lg border-2 border-slate-200 bg-slate-50 divide-y divide-slate-200 text-xs font-bold text-slate-800"></div>
   </section>
 </div>
 
@@ -509,14 +520,27 @@
     if (chkLucro.checked) tot += Number(d.lucro || 0);
     if (chkFiado.checked) tot += Number(d.fiado || 0);
     if (chkAcum && chkAcum.checked && acum !== 0) tot = Math.max(0, tot + acum);
-    tot = Math.max(0, tot - reserva);
     document.getElementById('rv-total').textContent = money(tot);
     var ja = c.ja_enviado || {};
+    var reservaApl = Number(c.reserva_aplicada != null ? c.reserva_aplicada : reserva);
     var jaTxt =
       'Dinheiro já enviado: ' + money(ja.total) +
       ' · cartão/PIX no Centro: ' + money(c.ja_eletronico) +
       ' · falta: ' + money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
-    if (reserva > 0.009) jaTxt += ' · fica na Vila: ' + money(reserva);
+    if (reservaApl > 0.009) {
+      jaTxt += ' · manual no lucro: ' + money(reservaApl) +
+        ' → penúltimo ' + money(c.lucro_penultimo_dia) +
+        ' → % ' + money(d.lucro);
+    }
+    var hintRes = document.getElementById('rv-reserva-hint');
+    if (hintRes) {
+      var desde = c.reserva_vila_desde || '';
+      hintRes.textContent = reservaApl > 0.009
+        ? ('Lucro ' + money(c.lucro_bruto_dia) + ' − ' + money(reservaApl) +
+           ' = penúltimo ' + money(c.lucro_penultimo_dia) +
+           ' · depois o % · desde ' + (desde ? desde.split('-').reverse().join('/') : '18/08/2026'))
+        : ('Sai do lucro antes do % · diário desde ' + (desde ? desde.split('-').reverse().join('/') : '18/08/2026'));
+    }
     if (Number(c.acumulado_bruto || 0) > 0.009 && acum <= 0) {
       jaTxt += ' · acumulado já coberto por envio';
     }
@@ -640,7 +664,7 @@
       .then(function (r) { return r.json(); })
       .then(function (j) {
         statusEl.textContent = j.ok ? okMsg(j) : (j.erro || 'Erro');
-        if (j.ok) fetchCalc();
+        if (j.ok) { fetchCalc(); fetchLogReserva(); }
       })
       .catch(function () { statusEl.textContent = 'Falha ao salvar'; });
   }
@@ -906,10 +930,61 @@
     el.addEventListener('input', syncTransferUrl);
   });
 
+  function fetchLogReserva() {
+    var box = document.getElementById('rv-log-lista');
+    if (!box) return;
+    box.innerHTML = '<p class="px-2 py-2 text-slate-500">Carregando…</p>';
+    fetch('/api/repasse-vila/reserva-log/?limit=60', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          box.innerHTML = '<p class="px-2 py-2 text-rose-700">Falha ao carregar log</p>';
+          return;
+        }
+        var logs = j.logs || [];
+        if (!logs.length) {
+          box.innerHTML = '<p class="px-2 py-2 text-slate-500">Sem registros ainda — salve o valor ou faça um envio.</p>';
+          return;
+        }
+        box.innerHTML = '';
+        logs.forEach(function (L) {
+          var row = document.createElement('div');
+          row.className = 'px-2.5 py-2 space-y-0.5';
+          var det = L.detalhe || {};
+          var extra = '';
+          if (L.tipo === 'aplicado') {
+            extra = ' · bruto ' + money(det.lucro_bruto_dia) +
+              ' − ' + money(det.reserva_aplicada) +
+              ' = penúltimo ' + money(det.lucro_penultimo_dia) +
+              ' · %' + (det.percentual_lucro != null ? det.percentual_lucro : '') +
+              ' → lucro ' + money(det.valor_lucro) +
+              ' · total ' + money(det.valor_total);
+          } else if (L.tipo === 'config') {
+            extra = ' · ' + money(L.valor_antes) + ' → ' + money(L.valor_depois);
+          }
+          row.innerHTML =
+            '<div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">' +
+              '<span class="uppercase tracking-wide text-[0.65rem] text-rose-800">' + (L.tipo_label || L.tipo) + '</span>' +
+              '<span class="tabular-nums text-slate-500">' + (L.criado_em || '') + '</span>' +
+            '</div>' +
+            '<div class="leading-snug text-slate-800">' + (L.mensagem || '').replace(/</g, '') + extra + '</div>' +
+            (L.operador ? '<div class="text-slate-500">por ' + String(L.operador).replace(/</g, '') +
+              (L.repasse_id ? ' · envio #' + L.repasse_id : '') + '</div>' : '');
+          box.appendChild(row);
+        });
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="px-2 py-2 text-rose-700">Falha de rede no log</p>';
+      });
+  }
+
   renderCalc();
   renderHist();
   syncTransferUrl();
   fetchCalc();
+  fetchLogReserva();
+  var btnLog = document.getElementById('rv-log-refresh');
+  if (btnLog) btnLog.addEventListener('click', fetchLogReserva);
 })();
 </script>
 {% endblock %}

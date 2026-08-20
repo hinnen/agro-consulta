@@ -474,6 +474,11 @@ urlpatterns = [
         name='api_repasse_vila_config',
     ),
     path(
+        'api/repasse-vila/reserva-log/',
+        views_repasse_vila.api_repasse_vila_reserva_log,
+        name='api_repasse_vila_reserva_log',
+    ),
+    path(
         'api/repasse-vila/meta/',
         views_repasse_vila.api_repasse_vila_meta,
         name='api_repasse_vila_meta',
