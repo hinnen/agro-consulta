@@ -1230,6 +1230,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Catálogo delivery — 5 níveis + passo peso (`CATALOGO-5N-PESO` · **v17.59**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ push `teste` · validar local |
+| **O quê** | Árvore até **5** níveis (3–5 por ramo) · após folha: passo **peso** estilo PDV Rações (só botões com produto) · lista filtrada · + Add mantém modal embalagens · tela não muda |
+| **Cadastro** | Aba Delivery: selects nível 4 e 5 (`subcategoria3/4_id`) |
+| **Gestão** | `/catalogo/gestao/` cria até nível 5 |
+| **Arquivos** | `catalogo_delivery_util.py` · `views_catalogo_delivery.py` · `catalogo_delivery.js` · templates catálogo + modal cadastro |
+| **Produção** | **Não** — só teste até frase + senha |
+| **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` cascata → peso → lista → + Add |
+
 ### ✅ Deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**) · **Live**
 
 | Item | Detalhe |
