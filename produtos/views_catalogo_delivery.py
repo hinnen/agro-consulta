@@ -13,6 +13,8 @@ from django.views.decorators.http import require_GET, require_http_methods, requ
 
 from produtos.catalogo_delivery_util import (
     ErroPedidoCatalogo,
+    CATALOGO_MAX_NIVEIS,
+    PESOS_GRADE_CATALOGO,
     _strip_data_url,
     agrupar_itens_por_categoria,
     arvore_navegacao_catalogo,
@@ -22,9 +24,11 @@ from produtos.catalogo_delivery_util import (
     criar_pedido_catalogo_delivery,
     listar_categorias_arvore,
     listar_itens_catalogo,
+    listar_produtos_delivery_para_vinculo,
     montar_imagem_og_preview,
     obter_config_catalogo,
     opcoes_pai_categoria,
+    profundidade_por_parent_id,
     salvar_foto_categoria,
     salvar_logo_loja,
     slugify_categoria,
@@ -108,12 +112,17 @@ def catalogo_delivery_view(request):
                 "imagem": i["imagem"],
                 "categoria_slug": i.get("categoria_slug") or "",
                 "subcategoria_slug": i.get("subcategoria_slug") or "",
+                "path": i.get("path") or "",
+                "path_slugs": i.get("path_slugs") or [],
+                "peso_keys": i.get("peso_keys") or [],
+                "embalagens": i.get("embalagens") or [],
             }
             for i in itens
         ],
         ensure_ascii=False,
     )
     arvore_json = json.dumps(arvore, ensure_ascii=False)
+    pesos_grade_json = json.dumps(PESOS_GRADE_CATALOGO, ensure_ascii=False)
     wa = "".join(c for c in (cfg.whatsapp_contato or "") if c.isdigit())
     return render(
         request,
@@ -127,6 +136,7 @@ def catalogo_delivery_view(request):
             "whatsapp_digits": wa,
             "catalogo_json": catalogo_json,
             "arvore_json": arvore_json,
+            "pesos_grade_json": pesos_grade_json,
             "catalogo_vazio": not itens and not home_cats,
             "eh_staff": _staff(request.user),
             **og,
@@ -254,6 +264,16 @@ def api_catalogo_saldo_produto(request):
         return JsonResponse({"ok": False, "erro": "Falha ao ler saldo"}, status=500)
 
 
+@login_required(login_url="/admin/login/")
+@user_passes_test(_staff)
+@require_GET
+def api_catalogo_embalagens_busca(request):
+    """Staff: busca produtos Delivery para vincular embalagens no card."""
+    q = str(request.GET.get("q") or "").strip()
+    itens = listar_produtos_delivery_para_vinculo(q=q, limite=40)
+    return JsonResponse({"ok": True, "itens": itens})
+
+
 @require_GET
 def api_catalogo_cliente(request):
     digits = extrair_whatsapp_digits(request.GET.get("telefone") or "")
@@ -291,7 +311,12 @@ def api_catalogo_categoria_criar(request):
         try:
             parent = (
                 CatalogoDeliveryCategoria.objects.filter(pk=int(parent_raw), ativo=True)
-                .select_related("parent")
+                .select_related(
+                    "parent",
+                    "parent__parent",
+                    "parent__parent__parent",
+                    "parent__parent__parent__parent",
+                )
                 .first()
             )
         except (TypeError, ValueError):
@@ -301,10 +326,12 @@ def api_catalogo_categoria_criar(request):
                 {"ok": False, "erro": "Categoria pai inválida."},
                 status=400,
             )
-        # Máx. 3 níveis: pai pode ser raiz (nível 1) ou sub (nível 2)
-        if parent.parent_id and parent.parent and parent.parent.parent_id:
+        if profundidade_por_parent_id(parent) > CATALOGO_MAX_NIVEIS:
             return JsonResponse(
-                {"ok": False, "erro": "Máximo 3 níveis (categoria → sub → sub-sub)."},
+                {
+                    "ok": False,
+                    "erro": f"Máximo {CATALOGO_MAX_NIVEIS} níveis de categoria.",
+                },
                 status=400,
             )
     try:
@@ -471,14 +498,19 @@ def catalogo_gestao_view(request):
                 try:
                     parent = (
                         CatalogoDeliveryCategoria.objects.filter(pk=int(parent_raw))
-                        .select_related("parent")
+                        .select_related(
+                            "parent",
+                            "parent__parent",
+                            "parent__parent__parent",
+                            "parent__parent__parent__parent",
+                        )
                         .first()
                     )
                 except (TypeError, ValueError):
                     parent = None
-                if parent and parent.parent_id and parent.parent and parent.parent.parent_id:
+                if parent and profundidade_por_parent_id(parent) > CATALOGO_MAX_NIVEIS:
                     parent = None
-                    erro = "Máximo 3 níveis (categoria → sub → sub-sub)."
+                    erro = f"Máximo {CATALOGO_MAX_NIVEIS} níveis de categoria."
             if not nome:
                 erro = "Informe o nome da categoria."
             elif not erro:

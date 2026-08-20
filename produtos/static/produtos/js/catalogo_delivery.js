@@ -23,8 +23,28 @@
     var byId = {};
     catalogo.forEach(function (p) {
       byId[String(p.id)] = p;
+      var embs = Array.isArray(p.embalagens) ? p.embalagens : [];
+      embs.forEach(function (e) {
+        var eid = String(e.id || e.produto_id || "");
+        if (!eid) return;
+        if (!byId[eid]) {
+          byId[eid] = {
+            id: eid,
+            nome: e.nome || p.nome || eid,
+            preco: e.preco,
+            marca: p.marca || "",
+            peso_texto: e.peso_texto || e.rotulo || "",
+            imagem: p.imagem || "",
+          };
+        }
+      });
     });
     var carrinho = {};
+    var pathStack = []; // [{slug, nome}]
+    var pathExact = false;
+    var pesoAtual = "";
+    var modoBusca = false;
+    var viewMode = "home"; // home | nivel | pesos | produtos
 
     function totalQtd() {
       var n = 0;
@@ -105,51 +125,204 @@
       m.classList.remove("flex");
     }
 
+    function addToCart(id) {
+      id = String(id || "");
+      if (!byId[id]) return;
+      carrinho[id] = (carrinho[id] || 0) + 1;
+      renderBarra();
+    }
+
+    function fecharModalEmbalagem() {
+      var m = document.getElementById("modal-embalagem");
+      if (!m) return;
+      m.classList.add("hidden");
+      m.classList.remove("flex");
+      m.removeAttribute("data-card-id");
+    }
+
+    function abrirModalEmbalagem(cardId) {
+      var p = byId[String(cardId)];
+      if (!p) return;
+      var embs = Array.isArray(p.embalagens) ? p.embalagens.slice() : [];
+      if (pesoAtual) {
+        embs = embs.filter(function (e) {
+          var keys = [];
+          var raws = [e.peso_texto || "", e.rotulo || ""];
+          raws.forEach(function (raw) {
+            var t = String(raw || "")
+              .toLowerCase()
+              .replace(",", ".")
+              .replace(/\s*k\s*g\s*$/, "")
+              .trim();
+            var map = {
+              "1": "kg:1",
+              "2.5": "kg:2.5",
+              "5": "kg:5",
+              "10": "kg:10",
+              "15": "kg:15",
+              "20": "kg:20",
+              "25": "kg:25",
+              granel: "kg:1",
+            };
+            if (t.indexOf("granel") >= 0) keys.push("kg:1");
+            else if (map[t]) keys.push(map[t]);
+            else {
+              var n = parseFloat(t);
+              if (!isNaN(n)) {
+                [1, 2.5, 5, 10, 15, 20, 25].forEach(function (pKg) {
+                  if (Math.abs(n - pKg) <= 0.05) {
+                    keys.push(pKg === Math.round(pKg) ? "kg:" + Math.round(pKg) : "kg:" + pKg);
+                  }
+                });
+              }
+            }
+          });
+          return keys.indexOf(pesoAtual) >= 0;
+        });
+      }
+      if (embs.length <= 1) {
+        addToCart(embs.length === 1 ? embs[0].id || embs[0].produto_id || p.id : p.id);
+        return;
+      }
+      var m = document.getElementById("modal-embalagem");
+      var list = document.getElementById("modal-embalagem-opcoes");
+      var tit = document.getElementById("modal-embalagem-titulo");
+      if (!m || !list) {
+        addToCart(p.id);
+        return;
+      }
+      if (tit) tit.textContent = p.nome || "Escolha a embalagem";
+      list.innerHTML = embs
+        .map(function (e) {
+          var eid = String(e.id || e.produto_id || "");
+          return (
+            '<button type="button" class="emb-opt w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl border-2 border-emerald-200 bg-white hover:bg-emerald-50 text-left" data-id="' +
+            eid +
+            '">' +
+            '<span class="font-black text-slate-900">' +
+            (e.rotulo || e.peso_texto || "Opção") +
+            "</span>" +
+            '<span class="font-black text-emerald-700 tabular-nums">' +
+            fmt(Number(e.preco || 0)) +
+            "</span>" +
+            "</button>"
+          );
+        })
+        .join("");
+      list.querySelectorAll(".emb-opt").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          addToCart(btn.getAttribute("data-id"));
+          fecharModalEmbalagem();
+        });
+      });
+      m.setAttribute("data-card-id", String(cardId));
+      m.classList.remove("hidden");
+      m.classList.add("flex");
+    }
+
     document.querySelectorAll(".btn-add").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var id = String(btn.getAttribute("data-id") || "");
         if (!byId[id]) return;
-        carrinho[id] = (carrinho[id] || 0) + 1;
-        renderBarra();
+        abrirModalEmbalagem(id);
       });
     });
+
+    var embClose = document.getElementById("modal-embalagem-fechar");
+    if (embClose) embClose.addEventListener("click", fecharModalEmbalagem);
+    var embRoot = document.getElementById("modal-embalagem");
+    if (embRoot) {
+      embRoot.addEventListener("click", function (ev) {
+        if (ev.target === embRoot) fecharModalEmbalagem();
+      });
+    }
 
     var busca = document.getElementById("busca-catalogo");
     var homeEl = document.getElementById("home-categorias");
     var viewSubs = document.getElementById("view-subcategorias");
+    var viewPesos = document.getElementById("view-pesos");
     var viewProd = document.getElementById("view-produtos");
     var gradeSubs = document.getElementById("grade-subcategorias");
+    var gradePesos = document.getElementById("grade-pesos");
+    var pesosVazio = document.getElementById("pesos-vazio");
     var tituloSubPasso = document.getElementById("titulo-sub-passo");
     var tituloSubAjuda = document.getElementById("titulo-sub-ajuda");
+    var tituloPesoPasso = document.getElementById("titulo-peso-passo");
     var tituloCat = document.getElementById("titulo-cat-atual");
     var listaVazia = document.getElementById("lista-vazia-cat");
     var arvore = Array.isArray(opts.arvore) ? opts.arvore : [];
+    var pesosGrade = Array.isArray(opts.pesosGrade) ? opts.pesosGrade : [];
     var arvoreBySlug = {};
-    arvore.forEach(function (c) {
-      arvoreBySlug[c.slug] = c;
-    });
-    var catAtual = "";
-    var catNomeAtual = "";
-    var subAtual = "";
-    var subNomeAtual = "";
-    var sub2Atual = "";
-    var nivelPasso = 0; // 0 home · 1 cat·subs · 2 sub·subs2 · 3 produtos
-    var modoBusca = false;
+    function indexArvore(nodes, map) {
+      (nodes || []).forEach(function (n) {
+        map[n.slug] = n;
+        indexArvore(n.filhos || [], map);
+      });
+    }
+    indexArvore(arvore, arvoreBySlug);
+
+    function pathPrefix() {
+      return pathStack.map(function (x) { return x.slug; }).join("/");
+    }
+    function pathTitulo() {
+      return pathStack.map(function (x) { return x.nome; }).filter(Boolean).join(" · ");
+    }
+    function noAtual() {
+      if (!pathStack.length) return null;
+      var cur = null;
+      var list = arvore;
+      for (var i = 0; i < pathStack.length; i++) {
+        var slug = pathStack[i].slug;
+        cur = null;
+        for (var j = 0; j < list.length; j++) {
+          if (list[j].slug === slug) {
+            cur = list[j];
+            break;
+          }
+        }
+        if (!cur) return null;
+        list = cur.filhos || [];
+      }
+      return cur;
+    }
+    function opcoesFilhosNo() {
+      var no = noAtual();
+      if (!no) return [];
+      var optsN = [];
+      (no.filhos || []).forEach(function (f) {
+        optsN.push({
+          slug: f.slug,
+          nome: f.nome,
+          qtd: f.qtd || 0,
+          filhos: f.filhos || [],
+          qtd_exata: f.qtd_exata || 0,
+        });
+      });
+      if ((no.qtd_exata || 0) > 0) {
+        optsN.push({
+          slug: "_geral",
+          nome: "Geral",
+          qtd: no.qtd_exata || 0,
+          filhos: [],
+          qtd_exata: no.qtd_exata || 0,
+        });
+      }
+      return optsN;
+    }
 
     function esconderTodasViews() {
       if (homeEl) homeEl.classList.add("hidden");
       if (viewSubs) viewSubs.classList.add("hidden");
+      if (viewPesos) viewPesos.classList.add("hidden");
       if (viewProd) viewProd.classList.add("hidden");
     }
 
     function mostrarHome() {
-      catAtual = "";
-      catNomeAtual = "";
-      subAtual = "";
-      subNomeAtual = "";
-      sub2Atual = "";
-      nivelPasso = 0;
+      pathStack = [];
+      pathExact = false;
+      pesoAtual = "";
       modoBusca = false;
+      viewMode = "home";
       esconderTodasViews();
       if (homeEl) homeEl.classList.remove("hidden");
       if (busca) busca.value = "";
@@ -157,6 +330,7 @@
     }
 
     function mostrarGradeNivel(titulo, ajuda) {
+      viewMode = "nivel";
       esconderTodasViews();
       if (viewSubs) viewSubs.classList.remove("hidden");
       if (tituloSubPasso) tituloSubPasso.textContent = titulo || "";
@@ -164,58 +338,94 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
+    function mostrarPesos(titulo) {
+      viewMode = "pesos";
+      pesoAtual = "";
+      esconderTodasViews();
+      if (viewPesos) viewPesos.classList.remove("hidden");
+      if (tituloPesoPasso) tituloPesoPasso.textContent = titulo || "Peso";
+      renderPesos();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     function mostrarProdutos(titulo) {
+      viewMode = "produtos";
       esconderTodasViews();
       if (viewProd) viewProd.classList.remove("hidden");
       if (tituloCat) tituloCat.textContent = titulo || "Produtos";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    function opcoesSubDaCategoria(slug) {
-      var info = arvoreBySlug[slug];
-      if (!info) return [];
-      var optsSub = [];
-      (info.filhos || []).forEach(function (f) {
-        optsSub.push({
-          slug: f.slug,
-          nome: f.nome,
-          qtd: f.qtd || 0,
-          filhos: f.filhos || [],
-          qtd_sem_sub2: f.qtd_sem_sub2 || 0,
-        });
+    function produtosNoPath() {
+      var pref = pathPrefix();
+      var out = [];
+      catalogo.forEach(function (p) {
+        var path = String(p.path || (p.path_slugs || []).join("/") || "");
+        if (!pref) {
+          out.push(p);
+          return;
+        }
+        if (pathExact) {
+          if (path === pref) out.push(p);
+        } else if (path === pref || path.indexOf(pref + "/") === 0) {
+          out.push(p);
+        }
       });
-      if (info.qtd_sem_sub > 0) {
-        optsSub.push({
-          slug: "_geral",
-          nome: "Geral",
-          qtd: info.qtd_sem_sub,
-          filhos: [],
-          qtd_sem_sub2: 0,
-        });
-      }
-      return optsSub;
+      return out;
     }
 
-    function opcoesSub2(slugCat, slugSub) {
-      var info = arvoreBySlug[slugCat];
-      if (!info) return [];
-      var sub = null;
-      (info.filhos || []).forEach(function (f) {
-        if (f.slug === slugSub) sub = f;
-      });
-      if (!sub) return [];
-      var opts2 = [];
-      (sub.filhos || []).forEach(function (n) {
-        opts2.push({ slug: n.slug, nome: n.nome, qtd: n.qtd || 0 });
-      });
-      if (sub.qtd_sem_sub2 > 0) {
-        opts2.push({
-          slug: "_geral",
-          nome: "Geral",
-          qtd: sub.qtd_sem_sub2,
+    function pesosDisponiveis() {
+      var set = {};
+      produtosNoPath().forEach(function (p) {
+        (p.peso_keys || []).forEach(function (k) {
+          set[k] = true;
         });
-      }
-      return opts2;
+      });
+      // Também pelos data-pesos do DOM se JSON antigo
+      document.querySelectorAll(".produto-linha").forEach(function (el) {
+        var path = el.getAttribute("data-path") || "";
+        var pref = pathPrefix();
+        var okPath = !pref
+          ? true
+          : pathExact
+            ? path === pref
+            : path === pref || path.indexOf(pref + "/") === 0;
+        if (!okPath) return;
+        String(el.getAttribute("data-pesos") || "")
+          .split(",")
+          .forEach(function (k) {
+            k = String(k || "").trim();
+            if (k) set[k] = true;
+          });
+      });
+      return set;
+    }
+
+    function renderPesos() {
+      if (!gradePesos) return;
+      var avail = pesosDisponiveis();
+      var html = "";
+      pesosGrade.forEach(function (g) {
+        if (!avail[g.key]) return;
+        html +=
+          '<button type="button" class="card-cat peso-home-card" data-peso="' +
+          g.key +
+          '">' +
+          '<div class="card-cat-ph">' +
+          (g.label || "?").charAt(0) +
+          "</div>" +
+          '<div class="px-2.5 py-2.5">' +
+          '<p class="font-black text-slate-900 text-[0.95rem] leading-tight">' +
+          (g.label || g.key) +
+          "</p></div></button>";
+      });
+      gradePesos.innerHTML = html;
+      if (pesosVazio) pesosVazio.classList.toggle("hidden", !!html);
+      gradePesos.querySelectorAll(".peso-home-card").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          abrirListaComPeso(String(btn.getAttribute("data-peso") || ""));
+        });
+      });
     }
 
     function renderCardsNivel(lista, onPick) {
@@ -258,102 +468,75 @@
       var q = String((busca && busca.value) || "")
         .toLowerCase()
         .trim();
+      var pref = pathPrefix();
       var algum = false;
       document.querySelectorAll(".produto-linha").forEach(function (el) {
         var nome = el.getAttribute("data-nome") || "";
-        var pc = el.getAttribute("data-cat") || "";
+        var path = el.getAttribute("data-path") || "";
+        var pesos = String(el.getAttribute("data-pesos") || "");
         var matchQ = !q || nome.indexOf(q) >= 0;
-        var matchCat = !catAtual || pc === catAtual;
-        var matchSub = true;
-        var matchSub2 = true;
-        if (subAtual) {
-          var bloco = el.closest(".bloco-sub");
-          var bs = bloco ? String(bloco.getAttribute("data-sub") || "") : "";
-          matchSub = bs === subAtual;
+        var matchPath = true;
+        if (!modoBusca && pref) {
+          if (pathExact) matchPath = path === pref;
+          else matchPath = path === pref || path.indexOf(pref + "/") === 0;
         }
-        if (sub2Atual) {
-          var b2 = el.closest(".bloco-sub2");
-          var bs2 = b2 ? String(b2.getAttribute("data-sub2") || "") : "";
-          matchSub2 = bs2 === sub2Atual;
+        var matchPeso = true;
+        if (!modoBusca && pesoAtual) {
+          matchPeso = ("," + pesos + ",").indexOf("," + pesoAtual + ",") >= 0;
         }
-        var ok = matchQ && matchCat && matchSub && matchSub2;
+        var ok = matchQ && matchPath && matchPeso;
         el.classList.toggle("hidden", !ok);
         if (ok) algum = true;
       });
       document.querySelectorAll(".secao-cat").forEach(function (sec) {
-        var sc = String(sec.getAttribute("data-cat") || "");
-        var matchCat = !catAtual || sc === catAtual;
         var visible = sec.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
-        sec.classList.toggle("hidden", !(matchCat && visible));
-      });
-      document.querySelectorAll(".bloco-sub").forEach(function (b) {
-        var visible = b.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
-        b.classList.toggle("hidden", !visible);
-      });
-      document.querySelectorAll(".bloco-sub2").forEach(function (b) {
-        var visible = b.querySelectorAll(".produto-linha:not(.hidden)").length > 0;
-        b.classList.toggle("hidden", !visible);
+        sec.classList.toggle("hidden", !visible);
       });
       if (listaVazia) listaVazia.classList.toggle("hidden", algum);
     }
 
-    function abrirProdutosFiltrados(titulo) {
+    function irParaPesosOuFilhos() {
+      var filhos = opcoesFilhosNo();
+      if (filhos.length > 0) {
+        renderCardsNivel(filhos, abrirNivel);
+        mostrarGradeNivel(pathTitulo() || "Categoria", "Escolha a próxima categoria");
+        return;
+      }
+      pathExact = false;
+      mostrarPesos(pathTitulo() || "Peso");
+    }
+
+    function abrirNivel(slug, nome) {
       modoBusca = false;
-      nivelPasso = 3;
-      mostrarProdutos(titulo);
-      aplicarFiltros();
-    }
-
-    function abrirSub2(slug2, nome2) {
-      sub2Atual = slug2 || "";
-      var titulo =
-        (catNomeAtual || "") +
-        (subNomeAtual ? " · " + subNomeAtual : "") +
-        (nome2 ? " · " + nome2 : "");
-      abrirProdutosFiltrados(titulo || "Produtos");
-    }
-
-    function abrirSubcategoria(slugSub, nomeSub) {
-      subAtual = slugSub || "";
-      subNomeAtual = nomeSub || "";
-      sub2Atual = "";
-      if (slugSub === "_geral") {
-        abrirProdutosFiltrados(
-          (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : "")
-        );
+      if (slug === "_geral") {
+        pathExact = true;
+        mostrarPesos(pathTitulo() + (nome ? " · " + nome : ""));
         return;
       }
-      var netos = opcoesSub2(catAtual, subAtual);
-      if (netos.length > 0) {
-        nivelPasso = 2;
-        renderCardsNivel(netos, abrirSub2);
-        mostrarGradeNivel(
-          (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : ""),
-          "Escolha a sub-subcategoria"
-        );
-        return;
-      }
-      abrirProdutosFiltrados(
-        (catNomeAtual || "") + (nomeSub ? " · " + nomeSub : "")
-      );
+      pathExact = false;
+      pathStack.push({ slug: slug, nome: nome || slug });
+      irParaPesosOuFilhos();
     }
 
     function abrirCategoria(slug, nome) {
       modoBusca = false;
-      catAtual = slug || "";
-      catNomeAtual = nome || "";
-      subAtual = "";
-      subNomeAtual = "";
-      sub2Atual = "";
+      pathStack = [{ slug: slug || "", nome: nome || "" }];
+      pathExact = false;
+      pesoAtual = "";
       if (busca) busca.value = "";
-      var subs = opcoesSubDaCategoria(catAtual);
-      if (subs.length > 0) {
-        nivelPasso = 1;
-        renderCardsNivel(subs, abrirSubcategoria);
-        mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
-        return;
-      }
-      abrirProdutosFiltrados(catNomeAtual || "Produtos");
+      irParaPesosOuFilhos();
+    }
+
+    function abrirListaComPeso(pesoKey) {
+      pesoAtual = pesoKey || "";
+      var label = pesoKey;
+      pesosGrade.forEach(function (g) {
+        if (g.key === pesoKey) label = g.label;
+      });
+      mostrarProdutos(
+        (pathTitulo() || "Produtos") + (label ? " · " + label : "")
+      );
+      aplicarFiltros();
     }
 
     function voltarDoProdutos() {
@@ -361,45 +544,44 @@
         mostrarHome();
         return;
       }
-      if (sub2Atual && subAtual && catAtual) {
-        sub2Atual = "";
-        var netos = opcoesSub2(catAtual, subAtual);
-        if (netos.length > 0) {
-          nivelPasso = 2;
-          renderCardsNivel(netos, abrirSub2);
-          mostrarGradeNivel(
-            (catNomeAtual || "") + (subNomeAtual ? " · " + subNomeAtual : ""),
-            "Escolha a sub-subcategoria"
-          );
+      mostrarPesos(pathTitulo() || "Peso");
+    }
+
+    function voltarPesos() {
+      pesoAtual = "";
+      if (!pathStack.length) {
+        mostrarHome();
+        return;
+      }
+      // Se veio de Geral, pathExact true e stack sem _geral — sobe um nível da grade
+      if (pathExact) {
+        pathExact = false;
+        var filhosG = opcoesFilhosNo();
+        if (filhosG.length > 0) {
+          renderCardsNivel(filhosG, abrirNivel);
+          mostrarGradeNivel(pathTitulo() || "Categoria", "Escolha a próxima categoria");
           return;
         }
       }
-      if (subAtual && catAtual) {
-        subAtual = "";
-        subNomeAtual = "";
-        sub2Atual = "";
-        var subs = opcoesSubDaCategoria(catAtual);
-        if (subs.length > 0) {
-          nivelPasso = 1;
-          renderCardsNivel(subs, abrirSubcategoria);
-          mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
-          return;
-        }
+      pathStack.pop();
+      if (!pathStack.length) {
+        mostrarHome();
+        return;
       }
-      mostrarHome();
+      irParaPesosOuFilhos();
     }
 
     function voltarGrade() {
-      if (nivelPasso === 2 && catAtual) {
-        subAtual = "";
-        subNomeAtual = "";
-        sub2Atual = "";
-        nivelPasso = 1;
-        renderCardsNivel(opcoesSubDaCategoria(catAtual), abrirSubcategoria);
-        mostrarGradeNivel(catNomeAtual || "Subcategoria", "Escolha a subcategoria");
+      if (!pathStack.length) {
+        mostrarHome();
         return;
       }
-      mostrarHome();
+      pathStack.pop();
+      if (!pathStack.length) {
+        mostrarHome();
+        return;
+      }
+      irParaPesosOuFilhos();
     }
 
     document.querySelectorAll(".cat-home-card").forEach(function (card) {
@@ -414,6 +596,9 @@
     var btnVoltarHome = document.getElementById("btn-voltar-home");
     if (btnVoltarHome) btnVoltarHome.addEventListener("click", voltarGrade);
 
+    var btnVoltarPesos = document.getElementById("btn-voltar-pesos");
+    if (btnVoltarPesos) btnVoltarPesos.addEventListener("click", voltarPesos);
+
     var btnVoltar = document.getElementById("btn-voltar-cats");
     if (btnVoltar) btnVoltar.addEventListener("click", voltarDoProdutos);
 
@@ -424,17 +609,14 @@
           .trim();
         if (q) {
           modoBusca = true;
-          catAtual = "";
-          catNomeAtual = "";
-          subAtual = "";
-          subNomeAtual = "";
-          sub2Atual = "";
-          nivelPasso = 0;
+          pathStack = [];
+          pathExact = false;
+          pesoAtual = "";
           mostrarProdutos("Busca");
           aplicarFiltros();
         } else if (modoBusca) {
           mostrarHome();
-        } else if (nivelPasso === 3) {
+        } else if (viewMode === "produtos") {
           aplicarFiltros();
         }
       });

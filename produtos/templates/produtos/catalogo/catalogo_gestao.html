@@ -77,7 +77,7 @@
 
   <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
     <h2 class="text-sm font-black uppercase text-slate-700">Categorias do catálogo</h2>
-    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>3 níveis</strong>: Cães → Adulto → Premium. Foto do card: escolha o arquivo e toque em <strong>Salvar foto</strong> na categoria (o botão «Salvar loja» de cima não grava foto).</p>
+    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). Foto do card: escolha o arquivo e toque em <strong>Salvar foto</strong> na categoria (o botão «Salvar loja» de cima não grava foto).</p>
 
     <form method="post" class="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
       {% csrf_token %}
@@ -128,28 +128,7 @@
         {% if c.filhos %}
         <ul class="mt-2 ml-3 space-y-1 border-l-2 border-emerald-200 pl-3">
           {% for f in c.filhos %}
-          <li class="py-1">
-            <div class="flex items-center justify-between gap-2 text-sm">
-              <span class="font-semibold text-slate-700">↳ {{ f.nome }}{% if not f.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}</span>
-              <div class="flex gap-1">
-                <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ f.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border">On/Off</button></form>
-                <form method="post" onsubmit="return confirm('Excluir?');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ f.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border border-red-300 text-red-700">X</button></form>
-              </div>
-            </div>
-            {% if f.filhos %}
-            <ul class="mt-1 ml-3 space-y-1 border-l-2 border-slate-200 pl-3">
-              {% for n in f.filhos %}
-              <li class="flex items-center justify-between gap-2 text-xs">
-                <span class="font-semibold text-slate-600">↳↳ {{ n.nome }}{% if not n.ativo %} <span class="text-red-600">(off)</span>{% endif %}</span>
-                <div class="flex gap-1">
-                  <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ n.id }}"><button class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded border">On/Off</button></form>
-                  <form method="post" onsubmit="return confirm('Excluir?');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ n.id }}"><button class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded border border-red-300 text-red-700">X</button></form>
-                </div>
-              </li>
-              {% endfor %}
-            </ul>
-            {% endif %}
-          </li>
+          {% include "produtos/catalogo/_gestao_cat_filho.html" with no=f profundidade=2 %}
           {% endfor %}
         </ul>
         {% endif %}
