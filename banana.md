@@ -1239,7 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE: cherry/`teste` conforme o chat de auth.
 
-### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.63**)
+### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.64**)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1247,7 +1247,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Valor manual **Fica na Vila** sai do **lucro bruto** *antes* do % (50%) · diário desde **18/08/2026** · log na tela |
 | **Migrate** | **SIM** `0097` |
 | **Prova** | path **131** · reserva **60** · deep **102** · `manage.py check` OK |
-| **Commit** | feature `77da6a6` · verify abaixo · push `origin/teste` |
+| **Commit** | feat `77da6a6` · verify `2192407` · docs `336413d` · push `origin/teste` |
 | **Você** | Ctrl+F5 `/repasse-vila/` · valor manual · penúltimo · **Log** |
 
 ### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.60**)
