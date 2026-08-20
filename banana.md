@@ -1230,27 +1230,53 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08)
+### 🚀 PREP deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-2008`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.42** · `producao` @ **453c041** |
+| **Branch** | `deploy/lote-checklist-2008` @ **5bd7f66** · **30 arquivos** vs produção |
+| **Pacotes** | **REPASSE-RESERVA** · **BI-VAL-BAIXA-LOJA** · **DRE-LUCRO-LOAD** · **MP-POINT-CANCEL-SAFE** (+ PIN) |
+| **Migrate** | **SIM** `0095` → `0096` (Render no deploy) |
+| **Prova** | Point **21/21** · PIN **23/23** · deep **40/40** · BI-baixa OK · repasse OK · DRE OK · revalidado no branch deploy |
+| **Risco** | **Médio** — Point no PDV; validade/estoque por loja; repasse; DRE só financeiro |
+| **Fora** | Caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · CP |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008-v17.42` @ **453c041** |
+| **Zap** | *Atualização ~3–5 min (migrate) — pause vendas e Point; quem já clicou aguarda ou F5 e refaz.* |
+| **Autorizar** | *pode subir lote checklist 20/08 / deploy/lote-checklist-2008 para produção* + senha |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **MP-POINT-CANCEL-SAFE** | Timeout cancela · trava órfão · PIN gerencial | PDV · Point · Ctrl+F5 |
+| **BI-VAL-BAIXA-LOJA** | Baixa Centro **não** some na Vila | `/` Validade · filtro Vila |
+| **DRE-LUCRO-LOAD** | Gráfico lucro carrega | `/financeiro/resumo-gerencial/` |
+| **REPASSE-RESERVA** | Troco fixo fica na Vila | `/repasse-vila/` |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08) · **PREP branch pronta**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **MP-POINT-CANCEL-SAFE** | ✅ **pronto para envio à produção** | não |
-| 2 | **BI-VAL-BAIXA-LOJA** | ✅ **pronto para envio à produção** | **SIM 0096** |
-| 3 | **DRE-LUCRO-LOAD** | ✅ **pronto para envio à produção** | não |
-| 4 | **REPASSE-RESERVA** | ✅ **pronto para envio à produção** | **SIM 0095** |
+| 1 | **MP-POINT-CANCEL-SAFE** | 🚀 **PREP — aguarda senha** | não |
+| 2 | **BI-VAL-BAIXA-LOJA** | 🚀 **PREP — aguarda senha** | **SIM 0096** |
+| 3 | **DRE-LUCRO-LOAD** | 🚀 **PREP — aguarda senha** | não |
+| 4 | **REPASSE-RESERVA** | 🚀 **PREP — aguarda senha** | **SIM 0095** |
 
-### 📦 PACOTE PRONTO LOJA — Point cancel seguro + PIN gerencial (`MP-POINT-CANCEL-SAFE`)
+### 📦 PACOTE PRONTO LOJA — Point cancel seguro + PIN gerencial (`MP-POINT-CANCEL-SAFE`) · **no PREP 2008**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Timeout cancela na máquina · abandon só se MP confirmou · status grava PAID · trava outra forma com Point vivo · **PIN gerencial** (Geraldo / Geraldinho / Renan Hinnen) força liberar em emergência |
 | **Por quê** | Incidente 19/08 R$460 (Point cobrou, PDV não fechou, venda na Renan) |
 | **Migrate** | **NÃO** |
-| **Commits** | `2fd5f98` · `0e41e64` · prova deep `7199464` · teste **v17.57** · loja **v17.42** |
+| **Commits** | `2fd5f98` · `0e41e64` · prova deep `7199464` · teste **v17.58** · loja **v17.42** · deploy **v17.43** |
 | **Prova** | cancel-safe **21/21** · pin **23/23** · Vila path **41/41** · deep **40/40** |
 | **Risco** | Médio — PDV Point Centro/Vila · Ctrl+F5 obrigatório |
 | **Você** | Ctrl+F5 PDV · Point auto · cancelar no PDV = some na máquina · timeout cancela · se travar: PIN Geraldo/Geraldinho/Renan |
-| **Autorizar** | *pode subir MP-POINT-CANCEL-SAFE para produção* + **99738595** |
+| **Autorizar** | *via lote 20/08* — ver PREP no topo |
 
 ### ⚠️ INCIDENTE — MP Point Centro (19/08 · Manasses R$460) · **fix no teste — ver PACOTE acima**
 
@@ -1259,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pedido** | **797** ainda órfão no PG · venda **#5754** mp_renan |
 | **Fix** | PACOTE **MP-POINT-CANCEL-SAFE** (checklist #1) |
 
-### 📦 PACOTE PRONTO LOJA — baixa validade por loja (`BI-VAL-BAIXA-LOJA`)
+### 📦 PACOTE PRONTO LOJA — baixa validade por loja (`BI-VAL-BAIXA-LOJA`) · **no PREP 2008**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1270,10 +1296,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
 | **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
 | **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
-| **Autorizar** | *pode subir BI-VAL-BAIXA-LOJA para produção* + **99738595** |
-| **Loja** | ✅ **pronto para envio à produção** |
+| **Autorizar** | *via lote 20/08* — ver PREP no topo |
+| **Loja** | 🚀 **PREP — aguarda senha** |
 
-### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`)
+### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`) · **no PREP 2008**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1283,9 +1309,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **SIM** `0095_repasse_vila_reserva` |
 | **Prova (18/08)** | path 115/115 · reserva **70/70** · deep 95/95 · acum-net 28/28 · planos 49/49 |
 | **Você** | Ctrl+F5 `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
-| **Loja** | ✅ **pronto para envio à produção** — só com frase + senha |
+| **Loja** | 🚀 **PREP — aguarda senha** |
 
-### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`)
+### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`) · **no PREP 2008**
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1295,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova (18/08)** | verify chart 16/16 · CMV 55/55 · visual 232/232 · `check` OK · **436ms** · BI bruto/pago/Centro/Vila **match** (≤ R$ 0,02) |
 | **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) · **Lucro acum.** ≈ card do BI |
-| **Loja** | ✅ **pronto para envio à produção** |
+| **Loja** | 🚀 **PREP — aguarda senha** |
 
 ### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
