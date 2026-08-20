@@ -1230,17 +1230,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Catálogo delivery — 5 níveis + passo peso (`CATALOGO-5N-PESO` · **v17.59**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.43**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio à produção** · teste **v17.59** | **NÃO** |
+
+**Autorizar loja:** *pode subir CATALOGO-5N-PESO / catálogo 5 níveis para produção* + **99738595**
+
+### 📦 PACOTE PRONTO — Catálogo 5 níveis + peso (`CATALOGO-5N-PESO` · **v17.59**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ push `teste` · validar local |
-| **O quê** | Árvore até **5** níveis (3–5 por ramo) · após folha: passo **peso** estilo PDV Rações (só botões com produto) · lista filtrada · + Add mantém modal embalagens · tela não muda |
-| **Cadastro** | Aba Delivery: selects nível 4 e 5 (`subcategoria3/4_id`) |
-| **Gestão** | `/catalogo/gestao/` cria até nível 5 |
-| **Arquivos** | `catalogo_delivery_util.py` · `views_catalogo_delivery.py` · `catalogo_delivery.js` · templates catálogo + modal cadastro |
-| **Produção** | **Não** — só teste até frase + senha |
-| **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` cascata → peso → lista → + Add |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | `/catalogo/` até **5** níveis · após folha: passo **peso** (grade PDV, só com produto) · lista filtrada · + Add mantém modal embalagens · tela não muda |
+| **Cadastro / gestão** | Selects nível 4–5 · criar até N5 em `/catalogo/gestao/` |
+| **Migrate** | **NÃO** |
+| **Commit** | **`5c275f2`** · banana **`52ae0a4`** · verify **`scripts/verify_catalogo_5n_peso.py`** |
+| **Prova** | verify path **VERIFY_OK** · `node --check` · `manage.py check` |
+| **Risco** | Baixo — só `/catalogo/` + aba Delivery · **zero** PDV/caixa |
+| **Você** | Gestão 5 níveis · cadastro Delivery · `/catalogo/` cascata → peso → lista → + Add · Ctrl+F5 |
+| **Autorizar** | *pode subir CATALOGO-5N-PESO para produção* + **99738595** |
 
 ### ✅ Deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**) · **Live**
 
