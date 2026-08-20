@@ -29,6 +29,8 @@
     todos: document.getElementById('pdv-rp-todos'),
     cheio: document.getElementById('pdv-rp-cheio'),
     acumulado: document.getElementById('pdv-rp-acumulado'),
+    reserva: document.getElementById('pdv-rp-reserva'),
+    salvarReserva: document.getElementById('pdv-rp-salvar-reserva'),
     manual: document.getElementById('pdv-rp-manual'),
     pin: document.getElementById('pdv-rp-pin'),
     status: document.getElementById('pdv-rp-status'),
@@ -75,6 +77,19 @@
       dom.dataHint.textContent = 'Dia passado: ' + br + ' · dinheiro sai do caixa de agora';
       dom.dataHint.className = 'text-xs font-bold text-amber-800 pb-1';
     }
+  }
+
+  function parseMoneyBR(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return 0;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = Number(s);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }
+
+  function reservaAtual() {
+    if (dom.reserva) return parseMoneyBR(dom.reserva.value);
+    return Number((calc || {}).reserva_vila || 0);
   }
 
   function money(n) {
@@ -178,7 +193,10 @@
     } else if (dom.acumulado && dom.acumulado.checked && acum !== 0) {
       tot = Math.max(0, tot + acum);
     }
+    if (mv == null) tot = Math.max(0, tot - reservaAtual());
     document.getElementById('pdv-rp-total').textContent = money(tot);
+    var hintOp = document.getElementById('pdv-rp-opcoes-hint');
+    if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
   }
 
   function renderQuem() {
@@ -280,6 +298,12 @@
         }
         if (!dom.pct.value || dom.pct.value === '50') {
           dom.pct.value = String(Math.round(j.percentual_padrao || 50));
+        }
+        if (dom.reserva && (j.reserva_vila != null || (j.calc && j.calc.reserva_vila != null))) {
+          var rv = j.reserva_vila != null ? j.reserva_vila : j.calc.reserva_vila;
+          if (!dom.reserva.value) {
+            dom.reserva.value = Number(rv || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
         }
         if (!qs().get('data')) {
           calc = j.calc || null;
@@ -408,6 +432,32 @@
     });
     el.addEventListener('input', renderCalc);
   });
+  if (dom.reserva) {
+    dom.reserva.addEventListener('input', renderCalc);
+  }
+  if (dom.salvarReserva) {
+    dom.salvarReserva.addEventListener('click', function () {
+      if (dom.status) dom.status.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/config/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ reserva_vila: reservaAtual() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (dom.status) {
+            dom.status.textContent = j.ok
+              ? 'Fica na Vila salvo: ' + money(j.reserva_vila)
+              : (j.erro || 'Erro');
+          }
+          if (j && j.ok) fetchCalc();
+        })
+        .catch(function () {
+          if (dom.status) dom.status.textContent = 'Falha ao salvar';
+        });
+    });
+  }
   var t = null;
   dom.pct.addEventListener('input', function () {
     clearTimeout(t);

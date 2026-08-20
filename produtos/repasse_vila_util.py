@@ -82,6 +82,25 @@ def salvar_percentual_padrao(pct, *, operador: str = "") -> RepasseVilaConfigAgr
     return cfg
 
 
+def salvar_reserva_vila(valor, *, operador: str = "") -> RepasseVilaConfigAgro:
+    """Valor fixo que fica na Vila e desconta do que vai ao Centro."""
+    v = _dec(valor)
+    if v < 0:
+        v = ZERO
+    if v > Decimal("99999.99"):
+        v = Decimal("99999.99")
+    cfg = obter_config()
+    cfg.reserva_vila = v
+    cfg.atualizado_por = (operador or "")[:120]
+    cfg.save(update_fields=["reserva_vila", "atualizado_em", "atualizado_por"])
+    return cfg
+
+
+def reserva_vila_config(cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
+    cfg = cfg or obter_config()
+    return max(ZERO, _dec(getattr(cfg, "reserva_vila", ZERO)))
+
+
 def _norm_plano_nome(nome: str) -> str:
     return " ".join(str(nome or "").strip().split())
 
@@ -603,13 +622,17 @@ def listar_acumulado_detalhe(
     calc_hoje = calcular_disponivel(dia, percentual_lucro=pct, modo_dia_cheio=False, _skip_acumulado=True)
     acum = abater_extras_do_acumulado(dia, acum_bruto, calc_hoje)
     falta_dia = _dec(calc_hoje.get("falta_dinheiro"))
-    total_sug = (falta_dia + acum).quantize(Decimal("0.01"))
+    reserva = reserva_vila_config(cfg)
+    total_sug_bruto = (falta_dia + acum).quantize(Decimal("0.01"))
+    total_sug = max(ZERO, (total_sug_bruto - reserva).quantize(Decimal("0.01")))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
         "acumulado_anterior": float(acum),
         "acumulado_bruto": float(acum_bruto),
         "falta_dia": float(falta_dia),
+        "reserva_vila": float(reserva),
+        "total_sugerido_bruto": float(total_sug_bruto),
         "total_sugerido": float(total_sug),
         "credito": float(max(ZERO, -total_sug)) if total_sug < 0 else 0.0,
         "linhas_dias": linhas,
@@ -755,11 +778,15 @@ def calcular_disponivel(
         }
         acum = abater_extras_do_acumulado(dia, acum_bruto, mini)
         total_sugerido = (total_disp + acum).quantize(Decimal("0.01"))
+    reserva = reserva_vila_config(cfg)
+    total_sugerido_bruto = total_sugerido
+    total_sugerido = max(ZERO, (total_sugerido_bruto - reserva).quantize(Decimal("0.01")))
     return {
         "ok": True,
         "data_ref": dia.isoformat(),
         "percentual_lucro": float(pct),
         "percentual_padrao": float(_dec(cfg.percentual_lucro_padrao)),
+        "reserva_vila": float(reserva),
         "modo_dia_cheio": bool(modo_dia_cheio),
         "receita_dia": float(base["receita"]),
         "cmv_dia": float(base["cmv"]),
@@ -775,6 +802,7 @@ def calcular_disponivel(
         "falta_dinheiro": float(total_disp),
         "acumulado_anterior": float(acum),
         "acumulado_bruto": float(acum_bruto),
+        "total_sugerido_bruto": float(total_sugerido_bruto),
         "total_sugerido": float(total_sugerido),
         "credito_acumulado": float(max(ZERO, -total_sugerido)) if total_sugerido < 0 else 0.0,
         "disponivel": {
@@ -1039,6 +1067,16 @@ def confirmar_repasse(
                     "Desmarque «Incluir acumulado» ou ajuste o valor manual."
                 )
             v_cmv, v_lucro, v_fiado = _redistribuir_tres(v_cmv, v_lucro, v_fiado, novo)
+            total = novo
+
+    if valor_manual is None:
+        reserva = reserva_vila_config()
+        if reserva > 0:
+            novo = max(ZERO, (total - reserva).quantize(Decimal("0.01")))
+            if novo <= 0:
+                return None, "Nada a levar — o valor que fica na Vila cobre o envio."
+            if (v_cmv + v_lucro + v_fiado) > 0:
+                v_cmv, v_lucro, v_fiado = _redistribuir_tres(v_cmv, v_lucro, v_fiado, novo)
             total = novo
 
     if total <= 0:

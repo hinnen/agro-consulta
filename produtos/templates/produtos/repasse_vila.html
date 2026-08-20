@@ -22,11 +22,11 @@
     display: grid;
     gap: 0.85rem;
     width: 100%;
-    max-width: min(96rem, 100%);
+    max-width: 100%;
     min-height: 0;
   }
-  @media (min-width: 1280px) {
-    .rv-shell { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 1rem; }
+  @media (min-width: 1100px) {
+    .rv-shell { grid-template-columns: minmax(22rem, 0.92fr) minmax(26rem, 1.08fr); gap: 1rem; }
   }
   .rv-card {
     border: 2px solid #cbd5e1;
@@ -109,6 +109,67 @@
   .rv-sum--centro { border-color: #38bdf8; background: #f0f9ff; }
   .rv-sum--vila { border-color: #34d399; background: #ecfdf5; }
   details.repasse-help > summary::-webkit-details-marker { display: none; }
+  .rv-fold {
+    border: 2px solid #cbd5e1;
+    border-radius: 0.85rem;
+    background: #f8fafc;
+  }
+  .rv-fold > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.85rem;
+    font-size: clamp(0.78rem, 0.7rem + 0.2vw, 0.88rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0f172a;
+  }
+  .rv-fold > summary::-webkit-details-marker { display: none; }
+  .rv-fold > summary::after {
+    content: '▸';
+    font-size: 1.15rem;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  .rv-fold[open] > summary::after { content: '▾'; }
+  .rv-fold-body { padding: 0 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.65rem; }
+  .rv-dias-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    flex: 1;
+    min-height: 12rem;
+    max-height: min(62vh, 36rem);
+  }
+  @media (min-width: 640px) {
+    .rv-dias-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .rv-dias-col {
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    background: #fff;
+    min-height: 0;
+  }
+  .rv-dias-col h3 {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
 </style>
 
 <div class="rv-shell">
@@ -154,7 +215,7 @@
         <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
       </div>
     </div>
-    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3 items-end">
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 items-end">
       <div class="rv-metric border-amber-200 bg-amber-50">
         <div class="rv-lbl text-amber-800 flex items-center gap-1">Acumulado (dias anteriores) {% with repasse_help="acumulado" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
         <div class="rv-val text-amber-950" id="rv-acum">R$ 0,00</div>
@@ -163,52 +224,69 @@
         <div class="rv-lbl text-violet-800">Total sugerido</div>
         <div class="rv-val text-violet-950" id="rv-total-sug">R$ 0,00</div>
       </div>
+      <div class="rv-metric border-rose-200 bg-rose-50">
+        <div class="rv-lbl text-rose-800">Fica na Vila (troco)</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <input id="rv-reserva" type="text" inputmode="decimal" autocomplete="off"
+            value="{{ reserva_padrao|default:0|floatformat:2 }}"
+            class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-rose-300 bg-white px-2 text-lg font-black tabular-nums text-rose-950" />
+          <button type="button" id="rv-salvar-reserva" class="min-h-[2.5rem] shrink-0 rounded-lg border-2 border-rose-600 bg-white px-2.5 text-[0.65rem] font-black uppercase text-rose-950">Salvar</button>
+        </div>
+      </div>
       <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
     </div>
 
-    <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
-      <label class="block min-w-0">
-        <span class="rv-lbl">Dia do repasse</span>
-        <input id="rv-data" type="date" class="mt-0.5 block min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 text-sm font-black" />
-        <span id="rv-data-hint" class="block text-xs font-bold text-slate-500 mt-0.5">Hoje ou dia que passou</span>
-      </label>
-      <label class="flex flex-wrap items-center gap-2">
-        <span class="rv-lbl shrink-0">% lucro bruto</span>
-        <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
-          class="min-h-[2.5rem] w-[4.5rem] rounded-lg border-2 border-slate-300 px-2 text-lg font-black tabular-nums" />
-        <span class="font-black text-slate-600">%</span>
-        <button type="button" id="rv-salvar-pct" class="min-h-[2.5rem] rounded-lg border-2 border-emerald-600 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-900">Salvar padrão</button>
-        <button type="button" id="rv-btn-planos" class="min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900">Planos</button>
-      </label>
-    </div>
+    <details class="rv-fold">
+      <summary>
+        <span>Dia, % e opções</span>
+        <span id="rv-opcoes-hint" class="normal-case tracking-normal font-bold text-slate-500 text-xs sm:text-sm"></span>
+      </summary>
+      <div class="rv-fold-body">
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
+          <label class="block min-w-0">
+            <span class="rv-lbl">Dia do repasse</span>
+            <input id="rv-data" type="date" class="mt-0.5 block min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 text-sm font-black" />
+            <span id="rv-data-hint" class="block text-xs font-bold text-slate-500 mt-0.5">Hoje ou dia que passou</span>
+          </label>
+          <label class="flex flex-wrap items-center gap-2">
+            <span class="rv-lbl shrink-0">% lucro bruto</span>
+            <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
+              class="min-h-[2.5rem] w-[4.5rem] rounded-lg border-2 border-slate-300 px-2 text-lg font-black tabular-nums" />
+            <span class="font-black text-slate-600">%</span>
+            <button type="button" id="rv-salvar-pct" class="min-h-[2.5rem] rounded-lg border-2 border-emerald-600 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-900">Salvar padrão</button>
+            <button type="button" id="rv-btn-planos" class="min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900">Planos</button>
+          </label>
+        </div>
 
-    <div class="space-y-1.5">
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-todos" checked />
-        <span class="font-black uppercase text-slate-800 text-xs tracking-wide">Marcar todos</span>
-      </label>
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-cmv" class="rv-linha" data-key="cmv" checked />
-        <span class="flex-1 font-bold text-slate-800">Custo mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
-      </label>
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
-        <span class="flex-1 font-bold text-slate-800">% lucro bruto <span class="tabular-nums text-sky-800" id="rv-disp-lucro">R$ 0,00</span></span>
-      </label>
-      <p id="rv-desp-hint" class="hidden text-[0.7rem] font-bold text-slate-600 leading-tight px-1">− planos no envio ao Centro: —</p>
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
-        <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
-      </label>
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-acumulado" checked />
-        <span class="font-bold text-slate-800">Incluir acumulado no total sugerido</span>
-      </label>
-      <label class="rv-check">
-        <input type="checkbox" id="rv-chk-dia-cheio" />
-        <span class="font-bold text-slate-800">Dia cheio <span class="text-slate-500 font-semibold text-xs">(padrão = só o que falta)</span></span>
-      </label>
-    </div>
+        <div class="space-y-1.5">
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-todos" checked />
+            <span class="font-black uppercase text-slate-800 text-xs tracking-wide">Marcar todos</span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-cmv" class="rv-linha" data-key="cmv" checked />
+            <span class="flex-1 font-bold text-slate-800">Custo mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
+            <span class="flex-1 font-bold text-slate-800">% lucro bruto <span class="tabular-nums text-sky-800" id="rv-disp-lucro">R$ 0,00</span></span>
+          </label>
+          <p id="rv-desp-hint" class="hidden text-[0.7rem] font-bold text-slate-600 leading-tight px-1">− planos no envio ao Centro: —</p>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
+            <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-acumulado" checked />
+            <span class="font-bold text-slate-800">Incluir acumulado no total sugerido</span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-dia-cheio" />
+            <span class="font-bold text-slate-800">Dia cheio <span class="text-slate-500 font-semibold text-xs">(padrão = só o que falta)</span></span>
+          </label>
+        </div>
+      </div>
+    </details>
 
     <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3">
       <div class="min-w-0">
@@ -253,7 +331,7 @@
       </div>
     </div>
 
-    <div id="rv-dias" class="flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white max-h-[min(58vh,34rem)] min-h-[12rem]"></div>
+    <div id="rv-dias" class="rv-dias-grid"></div>
   </section>
 </div>
 
@@ -318,6 +396,18 @@
     var v = Number(n || 0);
     return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  function parseMoneyBR(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return 0;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = Number(s);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }
+  function reservaAtual() {
+    var el = document.getElementById('rv-reserva');
+    if (!el) return Number((state.calc || {}).reserva_vila || 0);
+    return parseMoneyBR(el.value);
+  }
   function bootJson(id) {
     var el = document.getElementById(id);
     try { return el ? JSON.parse(el.textContent || '{}') : {}; } catch (e) { return {}; }
@@ -366,6 +456,11 @@
       dataHint.textContent = 'Dia passado ' + (p[2]||'') + '/' + (p[1]||'') + '/' + (p[0]||'') + ' · dinheiro sai agora';
       dataHint.className = 'text-xs font-bold text-amber-800';
     }
+    var foldHint = document.getElementById('rv-opcoes-hint');
+    if (foldHint) {
+      var parts = d.split('-');
+      foldHint.textContent = (parts[2] || '') + '/' + (parts[1] || '') + ' · ' + (pctEl && pctEl.value ? pctEl.value : '50') + '%';
+    }
   }
   if (dataEl) {
     dataEl.max = hojeIso();
@@ -406,6 +501,7 @@
     var acumEl = document.getElementById('rv-acum');
     if (acumEl) acumEl.textContent = money(acum);
     var sug = Number(c.total_sugerido != null ? c.total_sugerido : (Number(c.falta_dinheiro || d.total || 0) + acum));
+    var reserva = reservaAtual();
     var sugEl = document.getElementById('rv-total-sug');
     if (sugEl) sugEl.textContent = money(Math.max(0, sug));
     var tot = 0;
@@ -413,12 +509,14 @@
     if (chkLucro.checked) tot += Number(d.lucro || 0);
     if (chkFiado.checked) tot += Number(d.fiado || 0);
     if (chkAcum && chkAcum.checked && acum !== 0) tot = Math.max(0, tot + acum);
+    tot = Math.max(0, tot - reserva);
     document.getElementById('rv-total').textContent = money(tot);
     var ja = c.ja_enviado || {};
     var jaTxt =
       'Dinheiro já enviado: ' + money(ja.total) +
       ' · cartão/PIX no Centro: ' + money(c.ja_eletronico) +
       ' · falta: ' + money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
+    if (reserva > 0.009) jaTxt += ' · fica na Vila: ' + money(reserva);
     if (Number(c.acumulado_bruto || 0) > 0.009 && acum <= 0) {
       jaTxt += ' · acumulado já coberto por envio';
     }
@@ -441,10 +539,15 @@
     document.getElementById('rv-mes-lbl').textContent = (meses[h.mes] || h.mes) + ' / ' + h.ano;
     var box = document.getElementById('rv-dias');
     box.innerHTML = '';
+    var colA = document.createElement('div');
+    colA.className = 'rv-dias-col';
+    colA.innerHTML = '<h3>Dias 1 a 15</h3>';
+    var colB = document.createElement('div');
+    colB.className = 'rv-dias-col';
+    colB.innerHTML = '<h3>Dias 16 a 31</h3>';
     var hoje = hojeIso();
     var sel = dataRef();
-    (h.dias || []).forEach(function (row) {
-      if (!row.n && row.valor <= 0 && row.data > hoje) return;
+    function mkDay(row) {
       var div = document.createElement('div');
       var cls = 'rv-day';
       if (row.data === hoje) cls += ' rv-day--hoje';
@@ -460,13 +563,22 @@
       div.addEventListener('click', function () {
         if (row.data > hoje) return;
         if (dataEl) dataEl.value = row.data;
+        var fold = document.querySelector('.rv-fold');
+        if (fold) fold.open = true;
         updateDataHint();
         fetchCalc();
         syncTransferUrl();
         renderHist();
       });
-      box.appendChild(div);
+      return div;
+    }
+    (h.dias || []).forEach(function (row) {
+      if (!row.n && row.valor <= 0 && row.data > hoje) return;
+      var target = Number(row.dia) <= 15 ? colA : colB;
+      target.appendChild(mkDay(row));
     });
+    box.appendChild(colA);
+    box.appendChild(colB);
   }
 
   function fetchCalc() {
@@ -513,24 +625,44 @@
   }
   var pctTimer = null;
   pctEl.addEventListener('input', function () {
+    updateDataHint();
     clearTimeout(pctTimer);
     pctTimer = setTimeout(fetchCalc, 350);
   });
-  document.getElementById('rv-salvar-pct').addEventListener('click', function () {
+  function postConfig(payload, okMsg) {
     statusEl.textContent = 'Salvando…';
     fetch('/api/repasse-vila/config/', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
-      body: JSON.stringify({ percentual_lucro_padrao: pctEl.value }),
+      body: JSON.stringify(payload),
     })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        statusEl.textContent = j.ok ? 'Padrão salvo: ' + j.percentual_lucro_padrao + '%' : (j.erro || 'Erro');
+        statusEl.textContent = j.ok ? okMsg(j) : (j.erro || 'Erro');
         if (j.ok) fetchCalc();
       })
       .catch(function () { statusEl.textContent = 'Falha ao salvar'; });
+  }
+  document.getElementById('rv-salvar-pct').addEventListener('click', function () {
+    postConfig(
+      { percentual_lucro_padrao: pctEl.value, reserva_vila: reservaAtual() },
+      function (j) { return 'Padrão salvo: ' + j.percentual_lucro_padrao + '%'; }
+    );
   });
+  var reservaEl = document.getElementById('rv-reserva');
+  if (reservaEl) {
+    reservaEl.addEventListener('input', renderCalc);
+    var btnRes = document.getElementById('rv-salvar-reserva');
+    if (btnRes) {
+      btnRes.addEventListener('click', function () {
+        postConfig(
+          { reserva_vila: reservaAtual() },
+          function (j) { return 'Fica na Vila salvo: ' + money(j.reserva_vila); }
+        );
+      });
+    }
+  }
 
   var planosState = bootJson('rv-planos-boot');
   if (!Array.isArray(planosState)) planosState = [];
@@ -777,6 +909,7 @@
   renderCalc();
   renderHist();
   syncTransferUrl();
+  fetchCalc();
 })();
 </script>
 {% endblock %}
