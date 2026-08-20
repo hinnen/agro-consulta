@@ -1235,11 +1235,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
-| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.64** | **SIM 0097** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.65** | **SIM 0097** |
 
 **Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE: cherry/`teste` conforme o chat de auth.
 
-### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.64**)
+### 📦 PACOTE PRONTO — Reserva no lucro antes do % (`REPASSE-RESERVA-LUCRO` · **v17.65**)
 
 | Item | Detalhe |
 | ---- | ------- |
