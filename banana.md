@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1229,39 +1229,62 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**)
+### 🚀 PREP deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**)
 
 > **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
-> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-1808m`.
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-2008`.
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | 🚀 **PREP pronto — aguarda senha** |
-| **Loja hoje** | ✅ Live **v17.30** · `producao` @ **1036967** |
-| **Branch** | `deploy/lote-checklist-1808m` @ **fd8462c** · **10 arquivos** vs produção |
-| **Fora** | PDV venda/wizard · caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos |
-| **Prova** | BI-clique **10/10** · path **98/98** · deep **90/90** · planos **49/49** · acum-net **28/28** · 15 telas 200 · PDV rações OK · fechar caixa **28/28** · `check` OK · diff **0** PDV/caixa/NF |
-| **Migrate** | **NÃO** |
-| **Risco** | **Baixo** — link Validade no BI + conta do acumulado no repasse |
-| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
-| **Zap** | *Atualização ~2 min — não finalize venda agora; quem já clicou pode aguardar ou F5 e repetir.* |
-| **Autorizar** | *pode subir lote checklist 18/08m / deploy/lote-checklist-1808m para produção* + senha |
+| **Loja hoje** | ✅ Live **v17.42** · `producao` @ **453c041** |
+| **Branch** | `deploy/lote-checklist-2008` @ **8d6ddb5** · **30 arquivos** vs produção |
+| **Pacotes** | **REPASSE-RESERVA** · **BI-VAL-BAIXA-LOJA** · **DRE-LUCRO-LOAD** · **MP-POINT-CANCEL-SAFE** (+ PIN) |
+| **Migrate** | **SIM** `0095` (reserva Vila) → `0096` (baixa validade por loja) — Render no deploy |
+| **Prova (branch)** | Point cancel **21/21** · PIN **23/23** · deep **40/40** · BI-baixa **26/26** · repasse path OK · DRE chart OK |
+| **Risco** | **Médio** — Point mexe no PDV (Centro/Vila); validade/estoque por loja; repasse; DRE só financeiro |
+| **Fora deste lote** | Caixa abrir/fechar · NFC-e · Entrada NF · cíclica · transferências · lançamentos CP |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008-v17.42` @ **453c041** |
+| **Zap** | *Atualização ~3–5 min (migrate) — pause vendas e Point; quem já clicou aguarda ou F5 e refaz.* |
+| **Autorizar** | *pode subir lote checklist 20/08 / deploy/lote-checklist-2008 para produção* + senha |
 
 | Pacote | O quê | Você valida |
 | ------ | ----- | ----------- |
-| **BI-VAL-CLIQUE** | Conferir vencidos abre **Todas (C+V)** + só vencidos | `/` · filtro Centro · clicar Validade |
-| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` · Ctrl+F5 |
+| **MP-POINT-CANCEL-SAFE** | Timeout cancela na máquina · trava órfão · PIN Geraldo/Geraldinho/Renan | PDV · Point auto · Ctrl+F5 |
+| **BI-VAL-BAIXA-LOJA** | Baixa no Centro **não** some na Vila | `/` Validade · filtro Vila |
+| **DRE-LUCRO-LOAD** | Gráfico lucro **não** fica em carregando | `/financeiro/resumo-gerencial/` |
+| **REPASSE-RESERVA** | Troco fixo **fica na Vila** | `/repasse-vila/` · Ctrl+F5 |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (18/08m · teste **v17.42**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · deploy **v17.43**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-VAL-CLIQUE** | 🚀 **pronto para envio à produção** | não |
-| 2 | **REPASSE-ACUM-NET** | 🚀 **pronto para envio à produção** | não |
+| 1 | **MP-POINT-CANCEL-SAFE** | 🚀 **PREP — aguarda senha** | não |
+| 2 | **BI-VAL-BAIXA-LOJA** | 🚀 **PREP — aguarda senha** | **SIM 0096** |
+| 3 | **DRE-LUCRO-LOAD** | 🚀 **PREP — aguarda senha** | não |
+| 4 | **REPASSE-RESERVA** | 🚀 **PREP — aguarda senha** | **SIM 0095** |
 
-### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **ver PREP 1808m no topo**
+### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
-### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **ver PREP 1808m no topo**
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.42** · `producao` @ **453c041** |
+| **Pacotes** | **BI-VAL-CLIQUE** · **REPASSE-ACUM-NET** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
+
+### ~~🚀 PREP deploy loja — lote 18/08m~~ · **superado — Live v17.42**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (18/08m · loja **v17.42**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-VAL-CLIQUE** | ✅ **enviado / Live v17.42** | não |
+| 2 | **REPASSE-ACUM-NET** | ✅ **enviado / Live v17.42** | não |
+
+### ~~📦 PACOTE PRONTO — Repasse não pede acumulado já enviado~~ · **Live v17.42**
+
+### ~~📦 PACOTE PRONTO LOJA — clique Validade abre as 2 lojas~~ · **Live v17.42**
 
 ### ✅ Deploy loja — lote 18/08l (`deploy/lote-checklist-1808l` · **v17.30**) · **Live**
 
