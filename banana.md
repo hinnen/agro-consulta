@@ -1232,16 +1232,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 20/08b (`deploy/lote-checklist-2008b` · **v17.72**)
+
+> **NÃO sobe agora** — lojas abertas. Próximo chat: **pausar vendas** + frase + senha.  
+> **Não** merge `teste`→`producao`. Fast-forward **só** `deploy/lote-checklist-2008b`.
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.43** · `producao` @ **5bd7f66** |
+| **Branch** | `deploy/lote-checklist-2008b` @ **`26a947e`** · badge loja alvo **v17.72** |
+| **Pacotes** | **CATALOGO-5N-PESO** · **REPASSE-RESERVA-LUCRO** · **DEVOL-NFCE-ASK** · **PLANILHA-DELIVERY** |
+| **Migrate** | **SIM** `0097` (repasse reserva lucro log) — Render no deploy |
+| **Prova (branch)** | catalogo **VERIFY_OK** · planilha **VERIFY_OK** · repasse **VERIFY_RESERVA_OK 60** · devol **39/40** (1 = banana doc só no teste) · planilha tests **9/9** · `manage.py check` · views AST OK |
+| **Risco loja aberta** | **Baixo–médio** — PDV carrinho/caixa/Point **fora**; DEVOL só tela venda/devolver; REPASSE só `/repasse-vila/` + migrate; catálogo+planilha só Delivery/cadastro |
+| **Fora deste lote** | Caixa abrir/fechar · Point · Entrada NF · cíclica · CP · merge `teste` inteiro |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** |
+| **Zap** | *Atualização ~3–5 min (migrate 0097) — pause vendas; Ctrl+F5 após.* |
+| **Autorizar** | *pode subir lote checklist 20/08b / deploy/lote-checklist-2008b para produção* + **99738595** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **CATALOGO-5N-PESO** | `/catalogo/` 5 níveis + peso | `/catalogo/` · gestão N5 |
+| **REPASSE-RESERVA-LUCRO** | Manual sai do lucro antes do % | `/repasse-vila/` · Log |
+| **DEVOL-NFCE-ASK** | Devolução total pergunta NFC-e | venda c/ NFC-e · devolver tudo |
+| **PLANILHA-DELIVERY** | Excel Delivery em massa | Cadastro Excel ↓/↑ |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.43**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · PREP `deploy/catalogo-5n-peso` @ **`7158ce0`** · teste **v17.60** | **NÃO** |
-| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · teste **v17.67** | **SIM 0097** |
-| 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · teste **v17.69** | **NÃO** |
-| 4 | **PLANILHA-DELIVERY** | ✅ **pronto para envio** · teste **v17.72** | **NÃO** |
+| 1 | **CATALOGO-5N-PESO** | ✅ **pronto para envio** · no lote PREP `2008b` | **NÃO** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **pronto para envio** · no lote PREP `2008b` | **SIM 0097** |
+| 3 | **DEVOL-NFCE-ASK** | ✅ **pronto para envio** · no lote PREP `2008b` | **NÃO** |
+| 4 | **PLANILHA-DELIVERY** | ✅ **pronto para envio** · no lote PREP `2008b` · **v17.72** | **NÃO** |
 
-**Autorizar loja:** frase do pacote + **99738595** · CATALOGO: FF branch deploy (não merge `teste`) · REPASSE/DEVOL/PLANILHA: cherry/`teste` conforme o chat de auth.
+**Autorizar loja:** frase do lote **2008b** + **99738595** · FF `deploy/lote-checklist-2008b` (não merge `teste`).
 
 ### 📦 PACOTE PRONTO — Planilha Excel Delivery (`PLANILHA-DELIVERY` · **v17.72**)
 
