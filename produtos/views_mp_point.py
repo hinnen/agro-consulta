@@ -225,6 +225,76 @@ def _mp_point_marcar_metadados_pagamento(erp_data: dict, conta: str | None = Non
     erp_data["pagamentos"] = pag
 
 
+def _mp_point_promover_pago_local(row: PdvMercadoPagoPointOrder, body: dict) -> bool:
+    """
+    Se o MP indica pagamento OK, grava status PAID no Postgres.
+    Também recupera ABANDONED precoce (cancel local sem cobrança cancelada no terminal).
+    Retorna True se o pedido está (ou passou a estar) pago / já finalizado.
+    """
+    if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED:
+        return True
+    if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+        return True
+    if not mp_point_order_indica_pago(body):
+        return False
+    if row.status not in (
+        PdvMercadoPagoPointOrder.Status.PENDING,
+        PdvMercadoPagoPointOrder.Status.ABANDONED,
+    ):
+        return False
+    erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+    if erp_data:
+        _mp_point_reconciliar_forma_venda(erp_data, body)
+        row.erp_payload = erp_data
+    row.status = PdvMercadoPagoPointOrder.Status.PAID
+    row.mp_last_status = str(body.get("status") or "")[:48]
+    fields = ["status", "mp_last_status", "atualizado_em"]
+    if erp_data:
+        fields.insert(0, "erp_payload")
+    row.save(update_fields=fields)
+    return True
+
+
+def mp_point_bloqueio_venda_sessao(request) -> str | None:
+    """
+    Bloqueia fechar venda por outra forma se a sessão ainda tem Point PENDING/PAID
+    (buraco que permitiu mp_renan com cobrança Point viva — incidente 19/08 R$460).
+    Centro e Vila usam o mesmo critério (conta só muda o token).
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    sk = _sessao_key(request)
+    if not sk:
+        return None
+    cutoff = timezone.now() - timedelta(hours=2)
+    row = (
+        PdvMercadoPagoPointOrder.objects.filter(
+            django_session_key=sk,
+            status__in=(
+                PdvMercadoPagoPointOrder.Status.PENDING,
+                PdvMercadoPagoPointOrder.Status.PAID,
+            ),
+            criado_em__gte=cutoff,
+        )
+        .order_by("-criado_em")
+        .first()
+    )
+    if not row:
+        return None
+    valor = row.valor_cobrado
+    if row.status == PdvMercadoPagoPointOrder.Status.PAID:
+        return (
+            f"Há pagamento na maquininha Mercado Pago já confirmado nesta sessão (R$ {valor}). "
+            "Finalize essa venda pelo Point automático — não use outra máquina."
+        )
+    return (
+        f"Há cobrança aberta na maquininha Mercado Pago nesta sessão (R$ {valor}). "
+        "Cancele no PDV e na maquininha (ou aguarde o fim) antes de fechar com outra forma."
+    )
+
+
 def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
     """
     Ajusta forma gravada na venda conforme o MP confirmou.
@@ -624,6 +694,22 @@ def api_pdv_mp_point_status(request):
         return JsonResponse({"ok": False, "erro": "Sessão não confere com o pedido."}, status=403)
 
     if row.status == PdvMercadoPagoPointOrder.Status.ABANDONED:
+        # Reconsultar MP: abandon local pode ter sido precoce (cancel falhou / timeout).
+        token = _token_da_conta(conta)
+        ok_mp_ab, _st_ab, body_ab = mp_point_get_order(access_token=token, order_id=order_id)
+        if ok_mp_ab and isinstance(body_ab, dict) and _mp_point_promover_pago_local(row, body_ab):
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "abandoned": False,
+                    "paid": True,
+                    "paid_tranche": True,
+                    "finalized": False,
+                    "mp_status": str(body_ab.get("status") or "processed"),
+                    "venda_id": row.venda_id,
+                    "recuperado_de_abandon": True,
+                }
+            )
         return JsonResponse(
             {
                 "ok": True,
@@ -651,6 +737,9 @@ def api_pdv_mp_point_status(request):
     if (canceled or failed) and row.status == PdvMercadoPagoPointOrder.Status.PENDING:
         row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
         row.save(update_fields=["status", "atualizado_em"])
+
+    _mp_point_promover_pago_local(row, body)
+    row.refresh_from_db(fields=["status", "venda_id"])
 
     paid_tranche = row.status == PdvMercadoPagoPointOrder.Status.PAID
     mp_paid = mp_point_order_indica_pago(body) or paid_tranche
@@ -997,7 +1086,14 @@ def api_pdv_mp_point_finalizar(request):
 
 @require_POST
 def api_pdv_mp_point_abandon(request):
-    """Operador desistiu da espera no Point; não finaliza venda e libera outra forma no PDV."""
+    """
+    Operador desistiu da espera no Point.
+    Bidirecional (Centro e Vila — mesmo código, contas distintas):
+      - PDV → tenta cancelar na maquininha via API MP
+      - Só marca ABANDONED local se o MP confirmou cancel/falha OU cancel OK
+      - Se o MP já cobrou → 409 pagamento_efetivado (não abandona)
+      - Se não conseguiu cancelar e cobrança ainda viva → 409, pedido fica PENDING
+    """
     try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -1028,30 +1124,104 @@ def api_pdv_mp_point_abandon(request):
         return JsonResponse(
             {
                 "ok": False,
+                "pagamento_efetivado": True,
                 "erro": "Pagamento já confirmado na maquininha. Finalize a venda ou fale com o gerente.",
             },
             status=409,
         )
     if row.status == PdvMercadoPagoPointOrder.Status.ABANDONED:
-        return JsonResponse({"ok": True, "ja_abandonado": True})
+        return JsonResponse({"ok": True, "ja_abandonado": True, "cancelou_maquininha": True})
     if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
         return JsonResponse({"ok": False, "erro": "Não é possível cancelar este pedido."}, status=409)
 
-    aviso_terminal = ""
     token = _token_da_conta(conta)
-    ok_mp, st_cancel, body_cancel = mp_point_cancel_order(access_token=token, order_id=order_id)
-    if not ok_mp:
-        low = mp_point_mensagem_erro(body_cancel).lower()
-        if st_cancel == 409 or "terminal" in low or "at_terminal" in low:
-            aviso_terminal = (
-                "Não foi possível cancelar na maquininha — cancele também no terminal."
-            )
-        elif st_cancel not in (0, 404):
-            logger.warning("MP Point abandonar: cancel API HTTP %s — %s", st_cancel, body_cancel)
 
-    row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
-    row.save(update_fields=["status", "atualizado_em"])
-    payload = {"ok": True, "cancelou_maquininha": bool(ok_mp)}
-    if aviso_terminal:
-        payload["aviso"] = aviso_terminal
-    return JsonResponse(payload)
+    # 1) Conferir MP antes de cancelar — evita abandonar se já cobrou.
+    ok_get, _st_get, body_get = mp_point_get_order(access_token=token, order_id=order_id)
+    if ok_get and isinstance(body_get, dict):
+        if _mp_point_promover_pago_local(row, body_get):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "pagamento_efetivado": True,
+                    "erro": "Pagamento já confirmado na maquininha. Finalize a venda ou fale com o gerente.",
+                },
+                status=409,
+            )
+        if mp_point_order_indica_cancelado(body_get) or mp_point_order_indica_falha(body_get)[0]:
+            row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+            row.mp_last_status = str(body_get.get("status") or "")[:48]
+            row.save(update_fields=["status", "mp_last_status", "atualizado_em"])
+            return JsonResponse({"ok": True, "cancelou_maquininha": True, "ja_cancelado_mp": True})
+
+    # 2) Pedir cancelamento na maquininha (mesmo fluxo Centro/Vila).
+    ok_mp, st_cancel, body_cancel = mp_point_cancel_order(access_token=token, order_id=order_id)
+
+    # 3) Reconsultar estado real após o cancel.
+    ok_after, _st_after, body_after = mp_point_get_order(access_token=token, order_id=order_id)
+    if ok_after and isinstance(body_after, dict):
+        if _mp_point_promover_pago_local(row, body_after):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "pagamento_efetivado": True,
+                    "erro": "A maquininha confirmou o pagamento enquanto cancelávamos. Finalize a venda.",
+                },
+                status=409,
+            )
+        canceled = mp_point_order_indica_cancelado(body_after)
+        failed, _failed_msg = mp_point_order_indica_falha(body_after)
+        if canceled or failed or ok_mp:
+            row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+            row.mp_last_status = str(body_after.get("status") or "")[:48]
+            row.save(update_fields=["status", "mp_last_status", "atualizado_em"])
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "cancelou_maquininha": bool(ok_mp or canceled or failed),
+                }
+            )
+        # Ainda vivo no terminal — NÃO marcar abandoned local.
+        aviso = (
+            "Não foi possível cancelar na maquininha — cancele também no terminal. "
+            "A cobrança continua aberta no sistema até cancelar ou pagar."
+        )
+        low = mp_point_mensagem_erro(body_cancel).lower() if not ok_mp else ""
+        if st_cancel == 409 or "terminal" in low or "at_terminal" in low:
+            aviso = (
+                "A maquininha ainda está com o valor na tela. Cancele no terminal "
+                "e só então use outra forma de pagamento."
+            )
+        return JsonResponse(
+            {
+                "ok": False,
+                "cancelou_maquininha": False,
+                "pedido_ainda_ativo": True,
+                "aviso": aviso,
+                "erro": aviso,
+            },
+            status=409,
+        )
+
+    # Sem GET após cancel: só abandona local se a API de cancel confirmou.
+    if ok_mp:
+        row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+        row.save(update_fields=["status", "atualizado_em"])
+        return JsonResponse({"ok": True, "cancelou_maquininha": True})
+
+    aviso = (
+        "Falha ao cancelar na maquininha. Cancele no terminal e tente de novo — "
+        "a cobrança continua aberta no sistema."
+    )
+    if st_cancel not in (0, 404):
+        logger.warning("MP Point abandonar: cancel API HTTP %s — %s", st_cancel, body_cancel)
+    return JsonResponse(
+        {
+            "ok": False,
+            "cancelou_maquininha": False,
+            "pedido_ainda_ativo": True,
+            "aviso": aviso,
+            "erro": aviso,
+        },
+        status=409,
+    )

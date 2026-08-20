@@ -216,17 +216,19 @@
 
     var MP_POINT_WAIT_ABORT_MSG =
         'Espera cancelada.\n\nSe o valor ainda estiver na maquininha, cancele a operação no terminal também.\n\nNo PDV: em «Pagamentos lançados», use Alterar ou Excluir e tente de novo.';
-    var MP_POINT_POLL_MAX = 90;
+    var MP_POINT_POLL_MAX = 150;
     var MP_POINT_POLL_MS = 2000;
 
     var mpPointWaitControl = {
         orderId: null,
         cancelRequested: false,
         cancelouMaquininha: false,
+        forcePaid: false,
         reset: function () {
             this.orderId = null;
             this.cancelRequested = false;
             this.cancelouMaquininha = false;
+            this.forcePaid = false;
         }
     };
 
@@ -9351,31 +9353,65 @@
     function pollMpPointUntilPaid(orderId) {
         var maxPoll = MP_POINT_POLL_MAX;
         var statusBase = urls.apiPdvMpPointStatus || '';
+        var abandonUrl = String(urls.apiPdvMpPointAbandon || '').trim();
         var startedAt = Date.now();
         function userAbortError() {
             var e = new Error(mpPointWaitAbortMessage());
             e.mpPointUserAbort = true;
             return e;
         }
+        function abandonOnTimeoutThenResolveOrReject() {
+            var timeoutMsg =
+                'A maquininha não respondeu a tempo (~' +
+                Math.round((maxPoll * MP_POINT_POLL_MS) / 1000) +
+                ' s).';
+            if (!abandonUrl) {
+                return Promise.reject(
+                    new Error(
+                        timeoutMsg +
+                            ' Cancele na maquininha se o valor ainda estiver lá e tente de novo.'
+                    )
+                );
+            }
+            setMpPointWaitStatus('Tempo esgotado — cancelando na maquininha…');
+            return jsonPost(abandonUrl, { order_id: orderId }).then(function (abRes) {
+                if (abRes.data && abRes.data.pagamento_efetivado) {
+                    mpPointWaitControl.forcePaid = true;
+                    return { jaFinalizado: false, order_id: orderId };
+                }
+                var extra = '';
+                if (abRes.data && abRes.data.aviso) {
+                    extra = '\n\n' + String(abRes.data.aviso);
+                } else if (abRes.data && abRes.data.erro) {
+                    extra = '\n\n' + String(abRes.data.erro);
+                } else if (abRes.ok && abRes.data && abRes.data.cancelou_maquininha) {
+                    extra = '\n\nCobrança cancelada na maquininha.';
+                } else {
+                    extra =
+                        '\n\nCancele na maquininha se o valor ainda estiver lá e tente de novo.';
+                }
+                return Promise.reject(new Error(timeoutMsg + extra));
+            });
+        }
         function step(n) {
             if (mpPointWaitControl.cancelRequested) {
                 return Promise.reject(userAbortError());
             }
+            if (mpPointWaitControl.forcePaid) {
+                return { jaFinalizado: false, order_id: orderId };
+            }
             var secs = Math.floor((Date.now() - startedAt) / 1000);
             setMpPointWaitStatus('Aguardando maquininha… ' + secs + 's');
             if (n >= maxPoll) {
-                return Promise.reject(
-                    new Error(
-                        'A maquininha não respondeu a tempo (~' +
-                            Math.round((maxPoll * MP_POINT_POLL_MS) / 1000) +
-                            ' s). Cancele na maquininha se o valor ainda estiver lá e tente de novo.'
-                    )
-                );
+                return abandonOnTimeoutThenResolveOrReject();
             }
             var sep = statusBase.indexOf('?') >= 0 ? '&' : '?';
             return jsonGet(statusBase + sep + 'order_id=' + encodeURIComponent(orderId)).then(function (stRes) {
                 if (mpPointWaitControl.cancelRequested) {
                     return Promise.reject(userAbortError());
+                }
+                if (mpPointWaitControl.forcePaid) {
+                    return { jaFinalizado: false, order_id: orderId };
                 }
                 if (!stRes.ok) {
                     throw new Error((stRes.data && (stRes.data.erro || stRes.data.message)) || 'Falha ao consultar Point.');
@@ -14428,7 +14464,28 @@
                 setMpPointWaitStatus('Cancelando na maquininha…');
                 jsonPost(abandonUrl, { order_id: oid })
                     .then(function (res) {
-                        mpPointWaitControl.cancelouMaquininha = !!(res.ok && res.data && res.data.cancelou_maquininha);
+                        if (res.data && res.data.pagamento_efetivado) {
+                            mpPointWaitControl.forcePaid = true;
+                            setMpPointWaitStatus('Pagamento já confirmado na maquininha — finalizando…');
+                            return;
+                        }
+                        if (res.data && res.data.pedido_ainda_ativo) {
+                            setMpPointWaitStatus(
+                                (res.data.aviso || res.data.erro || '') +
+                                    ' Aguarde ou cancele no terminal.'
+                            );
+                            return;
+                        }
+                        if (!res.ok && !(res.data && res.data.ja_abandonado)) {
+                            setMpPointWaitStatus(
+                                (res.data && (res.data.aviso || res.data.erro)) ||
+                                    'Falha ao cancelar — confira a maquininha.'
+                            );
+                            return;
+                        }
+                        mpPointWaitControl.cancelouMaquininha = !!(
+                            res.ok && res.data && res.data.cancelou_maquininha
+                        );
                         mpPointWaitControl.cancelRequested = true;
                         if (res.ok && res.data) {
                             if (res.data.cancelou_maquininha) {
@@ -14440,7 +14497,6 @@
                     })
                     .catch(function () {
                         mpPointWaitControl.cancelouMaquininha = false;
-                        mpPointWaitControl.cancelRequested = true;
                         setMpPointWaitStatus('Falha ao cancelar — confira a maquininha.');
                     })
                     .finally(function () {

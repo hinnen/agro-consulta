@@ -28249,6 +28249,14 @@ def api_enviar_pedido_erp(request):
         exigir_sessao_caixa_para_venda(request, data)
     except SessaoCaixaObrigatoriaError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    from produtos.views_mp_point import mp_point_bloqueio_venda_sessao
+
+    bloqueio_mp = mp_point_bloqueio_venda_sessao(request)
+    if bloqueio_mp:
+        return JsonResponse(
+            {"ok": False, "erro": bloqueio_mp, "mp_point_bloqueio": True},
+            status=409,
+        )
     from produtos.cliente_operacoes_util import payload_e_compra_vale_credito
 
     if payload_e_compra_vale_credito(data, raw_itens_cb):
