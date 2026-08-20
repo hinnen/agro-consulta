@@ -343,7 +343,8 @@
               <p>Forma <strong>Fiado</strong> só aparece se a venda foi no fiado — aí <strong>abate a dívida</strong>, sem tirar dinheiro do caixa.</p>
               <p>Dinheiro, PIX, cartão etc. → <strong>saída no caixa aberto</strong>.</p>
               <p>O valor das formas tem que ser <strong>igual</strong> aos itens marcados (não sobra nem falta centavo).</p>
-              <p>Devolução parcial: o cupom fiscal (NFC-e), se existir, <strong>não</strong> cancela. Só na devolução total o sistema tenta cancelar (prazo SEFAZ ~30 min).</p>
+              <p>Devolução parcial: o cupom fiscal (NFC-e), se existir, <strong>não</strong> cancela.</p>
+              <p>Devolução <strong>total</strong> com NFC-e: na confirmação o sistema <strong>pergunta</strong> se cancela o cupom na SEFAZ (prazo ~30 min). Dá para devolver e <strong>manter</strong> o cupom.</p>
             </div>
           </details>
         </div>
@@ -377,7 +378,7 @@
         {% if nfce_painel.autorizada %}
         <div class="rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
           <p class="text-lg font-black uppercase text-amber-950">Esta venda tem NFC-e autorizada</p>
-          <p class="text-base font-semibold text-amber-900 mt-1">Detalhes do cupom → toque em <strong>?</strong> Ajuda no topo.</p>
+          <p class="text-base font-semibold text-amber-900 mt-1">Na confirmação, se for devolução <strong>total</strong>, o sistema pergunta se cancela o cupom. Detalhes → <strong>?</strong> Ajuda.</p>
         </div>
         {% endif %}
 
@@ -409,14 +410,20 @@
   </div>
 
   <div id="modal-devolucao-ask" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/75" role="dialog" aria-modal="true">
-    <div class="bg-white rounded-2xl border-2 border-rose-300 shadow-2xl w-full max-w-[min(96vw,36rem)] overflow-hidden">
+    <div class="bg-white rounded-2xl border-2 border-rose-300 shadow-2xl w-full max-w-[min(96vw,40rem)] overflow-hidden">
       <div class="px-6 py-5 border-b border-rose-100 bg-rose-50">
         <h3 class="text-xl sm:text-2xl font-black uppercase text-rose-900">Confirmar devolução?</h3>
         <p id="devolucao-ask-texto" class="text-lg font-semibold text-rose-900 mt-3 leading-snug"></p>
+        <div id="devolucao-ask-nfce" class="hidden mt-4 rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
+          <p class="text-lg font-black uppercase text-amber-950">Cupom fiscal (NFC-e)</p>
+          <p class="text-base font-semibold text-amber-900 mt-1 leading-snug">Escolha abaixo. Cancelar na SEFAZ só vale ~30 min após a autorização do cupom.</p>
+        </div>
       </div>
       <div class="px-6 py-5 flex flex-wrap gap-3 justify-end bg-slate-50">
         <button type="button" id="btn-devolucao-ask-nao" class="min-h-[56px] px-6 rounded-2xl border-2 border-slate-300 font-black uppercase text-base text-slate-800">Voltar</button>
         <button type="button" id="btn-devolucao-ask-sim" class="min-h-[56px] px-8 rounded-2xl bg-rose-600 text-white font-black uppercase text-base hover:bg-rose-700 shadow-md">Sim, devolver</button>
+        <button type="button" id="btn-devolucao-ask-manter-cupom" class="hidden min-h-[56px] px-5 rounded-2xl border-2 border-amber-500 bg-white text-amber-950 font-black uppercase text-sm sm:text-base hover:bg-amber-50 shadow-sm">Devolver e manter cupom</button>
+        <button type="button" id="btn-devolucao-ask-cancelar-cupom" class="hidden min-h-[56px] px-5 rounded-2xl bg-rose-600 text-white font-black uppercase text-sm sm:text-base hover:bg-rose-700 shadow-md border-2 border-rose-700">Devolver e cancelar cupom</button>
       </div>
     </div>
   </div>
@@ -599,6 +606,32 @@
     });
     return out;
   }
+
+  /** True se a seleção zera a venda (todos os itens restantes + frete, se houver). */
+  function selecaoTotaliza() {
+    var temLinha = false;
+    if (itensEl) {
+      var rows = itensEl.querySelectorAll('[data-item-id]');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var qMax = parseFloat(row.getAttribute('data-qtd-restante') || '0') || 0;
+        if (qMax <= 0.0001) continue;
+        temLinha = true;
+        var chk = row.querySelector('.dev-item-chk');
+        var qInp = row.querySelector('.dev-item-qtd');
+        if (!chk || !chk.checked) return false;
+        var q = parseFloat(String(qInp && qInp.value || '0').replace(',', '.')) || 0;
+        if (q + 0.0001 < qMax) return false;
+      }
+    }
+    if (freteRestante > 0.009) {
+      temLinha = true;
+      if (!(freteChk && freteChk.checked)) return false;
+    }
+    return temLinha;
+  }
+
+  var temNfceAutorizada = {% if nfce_painel.autorizada %}true{% else %}false{% endif %};
 
   function renderRows(rows) {
     listEl.innerHTML = '';
@@ -799,6 +832,15 @@
     if (askTxt) {
       askTxt.textContent = 'Devolver R$ ' + fmtBr(alvo) + ' ao cliente? Estoque dos itens marcados volta e o valor sai na forma escolhida.';
     }
+    var perguntarNfce = temNfceAutorizada && selecaoTotaliza();
+    var boxNfce = document.getElementById('devolucao-ask-nfce');
+    var btnSim = document.getElementById('btn-devolucao-ask-sim');
+    var btnManter = document.getElementById('btn-devolucao-ask-manter-cupom');
+    var btnCancelarCupom = document.getElementById('btn-devolucao-ask-cancelar-cupom');
+    if (boxNfce) boxNfce.classList.toggle('hidden', !perguntarNfce);
+    if (btnSim) btnSim.classList.toggle('hidden', perguntarNfce);
+    if (btnManter) btnManter.classList.toggle('hidden', !perguntarNfce);
+    if (btnCancelarCupom) btnCancelarCupom.classList.toggle('hidden', !perguntarNfce);
     if (askEl) askEl.classList.remove('hidden');
   });
 
@@ -809,14 +851,35 @@
       pendenteEnvio = null;
     });
   }
+
+  function confirmarAskComCancelarNfce(cancelarNfce) {
+    if (askEl) askEl.classList.add('hidden');
+    if (!pendenteEnvio) return;
+    var payload = pendenteEnvio;
+    pendenteEnvio = null;
+    if (typeof cancelarNfce === 'boolean') {
+      payload.cancelar_nfce = cancelarNfce;
+    }
+    enviarDevolucao(payload);
+  }
+
   var btnAskSim = document.getElementById('btn-devolucao-ask-sim');
   if (btnAskSim) {
     btnAskSim.addEventListener('click', function () {
-      if (askEl) askEl.classList.add('hidden');
-      if (!pendenteEnvio) return;
-      var payload = pendenteEnvio;
-      pendenteEnvio = null;
-      enviarDevolucao(payload);
+      // Sem NFC-e na pergunta: não manda flag (backend mantém comportamento antigo).
+      confirmarAskComCancelarNfce(null);
+    });
+  }
+  var btnAskManter = document.getElementById('btn-devolucao-ask-manter-cupom');
+  if (btnAskManter) {
+    btnAskManter.addEventListener('click', function () {
+      confirmarAskComCancelarNfce(false);
+    });
+  }
+  var btnAskCancelarCupom = document.getElementById('btn-devolucao-ask-cancelar-cupom');
+  if (btnAskCancelarCupom) {
+    btnAskCancelarCupom.addEventListener('click', function () {
+      confirmarAskComCancelarNfce(true);
     });
   }
 
