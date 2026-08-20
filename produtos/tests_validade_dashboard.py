@@ -215,3 +215,35 @@ class ContagemValidadeBiMesmoNumeroTests(TestCase):
         self.assertEqual(c_all, c_ctr)
         self.assertEqual(c_all, c_vil)
         self.assertEqual(c_all["vencidos"], 1)
+
+    @patch("produtos.views.obter_conexao_mongo")
+    @patch("produtos.estoque_saldo_agro_util.mapa_saldos_operacionais_agro")
+    def test_baixa_centro_nao_zera_vila(self, mock_saldos, mock_mongo):
+        from django.utils import timezone as dj_tz
+
+        from produtos.views import _contagem_validade_dashboard_lotes_agro
+
+        mock_mongo.return_value = (None, None)
+        mock_saldos.return_value = {}
+        ov = ProdutoGestaoOverlayAgro.objects.create(
+            produto_externo_id="PID-BI-BAIXA", nome="Venc baixa"
+        )
+        el = EstoqueLote.objects.create(
+            overlay=ov,
+            lote_codigo="BX1",
+            data_validade=date(2026, 7, 30),
+            quantidade_atual=1,
+        )
+        from django.core.cache import cache
+
+        cache.clear()
+        antes = _contagem_validade_dashboard_lotes_agro("vila")["vencidos"]
+        el.baixado_centro_em = dj_tz.now()
+        el.save(update_fields=["baixado_centro_em"])
+        cache.clear()
+        c_ctr = _contagem_validade_dashboard_lotes_agro("centro")
+        c_vil = _contagem_validade_dashboard_lotes_agro("vila")
+        c_all = _contagem_validade_dashboard_lotes_agro(None)
+        self.assertEqual(c_ctr["vencidos"], 0)
+        self.assertEqual(c_vil["vencidos"], antes)
+        self.assertEqual(c_all["vencidos"], antes)

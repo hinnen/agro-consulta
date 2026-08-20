@@ -8977,7 +8977,10 @@ def _dashboard_vendas_serie_erp_mongo(
 def _invalidar_cache_dashboard_perdas_validade(d: date | None = None) -> None:
     """KPI «Validade» do dashboard usa cache diário; invalidar após baixa de lote."""
     ref = d or timezone.localdate()
-    cache.delete(f"dash:perdas:v1:{ref.isoformat()}")
+    iso = ref.isoformat()
+    cache.delete(f"dash:perdas:v1:{iso}")
+    for suf in ("all", "centro", "vila"):
+        cache.delete(f"{VALIDADE_DASHBOARD_CACHE_KEY}:{iso}:{suf}")
 
 
 def _dashboard_perdas_validade_hoje():
@@ -15720,10 +15723,11 @@ def _aplicar_baixa_operacional_vencimento_loja(
     nome_produto: str,
     codigo_interno: str,
     observacao_extra: str = "",
+    somente_deposito: str | None = None,
 ) -> tuple[bool, str | None]:
     """
-    Reduz o saldo visto pelo Agro (C+V), consumindo primeiro o depósito Centro, depois Vila.
-    Registra ``AjusteRapidoEstoque`` com origem ``VENCIMENTO_EM_LOJA``.
+    Reduz o saldo visto pelo Agro. Sem ``somente_deposito``: C+V (Centro, depois Vila).
+    Com loja: só aquele depósito — a outra loja não perde estoque.
     """
     pid = str(produto_externo_id or "").strip()[:100]
     if not pid or quantidade <= 0:
@@ -15733,7 +15737,10 @@ def _aplicar_baixa_operacional_vencimento_loja(
     obs = OBSERVACAO_BAIXA_VENCIMENTO_LOJA
     if observacao_extra:
         obs = f"{obs} · {observacao_extra}"[:2000]
-    for dep in ("centro", "vila"):
+    deps = ("centro", "vila")
+    if somente_deposito in ("centro", "vila"):
+        deps = (somente_deposito,)
+    for dep in deps:
         if restante <= 0:
             break
         saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, dep)
@@ -15764,6 +15771,8 @@ def _aplicar_baixa_operacional_vencimento_loja(
             return False, str(exc)[:300]
         restante -= take
     if restante > Decimal("0.000"):
+        if somente_deposito in ("centro", "vila"):
+            return True, None
         return False, f"Saldo operacional insuficiente (faltam {float(restante):.3f})."
     return True, None
 
@@ -23791,12 +23800,24 @@ def api_overlay_lote_remover(request, lote_id: int):
     return JsonResponse({"ok": True})
 
 
+def _resolver_deposito_baixa_validade(request, payload: dict) -> str | None:
+    raw = str((payload or {}).get("deposito") or (payload or {}).get("loja") or "").strip().lower()
+    if raw in ("centro", "vila"):
+        return raw
+    from produtos.pdv_deposito_util import bootstrap_deposito, normalizar_deposito
+
+    boot = bootstrap_deposito(request)
+    dep = normalizar_deposito(boot.get("deposito"))
+    return dep if dep in ("centro", "vila") else None
+
+
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_relatorio_validade_baixa(request):
     """
-    Remove o registo do lote (Agro) e baixa o estoque operacional (C+V) com origem
-    «Vencimento em Loja» (campo observação + ``OrigemAjusteEstoque.VENCIMENTO_EM_LOJA``).
+    Conferência de validade **por loja**: marca o lote como baixado nesta loja e reduz
+    só o estoque dela. A outra loja continua vendo até conferir. Só apaga o lote
+    quando Centro **e** Vila já baixaram.
     """
     try:
         payload = json.loads(request.body.decode("utf-8") or "{}")
@@ -23808,11 +23829,18 @@ def api_relatorio_validade_baixa(request):
         return JsonResponse({"ok": False, "erro": "lote_id inválido"}, status=400)
     if lote_id <= 0:
         return JsonResponse({"ok": False, "erro": "lote_id obrigatório"}, status=400)
+    dep = _resolver_deposito_baixa_validade(request, payload)
+    if dep not in ("centro", "vila"):
+        return JsonResponse(
+            {"ok": False, "erro": "Informe a loja (Centro ou Vila) para dar baixa."},
+            status=400,
+        )
 
     pid = ""
     q_lote = Decimal("0")
     q_remove = Decimal("0")
     aviso_mongo: str | None = None
+    apagou_lote = False
 
     try:
         with transaction.atomic():
@@ -23824,6 +23852,12 @@ def api_relatorio_validade_baixa(request):
             )
             if el is None:
                 return JsonResponse({"ok": False, "erro": "Lote não encontrado."}, status=404)
+            ja = el.baixado_centro_em if dep == "centro" else el.baixado_vila_em
+            if ja:
+                return JsonResponse(
+                    {"ok": False, "erro": "Este lote já foi conferido nesta loja."},
+                    status=409,
+                )
             ov = el.overlay
             pid = str(ov.produto_externo_id or "").strip()[:100]
             lote_codigo_ref = str(el.lote_codigo or "")[:80]
@@ -23834,27 +23868,26 @@ def api_relatorio_validade_baixa(request):
             if q_lote <= 0:
                 return JsonResponse({"ok": False, "erro": "Lote já está sem quantidade."}, status=400)
 
+            agora = timezone.now()
+            if dep == "centro":
+                el.baixado_centro_em = agora
+            else:
+                el.baixado_vila_em = agora
+
             client_m, db = obter_conexao_mongo()
             if db is None or client_m is None:
                 aviso_mongo = (
-                    "Mongo indisponível: lote removido no Agro; sem baixa no estoque operacional (C+V)."
+                    f"Mongo indisponível: conferido na loja {dep}; sem baixa no estoque operacional."
                 )
-                el.delete()
-                _sync_overlay_apos_exclusao_lote(ov)
             else:
-                saldo_erp_c = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "centro")
-                saldo_erp_v = _saldo_erp_produto_deposito_mongo(db, client_m, pid, "vila")
-                ag_c = _saldo_final_agro_com_pin(pid, "centro", saldo_erp_c)
-                ag_v = _saldo_final_agro_com_pin(pid, "vila", saldo_erp_v)
-                total_ag = (ag_c + ag_v).quantize(Decimal("0.001"))
-                q_remove = min(q_lote, total_ag).quantize(Decimal("0.001"))
-
+                saldo_erp = _saldo_erp_produto_deposito_mongo(db, client_m, pid, dep)
+                ag_loja = _saldo_final_agro_com_pin(pid, dep, saldo_erp)
+                q_remove = min(q_lote, max(ag_loja, Decimal("0"))).quantize(Decimal("0.001"))
                 p_doc = _produto_mongo_por_id_externo(db, client_m, pid)
                 nome_p = str((p_doc or {}).get("Nome") or ov.nome or pid)[:200]
                 codigo = str(
                     (p_doc or {}).get("CodigoNFe") or (p_doc or {}).get("Codigo") or ""
                 )[:100]
-
                 if q_remove > 0:
                     ok_adj, err_adj = _aplicar_baixa_operacional_vencimento_loja(
                         db=db,
@@ -23864,12 +23897,18 @@ def api_relatorio_validade_baixa(request):
                         usuario_django=request.user if request.user.is_authenticated else None,
                         nome_produto=nome_p,
                         codigo_interno=codigo,
-                        observacao_extra=f"lote_id={lote_id} lote={lote_codigo_ref}",
+                        observacao_extra=f"loja={dep} lote_id={lote_id} lote={lote_codigo_ref}",
+                        somente_deposito=dep,
                     )
                     if not ok_adj:
                         raise ValueError(err_adj or "Falha ao registrar baixa operacional.")
+
+            if el.baixado_centro_em and el.baixado_vila_em:
                 el.delete()
                 _sync_overlay_apos_exclusao_lote(ov)
+                apagou_lote = True
+            else:
+                el.save(update_fields=["baixado_centro_em", "baixado_vila_em"])
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=409)
 
@@ -23877,11 +23916,18 @@ def api_relatorio_validade_baixa(request):
     if q_remove > 0:
         _invalidar_caches_apos_ajuste_pin()
 
+    rotulo = "Centro" if dep == "centro" else "Vila Elias"
     out = {
         "ok": True,
         "produto_id": pid,
+        "loja": dep,
         "quantidade_lote": float(q_lote),
         "quantidade_baixa_operacional": float(q_remove),
+        "apagou_lote": apagou_lote,
+        "mensagem": (
+            f"Conferido no {rotulo}."
+            + ("" if apagou_lote else " A outra loja continua vendo até conferir.")
+        ),
     }
     if aviso_mongo:
         out["aviso"] = aviso_mongo
@@ -31870,31 +31916,32 @@ def _bounds_mes_atual(hoje: date) -> tuple[date, date]:
     return a, b
 
 
-VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v6"
+VALIDADE_DASHBOARD_CACHE_KEY = "validade_dashboard_lotes_v7"
 VALIDADE_DASHBOARD_CACHE_TTL = 180
+
+
+def _chave_cache_validade_dashboard(hoje: date, deposito: str | None) -> str:
+    suf = deposito if deposito in ("centro", "vila") else "all"
+    return f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:{suf}"
 
 
 def _contagem_validade_dashboard_lotes_agro(
     deposito: str | None = None,
 ) -> dict[str, int]:
     """
-    Card Validade do BI — contagem empresa (Renan 18/08 · passo 1):
-    **mesmo número** em Centro, Vila e Centro+Vila (filtro Números não altera KPI).
+    Card Validade do BI:
+    - sem baixa: mesmo número em Centro / Vila / C+V (contagem empresa);
+    - após baixa numa loja: só o contador **dessa** loja cai; a outra continua vendo.
 
-    Produtos distintos (overlay) com validade no prazo:
-    - com lote qtd>0: vencidos / vencendo_mes
-    - sem saldo conferido (estoque furado): vencidos_conferir / vencendo_mes_conferir
-
-    Baixa por loja (passo 2) ainda pendente — hoje «Dar baixa» remove o lote para todos.
-
-    Cache curto (3 min) + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
+    Cache curto (3 min) por loja + SQL para lotes com qtd>0; Mongo só nos casos «conferir».
     """
     hoje = timezone.localdate()
-    ck = f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:all"
+    dep = deposito if deposito in ("centro", "vila") else None
+    ck = _chave_cache_validade_dashboard(hoje, dep)
     cached = cache.get(ck)
     if isinstance(cached, dict) and "vencidos" in cached:
         return cached
-    out = _contagem_validade_dashboard_lotes_agro_compute(hoje, deposito=deposito)
+    out = _contagem_validade_dashboard_lotes_agro_compute(hoje, deposito=dep)
     cache.set(ck, out, timeout=VALIDADE_DASHBOARD_CACHE_TTL)
     return out
 
@@ -31902,12 +31949,13 @@ def _contagem_validade_dashboard_lotes_agro(
 def _contagem_validade_dashboard_lotes_agro_compute(
     hoje: date, deposito: str | None = None
 ) -> dict[str, int]:
-    # Filtro loja no BI Números não altera o card Validade (passo 1 — Renan 18/08).
-    del deposito
-    return _contagem_validade_dashboard_empresa(hoje)
+    dep = deposito if deposito in ("centro", "vila") else None
+    return _contagem_validade_dashboard_empresa(hoje, deposito=dep)
 
 
-def _contagem_validade_dashboard_empresa(hoje: date) -> dict[str, int]:
+def _contagem_validade_dashboard_empresa(
+    hoje: date, deposito: str | None = None
+) -> dict[str, int]:
     inicio_mes, fim_mes = _bounds_mes_atual(hoje)
     overlay_vencidos: set[int] = set()
     overlay_mes: set[int] = set()
@@ -31915,6 +31963,14 @@ def _contagem_validade_dashboard_empresa(hoje: date) -> dict[str, int]:
     overlay_m_conf: set[int] = set()
 
     base_qtd = EstoqueLote.objects.filter(quantidade_atual__gt=0)
+    if deposito == "centro":
+        base_qtd = base_qtd.filter(baixado_centro_em__isnull=True)
+    elif deposito == "vila":
+        base_qtd = base_qtd.filter(baixado_vila_em__isnull=True)
+    else:
+        base_qtd = base_qtd.filter(
+            Q(baixado_centro_em__isnull=True) | Q(baixado_vila_em__isnull=True)
+        )
     for oid in base_qtd.filter(data_validade__lt=hoje).values_list("overlay_id", flat=True).distinct():
         overlay_vencidos.add(int(oid))
     for oid in base_qtd.filter(
@@ -32184,6 +32240,17 @@ def relatorios_validade(request):
         filtro_loja = deposito_filtro if deposito_filtro in ("centro", "vila") else "todas"
         if filtro_loja == "todas":
             deposito_filtro = None
+    boot_baixa = None
+    deposito_baixa = filtro_loja if filtro_loja in ("centro", "vila") else None
+    if deposito_baixa not in ("centro", "vila"):
+        try:
+            boot_baixa = bootstrap_deposito(request)
+            deposito_baixa = normalizar_deposito(boot_baixa.get("deposito"))
+        except Exception:
+            deposito_baixa = "centro"
+    if deposito_baixa not in ("centro", "vila"):
+        deposito_baixa = "centro"
+    deposito_baixa_label = ROTULO_DEPOSITO.get(deposito_baixa, "Centro")
     # Com loja específica, lista só o que tem saldo nessa loja (como o card do BI).
     if deposito_filtro in ("centro", "vila"):
         somente_com_estoque = True
@@ -32340,6 +32407,14 @@ def relatorios_validade(request):
         for el in lotes_ordenados:
             if el.quantidade_atual is None or el.quantidade_atual <= 0:
                 continue
+            bc = bool(getattr(el, "baixado_centro_em", None))
+            bv = bool(getattr(el, "baixado_vila_em", None))
+            if filtro_loja == "centro" and bc:
+                continue
+            if filtro_loja == "vila" and bv:
+                continue
+            if filtro_loja == "todas" and bc and bv:
+                continue
             data_venc = el.data_validade
             if inicio_p is not None and fim_p is not None and not (
                 inicio_p <= data_venc <= fim_p
@@ -32372,6 +32447,9 @@ def relatorios_validade(request):
                     "lote_id": el.pk,
                     "lote_qtd": qtd,
                     "lote_deposito": dep_el,
+                    "baixado_centro": bc,
+                    "baixado_vila": bv,
+                    "baixado_nesta_loja": (bc if deposito_baixa == "centro" else bv),
                     "data_validade": data_venc,
                     "dias_restantes": dias_restantes,
                     "dias_restantes_abs": abs(dias_restantes),
@@ -32537,6 +32615,8 @@ def relatorios_validade(request):
         "url_api_overlay_salvar": reverse("api_produtos_gestao_overlay_salvar"),
         "url_api_lote_upsert": reverse("api_overlay_lote_adicionar"),
         "url_api_validade_baixa": reverse("api_relatorio_validade_baixa"),
+        "deposito_baixa": deposito_baixa,
+        "deposito_baixa_label": deposito_baixa_label,
         "login_validade_href": login_href,
     }
     if is_80:

@@ -62,18 +62,12 @@ def wipe() -> None:
 def test_codigo_cache() -> None:
     print("\n== Código / cache ==")
     src = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
-    check("validade_dashboard_lotes_v6" in VALIDADE_DASHBOARD_CACHE_KEY, "cache v6")
+    check("validade_dashboard_lotes_v7" in VALIDADE_DASHBOARD_CACHE_KEY, "cache v7")
     check(
-        "del deposito" in src
-        and "_contagem_validade_dashboard_empresa(hoje)" in src.split(
-            "def _contagem_validade_dashboard_lotes_agro_compute", 1
-        )[-1][:400],
-        "compute ignora deposito usa empresa",
+        "baixado_centro_em" in src.split("def _contagem_validade_dashboard_empresa", 1)[-1][:900],
+        "compute filtra baixado por loja",
     )
-    check(
-        'f"{VALIDADE_DASHBOARD_CACHE_KEY}:{hoje.isoformat()}:all"' in src,
-        "cache unico :all",
-    )
+    check("_chave_cache_validade_dashboard" in src, "cache por loja (all/centro/vila)")
     check(
         "_contagem_validade_dashboard_lotes_agro,\n            deposito_filtro"
         in src,
@@ -149,9 +143,9 @@ def test_cache_nao_duplica_por_loja() -> None:
     calls = {"n": 0}
     real = _contagem_validade_dashboard_empresa
 
-    def spy(hoje):
+    def spy(hoje, deposito=None):
         calls["n"] += 1
-        return real(hoje)
+        return real(hoje, deposito=deposito)
 
     with patch(
         "produtos.views._contagem_validade_dashboard_empresa", side_effect=spy
@@ -160,8 +154,8 @@ def test_cache_nao_duplica_por_loja() -> None:
         _contagem_validade_dashboard_lotes_agro("centro")
         _contagem_validade_dashboard_lotes_agro("vila")
         third = _contagem_validade_dashboard_lotes_agro(None)
-    check(calls["n"] == 1, "empresa calculada 1x (cache :all)", str(calls["n"]))
-    check(third == first, "terceira leitura = primeira", str(third))
+    check(calls["n"] == 3, "tres chaves de cache (centro/vila/all)", str(calls["n"]))
+    check(third["vencidos"] == first["vencidos"], "sem baixa os numeros batem", str(third))
     wipe()
 
 
