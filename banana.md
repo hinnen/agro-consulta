@@ -1232,22 +1232,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (20/08 · após loja **v17.72**)
+### 🚀 PREP deploy loja — CAT-DEL-EXCLUIR (`deploy/cat-del-excluir` · **v17.74**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🚀 **PREP pronto — aguarda senha** |
+| **Loja hoje** | ✅ Live **v17.72** · `producao` @ **26a947e** |
+| **Branch** | `deploy/cat-del-excluir` @ **`273450d`** · badge loja alvo **v17.74** |
+| **Pacotes** | **CAT-DEL-EXCLUIR** (só este) |
+| **Migrate** | **NÃO** |
+| **Prova (branch)** | verify **VERIFY_OK** · tests **3/3** · `manage.py check` · AST + path PDV/caixa limpos |
+| **Risco loja aberta** | **Baixo** — só Cadastro Delivery + `/catalogo/gestao/` · **zero** PDV / caixa / Point / CP / estoque |
+| **Fora deste lote** | `92ba5f6` (hint repasse) · merge `teste` inteiro · qualquer outro WIP |
+| **Rollback** | tag `rollback/pre-cat-del-excluir-v17.72` @ **26a947e** |
+| **Zap** | *Atualização ~2 min — pause vendas; Ctrl+F5 após.* |
+| **Autorizar** | *pode subir CAT-DEL-EXCLUIR / deploy/cat-del-excluir para produção* + **99738595** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **CAT-DEL-EXCLUIR** | Botão **−** Delivery + Excluir/X na gestão · limpa vínculo · apaga subníveis | Ctrl+F5 Cadastro → Delivery → select → **−** · ou `/catalogo/gestao/` → Excluir · badge **17.74** |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (21/08 · PREP `cat-del-excluir`)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAT-DEL-EXCLUIR** | ✅ **pronto para envio** · teste **v17.74** | **NÃO** |
+| 1 | **CAT-DEL-EXCLUIR** | ✅ **pronto para envio** · no PREP `deploy/cat-del-excluir` @ **`273450d`** · teste **v17.74** | **NÃO** |
 
-**Autorizar loja:** frase do pacote + **99738595** · cherry/`teste` ou branch deploy (não merge `teste` inteiro).
+**Autorizar loja:** frase do PREP **CAT-DEL-EXCLUIR** + **99738595** · FF `deploy/cat-del-excluir` (não merge `teste` inteiro).
 
 ### 📦 PACOTE PRONTO — Excluir categoria Delivery (`CAT-DEL-EXCLUIR` · **v17.74**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
+| **Status** | ✅ **pronto para envio** · PREP `deploy/cat-del-excluir` @ **`273450d`** |
 | **O quê** | Botão **−** na aba Delivery (cadastro) + Excluir/X em `/catalogo/gestao/` · limpa vínculo nos produtos · apaga subníveis |
 | **Migrate** | **NÃO** |
-| **Prova** | verify **VERIFY_OK** · tests **3/3** · `manage.py check` |
+| **Prova** | verify **VERIFY_OK** · tests **3/3** · `manage.py check` (teste + branch deploy) |
 | **Risco loja** | Baixo — só catálogo/Delivery · zero PDV/caixa |
 | **Você** | Ctrl+F5 Cadastro → Delivery → select → **−** · ou `/catalogo/gestao/` → Excluir |
 
