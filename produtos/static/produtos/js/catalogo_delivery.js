@@ -281,22 +281,24 @@
         .map(function (s) { return s.trim(); })
         .filter(Boolean);
       if (!parts.length) {
-        el.innerHTML = '<span class="card-filtro-chip is-atual">Catálogo</span>';
+        el.innerHTML = '<p class="card-filtro-atual">Catálogo</p>';
         return;
       }
-      el.innerHTML = parts
+      var atual = parts.pop();
+      var trail = parts
         .map(function (nome, i) {
-          var last = i === parts.length - 1;
-          var chip =
-            '<span class="card-filtro-chip' +
-            (last ? " is-atual" : "") +
-            '">' +
-            escChip(nome) +
-            "</span>";
-          if (!last) chip += '<span class="card-filtro-sep" aria-hidden="true">›</span>';
+          var chip = '<span class="card-filtro-chip">' + escChip(nome) + "</span>";
+          if (i < parts.length - 1) {
+            chip += '<span class="card-filtro-sep" aria-hidden="true">›</span>';
+          }
           return chip;
         })
         .join("");
+      el.innerHTML =
+        (trail ? '<div class="card-filtro-trail">' + trail + "</div>" : "") +
+        '<p class="card-filtro-atual">' +
+        escChip(atual) +
+        "</p>";
     }
     function noAtual() {
       if (!pathStack.length) return null;

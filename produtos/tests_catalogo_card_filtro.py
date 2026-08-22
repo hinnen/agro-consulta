@@ -34,4 +34,4 @@ class CatalogoCardFiltroTemplateTests(SimpleTestCase):
         src = _JS.read_text(encoding="utf-8")
         self.assertIn("function renderPathChips", src)
         self.assertIn("card-filtro-chip", src)
-        self.assertIn("is-atual", src)
+        self.assertIn("card-filtro-atual", src)

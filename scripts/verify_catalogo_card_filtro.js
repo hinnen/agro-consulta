@@ -41,6 +41,16 @@ if (JSON.stringify(got) !== JSON.stringify(["Busca"])) {
 if (partsFrom("").length !== 0) fail("empty");
 else ok("empty");
 
+var full = partsFrom("Cão · Adulto · Raças Médias e Grandes · Granel");
+var atual = full.pop();
+if (atual !== "Granel") fail("atual=" + atual);
+else ok("atual é o último nível");
+if (JSON.stringify(full) !== JSON.stringify(["Cão", "Adulto", "Raças Médias e Grandes"])) {
+  fail("trail got=" + JSON.stringify(full));
+} else {
+  ok("trail são os níveis anteriores");
+}
+
 if (fails) {
   console.log("VERIFY_FAIL " + fails);
   process.exit(1);
