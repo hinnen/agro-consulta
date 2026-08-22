@@ -238,6 +238,96 @@
     }
     .cat-scroll { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .cat-scroll::-webkit-scrollbar { display: none; }
+    .card-filtro-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      padding: 0.65rem 0.75rem 0.4rem;
+      background: linear-gradient(180deg, #f8fafc 72%, rgba(248, 250, 252, 0));
+    }
+    .card-filtro {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      padding: 0.75rem 0.8rem 0.75rem 0.95rem;
+      border-radius: 1.15rem;
+      background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
+      border: 1.5px solid #86efac;
+      box-shadow: 0 8px 20px rgb(6 78 59 / 0.1);
+    }
+    .card-filtro::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 0.28rem;
+      background: var(--cat-primary);
+      border-radius: 1.15rem 0 0 1.15rem;
+    }
+    .card-filtro-voltar {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.2rem;
+      flex-shrink: 0;
+      min-height: 2.85rem;
+      padding: 0 0.85rem;
+      border-radius: 0.85rem;
+      border: 2px solid #059669;
+      background: #ecfdf5;
+      color: #065f46;
+      font-weight: 900;
+      font-size: 0.92rem;
+      line-height: 1;
+    }
+    .card-filtro-voltar:active { transform: scale(0.97); background: #d1fae5; }
+    .card-filtro-voltar svg { width: 1.15rem; height: 1.15rem; display: block; }
+    .card-filtro-body { min-width: 0; flex: 1; padding-top: 0.05rem; }
+    .card-filtro-kicker {
+      margin: 0 0 0.3rem;
+      font-size: 0.62rem;
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #047857;
+    }
+    .card-filtro-chips { min-width: 0; }
+    .card-filtro-trail {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.28rem 0.2rem;
+    }
+    .card-filtro-chip {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 0.18rem 0.5rem;
+      border-radius: 999px;
+      background: #fff;
+      color: #334155;
+      border: 1.5px solid #d1fae5;
+      font-size: 0.7rem;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+    .card-filtro-sep {
+      color: #86efac;
+      font-weight: 900;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0 0.02rem;
+    }
+    .card-filtro-atual {
+      margin: 0.28rem 0 0;
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #064e3b;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
   </style>
 </head>
 <body class="text-slate-800 antialiased">
@@ -335,10 +425,7 @@
 
 {# —— SUBCATEGORIAS (níveis 2–5) —— #}
 <section id="view-subcategorias" class="hidden">
-  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
-    <button type="button" id="btn-voltar-home" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
-    <h2 id="titulo-sub-passo" class="font-black text-slate-900 text-base truncate flex-1">Subcategoria</h2>
-  </div>
+  {% include "produtos/catalogo/_card_filtro.html" with btn_id="btn-voltar-home" path_id="titulo-sub-passo" kicker="Categoria" %}
   <div class="px-3 pt-4 pb-2">
     <h2 id="titulo-sub-ajuda" class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha a subcategoria</h2>
     <div id="grade-subcategorias" class="grid grid-cols-2 gap-3"></div>
@@ -347,10 +434,7 @@
 
 {# —— PESO da embalagem (estilo PDV Rações) —— #}
 <section id="view-pesos" class="hidden">
-  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
-    <button type="button" id="btn-voltar-pesos" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
-    <h2 id="titulo-peso-passo" class="font-black text-slate-900 text-base truncate flex-1">Peso</h2>
-  </div>
+  {% include "produtos/catalogo/_card_filtro.html" with btn_id="btn-voltar-pesos" path_id="titulo-peso-passo" kicker="Peso" %}
   <div class="px-3 pt-4 pb-2">
     <h2 class="text-sm font-black uppercase tracking-wide text-slate-500 mb-3 px-0.5">Escolha o peso da embalagem</h2>
     <div id="grade-pesos" class="grid grid-cols-2 gap-3"></div>
@@ -360,10 +444,7 @@
 
 {# —— LISTA de produtos —— #}
 <section id="view-produtos" class="hidden">
-  <div class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2.5 flex items-center gap-2">
-    <button type="button" id="btn-voltar-cats" class="shrink-0 min-h-[2.5rem] px-3 rounded-xl border-2 border-slate-200 font-black text-sm">‹ Voltar</button>
-    <h2 id="titulo-cat-atual" class="font-black text-slate-900 text-base truncate flex-1">Produtos</h2>
-  </div>
+  {% include "produtos/catalogo/_card_filtro.html" with btn_id="btn-voltar-cats" path_id="titulo-cat-atual" kicker="Filtro" %}
   <main class="px-3 py-4 space-y-6" id="grade-produtos">
     {% for secao in secoes %}
     <section class="secao-cat" data-cat="{{ secao.slug }}" id="cat-{{ secao.slug }}">

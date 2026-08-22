@@ -1,0 +1,14 @@
+<div class="card-filtro-sticky">
+  <div class="card-filtro">
+    <button type="button" id="{{ btn_id }}" class="card-filtro-voltar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true">
+        <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Voltar
+    </button>
+    <div class="card-filtro-body">
+      <p class="card-filtro-kicker">{{ kicker|default:"Filtro" }}</p>
+      <div id="{{ path_id }}" class="card-filtro-chips" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
