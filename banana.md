@@ -1229,23 +1229,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — PLANILHA-IMPORT-FACETA (`deploy/planilha-import-faceta` · **v17.75**)
+### ✅ Deploy loja — PLANILHA-IMPORT-FACETA (`deploy/planilha-import-faceta` · **v17.75**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🚀 **autorizado — subindo** |
-| **Loja hoje** | ✅ Live **v17.74** · `producao` @ **273450d** |
+| **Status** | ✅ **enviado / Live v17.75** · `producao` @ **d58f03af** |
 | **Pacotes** | **PLANILHA-IMPORT-FACETA** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-planilha-import-faceta-v17.74` @ **273450d** + frase + senha |
 | **O quê** | Import Excel ↑: checkbox **Permitir criar novos** (marca, categoria, sub 1–4, unidade). Corrige `unexpected keyword argument 'permitir_novos'`. |
 | **Você** | **Ctrl+F5** `/produtos/cadastro-erp/` · Excel ↑ · categoria nova · marque **Permitir criar novos** · badge **17.75** |
 
-### ✅ CHECKLIST ÚNICO — envio produção (22/08 · loja **v17.75**)
+### ~~🚀 PREP deploy loja — PLANILHA-IMPORT-FACETA~~ · **superado — Live v17.75**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PLANILHA-IMPORT-FACETA** | 🚀 **autorizado — subindo** | **NÃO** |
+| 1 | **PLANILHA-IMPORT-FACETA** | ✅ **enviado / Live v17.75** | **NÃO** |
+
+### ~~📦 PACOTE PRONTO — Planilha import «Permitir criar novos»~~ · **Live v17.75**
 
 ### ✅ Deploy loja — CAT-DEL-EXCLUIR (`deploy/cat-del-excluir` · **v17.74**) · **Live**
 
