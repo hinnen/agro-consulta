@@ -84,6 +84,17 @@ def main() -> int:
     check("Geraldo, Geraldinho ou Renan Hinnen" in wizard, "B nomes no overlay")
     check("mpPointBloqueio" in wizard, "B trata 409")
     check("limpar_mp_point_forcar_bypass" in views, "B limpa pós-venda")
+    check("def _mp_point_marcar_forcado_liberar" in views_mp, "B marca órfão permanente")
+    check("mp_point_forcado_liberar" in views_mp, "B flag payload")
+    check("_mp_point_row_foi_forcado_liberar" in views_mp, "B bloqueio ignora forçado")
+    check(
+        "_mp_point_marcar_forcado_liberar(row, rotulo)" in views_mp,
+        "B API chama marcar em PENDING e PAID",
+    )
+    check(
+        "não promover a PAID" in views_mp or "nao promover a PAID" in views_mp,
+        "B forçar não promove PAID",
+    )
 
     # --- C) Match gerencial ---
     check(rotulo_gerencial_do_user(SimpleNamespace(username="Geraldo", first_name="", last_name="")) == "Geraldo", "C Geraldo")

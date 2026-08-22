@@ -225,6 +225,32 @@ def _mp_point_marcar_metadados_pagamento(erp_data: dict, conta: str | None = Non
     erp_data["pagamentos"] = pag
 
 
+MP_POINT_FORCADO_LIBERAR_KEY = "mp_point_forcado_liberar"
+
+
+def _mp_point_row_foi_forcado_liberar(row) -> bool:
+    """Pedido que o gerente já liberou com PIN — não pode voltar a travar o PDV."""
+    st = str(getattr(row, "mp_last_status", "") or "")
+    if st.startswith("forced_by_"):
+        return True
+    erp = getattr(row, "erp_payload", None)
+    return bool(isinstance(erp, dict) and erp.get(MP_POINT_FORCADO_LIBERAR_KEY))
+
+
+def _mp_point_marcar_forcado_liberar(row: PdvMercadoPagoPointOrder, rotulo: str) -> None:
+    """
+    Encerra o órfão no Postgres (PENDING ou PAID).
+    Sem isso o PIN só abria um bypass de 30 min e a próxima venda travava de novo.
+    """
+    erp = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+    erp[MP_POINT_FORCADO_LIBERAR_KEY] = True
+    erp["mp_point_forcado_por"] = (rotulo or "")[:80]
+    row.erp_payload = erp
+    row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
+    row.mp_last_status = ("forced_by_" + (rotulo or "gerente").replace(" ", "_"))[:48]
+    row.save(update_fields=["erp_payload", "status", "mp_last_status", "atualizado_em"])
+
+
 def _mp_point_promover_pago_local(row: PdvMercadoPagoPointOrder, body: dict) -> bool:
     """
     Se o MP indica pagamento OK, grava status PAID no Postgres.
@@ -233,6 +259,8 @@ def _mp_point_promover_pago_local(row: PdvMercadoPagoPointOrder, body: dict) -> 
     """
     if row.status == PdvMercadoPagoPointOrder.Status.FINALIZED:
         return True
+    if _mp_point_row_foi_forcado_liberar(row):
+        return False
     if row.status == PdvMercadoPagoPointOrder.Status.PAID:
         return True
     if not mp_point_order_indica_pago(body):
@@ -275,7 +303,7 @@ def mp_point_bloqueio_venda_sessao(request) -> str | None:
     if not sk:
         return None
     cutoff = timezone.now() - timedelta(hours=2)
-    row = (
+    candidatos = list(
         PdvMercadoPagoPointOrder.objects.filter(
             django_session_key=sk,
             status__in=(
@@ -284,9 +312,9 @@ def mp_point_bloqueio_venda_sessao(request) -> str | None:
             ),
             criado_em__gte=cutoff,
         )
-        .order_by("-criado_em")
-        .first()
+        .order_by("-criado_em")[:20]
     )
+    row = next((r for r in candidatos if not _mp_point_row_foi_forcado_liberar(r)), None)
     if not row:
         return None
     valor = row.valor_cobrado
@@ -1278,35 +1306,29 @@ def api_pdv_mp_point_forcar_liberar(request):
     order_ids = [r.mp_order_id for r in rows]
     tinha_pago = any(r.status == PdvMercadoPagoPointOrder.Status.PAID for r in rows)
 
-    # Tenta cancelar PENDING no terminal; se falhar, ainda libera via bypass (emergência).
+    # Tenta cancelar PENDING no terminal. PAID ou MP já cobrado: só encerra no Agro
+    # (não promover a PAID — isso fazia o aviso voltar em todas as vendas seguintes).
     for row in rows:
-        if row.status != PdvMercadoPagoPointOrder.Status.PENDING:
-            continue
-        conta = _conta_do_pedido_local(request, row, raw if isinstance(raw, dict) else None)
-        if not _mp_point_configurado(conta):
-            continue
-        token = _token_da_conta(conta)
-        ok_get, _st, body = mp_point_get_order(access_token=token, order_id=row.mp_order_id)
-        if ok_get and isinstance(body, dict) and _mp_point_promover_pago_local(row, body):
-            tinha_pago = True
-            continue
-        ok_cancel, _st_c, _body_c = mp_point_cancel_order(
-            access_token=token, order_id=row.mp_order_id
-        )
-        row.refresh_from_db()
-        if row.status == PdvMercadoPagoPointOrder.Status.PAID:
-            tinha_pago = True
-            continue
-        # Força abandon local do PENDING (auditoria: gerente liberou).
-        row.status = PdvMercadoPagoPointOrder.Status.ABANDONED
-        row.mp_last_status = ("forced_by_" + rotulo.replace(" ", "_"))[:48]
-        row.save(update_fields=["status", "mp_last_status", "atualizado_em"])
-        if not ok_cancel:
-            logger.warning(
-                "MP Point forçar liberar: cancel MP falhou order=%s por=%s",
-                row.mp_order_id,
-                rotulo,
-            )
+        if row.status == PdvMercadoPagoPointOrder.Status.PENDING:
+            conta = _conta_do_pedido_local(request, row, raw if isinstance(raw, dict) else None)
+            if _mp_point_configurado(conta):
+                token = _token_da_conta(conta)
+                ok_get, _st, body = mp_point_get_order(
+                    access_token=token, order_id=row.mp_order_id
+                )
+                if ok_get and isinstance(body, dict) and mp_point_order_indica_pago(body):
+                    tinha_pago = True
+                else:
+                    ok_cancel, _st_c, _body_c = mp_point_cancel_order(
+                        access_token=token, order_id=row.mp_order_id
+                    )
+                    if not ok_cancel:
+                        logger.warning(
+                            "MP Point forçar liberar: cancel MP falhou order=%s por=%s",
+                            row.mp_order_id,
+                            rotulo,
+                        )
+        _mp_point_marcar_forcado_liberar(row, rotulo)
 
     gravar_mp_point_forcar_bypass(request, por=rotulo, order_ids=order_ids)
     logger.warning(

@@ -1247,10 +1247,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ----- | ----------- |
 | **PLANILHA-IMPORT-FACETA** | Faceta na importação + checkbox novos | Cadastro Excel ↑ categoria nova |
 
+### 📦 PACOTE PRONTO — Point PIN não gruda (`MP-POINT-PIN-STICKY`) · teste **v17.76**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | PIN gerencial **encerra de vez** o órfão da maquininha (PENDING **e** PAID). O aviso (ex. R$ 2,40 Centro) **não volta** na venda seguinte. |
+| **Por quê** | O PIN só abria bypass de 30 min e, se o MP já tinha cobrado, **promovia a PAID**. Depois de fechar a venda o bypass sumia e o bloqueio voltava em **todas** as vendas do PC. |
+| **Migrate** | **NÃO** |
+| **Prova** | `tests_mp_point_pin_forcar` **8/8** · pin path **23/23** · cancel-safe **21/21** |
+| **Você** | Ctrl+F5 PDV Centro · PIN **uma vez** no aviso do R$ 2,40 · as próximas vendas fecham sem o overlay |
+| **Loja** | ⏳ só no teste — falta frase + senha |
+
 ### ✅ CHECKLIST ÚNICO — pronto para envio (22/08 · loja **v17.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
+| 0 | **MP-POINT-PIN-STICKY** | ✅ **pronto** / teste **v17.76** | **NÃO** |
 | 1 | **PLANILHA-IMPORT-FACETA** | ✅ **pronto para envio** / teste **v17.75** | **NÃO** |
 
 ### ✅ Deploy loja — CAT-DEL-EXCLUIR (`deploy/cat-del-excluir` · **v17.74**) · **Live**
