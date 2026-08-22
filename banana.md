@@ -1232,26 +1232,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Planilha import «Permitir criar novos» (`PLANILHA-IMPORT-FACETA` · **v17.75**)
+### ✅ Deploy loja — PLANILHA-IMPORT-FACETA (`deploy/planilha-import-faceta` · **v17.75**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
-| **O quê** | Import Excel ↑: checkbox **Permitir criar novos** (marca, categoria, sub 1–4, unidade). Prévia lista valores novos; sem checkbox bloqueia gravação. Corrige typo (fuzzy). Fix: `aplicar_importacao_cadastro() got an unexpected keyword argument 'permitir_novos'`. |
-| **Branch** | `teste` · pacote `cursor/fix-permitir-novos-import-5ed1` |
+| **Status** | ✅ **enviado / Live v17.75** · `producao` @ **d58f03af** |
+| **Pacotes** | **PLANILHA-IMPORT-FACETA** |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_planilha_import_faceta_path.py` **34/34** · `CadastroPlanilhaPermitirNovosTests` **3/3** · `verify_planilha_delivery_path` **OK** (regressão Delivery) · `manage.py check` OK |
-| **Você** | **Ctrl+F5** `/produtos/cadastro-erp/` · Excel ↑ · planilha com **categoria/marca nova** · prévia mostra aviso · marque **Permitir criar novos** · **Confirmar importação** · badge **17.75** |
+| **Rollback** | tag `rollback/pre-planilha-import-faceta-v17.74` @ **273450d** + frase + senha |
+| **O quê** | Import Excel ↑: checkbox **Permitir criar novos** (marca, categoria, sub 1–4, unidade). Corrige `unexpected keyword argument 'permitir_novos'`. |
+| **Você** | **Ctrl+F5** `/produtos/cadastro-erp/` · Excel ↑ · categoria nova · marque **Permitir criar novos** · badge **17.75** |
 
-| Pacote | O quê | Você valida |
-| ------ | ----- | ----------- |
-| **PLANILHA-IMPORT-FACETA** | Faceta na importação + checkbox novos | Cadastro Excel ↑ categoria nova |
+### ~~📦 PACOTE PRONTO — Planilha import «Permitir criar novos»~~ · **Live v17.75**
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (22/08 · loja **v17.75**)
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PLANILHA-IMPORT-FACETA** | ✅ **pronto para envio** / teste **v17.75** | **NÃO** |
+| 1 | **PLANILHA-IMPORT-FACETA** | ✅ **enviado / Live v17.75** | **NÃO** |
 
 ### ✅ Deploy loja — CAT-DEL-EXCLUIR (`deploy/cat-del-excluir` · **v17.74**) · **Live**
 
