@@ -1232,6 +1232,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto para envio (22/08c · teste **v17.77**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CATALOGO-SKIP-GERAL** | ✅ **pronto para envio** / teste **v17.77** | **NÃO** |
+
+> Loja hoje: ✅ **Live v17.76** (MP-POINT-PIN-STICKY). Este lote **ainda não** foi à produção. Autorizar só com frase + senha **depois** de testar local (`/catalogo/` · Ctrl+F5).
+
+### 📦 PACOTE PRONTO — Catálogo pula «Geral» (`CATALOGO-SKIP-GERAL` · **v17.77**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | `/catalogo/`: última categoria preenchida (ex. Cão → Adulto → Raças Médias e Grandes) vai **direto** para «Escolha o peso da embalagem». Some o card sintético **Geral** que o JS criava quando o nó não tinha subcategorias reais. |
+| **Por quê** | Follow-up do **CATALOGO-5N-PESO** (Live v17.72): `opcoesFilhosNo()` injetava `_geral` e `irParaPesosOuFilhos()` tratava isso como mais um nível. |
+| **Onde** | `catalogo_delivery.js` · cache-bust `?v=` no HTML · verify `scripts/verify_catalogo_skip_geral_path.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só vitrine `/catalogo/` · sem migrate · PDV/caixa intactos. Caso misto (produtos no nó **e** subcategorias reais) ainda mostra «Geral» de propósito. |
+| **Prova** | path **VERIFY_OK** · FSM JS (folha / misto / voltar / 5 níveis / raiz / extra slug) · `node --check` · árvore pura 14 produtos na folha |
+| **Você** | **Ctrl+F5** `/catalogo/` · Cão → Adulto → Raças Médias e Grandes → **já os pesos** (sem «Geral») · Voltar volta à lista de Raças (não reabre Geral) · badge **17.77** |
+| **Autorizar** | frase + senha na mesma mensagem |
+
 ### ✅ Deploy loja — MP-POINT-PIN-STICKY (`deploy/mp-point-pin-sticky` · **v17.76**) · **Live**
 
 | Item | Detalhe |

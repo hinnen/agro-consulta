@@ -265,6 +265,8 @@ def check_templates_js() -> None:
         "pesosDisponiveis",
         "pathExact",
         "aplicarFiltros",
+        "filhosReaisNo",
+        "irParaPesosOuFilhos",
     ):
         if n not in js:
             fail(f"JS sem {n}")

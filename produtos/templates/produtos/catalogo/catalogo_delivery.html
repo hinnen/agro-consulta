@@ -465,7 +465,7 @@
   </div>
 </div>
 
-<script src="{% static 'produtos/js/catalogo_delivery.js' %}"></script>
+<script src="{% static 'produtos/js/catalogo_delivery.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script>
   initCatalogoDelivery({
     catalogo: {{ catalogo_json|safe }},
