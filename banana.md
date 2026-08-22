@@ -1229,27 +1229,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Capa e cor em todos os níveis (`CATALOGO-CAPA-COR` · **v17.79**)
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08e · loja **v17.79**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CATALOGO-CAPA-COR** | ✅ **enviado / Live v17.79** | **SIM** (`0098`) |
+
+> Loja hoje: ✅ **Live v17.79** (CATALOGO-CAPA-COR). `producao` @ **69c0acc8**. Rollback: tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822`.
+
+### 📦 PACOTE PRONTO — Capa e cor em todos os níveis (`CATALOGO-CAPA-COR` · **v17.79**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 📦 **PRONTO para envio** (não Live — loja continua **v17.78**) |
+| **Status** | ✅ **enviado / Live v17.79** |
 | **O quê** | Capa (foto) e **cor do card** em **qualquer nível** da categoria (N1–N5). Postgres (`CatalogoDeliveryCategoria.imagem_base64` + `cor`). Não é a foto do produto. |
 | **Por quê** | Antes a capa só existia na raiz (N1) e não havia cor por categoria/sub. Na aba 10 o operador só via «Foto do produto». |
 | **Onde** | `/catalogo/gestao/` (cada linha N1–N5) · cadastro ERP aba **10. Delivery** (bloco verde «Capa e cor desta categoria») · vitrine `/catalogo/` (`--cat-card` + `/catalogo/cat-img/<id>/`) · API `POST /catalogo/api/categorias/foto/` · migrate **`0098_catalogo_categoria_cor`** |
 | **Migrate** | **SIM** (`produtos/migrations/0098_catalogo_categoria_cor.py` — campo `cor` + help da capa em qualquer nível) |
 | **Risco** | Baixo/médio — migrate só adiciona coluna vazia · PDV/caixa intactos · skip-geral da vitrine intacto · foto e cor gravadas em botões próprios (não no «Salvar loja» / «Salvar» do produto) |
 | **Prova** | `scripts/verify_catalogo_capa_cor_path.py` · Django `tests_catalogo_categoria_visual` · skip-geral FSM · `node --check` |
-| **Você** | **Ctrl+F5** cadastro + `/catalogo/gestao/` + `/catalogo/` · escolha a categoria (qualquer nível) → arquivo → **Salvar capa** · cor → **Salvar cor** · badge **17.79** · **migrate 0098** no deploy |
-| **Autorizar** | frase + senha na mesma mensagem |
+| **Você** | **Ctrl+F5** cadastro + `/catalogo/gestao/` + `/catalogo/` · escolha a categoria (qualquer nível) → arquivo → **Salvar capa** · cor → **Salvar cor** · badge **17.79** |
+| **Rollback** | tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822` + frase + senha |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (22/08e · teste **v17.79**)
+### ✅ Deploy loja — CATALOGO-CAPA-COR (`deploy/catalogo-capa-cor` · **v17.79**) · **Live**
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CATALOGO-CAPA-COR** | 📦 **PRONTO** | **SIM** (`0098`) |
-
-> Loja hoje continua ✅ **Live v17.78**. Este checklist é **só teste** (`teste` + badge **v17.79**). Produção **não** sobe sem frase + senha `99738595`.
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.79** · `producao` @ **69c0acc8** |
+| **Pacotes** | **CATALOGO-CAPA-COR** |
+| **Migrate** | **SIM** (`0098`) — `manage.py migrate` no build Render |
+| **Rollback** | tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822` + frase + senha |
+| **O quê** | Capa e cor em N1–N5 (gestão + aba 10 + vitrine). |
+| **Você** | **Ctrl+F5** `/catalogo/` · `/catalogo/gestao/` · cadastro aba 10 · badge **17.79** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08d · loja **v17.78**)
 

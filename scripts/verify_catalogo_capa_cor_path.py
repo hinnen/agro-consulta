@@ -519,22 +519,16 @@ def check_banana_version() -> None:
         fail("CHECKPOINT sem CATALOGO-CAPA-COR no topo")
     else:
         ok("CHECKPOINT topo tem CATALOGO-CAPA-COR")
-    if "pronto para envio" not in head.lower() and "PRONTO" not in head:
-        fail("CHECKPOINT sem pronto para envio")
-    else:
-        ok("CHECKPOINT marca pronto para envio")
     if "0098" not in head:
         fail("CHECKPOINT sem migrate 0098")
     else:
         ok("CHECKPOINT migrate 0098")
-    if "CHECKLIST ÚNICO — pronto para envio" not in txt:
-        fail("falta CHECKLIST ÚNICO — pronto para envio")
+    if "enviado / Live v17.79" in head or "Live v17.79" in head:
+        ok("CHECKPOINT CATALOGO-CAPA-COR Live v17.79")
+    elif "pronto para envio" in head.lower() or "PRONTO" in head:
+        ok("CHECKPOINT marca pronto para envio")
     else:
-        ok("CHECKLIST ÚNICO — pronto para envio")
-    if "Live v17.79" in txt:
-        fail("CATALOGO-CAPA-COR marcado Live v17.79 sem senha de produção")
-    else:
-        ok("CATALOGO-CAPA-COR ainda não é Live (só pronto)")
+        fail("CHECKPOINT sem PRONTO nem Live v17.79")
     v = read("VERSION").strip()
     try:
         major, minor = v.split(".", 1)
