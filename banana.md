@@ -1233,20 +1233,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (22/08d · teste **v17.78**)
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08d · loja **v17.78**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CATALOGO-SKIP-GERAL** | ✅ **pronto para envio** / teste **v17.77** | **NÃO** |
-| 2 | **FECHAR-CAIXA-REPASSE** | ✅ **pronto para envio** / teste **v17.78** | **NÃO** |
+| 1 | **CATALOGO-SKIP-GERAL** | ✅ **enviado / Live v17.78** | **NÃO** |
+| 2 | **FECHAR-CAIXA-REPASSE** | ✅ **enviado / Live v17.78** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.76** (MP-POINT-PIN-STICKY). Este lote **ainda não** foi à produção. Autorizar só com frase + senha **depois** de testar local (`/catalogo/` · Fechar caixa Vila + repasse · Ctrl+F5).
+> Loja hoje: ✅ **Live v17.78** (CATALOGO-SKIP-GERAL + FECHAR-CAIXA-REPASSE). `producao` @ **c19f8fe6**. Rollback: tag `rollback/pre-lote-checklist-2208d-v17.76` @ **1a7d25ec**.
 
 ### 📦 PACOTE PRONTO — Catálogo pula «Geral» (`CATALOGO-SKIP-GERAL` · **v17.77**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
+| **Status** | ✅ **enviado / Live v17.78** |
 | **O quê** | `/catalogo/`: última categoria preenchida (ex. Cão → Adulto → Raças Médias e Grandes) vai **direto** para «Escolha o peso da embalagem». Some o card sintético **Geral** que o JS criava quando o nó não tinha subcategorias reais. |
 | **Por quê** | Follow-up do **CATALOGO-5N-PESO** (Live v17.72): `opcoesFilhosNo()` injetava `_geral` e `irParaPesosOuFilhos()` tratava isso como mais um nível. |
 | **Onde** | `catalogo_delivery.js` · cache-bust `?v=` no HTML · verify `scripts/verify_catalogo_skip_geral_path.py` |
@@ -1256,11 +1256,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | **Ctrl+F5** `/catalogo/` · Cão → Adulto → Raças Médias e Grandes → **já os pesos** (sem «Geral») · Voltar volta à lista de Raças (não reabre Geral) · badge **17.77** |
 | **Autorizar** | frase + senha na mesma mensagem |
 
-### 📦 PACOTE PRONTO — Fechar caixa Vila após repasse (`FECHAR-CAIXA-REPASSE` · **v17.78**)
+### ✅ Deploy loja — lote 22/08d (`deploy/lote-checklist-2208d` · **v17.78**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** |
+| **Status** | ✅ **enviado / Live v17.78** · `producao` @ **c19f8fe6** |
+| **Pacotes** | **CATALOGO-SKIP-GERAL** · **FECHAR-CAIXA-REPASSE** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-2208d-v17.76` @ **1a7d25ec** · branch `producao-backup-pre-v1778-lote-2208d-20260822` + frase + senha |
+| **O quê** | Catálogo: folha → pesos sem «Geral». Fechar caixa Vila: refresh só da loja; overlay do repasse avisa a tela. |
+| **Você** | **Ctrl+F5** `/catalogo/` · Fechar caixa Vila + repasse · badge **17.78** |
+
+### ~~📦 PACOTE PRONTO — Fechar caixa Vila após repasse (`FECHAR-CAIXA-REPASSE` · **v17.78**)~~ · **Live v17.78**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.78** |
 | **O quê** | Fechar caixa da Vila: depois de retirada/repasse o esperado de Dinheiro **só da loja do aparelho**. O overlay do repasse avisa a tela ao confirmar (`agro-caixa-fechar-atualizar`). |
 | **Por quê** | O refresh usava `escopo=operacional` (Centro + Vila). Com os dois abertos o esperado da Vila subia com o fundo do Centro; no repasse −X (Vila) + +X (Centro) se anulavam — o número **não caía** depois de levar o dinheiro. |
 | **Onde** | `api_caixa_conferencia_estado` · `caixa_fechar.html` (`escopo=loja`) · `pdv_repasse_vila.js` · verify `scripts/verify_caixa_fechar_repasse_path.py` |
