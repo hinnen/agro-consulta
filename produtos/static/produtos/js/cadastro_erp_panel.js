@@ -2693,11 +2693,13 @@
 
     var inpArq = document.getElementById('cadastro-import-arquivo');
     var elResumo = document.getElementById('cadastro-import-resumo');
+    var elAvisos = document.getElementById('cadastro-import-avisos');
     var elErros = document.getElementById('cadastro-import-erros');
     var elPrev = document.getElementById('cadastro-import-preview');
     var btnPrev = document.getElementById('cadastro-import-previa');
     var btnApl = document.getElementById('cadastro-import-aplicar');
     var btnFec = document.getElementById('cadastro-import-fechar');
+    var chkPermitirNovos = document.getElementById('cadastro-import-permitir-novos');
     var elProgWrap = document.getElementById('cadastro-import-progress-wrap');
     var elProgBar = document.getElementById('cadastro-import-progress-bar');
     var elProgPct = document.getElementById('cadastro-import-progress-pct');
@@ -2706,6 +2708,7 @@
     var elProgTrack = elProgWrap ? elProgWrap.querySelector('[role="progressbar"]') : null;
     var pollTimer = null;
     var ultimaPreviaOk = false;
+    var ultimaPrevia = null;
 
     function cancelPoll() {
       if (pollTimer) {
@@ -2737,34 +2740,97 @@
       cancelPoll();
       hideProgress();
       ultimaPreviaOk = false;
+      ultimaPrevia = null;
       if (btnApl) btnApl.disabled = true;
       if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
+      if (elAvisos) { elAvisos.classList.add('hidden'); elAvisos.innerHTML = ''; }
       if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
       if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
     }
 
+    function permitirNovosMarcado() {
+      return !!(chkPermitirNovos && chkPermitirNovos.checked);
+    }
+
+    function podeConfirmarImport(j) {
+      if (!j || !(j.n_alteracoes > 0)) return false;
+      var nNovos = Number(j.n_valores_novos || j.n_bloqueadas_valor_novo || 0);
+      if (nNovos > 0 && !permitirNovosMarcado()) {
+        return Number(j.n_alteracoes_ok || 0) > 0;
+      }
+      return true;
+    }
+
     function renderPrevia(j) {
+      ultimaPrevia = j || null;
+      var nNovos = Number(j.n_valores_novos || 0);
+      var nCorr = Number(j.n_correcoes_sugeridas || 0);
+      var nOk = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes || 0);
       if (elResumo) {
         elResumo.className = 'text-sm font-semibold ' + (j.n_alteracoes > 0 ? 'text-emerald-800' : 'text-amber-800');
         if (j.n_alteracoes > 0) {
-          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s) — pode confirmar abaixo.';
+          var extra = '';
+          if (nCorr) extra += ' · ' + nCorr + ' typo(s) serão corrigidos';
+          if (nNovos) {
+            extra += permitirNovosMarcado()
+              ? ' · ' + nNovos + ' valor(es) novo(s) serão criados'
+              : ' · ' + nNovos + ' valor(es) novo(s) bloqueados (marque a opção ou corrija)';
+          }
+          elResumo.textContent = (nOk || j.n_alteracoes) + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' aviso/erro(s)' + extra + ' — confira abaixo.';
         } else {
           elResumo.textContent = 'Nenhuma alteração detectada (' + j.n_ignoradas + ' ignorada(s), ' + j.n_erros + ' erro(s)). Edite alguma célula (vazio não altera) ou clique «Ver prévia» de novo após corrigir.';
         }
         elResumo.classList.remove('hidden');
       }
+      if (elAvisos) {
+        var avisosHtml = [];
+        (j.correcoes_sugeridas || []).slice(0, 30).forEach(function (c) {
+          avisosHtml.push(
+            '<div><span class="font-black uppercase text-[10px] text-emerald-800">Typo</span> ' +
+            escapeHtml(String(c.rotulo || c.campo || '')) + ': «' + escapeHtml(String(c.valor || '')) +
+            '» → <strong>' + escapeHtml(String(c.sugestao || '')) + '</strong></div>'
+          );
+        });
+        (j.valores_novos || []).slice(0, 30).forEach(function (c) {
+          avisosHtml.push(
+            '<div><span class="font-black uppercase text-[10px] text-amber-700">Novo</span> ' +
+            escapeHtml(String(c.rotulo || c.campo || '')) + ': «' + escapeHtml(String(c.valor || '')) +
+            '»</div>'
+          );
+        });
+        if (avisosHtml.length) {
+          elAvisos.innerHTML = avisosHtml.join('');
+          elAvisos.classList.remove('hidden');
+        } else {
+          elAvisos.classList.add('hidden');
+          elAvisos.innerHTML = '';
+        }
+      }
       if (elErros && j.erros && j.erros.length) {
-        elErros.innerHTML = j.erros.slice(0, 40).map(function (e) {
-          return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
-        }).join('');
-        elErros.classList.remove('hidden');
+        var errosFiltrados = (j.erros || []).filter(function (e) {
+          if (e && e.tipo === 'valor_novo' && permitirNovosMarcado()) return false;
+          return true;
+        });
+        if (errosFiltrados.length) {
+          elErros.innerHTML = errosFiltrados.slice(0, 40).map(function (e) {
+            return '<div>L' + (e.linha || '?') + ' · ' + escapeHtml(String(e.id || '')) + ': ' + escapeHtml(String(e.erro || '')) + '</div>';
+          }).join('');
+          elErros.classList.remove('hidden');
+        } else {
+          elErros.classList.add('hidden');
+          elErros.innerHTML = '';
+        }
+      } else if (elErros) {
+        elErros.classList.add('hidden');
+        elErros.innerHTML = '';
       }
       if (elPrev && j.alteracoes && j.alteracoes.length) {
         var html = '<table class="w-full text-left"><thead class="bg-slate-50"><tr><th class="p-2">Linha</th><th class="p-2">Nome</th><th class="p-2">Campos</th></tr></thead><tbody>';
         j.alteracoes.slice(0, 80).forEach(function (a) {
           var campos = (a.campos || []).map(function (c) {
             var rot = (typeof rotuloCampoImport !== 'undefined' && rotuloCampoImport[c.campo]) || c.campo;
-            return escapeHtml(String(rot || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para));
+            var nota = c.nota ? ' <em class="text-amber-700">(' + escapeHtml(String(c.nota)) + ')</em>' : '';
+            return escapeHtml(String(rot || '')) + ': ' + escapeHtml(String(c.de)) + ' → ' + escapeHtml(String(c.para)) + nota;
           }).join('; ');
           html += '<tr class="border-t border-slate-100"><td class="p-2 font-mono">' + a.linha + '</td><td class="p-2">' + escapeHtml(String(a.nome || '')) + '</td><td class="p-2 text-slate-600">' + campos + '</td></tr>';
         });
@@ -2772,8 +2838,8 @@
         elPrev.innerHTML = html;
         elPrev.classList.remove('hidden');
       }
-      ultimaPreviaOk = j.n_alteracoes > 0 && (!j.n_erros || j.n_alteracoes > 0);
-      if (btnApl) btnApl.disabled = !(j.n_alteracoes > 0);
+      ultimaPreviaOk = podeConfirmarImport(j);
+      if (btnApl) btnApl.disabled = !ultimaPreviaOk;
     }
 
     function parseHttpJson(r) {
@@ -2980,6 +3046,7 @@
       var file = inpArq.files[0];
       fd.append('arquivo', file);
       fd.append('nome_arquivo', file.name || '');
+      fd.append('permitir_novos', permitirNovosMarcado() ? '1' : '0');
       if (btnPrev) btnPrev.disabled = true;
       if (btnApl) btnApl.disabled = true;
       setLoading(true);
@@ -3102,11 +3169,27 @@
     if (btnApl && C.URL_IMPORT_APLICAR) {
       btnApl.addEventListener('click', function () {
         function confirmarGravacao() {
-          if (!window.confirm('Gravar alterações da planilha no SisVale?')) return;
+          if (!podeConfirmarImport(ultimaPrevia)) {
+            if (typeof alert !== 'undefined') {
+              alert('Há valores novos bloqueados. Marque «Permitir criar novos» ou corrija a planilha / use a lista.');
+            }
+            return;
+          }
+          var msgConf = 'Gravar alterações da planilha no SisVale?';
+          if (ultimaPrevia && Number(ultimaPrevia.n_valores_novos || 0) > 0 && permitirNovosMarcado()) {
+            msgConf += '\n\nAtenção: vai CRIAR ' + ultimaPrevia.n_valores_novos + ' nome(s) novo(s) de marca/categoria/sub.';
+          }
+          if (ultimaPrevia && Number(ultimaPrevia.n_correcoes_sugeridas || 0) > 0) {
+            msgConf += '\n\n' + ultimaPrevia.n_correcoes_sugeridas + ' typo(s) serão corrigidos para o nome cadastrado.';
+          }
+          if (!window.confirm(msgConf)) return;
           enviarPlanilha(C.URL_IMPORT_APLICAR, function (j) {
             fecharImport();
             if (typeof alert !== 'undefined') {
-              var msg = 'Importação concluída: ' + (j.gravados || 0) + ' produto(s) atualizado(s).';
+              var msg = 'Importação concluída: ' + (j.gravados || j.n_alteracoes || 0) + ' produto(s) atualizado(s).';
+              if (j.n_bloqueados_valor_novo) {
+                msg += ' ' + j.n_bloqueados_valor_novo + ' linha(s) com valor novo foram puladas.';
+              }
               if (j.historico_id) msg += ' Backup salvo — use «Histórico» para desfazer se precisar.';
               alert(msg);
             }
@@ -3119,8 +3202,13 @@
         }
         enviarPlanilha(C.URL_IMPORT_PREVIEW, function (j) {
           renderPrevia(j);
-          if (j.n_alteracoes > 0) confirmarGravacao();
+          if (podeConfirmarImport(j)) confirmarGravacao();
         });
+      });
+    }
+    if (chkPermitirNovos) {
+      chkPermitirNovos.addEventListener('change', function () {
+        if (ultimaPrevia) renderPrevia(ultimaPrevia);
       });
     }
 

@@ -301,6 +301,264 @@ def _eh_limpar_planilha(val: str) -> bool:
     return s in ("-", ".", "limpar", "apagar", "none", "null")
 
 
+# Campos de lista (marca/cat/sub/unidade) — typo + «permitir criar novos».
+_COLS_FACETA = (
+    COL_MARCA,
+    COL_CATEGORIA,
+    COL_SUBCATEGORIA,
+    COL_SUBCATEGORIA_2,
+    COL_SUBCATEGORIA_3,
+    COL_SUBCATEGORIA_4,
+    COL_UNIDADE,
+)
+_FACETA_ROTULO = {
+    COL_MARCA: "Marca",
+    COL_CATEGORIA: "Categoria",
+    COL_SUBCATEGORIA: "Subcategoria",
+    COL_SUBCATEGORIA_2: "Subcategoria 2",
+    COL_SUBCATEGORIA_3: "Subcategoria 3",
+    COL_SUBCATEGORIA_4: "Subcategoria 4",
+    COL_UNIDADE: "Unidade",
+}
+_FACETA_FUZZY_MIN = 0.86
+_FACETA_FUZZY_MAX_LEN_DIFF = 3
+
+
+def _norm_faceta_chave(s: str) -> str:
+    t = unicodedata.normalize("NFD", str(s or ""))
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return re.sub(r"\s+", " ", t).strip().lower()
+
+
+def carregar_facetas_planilha() -> dict[str, list[str]]:
+    """Listas conhecidas p/ dropdown Excel + validação de import."""
+    from produtos.agro_fonte_config import agro_catalogo_usa_postgres
+
+    marcas: list[str] = []
+    categorias: list[str] = []
+    subcategorias: list[str] = []
+    unidades: list[str] = []
+
+    try:
+        if agro_catalogo_usa_postgres():
+            from produtos import catalogo_agro
+
+            fac = catalogo_agro.facetas_gestao(limite=2000)
+            marcas = list(fac.get("marcas") or [])
+            categorias = list(fac.get("categorias") or [])
+            subcategorias = list(fac.get("subcategorias") or [])
+            unidades = list(fac.get("unidades") or [])
+            for extra in (
+                fac.get("subcategorias_2") or [],
+                fac.get("subcategorias_3") or [],
+                fac.get("subcategorias_4") or [],
+            ):
+                subcategorias.extend(str(x).strip() for x in extra if str(x or "").strip())
+    except Exception:
+        pass
+
+    try:
+        ov_qs = ProdutoGestaoOverlayAgro.objects.all()
+        marcas.extend(
+            str(x).strip()
+            for x in ov_qs.exclude(marca="").values_list("marca", flat=True).distinct()[:2000]
+            if str(x or "").strip()
+        )
+        categorias.extend(
+            str(x).strip()
+            for x in ov_qs.exclude(categoria="").values_list("categoria", flat=True).distinct()[:1200]
+            if str(x or "").strip()
+        )
+        unidades.extend(
+            str(x).strip()
+            for x in ov_qs.exclude(unidade="").values_list("unidade", flat=True).distinct()[:400]
+            if str(x or "").strip()
+        )
+        for fld in ("subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"):
+            subcategorias.extend(
+                str(x).strip()
+                for x in ov_qs.exclude(**{fld: ""}).values_list(fld, flat=True).distinct()[:800]
+                if str(x or "").strip()
+            )
+    except Exception:
+        pass
+
+    def _uniq(vals: list[str], lim: int = 1500) -> list[str]:
+        seen: set[str] = set()
+        out: list[str] = []
+        for v in vals:
+            s = str(v or "").strip()
+            if not s:
+                continue
+            k = _norm_faceta_chave(s)
+            if k in seen:
+                continue
+            seen.add(k)
+            out.append(s)
+            if len(out) >= lim:
+                break
+        out.sort(key=lambda x: x.lower())
+        return out
+
+    return {
+        COL_MARCA: _uniq(marcas, 2500),
+        COL_CATEGORIA: _uniq(categorias, 1200),
+        COL_SUBCATEGORIA: _uniq(subcategorias, 1500),
+        COL_SUBCATEGORIA_2: _uniq(subcategorias, 1500),
+        COL_SUBCATEGORIA_3: _uniq(subcategorias, 1500),
+        COL_SUBCATEGORIA_4: _uniq(subcategorias, 1500),
+        COL_UNIDADE: _uniq(unidades, 400),
+    }
+
+
+def _mapa_canonico_faceta(lista: list[str]) -> dict[str, str]:
+    return {_norm_faceta_chave(v): v for v in lista if str(v or "").strip()}
+
+
+def _sugerir_faceta(valor: str, conhecidos: list[str]) -> tuple[str | None, float]:
+    """Retorna (sugestão, score) ou (None, 0)."""
+    from difflib import SequenceMatcher
+
+    alvo = _norm_faceta_chave(valor)
+    if not alvo or not conhecidos:
+        return None, 0.0
+    melhor = None
+    melhor_score = 0.0
+    alvo_len = len(alvo)
+    for cand in conhecidos:
+        ck = _norm_faceta_chave(cand)
+        if not ck:
+            continue
+        if abs(len(ck) - alvo_len) > _FACETA_FUZZY_MAX_LEN_DIFF:
+            continue
+        sc = SequenceMatcher(None, alvo, ck).ratio()
+        if sc > melhor_score:
+            melhor_score = sc
+            melhor = cand
+            if sc >= 0.99:
+                break
+    if melhor and melhor_score >= _FACETA_FUZZY_MIN:
+        return melhor, float(melhor_score)
+    return None, float(melhor_score)
+
+
+def _classificar_valor_faceta(
+    campo: str,
+    valor: str,
+    facetas: dict[str, list[str]],
+    canonicos: dict[str, dict[str, str]],
+) -> dict[str, Any]:
+    raw = str(valor or "").strip()
+    rotulo = _FACETA_ROTULO.get(campo, campo)
+    if not raw or _eh_limpar_planilha(raw):
+        return {"campo": campo, "rotulo": rotulo, "valor": raw, "status": "vazio"}
+    canon_map = canonicos.get(campo) or {}
+    chave = _norm_faceta_chave(raw)
+    if chave in canon_map:
+        return {
+            "campo": campo,
+            "rotulo": rotulo,
+            "valor": raw,
+            "valor_final": canon_map[chave],
+            "status": "ok",
+            "score": 1.0,
+        }
+    sug, score = _sugerir_faceta(raw, facetas.get(campo) or [])
+    if sug:
+        return {
+            "campo": campo,
+            "rotulo": rotulo,
+            "valor": raw,
+            "valor_final": sug,
+            "sugestao": sug,
+            "status": "corrigir",
+            "score": round(score, 3),
+        }
+    return {
+        "campo": campo,
+        "rotulo": rotulo,
+        "valor": raw,
+        "valor_final": raw,
+        "status": "novo",
+        "score": round(score, 3) if score else 0.0,
+    }
+
+
+def _resolver_facetas_no_patch(
+    patch: dict[str, Any],
+    facetas: dict[str, list[str]],
+    canonicos: dict[str, dict[str, str]],
+    *,
+    permitir_novos: bool,
+    linha: int | None = None,
+) -> tuple[dict[str, Any], list[dict], list[str]]:
+    """Ajusta patch (canon/typo). Retorna (patch, eventos, erros)."""
+    out = dict(patch)
+    eventos: list[dict] = []
+    erros: list[str] = []
+    for campo in _COLS_FACETA:
+        if campo not in out:
+            continue
+        info = _classificar_valor_faceta(campo, str(out[campo] or ""), facetas, canonicos)
+        info["linha"] = linha
+        st = info.get("status")
+        if st == "ok":
+            out[campo] = info["valor_final"]
+            if info["valor_final"] != str(patch[campo] or "").strip():
+                eventos.append({**info, "acao": "canonico"})
+        elif st == "corrigir":
+            out[campo] = info["valor_final"]
+            eventos.append({**info, "acao": "corrigir"})
+        elif st == "novo":
+            eventos.append({**info, "acao": "novo"})
+            if not permitir_novos:
+                erros.append(
+                    f"{info['rotulo']} «{info['valor']}» não cadastrado"
+                    + (f" (parecido: {info.get('sugestao')})" if info.get("sugestao") else "")
+                    + ". Marque «Permitir criar novos» ou use um nome da lista."
+                )
+    return out, eventos, erros
+
+
+def _resumir_eventos_faceta(eventos: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Agrupa novos e correções por campo+valor."""
+    novos_map: dict[tuple[str, str], dict] = {}
+    corr_map: dict[tuple[str, str], dict] = {}
+    for ev in eventos:
+        campo = str(ev.get("campo") or "")
+        valor = str(ev.get("valor") or "")
+        key = (campo, _norm_faceta_chave(valor))
+        linha = ev.get("linha")
+        if ev.get("status") == "novo" or ev.get("acao") == "novo":
+            slot = novos_map.setdefault(
+                key,
+                {
+                    "campo": campo,
+                    "rotulo": ev.get("rotulo") or campo,
+                    "valor": valor,
+                    "linhas": [],
+                    "score": ev.get("score"),
+                },
+            )
+            if linha and linha not in slot["linhas"]:
+                slot["linhas"].append(linha)
+        elif ev.get("status") == "corrigir" or ev.get("acao") == "corrigir":
+            slot = corr_map.setdefault(
+                key,
+                {
+                    "campo": campo,
+                    "rotulo": ev.get("rotulo") or campo,
+                    "valor": valor,
+                    "sugestao": ev.get("sugestao") or ev.get("valor_final"),
+                    "score": ev.get("score"),
+                    "linhas": [],
+                },
+            )
+            if linha and linha not in slot["linhas"]:
+                slot["linhas"].append(linha)
+    return list(novos_map.values()), list(corr_map.values())
+
+
 def _mapa_cats_delivery() -> dict[int, Any]:
     from produtos.models import CatalogoDeliveryCategoria
 
@@ -1043,6 +1301,59 @@ def montar_xlsx_cadastro(rows: list[dict], colunas: list[str] | None = None) -> 
     )
     if nome_col:
         ws.column_dimensions[nome_col].width = 42
+
+    try:
+        facetas = carregar_facetas_planilha()
+    except Exception:
+        facetas = {}
+    if facetas:
+        from openpyxl.worksheet.datavalidation import DataValidation
+
+        ws_list = wb.create_sheet("Listas")
+        lista_cols = [
+            (COL_MARCA, "Marcas"),
+            (COL_CATEGORIA, "Categorias"),
+            (COL_SUBCATEGORIA, "Subcategorias"),
+            (COL_UNIDADE, "Unidades"),
+        ]
+        faceta_para_lista_col = {
+            COL_MARCA: 1,
+            COL_CATEGORIA: 2,
+            COL_SUBCATEGORIA: 3,
+            COL_SUBCATEGORIA_2: 3,
+            COL_SUBCATEGORIA_3: 3,
+            COL_SUBCATEGORIA_4: 3,
+            COL_UNIDADE: 4,
+        }
+        for li, (fkey, titulo) in enumerate(lista_cols, start=1):
+            ws_list.cell(row=1, column=li, value=titulo).font = Font(bold=True)
+            vals = facetas.get(fkey) or []
+            for ri, v in enumerate(vals, start=2):
+                ws_list.cell(row=ri, column=li, value=v)
+            ws_list.column_dimensions[get_column_letter(li)].width = 22
+        ws_list.sheet_state = "hidden"
+        n_rows = max(len(rows) + 50, 200)
+        for col_idx, key in enumerate((k for _, k in hdrs), start=1):
+            if key not in faceta_para_lista_col:
+                continue
+            lc = faceta_para_lista_col[key]
+            letter_list = get_column_letter(lc)
+            n_itens = max(1, len(facetas.get(key) or facetas.get(COL_SUBCATEGORIA) or []))
+            formula = f"Listas!${letter_list}$2:${letter_list}${n_itens + 1}"
+            dv = DataValidation(
+                type="list",
+                formula1=formula,
+                allow_blank=True,
+                showDropDown=False,
+                showErrorMessage=False,
+                showInputMessage=True,
+                promptTitle=_FACETA_ROTULO.get(key, key),
+                prompt="Escolha da lista (ainda dá para digitar outro nome).",
+            )
+            letter = get_column_letter(col_idx)
+            dv.add(f"{letter}2:{letter}{n_rows}")
+            ws.add_data_validation(dv)
+
     ws.protection.sheet = True
     buf = BytesIO()
     wb.save(buf)
@@ -1335,9 +1646,16 @@ def preview_importacao_cadastro(
     if on_progress:
         on_progress(8, f"Conferindo {len(pendentes)} linha(s) preenchida(s)…")
 
+    try:
+        facetas = carregar_facetas_planilha()
+    except Exception:
+        facetas = {k: [] for k in _COLS_FACETA}
+    canonicos = {k: _mapa_canonico_faceta(facetas.get(k) or []) for k in _COLS_FACETA}
+
     mapa = _mapa_estado_atual_produtos([p["id"] for p in pendentes], on_progress=on_progress)
     total_pend = len(pendentes)
     step = max(1, total_pend // 40)
+    eventos_faceta: list[dict] = []
 
     for idx, item in enumerate(pendentes):
         pid = item["id"]
@@ -1352,38 +1670,79 @@ def preview_importacao_cadastro(
         if not atual:
             erros.append({"linha": i, "id": pid, "erro": "Produto não encontrado no catálogo."})
             continue
-        if not _tem_alteracao(atual, patch):
-            ignoradas.append({"linha": i, "id": pid, "motivo": "Valores iguais ao cadastro atual."})
+
+        patch_res, evs, _errs_fac = _resolver_facetas_no_patch(
+            patch, facetas, canonicos, permitir_novos=True, linha=i
+        )
+        eventos_faceta.extend(evs)
+
+        if not _tem_alteracao(atual, patch_res):
+            if not _tem_alteracao(atual, patch):
+                ignoradas.append({"linha": i, "id": pid, "motivo": "Valores iguais ao cadastro atual."})
+            else:
+                ignoradas.append(
+                    {
+                        "linha": i,
+                        "id": pid,
+                        "motivo": "Após corrigir typo, valores iguais ao cadastro.",
+                    }
+                )
             continue
 
-        verr_del = _validar_patch_delivery(atual, patch)
+        verr_del = _validar_patch_delivery(atual, patch_res)
         if verr_del:
             erros.append({"linha": i, "id": pid, "erro": verr_del})
             continue
 
-        merged = _merged_row(atual, patch)
+        merged = _merged_row(atual, patch_res)
         vmsg = _validar_merged(merged)
         if vmsg:
             erros.append({"linha": i, "id": pid, "erro": vmsg})
             continue
 
+        novos_na_linha = [e for e in evs if e.get("acao") == "novo"]
+        if novos_na_linha:
+            for nv in novos_na_linha:
+                erros.append(
+                    {
+                        "linha": i,
+                        "id": pid,
+                        "erro": (
+                            f"{nv.get('rotulo')} «{nv.get('valor')}» ainda não cadastrado. "
+                            "Marque «Permitir criar novos» para gravar, ou use a lista / sugestão."
+                        ),
+                        "tipo": "valor_novo",
+                        "campo": nv.get("campo"),
+                        "valor": nv.get("valor"),
+                    }
+                )
+
         campos = []
         for k in IMPORT_KEYS:
-            if k not in patch:
+            if k not in patch_res:
                 continue
-            campos.append(
-                {
-                    "campo": k,
-                    "de": atual.get(k),
-                    "para": patch[k],
-                }
-            )
+            item_c = {
+                "campo": k,
+                "de": _valor_atual_campo_import(atual, k) if k not in (COL_PRECO_CUSTO, COL_PRECO_VENDA) else atual.get(k),
+                "para": patch_res[k],
+            }
+            for ev in evs:
+                if ev.get("campo") == k and ev.get("acao") == "corrigir":
+                    item_c["sugestao"] = ev.get("sugestao")
+                    item_c["de_planilha"] = ev.get("valor")
+                    item_c["nota"] = f"typo → {ev.get('sugestao')}"
+                elif ev.get("campo") == k and ev.get("acao") == "novo":
+                    item_c["nota"] = "valor novo"
+            campos.append(item_c)
+        if not campos:
+            continue
         alteracoes.append(
             {
                 "linha": i,
                 "id": pid,
                 "nome": merged.get("nome") or atual.get("nome") or "",
                 "campos": campos,
+                "tem_valor_novo": bool(novos_na_linha),
             }
         )
 
@@ -1399,14 +1758,25 @@ def preview_importacao_cadastro(
             }
         )
 
+    valores_novos, correcoes = _resumir_eventos_faceta(eventos_faceta)
+    n_ok = sum(1 for a in alteracoes if not a.get("tem_valor_novo"))
+    n_bloqueadas_novo = sum(1 for a in alteracoes if a.get("tem_valor_novo"))
+
     return {
         "total_linhas": len(rows_raw),
         "alteracoes": alteracoes[:500],
         "n_alteracoes": len(alteracoes),
+        "n_alteracoes_ok": n_ok,
+        "n_bloqueadas_valor_novo": n_bloqueadas_novo,
         "ignoradas": ignoradas[:80],
         "n_ignoradas": len(ignoradas),
         "erros": erros[:120],
         "n_erros": len(erros),
+        "valores_novos": valores_novos[:80],
+        "n_valores_novos": len(valores_novos),
+        "correcoes_sugeridas": correcoes[:80],
+        "n_correcoes_sugeridas": len(correcoes),
+        "permitir_novos_padrao": False,
     }
 
 
@@ -1727,6 +2097,7 @@ def aplicar_importacao_cadastro(
     user,
     *,
     nome_arquivo: str = "",
+    permitir_novos: bool = False,
     on_progress: None | Any = None,
 ) -> dict[str, Any]:
     from produtos.agro_fonte_config import agro_catalogo_usa_postgres
@@ -1766,25 +2137,45 @@ def aplicar_importacao_cadastro(
     if on_progress:
         on_progress(8, f"Conferindo {len(candidatos)} linha(s) com dados…")
 
+    try:
+        facetas = carregar_facetas_planilha()
+    except Exception:
+        facetas = {k: [] for k in _COLS_FACETA}
+    canonicos = {k: _mapa_canonico_faceta(facetas.get(k) or []) for k in _COLS_FACETA}
+
     mapa = _mapa_estado_atual_produtos([c["id"] for c in candidatos], on_progress=on_progress)
 
     fila: list[dict] = []
+    bloqueados_novo = 0
     for item in candidatos:
         pid = item["id"]
         patch = item["patch"]
         i = item["linha"]
         atual = mapa.get(pid)
-        if not atual or not _tem_alteracao(atual, patch):
+        if not atual:
             continue
-        if _validar_patch_delivery(atual, patch):
+        patch_res, _evs, errs_fac = _resolver_facetas_no_patch(
+            patch, facetas, canonicos, permitir_novos=permitir_novos, linha=i
+        )
+        if errs_fac:
+            bloqueados_novo += 1
             continue
-        merged = _merged_row(atual, patch)
+        if not _tem_alteracao(atual, patch_res):
+            continue
+        if _validar_patch_delivery(atual, patch_res):
+            continue
+        merged = _merged_row(atual, patch_res)
         vmsg = _validar_merged(merged)
         if vmsg:
             continue
-        fila.append({"linha": i, "id": pid, "patch": patch, "atual": atual})
+        fila.append({"linha": i, "id": pid, "patch": patch_res, "atual": atual})
 
     if not fila:
+        if bloqueados_novo:
+            raise ValueError(
+                f"{bloqueados_novo} linha(s) com marca/categoria/sub nova. "
+                "Marque «Permitir criar novos» ou use nomes da lista / correção de typo."
+            )
         raise ValueError("Nenhuma alteração válida para gravar — confira a prévia.")
 
     if on_progress:
@@ -1831,7 +2222,7 @@ def aplicar_importacao_cadastro(
             nome_arquivo=str(nome_arquivo or "")[:255],
             n_produtos=len(backups),
             n_campos=n_campos_total,
-            backup={"items": backups},
+            backup={"items": backups, "permitir_novos": bool(permitir_novos)},
             **(
                 {"tipo": CadastroPlanilhaImportHistoricoAgro.Tipo.CADASTRO}
                 if hasattr(CadastroPlanilhaImportHistoricoAgro, "tipo")
@@ -1850,6 +2241,8 @@ def aplicar_importacao_cadastro(
         "gravados": ok,
         "falhas": falhas[:80],
         "n_falhas": len(falhas),
+        "n_bloqueados_valor_novo": bloqueados_novo,
         "historico_id": historico_id,
-        "n_alteracoes": len(fila),
+        "n_alteracoes": ok,
+        "permitir_novos": bool(permitir_novos),
     }
