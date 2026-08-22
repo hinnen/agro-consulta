@@ -2,6 +2,7 @@
 """Prova path FECHAR-CAIXA-LOJA — Vila/Centro auto oculto + Point só pinpad + autosave intacto."""
 from __future__ import annotations
 
+import json
 import os
 import sys
 from decimal import Decimal
@@ -15,21 +16,22 @@ import django
 
 django.setup()
 
-from django.contrib.auth import get_user_model
-from django.test import Client
-from django.urls import reverse
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+from django.test import RequestFactory
 
 from produtos.caixa_util import (
     FORMAS_CONFERENCIA_CAIXA,
     FORMAS_MP_POINT_AUTO_CONFERENCIA,
+    filtrar_sessoes_por_deposito,
     forma_fechamento_auto_ocultavel,
     linha_conferencia_caixa_de_pagamento,
     pagamento_linha_eh_mp_point_auto,
     pagamentos_por_linha_conferencia_venda,
     serializar_estado_conferencia_fechar,
 )
-from produtos.models import SessaoCaixa
-from produtos.pdv_deposito_util import SESSION_KEY
+from produtos.views import api_caixa_conferencia_estado
 
 FAILS: list[str] = []
 OKS = 0
@@ -55,53 +57,68 @@ def check(cond: bool, msg: str) -> None:
 
 def _prova_api_estado_nao_mistura_lojas() -> None:
     """Com Centro e Vila abertos, o refresh da Vila não soma o dinheiro do Centro."""
-    User = get_user_model()
-    user, _ = User.objects.get_or_create(
-        username="fechar_loja_verify_bot", defaults={"is_staff": True}
-    )
-    s_v = SessaoCaixa.objects.create(
-        ponto_caixa="vila", valor_abertura=Decimal("333.33"), usuario=user
-    )
-    s_c = SessaoCaixa.objects.create(
-        ponto_caixa="gaveta", valor_abertura=Decimal("777.77"), usuario=user
-    )
-    try:
-        client = Client()
-        client.force_login(user)
-        sess = client.session
-        sess[SESSION_KEY] = "vila"
-        sess.save()
-        r = client.get(reverse("api_caixa_conferencia_estado") + "?escopo=loja")
-        if r.status_code != 200:
-            fail(f"api estado vila HTTP {r.status_code}")
-            return
-        data = r.json()
-        if not data.get("ok"):
-            fail("api estado vila sem ok")
-            return
-        ids = {int(c.get("sessao_id") or 0) for c in (data.get("cards") or [])}
-        check(s_v.pk in ids, "api loja vila inclui sessao vila")
-        check(s_c.pk not in ids, "api loja vila nao inclui gaveta centro")
-        tot = Decimal(str(data.get("tot_esperado_dinheiro") or "0"))
-        check(tot >= Decimal("333.33"), "api vila inclui abertura 333.33")
-        check(
-            tot != (Decimal("333.33") + Decimal("777.77")),
-            "api vila nao soma fundo do Centro",
+
+    class _Rel:
+        def all(self):
+            return []
+
+    def _sess(pk: int, ponto: str, abertura: str):
+        return SimpleNamespace(
+            pk=pk,
+            ponto_caixa=ponto,
+            valor_abertura=Decimal(abertura),
+            usuario=None,
+            usuario_id=None,
+            vendas=_Rel(),
+            movimentos=_Rel(),
+            fechado_em=None,
         )
 
-        sess[SESSION_KEY] = "centro"
-        sess.save()
-        r2 = client.get(reverse("api_caixa_conferencia_estado") + "?escopo=operacional")
-        if r2.status_code != 200 or not r2.json().get("ok"):
-            fail("api estado centro HTTP")
-            return
-        ids2 = {int(c.get("sessao_id") or 0) for c in (r2.json().get("cards") or [])}
+    s_v = _sess(101, "vila", "333.33")
+    s_c = _sess(202, "gaveta", "777.77")
+    only_v = filtrar_sessoes_por_deposito([s_v, s_c], "vila")
+    only_c = filtrar_sessoes_por_deposito([s_v, s_c], "centro")
+    check(only_v == [s_v], "filtro deposito vila so vila")
+    check(only_c == [s_c], "filtro deposito centro so gaveta")
+
+    qs = MagicMock()
+    qs.select_related.return_value = qs
+    qs.prefetch_related.return_value = qs
+    qs.order_by.return_value = [s_v, s_c]
+    rf = RequestFactory()
+    req = rf.get("/api/caixa/conferencia-estado/", {"escopo": "loja"})
+    req.user = SimpleNamespace(is_authenticated=True, pk=1)
+    req.session = {}
+
+    def _chama(dep: str, escopo: str):
+        r = rf.get("/api/caixa/conferencia-estado/", {"escopo": escopo})
+        r.user = req.user
+        r.session = {}
+        with (
+            patch("produtos.views.SessaoCaixa.objects.filter", return_value=qs),
+            patch("produtos.views.deposito_caixa_browser", return_value=dep),
+        ):
+            return api_caixa_conferencia_estado(r)
+
+    try:
+        resp = _chama("vila", "loja")
+        data = json.loads(resp.content.decode())
+        ids = {int(c.get("sessao_id") or 0) for c in (data.get("cards") or [])}
+        tot = Decimal(str(data.get("tot_esperado_dinheiro") or "0"))
+        check(data.get("ok") is True, "api loja vila ok")
+        check(s_v.pk in ids, "api loja vila inclui sessao vila")
+        check(s_c.pk not in ids, "api loja vila nao inclui gaveta centro")
+        check(tot == Decimal("333.33"), "api vila esperado so 333.33")
+
+        resp2 = _chama("centro", "operacional")
+        data2 = json.loads(resp2.content.decode())
+        ids2 = {int(c.get("sessao_id") or 0) for c in (data2.get("cards") or [])}
+        tot2 = Decimal(str(data2.get("tot_esperado_dinheiro") or "0"))
         check(s_c.pk in ids2, "api operacional centro inclui gaveta")
         check(s_v.pk not in ids2, "api operacional centro nao inclui vila")
+        check(tot2 == Decimal("777.77"), "api centro esperado so 777.77")
     except Exception as exc:
         fail(f"api estado loja: {exc}")
-    finally:
-        SessaoCaixa.objects.filter(pk__in=[s_v.pk, s_c.pk]).delete()
 
 
 def main() -> int:
