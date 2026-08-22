@@ -1229,6 +1229,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — MP-POINT-PIN-STICKY (`deploy/mp-point-pin-sticky` · **v17.76**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.76** · `producao` @ **5ad0f1d1** |
+| **Pacotes** | **MP-POINT-PIN-STICKY** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-mp-point-pin-sticky-v17.75` @ **cb92c12b** · branch `producao-backup-pre-v1776-mp-point-pin-sticky-20260822` + frase + senha |
+| **O quê** | PIN gerencial **encerra de vez** o órfão da maquininha (PENDING **e** PAID). O aviso (ex. R$ 2,40 Centro) **não volta** na venda seguinte. |
+| **Prova** | sticky path **59/59** · pin forcar **9/9** · pin path **23/23** · cancel-safe **21/21** · vila **41/41** |
+| **Você** | **Ctrl+F5** PDV Centro · PIN **uma vez** no aviso do R$ 2,40 · as próximas vendas fecham sem o overlay · badge **17.76** |
+
+### ~~📦 PACOTE PRONTO — Point PIN não gruda (`MP-POINT-PIN-STICKY`)~~ · **Live v17.76**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.76**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-PIN-STICKY** | ✅ **enviado / Live v17.76** | **NÃO** |
+
 ### ✅ Deploy loja — PLANILHA-IMPORT-FACETA (`deploy/planilha-import-faceta` · **v17.75**) · **Live**
 
 | Item | Detalhe |
@@ -1241,18 +1261,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | **Ctrl+F5** `/produtos/cadastro-erp/` · Excel ↑ · categoria nova · marque **Permitir criar novos** · badge **17.75** |
 
 ### ~~🚀 PREP deploy loja — PLANILHA-IMPORT-FACETA~~ · **superado — Live v17.75**
-
-### 📦 PACOTE PRONTO — Point PIN não gruda (`MP-POINT-PIN-STICKY`) · teste **v17.76**
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🚚 **subindo produção** |
-| **O quê** | PIN gerencial **encerra de vez** o órfão da maquininha (PENDING **e** PAID). O aviso (ex. R$ 2,40 Centro) **não volta** na venda seguinte. |
-| **Por quê** | O PIN só abria bypass de 30 min e, se o MP já tinha cobrado, **promovia a PAID**. Depois de fechar a venda o bypass sumia e o bloqueio voltava em **todas** as vendas do PC. |
-| **Migrate** | **NÃO** |
-| **Prova** | sticky path **59/59** · pin forcar **9/9** · pin path **23/23** · cancel-safe **21/21** · vila **41/41** |
-| **Você** | Ctrl+F5 PDV Centro · PIN **uma vez** no aviso do R$ 2,40 · as próximas vendas fecham sem o overlay |
-| **Rollback** | tag `rollback/pre-mp-point-pin-sticky-v17.75` @ **cb92c12b** + frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.75**)
 
