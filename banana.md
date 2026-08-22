@@ -1239,7 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **CATALOGO-CAPA-COR** | ✅ **enviado / Live v17.79** | **SIM** (`0098`) |
 
-> Loja hoje: ✅ **Live v17.79** (CATALOGO-CAPA-COR). `producao` @ **69c0acc8**. Rollback: tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822`.
+> Loja hoje: ✅ **Live v17.79** (CATALOGO-CAPA-COR). `producao` @ **19356d89**. Rollback: tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822`.
 
 ### 📦 PACOTE PRONTO — Capa e cor em todos os níveis (`CATALOGO-CAPA-COR` · **v17.79**) · **Live**
 
@@ -1259,7 +1259,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v17.79** · `producao` @ **69c0acc8** |
+| **Status** | ✅ **enviado / Live v17.79** · `producao` @ **19356d89** |
 | **Pacotes** | **CATALOGO-CAPA-COR** |
 | **Migrate** | **SIM** (`0098`) — `manage.py migrate` no build Render |
 | **Rollback** | tag `rollback/pre-catalogo-capa-cor-v17.78` @ **328a675f** · branch `producao-backup-pre-v1779-catalogo-capa-cor-20260822` + frase + senha |
