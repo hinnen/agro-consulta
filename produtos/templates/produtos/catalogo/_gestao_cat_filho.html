@@ -1,11 +1,23 @@
-<li class="py-1">
-  <div class="flex items-center justify-between gap-2 text-sm">
-    <span class="font-semibold text-slate-700">
-      {% if profundidade == 2 %}↳{% elif profundidade == 3 %}↳↳{% elif profundidade == 4 %}↳↳↳{% else %}↳↳↳↳{% endif %}
-      {{ no.nome }}{% if not no.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}
-      <span class="text-[0.6rem] font-bold text-slate-400 ml-1">N{{ profundidade }}</span>
-    </span>
-    <div class="flex gap-1">
+<li class="py-1.5">
+  <div class="flex items-start justify-between gap-2 text-sm">
+    <div class="flex gap-2 min-w-0 flex-1">
+      <div class="w-10 h-10 shrink-0 rounded-lg overflow-hidden border border-slate-200 flex items-center justify-center text-sm font-black" data-cat-thumb="{{ no.id }}" style="background: {{ no.cor|default:'#ecfdf5' }}; color: {{ no.cor|default:'#047857' }}">
+        {% if no.imagem %}
+        <img src="{{ no.imagem }}" alt="" class="w-full h-full object-cover">
+        {% else %}
+        <span>{{ no.nome|slice:":1" }}</span>
+        {% endif %}
+      </div>
+      <div class="min-w-0">
+        <p class="font-semibold text-slate-700">
+          {% if profundidade == 2 %}↳{% elif profundidade == 3 %}↳↳{% elif profundidade == 4 %}↳↳↳{% else %}↳↳↳↳{% endif %}
+          {{ no.nome }}{% if not no.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}
+          <span class="text-[0.6rem] font-bold text-slate-400 ml-1">N{{ profundidade }}</span>
+        </p>
+        {% include "produtos/catalogo/_gestao_cat_visual.html" with no=no %}
+      </div>
+    </div>
+    <div class="flex gap-1 shrink-0 pt-0.5">
       <form method="post">{% csrf_token %}<input type="hidden" name="acao" value="toggle_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button class="text-[0.65rem] font-bold px-2 py-1 rounded border">On/Off</button></form>
       <form method="post" onsubmit="return confirm('Excluir «{{ no.nome|escapejs }}» (N{{ profundidade }})?\n\nNíveis abaixo também serão apagados.');">{% csrf_token %}<input type="hidden" name="acao" value="excluir_categoria"><input type="hidden" name="cat_id" value="{{ no.id }}"><button type="submit" class="text-[0.65rem] font-bold px-2 py-1 rounded border border-red-300 text-red-700">X</button></form>
     </div>

@@ -77,7 +77,7 @@
 
   <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
     <h2 class="text-sm font-black uppercase text-slate-700">Categorias do catálogo</h2>
-    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). Foto do card: escolha o arquivo e toque em <strong>Salvar foto</strong> na categoria (o botão «Salvar loja» de cima não grava foto). Para apagar uma criada por engano: <strong>Excluir</strong> / <strong>X</strong> (apaga também os níveis abaixo).</p>
+    <p class="text-xs text-slate-500 leading-relaxed">Até <strong>5 níveis</strong> (ex.: Cães → Adulto → Premium → Raça grande → Sênior). <strong>Capa e cor</strong> em cada nível (principal e subs): escolha o arquivo e toque em <strong>Salvar capa</strong> / <strong>Salvar cor</strong> — o botão «Salvar loja» de cima não grava isso. Também dá para editar na aba <strong>10. Delivery</strong> do cadastro. Para apagar: <strong>Excluir</strong> / <strong>X</strong> (apaga os níveis abaixo).</p>
 
     <form method="post" class="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
       {% csrf_token %}
@@ -98,7 +98,7 @@
       <li class="py-3">
         <div class="flex items-start justify-between gap-2">
           <div class="flex gap-2 min-w-0 flex-1">
-            <div class="w-14 h-14 shrink-0 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 flex items-center justify-center text-lg font-black text-emerald-700" data-cat-thumb="{{ c.id }}">
+            <div class="w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center text-lg font-black" data-cat-thumb="{{ c.id }}" style="background: {{ c.cor|default:'#ecfdf5' }}; color: {{ c.cor|default:'#047857' }}">
               {% if c.imagem %}
               <img src="{{ c.imagem }}" alt="" class="w-full h-full object-cover">
               {% else %}
@@ -106,18 +106,10 @@
               {% endif %}
             </div>
             <div class="min-w-0">
-              <p class="font-black text-slate-900">{{ c.nome }}{% if not c.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %}</p>
+              <p class="font-black text-slate-900">{{ c.nome }}{% if not c.ativo %} <span class="text-red-600 text-xs">(off)</span>{% endif %} <span class="text-[0.6rem] font-bold text-slate-400">N1</span></p>
               <p class="text-[0.65rem] font-mono text-slate-400">{{ c.slug }}</p>
-              <div class="mt-1.5 flex flex-wrap items-center gap-1.5 js-foto-cat-box" data-cat-id="{{ c.id }}">
-                {% csrf_token %}
-                <input type="file" accept="image/*" class="text-[0.65rem] max-w-[9rem] js-foto-cat-input">
-                <button type="button" class="text-[0.65rem] font-black px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white js-foto-cat-btn">Salvar foto</button>
-                {% if c.imagem %}
-                <button type="button" class="text-[0.65rem] font-bold px-2 py-1 rounded-lg border border-red-300 text-red-700 js-foto-cat-rem">Tirar foto</button>
-                {% endif %}
-                <span class="text-[0.6rem] font-bold text-slate-500 js-foto-cat-status w-full"></span>
-              </div>
-              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">1) Escolher arquivo · 2) <strong>Salvar foto</strong> (não use «Salvar loja») · ideal 800×600</p>
+              {% include "produtos/catalogo/_gestao_cat_visual.html" with no=c %}
+              <p class="text-[0.6rem] text-slate-500 font-semibold mt-0.5">1) Escolher arquivo · 2) <strong>Salvar capa</strong> · 3) <strong>Salvar cor</strong> (não use «Salvar loja») · ideal 800×600</p>
             </div>
           </div>
           <div class="flex gap-1 shrink-0">
@@ -214,12 +206,15 @@
         'Content-Type': 'application/json',
         'X-CSRFToken': payload.csrf,
       },
-      body: JSON.stringify({
-        id: payload.id,
-        remover: !!payload.remover,
-        imagem_base64: payload.dataUrl || '',
-        imagem_mime: 'image/jpeg',
-      }),
+      body: JSON.stringify((function () {
+        var o = { id: payload.id, remover: !!payload.remover };
+        if (payload.dataUrl) {
+          o.imagem_base64 = payload.dataUrl;
+          o.imagem_mime = 'image/jpeg';
+        }
+        if (payload.cor !== undefined) o.cor = payload.cor;
+        return o;
+      })()),
     });
     var data = {};
     try { data = await res.json(); } catch (e) { data = {}; }
@@ -239,7 +234,7 @@
       btn.addEventListener('click', async function () {
         var f = inp && inp.files && inp.files[0];
         if (!f) {
-          alert('Escolha uma imagem antes de tocar em Salvar foto.');
+          alert('Escolha uma imagem antes de tocar em Salvar capa.');
           return;
         }
         btn.disabled = true;
@@ -249,7 +244,7 @@
           var data = await postFoto({ id: catId, dataUrl: dataUrl, csrf: csrfFrom(box) });
           setThumb(catId, data.imagem || dataUrl);
           setStatus(box, 'Salva! (' + (data.bytes || '?') + ' bytes)', true);
-          alert('Foto da categoria salva com sucesso.');
+          alert('Capa da categoria salva com sucesso.');
         } catch (e) {
           setStatus(box, 'Erro: ' + (e.message || e), false);
           alert('Não salvou a foto:\n' + (e.message || e));
@@ -261,7 +256,7 @@
 
     if (rem) {
       rem.addEventListener('click', async function () {
-        if (!confirm('Remover foto desta categoria?')) return;
+        if (!confirm('Remover capa desta categoria?')) return;
         rem.disabled = true;
         try {
           await postFoto({ id: catId, remover: true, csrf: csrfFrom(box) });
@@ -271,6 +266,29 @@
           alert('Erro ao remover: ' + (e.message || e));
         } finally {
           rem.disabled = false;
+        }
+      });
+    }
+
+    var corInp = box.querySelector('.js-cor-cat-input');
+    var corBtn = box.querySelector('.js-cor-cat-btn');
+    if (corBtn) {
+      corBtn.addEventListener('click', async function () {
+        corBtn.disabled = true;
+        setStatus(box, 'Salvando cor…', true);
+        try {
+          await postFoto({ id: catId, cor: corInp ? corInp.value : '', csrf: csrfFrom(box) });
+          var thumb = document.querySelector('[data-cat-thumb="' + catId + '"]');
+          if (thumb && corInp && !thumb.querySelector('img')) {
+            thumb.style.background = corInp.value || '#ecfdf5';
+            thumb.style.color = corInp.value || '#047857';
+          }
+          setStatus(box, 'Cor salva.', true);
+        } catch (e) {
+          setStatus(box, 'Erro: ' + (e.message || e), false);
+          alert('Não salvou a cor:\n' + (e.message || e));
+        } finally {
+          corBtn.disabled = false;
         }
       });
     }

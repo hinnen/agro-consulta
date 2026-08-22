@@ -2520,9 +2520,15 @@ class CatalogoDeliveryCategoria(models.Model):
     imagem_base64 = models.TextField(
         blank=True,
         default="",
-        help_text="Foto do card na home do catálogo (só categorias principais).",
+        help_text="Foto de capa do card no catálogo (qualquer nível).",
     )
     imagem_mime = models.CharField(max_length=40, blank=True, default="image/jpeg")
+    cor = models.CharField(
+        max_length=7,
+        blank=True,
+        default="",
+        help_text="Cor do card (#059669). Vazio = verde padrão. Vale em qualquer nível.",
+    )
 
     class Meta:
         ordering = ["ordem", "nome"]

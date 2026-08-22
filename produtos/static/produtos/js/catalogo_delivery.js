@@ -306,6 +306,8 @@
           qtd: f.qtd || 0,
           filhos: f.filhos || [],
           qtd_exata: f.qtd_exata || 0,
+          imagem: f.imagem || "",
+          cor: f.cor || "",
         });
       });
       if ((no.qtd_exata || 0) > 0) {
@@ -315,6 +317,8 @@
           qtd: no.qtd_exata || 0,
           filhos: [],
           qtd_exata: no.qtd_exata || 0,
+          imagem: "",
+          cor: no.cor || "",
         });
       }
       return optsN;
@@ -443,15 +447,21 @@
       var html = "";
       lista.forEach(function (s) {
         var letra = (s.nome || "?").charAt(0).toUpperCase();
+        var cor = String(s.cor || "").trim();
+        if (!/^#[0-9a-fA-F]{6}$/.test(cor)) cor = "#059669";
+        var img = String(s.imagem || "").replace(/"/g, "");
+        var media = img
+          ? '<img class="card-cat-img" src="' + img + '" alt="">'
+          : '<div class="card-cat-ph">' + letra + "</div>";
         html +=
-          '<button type="button" class="card-cat sub-home-card" data-slug="' +
+          '<button type="button" class="card-cat sub-home-card" style="--cat-card:' +
+          cor +
+          '" data-slug="' +
           s.slug +
           '" data-nome="' +
           String(s.nome || "").replace(/"/g, "&quot;") +
           '">' +
-          '<div class="card-cat-ph">' +
-          letra +
-          "</div>" +
+          media +
           '<div class="px-2.5 py-2.5">' +
           '<p class="font-black text-slate-900 text-[0.95rem] leading-tight">' +
           (s.nome || "") +
