@@ -1240,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v17.78** (SHA após push) |
+| **Status** | ✅ **enviado / Live v17.78** · `producao` @ **c19f8fe6** |
 | **Pacotes** | **CATALOGO-SKIP-GERAL** · **FECHAR-CAIXA-REPASSE** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-lote-checklist-2208d-v17.76` @ **1a7d25ec** · branch `producao-backup-pre-v1778-lote-2208d-20260822` + frase + senha |
