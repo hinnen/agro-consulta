@@ -267,6 +267,37 @@
     function pathTitulo() {
       return pathStack.map(function (x) { return x.nome; }).filter(Boolean).join(" · ");
     }
+    function escChip(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+    function renderPathChips(el, titulo) {
+      if (!el) return;
+      var parts = String(titulo || "")
+        .split(/\s*[·•]\s*/)
+        .map(function (s) { return s.trim(); })
+        .filter(Boolean);
+      if (!parts.length) {
+        el.innerHTML = '<span class="card-filtro-chip is-atual">Catálogo</span>';
+        return;
+      }
+      el.innerHTML = parts
+        .map(function (nome, i) {
+          var last = i === parts.length - 1;
+          var chip =
+            '<span class="card-filtro-chip' +
+            (last ? " is-atual" : "") +
+            '">' +
+            escChip(nome) +
+            "</span>";
+          if (!last) chip += '<span class="card-filtro-sep" aria-hidden="true">›</span>';
+          return chip;
+        })
+        .join("");
+    }
     function noAtual() {
       if (!pathStack.length) return null;
       var cur = null;
@@ -343,7 +374,7 @@
       viewMode = "nivel";
       esconderTodasViews();
       if (viewSubs) viewSubs.classList.remove("hidden");
-      if (tituloSubPasso) tituloSubPasso.textContent = titulo || "";
+      if (tituloSubPasso) renderPathChips(tituloSubPasso, titulo || "Categoria");
       if (tituloSubAjuda) tituloSubAjuda.textContent = ajuda || "Escolha";
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -353,7 +384,7 @@
       pesoAtual = "";
       esconderTodasViews();
       if (viewPesos) viewPesos.classList.remove("hidden");
-      if (tituloPesoPasso) tituloPesoPasso.textContent = titulo || "Peso";
+      if (tituloPesoPasso) renderPathChips(tituloPesoPasso, titulo || "Peso");
       renderPesos();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
@@ -362,7 +393,7 @@
       viewMode = "produtos";
       esconderTodasViews();
       if (viewProd) viewProd.classList.remove("hidden");
-      if (tituloCat) tituloCat.textContent = titulo || "Produtos";
+      if (tituloCat) renderPathChips(tituloCat, titulo || "Produtos");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
