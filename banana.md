@@ -397,7 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
-- **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
+- **Card Validade BI (18/08):** vencidos iguais nas 3 lojas **até** alguém baixar; baixa só cai o contador **daquela** loja. Clique **Conferir vencidos** abre **Todas + vencidos**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
@@ -473,14 +473,16 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | Cliente **sem CPF** vÃ¡lido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
 | Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
 
-#### DevoluÃ§Ã£o de venda
+#### Devolução de venda
 
-- RepÃµe estoque + saÃ­da no caixa (como antes).
-- Se tinha NFC-e **autorizada** â†’ sistema **tenta cancelar na SEFAZ** com motivo padrÃ£o: *Â«Devolucao de mercadoria registrada no sistema Agro.Â»*
-- **Prazo SEFAZ (NFC-e mod. 65):** cancelamento por evento sÃ³ atÃ© **~30 minutos** apÃ³s a **autorizaÃ§Ã£o do cupom** (regra nacional â€” NT 2018.004 / Ajuste SINIEF 07/2018). O relÃ³gio **nÃ£o** recomeÃ§a na devoluÃ§Ã£o.
-- **Erro 501** = prazo esgotado na SEFAZ. DevoluÃ§Ã£o no Agro segue OK; cupom continua autorizado â†’ **NF-e de devoluÃ§Ã£o (mod. 55)** ou contador.
+- Repõe estoque + saída no caixa (como antes).
+- Se tinha NFC-e **autorizada** e a devolução **totaliza** a venda → na confirmação o sistema **pergunta**: **Devolver e cancelar cupom** ou **Devolver e manter cupom**.
+- Só tenta cancelar na SEFAZ se o operador escolher cancelar (motivo padrão: *«Devolucao de mercadoria registrada no sistema Agro.»*). Payload: `cancelar_nfce` true/false; sem chave → True (compat).
+- **Prazo SEFAZ (NFC-e mod. 65):** cancelamento por evento só até **~30 minutos** após a **autorização do cupom** (regra nacional — NT 2018.004 / Ajuste SINIEF 07/2018). O relógio **não** recomeça na devolução.
+- **Erro 501** = prazo esgotado na SEFAZ. Devolução no Agro segue OK; cupom continua autorizado → **NF-e de devolução (mod. 55)** ou contador.
 - Status local passa a **Cancelada** quando a SEFAZ aceita.
-- BotÃ£o **Cancelar NFC-e** na tela da venda (retry manual).
+- Botão **Cancelar NFC-e** na tela da venda (retry manual).
+- Devolução **parcial**: NFC-e permanece; não pergunta cancelamento.
 
 **UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). ReemissÃ£o em `/vendas/` â†’ apÃ³s autorizar pergunta **Imprimir cupom / Agora nÃ£o**. Aviso pÃ³s-venda NFC-e falhou: toast **no topo**, depois da janela de impressÃ£o Windows.
 
@@ -670,6 +672,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
+- **Reserva / troco na Vila:** valor fixo salvo no Postgres (`reserva_vila`) desconta do envio ao Centro. Tela: campo **Fica na Vila** · opções (dia/%, checks) recolhidas · histórico em 2 colunas (1–15 | 16–31). Migrate `0095`.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 
 ### 4.12 RH
@@ -1260,15 +1263,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Import Excel ↑: checkbox **Permitir criar novos** (marca, categoria, sub 1–4, unidade). Corrige `unexpected keyword argument 'permitir_novos'`. |
 | **Você** | **Ctrl+F5** `/produtos/cadastro-erp/` · Excel ↑ · categoria nova · marque **Permitir criar novos** · badge **17.75** |
 
-### ~~🚀 PREP deploy loja — PLANILHA-IMPORT-FACETA~~ · **superado — Live v17.75**
+### ~~📦 PACOTE PRONTO — Planilha import «Permitir criar novos»~~ · **Live v17.75**
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **PLANILHA-IMPORT-FACETA** | ✅ **enviado / Live v17.75** | **NÃO** |
-
-### ~~📦 PACOTE PRONTO — Planilha import «Permitir criar novos»~~ · **Live v17.75**
 
 ### ✅ Deploy loja — CAT-DEL-EXCLUIR (`deploy/cat-del-excluir` · **v17.74**) · **Live**
 
@@ -1278,6 +1279,170 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pacotes** | **CAT-DEL-EXCLUIR** |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-cat-del-excluir-v17.72` @ **26a947e** + frase + senha |
+| **Você** | **Ctrl+F5** Cadastro → Delivery → **−** · ou `/catalogo/gestao/` → Excluir · badge **17.74** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **CAT-DEL-EXCLUIR** | Botão **−** Delivery + Excluir/X na gestão · limpa vínculo · apaga subníveis | Ctrl+F5 Cadastro / `/catalogo/gestao/` |
+
+### ~~🚀 PREP deploy loja — CAT-DEL-EXCLUIR~~ · **superado — Live v17.74**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (21/08 · loja **v17.74**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAT-DEL-EXCLUIR** | ✅ **enviado / Live v17.74** | **NÃO** |
+
+### ~~📦 PACOTE PRONTO — Excluir categoria Delivery~~ · **Live v17.74**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.74** |
+| **O quê** | Botão **−** na aba Delivery (cadastro) + Excluir/X em `/catalogo/gestao/` · limpa vínculo nos produtos · apaga subníveis |
+| **Loja** | `producao` @ **273450d** |
+
+### ✅ Deploy loja — lote 20/08b (`deploy/lote-checklist-2008b` · **v17.72**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.72** · `producao` @ **26a947e** |
+| **Pacotes** | **CATALOGO-5N-PESO** · **REPASSE-RESERVA-LUCRO** · **DEVOL-NFCE-ASK** · **PLANILHA-DELIVERY** |
+| **Migrate** | **SIM** `0097` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008b-v17.43` @ **5bd7f66** + frase + senha |
+| **Você** | **Ctrl+F5** `/catalogo/` · Cadastro Excel Delivery · `/repasse-vila/` · devolução NFC-e · badge **17.72** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **CATALOGO-5N-PESO** | `/catalogo/` 5 níveis + peso | `/catalogo/` · gestão N5 |
+| **REPASSE-RESERVA-LUCRO** | Manual sai do lucro antes do % | `/repasse-vila/` · Log |
+| **DEVOL-NFCE-ASK** | Devolução total pergunta NFC-e | venda c/ NFC-e · devolver tudo |
+| **PLANILHA-DELIVERY** | Excel Delivery em massa | Cadastro Excel ↓/↑ |
+
+### ~~🚀 PREP deploy loja — lote checklist 20/08b~~ · **superado — Live v17.72**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (20/08b · loja **v17.72**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CATALOGO-5N-PESO** | ✅ **enviado / Live v17.72** | **NÃO** |
+| 2 | **REPASSE-RESERVA-LUCRO** | ✅ **enviado / Live v17.72** | **SIM 0097** |
+| 3 | **DEVOL-NFCE-ASK** | ✅ **enviado / Live v17.72** | **NÃO** |
+| 4 | **PLANILHA-DELIVERY** | ✅ **enviado / Live v17.72** | **NÃO** |
+
+### ~~📦 PACOTE PRONTO — Planilha Excel Delivery~~ · **Live v17.72**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **O quê** | Cadastro Excel ↓/↑: colunas Delivery |
+| **Loja** | `producao` @ **26a947e** |
+
+### ~~📦 PACOTE PRONTO — Devolução pergunta NFC-e~~ · **Live v17.72**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **O quê** | Devolução **total** c/ NFC-e → pergunta **cancelar** ou **manter** cupom |
+
+### ~~📦 PACOTE PRONTO — Reserva no lucro antes do %~~ · **Live v17.72**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **Migrate** | **SIM** `0097` |
+
+### ~~📦 PACOTE PRONTO — Catálogo 5 níveis + peso~~ · **Live v17.72**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.72** |
+| **Branch** | estava em `deploy/catalogo-5n-peso` · agora no lote **2008b** |
+
+### ✅ Deploy loja — lote 20/08 (`deploy/lote-checklist-2008` · **v17.43**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.43** · `producao` @ **5bd7f66** |
+| **Pacotes** | **MP-POINT-CANCEL-SAFE** (+ PIN) · **BI-VAL-BAIXA-LOJA** · **DRE-LUCRO-LOAD** · **REPASSE-RESERVA** |
+| **Migrate** | **SIM** `0095` → `0096` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2008-v17.42` @ **453c041** + frase + senha |
+| **Você** | **Ctrl+F5** PDV · `/` Validade · `/repasse-vila/` · `/financeiro/resumo-gerencial/` · badge **17.43** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **MP-POINT-CANCEL-SAFE** | Timeout cancela · trava órfão · PIN Geraldo/Geraldinho/Renan | PDV · Point auto · Ctrl+F5 |
+| **BI-VAL-BAIXA-LOJA** | Baixa Centro **não** some na Vila | `/` Validade · filtro Vila |
+| **DRE-LUCRO-LOAD** | Gráfico lucro carrega | `/financeiro/resumo-gerencial/` |
+| **REPASSE-RESERVA** | Troco fixo fica na Vila | `/repasse-vila/` |
+
+### ~~🚀 PREP deploy loja — lote 20/08~~ · **superado — Live v17.43**
+
+### ✅ CHECKLIST ÚNICO — enviado produção (20/08 · loja **v17.43**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-CANCEL-SAFE** | ✅ **enviado / Live v17.43** | não |
+| 2 | **BI-VAL-BAIXA-LOJA** | ✅ **enviado / Live v17.43** | **SIM 0096** |
+| 3 | **DRE-LUCRO-LOAD** | ✅ **enviado / Live v17.43** | não |
+| 4 | **REPASSE-RESERVA** | ✅ **enviado / Live v17.43** | **SIM 0095** |
+
+### ~~📦 PACOTE PRONTO LOJA — Point cancel seguro + PIN gerencial~~ · **Live v17.43**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Timeout cancela na máquina · abandon só se MP confirmou · status grava PAID · trava outra forma com Point vivo · **PIN gerencial** (Geraldo / Geraldinho / Renan Hinnen) força liberar em emergência |
+| **Por quê** | Incidente 19/08 R$460 (Point cobrou, PDV não fechou, venda na Renan) |
+| **Migrate** | **NÃO** |
+| **Commits** | `2fd5f98` · `0e41e64` · prova deep `7199464` · loja **v17.43** @ **5bd7f66** |
+| **Prova** | cancel-safe **21/21** · pin **23/23** · Vila path **41/41** · deep **40/40** |
+| **Risco** | Médio — PDV Point Centro/Vila · Ctrl+F5 obrigatório |
+| **Você** | Ctrl+F5 PDV · Point auto · cancelar no PDV = some na máquina · timeout cancela · se travar: PIN Geraldo/Geraldinho/Renan |
+| **Loja** | ✅ **enviado / Live v17.43** |
+
+### ⚠️ INCIDENTE — MP Point Centro (19/08 · Manasses R$460) · **fix no teste — ver PACOTE acima**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | **797** ainda órfão no PG · venda **#5754** mp_renan |
+| **Fix** | PACOTE **MP-POINT-CANCEL-SAFE** (checklist #1) |
+
+### ~~📦 PACOTE PRONTO LOJA — baixa validade por loja (`BI-VAL-BAIXA-LOJA`)~~ · **Live v17.43**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Centro conferiu/baixou vencido → **Vila continua vendo** até conferir lá. Estoque só da loja que baixou. Lote some só quando as **duas** conferiram. |
+| **Por quê** | Antes «Dar baixa» apagava o lote para todo mundo e zerava o card da Vila |
+| **Migrate** | **SIM** `0096_estoque_lote_baixa_por_loja` |
+| **Commit** | fix **21d9c65** · prova **5ea6d7b** · teste **v17.52** · loja **v17.42** |
+| **Risco** | Médio — baixa + estoque por loja · migrate obrigatório |
+| **Prova** | path **44/44** · unificado **16/16** · salvar **18/18** · validade_bi **16/16** · clique **10/10** |
+| **Você** | Ctrl+F5 `/` na **Vila** · filtro Vila → o que o Centro **já apagou hoje não volta**. Daqui pra frente: baixar no Centro e o card da Vila permanece |
+| **Autorizar** | *via lote 20/08* — ver PREP no topo |
+| **Loja** | ✅ **enviado / Live v17.43** |
+
+### 📦 PACOTE PRONTO — Repasse: reserva Vila + layout (`REPASSE-RESERVA`) · **Live v17.43**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Troco fixo **fica na Vila** e desconta do envio · opções recolhidas · dias 1–15 / 16–31 |
+| **Onde** | `/repasse-vila/` + overlay PDV · PG `RepasseVilaConfigAgro.reserva_vila` |
+| **Commit** | `e46671f` · loja **v17.43** |
+| **Migrate** | **SIM** `0095_repasse_vila_reserva` |
+| **Prova (18/08)** | path 115/115 · reserva **70/70** · deep 95/95 · acum-net 28/28 · planos 49/49 |
+| **Você** | Ctrl+F5 `/repasse-vila/` · digite o troco → **Salvar** · conferir total a levar |
+| **Loja** | ✅ **enviado / Live v17.43** |
+
+### 📦 PACOTE PRONTO — DRE gráfico lucro carrega (`DRE-LUCRO-LOAD`) · **Live v17.43**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Gráfico do rodapé **não trava** em «carregando» · 1 leitura do período · barras = lucro líquido/dia (conta do BI) |
+| **Tela** | `/financeiro/resumo-gerencial/` |
+| **Commit** | `12b6ff7` · loja **v17.43** |
+| **Migrate** | **NÃO** |
+| **Prova (18/08)** | verify chart 16/16 · CMV 55/55 · visual 232/232 · `check` OK · **436ms** · BI bruto/pago/Centro/Vila **match** (≤ R$ 0,02) |
+| **Você** | Ctrl+F5 DRE · F5 · gráfico aparece (barras + linha verde) · **Lucro acum.** ≈ card do BI |
+| **Loja** | ✅ **enviado / Live v17.43** |
 
 ### ✅ Deploy loja — lote 18/08m (`deploy/lote-checklist-1808m` · **v17.42**) · **Live**
 
@@ -1286,7 +1451,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **enviado / Live v17.42** · `producao` @ **453c041** |
 | **Pacotes** | **BI-VAL-CLIQUE** · **REPASSE-ACUM-NET** |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** |
+| **Rollback** | tag `rollback/pre-lote-checklist-1808m-v17.30` @ **1036967** + frase + senha |
+| **Você** | **Ctrl+F5** em `/` (Validade = Todas + vencidos) · `/repasse-vila/` · badge **17.42** |
+
+| Pacote | O quê | Você valida |
+| ------ | ----- | ----------- |
+| **BI-VAL-CLIQUE** | Conferir vencidos abre **Todas (C+V)** + só vencidos | `/` · filtro Centro · clicar Validade |
+| **REPASSE-ACUM-NET** | Dinheiro já levado **não** volta no total a levar | `/repasse-vila/` |
 
 ### ~~🚀 PREP deploy loja — lote 18/08m~~ · **superado — Live v17.42**
 
