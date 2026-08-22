@@ -51,7 +51,7 @@ check("produtos/migrations/0095_repasse_vila_reserva.py", "reserva_vila")
 check("produtos/migrations/0097_repasse_reserva_lucro_log.py", "reserva_vila_desde", "RepasseVilaReservaLogAgro")
 check("produtos/templates/produtos/repasse_vila.html", "Transferir", "rv-data", "rv-day", "rv-lucro-ficou", "Enviado ao Centro", "Lucro ficou na Vila", "rv-btn-planos", "rv-planos-modal", "rv-acum", "rv-btn-acum", "rv-acum-zerar", "acumulado já coberto por envio", "acumulado_bruto", "tot + acum", "rv-reserva", "rv-fold", "Dias 1 a 15", "Dias 16 a 31", "rv-log-lista", "penúltimo")
 check("produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html", "pdv-repasse-overlay", "pdv-rp-forma-grid", "pdv-rp-data", "pdv-rp-desp-hint", "pdv-rp-acum", "pdv-rp-acumulado", "pdv-rp-acum-modal", "pdv-rp-acum-zerar", "pdv-rp-reserva")
-check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/", "forma_pagamento: formaPag", "data_ref: dataRef()", "despesas_centro_dia", "incluir_acumulado", "api/repasse-vila/acumulado/", "api/repasse-vila/acumulado/zerar/", "reservaAtual")
+check("produtos/static/produtos/js/pdv_repasse_vila.js", "api/repasse-vila/confirmar/", "forma_pagamento: formaPag", "data_ref: dataRef()", "despesas_centro_dia", "incluir_acumulado", "api/repasse-vila/acumulado/", "api/repasse-vila/acumulado/zerar/", "reservaAtual", "notifyParentFecharAtualizar", "agro-caixa-fechar-atualizar")
 forbid("produtos/static/produtos/js/pdv_repasse_vila.js", "tot - reservaAtual()")
 forbid("produtos/templates/produtos/repasse_vila.html", "tot - reserva")
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay")
@@ -64,6 +64,7 @@ check("scripts/verify_repasse_vila_deep.py", "VERIFY_DEEP_OK", "confirmar_repass
 check("scripts/verify_repasse_planos_path.py", "VERIFY_PLANOS_OK", "planos_desconto_centro")
 check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08", "abater_extras_do_acumulado")
 check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_vila", "lucro_penultimo", "listar_log_reserva", "reserva_aplicada_no_dia")
+check("scripts/verify_caixa_fechar_repasse_path.py", "VERIFY_FECHAR_REPASSE_OK", "escopo=loja", "notifyParentFecharAtualizar")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
