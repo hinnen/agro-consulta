@@ -350,10 +350,11 @@ def check_banana() -> None:
         fail("banana.md sem CATALOGO-SKIP-GERAL")
     else:
         ok("banana.md CATALOGO-SKIP-GERAL")
-    if "pronto para envio" not in txt.split("CATALOGO-SKIP-GERAL", 1)[-1][:800]:
-        fail("banana.md CATALOGO-SKIP-GERAL sem pronto para envio")
+    bloco = txt.split("CATALOGO-SKIP-GERAL", 1)[-1][:800]
+    if "pronto para envio" not in bloco and "enviado / Live" not in bloco:
+        fail("banana.md CATALOGO-SKIP-GERAL sem status de fechamento")
     else:
-        ok("banana.md pronto para envio no pacote")
+        ok("banana.md CATALOGO-SKIP-GERAL com status de fechamento")
 
 
 def check_version() -> None:
