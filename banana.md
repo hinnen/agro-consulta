@@ -1245,6 +1245,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~📦 PACOTE PRONTO — Planilha import «Permitir criar novos»~~ · **Live v17.75**
 
+### 📦 PACOTE PRONTO — Point PIN não gruda (`MP-POINT-PIN-STICKY`) · teste **v17.76**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | PIN gerencial **encerra de vez** o órfão da maquininha (PENDING **e** PAID). O aviso (ex. R$ 2,40 Centro) **não volta** na venda seguinte. |
+| **Por quê** | O PIN só abria bypass de 30 min e, se o MP já tinha cobrado, **promovia a PAID**. Depois de fechar a venda o bypass sumia e o bloqueio voltava em **todas** as vendas do PC. |
+| **Migrate** | **NÃO** |
+| **Path** | wizard fecha → 409 gate → overlay PIN → `forcar-liberar` marca PG → retry → próxima venda livre. Finalize Point **não** passa no gate (venda legítima na máquina). Flag no **Postgres**. |
+| **Prova** | sticky path **59/59** · pin forcar **9/9** · pin path **23/23** · cancel-safe **21/21** · vila **41/41** · `manage.py check` OK · `node --check` wizard OK |
+| **Você** | Ctrl+F5 PDV Centro · PIN **uma vez** no aviso do R$ 2,40 · as próximas vendas fecham sem o overlay |
+| **Loja** | ⏳ falta frase + senha |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (22/08 · loja **v17.75**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-PIN-STICKY** | ✅ **pronto para envio** / teste **v17.76** | **NÃO** |
+
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08 · loja **v17.75**)
 
 | # | Pacote | Status | Migrate |
