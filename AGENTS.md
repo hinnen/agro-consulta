@@ -156,6 +156,11 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - **Valor bruto** em fonte maior; quitação parcial → **bruto + linha Saldo**.  
 - Tabela “Anotações e conferência” mais larga.
 
+**Fechar caixa — refresh após retirada / repasse (Vila)** 
+
+- A tela abre o lote só da loja do aparelho. Depois de retirada/reforço/repasse, o refresh (`api_caixa_conferencia_estado`) também filtra por depósito (`escopo=loja`). Sem isso, Centro + Vila somavam no esperado — e no repasse o −X da Vila + +X do Centro se anulavam.
+- O overlay do repasse avisa a tela de fechar (`agro-caixa-fechar-atualizar`) ao confirmar, não só ao fechar o iframe.
+
 **Caixa — Gaveta / Notebook / Teste**  
 
 - **Gaveta** = turno principal da loja; **Notebook** não cria sessão — vincula o navegador ao PK da gaveta (`pdv_ponto_operacao=notebook`).  

@@ -11716,7 +11716,11 @@ def api_caixa_conferencia_rascunho_salvar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_caixa_conferencia_estado(request):
-    """Valores esperados da conferência (atualizar após reforço/retirada sem recarregar a página)."""
+    """Valores esperados da conferência (atualizar após reforço/retirada/repasse sem recarregar).
+
+    ``escopo=loja`` / ``operacional``: só a loja deste aparelho (Centro ou Vila),
+    igual ao lote do Fechar caixa. ``todos`` mistura as duas; ``teste`` só teste.
+    """
     sessoes_qs = (
         SessaoCaixa.objects.filter(fechado_em__isnull=True)
         .select_related("usuario")
@@ -11735,12 +11739,14 @@ def api_caixa_conferencia_estado(request):
             }
         )
     escopo = (request.GET.get("escopo") or "operacional").strip().lower()
+    dep_browser = deposito_caixa_browser(request)
     if escopo == "teste":
         alvo = filtrar_sessoes_teste(sessoes)
     elif escopo == "todos":
         alvo = sessoes
     else:
-        alvo = filtrar_sessoes_operacional(sessoes)
+        # operacional / loja: mesma regra do Fechar caixa — não misturar Centro + Vila
+        alvo = filtrar_sessoes_por_deposito(sessoes, dep_browser)
     if not alvo:
         return JsonResponse(
             {
@@ -11751,9 +11757,7 @@ def api_caixa_conferencia_estado(request):
                 "cards": [],
             }
         )
-    estado = serializar_estado_conferencia_fechar(
-        alvo, deposito=deposito_caixa_browser(request)
-    )
+    estado = serializar_estado_conferencia_fechar(alvo, deposito=dep_browser)
     return JsonResponse({"ok": True, **estado})
 
 
