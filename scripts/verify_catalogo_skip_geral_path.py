@@ -358,10 +358,15 @@ def check_banana() -> None:
 
 def check_version() -> None:
     v = read("VERSION").strip()
-    if v != "17.76":
-        fail(f"VERSION={v} (esperado 17.76)")
+    try:
+        major, minor = v.split(".", 1)
+        ok_ver = int(major) > 17 or (int(major) == 17 and int(minor) >= 77)
+    except ValueError:
+        ok_ver = False
+    if not ok_ver:
+        fail(f"VERSION={v} (esperado >= 17.77)")
     else:
-        ok("VERSION 17.76")
+        ok(f"VERSION {v} (>=17.77)")
 
 
 def main() -> None:
