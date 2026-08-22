@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -14,6 +15,10 @@ import django
 
 django.setup()
 
+from django.contrib.auth import get_user_model
+from django.test import Client
+from django.urls import reverse
+
 from produtos.caixa_util import (
     FORMAS_CONFERENCIA_CAIXA,
     FORMAS_MP_POINT_AUTO_CONFERENCIA,
@@ -23,6 +28,8 @@ from produtos.caixa_util import (
     pagamentos_por_linha_conferencia_venda,
     serializar_estado_conferencia_fechar,
 )
+from produtos.models import SessaoCaixa
+from produtos.pdv_deposito_util import SESSION_KEY
 
 FAILS: list[str] = []
 OKS = 0
@@ -46,6 +53,57 @@ def check(cond: bool, msg: str) -> None:
         fail(msg)
 
 
+def _prova_api_estado_nao_mistura_lojas() -> None:
+    """Com Centro e Vila abertos, o refresh da Vila não soma o dinheiro do Centro."""
+    User = get_user_model()
+    user, _ = User.objects.get_or_create(
+        username="fechar_loja_verify_bot", defaults={"is_staff": True}
+    )
+    s_v = SessaoCaixa.objects.create(
+        ponto_caixa="vila", valor_abertura=Decimal("333.33"), usuario=user
+    )
+    s_c = SessaoCaixa.objects.create(
+        ponto_caixa="gaveta", valor_abertura=Decimal("777.77"), usuario=user
+    )
+    try:
+        client = Client()
+        client.force_login(user)
+        sess = client.session
+        sess[SESSION_KEY] = "vila"
+        sess.save()
+        r = client.get(reverse("api_caixa_conferencia_estado") + "?escopo=loja")
+        if r.status_code != 200:
+            fail(f"api estado vila HTTP {r.status_code}")
+            return
+        data = r.json()
+        if not data.get("ok"):
+            fail("api estado vila sem ok")
+            return
+        ids = {int(c.get("sessao_id") or 0) for c in (data.get("cards") or [])}
+        check(s_v.pk in ids, "api loja vila inclui sessao vila")
+        check(s_c.pk not in ids, "api loja vila nao inclui gaveta centro")
+        tot = Decimal(str(data.get("tot_esperado_dinheiro") or "0"))
+        check(tot >= Decimal("333.33"), "api vila inclui abertura 333.33")
+        check(
+            tot != (Decimal("333.33") + Decimal("777.77")),
+            "api vila nao soma fundo do Centro",
+        )
+
+        sess[SESSION_KEY] = "centro"
+        sess.save()
+        r2 = client.get(reverse("api_caixa_conferencia_estado") + "?escopo=operacional")
+        if r2.status_code != 200 or not r2.json().get("ok"):
+            fail("api estado centro HTTP")
+            return
+        ids2 = {int(c.get("sessao_id") or 0) for c in (r2.json().get("cards") or [])}
+        check(s_c.pk in ids2, "api operacional centro inclui gaveta")
+        check(s_v.pk not in ids2, "api operacional centro nao inclui vila")
+    except Exception as exc:
+        fail(f"api estado loja: {exc}")
+    finally:
+        SessaoCaixa.objects.filter(pk__in=[s_v.pk, s_c.pk]).delete()
+
+
 def main() -> int:
     html = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
     inc = (ROOT / "produtos/templates/produtos/includes/caixa_fechar_linha_conf.html").read_text(
@@ -64,6 +122,16 @@ def main() -> int:
     check("aplicarAutoContadoEsperado" in html, "JS auto fill")
     check("pagamento_linha_eh_mp_point_auto" in util, "point auto helper")
     check("Fiado" in FORMAS_CONFERENCIA_CAIXA, "Fiado na lista conferencia")
+    check("escopo=loja" in html, "refresh conferencia filtra loja")
+    check("filtrar_sessoes_por_deposito" in views, "api estado filtra deposito")
+    js_repasse = (ROOT / "produtos/static/produtos/js/pdv_repasse_vila.js").read_text(
+        encoding="utf-8"
+    )
+    check(
+        "agro-caixa-fechar-atualizar" in js_repasse,
+        "repasse avisa tela fechar",
+    )
+    check("notifyParentFecharAtualizar" in js_repasse, "repasse notify parent fn")
 
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "mp_balcao"}), "mp_balcao = point")
     check(pagamento_linha_eh_mp_point_auto({"maquinaId": "pix_mp_qr"}), "pix_mp_qr = point")
@@ -123,6 +191,8 @@ def main() -> int:
         "centro point no bloco auto",
     )
     check(any(L["forma"] == "PIX" and not L.get("grupo_oculto") for L in st_c["linhas"]), "centro PIX visivel")
+
+    _prova_api_estado_nao_mistura_lojas()
 
     print(f"---\noks={OKS} fails={len(FAILS)}")
     if FAILS:

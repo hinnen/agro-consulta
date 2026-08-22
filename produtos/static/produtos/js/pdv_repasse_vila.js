@@ -334,6 +334,14 @@
     document.body.classList.remove('modal-open');
   }
 
+  function notifyParentFecharAtualizar() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'agro-caixa-fechar-atualizar' }, window.location.origin);
+      }
+    } catch (_) {}
+  }
+
   function confirmar() {
     if (busy) return;
     sanitizeManualField();
@@ -399,6 +407,7 @@
         dom.status.textContent = 'OK — enviado ' + money(tot) + ' · ' + (formaPag || '');
         dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
+        notifyParentFecharAtualizar();
         fetchCalc();
         setTimeout(closeOverlay, 900);
       })

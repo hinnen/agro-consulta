@@ -1989,7 +1989,7 @@
   var popupFechar = document.getElementById('cf-popup-fechar');
   var conferenciaEstadoUrl = '{{ api_conferencia_estado_url|escapejs }}';
   if (conferenciaEstadoUrl) {
-    conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=operacional';
+    conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=loja';
   }
   var popupRefreshOnClose = false;
   var conferenciaRefreshTimer = null;
