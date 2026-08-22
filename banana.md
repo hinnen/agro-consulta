@@ -674,6 +674,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva / troco na Vila:** valor fixo salvo no Postgres (`reserva_vila`) desconta do envio ao Centro. Tela: campo **Fica na Vila** · opções (dia/%, checks) recolhidas · histórico em 2 colunas (1–15 | 16–31). Migrate `0095`.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
+- **Fechar caixa após repasse (22/08 · `FECHAR-CAIXA-REPASSE` · teste v17.78):** o refresh do esperado (`api_caixa_conferencia_estado`) filtra a loja do aparelho (`escopo=loja`). Sem isso, Centro + Vila somavam — e no repasse o −X da Vila + +X do Centro se anulavam. Overlay avisa a tela ao confirmar.
 
 ### 4.12 RH
 
@@ -1232,13 +1233,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (22/08c · teste **v17.77**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (22/08d · teste **v17.78**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CATALOGO-SKIP-GERAL** | ✅ **pronto para envio** / teste **v17.77** | **NÃO** |
+| 2 | **FECHAR-CAIXA-REPASSE** | ✅ **pronto para envio** / teste **v17.78** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.76** (MP-POINT-PIN-STICKY). Este lote **ainda não** foi à produção. Autorizar só com frase + senha **depois** de testar local (`/catalogo/` · Ctrl+F5).
+> Loja hoje: ✅ **Live v17.76** (MP-POINT-PIN-STICKY). Este lote **ainda não** foi à produção. Autorizar só com frase + senha **depois** de testar local (`/catalogo/` · Fechar caixa Vila + repasse · Ctrl+F5).
 
 ### 📦 PACOTE PRONTO — Catálogo pula «Geral» (`CATALOGO-SKIP-GERAL` · **v17.77**)
 
@@ -1252,6 +1254,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só vitrine `/catalogo/` · sem migrate · PDV/caixa intactos. Caso misto (produtos no nó **e** subcategorias reais) ainda mostra «Geral» de propósito. |
 | **Prova** | path **VERIFY_OK** · FSM JS (folha / misto / voltar / 5 níveis / raiz / extra slug) · `node --check` · árvore pura 14 produtos na folha |
 | **Você** | **Ctrl+F5** `/catalogo/` · Cão → Adulto → Raças Médias e Grandes → **já os pesos** (sem «Geral») · Voltar volta à lista de Raças (não reabre Geral) · badge **17.77** |
+| **Autorizar** | frase + senha na mesma mensagem |
+
+### 📦 PACOTE PRONTO — Fechar caixa Vila após repasse (`FECHAR-CAIXA-REPASSE` · **v17.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** |
+| **O quê** | Fechar caixa da Vila: depois de retirada/repasse o esperado de Dinheiro **só da loja do aparelho**. O overlay do repasse avisa a tela ao confirmar (`agro-caixa-fechar-atualizar`). |
+| **Por quê** | O refresh usava `escopo=operacional` (Centro + Vila). Com os dois abertos o esperado da Vila subia com o fundo do Centro; no repasse −X (Vila) + +X (Centro) se anulavam — o número **não caía** depois de levar o dinheiro. |
+| **Onde** | `api_caixa_conferencia_estado` · `caixa_fechar.html` (`escopo=loja`) · `pdv_repasse_vila.js` · verify `scripts/verify_caixa_fechar_repasse_path.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só o JSON do refresh e o aviso ao pai. POST do fechamento já filtrava a loja. Sem migrate. |
+| **Prova** | path **68/68** `VERIFY_FECHAR_REPASSE_OK` · fechar-loja **41/41** · repasse path **136/136** · simulação Vila 1000−400 / Centro 200+400 → loja Vila **600** (não 1200) |
+| **Você** | **Ctrl+F5** Fechar caixa **Vila** com Centro aberto · anote o esperado de Dinheiro · faça um **repasse** · o esperado **cai** o valor enviado (não sobe nem fica igual) · badge **17.78** |
 | **Autorizar** | frase + senha na mesma mensagem |
 
 ### ✅ Deploy loja — MP-POINT-PIN-STICKY (`deploy/mp-point-pin-sticky` · **v17.76**) · **Live**
