@@ -271,3 +271,53 @@ class CadastroPlanilhaOverlayProdutoTests(SimpleTestCase):
         self.assertEqual(p.unidade, "KG")
         self.assertEqual(p.subcategoria_2, "")
         self.assertEqual(p.marca, "AKILES")
+
+
+class CadastroPlanilhaPermitirNovosTests(SimpleTestCase):
+    def test_resolver_facetas_bloqueia_novo_sem_flag(self):
+        from produtos.cadastro_planilha_util import (
+            COL_CATEGORIA,
+            _resolver_facetas_no_patch,
+        )
+
+        facetas = {COL_CATEGORIA: ["Racoes", "Medicamentos"]}
+        canonicos = {COL_CATEGORIA: {"racoes": "Racoes", "medicamentos": "Medicamentos"}}
+        patch = {COL_CATEGORIA: "Hortifruti"}
+        out, eventos, erros = _resolver_facetas_no_patch(
+            patch,
+            facetas,
+            canonicos,
+            permitir_novos=False,
+            linha=5,
+        )
+        self.assertEqual(out[COL_CATEGORIA], "Hortifruti")
+        self.assertTrue(any(e.get("acao") == "novo" for e in eventos))
+        self.assertTrue(erros)
+
+    def test_resolver_facetas_permite_novo_com_flag(self):
+        from produtos.cadastro_planilha_util import (
+            COL_CATEGORIA,
+            _resolver_facetas_no_patch,
+        )
+
+        facetas = {COL_CATEGORIA: ["Racoes"]}
+        canonicos = {COL_CATEGORIA: {"racoes": "Racoes"}}
+        patch = {COL_CATEGORIA: "Hortifruti"}
+        out, eventos, erros = _resolver_facetas_no_patch(
+            patch,
+            facetas,
+            canonicos,
+            permitir_novos=True,
+            linha=5,
+        )
+        self.assertEqual(out[COL_CATEGORIA], "Hortifruti")
+        self.assertTrue(any(e.get("acao") == "novo" for e in eventos))
+        self.assertFalse(erros)
+
+    def test_aplicar_importacao_aceita_kwarg_permitir_novos(self):
+        import inspect
+
+        from produtos.cadastro_planilha_util import aplicar_importacao_cadastro
+
+        sig = inspect.signature(aplicar_importacao_cadastro)
+        self.assertIn("permitir_novos", sig.parameters)

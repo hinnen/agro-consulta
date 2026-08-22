@@ -25003,9 +25003,21 @@ def api_produtos_cadastro_import_aplicar(request):
     try:
         tmp_path = _cadastro_planilha_tmp_upload(upload)
         nome = (request.POST.get("nome_arquivo") or upload.name or "")[:255]
+        permitir_novos = str(request.POST.get("permitir_novos") or "").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+            "sim",
+        )
         if sync:
             try:
-                r = aplicar_importacao_cadastro(tmp_path, request.user, nome_arquivo=nome)
+                r = aplicar_importacao_cadastro(
+                    tmp_path,
+                    request.user,
+                    nome_arquivo=nome,
+                    permitir_novos=permitir_novos,
+                )
                 return JsonResponse({"ok": True, **r})
             except ValueError as exc:
                 return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
@@ -25041,6 +25053,7 @@ def api_produtos_cadastro_import_aplicar(request):
                     path_for_thread,
                     user,
                     nome_arquivo=nome,
+                    permitir_novos=permitir_novos,
                     on_progress=on_progress,
                 )
                 total_linhas = int(result.get("n_alteracoes") or total_linhas)

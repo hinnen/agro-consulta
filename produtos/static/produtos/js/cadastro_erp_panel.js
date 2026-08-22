@@ -2695,6 +2695,8 @@
     var elResumo = document.getElementById('cadastro-import-resumo');
     var elErros = document.getElementById('cadastro-import-erros');
     var elPrev = document.getElementById('cadastro-import-preview');
+    var elNovos = document.getElementById('cadastro-import-novos');
+    var chkPermitirNovos = document.getElementById('cadastro-import-permitir-novos');
     var btnPrev = document.getElementById('cadastro-import-previa');
     var btnApl = document.getElementById('cadastro-import-aplicar');
     var btnFec = document.getElementById('cadastro-import-fechar');
@@ -2706,6 +2708,7 @@
     var elProgTrack = elProgWrap ? elProgWrap.querySelector('[role="progressbar"]') : null;
     var pollTimer = null;
     var ultimaPreviaOk = false;
+    var ultimaPreviaDados = null;
 
     function cancelPoll() {
       if (pollTimer) {
@@ -2733,11 +2736,31 @@
       if (elProgTrack) elProgTrack.setAttribute('aria-valuenow', '0');
     }
 
+    function permitirNovosMarcado() {
+      return !!(chkPermitirNovos && chkPermitirNovos.checked);
+    }
+
+    function podeConfirmarImportacao(j) {
+      if (!j || !j.n_alteracoes) return false;
+      var bloqueadas = Number(j.n_bloqueadas_valor_novo || 0);
+      var okSemNovos = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes) || 0;
+      if (okSemNovos > 0) return true;
+      return bloqueadas > 0 && permitirNovosMarcado();
+    }
+
+    function atualizarBtnAplicarImport(j) {
+      if (!btnApl) return;
+      btnApl.disabled = !podeConfirmarImportacao(j);
+    }
+
     function limparImportUi() {
       cancelPoll();
       hideProgress();
       ultimaPreviaOk = false;
+      ultimaPreviaDados = null;
       if (btnApl) btnApl.disabled = true;
+      if (chkPermitirNovos) chkPermitirNovos.checked = false;
+      if (elNovos) { elNovos.classList.add('hidden'); elNovos.innerHTML = ''; }
       if (elResumo) { elResumo.classList.add('hidden'); elResumo.textContent = ''; }
       if (elErros) { elErros.classList.add('hidden'); elErros.innerHTML = ''; }
       if (elPrev) { elPrev.classList.add('hidden'); elPrev.innerHTML = ''; }
@@ -2747,11 +2770,32 @@
       if (elResumo) {
         elResumo.className = 'text-sm font-semibold ' + (j.n_alteracoes > 0 ? 'text-emerald-800' : 'text-amber-800');
         if (j.n_alteracoes > 0) {
-          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s) — pode confirmar abaixo.';
+          var bloqueadas = Number(j.n_bloqueadas_valor_novo || 0);
+          var okSemNovos = Number(j.n_alteracoes_ok != null ? j.n_alteracoes_ok : j.n_alteracoes) || 0;
+          elResumo.textContent = j.n_alteracoes + ' alteração(ões) · ' + j.n_ignoradas + ' ignorada(s) · ' + j.n_erros + ' erro(s)';
+          if (bloqueadas > 0) {
+            elResumo.textContent += ' · ' + bloqueadas + ' com valor novo (marque «Permitir criar novos» para gravar).';
+          } else if (okSemNovos > 0) {
+            elResumo.textContent += ' — pode confirmar abaixo.';
+          }
         } else {
           elResumo.textContent = 'Nenhuma alteração detectada (' + j.n_ignoradas + ' ignorada(s), ' + j.n_erros + ' erro(s)). Edite alguma célula (vazio não altera) ou clique «Ver prévia» de novo após corrigir.';
         }
         elResumo.classList.remove('hidden');
+      }
+      if (elNovos) {
+        if (j.valores_novos && j.valores_novos.length) {
+          elNovos.innerHTML = '<div class="font-black uppercase text-xs mb-1">Valores novos na planilha</div>' +
+            j.valores_novos.slice(0, 20).map(function (v) {
+              var linhas = (v.linhas || []).join(', ');
+              return '<div>' + escapeHtml(String(v.rotulo || v.campo || '')) + ': «' + escapeHtml(String(v.valor || '')) + '»' +
+                (linhas ? ' (linhas ' + linhas + ')' : '') + '</div>';
+            }).join('');
+          elNovos.classList.remove('hidden');
+        } else {
+          elNovos.classList.add('hidden');
+          elNovos.innerHTML = '';
+        }
       }
       if (elErros && j.erros && j.erros.length) {
         elErros.innerHTML = j.erros.slice(0, 40).map(function (e) {
@@ -2772,8 +2816,9 @@
         elPrev.innerHTML = html;
         elPrev.classList.remove('hidden');
       }
-      ultimaPreviaOk = j.n_alteracoes > 0 && (!j.n_erros || j.n_alteracoes > 0);
-      if (btnApl) btnApl.disabled = !(j.n_alteracoes > 0);
+      ultimaPreviaDados = j;
+      ultimaPreviaOk = podeConfirmarImportacao(j);
+      atualizarBtnAplicarImport(j);
     }
 
     function parseHttpJson(r) {
@@ -2980,6 +3025,7 @@
       var file = inpArq.files[0];
       fd.append('arquivo', file);
       fd.append('nome_arquivo', file.name || '');
+      if (permitirNovosMarcado()) fd.append('permitir_novos', '1');
       if (btnPrev) btnPrev.disabled = true;
       if (btnApl) btnApl.disabled = true;
       setLoading(true);
@@ -3071,6 +3117,12 @@
         });
         return;
       }
+    }
+
+    if (chkPermitirNovos) {
+      chkPermitirNovos.addEventListener('change', function () {
+        if (ultimaPreviaDados) atualizarBtnAplicarImport(ultimaPreviaDados);
+      });
     }
 
     if (btnImp) btnImp.addEventListener('click', function () {
