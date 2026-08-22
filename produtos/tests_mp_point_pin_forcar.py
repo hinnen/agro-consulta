@@ -94,6 +94,19 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         self.assertFalse(ok)
         self.assertEqual(row.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
 
+    @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
+    def test_outra_sessao_nao_bloqueia(self, objs):
+        row = _row(status=PdvMercadoPagoPointOrder.Status.PAID)
+        objs.filter.return_value.order_by.return_value.__getitem__.return_value = [row]
+        req = _req("outra-sessao")
+        # filtro usa session_key da request; mock devolve o órfão só se o path consultar —
+        # com session diferente o queryset real seria vazio. Simula lista vazia.
+        objs.filter.return_value.order_by.return_value.__getitem__.return_value = []
+        self.assertIsNone(mp_point_bloqueio_venda_sessao(req))
+        objs.filter.assert_called()
+        kwargs = objs.filter.call_args.kwargs
+        self.assertEqual(kwargs.get("django_session_key"), "outra-sessao")
+
     def test_promover_ainda_funciona_sem_forcar(self):
         row = _row(status=PdvMercadoPagoPointOrder.Status.PENDING, mid="ord-ok")
         ok = _mp_point_promover_pago_local(row, {"status": "processed"})
