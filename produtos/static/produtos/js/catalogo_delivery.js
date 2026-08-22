@@ -285,6 +285,16 @@
       }
       return cur;
     }
+    function filhosReaisNo() {
+      var no = noAtual();
+      return no && Array.isArray(no.filhos) ? no.filhos : [];
+    }
+
+    function temProdutosNoNivelAtual() {
+      var no = noAtual();
+      return !!(no && (no.qtd_exata || 0) > 0);
+    }
+
     function opcoesFilhosNo() {
       var no = noAtual();
       if (!no) return [];
@@ -496,6 +506,12 @@
     }
 
     function irParaPesosOuFilhos() {
+      // Sem subcategorias reais: último nível preenchido → peso da embalagem (sem passo «Geral»).
+      if (!filhosReaisNo().length) {
+        pathExact = temProdutosNoNivelAtual();
+        mostrarPesos(pathTitulo() || "Peso");
+        return;
+      }
       var filhos = opcoesFilhosNo();
       if (filhos.length > 0) {
         renderCardsNivel(filhos, abrirNivel);
@@ -553,9 +569,17 @@
         mostrarHome();
         return;
       }
-      // Se veio de Geral, pathExact true e stack sem _geral — sobe um nível da grade
       if (pathExact) {
         pathExact = false;
+        if (!filhosReaisNo().length) {
+          pathStack.pop();
+          if (!pathStack.length) {
+            mostrarHome();
+            return;
+          }
+          irParaPesosOuFilhos();
+          return;
+        }
         var filhosG = opcoesFilhosNo();
         if (filhosG.length > 0) {
           renderCardsNivel(filhosG, abrirNivel);
