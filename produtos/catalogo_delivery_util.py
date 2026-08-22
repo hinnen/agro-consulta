@@ -21,6 +21,40 @@ from produtos.pdv_racoes_util import parse_peso_racoes
 
 # Árvore delivery: raiz + até 4 níveis filhos (total 5).
 CATALOGO_MAX_NIVEIS = 5
+COR_CARD_PADRAO = "#059669"
+
+
+def normalizar_cor_categoria(valor: str) -> str:
+    """Aceita #RGB / #RRGGBB. Vazio = sem cor própria."""
+    v = (valor or "").strip()
+    if not v:
+        return ""
+    if v.startswith("#"):
+        v = v[1:]
+    hexok = "0123456789abcdefABCDEF"
+    if len(v) == 3 and all(c in hexok for c in v):
+        v = "".join(c * 2 for c in v)
+    if len(v) == 6 and all(c in hexok for c in v):
+        return "#" + v.lower()
+    return ""
+
+
+def cor_card_categoria(valor: str) -> str:
+    return normalizar_cor_categoria(valor) or COR_CARD_PADRAO
+
+
+def url_imagem_categoria(cat: CatalogoDeliveryCategoria | None) -> str:
+    if cat is None:
+        return ""
+    b64 = (getattr(cat, "imagem_base64", None) or "").strip()
+    if not b64:
+        return ""
+    return f"/catalogo/cat-img/{int(cat.pk)}/?v={len(b64)}"
+
+
+def salvar_cor_categoria(cat: CatalogoDeliveryCategoria, cor: str) -> None:
+    cat.cor = normalizar_cor_categoria(cor)
+    cat.save(update_fields=["cor"])
 
 PESOS_GRADE_CATALOGO: list[dict[str, str]] = [
     {"key": "kg:1", "label": "Granel"},
@@ -702,32 +736,26 @@ def listar_categorias_arvore(*, so_ativas: bool = True) -> list[dict]:
     for c in qs:
         by_parent.setdefault(c.parent_id, []).append(c)
 
-    def _node(c, *, com_imagem: bool = False, profundidade: int = 1) -> dict:
+    def _node(c, *, profundidade: int = 1) -> dict:
         filhos = []
         if profundidade < CATALOGO_MAX_NIVEIS:
             filhos = [
-                _node(f, com_imagem=False, profundidade=profundidade + 1)
+                _node(f, profundidade=profundidade + 1)
                 for f in by_parent.get(c.pk, [])
             ]
-        out = {
+        return {
             "id": c.pk,
             "nome": c.nome,
             "slug": c.slug,
             "ordem": c.ordem,
             "ativo": c.ativo,
             "nivel": profundidade,
+            "cor": normalizar_cor_categoria(getattr(c, "cor", "") or ""),
+            "imagem": url_imagem_categoria(c),
             "filhos": filhos,
         }
-        if com_imagem:
-            img = ""
-            b64 = (c.imagem_base64 or "").strip()
-            if b64:
-                mime = (c.imagem_mime or "image/jpeg").strip() or "image/jpeg"
-                img = f"data:{mime};base64,{b64}"
-            out["imagem"] = img
-        return out
 
-    return [_node(c, com_imagem=True, profundidade=1) for c in by_parent.get(None, [])]
+    return [_node(c, profundidade=1) for c in by_parent.get(None, [])]
 
 
 def opcoes_pai_categoria(*, so_ativas: bool = True) -> list[dict]:
@@ -855,6 +883,16 @@ def salvar_foto_categoria(cat: CatalogoDeliveryCategoria, raw_b64: str, mime: st
     cat.save(update_fields=["imagem_base64", "imagem_mime"])
 
 
+def data_url_imagem_categoria(cat: CatalogoDeliveryCategoria | None) -> str:
+    if cat is None:
+        return ""
+    b64 = (getattr(cat, "imagem_base64", None) or "").strip()
+    if not b64:
+        return ""
+    mime = (getattr(cat, "imagem_mime", None) or "image/jpeg").strip() or "image/jpeg"
+    return f"data:{mime};base64,{b64}"
+
+
 def salvar_logo_loja(cfg: CatalogoDeliveryConfig, raw_b64: str, mime: str = "") -> None:
     """Grava logotipo da loja (limite ~1,2 MB de arquivo ≈ ~1,6 MB base64)."""
     b64, mime_guess = _strip_data_url(raw_b64 or "")
@@ -884,6 +922,7 @@ def cards_home_catalogo(itens: list[dict]) -> list[dict]:
                 "slug": c["slug"],
                 "nome": c["nome"],
                 "imagem": c.get("imagem") or "",
+                "cor": c.get("cor") or "",
                 "qtd": contagem.get(c["slug"], 0),
             }
         )
@@ -895,6 +934,7 @@ def cards_home_catalogo(itens: list[dict]) -> list[dict]:
                 "slug": "_sem",
                 "nome": "Outros",
                 "imagem": "",
+                "cor": "",
                 "qtd": q_sem,
             }
         )
@@ -946,6 +986,8 @@ def arvore_navegacao_catalogo(itens: list[dict]) -> list[dict]:
                     "nome": slug_e,
                     "qtd": q,
                     "qtd_exata": _conta_exata(aqui + (slug_e,)),
+                    "imagem": "",
+                    "cor": "",
                     "filhos": [],
                 }
             )
@@ -955,6 +997,8 @@ def arvore_navegacao_catalogo(itens: list[dict]) -> list[dict]:
             "nome": node["nome"],
             "qtd": _conta_prefixo(aqui),
             "qtd_exata": _conta_exata(aqui),
+            "imagem": node.get("imagem") or "",
+            "cor": node.get("cor") or "",
             "filhos": filhos_out,
         }
 

@@ -125,6 +125,11 @@ urlpatterns = [
         name="api_catalogo_categoria_foto",
     ),
     path(
+        "catalogo/cat-img/<int:pk>/",
+        views_catalogo_delivery.catalogo_categoria_imagem_view,
+        name="catalogo_categoria_imagem",
+    ),
+    path(
         'api/pdv/cliente-credito-fiado/',
         views.api_pdv_cliente_credito_fiado,
         name='api_pdv_cliente_credito_fiado',

@@ -31,6 +31,10 @@ from produtos.catalogo_delivery_util import (
     opcoes_pai_categoria,
     profundidade_por_parent_id,
     salvar_foto_categoria,
+    salvar_cor_categoria,
+    normalizar_cor_categoria,
+    url_imagem_categoria,
+    data_url_imagem_categoria,
     salvar_logo_loja,
     slugify_categoria,
 )
@@ -339,12 +343,16 @@ def api_catalogo_categoria_criar(request):
         ordem = int(payload.get("ordem") or request.POST.get("ordem") or 0)
     except (TypeError, ValueError):
         ordem = 0
+    cor = normalizar_cor_categoria(
+        payload.get("cor") if "cor" in payload else request.POST.get("cor") or ""
+    )
     cat = CatalogoDeliveryCategoria.objects.create(
         nome=nome,
         slug=slugify_categoria(nome),
         ordem=max(0, min(ordem, 9999)),
         ativo=True,
         parent=parent,
+        cor=cor,
     )
     return JsonResponse(
         {
@@ -354,6 +362,8 @@ def api_catalogo_categoria_criar(request):
                 "nome": cat.nome,
                 "slug": cat.slug,
                 "parent_id": cat.parent_id,
+                "cor": cat.cor or "",
+                "imagem": url_imagem_categoria(cat),
             },
             "categorias": listar_categorias_arvore(so_ativas=True),
         }
@@ -399,13 +409,15 @@ def api_catalogo_categoria_excluir(request):
 @user_passes_test(_staff, login_url="/admin/login/")
 @require_POST
 def api_catalogo_categoria_foto(request):
-    """Foto do card da categoria (home do catálogo). Aceita JSON base64 ou multipart."""
+    """Capa e/ou cor do card — qualquer nível da árvore. Aceita JSON ou multipart."""
     import base64
 
     pk = 0
     remover = False
     raw = b""
     mime_in = "image/jpeg"
+    cor_in = None
+    tem_imagem = False
 
     ct = (request.content_type or "").split(";")[0].strip().lower()
     if ct == "multipart/form-data" or request.FILES:
@@ -414,10 +426,13 @@ def api_catalogo_categoria_foto(request):
         except (TypeError, ValueError):
             pk = 0
         remover = request.POST.get("remover") in ("1", "true", "True", "on")
+        if "cor" in request.POST:
+            cor_in = request.POST.get("cor")
         f = request.FILES.get("cat_foto") or request.FILES.get("foto") or request.FILES.get("file")
         if f and not remover:
             raw = f.read()
             mime_in = (getattr(f, "content_type", None) or "image/jpeg")[:40]
+            tem_imagem = True
     else:
         try:
             payload = json.loads(request.body.decode("utf-8"))
@@ -428,7 +443,9 @@ def api_catalogo_categoria_foto(request):
         except (TypeError, ValueError):
             pk = 0
         remover = bool(payload.get("remover"))
-        if not remover:
+        if "cor" in payload:
+            cor_in = payload.get("cor")
+        if not remover and payload.get("imagem_base64"):
             b64_in = str(payload.get("imagem_base64") or "")
             b64_clean, mime_guess = _strip_data_url(b64_in)
             mime_in = str(payload.get("imagem_mime") or mime_guess or "image/jpeg")[:40]
@@ -436,17 +453,40 @@ def api_catalogo_categoria_foto(request):
                 raw = base64.b64decode(b64_clean, validate=False)
             except Exception:
                 return JsonResponse({"ok": False, "erro": "Base64 inválido."}, status=400)
+            tem_imagem = True
 
-    cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
+    cat = CatalogoDeliveryCategoria.objects.filter(pk=pk).first()
     if not cat:
         return JsonResponse(
-            {"ok": False, "erro": "Categoria não encontrada (foto só na principal)."},
+            {"ok": False, "erro": "Categoria não encontrada."},
             status=404,
         )
     try:
+        if cor_in is not None:
+            salvar_cor_categoria(cat, str(cor_in or ""))
+            cat.refresh_from_db(fields=["cor"])
+
         if remover:
             salvar_foto_categoria(cat, "", "")
-            return JsonResponse({"ok": True, "imagem": "", "cat_id": cat.pk})
+            cat.refresh_from_db(fields=["imagem_base64", "imagem_mime"])
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "imagem": "",
+                    "cor": cat.cor or "",
+                    "cat_id": cat.pk,
+                }
+            )
+
+        if not tem_imagem and cor_in is not None:
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "cat_id": cat.pk,
+                    "cor": cat.cor or "",
+                    "imagem": url_imagem_categoria(cat),
+                }
+            )
 
         if not raw:
             return JsonResponse({"ok": False, "erro": "Nenhuma imagem recebida."}, status=400)
@@ -464,12 +504,12 @@ def api_catalogo_categoria_foto(request):
         cat.refresh_from_db(fields=["imagem_base64", "imagem_mime"])
         if not (cat.imagem_base64 or "").strip():
             return JsonResponse({"ok": False, "erro": "Gravou vazio no banco."}, status=500)
-        mime_out = (cat.imagem_mime or "image/jpeg").strip() or "image/jpeg"
         return JsonResponse(
             {
                 "ok": True,
                 "cat_id": cat.pk,
-                "imagem": f"data:{mime_out};base64,{cat.imagem_base64}",
+                "cor": cat.cor or "",
+                "imagem": data_url_imagem_categoria(cat),
                 "bytes": len(raw_ok),
             }
         )
@@ -478,6 +518,28 @@ def api_catalogo_categoria_foto(request):
             {"ok": False, "erro": f"{type(exc).__name__}: {exc}"[:200]},
             status=500,
         )
+
+
+@require_GET
+def catalogo_categoria_imagem_view(request, pk: int):
+    """Bytes da capa da categoria (vitrine / gestão)."""
+    cat = CatalogoDeliveryCategoria.objects.filter(pk=int(pk or 0)).first()
+    if not cat or not (cat.imagem_base64 or "").strip():
+        return HttpResponse(status=404)
+    import base64
+
+    try:
+        raw = base64.b64decode(cat.imagem_base64, validate=False)
+    except Exception:
+        return HttpResponse(status=404)
+    if not raw:
+        return HttpResponse(status=404)
+    mime = (cat.imagem_mime or "image/jpeg").strip() or "image/jpeg"
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    resp = HttpResponse(raw, content_type=mime)
+    resp["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 @login_required(login_url="/admin/login/")
@@ -597,9 +659,9 @@ def catalogo_gestao_view(request):
                 pk = int(request.POST.get("cat_id") or 0)
             except (TypeError, ValueError):
                 pk = 0
-            cat = CatalogoDeliveryCategoria.objects.filter(pk=pk, parent__isnull=True).first()
+            cat = CatalogoDeliveryCategoria.objects.filter(pk=pk).first()
             if not cat:
-                return redirect("/catalogo/gestao/?erro=" + quote("Categoria inválida para foto (só principal)."))
+                return redirect("/catalogo/gestao/?erro=" + quote("Categoria inválida para capa."))
             if request.POST.get("remover_foto"):
                 salvar_foto_categoria(cat, "", "")
                 return redirect("/catalogo/gestao/?msg=foto")
