@@ -1229,6 +1229,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — enviado produção (22/08d · loja **v17.78**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CATALOGO-SKIP-GERAL** | ✅ **enviado / Live v17.78** | **NÃO** |
+| 2 | **FECHAR-CAIXA-REPASSE** | ✅ **enviado / Live v17.78** | **NÃO** |
+
+### ✅ Deploy loja — lote 22/08d (`deploy/lote-checklist-2208d` · **v17.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.78** (SHA após push) |
+| **Pacotes** | **CATALOGO-SKIP-GERAL** · **FECHAR-CAIXA-REPASSE** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-2208d-v17.76` @ **1a7d25ec** · branch `producao-backup-pre-v1778-lote-2208d-20260822` + frase + senha |
+| **O quê** | Catálogo: folha preenchida vai direto aos pesos (sem card «Geral»). Fechar caixa Vila: refresh do esperado só da loja; overlay do repasse avisa a tela. |
+| **Prova** | fechar-repasse **68/68** · fechar-loja **41/41** · repasse path **134/134** · catalogo skip JS **VERIFY_OK** |
+| **Você** | **Ctrl+F5** `/catalogo/` (Cão → … → pesos, sem Geral) · Fechar caixa **Vila** + **repasse** (esperado cai o valor) · badge **17.78** |
+
+### ~~📦 PACOTE PRONTO — Catálogo pula «Geral» (`CATALOGO-SKIP-GERAL`)~~ · **Live v17.78**
+
+### ~~📦 PACOTE PRONTO — Fechar caixa Vila após repasse (`FECHAR-CAIXA-REPASSE`)~~ · **Live v17.78**
+
 ### ✅ Deploy loja — MP-POINT-PIN-STICKY (`deploy/mp-point-pin-sticky` · **v17.76**) · **Live**
 
 | Item | Detalhe |
