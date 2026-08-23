@@ -83,6 +83,7 @@ def test_arquivos() -> None:
     check("cupom_url_api", "/api/fiado/recibo/" in cupom)
     check("cupom_venda_intacta", "function agroImprimirCupomVenda80mm" in cupom and "Não há itens para imprimir nesta venda." in cupom)
     check("cupom_fiado_venda_2vias", "VIA DO CLIENTE" in cupom and "VIA DA LOJA" in cupom)
+    check("cupom_numero_venda_grande", "function cupomViaComNumeroHtml" in cupom and "Nº DA VENDA" in cupom)
 
     check("wizard_perguntar", "agroEscolherImprimirReciboFiado" in wizard)
     check("wizard_recibo_id", "recibo_id" in wizard and "finalizeFiadoCobrancaOk" in wizard)

@@ -139,6 +139,9 @@
             '.cupom-zap{width:100%;display:flex;align-items:center;justify-content:center;gap:7px;margin:4px 0 2px;padding:0 1mm;box-sizing:border-box;font-size:16px;font-weight:900;line-height:1.1;letter-spacing:.01em}' +
             '.cupom-zap-ico{width:20px;height:20px;flex-shrink:0;display:block}' +
             '.via-rotulo{text-align:center;font-size:11px;font-weight:900;margin:5px 0 4px;border:2px solid #000;padding:4px 6px;letter-spacing:.06em}' +
+            '.cupom-num-doc{text-align:center;margin:6px 0 4px;border:2px solid #000;padding:6px 4px}' +
+            '.cupom-num-doc-lbl{font-size:11px;font-weight:900;letter-spacing:.08em}' +
+            '.cupom-num-doc-val{font-size:34px;font-weight:900;line-height:1.05;letter-spacing:-0.02em;margin-top:2px}' +
             '.nome-cliente{font-weight:900;font-size:32px;line-height:1.15;word-break:break-word;overflow-wrap:break-word;text-align:center;white-space:pre-wrap;margin:8px 0 6px;letter-spacing:-0.01em}' +
             '.total-linha{border-top:3px solid #000;margin:10px 0 6px;padding-top:6px;font-weight:900;font-size:22px;display:flex;justify-content:space-between;align-items:baseline;gap:4px}' +
             '.total-linha .total-valor{font-size:38px;line-height:1;letter-spacing:-0.03em}' +
@@ -189,6 +192,35 @@
         return '<div class="rodape-sistvale">' + escHtml(CUPOM_RODAPE_SISTEMA) + '</div>';
     }
 
+    function cupomNumeroDocumentoHtml(rotulo, numero) {
+        var n = numero == null ? '' : String(numero).trim();
+        if (!n) return '';
+        return (
+            '<div class="cupom-num-doc">' +
+            '<div class="cupom-num-doc-lbl">' +
+            escHtml(rotulo || 'Nº DA VENDA') +
+            '</div>' +
+            '<div class="cupom-num-doc-val">' +
+            escHtml(n) +
+            '</div></div>'
+        );
+    }
+
+    function cupomViaComNumeroHtml(viaRotulo, numero) {
+        var n = numero == null ? '' : String(numero).trim();
+        if (!viaRotulo && !n) return '';
+        if (!viaRotulo) return cupomNumeroDocumentoHtml('Nº DA VENDA', n);
+        var h = '<div class="via-rotulo">' + escHtml(String(viaRotulo));
+        if (n) {
+            h +=
+                '<div style="font-size:32px;font-weight:900;letter-spacing:0;line-height:1.08;margin-top:4px;">Nº ' +
+                escHtml(n) +
+                '</div>';
+        }
+        h += '</div>';
+        return h;
+    }
+
     function buildReciboFiadoInnerHtml(c) {
         c = c || {};
         var h = '<div class="pg">';
@@ -204,11 +236,9 @@
                 '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
         }
         if (c.criado_em) {
-            h += '<div style="font-size:10px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
+            h += '<div style="font-size:13px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
         }
-        if (c.recibo_id) {
-            h += '<div style="font-size:9px;font-weight:700;margin-top:2px;">Recibo #' + escHtml(String(c.recibo_id)) + '</div>';
-        }
+        h += cupomNumeroDocumentoHtml('Nº DO RECIBO', c.recibo_id);
         h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
         h += cupomNomeClienteHtml(c.cliente_nome);
         var titulos = Array.isArray(c.titulos) ? c.titulos : Array.isArray(c.itens) ? c.itens : [];
@@ -311,7 +341,7 @@
         }
         h += '<div style="text-align:center;font-size:10px;font-weight:800;margin:4px 0 3px;letter-spacing:.05em;">' + escHtml(subtitulo) + '</div>';
         if (c.criado_em) {
-            h += '<div style="font-size:10px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
+            h += '<div style="font-size:13px;font-weight:800;margin-top:3px;">Data: ' + escHtml(c.criado_em) + '</div>';
         }
         if (fiado) {
             h +=
@@ -319,13 +349,14 @@
                 escHtml(vencimentoCupom(c)) +
                 '</div>';
         }
-        if (c.venda_id) {
-            h += '<div style="font-size:9px;font-weight:700;margin-top:2px;">Venda #' + escHtml(String(c.venda_id)) + '</div>';
-        }
         if (c.via_rotulo) {
-            h += '<div class="via-rotulo">' + escHtml(String(c.via_rotulo)) + '</div>';
-        } else if (c.segunda_via) {
-            h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+            h += cupomViaComNumeroHtml(c.via_rotulo, c.venda_id);
+        } else {
+            h += cupomNumeroDocumentoHtml('Nº DA VENDA', c.venda_id);
+            if (c.segunda_via) {
+                h +=
+                    '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;border:1px dashed #000;padding:3px;">2ª VIA</div>';
+            }
         }
         if (c.devolvida) {
             h += '<div style="text-align:center;font-size:10px;font-weight:900;margin:4px 0;color:#b91c1c;">*** DEVOLVIDA ***</div>';

@@ -148,7 +148,7 @@
                   {% endif %}
                 </div>
               </td>
-              <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
+              <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i:s" }}</td>
               <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
                 {% if v.lista_loja_dep == 'vila' %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-300">{{ v.lista_loja_label }}</span>

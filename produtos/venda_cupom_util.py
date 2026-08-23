@@ -15,7 +15,7 @@ def _formatar_data_venda(dt) -> str:
         return ""
     if timezone.is_aware(dt):
         dt = timezone.localtime(dt)
-    return dt.strftime("%d/%m/%Y %H:%M")
+    return dt.strftime("%d/%m/%Y %H:%M:%S")
 
 
 def _formatar_data_curta(d) -> str:
