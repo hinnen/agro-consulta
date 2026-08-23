@@ -17,7 +17,10 @@ import django
 
 django.setup()
 
-from produtos.caixa_util import _agregar_resumo_turno_sessao  # noqa: E402
+from produtos.caixa_util import (  # noqa: E402
+    _agregar_resumo_turno_sessao,
+    resumo_devolucao_dinheiro_maquina,
+)
 
 FAILS: list[str] = []
 OKS = 0
@@ -92,9 +95,16 @@ def _agregar(sessao):
 def main() -> int:
     util = (ROOT / "produtos/caixa_util.py").read_text(encoding="utf-8")
     html = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
+    inc = (ROOT / "produtos/templates/produtos/includes/caixa_fechar_linha_conf.html").read_text(
+        encoding="utf-8"
+    )
     check("_movimentos_retirada_devolucao_duplicados_turno" not in util, "helper FL-017 duplicado removido")
     check("vendas_list = list(vendas_rel.all())" in util, "agrega vendas devolvidas do turno")
     check("Devolução em <strong>dinheiro</strong>" in html, "ajuda fechar caixa menciona devolução em dinheiro")
+    check("cf-aviso-devolucao-dinheiro" in html, "banner aviso gaveta")
+    check("aplicarAvisoDevolucaoDinheiro" in html, "JS atualiza aviso no refresh")
+    check('data-auto-contado") === "1") return' in html or "data-auto-contado') === '1') return" in html, "rascunho nao sobrescreve auto")
+    check("readonly" in inc, "contado auto somente leitura")
 
     mp = "Cartão de débito — Mercado Pago"
     v_dev = _venda(pk=1, forma="Cartão de débito", valor=Decimal("49.00"), maquina="mp_balcao", devolvida=True)
@@ -107,6 +117,11 @@ def main() -> int:
     check(retirada.get("Dinheiro") == Decimal("49.00"), f"retirada dinheiro 49 got {retirada.get('Dinheiro')}")
     check(esperado.get("Dinheiro") == Decimal("51.00"), f"esperado dinheiro 100-49=51 got {esperado.get('Dinheiro')}")
 
+    av = resumo_devolucao_dinheiro_maquina([sess])
+    check(av.get("tem") is True, "aviso devolucao dinheiro x maquina")
+    check("49,00" in str(av.get("texto") or ""), f"aviso mostra 49,00 got {av.get('texto')}")
+    check("gaveta" in str(av.get("texto") or "").lower(), "aviso pede contar gaveta sem o valor")
+
     v_cash = _venda(pk=3, forma="Dinheiro", valor=Decimal("49.00"), maquina=None, devolvida=True)
     ret_cash = _mov(pk=11, tipo="retirada", forma="Dinheiro", valor=Decimal("49.00"), obs="Devolução venda #3")
     sess_fl = _sessao([v_cash], [ret_cash], abertura="20.00")
@@ -114,6 +129,8 @@ def main() -> int:
     check(vend_fl.get("Dinheiro") == Decimal("49.00"), "FL-017 vendas dinheiro incluem devolvida")
     check(ret_fl.get("Dinheiro") == Decimal("49.00"), "FL-017 retirada dinheiro aplicada")
     check(esp_fl.get("Dinheiro") == Decimal("20.00"), f"FL-017 esperado = abertura got {esp_fl.get('Dinheiro')}")
+    av_fl = resumo_devolucao_dinheiro_maquina([sess_fl])
+    check(av_fl.get("tem") is False, "aviso nao aparece se devolucao foi so dinheiro")
 
     print(f"---\noks={OKS} fails={len(FAILS)}")
     if FAILS:

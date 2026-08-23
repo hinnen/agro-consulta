@@ -12695,6 +12695,12 @@ def caixa_fechar(request):
         linhas_conferencia.append(r)
     linhas_visiveis = [L for L in linhas_conferencia if not L.get("grupo_oculto")]
     linhas_ocultas = [L for L in linhas_conferencia if L.get("grupo_oculto")]
+    aviso_devolucao_dinheiro = estado_conf.get("aviso_devolucao_dinheiro") or {
+        "tem": False,
+        "valor": "0.00",
+        "qtd": 0,
+        "texto": "",
+    }
 
     turno_key_loja = _caixa_contagem_turno_key_loja(dep_fechar)
     rasc, cedulas_rasc = _caixa_contagem_pg_carregar(turno_key_loja)
@@ -12728,6 +12734,7 @@ def caixa_fechar(request):
             "linhas_conferencia": linhas_conferencia,
             "linhas_visiveis": linhas_visiveis,
             "linhas_ocultas": linhas_ocultas,
+            "aviso_devolucao_dinheiro": aviso_devolucao_dinheiro,
             "linhas_com_movimento": [L for L in linhas_conferencia if L.get("com_movimento")],
             "linhas_sem_movimento": [L for L in linhas_conferencia if not L.get("com_movimento")],
             "tot_esperado_dinheiro": str(tot_esperado_din),

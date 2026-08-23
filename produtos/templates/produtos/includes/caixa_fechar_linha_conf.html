@@ -17,7 +17,7 @@
     {% else %}
     <label class="cf-conf-contado-field min-w-0">
       <span class="sr-only">Contado {{ L.forma }}</span>
-      <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" {% if L.auto_contado %}data-auto-contado="1"{% endif %} class="caixa-contado cf-contado-input{% if L.auto_contado %} cf-contado-auto{% endif %}" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="{% if L.auto_contado %}Preenchido com o esperado (pode editar){% else %}Valor contado{% endif %}">
+      <input type="text" name="contado_{{ L.idx }}" inputmode="decimal" data-esperado="{{ L.esperado }}" data-forma="{{ L.forma }}" {% if L.auto_contado %}data-auto-contado="1" readonly{% endif %} class="caixa-contado cf-contado-input{% if L.auto_contado %} cf-contado-auto{% endif %}" placeholder="0,00" autocomplete="off" aria-label="Contado {{ L.forma }}" title="{% if L.auto_contado %}Preenchido sozinho com o esperado — não precisa contar{% else %}Valor contado{% endif %}">
     </label>
     {% endif %}
     <details class="cf-mini-help relative justify-self-end self-start">
@@ -30,7 +30,7 @@
         <p class="cf-det-abertura mt-1{% if L.abertura_dinheiro == '0.00' %} hidden{% endif %}">Fundo abertura R$ {{ L.abertura_dinheiro }}</p>
         {% endif %}
         {% if L.auto_contado %}
-        <p class="mt-1.5 text-emerald-800">Auto = esperado (salvo no rascunho se você alterar). Devolução em dinheiro não tira este valor da maquininha.</p>
+        <p class="mt-1.5 text-emerald-800">Auto = esperado, corrigido sozinho (sem variação). Devolução em dinheiro não tira este valor da maquininha.</p>
         {% endif %}
       </div>
     </details>

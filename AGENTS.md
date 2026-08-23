@@ -160,6 +160,7 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 - A venda devolvida no mesmo turno **continua** no esperado da forma original (pinpad ainda tem o valor).
 - A retirada da devolução cai na forma em que o dinheiro saiu (ex.: **Dinheiro**).
+- Na **contagem**, linhas auto (MP pinpad / fiado / vale / cashback) **sempre** copiam o esperado (sem rascunho antigo, sem «Sobra»). Aviso amarelo na gaveta: «Devolução em dinheiro R$ … — conte a gaveta já sem esse valor».
 - Antes, o FL-017 zerava a venda e ainda ignorava a retirada do mesmo turno: MP automático “sobrava” e o dinheiro não caía. `produtos/caixa_util.py` (`_agregar_resumo_turno_sessao`).
 
 **Fechar caixa — refresh após retirada / repasse (Vila)** 

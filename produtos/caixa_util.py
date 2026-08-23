@@ -341,6 +341,16 @@ def eh_movimento_retirada_devolucao(obs: str) -> bool:
     return o.startswith("devolução venda") or o.startswith("devolucao venda")
 
 
+def _pk_venda_devolucao_obs(obs: str) -> int | None:
+    m = re.search(r"#(\d+)", str(obs or ""))
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
 def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
     """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma.
 
@@ -607,6 +617,68 @@ def forma_fechamento_auto_ocultavel(forma: str, *, deposito: str | None = None) 
     return False
 
 
+def _fmt_moeda_aviso_caixa(val: Decimal) -> str:
+    return f"{_dec(val).quantize(Decimal('0.01')):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def resumo_devolucao_dinheiro_maquina(sessoes) -> dict[str, Any]:
+    """Aviso na contagem: devolução em dinheiro de venda no cartão/Pix (maquininha não muda)."""
+    vazio = {"tem": False, "valor": "0.00", "qtd": 0, "texto": ""}
+    if not sessoes:
+        return vazio
+    movs_cash: list[tuple[int, Decimal]] = []
+    vendas_mem: dict[int, Any] = {}
+    for sessao in sessoes:
+        rel_v = getattr(sessao, "vendas", None)
+        if rel_v is not None:
+            for v in rel_v.all():
+                pk = getattr(v, "pk", None)
+                if pk is not None:
+                    vendas_mem[int(pk)] = v
+        rel_m = getattr(sessao, "movimentos", None)
+        if rel_m is None:
+            continue
+        for m in rel_m.all():
+            if getattr(m, "tipo", None) != "retirada":
+                continue
+            if not eh_movimento_retirada_devolucao(getattr(m, "observacao", None)):
+                continue
+            if normalizar_forma_pagamento_caixa(getattr(m, "forma_pagamento", "")) != "Dinheiro":
+                continue
+            vp = _pk_venda_devolucao_obs(getattr(m, "observacao", None))
+            if vp is None:
+                continue
+            movs_cash.append((vp, _dec(m.valor)))
+    if not movs_cash:
+        return vazio
+    faltando = {pk for pk, _val in movs_cash if pk not in vendas_mem}
+    if faltando:
+        from produtos.models import VendaAgro
+
+        for v in VendaAgro.objects.filter(pk__in=faltando):
+            vendas_mem[int(v.pk)] = v
+    total = Decimal("0")
+    qtd = 0
+    for vp, val in movs_cash:
+        venda = vendas_mem.get(vp)
+        if not venda:
+            continue
+        formas = set(pagamentos_por_linha_conferencia_venda(venda).keys())
+        if not formas or formas <= {"Dinheiro"}:
+            continue
+        total += val
+        qtd += 1
+    if total <= 0 or qtd <= 0:
+        return vazio
+    tot_s = str(total.quantize(Decimal("0.01")))
+    br = _fmt_moeda_aviso_caixa(total)
+    texto = (
+        f"Devolução em dinheiro R$ {br} — conte a gaveta já sem esse valor. "
+        "Cartão/Pix da maquininha não muda."
+    )
+    return {"tem": True, "valor": tot_s, "qtd": qtd, "texto": texto}
+
+
 def serializar_estado_conferencia_fechar(
     sessoes, *, deposito: str | None = None
 ) -> dict[str, Any]:
@@ -647,6 +719,7 @@ def serializar_estado_conferencia_fechar(
         "tot_esperado_dinheiro": str(tot_esperado_din.quantize(Decimal("0.01"))),
         "linhas": linhas,
         "deposito": dep,
+        "aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina(sessoes),
         "cards": cards,
     }
 

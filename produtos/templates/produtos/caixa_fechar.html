@@ -616,6 +616,12 @@
       text-align: center;
     }
     .cf-contado-input:focus { outline: none; border-color: #10b981; }
+    .cf-contado-auto[readonly] {
+      background: #ecfdf5;
+      border-color: #6ee7b7;
+      color: #065f46;
+      cursor: default;
+    }
     .cf-conf-contado-field {
       min-width: 0;
       display: flex;
@@ -1152,6 +1158,7 @@
       <div class="cf-body">
         <div class="cf-scroll">
           <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
+          <p id="cf-aviso-devolucao-dinheiro" class="rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-2.5 text-sm sm:text-base font-black text-amber-950 leading-snug{% if not aviso_devolucao_dinheiro.tem %} hidden{% endif %}" role="status">{{ aviso_devolucao_dinheiro.texto }}</p>
           {% if linhas_conferencia %}
           <div class="cf-conf-table" role="table" aria-label="Conferência por forma de pagamento">
             <div class="cf-conf-head" role="row">
@@ -1534,6 +1541,7 @@
   mesclarCedulasLocal(cedulasMap);
   function aplicarContagemNosCampos(map) {
     document.querySelectorAll('.caixa-contado[data-forma]').forEach(function (inp) {
+      if (inp.getAttribute('data-auto-contado') === '1') return;
       var fn = (inp.getAttribute('data-forma') || '').trim();
       if (fn && map[fn] != null && map[fn] !== '') {
         inp.value = String(map[fn]);
@@ -1542,20 +1550,32 @@
     });
   }
   aplicarContagemNosCampos(contagemMap);
-  // Auto (fiado/vale/cashback/Point): preenche esperado só se ainda vazio — ver bloco após persistirContagemLocalAgora.
+  // Auto (fiado/vale/cashback/Point): sempre igual ao esperado — sem rascunho antigo nem variação.
   function aplicarAutoContadoEsperado() {
     var mudou = false;
     document.querySelectorAll('.caixa-contado[data-auto-contado="1"]').forEach(function (inp) {
-      if (String(inp.value || '').trim() !== '') return;
       var esp = String(inp.getAttribute('data-esperado') || '').trim();
       if (!esp) return;
-      var n = parseFloat(esp.replace(',', '.'));
+      var n = parseFloat(String(esp).replace(',', '.'));
       if (!Number.isFinite(n)) return;
-      inp.value = fmtBr(n);
+      var novo = fmtBr(n);
+      if (String(inp.value || '').trim() === novo) return;
+      inp.value = novo;
       mudou = true;
       inp.dispatchEvent(new Event('input', { bubbles: true }));
     });
     return mudou;
+  }
+  function aplicarAvisoDevolucaoDinheiro(av) {
+    var el = document.getElementById('cf-aviso-devolucao-dinheiro');
+    if (!el) return;
+    if (av && av.tem && av.texto) {
+      el.textContent = av.texto;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
   }
 
   var dinheiroInp = document.querySelector('.caixa-contado[data-forma="Dinheiro"]');
@@ -2009,6 +2029,10 @@
     });
     document.querySelectorAll('.caixa-contado[data-forma="' + forma + '"]').forEach(function (inp) {
       inp.setAttribute('data-esperado', L.esperado);
+      if (inp.getAttribute('data-auto-contado') === '1') {
+        var nEsp = parseFloat(String(L.esperado || '').replace(',', '.'));
+        if (Number.isFinite(nEsp)) inp.value = fmtBr(nEsp);
+      }
       inp.dispatchEvent(new Event('input', { bubbles: true }));
     });
     document.querySelectorAll('.cf-detalhe[data-forma="' + forma + '"]').forEach(function (box) {
@@ -2056,6 +2080,8 @@
         if (!data || !data.ok) return;
         (data.linhas || []).forEach(aplicarLinhaConferencia);
         aplicarCardsConferencia(data.cards);
+        aplicarAvisoDevolucaoDinheiro(data.aviso_devolucao_dinheiro);
+        aplicarAutoContadoEsperado();
         if (statusEl) {
           statusEl.textContent = 'Valores esperados atualizados';
           statusEl.classList.remove('hidden');
