@@ -1,10 +1,17 @@
 /**
- * Parser Urano USE-P2 (USE-PII) — dump real da COM4:
+ * Parser Urano USE-P2 (USE-PII).
+ *
+ * Prato vazio (COM4):
  *   30 30 20 1b 4e 31 20 20 20 20 30 2c 30 30 20
  *   "00 " + ESC N 1 + espaços + "0,00 "
  *
- * Último ESC N 1 vence. ESC N 0 é preço/etiqueta e não sobrescreve o peso.
- * 0,00 é prato vazio válido. “Sem bytes” só com buffer vazio.
+ * Produto no prato (COM4 ao vivo):
+ *   T2 ESC B ESC N 0 … 0,478 kg … 0,00 ESC N 1 … 0,00 ESC E ESC P 1
+ *   O peso ao vivo é o decimal imediatamente antes de "kg".
+ *   ESC N 1 neste firmware é campo auxiliar (0,00) e NÃO pode tapar o kg.
+ *
+ * Janela dos últimos 96 bytes = um ecrã. Prato vazio sem "kg" volta a ESC N 1.
+ * 0,00 é leitura válida. “Sem bytes” só com buffer vazio.
  */
 (function (root) {
   'use strict';
@@ -12,6 +19,12 @@
   var ESC = 0x1b;
   var ENQ = 0x05;
   var USER_DUMP_HEX = '30 30 20 1b 4e 31 20 20 20 20 30 2c 30 30 20';
+  var LIVE_DUMP_HEX =
+    '54 32 1b 42 1b 4e 30 20 20 20 20 20 20 20 20 20 20 20 20 ' +
+    '30 2c 34 37 38 20 6b 67 20 20 20 20 20 20 20 ' +
+    '30 2c 30 30 20 1b 4e 31 20 20 20 20 20 20 ' +
+    '30 2c 30 30 20 1b 45 1b 50 31';
+  var PARSE_WINDOW = 96;
   var MIN_WEIGHT_KG = 0.02;
   var MAX_WEIGHT_KG = 30;
   var STABLE_MS = 380;
@@ -133,10 +146,11 @@
   }
 
   function weightFromKgField(text) {
-    var lower = String(text || '').toLowerCase();
-    var idx = lower.lastIndexOf('kg');
-    if (idx < 1) return null;
-    return firstDecimal(text.slice(Math.max(0, idx - 8), idx));
+    var matches = String(text || '').match(/(\d{1,6}[.,]\d{2,3})\s*kg/gi);
+    if (!matches || !matches.length) return null;
+    var last = matches[matches.length - 1].replace(/\s*kg/i, '');
+    var n = parseDecimalToken(last);
+    return n === null ? firstDecimal(last) : n;
   }
 
   function weightFromPesoL(text) {
@@ -194,43 +208,26 @@
       return emptyReading(true, stripped);
     }
 
+    var view = bytes.length > PARSE_WINDOW ? bytes.slice(bytes.length - PARSE_WINDOW) : bytes;
+    var viewText = decodeLatin1(view);
+    var viewStripped = stripEscapes(view);
+
     var weight = null;
     var source = null;
     var fallbackN0 = null;
     var i;
 
-    for (i = 0; i < bytes.length - 2; i++) {
-      if (bytes[i] === ESC && bytes[i + 1] === 0x4e) {
-        var param = bytes[i + 2];
-        var chunk = collectAsciiAfter(bytes, i + 3);
-        var value = firstDecimal(chunk);
-        if (value === null || !isPlausibleWeight(value)) continue;
-        if (param === 0x31) {
-          weight = value;
-          source = 'esc-n1';
-        } else if (weight === null) {
-          fallbackN0 = value;
-        }
-      }
-    }
-
-    if (weight === null && fallbackN0 !== null) {
-      weight = fallbackN0;
-      source = 'esc-n1';
+    var fromPeso = weightFromPesoL(viewText);
+    if (fromPeso === null) fromPeso = weightFromPesoL(viewStripped);
+    if (fromPeso === null) fromPeso = weightFromPesoL(rawText);
+    if (fromPeso !== null && isPlausibleWeight(fromPeso)) {
+      weight = fromPeso;
+      source = 'peso-l';
     }
 
     if (weight === null) {
-      var fromPeso = weightFromPesoL(rawText);
-      if (fromPeso === null) fromPeso = weightFromPesoL(stripped);
-      if (fromPeso !== null && isPlausibleWeight(fromPeso)) {
-        weight = fromPeso;
-        source = 'peso-l';
-      }
-    }
-
-    if (weight === null) {
-      var fromKg = weightFromKgField(rawText);
-      if (fromKg === null) fromKg = weightFromKgField(stripped);
+      var fromKg = weightFromKgField(viewText);
+      if (fromKg === null) fromKg = weightFromKgField(viewStripped);
       if (fromKg !== null && isPlausibleWeight(fromKg)) {
         weight = fromKg;
         source = 'kg-field';
@@ -238,7 +235,29 @@
     }
 
     if (weight === null) {
-      var decimals = allDecimals(stripped).filter(isPlausibleWeight);
+      for (i = 0; i < view.length - 2; i++) {
+        if (view[i] === ESC && view[i + 1] === 0x4e) {
+          var param = view[i + 2];
+          var chunk = collectAsciiAfter(view, i + 3);
+          var value = firstDecimal(chunk);
+          if (value === null || !isPlausibleWeight(value)) continue;
+          if (param === 0x31) {
+            weight = value;
+            source = 'esc-n1';
+          } else if (weight === null) {
+            fallbackN0 = value;
+          }
+        }
+      }
+      if (weight === null && fallbackN0 !== null) {
+        weight = fallbackN0;
+        source = 'esc-n1';
+      }
+    }
+
+    if (weight === null) {
+      var decimals = allDecimals(viewStripped).filter(isPlausibleWeight);
+      if (decimals.length === 0) decimals = allDecimals(stripped).filter(isPlausibleWeight);
       if (decimals.length > 0) {
         weight = decimals[0];
         source = 'decimal';
@@ -246,7 +265,8 @@
     }
 
     if (weight === null) {
-      var stx = weightFromStx(bytes);
+      var stx = weightFromStx(view);
+      if (stx === null) stx = weightFromStx(bytes);
       if (stx !== null && isPlausibleWeight(stx)) {
         weight = stx;
         source = 'stx';
@@ -367,6 +387,7 @@
     ESC: ESC,
     ENQ: ENQ,
     USER_DUMP_HEX: USER_DUMP_HEX,
+    LIVE_DUMP_HEX: LIVE_DUMP_HEX,
     MIN_WEIGHT_KG: MIN_WEIGHT_KG,
     MAX_WEIGHT_KG: MAX_WEIGHT_KG,
     STABLE_MS: STABLE_MS,

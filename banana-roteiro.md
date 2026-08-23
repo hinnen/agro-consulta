@@ -143,21 +143,22 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
 ---
 
-## 7. Checklist único — path USE-P2 (loja v17.80)
+## 7. Checklist único — path USE-P2 (loja v17.82)
 
-Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 55 provas Node + dump real da COM4.
+Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 62 provas Node + dump vazio e dump ao vivo da COM4.
 
 - [x] Modal **PESAR GRANEL** abre em F10 / botão
 - [x] Serial **9600 8N2** (manual POP-Z) + seletor de 1 stop bit
-- [x] Dump real `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
+- [x] Dump vazio `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
+- [x] Dump ao vivo `0,478 kg` + `ESC N 1` 0,00 → visor **0,478 kg**, fonte `kg-field`
 - [x] `0,00` é leitura válida; “Sem bytes” só com buffer vazio
 - [x] Frame partido no cabo fecha depois do merge
-- [x] Último `ESC N 1` vence no buffer rolante
-- [x] `ESC N 0` (preço) não sobrescreve o peso
+- [x] Janela 96 bytes: prato vazio depois do produto volta a 0,00
+- [x] `ESC N 0` com `kg` é peso ao vivo; `ESC N 1` 0,00 auxiliar não vence
 - [x] Fallback `PESO L:` / `kg` / decimal / STX legado
 - [x] `ENQ` 0x05 a cada 450 ms
 - [x] **CONECTAR** trata “No port selected” como COM4 não marcada
-- [x] **SEM PORTA** replaya o dump e simula 250 g / 1,250 kg
+- [x] **SEM PORTA** é botão de simular (não é erro)
 - [x] Códigos 1–199
 - [x] Peso mínimo 20 g
 - [x] Estável = 3 leituras iguais em ~380 ms
@@ -167,4 +168,4 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 55 pr
 - [x] 1,250 kg × R$ 6,90 = R$ 8,63
 - [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
 
-**Status: PRONTO PRA ENVIO.** Checkpoint: `checkpoint-use-p2-pronto-99738595`. Rollback loja: `rollback/pre-pdv-balanca-use-p2-v17.79` (ver `docs/ROLLBACK-PDV-BALANCA-USE-P2.md`).
+**Status: enviado / Live v17.82.** Checkpoint v17.80: `checkpoint-use-p2-pronto-99738595`. Rollback deste hotfix: Live v17.81 @ `fef6815`. Rollback pré-balança: `rollback/pre-pdv-balanca-use-p2-v17.79` (ver `docs/ROLLBACK-PDV-BALANCA-USE-P2.md`).

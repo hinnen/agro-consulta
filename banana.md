@@ -436,7 +436,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
-**Balança granel (16/08 · teste v16.71 · hotfix loja v17.80):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** · dump real `ESC N 1` + `0,00` (não STX; ESC **não** é impressora) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
+**Balança granel (16/08 · teste v16.71 · hotfix loja v17.82):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** (8N1 ok neste USB) · dump vazio `ESC N 1` + `0,00` · dump ao vivo `0,478 kg` (não o ESC N 1 auxiliar) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1228,6 +1228,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ CHECKLIST ÚNICO — PDV balança kg ao vivo (23/08 · loja **v17.82**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-KG-VIVO** | ✅ **enviado / Live v17.82** | **NÃO** |
+| 2 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
+
+> Loja hoje: ✅ **Live v17.82** (PESAR GRANEL lê `0,478 kg` do dump ao vivo; `ESC N 1` 0,00 não tapa o visor). NFC-e CNPJ permanece. Rollback deste hotfix: `producao` @ **fef6815** (Live v17.81) · tag `rollback/pre-nfce-dest-cnpj-v17.80` ainda aponta v17.80 balança. Prova: `node scripts/_test_pdv_balanca_logic.js` (62/62).
+
+Verificação 23/08 — dump ao vivo da COM4 (visor 0,00 com RX 0,478 kg):
+
+- [x] Dump vazio `ESC N 1` + `0,00` → `0,00 kg`, fonte `esc-n1`
+- [x] Dump ao vivo `ESC N 0 … 0,478 kg … ESC N 1 … 0,00` → **0,478 kg**, fonte `kg-field`
+- [x] Janela 96 bytes: prato vazio depois do produto volta a 0,00
+- [x] **SEM PORTA** é botão de simular (não é erro). Chip verde = COM OK
+- [x] Stop bits **1** neste USB está ok (RX vivo)
+- [x] NFC-e dest CNPJ (v17.81) **intacto**
+
+**Status: enviado / Live v17.82 — hotfix visor 0,478 kg.**
+
+### 📦 PACOTE PRONTO — peso ao vivo `kg` (`PDV-BALANCA-KG-VIVO` · **v17.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.82** |
+| **O quê** | Parser: decimal imediatamente antes de `kg` vence o `ESC N 1` 0,00 do mesmo ecrã. Prato vazio continua `ESC N 1` + `0,00`. |
+| **Por quê** | v17.80/v17.81 lia o dump vazio, mas no prato com produto o visor ficava 0,00 (RX já mostrava 0,478 kg). ADICIONAR AGORA recusava < 20 g. |
+| **Onde** | `produtos/static/produtos/js/use_p2.js` · provas em `scripts/_test_pdv_balanca_logic.js` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só o parser JS do overlay Pesar. NFC-e / carrinho / caixa intactos. |
+| **Prova** | `node scripts/_test_pdv_balanca_logic.js` 62/62 · `node --check` |
+| **Você** | **Ctrl+F5** PDV · F10 · deixe **SEM PORTA** quieto · COM OK · código 10 · produto no prato → visor **0,478 kg** (ou o kg ao vivo) · entra sozinho |
+| **Rollback** | `git reset --hard fef6815` (Live v17.81, NFC-e CNPJ, parser v17.80) · `docs/ROLLBACK-PDV-BALANCA-USE-P2.md` + frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.81**)
 

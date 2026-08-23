@@ -108,6 +108,22 @@ assert(rDump.weightKg === 0, 'dump = 0,00 kg');
 assert(rDump.source === 'esc-n1', 'fonte esc-n1');
 assert(P2.formatKg(rDump.weightKg) === '0,00', 'formatKg 0,00');
 
+/* dump ao vivo COM4: 0,478 kg no ESC N 0 — ESC N 1 0,00 NÃO tapa o visor */
+var live = P2.hexToBytes(P2.LIVE_DUMP_HEX);
+var rLive = P2.parseUseP2(live);
+assert(rLive.hadBytes === true, 'dump ao vivo tinha bytes');
+assert(Math.abs(rLive.weightKg - 0.478) < 0.0001, 'dump ao vivo = 0,478 kg');
+assert(rLive.source === 'kg-field', 'fonte kg-field (não esc-n1 0,00)');
+assert(P2.formatKg(rLive.weightKg).indexOf('478') >= 0, 'formatKg mostra 478');
+assert(P2.canAddToCart({ hasProduct: true, weightKg: rLive.weightKg, mode: 'serial' }) === true, '0,478 kg entra no carrinho');
+
+/* prato vazio depois do produto: janela de 96 bytes larga o kg antigo */
+var mixed = live;
+for (var e = 0; e < 8; e++) mixed = P2.mergeSerialBuffer(mixed, dump);
+var rEmptyAfter = P2.parseUseP2(mixed);
+assert(rEmptyAfter.weightKg === 0, 'depois do prato vazio volta 0,00');
+assert(rEmptyAfter.source === 'esc-n1', 'prato vazio de novo via esc-n1');
+
 /* ESC não é “impressora errada” — é o protocolo */
 assert(dump[3] === 0x1b, 'ESC no frame válido da balança');
 
@@ -133,7 +149,7 @@ assert(P2.parseUseP2(buf).weightKg === 1.25, '1,250 vence o 0,00 antigo');
 var framed = P2.encodeUseP2Frame({ weightKg: 1.25, price: 8.9, total: 11.13 });
 var rFr = P2.parseUseP2(framed);
 assert(rFr.weightKg === 1.25, 'encode 1,25 kg');
-assert(rFr.source === 'esc-n1', 'encode fonte esc-n1');
+assert(rFr.source === 'esc-n1' || rFr.source === 'kg-field', 'encode fonte peso (não preço)');
 
 /* fallbacks */
 assert(P2.parseUseP2(Uint8Array.from('PESO L: 0,450kg'.split('').map(function (c) { return c.charCodeAt(0); }))).weightKg === 0.45, 'PESO L:');
