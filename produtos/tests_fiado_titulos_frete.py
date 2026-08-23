@@ -88,3 +88,55 @@ class ParcelasFiadoFreteTests(SimpleTestCase):
         parcelas = _parcelas_fiado_para_titulos(v)
         self.assertEqual(len(parcelas), 1)
         self.assertEqual(_dec(parcelas[0]["valor"]), Decimal("409.50"))
+
+    def test_joelma_3437_payload_forma_pagamento_camel(self):
+        """Venda #3437: Fiado 399,50 + Fiado 10,00 no JSON do PDV (formaPagamento)."""
+        v = SimpleNamespace(
+            pagamentos_json=[
+                {
+                    "formaPagamento": "Fiado",
+                    "valorPagamento": 399.50,
+                    "fiadoCronograma": montar_cronograma_fiado(Decimal("399.50"), 1, 30),
+                },
+                {
+                    "formaPagamento": "Fiado",
+                    "valorPagamento": 10.00,
+                    "fiadoCronograma": montar_cronograma_fiado(Decimal("10.00"), 1, 30),
+                },
+            ],
+            fiado_cronograma_json=montar_cronograma_fiado(Decimal("399.50"), 1, 30),
+            criado_em=datetime(2026, 7, 16, 17, 4, 32, tzinfo=ZoneInfo("America/Sao_Paulo")),
+            forma_pagamento="Fiado + Fiado",
+            total=Decimal("409.50"),
+            cliente_id_erp="",
+        )
+        self.assertEqual(valor_fiado_venda_local(v), Decimal("409.50"))
+        parcelas = _parcelas_fiado_para_titulos(v)
+        self.assertEqual([p["parcela"] for p in parcelas], [1, 2])
+        self.assertEqual(
+            sorted(_dec(p["valor"]) for p in parcelas),
+            [Decimal("10.00"), Decimal("399.50")],
+        )
+
+    def test_nao_duplica_quando_soma_ja_fecha(self):
+        cron = montar_cronograma_fiado(Decimal("399.50"), 1, 30) + montar_cronograma_fiado(
+            Decimal("10.00"), 1, 30
+        )
+        v = SimpleNamespace(
+            pagamentos_json=[
+                {"forma": "Fiado", "valor": 399.50},
+                {"forma": "Fiado", "valor": 10.00},
+            ],
+            fiado_cronograma_json=cron,
+            criado_em=datetime(2026, 7, 16, 17, 4, 32, tzinfo=ZoneInfo("America/Sao_Paulo")),
+            forma_pagamento="Fiado + Fiado",
+            total=Decimal("409.50"),
+            cliente_id_erp="",
+        )
+        parcelas = _parcelas_fiado_para_titulos(v)
+        self.assertEqual(len(parcelas), 2)
+        self.assertEqual(
+            sum((_dec(p["valor"]) for p in parcelas), Decimal("0")),
+            Decimal("409.50"),
+        )
+        self.assertFalse(any(p.get("origem") == "complemento_fiado" for p in parcelas))

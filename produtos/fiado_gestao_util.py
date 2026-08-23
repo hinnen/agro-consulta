@@ -298,11 +298,20 @@ def _linhas_pagamento_fiado(venda: VendaAgro) -> list[dict[str, Any]]:
     for row in pj:
         if not isinstance(row, dict):
             continue
-        if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) != "Fiado":
+        fn = normalizar_forma_pagamento_caixa(
+            str(
+                row.get("formaPagamento")
+                or row.get("forma_pagamento")
+                or row.get("forma")
+                or ""
+            )
+        )
+        if fn != "Fiado":
             continue
-        if _dec(row.get("valor")) <= 0:
+        vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
+        if vp <= 0:
             continue
-        out.append(row)
+        out.append(dict(row))
     return out
 
 
@@ -1641,15 +1650,22 @@ def export_backup_fiado() -> dict[str, Any]:
     }
 
 
-def backfill_titulos_vendas_fiado(*, limite: int = 500) -> dict[str, int]:
-    """Cria títulos para vendas fiado antigas sem ledger."""
-    qs = (
-        VendaAgro.objects.filter(devolvida_em__isnull=True)
-        .order_by("-pk")
-    )
+def backfill_titulos_vendas_fiado(
+    *,
+    limite: int = 8000,
+    venda_pk: int | None = None,
+) -> dict[str, int]:
+    """Cria títulos para vendas fiado antigas e completa fatia faltante (frete)."""
+    qs = VendaAgro.objects.filter(devolvida_em__isnull=True)
+    if venda_pk:
+        qs = qs.filter(pk=int(venda_pk))
+    else:
+        qs = qs.filter(forma_pagamento__icontains="fiado").order_by("-pk")[: max(1, int(limite))]
     criados = 0
     pulados = 0
-    for v in qs[:limite]:
+    vistos = 0
+    for v in qs:
+        vistos += 1
         if not venda_local_tem_fiado(v):
             continue
         n_antes = FiadoTituloAgro.objects.filter(venda_agro=v).count()
@@ -1659,4 +1675,4 @@ def backfill_titulos_vendas_fiado(*, limite: int = 500) -> dict[str, int]:
             criados += n_depois - n_antes
         elif n_antes:
             pulados += 1
-    return {"criados": criados, "pulados": pulados}
+    return {"criados": criados, "pulados": pulados, "vistos": vistos}

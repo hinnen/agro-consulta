@@ -143,29 +143,32 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
 ---
 
-## 7. Checklist único — path USE-P2 (loja v17.82)
+## 7. Checklist único — path FIADO-TITULO-FRETE (teste v17.83)
 
-Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 62 provas Node + dump vazio e dump ao vivo da COM4.
+Verificação **23/08/2026**. Um só checklist. Path cruzado com código + `scripts/verify_fiado_titulo_frete_path.py` + Django `tests_fiado_titulos_frete`.
 
-- [x] Modal **PESAR GRANEL** abre em F10 / botão
-- [x] Serial **9600 8N2** (manual POP-Z) + seletor de 1 stop bit
-- [x] Dump vazio `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
-- [x] Dump ao vivo `0,478 kg` + `ESC N 1` 0,00 → visor **0,478 kg**, fonte `kg-field`
-- [x] `0,00` é leitura válida; “Sem bytes” só com buffer vazio
-- [x] Frame partido no cabo fecha depois do merge
-- [x] Janela 96 bytes: prato vazio depois do produto volta a 0,00
-- [x] `ESC N 0` com `kg` é peso ao vivo; `ESC N 1` 0,00 auxiliar não vence
-- [x] Fallback `PESO L:` / `kg` / decimal / STX legado
-- [x] `ENQ` 0x05 a cada 450 ms
-- [x] **CONECTAR** trata “No port selected” como COM4 não marcada
-- [x] **SEM PORTA** é botão de simular (não é erro)
-- [x] Códigos 1–199
-- [x] Peso mínimo 20 g
-- [x] Estável = 3 leituras iguais em ~380 ms
-- [x] Estável + código ok = entra sozinho uma vez
-- [x] Prato vazio zera o ciclo
-- [x] **ADICIONAR AGORA** / Enter não duplicam
-- [x] 1,250 kg × R$ 6,90 = R$ 8,63
-- [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
+Caso loja: **Venda #3437** Joelma (Esposa Wagner) — cupom **R$ 409,50** (itens 399,50 + frete 10). Título **Pedido 3437 = R$ 399,50 quitado**. A 2ª linha Fiado (frete) não virava título.
 
-**Status: enviado / Live v17.82.** Checkpoint v17.80: `checkpoint-use-p2-pronto-99738595`. Rollback deste hotfix: Live v17.81 @ `fef6815`. Rollback pré-balança: `rollback/pre-pdv-balanca-use-p2-v17.79` (ver `docs/ROLLBACK-PDV-BALANCA-USE-P2.md`).
+- [x] PDV `pagamentosDetalheParaErp` manda **todas** as linhas Fiado (cada uma com `fiadoCronograma`)
+- [x] Persistência **não** faz `break` na 1ª linha; `fiado_cronograma_json` junta e renumera
+- [x] `pagamentos_json` guarda as duas fatias (fonte Postgres, não localStorage)
+- [x] `valor_fiado_venda_local` soma as duas linhas → **409,50**
+- [x] `_parcelas_fiado_para_titulos` gera 399,50 + 10,00 mesmo com cronograma só da 1ª
+- [x] Parcelas numeradas **1 e 2** → chaves `pdv:{pk}:1` / `:2` sem colidir
+- [x] Venda nova: `criar_titulos_de_venda` cria os dois títulos
+- [x] Venda antiga com título curto: cria **Pedido {pk} · complemento** (não duplica se a soma já fecha)
+- [x] 2ª execução do backfill é no-op
+- [x] Uma linha Fiado já com 409,50 **não** inventa complemento
+- [x] Baixa soma o saldo de **todos** os títulos em aberto da seleção
+- [x] Cancelar venda cancela todos os títulos da venda
+- [x] Conferência de caixa chama `criar_titulos` (repara turno ainda aberto)
+- [x] Backfill filtra `forma_pagamento` fiado, limite **8000**, `--pk` para uma venda
+- [x] Joelma: `python manage.py backfill_fiado_titulos --pk 3437` (não lote cego)
+- [x] **Atenção:** se a loja já cobrou 409,50 em espécie contra o papel, **não** rode o `--pk` — seria cobrança em dobro. Cancele o complemento.
+- [x] Sem migrate. NFC-e / caixa / balança USE-P2 **fora** deste recorte
+- [x] `python scripts/verify_fiado_titulo_frete_path.py` → **VERIFY_OK**
+- [x] `python manage.py test produtos.tests_fiado_titulos_frete` → **OK**
+
+**Status: ✅ pronto para envio** (teste **v17.83**). Loja continua **v17.82** até frase + senha. USE-P2 / visor kg permanece Live v17.82.
+
+**Você (local):** merge deste path em `teste` → Ctrl+F5 PDV → venda fiado + entrega R$ 10 → `/fiado/` deve listar **409,50** (ou 399,50 quitado + 10 complemento). Rollback: voltar o commit deste pacote (sem mexer v17.82 da loja).

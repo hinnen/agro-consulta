@@ -1229,6 +1229,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — fiado inclui frete (23/08 · teste **v17.83**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **FIADO-TITULO-FRETE** | ✅ **pronto para envio** / teste **v17.83** | **NÃO** |
+
+> Loja hoje: ✅ **Live v17.82** (PESAR GRANEL / visor kg). Este pacote **ainda não subiu** — falta frase + senha. Caso: Venda **#3437** Joelma, cupom 409,50, título 399,50 quitado (frete 10 ficou de fora).
+
+Verificação 23/08 — um só checklist, cruzado com código + `scripts/verify_fiado_titulo_frete_path.py`:
+
+- [x] PDV manda todas as linhas Fiado
+- [x] Persistência junta cronogramas (sem `break` na 1ª)
+- [x] Títulos novos = 399,50 + 10,00 (chaves `:1` / `:2`)
+- [x] Venda antiga: complemento `Pedido {pk} · complemento`
+- [x] Backfill `--pk 3437` (não lote cego). Se já cobraram 409,50 em espécie, **não** rode.
+- [x] Baixa soma todos os títulos em aberto
+- [x] Sem migrate · Postgres (`FiadoTituloAgro`)
+- [x] VERIFY_OK · `tests_fiado_titulos_frete` OK
+
+**Status: ✅ pronto para envio** (teste **v17.83**). Produção **não** — só com frase + senha.
+
+### 📦 PACOTE PRONTO — fiado 2ª linha / frete (`FIADO-TITULO-FRETE` · **v17.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** / teste **v17.83** |
+| **O quê** | Título fiado inclui **todas** as fatias Fiado do PDV (mercadoria + taxa de entrega). Venda antiga com buraco ganha complemento. |
+| **Por quê** | PDV lança Fiado + Fiado (restante = frete R$ 10). O ledger lia só a 1ª linha. Joelma #3437: 399,50 quitado, 10 nunca cobrados na tela. |
+| **Onde** | `fiado_gestao_util.py` · `_persistir_venda_agro` · `backfill_fiado_titulos --pk` · `scripts/verify_fiado_titulo_frete_path.py` |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio no backfill em lote: se já receberam 409,50 em dinheiro contra o papel, o complemento de R$ 10 cobra de novo. Use `--pk`. Balança / NFC-e intactos. |
+| **Prova** | `python scripts/verify_fiado_titulo_frete_path.py` · Django `tests_fiado_titulos_frete` |
+| **Você** | Ctrl+F5 PDV · fiado + entrega R$ 10 → `/fiado/` total 409,50. Joelma: `manage.py backfill_fiado_titulos --pk 3437` **só se** ainda devem os R$ 10. |
+| **Rollback** | reverter o commit deste pacote em `teste` (loja permanece v17.82) + frase + senha se já tiver subido |
+
 ### ✅ CHECKLIST ÚNICO — PDV balança kg ao vivo (23/08 · loja **v17.82**)
 
 | # | Pacote | Status | Migrate |
