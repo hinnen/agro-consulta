@@ -7706,7 +7706,7 @@
             '<span class="block text-sm font-black">Consumidor não identificado</span>' +
             '<span class="mt-0.5 block text-[11px] font-bold text-orange-800/90">Venda rápida · sem cadastro</span>' +
             '</button>' +
-            '<p class="text-center text-xs font-bold text-slate-500">Ou digite nome / WhatsApp / CPF acima (mín. 2 letras).</p>' +
+            '<p class="text-center text-xs font-bold text-slate-500">Ou digite nome / WhatsApp / CPF ou CNPJ acima (mín. 2 letras).</p>' +
             '</div>';
         dom.quickClientResults.classList.remove('hidden');
         dom.quickClientResults._clientes = [
@@ -10168,19 +10168,26 @@
     }
 
     function pdvFormatCpfInput(raw) {
-        var d = nfceNormalizarCpf(raw);
-        if (d.length <= 3) return d;
-        if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
-        if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
-        return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+        var d = String(raw || '').replace(/\D/g, '').slice(0, 14);
+        if (d.length <= 11) {
+            if (d.length <= 3) return d;
+            if (d.length <= 6) return d.slice(0, 3) + '.' + d.slice(3);
+            if (d.length <= 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+            return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+        }
+        if (d.length <= 2) return d;
+        if (d.length <= 5) return d.slice(0, 2) + '.' + d.slice(2);
+        if (d.length <= 8) return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5);
+        if (d.length <= 12) return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8);
+        return d.slice(0, 2) + '.' + d.slice(2, 5) + '.' + d.slice(5, 8) + '/' + d.slice(8, 12) + '-' + d.slice(12);
     }
 
     function clienteCpfEffective(c) {
         if (!c) return '';
-        var cpf = nfceNormalizarCpf(c.cpf);
-        if (nfceCpfValido(cpf)) return cpf;
-        var doc = nfceNormalizarCpf(c.documento);
-        if (nfceCpfValido(doc)) return doc;
+        var d = nfceNormalizarDoc(c.cpf);
+        if (nfceDocFiscalValido(d)) return d;
+        d = nfceNormalizarDoc(c.documento);
+        if (nfceDocFiscalValido(d)) return d;
         return '';
     }
 
@@ -10190,14 +10197,19 @@
     }
 
     function pdvValidarCpfOpcional(raw) {
-        var norm = nfceNormalizarCpf(raw);
+        var norm = nfceNormalizarDoc(raw);
         if (!norm) return { ok: true, cpf: '' };
-        if (nfceCpfValido(norm)) return { ok: true, cpf: norm };
-        return { ok: false, msg: 'CPF inválido.' };
+        if (nfceDocFiscalValido(norm)) return { ok: true, cpf: norm };
+        if (norm.length <= 11) return { ok: false, msg: 'CPF inválido.' };
+        return { ok: false, msg: 'CNPJ inválido.' };
+    }
+
+    function nfceNormalizarDoc(raw) {
+        return String(raw || '').replace(/\D/g, '').slice(0, 14);
     }
 
     function nfceNormalizarCpf(raw) {
-        return String(raw || '').replace(/\D/g, '').slice(0, 11);
+        return nfceNormalizarDoc(raw).slice(0, 11);
     }
 
     function nfceCpfValido(cpf) {
@@ -10212,6 +10224,29 @@
         for (i = 0; i < 10; i++) s += parseInt(cpf.charAt(i), 10) * (11 - i);
         var d2 = s % 11 < 2 ? 0 : 11 - (s % 11);
         return parseInt(cpf.charAt(10), 10) === d2;
+    }
+
+    function nfceCnpjValido(cnpj) {
+        cnpj = nfceNormalizarDoc(cnpj);
+        if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) return false;
+        var pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        var pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+        var s = 0;
+        var i;
+        for (i = 0; i < 12; i++) s += parseInt(cnpj.charAt(i), 10) * pesos1[i];
+        var d1 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        if (parseInt(cnpj.charAt(12), 10) !== d1) return false;
+        s = 0;
+        for (i = 0; i < 13; i++) s += parseInt(cnpj.charAt(i), 10) * pesos2[i];
+        var d2 = s % 11 < 2 ? 0 : 11 - (s % 11);
+        return parseInt(cnpj.charAt(13), 10) === d2;
+    }
+
+    function nfceDocFiscalValido(doc) {
+        var d = nfceNormalizarDoc(doc);
+        if (d.length === 11) return nfceCpfValido(d);
+        if (d.length === 14) return nfceCnpjValido(d);
+        return false;
     }
 
     function nfceErroDaResposta(data) {
@@ -10246,12 +10281,18 @@
             if (btnSemId) btnSemId.focus();
         }, 40);
 
+        function onInputMask() {
+            input.value = pdvFormatCpfInput(input.value);
+        }
+        input.addEventListener('input', onInputMask);
+
         function fechar(res) {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             btnOk.removeEventListener('click', onOk);
             btnCancel.removeEventListener('click', onCancel);
             if (btnSemId) btnSemId.removeEventListener('click', onSemId);
+            input.removeEventListener('input', onInputMask);
             document.removeEventListener('keydown', onKey);
             callback(res);
         }
@@ -10265,30 +10306,33 @@
         }
 
         function onOk() {
-            var cpf = nfceNormalizarCpf(input.value);
-            if (!cpf) {
+            var doc = nfceNormalizarDoc(input.value);
+            if (!doc) {
                 if (errEl) {
-                    errEl.textContent = 'Digite o CPF ou toque em «Sem CPF na nota».';
+                    errEl.textContent = 'Digite o CPF/CNPJ ou toque em «Sem CPF/CNPJ na nota».';
                     errEl.classList.remove('hidden');
                 }
                 input.focus();
                 return;
             }
-            if (!nfceCpfValido(cpf)) {
+            if (!nfceDocFiscalValido(doc)) {
                 if (errEl) {
-                    errEl.textContent = 'CPF inválido. Corrija ou use «Sem CPF na nota».';
+                    errEl.textContent = (doc.length >= 12 ? 'CNPJ inválido. ' : 'CPF inválido. ') + 'Corrija ou use «Sem CPF/CNPJ na nota».';
                     errEl.classList.remove('hidden');
                 }
                 input.focus();
                 return;
             }
-            fechar({ cpf: cpf, semIdentificacao: false });
+            fechar({ cpf: doc, semIdentificacao: false });
         }
 
         function onKey(ev) {
             if (ev.key === 'Escape') {
                 ev.preventDefault();
                 onCancel();
+            } else if (ev.key === 'Enter') {
+                ev.preventDefault();
+                onOk();
             }
         }
 
@@ -10320,7 +10364,7 @@
         }
         var state = State.getState();
         var cpfCad = clienteCpfEffective(state.cliente);
-        if (nfceCpfValido(cpfCad)) {
+        if (nfceDocFiscalValido(cpfCad)) {
             State.setPagamentoField('nfceOpts', { cpf: cpfCad, semIdentificacao: false });
             confirmSaleProsseguir(withPrint);
             return;
@@ -14191,7 +14235,7 @@
             var state = State.getState();
             if (!state.cliente) return;
             var cpfCheck = pdvValidarCpfOpcional(dom.clienteCpf ? dom.clienteCpf.value : '');
-            var cpfNorm = cpfCheck.ok ? cpfCheck.cpf : nfceNormalizarCpf(dom.clienteCpf ? dom.clienteCpf.value : '');
+            var cpfNorm = cpfCheck.ok ? cpfCheck.cpf : nfceNormalizarDoc(dom.clienteCpf ? dom.clienteCpf.value : '');
             var c = Object.assign({}, state.cliente, {
                 logradouro: dom.clienteLogradouro ? dom.clienteLogradouro.value.trim() : '',
                 numero: dom.clienteNumero ? dom.clienteNumero.value.trim() : '',

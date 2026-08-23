@@ -460,18 +460,18 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | Operador escolhe **Â«Venda comumÂ»** (popup de impressÃ£o) | **NÃ£o** â€” sÃ³ cupom nÃ£o fiscal |
 | Venda **sem impressÃ£o** + forma manual | **NÃ£o** (salvo modo `auto`) |
 | Venda **sem impressÃ£o** + PIX/cartÃ£o | **Sim**, automÃ¡tico (background) |
-| Venda **com impressÃ£o (F9)** + cupom fiscal | **Sim**, **sÃ­ncrono** â€” modal CPF â†’ aguarda SEFAZ â†’ imprime |
-| Venda **sem impressÃ£o (Enter)** + PIX/cartÃ£o | **Sim**, background (sem modal se sem CPF no cliente) |
+| Venda **com impressÃ£o (F9)** + cupom fiscal | **Sim**, **sÃ­ncrono** â€” modal CPF/CNPJ â†’ aguarda SEFAZ â†’ imprime |
+| Venda **sem impressÃ£o (Enter)** + PIX/cartÃ£o | **Sim**, background (sem modal se sem CPF/CNPJ no cliente) |
 | **Falha na SEFAZ** | Venda **grava igual**; reemitir em **Consultar vendas** |
 
 #### Popups no PDV (wizard `/pdv/checkout/`)
 
 | Passo | PIX / cartÃ£o | Dinheiro e demais |
 | ----- | ------------ | ----------------- |
-| Confirmar **com impressÃ£o (F9)** | Modal CPF (se sem CPF no cliente) â†’ emissÃ£o **sÃ­ncrona** â†’ imprime fiscal | Popup **Cupom fiscal** ou **Venda comum** â†’ idem se fiscal |
+| Confirmar **com impressÃ£o (F9)** | Modal CPF/CNPJ (se sem documento no cliente) â†’ emissÃ£o **sÃ­ncrona** â†’ imprime fiscal | Popup **Cupom fiscal** ou **Venda comum** â†’ idem se fiscal |
 | Confirmar **sem impressÃ£o (Enter)** | Sem modal â€” sem ID automÃ¡tico em PIX/cartÃ£o | NFC-e sÃ³ se operador pediu / forma auto |
-| Cliente **sem CPF** vÃ¡lido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
-| Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
+| Cliente **sem CPF/CNPJ** vÃ¡lido | Modal **Sem CPF/CNPJ na nota** / **Incluir na nota** | Idem, se escolheu cupom fiscal |
+| Cliente **com CPF ou CNPJ** no cadastro | Usa o documento, sem modal | Idem |
 
 #### DevoluÃ§Ã£o de venda
 
@@ -482,7 +482,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Status local passa a **Cancelada** quando a SEFAZ aceita.
 - BotÃ£o **Cancelar NFC-e** na tela da venda (retry manual).
 
-**UX PDV (2026-06-18):** modal CPF **grande** (`max-w ~54rem`, fontes `clamp`). ReemissÃ£o em `/vendas/` â†’ apÃ³s autorizar pergunta **Imprimir cupom / Agora nÃ£o**. Aviso pÃ³s-venda NFC-e falhou: toast **no topo**, depois da janela de impressÃ£o Windows.
+**UX PDV (2026-06-18):** modal CPF/CNPJ **grande** (`max-w ~54rem`, fontes `clamp`). ReemissÃ£o em `/vendas/` â†’ apÃ³s autorizar pergunta **Imprimir cupom / Agora nÃ£o**. Aviso pÃ³s-venda NFC-e falhou: toast **no topo**, depois da janela de impressÃ£o Windows.
 
 **SEFAZ:** PIX/cartÃ£o â†’ grupo `<card><tpIntegra>2</tpIntegra></card>` (NT 2024.003) + `vTotTrib` por item. **NÃ£o** mandar `card` em fiado/`tPag=05` (rejeiÃ§Ã£o **963**). NCM/CFOP/CEST sÃ³ dÃ­gitos no XML (rejeiÃ§Ã£o **225** schema).
 
@@ -1229,7 +1229,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — PDV balança USE-P2 (23/08 · loja **v17.80**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (23/08 · teste **v17.81**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NFCE-DEST-CNPJ** | ✅ **pronto para envio** / teste **v17.81** | **SIM** (`0099`) |
+
+> Loja hoje: ainda **Live v17.80** (PDV-BALANCA-USE-P2). Este pacote **não** sobe à loja sem frase + senha. Path **VERIFY_OK**. v17.80 da loja = balança; NFC-e CNPJ é **v17.81**.
+
+### 📦 PACOTE PRONTO — NFC-e destinatário CNPJ (`NFCE-DEST-CNPJ` · **v17.81**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio à produção** |
+| **O quê** | Cupom fiscal NFC-e aceita **CPF ou CNPJ** no destinatário. Modal do PDV, cadastro rápido, reemissão em Vendas. XML `dest/CNPJ` + `indIEDest=9`. CPF continua igual. |
+| **Por quê** | Loja já emitia para CPF; cliente PJ pedia nota no CNPJ. |
+| **Onde** | `nfce_sp_emissao_util.py` · `views_nfce.py` · modal `pdv_wizard` · `/vendas/` · migrate **`0099`** (`dest_cpf` 11→14) |
+| **Migrate** | **SIM** (`produtos/migrations/0099_nfce_dest_cpf_cnpj.py`) — só aumenta tamanho do campo; não mexe em cupom já autorizado |
+| **Risco** | Baixo — fluxo CPF intacto; CNPJ é caminho extra; venda grava igual se SEFAZ recusar · balança USE-P2 **não** entra neste pacote |
+| **Prova** | `scripts/verify_nfce_dest_cnpj_path.py` **VERIFY_OK** · Django `tests_nfce_loja` (6) · `node --check` |
+| **Você** | Ctrl+F5 no PDV · F9 cupom fiscal · digite CNPJ no modal · ou cadastre CNPJ no cliente · badge **v17.81** |
+| **Autorizar** | frase + senha na mesma mensagem |
+| **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` + frase + senha |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.80**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1260,7 +1283,7 @@ Verificação 23/08 — um só checklist, cruzado com código + 55 provas Node +
 - [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
 - [x] ESC da COM4 **não** é tratado como impressora errada
 
-**Status: PRONTO PRA ENVIO / verificado de novo 23/08.**
+**Status: enviado / Live v17.80.**
 
 ### 📦 PACOTE PRONTO — PDV balança USE-P2 (`PDV-BALANCA-USE-P2` · **v17.80**)
 

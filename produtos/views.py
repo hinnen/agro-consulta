@@ -31073,10 +31073,10 @@ def _pdv_whatsapp_digits_pdv(wa_raw: str, *, obrigatorio: bool = False, excluir_
 
 
 def _pdv_cpf_field_from_payload(data: dict) -> tuple[str | None, str | None]:
-    """(cpf 11 dígitos ou '' para limpar, erro). ``None`` no cpf = campo omitido."""
+    """(CPF 11 ou CNPJ 14 dígitos ou '' para limpar, erro). ``None`` no doc = campo omitido."""
     if "cpf" not in data and "documento" not in data:
         return None, None
-    from produtos.nfce_sp_emissao_util import cpf_valido
+    from produtos.nfce_sp_emissao_util import documento_dest_nfce, mensagem_doc_dest_invalido
 
     raw = str(data.get("cpf") or data.get("documento") or "").strip()
     if not raw:
@@ -31084,9 +31084,10 @@ def _pdv_cpf_field_from_payload(data: dict) -> tuple[str | None, str | None]:
     digits = re.sub(r"\D", "", raw)
     if not digits:
         return "", None
-    if not cpf_valido(digits):
-        return None, "CPF inválido."
-    return digits[:11], None
+    doc = documento_dest_nfce(digits)
+    if not doc:
+        return None, mensagem_doc_dest_invalido(digits)
+    return doc, None
 
 
 def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
