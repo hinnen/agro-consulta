@@ -2,7 +2,7 @@
  * PDV — overlay Pesar granel (Urano USE-P2 / USE-PII via Chrome Web Serial).
  * F10 / botão Pesar · códigos 1–199 · auto-add ao estabilizar.
  *
- * A COM4 manda ESC N 1 + "0,00" (não STX, não sufixo kg). Não tratar ESC como impressora.
+ * A COM4 manda o kg ao vivo no ESC N 0 (`0,478 kg`); ESC N 1 auxiliar pode ser 0,00.
  */
 (function () {
   'use strict';
@@ -126,11 +126,16 @@
   }
 
   function setConnChip(label, tone) {
-    if (!dom.connChip) return;
-    dom.connChip.textContent = label;
-    dom.connChip.className =
-      'bl-chip' +
-      (tone === 'ok' ? ' is-ok' : tone === 'err' ? ' is-err' : ' is-warn');
+    if (dom.connChip) {
+      dom.connChip.textContent = label;
+      dom.connChip.className =
+        'bl-chip' +
+        (tone === 'ok' ? ' is-ok' : tone === 'err' ? ' is-err' : ' is-warn');
+    }
+    if (overlay) {
+      if (tone === 'ok') overlay.classList.remove('is-disconnected');
+      else overlay.classList.add('is-disconnected');
+    }
   }
 
   function isOpen() {
@@ -386,29 +391,21 @@
     dom.peso.className =
       'bl-peso mt-1 ' + (isStable && show !== null && show >= MIN_KG ? 'is-live' : 'is-wait');
     if (dom.estavel) {
-      if (scaleMode === 'sim') {
-        dom.estavel.textContent =
-          show === 0
-            ? 'Simulador · dump real USE-P2 (0,00 kg no prato)'
-            : isStable
-              ? 'Simulador · peso estável'
-              : 'Simulador · peso ao vivo';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-emerald-700';
-      } else if (!connected) {
-        dom.estavel.textContent = 'Balança desconectada';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-slate-500';
+      if (!connected && scaleMode !== 'sim') {
+        dom.estavel.textContent = 'Desconectada';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-slate-500';
       } else if (!hadBytes) {
-        dom.estavel.textContent = 'Porta aberta · esperando bytes · confira cabo e USE-P2';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-amber-700';
+        dom.estavel.textContent = 'Ligando…';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-amber-700';
       } else if (show !== null && show < MIN_KG) {
-        dom.estavel.textContent = 'Prato vazio · 0,00 kg é leitura válida';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-slate-600';
+        dom.estavel.textContent = 'Prato vazio';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-slate-500';
       } else if (isStable) {
-        dom.estavel.textContent = 'Peso estável';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-emerald-700';
+        dom.estavel.textContent = 'Estável';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-emerald-700';
       } else {
-        dom.estavel.textContent = 'Peso ao vivo · aguardando estabilizar';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-amber-700';
+        dom.estavel.textContent = 'Aguarde';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-amber-700';
       }
     }
     updateTotalUi();
@@ -526,14 +523,8 @@
 
   function setRxHint(txt, asciiExtra) {
     lastRawHint = txt || '';
-    if (dom.rx) {
-      if (!lastRawHint) {
-        dom.rx.textContent = connected || scaleMode === 'sim' ? 'RX: (aguardando bytes…)' : '';
-      } else {
-        dom.rx.textContent =
-          'RX: ' + lastRawHint + (asciiExtra ? '  ·  ' + asciiExtra : '');
-      }
-    }
+    /* RX fica só na memória — o caixa não precisa ver hex da COM. */
+    if (dom.rx) dom.rx.textContent = '';
   }
 
   function startSilenceWatch() {
@@ -545,12 +536,8 @@
       if (hadBytes) return;
       if (Date.now() - lastByteAt < 2800) return;
       if (dom.estavel) {
-        dom.estavel.textContent =
-          'Sem bytes da balança · confira COM4 / USE-P2 / cabo';
-        dom.estavel.className = 'mt-1 text-xs font-bold text-red-700';
-      }
-      if (!lastRawHint) {
-        setRxHint('(nenhum byte em 3s)');
+        dom.estavel.textContent = 'Sem sinal da balança';
+        dom.estavel.className = 'mt-1 text-sm font-bold text-red-700';
       }
     }, 1200);
   }
@@ -640,7 +627,7 @@
     connected = true;
     resetReadState();
     setConnChip('COM ok', 'ok');
-    setStatus('Balança conectada (USE-P2 · 9600 8N' + stopBits + ').', 'ok');
+    setStatus('');
     if (dom.simChips) {
       dom.simChips.classList.add('hidden');
       dom.simChips.style.display = 'none';
@@ -761,7 +748,7 @@
     }
     var seq = ++resolveSeq;
     var typedRaw = dom.codigo ? String(dom.codigo.value || '').trim() : '';
-    setStatus('Buscando produto ' + num + '…');
+    setStatus('');
     return resolveProduto(num, typedRaw).then(function (res) {
       if (seq !== resolveSeq) return false;
       if (!res.ok) {
@@ -770,7 +757,7 @@
         return false;
       }
       setProdutoUi(res.produto);
-      setStatus('Produto ok. Aguarde peso estável.', 'ok');
+      setStatus('');
       maybeAutoAdd();
       return true;
     });
@@ -859,13 +846,7 @@
         }
         lastAddedAt = Date.now();
         isStable = false;
-        setStatus(
-          'Adicionado: ' +
-            fmtKg(kg) +
-            ' · ' +
-            String(row.nome || '').slice(0, 40),
-          'ok'
-        );
+        setStatus('Adicionado.', 'ok');
         if (dom.codigo) {
           dom.codigo.value = '';
           dom.codigo.focus();
@@ -925,10 +906,10 @@
       resetReadState();
       simWeightKg = 0;
       setConnChip('SEM PORTA', 'ok');
-      setStatus('Simulador · dump real USE-P2 (0,00 kg). Sem cabo.', 'ok');
+      setStatus('');
       if (dom.simChips) {
-        dom.simChips.classList.remove('hidden');
-        dom.simChips.style.display = 'flex';
+        dom.simChips.classList.add('hidden');
+        dom.simChips.style.display = 'none';
       }
       simTick();
       simTimer = setInterval(simTick, 180);
@@ -970,11 +951,7 @@
       connected = false;
       scaleMode = 'idle';
       setConnChip('Sem porta', 'warn');
-      setStatus(
-        (err && err.message) ||
-          'Toque em CONECTAR (COM4) ou SEM PORTA para simular.',
-        'err'
-      );
+      setStatus((err && err.message) || 'Toque em Conectar.', 'err');
     });
   }
 
@@ -1043,7 +1020,7 @@
       saveCfg({ stopBits: stopBits });
       var lab = document.getElementById('pdv-balanca-stopbits-label');
       if (lab) lab.textContent = String(stopBits);
-      setStatus('Stop bits ' + stopBits + '. Toque CONECTAR de novo se a porta já estava aberta.', 'ok');
+      /* Stop bits fica gravado; UI de caixa não mostra o seletor. */
     });
   }
   if (dom.simChips) {

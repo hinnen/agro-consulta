@@ -1229,6 +1229,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — overlay Pesar limpo (23/08 · loja **v17.83**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-UI-CAIXA** | ✅ **enviado / Live v17.83** | **NÃO** |
+| 2 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
+| 3 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
+
+> Loja hoje: ✅ **Live v17.83** (PESAR GRANEL só peso + código grande; RX/stop bits/SEM PORTA fora da vista). Parser kg ao vivo permanece. Rollback UI: Live v17.82 @ **c897295**.
+
+- [x] RX hex **oculto** (caixa não vê)
+- [x] Overlay: peso, total R$, código grande, nome do produto, Fechar
+- [x] Conectar só aparece se a balança cair
+- [x] Auto-add + Enter no código continuam
+- [x] NFC-e CNPJ e parser 0,478 kg **intactos**
+
+**Status: enviado / Live v17.83.**
+
+### 📦 PACOTE PRONTO — overlay Pesar caixa (`PDV-BALANCA-UI-CAIXA` · **v17.83**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.83** |
+| **O quê** | Limpa o overlay Pesar: some RX, COM/stop bits, SEM PORTA, ADICIONAR AGORA. Código bem grande. |
+| **Por quê** | Caixa confirmou o peso (0,478 kg); o RX piscando e o texto técnico atrapalhavam. |
+| **Onde** | `balanca_overlay.html` · `pdv_balanca.js` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só UI do overlay. Parser serial intacto. |
+| **Prova** | `node --check produtos/static/produtos/js/pdv_balanca.js` · provas USE-P2 62/62 |
+| **Você** | **Ctrl+F5** PDV · F10 · código grande · peso ao vivo · entra sozinho |
+| **Rollback** | `git reset --hard c897295` (Live v17.82) + frase + senha |
+
 ### ✅ CHECKLIST ÚNICO — PDV balança kg ao vivo (23/08 · loja **v17.82**)
 
 | # | Pacote | Status | Migrate |

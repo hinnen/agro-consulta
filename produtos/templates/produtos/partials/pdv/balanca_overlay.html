@@ -1,114 +1,76 @@
-{# Overlay Pesar (balança granel) — F10 · Urano USE-P2 / USE-PII via Web Serial (COM4) #}
+{# Overlay Pesar (balança granel) — F10 · Urano USE-P2 via Web Serial #}
 <style>
   #pdv-balanca-overlay .bl-peso {
     font-variant-numeric: tabular-nums;
-    font-size: clamp(2.4rem, 4vw + 1.5rem, 3.6rem);
+    font-size: clamp(3.2rem, 8vw + 1.2rem, 4.6rem);
     font-weight: 900;
-    line-height: 1;
-    letter-spacing: -0.02em;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
     color: #0f172a;
   }
   #pdv-balanca-overlay .bl-peso.is-live { color: #047857; }
   #pdv-balanca-overlay .bl-peso.is-wait { color: #94a3b8; }
   #pdv-balanca-overlay .bl-field {
-    min-height: 3.1rem;
-    border-radius: 0.75rem;
-    border: 2px solid #cbd5e1;
+    min-height: 4.6rem;
+    border-radius: 1rem;
+    border: 3px solid #94a3b8;
     background: #fff;
-    padding: 0.45rem 0.85rem;
-    font-size: 1.35rem;
-    font-weight: 800;
+    padding: 0.35rem 0.9rem;
+    font-size: clamp(2.4rem, 6vw + 1rem, 3.4rem);
+    font-weight: 900;
     color: #0f172a;
     width: 100%;
+    text-align: center;
     font-variant-numeric: tabular-nums;
+    letter-spacing: 0.08em;
   }
   #pdv-balanca-overlay .bl-field:focus {
     outline: none;
     border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.22);
   }
-  #pdv-balanca-overlay .bl-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 1.75rem;
-    padding: 0.2rem 0.65rem;
-    border-radius: 999px;
-    border: 1.5px solid #cbd5e1;
-    background: #f8fafc;
-    font-size: 0.72rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #475569;
-  }
-  #pdv-balanca-overlay .bl-chip.is-ok {
-    border-color: #6ee7b7;
-    background: #ecfdf5;
-    color: #065f46;
-  }
-  #pdv-balanca-overlay .bl-chip.is-warn {
-    border-color: #fcd34d;
-    background: #fffbeb;
-    color: #92400e;
-  }
-  #pdv-balanca-overlay .bl-chip.is-err {
-    border-color: #fca5a5;
-    background: #fef2f2;
-    color: #991b1b;
-  }
+  #pdv-balanca-overlay .bl-chip { display: none; }
+  #pdv-balanca-overlay.is-disconnected #pdv-balanca-conectar { display: inline-flex; }
+  #pdv-balanca-overlay:not(.is-disconnected) #pdv-balanca-conectar { display: none; }
 </style>
 
 <div id="pdv-balanca-overlay" class="fixed inset-0 z-[142] hidden items-center justify-center bg-slate-950/55 p-2 sm:p-3 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-balanca-title">
-  <div class="relative flex w-[min(96vw,28rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-gradient-to-b from-emerald-50/95 via-white to-white shadow-2xl" role="document" id="pdv-balanca-panel">
-    <header class="flex shrink-0 flex-wrap items-center gap-2 border-b-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4">
-      <div class="min-w-0 flex-1">
-        <h2 id="pdv-balanca-title" class="text-[clamp(1rem,1vw+0.9rem,1.25rem)] font-black uppercase tracking-tight text-slate-900">Pesar granel</h2>
-        <p class="text-xs font-semibold text-emerald-800">Código 1–199 · peso ao vivo · adiciona sozinho</p>
-      </div>
-      <span id="pdv-balanca-conn-chip" class="bl-chip is-warn" title="Status da balança">Sem porta</span>
-      <button type="button" id="pdv-balanca-sem-porta" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-amber-300 bg-amber-50 px-2.5 text-[10px] font-black uppercase text-amber-950 hover:bg-amber-100" title="Replaya o dump real da COM4 sem cabo">Sem porta</button>
-      <button type="button" id="pdv-balanca-conectar" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-sky-300 bg-sky-50 px-2.5 text-[10px] font-black uppercase text-sky-950 hover:bg-sky-100" title="No Chrome, marque USB Serial Port (COM4)">Conectar</button>
-      <button type="button" id="pdv-balanca-fechar" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3 text-[10px] font-black uppercase text-white hover:bg-teal-700" title="Fechar · Esc">Fechar</button>
+  <div class="relative flex w-[min(96vw,26rem)] max-w-full flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" role="document" id="pdv-balanca-panel">
+    <header class="flex shrink-0 items-center gap-2 px-4 pt-3">
+      <h2 id="pdv-balanca-title" class="min-w-0 flex-1 text-lg font-black uppercase tracking-tight text-slate-900">Pesar</h2>
+      <button type="button" id="pdv-balanca-conectar" class="hidden min-h-[2.6rem] items-center rounded-xl border-2 border-sky-400 bg-sky-50 px-3 text-xs font-black uppercase text-sky-950" title="Escolher a balança (COM4)">Conectar</button>
+      <button type="button" id="pdv-balanca-fechar" class="inline-flex min-h-[2.6rem] items-center rounded-xl bg-teal-600 px-4 text-xs font-black uppercase text-white hover:bg-teal-700" title="Fechar · Esc">Fechar</button>
     </header>
 
-    <div class="flex flex-col gap-3 px-3 py-3 sm:px-4 sm:py-4">
-      <section class="rounded-xl border-2 border-emerald-100 bg-white px-3 py-3 text-center shadow-sm" aria-label="Peso">
-        <div class="text-[10px] font-black uppercase tracking-wider text-slate-500">Peso</div>
-        <div id="pdv-balanca-peso" class="bl-peso is-wait mt-1" aria-live="polite">—,— kg</div>
-        <div id="pdv-balanca-estavel" class="mt-1 text-xs font-bold text-slate-500">Aguardando balança…</div>
-        <div id="pdv-balanca-total" class="mt-2 text-lg font-black tabular-nums text-emerald-800">R$ 0,00</div>
-        <p id="pdv-balanca-rx" class="mt-1.5 min-h-[1rem] font-mono text-[10px] font-semibold text-slate-500" title="Bytes recebidos da COM (diagnóstico)"></p>
-        <div id="pdv-balanca-sim-chips" class="mt-2 hidden flex-wrap justify-center gap-1.5" style="display:none">
-          <button type="button" data-sim-kg="0" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">Prato vazio</button>
-          <button type="button" data-sim-kg="0.25" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">250 g</button>
-          <button type="button" data-sim-kg="0.5" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">500 g</button>
-          <button type="button" data-sim-kg="1.25" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">1,250 kg</button>
-        </div>
+    <div class="flex flex-col gap-4 px-4 pb-5 pt-2">
+      <section class="text-center" aria-label="Peso">
+        <div id="pdv-balanca-peso" class="bl-peso is-wait" aria-live="polite">—,— kg</div>
+        <div id="pdv-balanca-estavel" class="mt-1 text-sm font-bold text-slate-500"></div>
+        <div id="pdv-balanca-total" class="mt-2 text-2xl font-black tabular-nums text-emerald-800">R$ 0,00</div>
       </section>
 
       <section aria-label="Código do produto">
-        <label for="pdv-balanca-codigo" class="mb-1 block text-[10px] font-black uppercase tracking-wide text-slate-600">Código (1 a 199)</label>
-        <input type="text" id="pdv-balanca-codigo" class="bl-field" inputmode="numeric" autocomplete="off" placeholder="Ex.: 1 · 01 · 150" maxlength="4" />
-        <p id="pdv-balanca-produto" class="mt-1.5 min-h-[1.25rem] text-sm font-bold text-slate-700"></p>
+        <label for="pdv-balanca-codigo" class="mb-1.5 block text-center text-sm font-black uppercase tracking-wide text-slate-600">Código</label>
+        <input type="text" id="pdv-balanca-codigo" class="bl-field" inputmode="numeric" autocomplete="off" placeholder="—" maxlength="4" />
+        <p id="pdv-balanca-produto" class="mt-2 min-h-[1.5rem] text-center text-base font-bold leading-snug text-slate-800"></p>
       </section>
 
-      <p id="pdv-balanca-status" class="min-h-[1.25rem] text-sm font-bold text-slate-600" role="status"></p>
+      <p id="pdv-balanca-status" class="min-h-[1.25rem] text-center text-sm font-bold text-slate-600" role="status"></p>
     </div>
 
-    <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4">
-      <button type="button" id="pdv-balanca-add-manual" class="inline-flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-950 hover:bg-emerald-100" title="Forçar adicionar com o peso atual">Adicionar agora</button>
-      <div class="flex w-full flex-wrap items-center justify-between gap-2 text-[10px] font-semibold text-slate-500">
-        <span>9600 8N<span id="pdv-balanca-stopbits-label">2</span> · COM4 · Esc fecha</span>
-        <label class="inline-flex items-center gap-1.5">
-          Stop bits
-          <select id="pdv-balanca-stopbits" class="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 font-bold text-slate-800" title="Manual POP-Z: 2. Se o adaptador USB engasgar, tente 1.">
-            <option value="2" selected>2 (manual Urano)</option>
-            <option value="1">1</option>
-          </select>
-        </label>
-      </div>
-      <p class="w-full text-center text-[10px] font-semibold text-slate-500">Estável + código ok = entra sozinho · prato vazio libera a próxima pesagem</p>
-    </footer>
+    {# Controles técnicos fora da vista do caixa (JS ainda usa os ids). #}
+    <span id="pdv-balanca-conn-chip" class="bl-chip hidden" hidden>Sem porta</span>
+    <button type="button" id="pdv-balanca-sem-porta" class="hidden" tabindex="-1" hidden>Sem porta</button>
+    <button type="button" id="pdv-balanca-add-manual" class="hidden" tabindex="-1" hidden>Adicionar agora</button>
+    <p id="pdv-balanca-rx" class="hidden" hidden></p>
+    <div id="pdv-balanca-sim-chips" class="hidden" hidden></div>
+    <label class="hidden">
+      Stop bits
+      <select id="pdv-balanca-stopbits" hidden>
+        <option value="2">2</option>
+        <option value="1" selected>1</option>
+      </select>
+    </label>
+    <span id="pdv-balanca-stopbits-label" class="hidden">1</span>
   </div>
 </div>
