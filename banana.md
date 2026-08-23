@@ -1250,7 +1250,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_nfce_dest_cnpj_path.py` **VERIFY_OK** · Django `tests_nfce_loja` (6) · `node --check` |
 | **Você** | Ctrl+F5 no PDV · F9 cupom fiscal · digite CNPJ no modal · ou cadastre CNPJ no cliente · badge **v17.81** |
 | **Autorizar** | frase + senha na mesma mensagem |
-| **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` + frase + senha |
+| **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md` + frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.80**)
 
