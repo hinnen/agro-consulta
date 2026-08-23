@@ -1236,7 +1236,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **PDV-BALANCA-KG-VIVO** | ✅ **enviado / Live v17.82** | **NÃO** |
 | 2 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
 
-> Loja hoje: ✅ **Live v17.82** (PESAR GRANEL lê `0,478 kg` do dump ao vivo; `ESC N 1` 0,00 não tapa o visor). NFC-e CNPJ permanece. Rollback deste hotfix: `producao` @ **fef6815** (Live v17.81) · tag `rollback/pre-nfce-dest-cnpj-v17.80` ainda aponta v17.80 balança. Prova: `node scripts/_test_pdv_balanca_logic.js` (62/62).
+> Loja hoje: ✅ **Live v17.82** (PESAR GRANEL lê `0,478 kg` do dump ao vivo; `ESC N 1` 0,00 não tapa o visor). `producao` @ **dc7160e**. NFC-e CNPJ permanece. Rollback deste hotfix: `fef6815` (Live v17.81). Prova: `node scripts/_test_pdv_balanca_logic.js` (62/62).
 
 Verificação 23/08 — dump ao vivo da COM4 (visor 0,00 com RX 0,478 kg):
 
