@@ -1229,19 +1229,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (23/08 · teste **v17.81**)
+### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.81**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NFCE-DEST-CNPJ** | ✅ **pronto para envio** / teste **v17.81** | **SIM** (`0099`) |
+| 1 | **NFCE-DEST-CNPJ** | ✅ **enviado / Live v17.81** | **SIM** (`0099`) |
 
-> Loja hoje: ainda **Live v17.80** (PDV-BALANCA-USE-P2). Este pacote **não** sobe à loja sem frase + senha. Path **VERIFY_OK**. v17.80 da loja = balança; NFC-e CNPJ é **v17.81**.
+> Loja hoje: ✅ **Live v17.81** (NFC-e dest CPF ou CNPJ). `producao` @ **60d7a700**. Rollback: tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md`.
 
-### 📦 PACOTE PRONTO — NFC-e destinatário CNPJ (`NFCE-DEST-CNPJ` · **v17.81**)
+### 📦 PACOTE PRONTO — NFC-e destinatário CNPJ (`NFCE-DEST-CNPJ` · **v17.81**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio à produção** |
+| **Status** | ✅ **enviado / Live v17.81** |
 | **O quê** | Cupom fiscal NFC-e aceita **CPF ou CNPJ** no destinatário. Modal do PDV, cadastro rápido, reemissão em Vendas. XML `dest/CNPJ` + `indIEDest=9`. CPF continua igual. |
 | **Por quê** | Loja já emitia para CPF; cliente PJ pedia nota no CNPJ. |
 | **Onde** | `nfce_sp_emissao_util.py` · `views_nfce.py` · modal `pdv_wizard` · `/vendas/` · migrate **`0099`** (`dest_cpf` 11→14) |
@@ -1249,8 +1249,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — fluxo CPF intacto; CNPJ é caminho extra; venda grava igual se SEFAZ recusar · balança USE-P2 **não** entra neste pacote |
 | **Prova** | `scripts/verify_nfce_dest_cnpj_path.py` **VERIFY_OK** · Django `tests_nfce_loja` (6) · `node --check` |
 | **Você** | Ctrl+F5 no PDV · F9 cupom fiscal · digite CNPJ no modal · ou cadastre CNPJ no cliente · badge **v17.81** |
-| **Autorizar** | frase + senha na mesma mensagem |
 | **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md` + frase + senha |
+
+### ✅ Deploy loja — NFCE-DEST-CNPJ (`deploy/nfce-dest-cnpj` · **v17.81**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.81** · `producao` @ **60d7a700** |
+| **Pacotes** | **NFCE-DEST-CNPJ** |
+| **Migrate** | **SIM** (`0099`) — `manage.py migrate` no build Render (só aumenta `dest_cpf` 11→14) |
+| **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md` + frase + senha |
+| **O quê** | NFC-e aceita CPF ou CNPJ no destinatário. Balança USE-P2 (v17.80) permanece. |
+| **Você** | **Ctrl+F5** PDV · F9 · CNPJ no modal ou no cadastro · badge **17.81** |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.80**)
 
