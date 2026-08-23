@@ -143,29 +143,22 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
 ---
 
-## 7. Checklist único — path USE-P2 (loja v17.82)
+## 7. Checklist único — path PDV-ORC-SALVO (teste v17.84)
 
-Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 62 provas Node + dump vazio e dump ao vivo da COM4.
+Verificação **23/08/2026**. Um só checklist. Cruzado com código + Django `tests_pdv_orcamentos` **7 OK** + `scripts/verify_pdv_orcamento_salvo_path.py` → **VERIFY_OK 76/76**.
 
-- [x] Modal **PESAR GRANEL** abre em F10 / botão
-- [x] Serial **9600 8N2** (manual POP-Z) + seletor de 1 stop bit
-- [x] Dump vazio `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
-- [x] Dump ao vivo `0,478 kg` + `ESC N 1` 0,00 → visor **0,478 kg**, fonte `kg-field`
-- [x] `0,00` é leitura válida; “Sem bytes” só com buffer vazio
-- [x] Frame partido no cabo fecha depois do merge
-- [x] Janela 96 bytes: prato vazio depois do produto volta a 0,00
-- [x] `ESC N 0` com `kg` é peso ao vivo; `ESC N 1` 0,00 auxiliar não vence
-- [x] Fallback `PESO L:` / `kg` / decimal / STX legado
-- [x] `ENQ` 0x05 a cada 450 ms
-- [x] **CONECTAR** trata “No port selected” como COM4 não marcada
-- [x] **SEM PORTA** é botão de simular (não é erro)
-- [x] Códigos 1–199
-- [x] Peso mínimo 20 g
-- [x] Estável = 3 leituras iguais em ~380 ms
-- [x] Estável + código ok = entra sozinho uma vez
-- [x] Prato vazio zera o ciclo
-- [x] **ADICIONAR AGORA** / Enter não duplicam
-- [x] 1,250 kg × R$ 6,90 = R$ 8,63
-- [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
+Loja hoje continua **Live v17.83** (overlay Pesar). Balança USE-P2 / kg ao vivo / NFC-e CNPJ **já enviados** — ver CHECKPOINT no `banana.md`. Este path **não** sobe sem frase+senha.
 
-**Status: enviado / Live v17.82.** Checkpoint v17.80: `checkpoint-use-p2-pronto-99738595`. Rollback deste hotfix: Live v17.81 @ `fef6815`. Rollback pré-balança: `rollback/pre-pdv-balanca-use-p2-v17.79` (ver `docs/ROLLBACK-PDV-BALANCA-USE-P2.md`).
+- [x] Botão **Salvar orçamento** no wizard (etapa 1)
+- [x] Toast verde **Orçamento salvo** + nome do cliente
+- [x] Card **Orçamentos** atualiza na hora (memória, não só localStorage)
+- [x] Consumidor não identificado = chave `consumidor_final` (não `tmp:…`)
+- [x] GET Postgres também acha alias `tmp:consumidor…`
+- [x] POST `/api/pdv/orcamentos/` carimba `id` + `cliente_key` (fonte PG · roteiro §0.1)
+- [x] Clique na linha reabre · bip **GMORC** reabre
+- [x] **Ver mais / F6** lista o restante do mesmo cliente
+- [x] **Enviar** WhatsApp grava orçamento (origem zap)
+- [x] Migration **0048** já na loja — sem migrate novo
+- [x] NFC-e / balança / caixa **fora deste recorte**
+
+**Status: ✅ pronto para envio à produção.** Pacote `PDV-ORC-SALVO` · teste **v17.84**. Renan: **Ctrl+F5** PDV · consumidor não identificado · 1 item · Salvar orçamento · linha nova no card. Loja só com frase + senha `99738595`.

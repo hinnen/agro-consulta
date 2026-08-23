@@ -28897,13 +28897,19 @@ def api_pdv_orcamentos(request):
             qs = OrcamentoPdvAgro.objects.order_by("-criado_em")[:limite]
             items = [_orcamento_pdv_entry_from_model(o) for o in qs]
             return JsonResponse({"ok": True, "items": items, "escopo": "recentes"})
-        key = str(request.GET.get("cliente_key") or "").strip()
-        if not key:
+        key_raw = str(request.GET.get("cliente_key") or "").strip()
+        if not key_raw:
             return JsonResponse(
                 {"ok": False, "erro": "cliente_key ou recentes=1 obrigatório"},
                 status=400,
             )
-        qs = OrcamentoPdvAgro.objects.filter(cliente_key=key).order_by("-criado_em")[:limite]
+        key = normalizar_orcamento_cliente_key(key_raw, "")
+        if key == "consumidor_final":
+            qs = OrcamentoPdvAgro.objects.filter(
+                Q(cliente_key="consumidor_final") | Q(cliente_key__istartswith="tmp:consumidor")
+            ).order_by("-criado_em")[:limite]
+        else:
+            qs = OrcamentoPdvAgro.objects.filter(cliente_key=key).order_by("-criado_em")[:limite]
         items = [_orcamento_pdv_entry_from_model(o) for o in qs]
         return JsonResponse({"ok": True, "items": items, "escopo": "cliente"})
 

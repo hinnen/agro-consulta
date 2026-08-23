@@ -29,6 +29,11 @@ class NormalizarClienteKeyTests(SimpleTestCase):
         self.assertEqual(normalizar_orcamento_cliente_key("", ""), ORCAMENTO_CLIENTE_KEY_CONSUMIDOR)
         self.assertEqual(normalizar_orcamento_cliente_key("null", ""), ORCAMENTO_CLIENTE_KEY_CONSUMIDOR)
 
+    def test_get_api_busca_alias_tmp_consumidor(self):
+        src = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
+        self.assertIn('cliente_key__istartswith="tmp:consumidor"', src)
+        self.assertIn("normalizar_orcamento_cliente_key(key_raw, \"\")", src)
+
     def test_pk_permanece(self):
         self.assertEqual(normalizar_orcamento_cliente_key("pk:42", "Maria"), "pk:42")
 
