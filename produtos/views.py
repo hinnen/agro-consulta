@@ -161,6 +161,10 @@ from .entrega_pdv_pendente_util import (
     resolver_sessao_caixa_entrega_pdv,
     serializar_entrega_pendente_pdv,
 )
+from .pdv_orcamento_util import (
+    carimbar_entry_orcamento_pdv,
+    normalizar_orcamento_cliente_key,
+)
 from .models import (
     ClienteAgro,
     CaixaConferenciaRascunhoAgro,
@@ -28830,20 +28834,18 @@ def api_pdv_limpar_checkout_draft(request):
 
 def _orcamento_pdv_entry_from_model(obj: OrcamentoPdvAgro) -> dict:
     payload = obj.payload_json if isinstance(obj.payload_json, dict) else {}
-    entry = dict(payload)
-    entry.setdefault("id", obj.orc_local_id)
-    entry.setdefault("orc_barcode", f"GMORC{obj.orc_local_id}")
-    entry.setdefault("cliente", obj.cliente_nome)
-    entry.setdefault("cliente_key", obj.cliente_key)
-    entry.setdefault("cliente_mode", obj.cliente_mode)
-    entry.setdefault("total", obj.total_texto)
-    entry.setdefault("entrega", obj.entrega)
-    entry.setdefault("forma_pagamento", obj.forma_pagamento)
-    if obj.usuario_registro and not entry.get("usuario"):
-        entry["usuario"] = obj.usuario_registro
-    if obj.criado_em and not entry.get("data"):
-        entry["data"] = obj.criado_em.strftime("%d/%m/%Y, %H:%M:%S")
-    return entry
+    return carimbar_entry_orcamento_pdv(
+        payload,
+        orc_local_id=int(obj.orc_local_id),
+        cliente_key=obj.cliente_key or "",
+        cliente_nome=obj.cliente_nome or "",
+        cliente_mode=obj.cliente_mode or "",
+        total_texto=obj.total_texto or "",
+        entrega=bool(obj.entrega),
+        forma_pagamento=obj.forma_pagamento or "",
+        usuario_registro=obj.usuario_registro or "",
+        criado_em=obj.criado_em,
+    )
 
 
 def _orcamento_pdv_cliente_agro_id(entry: dict) -> int | None:
@@ -28925,9 +28927,11 @@ def api_pdv_orcamentos(request):
     if not isinstance(itens, list) or not itens:
         return JsonResponse({"ok": False, "erro": "orçamento sem itens"}, status=400)
 
-    cliente_key = str(entry.get("cliente_key") or "consumidor_final").strip() or "consumidor_final"
     cliente_nome = str(entry.get("cliente") or "").strip()[:300]
+    cliente_key = normalizar_orcamento_cliente_key(entry.get("cliente_key"), cliente_nome)
     cliente_mode = str(entry.get("cliente_mode") or "cliente").strip()[:32] or "cliente"
+    if cliente_key == "consumidor_final":
+        cliente_mode = "consumidor_final"
     total_texto = str(entry.get("total") or "").strip()[:48]
     forma = str(entry.get("forma_pagamento") or "").strip()[:40]
     usuario = str(entry.get("usuario") or "").strip()[:120]
@@ -28948,21 +28952,30 @@ def api_pdv_orcamentos(request):
     payload["id"] = orc_id
     payload.setdefault("orc_barcode", f"GMORC{orc_id}")
     payload["cliente_key"] = cliente_key
+    payload["cliente_mode"] = cliente_mode
+    payload["cliente"] = cliente_nome
 
-    obj, _created = OrcamentoPdvAgro.objects.update_or_create(
-        orc_local_id=orc_id,
-        defaults={
-            "cliente_agro": cli_agro,
-            "cliente_nome": cliente_nome,
-            "cliente_key": cliente_key,
-            "cliente_mode": cliente_mode,
-            "payload_json": payload,
-            "total_texto": total_texto,
-            "entrega": bool(entry.get("entrega")),
-            "forma_pagamento": forma,
-            "usuario_registro": usuario,
-        },
-    )
+    try:
+        obj, _created = OrcamentoPdvAgro.objects.update_or_create(
+            orc_local_id=orc_id,
+            defaults={
+                "cliente_agro": cli_agro,
+                "cliente_nome": cliente_nome,
+                "cliente_key": cliente_key,
+                "cliente_mode": cliente_mode,
+                "payload_json": payload,
+                "total_texto": total_texto,
+                "entrega": bool(entry.get("entrega")),
+                "forma_pagamento": forma,
+                "usuario_registro": usuario,
+            },
+        )
+    except Exception as exc:
+        logger.exception("api_pdv_orcamentos POST: %s", exc)
+        return JsonResponse(
+            {"ok": False, "erro": "Não foi possível gravar o orçamento no servidor."},
+            status=500,
+        )
     _orcamento_pdv_trim_cliente(cliente_key)
     return JsonResponse({"ok": True, "item": _orcamento_pdv_entry_from_model(obj)})
 
