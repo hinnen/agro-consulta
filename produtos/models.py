@@ -617,7 +617,12 @@ class NfceDocumentoAgro(models.Model):
         help_text="CNPJ no XML emit (Centro /0001 ou Vila /0002).",
     )
     protocolo = models.CharField(max_length=20, blank=True, default="")
-    dest_cpf = models.CharField(max_length=11, blank=True, default="")
+    dest_cpf = models.CharField(
+        max_length=14,
+        blank=True,
+        default="",
+        help_text="CPF (11) ou CNPJ (14) do destinatário na NFC-e.",
+    )
     consumidor_sem_identificacao = models.BooleanField(default=False)
     xml_autorizado = models.TextField(blank=True, default="")
     qr_code_url = models.TextField(blank=True, default="")

@@ -454,8 +454,8 @@
           <p class="text-sm font-semibold text-amber-950 leading-snug whitespace-pre-wrap" id="nfce-detalhe-erro-text">{{ nfce_painel.erro|default:"Sem detalhe registrado." }}</p>
         </div>
         <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">CPF consumidor (opcional)</span>
-          <input type="text" inputmode="numeric" id="nfce-detalhe-cpf" maxlength="14" value="{{ nfce_painel.dest_cpf }}" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums min-h-[44px]">
+          <span class="text-[10px] font-black uppercase text-slate-500">CPF ou CNPJ do consumidor (opcional)</span>
+          <input type="text" inputmode="numeric" id="nfce-detalhe-cpf" maxlength="18" value="{{ nfce_painel.dest_cpf }}" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold tabular-nums min-h-[44px]">
         </label>
         <label class="flex items-center gap-2 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 cursor-pointer">
           <input type="checkbox" id="nfce-detalhe-sem-id" class="w-5 h-5 accent-amber-600" {% if nfce_painel.consumidor_sem_identificacao %}checked{% endif %}>
@@ -926,7 +926,7 @@
       var cpf = (document.getElementById('nfce-detalhe-cpf').value || '').replace(/\D/g, '');
       var semId = document.getElementById('nfce-detalhe-sem-id').checked;
       if (!cpf && !semId) {
-        alert('Informe CPF ou marque venda sem identificação.');
+        alert('Informe CPF ou CNPJ, ou marque venda sem identificação.');
         return;
       }
       btnRe.disabled = true;

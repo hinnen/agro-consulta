@@ -65,7 +65,7 @@ Opcional (Lei 12.741 / IBPT no cupom): `NFC_E_IBPT_TOKEN`, `NFC_E_IBPT_CNPJ`.
 
 ## 4. Antes do merge `teste` → `producao`
 
-- [ ] Staging: venda **PIX/cartão** → NFC-e automática (modal CPF).
+- [ ] Staging: venda **PIX/cartão** → NFC-e automática (modal CPF/CNPJ).
 - [ ] Staging: venda **Dinheiro** sem checkbox → **sem** NFC-e.
 - [ ] Staging: venda **Dinheiro** com checkbox → NFC-e autorizada.
 - [ ] Série **21** e numeração alinhada (sem conflito 539).
@@ -86,7 +86,7 @@ Opcional (Lei 12.741 / IBPT no cupom): `NFC_E_IBPT_TOKEN`, `NFC_E_IBPT_CNPJ`.
 
 ## 6. Operacional na loja
 
-1. **PIX ou cartão** → NFC-e sai **sozinha** (modal CPF na confirmação).
+1. **PIX ou cartão** → NFC-e sai **sozinha** (modal CPF/CNPJ na confirmação).
 2. **Dinheiro, fiado, etc.** → marque **«Emitir cupom fiscal (NFC-e)»** se o cliente quiser nota.
 3. **Confirmar com impressão (F9)** para cupom térmico fiscal.
 4. Reimpressão: lista de vendas → **Imprimir** (2ª via se houver NFC-e autorizada).

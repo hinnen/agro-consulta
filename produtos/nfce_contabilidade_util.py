@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import zipfile
 from calendar import monthrange
 from datetime import date
@@ -114,9 +115,15 @@ def linhas_planilha_nfce_mes(ano: int, mes: int, loja: str | None = "todas") -> 
     )
     for doc in qs:
         venda = doc.venda
+    for doc in qs:
+        venda = doc.venda
         cpf = doc.dest_cpf or ""
         if not cpf and venda and venda.cliente_documento:
-            cpf = (venda.cliente_documento or "")[:11]
+            from produtos.nfce_sp_emissao_util import documento_dest_nfce
+
+            cpf = documento_dest_nfce(venda.cliente_documento) or re.sub(
+                r"\D", "", str(venda.cliente_documento or "")
+            )[:14]
         if doc.consumidor_sem_identificacao and not cpf:
             cpf = ""
         criado = timezone.localtime(doc.criado_em) if doc.criado_em else None

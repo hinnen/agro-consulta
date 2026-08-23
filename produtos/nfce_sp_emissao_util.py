@@ -106,6 +106,75 @@ def cpf_valido(cpf_raw: str) -> bool:
     return True
 
 
+def cnpj_valido(cnpj_raw: str) -> bool:
+    cnpj = re.sub(r"\D", "", str(cnpj_raw or ""))[:14]
+    if len(cnpj) != 14 or cnpj == cnpj[0] * 14:
+        return False
+
+    def _dv(digs: str, pesos: list[int]) -> int:
+        s = sum(int(d) * p for d, p in zip(digs, pesos))
+        r = s % 11
+        return 0 if r < 2 else 11 - r
+
+    if int(cnpj[12]) != _dv(cnpj[:12], [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]):
+        return False
+    return int(cnpj[13]) == _dv(cnpj[:13], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2])
+
+
+def documento_dest_nfce(raw: str) -> str:
+    """CPF (11) ou CNPJ (14) válido para destinatário da NFC-e; senão vazio."""
+    d = re.sub(r"\D", "", str(raw or ""))
+    if len(d) == 11 and cpf_valido(d):
+        return d
+    if len(d) == 14 and cnpj_valido(d):
+        return d
+    return ""
+
+
+def tipo_documento_dest_nfce(raw: str) -> str:
+    d = documento_dest_nfce(raw)
+    if len(d) == 14:
+        return "CNPJ"
+    if len(d) == 11:
+        return "CPF"
+    return ""
+
+
+def mensagem_doc_dest_invalido(raw: str) -> str:
+    d = re.sub(r"\D", "", str(raw or ""))
+    if len(d) >= 12:
+        return "CNPJ informado é inválido."
+    if d:
+        return "CPF informado é inválido."
+    return "CPF/CNPJ informado é inválido."
+
+
+_RE_CONSUMIDOR_GENERICO = re.compile(r"consumidor\s+n[aão]+\s+identificado", re.I)
+
+
+def _nome_destinatario_nfce(venda) -> str:
+    nome = _sanitizar_texto_xml(str(getattr(venda, "cliente_nome", "") or "").strip())
+    if not nome or _RE_CONSUMIDOR_GENERICO.search(nome):
+        return ""
+    return nome[:60]
+
+
+def _preencher_dest_nfce(inf: ET.Element, doc_dest: str, venda=None) -> None:
+    """dest/CPF ou dest/CNPJ + indIEDest=9 (consumidor final / não contribuinte)."""
+    digits = re.sub(r"\D", "", str(doc_dest or ""))
+    if not digits:
+        return
+    dest = _sub(inf, "dest")
+    if len(digits) == 14:
+        _sub(dest, "CNPJ", digits[:14])
+        nome = _nome_destinatario_nfce(venda)
+        if nome:
+            _sub(dest, "xNome", nome)
+    else:
+        _sub(dest, "CPF", digits[:11])
+    _sub(dest, "indIEDest", "9")
+
+
 def _gerar_c_nf() -> str:
     return str(random.randint(10000000, 99999999))
 
@@ -427,9 +496,7 @@ def _montar_xml_nfce(
     _sub(emit, "CRT", "1")
 
     if cpf_dest:
-        dest = _sub(inf, "dest")
-        _sub(dest, "CPF", cpf_dest)
-        _sub(dest, "indIEDest", "9")
+        _preencher_dest_nfce(inf, cpf_dest, venda)
 
     uf_ibpt = cfg.get("uf") or "SP"
     v_frete = Decimal(str(getattr(venda, "frete", 0) or 0)).quantize(Decimal("0.01"))
@@ -838,29 +905,31 @@ def emitir_nfce_para_venda(
         }
     cfg = nfce_cfg(loja)
     tp_amb = int(cfg["tp_amb"])
-    cpf = re.sub(r"\D", "", cpf_dest)[:11]
-    if cpf and not cpf_valido(cpf):
+    digits_dest = re.sub(r"\D", "", str(cpf_dest or ""))
+    cpf = documento_dest_nfce(cpf_dest)
+    if digits_dest and not cpf:
         from produtos.nfce_venda_util import registrar_nfce_erro_venda
 
+        err_doc = mensagem_doc_dest_invalido(digits_dest)
         doc = registrar_nfce_erro_venda(
             venda,
-            "CPF informado é inválido.",
-            cpf_dest=cpf,
+            err_doc,
+            cpf_dest=digits_dest[:14],
             sem_identificacao=sem_identificacao,
             tp_amb=tp_amb,
         )
-        return {"ok": False, "erro": "CPF informado é inválido.", "documento_id": doc.pk}
+        return {"ok": False, "erro": err_doc, "documento_id": doc.pk}
     if not cpf and not sem_identificacao:
         from produtos.nfce_venda_util import registrar_nfce_erro_venda
 
         doc = registrar_nfce_erro_venda(
             venda,
-            "Informe CPF do consumidor ou confirme venda sem identificação.",
+            "Informe CPF ou CNPJ do consumidor ou confirme venda sem identificação.",
             tp_amb=tp_amb,
         )
         return {
             "ok": False,
-            "erro": "Informe CPF do consumidor ou confirme venda sem identificação.",
+            "erro": "Informe CPF ou CNPJ do consumidor ou confirme venda sem identificação.",
             "documento_id": doc.pk,
         }
 

@@ -1,6 +1,7 @@
 """Painel NFC-e por venda — consulta / reemissão."""
 from __future__ import annotations
 
+import re
 from datetime import timedelta
 from typing import Any
 
@@ -106,7 +107,11 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
         out["status"] = nfce.status
         out["status_label"] = nfce.get_status_display()
     elif venda.cliente_documento:
-        out["dest_cpf"] = venda.cliente_documento[:11]
+        from produtos.nfce_sp_emissao_util import documento_dest_nfce
+
+        out["dest_cpf"] = documento_dest_nfce(venda.cliente_documento) or re.sub(
+            r"\D", "", str(venda.cliente_documento or "")
+        )[:14]
 
     if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
         out["autorizada"] = True
