@@ -3695,28 +3695,109 @@
 
     var lastBudgetSyncKey = '';
     var _orcamentoSyncSeq = 0;
+    var historicoOrcamentosMem = null;
+    var _salvandoOrcamentoWizard = false;
+
+    function compactOrcamentoItem(item) {
+        if (!item || typeof item !== 'object') return item;
+        var row = {
+            id: item.id,
+            nome: item.nome,
+            preco: item.preco,
+            preco_padrao: item.preco_padrao,
+            qtd: item.qtd,
+            codigo: item.codigo,
+            codigoGm: item.codigoGm,
+            desconto: item.desconto,
+            observacao: item.observacao
+        };
+        if (item.unidade) row.unidade = item.unidade;
+        if (item.preco_manual) row.preco_manual = item.preco_manual;
+        if (item.precos_modo) row.precos_modo = item.precos_modo;
+        if (item.precos_grupos) row.precos_grupos = item.precos_grupos;
+        if (item.precos_por_forma) row.precos_por_forma = item.precos_por_forma;
+        return row;
+    }
+
+    function cloneOrcamentoItens(itens) {
+        return (itens || []).map(function (item) {
+            try {
+                return compactOrcamentoItem(JSON.parse(JSON.stringify(item)));
+            } catch (errClone) {
+                return compactOrcamentoItem(item);
+            }
+        });
+    }
+
+    function normalizeOrcamentoClienteKey(key, nome) {
+        var k = String(key || '').trim();
+        var n = String(nome || '').trim();
+        if (!k || k === 'null' || k === 'undefined') k = '';
+        if (isNomeConsumidorFinal(n) || isNomeConsumidorFinal(k)) return 'consumidor_final';
+        if (/^tmp:/i.test(k) && isNomeConsumidorFinal(k.slice(4).split(':')[0])) {
+            return 'consumidor_final';
+        }
+        return k || 'consumidor_final';
+    }
+
+    function canonicalizeOrcamentoEntry(entry) {
+        if (!entry || typeof entry !== 'object') return entry;
+        var copy = Object.assign({}, entry);
+        copy.cliente_key = normalizeOrcamentoClienteKey(copy.cliente_key, copy.cliente);
+        if (copy.cliente_key === 'consumidor_final') copy.cliente_mode = 'consumidor_final';
+        if (Array.isArray(copy.itens)) copy.itens = cloneOrcamentoItens(copy.itens);
+        return copy;
+    }
 
     function readHistoricoOrcamentos() {
+        if (historicoOrcamentosMem && Array.isArray(historicoOrcamentosMem)) {
+            return historicoOrcamentosMem.slice();
+        }
         try {
             var historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
-            return Array.isArray(historico) ? historico : [];
+            historicoOrcamentosMem = Array.isArray(historico) ? historico : [];
         } catch (errH) {
-            return [];
+            historicoOrcamentosMem = [];
         }
+        return historicoOrcamentosMem.slice();
     }
 
     function writeHistoricoOrcamentos(historico) {
-        try {
-            localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
-        } catch (errW) {}
+        historicoOrcamentosMem = Array.isArray(historico) ? historico.slice() : [];
+        var payload = historicoOrcamentosMem;
+        var attempt;
+        for (attempt = 0; attempt < 8; attempt++) {
+            try {
+                localStorage.setItem('historicoOrcamentos', JSON.stringify(payload));
+                return true;
+            } catch (errW) {
+                if (payload.length <= 1) return false;
+                payload = payload.slice(0, Math.max(1, Math.floor(payload.length * 0.6)));
+            }
+        }
+        return false;
     }
 
     function mergeOrcamentoIntoHistorico(entry) {
         if (!entry || entry.id == null) return;
+        entry = canonicalizeOrcamentoEntry(entry);
         var historico = readHistoricoOrcamentos();
+        var prev = null;
         historico = historico.filter(function (item) {
-            return String(item.id) !== String(entry.id);
+            if (String(item.id) === String(entry.id)) {
+                prev = item;
+                return false;
+            }
+            return true;
         });
+        if (
+            prev &&
+            Array.isArray(prev.itens) &&
+            prev.itens.length &&
+            (!Array.isArray(entry.itens) || !entry.itens.length)
+        ) {
+            entry = Object.assign({}, prev, entry, { itens: prev.itens });
+        }
         historico.unshift(entry);
         var perKey = {};
         historico = historico.filter(function (item) {
@@ -3746,10 +3827,12 @@
                 if (seq !== _orcamentoSyncSeq || !data || !data.ok || !Array.isArray(data.items)) return;
                 var map = {};
                 readHistoricoOrcamentos().forEach(function (item) {
-                    map[String(item.id)] = item;
+                    var canon = canonicalizeOrcamentoEntry(item);
+                    if (canon && canon.id != null) map[String(canon.id)] = canon;
                 });
                 data.items.forEach(function (item) {
-                    map[String(item.id)] = item;
+                    var canon = canonicalizeOrcamentoEntry(item);
+                    map[String(canon.id)] = canon;
                 });
                 var merged = Object.keys(map)
                     .map(function (k) {
@@ -3788,30 +3871,35 @@
         if (state.clienteMode === 'consumidor_final') return 'consumidor_final';
         var c = state.cliente;
         if (!c) return 'consumidor_final';
+        if (isNomeConsumidorFinal(c.nome)) return 'consumidor_final';
         var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk).trim() : '';
-        if (pk) return 'pk:' + pk;
+        if (pk && pk !== 'null' && pk !== 'undefined') return 'pk:' + pk;
         var id = String(c.id || '').trim();
-        if (id) return 'id:' + id;
+        if (id && id !== '__consumidor_final__') return 'id:' + id;
         var tel = String(c.telefone || '').replace(/\D/g, '');
         var nome = String(c.nome || '').trim().toLowerCase();
-        return 'tmp:' + nome + ':' + tel;
+        return normalizeOrcamentoClienteKey('tmp:' + nome + ':' + tel, c.nome);
     }
 
     function entryClienteKey(entry) {
         if (!entry || typeof entry !== 'object') return 'consumidor_final';
-        if (entry.cliente_key) return String(entry.cliente_key);
-        if (entry.cliente_mode === 'consumidor_final') return 'consumidor_final';
-        var ex = entry.cliente_extra;
-        if (ex && ex.cliente_agro_pk != null) return 'pk:' + String(ex.cliente_agro_pk).trim();
         var nome = String(entry.cliente || '').trim();
-        if (/consumidor\s+n[aã]o\s+identificado/i.test(nome)) return 'consumidor_final';
+        var rawKey = String(entry.cliente_key || '').trim();
+        if (rawKey) return normalizeOrcamentoClienteKey(rawKey, nome);
+        if (entry.cliente_mode === 'consumidor_final' || isNomeConsumidorFinal(nome)) {
+            return 'consumidor_final';
+        }
+        var ex = entry.cliente_extra;
+        var pkRaw = ex && ex.cliente_agro_pk;
+        var pk = pkRaw != null ? String(pkRaw).trim() : '';
+        if (pk && pk !== 'null' && pk !== 'undefined') return 'pk:' + pk;
         var tel = ex && ex.telefone ? String(ex.telefone).replace(/\D/g, '') : '';
-        return 'tmp:' + nome.toLowerCase() + ':' + tel;
+        return normalizeOrcamentoClienteKey('tmp:' + nome.toLowerCase() + ':' + tel, nome);
     }
 
     function filterHistoricoPorCliente(historico, clienteKey) {
         historico = Array.isArray(historico) ? historico : [];
-        var key = String(clienteKey || 'consumidor_final');
+        var key = normalizeOrcamentoClienteKey(clienteKey, '');
         return historico.filter(function (item) {
             return entryClienteKey(item) === key;
         });
@@ -3896,7 +3984,8 @@
     }
 
     function salvarOrcamentoWizard(opts) {
-        opts = opts || {};
+        opts = opts && typeof opts === 'object' && !opts.target ? opts : {};
+        if (_salvandoOrcamentoWizard) return false;
         var state = State.getState();
         if (state.clienteMode === 'unset') {
             State.setConsumidorFinal(bootstrap.clientePadraoNome || 'CONSUMIDOR NÃO IDENTIFICADO...');
@@ -3912,6 +4001,8 @@
             }
             return false;
         }
+        _salvandoOrcamentoWizard = true;
+        _orcamentoSyncSeq += 1;
         var computed = State.getComputed();
         var historico = readHistoricoOrcamentos();
         var idOrc = Date.now();
@@ -3934,23 +4025,21 @@
                     : '';
         } catch (eU) {}
         if (!usuarioSalvo) usuarioSalvo = operadorSalvo;
-        var novo = {
+        var novo = canonicalizeOrcamentoEntry({
             id: idOrc,
             orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
             data: new Date().toLocaleString('pt-BR'),
             cliente: clienteNome,
             cliente_key: key,
-            cliente_mode: state.clienteMode || 'cliente',
+            cliente_mode: key === 'consumidor_final' ? 'consumidor_final' : (state.clienteMode || 'cliente'),
             total: formatMoney(computed.subtotal != null ? computed.subtotal : computed.total || 0),
-            itens: state.itens.map(function (item) {
-                return JSON.parse(JSON.stringify(item));
-            }),
+            itens: cloneOrcamentoItens(state.itens),
             forma_pagamento: state.pagamento && state.pagamento.forma ? state.pagamento.forma : '',
             entrega: !!(state.entrega && state.entrega.ativa),
             usuario: usuarioSalvo || undefined,
             cliente_extra: state.cliente ? JSON.parse(JSON.stringify(state.cliente)) : null,
             origem: opts.fromWhatsapp ? 'whatsapp' : 'manual'
-        };
+        });
         historico.unshift(novo);
         var perKey = {};
         historico = historico.filter(function (item) {
@@ -3961,6 +4050,7 @@
         });
         if (historico.length > 300) historico.length = 300;
         writeHistoricoOrcamentos(historico);
+        lastBudgetSyncKey = key;
         renderRecentBudgetsSnippet();
         var doneFeedback = function () {
             if (opts.silent) return;
@@ -3971,6 +4061,7 @@
         };
         var urlSave = apiPdvOrcamentosUrl();
         if (!urlSave) {
+            _salvandoOrcamentoWizard = false;
             doneFeedback();
             return true;
         }
@@ -3997,18 +4088,20 @@
                     return;
                 }
                 renderRecentBudgetsSnippet();
+                doneFeedback();
                 if (!opts.silent) {
                     showPdvAviso(
                         (res && res.data && res.data.erro) ||
-                            'Orçamento salvo só neste navegador — servidor não confirmou. Tente de novo.',
+                            'Orçamento ficou na lista deste PDV. Servidor não confirmou — tente de novo se for usar em outro computador.',
                         { title: 'Aviso', tone: 'warn', prominent: true }
                     );
                 }
             })
             .catch(function () {
                 renderRecentBudgetsSnippet();
+                doneFeedback();
                 if (!opts.silent) {
-                    showPdvAviso('Falha de rede ao gravar orçamento no servidor. Ficou só neste navegador.', {
+                    showPdvAviso('Falha de rede ao gravar orçamento no servidor. Ficou neste PDV.', {
                         title: 'Rede',
                         tone: 'warn',
                         prominent: true
@@ -4016,6 +4109,7 @@
                 }
             })
             .finally(function () {
+                _salvandoOrcamentoWizard = false;
                 if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
             });
         return true;
@@ -14090,7 +14184,10 @@
         if (dom.openBudgetHistory) dom.openBudgetHistory.addEventListener('click', openBudgetHistory);
         if (dom.step1BudgetVerMais) dom.step1BudgetVerMais.addEventListener('click', openBudgetHistory);
         if (dom.step1SalvarOrcamentoBtn) {
-            dom.step1SalvarOrcamentoBtn.addEventListener('click', salvarOrcamentoWizard);
+            dom.step1SalvarOrcamentoBtn.addEventListener('click', function (ev) {
+                ev.preventDefault();
+                salvarOrcamentoWizard();
+            });
         }
         if (dom.step1EnviarWhatsappBtn) {
             dom.step1EnviarWhatsappBtn.addEventListener('click', enviarOrcamentoWhatsappWizard);

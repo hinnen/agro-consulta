@@ -1229,6 +1229,47 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — PDV orçamento salvo na lista (23/08 · teste **v17.84**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ORC-SALVO** | ✅ **pronto para envio** / teste **v17.84** | **NÃO** (0048 já na loja) |
+| 2 | **PDV-BALANCA-UI-CAIXA** | ✅ **Live v17.83** (permanece) | **NÃO** |
+| 3 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
+| 4 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
+
+> Loja hoje: ✅ **Live v17.83**. Este path **ainda não subiu**. Teste **v17.84** @ branch `cursor/fix-pdv-orcamento-salvo-7353` (PR → `teste`). Rollback se subir: Live v17.83.
+
+Verificação 23/08 — um só checklist, cruzado com código + Django **7 OK** + `verify_pdv_orcamento_salvo_path.py` → **VERIFY_OK 76/76**:
+
+- [x] Botão **Salvar orçamento** no wizard (etapa 1)
+- [x] Toast verde **Orçamento salvo** + nome do cliente
+- [x] Card **Orçamentos** atualiza na hora (memória, não só localStorage)
+- [x] Consumidor não identificado = chave `consumidor_final` (não `tmp:…`)
+- [x] GET Postgres também acha alias `tmp:consumidor…`
+- [x] POST `/api/pdv/orcamentos/` carimba `id` + `cliente_key` (fonte PG)
+- [x] Clique na linha reabre · bip **GMORC** reabre
+- [x] **Ver mais / F6** lista o restante do mesmo cliente
+- [x] **Enviar** WhatsApp grava orçamento (origem zap)
+- [x] Migration **0048** já na loja — sem migrate novo
+- [x] NFC-e / balança / caixa **fora deste recorte**
+
+**Status: ✅ pronto para envio à produção** (Renan valida no PC · Ctrl+F5 · **não** sobe loja sem frase+senha).
+
+### 📦 PACOTE PRONTO — orçamento na lista (`PDV-ORC-SALVO` · **v17.84**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **pronto para envio** · teste **v17.84** |
+| **O quê** | Salvar orçamento no PDV volta a aparecer no card (consumidor não identificado incluso). Postgres continua a fonte; localStorage é cache. |
+| **Por quê** | Toast verde confirmava o POST, mas a lista filtrava chave `tmp:consumidor…` vs `consumidor_final` e o storage falhava em silêncio. |
+| **Onde** | `pdv_wizard.js` · `pdv_orcamento_util.py` · `api_pdv_orcamentos` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só save/lista/reabrir orçamento. Venda, NFC-e, balança, caixa intactos. |
+| **Prova** | `python scripts/verify_pdv_orcamento_salvo_path.py` → **VERIFY_OK 76/76** · Django `tests_pdv_orcamentos` **7 OK** |
+| **Você** | **Ctrl+F5** PDV · consumidor não identificado · 1 item · **Salvar orçamento** · a linha nova (hoje + total) no card |
+| **Rollback** | Live v17.83 (overlay Pesar) + frase + senha |
+
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 
 Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP210x (Urano), pacote USB Urano, CH340 e tenta FTDI. Não mexe no PDV. Sem migrate. Sem bump de versão da loja.
