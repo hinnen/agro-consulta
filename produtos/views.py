@@ -27588,9 +27588,13 @@ def _persistir_venda_agro(
         for row in pagamentos_json:
             if not isinstance(row, dict):
                 continue
-            if str(row.get("forma") or "") == "Fiado" and isinstance(row.get("fiado_cronograma"), list):
-                fiado_cron = row.get("fiado_cronograma") or []
-                break
+            if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) != "Fiado":
+                continue
+            cron_row = row.get("fiado_cronograma")
+            if isinstance(cron_row, list) and cron_row:
+                fiado_cron.extend([p for p in cron_row if isinstance(p, dict)])
+        if fiado_cron:
+            fiado_cron = [dict(p, parcela=i) for i, p in enumerate(fiado_cron, start=1)]
 
     nfce_solicitada = False
     try:
