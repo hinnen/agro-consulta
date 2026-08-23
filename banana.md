@@ -1243,7 +1243,7 @@ Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP
 | 3 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
 | 4 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
 
-> Loja hoje: ✅ **Live v17.84** (Fechar caixa: Point/cartão/Pix + devolução em dinheiro não inventa «Sobra»). Overlay Pesar permanece. Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`.
+> Loja hoje: ✅ **Live v17.84** (Fechar caixa: Point/cartão/Pix + devolução em dinheiro não inventa «Sobra»). Overlay Pesar permanece. `producao` @ **e0721f1e**. Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`.
 
 Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em dinheiro (código + 118 provas + 41 loja + 68 repasse):
 
@@ -1284,7 +1284,7 @@ Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em 
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v17.84** |
+| **Status** | ✅ **enviado / Live v17.84** · `producao` @ **e0721f1e** |
 | **Autorização** | Renan — *pode subir para produção* + senha **99738595** |
 | **Pacote** | Cherry-pick só `CAIXA-DEVOL-DINHEIRO-MP` (teste e produção estavam iguais em v17.83; **não** merge inteiro de outras filas) |
 | **Migrate** | **NÃO** |
