@@ -143,29 +143,27 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
 ---
 
-## 7. Checklist único — path USE-P2 (loja v17.82)
+## 7. Checklist único — path CAIXA-DEVOL-DINHEIRO-MP (teste v17.84)
 
-Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + 62 provas Node + dump vazio e dump ao vivo da COM4.
+Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118** provas do path + 41 Fechar-loja + 68 repasse.
 
-- [x] Modal **PESAR GRANEL** abre em F10 / botão
-- [x] Serial **9600 8N2** (manual POP-Z) + seletor de 1 stop bit
-- [x] Dump vazio `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
-- [x] Dump ao vivo `0,478 kg` + `ESC N 1` 0,00 → visor **0,478 kg**, fonte `kg-field`
-- [x] `0,00` é leitura válida; “Sem bytes” só com buffer vazio
-- [x] Frame partido no cabo fecha depois do merge
-- [x] Janela 96 bytes: prato vazio depois do produto volta a 0,00
-- [x] `ESC N 0` com `kg` é peso ao vivo; `ESC N 1` 0,00 auxiliar não vence
-- [x] Fallback `PESO L:` / `kg` / decimal / STX legado
-- [x] `ENQ` 0x05 a cada 450 ms
-- [x] **CONECTAR** trata “No port selected” como COM4 não marcada
-- [x] **SEM PORTA** é botão de simular (não é erro)
-- [x] Códigos 1–199
-- [x] Peso mínimo 20 g
-- [x] Estável = 3 leituras iguais em ~380 ms
-- [x] Estável + código ok = entra sozinho uma vez
-- [x] Prato vazio zera o ciclo
-- [x] **ADICIONAR AGORA** / Enter não duplicam
-- [x] 1,250 kg × R$ 6,90 = R$ 8,63
-- [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | 🟡 **pronto para envio** | **NÃO** |
+| 2 | **PDV-BALANCA-UI-CAIXA** | ✅ Live v17.83 (permanece) | **NÃO** |
+| 3 | **PDV-BALANCA-KG-VIVO** | ✅ Live v17.82 (permanece) | **NÃO** |
+| 4 | **NFCE-DEST-CNPJ** | ✅ Live v17.81 (permanece) | **SIM** (`0099`) |
 
-**Status: enviado / Live v17.82.** Checkpoint v17.80: `checkpoint-use-p2-pronto-99738595`. Rollback deste hotfix: Live v17.81 @ `fef6815`. Rollback pré-balança: `rollback/pre-pdv-balanca-use-p2-v17.79` (ver `docs/ROLLBACK-PDV-BALANCA-USE-P2.md`).
+- [x] Venda devolvida do turno **continua** no esperado da maquininha
+- [x] Caso loja: débito MP 49 + 5,90 → esperado MP **54,90** · gaveta **abre − 49**
+- [x] Pix MP e crédito MP + devolução em dinheiro: pinpad fica; gaveta cai
+- [x] Cielo não vaza para o Point
+- [x] FL-017 dinheiro+dinheiro: esperado = abertura
+- [x] Aviso amarelo só cartão/Pix → dinheiro (não no FL-017)
+- [x] Parcial / outro turno / sangria cobertos
+- [x] Auto (MP / fiado / vale / cashback) = esperado · sem rascunho · `readonly`
+- [x] API `escopo=loja` não mistura Centro × Vila
+- [x] Relatório de caixa não duplica movimento de devolução
+- [x] Sem migrate
+
+**Status: pronto para envio** (não Live). Loja hoje: v17.83. Rollback: Live v17.83 @ `1c870a5a`. Prova: `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` (118/118).

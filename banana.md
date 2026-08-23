@@ -671,6 +671,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
+- **Devolução em dinheiro × maquininha (23/08 · teste v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
 ### 4.12 RH
 
@@ -1232,6 +1233,52 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 
 Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP210x (Urano), pacote USB Urano, CH340 e tenta FTDI. Não mexe no PDV. Sem migrate. Sem bump de versão da loja.
+
+### ✅ CHECKLIST ÚNICO — devolução dinheiro × MP (23/08 · teste **v17.84**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | 🟡 **pronto para envio** | **NÃO** |
+| 2 | **PDV-BALANCA-UI-CAIXA** | ✅ **Live v17.83** (permanece) | **NÃO** |
+| 3 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
+| 4 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
+
+> Loja hoje: ainda ✅ **Live v17.83**. Este pacote está no **teste** — **não** é Live. Validação = PC local (`docs/TESTE-LOCAL.md`) · Fechar caixa · Ctrl+F5. Produção só com frase + senha.
+
+Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em dinheiro (código + 118 provas + 41 loja + 68 repasse):
+
+- [x] Venda devolvida do turno **continua** no esperado da maquininha (não some do Point)
+- [x] Caso loja: débito MP R$ 49 devolvido em dinheiro + R$ 5,90 → esperado MP **54,90** · dinheiro **abre − 49**
+- [x] Pix MP + devolução em dinheiro: Pix MP fica; gaveta cai
+- [x] Crédito MP + devolução em dinheiro: crédito MP fica; gaveta cai
+- [x] Cielo débito + dinheiro: linha Cielo fica; **não** vaza para o Point
+- [x] FL-017 dinheiro+dinheiro: esperado = **abertura** (não desconta 2×)
+- [x] Aviso amarelo **só** se a venda original era cartão/Pix (não aparece no FL-017)
+- [x] Devolução **parcial** (sem `devolvida_em`): pinpad inteiro + gaveta cai o trecho
+- [x] Devolução de **outro turno**: só a retirada deste caixa; MP deste turno não infla
+- [x] Sangria comum continua descontando; **não** dispara o aviso
+- [x] Auto (MP / fiado / vale / cashback) **sempre** = esperado · sem rascunho · `readonly`
+- [x] Dinheiro **não** é auto — o caixa conta a gaveta
+- [x] API refresh (`escopo=loja`) devolve o aviso e **não** mistura Centro × Vila
+- [x] Relatório de caixa ainda lista devolução pelos **eventos** (não duplica o movimento)
+- [x] Repasse → refresh do Fechar caixa **intacto**
+- [x] **Sem migrate**
+
+**Status: pronto para envio** (não Live). Rollback: Live v17.83 @ `1c870a5a`.
+
+### 📦 PACOTE PRONTO — devolução dinheiro × MP (`CAIXA-DEVOL-DINHEIRO-MP` · **v17.84**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio** (teste v17.84 · loja continua v17.83) |
+| **O quê** | Fechar caixa: venda no Point/cartão/Pix devolvida em dinheiro **não** zera a maquininha nem inventa «Sobra». Gaveta cai; auto copia o esperado; aviso amarelo na contagem. |
+| **Por quê** | Operador devolveu no débito MP em **dinheiro**. O esperado do Point caía e a gaveta não — na maquininha sobrava (print: esperado 5,90 × contado 54,90). |
+| **Onde** | `produtos/caixa_util.py` · `produtos/views.py` · `caixa_fechar.html` · `includes/caixa_fechar_linha_conf.html` |
+| **Migrate** | **NÃO** |
+| **Risco** | Médio-baixo — só conferência do Fechar caixa. Venda / NFC-e / PDV intactos. FL-017 (dinheiro+dinheiro) coberto na prova. Relatório de caixa **não** mudou a regra de não duplicar movimento. |
+| **Prova** | `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` **118/118** · `verify_caixa_fechar_loja_path.py` **41/41** · `verify_caixa_fechar_repasse_path.py` **68/68** |
+| **Você** | **Ctrl+F5** Fechar caixa · badge **v17.84** · vender no Point · devolver em dinheiro · conferir: maquininha = valor da máquina · gaveta já sem o troco da devolução · auto sem «Sobra» · aviso amarelo |
+| **Rollback** | Live v17.83 @ `1c870a5a` + frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — overlay Pesar limpo (23/08 · loja **v17.83**)
 
