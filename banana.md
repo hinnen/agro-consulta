@@ -1235,7 +1235,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | **NFCE-DEST-CNPJ** | ✅ **enviado / Live v17.81** | **SIM** (`0099`) |
 
-> Loja hoje: ✅ **Live v17.81** (NFC-e dest CPF ou CNPJ). `producao` @ **60d7a700**. Rollback: tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md`.
+> Loja hoje: ✅ **Live v17.81** (NFC-e dest CPF ou CNPJ). `producao` @ **6648b2fe**. Rollback: tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md`.
 
 ### 📦 PACOTE PRONTO — NFC-e destinatário CNPJ (`NFCE-DEST-CNPJ` · **v17.81**) · **Live**
 
@@ -1255,7 +1255,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v17.81** · `producao` @ **60d7a700** |
+| **Status** | ✅ **enviado / Live v17.81** · `producao` @ **6648b2fe** |
 | **Pacotes** | **NFCE-DEST-CNPJ** |
 | **Migrate** | **SIM** (`0099`) — `manage.py migrate` no build Render (só aumenta `dest_cpf` 11→14) |
 | **Rollback** | tag `rollback/pre-nfce-dest-cnpj-v17.80` @ **12b59342** · branch `producao-backup-pre-v1781-nfce-dest-cnpj-20260823` · `docs/ROLLBACK-NFCE-DEST-CNPJ.md` + frase + senha |
