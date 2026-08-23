@@ -460,7 +460,8 @@
         h += '<div style="border-top:1px dashed #000;margin:6px 0 4px;"></div>';
         h += cupomNomeClienteHtml(c.cliente_nome);
         if (c.cliente_cpf) {
-            h += '<div style="font-size:10px;font-weight:800;">CPF ' + escHtml(c.cliente_cpf) + '</div>';
+            var rotuloDoc = c.cliente_doc_rotulo || 'CPF';
+            h += '<div style="font-size:10px;font-weight:800;">' + escHtml(rotuloDoc) + ' ' + escHtml(c.cliente_cpf) + '</div>';
         } else if (c.consumidor_sem_identificacao) {
             h += '<div style="font-size:10px;font-weight:800;">Consumidor não identificado</div>';
         }

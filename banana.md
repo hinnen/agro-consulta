@@ -470,8 +470,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 | ----- | ------------ | ----------------- |
 | Confirmar **com impressÃ£o (F9)** | Modal CPF (se sem CPF no cliente) â†’ emissÃ£o **sÃ­ncrona** â†’ imprime fiscal | Popup **Cupom fiscal** ou **Venda comum** â†’ idem se fiscal |
 | Confirmar **sem impressÃ£o (Enter)** | Sem modal â€” sem ID automÃ¡tico em PIX/cartÃ£o | NFC-e sÃ³ se operador pediu / forma auto |
-| Cliente **sem CPF** vÃ¡lido | Modal **Sem CPF na nota** / **Informar CPF** | Idem, se escolheu cupom fiscal |
-| Cliente **com CPF** no cadastro | Usa o CPF, sem modal | Idem |
+| Cliente **sem CPF/CNPJ** vÃ¡lido | Modal **Sem CPF/CNPJ na nota** / **Incluir na nota** | Idem, se escolheu cupom fiscal |
+| Cliente **com CPF ou CNPJ** no cadastro | Usa o documento, sem modal | Idem |
 
 #### Devolução de venda
 
@@ -1232,6 +1232,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — NFC-e destinatário CNPJ (`NFCE-DEST-CNPJ` · **v17.80**) · teste
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🧪 **teste** |
+| **O quê** | Cupom fiscal NFC-e aceita **CPF ou CNPJ** no destinatário. Modal do PDV, cadastro rápido, reemissão em Vendas. XML `dest/CNPJ` + `indIEDest=9`. CPF continua igual. |
+| **Por quê** | Loja já emitia para CPF; cliente PJ pedia nota no CNPJ. |
+| **Onde** | `nfce_sp_emissao_util.py` · `views_nfce.py` · modal `pdv_wizard` · `/vendas/` · migrate **`0099`** (`dest_cpf` 11→14) |
+| **Migrate** | **SIM** (`produtos/migrations/0099_nfce_dest_cpf_cnpj.py`) — só aumenta tamanho do campo; não mexe em cupom já autorizado |
+| **Risco** | Baixo — fluxo CPF intacto; CNPJ é caminho extra; venda grava igual se SEFAZ recusar |
+| **Prova** | `produtos/tests_nfce_loja.py` · `scripts/verify_nfce_dest_cnpj_path.py` |
+| **Você** | Ctrl+F5 no PDV · F9 cupom fiscal · digite CNPJ no modal · ou cadastre CNPJ no cliente |
+| **Rollback** | reverter commit em `teste` (loja só depois de senha) |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08e · loja **v17.79**)
 

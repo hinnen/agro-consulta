@@ -44,7 +44,12 @@ from produtos.nfce_contabilidade_util import (
     urls_exportacao_mes,
 )
 from produtos.nfce_cupom_util import serializar_nfce_cupom_80mm
-from produtos.nfce_sp_emissao_util import cancelar_nfce_autorizada, cpf_valido, emitir_nfce_para_venda
+from produtos.nfce_sp_emissao_util import (
+    cancelar_nfce_autorizada,
+    documento_dest_nfce,
+    emitir_nfce_para_venda,
+    mensagem_doc_dest_invalido,
+)
 from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
 from produtos.sefaz_soap_util import sefaz_erro_transiente
 
@@ -60,10 +65,11 @@ def _mongo_conn():
     return obter_conexao_mongo_pdv()
 
 def _nfce_opts_payload(data: dict) -> tuple[str, bool]:
-    cpf = re.sub(r"\D", "", str(data.get("nfce_cpf") or data.get("cliente_documento") or ""))[:11]
+    raw = str(data.get("nfce_cpf") or data.get("cliente_documento") or "")
+    doc = documento_dest_nfce(raw)
     sem_id = bool(data.get("nfce_sem_identificacao"))
-    if cpf and cpf_valido(cpf):
-        return cpf, False
+    if doc:
+        return doc, False
     if sem_id:
         return "", True
     if data.get("nfce_sincrona") or data.get("nfce_escolha_explicita"):
@@ -99,25 +105,27 @@ def _emitir_nfce_pos_venda_sync(
     if not nfce_configurada(warmup=True, tentativas=3, loja=loja):
         return None
     cpf, sem_id = _nfce_opts_payload(data)
+    digits_in = re.sub(r"\D", "", str(data.get("nfce_cpf") or data.get("cliente_documento") or ""))
+    if digits_in and not cpf and not sem_id:
+        err_doc = mensagem_doc_dest_invalido(digits_in)
+        doc = registrar_nfce_erro_venda(
+            venda,
+            err_doc,
+            cpf_dest=digits_in[:14],
+            tp_amb=tp_amb,
+        )
+        return {"ok": False, "erro": err_doc, "documento_id": doc.pk}
     if not cpf and not sem_id:
         doc = registrar_nfce_erro_venda(
             venda,
-            "NFC-e: informe CPF do consumidor ou confirme venda sem identificação.",
+            "NFC-e: informe CPF ou CNPJ do consumidor ou confirme venda sem identificação.",
             tp_amb=tp_amb,
         )
         return {
             "ok": False,
-            "erro": "NFC-e: informe CPF do consumidor ou confirme venda sem identificação.",
+            "erro": "NFC-e: informe CPF ou CNPJ do consumidor ou confirme venda sem identificação.",
             "documento_id": doc.pk,
         }
-    if cpf and not cpf_valido(cpf):
-        doc = registrar_nfce_erro_venda(
-            venda,
-            "CPF informado é inválido.",
-            cpf_dest=cpf,
-            tp_amb=tp_amb,
-        )
-        return {"ok": False, "erro": "CPF informado é inválido.", "documento_id": doc.pk}
     client, db = _mongo_conn()
     col_p = getattr(client, "col_p", None) if client else None
     return emitir_nfce_para_venda(
@@ -479,9 +487,15 @@ def api_venda_agro_nfce_emitir(request, pk):
             status=503,
         )
     cpf, sem_id = _nfce_opts_payload(body)
+    digits_in = re.sub(r"\D", "", str(body.get("nfce_cpf") or body.get("cliente_documento") or ""))
+    if digits_in and not cpf and not sem_id:
+        return JsonResponse(
+            {"ok": False, "erro": mensagem_doc_dest_invalido(digits_in)},
+            status=400,
+        )
     if not cpf and not sem_id:
         return JsonResponse(
-            {"ok": False, "erro": "Informe CPF válido ou marque venda sem identificação."},
+            {"ok": False, "erro": "Informe CPF ou CNPJ válido ou marque venda sem identificação."},
             status=400,
         )
     v.nfce_solicitada = True
