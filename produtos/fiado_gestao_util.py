@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import Any
 
@@ -289,44 +289,99 @@ def _parse_vencimento(row: dict, fallback: date) -> date:
     return fallback
 
 
+def _linhas_pagamento_fiado(venda: VendaAgro) -> list[dict[str, Any]]:
+    """Cada fatia Fiado do PDV (produtos, frete, 2ª linha, etc.)."""
+    pj = venda.pagamentos_json
+    if not isinstance(pj, list):
+        return []
+    out: list[dict[str, Any]] = []
+    for row in pj:
+        if not isinstance(row, dict):
+            continue
+        if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) != "Fiado":
+            continue
+        if _dec(row.get("valor")) <= 0:
+            continue
+        out.append(row)
+    return out
+
+
+def _cronograma_de_linha_fiado(venda: VendaAgro, row: dict[str, Any]) -> list[dict[str, Any]]:
+    v = _dec(row.get("valor"))
+    cron = row.get("fiado_cronograma") or row.get("fiadoCronograma")
+    if isinstance(cron, list) and cron:
+        return [p for p in cron if isinstance(p, dict) and _dec(p.get("valor")) > 0]
+    np = int(row.get("fiado_parcelas") or row.get("fiadoParcelas") or 1)
+    nd = int(row.get("fiado_dias_primeiro") or row.get("fiadoDiasVencimento") or 30)
+    base = venda.criado_em.date() if venda.criado_em else date.today()
+    return montar_cronograma_fiado(v, np, nd, base_date=base)
+
+
+def _parcelas_fiado_para_titulos(venda: VendaAgro) -> list[dict[str, Any]]:
+    """Todas as parcelas fiado da venda, inclusive 2ª linha (frete) e falta vs total fiado."""
+    valor_fiado = valor_fiado_venda_local(venda)
+    parcelas: list[dict[str, Any]] = []
+    for row in _linhas_pagamento_fiado(venda):
+        parcelas.extend(_cronograma_de_linha_fiado(venda, row))
+    if not parcelas:
+        cron = venda.fiado_cronograma_json
+        if isinstance(cron, list) and cron:
+            parcelas = [p for p in cron if isinstance(p, dict) and _dec(p.get("valor")) > 0]
+        elif valor_fiado > 0:
+            base = venda.criado_em.date() if venda.criado_em else date.today()
+            parcelas = montar_cronograma_fiado(valor_fiado, 1, 30, base_date=base)
+    soma = sum((_dec(p.get("valor")) for p in parcelas), Decimal("0")).quantize(Decimal("0.01"))
+    falta = (valor_fiado - soma).quantize(Decimal("0.01"))
+    if falta > Decimal("0.009"):
+        base = venda.criado_em.date() if venda.criado_em else date.today()
+        nd = 30
+        for p in reversed(parcelas):
+            try:
+                nd = max(1, int(p.get("dias") or nd))
+                break
+            except (TypeError, ValueError):
+                continue
+        parcelas.append(
+            {
+                "parcela": len(parcelas) + 1,
+                "dias": nd,
+                "vencimento": (base + timedelta(days=nd)).isoformat(),
+                "valor": float(falta),
+                "origem": "complemento_fiado",
+            }
+        )
+    for i, p in enumerate(parcelas, start=1):
+        np = dict(p)
+        np["parcela"] = i
+        parcelas[i - 1] = np
+    return parcelas
+
+
+def _chave_titulo_pdv(venda_pk: int, parcela: int) -> str:
+    return f"pdv:{venda_pk}:{parcela}"
+
+
 def criar_titulos_de_venda(
     venda: VendaAgro,
     *,
     usuario: str = "",
 ) -> list[FiadoTituloAgro]:
-    """Gera títulos a partir de venda fiado PDV (idempotente)."""
+    """Gera títulos a partir de venda fiado PDV (idempotente).
+
+    Usa **todas** as linhas Fiado do pagamento (não só a primeira), para o frete
+    lançado como 2ª fatia entrar no ledger. Se já existirem títulos com soma
+    menor que o fiado da venda, cria o complemento (ex.: R$ 10 de entrega).
+    """
     if not venda_local_tem_fiado(venda) or venda.devolvida:
-        return []
-    existentes = list(FiadoTituloAgro.objects.filter(venda_agro=venda))
-    if existentes:
-        return existentes
+        return list(FiadoTituloAgro.objects.filter(venda_agro=venda))
+
+    valor_fiado = valor_fiado_venda_local(venda)
+    if valor_fiado <= 0:
+        return list(FiadoTituloAgro.objects.filter(venda_agro=venda))
 
     _erp_id, agro_pk, cli = resolver_cliente_fiado(venda.cliente_id_erp)
     if agro_pk and not cli:
         cli = ClienteAgro.objects.filter(pk=agro_pk).first()
-    valor_fiado = valor_fiado_venda_local(venda)
-    if valor_fiado <= 0:
-        return []
-
-    cron = venda.fiado_cronograma_json
-    if not isinstance(cron, list) or not cron:
-        np, nd = 1, 30
-        pj = venda.pagamentos_json
-        if isinstance(pj, list):
-            for row in pj:
-                if not isinstance(row, dict):
-                    continue
-                if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) != "Fiado":
-                    continue
-                np = int(row.get("fiado_parcelas") or row.get("fiadoParcelas") or 1)
-                nd = int(row.get("fiado_dias_primeiro") or row.get("fiadoDiasVencimento") or 30)
-                fc = row.get("fiado_cronograma") or row.get("fiadoCronograma")
-                if isinstance(fc, list) and fc:
-                    cron = fc
-                    break
-        if not cron:
-            base = venda.criado_em.date() if venda.criado_em else date.today()
-            cron = montar_cronograma_fiado(valor_fiado, np, nd, base_date=base)
 
     cliente_nome = (venda.cliente_nome or "").strip() or (cli.nome if cli else "Cliente")
     cliente_codigo = str(venda.cliente_id_erp or "").strip()
@@ -335,50 +390,119 @@ def criar_titulos_de_venda(
     elif cliente_codigo.lower().startswith(("agro:", "local:")):
         cliente_codigo = str(agro_pk or "")
 
-    n_total = len(cron) if cron else 1
-    titulos: list[FiadoTituloAgro] = []
     with transaction.atomic():
-        for row in cron:
-            if not isinstance(row, dict):
-                continue
-            parcela = int(row.get("parcela") or len(titulos) + 1)
-            venc = _parse_vencimento(row, venda.criado_em.date() if venda.criado_em else date.today())
-            v_parcela = _dec(row.get("valor"))
-            if v_parcela <= 0:
-                continue
-            chave = f"pdv:{venda.pk}:{parcela}"
-            doc = f"Pedido {venda.pk}"
-            desc = (
-                f"Valor de R$ {v_parcela:.2f} (Parcela {parcela} de {n_total}). "
-                f"Referente ao PEDIDO DE VENDA #{venda.pk} "
-                f"em {(venda.criado_em.strftime('%d/%m/%Y') if venda.criado_em else '')}."
-            )
-            titulo = FiadoTituloAgro.objects.create(
-                chave_unica=chave,
-                cliente_agro=cli,
-                venda_agro=venda,
-                cliente_nome=cliente_nome,
-                cliente_codigo=cliente_codigo,
-                numero_documento=doc,
-                parcela_num=parcela,
-                parcela_total=n_total,
-                vencimento=venc,
-                valor_bruto=v_parcela,
-                valor_pago=Decimal("0"),
-                situacao=FiadoTituloAgro.Situacao.ABERTO,
-                origem=FiadoTituloAgro.Origem.PDV,
-                descricao=desc[:500],
-                dados_snapshot_json={"venda_id": venda.pk, "cronograma": row},
-            )
-            registrar_evento_fiado(
-                FiadoEventoAgro.Tipo.TITULO_CRIADO,
-                cliente_agro=cli,
-                titulo=titulo,
-                payload={"titulo": titulo_snapshot(titulo), "origem": "pdv"},
-                usuario=usuario,
-            )
-            titulos.append(titulo)
-    return titulos
+        existentes = list(
+            FiadoTituloAgro.objects.select_for_update()
+            .filter(venda_agro=venda)
+            .order_by("parcela_num", "pk")
+        )
+        soma_exist = sum(
+            (
+                t.valor_bruto
+                for t in existentes
+                if t.situacao != FiadoTituloAgro.Situacao.CANCELADO
+            ),
+            Decimal("0"),
+        ).quantize(Decimal("0.01"))
+
+        if not existentes:
+            cron = _parcelas_fiado_para_titulos(venda)
+            n_total = max(1, len(cron))
+            titulos: list[FiadoTituloAgro] = []
+            for row in cron:
+                parcela = int(row.get("parcela") or len(titulos) + 1)
+                venc = _parse_vencimento(
+                    row, venda.criado_em.date() if venda.criado_em else date.today()
+                )
+                v_parcela = _dec(row.get("valor"))
+                if v_parcela <= 0:
+                    continue
+                chave = _chave_titulo_pdv(venda.pk, parcela)
+                doc = f"Pedido {venda.pk}"
+                origem_parc = str(row.get("origem") or "")
+                if origem_parc == "complemento_fiado":
+                    doc = f"Pedido {venda.pk} · complemento"
+                desc = (
+                    f"Valor de R$ {v_parcela:.2f} (Parcela {parcela} de {n_total}). "
+                    f"Referente ao PEDIDO DE VENDA #{venda.pk} "
+                    f"em {(venda.criado_em.strftime('%d/%m/%Y') if venda.criado_em else '')}."
+                )
+                titulo = FiadoTituloAgro.objects.create(
+                    chave_unica=chave,
+                    cliente_agro=cli,
+                    venda_agro=venda,
+                    cliente_nome=cliente_nome,
+                    cliente_codigo=cliente_codigo,
+                    numero_documento=doc,
+                    parcela_num=parcela,
+                    parcela_total=n_total,
+                    vencimento=venc,
+                    valor_bruto=v_parcela,
+                    valor_pago=Decimal("0"),
+                    situacao=FiadoTituloAgro.Situacao.ABERTO,
+                    origem=FiadoTituloAgro.Origem.PDV,
+                    descricao=desc[:500],
+                    dados_snapshot_json={"venda_id": venda.pk, "cronograma": row},
+                )
+                registrar_evento_fiado(
+                    FiadoEventoAgro.Tipo.TITULO_CRIADO,
+                    cliente_agro=cli,
+                    titulo=titulo,
+                    payload={"titulo": titulo_snapshot(titulo), "origem": "pdv"},
+                    usuario=usuario,
+                )
+                titulos.append(titulo)
+            return titulos
+
+        falta = (valor_fiado - soma_exist).quantize(Decimal("0.01"))
+        if falta <= Decimal("0.009"):
+            return existentes
+
+        usados = {t.chave_unica for t in existentes}
+        n_exist = len(existentes)
+        parcela = n_exist + 1
+        chave = _chave_titulo_pdv(venda.pk, parcela)
+        if chave in usados:
+            chave = f"pdv:{venda.pk}:complemento"
+            n = 2
+            while chave in usados:
+                chave = f"pdv:{venda.pk}:complemento:{n}"
+                n += 1
+        base = venda.criado_em.date() if venda.criado_em else date.today()
+        venc = base + timedelta(days=30)
+        n_total = n_exist + 1
+        titulo = FiadoTituloAgro.objects.create(
+            chave_unica=chave,
+            cliente_agro=cli,
+            venda_agro=venda,
+            cliente_nome=cliente_nome,
+            cliente_codigo=cliente_codigo,
+            numero_documento=f"Pedido {venda.pk} · complemento",
+            parcela_num=parcela,
+            parcela_total=n_total,
+            vencimento=venc,
+            valor_bruto=falta,
+            valor_pago=Decimal("0"),
+            situacao=FiadoTituloAgro.Situacao.ABERTO,
+            origem=FiadoTituloAgro.Origem.PDV,
+            descricao=(
+                f"Complemento fiado R$ {falta:.2f} (frete ou 2ª linha) "
+                f"do PEDIDO DE VENDA #{venda.pk}."
+            )[:500],
+            dados_snapshot_json={
+                "venda_id": venda.pk,
+                "origem": "complemento_fiado",
+                "valor_fiado": float(valor_fiado),
+            },
+        )
+        registrar_evento_fiado(
+            FiadoEventoAgro.Tipo.TITULO_CRIADO,
+            cliente_agro=cli,
+            titulo=titulo,
+            payload={"titulo": titulo_snapshot(titulo), "origem": "complemento_fiado"},
+            usuario=usuario,
+        )
+        return existentes + [titulo]
 
 
 def cancelar_titulos_venda(
@@ -1528,10 +1652,11 @@ def backfill_titulos_vendas_fiado(*, limite: int = 500) -> dict[str, int]:
     for v in qs[:limite]:
         if not venda_local_tem_fiado(v):
             continue
-        if FiadoTituloAgro.objects.filter(venda_agro=v).exists():
-            pulados += 1
-            continue
+        n_antes = FiadoTituloAgro.objects.filter(venda_agro=v).count()
         titulos = criar_titulos_de_venda(v)
-        if titulos:
-            criados += len(titulos)
+        n_depois = len(titulos)
+        if n_depois > n_antes:
+            criados += n_depois - n_antes
+        elif n_antes:
+            pulados += 1
     return {"criados": criados, "pulados": pulados}
