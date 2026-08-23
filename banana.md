@@ -1229,6 +1229,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
+
+Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP210x (Urano), pacote USB Urano, CH340 e tenta FTDI. Não mexe no PDV. Sem migrate. Sem bump de versão da loja.
+
 ### ✅ CHECKLIST ÚNICO — overlay Pesar limpo (23/08 · loja **v17.83**)
 
 | # | Pacote | Status | Migrate |
