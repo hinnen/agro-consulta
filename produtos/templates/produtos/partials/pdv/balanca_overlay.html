@@ -1,4 +1,4 @@
-{# Overlay Pesar (balança granel) — F10 · Urano US20/2 POP-S via Web Serial #}
+{# Overlay Pesar (balança granel) — F10 · Urano USE-P2 / USE-PII via Web Serial (COM4) #}
 <style>
   #pdv-balanca-overlay .bl-peso {
     font-variant-numeric: tabular-nums;
@@ -67,7 +67,8 @@
         <p class="text-xs font-semibold text-emerald-800">Código 1–199 · peso ao vivo · adiciona sozinho</p>
       </div>
       <span id="pdv-balanca-conn-chip" class="bl-chip is-warn" title="Status da balança">Sem porta</span>
-      <button type="button" id="pdv-balanca-conectar" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-sky-300 bg-sky-50 px-2.5 text-[10px] font-black uppercase text-sky-950 hover:bg-sky-100" title="Escolher porta COM no Chrome">Conectar</button>
+      <button type="button" id="pdv-balanca-sem-porta" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-amber-300 bg-amber-50 px-2.5 text-[10px] font-black uppercase text-amber-950 hover:bg-amber-100" title="Replaya o dump real da COM4 sem cabo">Sem porta</button>
+      <button type="button" id="pdv-balanca-conectar" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-sky-300 bg-sky-50 px-2.5 text-[10px] font-black uppercase text-sky-950 hover:bg-sky-100" title="No Chrome, marque USB Serial Port (COM4)">Conectar</button>
       <button type="button" id="pdv-balanca-fechar" class="inline-flex min-h-[2.5rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3 text-[10px] font-black uppercase text-white hover:bg-teal-700" title="Fechar · Esc">Fechar</button>
     </header>
 
@@ -78,6 +79,12 @@
         <div id="pdv-balanca-estavel" class="mt-1 text-xs font-bold text-slate-500">Aguardando balança…</div>
         <div id="pdv-balanca-total" class="mt-2 text-lg font-black tabular-nums text-emerald-800">R$ 0,00</div>
         <p id="pdv-balanca-rx" class="mt-1.5 min-h-[1rem] font-mono text-[10px] font-semibold text-slate-500" title="Bytes recebidos da COM (diagnóstico)"></p>
+        <div id="pdv-balanca-sim-chips" class="mt-2 hidden flex-wrap justify-center gap-1.5" style="display:none">
+          <button type="button" data-sim-kg="0" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">Prato vazio</button>
+          <button type="button" data-sim-kg="0.25" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">250 g</button>
+          <button type="button" data-sim-kg="0.5" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">500 g</button>
+          <button type="button" data-sim-kg="1.25" class="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase text-slate-700">1,250 kg</button>
+        </div>
       </section>
 
       <section aria-label="Código do produto">
@@ -91,7 +98,17 @@
 
     <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-emerald-100 bg-white px-3 py-2.5 sm:px-4">
       <button type="button" id="pdv-balanca-add-manual" class="inline-flex min-h-[2.75rem] flex-1 items-center justify-center rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-950 hover:bg-emerald-100" title="Forçar adicionar com o peso atual">Adicionar agora</button>
-      <p class="w-full text-center text-[10px] font-semibold text-slate-500">Estável + código ok = entra sozinho no carrinho · Esc fecha</p>
+      <div class="flex w-full flex-wrap items-center justify-between gap-2 text-[10px] font-semibold text-slate-500">
+        <span>9600 8N<span id="pdv-balanca-stopbits-label">2</span> · COM4 · Esc fecha</span>
+        <label class="inline-flex items-center gap-1.5">
+          Stop bits
+          <select id="pdv-balanca-stopbits" class="rounded-md border border-slate-300 bg-white px-1.5 py-0.5 font-bold text-slate-800" title="Manual POP-Z: 2. Se o adaptador USB engasgar, tente 1.">
+            <option value="2" selected>2 (manual Urano)</option>
+            <option value="1">1</option>
+          </select>
+        </label>
+      </div>
+      <p class="w-full text-center text-[10px] font-semibold text-slate-500">Estável + código ok = entra sozinho · prato vazio libera a próxima pesagem</p>
     </footer>
   </div>
 </div>

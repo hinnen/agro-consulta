@@ -436,7 +436,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Rações PDV (09/08 · loja v15.26 · teste UX):** botão **Rações** → tipo → marca (ou Todas) → tamanho → **lista grande** (menor→maior preço) → Adicionar / Adicionar todas / Fechar. Não vai direto ao carrinho. Linha **zebra cinza fraca** (sem cor da marca) · foto miniatura (clique abre grande) · “No carrinho” na coluna Ação. Esc fecha (não fecha se a foto estiver aberta). Lê Categoria/Sub 1/Sub 2/Peso do Agro na hora. Cadastro: Cat. `Rações` · Sub 1 `Cão`/`Gato` · Sub 2 + Peso `1`/`2,5`/`5`/`10`/`15`/`20`/`25`/`pacote`.
 
-**Balança granel (16/08 · teste v16.71):** botão **Pesar** / **F10** → overlay · Web Serial Chrome (Urano US20/2 POP-S · USE-P2) · códigos **1–199** (sem zeros) · auto-add ao estabilizar · Unidade **KG** no cadastro · migrate `0089`.
+**Balança granel (16/08 · teste v16.71 · hotfix loja v17.80):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** · dump real `ESC N 1` + `0,00` (não STX; ESC **não** é impressora) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
 
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
@@ -1228,6 +1228,53 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ CHECKLIST ÚNICO — PDV balança USE-P2 (23/08 · loja **v17.80**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-BALANCA-USE-P2** | ✅ **enviado / Live v17.80** | **NÃO** |
+
+> Loja hoje: ✅ **Live v17.80** (PESAR GRANEL lê dump real COM4 `ESC N 1` + `0,00`). Rollback: tag `rollback/pre-pdv-balanca-use-p2-v17.79` @ **589aa20** · branch `producao-backup-pre-v1780-balanca-use-p2-20260823` · checkpoint do pacote `checkpoint-use-p2-pronto-99738595`. Prova: `node scripts/_test_pdv_balanca_logic.js` (55/55).
+
+Verificação 23/08 — um só checklist, cruzado com código + 55 provas Node + 22 vitest do parser:
+
+- [x] Modal **PESAR GRANEL** abre em F10 / botão Pesar
+- [x] Serial **9600 8N2** (manual POP-Z) + seletor de 1 stop bit
+- [x] Dump real `30 30 20 1b 4e 31 … 30 2c 30 30 20` → `0,00 kg`, fonte `esc-n1`
+- [x] `0,00` é leitura válida; “Sem bytes” só com buffer vazio
+- [x] Frame partido no cabo fecha depois do merge
+- [x] Último `ESC N 1` vence no buffer rolante (peso novo não gruda no 0,00)
+- [x] `ESC N 0` (preço da etiqueta) não sobrescreve o peso
+- [x] Fallback `PESO L:` / `kg` / decimal `n,nn` / STX legado
+- [x] `ENQ` 0x05 a cada 450 ms na serial
+- [x] **CONECTAR** trata “No port selected” como COM4 não marcada
+- [x] **SEM PORTA** replaya o dump e simula 250 g / 1,250 kg
+- [x] Códigos 1–199 (barras / GM / codigo_interno)
+- [x] Peso mínimo 20 g
+- [x] Estável = 3 leituras iguais em ~380 ms
+- [x] Estável + código ok = entra sozinho uma vez
+- [x] Prato vazio zera o ciclo e libera a próxima pesagem
+- [x] **ADICIONAR AGORA** / Enter não duplicam o auto-add
+- [x] 1,250 kg × R$ 6,90 = R$ 8,63
+- [x] Esc fecha; Vila / pedir loja / fiado fora deste recorte
+- [x] ESC da COM4 **não** é tratado como impressora errada
+
+**Status: PRONTO PRA ENVIO / verificado de novo 23/08.**
+
+### 📦 PACOTE PRONTO — PDV balança USE-P2 (`PDV-BALANCA-USE-P2` · **v17.80**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.80** |
+| **O quê** | Parser USE-P2 do dump real da COM4 (`ESC N 1` + `0,00`). Serial **9600 8N2**. Botão SEM PORTA. Auto-add com prato vazio resetando o ciclo. |
+| **Por quê** | O overlay antigo recusava `ESC` (achava impressora) e só lia `STX`. O RX já tinha bytes e o visor dizia “sem bytes”. |
+| **Onde** | `produtos/static/produtos/js/use_p2.js` · `pdv_balanca.js` · overlay Pesar · wizard F10 |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só JS/HTML do overlay Pesar. Carrinho/caixa/fiado intactos. |
+| **Prova** | `node scripts/_test_pdv_balanca_logic.js` 55/55 · `node --check` |
+| **Você** | **Ctrl+F5** PDV · F10 · CONECTAR → **USB Serial Port (COM4)** · prato vazio deve mostrar **0,00 kg** (não “sem bytes”) · SEM PORTA se estiver sem cabo |
+| **Rollback** | tag `rollback/pre-pdv-balanca-use-p2-v17.79` @ **589aa20** · `docs/ROLLBACK-PDV-BALANCA-USE-P2.md` + frase + senha |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (22/08e · loja **v17.79**)
 

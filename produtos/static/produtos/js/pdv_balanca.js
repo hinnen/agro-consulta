@@ -1,21 +1,22 @@
 /**
- * PDV — overlay Pesar granel (Urano US20/2 POP-S via Chrome Web Serial).
- * F10 / botão Pesar · códigos 1–199 (sem zeros) · auto-add ao estabilizar.
+ * PDV — overlay Pesar granel (Urano USE-P2 / USE-PII via Chrome Web Serial).
+ * F10 / botão Pesar · códigos 1–199 · auto-add ao estabilizar.
+ *
+ * A COM4 manda ESC N 1 + "0,00" (não STX, não sufixo kg). Não tratar ESC como impressora.
  */
 (function () {
   'use strict';
 
+  var P2 = window.AgroUseP2 || {};
   var CFG_KEY = 'agro_pdv_balanca_cfg_v1';
-  var BAUD = 9600;
-  /* Urano US20/2 POP-S USE-P2 na loja: 9600 8N1 (Gemini + teste COM4). */
-  var STOP_BITS = 1;
-  var STABLE_MS = 500;
-  var MIN_KG = 0.001;
-  var MAX_KG = 99.999;
+  var BAUD = (P2.SERIAL_DEFAULTS && P2.SERIAL_DEFAULTS.baudRate) || 9600;
+  var STOP_BITS = 2;
+  var STABLE_MS = P2.STABLE_MS || 380;
+  var MIN_KG = P2.MIN_WEIGHT_KG || 0.02;
+  var MAX_KG = P2.MAX_WEIGHT_KG || 30;
   var CODE_MIN = 1;
   var CODE_MAX = 199;
-  var POLL_MS = 280;
-  var RESET_DELTA_KG = 0.015;
+  var POLL_MS = 450;
 
   var overlay = document.getElementById('pdv-balanca-overlay');
   if (!overlay) return;
@@ -33,6 +34,9 @@
     connChip: document.getElementById('pdv-balanca-conn-chip'),
     addManual: document.getElementById('pdv-balanca-add-manual'),
     rx: document.getElementById('pdv-balanca-rx'),
+    semPorta: document.getElementById('pdv-balanca-sem-porta'),
+    stopBits: document.getElementById('pdv-balanca-stopbits'),
+    simChips: document.getElementById('pdv-balanca-sim-chips'),
   };
 
   var port = null;
@@ -40,22 +44,25 @@
   var writer = null;
   var readLoopActive = false;
   var pollTimer = null;
-  var buf = '';
-  var byteBuf = [];
+  var serialBuf = new Uint8Array(0);
+  var weightHistory = [];
   var lastRawHint = '';
   var lastByteAt = 0;
   var silenceTimer = null;
-  var lastKg = 0;
-  var stableKg = 0;
-  var stableSince = 0;
+  var lastKg = null;
   var isStable = false;
+  var hadBytes = false;
   var connected = false;
+  var scaleMode = 'idle';
   var produtoAtual = null;
   var resolveTimer = null;
   var resolveSeq = 0;
   var busyAdd = false;
-  var armAfterKg = null;
+  var lastAutoKey = '';
   var lastAddedAt = 0;
+  var simTimer = null;
+  var simWeightKg = 0;
+  var stopBits = STOP_BITS;
 
   function bootUrls() {
     var el =
@@ -86,10 +93,11 @@
   }
 
   function fmtKg(n) {
-    if (!n || n < MIN_KG) return '—,— kg';
+    if (n === null || n === undefined || !Number.isFinite(n)) return '—,— kg';
+    if (P2.formatKg) return P2.formatKg(n) + ' kg';
     return (
       n.toLocaleString('pt-BR', {
-        minimumFractionDigits: 3,
+        minimumFractionDigits: 2,
         maximumFractionDigits: 3,
       }) + ' kg'
     );
@@ -157,6 +165,7 @@
     var list = [
       p.codigo,
       p.codigo_nfe,
+      p.codigo_interno,
       p.codigo_barras,
       p.codigo_gm,
       p.Codigo,
@@ -359,27 +368,46 @@
 
   function updateTotalUi() {
     if (!dom.total) return;
-    var kg = isStable ? stableKg : lastKg;
+    var kg = lastKg != null && Number.isFinite(lastKg) ? lastKg : 0;
     var pk = precoKg(produtoAtual);
     dom.total.textContent = fmtMoney(kg * pk);
   }
 
+  function currentMode() {
+    if (scaleMode === 'sim') return 'sim';
+    if (connected) return 'serial';
+    return 'idle';
+  }
+
   function updatePesoUi() {
     if (!dom.peso) return;
-    var show = lastKg >= MIN_KG ? lastKg : 0;
+    var show = hadBytes && lastKg !== null && Number.isFinite(lastKg) ? lastKg : null;
     dom.peso.textContent = fmtKg(show);
     dom.peso.className =
-      'bl-peso mt-1 ' + (isStable && show >= MIN_KG ? 'is-live' : 'is-wait');
+      'bl-peso mt-1 ' + (isStable && show !== null && show >= MIN_KG ? 'is-live' : 'is-wait');
     if (dom.estavel) {
-      if (!connected) {
+      if (scaleMode === 'sim') {
+        dom.estavel.textContent =
+          show === 0
+            ? 'Simulador · dump real USE-P2 (0,00 kg no prato)'
+            : isStable
+              ? 'Simulador · peso estável'
+              : 'Simulador · peso ao vivo';
+        dom.estavel.className = 'mt-1 text-xs font-bold text-emerald-700';
+      } else if (!connected) {
         dom.estavel.textContent = 'Balança desconectada';
-      } else if (show < MIN_KG) {
-        dom.estavel.textContent = 'Coloque o produto na balança';
+        dom.estavel.className = 'mt-1 text-xs font-bold text-slate-500';
+      } else if (!hadBytes) {
+        dom.estavel.textContent = 'Porta aberta · esperando bytes · confira cabo e USE-P2';
+        dom.estavel.className = 'mt-1 text-xs font-bold text-amber-700';
+      } else if (show !== null && show < MIN_KG) {
+        dom.estavel.textContent = 'Prato vazio · 0,00 kg é leitura válida';
+        dom.estavel.className = 'mt-1 text-xs font-bold text-slate-600';
       } else if (isStable) {
         dom.estavel.textContent = 'Peso estável';
         dom.estavel.className = 'mt-1 text-xs font-bold text-emerald-700';
       } else {
-        dom.estavel.textContent = 'Estabilizando…';
+        dom.estavel.textContent = 'Peso ao vivo · aguardando estabilizar';
         dom.estavel.className = 'mt-1 text-xs font-bold text-amber-700';
       }
     }
@@ -387,86 +415,50 @@
     maybeAutoAdd();
   }
 
-  function onWeightSample(kg) {
-    if (!Number.isFinite(kg) || kg < 0) return;
-    if (kg > MAX_KG) return;
-    var now = Date.now();
-    lastKg = kg;
-
-    if (armAfterKg != null) {
-      if (kg < MIN_KG || Math.abs(kg - armAfterKg) >= RESET_DELTA_KG) {
-        armAfterKg = null;
-      } else {
-        updatePesoUi();
-        return;
-      }
-    }
-
-    /* Sempre hold local (STABLE_MS) — evita add no ramp-up. */
-    if (Math.abs(kg - stableKg) <= 0.002 && kg >= MIN_KG) {
-      if (!stableSince) stableSince = now;
-      if (now - stableSince >= STABLE_MS) {
-        isStable = true;
-        stableKg = kg;
-      }
-    } else {
-      stableKg = kg;
-      stableSince = now;
-      isStable = false;
+  function applyReading(reading, hexHint, glyphHint) {
+    reading = reading || {};
+    hadBytes = !!reading.hadBytes;
+    if (hexHint) setRxHint(hexHint, glyphHint);
+    if (reading.weightKg !== null && Number.isFinite(reading.weightKg)) {
+      var now = Date.now();
+      lastKg = reading.weightKg;
+      weightHistory = weightHistory.slice(-12).concat([{ kg: lastKg, at: now }]);
+      isStable = P2.isWeightStable
+        ? P2.isWeightStable(weightHistory, now, STABLE_MS)
+        : false;
     }
     updatePesoUi();
   }
 
-  /**
-   * USE-P2 / Urano POP-S:
-   * - [STX]001000[CR]  → gramas/1000 (1,000 kg)
-   * - [STX]1.000[ETX]  → kg com ponto (nodebal / LePeso)
-   */
-  function parseWeightFromChunk(text) {
-    if (!text) return null;
-    var raw = String(text);
-    if (
-      /instav|instável|unstable|------/i.test(raw) ||
-      /sobrecarga|overload/i.test(raw)
-    ) {
-      return null;
-    }
+  function onWeightSample(kg) {
+    if (!Number.isFinite(kg) || kg < 0 || kg > MAX_KG) return;
+    applyReading(
+      { weightKg: kg, hadBytes: true, source: 'mock' },
+      '',
+      ''
+    );
+  }
 
-    /* STX … ETX com peso decimal (ex.: 1.000 ou 0,045) */
-    var mEt = raw.match(/\x02\s*([+-]?\d{1,2}[.,]\d{1,4})\s*\x03/);
-    if (mEt) {
-      var nEt = parseFloat(mEt[1].replace(',', '.'));
-      if (Number.isFinite(nEt)) {
-        nEt = Math.abs(nEt);
-        if (nEt <= MAX_KG) return { kg: nEt };
-      }
-    }
-
-    var mStx = raw.match(/\x02\s*(\d{4,7})\s*[\x03\r\n]?/);
-    if (mStx) {
-      var grams = parseInt(mStx[1], 10);
-      if (Number.isFinite(grams) && grams >= 0) {
-        var kgG = grams / 1000;
-        if (kgG >= MIN_KG && kgG <= MAX_KG) return { kg: kgG };
-        if (grams === 0) return { kg: 0 };
-      }
-    }
-
-    /* Sem STX: não aceitar — evita texto de impressora virar peso. */
-    return null;
+  function feedSerialBytes(u8) {
+    if (!u8 || !u8.length) return;
+    lastByteAt = Date.now();
+    var arr = u8 instanceof Uint8Array ? u8 : Uint8Array.from(u8);
+    serialBuf = P2.mergeSerialBuffer
+      ? P2.mergeSerialBuffer(serialBuf, arr)
+      : arr;
+    var reading = P2.parseUseP2 ? P2.parseUseP2(serialBuf) : { hadBytes: true, weightKg: null };
+    applyReading(
+      reading,
+      P2.bytesToHex ? P2.bytesToHex(arr) : bytesToHint(Array.prototype.slice.call(arr)),
+      P2.bytesToGlyphs ? P2.bytesToGlyphs(arr) : bytesToAsciiHint(Array.prototype.slice.call(arr))
+    );
   }
 
   function feedSerialText(chunk) {
-    buf += chunk;
-    if (buf.length > 4000) buf = buf.slice(-2000);
-    var parts = buf.split(/[\r\n\x03]+/);
-    if (parts.length > 1) {
-      buf = parts.pop() || '';
-      for (var i = 0; i < parts.length; i++) {
-        var parsed = parseWeightFromChunk(parts[i]);
-        if (parsed) onWeightSample(parsed.kg);
-      }
-    }
+    if (!chunk) return;
+    var u8 = new Uint8Array(String(chunk).length);
+    for (var i = 0; i < String(chunk).length; i++) u8[i] = String(chunk).charCodeAt(i) & 0xff;
+    feedSerialBytes(u8);
   }
 
   function bytesToHint(arr) {
@@ -477,8 +469,6 @@
       })
       .join(' ');
   }
-
-  var escNoiseWarned = false;
 
   function portInfoOf(p) {
     try {
@@ -492,14 +482,13 @@
     var info = portInfoOf(p);
     saveCfg({
       asked: 1,
-      modelo: 'US20/2 POP-S',
+      modelo: 'Urano USE-P2',
       protocolo: 'USE-P2',
       baud: BAUD,
-      stopBits: STOP_BITS,
+      stopBits: stopBits,
       hintPorta: 'COM4',
       usbVendorId: info.usbVendorId != null ? info.usbVendorId : null,
       usbProductId: info.usbProductId != null ? info.usbProductId : null,
-      lastWasEsc: 0,
     });
   }
 
@@ -519,6 +508,7 @@
   }
 
   function bytesToAsciiHint(arr) {
+    if (P2.bytesToGlyphs) return P2.bytesToGlyphs(Uint8Array.from(arr || []));
     var out = '';
     for (var i = 0; i < (arr || []).length && i < 16; i++) {
       var b = arr[i];
@@ -534,94 +524,14 @@
     return out.trim();
   }
 
-  function looksLikeEscPos(arr) {
-    for (var i = 0; i < (arr || []).length; i++) {
-      if (arr[i] === 0x1b) return true;
-    }
-    return false;
-  }
-
-  function warnWrongDeviceEsc() {
-    if (escNoiseWarned) return;
-    escNoiseWarned = true;
-    /* Não reabrir esta COM como “balança salva”. */
-    saveCfg({ lastWasEsc: 1, usbVendorId: null, usbProductId: null });
-    stopPoll();
-    byteBuf = [];
-    setConnChip('COM errada?', 'err');
-    setStatus(
-      'Isso é impressora (ESC…), não balança. Toque CONECTAR e escolha a COM da BALANÇA (COM4). Na balança: F → 3 → USE-P2.',
-      'err'
-    );
-    if (dom.estavel) {
-      dom.estavel.textContent = 'Porta errada — escolha a balança';
-      dom.estavel.className = 'mt-1 text-xs font-bold text-red-700';
-    }
-  }
-
   function setRxHint(txt, asciiExtra) {
     lastRawHint = txt || '';
     if (dom.rx) {
       if (!lastRawHint) {
-        dom.rx.textContent = connected ? 'RX: (aguardando bytes…)' : '';
+        dom.rx.textContent = connected || scaleMode === 'sim' ? 'RX: (aguardando bytes…)' : '';
       } else {
         dom.rx.textContent =
           'RX: ' + lastRawHint + (asciiExtra ? '  ·  ' + asciiExtra : '');
-      }
-    }
-  }
-
-  function feedSerialBytes(u8) {
-    if (!u8 || !u8.length) return;
-    lastByteAt = Date.now();
-    var arr = Array.prototype.slice.call(u8);
-    setRxHint(bytesToHint(arr), bytesToAsciiHint(arr));
-    if (looksLikeEscPos(arr)) {
-      warnWrongDeviceEsc();
-      return;
-    }
-    if (escNoiseWarned) {
-      /* Só sai do modo impressora com frame STX de balança. */
-      var hasStx = false;
-      for (var hi = 0; hi < arr.length; hi++) {
-        if (arr[hi] === 0x02) {
-          hasStx = true;
-          break;
-        }
-      }
-      if (!hasStx) return;
-    }
-    for (var i = 0; i < u8.length; i++) byteBuf.push(u8[i]);
-    if (byteBuf.length > 8000) byteBuf = byteBuf.slice(-4000);
-    while (true) {
-      var end = -1;
-      for (var j = 0; j < byteBuf.length; j++) {
-        if (byteBuf[j] === 0x0d || byteBuf[j] === 0x0a || byteBuf[j] === 0x03) {
-          end = j;
-          break;
-        }
-      }
-      if (end < 0) break;
-      var frame = byteBuf.splice(0, end + 1);
-      var chars = '';
-      for (var k = 0; k < frame.length; k++) chars += String.fromCharCode(frame[k]);
-      if (looksLikeEscPos(frame)) {
-        warnWrongDeviceEsc();
-        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
-        continue;
-      }
-      /* Só aceita peso com STX — evita texto de impressora virar kg. */
-      if (chars.indexOf('\x02') < 0) {
-        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
-        continue;
-      }
-      var parsedB = parseWeightFromChunk(chars);
-      if (parsedB) {
-        escNoiseWarned = false;
-        saveCfg({ lastWasEsc: 0 });
-        onWeightSample(parsedB.kg);
-      } else {
-        setRxHint(bytesToHint(frame), bytesToAsciiHint(frame));
       }
     }
   }
@@ -631,12 +541,13 @@
     lastByteAt = Date.now();
     setRxHint('');
     silenceTimer = setInterval(function () {
-      if (!connected || !isOpen()) return;
-      if (lastKg >= MIN_KG) return;
+      if (!connected || !isOpen() || scaleMode === 'sim') return;
+      if (hadBytes) return;
       if (Date.now() - lastByteAt < 2800) return;
       if (dom.estavel) {
         dom.estavel.textContent =
           'Sem bytes da balança · confira COM4 / USE-P2 / cabo';
+        dom.estavel.className = 'mt-1 text-xs font-bold text-red-700';
       }
       if (!lastRawHint) {
         setRxHint('(nenhum byte em 3s)');
@@ -651,24 +562,41 @@
     }
   }
 
+  async function requestPortOrExplain() {
+    try {
+      return await navigator.serial.requestPort();
+    } catch (err) {
+      var message = err && err.message ? err.message : String(err);
+      if (/No port selected/i.test(message)) {
+        throw new Error(
+          'Nenhuma porta escolhida. No seletor do Chrome, marque USB Serial Port (COM4) e confirme.'
+        );
+      }
+      throw err;
+    }
+  }
+
+  function resetReadState() {
+    serialBuf = new Uint8Array(0);
+    weightHistory = [];
+    lastKg = null;
+    isStable = false;
+    hadBytes = false;
+    lastAutoKey = '';
+  }
+
   async function ensurePort(opts) {
     opts = opts || {};
     if (!('serial' in navigator)) {
-      throw new Error('Este Chrome não tem Web Serial. Use Chrome atualizado.');
+      throw new Error(
+        'Este Chrome não tem Web Serial. Abra em http://localhost no computador da balança (Windows + COM4).'
+      );
     }
 
     if (opts.forcePick) {
-      port = await navigator.serial.requestPort();
+      port = await requestPortOrExplain();
       savePortFingerprint(port);
-      escNoiseWarned = false;
       return port;
-    }
-
-    var cfg = loadCfg();
-    if (cfg.lastWasEsc) {
-      throw new Error(
-        'Última porta era impressora. Toque em CONECTAR e escolha a COM da BALANÇA (COM4).'
-      );
     }
 
     if (port) {
@@ -688,31 +616,35 @@
     }
     if (ports && ports.length > 1) {
       throw new Error(
-        'Há várias portas COM. Toque em CONECTAR e escolha a da BALANÇA (COM4), não a impressora.'
+        'Há várias portas COM. Toque em CONECTAR e escolha USB Serial Port (COM4).'
       );
     }
-    port = await navigator.serial.requestPort();
+    port = await requestPortOrExplain();
     savePortFingerprint(port);
     return port;
   }
 
   async function openPort() {
+    stopSimulator();
     var p = await ensurePort();
     if (!p.readable) {
       await p.open({
         baudRate: BAUD,
         dataBits: 8,
         parity: 'none',
-        stopBits: STOP_BITS,
+        stopBits: stopBits,
         flowControl: 'none',
       });
     }
+    scaleMode = 'serial';
     connected = true;
-    escNoiseWarned = false;
-    byteBuf = [];
-    buf = '';
+    resetReadState();
     setConnChip('COM ok', 'ok');
-    setStatus('Balança conectada (USE-P2 · 9600 8N1). Se o RX mostrar ESC, troque a porta.', 'ok');
+    setStatus('Balança conectada (USE-P2 · 9600 8N' + stopBits + ').', 'ok');
+    if (dom.simChips) {
+      dom.simChips.classList.add('hidden');
+      dom.simChips.style.display = 'none';
+    }
     startReadLoop();
     startPoll();
     startSilenceWatch();
@@ -752,7 +684,7 @@
       try {
         if (!writer) writer = port.writable.getWriter();
         /* ENQ — pedido de peso (vários firmwares Urano) */
-        writer.write(new Uint8Array([0x05])).catch(function () {});
+        writer.write(new Uint8Array([P2.ENQ || 0x05])).catch(function () {});
       } catch (e) {}
     }, POLL_MS);
   }
@@ -847,15 +779,32 @@
   function canAddNow() {
     if (busyAdd) return false;
     if (!produtoAtual) return false;
-    if (!isStable || stableKg < MIN_KG) return false;
-    if (armAfterKg != null) return false;
-    if (Date.now() - lastAddedAt < 700) return false;
-    return true;
+    if (!P2.canAddToCart) {
+      return isStable && lastKg != null && lastKg >= MIN_KG;
+    }
+    return P2.canAddToCart({
+      hasProduct: true,
+      weightKg: lastKg,
+      mode: currentMode(),
+      minKg: MIN_KG,
+    });
   }
 
   function maybeAutoAdd() {
     if (!isOpen()) return;
-    if (!canAddNow()) return;
+    var code = produtoAtual ? parseGranelCode(dom.codigo && dom.codigo.value) : null;
+    var decision = P2.decideAutoAdd
+      ? P2.decideAutoAdd({
+          open: true,
+          code: code,
+          weightKg: lastKg,
+          stable: isStable,
+          lastKey: lastAutoKey,
+          minKg: MIN_KG,
+        })
+      : { add: canAddNow() && isStable, nextKey: lastAutoKey };
+    lastAutoKey = decision.nextKey;
+    if (!decision.add) return;
     doAdd(false);
   }
 
@@ -869,22 +818,21 @@
       setStatus('Aguardando produto do código digitado…', 'err');
       return;
     }
-    var kg = isStable ? stableKg : lastKg;
-    if (kg < MIN_KG) {
-      setStatus('Sem peso na balança.', 'err');
+    var kg = lastKg;
+    if (kg == null || kg < MIN_KG) {
+      setStatus('Peso mínimo 20 g. Coloque o produto no prato.', 'err');
       return;
     }
     if (!manual && !isStable) {
       setStatus('Aguarde o peso estabilizar.', 'err');
       return;
     }
-    if (armAfterKg != null) {
-      setStatus('Já adicionado. Tire o peso da balança e pese de novo.', 'err');
-      return;
-    }
     if (Date.now() - lastAddedAt < 700) return;
     if (busyAdd) return;
     busyAdd = true;
+    if (codeNow != null && P2.autoAddKey) {
+      lastAutoKey = P2.autoAddKey(codeNow, kg);
+    }
 
     /* Pesar granel = sempre KG (peso físico), independente do cadastro. */
     var row = Object.assign({}, produtoAtual, { unidade: 'KG' });
@@ -910,7 +858,6 @@
           return;
         }
         lastAddedAt = Date.now();
-        armAfterKg = kg;
         isStable = false;
         setStatus(
           'Adicionado: ' +
@@ -947,6 +894,47 @@
       });
   }
 
+  function stopSimulator() {
+    if (simTimer) {
+      clearInterval(simTimer);
+      simTimer = null;
+    }
+  }
+
+  function simTick() {
+    var frame;
+    if (simWeightKg === 0 && P2.hexToBytes && P2.USER_DUMP_HEX) {
+      frame = P2.hexToBytes(P2.USER_DUMP_HEX);
+    } else if (P2.encodeUseP2Frame) {
+      frame = P2.encodeUseP2Frame({
+        weightKg: simWeightKg,
+        price: 6.9,
+        total: Math.round(simWeightKg * 6.9 * 100) / 100,
+      });
+    } else {
+      return;
+    }
+    feedSerialBytes(frame);
+  }
+
+  function startSimulator() {
+    stopSimulator();
+    closePortSoft().then(function () {
+      scaleMode = 'sim';
+      connected = true;
+      resetReadState();
+      simWeightKg = 0;
+      setConnChip('SEM PORTA', 'ok');
+      setStatus('Simulador · dump real USE-P2 (0,00 kg). Sem cabo.', 'ok');
+      if (dom.simChips) {
+        dom.simChips.classList.remove('hidden');
+        dom.simChips.style.display = 'flex';
+      }
+      simTick();
+      simTimer = setInterval(simTick, 180);
+    });
+  }
+
   function openOverlay() {
     var st =
       window.AgroPdvState && window.AgroPdvState.getState
@@ -972,13 +960,19 @@
       }, 40);
     }
     setProdutoUi(null, '');
-    armAfterKg = null;
+    lastAutoKey = '';
+    var cfgBits = loadCfg().stopBits;
+    if (cfgBits === 1 || cfgBits === 2) stopBits = cfgBits;
+    if (dom.stopBits) dom.stopBits.value = String(stopBits);
+    var labOpen = document.getElementById('pdv-balanca-stopbits-label');
+    if (labOpen) labOpen.textContent = String(stopBits);
     openPort().catch(function (err) {
       connected = false;
+      scaleMode = 'idle';
       setConnChip('Sem porta', 'warn');
       setStatus(
         (err && err.message) ||
-          'Toque em Conectar e escolha a porta COM da balança.',
+          'Toque em CONECTAR (COM4) ou SEM PORTA para simular.',
         'err'
       );
     });
@@ -1019,7 +1013,8 @@
           } catch (eClose) {}
           return pClose.then(function () {
             port = null;
-            escNoiseWarned = false;
+            scaleMode = 'idle';
+            resetReadState();
             return ensurePort({ forcePick: true }).then(function () {
               return openPort();
             });
@@ -1029,6 +1024,36 @@
           setStatus((err && err.message) || 'Porta não escolhida.', 'err');
           setConnChip('Sem porta', 'warn');
         });
+    });
+  }
+  if (dom.semPorta) {
+    dom.semPorta.addEventListener('click', function () {
+      startSimulator();
+    });
+  }
+  if (dom.stopBits) {
+    var cfg0 = loadCfg();
+    if (cfg0.stopBits === 1 || cfg0.stopBits === 2) {
+      stopBits = cfg0.stopBits;
+      dom.stopBits.value = String(stopBits);
+    }
+    dom.stopBits.addEventListener('change', function () {
+      var n = Number(dom.stopBits.value);
+      stopBits = n === 1 ? 1 : 2;
+      saveCfg({ stopBits: stopBits });
+      var lab = document.getElementById('pdv-balanca-stopbits-label');
+      if (lab) lab.textContent = String(stopBits);
+      setStatus('Stop bits ' + stopBits + '. Toque CONECTAR de novo se a porta já estava aberta.', 'ok');
+    });
+  }
+  if (dom.simChips) {
+    dom.simChips.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('[data-sim-kg]') : null;
+      if (!btn) return;
+      simWeightKg = Number(btn.getAttribute('data-sim-kg')) || 0;
+      weightHistory = [];
+      isStable = false;
+      simTick();
     });
   }
   if (dom.addManual) {
@@ -1090,22 +1115,29 @@
     isOpen: isOpen,
     /* prova local sem hardware: AgroPdvBalanca.mockKg(1.25) */
     mockKg: function (kg) {
+      scaleMode = 'sim';
       connected = true;
       setConnChip('Mock', 'ok');
       var n = Number(kg) || 0;
-      onWeightSample(n);
-      /* mock: força estável após hold mínimo */
+      weightHistory = [];
+      var t = Date.now();
+      weightHistory = [
+        { kg: n, at: t - 300 },
+        { kg: n, at: t - 200 },
+        { kg: n, at: t - 100 },
+      ];
       lastKg = n;
-      stableKg = n;
-      stableSince = Date.now() - STABLE_MS - 10;
+      hadBytes = true;
       isStable = n >= MIN_KG;
       updatePesoUi();
     },
-    /* Simula frame USE-P2: AgroPdvBalanca.mockFrame('\x02001000\r') → 1 kg */
     mockFrame: function (frame) {
+      scaleMode = 'sim';
       connected = true;
       setConnChip('Mock', 'ok');
-      feedSerialText(String(frame || ''));
+      if (frame instanceof Uint8Array) feedSerialBytes(frame);
+      else feedSerialText(String(frame || ''));
     },
+    startSimulator: startSimulator,
   };
 })();
