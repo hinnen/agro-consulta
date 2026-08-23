@@ -10758,7 +10758,8 @@
                 month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                second: '2-digit'
             });
         var itens = (state.itens || []).map(function (item) {
             return {
