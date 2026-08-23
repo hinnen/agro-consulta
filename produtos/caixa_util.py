@@ -341,48 +341,15 @@ def eh_movimento_retirada_devolucao(obs: str) -> bool:
     return o.startswith("devolução venda") or o.startswith("devolucao venda")
 
 
-def _pk_venda_devolucao_obs(obs: str) -> int | None:
-    m = re.search(r"#(\d+)", str(obs or ""))
-    if not m:
-        return None
-    try:
-        return int(m.group(1))
-    except (TypeError, ValueError):
-        return None
-
-
-def _movimentos_retirada_devolucao_duplicados_turno(sessao, movimentos) -> set[int]:
-    """
-    IDs de retirada de devolução que não devem subtrair do esperado: a venda devolvida
-    já saiu da soma de vendas do mesmo turno (evita FL-017 — desconto em dobro).
-    Devolução de venda de outro turno continua contando só pela retirada.
-    """
-    sid = getattr(sessao, "pk", None)
-    if sid is None:
-        return set()
-    candidatos: list[tuple[int, int]] = []
-    for m in movimentos:
-        if getattr(m, "tipo", None) != "retirada":
-            continue
-        if not eh_movimento_retirada_devolucao(getattr(m, "observacao", None)):
-            continue
-        vp = _pk_venda_devolucao_obs(getattr(m, "observacao", None))
-        mpk = getattr(m, "pk", None)
-        if vp is not None and mpk is not None:
-            candidatos.append((int(mpk), vp))
-    if not candidatos:
-        return set()
-    from produtos.models import VendaAgro
-
-    venda_pks = {vp for _, vp in candidatos}
-    mesma_sessao = set(
-        VendaAgro.objects.filter(pk__in=venda_pks, sessao_caixa_id=sid).values_list("pk", flat=True)
-    )
-    return {mpk for mpk, vp in candidatos if vp in mesma_sessao}
-
-
 def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
-    """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma."""
+    """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma.
+
+    Vendas devolvidas do mesmo turno continuam em «vendas»: o dinheiro entrou na
+    forma original (pinpad / Cielo). A saída conta na retirada da devolução
+    (ex.: dinheiro). Assim, venda no Mercado Pago automático + devolução em
+    dinheiro não tira o valor da maquininha nem deixa o caixa de dinheiro alto.
+    Mesma forma nas duas pontas (FL-017): venda + retirada se anulam.
+    """
     esperado: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     reforco_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
@@ -391,7 +358,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
 
     vendas_rel = getattr(sessao, "vendas", None)
     if vendas_rel is not None:
-        vendas_list = [v for v in vendas_rel.all() if not getattr(v, "devolvida_em", None)]
+        vendas_list = list(vendas_rel.all())
         vendas_mp_point: set[int] = set()
         if vendas_list:
             from produtos.models import PdvMercadoPagoPointOrder
@@ -412,7 +379,6 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     movimentos = getattr(sessao, "movimentos", None)
     if movimentos is not None:
         mov_list = list(movimentos.all())
-        retiradas_dev_dup = _movimentos_retirada_devolucao_duplicados_turno(sessao, mov_list)
         for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
             obs_m = str(getattr(m, "observacao", "") or "")
@@ -424,8 +390,7 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
                 esperado[fn] += val
             elif m.tipo == "retirada":
                 retirada_por[fn] += val
-                if getattr(m, "pk", None) not in retiradas_dev_dup:
-                    esperado[fn] -= val
+                esperado[fn] -= val
 
     q = lambda d: {k: v.quantize(Decimal("0.01")) for k, v in d.items()}
     esperado_out = {

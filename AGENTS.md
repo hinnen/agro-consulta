@@ -156,6 +156,12 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 - **Valor bruto** em fonte maior; quitação parcial → **bruto + linha Saldo**.  
 - Tabela “Anotações e conferência” mais larga.
 
+**Fechar caixa — devolução em dinheiro de venda no cartão/Pix (MP automático)**
+
+- A venda devolvida no mesmo turno **continua** no esperado da forma original (pinpad ainda tem o valor).
+- A retirada da devolução cai na forma em que o dinheiro saiu (ex.: **Dinheiro**).
+- Antes, o FL-017 zerava a venda e ainda ignorava a retirada do mesmo turno: MP automático “sobrava” e o dinheiro não caía. `produtos/caixa_util.py` (`_agregar_resumo_turno_sessao`).
+
 **Fechar caixa — refresh após retirada / repasse (Vila)** 
 
 - A tela abre o lote só da loja do aparelho. Depois de retirada/reforço/repasse, o refresh (`api_caixa_conferencia_estado`) também filtra por depósito (`escopo=loja`). Sem isso, Centro + Vila somavam no esperado — e no repasse o −X da Vila + +X do Centro se anulavam.
