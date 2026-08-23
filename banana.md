@@ -671,7 +671,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
-- **Devolução em dinheiro × maquininha (23/08 · teste v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
+- **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
 ### 4.12 RH
 
@@ -1234,16 +1234,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP210x (Urano), pacote USB Urano, CH340 e tenta FTDI. Não mexe no PDV. Sem migrate. Sem bump de versão da loja.
 
-### ✅ CHECKLIST ÚNICO — devolução dinheiro × MP (23/08 · teste **v17.84**)
+### ✅ CHECKLIST ÚNICO — enviado produção (23/08 · loja **v17.84**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | 🟡 **pronto para envio** | **NÃO** |
+| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **enviado / Live v17.84** | **NÃO** |
 | 2 | **PDV-BALANCA-UI-CAIXA** | ✅ **Live v17.83** (permanece) | **NÃO** |
 | 3 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
 | 4 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
 
-> Loja hoje: ainda ✅ **Live v17.83**. Este pacote está no **teste** — **não** é Live. Validação = PC local (`docs/TESTE-LOCAL.md`) · Fechar caixa · Ctrl+F5. Produção só com frase + senha.
+> Loja hoje: ✅ **Live v17.84** (Fechar caixa: Point/cartão/Pix + devolução em dinheiro não inventa «Sobra»). Overlay Pesar permanece. Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`.
 
 Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em dinheiro (código + 118 provas + 41 loja + 68 repasse):
 
@@ -1264,13 +1264,13 @@ Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em 
 - [x] Repasse → refresh do Fechar caixa **intacto**
 - [x] **Sem migrate**
 
-**Status: pronto para envio** (não Live). Rollback: Live v17.83 @ `1c870a5a`.
+**Status: enviado / Live v17.84.**
 
-### 📦 PACOTE PRONTO — devolução dinheiro × MP (`CAIXA-DEVOL-DINHEIRO-MP` · **v17.84**)
+### 📦 PACOTE PRONTO — devolução dinheiro × MP (`CAIXA-DEVOL-DINHEIRO-MP` · **v17.84**) · **Live**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio** (teste v17.84 · loja continua v17.83) |
+| **Status** | ✅ **enviado / Live v17.84** |
 | **O quê** | Fechar caixa: venda no Point/cartão/Pix devolvida em dinheiro **não** zera a maquininha nem inventa «Sobra». Gaveta cai; auto copia o esperado; aviso amarelo na contagem. |
 | **Por quê** | Operador devolveu no débito MP em **dinheiro**. O esperado do Point caía e a gaveta não — na maquininha sobrava (print: esperado 5,90 × contado 54,90). |
 | **Onde** | `produtos/caixa_util.py` · `produtos/views.py` · `caixa_fechar.html` · `includes/caixa_fechar_linha_conf.html` |
@@ -1278,7 +1278,18 @@ Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em 
 | **Risco** | Médio-baixo — só conferência do Fechar caixa. Venda / NFC-e / PDV intactos. FL-017 (dinheiro+dinheiro) coberto na prova. Relatório de caixa **não** mudou a regra de não duplicar movimento. |
 | **Prova** | `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` **118/118** · `verify_caixa_fechar_loja_path.py` **41/41** · `verify_caixa_fechar_repasse_path.py` **68/68** |
 | **Você** | **Ctrl+F5** Fechar caixa · badge **v17.84** · vender no Point · devolver em dinheiro · conferir: maquininha = valor da máquina · gaveta já sem o troco da devolução · auto sem «Sobra» · aviso amarelo |
-| **Rollback** | Live v17.83 @ `1c870a5a` + frase + senha |
+| **Rollback** | tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md` + frase + senha |
+
+### ✅ Deploy loja — CAIXA-DEVOL-DINHEIRO-MP (`deploy/caixa-devol-dinheiro-mp` · **v17.84**) · **Live**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v17.84** |
+| **Autorização** | Renan — *pode subir para produção* + senha **99738595** |
+| **Pacote** | Cherry-pick só `CAIXA-DEVOL-DINHEIRO-MP` (teste e produção estavam iguais em v17.83; **não** merge inteiro de outras filas) |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md` + frase + senha |
+| **O quê** | Fechar caixa: Point/cartão/Pix + devolução em dinheiro. Overlay Pesar v17.83 permanece. |
 
 ### ✅ CHECKLIST ÚNICO — overlay Pesar limpo (23/08 · loja **v17.83**)
 

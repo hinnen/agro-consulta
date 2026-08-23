@@ -143,13 +143,13 @@ Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
 ---
 
-## 7. Checklist único — path CAIXA-DEVOL-DINHEIRO-MP (teste v17.84)
+## 7. Checklist único — path CAIXA-DEVOL-DINHEIRO-MP (loja v17.84)
 
 Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118** provas do path + 41 Fechar-loja + 68 repasse.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | 🟡 **pronto para envio** | **NÃO** |
+| 1 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **enviado / Live v17.84** | **NÃO** |
 | 2 | **PDV-BALANCA-UI-CAIXA** | ✅ Live v17.83 (permanece) | **NÃO** |
 | 3 | **PDV-BALANCA-KG-VIVO** | ✅ Live v17.82 (permanece) | **NÃO** |
 | 4 | **NFCE-DEST-CNPJ** | ✅ Live v17.81 (permanece) | **SIM** (`0099`) |
@@ -166,4 +166,4 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118
 - [x] Relatório de caixa não duplica movimento de devolução
 - [x] Sem migrate
 
-**Status: pronto para envio** (não Live). Loja hoje: v17.83. Rollback: Live v17.83 @ `1c870a5a`. Prova: `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` (118/118).
+**Status: enviado / Live v17.84.** Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ `8bb72875` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`. Prova: `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` (118/118).
