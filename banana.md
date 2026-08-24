@@ -1278,11 +1278,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só dismiss de overlay |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **24/08**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.93** (+ polish cards tipo) · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.03** (cards tipo) · pacote base **v17.93** · **não** sobe loja sem frase + senha |
 | **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos travados (trio externo / trio interno). **UI 24/08:** cards tipo maiores + título sem quebra no meio da palavra (`whitespace-nowrap`). |
 | **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
 | **Migrate** | **NÃO** |
@@ -1305,19 +1305,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.02**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.03**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** | **NÃO** |
 | 2 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
 | 3 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
-| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
+| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.03** (UI cards) | **NÃO** |
 | 5 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
 | 6 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 7 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.02** = fila acima (+ Excel últimos fornecedores). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.03** = fila acima (+ cards Externo/Interno). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
