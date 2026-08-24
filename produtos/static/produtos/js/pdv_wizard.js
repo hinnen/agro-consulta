@@ -10846,7 +10846,7 @@
             })
             .then(function (erpRes) {
                 if (!erpRes.ok || !erpRes.data.ok) {
-                    if (erpRes.data && erpRes.data.mp_point_bloqueio && erpRes.data.pode_forcar_pin_gerencial) {
+                    if (erpRes.data && erpRes.data.mp_point_bloqueio) {
                         var eBloq = new Error(
                             (erpRes.data && (erpRes.data.erro || erpRes.data.mensagem)) ||
                                 'Cobrança Point ainda aberta.'
@@ -10952,31 +10952,65 @@
                     var bloqData = err.mpPointBloqueioData || {};
                     releaseSaleProcessingLock();
                     if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                    return showPdvPinGerencial({
-                        mensagem: err.message || bloqData.erro || '',
-                        nomes: bloqData.pin_gerencial_nomes || 'Geraldo, Geraldinho ou Renan Hinnen'
-                    }).then(function (pinRes) {
-                        if (!pinRes || !pinRes.ok || !pinRes.pin) return;
-                        if (window.gmLoadingBar) window.gmLoadingBar.show();
-                        return forcarLiberarMpPointComPin(pinRes.pin)
-                            .then(function (lib) {
-                                if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                                showPdvAviso(
-                                    (lib && lib.mensagem) || 'Liberado. Confirme a venda de novo.',
-                                    { tone: 'info', title: 'PIN gerencial' }
-                                );
-                                setTimeout(function () {
-                                    confirmSaleProsseguir(withPrint);
-                                }, 400);
-                            })
-                            .catch(function (errPin) {
-                                if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                                showPdvAviso(
-                                    (errPin && errPin.message) || 'PIN gerencial inválido.',
-                                    { tone: 'error', title: 'PIN gerencial' }
-                                );
-                            });
-                    });
+                    var oidBloq = String(bloqData.order_id || '').trim();
+                    var stBloq = String(bloqData.mp_point_status || '').toLowerCase();
+                    var podeFinBloq = !!bloqData.pode_finalizar || stBloq === 'paid';
+                    var pedirPinLiberar = function () {
+                        return showPdvPinGerencial({
+                            mensagem: err.message || bloqData.erro || '',
+                            nomes:
+                                bloqData.pin_gerencial_nomes ||
+                                'Geraldo, Geraldinho ou Renan Hinnen'
+                        }).then(function (pinRes) {
+                            if (!pinRes || !pinRes.ok || !pinRes.pin) return;
+                            if (window.gmLoadingBar) window.gmLoadingBar.show();
+                            return forcarLiberarMpPointComPin(pinRes.pin)
+                                .then(function (lib) {
+                                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                                    showPdvAviso(
+                                        (lib && lib.mensagem) ||
+                                            'Liberado. Confirme a venda de novo.',
+                                        { tone: 'info', title: 'PIN gerencial' }
+                                    );
+                                    setTimeout(function () {
+                                        confirmSaleProsseguir(withPrint);
+                                    }, 400);
+                                })
+                                .catch(function (errPin) {
+                                    if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                                    showPdvAviso(
+                                        (errPin && errPin.message) || 'PIN gerencial inválido.',
+                                        { tone: 'error', title: 'PIN gerencial' }
+                                    );
+                                });
+                        });
+                    };
+                    if (podeFinBloq && oidBloq) {
+                        var valorTxt = bloqData.mp_point_valor
+                            ? ' (R$ ' + String(bloqData.mp_point_valor) + ')'
+                            : '';
+                        return showPdvConfirmacao(
+                            'A maquininha já confirmou o cartão' +
+                                valorTxt +
+                                '.\n\nFinalizar registra essa venda no sistema (carrinho atual não substitui o que estava no Point).',
+                            {
+                                title: 'Mercado Pago — venda do cartão',
+                                confirmLabel: 'Finalizar venda do cartão',
+                                cancelLabel: 'Não / PIN',
+                                tone: 'warn'
+                            }
+                        ).then(function (okFin) {
+                            if (okFin) {
+                                return confirmSaleFinalizarMpPointOrders(withPrint, {
+                                    orderIds: [oidBloq],
+                                    omitErpOverride: true,
+                                    skipDraft: true
+                                });
+                            }
+                            return pedirPinLiberar();
+                        });
+                    }
+                    return pedirPinLiberar();
                 }
                 showPdvAviso(err && err.message ? err.message : 'Falha ao confirmar venda.', { tone: 'error' });
             })
@@ -10988,21 +11022,28 @@
             });
     }
 
-    function confirmSaleFinalizarMpPointOrders(withPrint) {
+    function confirmSaleFinalizarMpPointOrders(withPrint, opts) {
         withPrint = !!withPrint;
-        if (isProcessingSale) return;
+        opts = opts || {};
+        if (isProcessingSale) return Promise.resolve();
         if (!pagamentoUi.mpPointEnabled || !String(urls.apiPdvMpPointFinalizar || '').trim()) {
             showMpPointAviso('Mercado Pago Point não está configurado no servidor.', { tone: 'error' });
-            return;
+            return Promise.resolve();
         }
         var state = State.getState();
         var computed = State.getComputed();
-        var orderIds = mpPointOrderIdsFromLancamentos(state);
+        var orderIds = Array.isArray(opts.orderIds) && opts.orderIds.length
+            ? opts.orderIds
+                  .map(function (x) {
+                      return String(x || '').trim();
+                  })
+                  .filter(Boolean)
+            : mpPointOrderIdsFromLancamentos(state);
         if (!orderIds.length) {
             showMpPointAviso('Pagamento MP não encontrado nos lançamentos.', { tone: 'error' });
             isProcessingSale = false;
             setConfirmButtonsBusy(false);
-            return;
+            return Promise.resolve();
         }
         isProcessingSale = true;
         setConfirmButtonsBusy(true);
@@ -11017,21 +11058,26 @@
         state = State.getState();
         if (window.gmLoadingBar) window.gmLoadingBar.show();
 
-        var erpPayload = buildErpPayload(state, computed);
+        var omitErpOverride = !!opts.omitErpOverride;
+        var skipDraft = !!opts.skipDraft;
+        var erpPayload = omitErpOverride ? null : buildErpPayload(state, computed);
         var primaryOrderId = orderIds[0];
         var saleFinalizeStarted = false;
 
-        jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed))
+        var startChain = skipDraft
+            ? Promise.resolve({ ok: true, data: { ok: true } })
+            : jsonPost(urls.apiPdvSalvarCheckoutDraft, buildCheckoutDraftPayload(state, computed));
+
+        return startChain
             .then(function (draftRes) {
                 if (!draftRes.ok || !draftRes.data.ok) {
                     throw new Error(
                         (draftRes.data && (draftRes.data.erro || draftRes.data.mensagem)) || 'Falha ao salvar rascunho.'
                     );
                 }
-                return jsonPost(urls.apiPdvMpPointFinalizar, {
-                    order_id: primaryOrderId,
-                    erp_payload: erpPayload
-                });
+                var bodyFin = { order_id: primaryOrderId };
+                if (erpPayload) bodyFin.erp_payload = erpPayload;
+                return jsonPost(urls.apiPdvMpPointFinalizar, bodyFin);
             })
             .then(function (finRes) {
                 if (!finRes.ok || !finRes.data.ok) {

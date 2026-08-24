@@ -282,12 +282,14 @@ def _mp_point_promover_pago_local(row: PdvMercadoPagoPointOrder, body: dict) -> 
     return True
 
 
-def mp_point_bloqueio_venda_sessao(request) -> str | None:
+def mp_point_bloqueio_info(request) -> dict | None:
     """
     Bloqueia fechar venda por outra forma se a sessão ainda tem Point PENDING/PAID
     (buraco que permitiu mp_renan com cobrança Point viva — incidente 19/08 R$460).
     Centro e Vila usam o mesmo critério (conta só muda o token).
     Bypass: PIN gerencial (Geraldo / Geraldinho / Renan Hinnen) via forçar liberar.
+
+    Retorna dict com mensagem, order_id, status, valor, pode_finalizar (PAID → True).
     """
     from datetime import timedelta
 
@@ -317,17 +319,33 @@ def mp_point_bloqueio_venda_sessao(request) -> str | None:
     if not row:
         return None
     valor = row.valor_cobrado
-    if row.status == PdvMercadoPagoPointOrder.Status.PAID:
-        return (
+    st = str(row.status or "")
+    paid = st == PdvMercadoPagoPointOrder.Status.PAID
+    if paid:
+        mensagem = (
             f"Há pagamento na maquininha Mercado Pago já confirmado nesta sessão (R$ {valor}). "
-            "Finalize essa venda pelo Point automático — não use outra máquina. "
+            "Use «Finalizar venda do cartão» para registrar no sistema — não use outra forma. "
             "Em emergência, peça PIN gerencial (Geraldo, Geraldinho ou Renan Hinnen) para forçar."
         )
-    return (
-        f"Há cobrança aberta na maquininha Mercado Pago nesta sessão (R$ {valor}). "
-        "Cancele no PDV e na maquininha (ou aguarde o fim) antes de fechar com outra forma. "
-        "Em emergência, peça PIN gerencial (Geraldo, Geraldinho ou Renan Hinnen) para forçar."
-    )
+    else:
+        mensagem = (
+            f"Há cobrança aberta na maquininha Mercado Pago nesta sessão (R$ {valor}). "
+            "Cancele no PDV e na maquininha (ou aguarde o fim) antes de fechar com outra forma. "
+            "Em emergência, peça PIN gerencial (Geraldo, Geraldinho ou Renan Hinnen) para forçar."
+        )
+    return {
+        "mensagem": mensagem,
+        "order_id": str(row.mp_order_id or "").strip(),
+        "status": st,
+        "valor": str(valor),
+        "pode_finalizar": paid,
+    }
+
+
+def mp_point_bloqueio_venda_sessao(request) -> str | None:
+    """Compat: só a mensagem de bloqueio (ou None)."""
+    info = mp_point_bloqueio_info(request)
+    return info["mensagem"] if info else None
 
 
 def _mp_point_reconciliar_forma_venda(erp_data: dict, mp_body: dict) -> dict:
