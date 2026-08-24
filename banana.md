@@ -1236,11 +1236,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v17.99**)
+### 📦 PACOTE PRONTO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.99** · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.01** · **não** sobe loja sem frase + senha |
+| **Bug** | Aceitar (**Feito**) na lista de códigos pendentes **só** mudava status na fila — **não** gravava o bipado no cadastro |
+| **O quê** | **Feito** → grava bipado em `codigos_barras_opcionais` do overlay · index Mongo · limpa cache PDV. Aba **Feitos**: botão **Gravar no cadastro** (reaplica itens antigos). Código com menos de 8 dígitos → erro, não marca Feito |
+| **Onde** | `ajuste_codigo_pendente_views.py` · `ajuste_codigos_pendentes_lista.html` · `tests_ajuste_codigo_pendente_cadastro.py` · `scripts/verify_ajuste_cb_pendente_cadastro_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | Path **13/13 OK** · Django test **5/5 OK** |
+| **Você** | Ctrl+F5 · badge **v18.01** · lista **Cód.** → **Feito** → abre cadastro do produto e confere opcional. Se já estava Feito sem código: aba **Feitos** → **Gravar no cadastro** |
+| **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
+### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.00**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.00** · **não** sobe loja sem frase + senha |
 | **O quê** | Clique no **fundo escuro** dos modais **não fecha** mais. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
 | **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
 | **Onde** | Templates/JS de cadastro, PDV, caixa, financeiro, NF, compras, entregas, vendas, mobile |
@@ -1277,17 +1291,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.99**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.01**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v17.99** | **NÃO** |
-| 2 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
-| 3 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 4 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 5 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
+| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
+| 3 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
+| 4 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 5 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 6 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.99** = fila acima (overlay + CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.01** = fila acima (ajuste CB + overlay + CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
