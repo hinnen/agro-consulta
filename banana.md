@@ -1236,6 +1236,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v17.97**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.97** · **não** sobe loja sem frase + senha |
+| **O quê** | Clique no **fundo escuro** dos modais/overlays **não fecha**. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
+| **Onde** | PDV, cadastro/editar produto, caixa, lançamentos, NF, compras, entregas, vendas, mobile, utilitários |
+| **Migrate** | **NÃO** |
+| **Prova** | Path revisado · Editar Produto laterais não somem · FECHAR/Esc ok |
+| **Você** | Ctrl+F5 · Editar produto + PDV/caixa/Lançamentos · fundo escuro não fecha |
+| **Risco** | Baixo — Esc e botões continuam; dropdowns/picklists fora do escopo |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93**)
 
 | Item | Detalhe |
@@ -1263,7 +1276,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.95**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.97**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1272,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 4 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.95** = fila acima (CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.97** = fila acima (CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
