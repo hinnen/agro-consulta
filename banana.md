@@ -1346,21 +1346,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` sobe no commit)
+### ✅ CHECKLIST ÚNICO — ainda falta subir (loja Live **v17.84**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **MP-POINT-FINAL-ORFAO** | 🟡 **pronto para envio à produção** · **v18.12** · bug #4 | **NÃO** |
-| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** · prova **13/13** | **NÃO** |
+| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** | **NÃO** |
 | 3 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
-| 4 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
+| 4 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** | **NÃO** |
 | 5 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.14** parcelas+juros | **NÃO** |
+| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.14** | **NÃO** |
 | 7 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
 | 8 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 9 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Fila acima = o que ainda falta subir. Sem migrate. **Não** sobe sem frase + senha.
+> Loja: ✅ **Live v17.84**. **REPASSE-RESERVA-LUCRO** já Live (fora da fila). Sem migrate nesta fila. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 

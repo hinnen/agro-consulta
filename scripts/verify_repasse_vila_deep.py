@@ -100,14 +100,26 @@ def main() -> int:
     cfg = salvar_reserva_vila(200, operador="bot")
     ok("reserva 200") if float(cfg.reserva_vila) == 200.0 else fail("reserva 200")
     calc_res = calcular_disponivel(hoje)
-    if "reserva_vila" in calc_res and "total_sugerido_bruto" in calc_res:
+    if "reserva_vila" in calc_res and "lucro_penultimo_dia" in calc_res and "reserva_aplicada" in calc_res:
         ok("calc tem reserva")
         bruto = Decimal(str(calc_res["total_sugerido_bruto"]))
         sug = Decimal(str(calc_res["total_sugerido"]))
-        esperado = max(Decimal("0.00"), (bruto - Decimal("200.00")).quantize(Decimal("0.01")))
-        ok("reserva desconta sugerido") if sug == esperado else fail(f"sug={sug} esperado={esperado} bruto={bruto}")
+        # Nova regra: reserva entra no lucro antes do % — não corta o total de novo.
+        if sug == bruto or (bruto < 0 and sug == Decimal("0.00")):
+            ok("reserva nao corta total de novo")
+        else:
+            fail(f"sug={sug} esperado={bruto} bruto={bruto}")
+        lucro_b = max(Decimal("0.00"), Decimal(str(calc_res.get("lucro_bruto_dia") or 0)))
+        apl = Decimal(str(calc_res.get("reserva_aplicada") or 0))
+        pen = Decimal(str(calc_res.get("lucro_penultimo_dia") or 0))
+        esp_apl = min(Decimal("200.00"), lucro_b)
+        esp_pen = (lucro_b - esp_apl).quantize(Decimal("0.01"))
+        if apl == esp_apl and pen == esp_pen:
+            ok("penultimo = lucro - reserva")
+        else:
+            fail(f"apl={apl} pen={pen} esp_apl={esp_apl} esp_pen={esp_pen}")
     else:
-        fail("calc sem reserva/total_sugerido_bruto")
+        fail("calc sem reserva/penultimo")
     salvar_reserva_vila(res_antes, operador="bot")
 
     c_cent, c_vila = partir_despesas_centro_vila(
