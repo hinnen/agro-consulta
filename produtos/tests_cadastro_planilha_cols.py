@@ -7,6 +7,9 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase
 
 from produtos.cadastro_planilha_util import (
+    COL_FORN_COMPRA_1,
+    COL_FORN_COMPRA_2,
+    COL_FORN_COMPRA_3,
     COL_MODELO,
     COL_PESO,
     COL_SUBCATEGORIA,
@@ -15,6 +18,8 @@ from produtos.cadastro_planilha_util import (
     COL_SUBCATEGORIA_4,
     COL_UNIDADE,
     EXPORT_COL_KEYS,
+    FORNECEDOR_EXPORT_KEYS,
+    IMPORT_KEYS,
     _aplicar_patch_no_produto_pg,
     _gravar_overlay_import_campo,
     _ler_overlay_import_campo,
@@ -23,6 +28,7 @@ from produtos.cadastro_planilha_util import (
     _patch_da_linha,
     _restaurar_produto_pg,
     _tem_alteracao,
+    enriquecer_rows_ultimos_fornecedores,
     headers_export,
     linha_export_planilha,
     montar_xlsx_cadastro,
@@ -39,6 +45,9 @@ class CadastroPlanilhaNovasColunasTests(SimpleTestCase):
             COL_UNIDADE,
             COL_MODELO,
             COL_PESO,
+            COL_FORN_COMPRA_1,
+            COL_FORN_COMPRA_2,
+            COL_FORN_COMPRA_3,
         ):
             self.assertIn(k, EXPORT_COL_KEYS)
         labels = [lab for lab, _ in headers_export()]
@@ -46,6 +55,34 @@ class CadastroPlanilhaNovasColunasTests(SimpleTestCase):
         self.assertIn("Unidade", labels)
         self.assertIn("Modelo", labels)
         self.assertIn("Peso", labels)
+        self.assertIn("Últ. fornecedor", labels)
+        self.assertIn("2º fornecedor", labels)
+        self.assertIn("3º fornecedor", labels)
+
+    def test_fornecedores_so_export_nao_import(self):
+        for k in FORNECEDOR_EXPORT_KEYS:
+            self.assertIn(k, EXPORT_COL_KEYS)
+            self.assertNotIn(k, IMPORT_KEYS)
+
+    def test_enriquecer_fornecedores_preenche_quando_pedido(self):
+        rows = [{"id": "100", "nome": "X"}]
+        with patch(
+            "produtos.compras_ultimas_compras_util.ultimos_fornecedores_por_produto_ids",
+            return_value={"100": ["Agromaia", "Outro"]},
+        ):
+            enriquecer_rows_ultimos_fornecedores(rows, [COL_FORN_COMPRA_1, COL_FORN_COMPRA_2])
+        self.assertEqual(rows[0][COL_FORN_COMPRA_1], "Agromaia")
+        self.assertEqual(rows[0][COL_FORN_COMPRA_2], "Outro")
+        self.assertEqual(rows[0][COL_FORN_COMPRA_3], "")
+
+    def test_enriquecer_fornecedores_pula_se_coluna_nao_pedida(self):
+        rows = [{"id": "100"}]
+        with patch(
+            "produtos.compras_ultimas_compras_util.ultimos_fornecedores_por_produto_ids"
+        ) as mock_fn:
+            enriquecer_rows_ultimos_fornecedores(rows, ["nome"])
+            mock_fn.assert_not_called()
+        self.assertNotIn(COL_FORN_COMPRA_1, rows[0])
 
     def test_subcategoria_nao_come_sub2(self):
         m = _map_headers(["Subcategoria", "Subcategoria 2", "Sub 3", "Subcategoria 4"])

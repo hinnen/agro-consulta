@@ -553,7 +553,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais).
+**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1229,6 +1229,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ PACOTE ENVIADO — Excel ↓ últimos 3 fornecedores (CAD-XLSX-ULT-FORN · **v18.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ **enviado / Live v18.02** · cherry-pick só deste pacote (não a fila do 	este) |
+| **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
+| **Import** | Excel ↑ **ignora** essas colunas |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — só export; enrich só se colunas marcadas |
+| **Checkpoint** | tag 
+ollback/pre-cad-xlsx-ult-forn-v17.84 · SHA da7c1cb (Live v17.84) |
+| **Backup** | producao-backup-pre-v1802-cad-xlsx-ult-forn-20260824 |
+| **Doc** | docs/ROLLBACK-CAD-XLSX-ULT-FORN.md |
+| **Você** | Ctrl+F5 /produtos/cadastro-erp/ · Excel ↓ · marcar as 3 colunas · baixar |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (24/08 · loja **v18.02**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-XLSX-ULT-FORN** | ✅ **enviado / Live v18.02** | **NÃO** |
+| 2 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **Live v17.84** (permanece) | **NÃO** |
+
+> Loja Live **v18.02**. Demais pacotes da fila 	este (AJUSTE-CB, OVERLAY, CP-NOVO-EMPRESTIMO, etc.) **não** subiram.
 
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 

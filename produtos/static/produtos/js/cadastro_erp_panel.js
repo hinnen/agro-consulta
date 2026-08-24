@@ -2590,7 +2590,10 @@
         { key: 'delivery_sub2', label: 'Delivery sub 2' },
         { key: 'delivery_sub3', label: 'Delivery sub 3' },
         { key: 'delivery_sub4', label: 'Delivery sub 4' },
-        { key: 'delivery_embalagens', label: 'Delivery embalagens' }
+        { key: 'delivery_embalagens', label: 'Delivery embalagens' },
+        { key: 'fornecedor_compra_1', label: 'Últ. fornecedor' },
+        { key: 'fornecedor_compra_2', label: '2º fornecedor' },
+        { key: 'fornecedor_compra_3', label: '3º fornecedor' }
       ];
 
       function abrirExport() {
@@ -3205,7 +3208,10 @@
       delivery_sub2: 'Delivery sub 2',
       delivery_sub3: 'Delivery sub 3',
       delivery_sub4: 'Delivery sub 4',
-      delivery_embalagens: 'Delivery embalagens'
+      delivery_embalagens: 'Delivery embalagens',
+      fornecedor_compra_1: 'Últ. fornecedor',
+      fornecedor_compra_2: '2º fornecedor',
+      fornecedor_compra_3: '3º fornecedor'
     };
 
     function fmtDataIso(iso) {

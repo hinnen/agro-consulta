@@ -621,3 +621,113 @@ def ultimo_documento_entrada_nf_agro_por_fornecedor(
     best["hist_pids"] = hist_pids
     return best
 
+
+def _docs_entrada_nf_agro_recentes(*, scan_limit: int = 2500) -> list[dict]:
+    """Rascunhos PG concluídos (mais recentes primeiro) — scan em lote p/ export Excel."""
+    try:
+        from django.db.models import Q
+
+        from produtos.entrada_nota_rascunho_pg_util import row_to_doc
+        from produtos.models import EntradaNotaRascunhoAgro
+        from produtos.nfe_entrada_util import (
+            ENTRADA_NFE_STATUS_DESCARTADA,
+            ENTRADA_NFE_STATUS_ENCERRADA,
+            ENTRADA_NFE_STATUS_ESTOQUE_APLICADO,
+        )
+    except Exception as exc:
+        logger.warning("docs entrada_nf recentes import: %s", exc)
+        return []
+
+    lim = max(100, min(int(scan_limit or 2500), 5000))
+    try:
+        qs = (
+            EntradaNotaRascunhoAgro.objects.exclude(status=ENTRADA_NFE_STATUS_DESCARTADA)
+            .filter(
+                Q(status__in=[ENTRADA_NFE_STATUS_ENCERRADA, ENTRADA_NFE_STATUS_ESTOQUE_APLICADO])
+                | Q(estoque_aplicado_em__isnull=False)
+            )
+            .only(
+                "rascunho_id",
+                "cabecalho",
+                "linhas",
+                "extra",
+                "criado_em",
+                "estoque_aplicado_em",
+                "status",
+            )
+            .order_by("-criado_em")[:lim]
+        )
+        proj = {
+            "cabecalho": 1,
+            "linhas": 1,
+            "extra": 1,
+            "criado_em": 1,
+            "estoque_aplicado_em": 1,
+            "status": 1,
+        }
+        return [row_to_doc(row, projection=proj) for row in qs]
+    except Exception as exc:
+        logger.warning("docs entrada_nf recentes query: %s", exc)
+        return []
+
+
+def ultimos_fornecedores_por_produto_ids(
+    p_ids: list[str] | set[str],
+    *,
+    n: int = 3,
+    scan_limit: int = 2500,
+) -> dict[str, list[str]]:
+    """
+    Até ``n`` fornecedores distintos por produto (Entrada NF Agro), do mais recente.
+    Um scan em lote — adequado ao Excel ↓ do cadastro (não N+1).
+    """
+    pid_ok = {_normalizar_pid_compra(x) for x in (p_ids or []) if _normalizar_pid_compra(x)}
+    if not pid_ok:
+        return {}
+    n = max(1, min(int(n or 3), 10))
+    pid_map = _mapa_pid_busca(list(pid_ok))
+    since = _compras_entrada_cutoff_dt()
+    # (dt, forn) por pid — depois ordena e deduplica
+    eventos: dict[str, list[tuple[datetime, str]]] = {}
+
+    for doc in _docs_entrada_nf_agro_recentes(scan_limit=scan_limit):
+        if not isinstance(doc, dict) or not _doc_conta_como_compra_entrada_nf(doc):
+            continue
+        cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+        dt = _data_doc_entrada_nf_agro(cab, doc)
+        if dt is None or dt < since:
+            continue
+        forn = str(cab.get("emit_nome") or cab.get("fornecedor_nome") or "").strip()[:200]
+        if not forn or forn in ("—", "-", "–"):
+            continue
+        linhas = doc.get("linhas") if isinstance(doc.get("linhas"), list) else []
+        seen_pid_doc: set[str] = set()
+        for ln in linhas:
+            if not isinstance(ln, dict):
+                continue
+            pid = _resolver_pid_linha(ln, pid_map, None)
+            if not pid or pid not in pid_ok or pid in seen_pid_doc:
+                continue
+            qtd = _qtd_linha_entrada_nf_agro(ln)
+            if qtd <= 0:
+                continue
+            seen_pid_doc.add(pid)
+            eventos.setdefault(pid, []).append((dt, forn))
+
+    out: dict[str, list[str]] = {}
+    for pid, evs in eventos.items():
+        evs.sort(key=lambda t: t[0], reverse=True)
+        nomes: list[str] = []
+        vistos: set[str] = set()
+        for _dt, forn in evs:
+            key = forn.casefold()
+            if key in vistos:
+                continue
+            vistos.add(key)
+            nomes.append(forn)
+            if len(nomes) >= n:
+                break
+        if nomes:
+            out[pid] = nomes
+    return out
+

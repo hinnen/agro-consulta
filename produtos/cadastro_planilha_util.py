@@ -51,6 +51,17 @@ COL_DEL_SUB3 = "delivery_sub3"
 COL_DEL_SUB4 = "delivery_sub4"
 COL_DEL_EMBALAGENS = "delivery_embalagens"
 
+# Só Excel ↓ (Entrada NF) — import ignora
+COL_FORN_COMPRA_1 = "fornecedor_compra_1"
+COL_FORN_COMPRA_2 = "fornecedor_compra_2"
+COL_FORN_COMPRA_3 = "fornecedor_compra_3"
+
+FORNECEDOR_EXPORT_KEYS = (
+    COL_FORN_COMPRA_1,
+    COL_FORN_COMPRA_2,
+    COL_FORN_COMPRA_3,
+)
+
 DELIVERY_IMPORT_KEYS = (
     COL_DEL_ATIVO,
     COL_DEL_TITULO,
@@ -96,6 +107,9 @@ EXPORT_HEADERS: list[tuple[str, str]] = [
     ("Delivery sub 3", COL_DEL_SUB3),
     ("Delivery sub 4", COL_DEL_SUB4),
     ("Delivery embalagens", COL_DEL_EMBALAGENS),
+    ("Últ. fornecedor", COL_FORN_COMPRA_1),
+    ("2º fornecedor", COL_FORN_COMPRA_2),
+    ("3º fornecedor", COL_FORN_COMPRA_3),
 ]
 
 _COLS_TEXTO_EXCEL = frozenset(
@@ -123,6 +137,9 @@ _COLS_TEXTO_EXCEL = frozenset(
         COL_DEL_SUB3,
         COL_DEL_SUB4,
         COL_DEL_EMBALAGENS,
+        COL_FORN_COMPRA_1,
+        COL_FORN_COMPRA_2,
+        COL_FORN_COMPRA_3,
     }
 )
 
@@ -1224,6 +1241,30 @@ def coletar_linhas_export_cadastro(
     return rows, truncado
 
 
+def enriquecer_rows_ultimos_fornecedores(rows: list[dict], colunas: list[str] | None) -> None:
+    """Preenche fornecedor_compra_1..3 se pedidas no Excel ↓ (Entrada NF Agro)."""
+    cols = set(colunas or [])
+    if not cols.intersection(FORNECEDOR_EXPORT_KEYS):
+        return
+    if not rows:
+        return
+    pids = [str(r.get("id") or "").strip() for r in rows if str(r.get("id") or "").strip()]
+    if not pids:
+        return
+    try:
+        from produtos.compras_ultimas_compras_util import ultimos_fornecedores_por_produto_ids
+
+        mapa = ultimos_fornecedores_por_produto_ids(pids, n=3)
+    except Exception:
+        mapa = {}
+    for r in rows:
+        pid = str(r.get("id") or "").strip()
+        nomes = mapa.get(pid) or []
+        r[COL_FORN_COMPRA_1] = nomes[0] if len(nomes) > 0 else ""
+        r[COL_FORN_COMPRA_2] = nomes[1] if len(nomes) > 1 else ""
+        r[COL_FORN_COMPRA_3] = nomes[2] if len(nomes) > 2 else ""
+
+
 def linha_export_planilha(row: dict) -> dict[str, Any]:
     empty = _delivery_planilha_de_dict({})
     out = {
@@ -1248,6 +1289,8 @@ def linha_export_planilha(row: dict) -> dict[str, Any]:
             out[k] = str(row.get(k) or "")
         else:
             out[k] = empty.get(k, "")
+    for k in FORNECEDOR_EXPORT_KEYS:
+        out[k] = str(row.get(k) or "")
     return out
 
 
