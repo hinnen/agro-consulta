@@ -438,6 +438,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Balança granel (16/08 · teste v16.71 · hotfix loja v17.82):** botão **Pesar** / **F10** → overlay · Web Serial Chrome · Urano **USE-P2 / USE-PII** · COM4 **9600 8N2** (8N1 ok neste USB) · dump vazio `ESC N 1` + `0,00` · dump ao vivo `0,478 kg` (não o ESC N 1 auxiliar) · códigos **1–199** · auto-add ao estabilizar · prato vazio libera de novo · SEM PORTA simula o dump · Unidade **KG** · migrate `0089` (já na loja).
 
+**Barras secundárias (24/08 · teste v17.85):** bip de EAN opcional do cadastro agora acha no PDV. Antes o `agro_pg` pulava o Mongo se o overlay não achasse o JSON.
+
 **Fiado â€” baixa (decisÃ£o 07/07):** cobranÃ§a de tÃ­tulo em aberto **nÃ£o** fica no modal de `/fiado/` â€” redireciona ao **PDV pagamento** com cliente + valor do tÃ­tulo (ou selecionados). Quita `FiadoTituloAgro` + caixa no confirmar. **Cupom fiscal na baixa** = **FL-052** (P1,1), depois do pacote pagamento.
 
 **Armadilha GM no barras (2026-06-18):** se Â«CÃ³digo de barrasÂ» no cadastro tiver texto **GM** (ex. `GM1546-5S`), o leitor manda GM, nÃ£o EAN. No **wizard** (`pdv_wizard.js`), o hÃ­fen do GM disparava atalho `**-`** = remover Ãºltimo item do carrinho (campo mostrava `GM15465S`). Patch: ignorar `-`/`+` durante SKU/GM + modo barcode para `GMâ€¦`. Legado `/consulta/`: F4 pÃ³s-bip + match alnum (`consulta_produtos.js`).
@@ -597,6 +599,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **UI aba SEFAZ (04/08):** tela limpa (ações + lista); textos longos no **«?»** (contexto `sefaz` + bloco no modal). Status compacto (Pronto / Local off / Cursor).
 - PrÃ©-visualizaÃ§Ã£o XML: modal drag-and-drop, nÃ£o fecha ao clicar fora; Â«Confirmar na gradeÂ» aplica de fato.
 - **Busca produtos etapa 2 (16/07 Â· loja v8.69):** BCA `/api/buscar/` igual cadastro/PDV â€” famÃ­lia GM completa (complemento Mongo); nÃ£o desligar Mongo no `entrada_nfe=1`.
+- **Barras secundárias (24/08 · teste v17.85):** «Mudar»/busca casa `index_codigos` / opcionais — não só o EAN principal.
 - **AcrÃ©scimos no custo (14/07 Â· loja v8.43):** checkbox Â«Incluir no custo os acrÃ©scimos da notaÂ» (etapa 2) â€” rateia frete+ST+seguro+outras+IPIâˆ’desconto no custo unitÃ¡rio proporcional ao `vProd`; mark/desmarca recalcula sem reupload. Nota sem esses totais = noop.
 - **Mudar produto (21/07):** trocar vÃ­nculo no Â«MudarÂ» **nÃ£o** troca o V. unit da NF (nem o rateio); sÃ³ cadastro/P.venda. Linha manual sem base NF ainda puxa custo do cadastro.
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
@@ -1229,6 +1232,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### Git — este PC alinhado ao GitHub `teste` (24/08)
+
+Renan pediu comparar **teste** × **principal** (`main`) e puxar. **`teste` no GitHub é o mais novo** (`da7c1cb` · 23/08). **`main`/`principal` está parado em 15/06** (`fd8b356`) — **não** usamos esse ramo. `producao` no GitHub estava no **mesmo commit** que `teste`. Pasta local: `git reset --hard origin/teste` (histórico local antigo descartado). Loja **não** mexida.
+
+### 📦 PACOTE — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**) · **só teste**
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **só teste** — aguarda Ctrl+F5 no PC · **não** sobe loja sem frase + senha |
+| **O quê** | Bip de barra **secundária** (opcional / alias) acha o produto no PDV, Entrada NF e `/api/buscar/` |
+| **Por quê** | Overlay PG não olhava o JSON certo; `agro_pg` pulava o Mongo mesmo com lista vazia; PDV/NF só casavam o EAN principal |
+| **Onde** | `cadastro_busca_codigo_util.py` · `mongo_index_codigos.py` · `motor_busca_unificado_util.py` · `pdv_wizard.js` · `entrada_nota.html` |
+| **Migrate** | **NÃO** |
+| **Risco** | Baixo — busca. Sem estoque / caixa / NFC-e |
+| **Prova** | `produtos.tests_codigos_barras_opcionais` |
+| **Você** | Ctrl+F5 · badge **v17.85** · bipar um EAN extra no PDV e no «Mudar» da Entrada NF |
+| **Rollback** | `git revert` no `teste` |
 
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 
@@ -3579,7 +3600,7 @@ Base antes do PDV-CAD: 0f0db2.
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **enviado** / Live no lote v13.80 |
-| **Inclui** | Lista barras opcionais no cadastro · grava PG · bip PDV acha qualquer EAN |
+| **Inclui** | Lista barras opcionais no cadastro · grava PG · **gravação Live**; **busca** do bip extra incompleta até `CAD-CB-OPC-BUSCA` (24/08 · só teste) |
 
 ### 📦 PACOTE PRONTO LOJA — Duplicar cadastro (`CAD-DUP` · **v13.72**)
 
