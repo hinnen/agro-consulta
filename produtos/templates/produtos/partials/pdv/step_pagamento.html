@@ -79,6 +79,19 @@
           <button type="button" id="pdv-pay-trocar-maquina" class="shrink-0 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-900">Trocar <kbd class="ml-0.5 rounded bg-white px-1 font-mono text-[9px] text-slate-700">M</kbd></button>
         </div>
 
+        <div id="pdv-flow-outro" class="pdv-payment-flow hidden shrink-0 space-y-3 border-b border-slate-200 bg-slate-50 px-3 py-3 sm:px-4 sm:py-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-black text-slate-800">Pagamento fora do padrão</p>
+            <button type="button" id="pdv-pay-open-outro-ajuda" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Como funciona?</button>
+          </div>
+          <button type="button" id="pdv-outro-validar-pin" class="w-full rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-200 to-amber-200 px-3 py-3.5 text-sm font-black uppercase text-orange-950 shadow-md">Validar PIN do operador</button>
+          <p id="pdv-outro-pin-msg" class="text-xs font-bold text-slate-600">1) PIN · 2) detalhe · 3) Lançar ou Confirmar</p>
+          <label class="block">
+            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Detalhes</span>
+            <textarea id="pdv-outro-detalhes" rows="3" class="pdv-input resize-y" placeholder="Ex.: permuta, depósito identificado… Depois toque em Lançar ou Confirmar"></textarea>
+          </label>
+        </div>
+
         <div id="pdv-pay-valor-tranche-bar" class="pdv-pay-valor-panel hidden shrink-0 border-b border-emerald-200 bg-white px-3 py-3 sm:px-4 sm:py-4">
           <div class="pdv-pay-valor-panel-card rounded-2xl border-2 border-amber-300/90 bg-gradient-to-br from-amber-50 via-white to-emerald-50/50 p-3 shadow-md sm:p-4">
             <p class="pdv-pay-valor-kicker">Agora</p>
@@ -205,19 +218,6 @@
             <button type="button" id="pdv-pay-open-cashback-pop" class="rounded-xl border-2 border-rose-400 bg-white px-3 py-2 text-[10px] font-black uppercase text-rose-900">Ver em destaque</button>
           </div>
         </div>
-
-        <div id="pdv-flow-outro" class="pdv-payment-flow hidden space-y-4 rounded-2xl border-2 border-dashed border-slate-400 bg-slate-50 p-4">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-sm font-black text-slate-800">Pagamento fora do padrão</p>
-            <button type="button" id="pdv-pay-open-outro-ajuda" class="rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-[10px] font-black uppercase text-slate-700">Como funciona?</button>
-          </div>
-          <button type="button" id="pdv-outro-validar-pin" class="w-full rounded-2xl border-2 border-orange-400 bg-gradient-to-r from-orange-200 to-amber-200 px-3 py-3.5 text-sm font-black uppercase text-orange-950 shadow-md">Validar PIN do operador</button>
-          <p id="pdv-outro-pin-msg" class="text-xs font-bold text-slate-600">PIN obrigatório antes de descrever o pagamento.</p>
-          <label class="block">
-            <span class="mb-1.5 block text-[11px] font-black uppercase tracking-wide text-slate-600">Detalhes</span>
-            <textarea id="pdv-outro-detalhes" rows="3" class="pdv-input resize-y" placeholder="Ex.: permuta, depósito identificado, link enviado…"></textarea>
-          </label>
-        </div>
         </div>
       </div>
       </div>
@@ -249,6 +249,10 @@
               <section>
                 <p class="font-black text-slate-900">Vale e cashback</p>
                 <p class="mt-1">O valor não pode passar do saldo. Use “Valor nesta forma” e Enter.</p>
+              </section>
+              <section>
+                <p class="font-black text-slate-900">Outro</p>
+                <p class="mt-1">1) Validar PIN · 2) escrever o detalhe · 3) <strong>Lançar pagamento</strong> (ou <strong>Confirmar</strong> se o valor já estiver certo). Só o detalhe não fecha a venda.</p>
               </section>
               <section>
                 <p class="font-black text-slate-900">Atalhos</p>

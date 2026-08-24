@@ -2104,6 +2104,27 @@
         }, 0);
     }
 
+    /** Dom do textarea Outro → state (evita perder detalhe no re-render / foco). */
+    function syncOutroDetalhesFromDom() {
+        if (!dom.outroDetalhes) return;
+        var v = String(dom.outroDetalhes.value || '');
+        var st = State.getState();
+        if (!st.pagamento) return;
+        if (String(st.pagamento.outroDetalhes || '') !== v) {
+            State.setPagamentoField('outroDetalhes', v);
+        }
+    }
+
+    function outroTranchePronta(st) {
+        return !!(
+            st &&
+            st.pagamento &&
+            st.pagamento.forma === 'Outro' &&
+            st.pagamento.outroPinVerificado &&
+            String(st.pagamento.outroDetalhes || '').trim()
+        );
+    }
+
     function erroCommitTranche(state, computed, T) {
         var forma = state.pagamento.forma || '';
         var rest = saldoRestantePagamento(state, computed);
@@ -2333,12 +2354,15 @@
             });
     }
 
-    function renderPayStepChips(mpPoint) {
+    function renderPayStepChips(mode) {
         var el = dom.payStepChips || document.getElementById('pdv-pay-step-chips');
         if (!el) return;
-        var steps = mpPoint
-            ? ['Valor', 'Botão', 'Maquininha', 'Confirmar']
-            : ['Valor', 'Lançar', 'Confirmar'];
+        var steps =
+            mode === 'mp'
+                ? ['Valor', 'Botão', 'Maquininha', 'Confirmar']
+                : mode === 'outro'
+                  ? ['PIN', 'Detalhe', 'Lançar', 'Confirmar']
+                  : ['Valor', 'Lançar', 'Confirmar'];
         el.innerHTML = steps
             .map(function (label, i) {
                 return (
@@ -2353,6 +2377,9 @@
     }
 
     function commitTrancheFlow(st, comp, cur) {
+        syncOutroDetalhesFromDom();
+        st = State.getState();
+        comp = State.getComputed();
         var err = erroCommitTranche(st, comp, cur);
         if (err) {
             showPdvAviso(err);
@@ -6761,7 +6788,9 @@
         }
         if (dom.fiadoParcelasInput) setInputValue(dom.fiadoParcelasInput, String(state.pagamento.fiadoParcelas || 1));
         if (dom.fiadoDiasInput) setInputValue(dom.fiadoDiasInput, String(state.pagamento.fiadoDiasVencimento || 30));
-        if (dom.outroDetalhes) setInputValue(dom.outroDetalhes, state.pagamento.outroDetalhes);
+        if (dom.outroDetalhes) {
+            setInputValueUnlessFocused(dom.outroDetalhes, state.pagamento.outroDetalhes);
+        }
         if (dom.fiadoResumo) {
             var fpR = parseInt(state.pagamento.fiadoParcelas, 10) || 1;
             var fdR = parseInt(state.pagamento.fiadoDiasVencimento, 10) || 30;
@@ -6776,10 +6805,11 @@
         if (dom.cashbackSaldoView) dom.cashbackSaldoView.textContent = formatMoney(saldoCashbackAtual(state));
         if (dom.outroPinMsg) {
             dom.outroPinMsg.textContent = state.pagamento.outroPinVerificado
-                ? 'PIN ok — descreva o pagamento.'
-                : 'Valide o PIN antes de descrever.';
+                ? 'PIN ok — escreva o detalhe e toque em Lançar ou Confirmar.'
+                : '1) Validar PIN · 2) detalhe · 3) Lançar ou Confirmar';
             dom.outroPinMsg.classList.toggle('text-emerald-700', !!state.pagamento.outroPinVerificado);
             dom.outroPinMsg.classList.toggle('text-slate-500', !state.pagamento.outroPinVerificado);
+            dom.outroPinMsg.classList.toggle('text-slate-600', !state.pagamento.outroPinVerificado);
         }
 
         if (dom.paymentFormaLabel) {
@@ -7013,18 +7043,24 @@
         }
         var midPay = String(state.pagamento.maquinaId || '').trim();
         var mpPointBtn = isMaquinaMpPointAuto(midPay, forma);
+        var outroBloqueiaLancar = forma === 'Outro' && !outroTranchePronta(state);
         if (dom.payCommitTranche) {
             dom.payCommitTranche.textContent = mpPointBtn ? 'Cobrar na maquininha' : 'Lançar pagamento';
-            dom.payCommitTranche.disabled = !!isProcessingMpTranche || quitadoPay;
+            dom.payCommitTranche.disabled =
+                !!isProcessingMpTranche || quitadoPay || outroBloqueiaLancar;
             dom.payCommitTranche.classList.toggle('opacity-40', dom.payCommitTranche.disabled);
         }
-        renderPayStepChips(mpPointBtn && !!forma);
+        renderPayStepChips(
+            mpPointBtn && forma ? 'mp' : forma === 'Outro' ? 'outro' : 'default'
+        );
         if (dom.payCommitTrancheHint) {
             dom.payCommitTrancheHint.textContent = mpPointBtn
                 ? 'Digite o valor, toque no botão verde e aguarde a maquininha.'
-                : forma
-                  ? 'Digite o valor e toque em lançar pagamento.'
-                  : '';
+                : forma === 'Outro'
+                  ? 'PIN + detalhe → Lançar (ou Confirmar se o valor já estiver certo).'
+                  : forma
+                    ? 'Digite o valor e toque em lançar pagamento.'
+                    : '';
         }
         if (dom.paymentValorTotalRef) dom.paymentValorTotalRef.textContent = formatMoney(total);
         if (dom.paymentValorRestante) dom.paymentValorRestante.textContent = formatMoney(restFin);
@@ -7095,7 +7131,10 @@
         dom.paymentShippingView.textContent = formatMoney(computed.frete);
         dom.paymentTotal.textContent = formatMoney(computed.total);
         var err = erroValidacaoPagamento(state, computed);
-        var readyConfirm = !err && !forma && larr.length && restFin <= 0.009;
+        var readyOutroAuto =
+            !err && forma === 'Outro' && restFin > 0.009 && outroTranchePronta(state);
+        var readyConfirm =
+            (!err && !forma && larr.length && restFin <= 0.009) || readyOutroAuto;
         var cnp = dom.confirmSaleNoPrint;
         var cp = dom.confirmSalePrint;
         if (cnp) {
@@ -11607,6 +11646,7 @@
     }
 
     function runCommitTrancheFromInput() {
+        syncOutroDetalhesFromDom();
         var inp = document.getElementById('pdv-pay-valor-tranche');
         if (!inp) return;
         var st = State.getState();
@@ -11617,7 +11657,7 @@
         var cur = raw ? State.toNumber(raw) : 0;
         if (!raw || cur <= 0.009) {
             if (rest <= 0.009) {
-                if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) confirmSale(false);
+                if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) tryConfirmSale(false);
                 return;
             }
             var fmt = String(rest.toFixed(2)).replace('.', ',');
@@ -11632,6 +11672,56 @@
             return;
         }
         commitTrancheFlow(st, comp, cur);
+    }
+
+    /**
+     * Confirmar: se Outro ainda aberto com PIN+detalhe, lança a tranche e fecha a venda.
+     * Evita o caso «preenchi detalhe e Confirmar fica cinza / não dá baixa».
+     */
+    function tryConfirmSale(withPrint) {
+        syncOutroDetalhesFromDom();
+        var st = State.getState();
+        if (st.currentStep !== 'pagamento') {
+            confirmSale(withPrint);
+            return;
+        }
+        var comp = State.getComputed();
+        var rest = saldoRestantePagamento(st, comp);
+        if (st.pagamento.forma === 'Outro' && rest > 0.009) {
+            if (!outroTranchePronta(st)) {
+                showPdvAviso(
+                    !st.pagamento.outroPinVerificado
+                        ? 'Valide o PIN do operador em “Outro”.'
+                        : 'Descreva o pagamento em “Outro” e toque em Lançar ou Confirmar.'
+                );
+                return;
+            }
+            var inp = document.getElementById('pdv-pay-valor-tranche');
+            var raw = inp ? String(inp.value || '').trim() : '';
+            var cur = raw ? State.toNumber(raw) : rest;
+            if (!(cur > 0.009)) cur = rest;
+            var err = erroCommitTranche(st, comp, cur);
+            if (err) {
+                showPdvAviso(err);
+                return;
+            }
+            State.addPagamentoLancamento(snapshotLancamentoFromState(st, cur));
+            if (inp) inp.value = '';
+            var st2 = State.getState();
+            var rest2 = saldoRestantePagamento(st2, State.getComputed());
+            if (rest2 > 0.009) {
+                showPdvAviso(
+                    'Pagamento lançado. Ainda falta ' +
+                        formatMoney(rest2) +
+                        '. Lance outra forma ou ajuste o valor.'
+                );
+                afterCommitTrancheFlow();
+                return;
+            }
+            confirmSale(withPrint);
+            return;
+        }
+        confirmSale(withPrint);
     }
 
     function handleValorTrancheEnter(event) {
@@ -14838,12 +14928,12 @@
 
         if (dom.confirmSaleNoPrint) {
             dom.confirmSaleNoPrint.addEventListener('click', function () {
-                confirmSale(false);
+                tryConfirmSale(false);
             });
         }
         if (dom.confirmSalePrint) {
             dom.confirmSalePrint.addEventListener('click', function () {
-                confirmSale(true);
+                tryConfirmSale(true);
             });
         }
 
@@ -15224,12 +15314,12 @@
                     !inField
                 ) {
                     event.preventDefault();
-                    if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) confirmSale(false);
+                    if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) tryConfirmSale(false);
                     return;
                 }
                 if (event.code === 'F9') {
                     event.preventDefault();
-                    if (dom.confirmSalePrint && !dom.confirmSalePrint.disabled) confirmSale(true);
+                    if (dom.confirmSalePrint && !dom.confirmSalePrint.disabled) tryConfirmSale(true);
                     return;
                 }
                 if (
