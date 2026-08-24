@@ -13,6 +13,7 @@ from produtos.views_mp_point import (
     _mp_point_promover_pago_local,
     _mp_point_row_foi_forcado_liberar,
     api_pdv_mp_point_forcar_liberar,
+    mp_point_bloqueio_info,
     mp_point_bloqueio_venda_sessao,
 )
 
@@ -79,6 +80,26 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         msg = mp_point_bloqueio_venda_sessao(_req())
         self.assertIsNotNone(msg)
         self.assertIn("2.40", str(msg))
+        self.assertIn("Finalizar venda do cartão", str(msg))
+
+    @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
+    def test_paid_orfao_info_pode_finalizar(self, objs):
+        row = _row(status=PdvMercadoPagoPointOrder.Status.PAID, mid="ord-bug4")
+        objs.filter.return_value.order_by.return_value.__getitem__.return_value = [row]
+        info = mp_point_bloqueio_info(_req())
+        self.assertIsNotNone(info)
+        self.assertTrue(info.get("pode_finalizar"))
+        self.assertEqual(info.get("order_id"), "ord-bug4")
+        self.assertEqual(str(info.get("valor")), "2.40")
+
+    @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
+    def test_pending_orfao_nao_pode_finalizar(self, objs):
+        row = _row(status=PdvMercadoPagoPointOrder.Status.PENDING, mid="ord-pend")
+        objs.filter.return_value.order_by.return_value.__getitem__.return_value = [row]
+        info = mp_point_bloqueio_info(_req())
+        self.assertIsNotNone(info)
+        self.assertFalse(info.get("pode_finalizar"))
+        self.assertEqual(info.get("order_id"), "ord-pend")
 
     @patch("produtos.views_mp_point.PdvMercadoPagoPointOrder.objects")
     def test_depois_do_pin_proxima_venda_passa_sem_bypass(self, objs):

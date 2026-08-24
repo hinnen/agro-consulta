@@ -28290,17 +28290,21 @@ def api_enviar_pedido_erp(request):
         exigir_sessao_caixa_para_venda(request, data)
     except SessaoCaixaObrigatoriaError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
-    from produtos.views_mp_point import mp_point_bloqueio_venda_sessao
+    from produtos.views_mp_point import mp_point_bloqueio_info
 
-    bloqueio_mp = mp_point_bloqueio_venda_sessao(request)
+    bloqueio_mp = mp_point_bloqueio_info(request)
     if bloqueio_mp:
         from produtos.pin_gerencial_util import payload_hint_pin_gerencial
 
         return JsonResponse(
             {
                 "ok": False,
-                "erro": bloqueio_mp,
+                "erro": bloqueio_mp.get("mensagem") or "Cobrança Point ainda aberta.",
                 "mp_point_bloqueio": True,
+                "order_id": bloqueio_mp.get("order_id") or "",
+                "mp_point_status": bloqueio_mp.get("status") or "",
+                "mp_point_valor": bloqueio_mp.get("valor") or "",
+                "pode_finalizar": bool(bloqueio_mp.get("pode_finalizar")),
                 **payload_hint_pin_gerencial(),
             },
             status=409,

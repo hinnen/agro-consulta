@@ -1236,6 +1236,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — MP Point finalizar órfão (`MP-POINT-FINAL-ORFAO` · **v18.12**) · bug loja #4
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.12** · **não** sobe loja sem frase + senha |
+| **Bug** | Cartão Point **já pago** na sessão; operador tenta outra forma → bloqueio · só PIN gerencial · venda não fecha pelo caminho certo |
+| **O quê** | Bloqueio devolve `order_id` + `pode_finalizar`. Se pago → confirmação **«Finalizar venda do cartão»** (registra no sistema). **Não / PIN** = emergência gerencial |
+| **Onde** | `views_mp_point.py` · `views.py` (enviar ERP) · `pdv_wizard.js` · `tests_mp_point_pin_forcar.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | Django `tests_mp_point_pin_forcar` + CAD cols **34/34 OK** · `node --check` JS |
+| **Você** | Ctrl+F5 PDV · badge **v18.12** · Point pago órfão → outra forma → **Finalizar venda do cartão** |
+| **Risco** | Médio-baixo — só path bloqueio Point; PIN continua |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.11**)
 
 | Item | Detalhe |
@@ -1324,14 +1338,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** · prova **13/13** | **NÃO** |
-| 2 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
-| 3 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
-| 4 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 5 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.08** form limpo | **NÃO** |
-| 6 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 7 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 8 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **MP-POINT-FINAL-ORFAO** | 🟡 **pronto para envio à produção** · **v18.12** · bug #4 | **NÃO** |
+| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** · prova **13/13** | **NÃO** |
+| 3 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
+| 4 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
+| 5 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
+| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.08** form limpo | **NÃO** |
+| 7 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 8 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 9 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
 > Loja hoje: ✅ **Live v17.84**. Fila acima = o que ainda falta subir. Sem migrate. **Não** sobe sem frase + senha.
 
