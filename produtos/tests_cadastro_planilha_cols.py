@@ -358,3 +358,71 @@ class CadastroPlanilhaPermitirNovosTests(SimpleTestCase):
 
         sig = inspect.signature(aplicar_importacao_cadastro)
         self.assertIn("permitir_novos", sig.parameters)
+
+    def test_map_headers_ignora_rotulos_fornecedor_export(self):
+        """Excel ↑ não deve mapear Últ./2º/3º fornecedor (só export)."""
+        m = _map_headers(["Últ. fornecedor", "2º fornecedor", "3º fornecedor", "Nome"])
+        self.assertNotIn(COL_FORN_COMPRA_1, m)
+        self.assertNotIn(COL_FORN_COMPRA_2, m)
+        self.assertNotIn(COL_FORN_COMPRA_3, m)
+        self.assertIn("nome", m)
+
+
+class UltimosFornecedoresPathTests(SimpleTestCase):
+    """Path CAD-XLSX-ULT-FORN: ordem, dedupe casefold, qty/finalização."""
+
+    @staticmethod
+    def _doc(data: str, forn: str, pid: str, *, qtd: float = 1.0, finalizado: bool = True):
+        extra = {"aprovacao_wizard_em": "2026-01-15T12:00:00"} if finalizado else {}
+        return {
+            "cabecalho": {"data_entrada": data, "fornecedor_nome": forn},
+            "linhas": [{"produto_id": pid, "q_com": qtd}],
+            "extra": extra,
+        }
+
+    def test_ordem_mais_recente_primeiro_e_dedupe_casefold(self):
+        from produtos.compras_ultimas_compras_util import ultimos_fornecedores_por_produto_ids
+
+        docs = [
+            self._doc("2026-01-10", "Agromaia", "100"),
+            self._doc("2026-03-01", "AgroVale", "100"),
+            self._doc("2026-02-15", "AGROMAIA", "100"),  # mesmo casefold — mais novo que jan
+            self._doc("2026-04-01", "Outro Forn", "100"),
+            self._doc("2026-05-01", "Quarto", "100"),
+        ]
+        with patch(
+            "produtos.compras_ultimas_compras_util._docs_entrada_nf_agro_recentes",
+            return_value=docs,
+        ), patch(
+            "produtos.compras_ultimas_compras_util._compras_entrada_cutoff_dt",
+            return_value=__import__("datetime").datetime(2020, 1, 1),
+        ):
+            out = ultimos_fornecedores_por_produto_ids(["100"], n=3)
+        self.assertEqual(out["100"], ["Quarto", "Outro Forn", "AgroVale"])
+
+    def test_ignora_sem_finalizacao_e_qtd_zero(self):
+        from produtos.compras_ultimas_compras_util import ultimos_fornecedores_por_produto_ids
+
+        docs = [
+            self._doc("2026-06-01", "Só Rascunho", "200", finalizado=False),
+            self._doc("2026-06-02", "Qtd Zero", "200", qtd=0),
+            self._doc("2026-06-03", "Ok", "200"),
+        ]
+        with patch(
+            "produtos.compras_ultimas_compras_util._docs_entrada_nf_agro_recentes",
+            return_value=docs,
+        ), patch(
+            "produtos.compras_ultimas_compras_util._compras_entrada_cutoff_dt",
+            return_value=__import__("datetime").datetime(2020, 1, 1),
+        ):
+            out = ultimos_fornecedores_por_produto_ids(["200"], n=3)
+        self.assertEqual(out.get("200"), ["Ok"])
+
+    def test_vazio_se_sem_docs(self):
+        from produtos.compras_ultimas_compras_util import ultimos_fornecedores_por_produto_ids
+
+        with patch(
+            "produtos.compras_ultimas_compras_util._docs_entrada_nf_agro_recentes",
+            return_value=[],
+        ):
+            self.assertEqual(ultimos_fornecedores_por_produto_ids(["999"]), {})
