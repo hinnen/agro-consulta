@@ -1305,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` **v18.05**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` **v18.06**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
