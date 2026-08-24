@@ -1240,7 +1240,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` tip · badge **v17.89** · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7619c50** · badge **v17.89** · **não** sobe loja sem frase + senha |
 | **O quê** | Forma **Outro**: bloco PIN+detalhe **acima** do Lançar · Confirmar **lança** Outro se PIN+detalhe ok · Lançar só libera com PIN+detalhe · chips PIN→Detalhe→Lançar→Confirmar |
 | **Causa** | Operador preenchia detalhe **abaixo** do botão e ia no Confirmar cinza; texto podia dessincronizar do state; Confirmar não auto-lançava Outro |
 | **Onde** | `step_pagamento.html` · `pdv_wizard.js` |
