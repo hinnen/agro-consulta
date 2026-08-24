@@ -6363,6 +6363,16 @@ def criar_emprestimo_externo_agro(
                 "ref": None,
             }
 
+    # Conta/forma opcionais na UI do CP: sem conta → ADICIONAR CONTA.
+    banco_nome = (banco_nome or "").strip()
+    if not banco_nome:
+        ph = _banco_placeholder_para_select()
+        banco_nome = str(ph.get("nome") or "ADICIONAR CONTA")
+        banco_id = ph.get("id")
+    forma_nome = (forma_nome or "").strip()
+    if not forma_nome:
+        forma_id = None
+
     ref = secrets.token_hex(4).upper()
     if var == "interno":
         obs_base = (f"Emprestimo INT ref EMP-INT-{ref}. " + (observacao or "").strip()).strip()[:900]
