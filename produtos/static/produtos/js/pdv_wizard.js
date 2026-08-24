@@ -10090,7 +10090,8 @@
             host.addEventListener(
                 'click',
                 function onBackdrop(ev) {
-                    if (ev.target === host) hideSaleDoneToast();
+                    /* Fundo nao fecha — so X / FECHAR / Esc */
+                    void ev;
                 },
                 { once: true }
             );
@@ -12464,7 +12465,8 @@
                 finish(null);
             };
             root.onclick = function (ev) {
-                if (ev.target === root) finish(null);
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void ev;
             };
             try {
                 if (isDialog && typeof root.showModal === 'function') {
@@ -12765,7 +12767,8 @@
         }
         if (dom.quickClientEditOverlay) {
             dom.quickClientEditOverlay.addEventListener('click', function (event) {
-                if (event.target === dom.quickClientEditOverlay) closeQuickClientEditOverlay();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void event;
             });
         }
             /* ——— Cadastro rápido PDV ——— */
@@ -13727,7 +13730,8 @@
         if (fechar) fechar.addEventListener('click', closeCadastroRapidoOverlay);
         if (el.overlay) {
             el.overlay.addEventListener('click', function (ev) {
-                if (ev.target === el.overlay) closeCadastroRapidoOverlay();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void ev;
             });
         }
         var eanOk = document.getElementById('pdv-cadastro-rapido-ean-ok');
@@ -13790,7 +13794,8 @@
         wireRacoesUi();
         if (dom.quickProductEditOverlay) {
             dom.quickProductEditOverlay.addEventListener('click', function (event) {
-                if (event.target === dom.quickProductEditOverlay) closeQuickProductEditOverlay();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void event;
             });
         }
         if (dom.quickProductEditFormasToggle) {
@@ -13883,9 +13888,8 @@
         }
         if (dom.wizardCliRapidoModal) {
             dom.wizardCliRapidoModal.addEventListener('click', function (event) {
-                if (event.target === dom.wizardCliRapidoModal) {
-                    closeWizardQuickClientCadastro();
-                }
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void event;
             });
         }
         if (dom.wizardCliRapidoNome) {
@@ -14395,7 +14399,8 @@
         }
         if (dom.fiadoVencidosModal) {
             dom.fiadoVencidosModal.addEventListener('click', function (ev) {
-                if (ev.target === dom.fiadoVencidosModal) closeFiadoVencidosModal();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void ev;
             });
         }
         if (dom.entregasPendentesClose) {
@@ -14403,12 +14408,14 @@
         }
         if (dom.entregasPendentesModal) {
             dom.entregasPendentesModal.addEventListener('click', function (ev) {
-                if (ev.target === dom.entregasPendentesModal) closeEntregasPendentesModal();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void ev;
             });
         }
         dom.budgetHistoryClose.addEventListener('click', closeBudgetHistory);
         dom.budgetHistoryModal.addEventListener('click', function (event) {
-            if (event.target === dom.budgetHistoryModal) closeBudgetHistory();
+            /* Fundo nao fecha — so X / FECHAR / Esc */
+            void event;
         });
         dom.budgetHistoryList.addEventListener('click', function (event) {
             var btn = event.target.closest('[data-budget-id]');
@@ -14512,7 +14519,8 @@
         }
         if (dom.clienteEditModal) {
             dom.clienteEditModal.addEventListener('click', function (event) {
-                if (event.target === dom.clienteEditModal) closeClienteEditModal();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void event;
             });
         }
         if (dom.clienteAdvancedEdit) {
@@ -14604,7 +14612,9 @@
         var mdEscModal = document.getElementById('modal-pdv-entrega-salvar-cliente');
         if (mdEscModal) {
             mdEscModal.addEventListener('click', function (ev) {
-                if (ev.target === mdEscModal) {
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+                void ev;
+                if (false) {
                     entregaPendingAfterSaveCliente = null;
                     closeEntregaSalvarClienteModal();
                 }

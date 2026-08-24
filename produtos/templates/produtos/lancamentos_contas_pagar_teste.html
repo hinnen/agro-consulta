@@ -2552,7 +2552,7 @@
   });
   document.getElementById('sv-bxp-add').addEventListener('click', () => bxpAddLinha(''));
   document.querySelectorAll('.sv-modal').forEach((m) => {
-    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('show'); });
+    m.addEventListener('click', (e) => { /* Fundo nao fecha — so X / FECHAR / Esc */ void e; });
   });
 
   document.getElementById('sv-bx-ok').addEventListener('click', async () => {

@@ -429,7 +429,7 @@
         if (root && !root.dataset.bound) {
             root.dataset.bound = '1';
             root.addEventListener('click', function (e) {
-                if (e.target === root) closeOverlay();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
             });
         }
     }

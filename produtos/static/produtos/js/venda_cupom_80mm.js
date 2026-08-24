@@ -791,7 +791,7 @@
                 escolher(true);
             };
             overlay.onclick = function (e) {
-                if (e.target === overlay) escolher(false);
+                /* Fundo nao fecha — so X / FECHAR / Esc */
             };
 
             overlay.classList.remove('hidden');
@@ -998,7 +998,7 @@
                 escolher(true);
             };
             overlay.onclick = function (e) {
-                if (e.target === overlay) escolher(false);
+                /* Fundo nao fecha — so X / FECHAR / Esc */
             };
 
             overlay.classList.remove('hidden');

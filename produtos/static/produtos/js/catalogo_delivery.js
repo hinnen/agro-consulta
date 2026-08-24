@@ -233,7 +233,7 @@
     var embRoot = document.getElementById("modal-embalagem");
     if (embRoot) {
       embRoot.addEventListener("click", function (ev) {
-        if (ev.target === embRoot) fecharModalEmbalagem();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
     }
 

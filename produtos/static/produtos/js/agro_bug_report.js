@@ -511,7 +511,7 @@
       ' · Alt+B';
     document.getElementById('agro-bug-cancel').onclick = closeModal;
     root.addEventListener('click', function (ev) {
-      if (ev.target === root) closeModal();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
     document.getElementById('agro-bug-send').onclick = submitReport;
     setTimeout(function () {

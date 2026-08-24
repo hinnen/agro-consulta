@@ -6474,7 +6474,7 @@
   });
   document.getElementById('modal-nfe-bip-vinculo-fechar')?.addEventListener('click', () => entradaNfeBipModalVinculoFechar());
   document.getElementById('modal-nfe-bip-vinculo')?.addEventListener('click', (e) => {
-    if (e.target && e.target.id === 'modal-nfe-bip-vinculo') entradaNfeBipModalVinculoFechar();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.addEventListener('keydown', (e) => {
     const mv = document.getElementById('modal-nfe-bip-vinculo');
@@ -6686,7 +6686,7 @@
   }
   document.getElementById('modal-entrada-nfe-ajuda-fechar')?.addEventListener('click', fecharModalAjudaEntradaNfe);
   elModalAjudaNfe?.addEventListener('click', (e) => {
-    if (e.target === elModalAjudaNfe) fecharModalAjudaEntradaNfe();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
 
   let entradaNfeMsgGlobalTimer = null;
@@ -12151,7 +12151,7 @@
     carregarRascunhos();
   });
   document.getElementById('modal-entrada-nfe-lista-filtros')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) entradaNfeFecharModalListaFiltros();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
 
   document.getElementById('btn-entrada-nfe-nova')?.addEventListener('click', () => {

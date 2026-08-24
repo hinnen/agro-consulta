@@ -485,7 +485,7 @@
   }
 
   overlay.addEventListener('click', function (ev) {
-    if (ev.target === overlay) closeOverlay();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
 
   if (qs().get('repasse') === '1') {
@@ -562,7 +562,7 @@
   if (acumFechar) acumFechar.addEventListener('click', closeAcumModal);
   if (acumModal) {
     acumModal.addEventListener('click', function (ev) {
-      if (ev.target === acumModal) closeAcumModal();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 

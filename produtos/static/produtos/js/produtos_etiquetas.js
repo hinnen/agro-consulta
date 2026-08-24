@@ -1461,11 +1461,11 @@
 
     $('etq-modal-back') &&
       $('etq-modal-back').addEventListener('click', function (ev) {
-        if (ev.target === $('etq-modal-back')) fecharModalPreset();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
     $('etq-hist-back') &&
       $('etq-hist-back').addEventListener('click', function (ev) {
-        if (ev.target === $('etq-hist-back')) fecharModalHistorico();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
 
     ['etq-preset-select', 'etq-fila-preset'].forEach(function (id) {

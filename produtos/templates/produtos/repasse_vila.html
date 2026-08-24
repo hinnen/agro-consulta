@@ -736,7 +736,7 @@
   if (btnFecharPlanos) btnFecharPlanos.addEventListener('click', fecharPlanos);
   if (planosModal) {
     planosModal.addEventListener('click', function (ev) {
-      if (ev.target === planosModal) fecharPlanos();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   if (planosBusca) planosBusca.addEventListener('input', renderPlanosLista);
@@ -839,7 +839,7 @@
   if (btnAcumFechar) btnAcumFechar.addEventListener('click', fecharAcumModal);
   if (acumModal) {
     acumModal.addEventListener('click', function (ev) {
-      if (ev.target === acumModal) fecharAcumModal();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   var btnAcumSalvar = document.getElementById('rv-acum-salvar');
