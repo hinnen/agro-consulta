@@ -653,7 +653,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93):** botão ao lado de Nova saída → popup **Externo / Interno** → mesmo formulário (entrada + dívida/parcelas + juros opcional). Planos travados (trio externo / trio **interno** criados no cadastro). API `api_emprestimos_criar` + `variante`; hub Externo/Interno sócio redireciona pro CP. Include: `lancamento_novo_emprestimo_modal.html`.
+- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93):** botão ao lado de Nova saída → popup **Externo / Interno** → formulário (entrada + dívida/parcelas + juros opcional). Planos no servidor (não na tela). Conta/forma fora da UI; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `variante`. Include: `lancamento_novo_emprestimo_modal.html`.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1240,12 +1240,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.02** · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.02** · path revisado **24/08** · **não** sobe loja sem frase + senha |
 | **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
 | **Import** | Excel ↑ **ignora** essas colunas |
 | **Onde** | `cadastro_planilha_util.py` · `compras_ultimas_compras_util.py` · `views.py` · `cadastro_erp_panel.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `tests_cadastro_planilha_cols` **10/10 OK** |
+| **Prova** | `tests_cadastro_planilha_cols` **23/23 OK** (ordem/dedupe/ignora NF incompleta + export gated) |
 | **Você** | Ctrl+F5 `/produtos/cadastro-erp/` · Excel ↓ · marcar as 3 colunas · baixar |
 | **Risco** | Baixo — só export; enrich só se colunas marcadas |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
@@ -1278,16 +1278,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só dismiss de overlay |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **24/08**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.03** (cards tipo) · pacote base **v17.93** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos travados (trio externo / trio interno). **UI 24/08:** cards tipo maiores + título sem quebra no meio da palavra (`whitespace-nowrap`). |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge sobe no commit · pacote base **v17.93** · **não** sobe loja sem frase + senha |
+| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos no servidor (não aparecem na tela). **Form limpo 24/08:** sem conta, forma nem planos na UI; conta vazia → placeholder ADICIONAR CONTA. |
 | **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` **37/37 OK** |
-| **Você** | Contas a pagar → **Novo empréstimo** → Interno ou Externo → salvar → confere título a receber + parcelas a pagar |
+| **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` |
+| **Você** | Ctrl+F5 Contas a pagar → **Novo empréstimo** → Interno/Externo → salvar **sem** conta/forma → confere títulos |
 | **Risco** | Baixo — não mexe no fluxo antigo sócio já cadastrado; hub Externo/Interno redireciona pro CP |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
@@ -1305,19 +1305,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.03**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` **v18.05**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** | **NÃO** |
+| 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
 | 2 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
 | 3 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
-| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.03** (UI cards) | **NÃO** |
+| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.03**+ form limpo 24/08 | **NÃO** |
 | 5 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
 | 6 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 7 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.03** = fila acima (+ cards Externo/Interno). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Fila acima = o que ainda falta subir. Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
