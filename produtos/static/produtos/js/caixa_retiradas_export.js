@@ -197,7 +197,9 @@
 
   btnExp.addEventListener('click', abrirExport);
   if (btnFec) btnFec.addEventListener('click', fecharExport);
-  if (back) back.addEventListener('click', fecharExport);
+  if (back) back.addEventListener('click', function () {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
+  });
 
   if (radTela) radTela.addEventListener('change', function () {
     syncPainelCustom();

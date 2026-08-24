@@ -534,7 +534,9 @@ function pdvModalEscolhaImpressaoEntrega() {
     const bd = document.getElementById('pdv-carrinho-backdrop');
     if (btnAbrir) btnAbrir.addEventListener('click', abrirDrawerCarrinho);
     if (btnFechar) btnFechar.addEventListener('click', fecharDrawerCarrinho);
-    if (bd) bd.addEventListener('click', fecharDrawerCarrinho);
+    if (bd) bd.addEventListener('click', function () {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
 })();
 
 function pickFirstValue(...valores) {

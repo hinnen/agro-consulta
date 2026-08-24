@@ -992,12 +992,16 @@
     document.body.classList.remove('overflow-hidden');
   }
   document.getElementById('btn-abrir-filtros').addEventListener('click', abrirFiltrosConsulta);
-  document.getElementById('consulta-filtros-backdrop').addEventListener('click', fecharFiltrosConsulta);
+  document.getElementById('consulta-filtros-backdrop').addEventListener('click', function () {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
+  });
   document.getElementById('consulta-filtros-fechar').addEventListener('click', fecharFiltrosConsulta);
   document.getElementById('consulta-filtros-fechar-rodape').addEventListener('click', fecharFiltrosConsulta);
 
   document.getElementById('consulta-shell-lanc-fechar').addEventListener('click', fecharConsultaShellLancamentos);
-  document.getElementById('consulta-shell-lanc-backdrop').addEventListener('click', fecharConsultaShellLancamentos);
+  document.getElementById('consulta-shell-lanc-backdrop').addEventListener('click', function () {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
+  });
   var btnNgInt = document.getElementById('consulta-shell-lanc-nova-guia-interna');
   if (btnNgInt) btnNgInt.addEventListener('click', novaGuiaInternaShellLanc);
 

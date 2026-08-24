@@ -640,7 +640,9 @@
     drawer.setAttribute('aria-hidden', 'true');
   }
   document.getElementById('gm-drawer-x').addEventListener('click', fecharDrawer);
-  drawerBack.addEventListener('click', fecharDrawer);
+  drawerBack.addEventListener('click', function () {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
+  });
   document.getElementById('ed-cancelar').addEventListener('click', fecharDrawer);
   function gmDrawerMontarBody() {
     var id = document.getElementById('ed-id').value;

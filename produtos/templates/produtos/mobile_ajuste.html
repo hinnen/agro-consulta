@@ -3514,8 +3514,7 @@ document.getElementById('ma-ciclica-fab-ctrl')?.addEventListener('click', () => 
   maCiclicaPintarBar();
 });
 document.getElementById('ma-ciclica-ctrl-backdrop')?.addEventListener('click', () => {
-  maCiclicaToggleCtrl(false);
-  maCiclicaPintarBar();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('ma-ciclica-btn-pass1')?.addEventListener('click', () => {
   if (!maCiclicaAtiva()) return;

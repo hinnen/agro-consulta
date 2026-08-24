@@ -67,7 +67,9 @@
       '<button type="button" id="agro-perf-config-close">Fechar</button>' +
       '</div>';
     document.body.appendChild(root);
-    root.querySelector('[data-agro-perf-config-dismiss]').addEventListener('click', close);
+    root.querySelector('[data-agro-perf-config-dismiss]').addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     root.querySelector('#agro-perf-config-close').addEventListener('click', close);
     root.querySelector('#agro-perf-config-pdv').addEventListener('click', function () {
       toggleScope('pdv', this);
