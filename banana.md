@@ -417,6 +417,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Outro (24/08 · bug #2 · v17.89):** PIN + detalhe **acima** do Lançar · Lançar/Confirmar só com PIN+detalhe · Confirmar pode lançar a tranche Outro sozinho.
 
+**Desconto geral (24/08 · bug #3 · v18.08):** ao finalizar, `valorFinal` / `VendaAgro.total` = itens − `desconto_geral` + frete (antes ignorava o desconto).
+
 **Regras UX jÃ¡ decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
@@ -1236,6 +1238,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — PDV desconto na finalização (`PDV-DESC-FINAL` · **v18.09**) · bug loja #3
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.09** · **não** sobe loja sem frase + senha |
+| **Relato** | Queila · Caixa Centro · 16/08 · desconto ok na tela · ao finalizar volta valor cheio |
+| **Causa** | UI/MP Point usavam `desconto_geral`; Pedidos (`valorFinal`) e `VendaAgro.total` somavam só itens (+ frete) e **ignoravam** o desconto |
+| **O quê** | Helper `_pdv_aplicar_desconto_e_frete` · `valor_final` e total Agro com desconto+frete · MP Point não reaplica (evita dobro) |
+| **Onde** | `produtos/views.py` · `produtos/views_mp_point.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v18.09** · item + desconto geral → PAGAR/finalizar → conferir total na venda/caixa **com** desconto |
+| **Risco** | Baixo — alinha backend ao que a tela já mostrava |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**)
 
 | Item | Detalhe |
@@ -1278,12 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só dismiss de overlay |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **24/08**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **v18.08**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge sobe no commit · pacote base **v17.93** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos no servidor (não aparecem na tela). **Form limpo 24/08:** sem conta, forma nem planos na UI; conta vazia → placeholder ADICIONAR CONTA. |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.08** · pacote base **v17.93** · **não** sobe loja sem frase + senha |
+| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos no servidor (não aparecem na tela). **Form limpo v18.08:** sem conta, forma nem planos na UI; create preenche ADICIONAR CONTA se vazio. |
 | **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` |
@@ -1305,17 +1321,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` **v18.06**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` sobe no commit)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
-| 2 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 3 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
-| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.03**+ form limpo 24/08 | **NÃO** |
-| 5 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 6 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 7 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.08** · bug #3 | **NÃO** |
+| 2 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
+| 3 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
+| 4 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
+| 5 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.08** form limpo | **NÃO** |
+| 6 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 7 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 8 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
 > Loja hoje: ✅ **Live v17.84**. Fila acima = o que ainda falta subir. Sem migrate. **Não** sobe sem frase + senha.
 

@@ -39,8 +39,6 @@
       <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 space-y-5">
         <div id="agro-ne-msg" class="hidden rounded-2xl border-2 px-4 py-3 text-lg font-bold"></div>
 
-        <p id="agro-ne-planos-info" class="rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-base font-bold text-slate-700"></p>
-
         <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <label class="block">
             <span class="mb-2 block text-base font-black uppercase tracking-wide text-slate-600">Empresa *</span>
@@ -90,44 +88,6 @@
           </label>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <label class="block">
-            <span class="mb-2 block text-base font-black uppercase text-slate-600">Conta bancária *</span>
-            <div class="relative ne-sug-wrap" data-sug-campo="banco">
-              <input type="text" id="ne-banco-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Onde entrou o recurso…">
-              <input type="hidden" id="ne-banco-id" value="">
-              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
-            </div>
-          </label>
-          <label class="block">
-            <span class="mb-2 block text-base font-black uppercase text-slate-600">Forma de pagamento</span>
-            <div class="relative ne-sug-wrap" data-sug-campo="forma">
-              <input type="text" id="ne-forma-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Opcional">
-              <input type="hidden" id="ne-forma-id" value="">
-              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
-            </div>
-          </label>
-        </div>
-
-        {# Planos travados (só leitura) #}
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <label class="block">
-            <span class="mb-2 block text-sm font-black uppercase text-emerald-800">Plano entrada</span>
-            <input type="text" id="ne-plano-ent-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-emerald-200 bg-emerald-50/80 px-3 py-2 text-base font-bold text-emerald-950 cursor-default">
-            <input type="hidden" id="ne-plano-ent-id" value="">
-          </label>
-          <label class="block">
-            <span class="mb-2 block text-sm font-black uppercase text-amber-800">Plano dívida</span>
-            <input type="text" id="ne-plano-div-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-amber-200 bg-amber-50/80 px-3 py-2 text-base font-bold text-amber-950 cursor-default">
-            <input type="hidden" id="ne-plano-div-id" value="">
-          </label>
-          <label class="block">
-            <span class="mb-2 block text-sm font-black uppercase text-orange-800">Plano juros</span>
-            <input type="text" id="ne-plano-juros-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-orange-200 bg-orange-50/80 px-3 py-2 text-base font-bold text-orange-950 cursor-default">
-            <input type="hidden" id="ne-plano-juros-id" value="">
-          </label>
-        </div>
-
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <label class="block">
             <span class="mb-2 block text-base font-black uppercase text-orange-800">Valor juros (opcional)</span>
@@ -172,12 +132,6 @@
   const overlay = document.getElementById('agro-ne-overlay');
   if (!overlay) return;
 
-  let defaults = {};
-  try {
-    var elDef = document.getElementById('emprestimos-defaults-data');
-    if (elDef) defaults = JSON.parse(elDef.textContent) || {};
-  } catch (e0) {}
-
   function getCookie(name) {
     const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
     return v ? decodeURIComponent(v.pop()) : '';
@@ -191,7 +145,6 @@
   const passoTipo = document.getElementById('agro-ne-passo-tipo');
   const form = document.getElementById('agro-ne-form');
   const subtitulo = document.getElementById('agro-ne-subtitulo');
-  const planosInfo = document.getElementById('agro-ne-planos-info');
   const msgBox = document.getElementById('agro-ne-msg');
   const varianteInp = document.getElementById('ne-variante');
 
@@ -207,29 +160,13 @@
     msgBox.textContent = '';
   }
 
-  function applyPlanos(variante) {
-    const int = variante === 'interno';
-    const pe = int ? (defaults.plano_entrada_interno || '') : (defaults.plano_entrada || '');
-    const pd = int ? (defaults.plano_divida_interno || '') : (defaults.plano_divida || '');
-    const pj = int ? (defaults.plano_juros_interno || '') : (defaults.plano_juros || '');
-    document.getElementById('ne-plano-ent-nome').value = pe;
-    document.getElementById('ne-plano-div-nome').value = pd;
-    document.getElementById('ne-plano-juros-nome').value = pj;
-    document.getElementById('ne-plano-ent-id').value = '';
-    document.getElementById('ne-plano-div-id').value = '';
-    document.getElementById('ne-plano-juros-id').value = '';
-    planosInfo.textContent = int
-      ? 'Planos internos (travados): entrada + dívida + juros.'
-      : 'Planos externos (travados): entrada + dívida + juros.';
-  }
-
   function resetFormFields() {
-    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot', 'ne-banco-nome', 'ne-forma-nome',
+    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot',
      'ne-valor-juros', 'ne-grupo-nome', 'ne-obs'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.value = '';
     });
-    ['ne-empresa-id', 'ne-credor-id', 'ne-banco-id', 'ne-forma-id', 'ne-grupo-id'].forEach(function (id) {
+    ['ne-empresa-id', 'ne-credor-id', 'ne-grupo-id'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.value = '';
     });
@@ -264,9 +201,7 @@
 
   function showPassoForm(variante) {
     varianteInp.value = variante;
-    applyPlanos(variante);
     resetFormFields();
-    applyPlanos(variante);
     passoTipo.classList.add('hidden');
     form.classList.remove('hidden');
     form.classList.add('flex');
@@ -357,21 +292,21 @@
       primeiro_vencimento: document.getElementById('ne-primeiro-ven').value,
       parcelas: parseInt(document.getElementById('ne-parcelas').value, 10) || 1,
       intervalo_dias: parseInt(document.getElementById('ne-intervalo').value, 10) || 30,
-      banco_nome: document.getElementById('ne-banco-nome').value.trim(),
-      banco_id: document.getElementById('ne-banco-id').value.trim(),
-      forma_nome: document.getElementById('ne-forma-nome').value.trim(),
-      forma_id: document.getElementById('ne-forma-id').value.trim(),
-      plano_entrada_nome: document.getElementById('ne-plano-ent-nome').value.trim(),
-      plano_entrada_id: document.getElementById('ne-plano-ent-id').value.trim(),
-      plano_divida_nome: document.getElementById('ne-plano-div-nome').value.trim(),
-      plano_divida_id: document.getElementById('ne-plano-div-id').value.trim(),
+      banco_nome: '',
+      banco_id: '',
+      forma_nome: '',
+      forma_id: '',
+      plano_entrada_nome: '',
+      plano_entrada_id: '',
+      plano_divida_nome: '',
+      plano_divida_id: '',
       grupo_nome: document.getElementById('ne-grupo-nome').value.trim(),
       grupo_id: document.getElementById('ne-grupo-id').value.trim(),
       observacao: document.getElementById('ne-obs').value.trim(),
       entrada_ja_quitada: document.getElementById('ne-entrada-quitada').checked,
       valor_juros: document.getElementById('ne-valor-juros').value.trim(),
-      plano_juros_nome: document.getElementById('ne-plano-juros-nome').value.trim(),
-      plano_juros_id: document.getElementById('ne-plano-juros-id').value.trim()
+      plano_juros_nome: '',
+      plano_juros_id: ''
     };
     const btn = document.getElementById('agro-ne-submit');
     btn.disabled = true;
