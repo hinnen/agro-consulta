@@ -1236,6 +1236,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.11**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.11** · **não** sobe loja sem frase + senha |
+| **O quê** | Clique no **fundo escuro** dos modais **não fecha**. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
+| **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
+| **Onde** | Templates/JS: PDV, consulta, cadastro ERP, gestão, caixa export, empréstimos, mobile (cíclica), + telas já com marcador |
+| **Fora** | Dropdowns / picklists / calendários (continua click-fora) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_overlay_fundo_botao_path.py` **13/13 OK** · `node --check` nos JS do path |
+| **Você** | Ctrl+F5 · badge **v18.11** · Editar Produto: fundo **não** fecha · FECHAR/Esc ok · smoke PDV/caixa |
+| **Risco** | Baixo — só dismiss de overlay |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — PDV desconto na finalização (`PDV-DESC-FINAL` · **v18.09**) · bug loja #3
 
 | Item | Detalhe |
@@ -1278,20 +1293,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.00**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.00** · **não** sobe loja sem frase + senha |
-| **O quê** | Clique no **fundo escuro** dos modais **não fecha** mais. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
-| **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
-| **Onde** | Templates/JS de cadastro, PDV, caixa, financeiro, NF, compras, entregas, vendas, mobile |
-| **Fora** | Dropdowns / picklists / calendários (continua click-fora) |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · Editar Produto: fundo/laterais **não** fecham · FECHAR/Esc ok · smoke PDV/caixa/Lançamentos |
-| **Risco** | Baixo — só dismiss de overlay |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
-
 ### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **v18.08**)
 
 | Item | Detalhe |
@@ -1323,10 +1324,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
-| 2 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
-| 3 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 4 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
+| 1 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** · prova **13/13** | **NÃO** |
+| 2 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
+| 3 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
+| 4 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
 | 5 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.08** form limpo | **NÃO** |
 | 6 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
 | 7 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |

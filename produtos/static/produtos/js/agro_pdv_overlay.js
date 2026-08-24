@@ -194,7 +194,9 @@
       '</div>';
     document.body.appendChild(root);
     root.querySelector('#agro-pdv-overlay-close').addEventListener('click', close);
-    root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', close);
+    root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     wireHelp(root);
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     if (menuBtn) {

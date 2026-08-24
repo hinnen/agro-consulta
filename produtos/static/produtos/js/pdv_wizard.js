@@ -14719,7 +14719,9 @@
             dom.paymentFormaModalClose.addEventListener('click', closePaymentFormaModal);
         }
         if (dom.paymentFormaModalBackdrop) {
-            dom.paymentFormaModalBackdrop.addEventListener('click', closePaymentFormaModal);
+            dom.paymentFormaModalBackdrop.addEventListener('click', function () {
+                /* Fundo nao fecha — so X / FECHAR / Esc */
+            });
         }
         dom.paymentModalCards.forEach(function (btn) {
             btn.addEventListener('click', function () {

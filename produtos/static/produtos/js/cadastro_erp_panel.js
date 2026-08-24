@@ -2511,7 +2511,9 @@
     cadEtqUiReady = true;
     if (cadEtqBtnImp) cadEtqBtnImp.addEventListener('click', imprimirEtiquetaCadastro);
     if (cadEtqBtnCan) cadEtqBtnCan.addEventListener('click', fecharModalEtiquetaCadastro);
-    if (cadEtqBack) cadEtqBack.addEventListener('click', fecharModalEtiquetaCadastro);
+    if (cadEtqBack) cadEtqBack.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     if (cadEtqQtd) {
       cadEtqQtd.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
@@ -2668,7 +2670,9 @@
 
       btnExp.addEventListener('click', abrirExport);
       if (btnExpFec) btnExpFec.addEventListener('click', fecharExport);
-      if (backExp) backExp.addEventListener('click', fecharExport);
+      if (backExp) backExp.addEventListener('click', function () {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+      });
 
       if (btnExpBaixar) {
         btnExpBaixar.addEventListener('click', function () {
@@ -3131,7 +3135,9 @@
       abrirImport();
     });
     if (btnFec) btnFec.addEventListener('click', fecharImport);
-    if (back) back.addEventListener('click', fecharImport);
+    if (back) back.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     function rodarPrevia() {
       if (!inpArq || !inpArq.files || !inpArq.files[0]) {
         if (typeof alert !== 'undefined') alert('Selecione um arquivo .xlsx ou .csv.');
@@ -3306,7 +3312,9 @@
 
     if (btnHist) btnHist.addEventListener('click', abrirHistorico);
     if (btnHistFec) btnHistFec.addEventListener('click', fecharHistorico);
-    if (backHist) backHist.addEventListener('click', fecharHistorico);
+    if (backHist) backHist.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
   })();
 
   /** Excel estoque — botões Estoque ↓ / ↑ / Hist. estoque */
@@ -3390,7 +3398,9 @@
 
     if (btnExp) btnExp.addEventListener('click', abrirExportEstoque);
     if (btnExpFec) btnExpFec.addEventListener('click', fecharExportEstoque);
-    if (backExp) backExp.addEventListener('click', fecharExportEstoque);
+    if (backExp) backExp.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     if (btnBaixar && C.URL_ESTOQUE_EXPORT_XLSX) {
       btnBaixar.addEventListener('click', function () {
         var params = typeof cadastroQueryParams === 'function'
@@ -3604,7 +3614,9 @@
       abrirImportEstoque();
     });
     if (btnImpFec) btnImpFec.addEventListener('click', fecharImportEstoque);
-    if (backImp) backImp.addEventListener('click', fecharImportEstoque);
+    if (backImp) backImp.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
     if (inpArq) {
       inpArq.addEventListener('change', function () {
         limparImportUi();
@@ -3736,6 +3748,8 @@
 
     if (btnHist) btnHist.addEventListener('click', abrirHist);
     if (btnHistFec) btnHistFec.addEventListener('click', fecharHist);
-    if (backHist) backHist.addEventListener('click', fecharHist);
+    if (backHist) backHist.addEventListener('click', function () {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
   })();
 })();
