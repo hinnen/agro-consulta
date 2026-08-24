@@ -77,23 +77,48 @@
           </label>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <label class="block">
-            <span class="mb-2 block text-base font-black uppercase text-slate-600">Nº parcelas *</span>
-            <input type="number" id="ne-parcelas" min="1" max="48" value="1" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
-          </label>
-          <label class="block">
-            <span class="mb-2 block text-base font-black uppercase text-slate-600">Intervalo (dias) *</span>
-            <input type="number" id="ne-intervalo" min="1" max="366" value="30" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
-          </label>
+        <div class="rounded-2xl border-2 border-slate-200 bg-slate-50/80 p-4 space-y-3">
+          <div class="flex flex-wrap items-end gap-3">
+            <label class="block min-w-[5.5rem]">
+              <span class="mb-2 block text-base font-black uppercase text-slate-600">Nº parcelas *</span>
+              <input type="number" id="ne-parcelas" min="1" max="48" value="1" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black bg-white">
+            </label>
+            <label class="block flex-1 min-w-[12rem]">
+              <span class="mb-2 block text-base font-black uppercase text-slate-600">Intervalo *</span>
+              <select id="ne-intervalo" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold bg-white">
+                <option value="7">7 dias — semanal</option>
+                <option value="15">15 dias — quinzenal</option>
+                <option value="30" selected>Mensal — mesmo dia do mês</option>
+                <option value="60">Bimestral — a cada 2 meses</option>
+                <option value="90">Trimestral — a cada 3 meses</option>
+              </select>
+            </label>
+            <button type="button" id="ne-gerar-parcelas"
+                    class="min-h-[52px] shrink-0 rounded-xl border-2 border-indigo-600 bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-base font-black uppercase tracking-wide text-white shadow-sm">
+              Gerar parcelas
+            </button>
+          </div>
+          <p class="text-sm font-semibold text-slate-500 leading-snug">
+            1º vencimento = campo acima. <strong>Mensal</strong> = mesmo dia no mês (24/08 → 24/09).
+            Juros = total a pagar − valor recebido, rateado em cada parcela (como na Nova saída).
+          </p>
+          <p id="ne-juros-hint" class="hidden text-base font-bold text-orange-900 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2"></p>
+          <div id="ne-parc-preview" class="hidden overflow-x-auto rounded-xl border-2 border-slate-200 bg-white">
+            <table class="w-full text-left text-base">
+              <thead class="bg-slate-100 text-slate-600 uppercase text-sm font-black">
+                <tr>
+                  <th class="px-3 py-2 w-10">#</th>
+                  <th class="px-3 py-2">Vencimento</th>
+                  <th class="px-3 py-2 text-right">Valor (R$)</th>
+                </tr>
+              </thead>
+              <tbody id="ne-parc-tbody"></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <label class="block">
-            <span class="mb-2 block text-base font-black uppercase text-orange-800">Valor juros (opcional)</span>
-            <input type="text" id="ne-valor-juros" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
-          </label>
-          <label class="block">
+          <label class="block sm:col-span-2 lg:col-span-1">
             <span class="mb-2 block text-base font-black uppercase text-slate-600">Grupo (opcional)</span>
             <div class="relative ne-sug-wrap" data-sug-campo="grupo">
               <input type="text" id="ne-grupo-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-slate-400 outline-none" placeholder="Opcional">
@@ -125,6 +150,23 @@
   </div>
 </div>
 
+<style>
+  #agro-ne-overlay .ne-sug-dd { list-style: none; margin: 0; padding: 0; }
+  #agro-ne-overlay .ne-parc-composicao {
+    display: flex; align-items: center; justify-content: flex-end; gap: 0.35rem;
+    margin-top: 0.25rem; font-size: 0.8125rem; font-weight: 800; color: #4338ca; line-height: 1.2;
+  }
+  #agro-ne-overlay .ne-parc-composicao-q {
+    all: unset; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    width: 1.1rem; height: 1.1rem; border-radius: 999px; border: 1.5px solid #a5b4fc;
+    background: #eef2ff; color: #4338ca; font-size: 0.6875rem; font-weight: 900;
+  }
+  #agro-ne-overlay .ne-parc-composicao-pop {
+    margin-top: 0.35rem; padding: 0.45rem 0.55rem; border-radius: 0.5rem;
+    background: #eef2ff; border: 1px solid #c7d2fe; font-size: 0.75rem; font-weight: 700; color: #312e81;
+    text-align: left; max-width: 14rem;
+  }
+</style>
 <script>
 (function () {
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
@@ -140,6 +182,175 @@
   function todayISO() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function parseValorBr(raw) {
+    const s = String(raw || '').trim().replace(/[R$\s]/g, '');
+    if (!s) return null;
+    const n = parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function formatValorBr(n) {
+    if (!Number.isFinite(n)) return '';
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function splitEmParcelas(total, n) {
+    const nn = Math.max(1, Math.min(48, parseInt(n, 10) || 1));
+    const cents = Math.round((Number(total) || 0) * 100);
+    const base = Math.floor(cents / nn);
+    const rem = cents % nn;
+    const out = [];
+    for (let i = 0; i < nn; i += 1) {
+      out.push((base + (i < rem ? 1 : 0)) / 100);
+    }
+    return out;
+  }
+
+  function addDiasIso(iso, dias) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s + 'T12:00:00');
+    d.setDate(d.getDate() + (parseInt(dias, 10) || 0));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function addMesesIso(iso, meses) {
+    const s = String(iso || '').trim().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const parts = s.split('-').map(Number);
+    const dia = parts[2];
+    let y = parts[0];
+    let m = parts[1] - 1 + (parseInt(meses, 10) || 0);
+    y += Math.floor(m / 12);
+    m = ((m % 12) + 12) % 12;
+    const ultimo = new Date(y, m + 1, 0).getDate();
+    const d = Math.min(dia, ultimo);
+    return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+
+  function vencimentoParcela(dv0, indice, intDias) {
+    const i = parseInt(indice, 10) || 0;
+    const iv = parseInt(intDias, 10) || 30;
+    if (iv === 30) return addMesesIso(dv0, i);
+    if (iv === 60) return addMesesIso(dv0, i * 2);
+    if (iv === 90) return addMesesIso(dv0, i * 3);
+    return addDiasIso(dv0, i * iv);
+  }
+
+  function jurosTotal() {
+    const rec = parseValorBr(document.getElementById('ne-valor-rec')?.value);
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    if (rec == null || tot == null) return 0;
+    return Math.max(0, Math.round((tot - rec) * 100) / 100);
+  }
+
+  function composicaoParcela(valorParc) {
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    const jTot = jurosTotal();
+    if (tot == null || tot <= 0 || jTot <= 0.009 || valorParc == null || valorParc <= 0) return null;
+    const juros = Math.round((valorParc / tot) * jTot * 100) / 100;
+    const principal = Math.round((valorParc - juros) * 100) / 100;
+    if (juros <= 0.009) return null;
+    return { principal: Math.max(0, principal), juros: Math.max(0, juros) };
+  }
+
+  function htmlComposicao(valorParc) {
+    const c = composicaoParcela(valorParc);
+    if (!c) return '';
+    return '<div class="ne-parc-composicao">' +
+      '<span>' + formatValorBr(c.principal) + ' + ' + formatValorBr(c.juros) + '</span>' +
+      '<details><summary class="ne-parc-composicao-q" aria-label="Composição">?</summary>' +
+      '<div class="ne-parc-composicao-pop">' +
+      '<strong>Dívida</strong> ' + formatValorBr(c.principal) + '<br>' +
+      '<strong>Juros</strong> ' + formatValorBr(c.juros) + '<br>' +
+      '<span class="text-slate-500">Juros = total − recebido, rateado.</span>' +
+      '</div></details></div>';
+  }
+
+  function syncJurosHint() {
+    const box = document.getElementById('ne-juros-hint');
+    if (!box) return;
+    const j = jurosTotal();
+    if (j > 0.009) {
+      box.classList.remove('hidden');
+      box.textContent = 'Juros totais: R$ ' + formatValorBr(j) + ' (rateados nas parcelas).';
+    } else {
+      box.classList.add('hidden');
+      box.textContent = '';
+    }
+  }
+
+  function limparPreviewParcelas() {
+    const preview = document.getElementById('ne-parc-preview');
+    const tbody = document.getElementById('ne-parc-tbody');
+    if (preview) preview.classList.add('hidden');
+    if (tbody) tbody.innerHTML = '';
+  }
+
+  function gerarParcelasPreview() {
+    const preview = document.getElementById('ne-parc-preview');
+    const tbody = document.getElementById('ne-parc-tbody');
+    if (!preview || !tbody) return false;
+    const n = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas')?.value, 10) || 1));
+    if (n <= 1) {
+      limparPreviewParcelas();
+      syncJurosHint();
+      return true;
+    }
+    const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
+    if (tot == null || tot <= 0) {
+      showMsg('Informe o total a pagar antes de gerar as parcelas.', false);
+      return false;
+    }
+    const dv0 = document.getElementById('ne-primeiro-ven')?.value || '';
+    if (!dv0) {
+      showMsg('Informe o 1º vencimento.', false);
+      return false;
+    }
+    const intD = parseInt(document.getElementById('ne-intervalo')?.value, 10) || 30;
+    const vals = splitEmParcelas(tot, n);
+    tbody.innerHTML = vals.map(function (val, i) {
+      const dv = vencimentoParcela(dv0, i, intD);
+      return '<tr>' +
+        '<td class="px-3 py-2 font-black text-slate-600">' + (i + 1) + '</td>' +
+        '<td class="px-3 py-2"><input type="date" class="ne-parc-dv w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 py-1 font-bold" value="' + dv + '"></td>' +
+        '<td class="px-3 py-2 text-right">' +
+        '<input type="text" inputmode="decimal" class="ne-parc-val w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 py-1 font-black text-right tabular-nums" value="' + formatValorBr(val) + '">' +
+        htmlComposicao(val) +
+        '</td></tr>';
+    }).join('');
+    preview.classList.remove('hidden');
+    syncJurosHint();
+    tbody.querySelectorAll('.ne-parc-val').forEach(function (el) {
+      el.addEventListener('input', function () {
+        const td = el.closest('td');
+        if (!td) return;
+        const old = td.querySelector('.ne-parc-composicao');
+        if (old) old.remove();
+        const html = htmlComposicao(parseValorBr(el.value));
+        if (html) td.insertAdjacentHTML('beforeend', html);
+      });
+    });
+    preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return true;
+  }
+
+  function coletarParcelasManual() {
+    const n = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas')?.value, 10) || 1));
+    if (n <= 1) return null;
+    const rows = document.querySelectorAll('#ne-parc-tbody tr');
+    if (!rows.length) return null;
+    const out = [];
+    for (let i = 0; i < rows.length; i += 1) {
+      const tr = rows[i];
+      const dv = String(tr.querySelector('.ne-parc-dv')?.value || '').trim();
+      const val = parseValorBr(tr.querySelector('.ne-parc-val')?.value);
+      if (!dv || val == null || val <= 0) return null;
+      out.push({ data_vencimento: dv, valor: formatValorBr(val) });
+    }
+    return out.length === n ? out : null;
   }
 
   const passoTipo = document.getElementById('agro-ne-passo-tipo');
@@ -162,7 +373,7 @@
 
   function resetFormFields() {
     ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot',
-     'ne-valor-juros', 'ne-grupo-nome', 'ne-obs'].forEach(function (id) {
+     'ne-grupo-nome', 'ne-obs'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.value = '';
     });
@@ -175,6 +386,8 @@
     document.getElementById('ne-data-entrada').value = todayISO();
     document.getElementById('ne-primeiro-ven').value = '';
     document.getElementById('ne-entrada-quitada').checked = true;
+    limparPreviewParcelas();
+    syncJurosHint();
     hideMsg();
   }
 
@@ -269,6 +482,21 @@
   document.getElementById('agro-ne-fechar').addEventListener('click', closeOverlay);
   document.getElementById('agro-ne-cancelar').addEventListener('click', closeOverlay);
 
+  const btnGerar = document.getElementById('ne-gerar-parcelas');
+  if (btnGerar) btnGerar.addEventListener('click', function () {
+    hideMsg();
+    gerarParcelasPreview();
+  });
+
+  ['ne-valor-rec', 'ne-valor-tot'].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', syncJurosHint);
+  });
+  const elParc = document.getElementById('ne-parcelas');
+  if (elParc) elParc.addEventListener('change', function () {
+    if ((parseInt(elParc.value, 10) || 1) <= 1) limparPreviewParcelas();
+  });
+
   overlay.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -279,6 +507,20 @@
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     const variante = varianteInp.value === 'interno' ? 'interno' : 'externo';
+    const nParc = Math.max(1, Math.min(48, parseInt(document.getElementById('ne-parcelas').value, 10) || 1));
+    let parcelasManual = null;
+    if (nParc > 1) {
+      parcelasManual = coletarParcelasManual();
+      if (!parcelasManual) {
+        if (!gerarParcelasPreview()) return;
+        parcelasManual = coletarParcelasManual();
+      }
+      if (!parcelasManual) {
+        showMsg('Clique em Gerar parcelas e confira vencimentos e valores.', false);
+        return;
+      }
+    }
+    const jTot = jurosTotal();
     const body = {
       tipo: 'externo',
       variante: variante,
@@ -290,7 +532,7 @@
       valor_total_devido: document.getElementById('ne-valor-tot').value.trim(),
       data_entrada: document.getElementById('ne-data-entrada').value,
       primeiro_vencimento: document.getElementById('ne-primeiro-ven').value,
-      parcelas: parseInt(document.getElementById('ne-parcelas').value, 10) || 1,
+      parcelas: nParc,
       intervalo_dias: parseInt(document.getElementById('ne-intervalo').value, 10) || 30,
       banco_nome: '',
       banco_id: '',
@@ -304,10 +546,11 @@
       grupo_id: document.getElementById('ne-grupo-id').value.trim(),
       observacao: document.getElementById('ne-obs').value.trim(),
       entrada_ja_quitada: document.getElementById('ne-entrada-quitada').checked,
-      valor_juros: document.getElementById('ne-valor-juros').value.trim(),
+      valor_juros: jTot > 0.009 ? formatValorBr(jTot) : '',
       plano_juros_nome: '',
       plano_juros_id: ''
     };
+    if (parcelasManual) body.parcelas_manual = parcelasManual;
     const btn = document.getElementById('agro-ne-submit');
     btn.disabled = true;
     try {

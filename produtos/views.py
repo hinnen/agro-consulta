@@ -20773,11 +20773,13 @@ def api_emprestimos_criar(request):
     except (TypeError, ValueError):
         interv = 30
 
-    v_juros = _parse_decimal_dinheiro_br(payload.get("valor_juros"))
-    if v_juros is None:
-        v_juros = Decimal("0")
+    # Juros = total − recebido (rateado no servidor); valor_juros no payload é só compat.
+    v_juros = max(Decimal("0"), (v_tot - v_rec).quantize(Decimal("0.01")))
     eq_raw = payload.get("entrada_ja_quitada")
     entrada_quitada = True if eq_raw is None else bool(eq_raw)
+
+    pm_raw = payload.get("parcelas_manual")
+    parcelas_manual = pm_raw if isinstance(pm_raw, list) else None
 
     r = criar_emprestimo_externo_agro(
         db,
@@ -20808,6 +20810,7 @@ def api_emprestimos_criar(request):
         plano_juros_nome=str(payload.get("plano_juros_nome") or "").strip() or None,
         plano_juros_id=str(payload.get("plano_juros_id") or "").strip() or None,
         variante=variante,
+        parcelas_manual=parcelas_manual,
     )
 
     erp_ok, erp_msg = _emprestimo_tentar_erp_batches(db, r)
