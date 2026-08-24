@@ -1,0 +1,413 @@
+{% load static %}
+{# Modal «Novo empréstimo» — Contas a pagar: Externo/Interno → formulário entrada + dívida. #}
+<div id="agro-ne-overlay"
+     class="hidden fixed inset-0 z-[260] flex flex-col bg-slate-900/60 backdrop-blur-sm"
+     role="dialog" aria-modal="true" aria-labelledby="agro-ne-titulo" aria-hidden="true">
+  <div class="bg-white flex flex-col flex-1 min-h-0 w-full max-h-[100dvh] overflow-hidden">
+
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b-2 border-indigo-500 bg-indigo-50 px-4 py-3 sm:px-6">
+      <div class="min-w-0">
+        <h2 id="agro-ne-titulo" class="text-xl sm:text-2xl font-black uppercase tracking-tight text-slate-900">Novo empréstimo</h2>
+        <p id="agro-ne-subtitulo" class="mt-0.5 text-base font-bold text-slate-600">Escolha o tipo</p>
+      </div>
+      <button type="button" id="agro-ne-fechar" class="inline-flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 hover:text-red-600 hover:bg-red-50" aria-label="Fechar">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+
+    {# Passo 1 — tipo #}
+    <div id="agro-ne-passo-tipo" class="flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-8 sm:py-12">
+      <div class="mx-auto max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        <button type="button" id="agro-ne-btn-externo"
+                class="min-h-[8rem] sm:min-h-[10rem] rounded-2xl border-4 border-emerald-500 bg-emerald-50 px-6 py-8 text-left shadow-md hover:bg-emerald-100 active:scale-[0.99] transition-transform">
+          <span class="block text-2xl sm:text-3xl font-black uppercase text-emerald-900">Externo</span>
+          <span class="mt-2 block text-lg font-bold text-emerald-800/80">Banco, financeira ou pessoa de fora</span>
+        </button>
+        <button type="button" id="agro-ne-btn-interno"
+                class="min-h-[8rem] sm:min-h-[10rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-6 py-8 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
+          <span class="block text-2xl sm:text-3xl font-black uppercase text-indigo-900">Interno</span>
+          <span class="mt-2 block text-lg font-bold text-indigo-800/80">Sócio / dinheiro da casa</span>
+        </button>
+      </div>
+    </div>
+
+    {# Passo 2 — formulário #}
+    <form id="agro-ne-form" class="hidden flex flex-col flex-1 min-h-0 overflow-hidden">
+      {% csrf_token %}
+      <input type="hidden" id="ne-variante" value="externo">
+
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 space-y-5">
+        <div id="agro-ne-msg" class="hidden rounded-2xl border-2 px-4 py-3 text-lg font-bold"></div>
+
+        <p id="agro-ne-planos-info" class="rounded-xl border-2 border-slate-200 bg-slate-50 px-4 py-3 text-base font-bold text-slate-700"></p>
+
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase tracking-wide text-slate-600">Empresa *</span>
+            <div class="relative ne-sug-wrap" data-sug-campo="empresa">
+              <input type="text" id="ne-empresa-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Buscar empresa…">
+              <input type="hidden" id="ne-empresa-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase tracking-wide text-slate-600">Credor *</span>
+            <div class="relative ne-sug-wrap" data-sug-campo="cliente">
+              <input type="text" id="ne-credor-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Quem emprestou…">
+              <input type="hidden" id="ne-credor-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Valor recebido *</span>
+            <input type="text" id="ne-valor-rec" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Total a pagar *</span>
+            <input type="text" id="ne-valor-tot" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Data da entrada *</span>
+            <input type="date" id="ne-data-entrada" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">1º vencimento *</span>
+            <input type="date" id="ne-primeiro-ven" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Nº parcelas *</span>
+            <input type="number" id="ne-parcelas" min="1" max="48" value="1" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Intervalo (dias) *</span>
+            <input type="number" id="ne-intervalo" min="1" max="366" value="30" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-black">
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Conta bancária *</span>
+            <div class="relative ne-sug-wrap" data-sug-campo="banco">
+              <input type="text" id="ne-banco-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Onde entrou o recurso…">
+              <input type="hidden" id="ne-banco-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Forma de pagamento</span>
+            <div class="relative ne-sug-wrap" data-sug-campo="forma">
+              <input type="text" id="ne-forma-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-indigo-500 outline-none" placeholder="Opcional">
+              <input type="hidden" id="ne-forma-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+        </div>
+
+        {# Planos travados (só leitura) #}
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <label class="block">
+            <span class="mb-2 block text-sm font-black uppercase text-emerald-800">Plano entrada</span>
+            <input type="text" id="ne-plano-ent-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-emerald-200 bg-emerald-50/80 px-3 py-2 text-base font-bold text-emerald-950 cursor-default">
+            <input type="hidden" id="ne-plano-ent-id" value="">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black uppercase text-amber-800">Plano dívida</span>
+            <input type="text" id="ne-plano-div-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-amber-200 bg-amber-50/80 px-3 py-2 text-base font-bold text-amber-950 cursor-default">
+            <input type="hidden" id="ne-plano-div-id" value="">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-sm font-black uppercase text-orange-800">Plano juros</span>
+            <input type="text" id="ne-plano-juros-nome" readonly tabindex="-1" class="w-full min-h-[48px] rounded-xl border-2 border-orange-200 bg-orange-50/80 px-3 py-2 text-base font-bold text-orange-950 cursor-default">
+            <input type="hidden" id="ne-plano-juros-id" value="">
+          </label>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-orange-800">Valor juros (opcional)</span>
+            <input type="text" id="ne-valor-juros" class="w-full min-h-[52px] rounded-xl border-2 border-orange-100 px-4 py-3 text-lg font-black tabular-nums" placeholder="0,00" inputmode="decimal">
+          </label>
+          <label class="block">
+            <span class="mb-2 block text-base font-black uppercase text-slate-600">Grupo (opcional)</span>
+            <div class="relative ne-sug-wrap" data-sug-campo="grupo">
+              <input type="text" id="ne-grupo-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-slate-400 outline-none" placeholder="Opcional">
+              <input type="hidden" id="ne-grupo-id" value="">
+              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
+            </div>
+          </label>
+        </div>
+
+        <label class="inline-flex items-start gap-3 cursor-pointer select-none min-h-[52px]">
+          <input type="checkbox" id="ne-entrada-quitada" checked class="mt-2 h-7 w-7 shrink-0 rounded border-slate-300 accent-indigo-600">
+          <span class="text-lg font-bold text-slate-800 leading-snug">Entrada já quitada (dinheiro já entrou no caixa / banco)</span>
+        </label>
+
+        <label class="block">
+          <span class="mb-2 block text-base font-black uppercase text-slate-600">Observação</span>
+          <textarea id="ne-obs" rows="2" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold resize-y min-h-[5rem]"></textarea>
+        </label>
+      </div>
+
+      <div class="shrink-0 border-t-2 border-slate-200 bg-white px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-2">
+        <button type="button" id="agro-ne-voltar" class="min-h-[48px] rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">← Voltar</button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="agro-ne-cancelar" class="min-h-[48px] rounded-xl px-5 font-bold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" id="agro-ne-submit" class="min-h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-700 px-8 py-3 text-lg font-black text-white shadow-md uppercase tracking-wide border-2 border-indigo-700">Registrar</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
+  const API_CRIAR = "{% url 'api_emprestimos_criar' %}";
+  const overlay = document.getElementById('agro-ne-overlay');
+  if (!overlay) return;
+
+  let defaults = {};
+  try {
+    var elDef = document.getElementById('emprestimos-defaults-data');
+    if (elDef) defaults = JSON.parse(elDef.textContent) || {};
+  } catch (e0) {}
+
+  function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? decodeURIComponent(v.pop()) : '';
+  }
+
+  function todayISO() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  const passoTipo = document.getElementById('agro-ne-passo-tipo');
+  const form = document.getElementById('agro-ne-form');
+  const subtitulo = document.getElementById('agro-ne-subtitulo');
+  const planosInfo = document.getElementById('agro-ne-planos-info');
+  const msgBox = document.getElementById('agro-ne-msg');
+  const varianteInp = document.getElementById('ne-variante');
+
+  function showMsg(text, ok) {
+    msgBox.textContent = text;
+    msgBox.classList.remove('hidden', 'border-red-300', 'bg-red-50', 'text-red-900', 'border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    if (ok) msgBox.classList.add('border-emerald-300', 'bg-emerald-50', 'text-emerald-950');
+    else msgBox.classList.add('border-red-300', 'bg-red-50', 'text-red-900');
+  }
+
+  function hideMsg() {
+    msgBox.classList.add('hidden');
+    msgBox.textContent = '';
+  }
+
+  function applyPlanos(variante) {
+    const int = variante === 'interno';
+    const pe = int ? (defaults.plano_entrada_interno || '') : (defaults.plano_entrada || '');
+    const pd = int ? (defaults.plano_divida_interno || '') : (defaults.plano_divida || '');
+    const pj = int ? (defaults.plano_juros_interno || '') : (defaults.plano_juros || '');
+    document.getElementById('ne-plano-ent-nome').value = pe;
+    document.getElementById('ne-plano-div-nome').value = pd;
+    document.getElementById('ne-plano-juros-nome').value = pj;
+    document.getElementById('ne-plano-ent-id').value = '';
+    document.getElementById('ne-plano-div-id').value = '';
+    document.getElementById('ne-plano-juros-id').value = '';
+    planosInfo.textContent = int
+      ? 'Planos internos (travados): entrada + dívida + juros.'
+      : 'Planos externos (travados): entrada + dívida + juros.';
+  }
+
+  function resetFormFields() {
+    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot', 'ne-banco-nome', 'ne-forma-nome',
+     'ne-valor-juros', 'ne-grupo-nome', 'ne-obs'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.value = '';
+    });
+    ['ne-empresa-id', 'ne-credor-id', 'ne-banco-id', 'ne-forma-id', 'ne-grupo-id'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.value = '';
+    });
+    document.getElementById('ne-parcelas').value = '1';
+    document.getElementById('ne-intervalo').value = '30';
+    document.getElementById('ne-data-entrada').value = todayISO();
+    document.getElementById('ne-primeiro-ven').value = '';
+    document.getElementById('ne-entrada-quitada').checked = true;
+    hideMsg();
+  }
+
+  function openOverlay() {
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('overflow-hidden');
+    showPassoTipo();
+  }
+
+  function closeOverlay() {
+    overlay.classList.add('hidden');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function showPassoTipo() {
+    passoTipo.classList.remove('hidden');
+    form.classList.add('hidden');
+    form.classList.remove('flex');
+    subtitulo.textContent = 'Escolha o tipo';
+    hideMsg();
+  }
+
+  function showPassoForm(variante) {
+    varianteInp.value = variante;
+    applyPlanos(variante);
+    resetFormFields();
+    applyPlanos(variante);
+    passoTipo.classList.add('hidden');
+    form.classList.remove('hidden');
+    form.classList.add('flex');
+    subtitulo.textContent = variante === 'interno' ? 'Interno — entrada + dívida' : 'Externo — entrada + dívida';
+  }
+
+  function attachSuggest(wrap) {
+    if (!wrap || wrap.dataset.sugBound === '1') return;
+    wrap.dataset.sugBound = '1';
+    const campo = wrap.getAttribute('data-sug-campo');
+    const inp = wrap.querySelector('input[type="text"]');
+    const hid = wrap.querySelector('input[type="hidden"]');
+    const dd = wrap.querySelector('.ne-sug-dd');
+    if (!inp || !dd) return;
+    let timer = null;
+    inp.addEventListener('input', function () {
+      if (hid) hid.value = '';
+      clearTimeout(timer);
+      timer = setTimeout(async function () {
+        try {
+          const u = new URL(API_SUG, window.location.origin);
+          u.searchParams.set('campo', campo);
+          u.searchParams.set('q', inp.value.trim());
+          const r = await fetch(u.toString(), { credentials: 'same-origin' });
+          const j = await r.json();
+          dd.innerHTML = '';
+          (j.itens || []).forEach(function (it) {
+            const li = document.createElement('li');
+            li.textContent = it.nome;
+            li.className = 'px-4 py-3 cursor-pointer hover:bg-indigo-50 text-lg font-semibold border-b border-slate-100 last:border-0 min-h-[48px] flex items-center';
+            li.addEventListener('mousedown', function (e) {
+              e.preventDefault();
+              inp.value = it.nome;
+              if (hid) hid.value = it.id || '';
+              dd.classList.add('hidden');
+            });
+            dd.appendChild(li);
+          });
+          dd.classList.toggle('hidden', dd.children.length === 0);
+        } catch (e) {
+          dd.classList.add('hidden');
+        }
+      }, 280);
+    });
+    inp.addEventListener('blur', function () {
+      setTimeout(function () { dd.classList.add('hidden'); }, 200);
+    });
+    inp.addEventListener('focus', function () {
+      if (dd.children.length) dd.classList.remove('hidden');
+    });
+  }
+
+  document.querySelectorAll('#agro-ne-form .ne-sug-wrap').forEach(attachSuggest);
+
+  document.querySelectorAll('[data-agro-novo-emprestimo-open]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openOverlay();
+    });
+  });
+
+  document.getElementById('agro-ne-btn-externo').addEventListener('click', function () { showPassoForm('externo'); });
+  document.getElementById('agro-ne-btn-interno').addEventListener('click', function () { showPassoForm('interno'); });
+  document.getElementById('agro-ne-voltar').addEventListener('click', showPassoTipo);
+  document.getElementById('agro-ne-fechar').addEventListener('click', closeOverlay);
+  document.getElementById('agro-ne-cancelar').addEventListener('click', closeOverlay);
+
+  overlay.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeOverlay();
+    }
+  });
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const variante = varianteInp.value === 'interno' ? 'interno' : 'externo';
+    const body = {
+      tipo: 'externo',
+      variante: variante,
+      empresa_nome: document.getElementById('ne-empresa-nome').value.trim(),
+      empresa_id: document.getElementById('ne-empresa-id').value.trim(),
+      credor_nome: document.getElementById('ne-credor-nome').value.trim(),
+      credor_id: document.getElementById('ne-credor-id').value.trim(),
+      valor_recebido: document.getElementById('ne-valor-rec').value.trim(),
+      valor_total_devido: document.getElementById('ne-valor-tot').value.trim(),
+      data_entrada: document.getElementById('ne-data-entrada').value,
+      primeiro_vencimento: document.getElementById('ne-primeiro-ven').value,
+      parcelas: parseInt(document.getElementById('ne-parcelas').value, 10) || 1,
+      intervalo_dias: parseInt(document.getElementById('ne-intervalo').value, 10) || 30,
+      banco_nome: document.getElementById('ne-banco-nome').value.trim(),
+      banco_id: document.getElementById('ne-banco-id').value.trim(),
+      forma_nome: document.getElementById('ne-forma-nome').value.trim(),
+      forma_id: document.getElementById('ne-forma-id').value.trim(),
+      plano_entrada_nome: document.getElementById('ne-plano-ent-nome').value.trim(),
+      plano_entrada_id: document.getElementById('ne-plano-ent-id').value.trim(),
+      plano_divida_nome: document.getElementById('ne-plano-div-nome').value.trim(),
+      plano_divida_id: document.getElementById('ne-plano-div-id').value.trim(),
+      grupo_nome: document.getElementById('ne-grupo-nome').value.trim(),
+      grupo_id: document.getElementById('ne-grupo-id').value.trim(),
+      observacao: document.getElementById('ne-obs').value.trim(),
+      entrada_ja_quitada: document.getElementById('ne-entrada-quitada').checked,
+      valor_juros: document.getElementById('ne-valor-juros').value.trim(),
+      plano_juros_nome: document.getElementById('ne-plano-juros-nome').value.trim(),
+      plano_juros_id: document.getElementById('ne-plano-juros-id').value.trim()
+    };
+    const btn = document.getElementById('agro-ne-submit');
+    btn.disabled = true;
+    try {
+      const r = await fetch(API_CRIAR, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json();
+      if (j.ok) {
+        let t = 'Registrado. Ref ' + (j.ref || '') + '. ';
+        t += body.entrada_ja_quitada ? 'Entrada quitada. ' : 'Entrada em aberto. ';
+        t += 'Atualize a lista se o título não aparecer.';
+        if (j.aviso_api) t += ' ERP: ' + j.aviso_api;
+        showMsg(t, true);
+        try {
+          if (typeof window.recarregarPreservandoVista === 'function') {
+            window.recarregarPreservandoVista({});
+          } else if (typeof window.carregar === 'function') {
+            window.carregar();
+          }
+        } catch (e2) {}
+        setTimeout(closeOverlay, 1400);
+      } else {
+        showMsg(j.erro || JSON.stringify(j.erros || j) || 'Falha ao salvar.', false);
+      }
+    } catch (err) {
+      showMsg('Erro de rede.', false);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
