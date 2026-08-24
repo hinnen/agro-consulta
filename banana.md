@@ -648,10 +648,6 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-<<<<<<< HEAD
-=======
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93):** botão ao lado de Nova saída → popup **Externo / Interno** → formulário (entrada + dívida/parcelas + juros opcional). Planos no servidor (não na tela). Conta/forma fora da UI; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `variante`. Include: `lancamento_novo_emprestimo_modal.html`.
->>>>>>> fb0f883 (test(cadastro): verifica path Excel ↓ últimos 3 fornecedores + banana checklist)
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1238,19 +1234,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-<<<<<<< HEAD
-| **Status** | ✅ **enviado / Live v18.02** · cherry-pick só deste pacote (não a fila do 	este) |
-=======
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.02** · path revisado **24/08** · **não** sobe loja sem frase + senha |
->>>>>>> fb0f883 (test(cadastro): verifica path Excel ↓ últimos 3 fornecedores + banana checklist)
+| **Status** | ✅ **enviado / Live v18.02** · cherry-pick só deste pacote (não a fila do teste) |
 | **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
 | **Import** | Excel ↑ **ignora** essas colunas |
 | **Migrate** | **NÃO** |
-<<<<<<< HEAD
-=======
-| **Prova** | `tests_cadastro_planilha_cols` **23/23 OK** (ordem/dedupe/ignora NF incompleta + export gated) |
-| **Você** | Ctrl+F5 `/produtos/cadastro-erp/` · Excel ↓ · marcar as 3 colunas · baixar |
->>>>>>> fb0f883 (test(cadastro): verifica path Excel ↓ últimos 3 fornecedores + banana checklist)
+| **Prova** | 	ests_cadastro_planilha_cols **23/23 OK** |
 | **Risco** | Baixo — só export; enrich só se colunas marcadas |
 | **Checkpoint** | tag 
 ollback/pre-cad-xlsx-ult-forn-v17.84 · SHA da7c1cb (Live v17.84) |
@@ -1258,7 +1246,6 @@ ollback/pre-cad-xlsx-ult-forn-v17.84 · SHA da7c1cb (Live v17.84) |
 | **Doc** | docs/ROLLBACK-CAD-XLSX-ULT-FORN.md |
 | **Você** | Ctrl+F5 /produtos/cadastro-erp/ · Excel ↓ · marcar as 3 colunas · baixar |
 
-<<<<<<< HEAD
 ### ✅ CHECKLIST ÚNICO — enviado produção (24/08 · loja **v18.02**)
 
 | # | Pacote | Status | Migrate |
@@ -1267,104 +1254,6 @@ ollback/pre-cad-xlsx-ult-forn-v17.84 · SHA da7c1cb (Live v17.84) |
 | 2 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **Live v17.84** (permanece) | **NÃO** |
 
 > Loja Live **v18.02**. Demais pacotes da fila 	este (AJUSTE-CB, OVERLAY, CP-NOVO-EMPRESTIMO, etc.) **não** subiram.
-=======
-### 📦 PACOTE PRONTO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.01** · **não** sobe loja sem frase + senha |
-| **Bug** | Aceitar (**Feito**) na lista de códigos pendentes **só** mudava status na fila — **não** gravava o bipado no cadastro |
-| **O quê** | **Feito** → grava bipado em `codigos_barras_opcionais` do overlay · index Mongo · limpa cache PDV. Aba **Feitos**: botão **Gravar no cadastro** (reaplica itens antigos). Código com menos de 8 dígitos → erro, não marca Feito |
-| **Onde** | `ajuste_codigo_pendente_views.py` · `ajuste_codigos_pendentes_lista.html` · `tests_ajuste_codigo_pendente_cadastro.py` · `scripts/verify_ajuste_cb_pendente_cadastro_path.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | Path **13/13 OK** · Django test **5/5 OK** |
-| **Você** | Ctrl+F5 · badge **v18.01** · lista **Cód.** → **Feito** → abre cadastro do produto e confere opcional. Se já estava Feito sem código: aba **Feitos** → **Gravar no cadastro** |
-| **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
-
-### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.00**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.00** · **não** sobe loja sem frase + senha |
-| **O quê** | Clique no **fundo escuro** dos modais **não fecha** mais. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
-| **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
-| **Onde** | Templates/JS de cadastro, PDV, caixa, financeiro, NF, compras, entregas, vendas, mobile |
-| **Fora** | Dropdowns / picklists / calendários (continua click-fora) |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · Editar Produto: fundo/laterais **não** fecham · FECHAR/Esc ok · smoke PDV/caixa/Lançamentos |
-| **Risco** | Baixo — só dismiss de overlay |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
-
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **24/08**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge sobe no commit · pacote base **v17.93** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos no servidor (não aparecem na tela). **Form limpo 24/08:** sem conta, forma nem planos na UI; conta vazia → placeholder ADICIONAR CONTA. |
-| **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
-| **Migrate** | **NÃO** |
-| **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` |
-| **Você** | Ctrl+F5 Contas a pagar → **Novo empréstimo** → Interno/Externo → salvar **sem** conta/forma → confere títulos |
-| **Risco** | Baixo — não mexe no fluxo antigo sócio já cadastrado; hub Externo/Interno redireciona pro CP |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
-
-### 📦 PACOTE PRONTO — PDV Outro dá baixa (`PDV-OUTRO-BAIXA` · **v17.89**) · bug loja #2
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7619c50** · badge **v17.89** · **não** sobe loja sem frase + senha |
-| **O quê** | Forma **Outro**: bloco PIN+detalhe **acima** do Lançar · Confirmar **lança** Outro se PIN+detalhe ok · Lançar só libera com PIN+detalhe · chips PIN→Detalhe→Lançar→Confirmar |
-| **Causa** | Operador preenchia detalhe **abaixo** do botão e ia no Confirmar cinza; texto podia dessincronizar do state; Confirmar não auto-lançava Outro |
-| **Onde** | `step_pagamento.html` · `pdv_wizard.js` |
-| **Migrate** | **NÃO** |
-| **Prova** | Path revisado · `verify_pdv_outro_baixa_path.py` **30/30 OK** · `node --check` JS · ajuda Outro alinhada (Lançar/Confirmar) |
-| **Você** | Ctrl+F5 PDV · Outro → PIN → detalhe → **Lançar** **ou** **Confirmar** · venda fecha |
-| **Risco** | Baixo — só fluxo Outro no wizard |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · tip `teste` **v18.05**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
-| 2 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 3 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
-| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.03**+ form limpo 24/08 | **NÃO** |
-| 5 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 6 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 7 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
-
-> Loja hoje: ✅ **Live v17.84**. Fila acima = o que ainda falta subir. Sem migrate. **Não** sobe sem frase + senha.
-
-### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **2757169** · badge **v17.87** · **não** sobe loja sem frase + senha |
-| **O quê** | Na via do **entregador**, faixa grande (nível do nome): **PAGO** · **LEVAR TROCO** (+ R$) · **LEVAR MÁQUINA** |
-| **Quando** | Pago na loja → só PAGO. Dinheiro+troco → LEVAR TROCO. Cartão na entrega → LEVAR MÁQUINA |
-| **Onde** | `entregas_painel.html` · `pdv_wizard.js` (print + flags no payload) |
-| **Migrate** | **NÃO** |
-| **Prova** | Path revisado · **8/8** casos faixa (pago / troco / máquina / pago vence troco) |
-| **Você** | Ctrl+F5 · badge **v17.87** · PDV entrega: (1) pago loja (2) dinheiro+troco (3) cartão · imprimir via |
-| **Risco** | Baixo — só impressão / texto da via |
-| **Rollback** | `git revert 2757169` no `teste` (antes da loja) |
-
-### 📦 PACOTE PRONTO — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7faadd0** · badge **v17.85** · **não** sobe loja sem frase + senha |
-| **O quê** | Bip de barra **secundária** (opcional / alias) acha o produto no PDV, Entrada NF e `/api/buscar/` |
-| **Por quê** | Overlay PG não olhava o JSON certo; `agro_pg` pulava o Mongo com lista vazia; PDV/NF só casavam o EAN principal |
-| **Onde** | `cadastro_busca_codigo_util.py` · `mongo_index_codigos.py` · `motor_busca_unificado_util.py` · `pdv_wizard.js` · `entrada_nota.html` |
-| **Migrate** | **NÃO** |
-| **Risco** | Baixo — só busca. Sem estoque / caixa / NFC-e |
-| **Prova** | `produtos.tests_codigos_barras_opcionais` **16/16** |
-| **Você** | Ctrl+F5 · badge **v17.85** · bipar um EAN extra no PDV e no «Mudar» da Entrada NF |
-| **Rollback** | `git revert 7faadd0` no `teste` (antes da loja) |
->>>>>>> fb0f883 (test(cadastro): verifica path Excel ↓ últimos 3 fornecedores + banana checklist)
 
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 
