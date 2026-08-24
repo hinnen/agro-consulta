@@ -477,7 +477,7 @@ function pdvModalPerguntaEntrega(titulo, texto, eyebrow) {
         };
         if (btnSim) btnSim.onclick = () => finish(true);
         if (btnNao) btnNao.onclick = () => finish(false);
-        root.onclick = (ev) => { if (ev.target === root) finish(false); };
+        root.onclick = (ev) => { /* Fundo nao fecha — so X / FECHAR / Esc */ void ev; };
         root.classList.remove('hidden');
         root.classList.add('flex');
         document.body.classList.add('modal-open');
@@ -520,7 +520,7 @@ function pdvModalEscolhaImpressaoEntrega() {
         }
         if (btnCan) btnCan.onclick = () => finish(null);
         root.onclick = (ev) => {
-            if (ev.target === root) finish(null);
+            /* Fundo nao fecha — so X / FECHAR / Esc */
         };
         root.classList.remove('hidden');
         root.classList.add('flex');
@@ -3186,7 +3186,7 @@ function pdvModalEscolhaUnidadeRapido(rotulo) {
         if (bGranel) bGranel.onclick = () => finish('granel');
         if (bCan) bCan.onclick = () => finish(null);
         root.onclick = (ev) => {
-            if (ev.target === root) finish(null);
+            /* Fundo nao fecha — so X / FECHAR / Esc */
         };
         root.classList.remove('hidden');
         root.classList.add('flex');

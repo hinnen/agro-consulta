@@ -1731,7 +1731,7 @@
   if (cedulasFecharX) cedulasFecharX.addEventListener('click', fecharCedulasModal);
   if (cedulasModal) {
     cedulasModal.addEventListener('click', function (e) {
-      if (e.target === cedulasModal) fecharCedulasModal();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   document.addEventListener('keydown', function (e) {
@@ -2129,7 +2129,7 @@
   if (popupFechar) popupFechar.addEventListener('click', fecharPopup);
   if (popup) {
     popup.addEventListener('click', function (e) {
-      if (e.target === popup) fecharPopup();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   document.addEventListener('keydown', function (e) {

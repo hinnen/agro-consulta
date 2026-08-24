@@ -1586,9 +1586,7 @@
   bindClick('fechar-modal-editar', fecharModal);
   bindClick('btn-cancelar-edit', fecharModal);
 
-  modalEdit.addEventListener('click', function (e) {
-    if (e.target === modalEdit) fecharModal();
-  });
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 
   bindClick('lote-btn-adicionar', function () {
     var cfg = window.AgroCadastroErpLista || {};
@@ -4958,7 +4956,7 @@
   bindClick('modal-mini-agro-cancelar', fecharMiniAgro);
   if (miniAgro) {
     miniAgro.addEventListener('click', function (e) {
-      if (e.target === miniAgro) fecharMiniAgro();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 
@@ -5480,7 +5478,7 @@
       atualizarBadgePrecosForma();
     });
     sub.addEventListener('click', function (e) {
-      if (e.target === sub) fecharPrecosFormaModal();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && sub && !sub.classList.contains('hidden')) fecharPrecosFormaModal();

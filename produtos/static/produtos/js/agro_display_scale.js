@@ -563,7 +563,7 @@
 
     if (!firstRun) {
       root.addEventListener('click', function (ev) {
-        if (ev.target === root) closeModal();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
       root.addEventListener('keydown', function (ev) {
         if (ev.key === 'Escape') closeModal();

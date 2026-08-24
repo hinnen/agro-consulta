@@ -1288,7 +1288,7 @@
         if (dom.fechar) dom.fechar.addEventListener('click', closeModal);
         if (dom.modal) {
             dom.modal.addEventListener('click', function (e) {
-                if (e.target === dom.modal) closeModal();
+                /* Fundo nao fecha — so X / FECHAR / Esc */
             });
         }
         document.addEventListener('keydown', function (e) {

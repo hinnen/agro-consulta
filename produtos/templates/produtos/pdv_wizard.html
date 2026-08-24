@@ -4393,7 +4393,7 @@
     if (fecharBtn) fecharBtn.addEventListener('click', pdvWizardFecharAjuda);
     if (modal) {
       modal.addEventListener('click', function (ev) {
-        if (ev.target === modal) pdvWizardFecharAjuda();
+        /* Fundo nao fecha — so X / FECHAR / Esc */
       });
     }
     document.addEventListener('keydown', function (ev) {

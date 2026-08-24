@@ -797,11 +797,11 @@
 
   document.getElementById('modal-emp-int-fechar').addEventListener('click', fecharModalEmpInt);
   document.getElementById('modal-emp-int').addEventListener('click', function (e) {
-    if (e.target.id === 'modal-emp-int') fecharModalEmpInt();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('modal-emp-int-del-fechar').addEventListener('click', fecharModalEmpIntDel);
   document.getElementById('modal-emp-int-del').addEventListener('click', function (e) {
-    if (e.target.id === 'modal-emp-int-del') fecharModalEmpIntDel();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('modal-emp-int-del-confirmar').addEventListener('click', async function () {
     var msg = document.getElementById('modal-emp-int-del-msg');

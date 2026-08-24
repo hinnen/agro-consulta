@@ -338,7 +338,7 @@
     modalQ.value = '';
   }
   modalFechar.addEventListener('click', fecharModalErp);
-  modal.addEventListener('click', function (e) { if (e.target === modal) fecharModalErp(); });
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 
   function abrirModalErp() {
     modal.classList.remove('hidden');

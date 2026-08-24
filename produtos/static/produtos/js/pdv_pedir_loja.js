@@ -824,7 +824,7 @@
   if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrir);
   if (dom.fechar) dom.fechar.addEventListener('click', fechar);
   overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) fechar();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   overlay.querySelectorAll('.pl-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -902,7 +902,7 @@
   if (dom.confirmNao) dom.confirmNao.addEventListener('click', function () { fecharConfirm(false); });
   if (dom.confirm) {
     dom.confirm.addEventListener('click', function (e) {
-      if (e.target === dom.confirm) fecharConfirm(false);
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
   if (dom.confirmFurado) dom.confirmFurado.addEventListener('change', syncFuradoUi);
@@ -910,7 +910,7 @@
   if (dom.ajusteNao) dom.ajusteNao.addEventListener('click', fecharAjuste);
   if (dom.ajuste) {
     dom.ajuste.addEventListener('click', function (e) {
-      if (e.target === dom.ajuste) fecharAjuste();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 
@@ -942,7 +942,7 @@
   if (dom.temPedidoOk) dom.temPedidoOk.addEventListener('click', fecharTemPedido);
   if (dom.temPedido) {
     dom.temPedido.addEventListener('click', function (e) {
-      if (e.target === dom.temPedido) fecharTemPedido();
+      /* Fundo nao fecha — so X / FECHAR / Esc */
     });
   }
 

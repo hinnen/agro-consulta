@@ -1274,7 +1274,7 @@
   }
   if (dom.fechar) dom.fechar.addEventListener('click', closeOverlay);
   overlay.addEventListener('click', function (ev) {
-    if (ev.target === overlay) closeOverlay();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   if (dom.btnHist) {
     dom.btnHist.addEventListener('click', function () {

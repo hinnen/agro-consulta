@@ -3833,8 +3833,9 @@ function initCompraMobileUi() {
       compraSetMobileTab(btn.getAttribute('data-compra-mob-tab') || 'busca');
     });
   });
+  /* Fundo nao fecha — so botao Voltar / Esc (aba busca) */
   document.getElementById('compra-mobile-backdrop')?.addEventListener('click', () => {
-    compraSetMobileTab('busca');
+    /* no-op: nao troca aba no fundo */
   });
   document.getElementById('btn-compra-mob-voltar-busca')?.addEventListener('click', () => {
     compraSetMobileTab('busca');
@@ -4164,7 +4165,7 @@ document.getElementById('btn-fechar-ca')?.addEventListener('click', () => fechar
 document.getElementById('btn-aplicar-ca')?.addEventListener('click', () => aplicarBuscaAvancadaCompra());
 document.getElementById('btn-ca-limpar')?.addEventListener('click', () => limparFiltroAvancadoCompra());
 document.getElementById('modal-busca-avancada-compra')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-busca-avancada-compra') fecharBuscaAvancadaCompra();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-abrir-modal-relatorio-compra')?.addEventListener('click', () => abrirModalRelatorioCompra());
 document.getElementById('folha-compras-menu')?.querySelectorAll('.folha-compras-menu-link').forEach((btn) => {
@@ -4185,20 +4186,20 @@ document.addEventListener('mousedown', (e) => {
 });
 document.getElementById('btn-fechar-modal-relatorio-compra')?.addEventListener('click', () => fecharModalRelatorioCompra());
 document.getElementById('modal-relatorio-compra-fornecedor')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-relatorio-compra-fornecedor') fecharModalRelatorioCompra();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-abrir-historico-compra')?.addEventListener('click', () => abrirHistoricoCompraModal());
 document.getElementById('btn-abrir-conferencia-compra')?.addEventListener('click', () => abrirConferenciaCompraModal());
 document.getElementById('btn-fechar-conferencia-compra')?.addEventListener('click', () => fecharConferenciaCompraModal());
 document.getElementById('btn-fechar-historico-compra')?.addEventListener('click', () => fecharHistoricoCompraModal());
 document.getElementById('modal-historico-compra')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-historico-compra') fecharHistoricoCompraModal();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-fechar-ultima-compra-fornecedor')?.addEventListener('click', () =>
   fecharModalUltimaCompraFornecedor()
 );
 document.getElementById('modal-ultima-compra-fornecedor')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-ultima-compra-fornecedor') fecharModalUltimaCompraFornecedor();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-fechar-oc-pedido')?.addEventListener('click', () => fecharModalOcPedidoCompra());
 document.getElementById('btn-oc-cancelar')?.addEventListener('click', () => fecharModalOcPedidoCompra());
@@ -4206,7 +4207,7 @@ document.getElementById('btn-oc-confirmar')?.addEventListener('click', () => {
   void confirmarModalOrdemCompra();
 });
 document.getElementById('modal-oc-pedido-compra')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-oc-pedido-compra') fecharModalOcPedidoCompra();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-fechar-modal-ajuda-compras')?.addEventListener('click', () => {
   const m = document.getElementById('modal-ajuda-compras');
@@ -4215,7 +4216,8 @@ document.getElementById('btn-fechar-modal-ajuda-compras')?.addEventListener('cli
   m.classList.remove('flex');
 });
 document.getElementById('modal-ajuda-compras')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-ajuda-compras') {
+  if (false && e.target && e.target.id === 'modal-ajuda-compras') {
+    /* Fundo nao fecha — so X / FECHAR / Esc */
     const m = document.getElementById('modal-ajuda-compras');
     if (!m) return;
     m.classList.add('hidden');
@@ -4330,7 +4332,7 @@ function fecharModalFolhaPlanilha() {
 
 document.getElementById('btn-fechar-modal-folha-planilha')?.addEventListener('click', () => fecharModalFolhaPlanilha());
 document.getElementById('modal-folha-planilha-compras')?.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'modal-folha-planilha-compras') fecharModalFolhaPlanilha();
+  /* Fundo nao fecha — so X / FECHAR / Esc */
 });
 document.getElementById('btn-folha-planilha-nova-aba')?.addEventListener('click', () => {
   if (!folhaPlanilhaUrlNovaAba) return;

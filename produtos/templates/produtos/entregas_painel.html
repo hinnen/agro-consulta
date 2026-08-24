@@ -88,7 +88,7 @@
     </div>
   </div>
 
-  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo" onclick="if(event.target===this){var m=document.getElementById('modal-imp-entrega');m.classList.add('hidden');m.classList.remove('flex');}">
+  <div id="modal-imp-entrega" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true" aria-labelledby="modal-imp-titulo">
     <div class="bg-white w-full max-w-[min(28rem,96vw)] rounded-2xl shadow-xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation()">
       <div class="px-4 py-3 border-b border-slate-100 bg-slate-50">
         <h2 id="modal-imp-titulo" class="text-base font-black uppercase text-slate-800">Imprimir</h2>
@@ -2171,7 +2171,7 @@
   };
 
   document.getElementById('modal-rota-otimizada').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalRotaOpt();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('rota-opt-close').onclick = fecharModalRotaOpt;
   document.getElementById('rota-opt-open-maps').onclick = function () {
@@ -2207,10 +2207,10 @@
   };
 
   document.getElementById('modal-add-cliente-rota').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalAddClienteRota();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('modal-plus-sync').addEventListener('click', function (ev) {
-    if (ev.target === this) {
+    if (false && ev.target === this) { /* Fundo nao fecha — so X / FECHAR / Esc */
       var fn = plusSyncCtx.onCancel;
       fecharModalPlusSync();
       if (fn) fn();
@@ -2257,7 +2257,7 @@
   });
 
   document.getElementById('modal-edit-local').addEventListener('click', function (ev) {
-    if (ev.target === this) fecharModalEditLocal();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
   document.getElementById('edloc-cancel').onclick = fecharModalEditLocal;
   document.getElementById('edloc-save').onclick = function () {

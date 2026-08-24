@@ -299,7 +299,7 @@
             .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
         }
         document.getElementById('modal-nfce-fechar').onclick = fechar;
-        modal.addEventListener('click', function (e) { if (e.target === modal) fechar(); });
+        modal.addEventListener('click', function (e) { /* Fundo nao fecha — so X / FECHAR / Esc */ void e; });
         document.getElementById('modal-nfce-reemitir').onclick = function () {
           if (!vendaIdAtual) return;
           var cpf = (document.getElementById('modal-nfce-cpf').value || '').replace(/\D/g, '');

@@ -1634,7 +1634,7 @@
     });
 
     const ov = $('agro-nova-saida-overlay');
-    ov?.addEventListener('click', (ev) => { if (ev.target === ov) fechar(); });
+    ov?.addEventListener('click', (ev) => { /* Fundo nao fecha — so X / FECHAR / Esc */ void ev; });
     document.addEventListener('keydown', (ev) => {
       if (ev.key === 'Escape' && ov && !ov.classList.contains('hidden')) fechar();
     });

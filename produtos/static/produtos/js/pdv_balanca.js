@@ -1056,7 +1056,7 @@
   }
 
   overlay.addEventListener('click', function (ev) {
-    if (ev.target === overlay) closeOverlay();
+    /* Fundo nao fecha — so X / FECHAR / Esc */
   });
 
   function outroOverlayAberto() {

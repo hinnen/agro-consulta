@@ -1236,6 +1236,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v17.99**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.99** · **não** sobe loja sem frase + senha |
+| **O quê** | Clique no **fundo escuro** dos modais **não fecha** mais. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
+| **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
+| **Onde** | Templates/JS de cadastro, PDV, caixa, financeiro, NF, compras, entregas, vendas, mobile |
+| **Fora** | Dropdowns / picklists / calendários (continua click-fora) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · Editar Produto: fundo/laterais **não** fecham · FECHAR/Esc ok · smoke PDV/caixa/Lançamentos |
+| **Risco** | Baixo — só dismiss de overlay |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93**)
 
 | Item | Detalhe |
@@ -1263,16 +1277,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.97**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.99**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
-| 2 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 3 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 4 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v17.99** | **NÃO** |
+| 2 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
+| 3 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 4 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 5 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.97** = fila acima (CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.99** = fila acima (overlay + CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
