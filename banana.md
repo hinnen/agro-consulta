@@ -417,8 +417,6 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Outro (24/08 · bug #2 · v17.89):** PIN + detalhe **acima** do Lançar · Lançar/Confirmar só com PIN+detalhe · Confirmar pode lançar a tranche Outro sozinho.
 
-**Desconto geral (24/08 · bug #3 · v18.08):** ao finalizar, `valorFinal` / `VendaAgro.total` = itens − `desconto_geral` + frete (antes ignorava o desconto).
-
 **Regras UX jÃ¡ decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
@@ -1325,7 +1323,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.08** · bug #3 | **NÃO** |
+| 1 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
 | 2 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
 | 3 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
 | 4 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |

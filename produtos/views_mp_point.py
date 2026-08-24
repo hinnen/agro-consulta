@@ -111,12 +111,11 @@ def _pdv_valor_cobranca_tranche_override(raw: dict) -> Decimal | None:
 
 
 def _pdv_valor_cobranca_pdv(data: dict, valor_linhas: float) -> Decimal:
-    """Total PDV (itens − desconto geral + frete), alinhado ao computed do wizard."""
-    total = Decimal(str(valor_linhas))
-    total -= max(Decimal("0"), _pdv_decimal_campo(data.get("desconto_geral")))
-    total += max(Decimal("0"), _pdv_decimal_campo(data.get("frete")))
-    total = max(Decimal("0"), total).quantize(Decimal("0.01"))
-    return total
+    """
+    Total ja final (itens - desconto + frete via `_pdv_pedido_linhas_e_valor_final`).
+    Nao reaplica desconto/frete — evita dobro apos bug loja #3.
+    """
+    return max(Decimal("0"), Decimal(str(valor_linhas or 0))).quantize(Decimal("0.01"))
 
 
 def _mp_point_forma_pagamento_texto(data: dict) -> str:

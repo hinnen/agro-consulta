@@ -27385,6 +27385,25 @@ def _decimal_item_pedido(val, default="0"):
         return Decimal(default)
 
 
+def _pdv_aplicar_desconto_e_frete(data: dict, valor_itens) -> Decimal:
+    """Itens − desconto_geral + frete (alinha UI / MP Point / VendaAgro). Bug loja #3."""
+    total = Decimal(str(valor_itens or 0))
+    desc = max(Decimal("0"), _decimal_item_pedido((data or {}).get("desconto_geral"), "0"))
+    frete = Decimal("0")
+    try:
+        frete_raw = (data or {}).get("frete")
+        if frete_raw is None:
+            frete_raw = (data or {}).get("taxa_entrega")
+        if frete_raw is not None and str(frete_raw).strip() != "":
+            frete = _decimal_item_pedido(frete_raw, "0")
+            if frete < 0:
+                frete = Decimal("0")
+    except Exception:
+        frete = Decimal("0")
+    total = (total - desc + frete).quantize(Decimal("0.01"))
+    return max(Decimal("0"), total)
+
+
 def _erp_resposta_para_json(res):
     if res is None:
         return None
@@ -27559,8 +27578,8 @@ def _persistir_venda_agro(
                 frete = Decimal("0")
     except Exception:
         frete = Decimal("0")
-    if frete > 0:
-        total = (total + frete).quantize(Decimal("0.01"))
+    # Desconto geral + frete (antes só somava frete — bug loja #3).
+    total = _pdv_aplicar_desconto_e_frete(data, total)
 
     resp_json = _erp_resposta_para_json(erp_resposta_raw)
     st = erp_http_status if erp_http_status is not None and erp_http_status > 0 else None
@@ -27787,7 +27806,9 @@ def _pdv_pedido_linhas_e_valor_final(data: dict, *, client_m, db):
             None,
         )
 
-    valor_final = round(sum(float(r.get("valorTotal") or 0) for r in linhas), 2)
+    valor_itens = round(sum(float(r.get("valorTotal") or 0) for r in linhas), 2)
+    # Pedidos/Salvar e fluxos que usam valorFinal — incluem desconto_geral + frete.
+    valor_final = float(_pdv_aplicar_desconto_e_frete(data, valor_itens))
     return None, linhas, valor_final
 
 
