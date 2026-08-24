@@ -1244,7 +1244,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos travados (trio externo / trio interno). |
 | **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | Path revisado · script `verify_cp_novo_emprestimo_path.py` **37/37 OK** (planos, defaults, API variante, modal, redirects) |
+| **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` **37/37 OK** |
 | **Você** | Contas a pagar → **Novo empréstimo** → Interno ou Externo → salvar → confere título a receber + parcelas a pagar |
 | **Risco** | Baixo — não mexe no fluxo antigo sócio já cadastrado; hub Externo/Interno redireciona pro CP |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
@@ -1258,11 +1258,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Causa** | Operador preenchia detalhe **abaixo** do botão e ia no Confirmar cinza; texto podia dessincronizar do state; Confirmar não auto-lançava Outro |
 | **Onde** | `step_pagamento.html` · `pdv_wizard.js` |
 | **Migrate** | **NÃO** |
+| **Prova** | Path revisado · `verify_pdv_outro_baixa_path.py` **30/30 OK** · `node --check` JS · ajuda Outro alinhada (Lançar/Confirmar) |
 | **Você** | Ctrl+F5 PDV · Outro → PIN → detalhe → **Lançar** **ou** **Confirmar** · venda fecha |
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.93**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.95**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1271,7 +1272,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 4 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.93** = Novo empréstimo no CP (+ Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.95** = fila acima (CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
@@ -1286,19 +1287,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · badge **v17.87** · PDV entrega: (1) pago loja (2) dinheiro+troco (3) cartão · imprimir via |
 | **Risco** | Baixo — só impressão / texto da via |
 | **Rollback** | `git revert 2757169` no `teste` (antes da loja) |
-
-> Checklist antigo **v17.87** — ver checklist **v17.89** no topo (inclui PDV-OUTRO + CAD-CB + ENT-VIA).
-
-Verificação 24/08 — path busca barra opcional (código + **16/16** testes):
-
-- [x] Overlay PG consulta JSON `codigos_barras_opcionais` **e** alias `codigos_barras_alternativos` (lista ou string)
-- [x] Lista vazia na 1ª chave **não** bloqueia o alias
-- [x] Bip 8+ sem hit no PG **não** pula Mongo (`agro_pg`)
-- [x] PDV casa `index_codigos` (não só EAN principal)
-- [x] Entrada NF «Mudar» usa `bateIndexCodigos` + 1 hit em EAN 8+
-- [x] **Sem migrate**
-
-**Status: pronto para envio à produção · v17.85.**
 
 ### 📦 PACOTE PRONTO — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**)
 
