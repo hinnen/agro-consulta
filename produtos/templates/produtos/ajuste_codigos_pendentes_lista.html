@@ -11,7 +11,7 @@
     <div class="min-w-0">
       <p class="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-600">Gestão</p>
       <h1 class="mt-0.5 truncate text-2xl font-black tracking-tight text-slate-900">Códigos pendentes (ajuste)</h1>
-      <p class="mt-1 text-sm font-medium text-slate-500">{{ total_pendente }} pendente(s) · Postgres · conferir no cadastro</p>
+      <p class="mt-1 text-sm font-medium text-slate-500">{{ total_pendente }} pendente(s) · <strong class="font-semibold text-slate-700">Feito</strong> grava o bipado no cadastro como código opcional</p>
     </div>
     <div class="flex flex-wrap items-center gap-2 shrink-0">
       <a href="{% url 'ajuste_mobile' %}" class="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 py-2 text-xs font-black uppercase text-white shadow-sm hover:bg-emerald-700">
@@ -58,8 +58,13 @@
         <td class="px-3 py-3">
           {% if r.status == "pendente" %}
           <div class="flex flex-wrap gap-1.5">
-            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-emerald-600 px-2.5 text-[10px] font-black uppercase text-white" data-st="feito">Feito</button>
-            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-slate-200 px-2.5 text-[10px] font-black uppercase text-slate-700" data-st="descartado">Descartar</button>
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-emerald-600 px-2.5 text-[10px] font-black uppercase text-white" data-st="feito" data-remove="1">Feito</button>
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg bg-slate-200 px-2.5 text-[10px] font-black uppercase text-slate-700" data-st="descartado" data-remove="1">Descartar</button>
+          </div>
+          {% elif r.status == "feito" %}
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-emerald-600">feito</span>
+            <button type="button" class="acp-btn min-h-[2.25rem] rounded-lg border border-orange-400 bg-orange-50 px-2.5 text-[10px] font-black uppercase text-orange-900" data-st="feito" data-remove="0" title="Se o código não apareceu no cadastro, toque aqui de novo">Gravar no cadastro</button>
           </div>
           {% else %}
           <span class="text-[10px] font-black uppercase text-slate-400">{{ r.status }}</span>
@@ -84,6 +89,7 @@
       const tr = btn.closest('tr');
       const pk = tr && tr.getAttribute('data-pk');
       const st = btn.getAttribute('data-st');
+      const removeRow = btn.getAttribute('data-remove') === '1';
       if (!pk || !st) return;
       btn.disabled = true;
       fetch('/api/ajuste-mobile/codigo-pendente/' + pk + '/status/', {
@@ -98,7 +104,18 @@
         .then((r) => r.json())
         .then((d) => {
           if (d && d.ok) {
-            tr.remove();
+            if (st === 'feito') {
+              const aviso = (d.cadastro && d.cadastro.aviso) || '';
+              const ja = d.cadastro && d.cadastro.ja_era;
+              alert(
+                aviso ||
+                  (ja
+                    ? 'Código já estava no cadastro como opcional.'
+                    : 'Código gravado no cadastro como opcional. Abra o produto e confira.')
+              );
+            }
+            if (removeRow) tr.remove();
+            else btn.disabled = false;
           } else {
             alert((d && d.erro) || 'Falha ao atualizar.');
             btn.disabled = false;
