@@ -1278,12 +1278,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só dismiss de overlay |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **24/08**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.93** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos travados (trio externo / trio interno). |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v17.93** (+ polish cards tipo) · **não** sobe loja sem frase + senha |
+| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos travados (trio externo / trio interno). **UI 24/08:** cards tipo maiores + título sem quebra no meio da palavra (`whitespace-nowrap`). |
 | **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` **37/37 OK** |
