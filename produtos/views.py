@@ -288,6 +288,7 @@ from .mongo_financeiro_util import (
     split_decimal_em_parcelas,
     criar_emprestimo_externo_agro,
     emprestimo_defaults_para_ui,
+    garantir_planos_emprestimo_interno_cadastro,
     injetar_emprestimo_dual_sugestao_plano,
     listar_emprestimos_agro,
     listar_lancamentos_emprestimo_do_mongo,
@@ -7810,14 +7811,6 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
-            "title": "Gestão de empréstimos",
-            "href": reverse("emprestimos_gestao"),
-            "icon": "landmark",
-            "shortcut": "G",
-            "shortcut_key": "g",
-            "pin_protected": True,
-        },
-        {
             "title": "Resumo gerencial",
             "href": reverse("resumo_financeiro_gerencial"),
             "icon": "pie-chart",
@@ -14794,12 +14787,17 @@ def lancamentos_financeiros_view(request):
 @login_required(login_url="/admin/login/")
 def lancamentos_contas_pagar_view(request):
     """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
+    try:
+        garantir_planos_emprestimo_interno_cadastro()
+    except Exception:
+        pass
     return render(
         request,
         "produtos/lancamentos_contas_pagar_teste.html",
         {
             "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
             "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
+            "emprestimos_defaults": emprestimo_defaults_para_ui(),
         },
     )
 
@@ -20589,38 +20587,22 @@ def _emprestimo_tentar_erp_batches(db, resultado_ext: dict) -> tuple[bool | None
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def emprestimos_gestao_view(request):
-    """Hub: escolha entre externo, interno e consulta (telas separadas)."""
-    return render(
-        request,
-        "produtos/emprestimos_hub.html",
-        {"emprestimos_nav": "hub"},
-    )
+    """Hub legado — novo fluxo em Contas a pagar; consulta permanece."""
+    return redirect(reverse("emprestimos_consulta"))
 
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def emprestimos_externo_view(request):
-    return render(
-        request,
-        "produtos/emprestimos_externo.html",
-        {
-            "emprestimos_defaults": emprestimo_defaults_para_ui(),
-            "emprestimos_nav": "externo",
-        },
-    )
+    """Legado — cadastro agora pelo botão «Novo empréstimo» em Contas a pagar."""
+    return redirect(reverse("lancamentos_contas_pagar"))
 
 
 @ensure_csrf_cookie
 @login_required(login_url="/admin/login/")
 def emprestimos_interno_view(request):
-    return render(
-        request,
-        "produtos/emprestimos_interno.html",
-        {
-            "emprestimos_defaults": emprestimo_defaults_para_ui(),
-            "emprestimos_nav": "interno",
-        },
-    )
+    """Legado (sócio) — cadastro agora pelo botão «Novo empréstimo» em Contas a pagar."""
+    return redirect(reverse("lancamentos_contas_pagar"))
 
 
 @ensure_csrf_cookie
@@ -20726,6 +20708,9 @@ def api_emprestimos_criar(request):
         )[:120]
 
     tipo = str(payload.get("tipo") or "").strip().lower()
+    variante = str(payload.get("variante") or "externo").strip().lower()
+    if variante not in ("externo", "interno"):
+        variante = "externo"
     empresa_nome = str(payload.get("empresa_nome") or "").strip()
     empresa_id = str(payload.get("empresa_id") or "").strip() or None
 
@@ -20742,38 +20727,34 @@ def api_emprestimos_criar(request):
     if db is None:
         return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
 
-    if tipo == "interno":
-        v_aporte = _parse_decimal_dinheiro_br(payload.get("valor_aporte"))
-        v_dev = _parse_decimal_dinheiro_br(payload.get("valor_devolucao_total"))
-        if v_aporte is None or v_dev is None:
-            return JsonResponse({"ok": False, "erro": "Valores inválidos."}, status=400)
-        try:
-            parc = int(payload.get("parcelas") or 1)
-        except (TypeError, ValueError):
-            parc = 1
-        try:
-            interv = int(payload.get("intervalo_dias") or 30)
-        except (TypeError, ValueError):
-            interv = 30
-        d0 = _d("primeira_data_prevista")
-        r = registrar_emprestimo_interno_agro(
-            db,
-            usuario_label=usuario,
-            empresa_nome=empresa_nome,
-            empresa_id=empresa_id,
-            mutuario_label=str(payload.get("mutuario_label") or "").strip(),
-            valor_aporte=v_aporte,
-            valor_devolucao_total=v_dev,
-            primeira_data_prevista=d0,
-            parcelas=parc,
-            intervalo_dias=interv,
-            observacao=str(payload.get("observacao") or "").strip(),
+    # Fluxo antigo «interno sócio» (cronograma) — desativado; usar Contas a pagar.
+    if tipo == "interno" and (
+        payload.get("valor_aporte") is not None
+        or str(payload.get("mutuario_label") or "").strip()
+    ):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Empréstimo interno agora é pelo botão «Novo empréstimo» "
+                    "em Contas a pagar (mesmo formulário do externo)."
+                ),
+            },
+            status=400,
         )
-        st = 200 if r.get("ok") else 400
-        return JsonResponse(r, status=st)
+
+    if tipo == "interno":
+        variante = "interno"
+        tipo = "externo"
 
     if tipo != "externo":
         return JsonResponse({"ok": False, "erro": "tipo deve ser externo ou interno."}, status=400)
+
+    if variante == "interno":
+        try:
+            garantir_planos_emprestimo_interno_cadastro()
+        except Exception:
+            pass
 
     v_rec = _parse_decimal_dinheiro_br(payload.get("valor_recebido"))
     v_tot = _parse_decimal_dinheiro_br(payload.get("valor_total_devido"))
@@ -20826,6 +20807,7 @@ def api_emprestimos_criar(request):
         valor_juros=v_juros,
         plano_juros_nome=str(payload.get("plano_juros_nome") or "").strip() or None,
         plano_juros_id=str(payload.get("plano_juros_id") or "").strip() or None,
+        variante=variante,
     )
 
     erp_ok, erp_msg = _emprestimo_tentar_erp_batches(db, r)

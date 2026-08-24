@@ -451,6 +451,9 @@ AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
 AGRO_EMPRESTIMO_PLANO_ENTRADA = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_DIVIDA = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_JUROS = (config("AGRO_EMPRESTIMO_PLANO_JUROS", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO", default="") or "").strip()
 # Empréstimos — consulta: nomes de cliente (Mongo) a ocultar na lista, separados por vírgula (normalização case-insensitive).
 AGRO_EMPRESTIMO_EXCLUIR_CLIENTES = (config("AGRO_EMPRESTIMO_EXCLUIR_CLIENTES", default="") or "").strip()
 

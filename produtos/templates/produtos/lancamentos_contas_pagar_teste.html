@@ -15,11 +15,13 @@
   <div class="flex flex-wrap items-center justify-end gap-2">
     <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-sky-500 bg-sky-600 px-3 text-xs font-black uppercase text-white hover:bg-sky-700">Calendário</a>
     <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-emerald-600 bg-emerald-600 px-3 text-xs font-black uppercase text-white hover:bg-emerald-700 cursor-pointer">Nova saída</button>
+    <button type="button" data-agro-novo-emprestimo-open class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-indigo-600 bg-indigo-600 px-3 text-xs font-black uppercase text-white hover:bg-indigo-700 cursor-pointer">Novo empréstimo</button>
     {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[40px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700 hover:border-amber-400" %}
   </div>
 {% endblock %}
 
 {% block admin_content %}
+{{ emprestimos_defaults|json_script:"emprestimos-defaults-data" }}
 {% include "produtos/_gm_loading_bar.html" %}
 
 <style>
@@ -2881,5 +2883,6 @@
 })();
 </script>
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
+{% include "produtos/includes/lancamento_novo_emprestimo_modal.html" %}
 {% include "produtos/includes/lancamentos_pin_entrada.html" %}
 {% endblock %}

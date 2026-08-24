@@ -60,6 +60,9 @@ COL_AGRO_EMPRESTIMO_AUDITORIA = "AgroEmprestimoAuditoria"
 EMPRESTIMO_PLANO_ENTRADA_PADRAO = "Entrada de Empréstimo"
 EMPRESTIMO_PLANO_DIVIDA_PADRAO = "Pagamento de Empréstimos"
 EMPRESTIMO_PLANO_JUROS_PADRAO = "Juros de Empréstimos"
+EMPRESTIMO_PLANO_ENTRADA_INTERNO_PADRAO = "Entrada de Empréstimo interno"
+EMPRESTIMO_PLANO_DIVIDA_INTERNO_PADRAO = "Pagamento de Empréstimos interno"
+EMPRESTIMO_PLANO_JUROS_INTERNO_PADRAO = "Juros de Empréstimos interno"
 EMPRESTIMO_DUAL_LABEL = "Empréstimo (entrada + pagamento)"
 EMPRESTIMO_DUAL_PLANO_ID = "__AGRO_EMPRESTIMO_DUAL__"
 # Plano para titulo extra na Entrada NF-e (financeiro). Sobrescreva com AGRO_LANCAMENTOS_PLANO_IMPOSTOS_TAXAS_VARIAVEIS.
@@ -79,6 +82,39 @@ def emprestimo_plano_divida_resolvido() -> str:
 def emprestimo_plano_juros_resolvido() -> str:
     v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_JUROS", None) or "").strip()
     return v or EMPRESTIMO_PLANO_JUROS_PADRAO
+
+
+def emprestimo_plano_entrada_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_ENTRADA_INTERNO_PADRAO
+
+
+def emprestimo_plano_divida_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_DIVIDA_INTERNO_PADRAO
+
+
+def emprestimo_plano_juros_interno_resolvido() -> str:
+    v = (getattr(settings, "AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO", None) or "").strip()
+    return v or EMPRESTIMO_PLANO_JUROS_INTERNO_PADRAO
+
+
+def garantir_planos_emprestimo_interno_cadastro() -> dict[str, Any]:
+    """Garante os 3 planos «interno» no cadastro Agro (idempotente)."""
+    try:
+        from produtos.plano_conta_agro_util import criar_plano_cadastro
+    except Exception as exc:
+        return {"ok": False, "erro": str(exc)[:200]}
+    criados: list[str] = []
+    for nome in (
+        emprestimo_plano_entrada_interno_resolvido(),
+        emprestimo_plano_divida_interno_resolvido(),
+        emprestimo_plano_juros_interno_resolvido(),
+    ):
+        r = criar_plano_cadastro(nome, tipo="outra", grupo="Empréstimos")
+        if r.get("ok") and r.get("created"):
+            criados.append(nome)
+    return {"ok": True, "criados": criados}
 
 
 def lancamentos_plano_impostos_taxas_variaveis_resolvido() -> str:
@@ -205,6 +241,9 @@ def emprestimo_defaults_para_ui() -> dict[str, Any]:
         "plano_entrada": emprestimo_plano_entrada_resolvido(),
         "plano_divida": emprestimo_plano_divida_resolvido(),
         "plano_juros": emprestimo_plano_juros_resolvido(),
+        "plano_entrada_interno": emprestimo_plano_entrada_interno_resolvido(),
+        "plano_divida_interno": emprestimo_plano_divida_interno_resolvido(),
+        "plano_juros_interno": emprestimo_plano_juros_interno_resolvido(),
         "credores_internos": list(EMPRESTIMO_CREDORES_INTERNOS_PADRAO),
         "dual_label": EMPRESTIMO_DUAL_LABEL,
         "dual_id": EMPRESTIMO_DUAL_PLANO_ID,
@@ -267,6 +306,9 @@ def _mongo_query_planos_emprestimo_erp() -> dict[str, Any]:
         emprestimo_plano_entrada_resolvido(),
         emprestimo_plano_divida_resolvido(),
         emprestimo_plano_juros_resolvido(),
+        emprestimo_plano_entrada_interno_resolvido(),
+        emprestimo_plano_divida_interno_resolvido(),
+        emprestimo_plano_juros_interno_resolvido(),
     ):
         n = (nm or "").strip()
         if n:
@@ -291,13 +333,18 @@ def _normalizar_nome_credor_emprestimo(nome: str) -> str:
 
 def _classificar_lancamento_emprestimo_mongo(doc: dict[str, Any]) -> str:
     """
-    Externo: lançamentos criados pelo fluxo Agro de empréstimo externo (marca nas observações).
-    Interno: demais títulos de plano de empréstimo cujo Cliente bate com a lista de sócios/credores internos.
+    Externo: EMP-EXT- / Emprestimo EXT nas observações.
+    Interno: EMP-INT- / Emprestimo INT, ou Cliente na lista de sócios/credores internos.
     Caso contrário, assume externo (ex.: banco / fornecedor no ERP).
     """
     obs = str(doc.get("Observacoes") or "")
+    if re.search(r"Emprestimo\s+INT", obs, re.I) or "EMP-INT-" in obs:
+        return "interno"
     if re.search(r"Emprestimo\s+EXT", obs, re.I) or "EMP-EXT-" in obs:
         return "externo"
+    plano = str(doc.get("PlanoDeConta") or "").casefold()
+    if "interno" in plano and "empr" in plano:
+        return "interno"
     cli = _normalizar_nome_credor_emprestimo(str(doc.get("Cliente") or ""))
     if cli:
         for pad in EMPRESTIMO_CREDORES_INTERNOS_PADRAO:
@@ -6267,13 +6314,17 @@ def criar_emprestimo_externo_agro(
     valor_juros: Decimal | None = None,
     plano_juros_nome: str | None = None,
     plano_juros_id: str | None = None,
+    variante: str = "externo",
 ) -> dict[str, Any]:
     """
-    Empréstimo externo: 1 título a receber (entrada do valor) + N contas a pagar (parcelas).
-    Os títulos a pagar aparecem no financeiro Agro como demais despesas.
+    Empréstimo (externo ou interno): 1 título a receber + N contas a pagar (parcelas).
+    ``variante=interno`` usa marca EMP-INT- e planos internos se os nomes vierem vazios.
     """
     if db is None:
         return {"ok": False, "erro": "Mongo indisponível", "ref": None}
+    var = (variante or "externo").strip().lower()
+    if var not in ("externo", "interno"):
+        var = "externo"
     credor_nome = (credor_nome or "").strip()
     if not credor_nome:
         return {"ok": False, "erro": "Informe o credor (fornecedor/pessoa).", "ref": None}
@@ -6286,11 +6337,25 @@ def criar_emprestimo_externo_agro(
     plano_entrada_nome = (plano_entrada_nome or "").strip()
     plano_divida_nome = (plano_divida_nome or "").strip()
     if not plano_entrada_nome or not plano_divida_nome:
+        if var == "interno":
+            plano_entrada_nome = plano_entrada_nome or emprestimo_plano_entrada_interno_resolvido()
+            plano_divida_nome = plano_divida_nome or emprestimo_plano_divida_interno_resolvido()
+        else:
+            plano_entrada_nome = plano_entrada_nome or emprestimo_plano_entrada_resolvido()
+            plano_divida_nome = plano_divida_nome or emprestimo_plano_divida_resolvido()
+    if not plano_entrada_nome or not plano_divida_nome:
         return {"ok": False, "erro": "Planos de conta (entrada e dívida) são obrigatórios.", "ref": None}
 
     v_juros = (valor_juros or Decimal("0")).quantize(Decimal("0.01"))
     if v_juros > 0:
         pj = (plano_juros_nome or "").strip()
+        if not pj:
+            plano_juros_nome = (
+                emprestimo_plano_juros_interno_resolvido()
+                if var == "interno"
+                else emprestimo_plano_juros_resolvido()
+            )
+            pj = (plano_juros_nome or "").strip()
         if not pj:
             return {
                 "ok": False,
@@ -6299,7 +6364,10 @@ def criar_emprestimo_externo_agro(
             }
 
     ref = secrets.token_hex(4).upper()
-    obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
+    if var == "interno":
+        obs_base = (f"Emprestimo INT ref EMP-INT-{ref}. " + (observacao or "").strip()).strip()[:900]
+    else:
+        obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
 
     r_ent = inserir_lancamentos_manual_lote(
         db,
@@ -6416,7 +6484,8 @@ def criar_emprestimo_externo_agro(
 
     now = timezone.now()
     meta = {
-        "tipo": "externo",
+        "tipo": var,
+        "variante": var,
         "ref": ref,
         "empresa_nome": (empresa_nome or "")[:200],
         "empresa_id": _financeiro_id_para_string(empresa_id),
