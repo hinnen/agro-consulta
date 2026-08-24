@@ -653,7 +653,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93):** botão ao lado de Nova saída → popup **Externo / Interno** → formulário (entrada + dívida/parcelas + juros opcional). Planos no servidor (não na tela). Conta/forma fora da UI; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `variante`. Include: `lancamento_novo_emprestimo_modal.html`.
+- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.13):** botão ao lado de Nova saída → Externo/Interno. **Parcelas:** Gerar parcelas + datas calendário + juros rateados (total−recebido), igual Nova saída. Planos no servidor; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `parcelas_manual`.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1245,8 +1245,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Bloqueio devolve `order_id` + `pode_finalizar`. Se pago → confirmação **«Finalizar venda do cartão»** (registra no sistema). **Não / PIN** = emergência gerencial |
 | **Onde** | `views_mp_point.py` · `views.py` (enviar ERP) · `pdv_wizard.js` · `tests_mp_point_pin_forcar.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | Django `tests_mp_point_pin_forcar` + CAD cols **34/34 OK** · `node --check` JS |
-| **Você** | Ctrl+F5 PDV · badge **v18.12** · Point pago órfão → outra forma → **Finalizar venda do cartão** |
+| **Prova** | `tests_mp_point_pin_forcar` **11/11 OK** · `teste` @ **a969fa7** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v18.12** · Point pago órfão → Confirmar → **Finalizar venda do cartão** → venda grava |
 | **Risco** | Médio-baixo — só path bloqueio Point; PIN continua |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
@@ -1307,17 +1307,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · UI cards **v18.03** · form limpo **v18.08**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · form limpo **v18.08** · parcelas+juros **v18.13**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.08** · pacote base **v17.93** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: botão **Novo empréstimo** → popup **Externo / Interno** → formulário entrada + dívida (parcelas) + juros opcional. Planos no servidor (não aparecem na tela). **Form limpo v18.08:** sem conta, forma nem planos na UI; create preenche ADICIONAR CONTA se vazio. |
-| **Onde** | `lancamentos_contas_pagar_teste.html` · `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.13** · **não** sobe loja sem frase + senha |
+| **O quê** | Contas a pagar: **Novo empréstimo** → Externo/Interno → entrada + dívida. **v18.13:** **Gerar parcelas** (como Nova saída) — datas no calendário (Mensal = mesmo dia), juros = total−recebido rateado por parcela (`20,00 + 4,00`), `parcelas_manual` no create. Planos no servidor; sem conta/forma na UI. |
+| **Onde** | `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` · `verify_cp_novo_emprestimo_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | Path revisado · `verify_cp_novo_emprestimo_path.py` |
-| **Você** | Ctrl+F5 Contas a pagar → **Novo empréstimo** → Interno/Externo → salvar **sem** conta/forma → confere títulos |
-| **Risco** | Baixo — não mexe no fluxo antigo sócio já cadastrado; hub Externo/Interno redireciona pro CP |
+| **Prova** | `verify_cp_novo_emprestimo_path.py` |
+| **Você** | Ctrl+F5 CP → Novo empréstimo → recebido 100 / total 120 / 5 parcelas → **Gerar parcelas** → confere 24/08…24/12 e `20+4` → Registrar |
+| **Risco** | Baixo — espelho do dual Nova saída; 1 parcela continua simples |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
 ### 📦 PACOTE PRONTO — PDV Outro dá baixa (`PDV-OUTRO-BAIXA` · **v17.89**) · bug loja #2
