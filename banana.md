@@ -1233,29 +1233,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**) · teste
+### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **no `teste`** — validar local · **não** loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **2757169** · badge **v17.87** · **não** sobe loja sem frase + senha |
 | **O quê** | Na via do **entregador**, faixa grande (nível do nome): **PAGO** · **LEVAR TROCO** (+ R$) · **LEVAR MÁQUINA** |
-| **Quando** | Pago na loja → PAGO. Dinheiro na entrega com troco → LEVAR TROCO. Cartão na entrega → LEVAR MÁQUINA |
+| **Quando** | Pago na loja → só PAGO. Dinheiro+troco → LEVAR TROCO. Cartão na entrega → LEVAR MÁQUINA |
 | **Onde** | `entregas_painel.html` · `pdv_wizard.js` (print + flags no payload) |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · PDV entrega: (1) pago loja (2) dinheiro+troco (3) cartão · imprimir via entregador |
+| **Prova** | Path revisado · **8/8** casos faixa (pago / troco / máquina / pago vence troco) |
+| **Você** | Ctrl+F5 · badge **v17.87** · PDV entrega: (1) pago loja (2) dinheiro+troco (3) cartão · imprimir via |
 | **Risco** | Baixo — só impressão / texto da via |
+| **Rollback** | `git revert 2757169` no `teste` (antes da loja) |
 
-### Git — este PC alinhado ao GitHub `teste` (24/08)
-
-Renan pediu comparar **teste** × **principal** (`main`) e puxar. **`teste` no GitHub é o mais novo** (`da7c1cb` · 23/08). **`main`/`principal` está parado em 15/06** (`fd8b356`) — **não** usamos esse ramo. `producao` no GitHub estava no **mesmo commit** que `teste`. Pasta local: `git reset --hard origin/teste` (histórico local antigo descartado). Loja **não** mexida.
-
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.85**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.87**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 2 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Falta subir só **CAD-CB-OPC-BUSCA** (barra secundária na busca). `teste` @ **7faadd0**. Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Falta subir **CAD-CB** + **ENT-VIA** (tip `teste` **v17.87** @ **2757169**). Sem migrate. **Não** sobe sem frase + senha.
 
 Verificação 24/08 — path busca barra opcional (código + **16/16** testes):
 
