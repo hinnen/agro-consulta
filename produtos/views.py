@@ -25064,6 +25064,7 @@ def api_produtos_cadastro_export_xlsx(request):
     """Exporta catálogo (Mongo + overlay) para Excel — edição em lote fase 1."""
     from produtos.cadastro_planilha_util import (
         coletar_linhas_export_cadastro,
+        enriquecer_rows_ultimos_fornecedores,
         montar_xlsx_cadastro,
         normalizar_categorias_export,
         normalizar_colunas_export,
@@ -25076,6 +25077,7 @@ def api_produtos_cadastro_export_xlsx(request):
         rows, truncado = coletar_linhas_export_cadastro(inativos=inativos, categorias=categorias)
     except ValueError as exc:
         return JsonResponse({"ok": False, "erro": str(exc)}, status=503)
+    enriquecer_rows_ultimos_fornecedores(rows, colunas)
     blob = montar_xlsx_cadastro(rows, colunas=colunas)
     nome = f"Cadastro_Produtos_{timezone.localdate().strftime('%Y%m%d')}.xlsx"
     resp = HttpResponse(

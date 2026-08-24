@@ -557,7 +557,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais).
+**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora).
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1236,6 +1236,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.02** · **não** sobe loja sem frase + senha |
+| **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
+| **Import** | Excel ↑ **ignora** essas colunas |
+| **Onde** | `cadastro_planilha_util.py` · `compras_ultimas_compras_util.py` · `views.py` · `cadastro_erp_panel.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `tests_cadastro_planilha_cols` **10/10 OK** |
+| **Você** | Ctrl+F5 `/produtos/cadastro-erp/` · Excel ↓ · marcar as 3 colunas · baixar |
+| **Risco** | Baixo — só export; enrich só se colunas marcadas |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
 ### 📦 PACOTE PRONTO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**)
 
 | Item | Detalhe |
@@ -1291,18 +1305,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.01**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v18.02**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
-| 3 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
-| 4 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 5 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 6 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** | **NÃO** |
+| 2 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
+| 3 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.00** | **NÃO** |
+| 4 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v17.93** | **NÃO** |
+| 5 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 6 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 7 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
 
-> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.01** = fila acima (ajuste CB + overlay + CP + Outro + barras + via). Sem migrate. **Não** sobe sem frase + senha.
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v18.02** = fila acima (+ Excel últimos fornecedores). Sem migrate. **Não** sobe sem frase + senha.
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
