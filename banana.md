@@ -1237,19 +1237,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 Renan pediu comparar **teste** × **principal** (`main`) e puxar. **`teste` no GitHub é o mais novo** (`da7c1cb` · 23/08). **`main`/`principal` está parado em 15/06** (`fd8b356`) — **não** usamos esse ramo. `producao` no GitHub estava no **mesmo commit** que `teste`. Pasta local: `git reset --hard origin/teste` (histórico local antigo descartado). Loja **não** mexida.
 
-### 📦 PACOTE — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**) · **só teste**
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.85**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+
+> Loja hoje: ✅ **Live v17.84**. Falta subir só **CAD-CB-OPC-BUSCA** (barra secundária na busca). `teste` @ **7faadd0**. Sem migrate. **Não** sobe sem frase + senha.
+
+Verificação 24/08 — path busca barra opcional (código + **16/16** testes):
+
+- [x] Overlay PG consulta JSON `codigos_barras_opcionais` **e** alias `codigos_barras_alternativos` (lista ou string)
+- [x] Lista vazia na 1ª chave **não** bloqueia o alias
+- [x] Bip 8+ sem hit no PG **não** pula Mongo (`agro_pg`)
+- [x] PDV casa `index_codigos` (não só EAN principal)
+- [x] Entrada NF «Mudar» usa `bateIndexCodigos` + 1 hit em EAN 8+
+- [x] **Sem migrate**
+
+**Status: pronto para envio à produção · v17.85.**
+
+### 📦 PACOTE PRONTO — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **só teste** — aguarda Ctrl+F5 no PC · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7faadd0** · badge **v17.85** · **não** sobe loja sem frase + senha |
 | **O quê** | Bip de barra **secundária** (opcional / alias) acha o produto no PDV, Entrada NF e `/api/buscar/` |
-| **Por quê** | Overlay PG não olhava o JSON certo; `agro_pg` pulava o Mongo mesmo com lista vazia; PDV/NF só casavam o EAN principal |
+| **Por quê** | Overlay PG não olhava o JSON certo; `agro_pg` pulava o Mongo com lista vazia; PDV/NF só casavam o EAN principal |
 | **Onde** | `cadastro_busca_codigo_util.py` · `mongo_index_codigos.py` · `motor_busca_unificado_util.py` · `pdv_wizard.js` · `entrada_nota.html` |
 | **Migrate** | **NÃO** |
-| **Risco** | Baixo — busca. Sem estoque / caixa / NFC-e |
-| **Prova** | `produtos.tests_codigos_barras_opcionais` |
+| **Risco** | Baixo — só busca. Sem estoque / caixa / NFC-e |
+| **Prova** | `produtos.tests_codigos_barras_opcionais` **16/16** |
 | **Você** | Ctrl+F5 · badge **v17.85** · bipar um EAN extra no PDV e no «Mudar» da Entrada NF |
-| **Rollback** | `git revert` no `teste` |
+| **Rollback** | `git revert 7faadd0` no `teste` (antes da loja) |
 
 ### 🧰 Script Windows — driver da balança (23/08 · pasta `scripts/balanca-windows`)
 
@@ -1264,28 +1283,7 @@ Pendrive no PC do caixa: `INSTALAR-BALANCA.bat` (como administrador). Instala CP
 | 3 | **PDV-BALANCA-KG-VIVO** | ✅ **Live v17.82** (permanece) | **NÃO** |
 | 4 | **NFCE-DEST-CNPJ** | ✅ **Live v17.81** (permanece) | **SIM** (`0099`) |
 
-> Loja hoje: ✅ **Live v17.84** (Fechar caixa: Point/cartão/Pix + devolução em dinheiro não inventa «Sobra»). Overlay Pesar permanece. `producao` @ **e0721f1e**. Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ **8bb72875** · branch `producao-backup-pre-v1784-caixa-devol-dinheiro-mp-20260823` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`.
-
-Verificação 23/08 — path Fechar caixa · Point/cartão/Pix + devolução em dinheiro (código + 118 provas + 41 loja + 68 repasse):
-
-- [x] Venda devolvida do turno **continua** no esperado da maquininha (não some do Point)
-- [x] Caso loja: débito MP R$ 49 devolvido em dinheiro + R$ 5,90 → esperado MP **54,90** · dinheiro **abre − 49**
-- [x] Pix MP + devolução em dinheiro: Pix MP fica; gaveta cai
-- [x] Crédito MP + devolução em dinheiro: crédito MP fica; gaveta cai
-- [x] Cielo débito + dinheiro: linha Cielo fica; **não** vaza para o Point
-- [x] FL-017 dinheiro+dinheiro: esperado = **abertura** (não desconta 2×)
-- [x] Aviso amarelo **só** se a venda original era cartão/Pix (não aparece no FL-017)
-- [x] Devolução **parcial** (sem `devolvida_em`): pinpad inteiro + gaveta cai o trecho
-- [x] Devolução de **outro turno**: só a retirada deste caixa; MP deste turno não infla
-- [x] Sangria comum continua descontando; **não** dispara o aviso
-- [x] Auto (MP / fiado / vale / cashback) **sempre** = esperado · sem rascunho · `readonly`
-- [x] Dinheiro **não** é auto — o caixa conta a gaveta
-- [x] API refresh (`escopo=loja`) devolve o aviso e **não** mistura Centro × Vila
-- [x] Relatório de caixa ainda lista devolução pelos **eventos** (não duplica o movimento)
-- [x] Repasse → refresh do Fechar caixa **intacto**
-- [x] **Sem migrate**
-
-**Status: enviado / Live v17.84.**
+> Loja: ✅ **Live v17.84** · `producao` @ **e0721f1e**. Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83`.
 
 ### 📦 PACOTE PRONTO — devolução dinheiro × MP (`CAIXA-DEVOL-DINHEIRO-MP` · **v17.84**) · **Live**
 
@@ -3600,7 +3598,7 @@ Base antes do PDV-CAD: 0f0db2.
 | Item | Detalhe |
 | ---- | ------- |
 | **Status** | ✅ **enviado** / Live no lote v13.80 |
-| **Inclui** | Lista barras opcionais no cadastro · grava PG · **gravação Live**; **busca** do bip extra incompleta até `CAD-CB-OPC-BUSCA` (24/08 · só teste) |
+| **Inclui** | Lista barras opcionais no cadastro · grava PG · **gravação Live**; **busca** do bip extra = `CAD-CB-OPC-BUSCA` (v17.85 · pronto para envio) |
 
 ### 📦 PACOTE PRONTO LOJA — Duplicar cadastro (`CAD-DUP` · **v13.72**)
 
