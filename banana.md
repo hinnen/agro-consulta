@@ -415,6 +415,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Fluxo tÃ­pico:** busca produto â†’ carrinho â†’ cliente (opcional) â†’ pagamento â†’ confirma â†’ cupom/impressÃ£o.
 
+**Outro (24/08 · bug #2 · v17.89):** PIN + detalhe **acima** do Lançar · Lançar/Confirmar só com PIN+detalhe · Confirmar pode lançar a tranche Outro sozinho.
+
 **Regras UX jÃ¡ decididas:**
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
@@ -651,6 +653,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
+- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.89):** botão ao lado de Nova saída → popup **Externo / Interno** → mesmo formulário (entrada + dívida/parcelas + juros opcional). Planos travados (trio externo / trio **interno** criados no cadastro). API `api_emprestimos_criar` + `variante`; hub Externo/Interno sócio redireciona pro CP. Include: `lancamento_novo_emprestimo_modal.html`.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1233,6 +1236,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — PDV Outro dá baixa (`PDV-OUTRO-BAIXA` · **v17.89**) · bug loja #2
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` tip · badge **v17.89** · **não** sobe loja sem frase + senha |
+| **O quê** | Forma **Outro**: bloco PIN+detalhe **acima** do Lançar · Confirmar **lança** Outro se PIN+detalhe ok · Lançar só libera com PIN+detalhe · chips PIN→Detalhe→Lançar→Confirmar |
+| **Causa** | Operador preenchia detalhe **abaixo** do botão e ia no Confirmar cinza; texto podia dessincronizar do state; Confirmar não auto-lançava Outro |
+| **Onde** | `step_pagamento.html` · `pdv_wizard.js` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 PDV · Outro → PIN → detalhe → **Lançar** **ou** **Confirmar** · venda fecha |
+| **Risco** | Baixo — só fluxo Outro no wizard |
+| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.89**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
+| 2 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
+| 3 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+
+> Loja hoje: ✅ **Live v17.84**. Tip `teste` **v17.89** inclui Outro + barras + via entregador. Sem migrate. **Não** sobe sem frase + senha.
+
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
 | Item | Detalhe |
@@ -1247,14 +1273,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só impressão / texto da via |
 | **Rollback** | `git revert 2757169` no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (24/08 · teste **v17.87**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 2 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
-
-> Loja hoje: ✅ **Live v17.84**. Falta subir **CAD-CB** + **ENT-VIA** (tip `teste` **v17.87** @ **2757169**). Sem migrate. **Não** sobe sem frase + senha.
+> Checklist antigo **v17.87** — ver checklist **v17.89** no topo (inclui PDV-OUTRO + CAD-CB + ENT-VIA).
 
 Verificação 24/08 — path busca barra opcional (código + **16/16** testes):
 
