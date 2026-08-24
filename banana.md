@@ -1233,6 +1233,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**) · teste
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **no `teste`** — validar local · **não** loja sem frase + senha |
+| **O quê** | Na via do **entregador**, faixa grande (nível do nome): **PAGO** · **LEVAR TROCO** (+ R$) · **LEVAR MÁQUINA** |
+| **Quando** | Pago na loja → PAGO. Dinheiro na entrega com troco → LEVAR TROCO. Cartão na entrega → LEVAR MÁQUINA |
+| **Onde** | `entregas_painel.html` · `pdv_wizard.js` (print + flags no payload) |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · PDV entrega: (1) pago loja (2) dinheiro+troco (3) cartão · imprimir via entregador |
+| **Risco** | Baixo — só impressão / texto da via |
+
 ### Git — este PC alinhado ao GitHub `teste` (24/08)
 
 Renan pediu comparar **teste** × **principal** (`main`) e puxar. **`teste` no GitHub é o mais novo** (`da7c1cb` · 23/08). **`main`/`principal` está parado em 15/06** (`fd8b356`) — **não** usamos esse ramo. `producao` no GitHub estava no **mesmo commit** que `teste`. Pasta local: `git reset --hard origin/teste` (histórico local antigo descartado). Loja **não** mexida.

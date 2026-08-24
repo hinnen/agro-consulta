@@ -4426,6 +4426,10 @@
             referencia_rural: String(row.referencia_rural || '').trim(),
             forma_pagamento: String(row.forma_pagamento || ''),
             troco_precisa: row.troco_precisa === true || row.troco_precisa === false ? row.troco_precisa : null,
+            troco_paga_com: row.troco_paga_com != null ? row.troco_paga_com : null,
+            aguarda_pagamento_pdv: row.aguarda_pagamento_pdv === true,
+            pagamento_pdv: row.pagamento_pdv || null,
+            observacoes: String(row.observacoes || ''),
             maps_url_manual: String(row.maps_url_manual || '').trim(),
             itens_json: itensJson,
             total_texto: row.total_texto || '',
@@ -9727,11 +9731,51 @@
         return payload;
     }
 
+    /** Flags para via do entregador: PAGO / LEVAR TROCO / LEVAR MÁQUINA. */
+    function entregaFlagsPagamentoPrint(state, computed) {
+        var e = (state && state.entrega) || {};
+        var lp = String(e.localPagamento || '').trim();
+        var meio = String(e.meioNaEntrega || '').trim();
+        var total = totalNumberFromComputed(computed);
+        var pagaCom = State.toNumber(e.troco);
+        var trocoVal = Math.round((pagaCom - total) * 100) / 100;
+        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
+        var anyTrocoLanc = arr.some(function (L) {
+            return L.forma === 'Dinheiro' && State.toNumber(L.trocoCalculado) > 0.009;
+        });
+        var trocoPrecisa =
+            anyTrocoLanc || (meio === 'dinheiro' && pagaCom > 0.009 && trocoVal > 0.009);
+        var forma = '';
+        if (lp === 'loja') {
+            forma = 'Pago na loja';
+        } else if (lp === 'entrega' && meio === 'dinheiro') {
+            forma = 'Dinheiro';
+        } else if (lp === 'entrega' && meio === 'cartao') {
+            forma = 'Cartão';
+        } else {
+            forma = String(formaPagamentoResumoUi(state, computed) || '').trim().slice(0, 40);
+        }
+        var pagoNaLoja = lp === 'loja';
+        var aguarda = lp === 'entrega' && !!meio;
+        var trocoFlag = null;
+        if (forma === 'Dinheiro' || meio === 'dinheiro') {
+            trocoFlag = !!trocoPrecisa;
+        }
+        return {
+            forma_pagamento: forma,
+            troco_precisa: trocoFlag,
+            troco_paga_com: meio === 'dinheiro' && pagaCom > 0.009 ? pagaCom : null,
+            aguarda_pagamento_pdv: aguarda,
+            pagamento_pdv: pagoNaLoja ? { pago: true, label: 'Pago na loja' } : { pago: false }
+        };
+    }
+
     function buildEntregaPayload(state, computed, extras) {
         extras = extras || {};
         var cliente = state.cliente || {};
         var e = state.entrega || {};
         var extraPag = pagamentoResumoExtra(state, computed);
+        var flags = entregaFlagsPagamentoPrint(state, computed);
         var obsParts = [
             state.venda.observacao || '',
             state.entrega.observacao || '',
@@ -9757,14 +9801,11 @@
             retomar_codigo: extras.retomar_codigo != null ? String(extras.retomar_codigo) : '',
             operador: operadorPdvAtual(),
             hora_prevista: state.entrega.horario || '',
-            forma_pagamento: formaPagamentoResumoUi(state, computed),
-            troco_precisa: (function () {
-                var arr = state.pagamento.lancamentos || [];
-                var any = arr.some(function (L) {
-                    return L.forma === 'Dinheiro' && String(L.trocoCalculado || '').trim();
-                });
-                return any || !!String(state.entrega.troco || '').trim();
-            })(),
+            forma_pagamento: flags.forma_pagamento,
+            troco_precisa: flags.troco_precisa,
+            troco_paga_com: flags.troco_paga_com,
+            aguarda_pagamento_pdv: flags.aguarda_pagamento_pdv,
+            pagamento_pdv: flags.pagamento_pdv,
             observacoes: observacoes
         };
         if (extras.orc_local_id != null && String(extras.orc_local_id).trim() !== '') {
@@ -11942,13 +11983,16 @@
         var c = state.cliente || {};
         var dh = new Date().toISOString().replace('T', ' ').slice(0, 19);
         var frete = State.toNumber((state.pagamento && state.pagamento.frete) || (computed && computed.frete) || 0);
-        var trocoPrecisa = (function () {
-            var arr = state.pagamento.lancamentos || [];
-            var any = arr.some(function (L) {
-                return L.forma === 'Dinheiro' && String(L.trocoCalculado || '').trim();
-            });
-            return !!(any || String(e.troco || '').trim());
-        })();
+        var flags = entregaFlagsPagamentoPrint(state, computed);
+        var obsExtra = obsFluxoEntregaResumo(state);
+        var obsParts = [
+            state.venda && state.venda.observacao,
+            e.observacao,
+            state.pagamento && state.pagamento.observacaoFinal,
+            pagamentoResumoExtra(state, computed),
+            e.maquininha ? 'Maquininha: ' + e.maquininha : '',
+            obsExtra
+        ].filter(Boolean);
         var itensJson = (state.itens || []).map(function (it) {
             var cg = String((it.codigoGm || it.codigo || '')).trim();
             return {
@@ -11970,8 +12014,12 @@
             plus_code: String(e.plusCode || c.plus_code || '').trim(),
             endereco_linha: composeEndereco(state),
             referencia_rural: String(e.referencia || c.referencia_rural || '').trim(),
-            forma_pagamento: String(formaPagamentoResumoUi(state, computed) || ''),
-            troco_precisa: trocoPrecisa,
+            forma_pagamento: flags.forma_pagamento,
+            troco_precisa: flags.troco_precisa,
+            troco_paga_com: flags.troco_paga_com,
+            aguarda_pagamento_pdv: flags.aguarda_pagamento_pdv,
+            pagamento_pdv: flags.pagamento_pdv,
+            observacoes: obsParts.join(' | '),
             maps_url_manual: String(c.maps_url_manual || '').trim(),
             itens_json: itensJson,
             total_texto: formatMoney(computed.total),
@@ -12055,6 +12103,96 @@
     }
 
     /** Igual htmlPagEntregador do painel Entregas. */
+    function wizardPrintParseMoneyBr(s) {
+        var t = String(s == null ? '' : s).replace(/[R$\s]/gi, '').trim();
+        if (!t) return NaN;
+        if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+        var n = parseFloat(t);
+        return isFinite(n) ? n : NaN;
+    }
+
+    function wizardPrintTrocoLevarValor(e) {
+        var obs = String((e && e.observacoes) || '');
+        var m = obs.match(/Troco:\s*([0-9.,]+)/i);
+        var pagaCom = m ? wizardPrintParseMoneyBr(m[1]) : NaN;
+        if (!isFinite(pagaCom) && e && e.troco_paga_com != null) {
+            pagaCom = wizardPrintParseMoneyBr(e.troco_paga_com);
+        }
+        if (!isFinite(pagaCom) || pagaCom < 0.009) return null;
+        var tot = NaN;
+        if (e && e.total_texto) {
+            tot = wizardPrintParseMoneyBr(String(e.total_texto).replace(/[^\d,.-]/g, ''));
+        }
+        if (!isFinite(tot) && e && e.total != null) tot = Number(e.total);
+        if (!isFinite(tot)) return null;
+        var diff = Math.round((pagaCom - tot) * 100) / 100;
+        return diff > 0.009 ? diff : null;
+    }
+
+    /** Faixas grandes: PAGO / LEVAR TROCO / LEVAR MÁQUINA (via entregador). */
+    function wizardPrintHtmlFaixaPagamentoEntregador(e) {
+        e = e || {};
+        var forma = String(e.forma_pagamento || '');
+        var obs = String(e.observacoes || '').toLowerCase();
+        var pag = e.pagamento_pdv || {};
+        var aguarda = e.aguarda_pagamento_pdv === true;
+        var pago = pag.pago === true;
+        if (!pago && /pago\s*na\s*loja|pagamento\s*na\s*loja/i.test(forma + ' ' + obs)) pago = true;
+        if (!pago && pag.label && /pago/i.test(String(pag.label)) && !/cobrar|n[aã]o\s*pago/i.test(String(pag.label))) {
+            pago = true;
+        }
+        var cartao =
+            /cart[aã]o|maquininha|pinpad|cr[eé]dito|d[eé]bito/i.test(forma + ' ' + obs) ||
+            (aguarda && /cart[aã]o|maquininha/i.test(obs));
+        var dinheiro = /dinheiro/i.test(forma + ' ' + obs) || (aguarda && /dinheiro/i.test(obs));
+        var trocoPrecisa = e.troco_precisa === true;
+        var trocoVal = wizardPrintTrocoLevarValor(e);
+        if (trocoVal != null) trocoPrecisa = true;
+        if (e.troco_precisa === false && trocoVal == null) trocoPrecisa = false;
+        if (pago) {
+            trocoPrecisa = false;
+            cartao = false;
+            dinheiro = false;
+        }
+        var box =
+            'margin:10px 0 8px;padding:10px 6px;text-align:center;border:3px solid #000;' +
+            'border-radius:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+        var parts = [];
+        if (pago) {
+            parts.push(
+                '<div style="' +
+                    box +
+                    'background:#000;color:#fff">' +
+                    '<div style="font-size:28px;font-weight:900;letter-spacing:0.06em;line-height:1.05">PAGO</div>' +
+                    '<div style="font-size:11px;font-weight:700;margin-top:4px;opacity:0.95">NÃO cobrar no local</div>' +
+                    '</div>'
+            );
+        } else if (trocoPrecisa && (dinheiro || !cartao)) {
+            var linhaTroco =
+                trocoVal != null
+                    ? 'Troco: ' + formatMoney(trocoVal)
+                    : 'Cliente precisa de troco';
+            parts.push(
+                '<div style="' +
+                    box +
+                    'background:#111;color:#fff">' +
+                    '<div style="font-size:22px;font-weight:900;letter-spacing:0.04em;line-height:1.1">LEVAR TROCO</div>' +
+                    '<div style="font-size:14px;font-weight:800;margin-top:4px">' +
+                    escapeHtml(linhaTroco) +
+                    '</div></div>'
+            );
+        } else if (cartao) {
+            parts.push(
+                '<div style="' +
+                    box +
+                    'background:#000;color:#fff">' +
+                    '<div style="font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1.15">LEVAR MÁQUINA</div>' +
+                    '<div style="font-size:12px;font-weight:700;margin-top:4px">Cartão no local</div></div>'
+            );
+        }
+        return parts.join('');
+    }
+
     function wizardPrintHtmlEntregador(e) {
         var nomeCli = String(e.cliente_nome || '');
         var primeiro = (nomeCli.split(/\s+/)[0] || nomeCli || '—').toUpperCase();
@@ -12082,6 +12220,7 @@
         if (e.telefone) {
             h += '<div style="font-size:12px;font-weight:800;margin-top:4px;">Tel ' + escapeHtml(e.telefone) + '</div>';
         }
+        h += wizardPrintHtmlFaixaPagamentoEntregador(e);
         if (e.total_texto) {
             h += '<div style="border-top:3px solid #000;margin:10px 0 8px;"></div>';
             h +=
