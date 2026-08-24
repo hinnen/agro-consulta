@@ -157,6 +157,25 @@ def main() -> int:
     check("modal sem conta/forma na UI", "ne-banco-nome" not in txt_m and "ne-forma-nome" not in txt_m)
     check("modal sem planos na UI", "ne-plano-ent-nome" not in txt_m and "agro-ne-planos-info" not in txt_m)
     check("modal envia banco/planos vazios", "banco_nome: ''" in txt_m and "plano_entrada_nome: ''" in txt_m)
+    check("modal Gerar parcelas", 'id="ne-gerar-parcelas"' in txt_m and "gerarParcelasPreview" in txt_m)
+    check("modal preview parcelas", 'id="ne-parc-preview"' in txt_m and "ne-parc-composicao" in txt_m)
+    check("modal calendário mensal", "addMesesIso" in txt_m and "vencimentoParcela" in txt_m)
+    check("modal envia parcelas_manual", "parcelas_manual" in txt_m)
+    check("modal sem campo juros avulso", "ne-valor-juros" not in txt_m)
+    check(
+        "vencimento calendário 30d",
+        callable(getattr(mfu, "_fin_vencimento_parcela", None)),
+    )
+    dv0 = date(2026, 8, 24)
+    check(
+        "vencimento mensal mesmo dia",
+        mfu._fin_vencimento_parcela(dv0, 1, 30) == date(2026, 9, 24),
+        str(mfu._fin_vencimento_parcela(dv0, 1, 30)),
+    )
+    check(
+        "split proporcional",
+        callable(getattr(mfu, "split_decimal_proporcional", None)),
+    )
     txt_cp = cp.read_text(encoding="utf-8")
     check("botão CP", "data-agro-novo-emprestimo-open" in txt_cp)
     check("include modal", "lancamento_novo_emprestimo_modal.html" in txt_cp)

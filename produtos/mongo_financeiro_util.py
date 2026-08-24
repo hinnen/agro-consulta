@@ -6315,9 +6315,12 @@ def criar_emprestimo_externo_agro(
     plano_juros_nome: str | None = None,
     plano_juros_id: str | None = None,
     variante: str = "externo",
+    parcelas_manual: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """
     Empréstimo (externo ou interno): 1 título a receber + N contas a pagar (parcelas).
+    Juros = max(0, total − recebido), rateado em cada parcela (como Nova saída dual).
+    Vencimentos: calendário (30/60/90 = mesmo dia do mês). ``parcelas_manual`` opcional.
     ``variante=interno`` usa marca EMP-INT- e planos internos se os nomes vierem vazios.
     """
     if db is None:
@@ -6346,8 +6349,10 @@ def criar_emprestimo_externo_agro(
     if not plano_entrada_nome or not plano_divida_nome:
         return {"ok": False, "erro": "Planos de conta (entrada e dívida) são obrigatórios.", "ref": None}
 
-    v_juros = (valor_juros or Decimal("0")).quantize(Decimal("0.01"))
-    if v_juros > 0:
+    # Juros = diferença total − recebido (ignora valor_juros avulso antigo = título extra).
+    _ = valor_juros  # compat API; montante vem do spread
+    v_juros = max(Decimal("0"), (valor_total_devido - valor_recebido).quantize(Decimal("0.01")))
+    if v_juros > Decimal("0.009"):
         pj = (plano_juros_nome or "").strip()
         if not pj:
             plano_juros_nome = (
@@ -6359,7 +6364,7 @@ def criar_emprestimo_externo_agro(
         if not pj:
             return {
                 "ok": False,
-                "erro": "Informe o plano de juros ou deixe o valor de juros zerado.",
+                "erro": "Plano de juros não configurado (necessário quando total > recebido).",
                 "ref": None,
             }
 
@@ -6415,12 +6420,82 @@ def criar_emprestimo_externo_agro(
             "parcelas": [],
         }
 
-    vals = split_decimal_em_parcelas(valor_total_devido, parcelas)
+    parcelas_pag: list[tuple[Decimal, date]] = []
+    pm_raw = parcelas_manual if isinstance(parcelas_manual, list) else None
+    if parcelas > 1 and pm_raw is not None and len(pm_raw) == parcelas:
+        for row in pm_raw:
+            if not isinstance(row, dict):
+                return {"ok": False, "erro": "Parcela manual inválida.", "ref": ref, "entrada": r_ent}
+            dv_s = str(row.get("data_vencimento") or "")[:10]
+            try:
+                dv_i = date.fromisoformat(dv_s)
+            except ValueError:
+                return {
+                    "ok": False,
+                    "erro": "Parcela com data de vencimento inválida.",
+                    "ref": ref,
+                    "entrada": r_ent,
+                }
+            try:
+                v_i = Decimal(str(_fin_parse_valor_entrada_manual(row.get("valor")))).quantize(Decimal("0.01"))
+            except (ValueError, TypeError):
+                v_i = Decimal("0")
+            if v_i <= 0:
+                return {"ok": False, "erro": "Parcela com valor inválido.", "ref": ref, "entrada": r_ent}
+            parcelas_pag.append((v_i, dv_i))
+        soma_p = sum(v for v, _ in parcelas_pag).quantize(Decimal("0.01"))
+        if abs(soma_p - valor_total_devido) > Decimal("0.02"):
+            return {
+                "ok": False,
+                "erro": f"Soma das parcelas ({soma_p}) difere do total a pagar ({valor_total_devido}).",
+                "ref": ref,
+                "entrada": r_ent,
+            }
+    elif parcelas > 1:
+        for i, v_i in enumerate(split_decimal_em_parcelas(valor_total_devido, parcelas)):
+            parcelas_pag.append((v_i, _fin_vencimento_parcela(primeiro_vencimento, i, intervalo_dias)))
+    else:
+        parcelas_pag = [(valor_total_devido.quantize(Decimal("0.01")), primeiro_vencimento)]
+
+    valores_parc = [v for v, _ in parcelas_pag]
+    juros_por_parc = (
+        split_decimal_proporcional(v_juros, valores_parc)
+        if v_juros > Decimal("0.009")
+        else [Decimal("0")] * len(parcelas_pag)
+    )
+
     parcelas_out: list[dict[str, Any]] = []
     all_ok = True
-    for i in range(parcelas):
-        dv = primeiro_vencimento + timedelta(days=intervalo_dias * i)
-        obs_p = f"{obs_base} Parc {i + 1}/{parcelas}."[:500]
+    n_tot = len(parcelas_pag)
+    plano_j = (plano_juros_nome or "").strip()
+    for i, (v_parc, dv_parc) in enumerate(parcelas_pag):
+        juros_i = juros_por_parc[i].quantize(Decimal("0.01"))
+        principal_i = (v_parc - juros_i).quantize(Decimal("0.01"))
+        sufix = f" (parc {i + 1}/{n_tot})" if n_tot > 1 else ""
+        obs_p = f"{obs_base} Parc {i + 1}/{n_tot}."[:500]
+        linhas_p: list[dict[str, Any]] = []
+        if principal_i > Decimal("0.009"):
+            linhas_p.append(
+                {
+                    "valor": float(principal_i),
+                    "descricao": f"Empréstimo — {credor_nome}{sufix}"[:500],
+                    "plano_conta": plano_divida_nome,
+                    "plano_conta_id": plano_divida_id,
+                    "observacao": obs_p,
+                }
+            )
+        if juros_i > Decimal("0.009"):
+            linhas_p.append(
+                {
+                    "valor": float(juros_i),
+                    "descricao": f"Juros empréstimo — {credor_nome}{sufix}"[:500],
+                    "plano_conta": plano_j,
+                    "plano_conta_id": plano_juros_id,
+                    "observacao": f"{obs_base} Juros parc {i + 1}/{n_tot}."[:500],
+                }
+            )
+        if not linhas_p:
+            continue
         r_p = inserir_lancamentos_manual_lote(
             db,
             despesa=True,
@@ -6428,8 +6503,8 @@ def criar_emprestimo_externo_agro(
             empresa_id=empresa_id,
             pessoa_nome=credor_nome,
             pessoa_id=credor_id,
-            data_competencia=dv,
-            data_vencimento=dv,
+            data_competencia=dv_parc,
+            data_vencimento=dv_parc,
             banco_nome=banco_nome,
             banco_id=banco_id,
             forma_nome=forma_nome,
@@ -6437,51 +6512,10 @@ def criar_emprestimo_externo_agro(
             grupo_nome=grupo_nome,
             grupo_id=grupo_id,
             usuario_label=usuario_label,
-            linhas=[
-                {
-                    "valor": float(vals[i]),
-                    "descricao": f"Empréstimo — {credor_nome} (parc {i + 1}/{parcelas})"[:500],
-                    "plano_conta": plano_divida_nome,
-                    "plano_conta_id": plano_divida_id,
-                    "observacao": obs_p,
-                }
-            ],
+            linhas=linhas_p,
         )
         parcelas_out.append(r_p)
         if not r_p.get("ok"):
-            all_ok = False
-
-    r_juros: dict[str, Any] | None = None
-    if v_juros > 0:
-        obs_j = f"{obs_base} Juros (1ª parcela)."[:500]
-        r_juros = inserir_lancamentos_manual_lote(
-            db,
-            despesa=True,
-            empresa_nome=empresa_nome,
-            empresa_id=empresa_id,
-            pessoa_nome=credor_nome,
-            pessoa_id=credor_id,
-            data_competencia=primeiro_vencimento,
-            data_vencimento=primeiro_vencimento,
-            banco_nome=banco_nome,
-            banco_id=banco_id,
-            forma_nome=forma_nome,
-            forma_id=forma_id,
-            grupo_nome=grupo_nome,
-            grupo_id=grupo_id,
-            usuario_label=usuario_label,
-            linhas=[
-                {
-                    "valor": float(v_juros),
-                    "descricao": f"Juros empréstimo — {credor_nome}"[:500],
-                    "plano_conta": (plano_juros_nome or "").strip(),
-                    "plano_conta_id": plano_juros_id,
-                    "observacao": obs_j,
-                }
-            ],
-        )
-        parcelas_out.append(r_juros)
-        if not r_juros.get("ok"):
             all_ok = False
 
     ids_entrada = list(r_ent.get("ids") or [])
@@ -6520,7 +6554,7 @@ def criar_emprestimo_externo_agro(
     try:
         ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
         meta_id = str(ins_m.inserted_id)
-    except Exception as exc:
+    except Exception:
         logger.exception("AgroEmprestimo insert meta externo")
         meta_id = ""
         all_ok = False
@@ -6531,9 +6565,10 @@ def criar_emprestimo_externo_agro(
         "meta_id": meta_id,
         "entrada": r_ent,
         "parcelas": parcelas_out,
-        "juros": r_juros,
+        "juros": None,
         "ids_entrada": ids_entrada,
         "ids_divida": ids_divida,
+        "valor_juros": float(v_juros) if v_juros > 0 else 0.0,
     }
 
 

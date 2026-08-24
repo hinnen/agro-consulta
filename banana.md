@@ -653,7 +653,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.13):** botão ao lado de Nova saída → Externo/Interno. **Parcelas:** Gerar parcelas + datas calendário + juros rateados (total−recebido), igual Nova saída. Planos no servidor; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `parcelas_manual`.
+- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.14):** botão ao lado de Nova saída → Externo/Interno. **Parcelas:** Gerar parcelas + datas calendário + juros rateados (total−recebido), igual Nova saída. Planos no servidor; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `parcelas_manual`.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -676,6 +676,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Retiradas â€” vales RH (01/07):** histÃ³rico `/caixa/retiradas/` inclui **ValeFuncionario** (adiantamento) para conferÃªncia mensal Â· filtro plano aceita **label ou cÃ³digo** Â· vale no caixa nÃ£o gera Â«SaÃ­da caixaÂ» no financeiro (baixa parcial no salÃ¡rio) Â· **loja v5.64** cherry-pick `2207fd6`.
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
+- **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
@@ -1236,11 +1237,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — MP Point finalizar órfão (`MP-POINT-FINAL-ORFAO` · **v18.12**) · bug loja #4
+### ✅ Live — Reserva no lucro do repasse (`REPASSE-RESERVA-LUCRO`) · migrate **0097**
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Reserva Vila entra **no lucro** (bruto − reserva = penúltimo → % ao Centro). **Não** corta o total sugerido de novo. |
+| **Tela** | `/repasse-vila/` · card **Reserva Vila** · log `…/reserva-log/` |
+| **Live** | `producao` ancestral `bb4ff78` · migrate **0097** · loja ≥ **v17.84** |
+| **Prova 24/08** | path **134** · reserva **60** · deep **95** · `manage.py check` OK |
+
+> **Não** entra na fila 🟡 abaixo — já na loja.
+
+### 📦 PACOTE PRONTO — MP Point finalizar órfão (`MP-POINT-FINAL-ORFAO` · **v18.12** · tip **v18.13**) · bug loja #4
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.12** · **não** sobe loja sem frase + senha |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge tip **v18.13** (fix @ **v18.12**) · **não** sobe loja sem frase + senha |
 | **Bug** | Cartão Point **já pago** na sessão; operador tenta outra forma → bloqueio · só PIN gerencial · venda não fecha pelo caminho certo |
 | **O quê** | Bloqueio devolve `order_id` + `pode_finalizar`. Se pago → confirmação **«Finalizar venda do cartão»** (registra no sistema). **Não / PIN** = emergência gerencial |
 | **Onde** | `views_mp_point.py` · `views.py` (enviar ERP) · `pdv_wizard.js` · `tests_mp_point_pin_forcar.py` |
@@ -1307,12 +1319,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · form limpo **v18.08** · parcelas+juros **v18.13**)
+### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · form limpo **v18.08** · parcelas+juros **v18.14**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.13** · **não** sobe loja sem frase + senha |
-| **O quê** | Contas a pagar: **Novo empréstimo** → Externo/Interno → entrada + dívida. **v18.13:** **Gerar parcelas** (como Nova saída) — datas no calendário (Mensal = mesmo dia), juros = total−recebido rateado por parcela (`20,00 + 4,00`), `parcelas_manual` no create. Planos no servidor; sem conta/forma na UI. |
+| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.14** · **não** sobe loja sem frase + senha |
+| **O quê** | Contas a pagar: **Novo empréstimo** → Externo/Interno → entrada + dívida. **v18.14:** **Gerar parcelas** (como Nova saída) — datas no calendário (Mensal = mesmo dia), juros = total−recebido rateado por parcela (`20,00 + 4,00`), `parcelas_manual` no create. Planos no servidor; sem conta/forma na UI. |
 | **Onde** | `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` · `verify_cp_novo_emprestimo_path.py` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_cp_novo_emprestimo_path.py` |
@@ -1343,7 +1355,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
 | 4 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** · prova **23/23** | **NÃO** |
 | 5 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.08** form limpo | **NÃO** |
+| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.14** parcelas+juros | **NÃO** |
 | 7 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
 | 8 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
 | 9 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
