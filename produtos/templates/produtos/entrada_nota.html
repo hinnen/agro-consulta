@@ -9067,11 +9067,24 @@
     const qDigits = String(q || '').replace(/\D/g, '');
     const qLow = String(q || '').trim().toLowerCase();
     const qAl = entradaNfeSomenteAlnum(q).toLowerCase();
+    function bateIndexCodigos(p) {
+      const ix = p.index_codigos;
+      if (!Array.isArray(ix)) return false;
+      for (let j = 0; j < ix.length; j += 1) {
+        const x = ix[j];
+        if (x == null || !String(x).trim()) continue;
+        if (entradaNfeCodigosEquivalentes(q, String(x))) return true;
+        const xd = String(x).replace(/\D/g, '');
+        if (qDigits.length >= 7 && xd && xd === qDigits) return true;
+      }
+      return false;
+    }
     if (qDigits.length >= 7) {
       for (let i = 0; i < arr.length; i += 1) {
         const p = arr[i];
         const e = String(p.codigo_barras || '').replace(/\D/g, '');
         if (e && (e === qDigits || entradaNfeCodigosEquivalentes(e, qDigits))) return p;
+        if (bateIndexCodigos(p)) return p;
       }
     }
     if (qAl) {
@@ -9082,19 +9095,16 @@
           const c = campos[k];
           if (c != null && String(c).trim() && entradaNfeCodigosEquivalentes(q, c)) return p;
         }
-        const ix = p.index_codigos;
-        if (Array.isArray(ix)) {
-          for (let j = 0; j < ix.length; j += 1) {
-            const x = ix[j];
-            if (x != null && String(x).trim() && entradaNfeCodigosEquivalentes(q, String(x))) return p;
-          }
-        }
+        if (bateIndexCodigos(p)) return p;
       }
     }
     for (let i = 0; i < arr.length; i += 1) {
       const p = arr[i];
       const c = String(p.codigo_nfe || p.codigo || '').trim().toLowerCase();
       if (qLow && c && c === qLow) return p;
+    }
+    if (qDigits.length >= 8) {
+      return arr.length === 1 ? arr[0] : null;
     }
     return arr[0];
   }

@@ -1623,7 +1623,6 @@
         var qd = onlyDigits(qt);
         var seen = {};
         var hits = [];
-        var eanOnly = qd.length >= 8;
         wizardProductCatalog.forEach(function (p) {
             var ean = String(p.codigo_barras || '').trim();
             var nfe = String(p.codigo_nfe || '').trim();
@@ -1633,7 +1632,7 @@
             else if (productMatchesQueryExact(p, qt)) match = true;
             else if (qd.length >= 6 && onlyDigits(ean) && onlyDigits(ean) === qd) match = true;
             else if (qd.length >= 6 && onlyDigits(nfe) && onlyDigits(nfe) === qd) match = true;
-            else if (!eanOnly && matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
+            else if (matchQueryAgainstIndexCodigos(qt, qd, p)) match = true;
             if (match) {
                 var id = resolveProdutoId(p);
                 if (id && !seen[id]) {

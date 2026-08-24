@@ -7,6 +7,7 @@ from typing import Any
 from django.db.models import Q
 
 from produtos.mongo_index_codigos import (
+    CAD_EXTRAS_CB_OPCIONAIS_KEYS,
     mongo_query_so_index_codigo,
     produto_termo_bate_campos_principais,
     somente_alnum,
@@ -227,6 +228,19 @@ def q_icontains_cadastro(termo: str) -> Q:
     return q_obj
 
 
+def q_overlay_json_barras_opcionais(digits: str) -> Q | None:
+    """JSONField do overlay: lista **e** string, nas duas chaves (opcional + alias)."""
+    d = str(digits or "").strip()
+    if not d.isdigit() or len(d) < 8:
+        return None
+    q = Q()
+    for k in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+        q |= Q(**{f"cadastro_extras__{k}__contains": [d]})
+        q |= Q(**{f"cadastro_extras__{k}__contains": d})
+    q |= Q(cadastro_extras__icontains=d)
+    return q
+
+
 def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
     from produtos.models import ProdutoGestaoOverlayAgro
     from produtos.mongo_index_codigos import (
@@ -261,7 +275,9 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
             _or(Q(codigo_nfe__iregex=rf"^{esc_b}(-|$)") | Q(codigo_barras__iregex=rf"^{esc_b}(-|$)"))
     elif digits.isdigit() and len(digits) >= 8:
         _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits) | Q(codigo_nfe__iexact=digits))
-        _or(Q(cadastro_extras__codigos_barras_opcionais__contains=[digits]))
+        q_json = q_overlay_json_barras_opcionais(digits)
+        if q_json is not None:
+            _or(q_json)
         _or(Q(cadastro_extras__entrada_nfe_ean_embalagem=digits))
         _or(Q(cadastro_extras__ean_embalagem_nf=digits))
     else:
@@ -269,7 +285,9 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         if digits and len(digits) >= 4:
             _or(Q(codigo_barras=digits) | Q(codigo_barras__iexact=digits))
             if digits.isdigit() and len(digits) >= 8:
-                _or(Q(cadastro_extras__codigos_barras_opcionais__contains=[digits]))
+                q_json = q_overlay_json_barras_opcionais(digits)
+                if q_json is not None:
+                    _or(q_json)
 
     if q_obj is None:
         return []
@@ -309,10 +327,13 @@ def overlay_pids_por_codigo(termo: str, *, limit: int = 80) -> list[str]:
         if len(out) >= limit:
             break
 
-    # Fallback: JSON contains pode falhar no SQLite — varre quem tem a chave.
+    # Fallback: JSON contains pode falhar no SQLite — varre quem tem a chave (ou o alias).
     if digits.isdigit() and len(digits) >= 8 and len(out) < limit:
+        q_keys = Q()
+        for k in CAD_EXTRAS_CB_OPCIONAIS_KEYS:
+            q_keys |= Q(**{"cadastro_extras__has_key": k})
         for ov in (
-            ProdutoGestaoOverlayAgro.objects.filter(cadastro_extras__has_key="codigos_barras_opcionais")
+            ProdutoGestaoOverlayAgro.objects.filter(q_keys)
             .only("produto_externo_id", "codigo_nfe", "codigo_barras", "cadastro_extras")[:800]
         ):
             if digits not in codigos_barras_opcionais_de_cadastro_extras(getattr(ov, "cadastro_extras", None)):

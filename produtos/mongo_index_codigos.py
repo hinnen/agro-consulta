@@ -24,7 +24,8 @@ _MIN_EAN_EMBALAGEM_NF = 8
 _MAX_EAN_EMBALAGEM_NF = 20
 
 # EANs / barras extras do mesmo SKU (marca trocou o código; bip antigo ainda acha o produto).
-_CAD_EXTRAS_CB_OPCIONAIS_KEYS = ("codigos_barras_opcionais", "codigos_barras_alternativos")
+CAD_EXTRAS_CB_OPCIONAIS_KEYS = ("codigos_barras_opcionais", "codigos_barras_alternativos")
+_CAD_EXTRAS_CB_OPCIONAIS_KEYS = CAD_EXTRAS_CB_OPCIONAIS_KEYS
 _MIN_CB_OPCIONAL = 8
 _MAX_CB_OPCIONAL = 20
 _MAX_CB_OPCIONAIS_LIST = 20
@@ -393,11 +394,15 @@ def codigos_barras_opcionais_de_cadastro_extras(cadastro_extras: dict | None) ->
     """Barras alternativas do mesmo produto (overlay ``cadastro_extras``)."""
     if not isinstance(cadastro_extras, dict):
         return []
-    raw: Any = None
+    raw: list[Any] = []
     for k in _CAD_EXTRAS_CB_OPCIONAIS_KEYS:
-        if k in cadastro_extras:
-            raw = cadastro_extras.get(k)
-            break
+        if k not in cadastro_extras:
+            continue
+        v = cadastro_extras.get(k)
+        if isinstance(v, (list, tuple)):
+            raw.extend(v)
+        elif v not in (None, ""):
+            raw.append(v)
     return normalizar_codigos_barras_opcionais(raw)
 
 

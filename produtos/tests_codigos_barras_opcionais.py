@@ -9,6 +9,7 @@ from django.test import SimpleTestCase
 from produtos.cadastro_busca_codigo_util import (
     index_codigos_de_campos,
     overlay_pids_por_codigo,
+    q_overlay_json_barras_opcionais,
     termo_bate_codigos_produto,
 )
 from produtos.mongo_index_codigos import (
@@ -38,6 +39,16 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
     def test_extras_de_cadastro(self):
         ce = {"codigos_barras_opcionais": ["7893333333333", "abc"]}
         self.assertEqual(codigos_barras_opcionais_de_cadastro_extras(ce), ["7893333333333"])
+
+    def test_extras_mescla_alias_quando_lista_vazia(self):
+        ce = {
+            "codigos_barras_opcionais": [],
+            "codigos_barras_alternativos": ["7893333333333"],
+        }
+        self.assertEqual(
+            codigos_barras_opcionais_de_cadastro_extras(ce),
+            ["7893333333333"],
+        )
 
     def test_mesclar_adicionar_nao_apaga_existentes(self):
         ce = {"codigos_barras_opcionais": ["7891111111111"]}
@@ -146,3 +157,33 @@ class NormalizarCbOpcionaisTests(SimpleTestCase):
             self.assertIn(pid, found)
             found_p = overlay_pids_por_codigo(principal)
             self.assertIn(pid, found_p)
+
+    def test_extras_q_overlay_duas_chaves_e_minimo_8(self):
+        self.assertIsNone(q_overlay_json_barras_opcionais("1234567"))
+        q = q_overlay_json_barras_opcionais("7896000000099")
+        s = str(q)
+        self.assertIn("codigos_barras_opcionais", s)
+        self.assertIn("codigos_barras_alternativos", s)
+
+    def test_overlay_pids_q_inclui_duas_chaves(self):
+        pid = "AGRO-TEST-CB-OPC-Q"
+        opcional = "7896000000099"
+        ov = SimpleNamespace(
+            produto_externo_id=pid,
+            codigo_nfe="",
+            codigo_barras="7896000000001",
+            cadastro_extras={"codigos_barras_alternativos": [opcional]},
+        )
+
+        class _Sliceable:
+            def __getitem__(self, _sl):
+                return [ov]
+
+        with patch("produtos.models.ProdutoGestaoOverlayAgro") as M:
+            M.objects.filter.return_value.only.return_value = _Sliceable()
+            found = overlay_pids_por_codigo(opcional)
+            self.assertIn(pid, found)
+            q = M.objects.filter.call_args_list[0][0][0]
+            s = str(q)
+            self.assertIn("codigos_barras_opcionais", s)
+            self.assertIn("codigos_barras_alternativos", s)

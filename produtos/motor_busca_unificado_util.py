@@ -297,7 +297,7 @@ def buscar_documentos_unificado(
         except Exception:
             logger.warning("motor_busca_unificado: buscar Postgres falhou", exc_info=True)
 
-    from produtos.cadastro_busca_codigo_util import gm_base_familia
+    from produtos.cadastro_busca_codigo_util import gm_base_familia, parece_codigo_cadastro
 
     # Família GM: NÃO pular Mongo só porque o PG trouxe 1 item (ex. GM0024-1 no PG
     # e GM0024-10/15 só no Mongo sem index — loja via agro_pg). Sempre complementar.
@@ -313,8 +313,10 @@ def buscar_documentos_unificado(
     if _familia_gm:
         _pg_suficiente = False
     if skip_mongo_complemento and usa_pg and not _familia_gm:
-        _pg_suficiente = True
-        mongo_docs = []
+        # Bip 8+ dígitos sem hit no PG: deixa o Mongo complementar (barra extra / legado).
+        if pg_docs or not parece_codigo_cadastro(termo):
+            _pg_suficiente = True
+            mongo_docs = []
     if db is not None and client is not None and not somente_pg and not _pg_suficiente:
         try:
             from produtos.views import (
