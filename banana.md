@@ -1237,6 +1237,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto · aguarda senha** — lojas abertas: **não** push `producao` neste chat |
+| **Branch** | `deploy/lote-checklist-2508` @ **`efdde0b`** · tip badge **v18.14** |
+| **Base loja** | `origin/producao` @ **`5e7c284`** (Live **v18.02**) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2508-v18.02` @ **`5e7c284`** + frase + senha |
+| **Migrate** | **NÃO** (nenhum dos 8) |
+| **Método** | cherry-pick dos 8 pacotes sobre `producao` (sem merge `teste`) · `SKIP_VERSION_BUMP` + bump final **18.14** |
+| **Provas (deploy)** | `manage.py check` OK · overlay **13/13** · OUTRO **30/30** · CP novo **47/47** · ajuste CB **13/13** · Django **32/32** (MP Point + códigos barras + ajuste) · `node --check` JS OK |
+| **Risco loja aberta** | **Médio** — toca `pdv_wizard.js` / Point / overlays / Outro / desconto. CP / ajuste CB / cadastro / via entrega = menor. Pausar vendas no próximo chat antes do FF |
+| **Próximo chat** | Pausar vendas → frase explícita + senha **`99738595`** → FF `deploy/lote-checklist-2508` → `producao` → push loja |
+| **Pacotes (8)** | MP-POINT-FINAL-ORFAO · OVERLAY-FUNDO-BOTAO · PDV-DESC-FINAL · AJUSTE-CB-PENDENTE-CADASTRO · CP-NOVO-EMPRESTIMO · PDV-OUTRO-BAIXA · CAD-CB-OPC-BUSCA · ENT-VIA-PAG-FAIXA |
+| **Fora do lote** | CAD-XLSX-ULT-FORN / CAIXA-DEVOL (já Live) · `c510ab8` repasse verify (só docs/`teste`) |
+
 ### ✅ Live — Reserva no lucro do repasse (`REPASSE-RESERVA-LUCRO`) · migrate **0097**
 
 | Campo | Valor |
@@ -1291,19 +1307,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — alinha backend ao que a tela já mostrava |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**)
+### ✅ PACOTE ENVIADO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.02** · path revisado **24/08** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.02** — cherry-pick só deste pacote (não a fila do `teste`) · **24/08** |
 | **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
 | **Import** | Excel ↑ **ignora** essas colunas |
 | **Onde** | `cadastro_planilha_util.py` · `compras_ultimas_compras_util.py` · `views.py` · `cadastro_erp_panel.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `tests_cadastro_planilha_cols` **23/23 OK** (ordem/dedupe/ignora NF incompleta + export gated) |
+| **Prova** | `tests_cadastro_planilha_cols` **23/23 OK** |
 | **Você** | Ctrl+F5 `/produtos/cadastro-erp/` · Excel ↓ · marcar as 3 colunas · baixar |
 | **Risco** | Baixo — só export; enrich só se colunas marcadas |
-| **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
+| **Checkpoint** | tag `rollback/pre-cad-xlsx-ult-forn-v17.84` → SHA `da7c1cb` (Live v17.84) |
+| **Backup** | `producao-backup-pre-v1802-cad-xlsx-ult-forn-20260824` |
+| **Doc** | `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md` |
 
 ### 📦 PACOTE PRONTO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**)
 
@@ -1346,21 +1364,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Outro no wizard |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ CHECKLIST ÚNICO — ainda falta subir (loja Live **v17.84**)
+### ✅ CHECKLIST ÚNICO — enviado produção (24/08 · loja **v18.02**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **MP-POINT-FINAL-ORFAO** | 🟡 **pronto para envio à produção** · **v18.12** · bug #4 | **NÃO** |
-| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **pronto para envio à produção** · **v18.11** | **NÃO** |
-| 3 | **PDV-DESC-FINAL** | 🟡 **pronto para envio à produção** · **v18.09** · bug #3 | **NÃO** |
-| 4 | **CAD-XLSX-ULT-FORN** | 🟡 **pronto para envio à produção** · **v18.02** | **NÃO** |
-| 5 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **pronto para envio à produção** · **v18.01** | **NÃO** |
-| 6 | **CP-NOVO-EMPRESTIMO** | 🟡 **pronto para envio à produção** · **v18.14** | **NÃO** |
-| 7 | **PDV-OUTRO-BAIXA** | 🟡 **pronto para envio à produção** · **v17.89** | **NÃO** |
-| 8 | **CAD-CB-OPC-BUSCA** | 🟡 **pronto para envio à produção** · **v17.85** | **NÃO** |
-| 9 | **ENT-VIA-PAG-FAIXA** | 🟡 **pronto para envio à produção** · **v17.87** | **NÃO** |
+| 1 | **CAD-XLSX-ULT-FORN** | ✅ **enviado / Live v18.02** | **NÃO** |
+| 2 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **Live v17.84** (permanece) | **NÃO** |
 
-> Loja: ✅ **Live v17.84**. **REPASSE-RESERVA-LUCRO** já Live (fora da fila). Sem migrate nesta fila. **Não** sobe sem frase + senha.
+> Loja Live **v18.02**. Demais da fila `teste` **não** subiram.
+
+### ✅ CHECKLIST ÚNICO — ainda falta subir (loja Live **v18.02** → PREP **v18.14**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **MP-POINT-FINAL-ORFAO** | 🟡 **PREP no lote 2508** · **v18.12** · bug #4 | **NÃO** |
+| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **PREP no lote 2508** · **v18.11** | **NÃO** |
+| 3 | **PDV-DESC-FINAL** | 🟡 **PREP no lote 2508** · **v18.09** · bug #3 | **NÃO** |
+| 4 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **PREP no lote 2508** · **v18.01** | **NÃO** |
+| 5 | **CP-NOVO-EMPRESTIMO** | 🟡 **PREP no lote 2508** · **v18.14** | **NÃO** |
+| 6 | **PDV-OUTRO-BAIXA** | 🟡 **PREP no lote 2508** · **v17.89** | **NÃO** |
+| 7 | **CAD-CB-OPC-BUSCA** | 🟡 **PREP no lote 2508** · **v17.85** | **NÃO** |
+| 8 | **ENT-VIA-PAG-FAIXA** | 🟡 **PREP no lote 2508** · **v17.87** | **NÃO** |
+
+> Loja ainda **Live v18.02**. Branch `deploy/lote-checklist-2508` @ **`efdde0b`** pronta. Sem migrate. **Não** sobe sem frase + senha (próximo chat · lojas pausadas).
 
 ### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
 
