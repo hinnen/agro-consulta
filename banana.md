@@ -1248,6 +1248,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | Ctrl+F5 · muda preço · PAGAR · escolhe Dinheiro/Débito/Pix → **RESTA PAGAR** = valor editado |
 | **Produção** | **não** — aguarda frase + senha |
 
+### 🟡 WIP — Novo empréstimo CP · ajuda «?» (**v18.20**) · 25/08
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Texto longo sob Gerar parcelas → botão **«?»** (igual padrão Nova saída). Aviso laranja de juros continua. |
+| **Onde** | `lancamento_novo_emprestimo_modal.html` |
+| **Branch** | `teste` · badge **v18.20** |
+| **Você** | Ctrl+F5 CP → Novo empréstimo → clica **?** ao lado de Gerar parcelas |
+| **Produção** | **não** |
+
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
 
 | Campo | Valor |
