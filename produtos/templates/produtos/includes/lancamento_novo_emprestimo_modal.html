@@ -1,5 +1,6 @@
 {% load static %}
 {# Modal «Novo empréstimo» — Contas a pagar: Externo/Interno → formulário entrada + dívida. #}
+{% include "produtos/includes/agro_date_picker_styles.html" %}
 <div id="agro-ne-overlay"
      class="hidden fixed inset-0 z-[260] flex flex-col bg-slate-900/60 backdrop-blur-sm"
      role="dialog" aria-modal="true" aria-labelledby="agro-ne-titulo" aria-hidden="true">
@@ -69,11 +70,11 @@
           </label>
           <label class="block">
             <span class="mb-2 block text-base font-black uppercase text-slate-600">Data da entrada *</span>
-            <input type="date" id="ne-data-entrada" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+            <input type="date" id="ne-data-entrada" required class="agro-date-picker w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
           </label>
           <label class="block">
             <span class="mb-2 block text-base font-black uppercase text-slate-600">1º vencimento *</span>
-            <input type="date" id="ne-primeiro-ven" required class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
+            <input type="date" id="ne-primeiro-ven" required class="agro-date-picker w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-bold">
           </label>
         </div>
 
@@ -167,12 +168,18 @@
     text-align: left; max-width: 14rem;
   }
 </style>
+<script src="{% static 'produtos/js/agro_date_picker.js' %}"></script>
 <script>
 (function () {
   const API_SUG = "{% url 'api_lancamentos_sugestoes' %}";
   const API_CRIAR = "{% url 'api_emprestimos_criar' %}";
   const overlay = document.getElementById('agro-ne-overlay');
   if (!overlay) return;
+
+  function bindNeDatePickers() {
+    if (!window.AgroDatePicker || typeof window.AgroDatePicker.bind !== 'function') return;
+    window.AgroDatePicker.bind(overlay, { accent: '#4f46e5', accentSoft: '#eef2ff' });
+  }
 
   function getCookie(name) {
     const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
@@ -315,7 +322,7 @@
       const dv = vencimentoParcela(dv0, i, intD);
       return '<tr>' +
         '<td class="px-3 py-2 font-black text-slate-600">' + (i + 1) + '</td>' +
-        '<td class="px-3 py-2"><input type="date" class="ne-parc-dv w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 py-1 font-bold" value="' + dv + '"></td>' +
+        '<td class="px-3 py-2"><input type="date" class="ne-parc-dv agro-date-picker w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 py-1 font-bold" value="' + dv + '"></td>' +
         '<td class="px-3 py-2 text-right">' +
         '<input type="text" inputmode="decimal" class="ne-parc-val w-full min-h-[44px] rounded-lg border-2 border-slate-200 px-2 py-1 font-black text-right tabular-nums" value="' + formatValorBr(val) + '">' +
         htmlComposicao(val) +
@@ -323,6 +330,7 @@
     }).join('');
     preview.classList.remove('hidden');
     syncJurosHint();
+    bindNeDatePickers();
     tbody.querySelectorAll('.ne-parc-val').forEach(function (el) {
       el.addEventListener('input', function () {
         const td = el.closest('td');
@@ -419,6 +427,7 @@
     form.classList.remove('hidden');
     form.classList.add('flex');
     subtitulo.textContent = variante === 'interno' ? 'Interno — entrada + dívida' : 'Externo — entrada + dívida';
+    bindNeDatePickers();
   }
 
   function attachSuggest(wrap) {

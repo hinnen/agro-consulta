@@ -1237,6 +1237,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🟡 WIP — PDV preço digitado some ao pagar (`PDV-PRECO-MANUAL-FORMA` · **v18.17**) · 25/08
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Edita preço no carrinho (ex. 25→32) · na tela «como vai pagar?» ainda 32 · ao escolher **qualquer** forma → volta ao preço de lista |
+| **Causa** | `preco_pos_promo` antigo; ao escolher forma o recalc **restaurava** esse cache em cima do digitado |
+| **Fix** | `pdv_state` / `pdv_promocoes` / `pdv_campanha` — digitado manda; cache alinhado; campanha não sobrescreve |
+| **Branch** | `teste` · badge **v18.17** |
+| **Prova** | Ctrl+F5 · muda preço · PAGAR · escolhe Dinheiro/Débito/Pix → **RESTA PAGAR** = valor editado |
+| **Produção** | **não** — aguarda frase + senha |
+
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
 
 | Campo | Valor |
