@@ -617,7 +617,11 @@
             return Object.assign({}, item, {
                 preco: p,
                 preco_manual: true,
-                preco_grupo_preview: ''
+                preco_grupo_preview: '',
+                /* Alinha cache da campanha ao digitado — senão ao escolher forma
+                   o recalc restaurava preco_pos_promo antigo (lista). */
+                preco_pos_promo: p,
+                preco_base_forma: p
             });
         });
         notify();

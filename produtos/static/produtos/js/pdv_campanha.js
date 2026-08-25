@@ -110,6 +110,14 @@
         var f = fator();
         itens.forEach(function (item) {
             if (!item) return;
+            /* Preço digitado no carrinho não entra na campanha. */
+            if (item.preco_manual) {
+                item.preco_pos_promo = toNum(item.preco, 0);
+                delete item.campanha_id;
+                delete item.campanha_pct;
+                delete item.campanha_usou;
+                return;
+            }
             var aposPromo = toNum(item.preco, 0);
             /* Só reusa cache se o recalc de promo NÃO rodou (ainda tem campanha_id).
                Promo apaga campanha_id antes de chamar de novo. */
@@ -147,6 +155,7 @@
 
     function precoEnvioItem(item) {
         if (!item) return 0;
+        if (item.preco_manual) return toNum(item.preco, 0);
         if (ativa() && item.preco_pos_promo != null) {
             return toNum(item.preco_pos_promo, toNum(item.preco, 0));
         }
