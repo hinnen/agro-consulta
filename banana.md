@@ -1237,21 +1237,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**)
+### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto · aguarda senha** — lojas abertas: **não** push `producao` neste chat |
-| **Branch** | `deploy/lote-checklist-2508` @ **`efdde0b`** · tip badge **v18.14** |
-| **Base loja** | `origin/producao` @ **`5e7c284`** (Live **v18.02**) |
-| **Rollback** | tag `rollback/pre-lote-checklist-2508-v18.02` @ **`5e7c284`** + frase + senha |
-| **Migrate** | **NÃO** (nenhum dos 8) |
-| **Método** | cherry-pick dos 8 pacotes sobre `producao` (sem merge `teste`) · `SKIP_VERSION_BUMP` + bump final **18.14** |
-| **Provas (deploy)** | `manage.py check` OK · overlay **13/13** · OUTRO **30/30** · CP novo **47/47** · ajuste CB **13/13** · Django **32/32** (MP Point + códigos barras + ajuste) · `node --check` JS OK |
-| **Risco loja aberta** | **Médio** — toca `pdv_wizard.js` / Point / overlays / Outro / desconto. CP / ajuste CB / cadastro / via entrega = menor. Pausar vendas no próximo chat antes do FF |
-| **Próximo chat** | Pausar vendas → frase explícita + senha **`99738595`** → FF `deploy/lote-checklist-2508` → `producao` → push loja |
+| **Status** | ✅ **enviado / Live v18.14** — FF `efdde0b` → `producao` · senha nesta mensagem |
+| **Live** | `origin/producao` @ **`efdde0b`** · badge **v18.14** |
+| **Antes** | `5e7c284` (Live **v18.02**) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2508-v18.02` @ **`5e7c284`** · branch `producao-backup-pre-v1814-lote-checklist-20260825` · **só** com frase + senha |
+| **Migrate** | **NÃO** |
 | **Pacotes (8)** | MP-POINT-FINAL-ORFAO · OVERLAY-FUNDO-BOTAO · PDV-DESC-FINAL · AJUSTE-CB-PENDENTE-CADASTRO · CP-NOVO-EMPRESTIMO · PDV-OUTRO-BAIXA · CAD-CB-OPC-BUSCA · ENT-VIA-PAG-FAIXA |
-| **Fora do lote** | CAD-XLSX-ULT-FORN / CAIXA-DEVOL (já Live) · `c510ab8` repasse verify (só docs/`teste`) |
+| **Você** | Ctrl+F5 · badge **v18.14** · smoke: PDV (desconto / Outro / Point) · overlay fundo · CP Novo empréstimo · ajuste CB Feito · bip secundário · via entrega |
 
 ### ✅ Live — Reserva no lucro do repasse (`REPASSE-RESERVA-LUCRO`) · migrate **0097**
 
@@ -1264,11 +1260,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 > **Não** entra na fila 🟡 abaixo — já na loja.
 
-### 📦 PACOTE PRONTO — MP Point finalizar órfão (`MP-POINT-FINAL-ORFAO` · **v18.12** · tip **v18.13**) · bug loja #4
+### ✅ PACOTE ENVIADO — MP Point finalizar órfão (`MP-POINT-FINAL-ORFAO` · **v18.12**) · bug #4 · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge tip **v18.13** (fix @ **v18.12**) · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **Bug** | Cartão Point **já pago** na sessão; operador tenta outra forma → bloqueio · só PIN gerencial · venda não fecha pelo caminho certo |
 | **O quê** | Bloqueio devolve `order_id` + `pode_finalizar`. Se pago → confirmação **«Finalizar venda do cartão»** (registra no sistema). **Não / PIN** = emergência gerencial |
 | **Onde** | `views_mp_point.py` · `views.py` (enviar ERP) · `pdv_wizard.js` · `tests_mp_point_pin_forcar.py` |
@@ -1278,11 +1274,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Médio-baixo — só path bloqueio Point; PIN continua |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.11**)
+### ✅ PACOTE ENVIADO — Overlay fundo só botão (`OVERLAY-FUNDO-BOTAO` · **v18.11**) · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.11** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **O quê** | Clique no **fundo escuro** dos modais **não fecha**. Fecha só com **X / FECHAR / CANCELAR** ou **Esc**. |
 | **Por quê** | Clique acidental (ex. setas laterais no Editar Produto) perdia o trabalho |
 | **Onde** | Templates/JS: PDV, consulta, cadastro ERP, gestão, caixa export, empréstimos, mobile (cíclica), + telas já com marcador |
@@ -1293,11 +1289,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só dismiss de overlay |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — PDV desconto na finalização (`PDV-DESC-FINAL` · **v18.09**) · bug loja #3
+### ✅ PACOTE ENVIADO — PDV desconto na finalização (`PDV-DESC-FINAL` · **v18.09**) · bug #3 · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.09** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **Relato** | Queila · Caixa Centro · 16/08 · desconto ok na tela · ao finalizar volta valor cheio |
 | **Causa** | UI/MP Point usavam `desconto_geral`; Pedidos (`valorFinal`) e `VendaAgro.total` somavam só itens (+ frete) e **ignoravam** o desconto |
 | **O quê** | Helper `_pdv_aplicar_desconto_e_frete` · `valor_final` e total Agro com desconto+frete · MP Point não reaplica (evita dobro) |
@@ -1323,11 +1319,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Backup** | `producao-backup-pre-v1802-cad-xlsx-ult-forn-20260824` |
 | **Doc** | `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md` |
 
-### 📦 PACOTE PRONTO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**)
+### ✅ PACOTE ENVIADO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**) · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.01** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **Bug** | Aceitar (**Feito**) na lista de códigos pendentes **só** mudava status na fila — **não** gravava o bipado no cadastro |
 | **O quê** | **Feito** → grava bipado em `codigos_barras_opcionais` do overlay · index Mongo · limpa cache PDV. Aba **Feitos**: botão **Gravar no cadastro** (reaplica itens antigos). Código com menos de 8 dígitos → erro, não marca Feito |
 | **Onde** | `ajuste_codigo_pendente_views.py` · `ajuste_codigos_pendentes_lista.html` · `tests_ajuste_codigo_pendente_cadastro.py` · `scripts/verify_ajuste_cb_pendente_cadastro_path.py` |
@@ -1337,11 +1333,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só fluxo Feito da fila; não promove a principal |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · **v17.93** · form limpo **v18.08** · parcelas+juros **v18.14**)
+### ✅ PACOTE ENVIADO — Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` · parcelas+juros **v18.14**) · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` · badge **v18.14** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **O quê** | Contas a pagar: **Novo empréstimo** → Externo/Interno → entrada + dívida. **v18.14:** **Gerar parcelas** (como Nova saída) — datas no calendário (Mensal = mesmo dia), juros = total−recebido rateado por parcela (`20,00 + 4,00`), `parcelas_manual` no create. Planos no servidor; sem conta/forma na UI. |
 | **Onde** | `lancamento_novo_emprestimo_modal.html` · `mongo_financeiro_util.py` · `views.py` · `verify_cp_novo_emprestimo_path.py` |
 | **Migrate** | **NÃO** |
@@ -1350,11 +1346,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — espelho do dual Nova saída; 1 parcela continua simples |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — PDV Outro dá baixa (`PDV-OUTRO-BAIXA` · **v17.89**) · bug loja #2
+### ✅ PACOTE ENVIADO — PDV Outro dá baixa (`PDV-OUTRO-BAIXA` · **v17.89**) · bug #2 · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7619c50** · badge **v17.89** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **O quê** | Forma **Outro**: bloco PIN+detalhe **acima** do Lançar · Confirmar **lança** Outro se PIN+detalhe ok · Lançar só libera com PIN+detalhe · chips PIN→Detalhe→Lançar→Confirmar |
 | **Causa** | Operador preenchia detalhe **abaixo** do botão e ia no Confirmar cinza; texto podia dessincronizar do state; Confirmar não auto-lançava Outro |
 | **Onde** | `step_pagamento.html` · `pdv_wizard.js` |
@@ -1371,28 +1367,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | **CAD-XLSX-ULT-FORN** | ✅ **enviado / Live v18.02** | **NÃO** |
 | 2 | **CAIXA-DEVOL-DINHEIRO-MP** | ✅ **Live v17.84** (permanece) | **NÃO** |
 
-> Loja Live **v18.02**. Demais da fila `teste` **não** subiram.
+> Loja Live **v18.02** naquele dia. Depois: lote 2508 → **v18.14** (bloco abaixo).
 
-### ✅ CHECKLIST ÚNICO — ainda falta subir (loja Live **v18.02** → PREP **v18.14**)
+### ✅ CHECKLIST ÚNICO — lote 2508 enviado (25/08 · loja **v18.14**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **MP-POINT-FINAL-ORFAO** | 🟡 **PREP no lote 2508** · **v18.12** · bug #4 | **NÃO** |
-| 2 | **OVERLAY-FUNDO-BOTAO** | 🟡 **PREP no lote 2508** · **v18.11** | **NÃO** |
-| 3 | **PDV-DESC-FINAL** | 🟡 **PREP no lote 2508** · **v18.09** · bug #3 | **NÃO** |
-| 4 | **AJUSTE-CB-PENDENTE-CADASTRO** | 🟡 **PREP no lote 2508** · **v18.01** | **NÃO** |
-| 5 | **CP-NOVO-EMPRESTIMO** | 🟡 **PREP no lote 2508** · **v18.14** | **NÃO** |
-| 6 | **PDV-OUTRO-BAIXA** | 🟡 **PREP no lote 2508** · **v17.89** | **NÃO** |
-| 7 | **CAD-CB-OPC-BUSCA** | 🟡 **PREP no lote 2508** · **v17.85** | **NÃO** |
-| 8 | **ENT-VIA-PAG-FAIXA** | 🟡 **PREP no lote 2508** · **v17.87** | **NÃO** |
+| 1 | **MP-POINT-FINAL-ORFAO** | ✅ **Live v18.14** · bug #4 | **NÃO** |
+| 2 | **OVERLAY-FUNDO-BOTAO** | ✅ **Live v18.14** | **NÃO** |
+| 3 | **PDV-DESC-FINAL** | ✅ **Live v18.14** · bug #3 | **NÃO** |
+| 4 | **AJUSTE-CB-PENDENTE-CADASTRO** | ✅ **Live v18.14** | **NÃO** |
+| 5 | **CP-NOVO-EMPRESTIMO** | ✅ **Live v18.14** | **NÃO** |
+| 6 | **PDV-OUTRO-BAIXA** | ✅ **Live v18.14** · bug #2 | **NÃO** |
+| 7 | **CAD-CB-OPC-BUSCA** | ✅ **Live v18.14** | **NÃO** |
+| 8 | **ENT-VIA-PAG-FAIXA** | ✅ **Live v18.14** | **NÃO** |
 
-> Loja ainda **Live v18.02**. Branch `deploy/lote-checklist-2508` @ **`efdde0b`** pronta. Sem migrate. **Não** sobe sem frase + senha (próximo chat · lojas pausadas).
+> Loja **Live v18.14** @ **`efdde0b`**. Rollback: tag `rollback/pre-lote-checklist-2508-v18.02` / branch backup `producao-backup-pre-v1814-lote-checklist-20260825`.
 
-### 📦 PACOTE PRONTO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**)
+### ✅ PACOTE ENVIADO — Via entregador PAGO / TROCO / MÁQUINA (`ENT-VIA-PAG-FAIXA` · **v17.87**) · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **2757169** · badge **v17.87** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **O quê** | Na via do **entregador**, faixa grande (nível do nome): **PAGO** · **LEVAR TROCO** (+ R$) · **LEVAR MÁQUINA** |
 | **Quando** | Pago na loja → só PAGO. Dinheiro+troco → LEVAR TROCO. Cartão na entrega → LEVAR MÁQUINA |
 | **Onde** | `entregas_painel.html` · `pdv_wizard.js` (print + flags no payload) |
@@ -1402,11 +1398,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — só impressão / texto da via |
 | **Rollback** | `git revert 2757169` no `teste` (antes da loja) |
 
-### 📦 PACOTE PRONTO — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**)
+### ✅ PACOTE ENVIADO — barras secundárias na busca (`CAD-CB-OPC-BUSCA` · **v17.85**) · **Live v18.14**
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | 🟡 **pronto para envio à produção** — `teste` @ **7faadd0** · badge **v17.85** · **não** sobe loja sem frase + senha |
+| **Status** | ✅ **enviado / Live v18.14** (lote 2508 · 25/08) |
 | **O quê** | Bip de barra **secundária** (opcional / alias) acha o produto no PDV, Entrada NF e `/api/buscar/` |
 | **Por quê** | Overlay PG não olhava o JSON certo; `agro_pg` pulava o Mongo com lista vazia; PDV/NF só casavam o EAN principal |
 | **Onde** | `cadastro_busca_codigo_util.py` · `mongo_index_codigos.py` · `motor_busca_unificado_util.py` · `pdv_wizard.js` · `entrada_nota.html` |
