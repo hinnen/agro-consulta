@@ -653,7 +653,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.14 · cal. Agro v18.17):** botão ao lado de Nova saída → Externo/Interno. **Parcelas:** Gerar parcelas + datas calendário + juros rateados (total−recebido), igual Nova saída. **Datas:** AgroDatePicker (não nativo). Planos no servidor; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `parcelas_manual`.
+- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.14 · cal. Agro v18.17 · ajuda «?» v18.20 · grade 2 col. v18.21):** botão ao lado de Nova saída → Externo/Interno. **Parcelas:** Gerar parcelas + datas calendário + juros rateados (total−recebido), igual Nova saída; preview em **2 colunas** (1\|2 · 3\|4…). **Datas:** AgroDatePicker (não nativo). Ajuda mensal/juros no **«?»**. Planos no servidor; conta vazia → ADICIONAR CONTA. API `api_emprestimos_criar` + `parcelas_manual`.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1248,14 +1248,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | Ctrl+F5 · muda preço · PAGAR · escolhe Dinheiro/Débito/Pix → **RESTA PAGAR** = valor editado |
 | **Produção** | **não** — aguarda frase + senha |
 
-### 🟡 WIP — Novo empréstimo CP · ajuda «?» (**v18.20**) · 25/08
+### 🟡 WIP — Novo empréstimo CP · parcelas 2 colunas (**v18.21**) · 25/08
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Texto longo sob Gerar parcelas → botão **«?»** (igual padrão Nova saída). Aviso laranja de juros continua. |
+| **O quê** | Lista Gerar parcelas em **2 colunas** (1\|2 · 3\|4…) — menos scroll. Ajuda «?» já em v18.20. |
 | **Onde** | `lancamento_novo_emprestimo_modal.html` |
-| **Branch** | `teste` · badge **v18.20** |
-| **Você** | Ctrl+F5 CP → Novo empréstimo → clica **?** ao lado de Gerar parcelas |
+| **Branch** | `teste` · badge **v18.21** |
+| **Você** | Ctrl+F5 CP → Novo empréstimo → Gerar parcelas → confere grade lado a lado |
 | **Produção** | **não** |
 
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
