@@ -1237,26 +1237,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🟡 WIP — PDV preço digitado some ao pagar (`PDV-PRECO-MANUAL-FORMA` · **v18.18**) · 25/08
+### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.23** · 25/08
+
+| Pacote | Badge | O quê (loja) |
+| ------ | ----- | ------------ |
+| `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma |
+| `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
+| `CP-NOVO-EMPRESTIMO` | **v18.23** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · **parcelas montam sozinhas** (Nº / intervalo / 1º ven / total) |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Bug** | Edita preço no carrinho (ex. 25→32) · na tela «como vai pagar?» ainda 32 · ao escolher **qualquer** forma → volta ao preço de lista |
-| **Causa** | `preco_pos_promo` antigo; ao escolher forma o recalc **restaurava** esse cache em cima do digitado |
-| **Fix** | `pdv_state` / `pdv_promocoes` / `pdv_campanha` — digitado manda; cache alinhado; campanha não sobrescreve |
-| **Branch** | `teste` · badge **v18.18** |
-| **Prova** | Ctrl+F5 · muda preço · PAGAR · escolhe Dinheiro/Débito/Pix → **RESTA PAGAR** = valor editado |
+| **Branch** | `teste` · verify path CP **50/50** |
+| **Live hoje** | `origin/producao` @ **v18.14** / `efdde0b` |
 | **Produção** | **não** — aguarda frase + senha |
 
-### 🟡 WIP — Novo empréstimo CP · sem campo Grupo (**v18.22**) · 25/08
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 25/08
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Tirou **Grupo (opcional)** do modal. Parcelas 2 colunas = v18.21. |
-| **Onde** | `lancamento_novo_emprestimo_modal.html` |
-| **Branch** | `teste` · badge **v18.22** |
-| **Você** | Ctrl+F5 CP → Novo empréstimo → confere: sem campo Grupo |
-| **Produção** | **não** |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio |
+| 2 | `REPASSE-UX` | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` (até v18.23) | 🟢 pronto envio |
+
+**Você (local):** Ctrl+F5 · badge **v18.23** · smoke: PDV preço+forma · Repasse · CP Novo empréstimo (digita Nº parcelas → lista sozinha).
 
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
 

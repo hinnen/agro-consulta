@@ -96,11 +96,12 @@
             </label>
             <button type="button" id="ne-gerar-parcelas"
                     class="min-h-[52px] shrink-0 rounded-xl border-2 border-indigo-600 bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-base font-black uppercase tracking-wide text-white shadow-sm">
-              Gerar parcelas
+              Atualizar lista
             </button>
             <details class="ne-parc-ajuda shrink-0 self-end mb-1">
               <summary class="ne-parc-ajuda-btn" title="Ajuda — parcelas e juros" aria-label="Ajuda parcelas">?</summary>
               <div class="ne-parc-ajuda-panel">
+                <p><strong>Nº parcelas</strong> monta a lista sozinha (também ao mudar intervalo, 1º vencimento ou total).</p>
                 <p><strong>1º vencimento</strong> = campo acima.</p>
                 <p><strong>Mensal</strong> = mesmo dia no mês (24/08 → 24/09).</p>
                 <p><strong>Juros</strong> = total a pagar − valor recebido, rateado em cada parcela (como na Nova saída).</p>
@@ -318,7 +319,9 @@
     if (grid) grid.innerHTML = '';
   }
 
-  function gerarParcelasPreview() {
+  function gerarParcelasPreview(opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     const preview = document.getElementById('ne-parc-preview');
     const grid = document.getElementById('ne-parc-grid');
     if (!preview || !grid) return false;
@@ -330,12 +333,16 @@
     }
     const tot = parseValorBr(document.getElementById('ne-valor-tot')?.value);
     if (tot == null || tot <= 0) {
-      showMsg('Informe o total a pagar antes de gerar as parcelas.', false);
+      limparPreviewParcelas();
+      syncJurosHint();
+      if (!silent) showMsg('Informe o total a pagar antes de gerar as parcelas.', false);
       return false;
     }
     const dv0 = document.getElementById('ne-primeiro-ven')?.value || '';
     if (!dv0) {
-      showMsg('Informe o 1º vencimento.', false);
+      limparPreviewParcelas();
+      syncJurosHint();
+      if (!silent) showMsg('Informe o 1º vencimento.', false);
       return false;
     }
     const intD = parseInt(document.getElementById('ne-intervalo')?.value, 10) || 30;
@@ -363,8 +370,16 @@
         if (html) wrap.insertAdjacentHTML('beforeend', html);
       });
     });
-    preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!silent) preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return true;
+  }
+
+  let neParcAutoTimer = null;
+  function agendarParcelasAuto() {
+    clearTimeout(neParcAutoTimer);
+    neParcAutoTimer = setTimeout(function () {
+      gerarParcelasPreview({ silent: true });
+    }, 180);
   }
 
   function coletarParcelasManual() {
@@ -520,12 +535,23 @@
 
   ['ne-valor-rec', 'ne-valor-tot'].forEach(function (id) {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', syncJurosHint);
+    if (el) el.addEventListener('input', function () {
+      syncJurosHint();
+      if (id === 'ne-valor-tot') agendarParcelasAuto();
+    });
   });
   const elParc = document.getElementById('ne-parcelas');
-  if (elParc) elParc.addEventListener('change', function () {
-    if ((parseInt(elParc.value, 10) || 1) <= 1) limparPreviewParcelas();
-  });
+  if (elParc) {
+    elParc.addEventListener('input', agendarParcelasAuto);
+    elParc.addEventListener('change', agendarParcelasAuto);
+  }
+  const elInt = document.getElementById('ne-intervalo');
+  if (elInt) elInt.addEventListener('change', agendarParcelasAuto);
+  const elPrimVen = document.getElementById('ne-primeiro-ven');
+  if (elPrimVen) {
+    elPrimVen.addEventListener('change', agendarParcelasAuto);
+    elPrimVen.addEventListener('input', agendarParcelasAuto);
+  }
 
   overlay.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
@@ -546,7 +572,7 @@
         parcelasManual = coletarParcelasManual();
       }
       if (!parcelasManual) {
-        showMsg('Clique em Gerar parcelas e confira vencimentos e valores.', false);
+        showMsg('Preencha total a pagar e 1º vencimento — as parcelas montam sozinhas. Confira vencimentos e valores.', false);
         return;
       }
     }
