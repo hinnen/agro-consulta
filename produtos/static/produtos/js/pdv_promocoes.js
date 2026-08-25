@@ -277,10 +277,9 @@
             if (item.preco_manual) {
                 item.promocao = getPromoDoItem(item);
                 limparAlocPromo(item);
-                /* restaura base antes da campanha p/ não descontar 2× no recalc */
-                if (item.preco_pos_promo != null) {
-                    item.preco = toNum(item.preco_pos_promo, item.preco);
-                }
+                /* Preço digitado manda — NÃO restaurar preco_pos_promo (cache antigo
+                   da campanha/lista, ex. 25 após editar para 32). */
+                item.preco_pos_promo = toNum(item.preco, 0);
                 item.preco_base_forma = toNum(item.preco, 0);
                 return;
             }
@@ -414,9 +413,8 @@
         if (item.preco_manual) {
             item.promocao = getPromoDoItem(item);
             limparAlocPromo(item);
-            if (item.preco_pos_promo != null) {
-                item.preco = toNum(item.preco_pos_promo, item.preco);
-            }
+            /* Digitado manda — sincroniza cache; campanha não sobrescreve. */
+            item.preco_pos_promo = toNum(item.preco, 0);
             item.preco_base_forma = toNum(item.preco, 0);
             if (global.AgroPdvCampanha && global.AgroPdvCampanha.aplicarNosItens) {
                 global.AgroPdvCampanha.aplicarNosItens([item]);
