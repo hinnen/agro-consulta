@@ -162,6 +162,9 @@ def main() -> int:
     check("modal calendário mensal", "addMesesIso" in txt_m and "vencimentoParcela" in txt_m)
     check("modal envia parcelas_manual", "parcelas_manual" in txt_m)
     check("modal sem campo juros avulso", "ne-valor-juros" not in txt_m)
+    check("modal sem campo Grupo", "ne-grupo" not in txt_m and "Grupo (opcional)" not in txt_m)
+    check("modal auto parcelas", "agendarParcelasAuto" in txt_m and "silent: true" in txt_m)
+    check("modal grade 2 colunas", "ne-parc-grid" in txt_m)
     check(
         "vencimento calendário 30d",
         callable(getattr(mfu, "_fin_vencimento_parcela", None)),
