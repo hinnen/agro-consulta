@@ -1248,14 +1248,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | Ctrl+F5 · muda preço · PAGAR · escolhe Dinheiro/Débito/Pix → **RESTA PAGAR** = valor editado |
 | **Produção** | **não** — aguarda frase + senha |
 
-### 🟡 WIP — Novo empréstimo CP · parcelas 2 colunas (**v18.21**) · 25/08
+### 🟡 WIP — Novo empréstimo CP · sem campo Grupo (**v18.22**) · 25/08
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lista Gerar parcelas em **2 colunas** (1\|2 · 3\|4…) — menos scroll. Ajuda «?» já em v18.20. |
+| **O quê** | Tirou **Grupo (opcional)** do modal. Parcelas 2 colunas = v18.21. |
 | **Onde** | `lancamento_novo_emprestimo_modal.html` |
-| **Branch** | `teste` · badge **v18.21** |
-| **Você** | Ctrl+F5 CP → Novo empréstimo → Gerar parcelas → confere grade lado a lado |
+| **Branch** | `teste` · badge **v18.22** |
+| **Você** | Ctrl+F5 CP → Novo empréstimo → confere: sem campo Grupo |
 | **Produção** | **não** |
 
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08

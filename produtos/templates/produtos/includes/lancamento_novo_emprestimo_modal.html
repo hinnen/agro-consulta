@@ -113,17 +113,6 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <label class="block sm:col-span-2 lg:col-span-1">
-            <span class="mb-2 block text-base font-black uppercase text-slate-600">Grupo (opcional)</span>
-            <div class="relative ne-sug-wrap" data-sug-campo="grupo">
-              <input type="text" id="ne-grupo-nome" autocomplete="off" class="w-full min-h-[52px] rounded-xl border-2 border-slate-200 px-4 py-3 text-lg font-semibold focus:border-slate-400 outline-none" placeholder="Opcional">
-              <input type="hidden" id="ne-grupo-id" value="">
-              <ul class="ne-sug-dd hidden absolute left-0 right-0 top-full z-20 mt-1 bg-white border-2 border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto"></ul>
-            </div>
-          </label>
-        </div>
-
         <label class="inline-flex items-start gap-3 cursor-pointer select-none min-h-[52px]">
           <input type="checkbox" id="ne-entrada-quitada" checked class="mt-2 h-7 w-7 shrink-0 rounded border-slate-300 accent-indigo-600">
           <span class="text-lg font-bold text-slate-800 leading-snug">Entrada já quitada (dinheiro já entrou no caixa / banco)</span>
@@ -413,12 +402,11 @@
   }
 
   function resetFormFields() {
-    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot',
-     'ne-grupo-nome', 'ne-obs'].forEach(function (id) {
+    ['ne-empresa-nome', 'ne-credor-nome', 'ne-valor-rec', 'ne-valor-tot', 'ne-obs'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.value = '';
     });
-    ['ne-empresa-id', 'ne-credor-id', 'ne-grupo-id'].forEach(function (id) {
+    ['ne-empresa-id', 'ne-credor-id'].forEach(function (id) {
       var n = document.getElementById(id);
       if (n) n.value = '';
     });
@@ -584,8 +572,8 @@
       plano_entrada_id: '',
       plano_divida_nome: '',
       plano_divida_id: '',
-      grupo_nome: document.getElementById('ne-grupo-nome').value.trim(),
-      grupo_id: document.getElementById('ne-grupo-id').value.trim(),
+      grupo_nome: '',
+      grupo_id: '',
       observacao: document.getElementById('ne-obs').value.trim(),
       entrada_ja_quitada: document.getElementById('ne-entrada-quitada').checked,
       valor_juros: jTot > 0.009 ? formatValorBr(jTot) : '',
