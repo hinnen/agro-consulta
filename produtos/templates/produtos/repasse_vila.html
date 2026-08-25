@@ -233,7 +233,6 @@
             class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-rose-300 bg-white px-2 text-lg font-black tabular-nums text-rose-950" />
           <button type="button" id="rv-salvar-reserva" class="min-h-[2.5rem] shrink-0 rounded-lg border-2 border-rose-600 bg-white px-2.5 text-[0.65rem] font-black uppercase text-rose-950">Salvar</button>
         </div>
-        <p id="rv-reserva-hint" class="text-[0.65rem] font-bold text-rose-800 leading-tight mt-1">Sai do lucro antes do % · diário desde {{ reserva_desde|date:"d/m/Y" }}</p>
       </div>
       <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
     </div>
@@ -531,15 +530,6 @@
       jaTxt += ' · manual no lucro: ' + money(reservaApl) +
         ' → penúltimo ' + money(c.lucro_penultimo_dia) +
         ' → % ' + money(d.lucro);
-    }
-    var hintRes = document.getElementById('rv-reserva-hint');
-    if (hintRes) {
-      var desde = c.reserva_vila_desde || '';
-      hintRes.textContent = reservaApl > 0.009
-        ? ('Lucro ' + money(c.lucro_bruto_dia) + ' − ' + money(reservaApl) +
-           ' = penúltimo ' + money(c.lucro_penultimo_dia) +
-           ' · depois o % · desde ' + (desde ? desde.split('-').reverse().join('/') : '18/08/2026'))
-        : ('Sai do lucro antes do % · diário desde ' + (desde ? desde.split('-').reverse().join('/') : '18/08/2026'));
     }
     if (Number(c.acumulado_bruto || 0) > 0.009 && acum <= 0) {
       jaTxt += ' · acumulado já coberto por envio';

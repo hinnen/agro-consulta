@@ -1268,6 +1268,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Tela** | `/repasse-vila/` · card **Reserva Vila** · log `…/reserva-log/` |
 | **Live** | `producao` ancestral `bb4ff78` · migrate **0097** · loja ≥ **v17.84** |
 | **Prova 24/08** | path **134** · reserva **60** · deep **95** · `manage.py check` OK |
+| **UX 25/08** | Removido de novo o texto rosa sob Salvar («Lucro … = penúltimo …») — quebrava linha; só input+Salvar+? |
 
 > **Não** entra na fila 🟡 abaixo — já na loja.
 
