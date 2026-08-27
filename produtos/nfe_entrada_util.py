@@ -1835,7 +1835,7 @@ def _titulos_mongo_por_ids_entrada_nfe(db, ids: list[str]) -> list[dict[str, Any
         if not rid or rid in seen:
             continue
         seen.add(rid)
-        proj = {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "Despesa": 1}
+        proj = {"Cliente": 1, "ClienteID": 1, "Descricao": 1, "Observacao": 1, "NumeroDocumento": 1, "ValorBruto": 1, "DataVencimento": 1, "Parcela": 1, "Despesa": 1, "EntradaNfeRascunhoId": 1, "ChaveNFe": 1}
         doc = None
         try:
             from bson import ObjectId
@@ -1924,6 +1924,13 @@ def _titulo_pg_para_dict_entrada_nfe(t) -> dict[str, Any]:
         "observacoes": t.observacoes or "",
         "descricao": t.descricao or "",
         "numero_documento": t.numero_documento or "",
+        "ValorBruto": t.valor_bruto,
+        "valor_bruto": t.valor_bruto,
+        "DataVencimento": t.data_vencimento,
+        "data_vencimento": t.data_vencimento,
+        "Parcela": t.parcela,
+        "parcela": t.parcela,
+        "dados_snapshot_json": t.dados_snapshot_json if isinstance(t.dados_snapshot_json, dict) else {},
     }
 
 
@@ -2970,57 +2977,124 @@ def _mongo_lancamento_id_str(doc: dict[str, Any]) -> str:
     return str(doc.get("Id") or "").strip()
 
 
-def _titulos_entrada_nfe_ids_do_rascunho(
-    db,
-    doc: dict[str, Any],
-    *,
-    col_pessoa: str | None = None,
-) -> list[str]:
-    """IDs de títulos a pagar desta nota (``financeiro_ids`` gravados ou rastro NF/chave + fornecedor)."""
+def _entrada_nfe_digits(value: Any) -> str:
+    return re.sub(r"\D", "", str(value or ""))
+
+
+def _entrada_nfe_titulo_texto(titulo: dict[str, Any]) -> str:
+    partes = [titulo.get(k) for k in ("Descricao", "descricao", "Observacao", "observacoes", "NumeroDocumento", "numero_documento")]
+    snap = titulo.get("dados_snapshot_json")
+    if isinstance(snap, dict):
+        partes.extend(str(v) for v in snap.values() if isinstance(v, (str, int, float)))
+    return " ".join(str(x or "") for x in partes)
+
+
+def _entrada_nfe_assinatura_parcelas(doc: dict[str, Any]) -> list[tuple[str, Decimal]]:
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    fin = extra.get("financeiro_ui") if isinstance(extra.get("financeiro_ui"), dict) else {}
+    raw = fin.get("parcelas_manual") or fin.get("parcelas") or []
+    out = []
+    for item in raw if isinstance(raw, list) else []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            valor = Decimal(str(item.get("valor") or "0").replace(",", ".")).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if valor > 0:
+            out.append((str(item.get("data_vencimento") or item.get("vencimento") or "")[:10], valor))
+    return sorted(out)
+
+
+def _entrada_nfe_assinatura_titulos(titulos: list[dict[str, Any]]) -> list[tuple[str, Decimal]]:
+    out = []
+    for t in titulos:
+        try:
+            valor = Decimal(str(t.get("valor_bruto") or t.get("ValorBruto") or "0").replace(",", ".")).quantize(Decimal("0.01"))
+        except Exception:
+            continue
+        if valor > 0:
+            out.append((str(t.get("data_vencimento") or t.get("DataVencimento") or "")[:10], valor))
+    return sorted(out)
+
+
+def validar_vinculo_financeiro_entrada_nfe(doc: dict[str, Any], titulos: list[dict[str, Any]], ids_esperados: list[str]) -> dict[str, Any]:
+    """Comprova vínculo por rascunho/chave ou NF exata reforçada; nome isolado nunca basta."""
+    cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    rid = str(doc.get("_id") or doc.get("rascunho_id") or "").strip()
+    nf = _nf_numero_norm(cab.get("numero"))
+    chave = _entrada_nfe_digits(cab.get("chave") or doc.get("xml_chave"))
+    fornecedor_id = str(cab.get("emit_fornecedor_id") or "").strip()
+    cnpj = _entrada_nfe_digits(cab.get("emit_cnpj"))
+    lote = str(extra.get("financeiro_lote") or "").strip().upper()
+    encontrados = {_mongo_lancamento_id_str(t) for t in titulos}
+    faltantes = [x for x in ids_esperados if x not in encontrados]
+    if faltantes or not titulos:
+        return {"valido": False, "motivo": "id_inexistente", "ids_faltantes": faltantes}
+    esperado = _entrada_nfe_assinatura_parcelas(doc)
+    parcelas_ok = bool(esperado) and esperado == _entrada_nfe_assinatura_titulos(titulos)
+    evidencias = []
+    for t in titulos:
+        texto = _entrada_nfe_titulo_texto(t)
+        digits = _entrada_nfe_digits(texto)
+        nf_titulo = _nf_numero_norm(_extrair_nf_numero_lancamento(t))
+        cliente_id = str(t.get("ClienteID") or t.get("ClienteId") or t.get("cliente_id") or "").strip()
+        ev = {
+            "id": _mongo_lancamento_id_str(t),
+            "nf": nf_titulo,
+            "nf_ok": bool(nf and nf_titulo and nf == nf_titulo),
+            "rascunho_ok": bool(rid and rid in texto),
+            "chave_ok": bool(chave and len(chave) >= 40 and chave in digits),
+            "fornecedor_forte": bool((fornecedor_id and cliente_id == fornecedor_id) or (cnpj and len(cnpj) >= 11 and cnpj in digits)),
+            "lote_ok": bool(lote and _extrair_lote_agro_lancamento(t) == lote),
+        }
+        ev["valido"] = ev["rascunho_ok"] or ev["chave_ok"] or (ev["nf_ok"] and ev["fornecedor_forte"] and (parcelas_ok or ev["lote_ok"]))
+        evidencias.append(ev)
+    valido = bool(evidencias) and all(x["valido"] for x in evidencias)
+    return {"valido": valido, "motivo": "comprovado" if valido else "titulo_divergente", "parcelas_ok": parcelas_ok, "evidencias": evidencias}
+
+
+def sanear_carimbo_financeiro_falso_rascunho(db, doc: dict[str, Any], *, usuario: str = "") -> dict[str, Any]:
+    """Remove só quatro carimbos falsos; preserva títulos, financeiro_ui, nota e estoque."""
     if not isinstance(doc, dict):
-        return []
-    # ``db`` pode ser None (ERP off) — títulos estão no Postgres.
+        return doc
+    extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+    ids_raw = extra.get("financeiro_ids")
+    ids = [str(x).strip() for x in ids_raw if str(x).strip()] if isinstance(ids_raw, list) else []
+    if not (extra.get("financeiro_lancado") or ids):
+        return doc
+    validacao = validar_vinculo_financeiro_entrada_nfe(doc, _entrada_nfe_financeiro_titulos_por_ids(db, ids) if ids else [], ids)
+    if validacao.get("valido"):
+        return doc
+    col = _entrada_nota_rascunho_store(db)
+    _id = _object_id_rascunho(str(doc.get("_id") or ""))
+    if col is None or _id is None:
+        return doc
+    agora = datetime.now(timezone.utc)
+    historico = extra.get("financeiro_vinculo_saneado_auditoria")
+    hist = list(historico[-19:]) if isinstance(historico, list) else []
+    hist.append({"em": agora.isoformat(), "por": (usuario or "sistema_leitura")[:200], "motivo": validacao.get("motivo"), "ids_removidos": ids[:80], "lote_removido": str(extra.get("financeiro_lote") or "")[:32], "evidencias": validacao.get("evidencias") or []})
+    col.update_one({"_id": _id}, {"$unset": {"extra.financeiro_lancado": "", "extra.financeiro_ids": "", "extra.financeiro_lancado_em": "", "extra.financeiro_lote": ""}, "$set": {"extra.financeiro_vinculo_saneado_auditoria": hist, "atualizado_em": agora, "usuario_ultima_alteracao": (usuario or "sistema_leitura")[:200]}})
+    novo = col.find_one({"_id": _id})
+    return novo if isinstance(novo, dict) else doc
+
+def _titulos_entrada_nfe_ids_do_rascunho(db, doc: dict[str, Any], *, col_pessoa: str | None = None) -> list[str]:
+    """IDs comprovados desta nota; nunca aceita existência do ID ou substring da NF."""
+    if not isinstance(doc, dict): return []
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
     cab = doc.get("cabecalho") if isinstance(doc.get("cabecalho"), dict) else {}
-    ids_raw = extra.get("financeiro_ids")
-    ids_gravados = [str(x).strip() for x in ids_raw if str(x).strip()] if isinstance(ids_raw, list) else []
-    if entrada_nfe_extra_financeiro_ok(extra) and ids_gravados:
-        if _entrada_nfe_financeiro_titulos_por_ids(db, ids_gravados):
-            return ids_gravados[:80]
-
+    raw = extra.get("financeiro_ids")
+    gravados = [str(x).strip() for x in raw if str(x).strip()] if isinstance(raw, list) else []
+    if gravados:
+        encontrados = _entrada_nfe_financeiro_titulos_por_ids(db, gravados)
+        if validar_vinculo_financeiro_entrada_nfe(doc, encontrados, gravados).get("valido"):
+            return gravados[:80]
     titulos = _entrada_nfe_financeiro_titulos_por_rastro(db, cab)
-    if not titulos:
-        return ids_gravados[:80] if ids_gravados else []
-
-    emit_nome = str(cab.get("emit_nome") or "").strip()
-    nf = str(cab.get("numero") or "").strip()
-    ch = str(cab.get("chave") or doc.get("xml_chave") or "").strip()
-    if col_pessoa and db is not None:
-        cab_can = normalizar_cabecalho_emit_fornecedor_entrada_nfe(db, col_pessoa, dict(cab))
-        emit_nome = str(cab_can.get("emit_nome") or emit_nome).strip()
-
-    out: list[str] = []
-    seen: set[str] = set()
-    for t in titulos:
-        desc = str(t.get("Descricao") or t.get("descricao") or "")
-        obs = str(t.get("Observacao") or t.get("observacoes") or "")
-        cliente = str(t.get("Cliente") or t.get("cliente") or "").strip()
-        nf_ok = bool(nf and nf not in ("0", "000") and (nf in desc or nf in obs))
-        if nf and nf not in ("0", "000") and not nf_ok:
-            continue
-        if ch and len(ch) >= 12:
-            ch_tail = ch[-24:]
-            if ch not in obs and ch_tail not in obs and not nf_ok:
-                continue
-        # Com NF clara na descrição, não exige match de fantasia×razão social.
-        if not nf_ok and emit_nome and cliente and not _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente):
-            continue
-        sid = _mongo_lancamento_id_str(t)
-        if sid and sid not in seen:
-            seen.add(sid)
-            out.append(sid)
-    return out[:80]
-
+    nf = _nf_numero_norm(cab.get("numero"))
+    candidatos = [t for t in titulos if _nf_numero_norm(_extrair_nf_numero_lancamento(t)) == nf] if nf else []
+    ids = list(dict.fromkeys(_mongo_lancamento_id_str(t) for t in candidatos if _mongo_lancamento_id_str(t)))[:80]
+    return ids if validar_vinculo_financeiro_entrada_nfe(doc, candidatos, ids).get("valido") else []
 
 def sincronizar_financeiro_rascunho_entrada_nfe(
     db,
@@ -3043,6 +3117,7 @@ def sincronizar_financeiro_rascunho_entrada_nfe(
         doc = col.find_one({"_id": _id})
         if not doc:
             return {"ok": False, "erro": "Rascunho não encontrado."}
+        doc = sanear_carimbo_financeiro_falso_rascunho(db, doc, usuario=usuario) or doc
         extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
         if _entrada_nfe_tipo_entrada_extra(extra) == "bonificacao":
             return {"ok": False, "erro": "Bonificação não gera financeiro."}
@@ -3117,6 +3192,7 @@ def obter_rascunho_entrada(
         if not d:
             return None
         d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
+        d = sanear_carimbo_financeiro_falso_rascunho(db, d) or d
         ex0 = d.get("extra") if isinstance(d.get("extra"), dict) else {}
         if sincronizar_financeiro and not entrada_nfe_extra_financeiro_ok(ex0):
             sincronizar_financeiro_rascunho_entrada_nfe(

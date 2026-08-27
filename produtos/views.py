@@ -241,6 +241,7 @@ from .nfe_entrada_util import (
     normalizar_cabecalho_emit_fornecedor_entrada_nfe,
     patch_rascunho_entrada_extra,
     salvar_rascunho_entrada,
+    sanear_carimbo_financeiro_falso_rascunho,
     sincronizar_financeiro_rascunho_entrada_nfe,
 )
 from .agro_codigo_barras_loja_util import (
@@ -18013,10 +18014,13 @@ def api_entrada_nota_financeiro(request):
     doc_nf: dict | None = None
     if _oid_up:
         doc_nf = _entrada_nota_rascunho_store(db).find_one({"_id": _oid_up})
+        if doc_nf:
+            doc_nf = sanear_carimbo_financeiro_falso_rascunho(db, doc_nf, usuario=usuario) or doc_nf
     rid_up = str(_oid_up) if _oid_up and doc_nf else ""
     if rid_up and doc_nf:
         ex_nf = doc_nf.get("extra") if isinstance(doc_nf.get("extra"), dict) else {}
         wizard_finalizado = bool(str(ex_nf.get("aprovacao_wizard_em") or "").strip())
+        vinculo_saneado = bool(ex_nf.get("financeiro_vinculo_saneado_auditoria"))
         if ex_nf.get("financeiro_lancado"):
             ids_exist = [
                 str(x).strip() for x in (ex_nf.get("financeiro_ids") or []) if str(x).strip()
@@ -18061,7 +18065,7 @@ def api_entrada_nota_financeiro(request):
                 },
                 status=200,
             )
-        if wizard_finalizado:
+        if wizard_finalizado and not vinculo_saneado:
             return JsonResponse(
                 {
                     "ok": False,

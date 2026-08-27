@@ -1236,6 +1236,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🩹 Entrada NF — saneamento de vínculo financeiro falso (`NF-FIN-VINCULO-FORTE` · **v18.29** · 27/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Caso** | NF 16266 série 2 · IBUNA ALIMENTOS · R$ 2.140,40 · UI 09/09 e 16/09 de R$ 1.070,20; etapa dizia CP gerada sem títulos corretos na lista. |
+| **Causa** | `financeiro_lancado`/`financeiro_ids` eram aceitos pela existência; fallback casava número da NF por substring. Um ID alheio podia sustentar “já gerada”. |
+| **Fix** | Validador reutilizável exige ID existente e rastro/chave ou NF normalizada exata reforçada por fornecedor ID/CNPJ, lote ou assinatura completa das parcelas. Nome isolado não comprova vínculo. |
+| **Saneamento** | Remove somente `financeiro_lancado`, `financeiro_ids`, `financeiro_lancado_em` e `financeiro_lote`; preserva `financeiro_ui`, boletos, datas, valores, estoque e títulos. Auditoria append-only em `financeiro_vinculo_saneado_auditoria`. |
+| **Idempotência** | Leitura/API saneiam antes de `ja_marcado`; títulos corretos mantêm a marca. Após geração, chave/NF exata + assinatura impedem novo lote/parcelas. |
+| **Provas** | Entrada NF **27/27** · vínculo: inexistente, outra NF, mesma NF, mesmo fornecedor/NF diferente, número parecido, limpeza seletiva, UI/estoque preservados, duas parcelas R$ 2.140,40 e recarga · path **11/11** + 13 JS inline · `manage.py check`. |
+| **Dados reais** | Workspace não possui credencial da base da loja; nenhum título/estoque da NF 16266 foi alterado durante desenvolvimento. Inspeção/saneamento real ocorre somente após deploy e abertura autenticada da nota. |
+| **Deploy** | `teste` v18.29; produção autorizada neste chat, aguardando checkpoint/cherry-pick isolado. |
 
 ### 🩹 Entrada NF — PIN/botão de recuperação de estoque clicáveis (`NF-RECUPERA-ESTOQUE-DOM` · **v18.27** · 27/08/2026)
 
