@@ -1,5 +1,6 @@
 import copy
 import json
+import subprocess
 from datetime import datetime
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -220,6 +221,16 @@ class EntradaNfReaberturaEstoqueTests(SimpleTestCase):
         self.assertIn("entradaNfeReabrirNota('estoque_pendente')", html)
         self.assertIn("entradaNfeReabrirNota('completo')", html)
         self.assertIn("body: JSON.stringify({ rascunho_id: rid, pin, escopo })", html)
+
+    def test_dom_congelado_mantem_so_recuperacao_estoque_interativa(self):
+        resultado = subprocess.run(
+            ["node", "scripts/verify_nf_estoque_recovery_dom.js"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        self.assertEqual(resultado.returncode, 0, resultado.stderr or resultado.stdout)
 
     @patch("produtos.views._invalidar_caches_apos_ajuste_pin")
     @patch("produtos.views.reverter_integracao_entrada_nota_para_reabertura")

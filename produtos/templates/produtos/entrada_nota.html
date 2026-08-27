@@ -673,10 +673,10 @@
       width: 100%;
     }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
-    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input,
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque),
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] textarea,
-    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin),
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin):not(#btn-estoque-reabrir-nota),
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] summary,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] a[href] {
       pointer-events: none !important;
@@ -684,10 +684,10 @@
     }
     /* Confirmações das etapas 1–5 / estoque / financeiro não congelam a UI — só a finalização (etapa 6). */
     /* #btn-salvar-fin fica clicável p/ religar conta a pagar se o carimbo sumiu (sem reabrir a nota). */
-    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input,
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque),
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] select,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] textarea,
-    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin),
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin):not(#btn-estoque-reabrir-nota),
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] summary,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] a[href] {
       pointer-events: none !important;
@@ -6511,6 +6511,12 @@
     if (e.key === 'Enter') {
       e.preventDefault();
       entradaNfeAprovarWizardPin();
+    }
+  });
+  document.getElementById('nfe-wiz-pin-estoque')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      entradaNfeReabrirNota('estoque_pendente');
     }
   });
   function entradaNfeAjudaContextoSet(key) {

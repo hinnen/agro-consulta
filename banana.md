@@ -1237,6 +1237,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 Entrada NF — PIN/botão de recuperação de estoque clicáveis (`NF-RECUPERA-ESTOQUE-DOM` · **v18.27** · 27/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | A nota finalizada mostrava o quadro especial da etapa 5, mas os dois conjuntos CSS de congelamento também aplicavam `pointer-events: none !important` ao `#nfe-wiz-pin-estoque` e `#btn-estoque-reabrir-nota`; o POST nunca saía do navegador. |
+| **Fix mínimo** | Os dois seletores de `input` e `button` excluem somente o PIN e o botão âmbar especiais. Selects, demais inputs/botões e o botão azul `#btn-estoque-agro` continuam bloqueados até a liberação limitada concluir. Enter no PIN especial chama o mesmo fluxo. |
+| **Contrato preservado** | Clique/Enter fazem exatamente um POST com `escopo: estoque_pendente`; etapa 8 segue `escopo: completo`; financeiro não é alterado/estornado e o claim continua impedindo estoque duplo. |
+| **Regressão DOM** | `scripts/verify_nf_estoque_recovery_dom.js` executa listeners/fetch em DOM controlado, prova foco/digitação/Enter, payloads, POST único e travas restantes; integrado à suíte Django. |
+| **Provas** | Entrada NF **20/20** · recuperação **10/10** · `verify_nf_troca_estorno.py` **11/11** e 13 blocos JS inline OK · `manage.py check` · `git diff --check`. |
+| **Migrate / operação** | **NÃO / nenhuma**. NF 16266 não recebeu ajuste manual de estoque nem alteração no título financeiro. |
+| **Deploy** | `teste` v18.27; produção aguarda nova autorização explícita com frase + senha no mesmo chat. |
 ### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026)
 
 | Item | Detalhe |
