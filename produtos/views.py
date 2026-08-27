@@ -222,6 +222,7 @@ from .nfe_entrada_util import (
     listar_empresas_estoque_entrada_nfe,
     listar_empresas_financeiro_entrada_nfe,
     listar_rascunhos_entrada,
+    liberar_rascunho_entrada_para_estoque_pendente,
     marcar_rascunho_estoque_aplicado,
     marcar_rascunho_financeiro_lancado,
     obter_rascunho_entrada,
@@ -17175,6 +17176,9 @@ def api_entrada_nota_reabrir_nota(request):
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
     oid = str(payload.get("rascunho_id") or payload.get("id") or "").strip()
+    escopo = str(payload.get("escopo") or "completo").strip().lower()
+    if escopo not in ("completo", "estoque_pendente"):
+        return JsonResponse({"ok": False, "erro": "Escopo de reabertura inválido."}, status=400)
     ok_pin, err_pin = _emprestimos_interno_validar_pin(str(payload.get("pin") or ""))
     if not ok_pin:
         return JsonResponse({"ok": False, "erro": err_pin}, status=403)
@@ -17188,12 +17192,15 @@ def api_entrada_nota_reabrir_nota(request):
     _, db = _entrada_nfe_conexao()
     if not _entrada_nfe_rascunho_db_ok(db):
         return JsonResponse({"ok": False, "erro": "Armazenamento de rascunho indisponível"}, status=503)
-    rr = reverter_integracao_entrada_nota_para_reabertura(
-        db,
-        oid,
-        usuario=usuario,
-        usuario_django=request.user if request.user.is_authenticated else None,
-    )
+    if escopo == "estoque_pendente":
+        rr = liberar_rascunho_entrada_para_estoque_pendente(db, oid, usuario=usuario)
+    else:
+        rr = reverter_integracao_entrada_nota_para_reabertura(
+            db,
+            oid,
+            usuario=usuario,
+            usuario_django=request.user if request.user.is_authenticated else None,
+        )
     if not rr.get("ok"):
         return JsonResponse(rr, status=400)
     try:

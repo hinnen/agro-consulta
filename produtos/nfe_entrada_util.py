@@ -3482,6 +3482,8 @@ def marcar_rascunho_estoque_aplicado(
             return {"ok": False, "erro": "Rascunho não encontrado."}
         ex = dict(doc.get("extra") or {})
         ex.pop("estoque_agro_lock", None)
+        ex.pop("estoque_pendente_liberado_em", None)
+        ex.pop("estoque_pendente_liberado_por", None)
         if patch_extra:
             ex.update(patch_extra)
         r = col.update_one(
@@ -3859,6 +3861,93 @@ def reverter_integracao_entrada_nota_para_reabertura(
         }
     except Exception as exc:
         logger.exception("reverter_integracao_entrada_nota_para_reabertura")
+        return {"ok": False, "erro": str(exc)[:500]}
+
+
+def liberar_rascunho_entrada_para_estoque_pendente(
+    db,
+    oid: str,
+    *,
+    usuario: str = "",
+) -> dict[str, Any]:
+    """Libera somente a etapa de estoque de uma nota finalizada sem estoque.
+
+    Este caminho não chama a reversão completa e não percorre nem altera títulos financeiros.
+    Remove apenas o carimbo final do PIN, mantendo todos os dados e vínculos já gravados.
+    """
+    col = _entrada_nota_rascunho_store(db)
+    if col is None:
+        return {"ok": False, "erro": "Armazenamento de rascunho indisponível"}
+    _id = _object_id_rascunho(oid)
+    if _id is None:
+        return {"ok": False, "erro": "ID inválido."}
+    try:
+        doc = col.find_one({"_id": _id})
+        if not doc:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        status = str(doc.get("status") or "").strip().lower()
+        if status == ENTRADA_NFE_STATUS_DESCARTADA:
+            return {"ok": False, "erro": "Nota descartada não pode ser liberada para estoque."}
+        ok_rasc, err_rasc = rascunho_entrada_valido_para_aprovacao_wizard(doc)
+        if not ok_rasc:
+            return {"ok": False, "erro": err_rasc}
+        extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
+        if not str(extra.get("aprovacao_wizard_em") or "").strip():
+            return {"ok": False, "erro": "A nota não está finalizada com PIN."}
+
+        ajuste_ids = extra.get("estoque_agro_ajuste_ids")
+        if isinstance(ajuste_ids, (list, tuple, set)):
+            tem_ajustes = any(str(x).strip() for x in ajuste_ids if x is not None)
+        else:
+            tem_ajustes = bool(str(ajuste_ids or "").strip())
+        tem_estoque = (
+            status in (ENTRADA_NFE_STATUS_ESTOQUE_APLICADO, ENTRADA_NFE_STATUS_ENCERRADA)
+            or bool(doc.get("estoque_aplicado_em"))
+            or bool(str(extra.get("estoque_aplicado_em") or "").strip())
+            or bool(str(extra.get("estoque_agro_registrado_em") or "").strip())
+            or tem_ajustes
+        )
+        if tem_estoque:
+            return {"ok": False, "erro": "O estoque desta nota já foi registrado."}
+        if extra.get("estoque_agro_lock"):
+            return {
+                "ok": False,
+                "erro": "Há um registro de estoque em andamento. Atualize a página e tente novamente.",
+            }
+
+        agora = datetime.now(timezone.utc)
+        result = col.update_one(
+            {"_id": _id, "status": {"$nin": list(ENTRADA_NFE_STATUS_CONGELADOS)}},
+            {
+                "$unset": {
+                    "extra.aprovacao_wizard_em": "",
+                    "extra.aprovacao_wizard_usuario": "",
+                },
+                "$set": {
+                    "extra.estoque_pendente_liberado_em": agora.isoformat(),
+                    "extra.estoque_pendente_liberado_por": (usuario or "")[:200],
+                    "atualizado_em": agora,
+                    "usuario_ultima_alteracao": (usuario or "")[:200],
+                },
+            },
+        )
+        if getattr(result, "matched_count", 0) == 0:
+            return {"ok": False, "erro": "Rascunho não encontrado."}
+        fin_ids = extra.get("financeiro_ids")
+        return {
+            "ok": True,
+            "id": str(_id),
+            "status": status,
+            "escopo": "estoque_pendente",
+            "financeiro_preservado": True,
+            "financeiro_titulos_preservados": len(fin_ids) if isinstance(fin_ids, list) else 0,
+            "mensagem": (
+                "Nota liberada somente para registrar o estoque. "
+                "O financeiro existente foi preservado."
+            ),
+        }
+    except Exception as exc:
+        logger.exception("liberar_rascunho_entrada_para_estoque_pendente")
         return {"ok": False, "erro": str(exc)[:500]}
 
 

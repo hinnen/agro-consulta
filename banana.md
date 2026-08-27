@@ -1237,7 +1237,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.24** · 27/08
+### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.25** · 27/08
 
 | Pacote | Badge | O quê (loja) |
 | ------ | ----- | ------------ |
@@ -1245,10 +1245,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
 | `CP-NOVO-EMPRESTIMO` | **v18.23** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · **parcelas montam sozinhas** (Nº / intervalo / 1º ven / total) |
 | `ETQ-GONDOLA-6CM` | **v18.24** | Preset gôndola 60 × 30 mm · grade A4 3 × 9 = 27 · duplicação preserva visual · preset no PostgreSQL |
+| `NF-RECUPERA-ESTOQUE` | **v18.25** | Finalizada sem estoque: reabre somente etapa 5 e preserva integralmente o financeiro existente |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` · verify Etiquetas 90/60 mm OK · API preset **2/2** |
+| **Branch** | `teste` · NF recuperação estoque **9/9** · reabertura completa **11/11** |
 | **Live hoje** | `origin/producao` @ **v18.14** / `efdde0b` |
 | **Produção** | **não** — aguarda frase + senha |
 
@@ -1260,8 +1261,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
 | 3 | `CP-NOVO-EMPRESTIMO` (até v18.23) | 🟢 pronto envio |
 | 4 | `ETQ-GONDOLA-6CM` (v18.24) | 🟢 pronto envio |
+| 5 | `NF-RECUPERA-ESTOQUE` (v18.25) | 🟢 pronto envio |
 
-**Você (local):** Ctrl+F5 · badge **v18.24** · smoke: PDV preço+forma · Repasse · CP Novo empréstimo · Etiquetas (duplicar «remedios», largura 60 mm → 3 × 9 = 27).
+**Você (local):** Ctrl+F5 · badge **v18.25** · Entrada NF finalizada sem estoque → PIN em etapa 5 → Reabrir → registrar estoque; financeiro deve continuar com os mesmos IDs.
+
+### 🧾 Entrada NF — recuperação somente do estoque (`NF-RECUPERA-ESTOQUE` · **v18.25** · 27/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Botão especial da etapa 5 chamava a mesma reabertura completa da etapa 8; backend percorria `financeiro_ids` e tentava excluir título já quitado/com movimento |
+| **Correção** | Payload explícito `escopo: estoque_pendente`; rotina separada remove só o carimbo final do PIN e libera o estoque por marcador próprio |
+| **Preserva** | `financeiro_lancado`, IDs, data, UI, título/baixas/quitação/vínculo ERP e todo o restante do rascunho |
+| **Proteções** | PIN, finalizada, rascunho válido, não descartada e nenhum status/carimbo/ajuste/lock de estoque; claim continua impedindo aplicação dupla |
+| **Completa** | Botão da etapa 8 segue em `escopo: completo` e mantém estorno rastreável + bloqueio de título não excluível |
+| **Provas** | Testes focados **9/9** · `verify_nf_troca_estorno.py` **11/11** + JS inline syntax OK · `manage.py check` OK |
+| **Nota testes antigos** | Suítes que criam DB do zero seguem bloqueadas por problema anterior da migration `0039` (`NfceNumeracaoAgro`); não alterada neste pacote |
+| **Migrate / cache-buster** | **NÃO / não se aplica** (JS é inline no template) |
 
 ### 🏷️ Etiquetas — gôndola 60 × 30 mm (`ETQ-GONDOLA-6CM` · **v18.24** · 27/08)
 
