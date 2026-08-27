@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1229,6 +1229,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🩹 Entrada NF — PIN/botão de recuperação de estoque clicáveis (`NF-RECUPERA-ESTOQUE-DOM` · **v18.27** · 27/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | A nota finalizada mostrava o quadro especial da etapa 5, mas os dois conjuntos CSS de congelamento também aplicavam `pointer-events: none !important` ao `#nfe-wiz-pin-estoque` e `#btn-estoque-reabrir-nota`; o POST nunca saía do navegador. |
+| **Fix mínimo** | Os dois seletores de `input` e `button` excluem somente o PIN e o botão âmbar especiais. Selects, demais inputs/botões e o botão azul `#btn-estoque-agro` continuam bloqueados até a liberação limitada concluir. Enter no PIN especial chama o mesmo fluxo. |
+| **Contrato preservado** | Clique/Enter fazem exatamente um POST com `escopo: estoque_pendente`; etapa 8 segue `escopo: completo`; financeiro não é alterado/estornado e o claim continua impedindo estoque duplo. |
+| **Regressão DOM** | `scripts/verify_nf_estoque_recovery_dom.js` executa listeners/fetch em DOM controlado, prova foco/digitação/Enter, payloads, POST único e travas restantes; integrado à suíte Django. |
+| **Provas** | Entrada NF **20/20** · recuperação **10/10** · `verify_nf_troca_estorno.py` **11/11** e 13 blocos JS inline OK · `manage.py check` · `git diff --check`. |
+| **Migrate / operação** | **NÃO / nenhuma**. NF 16266 não recebeu ajuste manual de estoque nem alteração no título financeiro. |
+| **Deploy** | Produção autorizada para somente este hotfix; checkpoint `rollback/pre-nf-stock-dom-v18.26.1-20260827` + branch `producao-backup-pre-nf-stock-dom-v18261-20260827`. |
 
 ### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
 
