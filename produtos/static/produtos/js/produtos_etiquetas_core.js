@@ -75,6 +75,31 @@
     layout: JSON.parse(JSON.stringify(DEFAULT_GONDOLA_LAYOUT)),
   };
 
+  /** Grade suportada na A4 (90 mm = 2 colunas; 60 mm = 3; sempre 9 linhas). */
+  function calcularGradeA4(larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas) {
+    var pageW = 210;
+    var pageH = 297;
+    var b = Number(bordaMm);
+    if (!(b > 0)) b = 0.5;
+    var w = Number(larguraMm);
+    var h = Number(alturaMm);
+    if (!(w > 0)) w = 90;
+    if (!(h > 0)) h = 30;
+    var outerW = w + 2 * b;
+    var outerH = h + 2 * b;
+    var largura60 = Math.abs(w - 60) < 0.01;
+    var cols = largura60 ? 3 : Math.max(1, parseInt(colsSalvas, 10) || 2);
+    var rows = Math.max(1, parseInt(rowsSalvas, 10) || 9);
+    return {
+      cols: cols,
+      rows: rows,
+      outer_w: Math.round(outerW * 10) / 10,
+      outer_h: Math.round(outerH * 10) / 10,
+      per_page: cols * rows,
+      cabe_a4: cols * outerW <= pageW && rows * outerH <= pageH,
+    };
+  }
+
   var LOGO_AGRO_URL = '/static/produtos/img/logo_agro_mais.png';
 
   function esc(s) {
@@ -241,14 +266,22 @@
     if (!out.estilo) out.estilo = out.id === 'gondola' ? 'gondola' : 'termica';
     if (ehGondola(out)) {
       out.folha = 'a4';
-      if (!out.cols_folha) out.cols_folha = 2;
-      if (!out.rows_folha) out.rows_folha = 9;
       /* Força padrão 9×3 cm se ainda no seed antigo 90×35. */
       if (Number(out.largura_mm) === 90 && Number(out.altura_mm) === 35) {
         out.altura_mm = 30;
       }
       if (!out.largura_mm) out.largura_mm = 90;
       if (!out.altura_mm) out.altura_mm = 30;
+      if (out.borda_mm == null || !(Number(out.borda_mm) > 0)) out.borda_mm = 0.5;
+      var grade = calcularGradeA4(
+        out.largura_mm,
+        out.altura_mm,
+        out.borda_mm,
+        out.cols_folha,
+        out.rows_folha
+      );
+      out.cols_folha = grade.cols;
+      out.rows_folha = grade.rows;
       if (!out.cores || typeof out.cores !== 'object') {
         out.cores = clonePreset(DEFAULT_GONDOLA_PRESET.cores);
       } else {
@@ -273,7 +306,6 @@
       if (out.show_preco == null) out.show_preco = true;
       if (out.show_peso == null) out.show_peso = true;
       if (out.show_gm == null) out.show_gm = false;
-      if (out.borda_mm == null || !(Number(out.borda_mm) > 0)) out.borda_mm = 0.5;
       if (out.nome_pt_1 == null) out.nome_pt_1 = Number(out.nome_pt) || 11;
       if (out.nome_pt_2 == null) out.nome_pt_2 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.82 * 10) / 10);
       if (out.nome_pt_3 == null) out.nome_pt_3 = Math.max(4, Math.round((Number(out.nome_pt_1) || 11) * 0.68 * 10) / 10);
@@ -1098,6 +1130,7 @@
     DEFAULT_PRESET: DEFAULT_PRESET,
     DEFAULT_GONDOLA_PRESET: DEFAULT_GONDOLA_PRESET,
     DEFAULT_GONDOLA_LAYOUT: DEFAULT_GONDOLA_LAYOUT,
+    calcularGradeA4: calcularGradeA4,
     esc: esc,
     fmtPreco: fmtPreco,
     fmtPesoEtiqueta: fmtPesoEtiqueta,

@@ -189,6 +189,7 @@
     persistStorage();
     togglePresetFields(p.estilo || 'termica');
     syncLayoutStageSize(p);
+    renderResumoGondola(p);
     clearTimeout(state._presetSaveTimer);
     state._presetSaveTimer = setTimeout(function () {
       syncPresetToServer(p, { silent: true });
@@ -261,7 +262,7 @@
     var stage = $('etq-layout-stage');
     if (!stage) return;
     var wMm = Number(p.largura_mm) || 90;
-    var hMm = Number(p.altura_mm) || 35;
+    var hMm = Number(p.altura_mm) || 30;
     var maxW = 420;
     var scale = maxW / wMm;
     stage.style.width = Math.round(wMm * scale) + 'px';
@@ -269,6 +270,29 @@
     var cores = (p.cores && typeof p.cores === 'object') ? p.cores : {};
     stage.style.background = cores.fundo || '#ffffff';
     stage.style.borderColor = cores.borda || cores.faixa_bg || '#1a4d2e';
+  }
+
+  function fmtMm(n) {
+    return Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+  }
+
+  function renderResumoGondola(p) {
+    var el = $('etq-resumo-gondola');
+    if (!el || !Core.ehGondola(p)) return;
+    var grade = Core.calcularGradeA4(
+      p.largura_mm,
+      p.altura_mm,
+      p.borda_mm,
+      p.cols_folha,
+      p.rows_folha
+    );
+    el.innerHTML =
+      'Impressão: folha <strong class="text-slate-200">A4</strong> · área útil <strong class="text-slate-200">' +
+      fmtMm(p.largura_mm) + ' × ' + fmtMm(p.altura_mm) + ' mm</strong> · borda <strong class="text-slate-200">' +
+      fmtMm(Number(p.borda_mm) || 0.5) + ' mm pra fora</strong> (total <strong class="text-slate-200">' +
+      fmtMm(grade.outer_w) + ' × ' + fmtMm(grade.outer_h) + ' mm</strong>) · grade <strong class="text-slate-200">' +
+      grade.cols + ' × ' + grade.rows + ' = ' + grade.per_page +
+      '</strong> · centralizada na A4 · marcas de corte nos cantos. No Chrome: margens «Nenhuma» + marcar «Gráficos de segundo plano».';
   }
 
   function renderPresetForm() {
@@ -334,6 +358,7 @@
     syncLayoutStageSize(p);
     applyLayoutBoxes(p.layout || Core.DEFAULT_GONDOLA_LAYOUT);
     syncLayoutBoxesVisibility(p);
+    renderResumoGondola(p);
 
     var tr = $('etq-texto-rodape-global');
     if (tr && !tr.dataset.touched) {
@@ -385,8 +410,9 @@
       };
       p.layout = readLayoutBoxes();
       p.folha = 'a4';
-      p.cols_folha = 2;
-      p.rows_folha = 9;
+      var grade = Core.calcularGradeA4(p.largura_mm, p.altura_mm, p.borda_mm);
+      p.cols_folha = grade.cols;
+      p.rows_folha = grade.rows;
     }
     return p;
   }
@@ -1392,11 +1418,10 @@
         var p = getPresetAtivo();
         if (Core.ehGondola(p)) {
           p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
-          p.largura_mm = 90;
-          p.altura_mm = 30;
           p.folha = 'a4';
-          p.cols_folha = 2;
-          p.rows_folha = 9;
+          var grade = Core.calcularGradeA4(p.largura_mm, p.altura_mm, p.borda_mm);
+          p.cols_folha = grade.cols;
+          p.rows_folha = grade.rows;
           var idx = state.storage.presets.findIndex(function (x) {
             return x.id === p.id;
           });
@@ -1407,7 +1432,7 @@
           applyLayoutBoxes(Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT));
           commitPresetFormLive();
         }
-        setStatus('Layout A4 9×3 resetado.');
+        setStatus('Posições do layout restauradas.');
       });
 
     bindLayoutEditor();

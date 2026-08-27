@@ -1237,17 +1237,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.23** · 25/08
+### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.24** · 27/08
 
 | Pacote | Badge | O quê (loja) |
 | ------ | ----- | ------------ |
 | `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma |
 | `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
 | `CP-NOVO-EMPRESTIMO` | **v18.23** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · **parcelas montam sozinhas** (Nº / intervalo / 1º ven / total) |
+| `ETQ-GONDOLA-6CM` | **v18.24** | Preset gôndola 60 × 30 mm · grade A4 3 × 9 = 27 · duplicação preserva visual · preset no PostgreSQL |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` · verify path CP **50/50** |
+| **Branch** | `teste` · verify Etiquetas 90/60 mm OK · API preset **2/2** |
 | **Live hoje** | `origin/producao` @ **v18.14** / `efdde0b` |
 | **Produção** | **não** — aguarda frase + senha |
 
@@ -1258,8 +1259,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
 | 3 | `CP-NOVO-EMPRESTIMO` (até v18.23) | 🟢 pronto envio |
+| 4 | `ETQ-GONDOLA-6CM` (v18.24) | 🟢 pronto envio |
 
-**Você (local):** Ctrl+F5 · badge **v18.23** · smoke: PDV preço+forma · Repasse · CP Novo empréstimo (digita Nº parcelas → lista sozinha).
+**Você (local):** Ctrl+F5 · badge **v18.24** · smoke: PDV preço+forma · Repasse · CP Novo empréstimo · Etiquetas (duplicar «remedios», largura 60 mm → 3 × 9 = 27).
+
+### 🏷️ Etiquetas — gôndola 60 × 30 mm (`ETQ-GONDOLA-6CM` · **v18.24** · 27/08)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Segundo tamanho de gôndola: área útil **60 × 30 mm**, borda 0,5 mm pra fora, A4 centralizada **3 × 9 = 27**; 90 × 30 permanece **2 × 9 = 18** |
+| **Fluxo** | Selecionar «remedios» → Novo → nome «remedios 6cm» → largura 60 → Salvar; clone mantém layout percentual, cores, fontes e campos |
+| **Persistência** | Mesmo `EtiquetaPresetAgro` / PostgreSQL multi-PC; localStorage continua apenas cache/preferência |
+| **Lote provisório** | Sem alteração: «Lote A4 gôndola» segue fixo em 90 × 30 / 18 |
+| **Prova** | JS syntax OK · verify geometria/18/27/quebra OK · API/modelo **2/2** · `manage.py check` OK |
+| **Migrate** | **NÃO** |
 
 ### ✅ Live — lote checklist 25/08 (`deploy/lote-checklist-2508` · **v18.14**) · 25/08
 
