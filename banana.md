@@ -1237,21 +1237,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — pós Live v18.14 · badge teste **v18.25** · 27/08
+### 📦 PACOTE PRONTO — pós Live v18.25 · badge teste **v18.25** · 27/08
 
 | Pacote | Badge | O quê (loja) |
 | ------ | ----- | ------------ |
 | `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma |
 | `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
 | `CP-NOVO-EMPRESTIMO` | **v18.23** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · **parcelas montam sozinhas** (Nº / intervalo / 1º ven / total) |
-| `ETQ-GONDOLA-6CM` | **v18.24** | Preset gôndola 60 × 30 mm · grade A4 3 × 9 = 27 · duplicação preserva visual · preset no PostgreSQL |
-| `NF-RECUPERA-ESTOQUE` | **v18.25** | Finalizada sem estoque: reabre somente etapa 5 e preserva integralmente o financeiro existente |
-
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` · NF recuperação estoque **9/9** · reabertura completa **11/11** |
-| **Live hoje** | `origin/producao` @ **v18.14** / `efdde0b` |
-| **Produção** | **não** — aguarda frase + senha |
+| **Branch** | `teste` · três pacotes anteriores ainda aguardam envio |
+| **Live hoje** | `origin/producao` @ **v18.25** / `26183c5` |
+| **Produção** | Etiquetas 6 cm + recuperação estoque NF ✅ **enviados** |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 25/08
 
@@ -1260,10 +1257,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
 | 3 | `CP-NOVO-EMPRESTIMO` (até v18.23) | 🟢 pronto envio |
-| 4 | `ETQ-GONDOLA-6CM` (v18.24) | 🟢 pronto envio |
-| 5 | `NF-RECUPERA-ESTOQUE` (v18.25) | 🟢 pronto envio |
 
-**Você (local):** Ctrl+F5 · badge **v18.25** · Entrada NF finalizada sem estoque → PIN em etapa 5 → Reabrir → registrar estoque; financeiro deve continuar com os mesmos IDs.
+**Você (loja):** Ctrl+F5 · badge **v18.25** · conferir Etiquetas 90/60 mm e recuperação de estoque da Entrada NF.
+
+### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v18.25** — HTTP 200 e página pública servindo `AGRO_APP_VERSION = "18.25"` |
+| **Pacotes** | `ETQ-GONDOLA-6CM` + `NF-RECUPERA-ESTOQUE` |
+| **Origem teste** | `d5dafb4` + `45d53dc` |
+| **Produção** | `b370225` + `aa4be2c` + registro `26183c5` |
+| **Antes** | `efdde0b` · Live **v18.14** |
+| **Rollback** | tag `rollback/pre-etq-nf-v18.14` + branch `producao-backup-pre-v1825-etq-nf-20260827` |
+| **Migrate** | **NÃO** |
+| **Provas** | Django focado **11/11** · Etiquetas 90/60 mm OK · Entrada NF **11/11** · JS syntax OK · `manage.py check` OK |
+| **Não entrou** | `PDV-PRECO-MANUAL-FORMA`, `REPASSE-UX` e `CP-NOVO-EMPRESTIMO` continuam somente no `teste` |
 
 ### 🧾 Entrada NF — recuperação somente do estoque (`NF-RECUPERA-ESTOQUE` · **v18.25** · 27/08)
 
