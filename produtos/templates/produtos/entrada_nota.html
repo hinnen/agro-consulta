@@ -3457,6 +3457,7 @@
     const st = String(
       rz && rz.status != null ? rz.status : entradaNfeRascunhoStatusUltimo || '',
     ).trim().toLowerCase();
+    if (String(ex.estoque_pendente_liberado_em || '').trim()) return false;
     if (String(ex.aprovacao_wizard_em || '').trim()) return true;
     if (ex.financeiro_lancado) return true;
     return entradaNfeWizardFluxoLegadoOuConcluido(ex, st, entradaNfeRascunhoBucketUltimo);
@@ -6300,7 +6301,8 @@
     }
   }
 
-  async function entradaNfeReabrirNota() {
+  async function entradaNfeReabrirNota(escopoOpt) {
+    const escopo = escopoOpt === 'estoque_pendente' ? 'estoque_pendente' : 'completo';
     const rid = entradaNfeRascunhoEditId;
     if (!rid) return;
     if (!entradaNfeEditorCongeladoAtivo() && !entradaNfeWizardAlgumaEtapaIntermediariaTravada()) return;
@@ -6328,7 +6330,7 @@
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
-        body: JSON.stringify({ rascunho_id: rid, pin }),
+        body: JSON.stringify({ rascunho_id: rid, pin, escopo }),
       }, 90000);
       const j = await r.json();
       if (!r.ok || !j.ok) {
@@ -6354,6 +6356,13 @@
       entradaNfeAtualizarUiBotaoConfirmarProdutos();
       entradaNfeAtualizarUiBotaoConfirmarCodigos();
       entradaNfeWizardAgendarAtualizarCores();
+      if (escopo === 'estoque_pendente') {
+        showMsg(
+          j.mensagem || 'Nota liberada somente para registrar o estoque. O financeiro existente foi preservado.',
+          true,
+        );
+        return;
+      }
       const det = [];
       const nEst = Number(j.estoque_ajustes_estornados || j.estoque_ajustes_removidos) || 0;
       if (nEst > 0) det.push(`${nEst} saída(s) de estorno no estoque (histórico mantém a entrada)`);
@@ -6496,8 +6505,8 @@
     }
   });
   document.getElementById('nfe-wiz-btn-aprov')?.addEventListener('click', () => { entradaNfeAprovarWizardPin(); });
-  document.getElementById('nfe-wiz-btn-reabrir')?.addEventListener('click', () => { entradaNfeReabrirNota(); });
-  document.getElementById('btn-estoque-reabrir-nota')?.addEventListener('click', () => { entradaNfeReabrirNota(); });
+  document.getElementById('nfe-wiz-btn-reabrir')?.addEventListener('click', () => { entradaNfeReabrirNota('completo'); });
+  document.getElementById('btn-estoque-reabrir-nota')?.addEventListener('click', () => { entradaNfeReabrirNota('estoque_pendente'); });
   document.getElementById('nfe-wiz-pin')?.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
