@@ -267,6 +267,7 @@ class EntradaNfReaberturaEstoqueTests(SimpleTestCase):
         self.assertEqual(api_entrada_nota_reabrir_nota(req_full).status_code, 200)
         completa.assert_called_once()
 
+    @patch("produtos.views.sanear_carimbo_financeiro_falso_rascunho", side_effect=lambda db, doc, usuario="": doc)
     @patch("produtos.views.sincronizar_financeiro_rascunho_entrada_nfe")
     @patch("produtos.views.normalizar_cabecalho_emit_fornecedor_entrada_nfe", side_effect=lambda db, col, cab: cab)
     @patch("produtos.views._object_id_rascunho", return_value=RID)
@@ -277,7 +278,7 @@ class EntradaNfReaberturaEstoqueTests(SimpleTestCase):
         return_value=(SimpleNamespace(col_c="DtoPessoa"), object()),
     )
     def test_etapa_financeiro_reconhece_ids_preservados_sem_criar_duplicata(
-        self, _con, _db_ok, store, _oid, _norm, sincronizar
+        self, _con, _db_ok, store, _oid, _norm, sincronizar, _sanear
     ):
         store.return_value.find_one.return_value = _doc(
             {"financeiro_lancado": True, "financeiro_ids": ["fin-existente"]}
