@@ -1245,7 +1245,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Filtros repetidos cat/sub 1–4 (OR no campo, AND entre campos, case-insensitive), facetas em cascata, metadados Postgres/overlay no ranking, agrupamento 1–4, ABC no recorte, margem reaproveitando linhas filtradas e XLSX idêntico à tela. |
 | **Compatibilidade** | Central usa `vendas_por_grupo_relatorio()`; `vendas_por_grupo()` mantém retorno legado em lista para DRE/BI. Sem novo scan pesado do Mongo. |
 | **Prova** | 8 regressões Central + 18 `financeiro.tests_dre_visual` · quatro rotas via `reverse()`/cliente Django, multi e XLSX · `manage.py check` · todos os `ru.*` existentes. |
-| **Branch** | `teste` · produção aguarda frase explícita + senha no mesmo pedido. |
+| **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
 ### 📦 PACOTE PRONTO — pós Live v18.25 · badge teste **v18.25** · 27/08
 
