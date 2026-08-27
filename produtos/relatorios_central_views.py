@@ -170,7 +170,7 @@ def relatorios_vendas_grupo(request):
         "categoria", "subcategoria", "subcategoria_2", "subcategoria_3", "subcategoria_4"
     ):
         agrupar = "categoria"
-    rows, meta = ru.vendas_por_grupo(
+    rows, meta = ru.vendas_por_grupo_relatorio(
         f["desde"], f["ate_dt"], agrupar=agrupar, **ru.filtros_catalogo_request(request)
     )
     headers = ["#", meta.get("col_grupo") or "Grupo", "SKUs", "Qtd", "Total R$", "%"]
