@@ -1230,6 +1230,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v18.25** — somente os dois pacotes autorizados com senha nesta mensagem |
+| **Pacotes** | `ETQ-GONDOLA-6CM` + `NF-RECUPERA-ESTOQUE` |
+| **Origem teste** | `d5dafb4` + `45d53dc` |
+| **Commits produção** | `b370225` + `aa4be2c` |
+| **Antes** | `efdde0b` · Live **v18.14** |
+| **Rollback** | tag `rollback/pre-etq-nf-v18.14` + branch `producao-backup-pre-v1825-etq-nf-20260827` |
+| **Migrate** | **NÃO** |
+| **Provas** | Django focado **11/11** · Etiquetas 90/60 mm OK · Entrada NF **11/11** · JS syntax OK · `manage.py check` OK |
+| **Não entrou** | `PDV-PRECO-MANUAL-FORMA`, `REPASSE-UX` e `CP-NOVO-EMPRESTIMO` continuam somente no `teste` |
+| **Você** | Ctrl+F5 · badge **v18.25** · Etiquetas: 90 mm = 18 / 60 mm = 27 · Entrada NF: reabrir etapa 5 preserva financeiro |
+
 ### ✅ PACOTE ENVIADO — Excel ↓ últimos 3 fornecedores (CAD-XLSX-ULT-FORN · **v18.02**)
 
 | Item | Detalhe |
