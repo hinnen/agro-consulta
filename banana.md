@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1236,6 +1236,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Causa** | Views/template multi-select estavam novos, mas `relatorios_vendas_util.py` ficou no contrato antigo; `/relatorios/mais-vendidos/` caía em `AttributeError` e os demais relatórios falhariam em sequência. |
+| **Fix** | Filtros repetidos cat/sub 1–4 (OR no campo, AND entre campos, case-insensitive), facetas em cascata, metadados Postgres/overlay no ranking, agrupamento 1–4, ABC no recorte, margem reaproveitando linhas filtradas e XLSX idêntico à tela. |
+| **Compatibilidade** | Central usa `vendas_por_grupo_relatorio()`; `vendas_por_grupo()` mantém retorno legado em lista para DRE/BI. Sem novo scan pesado do Mongo. |
+| **Prova** | 8 regressões Central + 18 `financeiro.tests_dre_visual` · quatro rotas via `reverse()`/cliente Django, multi e XLSX · `manage.py check` · todos os `ru.*` existentes. |
+| **Branch** | `teste` · produção aguarda frase explícita + senha no mesmo pedido. |
 
 ### 📦 PACOTE PRONTO — pós Live v18.25 · badge teste **v18.25** · 27/08
 
