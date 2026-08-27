@@ -1247,7 +1247,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Regressão DOM** | `scripts/verify_nf_estoque_recovery_dom.js` executa listeners/fetch em DOM controlado, prova foco/digitação/Enter, payloads, POST único e travas restantes; integrado à suíte Django. |
 | **Provas** | Entrada NF **20/20** · recuperação **10/10** · `verify_nf_troca_estorno.py` **11/11** e 13 blocos JS inline OK · `manage.py check` · `git diff --check`. |
 | **Migrate / operação** | **NÃO / nenhuma**. NF 16266 não recebeu ajuste manual de estoque nem alteração no título financeiro. |
-| **Deploy** | `teste` v18.27; produção aguarda nova autorização explícita com frase + senha no mesmo chat. |
+| **Deploy** | ✅ Live em produção v18.27 · `teste` 2bea99d · `producao` 3adddf2 · health 200 · página pública/asset em `3adddf25f2c5`. Rollback: tag `rollback/pre-nf-stock-dom-v18.26.1-20260827` + branch `producao-backup-pre-nf-stock-dom-v18261-20260827` @ cfcb526. |
 ### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026)
 
 | Item | Detalhe |
