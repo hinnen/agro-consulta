@@ -11753,6 +11753,14 @@ def api_caixa_conferencia_estado(request):
             }
         )
     estado = serializar_estado_conferencia_fechar(alvo, deposito=dep_browser)
+    if dep_browser == "vila":
+        from produtos.repasse_vila_util import (
+            aplicar_reserva_virtual_estado_caixa,
+            resumo_reserva_fechamento_vila,
+        )
+
+        reserva_fecha = resumo_reserva_fechamento_vila(alvo)
+        estado = aplicar_reserva_virtual_estado_caixa(estado, reserva_fecha)
     return JsonResponse({"ok": True, **estado})
 
 
@@ -12540,6 +12548,26 @@ def caixa_fechar(request):
     def _limpar_rascunho_conferencia(req):
         _limpar_rascunho_conferencia_caixa(req, deposito=dep_fechar)
 
+    def _separar_reserva_vila_antes_fechar(alvo, pin: str = "") -> str:
+        if not alvo or not any(getattr(s, "ponto_caixa", "") == "vila" for s in alvo):
+            return ""
+        from produtos.repasse_vila_util import separar_reservas_ao_fechar_vila
+
+        op = rotulo_operador_pin(pin) if pin else ""
+        if not op and getattr(request, "user", None) and request.user.is_authenticated:
+            op = (request.user.get_full_name() or request.user.get_username() or "").strip()
+        _feitos, err = separar_reservas_ao_fechar_vila(
+            alvo,
+            operador=op or "Operador fechamento",
+            usuario=request.user if getattr(request, "user", None) and request.user.is_authenticated else None,
+        )
+        if not err:
+            for s in alvo:
+                cache_prefetch = getattr(s, "_prefetched_objects_cache", None)
+                if isinstance(cache_prefetch, dict):
+                    cache_prefetch.pop("movimentos", None)
+        return err
+
     sessoes_operacional = filtrar_sessoes_operacional(sessoes)
     sessoes_teste = filtrar_sessoes_teste(sessoes)
     dep_fechar = deposito_caixa_browser(request)
@@ -12584,6 +12612,10 @@ def caixa_fechar(request):
             ok_pin, err_pin = exigir_pin_gerir_caixa(request, sessao, pin_f)
             if not ok_pin:
                 messages.error(request, err_pin)
+                return _redirect_caixa(request, "caixa_fechar")
+            err_reserva = _separar_reserva_vila_antes_fechar([sessao], pin_f)
+            if err_reserva:
+                messages.error(request, err_reserva)
                 return _redirect_caixa(request, "caixa_fechar")
             linhas = linhas_conferencia_fechar(sessao)
             obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
@@ -12636,6 +12668,11 @@ def caixa_fechar(request):
         if err_fiado:
             messages.error(request, err_fiado)
             return _redirect_caixa(request, "caixa_fechar")
+        err_reserva = _separar_reserva_vila_antes_fechar(sessoes_lote, pin_f)
+        if err_reserva:
+            messages.error(request, err_reserva)
+            return _redirect_caixa(request, "caixa_fechar")
+        linhas = linhas_conferencia_agregada(sessoes_lote, todas_formas=True)
         conferencia_lote, cont_din_lote = _conferencia_de_post(linhas, request.POST)
         obs = (request.POST.get("observacao_fechamento") or "").strip()[:500]
         rot = rotulo_operador_pin(pin_f) if pin_f else ""
@@ -12679,6 +12716,14 @@ def caixa_fechar(request):
         sessoes_lote if sessoes_lote else [],
         deposito=dep_fechar,
     )
+    if dep_fechar == "vila":
+        from produtos.repasse_vila_util import (
+            aplicar_reserva_virtual_estado_caixa,
+            resumo_reserva_fechamento_vila,
+        )
+
+        reserva_fecha = resumo_reserva_fechamento_vila(sessoes_lote)
+        estado_conf = aplicar_reserva_virtual_estado_caixa(estado_conf, reserva_fecha)
     tot_esperado_din = Decimal(str(estado_conf.get("tot_esperado_dinheiro") or "0"))
     # Ordem fixa FORMAS_CONFERENCIA_CAIXA — bloco auto (Vale/Cashback/Fiado/Point) no final.
     linhas_conferencia = []
@@ -12694,6 +12739,13 @@ def caixa_fechar(request):
         "tem": False,
         "valor": "0.00",
         "qtd": 0,
+        "texto": "",
+    }
+    aviso_reserva_vila = estado_conf.get("aviso_reserva_vila") or {
+        "tem": False,
+        "valor": "0.00",
+        "saldo": "0.00",
+        "dias": [],
         "texto": "",
     }
 
@@ -12730,6 +12782,7 @@ def caixa_fechar(request):
             "linhas_visiveis": linhas_visiveis,
             "linhas_ocultas": linhas_ocultas,
             "aviso_devolucao_dinheiro": aviso_devolucao_dinheiro,
+            "aviso_reserva_vila": aviso_reserva_vila,
             "linhas_com_movimento": [L for L in linhas_conferencia if L.get("com_movimento")],
             "linhas_sem_movimento": [L for L in linhas_conferencia if not L.get("com_movimento")],
             "tot_esperado_dinheiro": str(tot_esperado_din),

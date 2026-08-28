@@ -31,6 +31,7 @@
     acumulado: document.getElementById('pdv-rp-acumulado'),
     reserva: document.getElementById('pdv-rp-reserva'),
     salvarReserva: document.getElementById('pdv-rp-salvar-reserva'),
+    separarReserva: document.getElementById('pdv-rp-separar-reserva'),
     manual: document.getElementById('pdv-rp-manual'),
     pin: document.getElementById('pdv-rp-pin'),
     status: document.getElementById('pdv-rp-status'),
@@ -149,6 +150,7 @@
 
   function renderCalc() {
     var c = calc || {};
+    var cofre = c.cofrinho || {};
     var d = c.disponivel || {};
     document.getElementById('pdv-rp-receita').textContent = money(c.receita_dia);
     document.getElementById('pdv-rp-cmv-dia').textContent = money(c.cmv_dia);
@@ -196,6 +198,14 @@
     document.getElementById('pdv-rp-total').textContent = money(tot);
     var hintOp = document.getElementById('pdv-rp-opcoes-hint');
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
+    var cofreSaldo = document.getElementById('pdv-rp-cofre-saldo');
+    if (cofreSaldo) cofreSaldo.textContent = 'Saldo ' + money(cofre.saldo);
+    var cofreDia = document.getElementById('pdv-rp-cofre-dia');
+    if (cofreDia) {
+      cofreDia.textContent = 'Reserva do dia: prevista ' + money(cofre.prevista_dia) +
+        ' · realizada ' + money(cofre.realizada_dia) +
+        ' · deve permanecer fisicamente na Vila';
+    }
   }
 
   function renderQuem() {
@@ -306,6 +316,7 @@
         }
         if (!qs().get('data')) {
           calc = j.calc || null;
+          if (calc && j.cofrinho) calc.cofrinho = j.cofrinho;
         }
         if (!j.caixa_vila_aberto) {
           dom.sub.textContent = 'Caixa da Vila FECHADO — abra antes de transferir';
@@ -376,6 +387,7 @@
       forma_pagamento: formaPag || 'Dinheiro',
       data_ref: dataRef(),
       incluir_acumulado: !!(dom.acumulado && dom.acumulado.checked),
+      separar_reserva: !!(dom.separarReserva && dom.separarReserva.checked),
     };
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
@@ -404,7 +416,8 @@
           return;
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
-        dom.status.textContent = 'OK — enviado ' + money(tot) + ' · ' + (formaPag || '');
+        var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
+        dom.status.textContent = 'OK — enviado ' + money(tot) + ' · cofrinho na Vila ' + saldoCofre;
         dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
         notifyParentFecharAtualizar();
@@ -456,7 +469,7 @@
         .then(function (j) {
           if (dom.status) {
             dom.status.textContent = j.ok
-              ? 'Fica na Vila salvo: ' + money(j.reserva_vila)
+              ? 'Reserva diária salva: ' + money(j.reserva_vila)
               : (j.erro || 'Erro');
           }
           if (j && j.ok) fetchCalc();

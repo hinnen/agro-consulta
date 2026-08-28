@@ -120,6 +120,13 @@ Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
+**Repasse Vila — cofrinho físico acumulado (28/08/2026)**
+
+- O **cofrinho da Vila** é um saldo acumulado próprio no PostgreSQL, separado do caixa normal e do indicador histórico **Lucro ficou**. A reserva diária mantém vigência funcional em **18/08/2026** e continua entrando **antes dos 50%** na fórmula do lucro; não há segundo desconto no total sugerido.
+- A separação pode ocorrer junto do repasse ou isoladamente. Cada evento gera movimento rastreável e idempotente com saldo anterior/posterior, operador, data, origem e vínculos com caixa/repasse. Retirada, ajuste e estorno exigem operador e motivo; o saldo não pode ficar negativo.
+- Ao fechar o caixa da Vila, a reserva pendente é abatida do esperado em dinheiro e aparece em aviso destacado como valor que permanece na loja fora da gaveta normal. Repetir fechamento, separação ou requisição não duplica o valor.
+- O backend impede repasse em dinheiro que consuma a reserva diária quando a opção de separar junto estiver marcada. Tela `/repasse-vila/`, overlay do PDV e APIs `api/repasse-vila/cofrinho/*`. Modelos: `RepasseVilaConfigAgro.saldo_reserva_vila` e `RepasseVilaReservaMovimentoAgro`; migration `produtos.0100`.
+
 **Compras (`compras.html` + JS inline)**  
 
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  

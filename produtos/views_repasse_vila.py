@@ -31,6 +31,10 @@ from produtos.repasse_vila_util import (
     quitar_acumulado_zerar,
     registrar_ajuste_acumulado,
     reserva_vila_desde_config,
+    resumo_cofrinho_vila,
+    separar_reserva_diaria,
+    registrar_uso_ou_ajuste_cofrinho,
+    estornar_movimento_cofrinho,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
     salvar_reserva_vila,
@@ -92,6 +96,7 @@ def repasse_vila_view(request):
             "hist": hist,
             "url_pdv_repasse": url_pdv,
             "caixa_vila_aberto": bool(obter_caixa_vila_aberto()),
+            "cofrinho": resumo_cofrinho_vila(hoje),
         },
     )
 
@@ -110,6 +115,7 @@ def api_repasse_vila_calc(request):
     except Exception:
         pct_v = None
     out = calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo)
+    out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10)
     out["ok"] = True
     return JsonResponse(out)
 
@@ -249,7 +255,7 @@ def api_repasse_vila_config(request):
         try:
             reserva = Decimal(str(raw_res or "0").replace(",", "."))
         except Exception:
-            return JsonResponse({"ok": False, "erro": "Valor que fica na Vila inválido"}, status=400)
+            return JsonResponse({"ok": False, "erro": "Valor da reserva diária inválido"}, status=400)
         cfg = salvar_reserva_vila(reserva, operador=op)
     if "planos_desconto_centro" in payload:
         raw = payload.get("planos_desconto_centro")
@@ -284,6 +290,123 @@ def api_repasse_vila_reserva_log(request):
     return JsonResponse({"ok": True, "logs": listar_log_reserva(limit=lim)})
 
 
+def _operador_payload(request, payload: dict) -> tuple[str, object | None, str]:
+    pin = str(payload.get("pin") or "").strip()
+    operador = str(payload.get("operador") or "").strip()
+    usuario = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+    if pin:
+        ok_pin, label, err_pin = operador_label_de_pin(pin)
+        if not ok_pin:
+            return "", None, err_pin or label or "PIN inválido"
+        operador = label or operador
+        usuario_pin = usuario_django_de_pin(pin)
+        if usuario_pin is not None:
+            usuario = usuario_pin
+    if not operador and usuario is not None:
+        operador = (usuario.get_full_name() or usuario.get_username() or "").strip()
+    if not operador:
+        return "", usuario, "Informe o operador."
+    return operador[:120], usuario, ""
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_repasse_vila_cofrinho(request):
+    dia = _parse_date(request.GET.get("data")) or timezone.localdate()
+    return JsonResponse(resumo_cofrinho_vila(dia))
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_cofrinho_separar(request):
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    operador, usuario, err_op = _operador_payload(request, payload)
+    if err_op:
+        return JsonResponse({"ok": False, "erro": err_op}, status=400)
+    dia, err_dia = validar_data_ref_repasse(_parse_date(payload.get("data_ref")))
+    if err_dia or dia is None:
+        return JsonResponse({"ok": False, "erro": err_dia or "Data inválida"}, status=400)
+    sessao_req = obter_sessao_caixa_aberta_request(request)
+    sessao_vila = obter_caixa_vila_aberto()
+    if not sessao_req or getattr(sessao_req, "ponto_caixa", "") not in ("vila", "notebook"):
+        return JsonResponse({"ok": False, "erro": "Abra o caixa da Vila neste computador."}, status=400)
+    mov, criado, err = separar_reserva_diaria(
+        dia,
+        origem="lancamento_separado",
+        operador=operador,
+        usuario=usuario,
+        sessao_caixa=sessao_vila,
+        observacao=str(payload.get("observacao") or "Separação isolada para o cofrinho"),
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({
+        "ok": True,
+        "criado": criado,
+        "movimento_id": mov.pk if mov else None,
+        "cofrinho": resumo_cofrinho_vila(dia),
+    })
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_cofrinho_movimento(request):
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    operador, usuario, err_op = _operador_payload(request, payload)
+    if err_op:
+        return JsonResponse({"ok": False, "erro": err_op}, status=400)
+    tipo = str(payload.get("tipo") or "").strip()
+    if tipo not in ("retirada", "ajuste"):
+        return JsonResponse({"ok": False, "erro": "Tipo inválido"}, status=400)
+    try:
+        valor = Decimal(str(payload.get("valor") or "").replace(",", "."))
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Valor inválido"}, status=400)
+    chave = str(payload.get("idempotencia_chave") or "").strip()
+    if not chave:
+        return JsonResponse({"ok": False, "erro": "Chave de segurança da operação ausente."}, status=400)
+    mov, criado, err = registrar_uso_ou_ajuste_cofrinho(
+        tipo=tipo,
+        valor=valor,
+        observacao=str(payload.get("observacao") or ""),
+        operador=operador,
+        usuario=usuario,
+        data_ref=_parse_date(payload.get("data_ref")),
+        idempotencia_chave=chave,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "criado": criado, "movimento_id": mov.pk if mov else None, "cofrinho": resumo_cofrinho_vila()})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_repasse_vila_cofrinho_estornar(request):
+    payload = _payload(request)
+    if payload is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
+    operador, usuario, err_op = _operador_payload(request, payload)
+    if err_op:
+        return JsonResponse({"ok": False, "erro": err_op}, status=400)
+    try:
+        movimento_id = int(payload.get("movimento_id") or 0)
+    except Exception:
+        movimento_id = 0
+    mov, criado, err = estornar_movimento_cofrinho(
+        movimento_id,
+        observacao=str(payload.get("observacao") or ""),
+        operador=operador,
+        usuario=usuario,
+    )
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "criado": criado, "movimento_id": mov.pk if mov else None, "cofrinho": resumo_cofrinho_vila()})
+
+
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_repasse_vila_meta(request):
@@ -316,6 +439,7 @@ def api_repasse_vila_meta(request):
             "funcionarios": funcionarios,
             "formas_pagamento": formas,
             "calc": calc,
+            "cofrinho": resumo_cofrinho_vila(timezone.localdate(), limit=10),
             "url_tela": reverse("repasse_vila"),
         }
     )
@@ -365,7 +489,8 @@ def api_repasse_vila_confirmar(request):
         operador=operador,
         data_ref=dia,
         incluir_acumulado=_parse_bool(payload.get("incluir_acumulado"), False),
+        separar_reserva=_parse_bool(payload.get("separar_reserva"), False),
     )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
-    return JsonResponse({"ok": True, "repasse": serializar_repasse(rep)})
+    return JsonResponse({"ok": True, "repasse": serializar_repasse(rep), "cofrinho": resumo_cofrinho_vila(dia or timezone.localdate(), limit=10)})

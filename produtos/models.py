@@ -2874,6 +2874,12 @@ class RepasseVilaConfigAgro(models.Model):
         blank=True,
         help_text="A partir desta data o valor manual entra todo dia (criação do campo: 18/08/2026).",
     )
+    saldo_reserva_vila = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo acumulado do cofrinho/reserva física da Vila Elias.",
+    )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
 
@@ -3014,6 +3020,85 @@ class RepasseVilaReservaLogAgro(models.Model):
 
     def __str__(self):
         return f"Reserva log {self.tipo} · {self.criado_em:%d/%m/%Y %H:%M}"
+
+
+class RepasseVilaReservaMovimentoAgro(models.Model):
+    """Razão imutável do dinheiro fisicamente separado no cofrinho da Vila."""
+
+    class Tipo(models.TextChoices):
+        SEPARACAO = "separacao", "Separação"
+        RETIRADA = "retirada", "Retirada / uso"
+        AJUSTE = "ajuste", "Ajuste"
+        ESTORNO = "estorno", "Estorno"
+
+    class Origem(models.TextChoices):
+        FECHAMENTO = "fechamento_caixa", "Fechamento de caixa"
+        REPASSE = "repasse", "Repasse Vila → Centro"
+        SEPARADO = "lancamento_separado", "Lançamento separado"
+        AJUSTE = "ajuste_manual", "Ajuste manual"
+        ESTORNO = "estorno", "Estorno"
+
+    tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)
+    origem = models.CharField(max_length=24, choices=Origem.choices, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    data_ref = models.DateField(db_index=True)
+    valor = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Variação assinada: entrada positiva; retirada negativa.",
+    )
+    saldo_anterior = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    saldo_posterior = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    operador = models.CharField(max_length=120)
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movimentos_reserva_vila",
+    )
+    observacao = models.CharField(max_length=500, blank=True, default="")
+    idempotencia_chave = models.CharField(max_length=160, unique=True)
+    sessao_caixa = models.ForeignKey(
+        SessaoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movimentos_reserva_vila",
+    )
+    movimento_caixa = models.OneToOneField(
+        MovimentoCaixa,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movimento_reserva_vila",
+    )
+    repasse = models.ForeignKey(
+        RepasseVilaCentroAgro,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movimentos_cofrinho",
+    )
+    estornado_de = models.OneToOneField(
+        "self",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="estorno_movimento",
+    )
+    detalhe = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = "Repasse Vila · movimento do cofrinho"
+        verbose_name_plural = "Repasse Vila · movimentos do cofrinho"
+        ordering = ["-criado_em", "-pk"]
+        indexes = [
+            models.Index(fields=["data_ref", "tipo"], name="rv_res_data_tipo_idx"),
+        ]
+
+    def __str__(self):
+        return f"Cofrinho {self.get_tipo_display()} · {self.data_ref} · {self.valor}"
 
 
 class RepasseVilaAcumuladoAjusteAgro(models.Model):

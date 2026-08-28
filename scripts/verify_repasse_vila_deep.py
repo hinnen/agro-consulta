@@ -248,9 +248,13 @@ def main() -> int:
         f"alvo={alvo} falta={falta} elet={elet}"
     )
 
-    lucro = Decimal(str(calc_e["lucro_bruto_dia"]))
-    alvo_lucro = (max(Decimal("0"), lucro) * Decimal("50") / Decimal("100")).quantize(
-        Decimal("0.01")
+    lucro_penultimo = Decimal(str(calc_e["lucro_penultimo_dia"]))
+    despesas_centro = Decimal(str(calc_e.get("despesas_centro_dia") or 0))
+    alvo_lucro = max(
+        Decimal("0"),
+        (lucro_penultimo * Decimal("50") / Decimal("100") - despesas_centro).quantize(
+            Decimal("0.01")
+        ),
     )
     ok("alvo lucro 50%") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
         "0.02"
