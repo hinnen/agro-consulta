@@ -489,6 +489,26 @@ urlpatterns = [
         name='api_repasse_vila_reserva_log',
     ),
     path(
+        'api/repasse-vila/cofrinho/',
+        views_repasse_vila.api_repasse_vila_cofrinho,
+        name='api_repasse_vila_cofrinho',
+    ),
+    path(
+        'api/repasse-vila/cofrinho/separar/',
+        views_repasse_vila.api_repasse_vila_cofrinho_separar,
+        name='api_repasse_vila_cofrinho_separar',
+    ),
+    path(
+        'api/repasse-vila/cofrinho/movimento/',
+        views_repasse_vila.api_repasse_vila_cofrinho_movimento,
+        name='api_repasse_vila_cofrinho_movimento',
+    ),
+    path(
+        'api/repasse-vila/cofrinho/estornar/',
+        views_repasse_vila.api_repasse_vila_cofrinho_estornar,
+        name='api_repasse_vila_cofrinho_estornar',
+    ),
+    path(
         'api/repasse-vila/meta/',
         views_repasse_vila.api_repasse_vila_meta,
         name='api_repasse_vila_meta',

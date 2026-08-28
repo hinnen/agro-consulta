@@ -1229,6 +1229,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 📦 PACOTE PRONTO — Cofrinho físico da reserva Vila (`REPASSE-COFRINHO-VILA` · **v18.30** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Saldo acumulado do cofrinho em PostgreSQL, separado do caixa normal e do histórico **Lucro ficou**; card com saldo, reserva prevista/realizada/pendente e extrato rastreável. |
+| **Regra preservada** | Vigência funcional **18/08/2026**. A reserva segue antes dos 50% na fórmula do lucro; não é descontada outra vez do repasse sugerido. |
+| **Operação** | Separar junto do repasse ou em lançamento isolado; retirada, ajuste e estorno com operador, motivo, saldo anterior/posterior e chave idempotente. Saldo negativo é bloqueado. |
+| **Caixa Vila** | Reserva pendente reduz o esperado em dinheiro no fechamento e mostra aviso destacado do valor que fica na loja fora da gaveta normal. Repetições não duplicam a separação. |
+| **Proteção** | Com «separar junto» marcado, o backend bloqueia repasse em dinheiro que use o valor que deve permanecer na Vila. A fórmula financeira anterior continua intacta. |
+| **Arquivos centrais** | `produtos/models.py`, `repasse_vila_util.py`, `views_repasse_vila.py`, `views.py`, `urls.py`, telas `repasse_vila.html`/overlay/`caixa_fechar.html`, JS do overlay e ajudas. |
+| **Migrations** | `produtos.0100` cria saldo/ledger do cofrinho. `base.0010`, `estoque.0019` e `produtos.0101` apenas materializam drift de estado já existente, exigido pelo gate `makemigrations --check`. |
+| **Provas** | Repasse path **143/143** · reserva **60/60** · deep **96/96** · cofrinho **22/22** · fechar caixa repasse **68/68** · fechar caixa loja **41/41** · `manage.py check` · migrations sem drift · Python/JS syntax · `git diff --check`. |
+| **Visual** | Chrome local 1366×768, Agro Display Scale 100%: configuração e cofrinho lado a lado no primeiro viewport, sem overflow horizontal; fluxo inferior preservado. |
+| **Após deploy** | Rodar `python manage.py migrate`. O saldo inicial é **R$ 0,00**; se já existir dinheiro físico no cofrinho, contar e lançar **Ajuste · entrada** com operador e motivo. |
+| **Status** | Commit/push em `teste` ao fechar este checkpoint; **produção não alterada**. |
+
 ### 🩹 Entrada NF — saneamento de vínculo financeiro falso (`NF-FIN-VINCULO-FORTE` · **v18.29** · 27/08/2026)
 
 | Item | Detalhe |

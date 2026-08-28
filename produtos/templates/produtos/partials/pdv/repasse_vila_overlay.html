@@ -92,13 +92,21 @@
           <div class="text-lg font-black tabular-nums text-violet-950" id="pdv-rp-total-sug">R$ 0,00</div>
         </div>
         <div>
-          <div class="text-[0.65rem] font-black uppercase text-rose-800">Fica na Vila (manual/dia)</div>
+          <div class="text-[0.65rem] font-black uppercase text-rose-800">Reserva diária do cofrinho</div>
           <input type="text" id="pdv-rp-reserva" class="rp-field mt-0.5" inputmode="decimal" placeholder="0,00" autocomplete="off" />
         </div>
         <div class="sm:justify-self-end flex flex-col gap-1">
           <button type="button" id="pdv-rp-btn-acum" class="min-h-[2.35rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
           <button type="button" id="pdv-rp-salvar-reserva" class="min-h-[2.35rem] w-full rounded-lg border-2 border-rose-600 bg-rose-50 px-3 text-xs font-black uppercase text-rose-950">Salvar</button>
         </div>
+      </div>
+      <div class="rp-card mb-3 border-rose-400 bg-rose-50 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] items-center">
+        <div>
+          <div class="text-[0.7rem] font-black uppercase text-rose-900">Cofrinho da Vila · não levar ao Centro</div>
+          <div class="text-xl font-black tabular-nums text-rose-950" id="pdv-rp-cofre-saldo">Saldo R$ 0,00</div>
+          <p class="text-xs font-bold text-rose-900" id="pdv-rp-cofre-dia">Reserva do dia: prevista R$ 0,00 · realizada R$ 0,00</p>
+        </div>
+        <label class="rp-check border-rose-500 bg-white"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar a reserva junto com este repasse</span></label>
       </div>
 
       <div class="rp-body">

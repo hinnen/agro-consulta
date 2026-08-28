@@ -1158,6 +1158,7 @@
       <div class="cf-body">
         <div class="cf-scroll">
           <p id="cf-contagem-status" class="cf-t-meta hidden font-black uppercase text-emerald-700" role="status" aria-live="polite"></p>
+          <p id="cf-aviso-reserva-vila" class="rounded-xl border-2 border-rose-600 bg-rose-50 px-3 py-2.5 text-sm sm:text-base font-black text-rose-950 leading-snug{% if not aviso_reserva_vila.tem %} hidden{% endif %}" role="alert">{{ aviso_reserva_vila.texto }}</p>
           <p id="cf-aviso-devolucao-dinheiro" class="rounded-xl border-2 border-amber-500 bg-amber-50 px-3 py-2.5 text-sm sm:text-base font-black text-amber-950 leading-snug{% if not aviso_devolucao_dinheiro.tem %} hidden{% endif %}" role="status">{{ aviso_devolucao_dinheiro.texto }}</p>
           {% if linhas_conferencia %}
           <div class="cf-conf-table" role="table" aria-label="Conferência por forma de pagamento">
@@ -1568,6 +1569,17 @@
   }
   function aplicarAvisoDevolucaoDinheiro(av) {
     var el = document.getElementById('cf-aviso-devolucao-dinheiro');
+    if (!el) return;
+    if (av && av.tem && av.texto) {
+      el.textContent = av.texto;
+      el.classList.remove('hidden');
+    } else {
+      el.textContent = '';
+      el.classList.add('hidden');
+    }
+  }
+  function aplicarAvisoReservaVila(av) {
+    var el = document.getElementById('cf-aviso-reserva-vila');
     if (!el) return;
     if (av && av.tem && av.texto) {
       el.textContent = av.texto;
@@ -2080,6 +2092,7 @@
         if (!data || !data.ok) return;
         (data.linhas || []).forEach(aplicarLinhaConferencia);
         aplicarCardsConferencia(data.cards);
+        aplicarAvisoReservaVila(data.aviso_reserva_vila);
         aplicarAvisoDevolucaoDinheiro(data.aviso_devolucao_dinheiro);
         aplicarAutoContadoEsperado();
         if (statusEl) {

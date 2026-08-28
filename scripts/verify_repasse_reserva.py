@@ -144,14 +144,14 @@ def main() -> int:
         "produtos/templates/produtos/repasse_vila.html",
         "rv-reserva",
         "rv-log-lista",
-        "Fica na Vila",
+        "Reserva diária do cofrinho",
         "penúltimo",
         "fetchLogReserva",
     )
     check_file(
         "produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html",
         "pdv-rp-reserva",
-        "Fica na Vila",
+        "Reserva diária do cofrinho",
     )
     check_file(
         "produtos/static/produtos/js/pdv_repasse_vila.js",
@@ -298,7 +298,7 @@ def main() -> int:
     r = client.get("/repasse-vila/")
     body = r.content if r.status_code == 200 else b""
     ok("GET tela 200") if r.status_code == 200 else fail(f"tela {r.status_code}")
-    for needle in (b"rv-reserva", b"rv-log-lista", b"Fica na Vila"):
+    for needle in (b"rv-reserva", b"rv-log-lista", "Reserva diária do cofrinho".encode("utf-8")):
         if needle in body:
             ok(f"tela tem {needle.decode()}")
         else:

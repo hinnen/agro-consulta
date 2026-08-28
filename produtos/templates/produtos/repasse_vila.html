@@ -226,7 +226,7 @@
         <div class="rv-val text-violet-950" id="rv-total-sug">R$ 0,00</div>
       </div>
       <div class="rv-metric border-rose-200 bg-rose-50">
-        <div class="rv-lbl text-rose-800 flex items-center gap-1">Fica na Vila (manual/dia) {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
+        <div class="rv-lbl text-rose-800 flex items-center gap-1">Reserva diária do cofrinho {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
         <div class="flex items-center gap-1.5 mt-0.5">
           <input id="rv-reserva" type="text" inputmode="decimal" autocomplete="off"
             value="{{ reserva_padrao|default:0|floatformat:2 }}"
@@ -305,6 +305,31 @@
     <p class="rounded-lg border-2 border-amber-400 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-950">Caixa da Vila fechado — abra antes de transferir.</p>
     {% endif %}
     <p id="rv-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+  </section>
+
+  <section class="rv-card space-y-2.5 border-rose-300 bg-rose-50/30" id="rv-cofrinho-card">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base sm:text-lg font-black uppercase text-rose-950">Cofrinho · reserva física da Vila</h2>
+        <p class="text-xs font-bold text-slate-600">Permanece na Vila Elias, separado da gaveta e do card “Lucro ficou na Vila”.</p>
+      </div>
+      <button type="button" id="rv-cofre-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-rose-500 bg-white px-3 text-xs font-black uppercase text-rose-950">Atualizar</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div class="rv-sum border-rose-500 bg-white"><div class="rv-lbl text-rose-800">Saldo no cofrinho</div><div class="rv-val-lg text-rose-950" id="rv-cofre-saldo">R$ {{ cofrinho.saldo|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-prevista">R$ {{ cofrinho.prevista_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-realizada">R$ {{ cofrinho.realizada_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
+    </div>
+    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar reserva do dia</button>
+      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option></select></label>
+      <label><span class="rv-lbl">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
+      <button type="button" id="rv-cofre-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
+    </div>
+    <label class="block"><span class="rv-lbl">Motivo / observação (obrigatório para retirada, ajuste e estorno)</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+    <p id="rv-cofre-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
+    <div id="rv-cofre-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-rose-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div>
   </section>
 
   {# —— Histórico —— #}
@@ -602,7 +627,12 @@
     fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio + '&data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (j) {
-        if (j && j.ok) { state.calc = j; renderCalc(); statusEl.textContent = ''; }
+        if (j && j.ok) {
+          state.calc = j;
+          renderCalc();
+          if (j.cofrinho) renderCofrinho(j.cofrinho);
+          statusEl.textContent = '';
+        }
         else statusEl.textContent = (j && j.erro) || 'Falha ao calcular';
       })
       .catch(function () { statusEl.textContent = 'Falha de rede'; });
@@ -672,7 +702,7 @@
       btnRes.addEventListener('click', function () {
         postConfig(
           { reserva_vila: reservaAtual() },
-          function (j) { return 'Fica na Vila salvo: ' + money(j.reserva_vila); }
+          function (j) { return 'Reserva diária salva: ' + money(j.reserva_vila); }
         );
       });
     }
@@ -968,10 +998,90 @@
       });
   }
 
+  function cofreEsc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function renderCofrinho(c) {
+    c = c || {};
+    var ids = { saldo: 'rv-cofre-saldo', prevista_dia: 'rv-cofre-prevista', realizada_dia: 'rv-cofre-realizada', pendente_dia: 'rv-cofre-pendente' };
+    Object.keys(ids).forEach(function (k) {
+      var el = document.getElementById(ids[k]);
+      if (el) el.textContent = money(c[k]);
+    });
+    var box = document.getElementById('rv-cofre-historico');
+    if (!box) return;
+    var rows = c.movimentos || [];
+    if (!rows.length) {
+      box.innerHTML = '<p class="px-3 py-3 text-slate-500">Sem movimentos no cofrinho.</p>';
+      return;
+    }
+    box.innerHTML = rows.map(function (m) {
+      var valor = Number(m.valor || 0);
+      var podeEstornar = m.tipo !== 'estorno' && !m.estornado;
+      return '<div class="px-3 py-2 grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto]">' +
+        '<div><div class="flex flex-wrap gap-x-2"><strong class="uppercase text-rose-900">' + cofreEsc(m.tipo_label) + '</strong><span>' + cofreEsc(m.origem_label) + '</span><span class="text-slate-500">' + cofreEsc(m.criado_em) + '</span></div>' +
+        '<div class="text-slate-700">Ref. ' + cofreEsc(m.data_ref) + ' · ' + cofreEsc(m.operador) + (m.observacao ? ' · ' + cofreEsc(m.observacao) : '') + '</div>' +
+        '<div class="text-slate-500">Saldo ' + money(m.saldo_anterior) + ' → ' + money(m.saldo_posterior) + (m.sessao_caixa_id ? ' · caixa #' + m.sessao_caixa_id : '') + (m.repasse_id ? ' · repasse #' + m.repasse_id : '') + '</div></div>' +
+        '<div class="flex items-center gap-2"><strong class="tabular-nums ' + (valor >= 0 ? 'text-emerald-800' : 'text-orange-800') + '">' + (valor >= 0 ? '+' : '−') + money(Math.abs(valor)) + '</strong>' +
+        (podeEstornar ? '<button type="button" class="rv-cofre-estornar min-h-[2.2rem] rounded-lg border-2 border-slate-400 px-2 text-[0.65rem] font-black uppercase" data-id="' + m.id + '">Estornar</button>' : '') + '</div></div>';
+    }).join('');
+    box.querySelectorAll('.rv-cofre-estornar').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var obs = String((document.getElementById('rv-cofre-obs') || {}).value || '').trim();
+        if (obs.length < 3) { setCofreStatus('Informe o motivo do estorno no campo de observação.'); return; }
+        postCofre('/api/repasse-vila/cofrinho/estornar/', { movimento_id: btn.dataset.id, observacao: obs });
+      });
+    });
+  }
+  function setCofreStatus(msg) {
+    var el = document.getElementById('rv-cofre-status');
+    if (el) el.textContent = msg || '';
+  }
+  function fetchCofrinho() {
+    return fetch('/api/repasse-vila/cofrinho/?data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok) renderCofrinho(j); });
+  }
+  function postCofre(url, body) {
+    setCofreStatus('Registrando…');
+    return fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify(body || {})
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (p) {
+        if (!p.ok || !p.j.ok) { setCofreStatus(p.j.erro || 'Não foi possível registrar.'); return; }
+        setCofreStatus(p.j.criado === false ? 'Já estava registrado — nenhuma duplicação.' : 'Movimento registrado.');
+        renderCofrinho(p.j.cofrinho || {});
+        fetchCalc();
+      }).catch(function () { setCofreStatus('Falha de rede.'); });
+  }
+  var btnCofreSep = document.getElementById('rv-cofre-separar');
+  if (btnCofreSep) btnCofreSep.addEventListener('click', function () {
+    postCofre('/api/repasse-vila/cofrinho/separar/', { data_ref: dataRef(), observacao: 'Separação isolada pela tela de repasse' });
+  });
+  var btnCofreMov = document.getElementById('rv-cofre-movimentar');
+  if (btnCofreMov) btnCofreMov.addEventListener('click', function () {
+    var tipoUi = String(document.getElementById('rv-cofre-tipo').value || 'retirada');
+    var valor = parseMoneyBR(document.getElementById('rv-cofre-valor').value);
+    var obs = String(document.getElementById('rv-cofre-obs').value || '').trim();
+    if (valor <= 0) { setCofreStatus('Informe um valor maior que zero.'); return; }
+    if (obs.length < 3) { setCofreStatus('Informe o motivo/observação.'); return; }
+    var tipo = tipoUi === 'retirada' ? 'retirada' : 'ajuste';
+    if (tipoUi === 'ajuste_menos') valor = -valor;
+    var chave = 'cofre-ui:' + Date.now() + ':' + Math.random().toString(36).slice(2);
+    postCofre('/api/repasse-vila/cofrinho/movimento/', { tipo: tipo, valor: valor, observacao: obs, data_ref: dataRef(), idempotencia_chave: chave });
+  });
+  var btnCofreRefresh = document.getElementById('rv-cofre-refresh');
+  if (btnCofreRefresh) btnCofreRefresh.addEventListener('click', fetchCofrinho);
+
   renderCalc();
   renderHist();
   syncTransferUrl();
   fetchCalc();
+  fetchCofrinho();
   fetchLogReserva();
   var btnLog = document.getElementById('rv-log-refresh');
   if (btnLog) btnLog.addEventListener('click', fetchLogReserva);
