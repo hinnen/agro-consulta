@@ -1427,18 +1427,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.42** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.44** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.42** · loja **v19.02** |
+| **Tip** | `teste` **v19.44** · loja **v19.02** |
 | **Prova NF estoque** | path **39/39** · recovery DOM · Django reabertura **10/10** |
 | **Prova demais** | tip v19.37 (Repasse/PIN/NFC-e/cadastro/Pedir) + Chat loja no tip |
 | **Migrate** | **SIM** só `PDV-CHAT-LOJA` (`produtos.0105`) — demais **não** |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · Entrada NF etapa 5 (botão azul) · Pedir escrito · Repasse · Chat PDV |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08f · tip **v19.42**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08f · tip **v19.44**)
 
 > **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**.
 
@@ -1460,17 +1460,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
 | 15 | PDV-CHAT-LOJA | Chat grupo Centro+Vila + som | **SIM** `0105` | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.42**
+### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.44**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.37~~ · superado pelo tip **v19.42**
+### ~~✅ CHECKLIST ÚNICO — tip v19.37~~ · superado pelo tip **v19.44**
 
-### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.42**
+### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.44**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.42**
+### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.44**
 
-### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver tip **v19.42**
+### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver tip **v19.44**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.42**
+### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.44**
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
