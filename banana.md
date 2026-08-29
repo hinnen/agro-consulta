@@ -401,6 +401,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
 - Template: `produtos/templates/produtos/dashboard_gerencial.html`.
+- **Central de Relatórios** (`/relatorios/`): mais vendidos · por grupo · ABC · margem · validade · etc. Filtros cat/sub 1–4 (OR no campo, AND entre campos) · agrupar · Excel. Contrato: `vendas_por_grupo_relatorio()` (Central) vs `vendas_por_grupo()` lista (DRE/BI). **500 cat/sub (ago/26) → Live v18.26.1** — Renan OK 28/08 · CHECKPOINT `relatórios`.
 
 ### 4.2 PDV â€” ponto de venda
 
@@ -1276,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Provas** | Entrada NF **20/20** · recuperação **10/10** · `verify_nf_troca_estorno.py` **11/11** e 13 blocos JS inline OK · `manage.py check` · `git diff --check`. |
 | **Migrate / operação** | **NÃO / nenhuma**. NF 16266 não recebeu ajuste manual de estoque nem alteração no título financeiro. |
 | **Deploy** | ✅ Live em produção v18.27 · `teste` 2bea99d · `producao` 3adddf2 · health 200 · página pública/asset em `3adddf25f2c5`. Rollback: tag `rollback/pre-nf-stock-dom-v18.26.1-20260827` + branch `producao-backup-pre-nf-stock-dom-v18261-20260827` @ cfcb526. |
-### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026)
+### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026) · ✅ Renan OK 28/08
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1284,6 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Filtros repetidos cat/sub 1–4 (OR no campo, AND entre campos, case-insensitive), facetas em cascata, metadados Postgres/overlay no ranking, agrupamento 1–4, ABC no recorte, margem reaproveitando linhas filtradas e XLSX idêntico à tela. |
 | **Compatibilidade** | Central usa `vendas_por_grupo_relatorio()`; `vendas_por_grupo()` mantém retorno legado em lista para DRE/BI. Sem novo scan pesado do Mongo. |
 | **Prova** | 8 regressões Central + 18 `financeiro.tests_dre_visual` · quatro rotas via `reverse()`/cliente Django, multi e XLSX · `manage.py check` · todos os `ru.*` existentes. |
+| **Revisão 28/08** | Código no `teste` OK · prova `tests_relatorios_central_filtros` **8/8** · loja já tem o cherry `cfcb526` (ancestral de `origin/producao` @ v18.27+). Renan: *«já foi resolvido»* — sem ação nova. |
 | **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
 ### 📦 PACOTE PRONTO — pós Live v18.25 · badge teste **v18.25** · 27/08
