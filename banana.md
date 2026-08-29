@@ -1248,7 +1248,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.19**) · 29/08/2026
+### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.20**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1311,17 +1311,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.19** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.20** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.19** · loja **v19.01** |
+| **Tip** | `teste` **v19.20** · loja **v19.01** |
 | **Prova** | BI-META-C-VILA **43/43** · PDV-CUPOM-DINHEIRO **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · Meta C Vila · dinheiro+cupom · desconto+cupom · PIN · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.19**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.20**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1333,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V · prova **43/43** | não | 🟡 pronto envio |
 | 7 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.19** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.20** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
