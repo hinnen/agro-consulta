@@ -1287,7 +1287,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
 | **Produção** | só frase + senha |
 
-### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.37**) · 29/08/2026
+### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.38**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Produção** | **Sozinho** (não no lote) · frase+senha · rollback `docs/ROLLBACK-BI-META-C-VILA.md` · **sem migrate** |
 
 
-### 📦 PACOTE PRONTO SOLO — Meta C Vila (`BI-META-C-VILA` · tip **v19.37**) · 29/08/2026
+### 📦 PACOTE PRONTO SOLO — Meta C Vila (`BI-META-C-VILA` · tip **v19.38**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1313,7 +1313,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Por quê sozinho** | Se der pepino, volta só este pacote — não desfaz o lote |
 | **Você** | Ctrl+F5 BI · Centro · Vila · C+V · calendário CP |
 
-### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · tip **v19.37**)
+### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · tip **v19.38**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
