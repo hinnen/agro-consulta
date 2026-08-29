@@ -7,7 +7,7 @@ Ponto **antes** deste lote = loja **Live v18.64** (`5e6e44a`).
 | **Commit loja hoje** | `5e6e44a` (Live v18.64) |
 | **Tag (no deploy)** | `rollback/pre-lote-checklist-2808c-v18.64` |
 | **Branch backup (no deploy)** | `producao-backup-pre-v1872-lote-checklist-20260828` |
-| **Branch PREP** | `deploy/prep-checklist-2808c` @ **`ebe80b4`** / **v18.72** |
+| **Branch PREP** | `deploy/prep-checklist-2808c` @ **`ae126d9`** / **v18.72** (Live) |
 | **O quê sobe** | `NS-ESCOLHA-EMP` · `REPASSE-PDV-OVERLAY-POPUP` · `CP-EMP-PG-FALLBACK` |
 | **O quê NÃO reverte** | lote v18.64 (modo por forma, cofrinho acumulado, CP busca, overlay limpo base) |
 | **Migrate** | **NÃO** — zero migration nova |
