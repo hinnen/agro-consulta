@@ -200,11 +200,32 @@
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
     var cofreSaldo = document.getElementById('pdv-rp-cofre-saldo');
     if (cofreSaldo) cofreSaldo.textContent = 'Saldo ' + money(cofre.saldo);
+    var pendente = Number(cofre.pendente_dia || 0);
+    var prevista = Number(cofre.prevista_dia || 0);
+    var realizada = Number(cofre.realizada_dia || 0);
     var cofreDia = document.getElementById('pdv-rp-cofre-dia');
     if (cofreDia) {
-      cofreDia.textContent = 'Reserva do dia: prevista ' + money(cofre.prevista_dia) +
-        ' · realizada ' + money(cofre.realizada_dia) +
-        ' · deve permanecer fisicamente na Vila';
+      cofreDia.textContent =
+        'Prevista ' + money(prevista) +
+        ' · realizada ' + money(realizada) +
+        ' · ainda separar ' + money(pendente);
+    }
+    var cofreAviso = document.getElementById('pdv-rp-cofre-aviso');
+    if (cofreAviso) {
+      if (pendente > 0.009) {
+        cofreAviso.classList.remove('hidden');
+        cofreAviso.textContent =
+          'ATENÇÃO: deixe ' + money(pendente) +
+          ' na Vila (cofrinho). Não coloque esse valor no envelope do Centro.';
+      } else if (Number(cofre.saldo || 0) > 0.009) {
+        cofreAviso.classList.remove('hidden');
+        cofreAviso.textContent =
+          'Cofrinho com ' + money(cofre.saldo) +
+          ' — esse dinheiro permanece na Vila; não leve ao Centro.';
+      } else {
+        cofreAviso.classList.add('hidden');
+        cofreAviso.textContent = '';
+      }
     }
   }
 
@@ -310,9 +331,11 @@
         }
         if (dom.reserva && (j.reserva_vila != null || (j.calc && j.calc.reserva_vila != null))) {
           var rv = j.reserva_vila != null ? j.reserva_vila : j.calc.reserva_vila;
-          if (!dom.reserva.value) {
-            dom.reserva.value = Number(rv || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          }
+          // Sempre alinha com o Postgres ao abrir (evita valor velho da abertura anterior).
+          dom.reserva.value = Number(rv || 0).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
         }
         if (!qs().get('data')) {
           calc = j.calc || null;
@@ -391,6 +414,19 @@
     };
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
+
+    var cofre = (calc && calc.cofrinho) || {};
+    var pendenteCofre = Number(cofre.pendente_dia || 0);
+    if (pendenteCofre > 0.009) {
+      var msgCofre =
+        'Vai transferir agora.\n\n' +
+        'Deixe ' +
+        money(pendenteCofre) +
+        ' na Vila (cofrinho).\n' +
+        'Não coloque esse valor no envelope do Centro.\n\n' +
+        'Confirma o repasse?';
+      if (!window.confirm(msgCofre)) return;
+    }
 
     busy = true;
     dom.status.textContent = 'Transferindo…';
