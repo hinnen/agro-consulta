@@ -485,22 +485,21 @@
                 ).trim();
                 if (uEx) existing.unidade = uEx;
             }
-            if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
-                existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
-            }
-            if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
-                existing.precos_grupos = Object.assign({}, produto.precos_grupos);
-                if (Array.isArray(produto.precos_grupos.formas_a)) {
-                    existing.precos_grupos.formas_a = produto.precos_grupos.formas_a.slice();
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined'
+                && window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto) {
+                window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto(existing, produto);
+            } else {
+                if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
+                    existing.precos_por_forma = Object.assign({}, produto.precos_por_forma);
                 }
-                if (Array.isArray(produto.precos_grupos.formas_b)) {
-                    existing.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
+                existing.precos_modo = String(produto.precos_modo || '').toLowerCase() === 'grupos'
+                    ? 'grupos'
+                    : 'por_forma';
+                if (existing.precos_modo === 'grupos' && produto.precos_grupos && typeof produto.precos_grupos === 'object') {
+                    existing.precos_grupos = Object.assign({}, produto.precos_grupos);
+                } else {
+                    try { delete existing.precos_grupos; } catch (e1) { existing.precos_grupos = null; }
                 }
-            }
-            if (produto.precos_modo) {
-                existing.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            } else if (existing.precos_grupos) {
-                existing.precos_modo = 'grupos';
             }
             if (!existing.preco_manual) recalcularTodasPromocoes();
         } else {
@@ -521,22 +520,19 @@
                 observacao: ''
             };
             if (unidadeItem) novo.unidade = unidadeItem;
-            if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
-                novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
-            }
-            if (produto.precos_grupos && typeof produto.precos_grupos === 'object') {
-                novo.precos_grupos = Object.assign({}, produto.precos_grupos);
-                if (Array.isArray(produto.precos_grupos.formas_a)) {
-                    novo.precos_grupos.formas_a = produto.precos_grupos.formas_a.slice();
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined'
+                && window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto) {
+                window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto(novo, produto);
+            } else {
+                if (produto.precos_por_forma && typeof produto.precos_por_forma === 'object') {
+                    novo.precos_por_forma = Object.assign({}, produto.precos_por_forma);
                 }
-                if (Array.isArray(produto.precos_grupos.formas_b)) {
-                    novo.precos_grupos.formas_b = produto.precos_grupos.formas_b.slice();
+                novo.precos_modo = String(produto.precos_modo || '').toLowerCase() === 'grupos'
+                    ? 'grupos'
+                    : 'por_forma';
+                if (novo.precos_modo === 'grupos' && produto.precos_grupos && typeof produto.precos_grupos === 'object') {
+                    novo.precos_grupos = Object.assign({}, produto.precos_grupos);
                 }
-            }
-            if (produto.precos_modo) {
-                novo.precos_modo = String(produto.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            } else if (novo.precos_grupos) {
-                novo.precos_modo = 'grupos';
             }
             state.itens.push(novo);
             recalcularTodasPromocoes();
@@ -782,21 +778,19 @@
                 desconto: 0,
                 observacao: ''
             };
-            if (item.precos_modo) {
-                row.precos_modo = String(item.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            }
-            if (item.precos_grupos && typeof item.precos_grupos === 'object') {
-                row.precos_grupos = Object.assign({}, item.precos_grupos);
-                if (Array.isArray(item.precos_grupos.formas_a)) {
-                    row.precos_grupos.formas_a = item.precos_grupos.formas_a.slice();
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined'
+                && window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto) {
+                window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto(row, item);
+            } else {
+                if (item.precos_modo) {
+                    row.precos_modo = String(item.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
                 }
-                if (Array.isArray(item.precos_grupos.formas_b)) {
-                    row.precos_grupos.formas_b = item.precos_grupos.formas_b.slice();
+                if (row.precos_modo === 'grupos' && item.precos_grupos && typeof item.precos_grupos === 'object') {
+                    row.precos_grupos = Object.assign({}, item.precos_grupos);
                 }
-                if (!row.precos_modo) row.precos_modo = 'grupos';
-            }
-            if (item.precos_por_forma && typeof item.precos_por_forma === 'object') {
-                row.precos_por_forma = Object.assign({}, item.precos_por_forma);
+                if (item.precos_por_forma && typeof item.precos_por_forma === 'object') {
+                    row.precos_por_forma = Object.assign({}, item.precos_por_forma);
+                }
             }
             var uni = String((item && item.unidade) || '').trim();
             if (uni) row.unidade = uni;
@@ -874,21 +868,19 @@
                 desconto: 0,
                 observacao: ''
             };
-            if (i && i.precos_modo) {
-                row.precos_modo = String(i.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-            }
-            if (i && i.precos_grupos && typeof i.precos_grupos === 'object') {
-                row.precos_grupos = Object.assign({}, i.precos_grupos);
-                if (Array.isArray(i.precos_grupos.formas_a)) {
-                    row.precos_grupos.formas_a = i.precos_grupos.formas_a.slice();
+            if (typeof window.AgroPrecosFormaPagamento !== 'undefined'
+                && window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto) {
+                window.AgroPrecosFormaPagamento.copiarPrecosPorFormaDoProduto(row, i || {});
+            } else {
+                if (i && i.precos_modo) {
+                    row.precos_modo = String(i.precos_modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
                 }
-                if (Array.isArray(i.precos_grupos.formas_b)) {
-                    row.precos_grupos.formas_b = i.precos_grupos.formas_b.slice();
+                if (row.precos_modo === 'grupos' && i && i.precos_grupos && typeof i.precos_grupos === 'object') {
+                    row.precos_grupos = Object.assign({}, i.precos_grupos);
                 }
-                if (!row.precos_modo) row.precos_modo = 'grupos';
-            }
-            if (i && i.precos_por_forma && typeof i.precos_por_forma === 'object') {
-                row.precos_por_forma = Object.assign({}, i.precos_por_forma);
+                if (i && i.precos_por_forma && typeof i.precos_por_forma === 'object') {
+                    row.precos_por_forma = Object.assign({}, i.precos_por_forma);
+                }
             }
             var uni = String((i && i.unidade) || '').trim();
             if (uni) row.unidade = uni;
