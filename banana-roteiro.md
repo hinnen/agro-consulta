@@ -226,3 +226,18 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v18.72.** `producao` @ `ae126d9`.  
 **Rollback:** tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha.  
 **Smoke:** healthz ok · home **18.72** · PDV/consulta **200**.
+
+---
+
+## 12. Checklist único — lote 29/08b (loja alvo **v19.01**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-HERO-LOTE** | 🟡 PREP / aguarda senha | **NÃO** |
+| 2 | **TABELA-PRECO-FORMA** | 🟡 PREP / aguarda senha | **SIM** (`produtos.0104`) |
+| 3 | **PDV-PEDIR-CUPOM-QTD** | 🟡 PREP / aguarda senha | **SIM** (`estoque.0020`) |
+
+**PREP:** `deploy/prep-checklist-2908b` @ `7c69fbc` · base loja **v18.83** `d836982`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2908b-v18.83` · `docs/ROLLBACK-LOTE-CHECKLIST-2908b.md`.  
+**Provas:** cupom+qtd **32/32** · tabela **20/20** · pedir-loja **63/63** · Django **27** · repasse paths OK.  
+**Deploy:** só frase + senha · pausar vendas · Ctrl+F5 · tabelas nascem **inativas**.
