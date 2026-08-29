@@ -1242,21 +1242,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🚀 PREP deploy loja — lote checklist 28/08c (deploy/prep-checklist-2808c · **v18.72**)
+### ⚠️ ATENÇÃO — `origin/producao` já está em **v18.72** (`59429e2`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🚀 **PREP pronto** — **aguarda frase + senha** no próximo chat |
-| **Branch** | deploy/prep-checklist-2808c @ tip remoto |
-| **Base loja** | 5e6e44a / Live **v18.64** |
+| **Descoberto** | 28/08 PREP — tip `producao` **não** é mais v18.64 (`5e6e44a`) |
+| **Tip agora** | `59429e2` · badge **18.72** · inclui os 3 pacotes do checklist 2808c |
+| **PREP** | `deploy/prep-checklist-2808c` @ `ae126d9` (só +1 commit de prova deep) |
+| **Ação** | Conferir no Render se a loja já ficou **Live v18.72**. **Não** resetar `producao` sem frase+senha. |
+| **Você** | Abrir loja · badge versão · Ctrl+F5. Se ainda v18.64, Render ainda não puxou — avisar. |
+
+### 🚀 PREP deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | Código **já no tip `producao`** (`59429e2`) — confirmar Live no Render |
+| **Branch PREP** | `deploy/prep-checklist-2808c` @ **`ae126d9`** |
+| **Base antiga** | `5e6e44a` / Live **v18.64** (rollback se precisar) |
 | **Alvo** | **v18.72** |
 | **Pacotes** | NS-ESCOLHA-EMP · REPASSE-PDV-OVERLAY-POPUP · CP-EMP-PG-FALLBACK |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag 
-ollback/pre-lote-checklist-2808c-v18.64 · branch producao-backup-pre-v1872-lote-checklist-20260828 · doc docs/ROLLBACK-LOTE-CHECKLIST-2808c.md |
-| **Prova** | 30/30 · 61/61 · 18/18 · 93/93 · check OK |
-| **Risco PDV** | Baixo (não mexe Finalizar venda) |
-| **Próximo chat** | Zap pausa vendas → frase + senha → merge prep → producao |
+| **Rollback** | tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha |
+| **Prova** | NS+EMP **30/30** · CP **61/61** · overlay **93/93** · path **203** · deep **103** · cof **28** · fechar **68** |
+| **Risco PDV** | **Baixo** — não mexe Finalizar venda |
 
 ### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.72**
 

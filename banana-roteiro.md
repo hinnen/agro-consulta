@@ -215,16 +215,15 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 11. Checklist único — lote 28/08c (PREP · alvo **v18.72** · loja hoje **v18.64**)
+## 11. Checklist único — lote 28/08c (alvo **v18.72**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NS-ESCOLHA-EMP** | 🚀 **PREP** — aguarda senha | **NÃO** |
-| 2 | **REPASSE-PDV-OVERLAY-POPUP** | 🚀 **PREP** — aguarda senha | **NÃO** |
-| 3 | **CP-EMP-PG-FALLBACK** | 🚀 **PREP** — aguarda senha | **NÃO** |
+| 1 | **NS-ESCOLHA-EMP** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
+| 2 | **REPASSE-PDV-OVERLAY-POPUP** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
+| 3 | **CP-EMP-PG-FALLBACK** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
 
-**Branch PREP:** `deploy/prep-checklist-2808c` @ `5b942b3`.  
-**Rollback (no deploy):** tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md`.  
+**PREP:** `deploy/prep-checklist-2808c` @ `ae126d9`.  
+**Atenção (28/08):** `origin/producao` **já** está em **v18.72** (`59429e2`) — não é mais v18.64. Conferir badge na loja. Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha.  
 **Provas:** NS+EMP 30 · CP 61 · overlay 93 · path 203 · deep 103 · cof 28 · fechar 68.  
-**Risco PDV:** baixo (não mexe Finalizar venda).  
-**Próximo chat:** pausar lojas → frase + senha → merge PREP → `producao`.
+**Risco PDV:** baixo (não mexe Finalizar venda).
