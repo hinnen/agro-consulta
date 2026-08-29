@@ -1254,11 +1254,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · prova **44/44** · ⏳ loja ainda sem |
 | **Relato** | Validade na tela Validade / Entrada NF não aparecia na aba 8 do cadastro |
 | **Causa** | Relatório lia resumo (`cadastro_extras`); aba do cadastro só lista `EstoqueLote` |
 | **O quê** | Ao abrir produto / relatório, espelha extras→lote · Salvar na Validade sempre grava lote · NF atualiza resumo |
-| **Onde** | `models.py` · `views.py` · `relatorios_validade.html` · `verify_cad_validade_espelho_path.py` |
+| **Prova** | `scripts/verify_cad_validade_espelho_path.py` **VERIFY_OK 44/44** · `verify_bi_val_salvar_path` **19/19** |
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 · abrir produto que tem validade na tela Validade · aba 8 tem que listar |
 | **Produção** | só frase + senha depois de validar local |
