@@ -269,8 +269,7 @@
         ? c.total_sugerido
         : Number(c.falta_dinheiro || d.total || 0) + acum
     );
-    setText('pdv-rp-total-sug', money(Math.max(0, sug)));
-
+    // Sugerido saiu da tag de baixo (redundante com Levar / Valor manual)
     var dispCmv = document.getElementById('pdv-rp-disp-cmv');
     var dispLucro = document.getElementById('pdv-rp-disp-lucro');
     var dispFiado = document.getElementById('pdv-rp-disp-fiado');
