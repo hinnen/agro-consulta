@@ -1302,7 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **51/51** · Node JS real **31/31** · Django **5/5**. Loja ainda com parser antigo. |
 | **Você** | Ctrl+F5 cadastro · 82,90 tem que ficar 82,90. Se já gravou 829,00, corrige na mão. |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · `teste` · loja não alterada. |
+| **Status** | ✅ **Live v18.50** · `teste` |
 
 ### 📦 PACOTE PRONTO — Cofrinho físico da reserva Vila (`REPASSE-COFRINHO-VILA` · **v18.30** · 28/08/2026)
 
@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Provas** | Repasse path **143/143** · reserva **60/60** · deep **96/96** · cofrinho **22/22** · fechar caixa repasse **68/68** · fechar caixa loja **41/41** · `manage.py check` · migrations sem drift · Python/JS syntax · `git diff --check`. |
 | **Visual** | Chrome local 1366×768, Agro Display Scale 100%: configuração e cofrinho lado a lado no primeiro viewport, sem overflow horizontal; fluxo inferior preservado. |
 | **Após deploy** | Rodar `python manage.py migrate`. O saldo inicial é **R$ 0,00**; se já existir dinheiro físico no cofrinho, contar e lançar **Ajuste · entrada** com operador e motivo. |
-| **Status** | 🟢 **pronto para envio à produção** (com `REPASSE-PDV-COFRINHO` v18.41) · **produção não alterada**. |
+| **Status** | ✅ **Live v18.50** (com `REPASSE-PDV-COFRINHO` v18.41) |
 
 ### 🩹 Entrada NF — saneamento de vínculo financeiro falso (`NF-FIN-VINCULO-FORTE` · **v18.29** · 27/08/2026)
 
