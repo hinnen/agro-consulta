@@ -1247,6 +1247,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Caixa Vila = card à **direita** · 4 totais = card **abaixo** de «Levar» · grade 3×2 (2 slots vazios sob cofres) · Valor manual sob Caixa |
+| **Arquivo** | `repasse_vila_overlay.html` (IDs iguais — JS intacto) |
+| **Loja** | ainda **v18.83** Live · este pacote **só no teste** até senha |
+| **Você** | Ctrl+F5 no PDV · abrir Repasse · conferir grade |
+
 ### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
 
 | Campo | Valor |
