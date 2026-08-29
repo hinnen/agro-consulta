@@ -1247,28 +1247,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.99** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.00** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v18.99** · loja ainda **v18.83** |
+| **Tip** | `teste` **v19.00** · loja ainda **v18.83** |
 | **Prova path** | repasse path/overlay/cofrinho/deep/acum/planos/reserva OK · tabela-forma 20/20 · pedir-loja 62/62 |
 | **Migrate loja** | **SIM** — `produtos.0104` · `estoque.0020` |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | smoke local: Repasse · Tabelas % · Pedir loja (cupom/qtd) · Ctrl+F5 |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08b · tip **v18.99**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08b · tip **v19.00**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `REPASSE-HERO-LOTE` | Hero UX (mês=tudo · cofres A separar/hoje · Levar · totais em coluna · zerar acum grande · manual) | não | 🟡 pronto envio |
 | 2 | `TABELA-PRECO-FORMA` | Tabelas globais % por forma no PDV | **SIM** `0104` | 🟡 pronto envio |
-| 3 | `PDV-PEDIR-CUPOM-QTD` | Cupom 80mm + qtd editável ao Transferir | **SIM** `estoque.0020` | 🟡 pronto envio |
+| 3 | `PDV-PEDIR-CUPOM-QTD` | Cupom 80mm + qtd editável ao Transferir (+ msg clara se migrate falhar) | **SIM** `estoque.0020` | 🟡 pronto envio |
 
 > Detalhe fino dos pacotes: §4.2 Pedir loja · CHECKPOINT antigo abaixo marcado ~~supplantado~~.
 
-### ~~📦 PACOTE PRONTO — Pedir loja cupom + qtd~~ · ver **CHECKLIST ÚNICO** tip v18.99
-### ~~📦 PACOTE PRONTO — Tabelas % por forma~~ · ver **CHECKLIST ÚNICO** tip v18.99
+### ~~📦 PACOTE PRONTO — Pedir loja cupom + qtd~~ · ver **CHECKLIST ÚNICO** tip v19.00
+### ~~📦 PACOTE PRONTO — Tabelas % por forma~~ · ver **CHECKLIST ÚNICO** tip v19.00
 ### ~~📦 PACOTE PRONTO — Enviado no mês / Totais / Levar / Cofre / Zerar / Hero UX / Grade~~ · consolidados em **`REPASSE-HERO-LOTE`**
 
 ### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
