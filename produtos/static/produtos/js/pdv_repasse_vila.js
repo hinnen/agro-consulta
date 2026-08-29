@@ -264,12 +264,6 @@
         'text-lg font-black tabular-nums ' +
         (acum > 0 ? 'text-amber-950' : acum < 0 ? 'text-sky-900' : 'text-slate-600');
     }
-    var sug = Number(
-      c.total_sugerido != null
-        ? c.total_sugerido
-        : Number(c.falta_dinheiro || d.total || 0) + acum
-    );
-    // Sugerido saiu da tag de baixo (redundante com Levar / Valor manual)
     var dispCmv = document.getElementById('pdv-rp-disp-cmv');
     var dispLucro = document.getElementById('pdv-rp-disp-lucro');
     var dispFiado = document.getElementById('pdv-rp-disp-fiado');
