@@ -193,20 +193,18 @@
         <div class="rp-hero-slot-vazio hidden xl:block" aria-hidden="true"></div>
         <div class="rp-hero-slot-vazio hidden xl:block" aria-hidden="true"></div>
 
-        <div class="rp-hero rp-hero-totais space-y-2">
-          <div class="grid grid-cols-3 gap-2">
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado</div>
-              <div class="text-lg font-black tabular-nums text-amber-950" id="pdv-rp-acum">R$ 0,00</div>
-            </div>
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-sky-800" title="Dinheiro levado + cartão/PIX/fiado já no Centro">Enviado no mês</div>
-              <div class="text-lg font-black tabular-nums text-sky-950" id="pdv-rp-hero-mes">R$ 0,00</div>
-            </div>
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-slate-600" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">Total geral</div>
-              <div class="text-lg font-black tabular-nums text-slate-900" id="pdv-rp-hero-geral">R$ 0,00</div>
-            </div>
+        <div class="rp-hero rp-hero-totais flex flex-col justify-center gap-2">
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="text-xs font-black uppercase text-amber-800 shrink-0">Acumulado</span>
+            <span class="text-lg font-black tabular-nums text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
+          </div>
+          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
+            <span class="text-xs font-black uppercase text-sky-800 shrink-0">Enviado no mês</span>
+            <span class="text-lg font-black tabular-nums text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
+          </div>
+          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
+            <span class="text-xs font-black uppercase text-slate-600 shrink-0">Total geral</span>
+            <span class="text-lg font-black tabular-nums text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
           </div>
         </div>
 
