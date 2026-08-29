@@ -14851,13 +14851,27 @@ def lancamentos_contas_pagar_view(request):
         garantir_planos_emprestimo_interno_cadastro()
     except Exception:
         pass
+    emp_defaults = emprestimo_defaults_para_ui()
+    try:
+        from produtos.caixa_util import empresa_nome_saida_caixa
+        from produtos.pdv_deposito_util import bootstrap_deposito
+
+        dep_boot = bootstrap_deposito(request) or {}
+        dep = (dep_boot.get("deposito") if isinstance(dep_boot, dict) else None) or "centro"
+        emp_defaults["empresa_padrao"] = empresa_nome_saida_caixa(dep)
+        emp_defaults["empresa_padrao_id"] = ""
+        emp_defaults["deposito"] = dep
+    except Exception:
+        emp_defaults.setdefault("empresa_padrao", "Agro Mais Centro")
+        emp_defaults.setdefault("empresa_padrao_id", "")
+        emp_defaults.setdefault("deposito", "centro")
     return render(
         request,
         "produtos/lancamentos_contas_pagar_teste.html",
         {
             "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
             "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
-            "emprestimos_defaults": emprestimo_defaults_para_ui(),
+            "emprestimos_defaults": emp_defaults,
         },
     )
 
