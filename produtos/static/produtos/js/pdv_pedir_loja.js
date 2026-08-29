@@ -41,6 +41,8 @@
     hits: document.getElementById('pdv-pedir-loja-hits'),
     cart: document.getElementById('pdv-pedir-loja-cart'),
     obs: document.getElementById('pdv-pedir-loja-obs'),
+    livre: document.getElementById('pdv-pedir-loja-livre'),
+    livreAdd: document.getElementById('pdv-pedir-loja-livre-add'),
     limpar: document.getElementById('pdv-pedir-loja-limpar'),
     enviar: document.getElementById('pdv-pedir-loja-enviar'),
     lista: document.getElementById('pdv-pedir-loja-lista'),
@@ -466,6 +468,7 @@
         nome: p.nome || p.nome_produto || 'Produto',
         codigo: p.codigo_interno || p.codigo || '',
         qtd: 1,
+        livre: false,
         saldo_centro: numSaldo(p, 'saldo_centro'),
         saldo_vila: numSaldo(p, 'saldo_vila'),
       });
@@ -475,17 +478,74 @@
     if (dom.busca) dom.busca.value = '';
   }
 
+  function slugLivre(texto) {
+    return String(texto || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'txt';
+  }
+
+  function addCartLivre() {
+    var texto = dom.livre ? String(dom.livre.value || '').trim() : '';
+    if (!texto) {
+      setStatus('Escreva o que quer pedir (ex.: sacola, café).', true);
+      if (dom.livre) {
+        try {
+          dom.livre.focus();
+        } catch (e) {}
+      }
+      return;
+    }
+    var id = 'livre:' + slugLivre(texto);
+    var achou = cart.filter(function (x) {
+      return x.id === id;
+    })[0];
+    if (achou) {
+      achou.qtd += 1;
+    } else {
+      cart.push({
+        id: id,
+        nome: texto,
+        codigo: 'ESCRITO',
+        qtd: 1,
+        livre: true,
+        saldo_centro: null,
+        saldo_vila: null,
+      });
+    }
+    if (dom.livre) dom.livre.value = '';
+    setStatus('');
+    renderCart();
+    if (dom.livre) {
+      try {
+        dom.livre.focus();
+      } catch (e) {}
+    }
+  }
+
   function renderCart() {
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda e toque no produto.</p>';
+        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda ou escreva um pedido abaixo.</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
     var outraLbl = depositoAtual() === 'vila' ? 'Saldo Centro' : 'Saldo Vila';
     dom.cart.innerHTML = cart
       .map(function (it, idx) {
+        var saldos =
+          it.livre
+            ? '<span class="pl-livre-badge">Pedido escrito</span>'
+            : '<div class="pl-saldos mt-2">' +
+              '<div class="pl-saldo-pill"><small>' +
+              escapeHtml(outraLbl) +
+              '</small><b>' +
+              escapeHtml(fmtSaldo(it[outra])) +
+              '</b></div></div>';
         return (
           '<div class="pl-card">' +
           '<div class="pl-card-top">' +
@@ -496,13 +556,7 @@
           idx +
           '" aria-label="Tirar da lista">×</button>' +
           '</div>' +
-          '<div class="pl-saldos mt-2">' +
-          '<div class="pl-saldo-pill"><small>' +
-          escapeHtml(outraLbl) +
-          '</small><b>' +
-          escapeHtml(fmtSaldo(it[outra])) +
-          '</b></div>' +
-          '</div>' +
+          saldos +
           '<div class="pl-qty-row">' +
           '<button type="button" class="pl-qty-btn" data-pl-q="-1" data-i="' +
           idx +
@@ -625,6 +679,7 @@
             nome: it.nome,
             codigo_interno: it.codigo,
             quantidade: it.qtd,
+            livre: !!it.livre,
           };
         }),
       }),
@@ -709,8 +764,11 @@
           it.quantidade_pedida != null ? it.quantidade_pedida : it.quantidade;
         var qtdAtual = edit ? pedida : it.quantidade;
         var gm = it.codigo_interno || '';
+        var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
         var pedHint = '';
-        if (edit) {
+        if (livre) {
+          pedHint = '<p class="pl-item-ped">Pedido escrito (sem estoque)</p>';
+        } else if (edit) {
           pedHint =
             '<p class="pl-item-ped">Pedido: ' + escapeHtml(fmtSaldo(pedida)) + '</p>';
         } else if (
@@ -736,8 +794,9 @@
           '<div class="pl-item-meta">' +
           '<p class="pl-item-nome">' +
           escapeHtml(it.nome || '') +
+          (livre ? ' <span class="pl-livre-badge">Escrito</span>' : '') +
           '</p>' +
-          (gm ? '<p class="pl-item-gm">GM ' + escapeHtml(gm) + '</p>' : '') +
+          (!livre && gm ? '<p class="pl-item-gm">GM ' + escapeHtml(gm) + '</p>' : '') +
           pedHint +
           '</div>' +
           qtdCell +
@@ -773,15 +832,18 @@
     var itens = row.itens || [];
     var bodyItens = '';
     itens.forEach(function (it) {
+      var livre = !!it.livre || String(it.produto_id || '').indexOf('livre:') === 0;
       var q =
         it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
           ? it.quantidade_pedida
           : it.quantidade;
       bodyItens +=
         '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
-        (it.codigo_interno
-          ? '<div><b>GM</b> ' + escapeHtml(it.codigo_interno) + '</div>'
-          : '') +
+        (livre
+          ? '<div style="font-weight:900;font-size:11px;">PEDIDO ESCRITO</div>'
+          : it.codigo_interno
+            ? '<div><b>GM</b> ' + escapeHtml(it.codigo_interno) + '</div>'
+            : '') +
         '<div style="font-weight:bold;font-size:13px;">' +
         escapeHtml(it.nome || '') +
         '</div>' +
@@ -875,6 +937,11 @@
           escapeHtml(row.loja_destino_label) +
           (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
           '</p>' +
+          (row.observacao
+            ? '<p class="mt-1 rounded-lg border border-orange-200 bg-orange-50 px-2 py-1.5 text-sm font-bold text-orange-950">💬 ' +
+              escapeHtml(row.observacao) +
+              '</p>'
+            : '') +
           itensHtml(row) +
           '<div class="pl-actions">' +
           acoesHtml(row) +
@@ -1025,6 +1092,15 @@
     });
   }
   if (dom.enviar) dom.enviar.addEventListener('click', enviarPedido);
+  if (dom.livreAdd) dom.livreAdd.addEventListener('click', addCartLivre);
+  if (dom.livre) {
+    dom.livre.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCartLivre();
+      }
+    });
+  }
   if (dom.busca) {
     dom.busca.addEventListener('input', function () {
       clearTimeout(searchTimer);

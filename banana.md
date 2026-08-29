@@ -426,7 +426,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
-- **Pedir loja (15/08 · +cupom/qtd 29/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** · **Imprimir cupom** 80mm (separação) · na origem, **qtd editável por item** (pré-preenchida; 0 = não envia) · **Ajustar** saldo na busca · aviso pós-PIN · **estoque furado** · bip 1/min · migrate `estoque.0018` + `0020` (qtd pedida).
+- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1250,6 +1250,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Pedir loja escrito + obs (`PDV-PEDIR-ESCRITO` · **v19.35** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Pedido **escrito** (sacola, café…) + **observação/mensagem** maior · escrito não move estoque |
+| **Tela** | PDV · Pedir loja · coluna Lista do pedido |
+| **Migrate** | **NÃO** |
+| **Prova** | pedir-loja **66/66** · tests transf **25** OK |
+| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 · escrever «sacola» · Incluir · observação · Enviar |
+
 ### 🩹 Cadastro — validade da tela/NF na aba lote (`CAD-VAL-ESPELHO` · **v19.28**) · 29/08/2026
 
 | Item | Detalhe |
@@ -1372,40 +1383,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.33** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.36** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.33** · loja **v19.01** |
-| **Prova** | CAD-VAL **44/44** · CAD-EXCLUIR **37/37** · BI-META-C **43/43** · PDV-CUPOM **27/27** · NFCE-DESC **56/56** · PIN 50/50 · VAL-SALVAR 19/19 · Repasse OK |
+| **Tip** | `teste` **v19.36** · loja **v19.01** |
+| **Prova Repasse** | path **255** · overlay **188** · planos **49** · cofrinho **31** · node OK · deep 97/98 (1 fail dado: dia sem o que levar) |
+| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META-C 43 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · validade aba 8 · Excluir cadastro · Meta C · cupom · PIN · Repasse 3 OKs |
+| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso popup) · cupom · PIN · validade · Meta C |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.33**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.36**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | REPASSE-FORMULA-3VAL | Planos+salário antes 50/50 · modal 3 valores · fix acum | não | 🟡 pronto envio |
-| 2 | PIN-OPERADOR-QUEM | Exige PIN · sem Chrome · bug report · **50/50** | não | 🟡 pronto envio |
-| 3 | NFCE-DESC-ITENS | Rateio vDesc itens (bug #7) · **56/56** | não | 🟡 pronto envio |
-| 4 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · overlay Vendas · **27/27** | não | 🟡 pronto envio |
-| 5 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
-| 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V · **43/43** | não | 🟡 pronto envio |
-| 7 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 pronto envio |
-| 8 | REPASSE-EDIT-CONTRASTE | Totais menores · 3 campos mais fortes | não | 🟡 pronto envio |
-| 9 | REPASSE-CONFIRM-3OK | Popup grande · 3 OKs gaveta | não | 🟡 pronto envio |
-| 10 | REPASSE-3OK-GHOSTCLICK | 3º OK transfere de verdade | não | 🟡 pronto envio |
-| 11 | CAD-EXCLUIR-MSG-STAFF | Excluir: erro real + staff força · **37/37** | não | 🟡 pronto envio |
-| 12 | CAD-VAL-ESPELHO | Validade tela/NF na aba lote · **44/44** | não | 🟡 pronto envio |
+| 1 | REPASSE-FORMULA-3VAL | Planos+salário antes 50/50 · fix acum | não | 🟡 pronto envio |
+| 2 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre | não | 🟡 pronto envio |
+| 3 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 pronto envio |
+| 4 | REPASSE-EDIT-CONTRASTE | 3 campos fortes · resto opaco | não | 🟡 pronto envio |
+| 5 | REPASSE-CONFIRM-3OK | Popup grande · 3 OKs gaveta | não | 🟡 pronto envio |
+| 6 | REPASSE-3OK-GHOSTCLICK | 3º OK transfere de verdade | não | 🟡 pronto envio |
+| 7 | REPASSE-AVISO-POPUP | Aviso gaveta em popup «Entendi» | não | 🟡 pronto envio |
+| 8 | PIN-OPERADOR-QUEM | Exige PIN · **50/50** | não | 🟡 pronto envio |
+| 9 | NFCE-DESC-ITENS | Rateio vDesc · **56/56** | não | 🟡 pronto envio |
+| 10 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · **27/27** | não | 🟡 pronto envio |
+| 11 | BI-META-C-VILA | Meta C Vila=Centro · **43/43** | não | 🟡 pronto envio |
+| 12 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
+| 13 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tip v19.32~~ · superado pelo tip **v19.33**
+### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.34**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.32~~ · superado pelo tip **v19.33**
+### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.36**
 
-### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver bloco tip **v19.33** acima
+### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver bloco tip **v19.34** acima
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.33**
+### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.34**
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 

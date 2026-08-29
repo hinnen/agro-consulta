@@ -132,6 +132,26 @@ class CriarItensTests(SimpleTestCase):
         self.assertEqual(itens, [])
         self.assertIn("produto", err)
 
+    def test_normalizar_pedido_escrito(self):
+        from produtos.pdv_transf_loja_util import PREFIXO_ITEM_LIVRE, _normalizar_itens, eh_item_livre
+
+        itens, err = _normalizar_itens(
+            [{"livre": True, "nome": "2 sacolas", "quantidade": 1}]
+        )
+        self.assertEqual(err, "")
+        self.assertEqual(len(itens), 1)
+        self.assertTrue(eh_item_livre(itens[0]["produto_externo_id"]))
+        self.assertTrue(itens[0]["produto_externo_id"].startswith(PREFIXO_ITEM_LIVRE))
+        self.assertEqual(itens[0]["nome_produto"], "2 sacolas")
+        self.assertEqual(itens[0]["codigo_interno"], "ESCRITO")
+
+    def test_normalizar_escrito_sem_texto(self):
+        from produtos.pdv_transf_loja_util import _normalizar_itens
+
+        itens, err = _normalizar_itens([{"livre": True, "nome": "  "}])
+        self.assertEqual(itens, [])
+        self.assertIn("Escreva", err)
+
 
 class ResolverQtdsEnvioTests(SimpleTestCase):
     def _it(self, pk, pid, qtd, pedida=None):
