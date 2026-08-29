@@ -1244,15 +1244,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `REPASSE-COFRINHO-ACUM` | 📦 **pronto para envio** · teste **v18.52** · migrate **NÃO** |
-| 2 | `PDV-MODO-POR-FORMA` | 📦 **pronto para envio** · teste **v18.55** · migrate **NÃO** |
+| 1 | `CP-NE-BUSCA-EMPRESA` | 🟢 pronto envio · teste **v18.54** · verify **61/61** · migrate **NÃO** |
+| 2 | `REPASSE-COFRINHO-ACUM` | 🟢 pronto envio · teste **v18.52** · migrate **NÃO** |
+| 3 | `PDV-MODO-POR-FORMA` | 🟢 pronto envio · teste **v18.55** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.55**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.56**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
+| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros na linha · **61/61** | NÃO |
 | `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
-| `PDV-MODO-POR-FORMA` | **v18.55** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** · Node **16/16** · Django **6/6** | NÃO |
+| `PDV-MODO-POR-FORMA` | **v18.55** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** | NÃO |
+
+### 📦 PACOTE PRONTO — CP busca + empresa auto (`CP-NE-BUSCA-EMPRESA` · **v18.54** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Busca** | Contorno overflow cortava a lista Empresa/Credor — corrigido |
+| **Empresa padrão** | Loja Centro → Agro Mais Centro · Vila → Agro Mais Vila Elias |
+| **Parcelas** | Calendário perto da data · 0,50 + 2,00 no vão da mesma linha |
+| **Prova** | verify **61/61** · manage.py check OK |
+| **Status** | 🟢 pronto envio · teste · loja ainda v18.50 |
 
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
 
@@ -1264,7 +1276,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** (só choice no ledger) |
 | **Status** | 📦 **pronto para envio** · `teste` · loja ainda v18.50 |
 
-### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.53** · 28/08/2026)
+### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.55** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1273,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **25/25** · Node **16/16** · Django **6/6** (path detalhado). |
 | **Você** | Ctrl+F5 PDV · produto por forma · PIX/cartão = preço da forma. Se ainda errar: **Salvar no Agro**. |
 | **Migrate** | **NÃO** |
-| **Status** | 📦 **pronto para envio** · `teste` v18.53 · loja ainda v18.50 |
+| **Status** | 📦 **pronto para envio** · `teste` v18.55 · loja ainda v18.50 |
 
 ### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 
