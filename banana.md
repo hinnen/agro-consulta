@@ -1252,6 +1252,46 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 29/08g (`deploy/prep-checklist-2908g` · **v19.60**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
+| **Base loja** | `origin/producao` @ **v19.02** / `6b1eeed` |
+| **Branch PREP** | `deploy/prep-checklist-2908g` @ **`460e1c7`** · tip **v19.60** |
+| **Pacotes** | 15 do CHECKLIST ÚNICO 29/08g (Repasse·PIN·NFC-e·cupom·cadastro·Pedir·NF·Chat) |
+| **Fora do lote** | `BI-META-C-VILA-RAMP` continua **SOLO** (não sobe neste PREP) |
+| **Migrate** | **SIM** — `produtos.0105` (Chat) |
+| **Provas (29/08 prep)** | pedido escrito **22/22** · Chat **58/58** · pedir-loja **68/68** · NFC-e desc **56/56** · cupom din **27/27** · CAD excluir **37/37** · CAD val **44/44** · PIN **50/50** · NF estoque **39/39** · repasse overlay/path/planos OK |
+| **Rollback** | tag `rollback/pre-lote-checklist-2908g-v19.02` @ `6b1eeed` · branch `producao-backup-pre-v1960-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908g.md` · **só** frase+senha |
+| **Risco loja aberta** | Dinheiro+Enter passa a imprimir cupom · NFC-e c/ desconto · Chat additivo · Repasse só UX · tabelas Meta C ramp **fora** |
+| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-2908g` · pausar vendas ~2–3 min · Zap · healthz · badge **v19.60** · Ctrl+F5 |
+| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.60**) · PREP `460e1c7`
+
+> **Já Live:** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP` (não neste PREP).
+
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | REPASSE-FORMULA-3VAL | Planos+salário antes 50/50 · fix acum | não | 🟡 PREP / aguarda senha |
+| 2 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre | não | 🟡 PREP / aguarda senha |
+| 3 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 PREP / aguarda senha |
+| 4 | REPASSE-EDIT-CONTRASTE | 3 campos fortes · resto opaco | não | 🟡 PREP / aguarda senha |
+| 5 | REPASSE-CONFIRM-3OK | Popup grande · 3 OKs gaveta | não | 🟡 PREP / aguarda senha |
+| 6 | REPASSE-3OK-GHOSTCLICK | 3º OK transfere de verdade | não | 🟡 PREP / aguarda senha |
+| 7 | REPASSE-AVISO-POPUP | Aviso gaveta em popup «Entendi» | não | 🟡 PREP / aguarda senha |
+| 8 | PIN-OPERADOR-QUEM | Exige PIN · **50/50** | não | 🟡 PREP / aguarda senha |
+| 9 | NFCE-DESC-ITENS | Rateio vDesc · **56/56** | não | 🟡 PREP / aguarda senha |
+| 10 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · **27/27** | não | 🟡 PREP / aguarda senha |
+| 11 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 PREP / aguarda senha |
+| 12 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 PREP / aguarda senha |
+| 13 | PDV-PEDIR-ESCRITO-UX | Escrito embaixo + envio só texto · **22/22** | não | 🟡 PREP / aguarda senha |
+| 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 PREP / aguarda senha |
+| 15 | PDV-CHAT-LOJA | Chat grupo + som + badge · **58/58** | **SIM** `0105` | 🟡 PREP / aguarda senha |
+
+### ~~📦 PACOTE PRONTO — tip v19.60~~ · **superado pelo PREP acima**
+
 ### 📦 PACOTE PRONTO — Pedir escrito embaixo (`PDV-PEDIR-ESCRITO-UX` · **v19.60** · 29/08/2026)
 
 | Item | Detalhe |
@@ -1425,20 +1465,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.58** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.60** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **19.58** · loja **v19.02** |
-| **Prova Chat** | path **58/58** (API/PG + bip/badge/aba/guard) |
-| **Prova demais** | tip v19.47 (Repasse/PIN/NFC-e/cadastro/Pedir/NF estoque) |
-| **Migrate** | **SIM** só `PDV-CHAT-LOJA` (`produtos.0105`) — demais **não** |
+| **Tip** | `teste` **v19.60** · loja **v19.02** |
+| **Prova** | Pedir escrito UX **22/22** · Chat **58/58** · pedir-loja **68/68** · lote tip (Repasse/PIN/NFC-e/cadastro/NF) |
+| **Migrate loja** | **SIM** `produtos.0105` (Chat) — Pedir escrito **não** |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | migrate loja · Ctrl+F5 · Chat 2 PCs · Entrada NF etapa 5 · Pedir escrito · Repasse |
+| **Você** | migrate `0105` · Ctrl+F5 · Pedir escrito · Chat 2 PCs · smoke lote |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.58**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.60**)
 
-> **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP` (checklist acima).
+> **Já Live:** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP`.
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1454,11 +1493,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 10 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · **27/27** | não | 🟡 pronto envio |
 | 11 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
 | 12 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
-| 13 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
+| 13 | PDV-PEDIR-ESCRITO-UX | Escrito embaixo + envio só texto · **22/22** | não | 🟡 pronto envio |
 | 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
 | 15 | PDV-CHAT-LOJA | Chat grupo + som + badge · **58/58** | **SIM** `0105` | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **19.58**
+### ~~📦 PACOTE / CHECKLIST tip v19.58~~ · superado pelo tip **v19.60**
+### ~~PDV-PEDIR-ESCRITO (só obs/campo)~~ · absorvido por **PDV-PEDIR-ESCRITO-UX**
 
 ### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.47**
 
