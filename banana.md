@@ -1257,13 +1257,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
 
-### 📦 PACOTE PRONTO — Cofre zera após separar (`REPASSE-COFRE-APOS-SEP` · **v18.94** · 29/08/2026)
+### 📦 PACOTE PRONTO — Cofre zera após separar (`REPASSE-COFRE-APOS-SEP` · **v18.95** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Cofres: grande = **A separar** (pendente → zera após transferir) · total no cofre · **Separado hoje** se houve |
-| **Antes** | Grande mostrava previsão do dia e não zerava depois da separação |
-| **Você** | Ctrl+F5 · após confirmar, A separar = R$ 0 e Separado hoje aparece |
+| **O quê** | Cofres: A separar / total / Separado hoje · Levar: **Levado ao Centro hoje** (v18.95) |
+| **Você** | Ctrl+F5 · após transferir, aparece o bloco verde no Levar |
 
 ### 📦 PACOTE PRONTO — Zerar acumulado grande (`REPASSE-ACUM-ZERAR-LIMITE` · **v18.93** · 29/08/2026)
 
