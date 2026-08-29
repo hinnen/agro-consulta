@@ -1229,6 +1229,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🚀 PREP deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🚀 **PREP pronto** — **aguarda frase + senha** no próximo chat (lojas abertas → pausar vendas antes) |
+| **Branch** | `deploy/prep-checklist-2808c` @ tip desta prep |
+| **Base loja** | `origin/producao` @ **v18.64** / `5e6e44a` |
+| **Alvo** | **v18.72** |
+| **Pacotes** | NS-ESCOLHA-EMP · REPASSE-PDV-OVERLAY-POPUP · CP-EMP-PG-FALLBACK |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` |
+| **Prova** | NS+EMP **30/30** · CP **61/61** · CP-NE **18/18** · overlay **93/93** · `manage.py check` OK |
+| **Risco PDV** | **Baixo** — não mexe em Finalizar venda; só Nova saída, Repasse overlay, Empréstimo |
+| **Próximo chat** | Zap pausa → frase + senha → merge prep → `producao` → Render Live → Ctrl+F5 |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · alvo **v18.72**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `NS-ESCOLHA-EMP` | 📦 **pronto / PREP** |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | 📦 **pronto / PREP** |
+| 3 | `CP-EMP-PG-FALLBACK` | 📦 **pronto / PREP** |
+
+### 📦 PACOTE PRONTO — o que sobe neste lote · badge **v18.72**
+
+| # | Pacote | O quê |
+| - | ------ | ----- |
+| 1 | `NS-ESCOLHA-EMP` | Nova saída → 2 cards (Novo Lançamento × Empréstimo) |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | Repasse: quem/PIN só popup · forma oculta · limpo |
+| 3 | `CP-EMP-PG-FALLBACK` | Empréstimo grava PG se Mongo off (sem «serviço legado») |
+
 ### 🩹 Cadastro — centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.39** · 28/08/2026)
 
 | Item | Detalhe |
