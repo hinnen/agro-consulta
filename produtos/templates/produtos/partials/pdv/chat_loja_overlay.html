@@ -1,15 +1,16 @@
 <style>
-  /* Chat lojas — dock canto inferior (estilo MSN: sobe pra cima) */
+  /* Chat lojas — aba colada embaixo da tela (MSN), visual PDV */
   #pdv-chat-loja-dock {
     position: fixed;
-    left: max(10.75rem, calc(env(safe-area-inset-left, 0px) + 9.75rem));
-    bottom: max(0.85rem, env(safe-area-inset-bottom, 0px));
+    left: max(10.5rem, calc(env(safe-area-inset-left, 0px) + 9.5rem));
+    bottom: 0;
     z-index: 91;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.4rem;
+    gap: 0;
     pointer-events: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   #pdv-chat-loja-dock > * {
     pointer-events: auto;
@@ -19,51 +20,60 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    min-height: 3.15rem;
-    min-width: 5.5rem;
-    padding: 0.55rem 1rem;
-    border-radius: 9999px;
-    border: 3px solid #38bdf8;
-    background: linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%);
-    color: #0369a1;
-    font-size: 0.9rem;
+    gap: 0.3rem;
+    min-height: 2.35rem;
+    min-width: 5.25rem;
+    padding: 0.4rem 1.05rem 0.45rem;
+    border-radius: 0.75rem 0.75rem 0 0;
+    border: 2px solid #94a3b8;
+    border-bottom: none;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 0.8125rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    box-shadow: 0 0.45rem 1.1rem rgba(14, 165, 233, 0.28);
+    box-shadow: none;
     cursor: pointer;
   }
   #pdv-chat-loja-fab:hover {
-    background: #bae6fd;
+    background: #e2e8f0;
+    color: #0f172a;
   }
   #pdv-chat-loja-fab.is-open {
-    border-color: #0284c7;
+    border-color: #38bdf8;
     background: #0284c7;
     color: #fff;
   }
   #pdv-chat-loja-fab.is-alerta {
+    border-color: #0ea5e9;
+    background: #e0f2fe;
+    color: #0369a1;
     animation: cl-pulse 1.2s ease-in-out infinite;
+  }
+  #pdv-chat-loja-fab.is-open.is-alerta {
+    background: #0284c7;
+    color: #fff;
   }
   #pdv-chat-loja-count {
     position: absolute;
-    right: -0.2rem;
-    top: -0.25rem;
-    min-width: 1.25rem;
+    right: 0.15rem;
+    top: -0.35rem;
+    min-width: 1.15rem;
     border-radius: 9999px;
     background: #dc2626;
     color: #fff;
     font-size: 0.65rem;
     font-weight: 900;
     line-height: 1.2;
-    padding: 0.1rem 0.3rem;
+    padding: 0.08rem 0.28rem;
   }
   #pdv-chat-loja-count.hidden {
     display: none !important;
   }
   @keyframes cl-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45); }
-    50% { box-shadow: 0 0 0 0.35rem rgba(14, 165, 233, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.35); }
+    50% { box-shadow: 0 0 0 0.28rem rgba(14, 165, 233, 0); }
   }
   html.agro-fx-reduced #pdv-chat-loja-fab.is-alerta {
     animation: none;
@@ -71,23 +81,25 @@
 
   #pdv-chat-loja-overlay {
     display: none;
-    width: min(24rem, calc(100vw - 1.5rem));
-    height: min(28rem, calc(100dvh - 6.5rem));
+    width: min(28rem, calc(100vw - 1.25rem));
+    height: min(32rem, calc(100dvh - 5.25rem));
     min-height: 0;
     flex-direction: column;
     overflow: hidden;
     background: #fff;
-    border-radius: 1rem 1rem 0.65rem 0.65rem;
-    border: 2px solid #7dd3fc;
-    box-shadow: 0 -0.35rem 2rem rgba(15, 23, 42, 0.22);
+    border-radius: 0.85rem 0.85rem 0 0;
+    border: 2px solid #94a3b8;
+    border-bottom: none;
+    box-shadow: 0 -0.5rem 1.5rem rgba(15, 23, 42, 0.14);
     transform-origin: bottom left;
   }
   #pdv-chat-loja-overlay.is-open {
     display: flex;
-    animation: cl-pop 0.18s ease-out;
+    border-color: #38bdf8;
+    animation: cl-pop 0.16s ease-out;
   }
   @keyframes cl-pop {
-    from { opacity: 0; transform: translateY(0.6rem) scale(0.96); }
+    from { opacity: 0; transform: translateY(0.45rem); }
     to { opacity: 1; transform: none; }
   }
   html.agro-fx-reduced #pdv-chat-loja-overlay.is-open {
@@ -106,7 +118,7 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    padding: 0.65rem 0.75rem;
+    padding: 0.7rem 0.8rem;
     background: #f8fafc;
   }
   #pdv-chat-loja-overlay .cl-row {
@@ -117,7 +129,7 @@
     margin-left: auto;
   }
   #pdv-chat-loja-overlay .cl-bubble {
-    border-radius: 0.85rem;
+    border-radius: 0.75rem;
     padding: 0.4rem 0.65rem;
     border: 2px solid #e2e8f0;
     background: #fff;
@@ -135,7 +147,7 @@
   }
   #pdv-chat-loja-overlay .cl-row--eu .cl-meta { color: #0369a1; }
   #pdv-chat-loja-overlay .cl-text {
-    font-size: 1rem;
+    font-size: 1.02rem;
     font-weight: 700;
     color: #0f172a;
     white-space: pre-wrap;

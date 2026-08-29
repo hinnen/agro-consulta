@@ -42,6 +42,7 @@
   var pollTimer = null;
   var busy = false;
   var knownIds = {};
+  var cacheMsgs = [];
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -201,6 +202,7 @@
         dom.msgs.scrollTop = dom.msgs.scrollHeight;
       }
       if (playSound && m.device_id !== myDev) sound = true;
+      cacheMsgs.push(m);
     }
     if (sound) clBeep();
     if (isOpen()) saveSeen(lastId);
@@ -231,13 +233,14 @@
       if (err || !msgs) return;
       if (lastId === 0) {
         knownIds = {};
+        cacheMsgs = msgs.slice();
         for (var i = 0; i < msgs.length; i++) {
           if (msgs[i] && msgs[i].id) {
             knownIds[msgs[i].id] = 1;
             lastId = Math.max(lastId, Number(msgs[i].id) || 0);
           }
         }
-        if (isOpen()) renderAll(msgs);
+        if (isOpen()) renderAll(cacheMsgs);
         if (!seenId && lastId) saveSeen(lastId);
         syncBadge(unreadCount());
         return;
@@ -260,7 +263,12 @@
     setStatus('');
     saveSeen(lastId);
     syncBadge(0);
-    if (lastId === 0) {
+    if (cacheMsgs.length) {
+      renderAll(cacheMsgs);
+      saveSeen(lastId);
+      syncBadge(0);
+      pollOnce(false);
+    } else {
       fetchLista(0, function (msgs, err) {
         if (err) {
           setStatus(err);
@@ -269,20 +277,17 @@
         }
         knownIds = {};
         lastId = 0;
-        for (var i = 0; i < (msgs || []).length; i++) {
-          if (msgs[i] && msgs[i].id) {
-            knownIds[msgs[i].id] = 1;
-            lastId = Math.max(lastId, Number(msgs[i].id) || 0);
+        cacheMsgs = (msgs || []).slice();
+        for (var i = 0; i < cacheMsgs.length; i++) {
+          if (cacheMsgs[i] && cacheMsgs[i].id) {
+            knownIds[cacheMsgs[i].id] = 1;
+            lastId = Math.max(lastId, Number(cacheMsgs[i].id) || 0);
           }
         }
-        renderAll(msgs || []);
+        renderAll(cacheMsgs);
         saveSeen(lastId);
         syncBadge(0);
       });
-    } else {
-      pollOnce(false);
-      saveSeen(lastId);
-      syncBadge(0);
     }
     schedulePoll();
     setTimeout(function () {
