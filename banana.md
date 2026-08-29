@@ -657,6 +657,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` / `CP-NE-BUSCA-EMPRESA` · v17.93 → v18.54):** Externo/Interno · parcelas auto · Outros · contorno · **busca Empresa/Credor** · empresa padrão pela loja · composição na linha da data.
+- **Lista CP — destaque empréstimo (`CP-EMP-ROW-TINT` · v18.77):** fundo laranja leve nas linhas Pagamento/Juros de Empréstimos (externo e interno).
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **Nova saÃ­da â€” escolha 1Âº passo (`NS-ESCOLHA-EMP` Â· v18.67):** ao abrir, 2 cards grandes (**Novo LanÃ§amento** Ã— **EmprÃ©stimo**) no padrÃ£o Externo/Interno; EmprÃ©stimo abre o modal CP (BI tambÃ©m inclui o modal).
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
@@ -1242,6 +1243,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — CP fundo laranja empréstimo (`CP-EMP-ROW-TINT` · **v18.77**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Linhas **Pagamento** e **Juros** de Empréstimo (ext/int) com fundo laranja leve na lista CP |
+| **Onde** | `lancamentos_contas_pagar_teste.html` · classe `sv-row-emp-pg` |
+| **Prova** | `scripts/verify_cp_emp_row_tint_path.py` |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — Ctrl+F5 Contas a pagar · filtrar plano empréstimo |
+| **Você** | Conferir se pagamento e juros ficam com o mesmo fundo |
+
 ### 🔧 WIP — Empréstimo: tela de sucesso (`NE-SUCESSO-OK` · **v18.76**)
 
 | Item | Detalhe |
