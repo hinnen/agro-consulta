@@ -1,179 +1,272 @@
-{# Overlay Repasse Vila → Centro — largo 16:9, pouco scroll #}
+{# Overlay Repasse Vila → Centro — hero limpo · detalhes recolhidos · quem/PIN em popup #}
 <style>
   #pdv-repasse-overlay { z-index: 2147483010; }
   #pdv-repasse-overlay .rp-shell {
-    width: min(96rem, 98vw);
-    max-height: min(94dvh, 52rem);
+    width: min(98rem, 99vw);
+    height: min(96dvh, 56rem);
+    max-height: 96dvh;
   }
   #pdv-repasse-overlay .rp-card {
     border: 2px solid #d1fae5; border-radius: 0.9rem; background: #fff;
-    padding: 0.55rem 0.75rem; box-shadow: 0 1px 2px rgba(15,23,42,.05);
+    padding: 0.65rem 0.85rem; box-shadow: 0 1px 2px rgba(15,23,42,.05);
+  }
+  #pdv-repasse-overlay .rp-hero {
+    border: 3px solid #059669; border-radius: 1rem; background: #ecfdf5;
+    padding: 0.85rem 1rem;
+  }
+  #pdv-repasse-overlay .rp-hero-cofre {
+    border-color: #e11d48; background: #fff1f2;
   }
   #pdv-repasse-overlay .rp-check {
-    display: flex; align-items: center; gap: 0.45rem; min-height: 2.25rem;
-    padding: 0.25rem 0.55rem; border: 2px solid #cbd5e1; border-radius: 0.65rem;
+    display: flex; align-items: center; gap: 0.45rem; min-height: 2.35rem;
+    padding: 0.3rem 0.6rem; border: 2px solid #cbd5e1; border-radius: 0.65rem;
     background: #f8fafc; cursor: pointer; font-weight: 800; font-size: 0.9rem;
   }
   #pdv-repasse-overlay .rp-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
-  #pdv-repasse-overlay .rp-check input { width: 1.1rem; height: 1.1rem; accent-color: #059669; flex-shrink: 0; }
+  #pdv-repasse-overlay .rp-check input { width: 1.15rem; height: 1.15rem; accent-color: #059669; flex-shrink: 0; }
   #pdv-repasse-overlay .rp-field {
-    min-height: 2.5rem; width: 100%; border-radius: 0.65rem; border: 2px solid #cbd5e1;
-    padding: 0.3rem 0.65rem; font-size: 1rem; font-weight: 800;
+    min-height: 3rem; width: 100%; border-radius: 0.75rem; border: 2px solid #cbd5e1;
+    padding: 0.4rem 0.75rem; font-size: 1.15rem; font-weight: 800;
   }
-  #pdv-repasse-overlay .rp-quem-btn {
-    min-height: 2.35rem; padding: 0.25rem 0.55rem; border-radius: 0.6rem;
-    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; font-size: 0.85rem;
+  #pdv-repasse-overlay .rp-quem-btn,
+  #pdv-repasse-overlay .rp-forma-btn {
+    min-height: 2.75rem; padding: 0.35rem 0.75rem; border-radius: 0.7rem;
+    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; font-size: 0.95rem;
   }
   #pdv-repasse-overlay .rp-quem-btn.is-on { border-color: #0284c7; background: #e0f2fe; color: #0c4a6e; }
-  #pdv-repasse-overlay .rp-forma-btn {
-    min-height: 2.35rem; padding: 0.25rem 0.55rem; border-radius: 0.6rem;
-    border: 2px solid #cbd5e1; background: #fff; font-weight: 800; cursor: pointer; font-size: 0.85rem;
-  }
   #pdv-repasse-overlay .rp-forma-btn.is-on { border-color: #059669; background: #ecfdf5; color: #065f46; }
-  #pdv-repasse-overlay .rp-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-    align-content: start;
+  #pdv-repasse-overlay .rp-sum {
+    border: 2px solid #cbd5e1; border-radius: 0.9rem; background: #fff;
+    padding: 0.7rem 0.85rem; min-height: 5.5rem;
   }
-  @media (max-width: 900px) {
-    #pdv-repasse-overlay .rp-body { grid-template-columns: 1fr; }
+  #pdv-repasse-overlay .rp-sum .rp-lbl { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.02em; }
+  #pdv-repasse-overlay .rp-sum .rp-val { font-size: clamp(1.35rem, 2.4vw, 1.85rem); font-weight: 900; line-height: 1.1; }
+  #pdv-repasse-overlay details.rp-fold > summary {
+    list-style: none; cursor: pointer; min-height: 2.75rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+    font-size: 0.8rem; font-weight: 900; text-transform: uppercase;
   }
+  #pdv-repasse-overlay details.rp-fold > summary::-webkit-details-marker { display: none; }
+  #pdv-repasse-overlay details.rp-fold > summary::after { content: "▸"; font-size: 1.1rem; color: #64748b; }
+  #pdv-repasse-overlay details.rp-fold[open] > summary::after { content: "▾"; }
+  #pdv-repasse-overlay .rp-chip {
+    min-height: 3rem; border-radius: 0.85rem; border: 2px solid #94a3b8; background: #fff;
+    padding: 0.35rem 0.85rem; font-weight: 900; font-size: 0.85rem; text-align: left;
+  }
+  #pdv-repasse-overlay .rp-chip.is-ok { border-color: #059669; background: #ecfdf5; }
+  #pdv-repasse-overlay .rp-chip .rp-chip-lbl { display: block; font-size: 0.65rem; text-transform: uppercase; color: #64748b; }
+  #pdv-repasse-overlay .rp-chip .rp-chip-val { display: block; font-size: 1rem; color: #0f172a; }
 </style>
 
-<div id="pdv-repasse-overlay" class="fixed inset-0 hidden items-center justify-center bg-slate-900/55 p-2 sm:p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-repasse-title">
+<div id="pdv-repasse-overlay" class="fixed inset-0 hidden items-center justify-center bg-slate-900/60 p-1.5 sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-repasse-title">
   <div class="rp-shell flex flex-col overflow-hidden rounded-2xl border-2 border-emerald-600 bg-slate-50 shadow-2xl">
-    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-200 bg-emerald-50 px-3 py-2">
+    <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-200 bg-emerald-50 px-3 py-2.5">
       <div class="min-w-0">
-        <h2 id="pdv-repasse-title" class="text-lg font-black uppercase text-emerald-950 truncate">Repasse Vila → Centro</h2>
+        <h2 id="pdv-repasse-title" class="text-xl font-black uppercase text-emerald-950 truncate">Repasse Vila → Centro</h2>
         <p class="text-xs font-bold text-emerald-800/80" id="pdv-repasse-sub">Caixa da Vila precisa estar aberto</p>
       </div>
       <div class="flex items-center gap-2 shrink-0">
-        <a href="{% url 'repasse_vila' %}" class="min-h-[2.5rem] inline-flex items-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700">Tela / histórico</a>
-        <button type="button" id="pdv-repasse-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+        <label class="block">
+          <span class="sr-only">Dia do repasse</span>
+          <input type="date" id="pdv-rp-data" class="rp-field max-w-[11rem] min-h-[2.75rem] text-base" title="Dia do repasse" />
+        </label>
+        <a href="{% url 'repasse_vila' %}" class="min-h-[2.75rem] inline-flex items-center rounded-xl border-2 border-slate-300 bg-white px-3 text-xs font-black uppercase text-slate-700">Gestão</a>
+        <button type="button" id="pdv-repasse-fechar" class="min-h-[2.75rem] min-w-[2.75rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
       </div>
     </header>
+    <p class="sr-only" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
 
-    <div class="flex-1 min-h-0 overflow-y-auto p-3">
-      <div class="rp-card mb-3 flex flex-wrap items-end gap-3">
-        <label class="block min-w-0">
-          <span class="text-[0.7rem] font-black uppercase text-slate-500">Dia do repasse</span>
-          <input type="date" id="pdv-rp-data" class="rp-field mt-1 max-w-[11rem]" />
-        </label>
-        <p class="text-xs font-bold text-slate-600 pb-1" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
-      </div>
-      <div class="rp-card grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Receita</div><div class="text-lg font-black tabular-nums" id="pdv-rp-receita">—</div></div>
-        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">CMV</div><div class="text-lg font-black tabular-nums" id="pdv-rp-cmv-dia">—</div></div>
-        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Lucro</div><div class="text-lg font-black tabular-nums" id="pdv-rp-lucro-dia">—</div></div>
-        <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Fiado pago</div><div class="text-lg font-black tabular-nums" id="pdv-rp-fiado-dia">—</div></div>
-      </div>
-      <div class="rp-card grid grid-cols-3 gap-2 mb-3">
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-sky-700">Já no Centro (cartão/PIX)</div>
-          <div class="text-lg font-black tabular-nums text-sky-900" id="pdv-rp-elet">R$ 0,00</div>
+    <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
+      {# —— Cards resumo —— #}
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
+        <div class="rp-sum border-sky-400">
+          <div class="rp-lbl text-sky-800">Enviado ao Centro (mês · dinheiro)</div>
+          <div class="rp-val text-sky-950 tabular-nums" id="pdv-rp-mes-dinheiro">R$ 0,00</div>
         </div>
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-slate-500">Já enviado (dinheiro)</div>
-          <div class="text-lg font-black tabular-nums text-slate-800" id="pdv-rp-ja-din">R$ 0,00</div>
+        <div class="rp-sum border-rose-400">
+          <div class="rp-lbl text-rose-800">Cofrinho (saldo acumulado)</div>
+          <div class="rp-val text-rose-950 tabular-nums" id="pdv-rp-card-cofre">R$ 0,00</div>
         </div>
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-emerald-700">Falta em dinheiro</div>
-          <div class="text-lg font-black tabular-nums text-emerald-900" id="pdv-rp-falta">R$ 0,00</div>
+        <div class="rp-sum border-emerald-400">
+          <div class="rp-lbl text-emerald-800">Lucro ficou na Vila (mês)</div>
+          <div class="rp-val text-emerald-950 tabular-nums" id="pdv-rp-mes-lucro-ficou">R$ 0,00</div>
+        </div>
+        <div class="rp-sum border-violet-400">
+          <div class="rp-lbl text-violet-800">No Centro hoje (todas as formas)</div>
+          <div class="rp-val text-violet-950 tabular-nums" id="pdv-rp-dia-todas">R$ 0,00</div>
         </div>
       </div>
-      <div class="rp-card grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3 items-end">
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado (dias anteriores)</div>
-          <div class="text-lg font-black tabular-nums text-amber-950" id="pdv-rp-acum">R$ 0,00</div>
-        </div>
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-violet-800">Total sugerido</div>
-          <div class="text-lg font-black tabular-nums text-violet-950" id="pdv-rp-total-sug">R$ 0,00</div>
-        </div>
-        <div>
-          <div class="text-[0.65rem] font-black uppercase text-rose-800">Reserva diária do cofrinho</div>
-          <input type="text" id="pdv-rp-reserva" class="rp-field mt-0.5" inputmode="decimal" placeholder="0,00" autocomplete="off" />
-        </div>
-        <div class="sm:justify-self-end flex flex-col gap-1">
-          <button type="button" id="pdv-rp-btn-acum" class="min-h-[2.35rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
-          <button type="button" id="pdv-rp-salvar-reserva" class="min-h-[2.35rem] w-full rounded-lg border-2 border-rose-600 bg-rose-50 px-3 text-xs font-black uppercase text-rose-950">Salvar</button>
-        </div>
-      </div>
-      <div class="rp-card mb-3 border-rose-500 bg-rose-50 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] items-center">
-        <div>
-          <div class="text-[0.7rem] font-black uppercase text-rose-900">Cofrinho da Vila · NÃO levar ao Centro</div>
-          <div class="text-xl font-black tabular-nums text-rose-950" id="pdv-rp-cofre-saldo">Saldo R$ 0,00</div>
-          <p class="text-xs font-bold text-rose-900" id="pdv-rp-cofre-dia">Reserva do dia: prevista R$ 0,00 · realizada R$ 0,00</p>
-          <p id="pdv-rp-cofre-aviso" class="mt-1 rounded-lg border-2 border-rose-600 bg-white px-2 py-1.5 text-sm font-black text-rose-950 leading-snug" role="alert">
-            Separe o valor do cofrinho na loja antes de fechar o envelope do Centro.
+
+      {# —— Hero: cofrinho + enviar + manual —— #}
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <div class="rp-hero rp-hero-cofre space-y-2">
+          <div class="text-xs font-black uppercase text-rose-900">Ainda separar · cofrinho (acumulado)</div>
+          <div class="text-4xl sm:text-5xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre">R$ 0,00</div>
+          <p class="text-sm font-bold text-rose-900 leading-snug" id="pdv-rp-cofre-saldo">Saldo no cofrinho R$ 0,00</p>
+          <p class="text-xs font-bold text-rose-800/90" id="pdv-rp-cofre-dia">Prevista · realizada</p>
+          <p id="pdv-rp-cofre-aviso" class="rounded-lg border-2 border-rose-600 bg-white px-2 py-1.5 text-sm font-black text-rose-950 leading-snug" role="alert">
+            NÃO levar este valor no envelope do Centro.
           </p>
+          <label class="rp-check border-rose-500 bg-white"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto com este repasse</span></label>
         </div>
-        <label class="rp-check border-rose-500 bg-white"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar a reserva junto com este repasse</span></label>
-      </div>
 
-      <div class="rp-body">
-        <details class="rp-card">
-          <summary class="cursor-pointer min-h-[2.5rem] flex items-center justify-between gap-2 text-xs font-black uppercase text-slate-800">
-            <span>% lucro e opções</span>
-            <span class="text-slate-500 font-bold normal-case" id="pdv-rp-opcoes-hint"></span>
-          </summary>
-          <div class="space-y-1.5 pt-2">
-            <label class="flex flex-wrap items-center gap-2">
-              <span class="text-[0.7rem] font-black uppercase text-slate-500">% lucro bruto</span>
-              <input type="number" id="pdv-rp-pct" min="0" max="100" step="1" class="rp-field max-w-[6.5rem]" value="50" />
-            </label>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-todos" checked /><span>Marcar todos</span></label>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-cmv" checked /><span class="flex-1">CMV <span id="pdv-rp-disp-cmv" class="tabular-nums text-emerald-800">R$ 0,00</span></span></label>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-lucro" checked /><span class="flex-1">% lucro <span id="pdv-rp-disp-lucro" class="tabular-nums text-sky-800">R$ 0,00</span></span></label>
-            <p id="pdv-rp-desp-hint" class="hidden text-[0.65rem] font-bold text-slate-600 leading-tight px-0.5"></p>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-fiado" checked /><span class="flex-1">Fiado pago <span id="pdv-rp-disp-fiado" class="tabular-nums text-orange-800">R$ 0,00</span></span></label>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-acumulado" checked /><span>Incluir acumulado no total automático</span></label>
-            <label class="rp-check"><input type="checkbox" id="pdv-rp-cheio" /><span>Dia cheio de novo (padrão = só o que falta)</span></label>
+        <div class="rp-hero space-y-2 lg:col-span-1">
+          <div class="text-xs font-black uppercase text-emerald-900">Levar ao Centro (acumulado)</div>
+          <div class="text-4xl sm:text-5xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total">R$ 0,00</div>
+          <p class="text-xs font-bold text-emerald-800" id="pdv-rp-enviar-hint">Hoje + dias anteriores sem enviar</p>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado dias</div>
+              <div class="text-lg font-black tabular-nums text-amber-950" id="pdv-rp-acum">R$ 0,00</div>
+            </div>
+            <div>
+              <div class="text-[0.65rem] font-black uppercase text-violet-800">Sugerido</div>
+              <div class="text-lg font-black tabular-nums text-violet-950" id="pdv-rp-total-sug">R$ 0,00</div>
+            </div>
           </div>
-        </details>
+          <button type="button" id="pdv-rp-btn-acum" class="min-h-[2.5rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950">Ver / ajustar acumulado</button>
+        </div>
 
-        <div class="space-y-2">
-          <div class="rp-card space-y-1.5">
-            <div class="text-[0.7rem] font-black uppercase text-slate-500">Quem levou</div>
-            <div id="pdv-rp-quem-grid" class="flex flex-wrap gap-1.5"></div>
-            <input type="text" id="pdv-rp-quem-outros" class="rp-field hidden" placeholder="Nome de quem levou" autocomplete="off" name="rp_quem_outros" />
-          </div>
-          <div class="rp-card space-y-1.5">
-            <div class="text-[0.7rem] font-black uppercase text-slate-500">Forma de pagamento</div>
-            <div id="pdv-rp-forma-grid" class="flex flex-wrap gap-1.5"></div>
-          </div>
-          {# Armadilha anti-autofill do Chrome (usuário/senha → campo valor) #}
+        <div class="rp-card space-y-2 border-emerald-400 flex flex-col justify-center">
+          <label class="block min-w-0">
+            <span class="text-xs font-black uppercase text-slate-600">Valor manual (vazio = automático)</span>
+            <input type="text" id="pdv-rp-manual" class="rp-field mt-1 text-2xl" inputmode="decimal"
+                   placeholder="Automático" autocomplete="off" name="rp_valor_manual_somente"
+                   data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+                   title="Digite o R$ que vai levar — pode ser maior que o automático" />
+          </label>
+          <span class="text-xs font-bold text-slate-500">Digitado manda (pode passar do automático)</span>
+          {# Armadilha anti-autofill #}
           <div class="sr-only" aria-hidden="true">
             <input type="text" tabindex="-1" autocomplete="username" />
             <input type="password" tabindex="-1" autocomplete="current-password" />
           </div>
-          <div class="rp-card grid grid-cols-2 gap-2">
-            <label class="block min-w-0">
-              <span class="text-[0.7rem] font-black uppercase text-slate-500">Valor (vazio = automático)</span>
-              <input type="text" id="pdv-rp-manual" class="rp-field mt-1" inputmode="decimal"
-                     placeholder="Automático" autocomplete="off" name="rp_valor_manual_somente"
-                     data-lpignore="true" data-1p-ignore="true" data-form-type="other"
-                     title="Digite o R$ que vai levar — pode ser maior que o automático" />
-              <span class="block text-[0.65rem] font-bold text-slate-500 mt-0.5">Digitado manda (pode passar do automático)</span>
-            </label>
-            <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 p-2.5 flex flex-col justify-center min-w-0">
-              <div class="text-[0.7rem] font-black uppercase text-emerald-800">Total a levar (dinheiro)</div>
-              <div class="text-2xl font-black tabular-nums text-emerald-950 leading-tight" id="pdv-rp-total">R$ 0,00</div>
-            </div>
-          </div>
-          <label class="block rp-card">
-            <span class="text-[0.7rem] font-black uppercase text-slate-500">PIN do operador</span>
-            <input type="password" id="pdv-rp-pin" class="rp-field mt-1 max-w-[12rem]" autocomplete="new-password" inputmode="numeric" name="rp_pin_operador" data-lpignore="true" />
-          </label>
-          <p id="pdv-rp-status" class="text-sm font-bold text-slate-600 min-h-[1.1rem] px-1"></p>
         </div>
       </div>
+
+      {# —— Ações: quem / forma / PIN —— #}
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <button type="button" id="pdv-rp-btn-quem" class="rp-chip">
+          <span class="rp-chip-lbl">Quem levou</span>
+          <span class="rp-chip-val" id="pdv-rp-quem-lbl">Toque para escolher</span>
+        </button>
+        <button type="button" id="pdv-rp-btn-forma" class="rp-chip is-ok">
+          <span class="rp-chip-lbl">Forma de pagamento</span>
+          <span class="rp-chip-val" id="pdv-rp-forma-lbl">Dinheiro</span>
+        </button>
+        <button type="button" id="pdv-rp-btn-pin" class="rp-chip">
+          <span class="rp-chip-lbl">PIN do operador</span>
+          <span class="rp-chip-val" id="pdv-rp-pin-lbl">Toque para digitar</span>
+        </button>
+      </div>
+      <p id="pdv-rp-status" class="text-sm font-bold text-slate-600 min-h-[1.1rem] px-1"></p>
+
+      {# —— Detalhes recolhidos —— #}
+      <details class="rp-card rp-fold">
+        <summary><span>Detalhes do dia (receita, CMV, já enviado…)</span></summary>
+        <div class="pt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Receita</div><div class="text-lg font-black tabular-nums" id="pdv-rp-receita">—</div></div>
+          <div><div class="text-[0.65rem] font-black uppercase text-slate-500">CMV</div><div class="text-lg font-black tabular-nums" id="pdv-rp-cmv-dia">—</div></div>
+          <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Lucro</div><div class="text-lg font-black tabular-nums" id="pdv-rp-lucro-dia">—</div></div>
+          <div><div class="text-[0.65rem] font-black uppercase text-slate-500">Fiado pago</div><div class="text-lg font-black tabular-nums" id="pdv-rp-fiado-dia">—</div></div>
+        </div>
+        <div class="pt-2 grid grid-cols-3 gap-2">
+          <div>
+            <div class="text-[0.65rem] font-black uppercase text-sky-700">Já no Centro (cartão/PIX)</div>
+            <div class="text-lg font-black tabular-nums text-sky-900" id="pdv-rp-elet">R$ 0,00</div>
+          </div>
+          <div>
+            <div class="text-[0.65rem] font-black uppercase text-slate-500">Já enviado (dinheiro)</div>
+            <div class="text-lg font-black tabular-nums text-slate-800" id="pdv-rp-ja-din">R$ 0,00</div>
+          </div>
+          <div>
+            <div class="text-[0.65rem] font-black uppercase text-emerald-700">Falta em dinheiro</div>
+            <div class="text-lg font-black tabular-nums text-emerald-900" id="pdv-rp-falta">R$ 0,00</div>
+          </div>
+        </div>
+      </details>
+
+      <details class="rp-card rp-fold">
+        <summary>
+          <span>% lucro e opções</span>
+          <span class="text-slate-500 font-bold normal-case ml-auto mr-2" id="pdv-rp-opcoes-hint"></span>
+        </summary>
+        <div class="space-y-1.5 pt-2">
+          <label class="flex flex-wrap items-center gap-2">
+            <span class="text-[0.7rem] font-black uppercase text-slate-500">% lucro bruto</span>
+            <input type="number" id="pdv-rp-pct" min="0" max="100" step="1" class="rp-field max-w-[6.5rem] min-h-[2.5rem]" value="50" />
+          </label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-todos" checked /><span>Marcar todos</span></label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-cmv" checked /><span class="flex-1">CMV <span id="pdv-rp-disp-cmv" class="tabular-nums text-emerald-800">R$ 0,00</span></span></label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-lucro" checked /><span class="flex-1">% lucro <span id="pdv-rp-disp-lucro" class="tabular-nums text-sky-800">R$ 0,00</span></span></label>
+          <p id="pdv-rp-desp-hint" class="hidden text-[0.65rem] font-bold text-slate-600 leading-tight px-0.5"></p>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-fiado" checked /><span class="flex-1">Fiado pago <span id="pdv-rp-disp-fiado" class="tabular-nums text-orange-800">R$ 0,00</span></span></label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-acumulado" checked /><span>Incluir acumulado no total (dias sem enviar)</span></label>
+          <label class="rp-check"><input type="checkbox" id="pdv-rp-cheio" /><span>Dia cheio de novo (padrão = só o que falta)</span></label>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end pt-1">
+            <label class="block">
+              <span class="text-[0.65rem] font-black uppercase text-rose-800">Reserva diária do cofrinho (config)</span>
+              <input type="text" id="pdv-rp-reserva" class="rp-field mt-0.5 min-h-[2.5rem]" inputmode="decimal" placeholder="0,00" autocomplete="off" />
+            </label>
+            <button type="button" id="pdv-rp-salvar-reserva" class="min-h-[2.5rem] rounded-lg border-2 border-rose-600 bg-rose-50 px-3 text-xs font-black uppercase text-rose-950">Salvar reserva</button>
+          </div>
+        </div>
+      </details>
     </div>
 
-    <footer class="shrink-0 border-t-2 border-slate-200 bg-white p-2.5 flex flex-wrap gap-2 justify-end">
-      <button type="button" id="pdv-repasse-cancelar" class="min-h-[3rem] rounded-xl border-2 border-slate-300 px-5 font-black uppercase text-slate-700">Cancelar</button>
-      <button type="button" id="pdv-repasse-confirmar" class="min-h-[3rem] rounded-xl bg-orange-500 px-6 font-black uppercase text-white hover:bg-orange-600">Confirmar transferência</button>
+    <footer class="shrink-0 border-t-2 border-slate-200 bg-white p-3 flex flex-wrap gap-2 justify-end">
+      <button type="button" id="pdv-repasse-cancelar" class="min-h-[3.25rem] rounded-xl border-2 border-slate-300 px-5 font-black uppercase text-slate-700">Cancelar</button>
+      <button type="button" id="pdv-repasse-confirmar" class="min-h-[3.25rem] flex-1 sm:flex-none rounded-xl bg-orange-500 px-8 text-base font-black uppercase text-white hover:bg-orange-600">Confirmar transferência</button>
+    </footer>
+  </div>
+</div>
+
+{# Popup Quem levou #}
+<div id="pdv-rp-quem-modal" class="fixed inset-0 hidden items-center justify-center bg-slate-900/55 p-2 z-[2147483016]" role="dialog" aria-modal="true">
+  <div class="w-full max-w-[min(36rem,96vw)] max-h-[min(88dvh,32rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-sky-200 bg-sky-50 px-3 py-2">
+      <h3 class="text-sm font-black uppercase text-sky-950">Quem levou</h3>
+      <button type="button" id="pdv-rp-quem-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="flex-1 overflow-y-auto p-3 space-y-2">
+      <div id="pdv-rp-quem-grid" class="flex flex-wrap gap-1.5"></div>
+      <input type="text" id="pdv-rp-quem-outros" class="rp-field hidden" placeholder="Nome de quem levou" autocomplete="off" name="rp_quem_outros" />
+    </div>
+    <footer class="border-t border-slate-200 p-2 flex justify-end">
+      <button type="button" id="pdv-rp-quem-ok" class="min-h-[2.75rem] rounded-xl bg-sky-600 px-5 text-sm font-black uppercase text-white">Pronto</button>
+    </footer>
+  </div>
+</div>
+
+{# Popup Forma (retraída — padrão Dinheiro) #}
+<div id="pdv-rp-forma-modal" class="fixed inset-0 hidden items-center justify-center bg-slate-900/55 p-2 z-[2147483016]" role="dialog" aria-modal="true">
+  <div class="w-full max-w-[min(32rem,96vw)] flex flex-col overflow-hidden rounded-2xl border-2 border-emerald-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-emerald-200 bg-emerald-50 px-3 py-2">
+      <h3 class="text-sm font-black uppercase text-emerald-950">Forma de pagamento</h3>
+      <button type="button" id="pdv-rp-forma-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="p-3">
+      <div id="pdv-rp-forma-grid" class="flex flex-wrap gap-1.5"></div>
+      <p class="mt-2 text-xs font-bold text-slate-600">Padrão: Dinheiro</p>
+    </div>
+    <footer class="border-t border-slate-200 p-2 flex justify-end">
+      <button type="button" id="pdv-rp-forma-ok" class="min-h-[2.75rem] rounded-xl bg-emerald-600 px-5 text-sm font-black uppercase text-white">Pronto</button>
+    </footer>
+  </div>
+</div>
+
+{# Popup PIN #}
+<div id="pdv-rp-pin-modal" class="fixed inset-0 hidden items-center justify-center bg-slate-900/55 p-2 z-[2147483016]" role="dialog" aria-modal="true">
+  <div class="w-full max-w-[min(24rem,96vw)] flex flex-col overflow-hidden rounded-2xl border-2 border-slate-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-slate-200 bg-slate-50 px-3 py-2">
+      <h3 class="text-sm font-black uppercase text-slate-900">PIN do operador</h3>
+      <button type="button" id="pdv-rp-pin-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="p-4 space-y-2">
+      <input type="password" id="pdv-rp-pin" class="rp-field text-2xl tracking-widest" autocomplete="new-password" inputmode="numeric" name="rp_pin_operador" data-lpignore="true" placeholder="••••" />
+    </div>
+    <footer class="border-t border-slate-200 p-2 flex justify-end gap-2">
+      <button type="button" id="pdv-rp-pin-ok" class="min-h-[2.75rem] rounded-xl bg-slate-800 px-5 text-sm font-black uppercase text-white">Pronto</button>
     </footer>
   </div>
 </div>
