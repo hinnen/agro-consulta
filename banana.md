@@ -1241,60 +1241,48 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🚀 PREP deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **prep pronta** · **produção NÃO alterada** · aguarda frase + senha no **próximo chat** |
-| **Base loja hoje** | `origin/producao` @ **v18.50** / `4836ec1` |
-| **Branch prep** | `deploy/prep-checklist-2808b` (cherry limpo; só conflito VERSION/banana) |
-| **Badge alvo** | **v18.64** |
-| **Migrate** | **SIM** — `produtos.0102` (choice `saldo_inicial`) · SQL **no-op** · sem coluna nova |
-| **Rollback (no deploy)** | tag `rollback/pre-lote-checklist-2808b-v18.50` @ `4836ec1` + branch backup · **só** frase + senha |
-| **Doc** | `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md` |
-
-**Ordem dos cherries (já na branch prep):**
-
-| # | Pacote | Commit origem `teste` | Risco loja aberta |
-| - | ------ | --------------------- | ----------------- |
-| 1 | `PDV-MODO-POR-FORMA` | `5cd3483` + `94c0fc8` | PDV preço/forma — prova **25/25** |
-| 2 | `REPASSE-COFRINHO-ACUM` | `c58a107` | Cofrinho — path **175** · cof **28** |
-| 3 | `CP-NE-BUSCA-EMPRESA` | `f7bae7d` | Só CP — **61+18** |
-| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | `22f9dfb` | Overlay PDV — path **187** |
-| 5 | migrate `0102` | `e42fa03` | no-op |
-
-**Não sobe:** merge `teste` inteiro. Loja **v18.50** permanece até o próximo chat.
-
-**No próximo chat (lojas pausadas):** Zap ~2 min → *pode subir produção* + senha → tag/backup → push prep → Render Live → Ctrl+F5.
-
-### ✅ CHECKLIST ÚNICO — PREP pronta (28/08b · após loja **v18.50**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08 · após loja **v18.50**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54+ · migrate **NÃO** |
-| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · migrate **SIM** (`0102`) |
-| 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · migrate **NÃO** |
-| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · **v18.62** · path **187** · migrate **NÃO** |
+| 1 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · path **25/25** · migrate **NÃO** |
+| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · cof **28** · migrate **SIM** (`0102`) |
+| 3 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54+ · **61+18** · migrate **NÃO** |
+| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · tip · overlay **73/73** · path **191** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.64** · PREP `deploy/prep-checklist-2808b`
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.65**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
-| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto · parcela | NÃO |
-| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | **SIM** (`0102` choice) |
 | `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV | NÃO |
-| `REPASSE-PDV-OVERLAY-LIMPO` | **v18.62** | Overlay PDV limpo: hero + cards · quem/forma/PIN popup (foco+Enter) | NÃO |
+| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | **SIM** (`0102`) |
+| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto | NÃO |
+| `REPASSE-PDV-OVERLAY-LIMPO` | **tip** | Overlay PDV limpo · prova **73/73** | NÃO |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Live hoje** | `origin/producao` @ **v18.50** |
+| **PREP** | `deploy/prep-checklist-2808b` @ **v18.64** |
+| **Produção** | ⏳ frase + senha |
 
 ### 📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Repasse no PDV grande e limpo: cofrinho / levar Centro (acumulado) / manual em destaque; cards mês; detalhes recolhidos; quem · forma · PIN em popup. |
-| **UX** | Popup abre com cursor no campo · **Enter** confirma · Esc fecha. |
-| **Prova** | path **187/187** · cofrinho **28** · fechar-repasse **68** · Node OK |
-| **Você** | Ctrl+F5 PDV · botão **Repasse** |
+| **O quê** | Hero cofrinho + levar Centro (acumulado) + manual · cards · detalhes recolhidos · quem/forma/PIN popup (foco+Enter). |
+| **Prova** | overlay **73/73** · path **191/191** · cof **28** · deep **96** · reserva **60** · planos **49** · fechar **68+41** · acum **28** · `manage.py check` · migrations OK |
+| **Você** | Ctrl+F5 PDV · **Repasse** |
 | **Migrate** | **NÃO** |
 | **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
+
+### 🚀 PREP deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **prep pronta** · aguarda frase + senha |
+| **Base loja** | `origin/producao` @ **v18.50** / `4836ec1` |
+| **Migrate** | **SIM** — `0102` (choice `saldo_inicial`, no-op) |
+| **Pacotes** | PDV-MODO-POR-FORMA · REPASSE-COFRINHO-ACUM · CP-NE-BUSCA-EMPRESA · REPASSE-PDV-OVERLAY-LIMPO |
 
 ### 📦 PACOTE PRONTO — CP busca + empresa auto (`CP-NE-BUSCA-EMPRESA` · **v18.54** · 28/08/2026)
 
