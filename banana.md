@@ -1287,17 +1287,37 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
 | **Produção** | só frase + senha |
 
-### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.23**) · 29/08/2026
+### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.37**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto envio SOLO** (fora do checklist grande) · ⏳ loja |
 | **O quê** | Meta C da Vila = mesma do Centro; base ignora dias **< 20/07/2026**; Centro+Vila = **soma** das metas; BI passa filtro Números na série compare |
 | **Onde** | `views.py` · `mongo_vendas_util` · `mongo_financeiro_util` · analytics PG · ajuda BI · `verify_meta_c_vila_abertura.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **VERIFY OK 43/43** · smoke série ago soma C+V |
+| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **VERIFY OK 51/51** · regressão Centro + soma |
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
-| **Produção** | só frase + senha depois de validar local |
+| **Produção** | **Sozinho** (não no lote) · frase+senha · rollback `docs/ROLLBACK-BI-META-C-VILA.md` · **sem migrate** |
+
+
+### 📦 PACOTE PRONTO SOLO — Meta C Vila (`BI-META-C-VILA` · tip **v19.37**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tip** | `teste` **v19.37** · loja **v19.01** |
+| **Prova** | **VERIFY OK 51/51** · regressão Centro · soma C+V · doc rollback |
+| **Migrate** | **NÃO** |
+| **Env** | NÃO (default abertura 20/07/2026) |
+| **Status** | 🟡 **pronto para envio SOLO à produção** (aguarda frase + senha) |
+| **Rollback** | `docs/ROLLBACK-BI-META-C-VILA.md` · tag `rollback/pre-bi-meta-c-vila` antes do push loja |
+| **Por quê sozinho** | Se der pepino, volta só este pacote — não desfaz o lote |
+| **Você** | Ctrl+F5 BI · Centro · Vila · C+V · calendário CP |
+
+### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · tip **v19.37**)
+
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | BI-META-C-VILA | Meta C Vila=Centro · corte 20/07 · soma C+V · prova **51/51** | não | 🟡 pronto envio SOLO |
 
 ### 🩹 Repasse — aviso gaveta em popup (REPASSE-AVISO-POPUP · **v19.33**) · 29/08/2026
 
@@ -1383,18 +1403,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.36** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.37** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.36** · loja **v19.01** |
+| **Tip** | `teste` **v19.37** · loja **v19.01** |
 | **Prova Repasse** | path **255** · overlay **188** · planos **49** · cofrinho **31** · node OK · deep 97/98 (1 fail dado: dia sem o que levar) |
-| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META-C 43 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 · Pedir escrito **66/66** |
+| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META SOLO 51 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 · Pedir escrito **66/66** |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso) · Pedir loja escrito+obs · cupom · PIN · validade · Meta C |
+| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso) · Pedir loja escrito+obs · cupom · PIN · validade |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.36**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.37**)
+
+> **Fora deste lote:** `BI-META-C-VILA` sobe **sozinho** (ver CHECKLIST ÚNICO SOLO acima) — rollback isolado.
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1408,10 +1430,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 8 | PIN-OPERADOR-QUEM | Exige PIN · **50/50** | não | 🟡 pronto envio |
 | 9 | NFCE-DESC-ITENS | Rateio vDesc · **56/56** | não | 🟡 pronto envio |
 | 10 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · **27/27** | não | 🟡 pronto envio |
-| 11 | BI-META-C-VILA | Meta C Vila=Centro · **43/43** | não | 🟡 pronto envio |
-| 12 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
-| 13 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
-| 14 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
+| 11 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
+| 12 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
+| 13 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
 
 ### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.36**
 

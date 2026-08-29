@@ -280,12 +280,53 @@ def test_ocorrencia_mes() -> None:
     check("seq_diferentes", m1 != m3)
 
 
+def test_regressao_centro_e_rollback() -> None:
+    print("== 6. Regressao Centro + rollback ==")
+    from produtos.views import (
+        _dashboard_meta_c_data_min,
+        _dashboard_meta_c_um_mes,
+        _dashboard_serie_meta_c_vendas,
+    )
+
+    check("centro_sem_piso", _dashboard_meta_c_data_min("centro") is None)
+    por = {
+        "2026-07-06": 100.0,
+        "2026-07-13": 200.0,
+        "2026-07-20": 300.0,
+        "2026-07-27": 400.0,
+    }
+    a = _dashboard_meta_c_um_mes(0, 1, por, date(2026, 7, 1), date(2026, 7, 31), None)
+    b = _dashboard_meta_c_um_mes(0, 1, por, date(2026, 7, 1), date(2026, 7, 31))
+    check("centro_um_mes_igual_sem_data_min", a == b == 175.0, str((a, b)))
+
+    ini, fim = date(2026, 8, 1), date(2026, 8, 28)
+    try:
+        sc = _dashboard_serie_meta_c_vendas(ini, fim, "centro")
+        sv = _dashboard_serie_meta_c_vendas(ini, fim, "vila")
+        st = _dashboard_serie_meta_c_vendas(ini, fim, None)
+        check("serie_28", len(sc) == len(sv) == len(st) == 28)
+        check(
+            "serie_soma_invariante",
+            all(abs(st[i] - (sc[i] + sv[i])) < 0.02 for i in range(28)),
+        )
+        check("centro_serie_positiva", sum(sc) > 0)
+    except Exception as e:
+        check("serie_runtime_reg", False, str(e)[:120])
+
+    rb = ROOT / "docs/ROLLBACK-BI-META-C-VILA.md"
+    check("rollback_doc", rb.is_file())
+    txt = rb.read_text(encoding="utf-8") if rb.is_file() else ""
+    check("rollback_sem_migrate", "Migrate:** NÃO" in txt or "Migrate: NÃO" in txt)
+    check("rollback_paths", "views.py" in txt and "mongo_vendas_util" in txt)
+
+
 def main() -> int:
     test_static()
     test_clip_unitario()
     test_soma_e_serie()
     test_vendas_lojas_wiring()
     test_ocorrencia_mes()
+    test_regressao_centro_e_rollback()
     total = _OK + _FAIL
     print(f"\nVERIFY {'OK' if _FAIL == 0 else 'FAIL'} {_OK}/{total}")
     return 0 if _FAIL == 0 else 1
