@@ -81,7 +81,7 @@ JS = "produtos/static/produtos/js/pdv_repasse_vila.js"
 
 # —— Shell + hero ——
 check(HTML, "pdv-repasse-overlay", "rp-shell", "min(98rem", "96dvh", "rp-hero", "rp-hero-cofre")
-check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "pdv-rp-hero-cofre-saldo", "pdv-rp-hero-cofre-ve-saldo", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-total-acum", "pdv-rp-manual")
+check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "pdv-rp-hero-cofre-saldo", "pdv-rp-hero-cofre-ve-saldo", "pdv-rp-hero-cofre-atraso", "pdv-rp-hero-cofre-ve-atraso", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-total-acum", "pdv-rp-manual")
 check(HTML, "pdv-rp-caixa-din", "Caixa Vila · dinheiro agora")
 check(HTML, "pdv-rp-mes-dinheiro", "pdv-rp-card-cofre", "pdv-rp-mes-lucro-ficou", "pdv-rp-dia-todas")
 check(HTML, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "Enviado no mês", "Total geral")
@@ -123,7 +123,7 @@ check(JS, "ev.key === 'Enter'", "closeQuemModal", "closePinModal")
 check(JS, "formaPag = 'Dinheiro'", "pendingConfirmar", "Escape", "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "cofre_vila_elias")
 check(JS, "openCofreConfirmModal", "closeCofreConfirmModal", "enviarConfirmacao", "notifyParentFecharAtualizar", "valorVeTxt")
 check(JS, "openForcarManualModal", "forcar_manual_zerado", "precisa_forcar_manual", "autoLinhasZeradas", "submitForcarManual")
-check(JS, "pdv-rp-caixa-din", "caixa_vila", "saldo_dinheiro", "manualDirty", "fmtManualNum", "syncManualFromAuto")
+check(JS, "pdv-rp-caixa-din", "caixa_vila", "saldo_dinheiro", "manualDirty", "fmtManualNum", "syncManualFromAuto", "prevista_dia", "renderCofreHero")
 forbid(JS, "window.confirm(msgCofre)", "msgCofre")
 forbid(JS, "Não há valor disponível nas linhas marcadas")
 check(JS, "api/repasse-vila/confirmar/", "incluir_acumulado", "separar_reserva")

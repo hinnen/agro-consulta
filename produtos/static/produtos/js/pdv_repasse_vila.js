@@ -334,35 +334,51 @@
     var hintOp = document.getElementById('pdv-rp-opcoes-hint');
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
 
-    var pendente = Number(cofre.pendente_dia || 0);
-    var saldoCofre = Number(cofre.saldo || 0);
-    setText('pdv-rp-hero-cofre', money(pendente));
-    setText('pdv-rp-hero-cofre-saldo', money(saldoCofre));
-    var cofreAviso = document.getElementById('pdv-rp-cofre-aviso');
-    if (cofreAviso) {
-      if (pendente > 0.009) {
-        cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'NÃO levar no envelope.';
-      } else {
-        cofreAviso.classList.add('hidden');
-        cofreAviso.textContent = '';
+    function renderCofreHero(resumo, ids, avisoTxt) {
+      var prevista = Number(resumo.prevista_dia != null ? resumo.prevista_dia : 0);
+      var saldo = Number(resumo.saldo || 0);
+      var pendente = Number(resumo.pendente_dia || 0);
+      var atrasado = Math.max(0, pendente - prevista);
+      setText(ids.hoje, money(prevista));
+      setText(ids.saldo, money(saldo));
+      var wrap = document.getElementById(ids.atrasoWrap);
+      var atrasEl = document.getElementById(ids.atraso);
+      if (wrap && atrasEl) {
+        if (atrasado > 0.009) {
+          wrap.classList.remove('hidden');
+          atrasEl.textContent = money(atrasado);
+        } else {
+          wrap.classList.add('hidden');
+          atrasEl.textContent = money(0);
+        }
+      }
+      var aviso = document.getElementById(ids.aviso);
+      if (aviso) {
+        if (pendente > 0.009) {
+          aviso.classList.remove('hidden');
+          aviso.textContent = avisoTxt;
+        } else {
+          aviso.classList.add('hidden');
+          aviso.textContent = '';
+        }
       }
     }
 
-    var pendenteVe = Number(cofreVe.pendente_dia || 0);
-    var saldoVe = Number(cofreVe.saldo || 0);
-    setText('pdv-rp-hero-cofre-ve', money(pendenteVe));
-    setText('pdv-rp-hero-cofre-ve-saldo', money(saldoVe));
-    var cofreVeAviso = document.getElementById('pdv-rp-cofre-ve-aviso');
-    if (cofreVeAviso) {
-      if (pendenteVe > 0.009) {
-        cofreVeAviso.classList.remove('hidden');
-        cofreVeAviso.textContent = 'Lucro que fica na Vila.';
-      } else {
-        cofreVeAviso.classList.add('hidden');
-        cofreVeAviso.textContent = '';
-      }
-    }
+    renderCofreHero(cofre, {
+      hoje: 'pdv-rp-hero-cofre',
+      saldo: 'pdv-rp-hero-cofre-saldo',
+      atrasoWrap: 'pdv-rp-hero-cofre-atraso-wrap',
+      atraso: 'pdv-rp-hero-cofre-atraso',
+      aviso: 'pdv-rp-cofre-aviso',
+    }, 'NÃO levar no envelope · Separar junto puxa o acumulado.');
+
+    renderCofreHero(cofreVe, {
+      hoje: 'pdv-rp-hero-cofre-ve',
+      saldo: 'pdv-rp-hero-cofre-ve-saldo',
+      atrasoWrap: 'pdv-rp-hero-cofre-ve-atraso-wrap',
+      atraso: 'pdv-rp-hero-cofre-ve-atraso',
+      aviso: 'pdv-rp-cofre-ve-aviso',
+    }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
 
     renderMesCards();
   }
