@@ -1254,7 +1254,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **Relato** | Validade na tela Validade / Entrada NF não aparecia na aba 8 do cadastro |
 | **Causa** | Relatório lia resumo (`cadastro_extras`); aba do cadastro só lista `EstoqueLote` |
 | **O quê** | Ao abrir produto / relatório, espelha extras→lote · Salvar na Validade sempre grava lote · NF atualiza resumo |
@@ -1267,14 +1267,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
-| **Relato** | Renan · Excluir (só SisVale) → alerta «Sem permissão para salvar» apesar de logado no admin |
-| **Causa** | API devolvia 403 de regra de negócio; JS trocava pela mensagem genérica de login |
-| **O quê** | Mostra o erro real da API · admin (staff) envia força de exclusão local · regra de negócio vira 409 |
-| **Onde** | `_modal_editar_produto_cadastro_erp.inc.html` · `produtos_cadastro_erp.html` · `api_produtos_somente_agro_excluir` |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · prova **37/37** · ⏳ loja ainda sem |
+| **Relato** | Renan · Excluir → «Sem permissão para salvar» apesar de logado no admin |
+| **Causa** | API 403 de regra; JS trocava por mensagem genérica de login |
+| **O quê** | Erro real da API · staff força limpeza local · regra → 409 |
+| **Prova** | `scripts/verify_cad_excluir_msg_staff_path.py` **VERIFY_OK 37/37** |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 cadastro · abrir o produto · Excluir · confirmar |
-| **Produção** | só frase + senha depois de validar local |
+| **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
+| **Produção** | só frase + senha |
 
 ### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.23**) · 29/08/2026
 
@@ -1292,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **Causa** | Clique do 3º OK atravessava o popup (ghost click) / fluxo parado no forçar PIN |
 | **O quê** | Atrasa fechamento · pointer-events · após 3 OKs envia direto |
 | **Você** | Ctrl+F5 · Repasse · 3 OKs · tem que transferir |
@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **O quê** | Popup confirmação ~96% tela · 3 valores em linha · após Confirmar: 3 OKs (salário → VE → levar) |
 | **Você** | Ctrl+F5 · Repasse · Confirmar · 3 OKs |
 
@@ -1309,7 +1309,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **O quê** | Totais menores · 3 campos editáveis mais fortes · cards de cima/totais mais opacos |
 | **Você** | Ctrl+F5 · Repasse |
 
@@ -1317,7 +1317,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **O quê** | Inputs Salário / VE / Levar sob cada card · Acumulado · Enviado · Total geral numa linha embaixo |
 | **Onde** | `repasse_vila_overlay.html` |
 | **Migrate** | **NÃO** |
@@ -1327,7 +1327,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **Pedido** | Renan · não editar no popup · digitar embaixo de cada cofre + Levar ao Centro · aí confirmar |
 | **O quê** | Inputs Separar Salário / Separar Vila Elias sob os cards · Levar ao Centro no campo antigo · popup só lê · 3 campos obrigatórios (0,00 ok) |
 | **Onde** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
@@ -1364,29 +1364,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.23** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.28** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.23** · loja **v19.01** |
-| **Prova** | BI-META-C-VILA **43/43** · PDV-CUPOM-DINHEIRO **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
+| **Tip** | `teste` **v19.28** · loja **v19.01** |
+| **Prova** | CAD-EXCLUIR **37/37** · BI-META-C **43/43** · PDV-CUPOM **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · Meta C Vila · dinheiro+cupom · desconto+cupom · PIN · Repasse |
+| **Você** | Ctrl+F5 · Excluir cadastro · validade aba 8 · Meta C · cupom · PIN · Repasse 3 OKs |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.23**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08d · tip **v19.28**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | REPASSE-FORMULA-3VAL | Planos+salário antes 50/50 · modal 3 valores · fix acum | não | 🟡 pronto envio |
 | 2 | PIN-OPERADOR-QUEM | Exige PIN · sem Chrome · bug report | não | 🟡 pronto envio |
-| 3 | NFCE-DESC-ITENS | Rateio vDesc itens (bug #7) · prova 56/56 | não | 🟡 pronto envio |
-| 4 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · overlay Vendas (bug #6) · prova **27/27** | não | 🟡 pronto envio |
+| 3 | NFCE-DESC-ITENS | Rateio vDesc itens (bug #7) · 56/56 | não | 🟡 pronto envio |
+| 4 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · overlay Vendas · **27/27** | não | 🟡 pronto envio |
 | 5 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
-| 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V · prova **43/43** | não | 🟡 pronto envio |
+| 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V · **43/43** | não | 🟡 pronto envio |
 | 7 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 pronto envio |
+| 8 | REPASSE-EDIT-CONTRASTE | Totais menores · 3 campos mais fortes | não | 🟡 pronto envio |
+| 9 | REPASSE-CONFIRM-3OK | Popup grande · 3 OKs gaveta | não | 🟡 pronto envio |
+| 10 | REPASSE-3OK-GHOSTCLICK | 3º OK transfere de verdade | não | 🟡 pronto envio |
+| 11 | CAD-EXCLUIR-MSG-STAFF | Excluir: erro real + staff força · **37/37** | não | 🟡 pronto envio |
+| 12 | CAD-VAL-ESPELHO | Validade tela/NF na aba lote do cadastro | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.23** acima
+### ~~📦 PACOTE PRONTO — tip v19.26 / v19.23~~ · ver bloco tip **v19.28** acima
+
+### ~~✅ CHECKLIST ÚNICO — tip v19.26~~ · superado pelo tip **v19.28**
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
