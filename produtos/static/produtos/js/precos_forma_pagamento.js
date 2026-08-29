@@ -100,6 +100,10 @@
         var formaTrim = String(forma || '').trim();
         if (!formaTrim) return padrao;
 
+        /* Tabelas % globais (Fiado / Crédito etc.) — só se elegível e resolução permitir. */
+        var tab = precoViaTabelaGlobal(item, formaTrim, padrao);
+        if (tab != null && tab > 0) return tab;
+
         if (modoItem(item) === 'grupos') {
             var g = precosGruposDoItem(item);
             if (!g || typeof g !== 'object') return padrao;
@@ -130,6 +134,145 @@
             }
         }
         return padrao;
+    }
+
+    var _tabelasCache = { tabelas: [], resolucoes: {}, loaded: false };
+
+    function setTabelasGlobais(payload) {
+        _tabelasCache.tabelas = (payload && payload.tabelas) || [];
+        _tabelasCache.resolucoes = (payload && payload.resolucoes) || {};
+        _tabelasCache.loaded = true;
+    }
+
+    function getTabelasGlobais() {
+        return _tabelasCache;
+    }
+
+    function arredondarDezenaCentavos(v) {
+        var n = toNum(v, 0);
+        if (n <= 0) return 0;
+        var cents = Math.round(n * 100);
+        var dezena = Math.floor(cents / 10);
+        var resto = cents % 10;
+        var out = resto <= 4 ? dezena * 10 : (dezena + 1) * 10;
+        return out / 100;
+    }
+
+    function produtoElegivelTabela(t, produto) {
+        if (!t || !t.ativo || !produto) return false;
+        var pid = String(produto.id || produto.produto_id || '').trim();
+        var vet = t.produtos_vetados || [];
+        if (pid && vet.indexOf(pid) >= 0) return false;
+        var cats = t.categorias_vetadas || [];
+        if (cats.length) {
+            var cat = String(produto.categoria || '').trim().toLowerCase();
+            for (var i = 0; i < cats.length; i++) {
+                if (cat && cat === String(cats[i]).toLowerCase()) return false;
+            }
+        }
+        return Array.isArray(t.formas) && t.formas.length > 0;
+    }
+
+    function temIndividualNaForma(item, forma) {
+        if (!item || !forma) return false;
+        if (modoItem(item) === 'grupos') {
+            var g = precosGruposDoItem(item);
+            if (!g) return false;
+            return formaNaLista(g.formas_a, forma) || formaNaLista(g.formas_b, forma);
+        }
+        var map = item.precos_por_forma;
+        if (!map || typeof map !== 'object') return false;
+        var want = formaCanonKey(forma);
+        var keys = Object.keys(map);
+        for (var i = 0; i < keys.length; i++) {
+            if (formaCanonKey(keys[i]) === want && toNum(map[keys[i]], 0) > 0) return true;
+        }
+        return false;
+    }
+
+    function preferenciaResolucao(slot, pid) {
+        var by = _tabelasCache.resolucoes && _tabelasCache.resolucoes[String(slot)];
+        if (!by || typeof by !== 'object') return 'individual';
+        return String(by[String(pid)] || 'individual').toLowerCase() === 'tabela'
+            ? 'tabela'
+            : 'individual';
+    }
+
+    function tabelaParaForma(forma, produto) {
+        var formaTrim = String(forma || '').trim();
+        if (!formaTrim || !_tabelasCache.tabelas.length) return null;
+        var list = _tabelasCache.tabelas.slice().sort(function (a, b) {
+            return toNum(a.slot, 99) - toNum(b.slot, 99);
+        });
+        for (var i = 0; i < list.length; i++) {
+            var t = list[i];
+            if (!t.ativo) continue;
+            if (!formaNaLista(t.formas, formaTrim)) continue;
+            if (!produtoElegivelTabela(t, produto)) continue;
+            return t;
+        }
+        return null;
+    }
+
+    function precoViaTabelaGlobal(item, forma, padrao) {
+        var t = tabelaParaForma(forma, item);
+        if (!t) return null;
+        var pid = String(item.id || '').trim();
+        if (temIndividualNaForma(item, forma) && preferenciaResolucao(t.slot, pid) !== 'tabela') {
+            return null;
+        }
+        var pct = toNum(t.percentual, 0);
+        var out = padrao * (1 + pct / 100);
+        out = Math.round(out * 100) / 100;
+        if (t.arredondar_dezena_centavos) out = arredondarDezenaCentavos(out);
+        return out > 0 ? out : null;
+    }
+
+    /** Chips: [{slot, nome, preco}] para tabelas elegíveis (sobre preço padrão). */
+    function precosTabelasVisiveis(produto) {
+        if (!produto || !_tabelasCache.tabelas.length) return [];
+        if (modoItem(produto) === 'grupos' && precosGruposVisiveis(produto)) return [];
+        var padrao = toNum(
+            produto.preco_padrao != null
+                ? produto.preco_padrao
+                : produto.preco_venda != null
+                  ? produto.preco_venda
+                  : produto.preco,
+            0
+        );
+        if (padrao <= 0) return [];
+        var out = [];
+        var list = _tabelasCache.tabelas.slice().sort(function (a, b) {
+            return toNum(a.slot, 99) - toNum(b.slot, 99);
+        });
+        for (var i = 0; i < list.length; i++) {
+            var t = list[i];
+            if (!produtoElegivelTabela(t, produto)) continue;
+            var pct = toNum(t.percentual, 0);
+            var preco = padrao * (1 + pct / 100);
+            preco = Math.round(preco * 100) / 100;
+            if (t.arredondar_dezena_centavos) preco = arredondarDezenaCentavos(preco);
+            if (preco > 0) {
+                out.push({
+                    slot: t.slot,
+                    nome: String(t.nome || ('T' + t.slot)),
+                    preco: preco,
+                    formas: t.formas || []
+                });
+            }
+        }
+        return out;
+    }
+
+    function carregarTabelasGlobais(url) {
+        var u = url || '/api/tabelas-preco-forma/pdv/';
+        return fetch(u, { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+                if (j && j.ok) setTabelasGlobais(j);
+                return j;
+            })
+            .catch(function () { return null; });
     }
 
     function copiarPrecosPorFormaDoProduto(item, produto) {
@@ -205,6 +348,11 @@
         obterFormaDoState: obterFormaDoState,
         precoBaseForma: precoBaseForma,
         precosGruposVisiveis: precosGruposVisiveis,
+        precosTabelasVisiveis: precosTabelasVisiveis,
+        setTabelasGlobais: setTabelasGlobais,
+        getTabelasGlobais: getTabelasGlobais,
+        carregarTabelasGlobais: carregarTabelasGlobais,
+        tabelaParaForma: tabelaParaForma,
         modoItem: modoItem,
         copiarPrecosPorFormaDoProduto: copiarPrecosPorFormaDoProduto,
         aplicarPrecoBaseNoItem: aplicarPrecoBaseNoItem,

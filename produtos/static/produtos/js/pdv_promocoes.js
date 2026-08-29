@@ -64,13 +64,94 @@
         return false;
     }
 
-    function calcTotalLinha(promo, qtd, precoPadrao) {
+    function slotTabelaAtiva(item, forma) {
+        if (
+            !forma ||
+            !global.AgroPrecosFormaPagamento ||
+            !global.AgroPrecosFormaPagamento.tabelaParaForma
+        ) {
+            return 0;
+        }
+        var t = global.AgroPrecosFormaPagamento.tabelaParaForma(forma, item);
+        return t && t.slot ? Number(t.slot) : 0;
+    }
+
+    function precoYParaTabela(promo, slot) {
+        if (!promo) return 0;
+        if (slot === 1) {
+            var y1 = toNum(promo.preco_y_t1, 0);
+            if (y1 > 0) return y1;
+        }
+        if (slot === 2) {
+            var y2 = toNum(promo.preco_y_t2, 0);
+            if (y2 > 0) return y2;
+        }
+        return toNum(promo.preco_y, 0);
+    }
+
+    function precoProdutoPromoParaTabela(promo, slot) {
+        if (!promo) return 0;
+        if (slot === 1) {
+            var p1 = toNum(promo.preco_produto_promo_t1, 0);
+            if (p1 > 0) return p1;
+        }
+        if (slot === 2) {
+            var p2 = toNum(promo.preco_produto_promo_t2, 0);
+            if (p2 > 0) return p2;
+        }
+        return toNum(promo.preco_produto_promo, 0);
+    }
+
+    function regraPromoVsTabela(promo, produtoId) {
+        var pid = String(produtoId || '').trim();
+        var map = promo && promo.resolucoes_vs_tabela;
+        if (map && typeof map === 'object' && pid && map[pid]) {
+            var r = String(map[pid]).toLowerCase();
+            if (r === 'promo' || r === 'tabela' || r === 'maior') return r;
+        }
+        var def = String((promo && promo.regra_vs_tabela) || 'maior').toLowerCase();
+        if (def === 'promo' || def === 'tabela') return def;
+        return 'maior';
+    }
+
+    function aplicarRegraVsTabela(precoPromo, precoBaseForma, regra) {
+        var p = toNum(precoPromo, 0);
+        var t = toNum(precoBaseForma, 0);
+        if (regra === 'promo') return p > 0 ? p : t;
+        if (regra === 'tabela') return t > 0 ? t : p;
+        if (p <= 0) return t;
+        if (t <= 0) return p;
+        return Math.max(p, t);
+    }
+
+    function calcularPreco(promo, qtd, precoPadrao, opts) {
+        opts = opts || {};
+        var slot = toNum(opts.slotTabela, 0);
+        if (!promo) return precoPadrao;
+        if (promo.tipo === 'valor_direto') {
+            var pp = precoProdutoPromoParaTabela(promo, slot);
+            if (pp > 0) return pp;
+            var py0 = precoYParaTabela(promo, slot);
+            return py0 > 0 ? py0 : precoPadrao;
+        }
+        if (promo.tipo === 'leve_pague') {
+            if (qtd <= 0) return precoPadrao;
+            return calcTotalLinha(promo, qtd, precoPadrao, slot) / qtd;
+        }
+        if (criterioAtendido(promo, qtd)) {
+            var py = precoYParaTabela(promo, slot);
+            return py > 0 ? py : precoPadrao;
+        }
+        return precoPadrao;
+    }
+
+    function calcTotalLinha(promo, qtd, precoPadrao, slot) {
         if (!promo) return qtd * precoPadrao;
         if (promo.tipo === 'valor_direto') {
-            return qtd * calcularPreco(promo, qtd, precoPadrao);
+            return qtd * calcularPreco(promo, qtd, precoPadrao, { slotTabela: slot });
         }
         var lim = toNum(promo.qtd_x);
-        var py = toNum(promo.preco_y);
+        var py = precoYParaTabela(promo, slot);
         if (lim <= 0 || py <= 0) return qtd * precoPadrao;
         if (promo.tipo === 'leve_pague') {
             var grupos = Math.floor(qtd / lim);
@@ -81,24 +162,6 @@
             return qtd * py;
         }
         return qtd * precoPadrao;
-    }
-
-    function calcularPreco(promo, qtd, precoPadrao) {
-        if (!promo) return precoPadrao;
-        if (promo.tipo === 'valor_direto') {
-            var pp = toNum(promo.preco_produto_promo, 0);
-            if (pp > 0) return pp;
-            var py = toNum(promo.preco_y, 0);
-            return py > 0 ? py : precoPadrao;
-        }
-        if (promo.tipo === 'leve_pague') {
-            if (qtd <= 0) return precoPadrao;
-            return calcTotalLinha(promo, qtd, precoPadrao) / qtd;
-        }
-        if (criterioAtendido(promo, qtd)) {
-            return toNum(promo.preco_y, precoPadrao);
-        }
-        return precoPadrao;
     }
 
     function codigoPromoChaves(extra) {
@@ -163,7 +226,6 @@
 
     function alocarLevePaguePool(entries, promo) {
         var lim = toNum(promo.qtd_x);
-        var py = toNum(promo.preco_y);
         var units = [];
         entries.forEach(function (e, ei) {
             var qtd = toNum(e.qtd, 0);
@@ -207,6 +269,7 @@
             var qPromo = promoCount[id] || 0;
             var qNormal = normalCount[id] || 0;
             var qtd = toNum(e.qtd, 0);
+            var py = precoYParaTabela(promo, e.slotTabela || 0);
             var total = qPromo * py + qNormal * e.padrao;
             e.item.promocao = promo;
             e.item.promo_unidades_promo = qPromo;
@@ -217,7 +280,8 @@
             e.item.promo_mix_ativo = gruposPool > 0 && qPromo > 0;
             e.item.promo_mix_pendente = gruposPool <= 0 && totalQtd > 0;
             e.item.promo_mix_cor = nLinhas > 1 && mixCor >= 0 ? mixCor : null;
-            e.item.preco = qtd > 0 ? Math.round((total / qtd) * 10000) / 10000 : e.padrao;
+            var precoCalc = qtd > 0 ? Math.round((total / qtd) * 10000) / 10000 : e.padrao;
+            e.item.preco = aplicarRegraVsTabela(precoCalc, e.padrao, e.regra || 'maior');
         });
     }
 
@@ -244,7 +308,6 @@
 
     function alocarAcimaUnidadesPool(entries, promo) {
         var lim = toNum(promo.qtd_x);
-        var py = toNum(promo.preco_y);
         var totalQtd = 0;
         var nLinhas = entries.length;
         entries.forEach(function (e) {
@@ -255,6 +318,7 @@
             nLinhas > 1 && promo.id != null ? Math.abs(parseInt(String(promo.id), 10) || 0) % 6 : -1;
         entries.forEach(function (e) {
             var qtd = toNum(e.qtd, 0);
+            var py = precoYParaTabela(promo, e.slotTabela || 0);
             e.item.promocao = promo;
             e.item.promo_unidades_promo = ativo ? qtd : 0;
             e.item.promo_unidades_normal = ativo ? 0 : qtd;
@@ -264,7 +328,8 @@
             e.item.promo_mix_ativo = ativo;
             e.item.promo_mix_pendente = !ativo && totalQtd > 0;
             e.item.promo_mix_cor = nLinhas > 1 && mixCor >= 0 ? mixCor : null;
-            e.item.preco = ativo ? py : e.padrao;
+            var precoCalc = ativo && py > 0 ? py : e.padrao;
+            e.item.preco = aplicarRegraVsTabela(precoCalc, e.padrao, e.regra || 'maior');
         });
     }
 
@@ -285,6 +350,7 @@
             }
             var padrao = padraoItemComForma(item, forma);
             item.preco_base_forma = padrao;
+            var slotTab = slotTabelaAtiva(item, forma);
             var promo = getPromoDoItem(item);
             if (!promo) {
                 item.promocao = null;
@@ -292,21 +358,30 @@
                 item.preco = padrao;
                 return;
             }
+            var regra = regraPromoVsTabela(promo, item.id);
             if (promo.tipo === 'valor_direto') {
                 item.promocao = promo;
                 limparAlocPromo(item);
-                item.preco = calcularPreco(promo, toNum(item.qtd, 1), padrao);
+                var precoP = calcularPreco(promo, toNum(item.qtd, 1), padrao, { slotTabela: slotTab });
+                item.preco = aplicarRegraVsTabela(precoP, padrao, regra);
                 return;
             }
             var key = promoPoolKey(promo);
             if (!key) {
                 item.promocao = promo;
                 limparAlocPromo(item);
-                item.preco = calcularPreco(promo, toNum(item.qtd, 1), padrao);
+                var precoS = calcularPreco(promo, toNum(item.qtd, 1), padrao, { slotTabela: slotTab });
+                item.preco = aplicarRegraVsTabela(precoS, padrao, regra);
                 return;
             }
             if (!pools[key]) pools[key] = { promo: promo, entries: [] };
-            pools[key].entries.push({ item: item, qtd: toNum(item.qtd, 1), padrao: padrao });
+            pools[key].entries.push({
+                item: item,
+                qtd: toNum(item.qtd, 1),
+                padrao: padrao,
+                slotTabela: slotTab,
+                regra: regra
+            });
         });
 
         Object.keys(pools).forEach(function (key) {

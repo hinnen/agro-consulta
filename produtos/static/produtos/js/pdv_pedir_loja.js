@@ -632,6 +632,16 @@
       .then(function (r) {
         return r.json().then(function (d) {
           return { ok: r.ok, data: d };
+        }).catch(function () {
+          return {
+            ok: false,
+            data: {
+              erro:
+                r.status === 500
+                  ? 'Erro no servidor (rode migrate no PC se acabou de atualizar).'
+                  : 'Resposta inválida do servidor.',
+            },
+          };
         });
       })
       .then(function (res) {
@@ -661,6 +671,12 @@
   function acoesHtml(row) {
     var st = row.status;
     var btns = [];
+    if (aba === 'recebidos' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
+      btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
+    }
+    if (aba === 'enviados' && (st === 'pendente' || st === 'aceito' || st === 'pronto')) {
+      btns.push('<button type="button" class="pl-btn pl-btn--print" data-pl-acao="imprimir">Imprimir cupom</button>');
+    }
     if (aba === 'recebidos' && st === 'pendente') {
       btns.push('<button type="button" class="pl-btn pl-btn--ok" data-pl-acao="aceitar">Aceitar</button>');
     }
@@ -676,13 +692,169 @@
     return btns.join('');
   }
 
+  function podeEditarQtd(row) {
+    return (
+      aba === 'recebidos' &&
+      (row.status === 'aceito' || row.status === 'pronto')
+    );
+  }
+
+  function itensHtml(row) {
+    var itens = row.itens || [];
+    if (!itens.length) return '';
+    var edit = podeEditarQtd(row);
+    var lines = itens
+      .map(function (it) {
+        var pedida =
+          it.quantidade_pedida != null ? it.quantidade_pedida : it.quantidade;
+        var qtdAtual = edit ? pedida : it.quantidade;
+        var gm = it.codigo_interno || '';
+        var pedHint = '';
+        if (edit) {
+          pedHint =
+            '<p class="pl-item-ped">Pedido: ' + escapeHtml(fmtSaldo(pedida)) + '</p>';
+        } else if (
+          Number(it.quantidade_pedida) > 0 &&
+          Number(it.quantidade_pedida) !== Number(it.quantidade)
+        ) {
+          pedHint =
+            '<p class="pl-item-ped">Pedido ' +
+            escapeHtml(fmtSaldo(it.quantidade_pedida)) +
+            ' · enviado ' +
+            escapeHtml(fmtSaldo(it.quantidade)) +
+            '</p>';
+        }
+        var qtdCell = edit
+          ? '<input type="number" class="pl-item-qtd" min="0" step="0.001" data-pl-item-id="' +
+            escapeHtml(String(it.id)) +
+            '" value="' +
+            escapeHtml(String(qtdAtual)) +
+            '" aria-label="Quantidade a enviar" />'
+          : '<span class="pl-item-qtd-ro">' + escapeHtml(fmtSaldo(qtdAtual)) + '</span>';
+        return (
+          '<div class="pl-item-row">' +
+          '<div class="pl-item-meta">' +
+          '<p class="pl-item-nome">' +
+          escapeHtml(it.nome || '') +
+          '</p>' +
+          (gm ? '<p class="pl-item-gm">GM ' + escapeHtml(gm) + '</p>' : '') +
+          pedHint +
+          '</div>' +
+          qtdCell +
+          '</div>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="pl-itens">' +
+      (edit
+        ? '<p class="m-0 text-[10px] font-black uppercase tracking-wide text-orange-800">Qtd a enviar (já vem com o pedido · mude se faltar)</p>'
+        : '') +
+      lines +
+      '</div>'
+    );
+  }
+
+  function lerQtdsDoCard(card) {
+    if (!card) return [];
+    var out = [];
+    card.querySelectorAll('.pl-item-qtd[data-pl-item-id]').forEach(function (inp) {
+      out.push({
+        id: Number(inp.getAttribute('data-pl-item-id')),
+        quantidade: String(inp.value || '0'),
+      });
+    });
+    return out;
+  }
+
+  function imprimirCupomSeparacao(row) {
+    if (!row) return;
+    var dh = new Date().toLocaleString('pt-BR');
+    var itens = row.itens || [];
+    var bodyItens = '';
+    itens.forEach(function (it) {
+      var q =
+        it.quantidade_pedida != null && Number(it.quantidade_pedida) > 0
+          ? it.quantidade_pedida
+          : it.quantidade;
+      bodyItens +=
+        '<div style="border-top:1px dashed #000;margin-top:6px;padding-top:4px;">' +
+        (it.codigo_interno
+          ? '<div><b>GM</b> ' + escapeHtml(it.codigo_interno) + '</div>'
+          : '') +
+        '<div style="font-weight:bold;font-size:13px;">' +
+        escapeHtml(it.nome || '') +
+        '</div>' +
+        '<div style="font-size:22px;font-weight:900;margin:4px 0;">QTD ' +
+        escapeHtml(fmtSaldo(q)) +
+        '</div>' +
+        '</div>';
+    });
+    var html =
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Separação Pedir loja</title>' +
+      '<style>@page{margin:0;size:80mm auto}html,body{margin:0;padding:0;width:80mm}' +
+      'body{font-family:"Courier New",Courier,monospace;color:#000;background:#fff}' +
+      '.pg{width:80mm;box-sizing:border-box;padding:4mm 3mm;font-size:11px;line-height:1.35}</style></head><body>' +
+      '<div class="pg">' +
+      '<div style="text-align:center;font-weight:900;font-size:14px;">SEPARAÇÃO</div>' +
+      '<div style="text-align:center;font-weight:900;font-size:12px;margin-top:2px;">PEDIR LOJA #' +
+      escapeHtml(String(row.id || '')) +
+      '</div>' +
+      '<div style="margin-top:6px;">' +
+      escapeHtml(dh) +
+      '</div>' +
+      '<div style="margin-top:4px;font-weight:900;font-size:13px;">' +
+      escapeHtml(row.loja_origem_label || '') +
+      ' → ' +
+      escapeHtml(row.loja_destino_label || '') +
+      '</div>' +
+      (row.criado_por
+        ? '<div style="margin-top:2px;"><b>Pediu</b> ' + escapeHtml(row.criado_por) + '</div>'
+        : '') +
+      (row.observacao
+        ? '<div style="margin-top:4px;"><b>Obs</b> ' + escapeHtml(row.observacao) + '</div>'
+        : '') +
+      '<div style="border-top:2px solid #000;margin:8px 0 4px;"></div>' +
+      bodyItens +
+      '<div style="margin-top:10px;text-align:center;font-size:10px;font-weight:900;">Conferir e transferir no PDV</div>' +
+      '</div></body></html>';
+
+    var iframe = document.getElementById('pdv-pedir-loja-print-iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'pdv-pedir-loja-print-iframe';
+      iframe.setAttribute('title', 'Cupom separação');
+      iframe.style.cssText =
+        'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none';
+      document.body.appendChild(iframe);
+    }
+    var idoc = iframe.contentDocument || (iframe.contentWindow && iframe.contentWindow.document);
+    if (!idoc) {
+      setStatus('Não abriu a impressão.', true);
+      return;
+    }
+    idoc.open();
+    idoc.write(html);
+    idoc.close();
+    window.setTimeout(function () {
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (e) {
+        setStatus('Não imprimiu. Confira a térmica 80mm.', true);
+      }
+    }, 120);
+  }
+
   function renderLista(itens) {
     if (!dom.lista) return;
     if (!itens || !itens.length) {
       dom.lista.innerHTML =
         '<p class="py-10 text-center text-base font-bold text-slate-500">Nada aqui agora.</p>';
+      dom.lista._rows = [];
       return;
     }
+    dom.lista._rows = itens;
     dom.lista.innerHTML = itens
       .map(function (row) {
         return (
@@ -691,6 +863,8 @@
           '">' +
           '<p class="pl-st">' +
           escapeHtml(row.status_label || row.status) +
+          ' · #' +
+          escapeHtml(String(row.id)) +
           '</p>' +
           '<p class="pl-name">' +
           escapeHtml(row.resumo || '') +
@@ -701,6 +875,7 @@
           escapeHtml(row.loja_destino_label) +
           (row.criado_por ? ' · ' + escapeHtml(row.criado_por) : '') +
           '</p>' +
+          itensHtml(row) +
           '<div class="pl-actions">' +
           acoesHtml(row) +
           '</div></article>'
@@ -784,7 +959,15 @@
       });
   }
 
-  function pedirAcao(id, acao) {
+  function pedirAcao(id, acao, card) {
+    if (acao === 'imprimir') {
+      var rows = (dom.lista && dom.lista._rows) || [];
+      var row = rows.filter(function (r) {
+        return String(r.id) === String(id);
+      })[0];
+      if (row) imprimirCupomSeparacao(row);
+      return;
+    }
     if (acao === 'cancelar') {
       abrirConfirm({
         title: 'Cancelar pedido?',
@@ -803,18 +986,21 @@
       return;
     }
     if (acao === 'transferir') {
+      var qtds = lerQtdsDoCard(card);
       abrirConfirm({
         title: 'Transferir estoque?',
-        body: 'Some na origem e entra na loja que pediu. Se o saldo estiver errado, marque estoque furado e ajuste (padrão 0).',
+        body: 'Some na origem e entra na loja que pediu. Confira as quantidades nos campos (já vêm com o pedido). Se o saldo estiver errado, marque estoque furado.',
         confirmLabel: 'Transferir',
         furado: true,
       }).then(function (r) {
         if (!r.ok) return;
-        postAcao(id, 'transferir', {
+        var extra = {
           estoque_furado: !!r.estoque_furado,
           ajustar_estoque: !!r.ajustar_estoque,
           ajuste_quantidade: r.ajuste_quantidade,
-        });
+        };
+        if (qtds.length) extra.itens = qtds;
+        postAcao(id, 'transferir', extra);
       });
       return;
     }
@@ -894,7 +1080,7 @@
       if (!btn) return;
       var card = btn.closest('[data-pl-id]');
       if (!card) return;
-      pedirAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'));
+      pedirAcao(card.getAttribute('data-pl-id'), btn.getAttribute('data-pl-acao'), card);
     });
   }
 

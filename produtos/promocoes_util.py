@@ -174,6 +174,8 @@ def _promo_para_dict(
     promo: PromocaoAgro,
     *,
     preco_produto_promo: float | None = None,
+    preco_produto_promo_t1: float | None = None,
+    preco_produto_promo_t2: float | None = None,
 ) -> dict[str, Any]:
     return {
         "id": promo.pk,
@@ -182,7 +184,13 @@ def _promo_para_dict(
         "tipo_label": promocao_tipo_label(promo.tipo),
         "qtd_x": _float_val(promo.qtd_x),
         "preco_y": _float_val(promo.preco_y),
+        "preco_y_t1": _float_val(getattr(promo, "preco_y_t1", None)),
+        "preco_y_t2": _float_val(getattr(promo, "preco_y_t2", None)),
         "preco_produto_promo": _float_val(preco_produto_promo),
+        "preco_produto_promo_t1": _float_val(preco_produto_promo_t1),
+        "preco_produto_promo_t2": _float_val(preco_produto_promo_t2),
+        "regra_vs_tabela": str(getattr(promo, "regra_vs_tabela", None) or "maior"),
+        "resolucoes_vs_tabela": dict(getattr(promo, "resolucoes_vs_tabela", None) or {}),
     }
 
 
@@ -214,9 +222,18 @@ def buscar_promocoes_pdv_ativas(
             if not pid:
                 continue
             pp = None
+            pp_t1 = None
+            pp_t2 = None
             if promo.tipo == PromocaoAgro.Tipo.VALOR_DIRETO:
                 pp = _float_val(linha.preco_promocional, 0) or None
-            d = _promo_para_dict(promo, preco_produto_promo=pp)
+                pp_t1 = _float_val(getattr(linha, "preco_promocional_t1", None), 0) or None
+                pp_t2 = _float_val(getattr(linha, "preco_promocional_t2", None), 0) or None
+            d = _promo_para_dict(
+                promo,
+                preco_produto_promo=pp,
+                preco_produto_promo_t1=pp_t1,
+                preco_produto_promo_t2=pp_t2,
+            )
             out[pid] = d
             codigo = str(linha.codigo or "").strip()
             if codigo and codigo not in out:

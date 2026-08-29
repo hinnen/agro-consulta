@@ -104,9 +104,11 @@ def main() -> int:
         ok("calc tem reserva")
         bruto = Decimal(str(calc_res["total_sugerido_bruto"]))
         sug = Decimal(str(calc_res["total_sugerido"]))
-        # Cofrinho acumulado (Live): reserva NAO abate o total sugerido do envelope.
-        ok("reserva nao desconta sugerido (cofrinho)") if sug == bruto else fail(
-            f"sug={sug} esperado={bruto} bruto={bruto}"
+        # Cofrinho: reserva NÃO abate o envelope. UI/API expõe sug = max(0, bruto)
+        # (bruto negativo = crédito / acumulado a favor).
+        esperado = max(Decimal("0"), bruto)
+        ok("reserva nao desconta sugerido (cofrinho)") if sug == esperado else fail(
+            f"sug={sug} esperado={esperado} bruto={bruto}"
         )
         cofre = calc_res.get("cofrinho") or {}
         if "pendente_dia" in cofre or "saldo" in cofre:

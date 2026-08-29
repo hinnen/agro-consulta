@@ -347,6 +347,79 @@
     gap: 0.45rem;
     margin-top: 0.55rem;
   }
+  #pdv-pedir-loja-overlay .pl-itens {
+    margin-top: 0.65rem;
+    border-top: 1px dashed #fdba74;
+    padding-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  #pdv-pedir-loja-overlay .pl-item-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5.5rem;
+    gap: 0.45rem;
+    align-items: center;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta {
+    min-width: 0;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta .pl-item-nome {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta .pl-item-gm {
+    margin: 0.1rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #64748b;
+  }
+  #pdv-pedir-loja-overlay .pl-item-meta .pl-item-ped {
+    margin: 0.1rem 0 0;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #9a3412;
+  }
+  #pdv-pedir-loja-overlay .pl-item-qtd {
+    min-height: 2.55rem;
+    width: 100%;
+    border-radius: 0.55rem;
+    border: 2px solid #fb923c;
+    background: #fff;
+    padding: 0.25rem 0.4rem;
+    font-size: 1.15rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: #0f172a;
+  }
+  #pdv-pedir-loja-overlay .pl-item-qtd:focus {
+    outline: none;
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2);
+  }
+  #pdv-pedir-loja-overlay .pl-item-qtd-ro {
+    display: block;
+    text-align: right;
+    font-size: 1.05rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--print {
+    border: 2px solid #0f766e;
+    background: #ccfbf1;
+    color: #0f766e;
+  }
+  #pdv-pedir-loja-overlay .pl-btn--print:hover {
+    background: #0d9488;
+    color: #fff;
+    border-color: #0d9488;
+  }
   #pdv-pedir-loja-overlay .pl-help > summary {
     list-style: none;
   }
@@ -513,7 +586,7 @@
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
           <p>Peça 1 ou vários produtos. O pedido fica <strong>pendente</strong> na outra loja — o botão dela acende.</p>
-          <p>Lá: <strong>Aceitar</strong> → <strong>Pronto</strong> (opcional) → <strong>Transferir</strong> (aí o estoque muda).</p>
+          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> (cupom 80mm pra separar) → <strong>Pronto</strong> (opcional) → ajuste a <strong>quantidade</strong> se faltar item → <strong>Transferir</strong>.</p>
           <p>Em Transferir/Cancelar: dá pra marcar <strong>estoque furado</strong> e ajustar o saldo (padrão 0). Pedido pendente bipa a cada 1 min.</p>
           <p>O PIN já logado no PDV é gravado em cada etapa. WhatsApp fica para a fase 2.</p>
         </div>

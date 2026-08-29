@@ -1083,11 +1083,11 @@ def _forma_eh_dinheiro(forma: str) -> bool:
     return normalizar_forma_pagamento_caixa(forma or "Dinheiro") == "Dinheiro"
 
 
-def _ja_eletronico_vila(dia: date) -> Decimal:
-    """Cartão/PIX da Vila no dia — já cai na conta do Centro (não precisa levar)."""
+def _ja_eletronico_vila_periodo(d0: date, d1: date) -> Decimal:
+    """Cartão/PIX (e fiado pago nessas formas) da Vila no período — já no Centro."""
     from produtos.caixa_util import pagamentos_por_forma_venda
 
-    desde, ate = _aware_bounds(dia, dia)
+    desde, ate = _aware_bounds(d0, d1)
     ids = _vendas_vila_sem_fiado(desde, ate)
     total = ZERO
     if ids:
@@ -1109,6 +1109,11 @@ def _ja_eletronico_vila(dia: date) -> Decimal:
         if _forma_eh_eletronica(b.forma_pagamento):
             total += _dec(b.valor)
     return total.quantize(Decimal("0.01"))
+
+
+def _ja_eletronico_vila(dia: date) -> Decimal:
+    """Cartão/PIX da Vila no dia — já cai na conta do Centro (não precisa levar)."""
+    return _ja_eletronico_vila_periodo(dia, dia)
 
 
 def _ja_enviado_dia(dia: date) -> dict[str, Decimal]:
@@ -1411,6 +1416,7 @@ def registrar_ajuste_acumulado(
     operador: str = "",
     data_ref: date | None = None,
     repasse: RepasseVilaCentroAgro | None = None,
+    permitir_grande: bool = False,
 ) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
     v = _dec(valor)
     if v == 0:
@@ -1418,7 +1424,9 @@ def registrar_ajuste_acumulado(
     obs = " ".join(str(observacao or "").strip().split())
     if len(obs) < 3:
         return None, "Descreva o motivo (mín. 3 caracteres)."
-    if v > Decimal("99999.99") or v < Decimal("-99999.99"):
+    # Zerar acumulado histórico pode passar de 100 mil (ex. dias sem transferir na ferramenta)
+    lim = Decimal("9999999.99") if permitir_grande else Decimal("999999.99")
+    if v > lim or v < -lim:
         return None, "Valor fora do limite."
     adj = RepasseVilaAcumuladoAjusteAgro.objects.create(
         valor=v,
@@ -1448,6 +1456,7 @@ def quitar_acumulado_zerar(
         observacao=obs,
         operador=operador,
         data_ref=dia,
+        permitir_grande=True,
     )
 
 
@@ -1662,7 +1671,7 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
         )
     )
     por_dia: dict[str, dict[str, Any]] = {}
-    total_mes = ZERO
+    total_mes_fisico = ZERO
     lucro_enviado_mes = ZERO
     for e in envios:
         key = e.data_ref.isoformat()
@@ -1696,8 +1705,12 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
                 "modo_dia_cheio": bool(e.modo_dia_cheio),
             }
         )
-        total_mes += _dec(e.valor_total)
+        total_mes_fisico += _dec(e.valor_total)
         lucro_enviado_mes += _dec(e.valor_lucro)
+
+    # «Enviado no mês» = dinheiro levado + cartão/PIX/fiado eletrônico já no Centro
+    total_mes_eletronico = _ja_eletronico_vila_periodo(d0, d1)
+    total_mes = (total_mes_fisico + total_mes_eletronico).quantize(Decimal("0.01"))
 
     base_mes = _receita_e_cmv_vila_periodo(d0, d1)
     lucro_bruto_mes = max(ZERO, _dec(base_mes["lucro_bruto"]))
@@ -1746,16 +1759,26 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
             }
         )
 
-    total_geral = _dec(
+    total_geral_fisico = _dec(
         RepasseVilaCentroAgro.objects.aggregate(t=Sum("valor_total")).get("t")
     )
+    # Vila: a partir de 2026 — cartão/PIX desde o início do ano (não só após 1º envelope)
+    inicio_geral = date(2026, 1, 1)
+    if inicio_geral > hoje:
+        inicio_geral = date(hoje.year, 1, 1)
+    total_geral_eletronico = _ja_eletronico_vila_periodo(inicio_geral, hoje)
+    total_geral = (total_geral_fisico + total_geral_eletronico).quantize(Decimal("0.01"))
 
     return {
         "ok": True,
         "ano": ano,
         "mes": mes,
         "total_mes": float(_dec(total_mes)),
+        "total_mes_fisico": float(_dec(total_mes_fisico)),
+        "total_mes_eletronico": float(_dec(total_mes_eletronico)),
         "total_geral": float(total_geral),
+        "total_geral_fisico": float(total_geral_fisico),
+        "total_geral_eletronico": float(_dec(total_geral_eletronico)),
         "lucro_bruto_mes": float(lucro_bruto_mes),
         "lucro_enviado_mes": float(_dec(lucro_enviado_mes)),
         "lucro_ficou_vila": float(lucro_ficou_vila),

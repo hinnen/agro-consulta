@@ -20,6 +20,21 @@
   #pdv-repasse-overlay .rp-hero-cofre-ve {
     border-color: #4f46e5; background: #eef2ff;
   }
+  #pdv-repasse-overlay .rp-hero-caixa {
+    border-color: #475569; background: #f8fafc;
+  }
+  #pdv-repasse-overlay .rp-hero-totais {
+    border-color: #94a3b8; background: #fff;
+  }
+  #pdv-repasse-overlay .rp-hero-manual {
+    border-color: #059669; background: #ecfdf5;
+  }
+  #pdv-repasse-overlay .rp-hero-slot-vazio {
+    min-height: 0;
+    border: 2px dashed transparent;
+    border-radius: 1rem;
+    pointer-events: none;
+  }
   #pdv-repasse-overlay .rp-check {
     display: flex; align-items: center; gap: 0.45rem; min-height: 2.35rem;
     padding: 0.3rem 0.6rem; border: 2px solid #cbd5e1; border-radius: 0.65rem;
@@ -30,6 +45,15 @@
   #pdv-repasse-overlay .rp-field {
     min-height: 3rem; width: 100%; border-radius: 0.75rem; border: 2px solid #cbd5e1;
     padding: 0.4rem 0.75rem; font-size: 1.15rem; font-weight: 800;
+  }
+  /* Valor manual: .rp-field fixava 1.15rem e ganhava do Tailwind text-4xl */
+  #pdv-repasse-overlay #pdv-rp-manual {
+    font-size: clamp(2rem, 3.2vw, 3rem);
+    font-weight: 900;
+    line-height: 1.05;
+    min-height: 4.5rem;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   #pdv-repasse-overlay .rp-quem-btn,
   #pdv-repasse-overlay .rp-forma-btn {
@@ -111,62 +135,86 @@
     <p class="sr-only" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
-      {# —— Hero: 2 cofrinhos + enviar + manual —— #}
-      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <div class="rp-hero rp-hero-cofre space-y-2">
+      {# —— Hero: 4×2 — cofres+levar+caixa / vazios+totais+manual —— #}
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
+        <div class="rp-hero rp-hero-cofre space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-rose-900">Cofrinho Salário funcionário</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre">R$ 0,00</div>
-          <p id="pdv-rp-cofre-aviso" class="rounded-lg border-2 border-rose-600 bg-white px-2 py-1.5 text-sm font-black text-rose-950 leading-snug" role="alert">
-            NÃO levar no envelope.
-          </p>
-          <label class="rp-check border-rose-500 bg-white"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
+          <div class="text-[0.65rem] font-black uppercase text-rose-800">A separar</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
+          <div class="rounded-lg border-2 border-rose-400 bg-white px-2 py-1.5">
+            <div class="text-[0.65rem] font-black uppercase text-rose-800">Total no cofre</div>
+            <div class="text-xl sm:text-2xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre-saldo">R$ 0,00</div>
+          </div>
+          <div id="pdv-rp-hero-cofre-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
+            <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-hoje">R$ 0,00</div>
+          </div>
+          <p id="pdv-rp-cofre-aviso" class="hidden text-sm font-black text-rose-950 leading-snug" role="alert"></p>
+          <label class="rp-check border-rose-500 bg-white mt-auto"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
         </div>
 
-        <div class="rp-hero rp-hero-cofre-ve space-y-2">
+        <div class="rp-hero rp-hero-cofre-ve space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-indigo-900">Cofre Vila Elias</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve">R$ 0,00</div>
-          <p id="pdv-rp-cofre-ve-aviso" class="rounded-lg border-2 border-indigo-600 bg-white px-2 py-1.5 text-sm font-black text-indigo-950 leading-snug" role="alert">
-            Lucro que fica na Vila.
-          </p>
+          <div class="text-[0.65rem] font-black uppercase text-indigo-800">A separar</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
+          <div class="rounded-lg border-2 border-indigo-400 bg-white px-2 py-1.5">
+            <div class="text-[0.65rem] font-black uppercase text-indigo-800">Total no cofre</div>
+            <div class="text-xl sm:text-2xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve-saldo">R$ 0,00</div>
+          </div>
+          <div id="pdv-rp-hero-cofre-ve-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
+            <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-ve-hoje">R$ 0,00</div>
+          </div>
+          <p id="pdv-rp-cofre-ve-aviso" class="hidden text-sm font-black text-indigo-950 leading-snug mt-auto" role="alert"></p>
         </div>
 
-        <div class="rp-hero space-y-2">
+        <div class="rp-hero space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total">R$ 0,00</div>
+          <div class="text-[0.65rem] font-black uppercase text-emerald-800">A separar</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total" title="Só o valor deste dia ainda a levar">R$ 0,00</div>
+          <div class="rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1.5">
+            <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado (dias anteriores)</div>
+            <div class="text-xl sm:text-2xl font-black tabular-nums text-amber-950 leading-none" id="pdv-rp-total-acum">R$ 0,00</div>
+          </div>
+          <div id="pdv-rp-levado-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-emerald-900">Levado ao Centro hoje</div>
+            <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-levado-hoje">R$ 0,00</div>
+          </div>
           <p class="text-xs font-bold text-emerald-800" id="pdv-rp-enviar-hint"></p>
-          <div class="rounded-lg border-2 border-slate-500 bg-slate-50 px-2 py-1.5">
-            <div class="text-[0.65rem] font-black uppercase text-slate-700">Caixa Vila · dinheiro agora</div>
-            <div class="text-xl sm:text-2xl font-black tabular-nums text-slate-950 leading-none" id="pdv-rp-caixa-din">—</div>
-            <p class="text-[0.65rem] font-bold text-slate-600 leading-snug mt-0.5" id="pdv-rp-caixa-din-hint">Esperado na gaveta (antes de levar)</p>
-          </div>
-          <div class="grid grid-cols-2 gap-2 pt-1">
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado</div>
-              <div class="text-lg font-black tabular-nums text-amber-950" id="pdv-rp-acum">R$ 0,00</div>
-            </div>
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-violet-800">Sugerido</div>
-              <div class="text-lg font-black tabular-nums text-violet-950" id="pdv-rp-total-sug">R$ 0,00</div>
-            </div>
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-sky-800">Enviado no mês</div>
-              <div class="text-lg font-black tabular-nums text-sky-950" id="pdv-rp-hero-mes">R$ 0,00</div>
-            </div>
-            <div>
-              <div class="text-[0.65rem] font-black uppercase text-slate-600">Total geral</div>
-              <div class="text-lg font-black tabular-nums text-slate-900" id="pdv-rp-hero-geral">R$ 0,00</div>
-            </div>
-          </div>
-          <button type="button" id="pdv-rp-btn-acum" class="min-h-[2.5rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950">Acumulado</button>
+          <button type="button" id="pdv-rp-btn-acum" class="mt-auto min-h-[2.5rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950">Acumulado</button>
         </div>
 
-        <div class="rp-card space-y-2 border-emerald-400 flex flex-col justify-center">
-          <label class="block min-w-0">
-            <span class="text-xs font-black uppercase text-slate-600">Valor manual</span>
-            <input type="text" id="pdv-rp-manual" class="rp-field mt-1 text-2xl" inputmode="decimal"
-                   placeholder="Automático" autocomplete="off" name="rp_valor_manual_somente"
+        <div class="rp-hero rp-hero-caixa space-y-2 flex flex-col">
+          <div class="text-xs font-black uppercase text-slate-800">Caixa Vila · dinheiro agora</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-slate-950 leading-none" id="pdv-rp-caixa-din">—</div>
+          <p class="text-xs font-bold text-slate-600 leading-snug mt-auto" id="pdv-rp-caixa-din-hint">Esperado na gaveta (antes de levar)</p>
+        </div>
+
+        <div class="rp-hero-slot-vazio hidden xl:block" aria-hidden="true"></div>
+        <div class="rp-hero-slot-vazio hidden xl:block" aria-hidden="true"></div>
+
+        <div class="rp-hero rp-hero-totais flex flex-col justify-center gap-2">
+          <div class="flex items-baseline justify-between gap-2 min-w-0">
+            <span class="text-xs font-black uppercase text-amber-800 shrink-0">Acumulado</span>
+            <span class="text-lg font-black tabular-nums text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
+          </div>
+          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
+            <span class="text-xs font-black uppercase text-sky-800 shrink-0">Enviado no mês</span>
+            <span class="text-lg font-black tabular-nums text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
+          </div>
+          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
+            <span class="text-xs font-black uppercase text-slate-600 shrink-0">Total geral</span>
+            <span class="text-lg font-black tabular-nums text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
+          </div>
+        </div>
+
+        <div class="rp-hero rp-hero-manual space-y-2 flex flex-col min-w-0">
+          <label class="block min-w-0 flex-1 flex flex-col">
+            <span class="text-xs font-black uppercase text-emerald-900">Valor manual</span>
+            <input type="text" id="pdv-rp-manual" class="rp-field mt-1 text-4xl sm:text-5xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
+                   placeholder="0,00" autocomplete="off" name="rp_valor_manual_somente"
                    data-lpignore="true" data-1p-ignore="true" data-form-type="other"
-                   title="Vazio = automático" />
+                   title="Já vem com o valor a levar — digite por cima para alterar" />
           </label>
           {# Armadilha anti-autofill #}
           <div class="sr-only" aria-hidden="true">
@@ -183,7 +231,7 @@
         <summary><span>Detalhes do dia</span></summary>
         <div class="pt-2 grid grid-cols-2 xl:grid-cols-4 gap-2">
           <div class="rp-sum border-sky-400">
-            <div class="rp-lbl text-sky-800">Enviado no mês</div>
+            <div class="rp-lbl text-sky-800" title="Dinheiro levado + cartão/PIX/fiado já no Centro">Enviado no mês</div>
             <div class="rp-val text-sky-950 tabular-nums" id="pdv-rp-mes-dinheiro">R$ 0,00</div>
           </div>
           <div class="rp-sum border-rose-400">

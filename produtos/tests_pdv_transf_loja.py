@@ -133,6 +133,45 @@ class CriarItensTests(SimpleTestCase):
         self.assertIn("produto", err)
 
 
+class ResolverQtdsEnvioTests(SimpleTestCase):
+    def _it(self, pk, pid, qtd, pedida=None):
+        return SimpleNamespace(
+            pk=pk,
+            produto_externo_id=pid,
+            quantidade=Decimal(str(qtd)),
+            quantidade_pedida=Decimal(str(pedida if pedida is not None else qtd)),
+            nome_produto="P",
+        )
+
+    def test_sem_override_usa_quantidade(self):
+        from produtos.pdv_transf_loja_util import _resolver_qtds_envio
+
+        itens = [self._it(1, "A", "5"), self._it(2, "B", "2")]
+        mapa, err = _resolver_qtds_envio(itens, None)
+        self.assertEqual(err, "")
+        self.assertEqual(mapa[1], Decimal("5.000"))
+        self.assertEqual(mapa[2], Decimal("2.000"))
+
+    def test_parcial_e_zero(self):
+        from produtos.pdv_transf_loja_util import _resolver_qtds_envio
+
+        itens = [self._it(1, "A", "5"), self._it(2, "B", "2")]
+        mapa, err = _resolver_qtds_envio(
+            itens, [{"id": 1, "quantidade": "3"}, {"id": 2, "quantidade": "0"}]
+        )
+        self.assertEqual(err, "")
+        self.assertEqual(mapa[1], Decimal("3.000"))
+        self.assertEqual(mapa[2], Decimal("0.000"))
+
+    def test_tudo_zero_erro(self):
+        from produtos.pdv_transf_loja_util import _resolver_qtds_envio
+
+        itens = [self._it(1, "A", "5")]
+        mapa, err = _resolver_qtds_envio(itens, [{"id": 1, "quantidade": "0"}])
+        self.assertEqual(mapa, {})
+        self.assertIn("zero", err.lower())
+
+
 class CriarSolicitacaoMockTests(SimpleTestCase):
     def test_criar_grava_evento(self):
         from produtos.pdv_transf_loja_util import criar_solicitacao

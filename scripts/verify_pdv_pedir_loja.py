@@ -88,25 +88,36 @@ def main() -> int:
     check("js_sem_window_confirm", "window.confirm" not in js)
     check("js_ajuste_busca", "abrirAjuste" in js and "apiPdvTransfLojaAjustar" in js and "data-pl-aj" in js)
     check("js_aviso_pos_pin", "abrirTemPedido" in js and "aposPin" in js)
+    check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
+    check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("overlay_confirm_furado", "pdv-pedir-loja-confirm-furado" in html)
     check("overlay_ajuste_modal", "pdv-pedir-loja-ajuste" in html and "pl-btn-aj" in html)
     check("overlay_aviso_pin", "pdv-pedir-loja-tem-pedido" in html and "Enter também fecha" in html)
+    check("overlay_btn_print", "pl-btn--print" in html or "Imprimir cupom" in js)
     check("view_ajustar", "def api_pdv_transf_loja_ajustar" in views)
     check("util_ajuste_furado", "qtd_decimal_ou_zero" in util and "_aplicar_ajuste_absoluto_origem" in util)
     check("util_a_mais_b", "STATUS_ACEITO" in util and "concluir_transferencia" in util)
+    check("util_qtds_envio", "_resolver_qtds_envio" in util and "quantidade_pedida" in util)
     check(
         "util_sem_reserva",
         "pular_validacao_pin"
         in _fn_src("produtos/pdv_transf_loja_util.py", "concluir_transferencia"),
     )
     check("view_criar", "def api_pdv_transf_loja_criar" in views)
+    check("view_qtds_acao", "quantidades_envio" in views)
     check("migrate_0018", mig.is_file())
+    mig20 = ROOT / "estoque/migrations/0020_solicitacao_item_quantidade_pedida.py"
+    check("migrate_0020_pedida", mig20.is_file())
+    check("model_pedida", "quantidade_pedida" in _read("estoque/models.py"))
     check("tests_existem", "PodeAgirTests" in tests and "ApiViewsTests" in tests)
+    check("tests_qtds", "ResolverQtdsEnvioTests" in tests)
     check("logistica_intocada", "sugestao_transferencia" in tests)
     check("rollback_doc", "7f7b8022" in rollback and "rollback/pre-pdv-pedir-loja" in rollback)
     check("rollback_migrate", "0018_solicitacao_transferencia_pdv" in rollback)
+    path_script = ROOT / "scripts/verify_pdv_pedir_cupom_qtd_path.py"
+    check("path_cupom_qtd_script", path_script.is_file())
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "16.65", ver)
+    check("version_bump", ver >= "19.01", ver)
 
     print()
     print(f"VERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")

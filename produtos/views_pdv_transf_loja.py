@@ -181,6 +181,11 @@ def api_pdv_transf_loja_acao(request, pk: int):
         ajustes = payload.get("ajustes_por_produto") or payload.get("ajustes")
         if not isinstance(ajustes, dict):
             ajustes = None
+        qtds_envio = payload.get("itens")
+        if qtds_envio is None:
+            qtds_envio = payload.get("quantidades_envio")
+        if qtds_envio is None:
+            qtds_envio = payload.get("quantidades")
         ok_t, err_t, _res = concluir_transferencia(
             request,
             sol,
@@ -193,6 +198,7 @@ def api_pdv_transf_loja_acao(request, pk: int):
             if payload.get("ajuste_quantidade") is not None
             else payload.get("ajuste_qtd"),
             ajustes_por_produto=ajustes,
+            quantidades_envio=qtds_envio,
         )
         if not ok_t:
             return JsonResponse({"ok": False, "erro": err_t}, status=400)
