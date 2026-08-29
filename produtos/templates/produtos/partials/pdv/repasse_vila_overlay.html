@@ -14,6 +14,12 @@
     border: 3px solid #059669; border-radius: 1rem; background: #ecfdf5;
     padding: 0.85rem 1rem;
   }
+  /* Cards só leitura — mais opacos (o olho vai para os 3 campos) */
+  #pdv-repasse-overlay .rp-hero-mute {
+    opacity: 0.55;
+    border-width: 2px;
+    filter: saturate(0.55);
+  }
   #pdv-repasse-overlay .rp-hero-cofre {
     border-color: #e11d48; background: #fff1f2;
   }
@@ -23,14 +29,48 @@
   #pdv-repasse-overlay .rp-hero-caixa {
     border-color: #475569; background: #f8fafc;
   }
+  /* 3 campos editáveis — cores fortes */
+  #pdv-repasse-overlay .rp-hero-edit {
+    opacity: 1;
+    filter: none;
+    border-width: 4px;
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08), 0 8px 18px -8px rgba(15, 23, 42, 0.35);
+    padding: 0.75rem 0.85rem;
+  }
+  #pdv-repasse-overlay .rp-hero-edit.rp-hero-cofre {
+    border-color: #be123c;
+    background: #fecdd3;
+  }
+  #pdv-repasse-overlay .rp-hero-edit.rp-hero-cofre-ve {
+    border-color: #3730a3;
+    background: #c7d2fe;
+  }
+  #pdv-repasse-overlay .rp-hero-edit.rp-hero-manual {
+    border-color: #047857;
+    background: #6ee7b7;
+  }
   #pdv-repasse-overlay .rp-hero-totais-item {
-    border-color: #94a3b8; background: #fff;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    padding: 0.45rem 0.65rem;
+    opacity: 0.7;
+    min-height: 0;
+  }
+  #pdv-repasse-overlay .rp-hero-totais-item .rp-tot-lbl {
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
   }
   #pdv-repasse-overlay .rp-hero-totais-item .rp-tot-val {
-    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-size: clamp(1rem, 1.5vw, 1.2rem);
     font-weight: 900;
-    line-height: 1.1;
+    line-height: 1.15;
     font-variant-numeric: tabular-nums;
+  }
+  #pdv-repasse-overlay #pdv-rp-totais-linha {
+    gap: 0.5rem;
   }
   #pdv-repasse-overlay .rp-hero-manual {
     border-color: #059669; background: #ecfdf5;
@@ -62,14 +102,17 @@
     min-height: 4.25rem;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+    border-width: 3px;
+    background: #fff;
   }
   #pdv-repasse-overlay .rp-hero-cofre-input {
-    border-color: #fb7185;
-    background: #fff1f2;
+    border-color: #e11d48;
   }
   #pdv-repasse-overlay .rp-hero-cofre-ve-input {
-    border-color: #818cf8;
-    background: #eef2ff;
+    border-color: #4f46e5;
+  }
+  #pdv-repasse-overlay #pdv-rp-manual {
+    border-color: #047857;
   }
   #pdv-repasse-overlay .rp-quem-btn,
   #pdv-repasse-overlay .rp-forma-btn {
@@ -153,7 +196,7 @@
     <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
       {# —— Hero: cards · inputs sob cada card · totais em linha —— #}
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
-        <div class="rp-hero rp-hero-cofre space-y-2 flex flex-col">
+        <div class="rp-hero rp-hero-mute rp-hero-cofre space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-rose-900">Cofrinho Salário funcionário</div>
           <div class="text-[0.65rem] font-black uppercase text-rose-800">A separar</div>
           <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
@@ -169,7 +212,7 @@
           <label class="rp-check border-rose-500 bg-white mt-auto"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
         </div>
 
-        <div class="rp-hero rp-hero-cofre-ve space-y-2 flex flex-col">
+        <div class="rp-hero rp-hero-mute rp-hero-cofre-ve space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-indigo-900">Cofre Vila Elias</div>
           <div class="text-[0.65rem] font-black uppercase text-indigo-800">A separar</div>
           <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
@@ -184,7 +227,7 @@
           <p id="pdv-rp-cofre-ve-aviso" class="hidden text-sm font-black text-indigo-950 leading-snug mt-auto" role="alert"></p>
         </div>
 
-        <div class="rp-hero space-y-2 flex flex-col">
+        <div class="rp-hero rp-hero-mute space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</div>
           <div class="text-[0.65rem] font-black uppercase text-emerald-800">A separar</div>
           <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total" title="Só o valor deste dia ainda a levar">R$ 0,00</div>
@@ -200,13 +243,13 @@
           <button type="button" id="pdv-rp-btn-acum" class="mt-auto min-h-[2.5rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950">Acumulado</button>
         </div>
 
-        <div class="rp-hero rp-hero-caixa space-y-2 flex flex-col">
+        <div class="rp-hero rp-hero-mute rp-hero-caixa space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-slate-800">Caixa Vila · dinheiro agora</div>
           <div class="text-3xl sm:text-4xl font-black tabular-nums text-slate-950 leading-none" id="pdv-rp-caixa-din">—</div>
           <p class="text-xs font-bold text-slate-600 leading-snug mt-auto" id="pdv-rp-caixa-din-hint">Esperado na gaveta (antes de levar)</p>
         </div>
 
-        <div class="rp-hero rp-hero-cofre space-y-2 flex flex-col min-w-0">
+        <div class="rp-hero rp-hero-edit rp-hero-cofre space-y-2 flex flex-col min-w-0">
           <label class="block min-w-0 flex-1 flex flex-col">
             <span class="text-xs font-black uppercase text-rose-900">Separar · Salário</span>
             <input type="text" id="pdv-rp-input-cofre-sal" class="rp-field rp-hero-cofre-input mt-1 text-4xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
@@ -216,7 +259,7 @@
           </label>
         </div>
 
-        <div class="rp-hero rp-hero-cofre-ve space-y-2 flex flex-col min-w-0">
+        <div class="rp-hero rp-hero-edit rp-hero-cofre-ve space-y-2 flex flex-col min-w-0">
           <label class="block min-w-0 flex-1 flex flex-col">
             <span class="text-xs font-black uppercase text-indigo-900">Separar · Vila Elias</span>
             <input type="text" id="pdv-rp-input-cofre-ve" class="rp-field rp-hero-cofre-ve-input mt-1 text-4xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
@@ -226,9 +269,9 @@
           </label>
         </div>
 
-        <div class="rp-hero rp-hero-manual space-y-2 flex flex-col min-w-0">
+        <div class="rp-hero rp-hero-edit rp-hero-manual space-y-2 flex flex-col min-w-0">
           <label class="block min-w-0 flex-1 flex flex-col">
-            <span class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</span>
+            <span class="text-xs font-black uppercase text-emerald-950">Levar ao Centro</span>
             <input type="text" id="pdv-rp-manual" class="rp-field mt-1 text-4xl sm:text-5xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
                    placeholder="0,00" autocomplete="off" name="rp_valor_manual_somente"
                    data-lpignore="true" data-1p-ignore="true" data-form-type="other"
@@ -244,18 +287,18 @@
         <div class="hidden xl:block" aria-hidden="true"></div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 items-stretch" id="pdv-rp-totais-linha">
-        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0">
-          <span class="text-xs font-black uppercase text-amber-800">Acumulado</span>
-          <span class="rp-tot-val text-amber-950" id="pdv-rp-acum">R$ 0,00</span>
+      <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-2 items-stretch" id="pdv-rp-totais-linha">
+        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0">
+          <span class="rp-tot-lbl text-amber-800">Acumulado</span>
+          <span class="rp-tot-val text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
         </div>
-        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
-          <span class="text-xs font-black uppercase text-sky-800">Enviado no mês</span>
-          <span class="rp-tot-val text-sky-950" id="pdv-rp-hero-mes">R$ 0,00</span>
+        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
+          <span class="rp-tot-lbl text-sky-800">Enviado no mês</span>
+          <span class="rp-tot-val text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
         </div>
-        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
-          <span class="text-xs font-black uppercase text-slate-600">Total geral</span>
-          <span class="rp-tot-val text-slate-900" id="pdv-rp-hero-geral">R$ 0,00</span>
+        <div class="rp-hero-totais-item flex items-baseline justify-between gap-2 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
+          <span class="rp-tot-lbl text-slate-600">Total geral</span>
+          <span class="rp-tot-val text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
         </div>
         <div class="hidden xl:block" aria-hidden="true"></div>
       </div>

@@ -1260,6 +1260,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
+### 🩹 Repasse — contraste campos editáveis (REPASSE-EDIT-CONTRASTE · **v19.23**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **O quê** | Totais menores · 3 campos editáveis mais fortes · cards de cima/totais mais opacos |
+| **Você** | Ctrl+F5 · Repasse |
+
 ### 🩹 Repasse — totais em linha + Levar sob o card (`REPASSE-TOTAIS-LINHA` · **v19.19**) · 29/08/2026
 
 | Item | Detalhe |
