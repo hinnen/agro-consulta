@@ -1254,17 +1254,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | «Enviado no mês» / Total geral = dinheiro do envelope **+** cartão/PIX/fiado eletrônico já no Centro |
 | **Antes** | Só somava `RepasseVilaCentroAgro` (envelope) |
 | **Arquivo** | `repasse_vila_util.historico_mes` · `_ja_eletronico_vila_periodo` |
-| **Loja** | ainda **v18.83** · teste **v18.85** (com grade 3×2 v18.84) |
+| **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
 
-### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026)
+### 📦 PACOTE PRONTO — Repasse hero UX (`REPASSE-HERO-UX` · **v18.86** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Caixa Vila = card à **direita** · 4 totais = card **abaixo** de «Levar» · grade 3×2 (2 slots vazios sob cofres) · Valor manual sob Caixa |
-| **Arquivo** | `repasse_vila_overlay.html` (IDs iguais — JS intacto) |
-| **Loja** | ainda **v18.83** Live · este pacote **só no teste** até senha |
-| **Você** | Ctrl+F5 no PDV · abrir Repasse · conferir grade |
+| **O quê** | Grade 4×2 alinhada · Caixa no topo · Valor manual = card ao lado dos totais · campo autopreenchido com «Levar» **selecionado** |
+| **Arquivos** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
+| **Loja** | ainda **v18.83** · só no teste até senha |
+| **Você** | Ctrl+F5 · Repasse · Caixa alinhado · digitar por cima no manual |
+
+### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026) · **supplantado por REPASSE-HERO-UX**
 
 ### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
 

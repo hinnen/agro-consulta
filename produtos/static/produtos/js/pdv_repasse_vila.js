@@ -48,6 +48,9 @@
   var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
   var cofreConfirmPending = null;
   var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
+  var manualDirty = false;
+  var manualAutoFmt = '';
+  var selectManualPending = false;
   var forcarManualPendingBody = null;
 
   function todayIso() {
@@ -106,6 +109,38 @@
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+  }
+
+  function fmtManualNum(n) {
+    return Number(n || 0).toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function syncManualFromAuto(totAuto, opts) {
+    if (!dom.manual || manualDirty) return;
+    var fmt = fmtManualNum(totAuto);
+    manualAutoFmt = fmt;
+    if (dom.manual.value !== fmt) dom.manual.value = fmt;
+    if (opts && opts.select) {
+      selectManualPending = false;
+      focusSoon(dom.manual);
+    } else if (selectManualPending) {
+      selectManualPending = false;
+      focusSoon(dom.manual);
+    }
+  }
+
+  function markManualDirtyFromInput() {
+    if (!dom.manual) return;
+    sanitizeManualField();
+    var cur = String(dom.manual.value || '').trim();
+    if (!cur || cur === manualAutoFmt) {
+      manualDirty = false;
+    } else {
+      manualDirty = true;
+    }
   }
 
   function csrf() {
@@ -255,17 +290,17 @@
       }
     }
 
-    var tot = 0;
-    if (dom.cmv && dom.cmv.checked) tot += Number(d.cmv || 0);
-    if (dom.lucro && dom.lucro.checked) tot += Number(d.lucro || 0);
-    if (dom.fiado && dom.fiado.checked) tot += Number(d.fiado || 0);
-    var mv = parseManualValor();
+    var totAuto = 0;
+    if (dom.cmv && dom.cmv.checked) totAuto += Number(d.cmv || 0);
+    if (dom.lucro && dom.lucro.checked) totAuto += Number(d.lucro || 0);
+    if (dom.fiado && dom.fiado.checked) totAuto += Number(d.fiado || 0);
     var inclAcum = !!(dom.acumulado && dom.acumulado.checked && acum !== 0);
-    if (mv != null) {
-      tot = mv;
-    } else if (inclAcum) {
-      tot = Math.max(0, tot + acum);
+    if (inclAcum) {
+      totAuto = Math.max(0, totAuto + acum);
     }
+    syncManualFromAuto(totAuto);
+    var mv = manualDirty ? parseManualValor() : null;
+    var tot = mv != null ? mv : totAuto;
     setText('pdv-rp-total', money(tot));
 
     var cx = c.caixa_vila || {};
@@ -274,11 +309,11 @@
     if (cxEl) {
       if (cx.aberto) {
         cxEl.textContent = money(cx.saldo_dinheiro);
-        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-slate-950 leading-none';
+        cxEl.className = 'text-3xl sm:text-4xl font-black tabular-nums text-slate-950 leading-none';
         if (cxHint) cxHint.textContent = 'Esperado na gaveta (antes de levar)';
       } else {
         cxEl.textContent = 'Fechado';
-        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-red-800 leading-none';
+        cxEl.className = 'text-3xl sm:text-4xl font-black tabular-nums text-red-800 leading-none';
         if (cxHint) cxHint.textContent = 'Abra o caixa da Vila para ver o saldo';
       }
     }
@@ -503,6 +538,9 @@
     pendingConfirmar = false;
     setupDataField();
     applyQueryPrefs();
+    manualDirty = false;
+    manualAutoFmt = '';
+    selectManualPending = true;
     if (dom.manual) dom.manual.value = '';
     if (dom.pin) dom.pin.value = '';
     quem = '';
@@ -685,7 +723,8 @@
     var manRaw = String((dom.manual && dom.manual.value) || '').trim();
     if (manRaw && /[a-zA-Z]/.test(manRaw)) {
       dom.manual.value = '';
-      if (dom.status) dom.status.textContent = 'Valor inválido — deixe vazio para automático ou digite o R$';
+      manualDirty = false;
+      if (dom.status) dom.status.textContent = 'Valor inválido — digite só o número (ex. 1500,00)';
       return;
     }
     var body = {
@@ -701,7 +740,8 @@
       incluir_acumulado: !!(dom.acumulado && dom.acumulado.checked),
       separar_reserva: !!(dom.separarReserva && dom.separarReserva.checked),
     };
-    var mv = parseManualValor();
+    // Só manda valor_manual se o operador alterou o campo (senão segue o automático)
+    var mv = manualDirty ? parseManualValor() : null;
     if (mv != null) body.valor_manual = String(mv);
 
     function seguirAposCofre() {
@@ -769,6 +809,8 @@
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
+        manualDirty = false;
+        manualAutoFmt = '';
         notifyParentFecharAtualizar();
         fetchHistoricoMes();
         fetchCalc();
@@ -831,7 +873,7 @@
       renderCalc();
     });
   }
-  [dom.cmv, dom.lucro, dom.fiado, dom.manual, dom.acumulado].forEach(function (el) {
+  [dom.cmv, dom.lucro, dom.fiado, dom.acumulado].forEach(function (el) {
     if (!el) return;
     el.addEventListener('change', function () {
       if (dom.todos && dom.cmv && dom.lucro && dom.fiado) {
@@ -841,6 +883,17 @@
     });
     el.addEventListener('input', renderCalc);
   });
+  if (dom.manual) {
+    dom.manual.addEventListener('input', function () {
+      markManualDirtyFromInput();
+      renderCalc();
+    });
+    dom.manual.addEventListener('focus', function () {
+      try {
+        dom.manual.select();
+      } catch (_) {}
+    });
+  }
   if (dom.reserva) dom.reserva.addEventListener('input', renderCalc);
   if (dom.salvarReserva) {
     dom.salvarReserva.addEventListener('click', function () {
