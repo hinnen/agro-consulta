@@ -1244,22 +1244,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `CP-NE-BUSCA-EMPRESA` | 🟢 pronto envio · **v18.54+** · path **61/61** + extra **18/18** · migrate **NÃO** |
-| 2 | `REPASSE-COFRINHO-ACUM` | 🟢 pronto envio · **v18.52** · path **175** · migrate **NÃO** |
-| 3 | `PDV-MODO-POR-FORMA` | 🟢 pronto envio · **v18.56** · path **25/25** · migrate **NÃO** |
+| 1 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54+ · migrate **NÃO** |
+| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · migrate **NÃO** |
+| 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · migrate **NÃO** |
+| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · tip · path **187** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.60** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.61**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
-| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros · **61+18** | NÃO |
-| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial · path **175** | NÃO |
-| `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV · path **25/25** | NÃO |
+| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto · parcela | NÃO |
+| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
+| `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV | NÃO |
+| `REPASSE-PDV-OVERLAY-LIMPO` | **tip** | Overlay PDV limpo: hero + cards · quem/forma/PIN popup (foco+Enter) | NÃO |
 
-| Campo | Valor |
-| ----- | ----- |
-| **Live hoje** | `origin/producao` @ **v18.50** |
-| **Produção** | só frase + senha · `f7bae7d` (CP) **só no teste** |
+### 📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Repasse no PDV grande e limpo: cofrinho / levar Centro (acumulado) / manual em destaque; cards mês; detalhes recolhidos; quem · forma · PIN em popup. |
+| **UX** | Popup abre com cursor no campo · **Enter** confirma · Esc fecha. |
+| **Prova** | path **187/187** · cofrinho **28** · fechar-repasse **68** · Node OK |
+| **Você** | Ctrl+F5 PDV · botão **Repasse** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
 
 ### 📦 PACOTE PRONTO — CP busca + empresa auto (`CP-NE-BUSCA-EMPRESA` · **v18.54** · 28/08/2026)
 
