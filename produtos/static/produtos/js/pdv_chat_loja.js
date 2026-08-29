@@ -27,8 +27,8 @@
   if (!overlay || !urls.apiPdvChatLojaLista) return;
 
   var dom = {
-    btnOpen: document.getElementById('pdv-topbar-chat-loja-btn'),
-    btnCount: document.getElementById('pdv-topbar-chat-loja-count'),
+    btnOpen: document.getElementById('pdv-chat-loja-fab'),
+    btnCount: document.getElementById('pdv-chat-loja-count'),
     fechar: document.getElementById('pdv-chat-loja-fechar'),
     msgs: document.getElementById('pdv-chat-loja-msgs'),
     form: document.getElementById('pdv-chat-loja-form'),
@@ -98,7 +98,7 @@
   }
 
   function isOpen() {
-    return overlay && !overlay.classList.contains('hidden');
+    return overlay && overlay.classList.contains('is-open');
   }
 
   function clBeep() {
@@ -140,8 +140,8 @@
       }
     }
     if (dom.btnOpen) {
-      if (count > 0) dom.btnOpen.classList.add('pdv-wiz-topbar-btn--chat-alerta');
-      else dom.btnOpen.classList.remove('pdv-wiz-topbar-btn--chat-alerta');
+      if (count > 0) dom.btnOpen.classList.add('is-alerta');
+      else dom.btnOpen.classList.remove('is-alerta');
     }
   }
 
@@ -255,8 +255,8 @@
   }
 
   function abrir() {
-    overlay.classList.remove('hidden');
-    overlay.classList.add('flex');
+    overlay.classList.add('is-open');
+    if (dom.btnOpen) dom.btnOpen.classList.add('is-open');
     setStatus('');
     saveSeen(lastId);
     syncBadge(0);
@@ -291,8 +291,8 @@
   }
 
   function fechar() {
-    overlay.classList.add('hidden');
-    overlay.classList.remove('flex');
+    overlay.classList.remove('is-open');
+    if (dom.btnOpen) dom.btnOpen.classList.remove('is-open');
     saveSeen(lastId);
     syncBadge(unreadCount());
     schedulePoll();
@@ -341,14 +341,17 @@
   }
 
   if (dom.btnOpen) {
-    dom.btnOpen.addEventListener('click', function () {
+    dom.btnOpen.addEventListener('click', function (e) {
+      e.stopPropagation();
       if (isOpen()) fechar();
       else abrir();
     });
   }
   if (dom.fechar) dom.fechar.addEventListener('click', fechar);
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) fechar();
+  document.addEventListener('mousedown', function (e) {
+    if (!isOpen()) return;
+    var dock = document.getElementById('pdv-chat-loja-dock');
+    if (dock && !dock.contains(e.target)) fechar();
   });
   if (dom.form) dom.form.addEventListener('submit', enviar);
   document.addEventListener('keydown', function (e) {

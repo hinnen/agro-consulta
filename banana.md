@@ -427,6 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA`):** botão **Chat** embaixo (ao lado do FAB PDV) · janela sobe pra cima · grupo único todos os PCs · Postgres `ChatLojaMensagemAgro` · bip · migrate `0105`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1250,6 +1251,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.43** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Grupo único Centro+Vila · botão **Chat** embaixo (ao lado do FAB) · janela sobe pra cima (MSN) · som |
+| **Tela** | `/pdv/` dock inferior |
+| **Migrate** | **SIM** `produtos.0105` |
+| **Prova** | `scripts/verify_pdv_chat_loja.py` **20/20** |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 PDV · Chat embaixo à esquerda · abre pra cima |
 
 ### 🩹 Entrada NF — etapa 5 bloqueio falso «finalizada» (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
 
