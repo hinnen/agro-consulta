@@ -1273,7 +1273,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge **v19.06** · Dinheiro → Enter → Enter → cupom; Vendas no overlay lista |
 | **Risco** | Baixo — PIX/cartão Enter segue sem impressão |
 
-### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05→v19.09**) · bug loja #7 · 29/08/2026
+### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05→v19.10**) · bug loja #7 · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1287,7 +1287,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.09** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.10** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · PIN · Repasse · dinheiro+cupom · **desconto+cupom fiscal** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.09**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.10**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | `PDV-CUPOM-DINHEIRO` | Dinheiro Enter = cupom · overlay Vendas (bug #6) | não | 🟡 pronto envio |
 | 5 | `REPASSE-COFRE-CAMPOS-HERO` | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.09** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.10** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.04** · 29/08/2026)
 
