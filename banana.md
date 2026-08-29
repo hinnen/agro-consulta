@@ -560,7 +560,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 | **GestÃ£o operacional**     | `produtos_gestao.html`, `api_produtos_gestao_lista` | Saldo, facetas, operaÃ§Ã£o loja                        |
 
 
-**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora).
+**Excel fase 1:** export com colunas/categorias; import async com histÃ³rico e desfazer; ID oculta; CÃ³digo GM editÃ¡vel; cÃ©lula vazia nÃ£o altera. Colunas: Sub 2–4, Unidade, Modelo, Peso (além das originais). **v18.02 CAD-XLSX-ULT-FORN:** Últ. / 2º / 3º fornecedor (só Excel ↓; Entrada NF Agro; import ignora) — ✅ Live · Renan OK 28/08 · roteiro §9.
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
@@ -1279,6 +1279,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Provas** | Entrada NF **20/20** · recuperação **10/10** · `verify_nf_troca_estorno.py` **11/11** e 13 blocos JS inline OK · `manage.py check` · `git diff --check`. |
 | **Migrate / operação** | **NÃO / nenhuma**. NF 16266 não recebeu ajuste manual de estoque nem alteração no título financeiro. |
 | **Deploy** | ✅ Live em produção v18.27 · `teste` 2bea99d · `producao` 3adddf2 · health 200 · página pública/asset em `3adddf25f2c5`. Rollback: tag `rollback/pre-nf-stock-dom-v18.26.1-20260827` + branch `producao-backup-pre-nf-stock-dom-v18261-20260827` @ cfcb526. |
+### ✅ Conferência — Excel ↓ fornecedores (`CAD-XLSX-ULT-FORN` · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Pedido** | Renan: *«já foi resolvido»* — só conferir e registrar |
+| **Loja** | `8502f2c`/`5e7c284` ancestrais de `origin/producao` @ **v18.27+** · colunas + helper + checkboxes OK |
+| **Rollback** | Tag/branch/doc intactos (`da7c1cb` / v17.84) |
+| **Ação** | Nenhuma — pacote fechado |
+
 ### 🩹 Central de Relatórios — contrato cat/sub restaurado (v18.26 · 27/08/2026) · ✅ Renan OK 28/08
 
 | Item | Detalhe |
@@ -1319,7 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · ✅ verificado código/prova 28/08 |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` (até v18.33) | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` (até v18.34) | 🟢 pronto envio |
 
 **Você (loja):** Ctrl+F5 · badge **v18.25** · conferir Etiquetas 90/60 mm e recuperação de estoque da Entrada NF.
 

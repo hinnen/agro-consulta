@@ -59,7 +59,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | Se a tarefa é sobre… | Ler em `banana.md` | Extra |
 | -------------------- | ------------------ | ----- |
 | **PDV** — `/consulta/`, `/pdv/checkout/`, carrinho, F8, promo, overlay topbar | `### 4.2` | CHECKPOINT: `PDV`, `F8`, `wizard`, `overlay` |
-| **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` |
+| **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` · Excel ↓ fornecedores: **§9** |
 | **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` · `AGENTS.md` §7 gestão se perf |
 | **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
@@ -186,3 +186,23 @@ Preço digitado no carrinho **não** pode voltar ao lista ao escolher forma. Cru
 - [ ] Cherry / senha produção — **pendente** (loja Live ainda com restauração do cache)
 
 **Prova:** `scripts/verify_pdv_preco_manual_forma.py` → **14/14**. Detalhe CHECKPOINT em `banana.md`.
+
+---
+
+## 9. Checklist — path CAD-XLSX-ULT-FORN (loja v18.02 · conferido 28/08/2026)
+
+Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entrada NF Agro). Cruzado com tip `origin/producao` @ **v18.27+**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-XLSX-ULT-FORN** | ✅ **Live v18.02+** · Renan OK **28/08** | **NÃO** |
+
+- [x] Cherry só deste pacote (24/08) — commits `8502f2c` · `5af9b6c` · `5e7c284` ainda ancestrais do tip
+- [x] `FORNECEDOR_EXPORT_KEYS` / `enriquecer_rows_ultimos_fornecedores` no tip
+- [x] `ultimos_fornecedores_por_produto_ids` (lote, não N+1)
+- [x] Checkboxes JS `fornecedor_compra_1..3` no Excel ↓
+- [x] Excel ↑ ignora essas colunas
+- [x] Sem migrate
+- [x] Rollback: tag `rollback/pre-cad-xlsx-ult-forn-v17.84` @ `da7c1cb` · branch backup · `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md`
+
+**Status: fechado / Live.** Renan 28/08: *«já foi resolvido»* — sem ação nova. Detalhe CHECKPOINT em `banana.md`.
