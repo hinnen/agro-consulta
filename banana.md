@@ -1257,6 +1257,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
 
+### 📦 PACOTE PRONTO — Zerar acumulado grande (`REPASSE-ACUM-ZERAR-LIMITE` · **v18.93** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | «Já transferi — zerar» falhava com **Valor fora do limite** se acumulado > R$ 99.999 |
+| **Fix** | Zerar usa `permitir_grande`; teto manual sobe p/ R$ 999.999 |
+| **Você** | Ctrl+F5 · Acumulado · PIN · **Já transferi antes — zerar** |
+
 ### 📦 PACOTE PRONTO — Repasse hero UX (`REPASSE-HERO-UX` · **v18.92** · 29/08/2026)
 
 | Item | Detalhe |
