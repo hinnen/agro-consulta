@@ -167,3 +167,22 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118
 - [x] Sem migrate
 
 **Status: enviado / Live v17.84.** Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ `8bb72875` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`. Prova: `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` (118/118).
+
+---
+
+## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (teste v18.18 · verificado 28/08/2026)
+
+Preço digitado no carrinho **não** pode voltar ao lista ao escolher forma. Cruzado com JS + prova estática.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ código OK no `teste` (`523c06a`) · 🟢 **ainda não na loja** | **NÃO** |
+
+- [x] Digita preço → `preco_manual` + `preco_pos_promo` / `preco_base_forma` alinhados (`pdv_state.updateItemPrice`)
+- [x] `recalcCarrinhoComForma` / `aplicarNoItem`: manual **não** restaura de `preco_pos_promo` antigo
+- [x] Campanha: pula item manual; `precoEnvioItem` usa `item.preco`
+- [x] Path simulado: lista 25 → digita 32 → forma débito → continua 32
+- [x] Contraste: bug antigo (cache 25) documentado vs fix
+- [ ] Cherry / senha produção — **pendente** (loja Live ainda com restauração do cache)
+
+**Prova:** `scripts/verify_pdv_preco_manual_forma.py` → **14/14**. Detalhe CHECKPOINT em `banana.md`.
