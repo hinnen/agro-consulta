@@ -427,7 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
-- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + hotfix `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.60** (janela ainda cortada) · hotfix dock→`body` **v19.63** prova **62/62** 🟡 aguarda loja.
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1252,37 +1252,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · 29/08/2026
+### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **pronto para envio** — aguarda frase + senha no **próximo** chat (lojas pausam venda) |
-| **Loja agora** | **Live v19.60** @ `460e1c7` — Chat **existe** mas **janela não abre** (cortada pelo overflow do PDV) |
-| **O quê sobe** | **Só** hotfix abrir Chat — dock → `document.body` · z-index **220** · ignoreOutside |
-| **Arquivos** | `pdv_chat_loja.js` · `chat_loja_overlay.html` · VERSION · verify |
-| **NÃO sobe** | `BI-META-C-VILA-RAMP` · FF inteiro do `teste` · demais WIP |
+| **Status** | ✅ **enviado / Live v19.63** — healthz **ok** · `/` `/consulta/` `/pdv/` **200** · JS live com `appendChild(dock)` · frase+senha neste chat |
+| **Antes** | Live **v19.60** @ `460e1c7` (Chat sem abrir) |
+| **Agora** | `producao` @ **`71eea32`** · PREP `deploy/prep-pdv-chat-open` |
+| **O quê** | **Só** dock Chat → `body` · z-index 220 · ignoreOutside · VERSION **19.63** |
 | **Migrate** | **NÃO** |
-| **Prova** | `python scripts/verify_pdv_chat_loja.py` → **VERIFY_OK 62/62** |
-| **Risco loja aberta** | **Baixo** — zero venda/caixa/NFC-e/Repasse; só UI Chat. Ainda assim: Ctrl+F5 nos PDVs após deploy |
-| **Rollback** | `docs/ROLLBACK-PDV-CHAT-OPEN.md` · tag a criar no PREP: `rollback/pre-pdv-chat-open-v19.60` |
-| **Você (próximo chat)** | pausar vendas → frase + senha `99738595` → assistente sobe **só** este SOLO |
+| **Rollback** | tag `rollback/pre-pdv-chat-open-v19.60` @ `460e1c7` · branch `producao-backup-pre-chat-open-v1960-20260829` · `docs/ROLLBACK-PDV-CHAT-OPEN.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** nos PDVs · clicar **Chat** · janela sobe · enviar msg |
 
-### ✅ CHECKLIST ÚNICO SOLO — PDV-CHAT-OPEN (29/08 · tip **v19.63**)
+### ✅ CHECKLIST ÚNICO SOLO — PDV-CHAT-OPEN (29/08 · loja **v19.63**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | PDV-CHAT-OPEN | 🟡 **pronto envio** · prova **62/62** · migrate **NÃO** |
+| 1 | PDV-CHAT-OPEN | ✅ **Live v19.63** · prova **62/62** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO SOLO — Chat abre de verdade (`PDV-CHAT-OPEN` · **v19.63** · 29/08/2026)
+### ~~🚀 PREP deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · v19.63)~~ · **superado — Live v19.63 @ 71eea32**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Relato** | Loja Live v19.60 — aba Chat aparece, janela **não abre** |
-| **Causa** | Dock dentro do PDV com `overflow:hidden` |
-| **Fix** | `appendChild` no `body` · z-index 220 · URL fallback · ignoreOutside |
-| **Prova** | **62/62** |
-| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
-| **Você** | após deploy: Ctrl+F5 PDV · clicar **Chat** · janela sobe · enviar msg |
+### ~~📦 PACOTE PRONTO SOLO — Chat abre de verdade (`PDV-CHAT-OPEN`)~~ · **superado — Live v19.63**
 
 ### ✅ Deploy loja — lote checklist 29/08g (`deploy/prep-checklist-2908g` · **v19.60**) · **Live**
 
