@@ -1252,6 +1252,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Pedir escrito embaixo (`PDV-PEDIR-ESCRITO-UX` · **v19.51** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Escrito+obs na **faixa de baixo** (esquerda) · Enviar **só com texto** (sem produto) |
+| **Migrate** | **NÃO** |
+| **Prova** | pedir-loja **67/67** |
+| **Status** | 🟡 pronto envio |
+| **Você** | Ctrl+F5 · digitar «sacola» embaixo · Enviar (sem Incluir / sem produto) |
+
 ### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.43** · 29/08/2026)
 
 | Item | Detalhe |

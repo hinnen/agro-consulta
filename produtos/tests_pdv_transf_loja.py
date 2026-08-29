@@ -130,7 +130,7 @@ class CriarItensTests(SimpleTestCase):
 
         itens, err = _normalizar_itens([])
         self.assertEqual(itens, [])
-        self.assertIn("produto", err)
+        self.assertIn("Escreva", err)
 
     def test_normalizar_pedido_escrito(self):
         from produtos.pdv_transf_loja_util import PREFIXO_ITEM_LIVRE, _normalizar_itens, eh_item_livre

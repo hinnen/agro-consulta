@@ -35,6 +35,26 @@
   }
   #pdv-pedir-loja-overlay .pl-hits-wrap { margin-top: 0.35rem; flex: 1 1 auto; }
   #pdv-pedir-loja-overlay .pl-cart-box { margin-top: 0.4rem; flex: 1 1 auto; }
+  #pdv-pedir-loja-overlay .pl-escrito-bar {
+    flex-shrink: 0;
+    margin-top: 0.55rem;
+    padding: 0.65rem 0.75rem 0.75rem;
+    border-radius: 0.85rem;
+    border: 2px solid #fdba74;
+    background: #fff7ed;
+  }
+  #pdv-pedir-loja-overlay .pl-escrito-bar .pl-escrito-title {
+    margin: 0 0 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #9a3412;
+  }
+  #pdv-pedir-loja-overlay .pl-escrito-bar #pdv-pedir-loja-obs {
+    min-height: 3.4rem;
+    margin-top: 0.35rem;
+  }
   #pdv-pedir-loja-overlay .pl-table {
     width: 100%;
     table-layout: fixed;
@@ -608,10 +628,9 @@
       <details class="pl-help relative">
         <summary class="list-none inline-flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border-2 border-orange-500 bg-white text-lg font-black text-orange-900 hover:bg-orange-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
         <div class="absolute right-0 top-full z-30 mt-1.5 w-[min(24rem,calc(100vw-2rem))] rounded-xl border border-orange-200 bg-white p-3 text-sm font-semibold text-slate-700 shadow-xl space-y-2 leading-snug">
-          <p>Peça produtos pela busca <strong>ou</strong> um <strong>pedido escrito</strong> (sacola, café…). Fica <strong>pendente</strong> na outra loja.</p>
-          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> (cupom 80mm) → ajuste a <strong>quantidade</strong> se faltar → <strong>Transferir</strong> (pedido escrito não mexe estoque).</p>
-          <p>Use a <strong>observação</strong> embaixo pra mensagem (cliente esperando, etc.).</p>
-          <p>Em Transferir/Cancelar: dá pra marcar <strong>estoque furado</strong>. Pedido pendente bipa a cada 1 min.</p>
+          <p>Peça produtos pela busca <strong>ou</strong> só o <strong>pedido escrito</strong> embaixo (sacola, café…) — <strong>não precisa</strong> de produto cadastro.</p>
+          <p>Lá: <strong>Aceitar</strong> → <strong>Imprimir</strong> → <strong>Transferir</strong> (escrito não mexe estoque).</p>
+          <p><strong>Observação</strong> = mensagem opcional. Pedido pendente bipa a cada 1 min.</p>
         </div>
       </details>
       <button type="button" id="pdv-pedir-loja-fechar" class="inline-flex min-h-[2.65rem] items-center rounded-xl border-2 border-teal-600 bg-teal-600 px-3.5 text-[11px] font-black uppercase text-white hover:bg-teal-700">Fechar</button>
@@ -654,17 +673,19 @@
             </tbody>
           </table>
         </div>
+        <div class="pl-escrito-bar">
+          <p class="pl-escrito-title">Pedido escrito / mensagem (não precisa de produto)</p>
+          <div class="pl-livre-row">
+            <input type="text" id="pdv-pedir-loja-livre" class="pl-field" maxlength="200" placeholder="Ex.: 2 sacolas · café · caixa" autocomplete="off" />
+            <button type="button" id="pdv-pedir-loja-livre-add" class="pl-btn pl-btn--ok" title="Incluir na lista">Incluir</button>
+          </div>
+          <label class="sr-only" for="pdv-pedir-loja-obs">Observação / mensagem</label>
+          <textarea id="pdv-pedir-loja-obs" class="pl-field" maxlength="400" rows="2" placeholder="Observação / mensagem (opcional) — ex.: cliente esperando"></textarea>
+        </div>
       </div>
       <div class="pl-col pl-col--pedido">
         <p class="shrink-0 text-[11px] font-black uppercase tracking-wide text-slate-500">Lista do pedido</p>
         <div id="pdv-pedir-loja-cart" class="pl-cart-box space-y-1.5"></div>
-        <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-livre">Pedido escrito (sem cadastro)</label>
-        <div class="pl-livre-row shrink-0">
-          <input type="text" id="pdv-pedir-loja-livre" class="pl-field" maxlength="200" placeholder="Ex.: 2 sacolas · café · caixa" autocomplete="off" />
-          <button type="button" id="pdv-pedir-loja-livre-add" class="pl-btn pl-btn--ok" title="Incluir na lista">Incluir</button>
-        </div>
-        <label class="mt-2 shrink-0 text-[11px] font-black uppercase text-slate-500" for="pdv-pedir-loja-obs">Observação / mensagem</label>
-        <textarea id="pdv-pedir-loja-obs" class="pl-field shrink-0" maxlength="400" rows="3" placeholder="Opcional — ex.: cliente esperando no balcão · urgente"></textarea>
         <div class="pl-foot shrink-0">
           <button type="button" id="pdv-pedir-loja-limpar" class="pl-btn pl-btn--ghost">Limpar lista</button>
           <button type="button" id="pdv-pedir-loja-enviar" class="pl-btn pl-btn--warn">Enviar pedido</button>

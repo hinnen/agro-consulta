@@ -128,7 +128,7 @@ def eh_item_livre(produto_id: str) -> bool:
 
 def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
     if not isinstance(itens_raw, list) or not itens_raw:
-        return [], "Inclua ao menos um produto."
+        return [], "Escreva um pedido ou inclua um produto."
     saida = []
     vistos = set()
     for raw in itens_raw[:40]:
@@ -181,7 +181,7 @@ def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
             }
         )
     if not saida:
-        return [], "Inclua ao menos um produto ou um pedido escrito."
+        return [], "Escreva um pedido ou inclua um produto."
     return saida, ""
 
 

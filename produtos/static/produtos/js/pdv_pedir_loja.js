@@ -488,16 +488,18 @@
       .slice(0, 40) || 'txt';
   }
 
-  function addCartLivre() {
+  function addCartLivre(silent) {
     var texto = dom.livre ? String(dom.livre.value || '').trim() : '';
     if (!texto) {
-      setStatus('Escreva o que quer pedir (ex.: sacola, café).', true);
-      if (dom.livre) {
-        try {
-          dom.livre.focus();
-        } catch (e) {}
+      if (!silent) {
+        setStatus('Escreva o que quer pedir (ex.: sacola, café).', true);
+        if (dom.livre) {
+          try {
+            dom.livre.focus();
+          } catch (e) {}
+        }
       }
-      return;
+      return false;
     }
     var id = 'livre:' + slugLivre(texto);
     var achou = cart.filter(function (x) {
@@ -517,20 +519,34 @@
       });
     }
     if (dom.livre) dom.livre.value = '';
-    setStatus('');
+    if (!silent) setStatus('');
     renderCart();
-    if (dom.livre) {
+    if (!silent && dom.livre) {
       try {
         dom.livre.focus();
       } catch (e) {}
     }
+    return true;
+  }
+
+  function garantirItensAntesDeEnviar() {
+    var texto = dom.livre ? String(dom.livre.value || '').trim() : '';
+    if (texto) addCartLivre(true);
+    if (cart.length) return true;
+    var obs = dom.obs ? String(dom.obs.value || '').trim() : '';
+    if (obs) {
+      if (dom.livre) dom.livre.value = obs;
+      addCartLivre(true);
+      return cart.length > 0;
+    }
+    return false;
   }
 
   function renderCart() {
     if (!dom.cart) return;
     if (!cart.length) {
       dom.cart.innerHTML =
-        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda ou escreva um pedido abaixo.</p>';
+        '<p class="px-1 py-2 text-sm font-bold text-slate-500">Busque à esquerda ou escreva embaixo e Enviar.</p>';
       return;
     }
     var outra = depositoAtual() === 'vila' ? 'saldo_centro' : 'saldo_vila';
@@ -654,8 +670,13 @@
 
   function enviarPedido() {
     if (busy) return;
-    if (!cart.length) {
-      setStatus('Inclua ao menos um produto.', true);
+    if (!garantirItensAntesDeEnviar()) {
+      setStatus('Escreva o pedido embaixo ou inclua um produto.', true);
+      if (dom.livre) {
+        try {
+          dom.livre.focus();
+        } catch (e) {}
+      }
       return;
     }
     var url = urls.apiPdvTransfLojaCriar;
