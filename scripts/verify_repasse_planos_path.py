@@ -235,6 +235,10 @@ def main() -> int:
                     "produtos.repasse_vila_util.despesas_caixa_vila_por_plano",
                     return_value=fake_desp,
                 ),
+                patch(
+                    "produtos.repasse_vila_util.reserva_aplicada_no_dia",
+                    return_value=ZERO,
+                ),
             ):
                 return calcular_disponivel(
                     hoje, percentual_lucro=Decimal("50"), modo_dia_cheio=True

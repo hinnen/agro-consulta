@@ -296,7 +296,9 @@ def main():
         cfg = RepasseVilaConfigAgro.objects.get(pk=cfg.pk)
         cfg.reserva_vila = reserva_antes
         cfg.saldo_reserva_vila = saldo_antes
-        cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila"])
+        # Sempre volta o desde do produto — o teste muda a data e não pode deixar o PG local sujo.
+        cfg.reserva_vila_desde = RESERVA_VILA_DESDE_DEFAULT
+        cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila", "reserva_vila_desde"])
         SessaoCaixa.objects.filter(pk=sessao.pk).delete()
 
     print("---")
