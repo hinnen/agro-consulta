@@ -105,7 +105,8 @@ forbid(
 # —— Popups: quem + PIN; forma escondida ——
 check(HTML, "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-forma-modal", "rp-popup")
 check(HTML, "pdv-rp-quem-grid", "pdv-rp-forma-grid", "pdv-rp-pin", "pdv-rp-quem-ok", "pdv-rp-pin-ok")
-check(HTML, "pdv-rp-enviar-hint", "pdv-rp-cofre-aviso", "NÃO levar", "Quem levou", "PIN do operador")
+check(HTML, "pdv-rp-enviar-hint", "pdv-rp-cofre-aviso", "Quem levou", "PIN do operador")
+check(JS, "NÃO levar no envelope")
 check(HTML, "pdv-rp-cofre-confirm-modal", "pdv-rp-cofre-confirm-valor", "pdv-rp-cofre-confirm-valor-ve", "pdv-rp-cofre-confirm-ok", "rp-cofre-confirm-panel")
 check(HTML, "NÃO coloque esses valores no envelope", "Confirmar repasse", "80vw", "80dvh")
 check(HTML, "pdv-rp-forcar-manual-modal", "pdv-rp-forcar-manual-pin", "Atenção — valor forçado", "PIN de novo")
