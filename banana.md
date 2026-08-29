@@ -1248,7 +1248,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · path **175** · cofrinho **28** · migrate **NÃO** |
 | 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · path **25/25** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.57**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.59**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
