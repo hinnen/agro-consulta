@@ -104,8 +104,15 @@ def main() -> int:
         ok("calc tem reserva")
         bruto = Decimal(str(calc_res["total_sugerido_bruto"]))
         sug = Decimal(str(calc_res["total_sugerido"]))
-        esperado = max(Decimal("0.00"), (bruto - Decimal("200.00")).quantize(Decimal("0.01")))
-        ok("reserva desconta sugerido") if sug == esperado else fail(f"sug={sug} esperado={esperado} bruto={bruto}")
+        # Cofrinho acumulado (Live): reserva NAO abate o total sugerido do envelope.
+        ok("reserva nao desconta sugerido (cofrinho)") if sug == bruto else fail(
+            f"sug={sug} esperado={bruto} bruto={bruto}"
+        )
+        cofre = calc_res.get("cofrinho") or {}
+        if "pendente_dia" in cofre or "saldo" in cofre:
+            ok("calc expoe cofrinho")
+        else:
+            ok("calc sem card cofrinho (legado ok)")
     else:
         fail("calc sem reserva/total_sugerido_bruto")
     salvar_reserva_vila(res_antes, operador="bot")
