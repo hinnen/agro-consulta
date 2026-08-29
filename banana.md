@@ -1247,6 +1247,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Enviado no mês = tudo (`REPASSE-MES-TUDO` · **v18.85** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | «Enviado no mês» / Total geral = dinheiro do envelope **+** cartão/PIX/fiado eletrônico já no Centro |
+| **Antes** | Só somava `RepasseVilaCentroAgro` (envelope) |
+| **Arquivo** | `repasse_vila_util.historico_mes` · `_ja_eletronico_vila_periodo` |
+| **Loja** | ainda **v18.83** · teste **v18.85** (com grade 3×2 v18.84) |
+| **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
+
 ### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026)
 
 | Item | Detalhe |
