@@ -304,6 +304,18 @@
         'text-xl sm:text-2xl font-black tabular-nums leading-none ' +
         (acum > 0.009 ? 'text-amber-950' : acum < -0.009 ? 'text-sky-900' : 'text-slate-600');
     }
+    var levadoHoje = Number((c.ja_enviado || {}).total || 0);
+    var levadoWrap = document.getElementById('pdv-rp-levado-hoje-wrap');
+    var levadoEl = document.getElementById('pdv-rp-levado-hoje');
+    if (levadoWrap && levadoEl) {
+      if (levadoHoje > 0.009) {
+        levadoWrap.classList.remove('hidden');
+        levadoEl.textContent = money(levadoHoje);
+      } else {
+        levadoWrap.classList.add('hidden');
+        levadoEl.textContent = money(0);
+      }
+    }
 
     var cx = c.caixa_vila || {};
     var cxEl = document.getElementById('pdv-rp-caixa-din');
