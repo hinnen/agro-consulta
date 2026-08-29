@@ -1436,7 +1436,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | migrate loja · Ctrl+F5 · Chat 2 PCs · Entrada NF etapa 5 · Pedir escrito · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **19.58**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.58**)
 
 > **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP` (checklist acima).
 
