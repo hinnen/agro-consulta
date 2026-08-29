@@ -89,7 +89,7 @@
   }
 
   function usuarioNomePadrao() {
-    /* PIN logado no caixa (descanso) — não o login do Chrome. */
+    /* Só PIN do caixa — nunca login Chrome. */
     try {
       var ls = (localStorage.getItem('gm_sspin_operador') || '').trim();
       if (ls) return ls;
@@ -102,10 +102,6 @@
         if (t && t !== ph) return t;
       }
     } catch (e1) {}
-    try {
-      var meta = document.querySelector('meta[name="agro-user-display"]');
-      if (meta && meta.content) return String(meta.content).trim();
-    } catch (e2) {}
     return '';
   }
 

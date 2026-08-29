@@ -67,6 +67,8 @@ from .caixa_util import (
     id_sessao_caixa_browser,
     rotulo_usuario_registro_venda,
     rotulo_usuario_django,
+    exigir_operador_pin_request,
+    MSG_PIN_OPERADOR_OBRIGATORIO,
     ultimo_fechamento_sugestao_abertura,
     obter_caixa_pai_aberto,
     obter_caixa_gaveta_aberto,
@@ -119,6 +121,7 @@ from .caixa_util import (
     resolver_sessao_caixa_para_venda,
     exigir_sessao_caixa_para_venda,
     SessaoCaixaObrigatoriaError,
+    PinOperadorObrigatorioError,
 )
 from .precos_forma_pagamento_util import (
     extrair_precos_grupos_cadastro_extras,
@@ -12237,11 +12240,13 @@ def api_caixa_assumir_sessao(request):
     operador = rotulo_operador_pin(pin) if pin else ""
     if not operador:
         operador = str(request.session.get("pdv_operador_nome") or "").strip()
-    if not operador and request.user.is_authenticated:
-        operador = (request.user.get_full_name() or request.user.get_username() or "").strip()
-    if operador:
-        request.session["pdv_caixa_gerido_operador"] = operador[:120]
-        request.session.modified = True
+    if not operador:
+        return JsonResponse(
+            {"ok": False, "erro": MSG_PIN_OPERADOR_OBRIGATORIO},
+            status=403,
+        )
+    request.session["pdv_caixa_gerido_operador"] = operador[:120]
+    request.session.modified = True
     return JsonResponse(
         {
             "ok": True,
@@ -12568,8 +12573,8 @@ def caixa_fechar(request):
         op = rotulo_operador_pin(pin) if pin else ""
         if not op:
             op = str(request.session.get("pdv_operador_nome") or "").strip()
-        if not op and getattr(request, "user", None) and request.user.is_authenticated:
-            op = (request.user.get_full_name() or request.user.get_username() or "").strip()
+        if not op:
+            return MSG_PIN_OPERADOR_OBRIGATORIO
         _feitos, err = separar_reservas_ao_fechar_vila(
             alvo,
             operador=op or "Operador fechamento",
@@ -12999,7 +13004,9 @@ def api_venda_agro_devolver(request, pk):
             status=400,
         )
 
-    user_label = rotulo_usuario_django(request.user) if request.user.is_authenticated else ""
+    user_label, err_pin_op = exigir_operador_pin_request(request)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
 
     avisos: list[str] = []
     movimento_ids: list[int] = []
@@ -14821,18 +14828,13 @@ def _lancamentos_operador_label(
     op = (op or "").strip()[:120]
     if op:
         return op, None
-    if obrigatorio:
-        return None, JsonResponse(
-            {
-                "ok": False,
-                "erro": "Identifique-se com PIN ao entrar em Lançamentos (atualize a página se necessário).",
-            },
-            status=403,
-        )
-    if request.user.is_authenticated:
-        lbl = rotulo_usuario_django(request.user)
-        return (lbl or "Agro")[:120], None
-    return "Agro", None
+    return None, JsonResponse(
+        {
+            "ok": False,
+            "erro": MSG_PIN_OPERADOR_OBRIGATORIO,
+        },
+        status=403,
+    )
 
 
 @ensure_csrf_cookie
@@ -16569,8 +16571,10 @@ def api_entrada_nota_estoque_agro(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    # Quem no kardex: PIN / nome — não e-mail cru (evita «geraldo hinnen» fantasma)
-    usuario_op = operador_label_request(request) or usuario
+    # Quem no kardex / auditoria: só PIN — nunca login Chrome / e-mail
+    usuario_op, err_pin_op = exigir_operador_pin_request(request, payload if isinstance(payload, dict) else None)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
 
     client, db = _entrada_nfe_conexao()
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
@@ -27578,7 +27582,9 @@ def _persistir_venda_agro(
     """
     Grava venda + itens no banco local (sempre que houve tentativa com itens válidos ao ERP).
     """
-    user_label = rotulo_usuario_registro_venda(request, data)
+    user_label, err_pin_op = exigir_operador_pin_request(request, data)
+    if err_pin_op:
+        raise PinOperadorObrigatorioError(err_pin_op)
 
     cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
@@ -28393,6 +28399,9 @@ def api_enviar_pedido_erp(request):
         exigir_sessao_caixa_para_venda(request, data)
     except SessaoCaixaObrigatoriaError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    _, err_pin_op = exigir_operador_pin_request(request, data)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
     from produtos.views_mp_point import mp_point_bloqueio_info
 
     bloqueio_mp = mp_point_bloqueio_info(request)
@@ -31648,6 +31657,10 @@ def api_entrega_registrar(request):
     if not isinstance(itens, list):
         itens = []
 
+    op_label, err_pin_op = exigir_operador_pin_request(request, body if isinstance(body, dict) else None)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
+
     campos = {
         "cliente_nome": cliente_nome,
         "telefone": (body.get("telefone") or "")[:40].strip(),
@@ -31658,11 +31671,7 @@ def api_entrega_registrar(request):
         "itens_json": itens,
         "total_texto": (body.get("total_texto") or "")[:48].strip(),
         "retomar_codigo": (body.get("retomar_codigo") or "")[:40].strip(),
-        "operador": (
-            (body.get("operador") or "").strip()
-            or operador_label_request(request)
-            or ""
-        )[:120].strip(),
+        "operador": op_label[:120],
         "hora_prevista": _parse_hhmm_entrega(body.get("hora_prevista")),
         "forma_pagamento": (body.get("forma_pagamento") or "")[:40].strip(),
         "troco_precisa": _parse_troco_precisa_val(body.get("troco_precisa")),

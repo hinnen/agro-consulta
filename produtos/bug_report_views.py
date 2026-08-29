@@ -24,17 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 def _usuario_nome(request) -> str:
-    """Preferencia: PIN da sessao (caixa/PDV); senao login Django."""
-    op = (operador_label_request(request) or "").strip()
-    if op:
-        return op[:120]
-    u = getattr(request, "user", None)
-    if u is None or not getattr(u, "is_authenticated", False):
-        return ""
-    full = (u.get_full_name() or "").strip()
-    if full:
-        return full[:120]
-    return (getattr(u, "username", "") or "").strip()[:120]
+    """Só PIN da sessao — nunca login Chrome."""
+    return (operador_label_request(request) or "").strip()[:120]
 
 def _versao_app() -> str:
     try:
