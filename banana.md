@@ -1344,7 +1344,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · prova **37/37** |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` (pós v18.14) | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` | 🟢 pronto envio · verify **57/57** 28/08 |
 | 4 | `REPASSE-COFRINHO-VILA` | 🟢 pronto envio · **migrate** |
 | 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto envio |
 | 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto envio |
