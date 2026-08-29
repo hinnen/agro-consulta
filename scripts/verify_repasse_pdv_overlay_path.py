@@ -81,7 +81,7 @@ JS = "produtos/static/produtos/js/pdv_repasse_vila.js"
 
 # —— Shell + hero ——
 check(HTML, "pdv-repasse-overlay", "rp-shell", "min(98rem", "96dvh", "rp-hero", "rp-hero-cofre")
-check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-total-acum", "pdv-rp-manual")
+check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "pdv-rp-hero-cofre-saldo", "pdv-rp-hero-cofre-ve-saldo", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-total-acum", "pdv-rp-manual")
 check(HTML, "pdv-rp-caixa-din", "Caixa Vila · dinheiro agora")
 check(HTML, "pdv-rp-mes-dinheiro", "pdv-rp-card-cofre", "pdv-rp-mes-lucro-ficou", "pdv-rp-dia-todas")
 check(HTML, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "Enviado no mês", "Total geral")

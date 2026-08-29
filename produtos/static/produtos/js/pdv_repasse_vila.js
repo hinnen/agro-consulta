@@ -342,15 +342,14 @@
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
 
     var pendente = Number(cofre.pendente_dia || 0);
+    var saldoCofre = Number(cofre.saldo || 0);
     setText('pdv-rp-hero-cofre', money(pendente));
+    setText('pdv-rp-hero-cofre-saldo', money(saldoCofre));
     var cofreAviso = document.getElementById('pdv-rp-cofre-aviso');
     if (cofreAviso) {
       if (pendente > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' (Salário).';
-      } else if (Number(cofre.saldo || 0) > 0.009) {
-        cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Saldo ' + money(cofre.saldo);
+        cofreAviso.textContent = 'NÃO levar no envelope.';
       } else {
         cofreAviso.classList.add('hidden');
         cofreAviso.textContent = '';
@@ -358,15 +357,14 @@
     }
 
     var pendenteVe = Number(cofreVe.pendente_dia || 0);
+    var saldoVe = Number(cofreVe.saldo || 0);
     setText('pdv-rp-hero-cofre-ve', money(pendenteVe));
+    setText('pdv-rp-hero-cofre-ve-saldo', money(saldoVe));
     var cofreVeAviso = document.getElementById('pdv-rp-cofre-ve-aviso');
     if (cofreVeAviso) {
       if (pendenteVe > 0.009) {
         cofreVeAviso.classList.remove('hidden');
-        cofreVeAviso.textContent = 'Deixe ' + money(pendenteVe) + ' (Vila Elias).';
-      } else if (Number(cofreVe.saldo || 0) > 0.009) {
-        cofreVeAviso.classList.remove('hidden');
-        cofreVeAviso.textContent = 'Saldo ' + money(cofreVe.saldo);
+        cofreVeAviso.textContent = 'Lucro que fica na Vila.';
       } else {
         cofreVeAviso.classList.add('hidden');
         cofreVeAviso.textContent = '';

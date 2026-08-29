@@ -1257,14 +1257,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
 
-### 📦 PACOTE PRONTO — Repasse hero UX (`REPASSE-HERO-UX` · **v18.87** · 29/08/2026)
+### 📦 PACOTE PRONTO — Repasse hero UX (`REPASSE-HERO-UX` · **v18.89** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Grade 4×2 alinhada · Caixa no topo · Valor manual = card ao lado dos totais · campo autopreenchido com «Levar» **selecionado** · fonte do valor **maior** (v18.87) |
+| **O quê** | Levar + **cofres**: grande = dia · menor = acumulado (saldo no cofre) |
 | **Arquivos** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
 | **Loja** | ainda **v18.83** · só no teste até senha |
-| **Você** | Ctrl+F5 · Repasse · Caixa alinhado · digitar por cima no manual |
+| **Você** | Ctrl+F5 · Repasse · Salário/Vila Elias/Levar com dia + acumulado |
 
 ### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026) · **supplantado por REPASSE-HERO-UX**
 
