@@ -17,6 +17,9 @@
   #pdv-repasse-overlay .rp-hero-cofre {
     border-color: #e11d48; background: #fff1f2;
   }
+  #pdv-repasse-overlay .rp-hero-cofre-ve {
+    border-color: #4f46e5; background: #eef2ff;
+  }
   #pdv-repasse-overlay .rp-check {
     display: flex; align-items: center; gap: 0.45rem; min-height: 2.35rem;
     padding: 0.3rem 0.6rem; border: 2px solid #cbd5e1; border-radius: 0.65rem;
@@ -108,20 +111,28 @@
     <p class="sr-only" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
-      {# —— Hero: cofrinho + enviar + manual —— #}
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {# —— Hero: 2 cofrinhos + enviar + manual —— #}
+      <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div class="rp-hero rp-hero-cofre space-y-2">
-          <div class="text-xs font-black uppercase text-rose-900">Cofrinho (ficar na Vila)</div>
-          <div class="text-4xl sm:text-5xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre">R$ 0,00</div>
+          <div class="text-xs font-black uppercase text-rose-900">Cofrinho Salário funcionário</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre">R$ 0,00</div>
           <p id="pdv-rp-cofre-aviso" class="rounded-lg border-2 border-rose-600 bg-white px-2 py-1.5 text-sm font-black text-rose-950 leading-snug" role="alert">
             NÃO levar no envelope.
           </p>
           <label class="rp-check border-rose-500 bg-white"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
         </div>
 
-        <div class="rp-hero space-y-2 lg:col-span-1">
+        <div class="rp-hero rp-hero-cofre-ve space-y-2">
+          <div class="text-xs font-black uppercase text-indigo-900">Cofre Vila Elias</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve">R$ 0,00</div>
+          <p id="pdv-rp-cofre-ve-aviso" class="rounded-lg border-2 border-indigo-600 bg-white px-2 py-1.5 text-sm font-black text-indigo-950 leading-snug" role="alert">
+            Lucro que fica na Vila.
+          </p>
+        </div>
+
+        <div class="rp-hero space-y-2">
           <div class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</div>
-          <div class="text-4xl sm:text-5xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total">R$ 0,00</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total">R$ 0,00</div>
           <p class="text-xs font-bold text-emerald-800" id="pdv-rp-enviar-hint"></p>
           <div class="grid grid-cols-2 gap-2 pt-1">
             <div>
@@ -171,8 +182,12 @@
             <div class="rp-val text-sky-950 tabular-nums" id="pdv-rp-mes-dinheiro">R$ 0,00</div>
           </div>
           <div class="rp-sum border-rose-400">
-            <div class="rp-lbl text-rose-800">Cofrinho</div>
+            <div class="rp-lbl text-rose-800">Salário</div>
             <div class="rp-val text-rose-950 tabular-nums" id="pdv-rp-card-cofre">R$ 0,00</div>
+          </div>
+          <div class="rp-sum border-indigo-400">
+            <div class="rp-lbl text-indigo-800">Vila Elias</div>
+            <div class="rp-val text-indigo-950 tabular-nums" id="pdv-rp-card-cofre-ve">R$ 0,00</div>
           </div>
           <div class="rp-sum border-emerald-400">
             <div class="rp-lbl text-emerald-800">Lucro ficou</div>
@@ -276,22 +291,28 @@
     </div>
   </div>
 
-  {# Confirmação cofrinho — substitui window.confirm · ~80% da tela #}
+  {# Confirmação cofrinhos — substitui window.confirm · ~80% da tela #}
   <div id="pdv-rp-cofre-confirm-modal" class="rp-popup hidden items-center justify-center bg-rose-950/70 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-rp-cofre-confirm-title">
     <div class="rp-cofre-confirm-panel">
       <header class="shrink-0 border-b-4 border-rose-600 bg-rose-600 px-4 py-3 sm:px-6 sm:py-4">
         <h3 id="pdv-rp-cofre-confirm-title" class="text-center text-xl sm:text-2xl font-black uppercase tracking-wide text-white leading-tight">
-          Atenção — cofrinho na Vila
+          Atenção — cofrinhos na Vila
         </h3>
       </header>
       <div class="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
         <p class="text-lg sm:text-xl font-black uppercase text-rose-950">Vai transferir agora</p>
-        <div>
-          <p class="text-sm sm:text-base font-black uppercase text-rose-800 mb-2">Deixe na Vila (cofrinho)</p>
-          <p class="rp-cofre-confirm-valor" id="pdv-rp-cofre-confirm-valor">R$ 0,00</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[40rem]">
+          <div class="rounded-xl border-4 border-rose-500 bg-rose-50 px-3 py-3">
+            <p class="text-xs font-black uppercase text-rose-800 mb-1">Salário funcionário</p>
+            <p class="rp-cofre-confirm-valor text-3xl" id="pdv-rp-cofre-confirm-valor">R$ 0,00</p>
+          </div>
+          <div class="rounded-xl border-4 border-indigo-500 bg-indigo-50 px-3 py-3">
+            <p class="text-xs font-black uppercase text-indigo-800 mb-1">Cofre Vila Elias</p>
+            <p class="rp-cofre-confirm-valor text-3xl text-indigo-950" id="pdv-rp-cofre-confirm-valor-ve">R$ 0,00</p>
+          </div>
         </div>
         <p class="max-w-[36rem] rounded-xl border-4 border-rose-700 bg-white px-4 py-3 text-base sm:text-xl font-black text-rose-950 leading-snug" role="alert">
-          NÃO coloque esse valor no envelope do Centro.
+          NÃO coloque esses valores no envelope do Centro.
         </p>
         <p class="text-base sm:text-lg font-bold text-rose-900">Confirma o repasse?</p>
       </div>

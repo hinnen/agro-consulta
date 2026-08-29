@@ -198,7 +198,9 @@
     setText('pdv-rp-mes-lucro-ficou', money(h.lucro_ficou_vila));
     var c = calc || {};
     var cofre = c.cofrinho || {};
+    var cofreVe = c.cofre_vila_elias || {};
     setText('pdv-rp-card-cofre', money(cofre.saldo));
+    setText('pdv-rp-card-cofre-ve', money(cofreVe.saldo));
     var elet = Number(c.ja_eletronico || 0);
     var jaDin = Number((c.ja_enviado || {}).total || 0);
     setText('pdv-rp-dia-todas', money(elet + jaDin));
@@ -207,6 +209,7 @@
   function renderCalc() {
     var c = calc || {};
     var cofre = c.cofrinho || {};
+    var cofreVe = c.cofre_vila_elias || {};
     var d = c.disponivel || {};
     setText('pdv-rp-receita', money(c.receita_dia));
     setText('pdv-rp-cmv-dia', money(c.cmv_dia));
@@ -286,13 +289,29 @@
     if (cofreAviso) {
       if (pendente > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' na Vila.';
+        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' (Salário).';
       } else if (Number(cofre.saldo || 0) > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Cofrinho ' + money(cofre.saldo);
+        cofreAviso.textContent = 'Saldo ' + money(cofre.saldo);
       } else {
         cofreAviso.classList.add('hidden');
         cofreAviso.textContent = '';
+      }
+    }
+
+    var pendenteVe = Number(cofreVe.pendente_dia || 0);
+    setText('pdv-rp-hero-cofre-ve', money(pendenteVe));
+    var cofreVeAviso = document.getElementById('pdv-rp-cofre-ve-aviso');
+    if (cofreVeAviso) {
+      if (pendenteVe > 0.009) {
+        cofreVeAviso.classList.remove('hidden');
+        cofreVeAviso.textContent = 'Deixe ' + money(pendenteVe) + ' (Vila Elias).';
+      } else if (Number(cofreVe.saldo || 0) > 0.009) {
+        cofreVeAviso.classList.remove('hidden');
+        cofreVeAviso.textContent = 'Saldo ' + money(cofreVe.saldo);
+      } else {
+        cofreVeAviso.classList.add('hidden');
+        cofreVeAviso.textContent = '';
       }
     }
 
@@ -504,6 +523,7 @@
         if (!qs().get('data')) {
           calc = j.calc || null;
           if (calc && j.cofrinho) calc.cofrinho = j.cofrinho;
+          if (calc && j.cofre_vila_elias) calc.cofre_vila_elias = j.cofre_vila_elias;
         }
         if (dom.sub) {
           if (!j.caixa_vila_aberto) {
@@ -556,9 +576,11 @@
     if (ok && typeof cb === 'function') cb();
   }
 
-  function openCofreConfirmModal(valorTxt, onConfirm) {
+  function openCofreConfirmModal(valorSalarioTxt, valorVeTxt, onConfirm) {
     var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
-    if (elVal) elVal.textContent = valorTxt || 'R$ 0,00';
+    var elVe = document.getElementById('pdv-rp-cofre-confirm-valor-ve');
+    if (elVal) elVal.textContent = valorSalarioTxt || 'R$ 0,00';
+    if (elVe) elVe.textContent = valorVeTxt || 'R$ 0,00';
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
     focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
@@ -603,9 +625,11 @@
     if (mv != null) body.valor_manual = String(mv);
 
     var cofre = (calc && calc.cofrinho) || {};
+    var cofreVe = (calc && calc.cofre_vila_elias) || {};
     var pendenteCofre = Number(cofre.pendente_dia || 0);
-    if (pendenteCofre > 0.009) {
-      openCofreConfirmModal(money(pendenteCofre), function () {
+    var pendenteVe = Number(cofreVe.pendente_dia || 0);
+    if (pendenteCofre > 0.009 || pendenteVe > 0.009) {
+      openCofreConfirmModal(money(pendenteCofre), money(pendenteVe), function () {
         enviarConfirmacao(body);
       });
       return;
@@ -640,8 +664,10 @@
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
         var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
+        var saldoVe = j.cofre_vila_elias ? money(j.cofre_vila_elias.saldo) : '—';
         if (dom.status) {
-          dom.status.textContent = 'OK — enviado ' + money(tot) + ' · cofrinho na Vila ' + saldoCofre;
+          dom.status.textContent =
+            'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';

@@ -683,6 +683,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
 - **Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · v18.52):** «Ainda separar» soma dias sem separar; separar a mais / **Saldo inicial** abate próximos dias. Prova `verify_repasse_cofrinho` **28/28**.
+- **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
 - **Confirmação cofrinho (`REPASSE-COFRE-CONFIRM` · v18.78):** modal rosa ~80% da tela no lugar do `confirm` do browser.
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
@@ -1245,6 +1246,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Dois cofrinhos Vila (`REPASSE-DOIS-COFRES` · **v18.81**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Cofrinho atual → **Salário funcionário**; novo **Cofre Vila Elias** = fatia do lucro que não vai ao Centro. Fórmula: VE = lucro×(100−%)/100 · salário = min(config, lucro) · lucro Centro = resto. CMV/fiado iguais. |
+| **Ex.** | Lucro 200 · 50% · salário 100 → VE 100 · Salário 100 · lucro Centro **0** |
+| **Onde** | `repasse_vila_util` · models · views · overlay PDV · `/repasse-vila/` · ajuda · fechar caixa |
+| **Migrate** | **SIM** — `produtos.0103` (`saldo_cofre_vila_elias` + `cofre` nos movimentos) |
+| **Prova** | path **226** · overlay **119** · cofrinho **31** · reserva **63** · `manage.py check` |
+| **Status** | ⏳ **teste** — Ctrl+F5 PDV Repasse + `/repasse-vila/` |
+| **Você** | Conferir 2 cards · Separar junto · lucro Centro 0 no exemplo. Dinheiro já no cofre físico → **Saldo inicial** no Cofre Vila Elias. |
+
 ### 🔧 WIP — Repasse: mês + total geral no hero (`REPASSE-HERO-TOTAIS` · **v18.80**)
 
 | Item | Detalhe |

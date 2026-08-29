@@ -97,7 +97,8 @@ def repasse_vila_view(request):
             "hist": hist,
             "url_pdv_repasse": url_pdv,
             "caixa_vila_aberto": bool(obter_caixa_vila_aberto()),
-            "cofrinho": resumo_cofrinho_vila(hoje),
+            "cofrinho": resumo_cofrinho_vila(hoje, cofre="salario"),
+            "cofre_vila_elias": resumo_cofrinho_vila(hoje, cofre="vila_elias"),
         },
     )
 
@@ -116,7 +117,8 @@ def api_repasse_vila_calc(request):
     except Exception:
         pct_v = None
     out = calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo)
-    out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10)
+    out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10, cofre="salario")
+    out["cofre_vila_elias"] = resumo_cofrinho_vila(dia, limit=10, cofre="vila_elias")
     out["ok"] = True
     return JsonResponse(out)
 
@@ -314,7 +316,8 @@ def _operador_payload(request, payload: dict) -> tuple[str, object | None, str]:
 @require_GET
 def api_repasse_vila_cofrinho(request):
     dia = _parse_date(request.GET.get("data")) or timezone.localdate()
-    return JsonResponse(resumo_cofrinho_vila(dia))
+    cofre = str(request.GET.get("cofre") or "salario").strip().lower()
+    return JsonResponse(resumo_cofrinho_vila(dia, cofre=cofre))
 
 
 @login_required(login_url="/admin/login/")
@@ -329,6 +332,7 @@ def api_repasse_vila_cofrinho_separar(request):
     dia, err_dia = validar_data_ref_repasse(_parse_date(payload.get("data_ref")))
     if err_dia or dia is None:
         return JsonResponse({"ok": False, "erro": err_dia or "Data inválida"}, status=400)
+    cofre = str(payload.get("cofre") or "salario").strip().lower()
     sessao_req = obter_sessao_caixa_aberta_request(request)
     sessao_vila = obter_caixa_vila_aberto()
     if not sessao_req or getattr(sessao_req, "ponto_caixa", "") not in ("vila", "notebook"):
@@ -340,6 +344,7 @@ def api_repasse_vila_cofrinho_separar(request):
         usuario=usuario,
         sessao_caixa=sessao_vila,
         observacao=str(payload.get("observacao") or "Separação isolada para o cofrinho"),
+        cofre=cofre,
     )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
@@ -347,7 +352,8 @@ def api_repasse_vila_cofrinho_separar(request):
         "ok": True,
         "criado": criado,
         "movimento_id": mov.pk if mov else None,
-        "cofrinho": resumo_cofrinho_vila(dia),
+        "cofrinho": resumo_cofrinho_vila(dia, cofre=cofre),
+        "cofre_vila_elias": resumo_cofrinho_vila(dia, cofre="vila_elias"),
     })
 
 
@@ -363,6 +369,7 @@ def api_repasse_vila_cofrinho_movimento(request):
     tipo = str(payload.get("tipo") or "").strip()
     if tipo not in ("retirada", "ajuste", "saldo_inicial"):
         return JsonResponse({"ok": False, "erro": "Tipo inválido"}, status=400)
+    cofre = str(payload.get("cofre") or "salario").strip().lower()
     try:
         valor = Decimal(str(payload.get("valor") or "").replace(",", "."))
     except Exception:
@@ -377,6 +384,7 @@ def api_repasse_vila_cofrinho_movimento(request):
             operador=operador,
             usuario=usuario,
             idempotencia_chave=chave,
+            cofre=cofre,
         )
     else:
         mov, criado, err = registrar_uso_ou_ajuste_cofrinho(
@@ -387,10 +395,17 @@ def api_repasse_vila_cofrinho_movimento(request):
             usuario=usuario,
             data_ref=_parse_date(payload.get("data_ref")),
             idempotencia_chave=chave,
+            cofre=cofre,
         )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
-    return JsonResponse({"ok": True, "criado": criado, "movimento_id": mov.pk if mov else None, "cofrinho": resumo_cofrinho_vila()})
+    return JsonResponse({
+        "ok": True,
+        "criado": criado,
+        "movimento_id": mov.pk if mov else None,
+        "cofrinho": resumo_cofrinho_vila(cofre=cofre),
+        "cofre_vila_elias": resumo_cofrinho_vila(cofre="vila_elias"),
+    })
 
 
 @login_required(login_url="/admin/login/")
@@ -414,7 +429,14 @@ def api_repasse_vila_cofrinho_estornar(request):
     )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
-    return JsonResponse({"ok": True, "criado": criado, "movimento_id": mov.pk if mov else None, "cofrinho": resumo_cofrinho_vila()})
+    cofre = getattr(mov, "cofre", None) if mov else "salario"
+    return JsonResponse({
+        "ok": True,
+        "criado": criado,
+        "movimento_id": mov.pk if mov else None,
+        "cofrinho": resumo_cofrinho_vila(cofre=cofre or "salario"),
+        "cofre_vila_elias": resumo_cofrinho_vila(cofre="vila_elias"),
+    })
 
 
 @login_required(login_url="/admin/login/")
@@ -449,7 +471,8 @@ def api_repasse_vila_meta(request):
             "funcionarios": funcionarios,
             "formas_pagamento": formas,
             "calc": calc,
-            "cofrinho": resumo_cofrinho_vila(timezone.localdate(), limit=10),
+            "cofrinho": resumo_cofrinho_vila(timezone.localdate(), limit=10, cofre="salario"),
+            "cofre_vila_elias": resumo_cofrinho_vila(timezone.localdate(), limit=10, cofre="vila_elias"),
             "url_tela": reverse("repasse_vila"),
         }
     )
@@ -503,4 +526,10 @@ def api_repasse_vila_confirmar(request):
     )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
-    return JsonResponse({"ok": True, "repasse": serializar_repasse(rep), "cofrinho": resumo_cofrinho_vila(dia or timezone.localdate(), limit=10)})
+    dia_out = dia or timezone.localdate()
+    return JsonResponse({
+        "ok": True,
+        "repasse": serializar_repasse(rep),
+        "cofrinho": resumo_cofrinho_vila(dia_out, limit=10, cofre="salario"),
+        "cofre_vila_elias": resumo_cofrinho_vila(dia_out, limit=10, cofre="vila_elias"),
+    })
