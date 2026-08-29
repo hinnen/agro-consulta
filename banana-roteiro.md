@@ -215,15 +215,14 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 11. Checklist único — lote 28/08c (alvo **v18.72**)
+## 11. Checklist único — lote 28/08c (loja **v18.72**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **NS-ESCOLHA-EMP** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
-| 2 | **REPASSE-PDV-OVERLAY-POPUP** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
-| 3 | **CP-EMP-PG-FALLBACK** | tip `producao` @ `59429e2` — **confirmar Live Render** | **NÃO** |
+| 1 | **NS-ESCOLHA-EMP** | ✅ **Live v18.72** | **NÃO** |
+| 2 | **REPASSE-PDV-OVERLAY-POPUP** | ✅ **Live v18.72** | **NÃO** |
+| 3 | **CP-EMP-PG-FALLBACK** | ✅ **Live v18.72** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-2808c` @ `ae126d9`.  
-**Atenção (28/08):** `origin/producao` **já** está em **v18.72** (`59429e2`) — não é mais v18.64. Conferir badge na loja. Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha.  
-**Provas:** NS+EMP 30 · CP 61 · overlay 93 · path 203 · deep 103 · cof 28 · fechar 68.  
-**Risco PDV:** baixo (não mexe Finalizar venda).
+**Status: enviado / Live v18.72.** `producao` @ `ae126d9`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha.  
+**Smoke:** healthz ok · home **18.72** · PDV/consulta **200**.

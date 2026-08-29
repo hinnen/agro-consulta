@@ -1242,38 +1242,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### ⚠️ ATENÇÃO — `origin/producao` já está em **v18.72** (`59429e2`)
+### ✅ Deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Descoberto** | 28/08 PREP — tip `producao` **não** é mais v18.64 (`5e6e44a`) |
-| **Tip agora** | `59429e2` · badge **18.72** · inclui os 3 pacotes do checklist 2808c |
-| **PREP** | `deploy/prep-checklist-2808c` @ `ae126d9` (só +1 commit de prova deep) |
-| **Ação** | Conferir no Render se a loja já ficou **Live v18.72**. **Não** resetar `producao` sem frase+senha. |
-| **Você** | Abrir loja · badge versão · Ctrl+F5. Se ainda v18.64, Render ainda não puxou — avisar. |
-
-### ✅ Deploy loja — lote checklist 28/08c (deploy/prep-checklist-2808c · **v18.72**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v18.72** — healthz ok · home com **18.72** · Renan frase+senha |
-| **Antes** | origin/producao @ **v18.64** / 5e6e44a |
-| **Agora** | producao @ **59429e2** |
+| **Status** | ✅ **enviado / Live v18.72** — healthz **ok** · home **18.72** · PDV/consulta **200** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v18.64** / `5e6e44a` |
+| **Agora** | `producao` @ **`ae126d9`** |
 | **Pacotes** | NS-ESCOLHA-EMP · REPASSE-PDV-OVERLAY-POPUP · CP-EMP-PG-FALLBACK |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag 
-ollback/pre-lote-checklist-2808c-v18.64 @ 5e6e44a · branch producao-backup-pre-v1872-lote-checklist-20260828 · docs/ROLLBACK-LOTE-CHECKLIST-2808c.md |
-| **Você** | Ctrl+F5 nos PDVs · badge **v18.72** · smoke: venda · Nova saída (escolha) · Empréstimo · Repasse popup |
+| **Rollback** | tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 nos PDVs · badge **v18.72** · smoke: venda · Nova saída (escolha) · Empréstimo · Repasse (quem/PIN popup) |
 
 ### ✅ CHECKLIST ÚNICO — enviado produção (28/08c · loja **v18.72**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | NS-ESCOLHA-EMP | ✅ **Live v18.72** |
-| 2 | REPASSE-PDV-OVERLAY-POPUP | ✅ **Live v18.72** |
-| 3 | CP-EMP-PG-FALLBACK | ✅ **Live v18.72** |
+| 1 | `NS-ESCOLHA-EMP` | ✅ **Live v18.72** |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | ✅ **Live v18.72** |
+| 3 | `CP-EMP-PG-FALLBACK` | ✅ **Live v18.72** |
 
-### ~~🚀 PREP / PACOTE PRONTO 28/08c~~ · **superado — Live v18.72**
+### ~~⚠️ ATENÇÃO producao antecipado / PREP 2808c~~ · **superado — Live v18.72 @ ae126d9**
 
 ### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
