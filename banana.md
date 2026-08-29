@@ -1321,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Revisão 28/08** | Código no `teste` OK · prova `tests_relatorios_central_filtros` **8/8** · loja já tem o cherry `cfcb526` (ancestral de `origin/producao` @ v18.27+). Renan: *«já foi resolvido»* — sem ação nova. |
 | **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.40** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.42** · 28/08
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
