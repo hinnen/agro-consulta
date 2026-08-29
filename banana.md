@@ -1242,6 +1242,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Empréstimo: tela de sucesso (`NE-SUCESSO-OK` · **v18.76**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Após Registrar, modal fechava / lista recarregava sem feedback |
+| **Fix** | Painel verde «Empréstimo registrado» + OK (só então fecha e atualiza lista) |
+| **Onde** | `lancamento_novo_emprestimo_modal.html` |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — Ctrl+F5 · Novo empréstimo · Registrar |
+| **Você** | Tem que aparecer ✓ e OK antes de fechar |
+
 ### 🔧 WIP — Nova saída cards escolha (`NS-ESCOLHA-MOLDURA` · **v18.75**)
 
 | Item | Detalhe |

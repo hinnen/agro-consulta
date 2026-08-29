@@ -148,6 +148,17 @@
         </div>
       </div>
     </form>
+
+    {# Sucesso — fica na tela até o operador apertar OK #}
+    <div id="agro-ne-sucesso" class="hidden flex flex-col flex-1 min-h-0 items-center justify-center px-6 py-10 text-center" role="status" aria-live="polite">
+      <div class="max-w-md w-full rounded-2xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50 to-white px-6 py-8 shadow-xl">
+        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-600 text-white text-3xl font-black shadow-lg" aria-hidden="true">✓</div>
+        <h3 id="agro-ne-sucesso-titulo" class="text-2xl font-black text-slate-900 mb-2">Empréstimo registrado</h3>
+        <p id="agro-ne-sucesso-msg" class="text-lg font-bold text-emerald-900 mb-2"></p>
+        <p id="agro-ne-sucesso-detalhe" class="text-sm font-semibold text-slate-600 mb-6"></p>
+        <button type="button" id="agro-ne-sucesso-ok" class="w-full max-w-xs mx-auto min-h-[52px] rounded-xl bg-indigo-600 hover:bg-indigo-700 px-8 py-3 text-lg font-black text-white shadow-md uppercase tracking-wide border-2 border-indigo-700">OK</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -593,6 +604,8 @@
   const subtitulo = document.getElementById('agro-ne-subtitulo');
   const msgBox = document.getElementById('agro-ne-msg');
   const varianteInp = document.getElementById('ne-variante');
+  const sucessoEl = document.getElementById('agro-ne-sucesso');
+  let sucessoPendenteRefresh = false;
 
   function showMsg(text, ok) {
     msgBox.textContent = text;
@@ -604,6 +617,53 @@
   function hideMsg() {
     msgBox.classList.add('hidden');
     msgBox.textContent = '';
+  }
+
+  function hideSucesso() {
+    if (sucessoEl) sucessoEl.classList.add('hidden');
+  }
+
+  function showSucesso(j, body) {
+    passoTipo.classList.add('hidden');
+    form.classList.add('hidden');
+    form.classList.remove('flex');
+    hideMsg();
+    subtitulo.textContent = 'Concluído';
+    const msg = document.getElementById('agro-ne-sucesso-msg');
+    const det = document.getElementById('agro-ne-sucesso-detalhe');
+    const tipoLbl = body.variante === 'interno' ? 'Interno' : 'Externo';
+    if (msg) {
+      msg.textContent = 'Ref ' + (j.ref || '—') + ' · ' + tipoLbl;
+    }
+    if (det) {
+      let d = body.entrada_ja_quitada ? 'Entrada quitada.' : 'Entrada em aberto.';
+      if (j.aviso_api) d += ' ERP: ' + j.aviso_api;
+      det.textContent = d;
+    }
+    if (sucessoEl) sucessoEl.classList.remove('hidden');
+    sucessoPendenteRefresh = true;
+    try {
+      document.getElementById('agro-ne-sucesso-ok')?.focus();
+    } catch (e0) {}
+  }
+
+  function refreshListaAposSucesso() {
+    try {
+      if (typeof window.recarregarPreservandoVista === 'function') {
+        window.recarregarPreservandoVista({});
+      } else if (typeof window.carregar === 'function') {
+        window.carregar();
+      }
+    } catch (e2) {}
+  }
+
+  function concluirSucesso() {
+    hideSucesso();
+    closeOverlay();
+    if (sucessoPendenteRefresh) {
+      sucessoPendenteRefresh = false;
+      refreshListaAposSucesso();
+    }
   }
 
   function resetFormFields() {
@@ -657,6 +717,8 @@
   }
 
   function openOverlay() {
+    hideSucesso();
+    sucessoPendenteRefresh = false;
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
     document.body.classList.add('overflow-hidden');
@@ -664,12 +726,14 @@
   }
 
   function closeOverlay() {
+    hideSucesso();
     overlay.classList.add('hidden');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('overflow-hidden');
   }
 
   function showPassoTipo() {
+    hideSucesso();
     passoTipo.classList.remove('hidden');
     form.classList.add('hidden');
     form.classList.remove('flex');
@@ -678,6 +742,7 @@
   }
 
   function showPassoForm(variante) {
+    hideSucesso();
     varianteInp.value = variante;
     resetFormFields();
     passoTipo.classList.add('hidden');
@@ -865,19 +930,7 @@
       });
       const j = await r.json();
       if (j.ok) {
-        let t = 'Registrado. Ref ' + (j.ref || '') + '. ';
-        t += body.entrada_ja_quitada ? 'Entrada quitada. ' : 'Entrada em aberto. ';
-        t += 'Atualize a lista se o título não aparecer.';
-        if (j.aviso_api) t += ' ERP: ' + j.aviso_api;
-        showMsg(t, true);
-        try {
-          if (typeof window.recarregarPreservandoVista === 'function') {
-            window.recarregarPreservandoVista({});
-          } else if (typeof window.carregar === 'function') {
-            window.carregar();
-          }
-        } catch (e2) {}
-        setTimeout(closeOverlay, 1400);
+        showSucesso(j, body);
       } else {
         showMsg(j.erro || JSON.stringify(j.erros || j) || 'Falha ao salvar.', false);
       }
@@ -887,5 +940,7 @@
       btn.disabled = false;
     }
   });
+
+  document.getElementById('agro-ne-sucesso-ok')?.addEventListener('click', concluirSucesso);
 })();
 </script>
