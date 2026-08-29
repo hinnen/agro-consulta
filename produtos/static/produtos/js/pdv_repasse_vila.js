@@ -268,6 +268,21 @@
     }
     setText('pdv-rp-total', money(tot));
 
+    var cx = c.caixa_vila || {};
+    var cxEl = document.getElementById('pdv-rp-caixa-din');
+    var cxHint = document.getElementById('pdv-rp-caixa-din-hint');
+    if (cxEl) {
+      if (cx.aberto) {
+        cxEl.textContent = money(cx.saldo_dinheiro);
+        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-slate-950 leading-none';
+        if (cxHint) cxHint.textContent = 'Esperado na gaveta (antes de levar)';
+      } else {
+        cxEl.textContent = 'Fechado';
+        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-red-800 leading-none';
+        if (cxHint) cxHint.textContent = 'Abra o caixa da Vila para ver o saldo';
+      }
+    }
+
     var enviarHint = document.getElementById('pdv-rp-enviar-hint');
     if (enviarHint) {
       if (mv != null) {
@@ -526,6 +541,12 @@
           calc = j.calc || null;
           if (calc && j.cofrinho) calc.cofrinho = j.cofrinho;
           if (calc && j.cofre_vila_elias) calc.cofre_vila_elias = j.cofre_vila_elias;
+          if (calc && j.caixa_vila) calc.caixa_vila = j.caixa_vila;
+        } else if (j.caixa_vila && calc) {
+          calc.caixa_vila = j.caixa_vila;
+        }
+        if (j.caixa_vila && !calc) {
+          calc = { caixa_vila: j.caixa_vila };
         }
         if (dom.sub) {
           if (!j.caixa_vila_aberto) {

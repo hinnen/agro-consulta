@@ -32,6 +32,7 @@ from produtos.repasse_vila_util import (
     registrar_ajuste_acumulado,
     reserva_vila_desde_config,
     resumo_cofrinho_vila,
+    saldo_dinheiro_caixa_vila,
     separar_reserva_diaria,
     registrar_uso_ou_ajuste_cofrinho,
     registrar_saldo_inicial_cofrinho,
@@ -119,6 +120,7 @@ def api_repasse_vila_calc(request):
     out = calcular_disponivel(dia, percentual_lucro=pct_v, modo_dia_cheio=modo)
     out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10, cofre="salario")
     out["cofre_vila_elias"] = resumo_cofrinho_vila(dia, limit=10, cofre="vila_elias")
+    out["caixa_vila"] = saldo_dinheiro_caixa_vila()
     out["ok"] = True
     return JsonResponse(out)
 
@@ -465,6 +467,7 @@ def api_repasse_vila_meta(request):
             "ok": True,
             "caixa_aberto": bool(caixa),
             "caixa_vila_aberto": bool(vila),
+            "caixa_vila": saldo_dinheiro_caixa_vila(),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
             "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),

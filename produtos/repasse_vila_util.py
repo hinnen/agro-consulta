@@ -33,6 +33,27 @@ REPASSE_MAX_DIAS_ATRASO = 180
 
 COFRE_SALARIO = "salario"
 COFRE_VILA_ELIAS = "vila_elias"
+
+
+def saldo_dinheiro_caixa_vila() -> dict[str, Any]:
+    """Esperado em Dinheiro no caixa principal da Vila agora (abertura + vendas − retiradas)."""
+    from produtos.caixa_util import obter_caixa_vila_aberto, resumo_esperado_por_forma
+
+    vila = obter_caixa_vila_aberto()
+    if not vila:
+        return {
+            "aberto": False,
+            "saldo_dinheiro": 0.0,
+            "sessao_id": None,
+        }
+    din = _dec(resumo_esperado_por_forma(vila).get("Dinheiro"))
+    return {
+        "aberto": True,
+        "saldo_dinheiro": float(din),
+        "sessao_id": int(vila.pk),
+    }
+
+
 FORMAS_ELETRONICAS_REPASSE = frozenset(
     {
         "PIX",
