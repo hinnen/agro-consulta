@@ -1,6 +1,6 @@
 /**
  * PDV — chat em grupo (todos os PCs Centro + Vila).
- * Polling + bip quando chega mensagem de outro aparelho.
+ * Dock vai para document.body (fora do overflow:hidden do PDV).
  */
 (function () {
   'use strict';
@@ -23,8 +23,19 @@
 
   var bootstrap = boot();
   var urls = bootstrap.urls || {};
+  if (!urls.apiPdvChatLojaLista) urls.apiPdvChatLojaLista = '/api/pdv/chat-loja/lista/';
+  if (!urls.apiPdvChatLojaEnviar) urls.apiPdvChatLojaEnviar = '/api/pdv/chat-loja/enviar/';
+
+  var dock = document.getElementById('pdv-chat-loja-dock');
   var overlay = document.getElementById('pdv-chat-loja-overlay');
-  if (!overlay || !urls.apiPdvChatLojaLista) return;
+  if (!dock || !overlay) return;
+
+  /* Fora do section overflow:hidden — senão a janela sobe e some cortada. */
+  try {
+    if (dock.parentNode !== document.body) {
+      document.body.appendChild(dock);
+    }
+  } catch (e) {}
 
   var dom = {
     btnOpen: document.getElementById('pdv-chat-loja-fab'),
@@ -43,6 +54,7 @@
   var busy = false;
   var knownIds = {};
   var cacheMsgs = [];
+  var ignoreOutsideUntil = 0;
 
   function csrf() {
     var c = document.cookie.match(/csrftoken=([^;]+)/);
@@ -258,6 +270,7 @@
   }
 
   function abrir() {
+    ignoreOutsideUntil = Date.now() + 400;
     overlay.classList.add('is-open');
     if (dom.btnOpen) dom.btnOpen.classList.add('is-open');
     setStatus('');
@@ -301,6 +314,15 @@
     saveSeen(lastId);
     syncBadge(unreadCount());
     schedulePoll();
+  }
+
+  function toggleChat(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isOpen()) fechar();
+    else abrir();
   }
 
   function resetEnviarBtn() {
@@ -359,18 +381,25 @@
   }
 
   if (dom.btnOpen) {
-    dom.btnOpen.addEventListener('click', function (e) {
+    dom.btnOpen.addEventListener('click', toggleChat);
+  }
+  if (dom.fechar) {
+    dom.fechar.addEventListener('click', function (e) {
+      e.preventDefault();
       e.stopPropagation();
-      if (isOpen()) fechar();
-      else abrir();
+      fechar();
     });
   }
-  if (dom.fechar) dom.fechar.addEventListener('click', fechar);
-  document.addEventListener('mousedown', function (e) {
-    if (!isOpen()) return;
-    var dock = document.getElementById('pdv-chat-loja-dock');
-    if (dock && !dock.contains(e.target)) fechar();
-  });
+  document.addEventListener(
+    'pointerdown',
+    function (e) {
+      if (!isOpen()) return;
+      if (Date.now() < ignoreOutsideUntil) return;
+      if (dock.contains(e.target)) return;
+      fechar();
+    },
+    true
+  );
   if (dom.form) dom.form.addEventListener('submit', enviar);
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && isOpen()) {
@@ -378,6 +407,9 @@
       fechar();
     }
   });
+
+  window.agroChatLojaAbrir = abrir;
+  window.agroChatLojaFechar = fechar;
 
   loadSeen();
   pollOnce(false);
