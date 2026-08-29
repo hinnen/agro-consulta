@@ -62,6 +62,31 @@
   #pdv-repasse-overlay .rp-quem-btn {
     width: 100%; box-sizing: border-box;
   }
+  /* Confirmação cofrinho — ~80% da tela, bem chamativa */
+  #pdv-repasse-overlay #pdv-rp-cofre-confirm-modal {
+    z-index: 60;
+  }
+  #pdv-repasse-overlay .rp-cofre-confirm-panel {
+    width: min(80vw, 56rem);
+    height: min(80dvh, 40rem);
+    max-width: 80vw;
+    max-height: 80dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 4px solid #e11d48;
+    background: linear-gradient(165deg, #fff1f2 0%, #ffe4e6 45%, #fecdd3 100%);
+    box-shadow: 0 25px 50px -12px rgba(190, 18, 60, 0.45);
+  }
+  #pdv-repasse-overlay .rp-cofre-confirm-valor {
+    font-size: clamp(2.75rem, 8vw, 5rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: #881337;
+    font-variant-numeric: tabular-nums;
+  }
 </style>
 
 <div id="pdv-repasse-overlay" class="fixed inset-0 hidden items-center justify-center bg-slate-900/60 p-1.5 sm:p-2" role="dialog" aria-modal="true" aria-labelledby="pdv-repasse-title">
@@ -239,6 +264,36 @@
       </div>
       <footer class="border-t border-slate-200 p-2 flex justify-end gap-2">
         <button type="button" id="pdv-rp-pin-ok" class="min-h-[2.75rem] rounded-xl bg-slate-800 px-5 text-sm font-black uppercase text-white">Pronto</button>
+      </footer>
+    </div>
+  </div>
+
+  {# Confirmação cofrinho — substitui window.confirm · ~80% da tela #}
+  <div id="pdv-rp-cofre-confirm-modal" class="rp-popup hidden items-center justify-center bg-rose-950/70 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-rp-cofre-confirm-title">
+    <div class="rp-cofre-confirm-panel">
+      <header class="shrink-0 border-b-4 border-rose-600 bg-rose-600 px-4 py-3 sm:px-6 sm:py-4">
+        <h3 id="pdv-rp-cofre-confirm-title" class="text-center text-xl sm:text-2xl font-black uppercase tracking-wide text-white leading-tight">
+          Atenção — cofrinho na Vila
+        </h3>
+      </header>
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
+        <p class="text-lg sm:text-xl font-black uppercase text-rose-950">Vai transferir agora</p>
+        <div>
+          <p class="text-sm sm:text-base font-black uppercase text-rose-800 mb-2">Deixe na Vila (cofrinho)</p>
+          <p class="rp-cofre-confirm-valor" id="pdv-rp-cofre-confirm-valor">R$ 0,00</p>
+        </div>
+        <p class="max-w-[36rem] rounded-xl border-4 border-rose-700 bg-white px-4 py-3 text-base sm:text-xl font-black text-rose-950 leading-snug" role="alert">
+          NÃO coloque esse valor no envelope do Centro.
+        </p>
+        <p class="text-base sm:text-lg font-bold text-rose-900">Confirma o repasse?</p>
+      </div>
+      <footer class="shrink-0 border-t-4 border-rose-300 bg-white/90 px-4 py-3 sm:px-6 sm:py-4 flex flex-wrap gap-3 justify-center sm:justify-end">
+        <button type="button" id="pdv-rp-cofre-confirm-cancelar" class="min-h-[3.5rem] min-w-[9rem] rounded-xl border-4 border-slate-400 bg-white px-6 text-base font-black uppercase text-slate-800 hover:bg-slate-50">
+          Cancelar
+        </button>
+        <button type="button" id="pdv-rp-cofre-confirm-ok" class="min-h-[3.5rem] flex-1 sm:flex-none sm:min-w-[14rem] rounded-xl border-4 border-rose-800 bg-rose-600 px-8 text-base sm:text-lg font-black uppercase text-white hover:bg-rose-700 shadow-lg">
+          Confirmar repasse
+        </button>
       </footer>
     </div>
   </div>

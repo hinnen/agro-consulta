@@ -45,6 +45,8 @@
   var quemModal = document.getElementById('pdv-rp-quem-modal');
   var formaModal = document.getElementById('pdv-rp-forma-modal');
   var pinModal = document.getElementById('pdv-rp-pin-modal');
+  var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
+  var cofreConfirmPending = null;
 
   function todayIso() {
     var d = new Date();
@@ -538,6 +540,21 @@
     } catch (_) {}
   }
 
+  function closeCofreConfirmModal(ok) {
+    hideModal(cofreConfirmModal);
+    var cb = cofreConfirmPending;
+    cofreConfirmPending = null;
+    if (ok && typeof cb === 'function') cb();
+  }
+
+  function openCofreConfirmModal(valorTxt, onConfirm) {
+    var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
+    if (elVal) elVal.textContent = valorTxt || 'R$ 0,00';
+    cofreConfirmPending = onConfirm;
+    showModal(cofreConfirmModal);
+    focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
+  }
+
   function confirmar() {
     if (busy) return;
     sanitizeManualField();
@@ -579,16 +596,16 @@
     var cofre = (calc && calc.cofrinho) || {};
     var pendenteCofre = Number(cofre.pendente_dia || 0);
     if (pendenteCofre > 0.009) {
-      var msgCofre =
-        'Vai transferir agora.\n\n' +
-        'Deixe ' +
-        money(pendenteCofre) +
-        ' na Vila (cofrinho).\n' +
-        'Não coloque esse valor no envelope do Centro.\n\n' +
-        'Confirma o repasse?';
-      if (!window.confirm(msgCofre)) return;
+      openCofreConfirmModal(money(pendenteCofre), function () {
+        enviarConfirmacao(body);
+      });
+      return;
     }
+    enviarConfirmacao(body);
+  }
 
+  function enviarConfirmacao(body) {
+    if (busy) return;
     busy = true;
     if (dom.status) dom.status.textContent = 'Transferindo…';
     fetch('/api/repasse-vila/confirmar/', {
@@ -652,6 +669,11 @@
   var pinOk = document.getElementById('pdv-rp-pin-ok');
   if (pinFechar) pinFechar.addEventListener('click', function () { closePinModal(true); });
   if (pinOk) pinOk.addEventListener('click', function () { closePinModal(); });
+
+  var cofreCancelar = document.getElementById('pdv-rp-cofre-confirm-cancelar');
+  var cofreOk = document.getElementById('pdv-rp-cofre-confirm-ok');
+  if (cofreCancelar) cofreCancelar.addEventListener('click', function () { closeCofreConfirmModal(false); });
+  if (cofreOk) cofreOk.addEventListener('click', function () { closeCofreConfirmModal(true); });
 
   if (dom.todos) {
     dom.todos.addEventListener('change', function () {
@@ -746,6 +768,10 @@
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
+    if (cofreConfirmModal && !cofreConfirmModal.classList.contains('hidden')) {
+      closeCofreConfirmModal(false);
+      return;
+    }
     if (quemModal && !quemModal.classList.contains('hidden')) {
       closeQuemModal(true);
       return;

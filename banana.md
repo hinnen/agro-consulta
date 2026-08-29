@@ -1243,6 +1243,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Repasse: modal cofrinho grande (`REPASSE-COFRE-CONFIRM` · **v18.78**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Tira o `confirm` do browser; modal rosa ~80% da tela: valor + «não no envelope» |
+| **Onde** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
+| **Prova** | overlay path **104** · vila path **208** |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse → Confirmar (com cofrinho pendente) |
+| **Você** | Tem que aparecer o aviso grande, não a caixinha do Chrome |
+
 ### 🔧 WIP — CP fundo laranja empréstimo (`CP-EMP-ROW-TINT` · **v18.77**)
 
 | Item | Detalhe |
