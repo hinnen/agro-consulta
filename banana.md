@@ -427,7 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
-- **Chat lojas (29/08 · `PDV-CHAT-LOJA`):** aba **Chat** colada embaixo · janela sobe · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · prova **58/58**.
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA` + hotfix `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.60** (janela ainda cortada) · hotfix dock→`body` **v19.63** prova **62/62** 🟡 aguarda loja.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1252,6 +1252,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · 29/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **pronto para envio** — aguarda frase + senha no **próximo** chat (lojas pausam venda) |
+| **Loja agora** | **Live v19.60** @ `460e1c7` — Chat **existe** mas **janela não abre** (cortada pelo overflow do PDV) |
+| **O quê sobe** | **Só** hotfix abrir Chat — dock → `document.body` · z-index **220** · ignoreOutside |
+| **Arquivos** | `pdv_chat_loja.js` · `chat_loja_overlay.html` · VERSION · verify |
+| **NÃO sobe** | `BI-META-C-VILA-RAMP` · FF inteiro do `teste` · demais WIP |
+| **Migrate** | **NÃO** |
+| **Prova** | `python scripts/verify_pdv_chat_loja.py` → **VERIFY_OK 62/62** |
+| **Risco loja aberta** | **Baixo** — zero venda/caixa/NFC-e/Repasse; só UI Chat. Ainda assim: Ctrl+F5 nos PDVs após deploy |
+| **Rollback** | `docs/ROLLBACK-PDV-CHAT-OPEN.md` · tag a criar no PREP: `rollback/pre-pdv-chat-open-v19.60` |
+| **Você (próximo chat)** | pausar vendas → frase + senha `99738595` → assistente sobe **só** este SOLO |
+
+### ✅ CHECKLIST ÚNICO SOLO — PDV-CHAT-OPEN (29/08 · tip **v19.63**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | PDV-CHAT-OPEN | 🟡 **pronto envio** · prova **62/62** · migrate **NÃO** |
+
+### 📦 PACOTE PRONTO SOLO — Chat abre de verdade (`PDV-CHAT-OPEN` · **v19.63** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relato** | Loja Live v19.60 — aba Chat aparece, janela **não abre** |
+| **Causa** | Dock dentro do PDV com `overflow:hidden` |
+| **Fix** | `appendChild` no `body` · z-index 220 · URL fallback · ignoreOutside |
+| **Prova** | **62/62** |
+| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
+| **Você** | após deploy: Ctrl+F5 PDV · clicar **Chat** · janela sobe · enviar msg |
+
 ### ✅ Deploy loja — lote checklist 29/08g (`deploy/prep-checklist-2908g` · **v19.60**) · **Live**
 
 | Campo | Valor |
@@ -1289,75 +1321,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~📦 PACOTE PRONTO — tip v19.60~~ · **superado — Live v19.60**
 
-### 📦 PACOTE PRONTO — Pedir escrito embaixo (`PDV-PEDIR-ESCRITO-UX` · **v19.60** · 29/08/2026)
+### ~~📦 PACOTE PRONTO — Pedir escrito embaixo (`PDV-PEDIR-ESCRITO-UX`)~~ · **superado — Live v19.60**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Escrito+obs na **faixa de baixo** (esquerda) · Enviar **só com texto** (sem produto) |
-| **Migrate** | **NÃO** |
-| **Prova** | path **22/22** · pedir-loja **68/68** · tests **25** OK |
-| **Status** | 🟡 **pronto para envio** |
-| **Você** | Ctrl+F5 · digitar «sacola» embaixo · Enviar (sem Incluir / sem produto) |
+### ~~📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA`)~~ · **superado — Live v19.60** · ver hotfix **PDV-CHAT-OPEN** no topo
 
-### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.58** · 29/08/2026)
+### ~~📦 PACOTE PRONTO — Entrada NF etapa 5 bloqueio falso (`NF-ESTOQUE-BLOQUEIO-FALSO`)~~ · **superado — Live v19.60**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Grupo único Centro+Vila · aba **Chat** colada embaixo · janela sobe · som + badge + pisca · sem Processando |
-| **Tela** | `/pdv/` |
-| **Migrate** | **SIM** `produtos.0105` |
-| **Prova** | `scripts/verify_pdv_chat_loja.py` **58/58** (estático+runtime API/PG) |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** (aguarda frase + senha) |
-| **Você** | migrate `0105` · Ctrl+F5 PDV · 2 PCs · bip/badge |
+### ~~📦 PACOTE PRONTO — Pedir loja escrito + obs (`PDV-PEDIR-ESCRITO`)~~ · **superado — Live v19.60**
 
-### 📦 PACOTE PRONTO — Entrada NF etapa 5 bloqueio falso (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
+### ~~🩹 Cadastro — validade da tela/NF na aba lote (`CAD-VAL-ESPELHO`)~~ · **superado — Live v19.60**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Relato** | Renan · NF 3024907 · etapa 5 · botão pedia «Reabra a nota» sem ter finalizado |
-| **Causa** | Confirmação das etapas 1–4 virava «finalizada com PIN» |
-| **Fix** | Bloqueia só PIN / financeiro / bucket concluída · botão azul livre no fluxo normal |
-| **Prova** | path **39/39** · recovery DOM OK · Django reabertura **10/10** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 `/entrada-nota/` · etapa 5 · **Registrar entrada no estoque Agro** (sem caixa amarela) |
-
-### 📦 PACOTE PRONTO — Pedir loja escrito + obs (`PDV-PEDIR-ESCRITO` · **v19.36** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Pedido **escrito** (sacola, café…) + **observação/mensagem** maior · escrito não move estoque |
-| **Tela** | PDV · Pedir loja · coluna Lista do pedido |
-| **Migrate** | **NÃO** |
-| **Prova** | pedir-loja **66/66** · tests transf **25** OK |
-| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · escrever «sacola» · Incluir · observação · Enviar |
-
-### 🩹 Cadastro — validade da tela/NF na aba lote (`CAD-VAL-ESPELHO` · **v19.28**) · 29/08/2026
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · prova **44/44** · ⏳ loja ainda sem |
-| **Relato** | Validade na tela Validade / Entrada NF não aparecia na aba 8 do cadastro |
-| **Causa** | Relatório lia resumo (`cadastro_extras`); aba do cadastro só lista `EstoqueLote` |
-| **O quê** | Ao abrir produto / relatório, espelha extras→lote · Salvar na Validade sempre grava lote · NF atualiza resumo |
-| **Prova** | `scripts/verify_cad_validade_espelho_path.py` **VERIFY_OK 44/44** · `verify_bi_val_salvar_path` **19/19** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 · abrir produto que tem validade na tela Validade · aba 8 tem que listar |
-| **Produção** | só frase + senha depois de validar local |
-
-### 🩹 Cadastro — excluir produto «sem permissão» falso (`CAD-EXCLUIR-MSG-STAFF` · **v19.25**) · 29/08/2026
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · prova **37/37** · ⏳ loja ainda sem |
-| **Relato** | Renan · Excluir → «Sem permissão para salvar» apesar de logado no admin |
-| **Causa** | API 403 de regra; JS trocava por mensagem genérica de login |
-| **O quê** | Erro real da API · staff força limpeza local · regra → 409 |
-| **Prova** | `scripts/verify_cad_excluir_msg_staff_path.py` **VERIFY_OK 37/37** |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
-| **Produção** | só frase + senha |
+### ~~🩹 Cadastro — excluir produto «sem permissão» falso (`CAD-EXCLUIR-MSG-STAFF`)~~ · **superado — Live v19.60**
 
 ### 📦 PACOTE PRONTO SOLO — Meta C Vila ramp (`BI-META-C-VILA-RAMP` · tip **v19.49** / `850dc62`) · 29/08/2026
 

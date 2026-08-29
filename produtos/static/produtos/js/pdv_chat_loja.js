@@ -382,13 +382,6 @@
 
   if (dom.btnOpen) {
     dom.btnOpen.addEventListener('click', toggleChat);
-    dom.btnOpen.addEventListener('pointerup', function (e) {
-      /* toque em alguns Chrome: garante toggle mesmo se click falhar */
-      if (e.pointerType === 'touch') {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    });
   }
   if (dom.fechar) {
     dom.fechar.addEventListener('click', function (e) {
