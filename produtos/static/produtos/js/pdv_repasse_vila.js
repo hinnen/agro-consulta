@@ -290,18 +290,27 @@
       }
     }
 
-    var totAuto = 0;
-    if (dom.cmv && dom.cmv.checked) totAuto += Number(d.cmv || 0);
-    if (dom.lucro && dom.lucro.checked) totAuto += Number(d.lucro || 0);
-    if (dom.fiado && dom.fiado.checked) totAuto += Number(d.fiado || 0);
+    var diaAuto = 0;
+    if (dom.cmv && dom.cmv.checked) diaAuto += Number(d.cmv || 0);
+    if (dom.lucro && dom.lucro.checked) diaAuto += Number(d.lucro || 0);
+    if (dom.fiado && dom.fiado.checked) diaAuto += Number(d.fiado || 0);
     var inclAcum = !!(dom.acumulado && dom.acumulado.checked && acum !== 0);
+    var totAuto = diaAuto;
     if (inclAcum) {
-      totAuto = Math.max(0, totAuto + acum);
+      totAuto = Math.max(0, diaAuto + acum);
     }
     syncManualFromAuto(totAuto);
     var mv = manualDirty ? parseManualValor() : null;
     var tot = mv != null ? mv : totAuto;
-    setText('pdv-rp-total', money(tot));
+    // Grande = só o dia · menor = acumulado (na mesma tag)
+    setText('pdv-rp-total', money(diaAuto));
+    var acumHero = document.getElementById('pdv-rp-total-acum');
+    if (acumHero) {
+      acumHero.textContent = money(acum);
+      acumHero.className =
+        'text-xl sm:text-2xl font-black tabular-nums leading-none ' +
+        (acum > 0.009 ? 'text-amber-950' : acum < -0.009 ? 'text-sky-900' : 'text-slate-600');
+    }
 
     var cx = c.caixa_vila || {};
     var cxEl = document.getElementById('pdv-rp-caixa-din');
@@ -321,12 +330,9 @@
     var enviarHint = document.getElementById('pdv-rp-enviar-hint');
     if (enviarHint) {
       if (mv != null) {
-        enviarHint.textContent = 'Valor digitado manualmente';
+        enviarHint.textContent = 'Valor digitado manualmente · total a levar ' + money(tot);
       } else if (inclAcum && Math.abs(acum) > 0.009) {
-        enviarHint.textContent =
-          acum > 0
-            ? 'Inclui ' + money(acum) + ' de dias anteriores'
-            : 'Abate ' + money(Math.abs(acum));
+        enviarHint.textContent = 'Total a levar ' + money(tot) + ' (dia + acumulado)';
       } else {
         enviarHint.textContent = '';
       }

@@ -147,7 +147,11 @@
 
         <div class="rp-hero space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total">R$ 0,00</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-total" title="Só o valor deste dia">R$ 0,00</div>
+          <div class="rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1.5">
+            <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado (dias anteriores)</div>
+            <div class="text-xl sm:text-2xl font-black tabular-nums text-amber-950 leading-none" id="pdv-rp-total-acum">R$ 0,00</div>
+          </div>
           <p class="text-xs font-bold text-emerald-800" id="pdv-rp-enviar-hint"></p>
           <button type="button" id="pdv-rp-btn-acum" class="mt-auto min-h-[2.5rem] w-full rounded-lg border-2 border-amber-600 bg-amber-50 px-3 text-xs font-black uppercase text-amber-950">Acumulado</button>
         </div>
