@@ -35,6 +35,8 @@
     salvarReserva: document.getElementById('pdv-rp-salvar-reserva'),
     separarReserva: document.getElementById('pdv-rp-separar-reserva'),
     manual: document.getElementById('pdv-rp-manual'),
+    inputCofreSal: document.getElementById('pdv-rp-input-cofre-sal'),
+    inputCofreVe: document.getElementById('pdv-rp-input-cofre-ve'),
     pin: document.getElementById('pdv-rp-pin'),
     status: document.getElementById('pdv-rp-status'),
     quemGrid: document.getElementById('pdv-rp-quem-grid'),
@@ -47,11 +49,34 @@
   var pinModal = document.getElementById('pdv-rp-pin-modal');
   var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
   var cofreConfirmPending = null;
+  var cofreCheckModal = document.getElementById('pdv-rp-cofre-check-modal');
+  var cofreCheckStep = 0;
+  var cofreCheckVals = { salario: 0, vilaElias: 0, levar: 0 };
+  var cofreCheckPending = null;
+  var COFRE_CHECK_PASSOS = [
+    {
+      pergunta: 'Você já separou o dinheiro do cofrinho do funcionário?',
+      key: 'salario',
+    },
+    {
+      pergunta: 'Você já separou o dinheiro do cofre Vila Elias?',
+      key: 'vilaElias',
+    },
+    {
+      pergunta: 'Você já pegou o dinheiro que vai ser levado para o Centro?',
+      key: 'levar',
+    },
+  ];
   var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
+  var avisoModal = document.getElementById('pdv-rp-aviso-modal');
   var manualDirty = false;
   var manualAutoFmt = '';
   var selectManualPending = false;
   var forcarManualPendingBody = null;
+  var cofreSalDirty = false;
+  var cofreVeDirty = false;
+  var cofreSalAutoFmt = '';
+  var cofreVeAutoFmt = '';
 
   function todayIso() {
     var d = new Date();
@@ -141,6 +166,36 @@
     } else {
       manualDirty = true;
     }
+  }
+
+  function syncCofreInput(el, dirty, valor) {
+    if (!el) return fmtManualNum(valor);
+    if (dirty) return String(el.value || '').trim();
+    var fmt = fmtManualNum(valor);
+    if (el.value !== fmt) el.value = fmt;
+    return fmt;
+  }
+
+  function sanitizeMoneyField(el) {
+    if (!el) return;
+    var s = String(el.value || '');
+    if (/[a-zA-Z]/.test(s)) {
+      el.value = '';
+      return;
+    }
+    var cleaned = s.replace(/[^\d.,]/g, '');
+    if (cleaned !== s) el.value = cleaned;
+  }
+
+  function markCofreDirty(which) {
+    var el = which === 've' ? dom.inputCofreVe : dom.inputCofreSal;
+    var auto = which === 've' ? cofreVeAutoFmt : cofreSalAutoFmt;
+    if (!el) return;
+    sanitizeMoneyField(el);
+    var cur = String(el.value || '').trim();
+    var dirty = !(!cur || cur === auto);
+    if (which === 've') cofreVeDirty = dirty;
+    else cofreSalDirty = dirty;
   }
 
   function csrf() {
@@ -391,6 +446,12 @@
       aviso: 'pdv-rp-cofre-ve-aviso',
     }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
 
+    var sepJunto = !!(dom.separarReserva && dom.separarReserva.checked);
+    var pendSal = sepJunto ? Number(cofre.pendente_dia || 0) : 0;
+    var pendVe = sepJunto ? Number(cofreVe.pendente_dia || 0) : 0;
+    cofreSalAutoFmt = syncCofreInput(dom.inputCofreSal, cofreSalDirty, pendSal);
+    cofreVeAutoFmt = syncCofreInput(dom.inputCofreVe, cofreVeDirty, pendVe);
+
     renderMesCards();
   }
 
@@ -565,7 +626,13 @@
     manualDirty = false;
     manualAutoFmt = '';
     selectManualPending = true;
+    cofreSalDirty = false;
+    cofreVeDirty = false;
+    cofreSalAutoFmt = '';
+    cofreVeAutoFmt = '';
     if (dom.manual) dom.manual.value = '';
+    if (dom.inputCofreSal) dom.inputCofreSal.value = '';
+    if (dom.inputCofreVe) dom.inputCofreVe.value = '';
     if (dom.pin) dom.pin.value = '';
     quem = '';
     formaPag = 'Dinheiro';
@@ -656,18 +723,108 @@
     } catch (_) {}
   }
 
+  function parseMoneyInput(el) {
+    if (!el) return 0;
+    var s = String(el.value || '')
+      .replace(/\s/g, '')
+      .replace(/R\$/gi, '')
+      .replace(/\./g, '')
+      .replace(',', '.');
+    var n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+
+  function closeCofreCheckModal(okFinal) {
+    var cb = cofreCheckPending;
+    cofreCheckPending = null;
+    cofreCheckStep = 0;
+    // Evita o clique do OK “cair” no Cancelar/botão de baixo (ghost click)
+    if (cofreCheckModal) {
+      try {
+        cofreCheckModal.style.pointerEvents = 'none';
+      } catch (_) {}
+    }
+    setTimeout(function () {
+      hideModal(cofreCheckModal);
+      if (cofreCheckModal) {
+        try {
+          cofreCheckModal.style.pointerEvents = '';
+        } catch (_) {}
+      }
+      if (okFinal && typeof cb === 'function') cb();
+    }, 160);
+  }
+
+  function renderCofreCheckPasso() {
+    var passo = COFRE_CHECK_PASSOS[cofreCheckStep];
+    if (!passo) {
+      closeCofreCheckModal(true);
+      return;
+    }
+    var elP = document.getElementById('pdv-rp-cofre-check-pergunta');
+    var elV = document.getElementById('pdv-rp-cofre-check-valor');
+    var elS = document.getElementById('pdv-rp-cofre-check-passo');
+    if (elP) elP.textContent = passo.pergunta;
+    if (elV) elV.textContent = money(cofreCheckVals[passo.key] || 0);
+    if (elS) elS.textContent = (cofreCheckStep + 1) + ' de ' + COFRE_CHECK_PASSOS.length;
+    focusSoon(document.getElementById('pdv-rp-cofre-check-ok'));
+  }
+
+  function openCofreCheckSequence(opts, onDone) {
+    cofreCheckVals = {
+      salario: Number(opts.salario || 0),
+      vilaElias: Number(opts.vilaElias || 0),
+      levar: Number(opts.levar || 0),
+    };
+    cofreCheckPending = onDone;
+    cofreCheckStep = 0;
+    if (cofreCheckModal) {
+      try {
+        cofreCheckModal.style.pointerEvents = '';
+      } catch (_) {}
+    }
+    showModal(cofreCheckModal);
+    renderCofreCheckPasso();
+  }
+
+  function advanceCofreCheck() {
+    if (cofreCheckPending == null) return;
+    cofreCheckStep += 1;
+    if (cofreCheckStep >= COFRE_CHECK_PASSOS.length) {
+      closeCofreCheckModal(true);
+      return;
+    }
+    renderCofreCheckPasso();
+  }
+
   function closeCofreConfirmModal(ok) {
     hideModal(cofreConfirmModal);
     var cb = cofreConfirmPending;
+    var vals = cofreConfirmValsSnapshot;
     cofreConfirmPending = null;
-    if (ok && typeof cb === 'function') cb();
+    cofreConfirmValsSnapshot = null;
+    if (!ok || typeof cb !== 'function') return;
+    // Mesma proteção: não abrir o próximo no mesmo tick do clique
+    setTimeout(function () {
+      openCofreCheckSequence(vals || {}, cb);
+    }, 80);
   }
 
-  function openCofreConfirmModal(valorSalarioTxt, valorVeTxt, onConfirm) {
+  var cofreConfirmValsSnapshot = null;
+
+  function openCofreConfirmModal(opts, onConfirm) {
+    opts = opts || {};
     var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
     var elVe = document.getElementById('pdv-rp-cofre-confirm-valor-ve');
-    if (elVal) elVal.textContent = valorSalarioTxt || 'R$ 0,00';
-    if (elVe) elVe.textContent = valorVeTxt || 'R$ 0,00';
+    var elLev = document.getElementById('pdv-rp-cofre-confirm-valor-levar');
+    if (elVal) elVal.textContent = money(opts.salario || 0);
+    if (elVe) elVe.textContent = money(opts.vilaElias || 0);
+    if (elLev) elLev.textContent = money(opts.levar || 0);
+    cofreConfirmValsSnapshot = {
+      salario: Number(opts.salario || 0),
+      vilaElias: Number(opts.vilaElias || 0),
+      levar: Number(opts.levar || 0),
+    };
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
     focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
@@ -681,6 +838,21 @@
     if (dom.lucro && dom.lucro.checked) t += Number(d.lucro || 0);
     if (dom.fiado && dom.fiado.checked) t += Number(d.fiado || 0);
     return t < 0.009;
+  }
+
+  function closeAvisoModal() {
+    hideModal(avisoModal);
+  }
+
+  function openAvisoModal(msg) {
+    var el = document.getElementById('pdv-rp-aviso-msg');
+    if (el) el.textContent = msg || 'Não foi possível transferir';
+    if (dom.status) dom.status.textContent = msg || '';
+    // Atrasa um pouco p/ não fechar no mesmo clique do OK anterior
+    setTimeout(function () {
+      showModal(avisoModal);
+      focusSoon(document.getElementById('pdv-rp-aviso-ok'));
+    }, 120);
   }
 
   function closeForcarManualModal() {
@@ -731,6 +903,8 @@
   function confirmar() {
     if (busy) return;
     sanitizeManualField();
+    sanitizeMoneyField(dom.inputCofreSal);
+    sanitizeMoneyField(dom.inputCofreVe);
     var q = quemAtual();
     if (q.length < 2) {
       pendingConfirmar = true;
@@ -744,11 +918,28 @@
       openPinModal();
       return;
     }
-    var manRaw = String((dom.manual && dom.manual.value) || '').trim();
-    if (manRaw && /[a-zA-Z]/.test(manRaw)) {
-      dom.manual.value = '';
-      manualDirty = false;
-      if (dom.status) dom.status.textContent = 'Valor inválido — digite só o número (ex. 1500,00)';
+    var rawSal = String((dom.inputCofreSal && dom.inputCofreSal.value) || '').trim();
+    var rawVe = String((dom.inputCofreVe && dom.inputCofreVe.value) || '').trim();
+    var rawLev = String((dom.manual && dom.manual.value) || '').trim();
+    if (!rawSal || !rawVe || !rawLev) {
+      if (dom.status) {
+        dom.status.textContent =
+          'Preencha os 3 valores: Separar Salário · Separar Vila Elias · Levar ao Centro (pode ser 0,00).';
+      }
+      if (!rawSal) focusSoon(dom.inputCofreSal);
+      else if (!rawVe) focusSoon(dom.inputCofreVe);
+      else focusSoon(dom.manual);
+      return;
+    }
+    var vSal = parseMoneyInput(dom.inputCofreSal);
+    var vVe = parseMoneyInput(dom.inputCofreVe);
+    var vLev = parseMoneyInput(dom.manual);
+    if (!isFinite(vSal) || !isFinite(vVe) || !isFinite(vLev) || vSal < 0 || vVe < 0 || vLev < 0) {
+      if (dom.status) dom.status.textContent = 'Confira os 3 valores (número ≥ 0).';
+      return;
+    }
+    if (vLev < 0.009 && vSal < 0.009 && vVe < 0.009) {
+      if (dom.status) dom.status.textContent = 'Informe ao menos um valor maior que zero.';
       return;
     }
     var body = {
@@ -761,38 +952,17 @@
       modo_dia_cheio: !!(dom.cheio && dom.cheio.checked),
       forma_pagamento: formaPag || 'Dinheiro',
       data_ref: dataRef(),
-      incluir_acumulado: !!(dom.acumulado && dom.acumulado.checked),
-      separar_reserva: !!(dom.separarReserva && dom.separarReserva.checked),
+      incluir_acumulado: false,
+      separar_reserva: vSal > 0.009 || vVe > 0.009,
+      valor_cofre_salario: String(vSal),
+      valor_cofre_vila_elias: String(vVe),
+      valor_manual: String(vLev),
     };
-    // Só manda valor_manual se o operador alterou o campo (senão segue o automático)
-    var mv = manualDirty ? parseManualValor() : null;
-    if (mv != null) body.valor_manual = String(mv);
-
-    function seguirAposCofre() {
-      if (mv != null && mv > 0 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
-        var br = money(mv);
-        openForcarManualModal(
-          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
-            br +
-            '. Confirme com o PIN de novo.',
-          body
-        );
-        return;
-      }
+    openCofreConfirmModal({ salario: vSal, vilaElias: vVe, levar: vLev }, function () {
+      // Já veio dos 3 campos + 3 OKs — manda direto (sem 4º modal de “forçar”)
+      body.forcar_manual_zerado = true;
       enviarConfirmacao(body);
-    }
-
-    var cofre = (calc && calc.cofrinho) || {};
-    var cofreVe = (calc && calc.cofre_vila_elias) || {};
-    var pendenteCofre = Number(cofre.pendente_dia || 0);
-    var pendenteVe = Number(cofreVe.pendente_dia || 0);
-    if (pendenteCofre > 0.009 || pendenteVe > 0.009) {
-      openCofreConfirmModal(money(pendenteCofre), money(pendenteVe), function () {
-        seguirAposCofre();
-      });
-      return;
-    }
-    seguirAposCofre();
+    });
   }
 
   function enviarConfirmacao(body) {
@@ -821,15 +991,20 @@
             openForcarManualModal(j.erro, body);
             return;
           }
-          if (dom.status) dom.status.textContent = j.erro || 'Não foi possível transferir';
+          openAvisoModal(j.erro || 'Não foi possível transferir');
           return;
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
         var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
         var saldoVe = j.cofre_vila_elias ? money(j.cofre_vila_elias.saldo) : '—';
         if (dom.status) {
-          dom.status.textContent =
-            'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          if (j.somente_cofres) {
+            dom.status.textContent =
+              'OK — só cofres · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          } else {
+            dom.status.textContent =
+              'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          }
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
@@ -842,7 +1017,7 @@
       })
       .catch(function () {
         busy = false;
-        if (dom.status) dom.status.textContent = 'Falha de rede';
+        openAvisoModal('Falha de rede');
       });
   }
 
@@ -873,6 +1048,22 @@
   var cofreOk = document.getElementById('pdv-rp-cofre-confirm-ok');
   if (cofreCancelar) cofreCancelar.addEventListener('click', function () { closeCofreConfirmModal(false); });
   if (cofreOk) cofreOk.addEventListener('click', function () { closeCofreConfirmModal(true); });
+
+  var cofreCheckCancelar = document.getElementById('pdv-rp-cofre-check-cancelar');
+  var cofreCheckOk = document.getElementById('pdv-rp-cofre-check-ok');
+  if (cofreCheckCancelar) {
+    cofreCheckCancelar.addEventListener('click', function () {
+      closeCofreCheckModal(false);
+    });
+  }
+  if (cofreCheckOk) {
+    cofreCheckOk.addEventListener('click', function () {
+      advanceCofreCheck();
+    });
+  }
+
+  var avisoOk = document.getElementById('pdv-rp-aviso-ok');
+  if (avisoOk) avisoOk.addEventListener('click', closeAvisoModal);
 
   var forcarCancelar = document.getElementById('pdv-rp-forcar-manual-cancelar');
   var forcarOk = document.getElementById('pdv-rp-forcar-manual-ok');
@@ -907,6 +1098,33 @@
     });
     el.addEventListener('input', renderCalc);
   });
+  if (dom.inputCofreSal) {
+    dom.inputCofreSal.addEventListener('input', function () {
+      markCofreDirty('sal');
+    });
+    dom.inputCofreSal.addEventListener('focus', function () {
+      try {
+        dom.inputCofreSal.select();
+      } catch (_) {}
+    });
+  }
+  if (dom.inputCofreVe) {
+    dom.inputCofreVe.addEventListener('input', function () {
+      markCofreDirty('ve');
+    });
+    dom.inputCofreVe.addEventListener('focus', function () {
+      try {
+        dom.inputCofreVe.select();
+      } catch (_) {}
+    });
+  }
+  if (dom.separarReserva) {
+    dom.separarReserva.addEventListener('change', function () {
+      cofreSalDirty = false;
+      cofreVeDirty = false;
+      renderCalc();
+    });
+  }
   if (dom.manual) {
     dom.manual.addEventListener('input', function () {
       markManualDirtyFromInput();
@@ -994,6 +1212,14 @@
     if (ev.key !== 'Escape') return;
     if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
       closeForcarManualModal();
+      return;
+    }
+    if (avisoModal && !avisoModal.classList.contains('hidden')) {
+      closeAvisoModal();
+      return;
+    }
+    if (cofreCheckModal && !cofreCheckModal.classList.contains('hidden')) {
+      closeCofreCheckModal(false);
       return;
     }
     if (cofreConfirmModal && !cofreConfirmModal.classList.contains('hidden')) {

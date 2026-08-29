@@ -21,6 +21,9 @@ STATUS_PRONTO = SolicitacaoTransferenciaPdv.STATUS_PRONTO
 STATUS_CONCLUIDO = SolicitacaoTransferenciaPdv.STATUS_CONCLUIDO
 STATUS_CANCELADO = SolicitacaoTransferenciaPdv.STATUS_CANCELADO
 
+# Item sem produto cadastro (sacola, café, recado…) — não move estoque.
+PREFIXO_ITEM_LIVRE = "livre:"
+
 ACOES_STATUS = {
     "aceitar": STATUS_ACEITO,
     "pronto": STATUS_PRONTO,
@@ -90,7 +93,11 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
     if not ok:
         return False, "", None, err
     user = usuario_django_de_pin(pin)
-    request.session["pdv_operador_nome"] = (label or "")[:120]
+    rot = (label or "")[:120]
+    request.session["pdv_operador_nome"] = rot
+    # Alinha «caixa gerido» ao PIN — evita Quem grudado no login Chrome (ex. Geraldo Hinnen).
+    if rot:
+        request.session["pdv_caixa_gerido_operador"] = rot
     request.session["mobile_auth"] = True
     if user is not None and getattr(user, "pk", None):
         request.session["pdv_operador_user_id"] = int(user.pk)
@@ -115,21 +122,54 @@ def resolver_operador_pdv(request, pin: str = "") -> tuple[bool, str, object | N
     return True, label[:150], user, ""
 
 
+def eh_item_livre(produto_id: str) -> bool:
+    return str(produto_id or "").strip().lower().startswith(PREFIXO_ITEM_LIVRE)
+
+
 def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
     if not isinstance(itens_raw, list) or not itens_raw:
-        return [], "Inclua ao menos um produto."
+        return [], "Escreva um pedido ou inclua um produto."
     saida = []
     vistos = set()
     for raw in itens_raw[:40]:
         if not isinstance(raw, dict):
             continue
+        livre = bool(raw.get("livre") or raw.get("texto_livre") or raw.get("escrito"))
         pid = str(raw.get("produto_id") or raw.get("id") or "").strip()[:100]
+        nome = str(raw.get("nome") or raw.get("nome_produto") or raw.get("texto") or "").strip()[:255]
+        if livre or eh_item_livre(pid):
+            if not nome:
+                return [], "Escreva o que quer pedir (ex.: sacola, café)."
+            if not pid or not eh_item_livre(pid):
+                # id estável por texto evita duplicar a mesma linha no mesmo POST
+                slug = "".join(ch if ch.isalnum() else "-" for ch in nome.lower())[:40].strip("-") or "txt"
+                pid = f"{PREFIXO_ITEM_LIVRE}{slug}"[:100]
+            qtd = qtd_decimal(raw.get("quantidade") or raw.get("qtd") or raw.get("qty") or 1)
+            if qtd is None:
+                qtd = Decimal("1.000")
+            if pid in vistos:
+                # soma qtd se repetir o mesmo texto
+                for it in saida:
+                    if it["produto_externo_id"] == pid:
+                        it["quantidade"] = (it["quantidade"] + qtd).quantize(Decimal("0.001"))
+                        break
+                continue
+            vistos.add(pid)
+            saida.append(
+                {
+                    "produto_externo_id": pid,
+                    "nome_produto": nome,
+                    "codigo_interno": "ESCRITO",
+                    "quantidade": qtd,
+                }
+            )
+            continue
         if not pid or pid in vistos:
             continue
         qtd = qtd_decimal(raw.get("quantidade") or raw.get("qtd") or raw.get("qty"))
         if qtd is None:
             return [], "Quantidade inválida em um dos itens."
-        nome = str(raw.get("nome") or raw.get("nome_produto") or "Produto").strip()[:255] or "Produto"
+        nome = nome or "Produto"
         codigo = str(raw.get("codigo_interno") or raw.get("codigo") or "").strip()[:100]
         vistos.add(pid)
         saida.append(
@@ -141,7 +181,7 @@ def _normalizar_itens(itens_raw) -> tuple[list[dict], str]:
             }
         )
     if not saida:
-        return [], "Inclua ao menos um produto."
+        return [], "Escreva um pedido ou inclua um produto."
     return saida, ""
 
 
@@ -417,6 +457,8 @@ def concluir_transferencia(
     with transaction.atomic():
         if mapa_ajuste:
             for it in itens:
+                if eh_item_livre(it.produto_externo_id):
+                    continue
                 q_aj = mapa_ajuste.get(it.produto_externo_id)
                 if q_aj is None:
                     continue
@@ -440,6 +482,16 @@ def concluir_transferencia(
             it.quantidade = q_env
             it.save(update_fields=["quantidade", "quantidade_pedida"])
             if q_env <= 0:
+                continue
+            if eh_item_livre(it.produto_externo_id):
+                resultados.append(
+                    {
+                        "ok": True,
+                        "livre": True,
+                        "produto_id": it.produto_externo_id,
+                        "quantidade": float(q_env),
+                    }
+                )
                 continue
             res = _transferir_entre_depositos_exec(
                 request,
@@ -503,6 +555,7 @@ def _registrar_evento(sol, *, acao, status_de, status_para, operador_label, usua
 
 def serializar_item(it: SolicitacaoTransferenciaPdvItem) -> dict:
     pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
+    livre = eh_item_livre(it.produto_externo_id)
     return {
         "id": it.pk,
         "produto_id": it.produto_externo_id,
@@ -512,6 +565,7 @@ def serializar_item(it: SolicitacaoTransferenciaPdvItem) -> dict:
         "quantidade_texto": _fmt_qtd(it.quantidade),
         "quantidade_pedida": float(pedida),
         "quantidade_pedida_texto": _fmt_qtd(pedida),
+        "livre": livre,
     }
 
 

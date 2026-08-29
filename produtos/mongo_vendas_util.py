@@ -348,6 +348,7 @@ def previsao_vendas_dia_dashboard_agro(alvo: date) -> Decimal:
     val = _dashboard_vendas_meta_c_valor(alvo)
     return Decimal(str(val)).quantize(Decimal("0.01"))
 
+
 def media_vendas_diaria_ultimos_n_dias_agro(n: int = 30) -> Decimal:
     """Média diária com a mesma fonte de vendas do BI gerencial."""
     if n < 1:

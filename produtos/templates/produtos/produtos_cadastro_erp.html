@@ -544,6 +544,7 @@
     URL_ESTOQUE_IMPORT_HISTORICO: "{% url 'api_produtos_cadastro_estoque_import_historico' %}",
     URL_ESTOQUE_IMPORT_REVERTER: "{% url 'api_produtos_cadastro_estoque_import_reverter' %}",
     PODE_EDITAR_OVERLAY: {% if pode_editar_overlay %}true{% else %}false{% endif %},
+    IS_STAFF: {% if user.is_staff %}true{% else %}false{% endif %},
     CADASTRO_ERP_SYNC_HABILITADO: {% if cadastro_produto_erp_sync_habilitado %}true{% else %}false{% endif %},
     CSRF_TOKEN: "{{ csrf_token|escapejs }}",
     LOGIN_OVERLAY_HREF: "{% url 'admin:login' %}?next={{ login_overlay_next|urlencode }}",

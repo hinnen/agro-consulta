@@ -67,6 +67,8 @@ from .caixa_util import (
     id_sessao_caixa_browser,
     rotulo_usuario_registro_venda,
     rotulo_usuario_django,
+    exigir_operador_pin_request,
+    MSG_PIN_OPERADOR_OBRIGATORIO,
     ultimo_fechamento_sugestao_abertura,
     obter_caixa_pai_aberto,
     obter_caixa_gaveta_aberto,
@@ -119,6 +121,7 @@ from .caixa_util import (
     resolver_sessao_caixa_para_venda,
     exigir_sessao_caixa_para_venda,
     SessaoCaixaObrigatoriaError,
+    PinOperadorObrigatorioError,
 )
 from .precos_forma_pagamento_util import (
     extrair_precos_grupos_cadastro_extras,
@@ -186,6 +189,7 @@ from .models import (
     compor_endereco_resumo_cliente,
     sync_overlay_validade_resumo_de_lotes,
     sync_overlay_extra_validade_para_lote,
+    garantir_estoque_lote_desde_extras,
     registrar_lote_validade_apos_entrada_nf,
     parse_data_validade_entrada_nf,
 )
@@ -12320,11 +12324,15 @@ def api_caixa_assumir_sessao(request):
     vincular_sessao_caixa_browser(request, alvo)
     sincronizar_deposito_com_ponto_caixa(request, getattr(alvo, "ponto_caixa", None))
     operador = rotulo_operador_pin(pin) if pin else ""
-    if not operador and request.user.is_authenticated:
-        operador = (request.user.get_full_name() or request.user.get_username() or "").strip()
-    if operador:
-        request.session["pdv_caixa_gerido_operador"] = operador[:120]
-        request.session.modified = True
+    if not operador:
+        operador = str(request.session.get("pdv_operador_nome") or "").strip()
+    if not operador:
+        return JsonResponse(
+            {"ok": False, "erro": MSG_PIN_OPERADOR_OBRIGATORIO},
+            status=403,
+        )
+    request.session["pdv_caixa_gerido_operador"] = operador[:120]
+    request.session.modified = True
     return JsonResponse(
         {
             "ok": True,
@@ -12649,8 +12657,10 @@ def caixa_fechar(request):
         from produtos.repasse_vila_util import separar_reservas_ao_fechar_vila
 
         op = rotulo_operador_pin(pin) if pin else ""
-        if not op and getattr(request, "user", None) and request.user.is_authenticated:
-            op = (request.user.get_full_name() or request.user.get_username() or "").strip()
+        if not op:
+            op = str(request.session.get("pdv_operador_nome") or "").strip()
+        if not op:
+            return MSG_PIN_OPERADOR_OBRIGATORIO
         _feitos, err = separar_reservas_ao_fechar_vila(
             alvo,
             operador=op or "Operador fechamento",
@@ -13080,7 +13090,9 @@ def api_venda_agro_devolver(request, pk):
             status=400,
         )
 
-    user_label = rotulo_usuario_django(request.user) if request.user.is_authenticated else ""
+    user_label, err_pin_op = exigir_operador_pin_request(request)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
 
     avisos: list[str] = []
     movimento_ids: list[int] = []
@@ -14902,18 +14914,13 @@ def _lancamentos_operador_label(
     op = (op or "").strip()[:120]
     if op:
         return op, None
-    if obrigatorio:
-        return None, JsonResponse(
-            {
-                "ok": False,
-                "erro": "Identifique-se com PIN ao entrar em Lançamentos (atualize a página se necessário).",
-            },
-            status=403,
-        )
-    if request.user.is_authenticated:
-        lbl = rotulo_usuario_django(request.user)
-        return (lbl or "Agro")[:120], None
-    return "Agro", None
+    return None, JsonResponse(
+        {
+            "ok": False,
+            "erro": MSG_PIN_OPERADOR_OBRIGATORIO,
+        },
+        status=403,
+    )
 
 
 @ensure_csrf_cookie
@@ -16650,8 +16657,10 @@ def api_entrada_nota_estoque_agro(request):
         usuario = (
             getattr(request.user, "email", None) or request.user.get_username() or str(request.user.pk)
         )[:120]
-    # Quem no kardex: PIN / nome — não e-mail cru (evita «geraldo hinnen» fantasma)
-    usuario_op = operador_label_request(request) or usuario
+    # Quem no kardex / auditoria: só PIN — nunca login Chrome / e-mail
+    usuario_op, err_pin_op = exigir_operador_pin_request(request, payload if isinstance(payload, dict) else None)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
 
     client, db = _entrada_nfe_conexao()
     col_pessoa = getattr(client, "col_c", None) or "DtoPessoa" if client is not None else None
@@ -23865,6 +23874,33 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
 
     if ov_det:
         row["overlay_id"] = ov_det.pk
+        # Resumo da tela Validade (extras) sem linha de lote → espelha na aba do cadastro
+        qtd_heal = None
+        if not EstoqueLote.objects.filter(overlay=ov_det).exists():
+            ex_heal = (
+                ov_det.cadastro_extras
+                if isinstance(ov_det.cadastro_extras, dict)
+                else {}
+            )
+            if ex_heal.get("validade"):
+                try:
+                    from produtos.estoque_saldo_agro_util import (
+                        mapa_saldos_operacionais_agro,
+                    )
+
+                    sinfo = mapa_saldos_operacionais_agro(
+                        [pid_det], db=db, client=client_m
+                    ).get(pid_det) or {}
+                    total_sv = float(sinfo.get("saldo_centro") or 0) + float(
+                        sinfo.get("saldo_vila") or 0
+                    )
+                    if total_sv > 0:
+                        qtd_heal = Decimal(str(total_sv)).quantize(Decimal("0.01"))
+                except Exception:
+                    qtd_heal = None
+                garantir_estoque_lote_desde_extras(
+                    ov_det, quantidade_atual=qtd_heal
+                )
         row["lotes"] = [
             {
                 "id": el.pk,
@@ -24574,17 +24610,23 @@ def api_produtos_somente_agro_excluir(request):
     if use_pg:
         if p_mod is None:
             return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
-        somente_agro = bool(p_mod.cadastro_somente_agro) or _erp_wl_id_produto_eh_prefixo_agro(pid_raw)
+        pid_ext = str(getattr(p_mod, "produto_externo_id", None) or "").strip()
+        somente_agro = (
+            bool(p_mod.cadastro_somente_agro)
+            or _erp_wl_id_produto_eh_prefixo_agro(pid_raw)
+            or _erp_wl_id_produto_eh_prefixo_agro(pid_ext)
+        )
         if not somente_agro and not forcar_staff:
             return JsonResponse(
                 {
                     "ok": False,
                     "erro": (
                         "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
-                        "Itens importados do ERP legado devem ser inativados no cadastro."
+                        "Itens importados do ERP legado devem ser inativados no cadastro. "
+                        "Admin (staff): confirme de novo — o sistema tenta forçar a limpeza local."
                     ),
                 },
-                status=403,
+                status=409,
             )
         if forcar_staff and not somente_agro:
             logger.warning(
@@ -24607,11 +24649,10 @@ def api_produtos_somente_agro_excluir(request):
                         "erro": (
                             "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
                             "Itens espelhados do ERP devem ser inativados ou removidos no sistema antigo. "
-                            "Em emergência, usuário staff pode chamar a mesma API com "
-                            '{"forcar_exclusao_mongo_staff": true} (remove só o espelho Mongo + dados locais Agro).'
+                            "Admin (staff): na tela de cadastro o botão já envia a força de exclusão local."
                         ),
                     },
-                    status=403,
+                    status=409,
                 )
             logger.warning(
                 "api_produtos_somente_agro_excluir: exclusão Mongo forçada (staff) produto_id=%s user_id=%s",
@@ -26237,6 +26278,7 @@ def api_pdv_registrar_operador(request):
     if not op_req:
         request.session.pop("pdv_operador_nome", None)
         request.session.pop("pdv_operador_user_id", None)
+        request.session.pop("pdv_caixa_gerido_operador", None)
         request.session.modified = True
         return JsonResponse({"ok": True, "operador": ""})
 
@@ -27658,7 +27700,9 @@ def _persistir_venda_agro(
     """
     Grava venda + itens no banco local (sempre que houve tentativa com itens válidos ao ERP).
     """
-    user_label = rotulo_usuario_registro_venda(request, data)
+    user_label, err_pin_op = exigir_operador_pin_request(request, data)
+    if err_pin_op:
+        raise PinOperadorObrigatorioError(err_pin_op)
 
     cliente = (data.get("cliente") or "").strip() or "CONSUMIDOR NÃO IDENTIFICADO..."
     cid = str(data.get("cliente_id") or data.get("ClienteID") or "").strip()
@@ -28473,6 +28517,9 @@ def api_enviar_pedido_erp(request):
         exigir_sessao_caixa_para_venda(request, data)
     except SessaoCaixaObrigatoriaError as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=400)
+    _, err_pin_op = exigir_operador_pin_request(request, data)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
     from produtos.views_mp_point import mp_point_bloqueio_info
 
     bloqueio_mp = mp_point_bloqueio_info(request)
@@ -31728,6 +31775,10 @@ def api_entrega_registrar(request):
     if not isinstance(itens, list):
         itens = []
 
+    op_label, err_pin_op = exigir_operador_pin_request(request, body if isinstance(body, dict) else None)
+    if err_pin_op:
+        return JsonResponse({"ok": False, "erro": err_pin_op}, status=403)
+
     campos = {
         "cliente_nome": cliente_nome,
         "telefone": (body.get("telefone") or "")[:40].strip(),
@@ -31738,11 +31789,7 @@ def api_entrega_registrar(request):
         "itens_json": itens,
         "total_texto": (body.get("total_texto") or "")[:48].strip(),
         "retomar_codigo": (body.get("retomar_codigo") or "")[:40].strip(),
-        "operador": (
-            (body.get("operador") or "").strip()
-            or operador_label_request(request)
-            or ""
-        )[:120].strip(),
+        "operador": op_label[:120],
         "hora_prevista": _parse_hhmm_entrega(body.get("hora_prevista")),
         "forma_pagamento": (body.get("forma_pagamento") or "")[:40].strip(),
         "troco_precisa": _parse_troco_precisa_val(body.get("troco_precisa")),
@@ -32648,6 +32695,7 @@ def relatorios_validade(request):
             )
             continue
 
+        teve_lote_ativo = False
         for el in lotes_ordenados:
             if el.quantidade_atual is None or el.quantidade_atual <= 0:
                 continue
@@ -32703,8 +32751,11 @@ def relatorios_validade(request):
                 },
                 saldo_lote_local=qtd if not estoque_mongo_ok else None,
             )
+            teve_lote_ativo = True
 
-        if lotes_ordenados:
+        # Só pula o resumo (extras) se já listou lote com qtd > 0.
+        # Lotes zerados sozinhos não escondem a data do cadastro_extras.
+        if teve_lote_ativo:
             continue
 
         validade_str = ex.get("validade")
@@ -32743,20 +32794,50 @@ def relatorios_validade(request):
         lote = lote_raw or "N/A"
         validade_alerta = bool(ex.get("validade_alerta"))
         validade_msg = str(ex.get("validade_msg") or "")[:200]
+        # Espelha extras → EstoqueLote (cadastro passa a listar a mesma linha)
+        lote_id_extras = None
+        lote_qtd_extras = None
+        try:
+            q_heal = None
+            s_heal = (saldos_map or {}).get(str(ov.produto_externo_id)) or {}
+            try:
+                total_h = float(s_heal.get("saldo_centro") or 0) + float(
+                    s_heal.get("saldo_vila") or 0
+                )
+            except (TypeError, ValueError):
+                total_h = 0.0
+            if total_h > 0:
+                q_heal = Decimal(str(total_h)).quantize(Decimal("0.01"))
+            healed = garantir_estoque_lote_desde_extras(
+                ov, quantidade_atual=q_heal
+            )
+            if healed:
+                lote_id_extras = healed[0].pk
+                lote_qtd_extras = float(healed[0].quantidade_atual or 0)
+                lote_raw = str(healed[0].lote_codigo or "").strip()[:80] or lote_raw
+                lote = lote_raw or "N/A"
+                data_venc = healed[0].data_validade
+        except Exception:
+            logger.exception(
+                "relatorio validade: heal extras→lote pid=%s",
+                str(ov.produto_externo_id)[:48],
+            )
         anexa_linha_validade(
             {
                 "produto_id": ov.produto_externo_id,
                 "nome": nome,
                 "lote": lote,
                 "lote_raw": lote_raw,
-                "lote_id": None,
+                "lote_id": lote_id_extras,
+                "lote_qtd": lote_qtd_extras,
                 "data_validade": data_venc,
                 "dias_restantes": dias_restantes,
                 "dias_restantes_abs": abs(dias_restantes),
                 "status": st,
                 "validade_alerta": validade_alerta,
                 "validade_msg": validade_msg,
-            }
+            },
+            saldo_lote_local=lote_qtd_extras if lote_qtd_extras else None,
         )
 
     if lista_validade and estoque_mongo_ok:

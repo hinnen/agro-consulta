@@ -221,13 +221,13 @@ def main() -> int:
     desp_c = _dec(calc.get("despesas_centro_dia"))
 
     if hoje >= RESERVA_VILA_DESDE_DEFAULT:
-        esp_apl = min(Decimal("200.00"), max(ZERO, lucro_b))
+        # Planos + salário antes do 50/50
+        apos_planos = max(ZERO, (lucro_b - desp_c).quantize(Decimal("0.01")))
+        esp_apl = min(Decimal("200.00"), apos_planos)
+        base_split = max(ZERO, (apos_planos - esp_apl).quantize(Decimal("0.01")))
         if hoje >= COFRE_VILA_ELIAS_DESDE:
-            esp_ve = (lucro_b * (Decimal("100") - pct) / Decimal("100")).quantize(Decimal("0.01"))
+            esp_ve = (base_split * (Decimal("100") - pct) / Decimal("100")).quantize(Decimal("0.01"))
             esp_ve = max(ZERO, esp_ve)
-            if (esp_ve + esp_apl) > lucro_b:
-                esp_ve = min(esp_ve, lucro_b)
-                esp_apl = min(esp_apl, max(ZERO, (lucro_b - esp_ve).quantize(Decimal("0.01"))))
         else:
             esp_ve = ZERO
         if reserva_apl == esp_apl:
@@ -238,17 +238,15 @@ def main() -> int:
             ok(f"parte_vila_elias={parte_ve}")
         else:
             fail(f"parte_ve={parte_ve} esp={esp_ve}")
-        # lucro_penultimo = lucro ao Centro (já sem Vila Elias e salário) — sem 2º %
-        esp_pen = max(ZERO, (lucro_b - esp_ve - esp_apl).quantize(Decimal("0.01")))
+        esp_pen = max(ZERO, (base_split - esp_ve).quantize(Decimal("0.01")))
         if pen == esp_pen:
             ok(f"lucro ao Centro (penúltimo)={pen}")
         else:
             fail(f"pen={pen} esp={esp_pen}")
-        esp_alvo = max(ZERO, (esp_pen - desp_c).quantize(Decimal("0.01")))
-        if alvo_lucro == esp_alvo:
-            ok("alvo lucro = sobra após cofres − planos")
+        if alvo_lucro == esp_pen:
+            ok("alvo lucro = sobra após planos+salário e 50/50")
         else:
-            fail(f"alvo_lucro={alvo_lucro} esp={esp_alvo}")
+            fail(f"alvo_lucro={alvo_lucro} esp={esp_pen}")
     else:
         ok("hoje antes do desde (skip fórmula)")
 

@@ -90,6 +90,10 @@ def main() -> int:
     check("js_aviso_pos_pin", "abrirTemPedido" in js and "aposPin" in js)
     check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
+    check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)
+    check("js_escrito_embaixo", "pl-escrito-bar" in html and "garantirItensAntesDeEnviar" in js)
+    check("path_escrito_ux", (ROOT / "scripts/verify_pdv_pedir_escrito_ux_path.py").is_file())
+    check("js_obs_textarea", "pdv-pedir-loja-obs" in html)
     check("overlay_confirm_furado", "pdv-pedir-loja-confirm-furado" in html)
     check("overlay_ajuste_modal", "pdv-pedir-loja-ajuste" in html and "pl-btn-aj" in html)
     check("overlay_aviso_pin", "pdv-pedir-loja-tem-pedido" in html and "Enter também fecha" in html)
@@ -98,6 +102,7 @@ def main() -> int:
     check("util_ajuste_furado", "qtd_decimal_ou_zero" in util and "_aplicar_ajuste_absoluto_origem" in util)
     check("util_a_mais_b", "STATUS_ACEITO" in util and "concluir_transferencia" in util)
     check("util_qtds_envio", "_resolver_qtds_envio" in util and "quantidade_pedida" in util)
+    check("util_item_livre", "eh_item_livre" in util and "PREFIXO_ITEM_LIVRE" in util)
     check(
         "util_sem_reserva",
         "pular_validacao_pin"

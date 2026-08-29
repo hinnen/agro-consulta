@@ -13,21 +13,19 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.bug_report_util import notificar_report, sanitizar_print_base64, upsert_dispositivo
-from produtos.caixa_util import ponto_operacao_browser, rotulo_caixa_loja_fixo
+from produtos.caixa_util import (
+    operador_label_request,
+    ponto_operacao_browser,
+    rotulo_caixa_loja_fixo,
+)
 from produtos.models import BugReportAgro
 
 logger = logging.getLogger(__name__)
 
 
 def _usuario_nome(request) -> str:
-    u = getattr(request, "user", None)
-    if u is None or not getattr(u, "is_authenticated", False):
-        return ""
-    full = (u.get_full_name() or "").strip()
-    if full:
-        return full[:120]
-    return (getattr(u, "username", "") or "").strip()[:120]
-
+    """Só PIN da sessao — nunca login Chrome."""
+    return (operador_label_request(request) or "").strip()[:120]
 
 def _versao_app() -> str:
     try:

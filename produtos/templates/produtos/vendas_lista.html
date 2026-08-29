@@ -16,8 +16,24 @@
       min-height: 100dvh;
       max-height: 100dvh;
     }
+    /* Overlay do PDV: 100dvh = altura da janela pai, não do iframe → lista some (branco). */
+    html.agro-vendas-in-overlay, html.agro-vendas-in-overlay body {
+      min-height: 100% !important;
+      max-height: 100% !important;
+      height: 100% !important;
+    }
     .vendas-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
   </style>
+  <script>
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search || '');
+      if (q.get('agro_pdv_overlay') === '1' || q.get('agro_inapp_embed') === '1') {
+        document.documentElement.classList.add('agro-vendas-in-overlay');
+      }
+    } catch (_) {}
+  })();
+  </script>
 </head>
 <body class="bg-slate-50 overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}

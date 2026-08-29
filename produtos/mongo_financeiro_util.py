@@ -7259,17 +7259,7 @@ def financeiro_calendario_contas_pagar_dias(
         db, vencimento_de=grid_ini, vencimento_ate=grid_fim
     )
 
-    meta_hist_cache: dict[tuple[date, date], dict] = {}
-
-    def _por_dia_meta_hist(fp: date, lp: date) -> dict:
-        key = (fp, lp)
-        if key not in meta_hist_cache:
-            from produtos.views import _dashboard_vendas_serie_meta_historico
-
-            meta_hist_cache[key] = (
-                _dashboard_vendas_serie_meta_historico(fp, lp).get("por_dia") or {}
-            )
-        return meta_hist_cache[key]
+    meta_hist_cache: dict = {}
 
     def previsao_vendas_dia(d: date) -> float:
         from produtos.views import _dashboard_vendas_meta_c_valor

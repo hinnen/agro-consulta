@@ -242,6 +242,10 @@ def api_pdv_transf_loja_acao(request, pk: int):
             if q_padrao is None:
                 return JsonResponse({"ok": False, "erro": "Quantidade de ajuste inválida."}, status=400)
             for it in sol.itens.all():
+                from produtos.pdv_transf_loja_util import eh_item_livre
+
+                if eh_item_livre(it.produto_externo_id):
+                    continue
                 q_aj = qtd_decimal_ou_zero(ajustes.get(it.produto_externo_id)) if ajustes else q_padrao
                 if q_aj is None:
                     q_aj = q_padrao

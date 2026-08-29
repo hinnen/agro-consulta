@@ -3447,20 +3447,22 @@
     return false;
   }
 
-  /** Nota avançada (PIN/financeiro) mas estoque Agro ainda não aplicado. */
+  /** Nota avançada (PIN/financeiro) mas estoque Agro ainda não aplicado.
+   * NÃO usar confirmações das etapas 1–4 — isso é progresso normal até a etapa 5. */
   function entradaNfeEstoqueBloqueadoNotaFinalizada(rzOpt) {
     if (entradaNfeEstoqueJaRegistrado(rzOpt)) return false;
     const rz = rzOpt && typeof rzOpt === 'object' ? rzOpt : null;
     const ex = rz && rz.extra && typeof rz.extra === 'object'
       ? rz.extra
       : (entradaNfeExtraUltimo && typeof entradaNfeExtraUltimo === 'object' ? entradaNfeExtraUltimo : {});
-    const st = String(
-      rz && rz.status != null ? rz.status : entradaNfeRascunhoStatusUltimo || '',
+    const bk = String(
+      rz && rz.bucket != null ? rz.bucket : entradaNfeRascunhoBucketUltimo || '',
     ).trim().toLowerCase();
     if (String(ex.estoque_pendente_liberado_em || '').trim()) return false;
     if (String(ex.aprovacao_wizard_em || '').trim()) return true;
     if (ex.financeiro_lancado) return true;
-    return entradaNfeWizardFluxoLegadoOuConcluido(ex, st, entradaNfeRascunhoBucketUltimo);
+    if (bk === 'concluida' || bk === 'encerrada') return true;
+    return false;
   }
 
   /** Reaplica confirmações das etapas 1–4 em notas já avançadas (ex.: concluída sem timestamps). */

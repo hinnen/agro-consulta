@@ -291,11 +291,11 @@ def main():
         ):
             calc_f = calcular_disponivel(COFRE_VILA_ELIAS_DESDE, percentual_lucro=50, _skip_acumulado=True)
         check(
-            abs(_dec(calc_f.get("parte_vila_elias")) - Decimal("100")) < Decimal("0.02")
-            and abs(_dec(calc_f.get("parte_salario")) - Decimal("100")) < Decimal("0.02")
-            and abs(_dec(calc_f.get("lucro_penultimo_dia"))) < Decimal("0.02")
-            and abs(_dec((calc_f.get("alvos") or {}).get("lucro"))) < Decimal("0.02"),
-            "fórmula lucro 200 → VE 100 · salário 100 · Centro 0",
+            abs(_dec(calc_f.get("parte_salario")) - Decimal("100")) < Decimal("0.02")
+            and abs(_dec(calc_f.get("parte_vila_elias")) - Decimal("50")) < Decimal("0.02")
+            and abs(_dec(calc_f.get("lucro_penultimo_dia")) - Decimal("50")) < Decimal("0.02")
+            and abs(_dec((calc_f.get("alvos") or {}).get("lucro")) - Decimal("50")) < Decimal("0.02"),
+            "fórmula lucro 200 → sal 100 · VE 50 · Centro 50 (planos+salário antes do 50%)",
         )
 
         # Backend impede transferência que usaria a reserva pendente.

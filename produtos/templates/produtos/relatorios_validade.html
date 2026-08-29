@@ -167,6 +167,7 @@
         <tbody class="divide-y divide-slate-700/80">
           {% for p in produtos %}
           <tr data-pid="{{ p.produto_id|escape }}" data-nome="{{ p.nome|escape }}" data-lote-txt="{{ p.lote_raw|default:p.lote|escape }}"
+            data-saldo-cv="{% if p.saldo_c_v is not None %}{{ p.saldo_c_v }}{% else %}0{% endif %}"
             {% if p.lote_id %}data-lote-id="{{ p.lote_id }}" data-lote-qtd="{{ p.lote_qtd|default:0 }}"{% endif %}
             class="hover:bg-slate-800/40">
             <td class="rv-td-prod text-sm font-semibold leading-snug" title="{{ p.nome|escape }}">{{ p.nome }}</td>
@@ -592,7 +593,6 @@
   {% if pode_editar_validade %}
   <script>
   (function () {
-    var api = "{{ url_api_overlay_salvar|escapejs }}";
     var apiLote = "{{ url_api_lote_upsert|escapejs }}";
     var apiBaixa = "{{ url_api_validade_baixa|escapejs }}";
     function csrf() {
@@ -663,57 +663,34 @@
         rowMsg(tr, 'Informe a data de validade.', false);
         return;
       }
-      /* Com lote Agro (ou rascunho BCA): grava EstoqueLote — data/lote desta linha */
-      if (isDraft || loteId) {
-        var q = tr.getAttribute('data-lote-qtd');
-        if (q === null || q === undefined || q === '') q = '0';
-        var body = {
-          produto_id: pid,
-          lote_codigo: l || '—',
-          data_validade: v,
-          quantidade: q
-        };
-        if (loteId) body.lote_id = parseInt(loteId, 10) || loteId;
-        var loja = "{{ filtros.loja|default:'todas'|escapejs }}";
-        if (loja === 'centro' || loja === 'vila') body.deposito = loja;
-        else if (isDraft) body.deposito = 'centro';
-        fetch(apiLote, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': csrf()
-          },
-          body: JSON.stringify(body)
-        }).then(function (r) {
-          if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
-          return r.json();
-        }).then(function (j) {
-          if (!j.ok) throw new Error(j.erro || 'Falha ao gravar lote');
-          rowMsg(tr, 'Gravado.', true);
-          window.setTimeout(function () { window.location.reload(); }, 450);
-        }).catch(function (err) {
-          rowMsg(tr, err.message || 'Erro', false);
-        });
-        return;
+      /* Sempre grava EstoqueLote (mesma fonte do cadastro) — inclusive linhas só do resumo */
+      var q = tr.getAttribute('data-lote-qtd');
+      if (q === null || q === undefined || q === '') {
+        q = tr.getAttribute('data-saldo-cv') || '0';
       }
-      fetch(api, {
+      var body = {
+        produto_id: pid,
+        lote_codigo: l || '—',
+        data_validade: v,
+        quantidade: q
+      };
+      if (loteId) body.lote_id = parseInt(loteId, 10) || loteId;
+      var loja = "{{ filtros.loja|default:'todas'|escapejs }}";
+      if (loja === 'centro' || loja === 'vila') body.deposito = loja;
+      else if (isDraft) body.deposito = 'centro';
+      fetch(apiLote, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': csrf()
         },
-        body: JSON.stringify({
-          produto_id: pid,
-          extra_validade: v,
-          extra_lote: l
-        })
+        body: JSON.stringify(body)
       }).then(function (r) {
         if (r.status === 403 || r.status === 401) throw new Error('Sessão expirada ou sem permissão. Entre de novo.');
         return r.json();
       }).then(function (j) {
-        if (!j.ok) throw new Error(j.erro || 'Falha ao gravar');
+        if (!j.ok) throw new Error(j.erro || 'Falha ao gravar lote');
         rowMsg(tr, 'Gravado.', true);
         window.setTimeout(function () { window.location.reload(); }, 450);
       }).catch(function (err) {

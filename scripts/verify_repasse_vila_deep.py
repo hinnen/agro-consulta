@@ -246,13 +246,9 @@ def main() -> int:
     )
 
     lucro_penultimo = Decimal(str(calc_e["lucro_penultimo_dia"]))
-    despesas_centro = Decimal(str(calc_e.get("despesas_centro_dia") or 0))
-    # Após dois cofres, lucro_penultimo já é a fatia do Centro — não aplica % de novo
-    alvo_lucro = max(
-        Decimal("0"),
-        (lucro_penultimo - despesas_centro).quantize(Decimal("0.01")),
-    )
-    ok("alvo lucro após cofres") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
+    # Planos já entraram antes da divisão — alvo lucro = penúltimo
+    alvo_lucro = max(Decimal("0"), lucro_penultimo.quantize(Decimal("0.01")))
+    ok("alvo lucro após planos+cofres") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
         "0.02"
     ) else fail("alvo lucro")
 
@@ -487,7 +483,8 @@ def main() -> int:
     ok("js repasse na Retiradas") if b"pdv_repasse_vila.js" in body else fail("faltou js")
     ok("forma grid no overlay") if b"pdv-rp-forma-grid" in body else fail("faltou forma grid")
     ok("anti-autofill valor") if b"rp_valor_manual_somente" in body else fail("faltou anti-autofill")
-    ok("hint valor manual") if b"Valor manual" in body else fail("faltou hint manual")
+    ok("campos cofre hero") if b"pdv-rp-input-cofre-sal" in body and b"pdv-rp-input-cofre-ve" in body else fail("faltou campos cofre")
+    ok("hint levar centro") if b"Levar ao Centro" in body else fail("faltou hint levar")
     ok("quem so popup") if b"pdv-rp-quem-modal" in body and b"pdv-rp-btn-quem" not in body else fail("chips quem voltaram")
     ok("pin so popup") if b"pdv-rp-pin-modal" in body and b"pdv-rp-btn-pin" not in body else fail("chips pin voltaram")
     ok("sem forma na tela") if b"Forma de pagamento" not in body else fail("forma visivel")

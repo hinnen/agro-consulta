@@ -894,20 +894,33 @@ def rotulo_usuario_django(user) -> str:
     return str(pk)[:150] if pk is not None else ""
 
 
+MSG_PIN_OPERADOR_OBRIGATORIO = (
+    "Identifique-se com o PIN (modo descanso) antes de continuar."
+)
+
+
 def operador_label_request(request) -> str:
     """
-    Quem está operando agora: PIN do caixa gerido, senão nome do login.
-    Não usa e-mail cru (evita «geraldo.hinnen@…» virar rótulo de Quem).
+    Quem está operando agora — **só** PIN / sessão do PIN.
+
+    Ordem: descanso/PDV (``pdv_operador_nome``) → caixa gerido → ajuste mobile.
+    **Não** usa login do Chrome (evita «Geraldo Hinnen» fantasma).
+    Sem PIN na sessão → string vazia (a ação deve exigir PIN).
     """
     if request is None:
         return ""
-    try:
-        gerido = (request.session.get("pdv_caixa_gerido_operador") or "").strip()
-    except Exception:
-        gerido = ""
-    if gerido:
-        return gerido[:120]
-    return rotulo_usuario_django(getattr(request, "user", None))[:120]
+    for key in (
+        "pdv_operador_nome",
+        "pdv_caixa_gerido_operador",
+        "ajuste_mobile_operador",
+    ):
+        try:
+            rot = (request.session.get(key) or "").strip()
+        except Exception:
+            rot = ""
+        if rot:
+            return rot[:120]
+    return ""
 
 
 def normalizar_rotulo_operador_exibicao(raw: str) -> str:
@@ -1455,12 +1468,10 @@ def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
 
 def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
     """
-    Rótulo do vendedor/operador na venda Agro: operador do PDV (descanso/PIN),
-    não o login Django (ex.: admin).
+    Rótulo do vendedor/operador na venda Agro: **só** PIN.
 
-    Ordem: PIN (fonte da verdade) → sessão do último PIN online → nome vindo do
-    navegador só se a sessão ainda estiver vazia (evita nome «grudado» de outro
-    operador no mesmo Chrome).
+    Ordem: PIN no payload → sessão do último PIN (descanso/caixa/ajuste).
+    **Não** usa login Chrome nem nome mandado pelo navegador sem PIN validado.
     """
     data = data if isinstance(data, dict) else {}
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
@@ -1468,25 +1479,19 @@ def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
         rot = rotulo_operador_pin(pin)
         if rot:
             return rot[:150]
-    try:
-        sess_op = str(request.session.get("pdv_operador_nome") or "").strip()
-    except Exception:
-        sess_op = ""
-    if sess_op:
-        return sess_op[:150]
-    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
-        val = str(data.get(key) or "").strip()
-        if val:
-            return val[:150]
-    u = getattr(request, "user", None)
-    if u is not None and getattr(u, "is_authenticated", False):
-        nome = (u.get_full_name() or u.first_name or "").strip()
-        if nome:
-            return nome[:150]
-        un = (u.get_username() if hasattr(u, "get_username") else str(u.pk)).strip()
-        if un and un.lower() not in ("admin", "administrator", "root"):
-            return un[:150]
-    return ""
+    return (operador_label_request(request) or "").strip()[:150]
+
+
+def exigir_operador_pin_request(
+    request, data: dict | None = None
+) -> tuple[str, str]:
+    """
+    Retorno: ``(rotulo, erro)``. Se sem PIN → rotulo vazio + mensagem para a UI.
+    """
+    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
+    if rot:
+        return rot[:150], ""
+    return "", MSG_PIN_OPERADOR_OBRIGATORIO
 
 
 class SessaoCaixaObrigatoriaError(Exception):
@@ -1494,6 +1499,13 @@ class SessaoCaixaObrigatoriaError(Exception):
 
     def __init__(self, mensagem: str | None = None):
         super().__init__(mensagem or MSG_CAIXA_FECHADO_VENDA)
+
+
+class PinOperadorObrigatorioError(Exception):
+    """Ação operacional sem PIN do operador na sessão."""
+
+    def __init__(self, mensagem: str | None = None):
+        super().__init__(mensagem or MSG_PIN_OPERADOR_OBRIGATORIO)
 
 
 def exigir_sessao_caixa_para_venda(request, data: dict | None = None):

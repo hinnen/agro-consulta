@@ -517,7 +517,7 @@ def financeiro_calendario_contas_pagar_dias_pg(
     pagar_map = lancamentos_contas_pagar_totais_diarios_pg(
         vencimento_de=grid_ini, vencimento_ate=grid_fim
     )
-    meta_hist_cache: dict[tuple[date, date], dict] = {}
+    meta_hist_cache: dict = {}
 
     def previsao_vendas_dia(d: date) -> float:
         from produtos.views import _dashboard_vendas_meta_c_valor
