@@ -243,21 +243,20 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 13. Checklist único — lote 29/08g (loja alvo **v19.60**)
+## 13. Checklist único — lote 29/08g (loja **v19.60**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1–7 | **REPASSE-*** (formula·campos·totais·contraste·3OK·ghost·aviso) | 🟡 PREP / aguarda senha | **NÃO** |
-| 8 | **PIN-OPERADOR-QUEM** | 🟡 PREP / aguarda senha | **NÃO** |
-| 9 | **NFCE-DESC-ITENS** | 🟡 PREP / aguarda senha | **NÃO** |
-| 10 | **PDV-CUPOM-DINHEIRO** | 🟡 PREP / aguarda senha | **NÃO** |
-| 11 | **CAD-EXCLUIR-MSG-STAFF** | 🟡 PREP / aguarda senha | **NÃO** |
-| 12 | **CAD-VAL-ESPELHO** | 🟡 PREP / aguarda senha | **NÃO** |
-| 13 | **PDV-PEDIR-ESCRITO-UX** | 🟡 PREP / aguarda senha | **NÃO** |
-| 14 | **NF-ESTOQUE-BLOQUEIO-FALSO** | 🟡 PREP / aguarda senha | **NÃO** |
-| 15 | **PDV-CHAT-LOJA** | 🟡 PREP / aguarda senha | **SIM** (`produtos.0105`) |
+| 1–7 | **REPASSE-*** (formula·campos·totais·contraste·3OK·ghost·aviso) | ✅ **Live v19.60** | **NÃO** |
+| 8 | **PIN-OPERADOR-QUEM** | ✅ **Live v19.60** | **NÃO** |
+| 9 | **NFCE-DESC-ITENS** | ✅ **Live v19.60** | **NÃO** |
+| 10 | **PDV-CUPOM-DINHEIRO** | ✅ **Live v19.60** | **NÃO** |
+| 11 | **CAD-EXCLUIR-MSG-STAFF** | ✅ **Live v19.60** | **NÃO** |
+| 12 | **CAD-VAL-ESPELHO** | ✅ **Live v19.60** | **NÃO** |
+| 13 | **PDV-PEDIR-ESCRITO-UX** | ✅ **Live v19.60** | **NÃO** |
+| 14 | **NF-ESTOQUE-BLOQUEIO-FALSO** | ✅ **Live v19.60** | **NÃO** |
+| 15 | **PDV-CHAT-LOJA** | ✅ **Live v19.60** | **SIM** (`produtos.0105`) |
 
-**PREP:** `deploy/prep-checklist-2908g` @ `460e1c7` · base loja **v19.02** `6b1eeed`.  
-**Fora:** `BI-META-C-VILA-RAMP` (SOLO).  
-**Rollback:** tag `rollback/pre-lote-checklist-2908g-v19.02` · `docs/ROLLBACK-LOTE-CHECKLIST-2908g.md`.  
-**Deploy:** só frase + senha · pausar vendas · Ctrl+F5 · smoke venda/dinheiro Enter · NFC-e c/ desc · Pedir · Chat · Repasse.
+**Status: enviado / Live v19.60.** `producao` @ `460e1c7`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2908g-v19.02` @ `6b1eeed` · branch `producao-backup-pre-v1960-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908g.md` · **só** frase+senha.  
+**Smoke:** healthz ok · home/consulta/PDV **200** · badge **v19.60** · Ctrl+F5. **Pendente SOLO:** `BI-META-C-VILA-RAMP`.
