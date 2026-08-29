@@ -92,6 +92,7 @@ def main() -> int:
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)
     check("js_escrito_embaixo", "pl-escrito-bar" in html and "garantirItensAntesDeEnviar" in js)
+    check("path_escrito_ux", (ROOT / "scripts/verify_pdv_pedir_escrito_ux_path.py").is_file())
     check("js_obs_textarea", "pdv-pedir-loja-obs" in html)
     check("overlay_confirm_furado", "pdv-pedir-loja-confirm-furado" in html)
     check("overlay_ajuste_modal", "pdv-pedir-loja-ajuste" in html and "pl-btn-aj" in html)
