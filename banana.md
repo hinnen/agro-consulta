@@ -1239,6 +1239,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🩹 Repasse no PDV alinhado ao cofrinho (`REPASSE-PDV-COFRINHO` · **v18.41** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Caso** | Tela Gestão `/repasse-vila/` ok; no PDV o overlay ainda falhava na operação do cofrinho. |
+| **Causas** | Botão **Repasse** sumiu da topbar; reserva digitada ficava velha ao reabrir; aviso fraco; id errado na balança (`pdv-repasse-vila-overlay`). |
+| **Fix** | Botão laranja **Repasse** de volta · reserva sempre sincroniza do Postgres ao abrir · faixa + confirm «deixe R$ X na Vila» · id da balança corrigido. |
+| **Prova** | path repasse **152** · cofrinho **22/22**. |
+| **Você** | Ctrl+F5 no PDV · botão **Repasse** · ver aviso rosa · confirmar com diálogo se houver valor a separar. |
+| **Status** | `teste` v18.41 · **produção não alterada**. |
+
 ### 🩹 Cadastro — centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.39** · 28/08/2026)
 
 | Item | Detalhe |

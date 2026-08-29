@@ -1062,7 +1062,7 @@
   function outroOverlayAberto() {
     return !!document.querySelector(
       '#pdv-pedir-loja-overlay:not(.hidden),#pdv-uso-loja-overlay:not(.hidden),' +
-        '#pdv-repasse-vila-overlay:not(.hidden),#pdv-quick-client-modal:not(.hidden),' +
+        '#pdv-repasse-overlay:not(.hidden),#pdv-quick-client-modal:not(.hidden),' +
         '#pdv-quick-client-edit-overlay:not(.hidden),#pdv-quick-product-edit-overlay:not(.hidden)'
     );
   }
