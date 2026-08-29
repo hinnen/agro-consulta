@@ -1601,11 +1601,16 @@ def historico_mes(ano: int | None = None, mes: int | None = None) -> dict[str, A
             }
         )
 
+    total_geral = _dec(
+        RepasseVilaCentroAgro.objects.aggregate(t=Sum("valor_total")).get("t")
+    )
+
     return {
         "ok": True,
         "ano": ano,
         "mes": mes,
         "total_mes": float(_dec(total_mes)),
+        "total_geral": float(total_geral),
         "lucro_bruto_mes": float(lucro_bruto_mes),
         "lucro_enviado_mes": float(_dec(lucro_enviado_mes)),
         "lucro_ficou_vila": float(lucro_ficou_vila),

@@ -1244,6 +1244,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Repasse: mês + total geral no hero (`REPASSE-HERO-TOTAIS` · **v18.80**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | No card «Levar ao Centro»: **Enviado no mês** + **Total geral** (pequeno, padrão Acumulado/Sugerido) |
+| **Onde** | overlay + `historico_mes` (`total_geral`) · `pdv_repasse_vila.js` |
+| **Prova** | overlay path **113** |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse |
+| **Você** | Conferir os 2 valores sob Acumulado/Sugerido |
+
 ### 🔧 WIP — Repasse: modal cofrinho grande (`REPASSE-COFRE-CONFIRM` · **v18.78**)
 
 | Item | Detalhe |

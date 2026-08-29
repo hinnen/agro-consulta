@@ -193,6 +193,8 @@
   function renderMesCards() {
     var h = histMes || {};
     setText('pdv-rp-mes-dinheiro', money(h.total_mes));
+    setText('pdv-rp-hero-mes', money(h.total_mes));
+    setText('pdv-rp-hero-geral', money(h.total_geral));
     setText('pdv-rp-mes-lucro-ficou', money(h.lucro_ficou_vila));
     var c = calc || {};
     var cofre = c.cofrinho || {};
@@ -346,7 +348,14 @@
   }
 
   function fetchHistoricoMes() {
-    return fetch('/api/repasse-vila/historico/', { credentials: 'same-origin' })
+    var d = dataRef() || '';
+    var ano = d.slice(0, 4);
+    var mes = d.slice(5, 7);
+    var q =
+      ano && mes
+        ? '?ano=' + encodeURIComponent(ano) + '&mes=' + encodeURIComponent(mes)
+        : '';
+    return fetch('/api/repasse-vila/historico/' + q, { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
