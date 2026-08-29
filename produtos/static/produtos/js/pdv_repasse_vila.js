@@ -35,6 +35,8 @@
     salvarReserva: document.getElementById('pdv-rp-salvar-reserva'),
     separarReserva: document.getElementById('pdv-rp-separar-reserva'),
     manual: document.getElementById('pdv-rp-manual'),
+    inputCofreSal: document.getElementById('pdv-rp-input-cofre-sal'),
+    inputCofreVe: document.getElementById('pdv-rp-input-cofre-ve'),
     pin: document.getElementById('pdv-rp-pin'),
     status: document.getElementById('pdv-rp-status'),
     quemGrid: document.getElementById('pdv-rp-quem-grid'),
@@ -52,6 +54,10 @@
   var manualAutoFmt = '';
   var selectManualPending = false;
   var forcarManualPendingBody = null;
+  var cofreSalDirty = false;
+  var cofreVeDirty = false;
+  var cofreSalAutoFmt = '';
+  var cofreVeAutoFmt = '';
 
   function todayIso() {
     var d = new Date();
@@ -141,6 +147,36 @@
     } else {
       manualDirty = true;
     }
+  }
+
+  function syncCofreInput(el, dirty, valor) {
+    if (!el) return fmtManualNum(valor);
+    if (dirty) return String(el.value || '').trim();
+    var fmt = fmtManualNum(valor);
+    if (el.value !== fmt) el.value = fmt;
+    return fmt;
+  }
+
+  function sanitizeMoneyField(el) {
+    if (!el) return;
+    var s = String(el.value || '');
+    if (/[a-zA-Z]/.test(s)) {
+      el.value = '';
+      return;
+    }
+    var cleaned = s.replace(/[^\d.,]/g, '');
+    if (cleaned !== s) el.value = cleaned;
+  }
+
+  function markCofreDirty(which) {
+    var el = which === 've' ? dom.inputCofreVe : dom.inputCofreSal;
+    var auto = which === 've' ? cofreVeAutoFmt : cofreSalAutoFmt;
+    if (!el) return;
+    sanitizeMoneyField(el);
+    var cur = String(el.value || '').trim();
+    var dirty = !(!cur || cur === auto);
+    if (which === 've') cofreVeDirty = dirty;
+    else cofreSalDirty = dirty;
   }
 
   function csrf() {
@@ -391,6 +427,12 @@
       aviso: 'pdv-rp-cofre-ve-aviso',
     }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
 
+    var sepJunto = !!(dom.separarReserva && dom.separarReserva.checked);
+    var pendSal = sepJunto ? Number(cofre.pendente_dia || 0) : 0;
+    var pendVe = sepJunto ? Number(cofreVe.pendente_dia || 0) : 0;
+    cofreSalAutoFmt = syncCofreInput(dom.inputCofreSal, cofreSalDirty, pendSal);
+    cofreVeAutoFmt = syncCofreInput(dom.inputCofreVe, cofreVeDirty, pendVe);
+
     renderMesCards();
   }
 
@@ -565,7 +607,13 @@
     manualDirty = false;
     manualAutoFmt = '';
     selectManualPending = true;
+    cofreSalDirty = false;
+    cofreVeDirty = false;
+    cofreSalAutoFmt = '';
+    cofreVeAutoFmt = '';
     if (dom.manual) dom.manual.value = '';
+    if (dom.inputCofreSal) dom.inputCofreSal.value = '';
+    if (dom.inputCofreVe) dom.inputCofreVe.value = '';
     if (dom.pin) dom.pin.value = '';
     quem = '';
     formaPag = 'Dinheiro';
@@ -676,15 +724,15 @@
 
   function openCofreConfirmModal(opts, onConfirm) {
     opts = opts || {};
-    var inpSal = document.getElementById('pdv-rp-cofre-confirm-input-sal');
-    var inpVe = document.getElementById('pdv-rp-cofre-confirm-input-ve');
-    var inpLev = document.getElementById('pdv-rp-cofre-confirm-input-levar');
-    if (inpSal) inpSal.value = fmtManualNum(opts.salario || 0);
-    if (inpVe) inpVe.value = fmtManualNum(opts.vilaElias || 0);
-    if (inpLev) inpLev.value = fmtManualNum(opts.levar || 0);
+    var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
+    var elVe = document.getElementById('pdv-rp-cofre-confirm-valor-ve');
+    var elLev = document.getElementById('pdv-rp-cofre-confirm-valor-levar');
+    if (elVal) elVal.textContent = money(opts.salario || 0);
+    if (elVe) elVe.textContent = money(opts.vilaElias || 0);
+    if (elLev) elLev.textContent = money(opts.levar || 0);
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
-    focusSoon(inpLev || document.getElementById('pdv-rp-cofre-confirm-ok'));
+    focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
   }
 
   function autoLinhasZeradas() {
@@ -745,6 +793,8 @@
   function confirmar() {
     if (busy) return;
     sanitizeManualField();
+    sanitizeMoneyField(dom.inputCofreSal);
+    sanitizeMoneyField(dom.inputCofreVe);
     var q = quemAtual();
     if (q.length < 2) {
       pendingConfirmar = true;
@@ -758,11 +808,28 @@
       openPinModal();
       return;
     }
-    var manRaw = String((dom.manual && dom.manual.value) || '').trim();
-    if (manRaw && /[a-zA-Z]/.test(manRaw)) {
-      dom.manual.value = '';
-      manualDirty = false;
-      if (dom.status) dom.status.textContent = 'Valor inválido — digite só o número (ex. 1500,00)';
+    var rawSal = String((dom.inputCofreSal && dom.inputCofreSal.value) || '').trim();
+    var rawVe = String((dom.inputCofreVe && dom.inputCofreVe.value) || '').trim();
+    var rawLev = String((dom.manual && dom.manual.value) || '').trim();
+    if (!rawSal || !rawVe || !rawLev) {
+      if (dom.status) {
+        dom.status.textContent =
+          'Preencha os 3 valores: Separar Salário · Separar Vila Elias · Levar ao Centro (pode ser 0,00).';
+      }
+      if (!rawSal) focusSoon(dom.inputCofreSal);
+      else if (!rawVe) focusSoon(dom.inputCofreVe);
+      else focusSoon(dom.manual);
+      return;
+    }
+    var vSal = parseMoneyInput(dom.inputCofreSal);
+    var vVe = parseMoneyInput(dom.inputCofreVe);
+    var vLev = parseMoneyInput(dom.manual);
+    if (!isFinite(vSal) || !isFinite(vVe) || !isFinite(vLev) || vSal < 0 || vVe < 0 || vLev < 0) {
+      if (dom.status) dom.status.textContent = 'Confira os 3 valores (número ≥ 0).';
+      return;
+    }
+    if (vLev < 0.009 && vSal < 0.009 && vVe < 0.009) {
+      if (dom.status) dom.status.textContent = 'Informe ao menos um valor maior que zero.';
       return;
     }
     var body = {
@@ -775,64 +842,24 @@
       modo_dia_cheio: !!(dom.cheio && dom.cheio.checked),
       forma_pagamento: formaPag || 'Dinheiro',
       data_ref: dataRef(),
-      incluir_acumulado: !!(dom.acumulado && dom.acumulado.checked),
-      separar_reserva: !!(dom.separarReserva && dom.separarReserva.checked),
+      incluir_acumulado: false,
+      separar_reserva: vSal > 0.009 || vVe > 0.009,
+      valor_cofre_salario: String(vSal),
+      valor_cofre_vila_elias: String(vVe),
+      valor_manual: String(vLev),
     };
-    // Só manda valor_manual se o operador alterou o campo (senão segue o automático)
-    var mv = manualDirty ? parseManualValor() : null;
-    if (mv != null) body.valor_manual = String(mv);
-
-    var cofre = (calc && calc.cofrinho) || {};
-    var cofreVe = (calc && calc.cofre_vila_elias) || {};
-    var pendenteCofre = Number(cofre.pendente_dia || 0);
-    var pendenteVe = Number(cofreVe.pendente_dia || 0);
-    var levarAuto = 0;
-    if (mv != null && mv > 0) {
-      levarAuto = mv;
-    } else {
-      var d = (calc && calc.disponivel) || {};
-      if (dom.cmv && dom.cmv.checked) levarAuto += Number(d.cmv || 0);
-      if (dom.lucro && dom.lucro.checked) levarAuto += Number(d.lucro || 0);
-      if (dom.fiado && dom.fiado.checked) levarAuto += Number(d.fiado || 0);
-      var acumN = Number((calc && calc.acumulado_anterior) || 0);
-      if (dom.acumulado && dom.acumulado.checked && acumN) levarAuto += acumN;
-    }
-    if (!(dom.separarReserva && dom.separarReserva.checked)) {
-      pendenteCofre = 0;
-      pendenteVe = 0;
-    }
-
-    openCofreConfirmModal(
-      { salario: pendenteCofre, vilaElias: pendenteVe, levar: Math.max(0, levarAuto) },
-      function () {
-        var vSal = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-sal'));
-        var vVe = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-ve'));
-        var vLev = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-levar'));
-        if (!isFinite(vSal) || !isFinite(vVe) || !isFinite(vLev) || vSal < 0 || vVe < 0 || vLev < 0) {
-          if (dom.status) dom.status.textContent = 'Confira os 3 valores (número ≥ 0).';
-          return;
-        }
-        body.valor_cofre_salario = String(vSal);
-        body.valor_cofre_vila_elias = String(vVe);
-        body.valor_manual = String(vLev);
-        body.separar_reserva = vSal > 0.009 || vVe > 0.009;
-        body.incluir_acumulado = false;
-        if (vLev < 0.009 && vSal < 0.009 && vVe < 0.009) {
-          if (dom.status) dom.status.textContent = 'Informe ao menos um valor para confirmar.';
-          return;
-        }
-        if (vLev > 0.009 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
-          openForcarManualModal(
-            'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
-              money(vLev) +
-              '. Confirme com o PIN de novo.',
-            body
-          );
-          return;
-        }
-        enviarConfirmacao(body);
+    openCofreConfirmModal({ salario: vSal, vilaElias: vVe, levar: vLev }, function () {
+      if (vLev > 0.009 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
+        openForcarManualModal(
+          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
+            money(vLev) +
+            '. Confirme com o PIN de novo.',
+          body
+        );
+        return;
       }
-    );
+      enviarConfirmacao(body);
+    });
   }
 
   function enviarConfirmacao(body) {
@@ -952,6 +979,33 @@
     });
     el.addEventListener('input', renderCalc);
   });
+  if (dom.inputCofreSal) {
+    dom.inputCofreSal.addEventListener('input', function () {
+      markCofreDirty('sal');
+    });
+    dom.inputCofreSal.addEventListener('focus', function () {
+      try {
+        dom.inputCofreSal.select();
+      } catch (_) {}
+    });
+  }
+  if (dom.inputCofreVe) {
+    dom.inputCofreVe.addEventListener('input', function () {
+      markCofreDirty('ve');
+    });
+    dom.inputCofreVe.addEventListener('focus', function () {
+      try {
+        dom.inputCofreVe.select();
+      } catch (_) {}
+    });
+  }
+  if (dom.separarReserva) {
+    dom.separarReserva.addEventListener('change', function () {
+      cofreSalDirty = false;
+      cofreVeDirty = false;
+      renderCalc();
+    });
+  }
   if (dom.manual) {
     dom.manual.addEventListener('input', function () {
       markManualDirtyFromInput();
