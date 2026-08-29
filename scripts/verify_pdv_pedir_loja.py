@@ -114,8 +114,10 @@ def main() -> int:
     check("logistica_intocada", "sugestao_transferencia" in tests)
     check("rollback_doc", "7f7b8022" in rollback and "rollback/pre-pdv-pedir-loja" in rollback)
     check("rollback_migrate", "0018_solicitacao_transferencia_pdv" in rollback)
+    path_script = ROOT / "scripts/verify_pdv_pedir_cupom_qtd_path.py"
+    check("path_cupom_qtd_script", path_script.is_file())
     ver = _read("VERSION").strip()
-    check("version_bump", ver >= "18.96", ver)
+    check("version_bump", ver >= "19.01", ver)
 
     print()
     print(f"VERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
