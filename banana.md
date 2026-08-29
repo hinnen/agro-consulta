@@ -1239,27 +1239,56 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🩹 Repasse no PDV alinhado ao cofrinho (`REPASSE-PDV-COFRINHO` · **v18.41** · 28/08/2026)
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.45** · 28/08
+
+| Pacote | Badge | O quê | Migrate |
+| ------ | ----- | ----- | ------- |
+| `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · prova **37/37** | NÃO |
+| `REPASSE-UX` | v18.19 | Remove texto rosa que quebrava linha sob reserva manual | NÃO |
+| `CP-NOVO-EMPRESTIMO` | **v18.44** | Novo empréstimo CP · parcelas auto · Outros (dias) · contorno · verify **57/57** | NÃO |
+| `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | **v18.41** | Cofrinho PG + overlay PDV (botão · aviso · sync) · path **152** · deep **96** | **SIM** (`0100`+) |
+| `NF-FIN-VINCULO-FORTE` | v18.29 | Vínculo financeiro NF só com prova forte · saneia marca falsa | NÃO |
+| `CAD-PRECO-CENTAVOS` | v18.39 | Cadastro: 82,90 não vira 829,00 nos preços por forma | NÃO |
+
+| Campo | Valor |
+| ----- | ----- |
+| **Branch** | `teste` |
+| **Live hoje** | `origin/producao` @ **v18.27** / `3adddf2` |
+| **Produção** | Relatórios / NF DOM / Etiquetas 6 cm / Excel fornecedores ✅ já na loja |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 28/08
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto para envio à produção · prova **37/37** |
+| 2 | `REPASSE-UX` | 🟢 pronto para envio à produção |
+| 3 | `CP-NOVO-EMPRESTIMO` | 🟢 pronto para envio à produção · verify **57/57** |
+| 4 | `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | 🟢 pronto para envio à produção · **migrate** · cofrinho **22** · deep **96** · fechar **68+41** |
+| 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto para envio à produção |
+| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto para envio à produção |
+
+**Loja:** só com frase + senha. Após cofrinho: `migrate` · se já houver dinheiro físico, Ajuste · entrada.
+
+### 📦 PACOTE PRONTO — Repasse PDV + cofrinho (`REPASSE-PDV-COFRINHO` · **v18.41** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Caso** | Tela Gestão `/repasse-vila/` ok; no PDV o overlay ainda falhava na operação do cofrinho. |
-| **Causas** | Botão **Repasse** sumiu da topbar; reserva digitada ficava velha ao reabrir; aviso fraco; id errado na balança (`pdv-repasse-vila-overlay`). |
-| **Fix** | Botão laranja **Repasse** de volta · reserva sempre sincroniza do Postgres ao abrir · faixa + confirm «deixe R$ X na Vila» · id da balança corrigido. |
-| **Prova** | path repasse **152** · cofrinho **22/22**. |
-| **Você** | Ctrl+F5 no PDV · botão **Repasse** · ver aviso rosa · confirmar com diálogo se houver valor a separar. |
-| **Status** | `teste` v18.41 · **produção não alterada**. |
+| **O quê** | Overlay do PDV alinhado ao cofrinho: botão **Repasse** na topbar, reserva sincroniza do Postgres ao abrir, faixa + confirm «deixe R$ X na Vila». |
+| **Prova** | path **152** · cofrinho **22/22** · reserva **60/60** · deep **96/96** · fechar-repasse **68/68** · fechar-loja **41/41** · `manage.py check` · `node --check` JS. |
+| **Commit** | `6ad46ab` |
+| **Status** | 🟢 **pronto para envio à produção** (junto com `REPASSE-COFRINHO-VILA`) · **produção não alterada**. |
 
-### 🩹 Cadastro — centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.39** · 28/08/2026)
+### 📦 PACOTE PRONTO — Cadastro centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.42** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Caso** | Aba Preços → Preços por forma / 2 grupos: digitar **82,90** virava **829,00**. |
-| **Causa** | O leitor apagava todo ponto. O valor já em número (82.9) virava texto `82.9`, perdia o ponto e gravava 829. |
-| **Fix** | Número JS permanece; vírgula = real brasileiro (1.234,56). Vale por forma e grupos A/B. |
-| **Você** | Ctrl+F5 no cadastro · abrir o produto · Preços por forma · digitar 82,90 · sair do campo · tem que ficar **82,90**. Se já tinha salvado 829,00, corrigir na mão. |
-| **Provas** | `scripts/verify_cadastro_preco_centavos.py` · `produtos/tests_cadastro_preco_centavos.py` |
-| **Status** | Commit/push em `teste`; **produção não alterada**. |
+| **Bug** | Preços por forma / 2 grupos: **82,90** virava **829,00**. |
+| **Fix** | Parser não apaga ponto de número JS; vírgula = real. |
+| **Path** | Digita → blur → troca aba → salvar → reabrir → PDV PIX **82,90**. |
+| **Prova** | path **51/51** · Node JS real **31/31** · Django **5/5**. Loja ainda com parser antigo. |
+| **Você** | Ctrl+F5 cadastro · 82,90 tem que ficar 82,90. Se já gravou 829,00, corrige na mão. |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · `teste` · loja não alterada. |
 
 ### 📦 PACOTE PRONTO — Cofrinho físico da reserva Vila (`REPASSE-COFRINHO-VILA` · **v18.30** · 28/08/2026)
 
@@ -1275,7 +1304,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Provas** | Repasse path **143/143** · reserva **60/60** · deep **96/96** · cofrinho **22/22** · fechar caixa repasse **68/68** · fechar caixa loja **41/41** · `manage.py check` · migrations sem drift · Python/JS syntax · `git diff --check`. |
 | **Visual** | Chrome local 1366×768, Agro Display Scale 100%: configuração e cofrinho lado a lado no primeiro viewport, sem overflow horizontal; fluxo inferior preservado. |
 | **Após deploy** | Rodar `python manage.py migrate`. O saldo inicial é **R$ 0,00**; se já existir dinheiro físico no cofrinho, contar e lançar **Ajuste · entrada** com operador e motivo. |
-| **Status** | Commit/push em `teste` ao fechar este checkpoint; **produção não alterada**. |
+| **Status** | 🟢 **pronto para envio à produção** (com `REPASSE-PDV-COFRINHO` v18.41) · **produção não alterada**. |
 
 ### 🩹 Entrada NF — saneamento de vínculo financeiro falso (`NF-FIN-VINCULO-FORTE` · **v18.29** · 27/08/2026)
 
@@ -1321,35 +1350,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Revisão 28/08** | Código no `teste` OK · prova `tests_relatorios_central_filtros` **8/8** · loja já tem o cherry `cfcb526` (ancestral de `origin/producao` @ v18.27+). Renan: *«já foi resolvido»* — sem ação nova. |
 | **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.44** · 28/08
-
-| Pacote | Badge | O quê | Migrate |
-| ------ | ----- | ----- | ------- |
-| `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · prova **37/37** | NÃO |
-| `REPASSE-UX` | v18.19 | Remove texto rosa que quebrava linha sob reserva manual | NÃO |
-| `CP-NOVO-EMPRESTIMO` | v18.37+ | Pós-Live: calendário · parcelas auto · Outros (dias) · contorno campos | NÃO |
-| `REPASSE-COFRINHO-VILA` | v18.30 | Cofrinho físico PG + ledger · saldo separado do caixa | **SIM** (`0100`+) |
-| `NF-FIN-VINCULO-FORTE` | v18.29 | Vínculo financeiro NF só com prova forte · saneia marca falsa | NÃO |
-| `CAD-PRECO-CENTAVOS` | v18.39 | Cadastro: 82,90 não vira 829,00 nos preços por forma | NÃO |
-
-| Campo | Valor |
-| ----- | ----- |
-| **Branch** | `teste` |
-| **Live hoje** | `origin/producao` @ **v18.27** / `3adddf2` |
-| **Produção** | Relatórios / NF DOM / Etiquetas 6 cm / Excel fornecedores ✅ já na loja |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 28/08
-
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · prova **37/37** |
-| 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` | 🟢 pronto envio · verify **57/57** 28/08 |
-| 4 | `REPASSE-COFRINHO-VILA` | 🟢 pronto envio · **migrate** |
-| 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto envio |
-| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto envio |
-
-**Loja:** só com frase + senha. Smoke CP: Outros 45d · contorno campos. Após cofrinho: `migrate`.
+### ~~📦 PACOTE PRONTO / CHECKLIST ÚNICO (duplicata)~~ · ver **topo** (badge **v18.45**)
 
 ### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
 
