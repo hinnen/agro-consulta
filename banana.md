@@ -418,7 +418,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Outro (24/08 · bug #2 · v17.89):** PIN + detalhe **acima** do Lançar · Lançar/Confirmar só com PIN+detalhe · Confirmar pode lançar a tranche Outro sozinho.
 
-**Preço digitado + forma (`PDV-PRECO-MANUAL-FORMA` · v18.18 · verificado 28/08):** preço editado no carrinho **não** volta ao lista ao escolher forma/recalc. Flag `preco_manual` + cache alinhado; campanha não sobrescreve. ✅ no `teste` (`523c06a`, prova 14/14) · ⏳ ainda **não** na loja.
+**Preço digitado + forma (`PDV-PRECO-MANUAL-FORMA` · v18.18 · 28/08):** preço editado no carrinho **não** volta ao lista ao escolher forma/recalc. Flag `preco_manual` + cache alinhado; campanha não sobrescreve. ✅ no `teste` (`523c06a`, prova **37/37**) · ⏳ ainda **não** na loja.
 
 **Regras UX jÃ¡ decididas:**
 
@@ -1321,38 +1321,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Revisão 28/08** | Código no `teste` OK · prova `tests_relatorios_central_filtros` **8/8** · loja já tem o cherry `cfcb526` (ancestral de `origin/producao` @ v18.27+). Renan: *«já foi resolvido»* — sem ação nova. |
 | **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
-### ✅ Verificado — `PDV-PRECO-MANUAL-FORMA` (v18.18 · 28/08/2026)
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.40** · 28/08
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Bug** | Digita preço no carrinho (ex. 32) → escolhe forma → voltava ao lista (ex. 25) |
-| **Causa loja** | Em `recalcCarrinhoComForma` / `aplicarNoItem`, com `preco_manual` ainda restaurava `preco` de `preco_pos_promo` (cache velho); `updateItemPrice` não alinhava o cache |
-| **Fix no teste** | Commit `523c06a` · `pdv_promocoes.js` + `pdv_state.js` + `pdv_campanha.js` — digitado manda; cache sincroniza; campanha/envio não sobrescrevem |
-| **Prova** | `scripts/verify_pdv_preco_manual_forma.py` → **14/14** (fonte JS + path 25→32→débito + contraste bug antigo) |
-| **Status** | ✅ **código OK no `teste`** · 🟢 **ainda só no teste** (não está em `origin/producao`) · loja Live ainda com o bug antigo até cherry/senha |
+| Pacote | Badge | O quê | Migrate |
+| ------ | ----- | ----- | ------- |
+| `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · prova **37/37** | NÃO |
+| `REPASSE-UX` | v18.19 | Remove texto rosa que quebrava linha sob reserva manual | NÃO |
+| `CP-NOVO-EMPRESTIMO` | v18.37+ | Pós-Live: calendário · parcelas auto · Outros (dias) · contorno campos | NÃO |
+| `REPASSE-COFRINHO-VILA` | v18.30 | Cofrinho físico PG + ledger · saldo separado do caixa | **SIM** (`0100`+) |
+| `NF-FIN-VINCULO-FORTE` | v18.29 | Vínculo financeiro NF só com prova forte · saneia marca falsa | NÃO |
+| `CAD-PRECO-CENTAVOS` | v18.39 | Cadastro: 82,90 não vira 829,00 nos preços por forma | NÃO |
 
-### 📦 PACOTE PRONTO — pós Live v18.25 · badge teste **v18.30** · 28/08
-
-| Pacote | Badge | O quê (loja) |
-| ------ | ----- | ------------ |
-| `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · **verificado 28/08** |
-| `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
-| `CP-NOVO-EMPRESTIMO` | **v18.36** | … · intervalo Outros · **campos contorno único (rótulo+valor)** |
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` · três pacotes anteriores ainda aguardam envio |
-| **Live hoje** | `origin/producao` @ **v18.27** / `3adddf2` (NF DOM) · cofrinho etc. só no teste |
-| **Produção** | Etiquetas 6 cm + recuperação estoque NF ✅ **enviados** · **não** inclui `PDV-PRECO-MANUAL-FORMA` |
+| **Branch** | `teste` |
+| **Live hoje** | `origin/producao` @ **v18.27** / `3adddf2` |
+| **Produção** | Relatórios / NF DOM / Etiquetas 6 cm / Excel fornecedores ✅ já na loja |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 25/08 (rev. 28/08)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 28/08
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · ✅ verificado código/prova 28/08 |
+| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · prova **37/37** |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` (até v18.37) | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` (pós v18.14) | 🟢 pronto envio |
+| 4 | `REPASSE-COFRINHO-VILA` | 🟢 pronto envio · **migrate** |
+| 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto envio |
+| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto envio |
 
-**Você (loja):** Ctrl+F5 · badge **v18.25** · conferir Etiquetas 90/60 mm e recuperação de estoque da Entrada NF.
+**Loja:** só com frase + senha. Após cofrinho: `migrate` · se já houver dinheiro físico, Ajuste · entrada.
 
 ### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
 
@@ -1366,7 +1363,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-etq-nf-v18.14` + branch `producao-backup-pre-v1825-etq-nf-20260827` |
 | **Migrate** | **NÃO** |
 | **Provas** | Django focado **11/11** · Etiquetas 90/60 mm OK · Entrada NF **11/11** · JS syntax OK · `manage.py check` OK |
-| **Não entrou** | `PDV-PRECO-MANUAL-FORMA` (✅ verificado 28/08, ainda só teste), `REPASSE-UX` e `CP-NOVO-EMPRESTIMO` continuam somente no `teste` |
+| **Não entrou** | Ver **PACOTE PRONTO / CHECKLIST ÚNICO** no topo (6 pacotes só no `teste`) |
 
 ### 🧾 Entrada NF — recuperação somente do estoque (`NF-RECUPERA-ESTOQUE` · **v18.25** · 27/08)
 

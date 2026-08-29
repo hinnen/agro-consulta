@@ -170,22 +170,22 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118
 
 ---
 
-## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (teste v18.18 · verificado 28/08/2026)
+## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (teste v18.18 · 28/08/2026)
 
-Preço digitado no carrinho **não** pode voltar ao lista ao escolher forma. Cruzado com JS + prova estática.
+Preço digitado no carrinho **não** volta ao lista ao escolher forma. Prova detalhada **37/37**.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ código OK no `teste` (`523c06a`) · 🟢 **ainda não na loja** | **NÃO** |
+| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ OK no `teste` (`523c06a`) · 🟢 **pronto envio** · ainda **não** loja | **NÃO** |
 
-- [x] Digita preço → `preco_manual` + `preco_pos_promo` / `preco_base_forma` alinhados (`pdv_state.updateItemPrice`)
-- [x] `recalcCarrinhoComForma` / `aplicarNoItem`: manual **não** restaura de `preco_pos_promo` antigo
-- [x] Campanha: pula item manual; `precoEnvioItem` usa `item.preco`
-- [x] Path simulado: lista 25 → digita 32 → forma débito → continua 32
-- [x] Contraste: bug antigo (cache 25) documentado vs fix
-- [ ] Cherry / senha produção — **pendente** (loja Live ainda com restauração do cache)
+- [x] Fonte JS: guards em promo / state / campanha / forma / consulta
+- [x] Path 25→32→débito; pix/crédito/dinheiro/fiado; troca de forma; qtd×preço
+- [x] Carrinho misto; campanha 5% não come digitado; envio usa `item.preco`
+- [x] Contraste loja: bug ainda vivo em `origin/producao`
+- [x] `node --check` nos 4 JS · ancestral `teste` sim / `producao` não
+- [ ] Cherry / senha produção — **pendente**
 
-**Prova:** `scripts/verify_pdv_preco_manual_forma.py` → **14/14**. Detalhe CHECKPOINT em `banana.md`.
+**Prova:** `scripts/verify_pdv_preco_manual_forma.py` → **37/37**.
 
 ---
 
