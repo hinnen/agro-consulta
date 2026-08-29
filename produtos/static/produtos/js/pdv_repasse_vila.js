@@ -49,6 +49,24 @@
   var pinModal = document.getElementById('pdv-rp-pin-modal');
   var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
   var cofreConfirmPending = null;
+  var cofreCheckModal = document.getElementById('pdv-rp-cofre-check-modal');
+  var cofreCheckStep = 0;
+  var cofreCheckVals = { salario: 0, vilaElias: 0, levar: 0 };
+  var cofreCheckPending = null;
+  var COFRE_CHECK_PASSOS = [
+    {
+      pergunta: 'Você já separou o dinheiro do cofrinho do funcionário?',
+      key: 'salario',
+    },
+    {
+      pergunta: 'Você já separou o dinheiro do cofre Vila Elias?',
+      key: 'vilaElias',
+    },
+    {
+      pergunta: 'Você já pegou o dinheiro que vai ser levado para o Centro?',
+      key: 'levar',
+    },
+  ];
   var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
   var manualDirty = false;
   var manualAutoFmt = '';
@@ -715,12 +733,61 @@
     return isFinite(n) ? n : NaN;
   }
 
+  function closeCofreCheckModal(okFinal) {
+    hideModal(cofreCheckModal);
+    cofreCheckStep = 0;
+    var cb = cofreCheckPending;
+    cofreCheckPending = null;
+    if (okFinal && typeof cb === 'function') cb();
+  }
+
+  function renderCofreCheckPasso() {
+    var passo = COFRE_CHECK_PASSOS[cofreCheckStep];
+    if (!passo) {
+      closeCofreCheckModal(true);
+      return;
+    }
+    var elP = document.getElementById('pdv-rp-cofre-check-pergunta');
+    var elV = document.getElementById('pdv-rp-cofre-check-valor');
+    var elS = document.getElementById('pdv-rp-cofre-check-passo');
+    if (elP) elP.textContent = passo.pergunta;
+    if (elV) elV.textContent = money(cofreCheckVals[passo.key] || 0);
+    if (elS) elS.textContent = (cofreCheckStep + 1) + ' de ' + COFRE_CHECK_PASSOS.length;
+    focusSoon(document.getElementById('pdv-rp-cofre-check-ok'));
+  }
+
+  function openCofreCheckSequence(opts, onDone) {
+    cofreCheckVals = {
+      salario: Number(opts.salario || 0),
+      vilaElias: Number(opts.vilaElias || 0),
+      levar: Number(opts.levar || 0),
+    };
+    cofreCheckPending = onDone;
+    cofreCheckStep = 0;
+    showModal(cofreCheckModal);
+    renderCofreCheckPasso();
+  }
+
+  function advanceCofreCheck() {
+    cofreCheckStep += 1;
+    if (cofreCheckStep >= COFRE_CHECK_PASSOS.length) {
+      closeCofreCheckModal(true);
+      return;
+    }
+    renderCofreCheckPasso();
+  }
+
   function closeCofreConfirmModal(ok) {
     hideModal(cofreConfirmModal);
     var cb = cofreConfirmPending;
+    var vals = cofreConfirmValsSnapshot;
     cofreConfirmPending = null;
-    if (ok && typeof cb === 'function') cb();
+    cofreConfirmValsSnapshot = null;
+    if (!ok || typeof cb !== 'function') return;
+    openCofreCheckSequence(vals || {}, cb);
   }
+
+  var cofreConfirmValsSnapshot = null;
 
   function openCofreConfirmModal(opts, onConfirm) {
     opts = opts || {};
@@ -730,6 +797,11 @@
     if (elVal) elVal.textContent = money(opts.salario || 0);
     if (elVe) elVe.textContent = money(opts.vilaElias || 0);
     if (elLev) elLev.textContent = money(opts.levar || 0);
+    cofreConfirmValsSnapshot = {
+      salario: Number(opts.salario || 0),
+      vilaElias: Number(opts.vilaElias || 0),
+      levar: Number(opts.levar || 0),
+    };
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
     focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
@@ -946,6 +1018,19 @@
   if (cofreCancelar) cofreCancelar.addEventListener('click', function () { closeCofreConfirmModal(false); });
   if (cofreOk) cofreOk.addEventListener('click', function () { closeCofreConfirmModal(true); });
 
+  var cofreCheckCancelar = document.getElementById('pdv-rp-cofre-check-cancelar');
+  var cofreCheckOk = document.getElementById('pdv-rp-cofre-check-ok');
+  if (cofreCheckCancelar) {
+    cofreCheckCancelar.addEventListener('click', function () {
+      closeCofreCheckModal(false);
+    });
+  }
+  if (cofreCheckOk) {
+    cofreCheckOk.addEventListener('click', function () {
+      advanceCofreCheck();
+    });
+  }
+
   var forcarCancelar = document.getElementById('pdv-rp-forcar-manual-cancelar');
   var forcarOk = document.getElementById('pdv-rp-forcar-manual-ok');
   var forcarPin = document.getElementById('pdv-rp-forcar-manual-pin');
@@ -1093,6 +1178,10 @@
     if (ev.key !== 'Escape') return;
     if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
       closeForcarManualModal();
+      return;
+    }
+    if (cofreCheckModal && !cofreCheckModal.classList.contains('hidden')) {
+      closeCofreCheckModal(false);
       return;
     }
     if (cofreConfirmModal && !cofreConfirmModal.classList.contains('hidden')) {

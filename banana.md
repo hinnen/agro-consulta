@@ -1273,6 +1273,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
+### 🩹 Repasse — popup maior + 3 OKs gaveta (REPASSE-CONFIRM-3OK · **v19.26**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **O quê** | Popup confirmação ~96% tela · 3 valores em linha · após Confirmar: 3 OKs (salário → VE → levar) |
+| **Você** | Ctrl+F5 · Repasse · Confirmar · 3 OKs |
+
 ### 🩹 Repasse — contraste campos editáveis (REPASSE-EDIT-CONTRASTE · **v19.23**) · 29/08/2026
 
 | Item | Detalhe |
