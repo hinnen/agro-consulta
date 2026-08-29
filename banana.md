@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ----- | ------------ |
 | `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · **verificado 28/08** |
 | `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
-| `CP-NOVO-EMPRESTIMO` | **v18.34** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · parcelas automáticas · **intervalo Outros (dias)** |
+| `CP-NOVO-EMPRESTIMO` | **v18.36** | … · intervalo Outros · **campos contorno único (rótulo+valor)** |
 | Campo | Valor |
 | ----- | ----- |
 | **Branch** | `teste` · três pacotes anteriores ainda aguardam envio |
@@ -1328,7 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · ✅ verificado código/prova 28/08 |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` (até v18.34) | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` (até v18.37) | 🟢 pronto envio |
 
 **Você (loja):** Ctrl+F5 · badge **v18.25** · conferir Etiquetas 90/60 mm e recuperação de estoque da Entrada NF.
 
