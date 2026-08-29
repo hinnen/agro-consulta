@@ -92,7 +92,14 @@
                 <option value="30" selected>Mensal — mesmo dia do mês</option>
                 <option value="60">Bimestral — a cada 2 meses</option>
                 <option value="90">Trimestral — a cada 3 meses</option>
+                <option value="__outro__">Outros — informar dias</option>
               </select>
+              <div id="ne-intervalo-outro-wrap" class="hidden mt-2 rounded-xl border-2 border-amber-200 bg-amber-50/90 px-3 py-2">
+                <label class="block text-sm font-black uppercase text-amber-950">Dias entre parcelas</label>
+                <input type="number" id="ne-intervalo-dias" min="1" max="366" step="1" value="30"
+                       class="mt-1 w-full min-h-[48px] rounded-lg border-2 border-amber-300 px-3 py-2 text-lg font-black bg-white"
+                       title="Quantidade de dias entre cada parcela (1 a 366).">
+              </div>
             </label>
             <button type="button" id="ne-gerar-parcelas"
                     class="min-h-[52px] shrink-0 rounded-xl border-2 border-indigo-600 bg-indigo-600 hover:bg-indigo-700 px-5 py-3 text-base font-black uppercase tracking-wide text-white shadow-sm">
@@ -104,6 +111,7 @@
                 <p><strong>Nº parcelas</strong> monta a lista sozinha (também ao mudar intervalo, 1º vencimento ou total).</p>
                 <p><strong>1º vencimento</strong> = campo acima.</p>
                 <p><strong>Mensal</strong> = mesmo dia no mês (24/08 → 24/09).</p>
+                <p><strong>Outros</strong> = informe quantos dias entre cada parcela.</p>
                 <p><strong>Juros</strong> = total a pagar − valor recebido, rateado em cada parcela (como na Nova saída).</p>
               </div>
             </details>
@@ -260,6 +268,33 @@
     return y + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
   }
 
+  function neIntervaloDias() {
+    const preset = document.getElementById('ne-intervalo');
+    const custom = document.getElementById('ne-intervalo-dias');
+    if (preset && String(preset.value) === '__outro__') {
+      let n = parseInt(String(custom?.value || '30'), 10);
+      if (!Number.isFinite(n) || n < 1) n = 30;
+      if (n > 366) n = 366;
+      return n;
+    }
+    if (preset && preset.value && preset.value !== '__outro__') {
+      const n = parseInt(String(preset.value), 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 366) return n;
+    }
+    let n = parseInt(String(custom?.value || '30'), 10);
+    if (!Number.isFinite(n) || n < 1) n = 30;
+    if (n > 366) n = 366;
+    return n;
+  }
+
+  function neIntervaloUiSync() {
+    const preset = document.getElementById('ne-intervalo');
+    const wrap = document.getElementById('ne-intervalo-outro-wrap');
+    if (!preset || !wrap) return;
+    if (String(preset.value) === '__outro__') wrap.classList.remove('hidden');
+    else wrap.classList.add('hidden');
+  }
+
   function vencimentoParcela(dv0, indice, intDias) {
     const i = parseInt(indice, 10) || 0;
     const iv = parseInt(intDias, 10) || 30;
@@ -345,7 +380,7 @@
       if (!silent) showMsg('Informe o 1º vencimento.', false);
       return false;
     }
-    const intD = parseInt(document.getElementById('ne-intervalo')?.value, 10) || 30;
+    const intD = neIntervaloDias();
     const vals = splitEmParcelas(tot, n);
     grid.innerHTML = vals.map(function (val, i) {
       const dv = vencimentoParcela(dv0, i, intD);
@@ -427,6 +462,9 @@
     });
     document.getElementById('ne-parcelas').value = '1';
     document.getElementById('ne-intervalo').value = '30';
+    const neIntDias = document.getElementById('ne-intervalo-dias');
+    if (neIntDias) neIntDias.value = '30';
+    neIntervaloUiSync();
     document.getElementById('ne-data-entrada').value = todayISO();
     document.getElementById('ne-primeiro-ven').value = '';
     document.getElementById('ne-entrada-quitada').checked = true;
@@ -546,7 +584,17 @@
     elParc.addEventListener('change', agendarParcelasAuto);
   }
   const elInt = document.getElementById('ne-intervalo');
-  if (elInt) elInt.addEventListener('change', agendarParcelasAuto);
+  if (elInt) {
+    elInt.addEventListener('change', function () {
+      neIntervaloUiSync();
+      agendarParcelasAuto();
+    });
+  }
+  const elIntDias = document.getElementById('ne-intervalo-dias');
+  if (elIntDias) {
+    elIntDias.addEventListener('input', agendarParcelasAuto);
+    elIntDias.addEventListener('change', agendarParcelasAuto);
+  }
   const elPrimVen = document.getElementById('ne-primeiro-ven');
   if (elPrimVen) {
     elPrimVen.addEventListener('change', agendarParcelasAuto);
@@ -589,7 +637,7 @@
       data_entrada: document.getElementById('ne-data-entrada').value,
       primeiro_vencimento: document.getElementById('ne-primeiro-ven').value,
       parcelas: nParc,
-      intervalo_dias: parseInt(document.getElementById('ne-intervalo').value, 10) || 30,
+      intervalo_dias: neIntervaloDias(),
       banco_nome: '',
       banco_id: '',
       forma_nome: '',
