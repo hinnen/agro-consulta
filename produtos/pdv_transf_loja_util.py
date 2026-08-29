@@ -90,7 +90,11 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
     if not ok:
         return False, "", None, err
     user = usuario_django_de_pin(pin)
-    request.session["pdv_operador_nome"] = (label or "")[:120]
+    rot = (label or "")[:120]
+    request.session["pdv_operador_nome"] = rot
+    # Alinha «caixa gerido» ao PIN — evita Quem grudado no login Chrome (ex. Geraldo Hinnen).
+    if rot:
+        request.session["pdv_caixa_gerido_operador"] = rot
     request.session["mobile_auth"] = True
     if user is not None and getattr(user, "pk", None):
         request.session["pdv_operador_user_id"] = int(user.pk)

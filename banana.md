@@ -1247,6 +1247,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.02** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no **teste** · loja ainda **v19.01** |
+| **Bug report** | Campo **Seu nome** = PIN do descanso/caixa (editável) · não o login Chrome |
+| **Geraldo Hinnen** | Várias ações usavam login Django / pdv_caixa_gerido_operador grudado e **ignoravam** pdv_operador_nome do PIN |
+| **Fix** | operador_label_request prioriza PIN · PIN grava/limpa gerido · adotar caixa sem PIN usa sessão PIN |
+| **Arquivos** | caixa_util.py · pdv_transf_loja_util.py · iews.py · gro_bug_report.js · ug_report_views.py · _agro_consulta_ui.html |
+| **Você** | Ctrl+F5 · digitar seu PIN · abrir 🐞 · nome deve ser o do PIN · ação PDV não deve gravar Geraldo Hinnen se PIN for outro |
+| **Pendência** | Renan manda print da tela onde ainda aparecer Geraldo errado (se sobrar) |
+
+
 ### ✅ Deploy loja — lote checklist 29/08b (`deploy/prep-checklist-2908b` · **v19.01**) · **Live**
 
 | Campo | Valor |

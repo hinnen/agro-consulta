@@ -896,17 +896,25 @@ def rotulo_usuario_django(user) -> str:
 
 def operador_label_request(request) -> str:
     """
-    Quem está operando agora: PIN do caixa gerido, senão nome do login.
-    Não usa e-mail cru (evita «geraldo.hinnen@…» virar rótulo de Quem).
+    Quem está operando agora.
+
+    Ordem: PIN do descanso/PDV (``pdv_operador_nome``) → PIN do caixa gerido →
+    ajuste mobile → login Django. Sem isso, o Chrome logado como «Geraldo Hinnen»
+    (ou outro) virava «Quem» mesmo com outro PIN no caixa.
     """
     if request is None:
         return ""
-    try:
-        gerido = (request.session.get("pdv_caixa_gerido_operador") or "").strip()
-    except Exception:
-        gerido = ""
-    if gerido:
-        return gerido[:120]
+    for key in (
+        "pdv_operador_nome",
+        "pdv_caixa_gerido_operador",
+        "ajuste_mobile_operador",
+    ):
+        try:
+            rot = (request.session.get(key) or "").strip()
+        except Exception:
+            rot = ""
+        if rot:
+            return rot[:120]
     return rotulo_usuario_django(getattr(request, "user", None))[:120]
 
 

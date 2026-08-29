@@ -12235,6 +12235,8 @@ def api_caixa_assumir_sessao(request):
     vincular_sessao_caixa_browser(request, alvo)
     sincronizar_deposito_com_ponto_caixa(request, getattr(alvo, "ponto_caixa", None))
     operador = rotulo_operador_pin(pin) if pin else ""
+    if not operador:
+        operador = str(request.session.get("pdv_operador_nome") or "").strip()
     if not operador and request.user.is_authenticated:
         operador = (request.user.get_full_name() or request.user.get_username() or "").strip()
     if operador:
@@ -12564,6 +12566,8 @@ def caixa_fechar(request):
         from produtos.repasse_vila_util import separar_reservas_ao_fechar_vila
 
         op = rotulo_operador_pin(pin) if pin else ""
+        if not op:
+            op = str(request.session.get("pdv_operador_nome") or "").strip()
         if not op and getattr(request, "user", None) and request.user.is_authenticated:
             op = (request.user.get_full_name() or request.user.get_username() or "").strip()
         _feitos, err = separar_reservas_ao_fechar_vila(
@@ -26152,6 +26156,7 @@ def api_pdv_registrar_operador(request):
     if not op_req:
         request.session.pop("pdv_operador_nome", None)
         request.session.pop("pdv_operador_user_id", None)
+        request.session.pop("pdv_caixa_gerido_operador", None)
         request.session.modified = True
         return JsonResponse({"ok": True, "operador": ""})
 

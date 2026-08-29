@@ -89,11 +89,49 @@
   }
 
   function usuarioNomePadrao() {
+    /* PIN logado no caixa (descanso) — não o login do Chrome. */
+    try {
+      var ls = (localStorage.getItem('gm_sspin_operador') || '').trim();
+      if (ls) return ls;
+    } catch (e0) {}
+    try {
+      var chip = document.getElementById('gm-sspin-operador-chip');
+      if (chip) {
+        var t = (chip.textContent || '').trim();
+        var ph = (chip.getAttribute('data-placeholder-when-empty') || '').trim();
+        if (t && t !== ph) return t;
+      }
+    } catch (e1) {}
     try {
       var meta = document.querySelector('meta[name="agro-user-display"]');
       if (meta && meta.content) return String(meta.content).trim();
-    } catch (e) {}
+    } catch (e2) {}
     return '';
+  }
+
+  function preencherNomeDoPin(inp) {
+    if (!inp) return;
+    var atual = (inp.value || '').trim();
+    var padrao = usuarioNomePadrao();
+    if (padrao && (!atual || atual === padrao)) {
+      inp.value = padrao;
+    }
+    fetch('/api/pdv/registrar-operador/', { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json().catch(function () {
+          return null;
+        });
+      })
+      .then(function (j) {
+        if (!inp || inp.dataset.agroBugNomeEditado === '1') return;
+        var op = j && j.ok ? String(j.operador || '').trim() : '';
+        if (!op) return;
+        var v = (inp.value || '').trim();
+        if (!v || v === padrao || v === usuarioNomePadrao()) {
+          inp.value = op;
+        }
+      })
+      .catch(function () {});
   }
 
   function versaoApp() {
@@ -500,7 +538,13 @@
       '<p class="agro-bug-err" id="agro-bug-err" hidden></p>' +
       '</div>';
     document.body.appendChild(root);
-    document.getElementById('agro-bug-usuario').value = usuarioNomePadrao();
+    var inpNome = document.getElementById('agro-bug-usuario');
+    preencherNomeDoPin(inpNome);
+    if (inpNome) {
+      inpNome.addEventListener('input', function () {
+        inpNome.dataset.agroBugNomeEditado = '1';
+      });
+    }
     document.getElementById('agro-bug-pc').value = sugestaoNomePc();
     document.getElementById('agro-bug-meta').textContent =
       'PC id ' +
