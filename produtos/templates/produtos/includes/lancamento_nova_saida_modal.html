@@ -7,8 +7,11 @@
 
     <div class="agro-ns-header shrink-0 flex flex-wrap items-center justify-between gap-2 border-b-2 border-[var(--ns-accent)] bg-[var(--ns-accent-soft)]">
       <div class="flex flex-wrap items-center gap-3 min-w-0">
-        <h2 id="agro-ns-titulo" class="agro-ns-title font-black uppercase tracking-tight text-slate-900">Novo Lançamento</h2>
-        <div class="agro-ns-tipo-grp flex items-center gap-1 bg-white/80 p-1 rounded-xl border-2 border-slate-200" role="group" aria-label="Tipo">
+        <div class="min-w-0">
+          <h2 id="agro-ns-titulo" class="agro-ns-title font-black uppercase tracking-tight text-slate-900">Novo Lançamento</h2>
+          <p id="agro-ns-subtitulo" class="mt-0.5 text-base font-bold text-slate-600">Escolha o tipo</p>
+        </div>
+        <div id="agro-ns-tipo-grp" class="agro-ns-tipo-grp hidden flex items-center gap-1 bg-white/80 p-1 rounded-xl border-2 border-slate-200" role="group" aria-label="Tipo">
           <label class="cursor-pointer">
             <input type="radio" name="agro-ns-tipo" value="pagar" class="sr-only peer" checked>
             <span class="agro-ns-tipo-btn block rounded-lg font-black uppercase peer-checked:bg-red-600 peer-checked:text-white text-slate-600">Pagar</span>
@@ -39,7 +42,23 @@
       </button>
     </div>
 
-    <form id="agro-ns-form" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+    {# Passo 0 — escolha Novo Lançamento × Empréstimo (mesmo padrão visual do Novo empréstimo) #}
+    <div id="agro-ns-passo-escolha" class="flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-10 sm:py-14">
+      <div class="mx-auto w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
+        <button type="button" id="agro-ns-btn-escolha-lancamento"
+                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-red-500 bg-red-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-red-100 active:scale-[0.99] transition-transform">
+          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-red-900">Novo Lançamento</span>
+          <span class="mt-3 block text-xl font-bold leading-snug text-red-800/80">Despesa ou receita normal</span>
+        </button>
+        <button type="button" id="agro-ns-btn-escolha-emprestimo"
+                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
+          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-indigo-900">Empréstimo</span>
+          <span class="mt-3 block text-xl font-bold leading-snug text-indigo-800/80">Externo ou interno (sócio)</span>
+        </button>
+      </div>
+    </div>
+
+    <form id="agro-ns-form" class="hidden flex-col flex-1 min-h-0 overflow-hidden">
       {% csrf_token %}
 
       <div class="agro-ns-itens-wrap flex-1 min-h-0 overflow-y-auto">

@@ -658,6 +658,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
 - **Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` / `CP-NE-BUSCA-EMPRESA` · v17.93 → v18.54):** Externo/Interno · parcelas auto · Outros · contorno · **busca Empresa/Credor** · empresa padrão pela loja · composição na linha da data.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
+- **Nova saÃ­da â€” escolha 1Âº passo (`NS-ESCOLHA-EMP` Â· v18.67):** ao abrir, 2 cards grandes (**Novo LanÃ§amento** Ã— **EmprÃ©stimo**) no padrÃ£o Externo/Interno; EmprÃ©stimo abre o modal CP (BI tambÃ©m inclui o modal).
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
 - **DRE visual prévia (09/08 + Mini DRE soma + card empréstimos 10/08 + legível 13/08):** Resumo 16:9. Mini DRE: Receita → … → **Saldo final** (= soma). Card Empréstimos: devido/juros/total/pago/emprestado. **Balão no mouse** (`data-rg-tip`) em cada número + `?` para texto longo. PE = termômetro (Vendeu / Precisa / Folga). Indicadores permanece até 100%.
@@ -1241,6 +1242,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Nova saída escolha Lançamento×Empréstimo (`NS-ESCOLHA-EMP` · **v18.67**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Clicar **Nova saída** / Novo Lançamento → 2 botões grandes: **Novo Lançamento** ou **Empréstimo** (estilo Externo/Interno). BI inclui modal de empréstimo. |
+| **Onde** | `lancamento_nova_saida_modal.html` · `lancamento_nova_saida.js` · `lancamento_novo_emprestimo_modal.html` · `dashboard_gerencial.html` · `views.py` |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — validar no PC local (Ctrl+F5 BI → Nova saída) |
+| **Você** | BI Contas a pagar → **Nova saída** → deve aparecer escolha antes do formulário |
+
 ### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
 | Campo | Valor |

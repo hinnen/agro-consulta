@@ -1581,6 +1581,62 @@
     }
   }
 
+  let nsPasso = 'escolha'; /* escolha | form */
+  let nsTipoPreferido = 'pagar';
+
+  function setSubtitulo(txt) {
+    const el = $('agro-ns-subtitulo');
+    if (!el) return;
+    const t = String(txt || '').trim();
+    el.textContent = t;
+    el.classList.toggle('hidden', !t);
+  }
+
+  function showPassoEscolha() {
+    nsPasso = 'escolha';
+    const escolha = $('agro-ns-passo-escolha');
+    const form = $('agro-ns-form');
+    const tipoGrp = $('agro-ns-tipo-grp');
+    escolha?.classList.remove('hidden');
+    if (form) {
+      form.classList.add('hidden');
+      form.classList.remove('flex');
+    }
+    tipoGrp?.classList.add('hidden');
+    setSubtitulo('Escolha o tipo');
+    const btnCancel = $('agro-ns-cancelar');
+    if (btnCancel) btnCancel.textContent = 'Cancelar';
+  }
+
+  function showPassoForm() {
+    nsPasso = 'form';
+    const escolha = $('agro-ns-passo-escolha');
+    const form = $('agro-ns-form');
+    const tipoGrp = $('agro-ns-tipo-grp');
+    escolha?.classList.add('hidden');
+    if (form) {
+      form.classList.remove('hidden');
+      form.classList.add('flex');
+    }
+    tipoGrp?.classList.remove('hidden');
+    setSubtitulo('');
+    const btnCancel = $('agro-ns-cancelar');
+    if (btnCancel) btnCancel.textContent = 'Voltar';
+    const first = document.querySelector('#agro-ns-linhas .agro-ns-card .agro-ns-sug-wrap[data-sug-campo="empresa"] input[type="text"]');
+    first?.focus();
+  }
+
+  function abrirEmprestimoAposEscolha() {
+    fechar();
+    if (window.AgroNovoEmprestimo && typeof window.AgroNovoEmprestimo.open === 'function') {
+      window.AgroNovoEmprestimo.open();
+      return;
+    }
+    const urlLista = (cfg().urlListaPagar || '/lancamentos/contas-pagar/').split('?')[0];
+    const sep = urlLista.indexOf('?') >= 0 ? '&' : '?';
+    window.location.href = urlLista + sep + 'novo_emprestimo=1';
+  }
+
   function fechar() {
     const ov = $('agro-nova-saida-overlay');
     if (!ov) return;
@@ -1588,6 +1644,15 @@
     ov.classList.add('hidden');
     ov.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('overflow-hidden');
+    nsPasso = 'escolha';
+  }
+
+  function cancelarOuVoltar() {
+    if (nsPasso === 'form') {
+      showPassoEscolha();
+      return;
+    }
+    fechar();
   }
 
   function abrir(opts) {
@@ -1596,8 +1661,8 @@
     if (!ov) return;
     if (!bound) init();
     resetSucessoPainel();
-    const tipo = opts.tipo === 'receber' ? 'receber' : 'pagar';
-    document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === tipo; });
+    nsTipoPreferido = opts.tipo === 'receber' ? 'receber' : 'pagar';
+    document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => { el.checked = el.value === nsTipoPreferido; });
     syncTemaTipo();
     const inpNlp = $('agro-ns-nlp-texto');
     if (inpNlp) inpNlp.value = '';
@@ -1607,8 +1672,11 @@
     ov.classList.remove('hidden');
     ov.setAttribute('aria-hidden', 'false');
     document.body.classList.add('overflow-hidden');
-    const first = document.querySelector('#agro-ns-linhas .agro-ns-card .agro-ns-sug-wrap[data-sug-campo="empresa"] input[type="text"]');
-    first?.focus();
+    if (opts.pularEscolha) {
+      showPassoForm();
+    } else {
+      showPassoEscolha();
+    }
   }
 
   function init() {
@@ -1624,7 +1692,15 @@
     $('agro-ns-add-linha')?.addEventListener('click', () => addRow({ collapsePrevious: true }));
     $('agro-ns-form')?.addEventListener('submit', submitForm);
     $('agro-ns-fechar')?.addEventListener('click', fechar);
-    $('agro-ns-cancelar')?.addEventListener('click', fechar);
+    $('agro-ns-cancelar')?.addEventListener('click', cancelarOuVoltar);
+    $('agro-ns-btn-escolha-lancamento')?.addEventListener('click', () => {
+      document.querySelectorAll('input[name="agro-ns-tipo"]').forEach((el) => {
+        el.checked = el.value === nsTipoPreferido;
+      });
+      syncTemaTipo();
+      showPassoForm();
+    });
+    $('agro-ns-btn-escolha-emprestimo')?.addEventListener('click', abrirEmprestimoAposEscolha);
     $('agro-ns-sucesso-ok')?.addEventListener('click', concluirSucessoPainel);
     $('agro-ns-btn-nlp')?.addEventListener('click', () => preencherPorTexto());
     $('agro-ns-nlp-aplicar')?.addEventListener('click', () => {

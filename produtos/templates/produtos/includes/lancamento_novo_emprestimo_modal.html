@@ -742,6 +742,19 @@
     });
   });
 
+  window.AgroNovoEmprestimo = { open: openOverlay, close: closeOverlay };
+
+  try {
+    const qs = new URLSearchParams(window.location.search || '');
+    if (qs.get('novo_emprestimo') === '1') {
+      openOverlay();
+      qs.delete('novo_emprestimo');
+      const clean = qs.toString();
+      const path = window.location.pathname || '';
+      window.history.replaceState({}, '', clean ? (path + '?' + clean) : path);
+    }
+  } catch (eQs) {}
+
   document.getElementById('agro-ne-btn-externo').addEventListener('click', function () { showPassoForm('externo'); });
   document.getElementById('agro-ne-btn-interno').addEventListener('click', function () { showPassoForm('interno'); });
   document.getElementById('agro-ne-voltar').addEventListener('click', showPassoTipo);

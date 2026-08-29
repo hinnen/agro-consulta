@@ -1834,7 +1834,9 @@ document.addEventListener("keydown", function (e) {
   else boot();
 })();
 </script>
+{% if emprestimos_defaults %}{{ emprestimos_defaults|json_script:"emprestimos-defaults-data" }}{% endif %}
 {% include "produtos/includes/lancamento_nova_saida_modal.html" %}
+{% include "produtos/includes/lancamento_novo_emprestimo_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% include "produtos/includes/repasse_aviso_abertura.html" %}
 {% endblock %}
