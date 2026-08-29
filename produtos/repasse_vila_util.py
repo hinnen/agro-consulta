@@ -536,8 +536,9 @@ def separar_reserva_diaria(
     repasse=None,
     observacao: str = "",
     cofre: str = COFRE_SALARIO,
+    valor: Decimal | float | str | None = None,
 ) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
-    """Separa o pendente acumulado (dias anteriores + hoje) da gaveta para o cofre."""
+    """Separa o pendente (ou um valor parcial) da gaveta para o cofre."""
     cofre_n = _norm_cofre(cofre)
     cfg_base = obter_config()
     RepasseVilaConfigAgro.objects.select_for_update().get(pk=cfg_base.pk)
@@ -572,13 +573,24 @@ def separar_reserva_diaria(
             .first()
         )
         return existente, False, ""
+    pedido = falta
+    if valor is not None and str(valor).strip() != "":
+        pedido = _dec(valor)
+        if pedido < 0:
+            return None, False, f"Valor de separação do {nome} inválido."
+        if pedido == 0:
+            return None, False, ""
+        if pedido > falta + Decimal("0.009"):
+            return None, False, (
+                f"Separação do {nome} R$ {pedido} maior que o pendente R$ {falta}."
+            )
     from produtos.caixa_util import resumo_esperado_por_forma
 
     dinheiro = max(
         ZERO,
         _dec(resumo_esperado_por_forma(sessao_caixa).get("Dinheiro")),
     )
-    separar = min(falta, dinheiro)
+    separar = min(pedido, falta, dinheiro)
     if separar <= 0:
         return None, False, f"Não há dinheiro suficiente na gaveta para separar o {nome}."
     rotulo = "cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "cofrinho Salário"
@@ -615,6 +627,7 @@ def separar_reserva_diaria(
             "obrigacao_acumulada": float(acum["obrigacao"]),
             "credito_antes": float(acum["credito"]),
             "pendente_antes": float(falta),
+            "valor_pedido": float(pedido),
             "lucro_bruto_dia": calc.get("lucro_bruto_dia"),
             "reserva_vila_desde": calc.get("reserva_vila_desde"),
         },
@@ -1245,8 +1258,11 @@ def _atualizar_delta_cache(dia: date, *, percentual_lucro=None) -> RepasseVilaDe
     return obj
 
 
-def _preencher_cache_faltante(d0: date, d1: date) -> None:
-    """Só calcula dias com atividade que ainda não estão no cache."""
+def _preencher_cache_faltante(d0: date, d1: date, *, forcar: bool = False) -> None:
+    """Atualiza cache de delta dos dias com atividade.
+
+    forcar=True: recalcula mesmo se já existir (após envio / mudança de fórmula).
+    """
     if d0 > d1:
         return
     cfg = obter_config()
@@ -1257,8 +1273,14 @@ def _preencher_cache_faltante(d0: date, d1: date) -> None:
         )
     )
     for d in _datas_com_atividade(d0, d1):
-        if d not in cached:
+        if forcar or d not in cached:
             _atualizar_delta_cache(d, percentual_lucro=pct)
+
+
+def refresh_deltas_apos_envio(dia: date, *, lookback_days: int = REPASSE_MAX_DIAS_ATRASO) -> None:
+    """Recalcula hoje + janela recente para o acumulado líquido acompanhar o envio."""
+    d0 = dia - timedelta(days=lookback_days)
+    _preencher_cache_faltante(d0, dia, forcar=True)
 
 
 def _sum_delta_cache(d0: date, d1: date) -> Decimal:
@@ -1512,36 +1534,32 @@ def calcular_disponivel(
     if lucro < 0:
         lucro = ZERO
 
-    # Dois cofrinhos: Vila Elias = fatia que fica; Salário = config — ambos saem do lucro
-    # antes do que vai ao Centro. CMV/fiado não entram nos cofres.
+    # Ordem (Renan 29/08): 1) planos marcados (Alimentação…) 2) Cofrinho Salário
+    # 3) aí sim divide o que sobrou (ex. 50% Vila Elias / 50% Centro).
+    # CMV/fiado não entram nos cofres.
     reserva_cfg = reserva_vila_config(cfg)
     desde = reserva_vila_desde_config(cfg)
-    parte_salario = reserva_aplicada_no_dia(dia, cfg, lucro_bruto=lucro)
+    por_desp = despesas_caixa_vila_por_plano(dia, dia)
+    sel_planos = nomes_planos_desconto_centro(cfg)
+    desp_centro, desp_vila = partir_despesas_centro_vila(por_desp, sel_planos)
+    apos_planos = max(ZERO, (lucro - desp_centro).quantize(Decimal("0.01")))
+    parte_salario = reserva_aplicada_no_dia(dia, cfg, lucro_bruto=apos_planos)
+    base_split = max(ZERO, (apos_planos - parte_salario).quantize(Decimal("0.01")))
     if dia >= COFRE_VILA_ELIAS_DESDE:
-        parte_vila_elias = (lucro * (Decimal("100") - pct) / Decimal("100")).quantize(
+        parte_vila_elias = (base_split * (Decimal("100") - pct) / Decimal("100")).quantize(
             Decimal("0.01")
         )
         parte_vila_elias = max(ZERO, parte_vila_elias)
     else:
         parte_vila_elias = ZERO
-    # Cap: não pode consumir mais que o lucro
-    if (parte_vila_elias + parte_salario) > lucro:
-        # Prioriza Vila Elias (fatia automática); salário usa o resto do lucro
-        parte_vila_elias = min(parte_vila_elias, lucro)
-        parte_salario = min(parte_salario, max(ZERO, (lucro - parte_vila_elias).quantize(Decimal("0.01"))))
     reserva_apl = parte_salario  # legado / snapshots
     lucro_penultimo = max(
-        ZERO, (lucro - parte_vila_elias - parte_salario).quantize(Decimal("0.01"))
+        ZERO, (base_split - parte_vila_elias).quantize(Decimal("0.01"))
     )
 
     cmv_alvo = base["cmv"]
-    lucro_alvo = lucro_penultimo  # já é o que sobra para o Centro após os cofres
+    lucro_alvo = lucro_penultimo  # % do que sobrou após planos + salário
     fiado_alvo = fiado_dia
-
-    por_desp = despesas_caixa_vila_por_plano(dia, dia)
-    sel_planos = nomes_planos_desconto_centro(cfg)
-    desp_centro, desp_vila = partir_despesas_centro_vila(por_desp, sel_planos)
-    lucro_alvo = max(ZERO, (lucro_alvo - desp_centro).quantize(Decimal("0.01")))
 
     ja = _ja_enviado_dia(dia)
     ja_elet = _ja_eletronico_vila(dia)
@@ -1812,10 +1830,13 @@ def confirmar_repasse(
     incluir_acumulado: bool = False,
     separar_reserva: bool = False,
     forcar_manual_zerado: bool = False,
+    valor_cofre_salario: Decimal | float | str | None = None,
+    valor_cofre_vila_elias: Decimal | float | str | None = None,
 ) -> tuple[RepasseVilaCentroAgro | None, str]:
     """
     Saída no caixa Vila (obrigatório aberto) + entrada no Centro (agora ou pendente).
     valor_manual: se informado, usa esse total (proporcional nas linhas marcadas).
+    valor_cofre_*: quando informado com separar_reserva, separa só esse valor (0 = não separar).
     forcar_manual_zerado: permite valor manual quando CMV/%/fiado disponíveis = 0
     (dia já coberto) — exige confirmação forte no cliente (PIN de novo).
     """
@@ -1913,11 +1934,7 @@ def confirmar_repasse(
 
     # Cofres já saíram do lucro_ao_Centro — não corta o total de novo.
 
-    if total <= 0:
-        return None, "Nada a levar em dinheiro (cartão/PIX já cobriu ou já enviado)."
-
     fn = normalizar_forma_pagamento_caixa(forma_pagamento or "Dinheiro")
-    # Completar o dia = físico; se mandar eletrônico de novo, ainda registra no caixa
     user = (
         request.user
         if getattr(request, "user", None) and request.user.is_authenticated
@@ -1925,7 +1942,34 @@ def confirmar_repasse(
     )
 
     movimentos_cofre: list = []
-    if fn == "Dinheiro" and separar_reserva:
+    # Valores explícitos do modal (None = comportamento antigo: separa o pendente todo)
+    tem_valor_cofre = (
+        valor_cofre_salario is not None
+        or valor_cofre_vila_elias is not None
+    )
+    v_cof_sal = (
+        _dec(valor_cofre_salario)
+        if valor_cofre_salario is not None and str(valor_cofre_salario).strip() != ""
+        else None
+    )
+    v_cof_ve = (
+        _dec(valor_cofre_vila_elias)
+        if valor_cofre_vila_elias is not None and str(valor_cofre_vila_elias).strip() != ""
+        else None
+    )
+    if v_cof_sal is not None and v_cof_sal < 0:
+        return None, "Valor do Cofrinho Salário inválido."
+    if v_cof_ve is not None and v_cof_ve < 0:
+        return None, "Valor do Cofre Vila Elias inválido."
+
+    separar_efetivo = bool(separar_reserva) or (
+        tem_valor_cofre and ((v_cof_sal or ZERO) > 0 or (v_cof_ve or ZERO) > 0)
+    )
+
+    if total <= 0 and not separar_efetivo:
+        return None, "Nada a levar em dinheiro (cartão/PIX já cobriu ou já enviado)."
+
+    if fn == "Dinheiro" and separar_efetivo and total > 0:
         from produtos.caixa_util import resumo_esperado_por_forma
 
         dinheiro_gaveta = max(
@@ -1934,20 +1978,24 @@ def confirmar_repasse(
         )
         pend_sal = _dec(resumo_cofrinho_vila(dia, cofre=COFRE_SALARIO).get("pendente_dia"))
         pend_ve = _dec(resumo_cofrinho_vila(dia, cofre=COFRE_VILA_ELIAS).get("pendente_dia"))
-        pendente_reserva = (pend_sal + pend_ve).quantize(Decimal("0.01"))
+        sep_sal = pend_sal if v_cof_sal is None else min(v_cof_sal, pend_sal)
+        sep_ve = pend_ve if v_cof_ve is None else min(v_cof_ve, pend_ve)
+        pendente_reserva = (sep_sal + sep_ve).quantize(Decimal("0.01"))
         limite_transferencia = max(ZERO, dinheiro_gaveta - pendente_reserva)
         if total > limite_transferencia:
             return None, (
                 f"A transferência de R$ {total} consumiria dinheiro que precisa permanecer "
                 f"na Vila. Disponível na gaveta após separar os cofrinhos: R$ {limite_transferencia}. "
-                f"Pendente Salário R$ {pend_sal} · Vila Elias R$ {pend_ve}."
+                f"A separar agora Salário R$ {sep_sal} · Vila Elias R$ {sep_ve}."
             )
 
-    if separar_reserva:
-        for cofre_n, obs in (
-            (COFRE_SALARIO, "Separação Salário junto com o repasse Vila → Centro"),
-            (COFRE_VILA_ELIAS, "Separação Cofre Vila Elias junto com o repasse"),
+    if separar_efetivo:
+        for cofre_n, obs, v_exp in (
+            (COFRE_SALARIO, "Separação Salário junto com o repasse Vila → Centro", v_cof_sal),
+            (COFRE_VILA_ELIAS, "Separação Cofre Vila Elias junto com o repasse", v_cof_ve),
         ):
+            if tem_valor_cofre and v_exp is not None and v_exp <= 0:
+                continue
             mov_c, _criado_c, err_c = separar_reserva_diaria(
                 dia,
                 origem=RepasseVilaReservaMovimentoAgro.Origem.REPASSE,
@@ -1956,11 +2004,16 @@ def confirmar_repasse(
                 sessao_caixa=sessao_vila,
                 observacao=obs,
                 cofre=cofre_n,
+                valor=v_exp if tem_valor_cofre else None,
             )
             if err_c:
                 return None, err_c
             if mov_c:
                 movimentos_cofre.append(mov_c)
+
+    if total <= 0:
+        refresh_deltas_apos_envio(dia)
+        return None, ""
 
     mov_saida = MovimentoCaixa.objects.create(
         sessao_caixa=sessao_vila,
@@ -2068,6 +2121,8 @@ def confirmar_repasse(
     )
 
     _atualizar_delta_cache(dia, percentual_lucro=calc.get("percentual_lucro"))
+    # Recalcula a janela: cache antigo (fórmula/alvo) não pode deixar acumulado «preso».
+    refresh_deltas_apos_envio(dia)
     # Extra enviado neste dia já abate o acumulado na conta (não cria ajuste:
     # senão o dia seguinte conta o extra duas vezes).
 

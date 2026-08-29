@@ -16,7 +16,7 @@ from produtos.bug_report_util import notificar_report, sanitizar_print_base64, u
 from produtos.caixa_util import (
     operador_label_request,
     ponto_operacao_browser,
-    rotulo_caixa_loja_formo,
+    rotulo_caixa_loja_fixo,
 )
 from produtos.models import BugReportAgro
 

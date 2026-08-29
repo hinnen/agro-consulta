@@ -510,6 +510,21 @@ def api_repasse_vila_confirmar(request):
         vm = Decimal(str(vm_raw).replace(",", ".")) if vm_raw not in (None, "") else None
     except Exception:
         return JsonResponse({"ok": False, "erro": "Valor manual inválido"}, status=400)
+    try:
+        v_sal_raw = payload.get("valor_cofre_salario")
+        v_sal = (
+            Decimal(str(v_sal_raw).replace(",", "."))
+            if v_sal_raw not in (None, "")
+            else None
+        )
+        v_ve_raw = payload.get("valor_cofre_vila_elias")
+        v_ve = (
+            Decimal(str(v_ve_raw).replace(",", "."))
+            if v_ve_raw not in (None, "")
+            else None
+        )
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "Valor dos cofres inválido"}, status=400)
 
     dia = _parse_date(payload.get("data_ref"))
     forcar_manual = _parse_bool(payload.get("forcar_manual_zerado"), False)
@@ -518,6 +533,9 @@ def api_repasse_vila_confirmar(request):
             {"ok": False, "erro": "Digite o PIN de novo para forçar o valor manual."},
             status=400,
         )
+    separar = _parse_bool(payload.get("separar_reserva"), False)
+    if v_sal is not None or v_ve is not None:
+        separar = True
     rep, err = confirmar_repasse(
         request=request,
         quem_levou=quem,
@@ -531,8 +549,10 @@ def api_repasse_vila_confirmar(request):
         operador=operador,
         data_ref=dia,
         incluir_acumulado=_parse_bool(payload.get("incluir_acumulado"), False),
-        separar_reserva=_parse_bool(payload.get("separar_reserva"), False),
+        separar_reserva=separar,
         forcar_manual_zerado=forcar_manual,
+        valor_cofre_salario=v_sal,
+        valor_cofre_vila_elias=v_ve,
     )
     if err:
         if err.startswith("PRECISA_FORCAR_MANUAL::"):
@@ -547,6 +567,14 @@ def api_repasse_vila_confirmar(request):
             )
         return JsonResponse({"ok": False, "erro": err}, status=400)
     dia_out = dia or timezone.localdate()
+    if rep is None:
+        return JsonResponse({
+            "ok": True,
+            "somente_cofres": True,
+            "repasse": None,
+            "cofrinho": resumo_cofrinho_vila(dia_out, limit=10, cofre="salario"),
+            "cofre_vila_elias": resumo_cofrinho_vila(dia_out, limit=10, cofre="vila_elias"),
+        })
     return JsonResponse({
         "ok": True,
         "repasse": serializar_repasse(rep),

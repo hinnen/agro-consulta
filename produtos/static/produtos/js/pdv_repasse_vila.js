@@ -656,6 +656,17 @@
     } catch (_) {}
   }
 
+  function parseMoneyInput(el) {
+    if (!el) return 0;
+    var s = String(el.value || '')
+      .replace(/\s/g, '')
+      .replace(/R\$/gi, '')
+      .replace(/\./g, '')
+      .replace(',', '.');
+    var n = Number(s);
+    return isFinite(n) ? n : NaN;
+  }
+
   function closeCofreConfirmModal(ok) {
     hideModal(cofreConfirmModal);
     var cb = cofreConfirmPending;
@@ -663,14 +674,17 @@
     if (ok && typeof cb === 'function') cb();
   }
 
-  function openCofreConfirmModal(valorSalarioTxt, valorVeTxt, onConfirm) {
-    var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
-    var elVe = document.getElementById('pdv-rp-cofre-confirm-valor-ve');
-    if (elVal) elVal.textContent = valorSalarioTxt || 'R$ 0,00';
-    if (elVe) elVe.textContent = valorVeTxt || 'R$ 0,00';
+  function openCofreConfirmModal(opts, onConfirm) {
+    opts = opts || {};
+    var inpSal = document.getElementById('pdv-rp-cofre-confirm-input-sal');
+    var inpVe = document.getElementById('pdv-rp-cofre-confirm-input-ve');
+    var inpLev = document.getElementById('pdv-rp-cofre-confirm-input-levar');
+    if (inpSal) inpSal.value = fmtManualNum(opts.salario || 0);
+    if (inpVe) inpVe.value = fmtManualNum(opts.vilaElias || 0);
+    if (inpLev) inpLev.value = fmtManualNum(opts.levar || 0);
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
-    focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
+    focusSoon(inpLev || document.getElementById('pdv-rp-cofre-confirm-ok'));
   }
 
   function autoLinhasZeradas() {
@@ -768,31 +782,57 @@
     var mv = manualDirty ? parseManualValor() : null;
     if (mv != null) body.valor_manual = String(mv);
 
-    function seguirAposCofre() {
-      if (mv != null && mv > 0 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
-        var br = money(mv);
-        openForcarManualModal(
-          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
-            br +
-            '. Confirme com o PIN de novo.',
-          body
-        );
-        return;
-      }
-      enviarConfirmacao(body);
-    }
-
     var cofre = (calc && calc.cofrinho) || {};
     var cofreVe = (calc && calc.cofre_vila_elias) || {};
     var pendenteCofre = Number(cofre.pendente_dia || 0);
     var pendenteVe = Number(cofreVe.pendente_dia || 0);
-    if (pendenteCofre > 0.009 || pendenteVe > 0.009) {
-      openCofreConfirmModal(money(pendenteCofre), money(pendenteVe), function () {
-        seguirAposCofre();
-      });
-      return;
+    var levarAuto = 0;
+    if (mv != null && mv > 0) {
+      levarAuto = mv;
+    } else {
+      var d = (calc && calc.disponivel) || {};
+      if (dom.cmv && dom.cmv.checked) levarAuto += Number(d.cmv || 0);
+      if (dom.lucro && dom.lucro.checked) levarAuto += Number(d.lucro || 0);
+      if (dom.fiado && dom.fiado.checked) levarAuto += Number(d.fiado || 0);
+      var acumN = Number((calc && calc.acumulado_anterior) || 0);
+      if (dom.acumulado && dom.acumulado.checked && acumN) levarAuto += acumN;
     }
-    seguirAposCofre();
+    if (!(dom.separarReserva && dom.separarReserva.checked)) {
+      pendenteCofre = 0;
+      pendenteVe = 0;
+    }
+
+    openCofreConfirmModal(
+      { salario: pendenteCofre, vilaElias: pendenteVe, levar: Math.max(0, levarAuto) },
+      function () {
+        var vSal = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-sal'));
+        var vVe = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-ve'));
+        var vLev = parseMoneyInput(document.getElementById('pdv-rp-cofre-confirm-input-levar'));
+        if (!isFinite(vSal) || !isFinite(vVe) || !isFinite(vLev) || vSal < 0 || vVe < 0 || vLev < 0) {
+          if (dom.status) dom.status.textContent = 'Confira os 3 valores (número ≥ 0).';
+          return;
+        }
+        body.valor_cofre_salario = String(vSal);
+        body.valor_cofre_vila_elias = String(vVe);
+        body.valor_manual = String(vLev);
+        body.separar_reserva = vSal > 0.009 || vVe > 0.009;
+        body.incluir_acumulado = false;
+        if (vLev < 0.009 && vSal < 0.009 && vVe < 0.009) {
+          if (dom.status) dom.status.textContent = 'Informe ao menos um valor para confirmar.';
+          return;
+        }
+        if (vLev > 0.009 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
+          openForcarManualModal(
+            'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
+              money(vLev) +
+              '. Confirme com o PIN de novo.',
+            body
+          );
+          return;
+        }
+        enviarConfirmacao(body);
+      }
+    );
   }
 
   function enviarConfirmacao(body) {
@@ -828,8 +868,13 @@
         var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
         var saldoVe = j.cofre_vila_elias ? money(j.cofre_vila_elias.saldo) : '—';
         if (dom.status) {
-          dom.status.textContent =
-            'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          if (j.somente_cofres) {
+            dom.status.textContent =
+              'OK — só cofres · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          } else {
+            dom.status.textContent =
+              'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
+          }
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';

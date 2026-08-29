@@ -246,13 +246,9 @@ def main() -> int:
     )
 
     lucro_penultimo = Decimal(str(calc_e["lucro_penultimo_dia"]))
-    despesas_centro = Decimal(str(calc_e.get("despesas_centro_dia") or 0))
-    # Após dois cofres, lucro_penultimo já é a fatia do Centro — não aplica % de novo
-    alvo_lucro = max(
-        Decimal("0"),
-        (lucro_penultimo - despesas_centro).quantize(Decimal("0.01")),
-    )
-    ok("alvo lucro após cofres") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
+    # Planos já entraram antes da divisão — alvo lucro = penúltimo
+    alvo_lucro = max(Decimal("0"), lucro_penultimo.quantize(Decimal("0.01")))
+    ok("alvo lucro após planos+cofres") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
         "0.02"
     ) else fail("alvo lucro")
 

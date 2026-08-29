@@ -349,32 +349,39 @@
     <div class="rp-cofre-confirm-panel">
       <header class="shrink-0 border-b-4 border-rose-600 bg-rose-600 px-4 py-3 sm:px-6 sm:py-4">
         <h3 id="pdv-rp-cofre-confirm-title" class="text-center text-xl sm:text-2xl font-black uppercase tracking-wide text-white leading-tight">
-          Atenção — cofrinhos na Vila
+          Confirmar — edite os 3 valores
         </h3>
       </header>
       <div class="flex-1 min-h-0 overflow-y-auto px-4 py-5 sm:px-8 sm:py-7 flex flex-col items-center justify-center text-center gap-4 sm:gap-5">
-        <p class="text-lg sm:text-xl font-black uppercase text-rose-950">Vai transferir agora</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-[40rem]">
-          <div class="rounded-xl border-4 border-rose-500 bg-rose-50 px-3 py-3">
-            <p class="text-xs font-black uppercase text-rose-800 mb-1">Salário funcionário</p>
-            <p class="rp-cofre-confirm-valor text-3xl" id="pdv-rp-cofre-confirm-valor">R$ 0,00</p>
-          </div>
-          <div class="rounded-xl border-4 border-indigo-500 bg-indigo-50 px-3 py-3">
-            <p class="text-xs font-black uppercase text-indigo-800 mb-1">Cofre Vila Elias</p>
-            <p class="rp-cofre-confirm-valor text-3xl text-indigo-950" id="pdv-rp-cofre-confirm-valor-ve">R$ 0,00</p>
-          </div>
-        </div>
-        <p class="max-w-[36rem] rounded-xl border-4 border-rose-700 bg-white px-4 py-3 text-base sm:text-xl font-black text-rose-950 leading-snug" role="alert">
-          NÃO coloque esses valores no envelope do Centro.
+        <p class="text-sm sm:text-base font-bold text-rose-950 leading-snug max-w-[36rem]">
+          Pode zerar um cofre e aumentar o Centro. O que não for agora continua pedindo nos próximos dias.
         </p>
-        <p class="text-base sm:text-lg font-bold text-rose-900">Confirma o repasse?</p>
+        <div class="grid grid-cols-1 gap-3 w-full max-w-[40rem] text-left">
+          <label class="rounded-xl border-4 border-rose-500 bg-rose-50 px-3 py-3 block">
+            <span class="text-xs font-black uppercase text-rose-800">Cofrinho Salário (separar na Vila)</span>
+            <input type="text" id="pdv-rp-cofre-confirm-input-sal" class="rp-field mt-1 text-2xl sm:text-3xl font-black tabular-nums w-full" inputmode="decimal" autocomplete="off" />
+          </label>
+          <label class="rounded-xl border-4 border-indigo-500 bg-indigo-50 px-3 py-3 block">
+            <span class="text-xs font-black uppercase text-indigo-800">Cofre Vila Elias (separar na Vila)</span>
+            <input type="text" id="pdv-rp-cofre-confirm-input-ve" class="rp-field mt-1 text-2xl sm:text-3xl font-black tabular-nums w-full text-indigo-950" inputmode="decimal" autocomplete="off" />
+          </label>
+          <label class="rounded-xl border-4 border-emerald-600 bg-emerald-50 px-3 py-3 block">
+            <span class="text-xs font-black uppercase text-emerald-900">Levar ao Centro (envelope)</span>
+            <input type="text" id="pdv-rp-cofre-confirm-input-levar" class="rp-field mt-1 text-2xl sm:text-3xl font-black tabular-nums w-full text-emerald-950" inputmode="decimal" autocomplete="off" />
+          </label>
+        </div>
+        <p class="hidden" id="pdv-rp-cofre-confirm-valor"></p>
+        <p class="hidden" id="pdv-rp-cofre-confirm-valor-ve"></p>
+        <p class="max-w-[36rem] rounded-xl border-4 border-rose-700 bg-white px-4 py-3 text-sm sm:text-base font-black text-rose-950 leading-snug" role="alert">
+          Cofres: NÃO vão no envelope. Levar: é o que sai da gaveta para o Centro.
+        </p>
       </div>
       <footer class="shrink-0 border-t-4 border-rose-300 bg-white/90 px-4 py-3 sm:px-6 sm:py-4 flex flex-wrap gap-3 justify-center sm:justify-end">
         <button type="button" id="pdv-rp-cofre-confirm-cancelar" class="min-h-[3.5rem] min-w-[9rem] rounded-xl border-4 border-slate-400 bg-white px-6 text-base font-black uppercase text-slate-800 hover:bg-slate-50">
           Cancelar
         </button>
         <button type="button" id="pdv-rp-cofre-confirm-ok" class="min-h-[3.5rem] flex-1 sm:flex-none sm:min-w-[14rem] rounded-xl border-4 border-rose-800 bg-rose-600 px-8 text-base sm:text-lg font-black uppercase text-white hover:bg-rose-700 shadow-lg">
-          Confirmar repasse
+          Confirmar
         </button>
       </footer>
     </div>
