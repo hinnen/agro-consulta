@@ -656,7 +656,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Perf lista (2026-06-19):** projeÃ§Ã£o slim Mongo; `skip_totais` pÃ¡g. 2+; cache sessionStorage; planos lazy.
 - **Abertura CP â€” Chrome (2026-06-19, v1.48+):** prefetch BI/F7 Â· cache do dia Â· selo **Sincronizandoâ€¦** Â· **bootstrap HTML** (lista hoje+abertos jÃ¡ no servidor, sem 2Âª ida Ã  API). Renan validou melhora **sutil** â€” esperado no Chrome MPA.
 - **Teto sem refactor grande:** no Chrome cada clique = **pÃ¡gina nova** + Mongo no bootstrap. **Roadmap adiado (2026-06-19):** prÃ³ximo salto = Postgres financeiro **ou** lista no BI â€” ver CHECKPOINT.
-- **Novo empréstimo no CP (24/08 · `CP-NOVO-EMPRESTIMO` · v17.93 → v18.36):** botão ao lado de Nova saída → Externo/Interno. **Campos:** rótulo + valor no **mesmo contorno** (contraste forte). **Parcelas:** automáticas; intervalo **Outros** = dias (1–366); preview **2 colunas**. API `api_emprestimos_criar` + `parcelas_manual`.
+- **Novo empréstimo no CP (`CP-NOVO-EMPRESTIMO` / `CP-NE-BUSCA-EMPRESA` · v17.93 → v18.54):** Externo/Interno · parcelas auto · Outros · contorno · **busca Empresa/Credor** · empresa padrão pela loja · composição na linha da data.
 - **Nova saÃ­da** (modal) + **Lote manual** (`/lancamentos/novo-manual/`): pseudo-plano **Â«EmprÃ©stimo (entrada + pagamento)Â»** â€” gera receita quitada (hoje) + despesa(s); se saÃ­da > entrada, diferenÃ§a em **Juros de EmprÃ©stimos**. JS: `lancamento_emprestimo_dual.js`; backend: `expandir_linhas_emprestimo_dual_lote` em `mongo_financeiro_util.py`.
 - **GrÃ¡fico gastos por plano (2026-06-26):** `/financeiro/grafico-gastos/` â€” **100dvh sem scroll**; toolbar perÃ­odo simÃ©trica; painel **Filtros | Planos**; **4 atalhos** Postgres (**Alt+clique** fixa padrÃ£o ðŸ“Œ); modos tempo real / histÃ³rico / comparar; drill-down CP popup. **Entrada BI:** botÃ£o laranja no card **Contas a Pagar** (`/`). Teste **v3.54+**; loja **v3.39**.
 - **DRE Indicadores + Resumo — CMV (09/08, `DRE-CMV-TOGGLE` + `RG-CMV-TOGGLE`):** botão **Mercadoria vendida** (custo cadastro × qtd) × **Mercadoria paga** (lançamentos). Lucro bruto / margem / líquido / PE acompanham. Caixa não muda. Padrão = vendida. Mesma chave `agro_dre_cmv_modo_v1`.
@@ -1245,14 +1245,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | `REPASSE-COFRINHO-ACUM` | 📦 **pronto para envio** · teste **v18.52** · migrate **NÃO** |
-| 2 | `PDV-MODO-POR-FORMA` | 📦 **pronto para envio** · teste **v18.53** · migrate **NÃO** |
+| 2 | `PDV-MODO-POR-FORMA` | 📦 **pronto para envio** · teste **v18.55** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.53**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.55**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
 | `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
-| `PDV-MODO-POR-FORMA` | **v18.53** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** · Node **16/16** · Django **6/6** | NÃO |
+| `PDV-MODO-POR-FORMA` | **v18.55** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** · Node **16/16** · Django **6/6** | NÃO |
 
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
 
