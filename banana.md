@@ -1247,77 +1247,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Pedir loja cupom + qtd (`PDV-PEDIR-CUPOM-QTD` · **v18.98** · 29/08/2026)
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.99** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Cupom térmico **80mm** (separação) + na origem, **qtd editável por item** (pré-preenchida com o pedido; 0 = não envia) |
-| **Tela** | PDV wizard · overlay Pedir loja · abas Recebidos/Enviados |
-| **Migrate** | **SIM** `estoque.0020_solicitacao_item_quantidade_pedida` |
-| **Prova** | `scripts/verify_pdv_pedir_loja.py` **62/62** · `produtos.tests_pdv_transf_loja` **23** OK |
-| **Loja** | só no `teste` até senha |
-| **Você** | `migrate` local · Ctrl+F5 PDV · badge **v18.98** · Aceitar → Imprimir cupom · mudar 1 qtd → Transferir |
+| **Tip** | `teste` **v18.99** · loja ainda **v18.83** |
+| **Prova path** | repasse path/overlay/cofrinho/deep/acum/planos/reserva OK · tabela-forma 20/20 · pedir-loja 62/62 |
+| **Migrate loja** | **SIM** — `produtos.0104` · `estoque.0020` |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
+| **Você** | smoke local: Repasse · Tabelas % · Pedir loja (cupom/qtd) · Ctrl+F5 |
 
-### 📦 PACOTE PRONTO — Tabelas % por forma (`TABELA-PRECO-FORMA` · **v18.97** · 29/08/2026)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08b · tip **v18.99**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | 2 tabelas globais (% por forma) no PDV · chips padrão+T1+T2 · vetos · conflitos individual · arredonda dezena · promo por tabela + maior valor |
-| **Tela** | `/produtos/tabelas-preco-forma/` (Cadastro ERP · Promoções) |
-| **Migrate** | **SIM** `produtos.0104_tabela_preco_forma` |
-| **Prova** | `scripts/verify_tabela_preco_forma.py` + `produtos.tests_tabela_preco_forma` |
-| **Loja** | só no `teste` até senha |
-| **Você** | migrate local · Ctrl+F5 · ativar tabela · PDV chips · promo T1/T2 |
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `REPASSE-HERO-LOTE` | Hero UX (mês=tudo · cofres A separar/hoje · Levar · totais em coluna · zerar acum grande · manual) | não | 🟡 pronto envio |
+| 2 | `TABELA-PRECO-FORMA` | Tabelas globais % por forma no PDV | **SIM** `0104` | 🟡 pronto envio |
+| 3 | `PDV-PEDIR-CUPOM-QTD` | Cupom 80mm + qtd editável ao Transferir | **SIM** `estoque.0020` | 🟡 pronto envio |
 
-### 📦 PACOTE PRONTO — Enviado no mês = tudo (`REPASSE-MES-TUDO` · **v18.85** · 29/08/2026)
+> Detalhe fino dos pacotes: §4.2 Pedir loja · CHECKPOINT antigo abaixo marcado ~~supplantado~~.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | «Enviado no mês» / Total geral = dinheiro do envelope **+** cartão/PIX/fiado eletrônico já no Centro |
-| **Antes** | Só somava `RepasseVilaCentroAgro` (envelope) |
-| **Arquivo** | `repasse_vila_util.historico_mes` · `_ja_eletronico_vila_periodo` |
-| **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
-| **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
-
-### 📦 PACOTE PRONTO — Totais em coluna (`REPASSE-TOTAIS-COL` · **v18.97** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Card totais: 1 coluna · 3 linhas (Acumulado / Enviado no mês / Total geral) |
-| **Você** | Ctrl+F5 |
-
-### 📦 PACOTE PRONTO — Levar «A separar» alinhado (`REPASSE-LEVAR-A-SEPARAR` · **v18.96** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Card Levar: rótulo **A separar** (igual cofres) · alinha o R$ grande na horizontal |
-| **Você** | Ctrl+F5 |
-
-### 📦 PACOTE PRONTO — Cofre zera após separar (`REPASSE-COFRE-APOS-SEP` · **v18.95** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Cofres: A separar / total / Separado hoje · Levar: **Levado ao Centro hoje** (v18.95) |
-| **Você** | Ctrl+F5 · após transferir, aparece o bloco verde no Levar |
-
-### 📦 PACOTE PRONTO — Zerar acumulado grande (`REPASSE-ACUM-ZERAR-LIMITE` · **v18.93** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Bug** | «Já transferi — zerar» falhava com **Valor fora do limite** se acumulado > R$ 99.999 |
-| **Fix** | Zerar usa `permitir_grande`; teto manual sobe p/ R$ 999.999 |
-| **Você** | Ctrl+F5 · Acumulado · PIN · **Já transferi antes — zerar** |
-
-### 📦 PACOTE PRONTO — Repasse hero UX (`REPASSE-HERO-UX` · **v18.92** · 29/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Cofres Salário + Vila Elias: **grande = ficou hoje** · **menor = total no cofre** · **se houver atraso = acumulado a separar** · Separar junto continua puxando o pendente todo |
-| **Arquivos** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
-| **Loja** | ainda **v18.83** · só no teste até senha |
-| **Você** | Ctrl+F5 · Repasse · conferir os 2 cofres |
-
-### 📦 PACOTE PRONTO — Repasse hero grade 3×2 (`REPASSE-HERO-GRADE` · **v18.84** · 29/08/2026) · **supplantado por REPASSE-HERO-UX**
+### ~~📦 PACOTE PRONTO — Pedir loja cupom + qtd~~ · ver **CHECKLIST ÚNICO** tip v18.99
+### ~~📦 PACOTE PRONTO — Tabelas % por forma~~ · ver **CHECKLIST ÚNICO** tip v18.99
+### ~~📦 PACOTE PRONTO — Enviado no mês / Totais / Levar / Cofre / Zerar / Hero UX / Grade~~ · consolidados em **`REPASSE-HERO-LOTE`**
 
 ### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
 
