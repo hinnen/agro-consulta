@@ -60,6 +60,7 @@ def main() -> int:
     check("migrate", mig.is_file())
     check("texto_max_500", "TEXTO_MAX = 500" in util)
     check("sem_topbar", "pdv-topbar-chat-loja-btn" not in wiz)
+    check("no_double_guard", 'data-agro-no-double-guard="1"' in html)
 
     print()
     print(f"RESULT {len(oks)}/{len(oks) + len(fails)}")

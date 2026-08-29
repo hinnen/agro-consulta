@@ -303,6 +303,15 @@
     schedulePoll();
   }
 
+  function resetEnviarBtn() {
+    busy = false;
+    if (!dom.enviar) return;
+    dom.enviar.disabled = false;
+    dom.enviar.classList.remove('btn-loading');
+    dom.enviar.removeAttribute('aria-busy');
+    dom.enviar.textContent = 'Enviar';
+  }
+
   function enviar(ev) {
     if (ev) ev.preventDefault();
     if (busy) return;
@@ -310,7 +319,10 @@
     texto = String(texto).trim();
     if (!texto) return;
     busy = true;
-    if (dom.enviar) dom.enviar.disabled = true;
+    if (dom.enviar) {
+      dom.enviar.disabled = true;
+      dom.enviar.textContent = 'Enviar';
+    }
     setStatus('');
     fetch(urls.apiPdvChatLojaEnviar, {
       method: 'POST',
@@ -323,11 +335,13 @@
       body: JSON.stringify({ texto: texto, device_id: deviceId() }),
     })
       .then(function (r) {
-        return r.json();
+        return r.json().then(function (data) {
+          return { okHttp: r.ok, data: data };
+        });
       })
-      .then(function (data) {
-        busy = false;
-        if (dom.enviar) dom.enviar.disabled = false;
+      .then(function (pack) {
+        resetEnviarBtn();
+        var data = pack && pack.data;
         if (!data || !data.ok) {
           setStatus((data && data.erro) || 'Não enviou');
           return;
@@ -339,8 +353,7 @@
         if (dom.input) dom.input.focus();
       })
       .catch(function () {
-        busy = false;
-        if (dom.enviar) dom.enviar.disabled = false;
+        resetEnviarBtn();
         setStatus('Sem rede');
       });
   }
