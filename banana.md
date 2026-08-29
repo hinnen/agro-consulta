@@ -397,6 +397,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - Card **Validade** destaca vermelho se produto vencido.
 - Card **Lucro LÃ­quido** (no lugar de Novos Clientes): vencimento Â· bruto + pago Â· mesmo DRE do Resumo.
 - **Filtro Números** (10/08): **Centro + Vila** (padrão) · Centro · Vila — independente do seletor PDV (Centro/Vila do caixa).
+- **Meta C / média base (29/08):** mesma fórmula do Centro (3 meses + dia da semana + ocorrência). **Vila** ignora dias antes de **20/07/2026**. **Centro + Vila** = **soma** das metas. BI passa filtro Números na série compare. Prova: `scripts/verify_meta_c_vila_abertura.py`.
 - **Card Validade BI (18/08):** vencidos / no mês / conferir **iguais** nas 3 opções do filtro Números (contagem empresa); clique **Conferir vencidos** abre relatório **Todas + vencidos**. Baixa por loja = passo 2 pendente.
 - **Topo BI compacto (10/08):** sem «Gestão Estratégica» · sem botão Orç. (F2 no teclado/Menu) · **Trava** embaixo de Loja.
 - Gastos por plano de conta: oculto por padrÃ£o (`AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env`).
@@ -1246,6 +1247,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.09**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **O quê** | Meta C da Vila = mesma do Centro; base ignora dias **< 20/07/2026**; Centro+Vila = **soma** das metas; BI passa filtro Números na série compare |
+| **Onde** | `views.py` · `mongo_vendas_util` · `mongo_financeiro_util` · analytics PG · ajuda BI · `verify_meta_c_vila_abertura.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **19/19** |
+| **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
+| **Produção** | só frase + senha depois de validar local |
 
 ### 🩹 Repasse — campos sob cada cofre (`REPASSE-COFRE-CAMPOS-HERO` · **v19.08**) · 29/08/2026
 
