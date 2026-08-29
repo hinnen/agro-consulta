@@ -170,22 +170,15 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118
 
 ---
 
-## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (teste v18.18 · 28/08/2026)
+## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (loja v18.50)
 
-Preço digitado no carrinho **não** volta ao lista ao escolher forma. Prova detalhada **37/37**.
+Preço digitado no carrinho **não** volta ao lista ao escolher forma.
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ OK no `teste` (`523c06a`) · 🟢 **pronto envio** · ainda **não** loja | **NÃO** |
+| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ **Live v18.50** | **NÃO** |
 
-- [x] Fonte JS: guards em promo / state / campanha / forma / consulta
-- [x] Path 25→32→débito; pix/crédito/dinheiro/fiado; troca de forma; qtd×preço
-- [x] Carrinho misto; campanha 5% não come digitado; envio usa `item.preco`
-- [x] Contraste loja: bug ainda vivo em `origin/producao`
-- [x] `node --check` nos 4 JS · ancestral `teste` sim / `producao` não
-- [ ] Cherry / senha produção — **pendente**
-
-**Prova:** `scripts/verify_pdv_preco_manual_forma.py` → **37/37**.
+**Prova (histórico):** `scripts/verify_pdv_preco_manual_forma.py`. Lote atual pendente: **§10**.
 
 ---
 
@@ -206,3 +199,24 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 - [x] Rollback: tag `rollback/pre-cad-xlsx-ult-forn-v17.84` @ `da7c1cb` · branch backup · `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md`
 
 **Status: fechado / Live.** Renan 28/08: *«já foi resolvido»* — sem ação nova. Detalhe CHECKPOINT em `banana.md`.
+
+---
+
+## 10. Checklist único — lote 28/08b (PREP · aguarda senha)
+
+Sobre loja **v18.50**. Branch `deploy/prep-checklist-2808b` · badge alvo **v18.64**. **Produção não alterada.**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-NE-BUSCA-EMPRESA** | 🟢 PREP · prova **61+18** | **NÃO** |
+| 2 | **REPASSE-COFRINHO-ACUM** | 🟢 PREP · path **175** · cof **28** | **SIM** (`0102` no-op) |
+| 3 | **PDV-MODO-POR-FORMA** | 🟢 PREP · path **25/25** | **NÃO** |
+| 4 | **REPASSE-PDV-OVERLAY-LIMPO** | 🟢 PREP · path **187** | **NÃO** |
+
+- [x] Cherry só destes 4 (+ `0102`) sobre `origin/producao` @ v18.50
+- [x] Arquivos do lote idênticos ao `teste`
+- [x] Paths: PDV modo **25** · overlay/repasse **187** · cof **28** · fechar **68+41** · CP **61+18**
+- [x] `manage.py check` · Node JS · Django **6/6** modo por forma
+- [ ] Senha produção — **pendente** (próximo chat, lojas pausadas)
+
+Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md`. Detalhe CHECKPOINT em `banana.md`.
