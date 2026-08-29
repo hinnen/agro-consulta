@@ -1247,29 +1247,44 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.83** (29/08)
+### 🚀 PREP deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **aguarda senha**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **PREP pronto** — **não** subiu loja (lojas abertas). Próximo chat: pausar vendas + frase + senha `99738595` |
+| **Loja agora** | **v18.72** Live @ `ae126d9` |
+| **PREP tip** | `deploy/prep-checklist-2908` @ **`d836982`** / **v18.83** |
+| **Base** | `origin/producao` + **só** arquivos do CHECKLIST (sem merge bruto `teste`→`producao` — histórico divergente) |
+| **Pacotes** | 8 itens CHECKLIST ÚNICO abaixo |
+| **Migrate** | **SIM** — `produtos.0103` no build |
+| **Rollback** | tag `rollback/pre-lote-checklist-2908-v18.72` · branch `producao-backup-pre-v1883-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908.md` |
+| **Prova PREP** | overlay **134** · vila **242** · cofrinho **31** · CP tint **6** · NS+emp **35** · `manage.py check` |
+| **Risco venda** | **Não** mexe checkout/venda. **Sim** mexe Repasse (fórmula 2 cofres) — pausar Repasse no deploy |
+| **Deploy (próximo chat)** | `producao` ← `reset --hard origin/deploy/prep-checklist-2908` + push — **só** frase+senha |
+
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.83** (29/08) · PREP `d836982`
 
 | Item | Detalhe |
 | ---- | ------- |
 | **Loja agora** | **v18.72** Live (`ae126d9`) |
-| **Tip teste** | **v18.83** @ `a5df0c8` |
+| **Tip teste / PREP** | **v18.83** · teste `4f0913c` · PREP **`d836982`** |
 | **Migrate** | **SIM** — `produtos.0103` (dois cofres) |
-| **Prova 29/08** | overlay path **134** · vila path **242** · cofrinho **31/31** · reserva **63** · planos **49** · acum-net **28** · `manage.py check` · fórmula 200→Centro 0 · forçar manual (contrato) · API `caixa_vila` |
-| **Status** | ✅ **pronto para envio à produção** (só frase + senha) |
-| **Você após loja** | Ctrl+F5 · Repasse (2 cofres · gaveta · forçar R$ · hero) · CP (tint emp · sucesso OK · cards Nova saída) |
+| **Prova 29/08** | overlay **134** · vila **242** · cofrinho **31** · reserva **63** · planos **49** · NS **35** · tint **6** · fórmula 200→0 · forçar + `caixa_vila` |
+| **Status** | ✅ **PREP pronto / aguarda senha** |
+| **Você no deploy** | Pausar vendas ~2–3 min · Zap · Ctrl+F5 · smoke venda + Repasse + Nova saída |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08 · tip **v18.83**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08 · tip **v18.83** · PREP **`d836982`**)
 
 | # | Pacote | Versão | Migrate | Status |
 | - | ------ | ------ | ------- | ------ |
-| 1 | `REPASSE-DOIS-COFRES` | v18.81 | **0103** | ✅ **pronto para envio** |
-| 2 | `REPASSE-FORCAR-MANUAL` | v18.82 | não | ✅ **pronto para envio** |
-| 3 | `REPASSE-CAIXA-DIN` | v18.83 | não | ✅ **pronto para envio** |
-| 4 | `REPASSE-HERO-TOTAIS` | v18.80 | não | ✅ **pronto para envio** |
-| 5 | `REPASSE-COFRE-CONFIRM` | v18.78 | não | ✅ **pronto para envio** |
-| 6 | `CP-EMP-ROW-TINT` | v18.77 | não | ✅ **pronto para envio** |
-| 7 | `NE-SUCESSO-OK` | v18.76 | não | ✅ **pronto para envio** |
-| 8 | `NS-ESCOLHA-MOLDURA` | v18.75 | não | ✅ **pronto para envio** |
+| 1 | `REPASSE-DOIS-COFRES` | v18.81 | **0103** | ✅ **PREP / pronto envio** |
+| 2 | `REPASSE-FORCAR-MANUAL` | v18.82 | não | ✅ **PREP / pronto envio** |
+| 3 | `REPASSE-CAIXA-DIN` | v18.83 | não | ✅ **PREP / pronto envio** |
+| 4 | `REPASSE-HERO-TOTAIS` | v18.80 | não | ✅ **PREP / pronto envio** |
+| 5 | `REPASSE-COFRE-CONFIRM` | v18.78 | não | ✅ **PREP / pronto envio** |
+| 6 | `CP-EMP-ROW-TINT` | v18.77 | não | ✅ **PREP / pronto envio** |
+| 7 | `NE-SUCESSO-OK` | v18.76 | não | ✅ **PREP / pronto envio** |
+| 8 | `NS-ESCOLHA-MOLDURA` | v18.75 | não | ✅ **PREP / pronto envio** |
 
 ### ✅ Deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**) · **Live**
 
