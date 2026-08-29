@@ -151,7 +151,9 @@ def main() -> int:
     check_file(
         "produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html",
         "pdv-rp-reserva",
-        "Reserva diária do cofrinho",
+        "Reserva diária",
+        "pdv-rp-quem-modal",
+        "pdv-rp-pin-modal",
     )
     check_file(
         "produtos/static/produtos/js/pdv_repasse_vila.js",

@@ -1242,37 +1242,52 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🔧 WIP — Empréstimo CP sem Mongo (`CP-EMP-PG-FALLBACK` · **v18.69**)
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge **teste v18.69** · loja **v18.64**
+
+| Pacote | Versão | O quê | Migrate |
+| ------ | ------ | ----- | ------- |
+| `NS-ESCOLHA-EMP` | **v18.67** | Nova saída: Lançamento × Empréstimo | **NÃO** |
+| `REPASSE-PDV-OVERLAY-POPUP` | **v18.68** | Quem/PIN só popup · forma oculta · tela limpa | **NÃO** |
+| `CP-EMP-PG-FALLBACK` | **v18.69** | Empréstimo grava no PG se Mongo off | **NÃO** |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · teste **v18.69**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `NS-ESCOLHA-EMP` | 🟢 **pronto para envio** |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | 🟢 **pronto para envio** · provas OK |
+| 3 | `CP-EMP-PG-FALLBACK` | 🟢 **pronto para envio** · path **61/61** |
+
+**Loja hoje:** **v18.64**. Envio: frase + senha. Sem migrate.
+
+### 📦 PACOTE PRONTO — Repasse overlay popup (`REPASSE-PDV-OVERLAY-POPUP` · **v18.68**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | Registrar empréstimo → «serviço legado indisponível» (Mongo off) |
-| **Fix** | `criar_emprestimo_externo_agro` usa dispatch PG (igual Nova saída); API não dá 503 |
+| **O quê** | Quem + PIN só no Confirmar (popup). Forma oculta (= Dinheiro). Sem chips. Hero enxuto. |
+| **Prova** | overlay **93** · path **200** · deep **103** · reserva **62** · cof **28** · fechar **68** · `manage.py check` |
+| **Commit** | `93039f8` (+ provas alinhadas) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio** (loja ainda v18.64 com chips) |
+
+### 📦 PACOTE PRONTO — Empréstimo CP sem Mongo (`CP-EMP-PG-FALLBACK` · **v18.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Registrar empréstimo usa PG se Mongo off (sem «serviço legado») |
 | **Prova** | `verify_cp_novo_emprestimo_path` **61/61** |
 | **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — Ctrl+F5 · Novo empréstimo Interno · Registrar |
-| **Você** | Repetir o lançamento do print (R$ 1 / R$ 2) |
+| **Status** | 🟢 **pronto para envio** |
 
-### 🔧 WIP — Repasse overlay: só popup + limpeza (`REPASSE-PDV-OVERLAY-POPUP` · **v18.68**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Quem levou + PIN **só no popup** (ao Confirmar). Forma **oculta** (= Dinheiro). Sem chips na tela. Popup quem em grade de botões. Menos texto no hero. |
-| **Onde** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` · provas overlay/path |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste v18.68** — validar no PC (Ctrl+F5 PDV → Repasse) |
-| **Você** | Confirmar → escolhe quem no popup → PIN → envia. Sem «Forma de pagamento» na tela. |
-| **Loja** | Ainda **v18.64** (chips colados) até novo deploy com frase+senha |
-
-### 🔧 WIP — Nova saída escolha Lançamento×Empréstimo (`NS-ESCOLHA-EMP` · **v18.67**)
+### 📦 PACOTE PRONTO — Nova saída escolha (`NS-ESCOLHA-EMP` · **v18.67**)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Clicar **Nova saída** / Novo Lançamento → 2 botões grandes: **Novo Lançamento** ou **Empréstimo** (estilo Externo/Interno). BI inclui modal de empréstimo. |
-| **Onde** | `lancamento_nova_saida_modal.html` · `lancamento_nova_saida.js` · `lancamento_novo_emprestimo_modal.html` · `dashboard_gerencial.html` · `views.py` |
+| **O quê** | Nova saída → **Novo Lançamento** ou **Empréstimo** |
 | **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — validar no PC local (Ctrl+F5 BI → Nova saída) |
-| **Você** | BI Contas a pagar → **Nova saída** → deve aparecer escolha antes do formulário |
+| **Status** | 🟢 **pronto para envio** |
+
+### ~~🔧 WIP — Empréstimo CP / Repasse overlay / Nova saída~~ · ver PACOTE PRONTO + checklist acima
 
 ### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
@@ -1297,15 +1312,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~📦 PACOTE PRONTO — o que ainda falta subir · badge teste v18.65~~ · **superado — Live v18.64**
 
-### 📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` · 28/08/2026)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Hero limpo · quem/PIN só popup · forma oculta (= Dinheiro) · sem chips. Hotfix v18.68 (`REPASSE-PDV-OVERLAY-POPUP`). |
-| **Prova** | overlay path OK · vila path **200** · `node --check` |
-| **Você** | Ctrl+F5 PDV · **Repasse** · Confirmar abre quem → PIN |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste v18.68** (loja ainda v18.64 com chips) |
+### ~~📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO`)~~ · ver **REPASSE-PDV-OVERLAY-POPUP** no topo
 
 ### ~~🚀 PREP deploy loja — lote checklist 28/08b~~ · **superado — Live v18.64**
 

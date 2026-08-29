@@ -491,7 +491,14 @@ def main() -> int:
     ok("js repasse na Retiradas") if b"pdv_repasse_vila.js" in body else fail("faltou js")
     ok("forma grid no overlay") if b"pdv-rp-forma-grid" in body else fail("faltou forma grid")
     ok("anti-autofill valor") if b"rp_valor_manual_somente" in body else fail("faltou anti-autofill")
-    ok("hint valor manual") if b"Digitado manda" in body else fail("faltou hint manual")
+    ok("hint valor manual") if b"Valor manual" in body else fail("faltou hint manual")
+    ok("quem so popup") if b"pdv-rp-quem-modal" in body and b"pdv-rp-btn-quem" not in body else fail("chips quem voltaram")
+    ok("pin so popup") if b"pdv-rp-pin-modal" in body and b"pdv-rp-btn-pin" not in body else fail("chips pin voltaram")
+    ok("sem forma na tela") if b"Forma de pagamento" not in body else fail("forma visivel")
+    ok("forma oculta modal") if b'id="pdv-rp-forma-modal"' in body else fail("faltou forma modal oculto")
+    ok("hero cofrinho") if b"pdv-rp-hero-cofre" in body and b"Cofrinho (ficar na Vila)" in body else fail("faltou hero cofrinho")
+    ok("levar centro") if b"Levar ao Centro" in body else fail("faltou levar centro")
+    ok("rp-popup css") if b"rp-popup" in body else fail("faltou rp-popup")
     # botao deve ser <button>, nao <a href=pdv>
     idx = body.find(b'id="crh-btn-repasse"')
     if idx > 0:
