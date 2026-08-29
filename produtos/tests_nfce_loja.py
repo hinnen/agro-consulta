@@ -91,3 +91,113 @@ class NfceDestDocumentoTests(SimpleTestCase):
         doc, sem = _nfce_opts_payload({"nfce_sem_identificacao": True})
         self.assertEqual(doc, "")
         self.assertTrue(sem)
+
+
+class NfceDescontoRateioTests(SimpleTestCase):
+    """Bug loja #7 — desconto geral no total sem vDesc nos itens → SEFAZ 531."""
+
+    def test_rateio_soma_bate_e_nao_passa_do_item(self):
+        from decimal import Decimal
+
+        from produtos.nfce_sp_emissao_util import _ratear_valor_proporcional
+
+        pesos = [Decimal("10.00"), Decimal("20.00"), Decimal("30.00")]
+        partes = _ratear_valor_proporcional(pesos, Decimal("6.00"))
+        self.assertEqual(sum(partes), Decimal("6.00"))
+        for p, peso in zip(partes, pesos):
+            self.assertLessEqual(p, peso)
+            self.assertGreaterEqual(p, Decimal("0"))
+
+    def test_rateio_centavos_no_ultimo(self):
+        from decimal import Decimal
+
+        from produtos.nfce_sp_emissao_util import _ratear_valor_proporcional
+
+        pesos = [Decimal("10.00"), Decimal("10.00")]
+        partes = _ratear_valor_proporcional(pesos, Decimal("0.01"))
+        self.assertEqual(sum(partes), Decimal("0.01"))
+        self.assertEqual(sorted(partes), [Decimal("0.00"), Decimal("0.01")])
+
+    def test_xml_itens_tem_vdesc_igual_total(self):
+        import xml.etree.ElementTree as ET
+        from datetime import datetime
+        from decimal import Decimal
+        from unittest.mock import patch
+
+        from produtos.nfce_sp_emissao_util import NS, _montar_xml_nfce
+
+        class Item:
+            def __init__(self, vt, vu=None, qtd=1):
+                self.quantidade = Decimal(str(qtd))
+                self.valor_unitario = Decimal(str(vu if vu is not None else vt))
+                self.valor_total = Decimal(str(vt))
+                self.codigo = "GM1"
+                self.produto_id_externo = "1"
+                self.descricao = "PRODUTO TESTE"
+                self.unidade = "UN"
+
+        class Venda:
+            pk = 99
+            total = Decimal("90.00")
+            frete = Decimal("0")
+            pagamentos_json = [{"forma": "Dinheiro", "valor": 90}]
+            cliente_nome = ""
+
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "48900774000103",
+            "razao_social": "TESTE",
+            "fantasia": "TESTE",
+            "logradouro": "RUA",
+            "numero": "1",
+            "bairro": "CENTRO",
+            "cmun": "3524600",
+            "cidade": "JACUPIRANGA",
+            "uf": "SP",
+            "cep": "11940000",
+            "fone": "",
+            "ie": "123",
+            "csc_id": "1",
+            "csc_token": "abc",
+        }
+        fiscal = {
+            "ncm": "01012100",
+            "cfop": "5102",
+            "origem": "0",
+            "csosn": "102",
+            "cest": "",
+        }
+        itens = [Item("50.00"), Item("50.00")]
+        with patch("produtos.nfce_sp_emissao_util.ibpt_valor_item", return_value=Decimal("0")), patch(
+            "produtos.nfce_sp_emissao_util.calcular_ibpt_venda_itens",
+            return_value={"ibpt_texto": "Trib approx R$ 0,00"},
+        ), patch(
+            "produtos.nfce_sp_emissao_util._qr_code_url",
+            return_value="https://example.com/qr",
+        ):
+            xml_body, _qr = _montar_xml_nfce(
+                cfg,
+                Venda(),
+                itens,
+                serie=21,
+                numero=1,
+                chave="35" + "0" * 42,
+                dh_emi=datetime(2026, 8, 29, 12, 0, 0),
+                cpf_dest="",
+                fiscal_itens=[fiscal, fiscal],
+            )
+        root = ET.fromstring(xml_body)
+        ns = {"n": NS}
+        v_desc_tot = Decimal(root.findtext(".//n:ICMSTot/n:vDesc", namespaces=ns) or "0")
+        self.assertEqual(v_desc_tot, Decimal("10.00"))
+        v_desc_itens = [
+            Decimal(el.text or "0")
+            for el in root.findall(".//n:det/n:prod/n:vDesc", namespaces=ns)
+        ]
+        self.assertEqual(sum(v_desc_itens), Decimal("10.00"))
+        self.assertEqual(len(v_desc_itens), 2)
+        v_nf = Decimal(root.findtext(".//n:ICMSTot/n:vNF", namespaces=ns) or "0")
+        self.assertEqual(v_nf, Decimal("90.00"))
+        v_pag = Decimal(root.findtext(".//n:detPag/n:vPag", namespaces=ns) or "0")
+        self.assertEqual(v_pag, Decimal("90.00"))
+

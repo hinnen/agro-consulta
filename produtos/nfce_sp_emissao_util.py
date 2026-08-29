@@ -94,6 +94,61 @@ def _q4(v: Decimal | float) -> str:
     return str(Decimal(str(v)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP))
 
 
+def _ratear_valor_proporcional(valores: list[Decimal], total_rateio: Decimal) -> list[Decimal]:
+    """
+    Rateia ``total_rateio`` pelos pesos em ``valores`` (centavos).
+    Soma das partes == total_rateio; cada parte ≤ peso correspondente.
+    Usado no desconto NFC-e (SEFAZ 531: ICMSTot/vDesc = soma det/prod/vDesc).
+    """
+    n = len(valores)
+    if n == 0:
+        return []
+    total_rateio = max(
+        Decimal("0"),
+        Decimal(str(total_rateio or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
+    )
+    pesos = [
+        max(Decimal("0"), Decimal(str(v or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+        for v in valores
+    ]
+    soma = sum(pesos, Decimal("0"))
+    if total_rateio <= 0 or soma <= 0:
+        return [Decimal("0")] * n
+    if total_rateio > soma:
+        total_rateio = soma
+    out: list[Decimal] = []
+    acumulado = Decimal("0")
+    for i, peso in enumerate(pesos):
+        if i == n - 1:
+            parte = (total_rateio - acumulado).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        else:
+            parte = (peso * total_rateio / soma).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if parte > peso:
+            parte = peso
+        if parte < 0:
+            parte = Decimal("0")
+        out.append(parte)
+        acumulado += parte
+    # Ajuste fino se teto no último item deixou diferença de centavos.
+    diff = (total_rateio - sum(out, Decimal("0"))).quantize(Decimal("0.01"))
+    if diff != 0:
+        passo = Decimal("0.01") if diff > 0 else Decimal("-0.01")
+        restantes = int(abs(diff) * 100)
+        ordem = sorted(range(n), key=lambda i: pesos[i], reverse=True)
+        for _ in range(restantes):
+            moved = False
+            for i in ordem:
+                cand = (out[i] + passo).quantize(Decimal("0.01"))
+                if cand < 0 or cand > pesos[i]:
+                    continue
+                out[i] = cand
+                moved = True
+                break
+            if not moved:
+                break
+    return out
+
+
 def cpf_valido(cpf_raw: str) -> bool:
     cpf = re.sub(r"\D", "", str(cpf_raw or ""))[:11]
     if len(cpf) != 11 or cpf == cpf[0] * 11:
@@ -503,14 +558,21 @@ def _montar_xml_nfce(
     if v_frete < 0:
         v_frete = Decimal("0")
     # SEFAZ 535: ICMSTot/vFrete = soma det/prod/vFrete — coloca o frete no 1º item.
-    total_prod = Decimal("0")
+    # SEFAZ 531: ICMSTot/vDesc = soma det/prod/vDesc — rateia desconto geral nos itens.
+    item_vprods: list[Decimal] = []
+    for item in itens:
+        item_vprods.append(Decimal(str(item.valor_total or 0)).quantize(Decimal("0.01")))
+    total_prod = sum(item_vprods, Decimal("0"))
+    total_nf = Decimal(str(venda.total if venda.total is not None else total_prod)).quantize(Decimal("0.01"))
+    v_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
+    descontos_itens = _ratear_valor_proporcional(item_vprods, v_desc)
     total_v_tot_trib = Decimal("0")
     for idx, item in enumerate(itens, start=1):
         fis = fiscal_itens[idx - 1] if idx - 1 < len(fiscal_itens) else fiscal_por_produto_id("", db=db, col_p=col_p)
         qtd = Decimal(str(item.quantidade or 0))
         vu = Decimal(str(item.valor_unitario or 0))
-        vt = Decimal(str(item.valor_total or 0)).quantize(Decimal("0.01"))
-        total_prod += vt
+        vt = item_vprods[idx - 1]
+        v_desc_item = descontos_itens[idx - 1] if idx - 1 < len(descontos_itens) else Decimal("0")
         v_tot_trib_item = ibpt_valor_item(item, db=db, col_p=col_p, uf=uf_ibpt, fiscal=fis)
         total_v_tot_trib += v_tot_trib_item
         v_frete_item = v_frete if idx == 1 and v_frete > 0 else Decimal("0")
@@ -543,6 +605,8 @@ def _montar_xml_nfce(
         _sub(prod, "vUnTrib", _q4(vu))
         if v_frete_item > 0:
             _sub(prod, "vFrete", _q2(v_frete_item))
+        if v_desc_item > 0:
+            _sub(prod, "vDesc", _q2(v_desc_item))
         _sub(prod, "indTot", "1")
         imposto = _sub(det, "imposto")
         if v_tot_trib_item > 0:
@@ -558,8 +622,6 @@ def _montar_xml_nfce(
         cofnt = _sub(cof, "COFINSNT")
         _sub(cofnt, "CST", "07")
 
-    total_nf = Decimal(str(venda.total or total_prod)).quantize(Decimal("0.01"))
-    v_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
     ibpt = calcular_ibpt_venda_itens(itens, db=db, col_p=col_p, uf=uf_ibpt)
     icms_tot = _sub(inf, "total")
     icms = _sub(icms_tot, "ICMSTot")

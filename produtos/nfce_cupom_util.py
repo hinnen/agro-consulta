@@ -87,6 +87,8 @@ def serializar_nfce_cupom_80mm(
         endereco_partes.append(f"CEP {cep_fmt}")
     pagamentos = pagamentos_lista_de_venda(venda)
     total = float(venda.total or 0)
+    subtotal_itens = sum(float(it.valor_total or 0) for it in itens_qs)
+    desconto = max(0.0, round(subtotal_itens + frete - total, 2))
     valor_pago = sum(float(p.get("valor") or 0) for p in pagamentos) or total
     troco = max(0.0, round(valor_pago - total, 2))
     return {
@@ -119,8 +121,8 @@ def serializar_nfce_cupom_80mm(
         "valor_pago_texto": format_moeda_br(valor_pago),
         "troco": troco,
         "troco_texto": format_moeda_br(troco),
-        "desconto": 0.0,
-        "desconto_texto": format_moeda_br(0),
+        "desconto": desconto,
+        "desconto_texto": format_moeda_br(desconto),
         "forma_pagamento": _forma_pagamento_cupom(venda),
         "pagamentos": pagamentos,
         "ibpt_texto": ibpt["ibpt_texto"],

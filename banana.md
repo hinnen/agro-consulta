@@ -1247,24 +1247,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.03** · 29/08/2026
+### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05**) · bug loja #7 · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.03** · loja **v19.01** |
-| **Prova** | path 253 · overlay 155 · planos 49 · cofrinho 31 · reserva 63 · deep 103 · acum 28 — **OK** (revalidado) |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Relato** | Renan · Caixa Centro · 29/08 · «por causa do desconto não sai cupom» (v18.27 loja) |
+| **Causa** | Após `PDV-DESC-FINAL`, `venda.total` já vinha com desconto → XML mandava `ICMSTot/vDesc` **sem** `vDesc` nos itens → SEFAZ **531** → NFC-e falha → cupom não imprime |
+| **O quê** | Rateio proporcional do desconto em `det/prod/vDesc` · cupom 80mm mostra desconto · provas 3/3 |
+| **Onde** | `nfce_sp_emissao_util.py` · `nfce_cupom_util.py` · `tests_nfce_loja.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 `/pdv/` · badge **v19.05** · item + desconto geral → cupom fiscal (F9) → deve autorizar e imprimir |
+| **Risco** | Baixo — só XML NFC-e com desconto; venda sem desconto igual |
+
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.05** · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tip** | `teste` **v19.05** · loja **v19.01** |
+| **Prova** | path 253 · overlay 155 · planos 49 · cofrinho 31 · reserva 63 · deep 103 · acum 28 — **OK** (revalidado) · NFC-e desc 3/3 |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · smoke Repasse (Planos · Confirmar 3 valores) · 🐞 PIN |
+| **Você** | Ctrl+F5 · smoke Repasse · PIN · **venda com desconto + cupom fiscal** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.03**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.05**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `REPASSE-FORMULA-3VAL` | Planos+salário antes 50/50 · modal 3 valores · fix acum | não | 🟡 pronto envio |
 | 2 | `PIN-OPERADOR-QUEM` | Bug report / Geraldo · PIN manda no nome | não | 🟡 pronto envio |
+| 3 | `NFCE-DESC-ITENS` | Rateio vDesc nos itens (bug #7) | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — Repasse fórmula + 3 valores~~ · ver bloco tip **v19.03** acima
+### ~~📦 PACOTE PRONTO — Repasse fórmula + 3 valores~~ · ver bloco tip **v19.05** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.02** · 29/08/2026)
 
