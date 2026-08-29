@@ -3418,37 +3418,66 @@
             window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosGruposVisiveis
                 ? window.AgroPrecosFormaPagamento.precosGruposVisiveis(item)
                 : null;
-        if (!vis || (vis.a == null && vis.b == null)) return empty;
-        var id = escapeHtml(String(item.id || ''));
-        var escolhido = String(item.preco_grupo_preview || '').toLowerCase();
-        var aPart =
-            vis.a != null
-                ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a' +
-                  (escolhido === 'a' ? ' is-selected' : '') +
-                  '" data-cart-grupo="a" data-item-id="' +
-                  id +
-                  '" title="Usar preço do grupo A nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
-                  '<span class="pdv-cart-grupo-tag">A</span>' +
-                  escapeHtml(formatMoney(vis.a)) +
-                  '</button>'
-                : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
-        var bPart =
-            vis.b != null
-                ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b' +
-                  (escolhido === 'b' ? ' is-selected' : '') +
-                  '" data-cart-grupo="b" data-item-id="' +
-                  id +
-                  '" title="Usar preço do grupo B nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
-                  '<span class="pdv-cart-grupo-tag">B</span>' +
-                  escapeHtml(formatMoney(vis.b)) +
-                  '</button>'
-                : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
-        return (
-            '<div class="pdv-cart-grupos-hint" aria-label="Escolher prévia do grupo A ou B">' +
-            aPart +
-            bPart +
-            '</div>'
-        );
+        if (vis && (vis.a != null || vis.b != null)) {
+            var id = escapeHtml(String(item.id || ''));
+            var escolhido = String(item.preco_grupo_preview || '').toLowerCase();
+            var aPart =
+                vis.a != null
+                    ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a' +
+                      (escolhido === 'a' ? ' is-selected' : '') +
+                      '" data-cart-grupo="a" data-item-id="' +
+                      id +
+                      '" title="Usar preço do grupo A nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
+                      '<span class="pdv-cart-grupo-tag">A</span>' +
+                      escapeHtml(formatMoney(vis.a)) +
+                      '</button>'
+                    : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
+            var bPart =
+                vis.b != null
+                    ? '<button type="button" class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b' +
+                      (escolhido === 'b' ? ' is-selected' : '') +
+                      '" data-cart-grupo="b" data-item-id="' +
+                      id +
+                      '" title="Usar preço do grupo B nesta venda (a forma de pagamento na etapa 3 ainda manda)">' +
+                      '<span class="pdv-cart-grupo-tag">B</span>' +
+                      escapeHtml(formatMoney(vis.b)) +
+                      '</button>'
+                    : '<span class="pdv-cart-grupo-slot" aria-hidden="true"></span>';
+            return (
+                '<div class="pdv-cart-grupos-hint" aria-label="Escolher prévia do grupo A ou B">' +
+                aPart +
+                bPart +
+                '</div>'
+            );
+        }
+        var tabs =
+            window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosTabelasVisiveis
+                ? window.AgroPrecosFormaPagamento.precosTabelasVisiveis(item)
+                : [];
+        if (tabs && tabs.length) {
+            var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
+            if (!isFinite(padrao)) padrao = 0;
+            var html =
+                '<div class="pdv-cart-grupos-hint" aria-label="Preço padrão e tabelas %">' +
+                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço padrão">' +
+                '<span class="pdv-cart-grupo-tag">P</span>' +
+                escapeHtml(formatMoney(padrao)) +
+                '</span>';
+            tabs.forEach(function (tb) {
+                html +=
+                    '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="' +
+                    escapeHtml(tb.nome + ' · formas: ' + (tb.formas || []).join(', ')) +
+                    '">' +
+                    '<span class="pdv-cart-grupo-tag">' +
+                    escapeHtml(String(tb.nome || 'T').slice(0, 4)) +
+                    '</span>' +
+                    escapeHtml(formatMoney(tb.preco)) +
+                    '</span>';
+            });
+            html += '</div>';
+            return html;
+        }
+        return empty;
     }
 
     function renderCartPromoBadges(item, itens) {
@@ -4947,12 +4976,37 @@
                     : slotEmpty;
             return '<span class="pdv-ac-preco-duo">' + aPart + bPart + '</span>';
         }
+        var tabs =
+            window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.precosTabelasVisiveis
+                ? window.AgroPrecosFormaPagamento.precosTabelasVisiveis(produtoOuItem)
+                : [];
         var pv =
             produtoOuItem.preco_venda != null
                 ? produtoOuItem.preco_venda
                 : produtoOuItem.preco_padrao != null
                   ? produtoOuItem.preco_padrao
                   : produtoOuItem.preco || 0;
+        if (tabs && tabs.length) {
+            var html =
+                '<span class="pdv-ac-preco-duo" style="flex-wrap:wrap;gap:0.25rem">' +
+                '<span class="pdv-ac-preco-box" title="Preço padrão">' +
+                '<span class="pdv-ac-preco-grupo-tag">P</span>' +
+                escapeHtml(formatMoney(pv || 0)) +
+                '</span>';
+            tabs.forEach(function (tb) {
+                html +=
+                    '<span class="pdv-ac-preco-box pdv-ac-preco-box--grupo" title="' +
+                    escapeHtml(tb.nome) +
+                    '">' +
+                    '<span class="pdv-ac-preco-grupo-tag">' +
+                    escapeHtml(String(tb.nome || 'T').slice(0, 3)) +
+                    '</span>' +
+                    escapeHtml(formatMoney(tb.preco)) +
+                    '</span>';
+            });
+            html += '</span>';
+            return html;
+        }
         return (
             '<span class="pdv-ac-preco-duo">' +
             slotEmpty +

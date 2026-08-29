@@ -1247,6 +1247,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Tabelas % por forma (`TABELA-PRECO-FORMA` · **v18.97** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | 2 tabelas globais (% por forma) no PDV · chips padrão+T1+T2 · vetos · conflitos individual · arredonda dezena · promo por tabela + maior valor |
+| **Tela** | `/produtos/tabelas-preco-forma/` (Cadastro ERP · Promoções) |
+| **Migrate** | **SIM** `produtos.0104_tabela_preco_forma` |
+| **Prova** | `scripts/verify_tabela_preco_forma.py` + `produtos.tests_tabela_preco_forma` |
+| **Loja** | só no `teste` até senha |
+| **Você** | migrate local · Ctrl+F5 · ativar tabela · PDV chips · promo T1/T2 |
+
 ### 📦 PACOTE PRONTO — Enviado no mês = tudo (`REPASSE-MES-TUDO` · **v18.85** · 29/08/2026)
 
 | Item | Detalhe |
@@ -1256,6 +1267,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Arquivo** | `repasse_vila_util.historico_mes` · `_ja_eletronico_vila_periodo` |
 | **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
+
+### 📦 PACOTE PRONTO — Levar «A separar» alinhado (`REPASSE-LEVAR-A-SEPARAR` · **v18.96** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Card Levar: rótulo **A separar** (igual cofres) · alinha o R$ grande na horizontal |
+| **Você** | Ctrl+F5 |
 
 ### 📦 PACOTE PRONTO — Cofre zera após separar (`REPASSE-COFRE-APOS-SEP` · **v18.95** · 29/08/2026)
 

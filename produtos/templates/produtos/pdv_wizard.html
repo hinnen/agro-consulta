@@ -4421,6 +4421,13 @@
 <script src="{% static 'produtos/js/pdv_campanha.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_promocoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/precos_forma_pagamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script>
+(function () {
+  if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.carregarTabelasGlobais) {
+    window.AgroPrecosFormaPagamento.carregarTabelasGlobais('{% url "api_tabelas_preco_forma_pdv" %}');
+  }
+})();
+</script>
 <script src="{% static 'produtos/js/pdv_state.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/cliente_cadastro_acoes.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_relacionamento.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

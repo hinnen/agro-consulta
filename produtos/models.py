@@ -2048,6 +2048,35 @@ class PromocaoAgro(models.Model):
         blank=True,
         help_text="Preço promocional por unidade quando o critério for atendido.",
     )
+    preco_y_t1 = models.DecimalField(
+        "Preço Y · Tabela 1",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Preço Y quando a forma cair na Tabela 1 global; vazio = usa preco_y.",
+    )
+    preco_y_t2 = models.DecimalField(
+        "Preço Y · Tabela 2",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+        help_text="Preço Y quando a forma cair na Tabela 2 global; vazio = usa preco_y.",
+    )
+    regra_vs_tabela = models.CharField(
+        "Regra promo × tabela %",
+        max_length=16,
+        default="maior",
+        blank=True,
+        help_text="maior | promo | tabela — default da promo; item pode sobrescrever.",
+    )
+    resolucoes_vs_tabela = models.JSONField(
+        "Resoluções promo × tabela por produto",
+        default=dict,
+        blank=True,
+        help_text='{"produto_id": "maior"|"promo"|"tabela"}',
+    )
     data_inicio = models.DateField("Início")
     data_fim = models.DateField("Fim", null=True, blank=True)
     permanente = models.BooleanField(
@@ -2096,6 +2125,20 @@ class PromocaoProdutoAgro(models.Model):
     )
     preco_promocional = models.DecimalField(
         "Preço promocional (valor direto)",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    preco_promocional_t1 = models.DecimalField(
+        "Preço promo · Tabela 1",
+        max_digits=12,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    preco_promocional_t2 = models.DecimalField(
+        "Preço promo · Tabela 2",
         max_digits=12,
         decimal_places=4,
         null=True,
@@ -3170,3 +3213,89 @@ class RepasseVilaDeltaDiaAgro(models.Model):
 
     def __str__(self):
         return f"Delta {self.data_ref} · {self.delta}"
+
+
+class TabelaPrecoFormaAgro(models.Model):
+    """
+    Tabela global de % desconto/acréscimo por forma de pagamento (PDV).
+    Dois slots fixos. Não grava preço no cadastro do produto.
+    """
+
+    slot = models.PositiveSmallIntegerField(
+        "Slot",
+        unique=True,
+        help_text="1 ou 2",
+    )
+    nome = models.CharField("Nome", max_length=80, default="Tabela")
+    ativo = models.BooleanField("Ativa", default=False, db_index=True)
+    percentual = models.DecimalField(
+        "% desconto (−) ou acréscimo (+)",
+        max_digits=8,
+        decimal_places=4,
+        default=0,
+        help_text="Ex.: −0,55 = desconto 0,55%; +1,5 = acréscimo 1,5%.",
+    )
+    arredondar_dezena_centavos = models.BooleanField(
+        "Arredondar à dezena de centavos",
+        default=False,
+        help_text="≤4 desce · ≥5 sobe (ex.: 10,43→10,40 · 10,45→10,50).",
+    )
+    formas = models.JSONField(
+        "Formas de pagamento",
+        default=list,
+        blank=True,
+        help_text='Ex.: ["Fiado", "Cartão de crédito"]',
+    )
+    categorias_vetadas = models.JSONField(
+        "Categorias vetadas",
+        default=list,
+        blank=True,
+    )
+    produtos_vetados = models.JSONField(
+        "Produtos vetados (ids)",
+        default=list,
+        blank=True,
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Tabela preço % por forma"
+        verbose_name_plural = "Tabelas preço % por forma"
+        ordering = ["slot"]
+
+    def __str__(self):
+        return f"T{self.slot} · {self.nome}"
+
+
+class TabelaPrecoFormaResolucaoAgro(models.Model):
+    """Conflito tabela % × preço individual do cadastro — decisão por produto."""
+
+    class Preferencia(models.TextChoices):
+        TABELA = "tabela", "Usar tabela %"
+        INDIVIDUAL = "individual", "Manter individual"
+
+    tabela = models.ForeignKey(
+        TabelaPrecoFormaAgro,
+        on_delete=models.CASCADE,
+        related_name="resolucoes",
+    )
+    produto_externo_id = models.CharField(max_length=64, db_index=True)
+    preferencia = models.CharField(
+        max_length=16,
+        choices=Preferencia.choices,
+        default=Preferencia.INDIVIDUAL,
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Resolução tabela % × individual"
+        verbose_name_plural = "Resoluções tabela % × individual"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tabela", "produto_externo_id"],
+                name="uniq_tabela_preco_forma_resolucao",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.produto_externo_id} · {self.preferencia}"

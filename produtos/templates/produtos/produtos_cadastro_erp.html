@@ -282,6 +282,7 @@
         {% endif %}
         <div class="flex flex-wrap items-center gap-2 ml-auto shrink-0">
           <button type="button" id="cadastro-btn-export-xlsx" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border-2 border-emerald-800 shadow-sm shrink-0" title="Baixar catálogo em Excel">Excel ↓</button>
+          <a href="{% url 'tabelas_preco_forma' %}" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-orange-500 hover:bg-orange-600 text-white border-2 border-orange-800 shadow-sm shrink-0 inline-flex items-center" title="Desconto/acréscimo % por forma no PDV">Tabelas %</a>
           <button type="button" id="cadastro-btn-import-xlsx" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-emerald-50 text-emerald-900 border-2 border-emerald-500 shadow-sm shrink-0" title="Importar alterações da planilha">Excel ↑</button>
           <button type="button" id="cadastro-btn-import-historico" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-white hover:bg-slate-50 text-slate-700 border-2 border-slate-300 shadow-sm shrink-0" title="Ver importações e desfazer">Histórico</button>
           <button type="button" id="cadastro-btn-estoque-export" class="cadastro-erp-btn px-4 py-2 rounded-xl text-xs font-black uppercase bg-blue-600 hover:bg-blue-700 text-white border-2 border-blue-800 shadow-sm shrink-0" title="Baixar planilha só de estoque (usa filtros da tela)">Estoque ↓</button>

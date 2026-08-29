@@ -75,6 +75,12 @@ def _promocao_form_context(promo: PromocaoAgro | None = None):
                     "preco_promocional": float(p.preco_promocional or 0)
                     if p.preco_promocional is not None
                     else None,
+                    "preco_promocional_t1": float(p.preco_promocional_t1 or 0)
+                    if getattr(p, "preco_promocional_t1", None) is not None
+                    else None,
+                    "preco_promocional_t2": float(p.preco_promocional_t2 or 0)
+                    if getattr(p, "preco_promocional_t2", None) is not None
+                    else None,
                 }
             )
     initial = {
@@ -83,6 +89,14 @@ def _promocao_form_context(promo: PromocaoAgro | None = None):
         "tipo": promo.tipo if promo else PromocaoAgro.Tipo.LEVE_PAGUE,
         "qtd_x": float(promo.qtd_x) if promo and promo.qtd_x is not None else None,
         "preco_y": float(promo.preco_y) if promo and promo.preco_y is not None else None,
+        "preco_y_t1": float(promo.preco_y_t1)
+        if promo and getattr(promo, "preco_y_t1", None) is not None
+        else None,
+        "preco_y_t2": float(promo.preco_y_t2)
+        if promo and getattr(promo, "preco_y_t2", None) is not None
+        else None,
+        "regra_vs_tabela": (promo.regra_vs_tabela if promo else None) or "maior",
+        "resolucoes_vs_tabela": dict(promo.resolucoes_vs_tabela or {}) if promo else {},
         "data_inicio": promo.data_inicio.isoformat() if promo else "",
         "data_fim": promo.data_fim.isoformat() if promo and promo.data_fim else "",
         "permanente": promocao_eh_permanente(promo) if promo else False,
@@ -185,6 +199,14 @@ def api_promocoes_salvar(request):
 
     qtd_x = _parse_decimal(payload.get("qtd_x"))
     preco_y = _parse_decimal(payload.get("preco_y"))
+    preco_y_t1 = _parse_decimal(payload.get("preco_y_t1"), allow_none=True)
+    preco_y_t2 = _parse_decimal(payload.get("preco_y_t2"), allow_none=True)
+    regra_vs = str(payload.get("regra_vs_tabela") or "maior").strip().lower()
+    if regra_vs not in ("maior", "promo", "tabela"):
+        regra_vs = "maior"
+    resolucoes_vs = payload.get("resolucoes_vs_tabela")
+    if not isinstance(resolucoes_vs, dict):
+        resolucoes_vs = {}
 
     if tipo in (PromocaoAgro.Tipo.LEVE_PAGUE, PromocaoAgro.Tipo.ACIMA_UNIDADES):
         if not qtd_x or qtd_x <= 0:
@@ -205,6 +227,14 @@ def api_promocoes_salvar(request):
         promo.tipo = tipo
         promo.qtd_x = qtd_x
         promo.preco_y = preco_y if tipo != PromocaoAgro.Tipo.VALOR_DIRETO else None
+        promo.preco_y_t1 = preco_y_t1 if tipo != PromocaoAgro.Tipo.VALOR_DIRETO else None
+        promo.preco_y_t2 = preco_y_t2 if tipo != PromocaoAgro.Tipo.VALOR_DIRETO else None
+        promo.regra_vs_tabela = regra_vs
+        promo.resolucoes_vs_tabela = {
+            str(k): str(v)
+            for k, v in resolucoes_vs.items()
+            if str(v) in ("maior", "promo", "tabela")
+        }
         promo.data_inicio = data_inicio
         promo.data_fim = data_fim
         promo.permanente = permanente
@@ -222,6 +252,8 @@ def api_promocoes_salvar(request):
             if not pid:
                 continue
             pp = _parse_decimal(item.get("preco_promocional"), allow_none=True)
+            pp_t1 = _parse_decimal(item.get("preco_promocional_t1"), allow_none=True)
+            pp_t2 = _parse_decimal(item.get("preco_promocional_t2"), allow_none=True)
             if tipo == PromocaoAgro.Tipo.VALOR_DIRETO and (pp is None or pp <= 0):
                 return JsonResponse(
                     {
@@ -238,6 +270,8 @@ def api_promocoes_salvar(request):
                     nome_produto=str(item.get("nome_produto") or item.get("nome") or "")[:300],
                     preco_padrao=_parse_decimal(item.get("preco_padrao"), allow_none=True),
                     preco_promocional=pp if tipo == PromocaoAgro.Tipo.VALOR_DIRETO else None,
+                    preco_promocional_t1=pp_t1 if tipo == PromocaoAgro.Tipo.VALOR_DIRETO else None,
+                    preco_promocional_t2=pp_t2 if tipo == PromocaoAgro.Tipo.VALOR_DIRETO else None,
                 )
             )
         if not novos:

@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_repasse_vila
+from . import views_tabela_preco_forma
 from . import views_cliente_cadastro
 from . import bug_report_views
 from . import ajuste_codigo_pendente_views
@@ -181,6 +182,36 @@ urlpatterns = [
     path('promocoes/', promocoes_views.promocoes_lista_view, name='promocoes_lista'),
     path('promocoes/nova/', promocoes_views.promocoes_nova_view, name='promocoes_nova'),
     path('promocoes/<int:pk>/editar/', promocoes_views.promocoes_editar_view, name='promocoes_editar'),
+    path(
+        'produtos/tabelas-preco-forma/',
+        views_tabela_preco_forma.tabelas_preco_forma_view,
+        name='tabelas_preco_forma',
+    ),
+    path(
+        'api/tabelas-preco-forma/',
+        views_tabela_preco_forma.api_tabelas_preco_forma_estado,
+        name='api_tabelas_preco_forma_estado',
+    ),
+    path(
+        'api/tabelas-preco-forma/salvar/',
+        views_tabela_preco_forma.api_tabelas_preco_forma_salvar,
+        name='api_tabelas_preco_forma_salvar',
+    ),
+    path(
+        'api/tabelas-preco-forma/resolucoes/',
+        views_tabela_preco_forma.api_tabelas_preco_forma_resolucoes,
+        name='api_tabelas_preco_forma_resolucoes',
+    ),
+    path(
+        'api/tabelas-preco-forma/pdv/',
+        views_tabela_preco_forma.api_tabelas_preco_forma_pdv,
+        name='api_tabelas_preco_forma_pdv',
+    ),
+    path(
+        'api/tabelas-preco-forma/buscar-produto/',
+        views_tabela_preco_forma.api_tabelas_preco_forma_buscar_produto,
+        name='api_tabelas_preco_forma_buscar_produto',
+    ),
     path('api/promocoes/salvar/', promocoes_views.api_promocoes_salvar, name='api_promocoes_salvar'),
     path('api/promocoes/<int:pk>/excluir/', promocoes_views.api_promocoes_excluir, name='api_promocoes_excluir'),
     path('api/promocoes/buscar-produto/', promocoes_views.api_promocoes_buscar_produto, name='api_promocoes_buscar_produto'),

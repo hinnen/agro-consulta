@@ -90,8 +90,25 @@
               <input id="promo-qtd-x" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="4">
             </label>
             <label class="block" id="wrap-preco-y">
-              <span class="text-xs font-black uppercase text-slate-600">Pague por unidade (R$)</span>
+              <span class="text-xs font-black uppercase text-slate-600">Pague por unidade (R$) · padrão</span>
               <input id="promo-preco-y" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="3,75">
+            </label>
+            <label class="block" id="wrap-preco-y-t1">
+              <span class="text-xs font-black uppercase text-slate-600">Preço Y · Tabela 1 (opcional)</span>
+              <input id="promo-preco-y-t1" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-orange-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="igual ao padrão">
+            </label>
+            <label class="block" id="wrap-preco-y-t2">
+              <span class="text-xs font-black uppercase text-slate-600">Preço Y · Tabela 2 (opcional)</span>
+              <input id="promo-preco-y-t2" type="text" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-orange-200 px-4 py-3 font-bold text-base min-h-[52px]" placeholder="igual ao padrão">
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="text-xs font-black uppercase text-slate-600">Promo × tabela %</span>
+              <select id="promo-regra-vs-tabela" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[52px]">
+                <option value="maior">Prevalece o maior valor (padrão)</option>
+                <option value="promo">Sempre a promoção</option>
+                <option value="tabela">Sempre a tabela %</option>
+              </select>
+              <p class="mt-1 text-[11px] font-semibold text-slate-500">Por produto dá para mudar na lista (massa ou item a item).</p>
             </label>
           </div>
         </article>
