@@ -139,14 +139,15 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
         <div class="rp-hero rp-hero-cofre space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-rose-900">Cofrinho Salário funcionário</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre" title="Quanto ficou hoje para o cofre">R$ 0,00</div>
+          <div class="text-[0.65rem] font-black uppercase text-rose-800">A separar</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
           <div class="rounded-lg border-2 border-rose-400 bg-white px-2 py-1.5">
             <div class="text-[0.65rem] font-black uppercase text-rose-800">Total no cofre</div>
             <div class="text-xl sm:text-2xl font-black tabular-nums text-rose-950 leading-none" id="pdv-rp-hero-cofre-saldo">R$ 0,00</div>
           </div>
-          <div id="pdv-rp-hero-cofre-atraso-wrap" class="hidden rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1">
-            <div class="text-[0.65rem] font-black uppercase text-amber-900">Acumulado a separar</div>
-            <div class="text-lg font-black tabular-nums text-amber-950 leading-none" id="pdv-rp-hero-cofre-atraso">R$ 0,00</div>
+          <div id="pdv-rp-hero-cofre-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
+            <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-hoje">R$ 0,00</div>
           </div>
           <p id="pdv-rp-cofre-aviso" class="hidden text-sm font-black text-rose-950 leading-snug" role="alert"></p>
           <label class="rp-check border-rose-500 bg-white mt-auto"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
@@ -154,14 +155,15 @@
 
         <div class="rp-hero rp-hero-cofre-ve space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-indigo-900">Cofre Vila Elias</div>
-          <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve" title="Quanto ficou hoje para o cofre">R$ 0,00</div>
+          <div class="text-[0.65rem] font-black uppercase text-indigo-800">A separar</div>
+          <div class="text-3xl sm:text-4xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve" title="Quanto ainda falta separar (hoje + atraso)">R$ 0,00</div>
           <div class="rounded-lg border-2 border-indigo-400 bg-white px-2 py-1.5">
             <div class="text-[0.65rem] font-black uppercase text-indigo-800">Total no cofre</div>
             <div class="text-xl sm:text-2xl font-black tabular-nums text-indigo-950 leading-none" id="pdv-rp-hero-cofre-ve-saldo">R$ 0,00</div>
           </div>
-          <div id="pdv-rp-hero-cofre-ve-atraso-wrap" class="hidden rounded-lg border-2 border-amber-500 bg-amber-50 px-2 py-1">
-            <div class="text-[0.65rem] font-black uppercase text-amber-900">Acumulado a separar</div>
-            <div class="text-lg font-black tabular-nums text-amber-950 leading-none" id="pdv-rp-hero-cofre-ve-atraso">R$ 0,00</div>
+          <div id="pdv-rp-hero-cofre-ve-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
+            <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-ve-hoje">R$ 0,00</div>
           </div>
           <p id="pdv-rp-cofre-ve-aviso" class="hidden text-sm font-black text-indigo-950 leading-snug mt-auto" role="alert"></p>
         </div>

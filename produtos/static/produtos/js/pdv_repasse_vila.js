@@ -335,21 +335,20 @@
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
 
     function renderCofreHero(resumo, ids, avisoTxt) {
-      var prevista = Number(resumo.prevista_dia != null ? resumo.prevista_dia : 0);
-      var saldo = Number(resumo.saldo || 0);
       var pendente = Number(resumo.pendente_dia || 0);
-      var atrasado = Math.max(0, pendente - prevista);
-      setText(ids.hoje, money(prevista));
+      var saldo = Number(resumo.saldo || 0);
+      var realizado = Number(resumo.realizada_dia || 0);
+      setText(ids.aSeparar, money(pendente));
       setText(ids.saldo, money(saldo));
-      var wrap = document.getElementById(ids.atrasoWrap);
-      var atrasEl = document.getElementById(ids.atraso);
-      if (wrap && atrasEl) {
-        if (atrasado > 0.009) {
-          wrap.classList.remove('hidden');
-          atrasEl.textContent = money(atrasado);
+      var wrapHoje = document.getElementById(ids.hojeWrap);
+      var hojeEl = document.getElementById(ids.hoje);
+      if (wrapHoje && hojeEl) {
+        if (realizado > 0.009) {
+          wrapHoje.classList.remove('hidden');
+          hojeEl.textContent = money(realizado);
         } else {
-          wrap.classList.add('hidden');
-          atrasEl.textContent = money(0);
+          wrapHoje.classList.add('hidden');
+          hojeEl.textContent = money(0);
         }
       }
       var aviso = document.getElementById(ids.aviso);
@@ -365,18 +364,18 @@
     }
 
     renderCofreHero(cofre, {
-      hoje: 'pdv-rp-hero-cofre',
+      aSeparar: 'pdv-rp-hero-cofre',
       saldo: 'pdv-rp-hero-cofre-saldo',
-      atrasoWrap: 'pdv-rp-hero-cofre-atraso-wrap',
-      atraso: 'pdv-rp-hero-cofre-atraso',
+      hojeWrap: 'pdv-rp-hero-cofre-hoje-wrap',
+      hoje: 'pdv-rp-hero-cofre-hoje',
       aviso: 'pdv-rp-cofre-aviso',
     }, 'NÃO levar no envelope · Separar junto puxa o acumulado.');
 
     renderCofreHero(cofreVe, {
-      hoje: 'pdv-rp-hero-cofre-ve',
+      aSeparar: 'pdv-rp-hero-cofre-ve',
       saldo: 'pdv-rp-hero-cofre-ve-saldo',
-      atrasoWrap: 'pdv-rp-hero-cofre-ve-atraso-wrap',
-      atraso: 'pdv-rp-hero-cofre-ve-atraso',
+      hojeWrap: 'pdv-rp-hero-cofre-ve-hoje-wrap',
+      hoje: 'pdv-rp-hero-cofre-ve-hoje',
       aviso: 'pdv-rp-cofre-ve-aviso',
     }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
 
