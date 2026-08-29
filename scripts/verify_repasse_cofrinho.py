@@ -63,7 +63,7 @@ def check(cond, msg):
         print("FAIL", msg)
 
 
-def calc_fake(reserva=Decimal("80.00"), total=Decimal("100.00")):
+def calc_fake(reserva=Decimal("80.00"), total=Decimal("100.00"), parte_vila_elias=Decimal("0.00")):
     return {
         "ok": True,
         "percentual_lucro": 50.0,
@@ -71,6 +71,8 @@ def calc_fake(reserva=Decimal("80.00"), total=Decimal("100.00")):
         "reserva_vila": float(reserva),
         "reserva_vila_desde": RESERVA_VILA_DESDE_DEFAULT.isoformat(),
         "reserva_aplicada": float(reserva),
+        "parte_salario": float(reserva),
+        "parte_vila_elias": float(parte_vila_elias),
         "lucro_penultimo_dia": 120.0,
         "receita_dia": 300.0,
         "cmv_dia": 100.0,
@@ -103,7 +105,7 @@ def cleanup():
     tagged.delete()
     for dia in (date(2026, 8, 26), date(2026, 8, 27), timezone.localdate()):
         por_dia = RepasseVilaReservaMovimentoAgro.objects.filter(
-            idempotencia_chave__startswith=f"reserva-vila:separacao:{dia.isoformat()}:"
+            idempotencia_chave__contains=f":separacao:{dia.isoformat()}:"
         )
         RepasseVilaReservaMovimentoAgro.objects.filter(
             tipo="estorno", estornado_de__in=por_dia
@@ -113,17 +115,21 @@ def cleanup():
     MovimentoCaixa.objects.filter(pk__in=[x for x in mov_ids if x]).delete()
     MovimentoCaixa.objects.filter(observacao__contains="Reserva cofrinho Vila").delete()
     MovimentoCaixa.objects.filter(observacao__contains="Estorno reserva cofrinho").delete()
+    MovimentoCaixa.objects.filter(observacao__contains="Cofrinho Salário").delete()
+    MovimentoCaixa.objects.filter(observacao__contains="Cofre Vila Elias").delete()
 
 
 def main():
     cfg = obter_config()
     reserva_antes = _dec(cfg.reserva_vila)
     saldo_antes = _dec(getattr(cfg, "saldo_reserva_vila", 0))
+    saldo_ve_antes = _dec(getattr(cfg, "saldo_cofre_vila_elias", 0))
     cleanup()
     cfg.reserva_vila = Decimal("80.00")
     cfg.saldo_reserva_vila = Decimal("0.00")
+    cfg.saldo_cofre_vila_elias = Decimal("0.00")
     cfg.reserva_vila_desde = RESERVA_VILA_DESDE_DEFAULT
-    cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila", "reserva_vila_desde"])
+    cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila", "saldo_cofre_vila_elias", "reserva_vila_desde"])
 
     user, _ = User.objects.get_or_create(username="verify_cofre_bot", defaults={"is_staff": True})
     sessao = SessaoCaixa.objects.create(ponto_caixa="vila", valor_abertura=Decimal("500"), usuario=user)
@@ -269,7 +275,28 @@ def main():
         if rep:
             rep.observacao = PREFIX
             rep.save(update_fields=["observacao"])
-            check(RepasseVilaReservaMovimentoAgro.objects.filter(repasse=rep, origem="repasse", valor=Decimal("50")).exists(), "separação junto ao repasse vinculada")
+            check(RepasseVilaReservaMovimentoAgro.objects.filter(repasse=rep, origem="repasse", valor=Decimal("50"), cofre="salario").exists(), "separação salário junto ao repasse")
+
+        # Fórmula dois cofres: lucro 200 · 50% · salário 100 → VE 100 · sal 100 · Centro 0
+        from produtos.repasse_vila_util import COFRE_VILA_ELIAS_DESDE, calcular_disponivel
+        cfg.reserva_vila = Decimal("100.00")
+        cfg.save(update_fields=["reserva_vila"])
+        with patch("produtos.repasse_vila_util._receita_e_cmv_vila", return_value={
+            "receita": Decimal("300.00"), "cmv": Decimal("100.00"), "lucro_bruto": Decimal("200.00"),
+            "n_vendas": 1, "skus_com_custo": 1, "skus_sem_custo": 0,
+        }), patch("produtos.repasse_vila_util._fiado_pago_vila", return_value=Decimal("0")), patch(
+            "produtos.repasse_vila_util.despesas_caixa_vila_por_plano", return_value={}
+        ), patch("produtos.repasse_vila_util._ja_enviado_dia", return_value={"cmv": Decimal("0"), "lucro": Decimal("0"), "fiado": Decimal("0"), "total": Decimal("0")}), patch(
+            "produtos.repasse_vila_util._ja_eletronico_vila", return_value=Decimal("0")
+        ):
+            calc_f = calcular_disponivel(COFRE_VILA_ELIAS_DESDE, percentual_lucro=50, _skip_acumulado=True)
+        check(
+            abs(_dec(calc_f.get("parte_vila_elias")) - Decimal("100")) < Decimal("0.02")
+            and abs(_dec(calc_f.get("parte_salario")) - Decimal("100")) < Decimal("0.02")
+            and abs(_dec(calc_f.get("lucro_penultimo_dia"))) < Decimal("0.02")
+            and abs(_dec((calc_f.get("alvos") or {}).get("lucro"))) < Decimal("0.02"),
+            "fórmula lucro 200 → VE 100 · salário 100 · Centro 0",
+        )
 
         # Backend impede transferência que usaria a reserva pendente.
         dia_bloq = timezone.localdate() - timedelta(days=1)
@@ -287,18 +314,22 @@ def main():
         client.force_login(user)
         resp = client.get("/api/repasse-vila/cofrinho/")
         check(resp.status_code == 200 and "saldo" in resp.json(), "API compartilhada do cofrinho")
+        resp_ve = client.get("/api/repasse-vila/cofrinho/?cofre=vila_elias")
+        check(resp_ve.status_code == 200 and resp_ve.json().get("cofre") == "vila_elias", "API cofre=vila_elias")
         tela = client.get("/repasse-vila/")
         body = tela.content.decode("utf-8", errors="replace")
-        check("rv-cofrinho-card" in body and "rv-lucro-ficou" in body, "cofrinho e Lucro ficou na Vila são cards separados")
-        check("18/08/2026" in (ROOT / "produtos/templates/produtos/includes/repasse_help_agents.html").read_text(encoding="utf-8"), "vigência documentada desde criação do campo")
+        check("rv-cofrinho-card" in body and "rv-cofre-ve-card" in body and "rv-lucro-ficou" in body, "dois cofres e Lucro ficou são cards separados")
+        check("Cofrinho Salário funcionário" in body and "Cofre Vila Elias" in body, "nomes dos dois cofres na gestão")
+        check("18/08/2026" in (ROOT / "produtos/templates/produtos/includes/repasse_help_agents.html").read_text(encoding="utf-8") and "29/08/2026" in (ROOT / "produtos/templates/produtos/includes/repasse_help_agents.html").read_text(encoding="utf-8"), "vigências documentadas na ajuda")
     finally:
         cleanup()
         cfg = RepasseVilaConfigAgro.objects.get(pk=cfg.pk)
         cfg.reserva_vila = reserva_antes
         cfg.saldo_reserva_vila = saldo_antes
+        cfg.saldo_cofre_vila_elias = saldo_ve_antes
         # Sempre volta o desde do produto — o teste muda a data e não pode deixar o PG local sujo.
         cfg.reserva_vila_desde = RESERVA_VILA_DESDE_DEFAULT
-        cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila", "reserva_vila_desde"])
+        cfg.save(update_fields=["reserva_vila", "saldo_reserva_vila", "saldo_cofre_vila_elias", "reserva_vila_desde"])
         SessaoCaixa.objects.filter(pk=sessao.pk).delete()
 
     print("---")

@@ -2878,7 +2878,13 @@ class RepasseVilaConfigAgro(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0,
-        help_text="Saldo acumulado do cofrinho/reserva física da Vila Elias.",
+        help_text="Saldo do Cofrinho Salário funcionário (reserva diária configurável).",
+    )
+    saldo_cofre_vila_elias = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        help_text="Saldo do Cofre Vila Elias (fatia do lucro que não vai ao Centro).",
     )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
@@ -2919,13 +2925,13 @@ class RepasseVilaCentroAgro(models.Model):
         max_digits=12,
         decimal_places=2,
         default=0,
-        help_text="Valor manual descontado do lucro bruto antes do % neste envio.",
+        help_text="Cofrinho Salário (config) reservado neste envio — sai do lado que fica na Vila.",
     )
     lucro_penultimo_dia = models.DecimalField(
         max_digits=12,
         decimal_places=2,
         default=0,
-        help_text="Lucro bruto − reserva (base do %).",
+        help_text="Base do lucro ao Centro após cofres (legado: antes era lucro−reserva).",
     )
     fiado_pago_dia = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     quem_levou = models.CharField(max_length=120)
@@ -3023,7 +3029,7 @@ class RepasseVilaReservaLogAgro(models.Model):
 
 
 class RepasseVilaReservaMovimentoAgro(models.Model):
-    """Razão imutável do dinheiro fisicamente separado no cofrinho da Vila."""
+    """Razão imutável do dinheiro fisicamente separado nos cofrinhos da Vila."""
 
     class Tipo(models.TextChoices):
         SEPARACAO = "separacao", "Separação"
@@ -3039,8 +3045,19 @@ class RepasseVilaReservaMovimentoAgro(models.Model):
         SALDO_INICIAL = "saldo_inicial", "Saldo inicial"
         ESTORNO = "estorno", "Estorno"
 
+    class Cofre(models.TextChoices):
+        SALARIO = "salario", "Cofrinho Salário funcionário"
+        VILA_ELIAS = "vila_elias", "Cofre Vila Elias"
+
     tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)
     origem = models.CharField(max_length=24, choices=Origem.choices, db_index=True)
+    cofre = models.CharField(
+        max_length=16,
+        choices=Cofre.choices,
+        default=Cofre.SALARIO,
+        db_index=True,
+        help_text="Qual cofrinho físico este movimento afeta.",
+    )
     criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
     data_ref = models.DateField(db_index=True)
     valor = models.DecimalField(

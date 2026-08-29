@@ -226,6 +226,10 @@
     padding: 10px 14px; cursor: pointer; font-size: 1rem; color: var(--cor-texto-principal);
   }
   .sv-list-row:hover { background-color: #f0fdf4; }
+  /* Pagamento + Juros de Empréstimo (ext/int) — fundo laranja leve (cor dos juros na UI) */
+  .sv-list-item.sv-row-emp-pg .sv-list-row { background-color: #fff7ed; }
+  .sv-list-item.sv-row-emp-pg .sv-list-row:hover,
+  .sv-list-item.sv-row-emp-pg.expanded .sv-list-row { background-color: #ffedd5; }
   .sv-col-chk { display: flex; align-items: center; justify-content: center; min-height: 2rem; }
   .sv-col-chk input { width: 26px; height: 26px; accent-color: var(--cor-primaria); cursor: pointer; }
   .sv-col-vencimento { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
@@ -1358,6 +1362,26 @@
     return `<span class="sv-col-plano-wrap"><span class="sv-plano-txt" title="${esc(tip)}">${esc(nome)}</span><span class="sv-plano-orfao-bang" title="${esc(planoOrfaoTip())}" aria-label="${esc(planoOrfaoTip())}">!</span></span>`;
   }
 
+  /** Fundo laranja: Pagamento / Juros de Empréstimos (externo e interno). */
+  function isRowEmprestimoPagamentoOuJuros(row) {
+    const raw = String(row.plano_conta_exibicao || row.plano_conta || '');
+    const p = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    if (!p) return false;
+    if (/^(pagamento|juros) de emprest/.test(p)) return true;
+    try {
+      const el = document.getElementById('emprestimos-defaults-data');
+      if (!el || !el.textContent) return false;
+      const d = JSON.parse(el.textContent);
+      const keys = ['plano_divida', 'plano_juros', 'plano_divida_interno', 'plano_juros_interno'];
+      return keys.some((k) => {
+        const t = String(d[k] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+        return t && (p === t || p.includes(t) || t.includes(p));
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
   function statusBadge(row) {
     if (row.pago) return '<span class="sv-badge sv-badge-pago">Pago</span>';
     const v = parseYmd(row.data_vencimento);
@@ -2157,8 +2181,9 @@
     const horaTxt = fmtDataHora(row.horario_quitacao || row.last_update);
     const usrLanc = row.usuario_lancou || row.criado_por || '';
     const usrQuit = row.usuario_quitou || (row.pago ? row.modificado_por : '') || '';
+    const empCls = isRowEmprestimoPagamentoOuJuros(row) ? ' sv-row-emp-pg' : '';
     return `
-      <div class="sv-list-item" data-id="${esc(row.id)}" role="button" tabindex="0" aria-expanded="false">
+      <div class="sv-list-item${empCls}" data-id="${esc(row.id)}" role="button" tabindex="0" aria-expanded="false">
         <div class="sv-list-row sv-list-cols">
           <div data-col-id="chk" class="sv-col-chk">
             ${canPay ? `<input type="checkbox" class="sv-row-chk" data-id="${esc(row.id)}" ${selecionados.has(idStr) ? 'checked' : ''} aria-label="Selecionar ${esc(titulo)}">` : ''}

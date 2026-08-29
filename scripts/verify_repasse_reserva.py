@@ -209,9 +209,12 @@ def main() -> int:
     apl0 = reserva_aplicada_no_dia(dia_antes, lucro_bruto=Decimal("999"))
     ok("antes do desde = 0") if apl0 == ZERO else fail(f"apl0={apl0}")
 
+    from produtos.repasse_vila_util import COFRE_VILA_ELIAS_DESDE
+
     calc = calcular_disponivel(hoje)
     lucro_b = _dec(calc.get("lucro_bruto_dia"))
     reserva_apl = _dec(calc.get("reserva_aplicada"))
+    parte_ve = _dec(calc.get("parte_vila_elias"))
     pen = _dec(calc.get("lucro_penultimo_dia"))
     pct = _dec(calc.get("percentual_lucro"))
     alvo_lucro = _dec((calc.get("alvos") or {}).get("lucro"))
@@ -219,18 +222,31 @@ def main() -> int:
 
     if hoje >= RESERVA_VILA_DESDE_DEFAULT:
         esp_apl = min(Decimal("200.00"), max(ZERO, lucro_b))
+        if hoje >= COFRE_VILA_ELIAS_DESDE:
+            esp_ve = (lucro_b * (Decimal("100") - pct) / Decimal("100")).quantize(Decimal("0.01"))
+            esp_ve = max(ZERO, esp_ve)
+            if (esp_ve + esp_apl) > lucro_b:
+                esp_ve = min(esp_ve, lucro_b)
+                esp_apl = min(esp_apl, max(ZERO, (lucro_b - esp_ve).quantize(Decimal("0.01"))))
+        else:
+            esp_ve = ZERO
         if reserva_apl == esp_apl:
             ok(f"reserva_aplicada={reserva_apl}")
         else:
             fail(f"reserva_aplicada={reserva_apl} esp={esp_apl}")
-        esp_pen = max(ZERO, (lucro_b - reserva_apl).quantize(Decimal("0.01")))
+        if parte_ve == esp_ve:
+            ok(f"parte_vila_elias={parte_ve}")
+        else:
+            fail(f"parte_ve={parte_ve} esp={esp_ve}")
+        # lucro_penultimo = lucro ao Centro (já sem Vila Elias e salário) — sem 2º %
+        esp_pen = max(ZERO, (lucro_b - esp_ve - esp_apl).quantize(Decimal("0.01")))
         if pen == esp_pen:
-            ok(f"penúltimo={pen}")
+            ok(f"lucro ao Centro (penúltimo)={pen}")
         else:
             fail(f"pen={pen} esp={esp_pen}")
-        esp_alvo = max(ZERO, ((esp_pen * pct / Decimal("100")) - desp_c).quantize(Decimal("0.01")))
+        esp_alvo = max(ZERO, (esp_pen - desp_c).quantize(Decimal("0.01")))
         if alvo_lucro == esp_alvo:
-            ok("alvo lucro = % do penúltimo − planos")
+            ok("alvo lucro = sobra após cofres − planos")
         else:
             fail(f"alvo_lucro={alvo_lucro} esp={esp_alvo}")
     else:

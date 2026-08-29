@@ -42,18 +42,18 @@
       </button>
     </div>
 
-    {# Passo 0 — escolha Novo Lançamento × Empréstimo (mesmo padrão visual do Novo empréstimo) #}
+    {# Passo 0 — escolha Novo Lançamento × Empréstimo (cards em coluna; descrição horizontal) #}
     <div id="agro-ns-passo-escolha" class="flex-1 min-h-0 overflow-y-auto px-4 py-8 sm:px-10 sm:py-14">
       <div class="mx-auto w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-8">
         <button type="button" id="agro-ns-btn-escolha-lancamento"
-                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-red-500 bg-red-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-red-100 active:scale-[0.99] transition-transform">
-          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-red-900">Novo Lançamento</span>
-          <span class="mt-3 block text-xl font-bold leading-snug text-red-800/80">Despesa ou receita normal</span>
+                class="flex w-full min-w-0 flex-col items-start justify-center gap-2 min-h-[7.5rem] sm:min-h-[9rem] rounded-2xl border-4 border-red-500 bg-red-50 px-6 py-5 sm:px-8 sm:py-6 text-left shadow-md hover:bg-red-100 active:scale-[0.99] transition-transform">
+          <span class="block w-full text-3xl sm:text-4xl font-black uppercase tracking-wide text-red-900 leading-tight">Novo Lançamento</span>
+          <span class="block w-full text-xl font-bold leading-snug text-red-800/80 whitespace-normal">Despesa ou receita normal</span>
         </button>
         <button type="button" id="agro-ns-btn-escolha-emprestimo"
-                class="min-h-[11rem] sm:min-h-[14rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-8 py-10 sm:px-10 sm:py-12 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
-          <span class="block whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-indigo-900">Empréstimo</span>
-          <span class="mt-3 block text-xl font-bold leading-snug text-indigo-800/80">Externo ou interno (sócio)</span>
+                class="flex w-full min-w-0 flex-col items-start justify-center gap-2 min-h-[7.5rem] sm:min-h-[9rem] rounded-2xl border-4 border-indigo-500 bg-indigo-50 px-6 py-5 sm:px-8 sm:py-6 text-left shadow-md hover:bg-indigo-100 active:scale-[0.99] transition-transform">
+          <span class="block w-full text-3xl sm:text-4xl font-black uppercase tracking-wide text-indigo-900 leading-tight">Empréstimo</span>
+          <span class="block w-full text-xl font-bold leading-snug text-indigo-800/80 whitespace-normal">Externo ou interno (sócio)</span>
         </button>
       </div>
     </div>

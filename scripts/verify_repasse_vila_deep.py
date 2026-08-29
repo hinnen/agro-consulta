@@ -245,13 +245,12 @@ def main() -> int:
 
     lucro_penultimo = Decimal(str(calc_e["lucro_penultimo_dia"]))
     despesas_centro = Decimal(str(calc_e.get("despesas_centro_dia") or 0))
+    # Após dois cofres, lucro_penultimo já é a fatia do Centro — não aplica % de novo
     alvo_lucro = max(
         Decimal("0"),
-        (lucro_penultimo * Decimal("50") / Decimal("100") - despesas_centro).quantize(
-            Decimal("0.01")
-        ),
+        (lucro_penultimo - despesas_centro).quantize(Decimal("0.01")),
     )
-    ok("alvo lucro 50%") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
+    ok("alvo lucro após cofres") if abs(Decimal(str(calc_e["alvos"]["lucro"])) - alvo_lucro) <= Decimal(
         "0.02"
     ) else fail("alvo lucro")
 
@@ -491,7 +490,7 @@ def main() -> int:
     ok("pin so popup") if b"pdv-rp-pin-modal" in body and b"pdv-rp-btn-pin" not in body else fail("chips pin voltaram")
     ok("sem forma na tela") if b"Forma de pagamento" not in body else fail("forma visivel")
     ok("forma oculta modal") if b'id="pdv-rp-forma-modal"' in body else fail("faltou forma modal oculto")
-    ok("hero cofrinho") if b"pdv-rp-hero-cofre" in body and b"Cofrinho (ficar na Vila)" in body else fail("faltou hero cofrinho")
+    ok("hero cofrinho") if b"pdv-rp-hero-cofre" in body and b"Cofrinho Sal" in body and b"pdv-rp-hero-cofre-ve" in body and b"Cofre Vila Elias" in body else fail("faltou hero cofrinho")
     ok("levar centro") if b"Levar ao Centro" in body else fail("faltou levar centro")
     ok("rp-popup css") if b"rp-popup" in body else fail("faltou rp-popup")
     # botao deve ser <button>, nao <a href=pdv>

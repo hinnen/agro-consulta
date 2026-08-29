@@ -45,6 +45,10 @@
   var quemModal = document.getElementById('pdv-rp-quem-modal');
   var formaModal = document.getElementById('pdv-rp-forma-modal');
   var pinModal = document.getElementById('pdv-rp-pin-modal');
+  var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
+  var cofreConfirmPending = null;
+  var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
+  var forcarManualPendingBody = null;
 
   function todayIso() {
     var d = new Date();
@@ -191,10 +195,14 @@
   function renderMesCards() {
     var h = histMes || {};
     setText('pdv-rp-mes-dinheiro', money(h.total_mes));
+    setText('pdv-rp-hero-mes', money(h.total_mes));
+    setText('pdv-rp-hero-geral', money(h.total_geral));
     setText('pdv-rp-mes-lucro-ficou', money(h.lucro_ficou_vila));
     var c = calc || {};
     var cofre = c.cofrinho || {};
+    var cofreVe = c.cofre_vila_elias || {};
     setText('pdv-rp-card-cofre', money(cofre.saldo));
+    setText('pdv-rp-card-cofre-ve', money(cofreVe.saldo));
     var elet = Number(c.ja_eletronico || 0);
     var jaDin = Number((c.ja_enviado || {}).total || 0);
     setText('pdv-rp-dia-todas', money(elet + jaDin));
@@ -203,6 +211,7 @@
   function renderCalc() {
     var c = calc || {};
     var cofre = c.cofrinho || {};
+    var cofreVe = c.cofre_vila_elias || {};
     var d = c.disponivel || {};
     setText('pdv-rp-receita', money(c.receita_dia));
     setText('pdv-rp-cmv-dia', money(c.cmv_dia));
@@ -259,6 +268,21 @@
     }
     setText('pdv-rp-total', money(tot));
 
+    var cx = c.caixa_vila || {};
+    var cxEl = document.getElementById('pdv-rp-caixa-din');
+    var cxHint = document.getElementById('pdv-rp-caixa-din-hint');
+    if (cxEl) {
+      if (cx.aberto) {
+        cxEl.textContent = money(cx.saldo_dinheiro);
+        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-slate-950 leading-none';
+        if (cxHint) cxHint.textContent = 'Esperado na gaveta (antes de levar)';
+      } else {
+        cxEl.textContent = 'Fechado';
+        cxEl.className = 'text-xl sm:text-2xl font-black tabular-nums text-red-800 leading-none';
+        if (cxHint) cxHint.textContent = 'Abra o caixa da Vila para ver o saldo';
+      }
+    }
+
     var enviarHint = document.getElementById('pdv-rp-enviar-hint');
     if (enviarHint) {
       if (mv != null) {
@@ -282,13 +306,29 @@
     if (cofreAviso) {
       if (pendente > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' na Vila.';
+        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' (Salário).';
       } else if (Number(cofre.saldo || 0) > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent = 'Cofrinho ' + money(cofre.saldo);
+        cofreAviso.textContent = 'Saldo ' + money(cofre.saldo);
       } else {
         cofreAviso.classList.add('hidden');
         cofreAviso.textContent = '';
+      }
+    }
+
+    var pendenteVe = Number(cofreVe.pendente_dia || 0);
+    setText('pdv-rp-hero-cofre-ve', money(pendenteVe));
+    var cofreVeAviso = document.getElementById('pdv-rp-cofre-ve-aviso');
+    if (cofreVeAviso) {
+      if (pendenteVe > 0.009) {
+        cofreVeAviso.classList.remove('hidden');
+        cofreVeAviso.textContent = 'Deixe ' + money(pendenteVe) + ' (Vila Elias).';
+      } else if (Number(cofreVe.saldo || 0) > 0.009) {
+        cofreVeAviso.classList.remove('hidden');
+        cofreVeAviso.textContent = 'Saldo ' + money(cofreVe.saldo);
+      } else {
+        cofreVeAviso.classList.add('hidden');
+        cofreVeAviso.textContent = '';
       }
     }
 
@@ -344,7 +384,14 @@
   }
 
   function fetchHistoricoMes() {
-    return fetch('/api/repasse-vila/historico/', { credentials: 'same-origin' })
+    var d = dataRef() || '';
+    var ano = d.slice(0, 4);
+    var mes = d.slice(5, 7);
+    var q =
+      ano && mes
+        ? '?ano=' + encodeURIComponent(ano) + '&mes=' + encodeURIComponent(mes)
+        : '';
+    return fetch('/api/repasse-vila/historico/' + q, { credentials: 'same-origin' })
       .then(function (r) {
         return r.json();
       })
@@ -493,6 +540,13 @@
         if (!qs().get('data')) {
           calc = j.calc || null;
           if (calc && j.cofrinho) calc.cofrinho = j.cofrinho;
+          if (calc && j.cofre_vila_elias) calc.cofre_vila_elias = j.cofre_vila_elias;
+          if (calc && j.caixa_vila) calc.caixa_vila = j.caixa_vila;
+        } else if (j.caixa_vila && calc) {
+          calc.caixa_vila = j.caixa_vila;
+        }
+        if (j.caixa_vila && !calc) {
+          calc = { caixa_vila: j.caixa_vila };
         }
         if (dom.sub) {
           if (!j.caixa_vila_aberto) {
@@ -521,9 +575,11 @@
 
   function closeOverlay() {
     pendingConfirmar = false;
+    closeForcarManualModal();
     hideModal(quemModal);
     hideModal(formaModal);
     hideModal(pinModal);
+    hideModal(cofreConfirmModal);
     hideModal(acumModal);
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
@@ -536,6 +592,78 @@
         window.parent.postMessage({ type: 'agro-caixa-fechar-atualizar' }, window.location.origin);
       }
     } catch (_) {}
+  }
+
+  function closeCofreConfirmModal(ok) {
+    hideModal(cofreConfirmModal);
+    var cb = cofreConfirmPending;
+    cofreConfirmPending = null;
+    if (ok && typeof cb === 'function') cb();
+  }
+
+  function openCofreConfirmModal(valorSalarioTxt, valorVeTxt, onConfirm) {
+    var elVal = document.getElementById('pdv-rp-cofre-confirm-valor');
+    var elVe = document.getElementById('pdv-rp-cofre-confirm-valor-ve');
+    if (elVal) elVal.textContent = valorSalarioTxt || 'R$ 0,00';
+    if (elVe) elVe.textContent = valorVeTxt || 'R$ 0,00';
+    cofreConfirmPending = onConfirm;
+    showModal(cofreConfirmModal);
+    focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
+  }
+
+  function autoLinhasZeradas() {
+    if (!calc) return false;
+    var d = calc.disponivel || {};
+    var t = 0;
+    if (dom.cmv && dom.cmv.checked) t += Number(d.cmv || 0);
+    if (dom.lucro && dom.lucro.checked) t += Number(d.lucro || 0);
+    if (dom.fiado && dom.fiado.checked) t += Number(d.fiado || 0);
+    return t < 0.009;
+  }
+
+  function closeForcarManualModal() {
+    forcarManualPendingBody = null;
+    hideModal(forcarManualModal);
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    if (pinF) pinF.value = '';
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (st) st.textContent = '';
+  }
+
+  function openForcarManualModal(msg, body) {
+    forcarManualPendingBody = body;
+    var elMsg = document.getElementById('pdv-rp-forcar-manual-msg');
+    if (elMsg) {
+      elMsg.textContent =
+        msg ||
+        'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Confirme com o PIN de novo.';
+    }
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    if (pinF) pinF.value = '';
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (st) st.textContent = '';
+    // PIN do fluxo normal não conta — exige digitar de novo neste modal
+    if (dom.pin) dom.pin.value = '';
+    showModal(forcarManualModal);
+    focusSoon(pinF);
+  }
+
+  function submitForcarManual() {
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    var pin = String((pinF && pinF.value) || '').trim();
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (!pin) {
+      if (st) st.textContent = 'Digite o PIN de novo para confirmar.';
+      focusSoon(pinF);
+      return;
+    }
+    if (!forcarManualPendingBody) return;
+    var body = Object.assign({}, forcarManualPendingBody, {
+      pin: pin,
+      forcar_manual_zerado: true,
+    });
+    closeForcarManualModal();
+    enviarConfirmacao(body);
   }
 
   function confirmar() {
@@ -576,19 +704,35 @@
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
 
-    var cofre = (calc && calc.cofrinho) || {};
-    var pendenteCofre = Number(cofre.pendente_dia || 0);
-    if (pendenteCofre > 0.009) {
-      var msgCofre =
-        'Vai transferir agora.\n\n' +
-        'Deixe ' +
-        money(pendenteCofre) +
-        ' na Vila (cofrinho).\n' +
-        'Não coloque esse valor no envelope do Centro.\n\n' +
-        'Confirma o repasse?';
-      if (!window.confirm(msgCofre)) return;
+    function seguirAposCofre() {
+      if (mv != null && mv > 0 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
+        var br = money(mv);
+        openForcarManualModal(
+          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
+            br +
+            '. Confirme com o PIN de novo.',
+          body
+        );
+        return;
+      }
+      enviarConfirmacao(body);
     }
 
+    var cofre = (calc && calc.cofrinho) || {};
+    var cofreVe = (calc && calc.cofre_vila_elias) || {};
+    var pendenteCofre = Number(cofre.pendente_dia || 0);
+    var pendenteVe = Number(cofreVe.pendente_dia || 0);
+    if (pendenteCofre > 0.009 || pendenteVe > 0.009) {
+      openCofreConfirmModal(money(pendenteCofre), money(pendenteVe), function () {
+        seguirAposCofre();
+      });
+      return;
+    }
+    seguirAposCofre();
+  }
+
+  function enviarConfirmacao(body) {
+    if (busy) return;
     busy = true;
     if (dom.status) dom.status.textContent = 'Transferindo…';
     fetch('/api/repasse-vila/confirmar/', {
@@ -609,13 +753,19 @@
         busy = false;
         var j = pack.j || {};
         if (!j.ok) {
+          if (j.precisa_forcar_manual && !body.forcar_manual_zerado) {
+            openForcarManualModal(j.erro, body);
+            return;
+          }
           if (dom.status) dom.status.textContent = j.erro || 'Não foi possível transferir';
           return;
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
         var saldoCofre = j.cofrinho ? money(j.cofrinho.saldo) : '—';
+        var saldoVe = j.cofre_vila_elias ? money(j.cofre_vila_elias.saldo) : '—';
         if (dom.status) {
-          dom.status.textContent = 'OK — enviado ' + money(tot) + ' · cofrinho na Vila ' + saldoCofre;
+          dom.status.textContent =
+            'OK — enviado ' + money(tot) + ' · Salário ' + saldoCofre + ' · Vila Elias ' + saldoVe;
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
@@ -652,6 +802,25 @@
   var pinOk = document.getElementById('pdv-rp-pin-ok');
   if (pinFechar) pinFechar.addEventListener('click', function () { closePinModal(true); });
   if (pinOk) pinOk.addEventListener('click', function () { closePinModal(); });
+
+  var cofreCancelar = document.getElementById('pdv-rp-cofre-confirm-cancelar');
+  var cofreOk = document.getElementById('pdv-rp-cofre-confirm-ok');
+  if (cofreCancelar) cofreCancelar.addEventListener('click', function () { closeCofreConfirmModal(false); });
+  if (cofreOk) cofreOk.addEventListener('click', function () { closeCofreConfirmModal(true); });
+
+  var forcarCancelar = document.getElementById('pdv-rp-forcar-manual-cancelar');
+  var forcarOk = document.getElementById('pdv-rp-forcar-manual-ok');
+  var forcarPin = document.getElementById('pdv-rp-forcar-manual-pin');
+  if (forcarCancelar) forcarCancelar.addEventListener('click', closeForcarManualModal);
+  if (forcarOk) forcarOk.addEventListener('click', submitForcarManual);
+  if (forcarPin) {
+    forcarPin.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        submitForcarManual();
+      }
+    });
+  }
 
   if (dom.todos) {
     dom.todos.addEventListener('change', function () {
@@ -746,6 +915,14 @@
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
+    if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
+      closeForcarManualModal();
+      return;
+    }
+    if (cofreConfirmModal && !cofreConfirmModal.classList.contains('hidden')) {
+      closeCofreConfirmModal(false);
+      return;
+    }
     if (quemModal && !quemModal.classList.contains('hidden')) {
       closeQuemModal(true);
       return;

@@ -81,10 +81,13 @@ JS = "produtos/static/produtos/js/pdv_repasse_vila.js"
 
 # —— Shell + hero ——
 check(HTML, "pdv-repasse-overlay", "rp-shell", "min(98rem", "96dvh", "rp-hero", "rp-hero-cofre")
-check(HTML, "pdv-rp-hero-cofre", "Cofrinho (ficar na Vila)", "Levar ao Centro", "pdv-rp-total", "pdv-rp-manual")
+check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-manual")
+check(HTML, "pdv-rp-caixa-din", "Caixa Vila · dinheiro agora")
 check(HTML, "pdv-rp-mes-dinheiro", "pdv-rp-card-cofre", "pdv-rp-mes-lucro-ficou", "pdv-rp-dia-todas")
+check(HTML, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "Enviado no mês", "Total geral")
 check(HTML, "rp-fold", "Detalhes do dia", "% lucro e opções", "pdv-rp-receita", "pdv-rp-acumulado")
 check(HTML, "Valor manual", "Separar junto", "pdv-rp-separar-reserva", "pdv-repasse-confirmar")
+check(JS, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "total_geral", "renderMesCards")
 
 # —— Sem chips / forma na tela ——
 forbid(
@@ -103,9 +106,12 @@ forbid(
 check(HTML, "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-forma-modal", "rp-popup")
 check(HTML, "pdv-rp-quem-grid", "pdv-rp-forma-grid", "pdv-rp-pin", "pdv-rp-quem-ok", "pdv-rp-pin-ok")
 check(HTML, "pdv-rp-enviar-hint", "pdv-rp-cofre-aviso", "NÃO levar", "Quem levou", "PIN do operador")
+check(HTML, "pdv-rp-cofre-confirm-modal", "pdv-rp-cofre-confirm-valor", "pdv-rp-cofre-confirm-valor-ve", "pdv-rp-cofre-confirm-ok", "rp-cofre-confirm-panel")
+check(HTML, "NÃO coloque esses valores no envelope", "Confirmar repasse", "80vw", "80dvh")
+check(HTML, "pdv-rp-forcar-manual-modal", "pdv-rp-forcar-manual-pin", "Atenção — valor forçado", "PIN de novo")
 check(HTML, 'id="pdv-rp-forma-modal"', "hidden", "grid-template-columns", "rp-quem-btn")
 # Popups depois do shell (não atrás dos chips)
-check_order(HTML, "pdv-repasse-confirmar", "pdv-rp-quem-modal", "pdv-rp-pin-modal")
+check_order(HTML, "pdv-repasse-confirmar", "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-cofre-confirm-modal")
 # Forma modal tem attribute hidden
 check(HTML, 'id="pdv-rp-forma-modal" class="rp-popup hidden')
 
@@ -113,8 +119,12 @@ check(HTML, 'id="pdv-rp-forma-modal" class="rp-popup hidden')
 check(JS, "focusSoon", "openQuemModal", "openPinModal", "tryConfirmarFlow")
 forbid(JS, "openFormaModal", "pdv-rp-btn-quem", "pdv-rp-btn-forma", "pdv-rp-btn-pin", "updateChips")
 check(JS, "ev.key === 'Enter'", "closeQuemModal", "closePinModal")
-check(JS, "formaPag = 'Dinheiro'", "pendingConfirmar", "Escape", "pdv-rp-hero-cofre")
-check(JS, "Deixe ", "Confirma o repasse", "notifyParentFecharAtualizar")
+check(JS, "formaPag = 'Dinheiro'", "pendingConfirmar", "Escape", "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "cofre_vila_elias")
+check(JS, "openCofreConfirmModal", "closeCofreConfirmModal", "enviarConfirmacao", "notifyParentFecharAtualizar", "valorVeTxt")
+check(JS, "openForcarManualModal", "forcar_manual_zerado", "precisa_forcar_manual", "autoLinhasZeradas", "submitForcarManual")
+check(JS, "pdv-rp-caixa-din", "caixa_vila", "saldo_dinheiro")
+forbid(JS, "window.confirm(msgCofre)", "msgCofre")
+forbid(JS, "Não há valor disponível nas linhas marcadas")
 check(JS, "api/repasse-vila/confirmar/", "incluir_acumulado", "separar_reserva")
 check(JS, "Inclui ", "dias anteriores", "fetchHistoricoMes", "pickQuem", "renderQuem")
 # Fluxo Confirmar: quem → pin → confirmar (ordem no tryConfirmarFlow)
