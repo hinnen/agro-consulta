@@ -427,7 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
-- **Chat lojas (29/08 · `PDV-CHAT-LOJA`):** botão **Chat** embaixo (ao lado do FAB PDV) · janela sobe pra cima · grupo único todos os PCs · Postgres `ChatLojaMensagemAgro` · bip · migrate `0105`.
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA`):** aba **Chat** colada embaixo · janela sobe · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · prova **58/58**.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1262,16 +1262,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 pronto envio |
 | **Você** | Ctrl+F5 · digitar «sacola» embaixo · Enviar (sem Incluir / sem produto) |
 
-### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.43** · 29/08/2026)
+### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.51** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Grupo único Centro+Vila · botão **Chat** embaixo (ao lado do FAB) · janela sobe pra cima (MSN) · som |
-| **Tela** | `/pdv/` dock inferior |
+| **O quê** | Grupo único Centro+Vila · aba **Chat** colada embaixo · janela sobe · som + badge + pisca · sem Processando |
+| **Tela** | `/pdv/` |
 | **Migrate** | **SIM** `produtos.0105` |
-| **Prova** | `scripts/verify_pdv_chat_loja.py` **20/20** |
+| **Prova** | `scripts/verify_pdv_chat_loja.py` **58/58** (estático+runtime API/PG) |
 | **Status** | ✅ no `teste` · 🟡 **pronto para envio** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 PDV · Chat embaixo à esquerda · abre pra cima |
+| **Você** | migrate `0105` · Ctrl+F5 PDV · 2 PCs · bip/badge |
 
 ### 📦 PACOTE PRONTO — Entrada NF etapa 5 bloqueio falso (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
 
@@ -1322,37 +1322,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
 | **Produção** | só frase + senha |
 
-### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.02 Live** + ramp WIP) · 29/08/2026
+### 📦 PACOTE PRONTO SOLO — Meta C Vila ramp (`BI-META-C-VILA-RAMP` · tip **v19.49** / `850dc62`) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **Live loja** `6b1eeed` / **v19.02** · 🟡 **ramp 14d/90d** no `teste` (aguarda senha p/ loja) |
-| **O quê** | Meta C Vila + soma C+V · **ramp:** até 90 dias da abertura (20/07) = média **14 dias com venda**; em **18/10/2026** passa sozinha à Meta C do Centro |
-| **Onde** | `views.py` · mongo_* · analytics · ajuda BI · verify · rollback |
+| **Tip** | `teste` **`850dc62`** · loja ainda **v19.02** (Meta C sem ramp) |
+| **O quê** | Vila: média **14 dias com venda** por **90 dias** (até **17/10**); em **18/10/2026** → Meta C igual Centro · C+V = soma |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_meta_c_vila_abertura.py` **68/68** |
-| **Você** | Ctrl+F5 BI Vila · tooltip média base (deve subir vs R$ 3,7k) |
-| **Rollback** | tag `rollback/pre-bi-meta-c-vila` · `docs/ROLLBACK-BI-META-C-VILA.md` |
+| **Env** | NÃO (defaults 90 / 14) |
+| **Prova** | base **68/68** · deep **46/46** · ago Vila meta ~**R$ 19,5 mil** (antes ~3,7 mil) |
+| **Status** | 🟡 **pronto para envio SOLO à produção** (aguarda frase + senha) |
+| **Rollback** | `docs/ROLLBACK-BI-META-C-VILA.md` · tag `rollback/pre-bi-meta-c-vila` |
+| **Você** | Ctrl+F5 BI · Vila · tooltip média base |
 
-
-### 📦 PACOTE ENVIADO SOLO — Meta C Vila (`BI-META-C-VILA` · **v19.02 Live**) · 29/08/2026
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Tip loja** | `producao` **`6b1eeed`** · VERSION **19.02** · base anterior **`7c69fbc`** (v19.01) |
-| **Prova** | **VERIFY OK** · regressão Centro · soma C+V |
-| **Migrate** | **NÃO** |
-| **Env** | NÃO (default abertura 20/07/2026) · ramp: `AGRO_VILA_META_RAMP_DIAS=90` · `AGRO_VILA_META_RAMP_JANELA=14` |
-| **Status** | ✅ **enviado / Live** (29/08) · 🟡 **ajuste ramp** no teste |
-| **Rollback** | tag `rollback/pre-bi-meta-c-vila` · `docs/ROLLBACK-BI-META-C-VILA.md` |
-| **Você** | Ctrl+F5 BI · Centro · Vila · C+V · calendário CP |
-
-### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · **v19.02 Live** + ramp teste)
+### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA-RAMP (29/08 · tip **v19.49**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | BI-META-C-VILA | Meta C + soma · Live `6b1eeed` | não | ✅ Live |
-| 2 | BI-META-C-VILA-RAMP | Vila 14d×90d → Meta C em 18/10 · prova **68/68** | não | 🟡 pronto envio SOLO |
+| 1 | BI-META-C-VILA-RAMP | Vila 14d×90d → Meta C em 18/10 · prova **68+46** | não | 🟡 pronto envio SOLO |
 
 ### 🩹 Repasse — aviso gaveta em popup (REPASSE-AVISO-POPUP · **v19.33**) · 29/08/2026
 
@@ -1438,18 +1425,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.47** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.51** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.47** · loja **v19.02** |
-| **Prova NF estoque** | path **39/39** · recovery DOM · Django reabertura **10/10** |
-| **Prova demais** | tip v19.37 (Repasse/PIN/NFC-e/cadastro/Pedir) + Chat loja no tip |
+| **Tip** | `teste` **v19.51** · loja **v19.02** |
+| **Prova Chat** | path **58/58** (API/PG + bip/badge/aba/guard) |
+| **Prova demais** | tip v19.47 (Repasse/PIN/NFC-e/cadastro/Pedir/NF estoque) |
 | **Migrate** | **SIM** só `PDV-CHAT-LOJA` (`produtos.0105`) — demais **não** |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · Entrada NF etapa 5 (botão azul) · Pedir escrito · Repasse · Chat PDV |
+| **Você** | migrate loja · Ctrl+F5 · Chat 2 PCs · Entrada NF etapa 5 · Pedir escrito · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08f · tip **v19.47**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.51**)
 
 > **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**.
 
@@ -1469,7 +1456,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 12 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
 | 13 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
 | 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
-| 15 | PDV-CHAT-LOJA | Chat grupo Centro+Vila + som | **SIM** `0105` | 🟡 pronto envio |
+| 15 | PDV-CHAT-LOJA | Chat grupo + som + badge · **58/58** | **SIM** `0105` | 🟡 pronto envio |
+
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **v19.51**
 
 ### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.47**
 
