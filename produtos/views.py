@@ -2945,11 +2945,16 @@ def _api_produtos_gestao_overlay_salvar_core(request):
         if modo == "grupos":
             ex["precos_modo"] = "grupos"
         else:
-            ex.pop("precos_modo", None)
+            # Grava explícito: senão o PDV inferia «grupos» por lixo antigo de A/B no JSON.
+            ex["precos_modo"] = "por_forma"
+            ex.pop("precos_grupos", None)
     if "precos_grupos" in payload:
-        pg = normalizar_precos_grupos_payload(payload.get("precos_grupos"))
-        if pg:
-            ex["precos_grupos"] = pg
+        if normalizar_precos_modo(ex.get("precos_modo") or payload.get("precos_modo")) == "grupos":
+            pg = normalizar_precos_grupos_payload(payload.get("precos_grupos"))
+            if pg:
+                ex["precos_grupos"] = pg
+            else:
+                ex.pop("precos_grupos", None)
         else:
             ex.pop("precos_grupos", None)
     if "custo_familia" in payload:

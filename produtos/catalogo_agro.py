@@ -1696,8 +1696,14 @@ def listar_slim_rows_pdv() -> list[dict]:
         modo = extrair_precos_modo_cadastro_extras(ce)
         pg = extrair_precos_grupos_cadastro_extras(ce)
         ppf = extrair_precos_por_forma_cadastro_extras(ce)
-        if pg and modo != "grupos":
-            modo = "grupos"
+        # Chave ausente (save antigo de «por forma» apagava o modo): se tem mapa por forma,
+        # NÃO promover para grupos por lixo A/B. Só A/B puro (legado) → grupos.
+        raw_modo = ce.get("precos_modo") if isinstance(ce, dict) else None
+        if raw_modo is None or str(raw_modo).strip() == "":
+            if pg and not ppf:
+                modo = "grupos"
+            else:
+                modo = "por_forma"
         row_slim: dict = {
             "id": pid,
             "nome": nome,
@@ -1721,7 +1727,7 @@ def listar_slim_rows_pdv() -> list[dict]:
             "saldo_vila": 0.0,
             "precos_modo": modo,
         }
-        if pg:
+        if modo == "grupos" and pg:
             row_slim["precos_grupos"] = pg
         if ppf:
             row_slim["precos_por_forma"] = ppf
