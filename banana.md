@@ -1262,7 +1262,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 pronto envio |
 | **Você** | Ctrl+F5 · digitar «sacola» embaixo · Enviar (sem Incluir / sem produto) |
 
-### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.51** · 29/08/2026)
+### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.58** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1425,18 +1425,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.57** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.58** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.51** · loja **v19.02** |
+| **Tip** | `teste` **19.58** · loja **v19.02** |
 | **Prova Chat** | path **58/58** (API/PG + bip/badge/aba/guard) |
 | **Prova demais** | tip v19.47 (Repasse/PIN/NFC-e/cadastro/Pedir/NF estoque) |
 | **Migrate** | **SIM** só `PDV-CHAT-LOJA` (`produtos.0105`) — demais **não** |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | migrate loja · Ctrl+F5 · Chat 2 PCs · Entrada NF etapa 5 · Pedir escrito · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.57**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **19.58**)
 
 > **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP` (checklist acima).
 
@@ -1458,7 +1458,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
 | 15 | PDV-CHAT-LOJA | Chat grupo + som + badge · **58/58** | **SIM** `0105` | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **v19.57**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **19.58**
 
 ### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.47**
 
