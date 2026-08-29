@@ -1246,11 +1246,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54+ · migrate **NÃO** |
-| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · migrate **NÃO** |
+| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · migrate **SIM** (`0102`) |
 | 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · migrate **NÃO** |
-| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · tip · path **187** · migrate **NÃO** |
+| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · **v18.62** · path **187** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.62**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.63**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
