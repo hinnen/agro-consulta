@@ -1240,21 +1240,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### ✅ CHECKLIST ÚNICO — pronto para envio (28/08 · após loja **v18.50**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08 · após loja **v18.50**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `CP-NE-BUSCA-EMPRESA` | 🟢 pronto envio · teste **v18.54** · verify **61/61** · migrate **NÃO** |
-| 2 | `REPASSE-COFRINHO-ACUM` | 🟢 pronto envio · teste **v18.52** · migrate **NÃO** |
-| 3 | `PDV-MODO-POR-FORMA` | 🟢 pronto envio · teste **v18.55** · migrate **NÃO** |
+| 1 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54 · verify **61/61** · migrate **NÃO** |
+| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · path **175** · cofrinho **28** · migrate **NÃO** |
+| 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · path **25/25** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.56**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.57**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
-| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros na linha · **61/61** | NÃO |
-| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
-| `PDV-MODO-POR-FORMA` | **v18.55** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** | NÃO |
+| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros · **61/61** | NÃO |
+| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial · path **175** · cofrinho **28** · deep **96** | NÃO |
+| `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** | NÃO |
 
 ### 📦 PACOTE PRONTO — CP busca + empresa auto (`CP-NE-BUSCA-EMPRESA` · **v18.54** · 28/08/2026)
 
@@ -1264,19 +1264,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Empresa padrão** | Loja Centro → Agro Mais Centro · Vila → Agro Mais Vila Elias |
 | **Parcelas** | Calendário perto da data · 0,50 + 2,00 no vão da mesma linha |
 | **Prova** | verify **61/61** · manage.py check OK |
-| **Status** | 🟢 pronto envio · teste · loja ainda v18.50 |
+| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
 
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | «Ainda separar» = obrigação **acumulada** (dias sem separar somam). Separar a mais / **Saldo inicial** = crédito que abate próximos dias. Botão **Saldo inicial** sobe saldo físico e conta crédito. |
-| **Prova** | cofrinho **28/28** · path **152/152** |
-| **Você** | Ctrl+F5 `/repasse-vila/` · badge **v18.52** · se já tinha dinheiro no cofrinho: **Saldo inicial** + valor + motivo (não use mais só «Ajuste · entrada» para isso). |
-| **Migrate** | **NÃO** (só choice no ledger) |
-| **Status** | 📦 **pronto para envio** · `teste` · loja ainda v18.50 |
+| **O quê** | «Ainda separar» = obrigação **acumulada**. Separar a mais / **Saldo inicial** = crédito. |
+| **Prova** | path **175/175** · cofrinho **28/28** · deep **96** · reserva **60** · planos **49** · fechar **68+41** · acum-net **28** · `manage.py check` · Node OK |
+| **Você** | Ctrl+F5 `/repasse-vila/` · **Saldo inicial** se já tinha dinheiro no cofrinho. |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
 
-### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.55** · 28/08/2026)
+### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.56** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1285,7 +1285,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **25/25** · Node **16/16** · Django **6/6** (path detalhado). |
 | **Você** | Ctrl+F5 PDV · produto por forma · PIX/cartão = preço da forma. Se ainda errar: **Salvar no Agro**. |
 | **Migrate** | **NÃO** |
-| **Status** | 📦 **pronto para envio** · `teste` v18.55 · loja ainda v18.50 |
+| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
 
 ### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 
