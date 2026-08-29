@@ -1,0 +1,130 @@
+<style>
+  #pdv-chat-loja-overlay .cl-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(36rem, 96vw);
+    height: min(70dvh, 36rem);
+    min-height: 0;
+    overflow: hidden;
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 1.25rem 3rem rgba(15, 23, 42, 0.28);
+  }
+  #pdv-chat-loja-overlay .cl-msgs {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.75rem 0.9rem;
+    background: #f8fafc;
+  }
+  #pdv-chat-loja-overlay .cl-row {
+    margin-bottom: 0.65rem;
+    max-width: 92%;
+  }
+  #pdv-chat-loja-overlay .cl-row--eu {
+    margin-left: auto;
+  }
+  #pdv-chat-loja-overlay .cl-bubble {
+    border-radius: 0.85rem;
+    padding: 0.45rem 0.7rem;
+    border: 2px solid #e2e8f0;
+    background: #fff;
+  }
+  #pdv-chat-loja-overlay .cl-row--eu .cl-bubble {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  #pdv-chat-loja-overlay .cl-meta {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    margin-bottom: 0.15rem;
+  }
+  #pdv-chat-loja-overlay .cl-row--eu .cl-meta { color: #0369a1; }
+  #pdv-chat-loja-overlay .cl-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  #pdv-chat-loja-overlay .cl-empty {
+    text-align: center;
+    color: #64748b;
+    font-weight: 700;
+    padding: 2rem 1rem;
+  }
+  #pdv-chat-loja-overlay .cl-composer {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border-top: 2px solid #e2e8f0;
+    background: #fff;
+  }
+  #pdv-chat-loja-overlay .cl-input {
+    flex: 1 1 auto;
+    min-height: 3rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  #pdv-chat-loja-overlay .cl-input:focus {
+    outline: none;
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+  }
+  #pdv-chat-loja-overlay .cl-send {
+    min-width: 5.5rem;
+    min-height: 3rem;
+    border-radius: 0.75rem;
+    background: #0284c7;
+    color: #fff;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border: none;
+  }
+  #pdv-chat-loja-overlay .cl-send:disabled {
+    opacity: 0.5;
+  }
+  .pdv-wiz-topbar-btn--chat {
+    border-color: #7dd3fc !important;
+    background: #f0f9ff !important;
+    color: #0369a1 !important;
+  }
+  .pdv-wiz-topbar-btn--chat:hover { background: #e0f2fe !important; }
+  .pdv-wiz-topbar-btn--chat-alerta {
+    animation: cl-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes cl-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.45); }
+    50% { box-shadow: 0 0 0 0.35rem rgba(14, 165, 233, 0); }
+  }
+  html.agro-fx-reduced .pdv-wiz-topbar-btn--chat-alerta {
+    animation: none;
+  }
+</style>
+
+<div id="pdv-chat-loja-overlay" class="fixed inset-0 z-[95] hidden items-center justify-center bg-slate-900/50 p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-chat-loja-title">
+  <div class="cl-panel">
+    <header class="flex items-center gap-2 border-b-2 border-sky-200 bg-sky-50 px-3 py-2.5">
+      <div class="min-w-0 flex-1">
+        <h2 id="pdv-chat-loja-title" class="truncate text-base font-black uppercase tracking-wide text-sky-900">Chat lojas</h2>
+        <p class="truncate text-[11px] font-bold text-sky-700/90">Grupo único · Centro + Vila · todos os PCs</p>
+      </div>
+      <button type="button" id="pdv-chat-loja-fechar" class="pdv-action-btn min-h-[2.6rem] rounded-xl border-2 border-slate-300 bg-white px-3 font-black uppercase text-slate-700">Fechar</button>
+    </header>
+    <div id="pdv-chat-loja-msgs" class="cl-msgs" aria-live="polite">
+      <p class="cl-empty">Carregando…</p>
+    </div>
+    <p id="pdv-chat-loja-status" class="hidden px-3 py-1 text-sm font-bold text-red-700" role="alert"></p>
+    <form id="pdv-chat-loja-form" class="cl-composer" autocomplete="off">
+      <input id="pdv-chat-loja-input" class="cl-input" type="text" maxlength="500" placeholder="Escreva para o grupo…" autocomplete="off">
+      <button type="submit" id="pdv-chat-loja-enviar" class="cl-send">Enviar</button>
+    </form>
+  </div>
+</div>

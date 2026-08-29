@@ -427,6 +427,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
+- **Chat lojas (29/08 · `PDV-CHAT-LOJA`):** botão **Chat** na topbar · grupo único todos os PCs (Centro gaveta/notebook + Vila + você) · Postgres `ChatLojaMensagemAgro` · bip ao receber · migrate `0105`.
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -615,6 +616,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
+- **Etapa 5 bloqueio falso (29/08 · `NF-ESTOQUE-BLOQUEIO-FALSO`):** confirmar 1–4 **não** é «finalizada com PIN»; caixa amarela só com PIN/financeiro/bucket concluída.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
@@ -1249,6 +1251,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Chat lojas PDV (`PDV-CHAT-LOJA` · **v19.42** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Grupo único Centro+Vila no PDV · botão **Chat** · som ao chegar msg de outro PC |
+| **Tela** | `/pdv/` wizard topbar |
+| **Migrate** | **SIM** `produtos.0105` |
+| **Prova** | `scripts/verify_pdv_chat_loja.py` **17/17** |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** (aguarda frase + senha) |
+| **Você** | migrate local · Ctrl+F5 PDV · abrir Chat em 2 PCs · mandar texto · ouvir bip |
+
+### 🩹 Entrada NF — etapa 5 bloqueio falso «finalizada» (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Relato** | Renan · NF 3024907 · ainda na etapa 5 · botão azul pedia «Reabra a nota» / caixa amarela de PIN |
+| **Causa** | `entradaNfeEstoqueBloqueadoNotaFinalizada` usava `FluxoLegadoOuConcluido` — confirmação das etapas 1–4 (normal) virava «finalizada com PIN» |
+| **Fix** | Bloqueia só com PIN (`aprovacao_wizard_em`), `financeiro_lancado` ou bucket concluída/encerrada |
+| **Prova** | `scripts/verify_nf_estoque_bloqueio_falso.js` **7/7** · recovery DOM OK |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` · 🟡 pronto envio loja (frase+senha) |
+| **Você** | Ctrl+F5 em `/entrada-nota/` · etapa 5 · botão azul **Registrar entrada no estoque Agro** (sem caixa amarela) |
 
 ### 📦 PACOTE PRONTO — Pedir loja escrito + obs (`PDV-PEDIR-ESCRITO` · **v19.36** · 29/08/2026)
 

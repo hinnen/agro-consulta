@@ -13,6 +13,7 @@ from . import views_catalogo_delivery
 from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
+from . import views_pdv_chat_loja
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
 from . import views_cliente_cadastro
@@ -736,6 +737,16 @@ urlpatterns = [
         'api/pdv/uso-loja/estornar/<int:pk>/',
         views_uso_loja.api_pdv_uso_loja_estornar,
         name='api_pdv_uso_loja_estornar',
+    ),
+    path(
+        'api/pdv/chat-loja/lista/',
+        views_pdv_chat_loja.api_pdv_chat_loja_lista,
+        name='api_pdv_chat_loja_lista',
+    ),
+    path(
+        'api/pdv/chat-loja/enviar/',
+        views_pdv_chat_loja.api_pdv_chat_loja_enviar,
+        name='api_pdv_chat_loja_enviar',
     ),
     path(
         'api/pdv/transf-loja/resumo/',

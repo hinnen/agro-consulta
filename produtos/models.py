@@ -3333,3 +3333,30 @@ class TabelaPrecoFormaResolucaoAgro(models.Model):
 
     def __str__(self):
         return f"{self.produto_externo_id} · {self.preferencia}"
+
+
+class ChatLojaMensagemAgro(models.Model):
+    """Grupo único Centro ↔ Vila — todos os PCs do PDV no mesmo canal."""
+
+    CANAL_GERAL = "geral"
+
+    canal = models.CharField(max_length=32, default=CANAL_GERAL, db_index=True)
+    texto = models.CharField(max_length=500)
+    autor_nome = models.CharField(max_length=120, blank=True, default="")
+    deposito = models.CharField(max_length=16, blank=True, default="", db_index=True)
+    ponto = models.CharField(max_length=32, blank=True, default="")
+    origem_rotulo = models.CharField(max_length=80, blank=True, default="")
+    device_id = models.CharField(max_length=64, blank=True, default="", db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Mensagem chat loja"
+        verbose_name_plural = "Mensagens chat loja"
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["canal", "id"], name="chatloja_canal_id_idx"),
+        ]
+
+    def __str__(self):
+        trecho = (self.texto or "")[:40]
+        return f"#{self.pk} {self.autor_nome}: {trecho}"

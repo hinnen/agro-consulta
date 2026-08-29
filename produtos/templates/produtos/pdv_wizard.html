@@ -2016,6 +2016,7 @@
   #pdv-topbar-compact .pdv-wiz-topbar-btn,
   #pdv-topbar-compact #pdv-topbar-entregas-btn,
   #pdv-topbar-compact #pdv-topbar-pedir-loja-btn,
+  #pdv-topbar-compact #pdv-topbar-chat-loja-btn,
   #pdv-topbar-compact .pdv-wiz-stepper .pdv-step-nav {
     font-family: 'Inter', system-ui, sans-serif !important;
     font-size: var(--pdv-topbar-fs) !important;
@@ -3698,6 +3699,10 @@
                 Pedir loja
                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
+              <button type="button" id="pdv-topbar-chat-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--chat relative" title="Chat entre todos os PCs (Centro + Vila)">
+                Chat
+                <span id="pdv-topbar-chat-loja-count" class="hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-sky-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
+              </button>
               <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
             </div>
             <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
@@ -3754,6 +3759,7 @@
 {% include "produtos/partials/pdv/entrega_wizard_overlay.html" %}
 {% include "produtos/partials/pdv/uso_loja_overlay.html" %}
 {% include "produtos/partials/pdv/pedir_loja_overlay.html" %}
+{% include "produtos/partials/pdv/chat_loja_overlay.html" %}
 {% include "produtos/partials/pdv/repasse_vila_overlay.html" %}
 {% include "produtos/partials/pdv/balanca_overlay.html" %}
 
@@ -4519,6 +4525,7 @@
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_chat_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/use_p2.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_balanca.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

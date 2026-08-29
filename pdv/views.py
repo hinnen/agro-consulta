@@ -272,6 +272,8 @@ def pdv_home(request):
                 "apiPdvTransfLojaAcaoPattern": reverse(
                     "api_pdv_transf_loja_acao", args=[0]
                 ).replace("/0/", "/__pk__/"),
+                "apiPdvChatLojaLista": reverse("api_pdv_chat_loja_lista"),
+                "apiPdvChatLojaEnviar": reverse("api_pdv_chat_loja_enviar"),
             },
             "search": {
                 "mode": "wizard",
