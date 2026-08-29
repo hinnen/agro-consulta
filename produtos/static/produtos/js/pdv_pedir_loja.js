@@ -632,6 +632,16 @@
       .then(function (r) {
         return r.json().then(function (d) {
           return { ok: r.ok, data: d };
+        }).catch(function () {
+          return {
+            ok: false,
+            data: {
+              erro:
+                r.status === 500
+                  ? 'Erro no servidor (rode migrate no PC se acabou de atualizar).'
+                  : 'Resposta inválida do servidor.',
+            },
+          };
         });
       })
       .then(function (res) {
