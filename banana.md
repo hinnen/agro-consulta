@@ -680,6 +680,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse Vila → Centro (13/08 · v16.10):** `/repasse-vila/` + PDV **Repasse** · CMV + % lucro + fiado pago Vila · migrate `0087` · aviso na abertura Gaveta Centro.
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
+- **Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · v18.52):** «Ainda separar» soma dias sem separar; separar a mais / **Saldo inicial** abate próximos dias. Prova `verify_repasse_cofrinho` **28/28**.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
@@ -1239,6 +1240,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | «Ainda separar» = obrigação **acumulada** (dias sem separar somam). Separar a mais / **Saldo inicial** = crédito que abate próximos dias. Botão **Saldo inicial** sobe saldo físico e conta crédito. |
+| **Prova** | cofrinho **28/28** · path **152/152** |
+| **Você** | Ctrl+F5 `/repasse-vila/` · badge **v18.52** · se já tinha dinheiro no cofrinho: **Saldo inicial** + valor + motivo (não use mais só «Ajuste · entrada» para isso). |
+| **Migrate** | **NÃO** (só choice no ledger) |
+| **Status** | ✅ no `teste` · ⏳ loja ainda v18.50 |
+
 ### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.51** · 28/08/2026)
 
 | Item | Detalhe |
@@ -1329,8 +1340,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrations** | `produtos.0100` cria saldo/ledger do cofrinho. `base.0010`, `estoque.0019` e `produtos.0101` apenas materializam drift de estado já existente, exigido pelo gate `makemigrations --check`. |
 | **Provas** | Repasse path **143/143** · reserva **60/60** · deep **96/96** · cofrinho **22/22** · fechar caixa repasse **68/68** · fechar caixa loja **41/41** · `manage.py check` · migrations sem drift · Python/JS syntax · `git diff --check`. |
 | **Visual** | Chrome local 1366×768, Agro Display Scale 100%: configuração e cofrinho lado a lado no primeiro viewport, sem overflow horizontal; fluxo inferior preservado. |
-| **Após deploy** | Rodar `python manage.py migrate`. O saldo inicial é **R$ 0,00**; se já existir dinheiro físico no cofrinho, contar e lançar **Ajuste · entrada** com operador e motivo. |
-| **Status** | ✅ **Live v18.50** (com `REPASSE-PDV-COFRINHO` v18.41) |
+| **Após deploy** | Rodar `python manage.py migrate`. Saldo começa **R$ 0,00**. Dinheiro que já estava no cofrinho: use **Saldo inicial** (pacote `REPASSE-COFRINHO-ACUM` no `teste`) — sobe saldo e conta crédito. |
+| **Status** | ✅ **Live v18.50** (com `REPASSE-PDV-COFRINHO` v18.41) · acumulado/saldo inicial → pacote **v18.52** no `teste` |
 
 ### 🩹 Entrada NF — saneamento de vínculo financeiro falso (`NF-FIN-VINCULO-FORTE` · **v18.29** · 27/08/2026)
 

@@ -34,6 +34,7 @@ from produtos.repasse_vila_util import (
     resumo_cofrinho_vila,
     separar_reserva_diaria,
     registrar_uso_ou_ajuste_cofrinho,
+    registrar_saldo_inicial_cofrinho,
     estornar_movimento_cofrinho,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
@@ -360,7 +361,7 @@ def api_repasse_vila_cofrinho_movimento(request):
     if err_op:
         return JsonResponse({"ok": False, "erro": err_op}, status=400)
     tipo = str(payload.get("tipo") or "").strip()
-    if tipo not in ("retirada", "ajuste"):
+    if tipo not in ("retirada", "ajuste", "saldo_inicial"):
         return JsonResponse({"ok": False, "erro": "Tipo inválido"}, status=400)
     try:
         valor = Decimal(str(payload.get("valor") or "").replace(",", "."))
@@ -369,15 +370,24 @@ def api_repasse_vila_cofrinho_movimento(request):
     chave = str(payload.get("idempotencia_chave") or "").strip()
     if not chave:
         return JsonResponse({"ok": False, "erro": "Chave de segurança da operação ausente."}, status=400)
-    mov, criado, err = registrar_uso_ou_ajuste_cofrinho(
-        tipo=tipo,
-        valor=valor,
-        observacao=str(payload.get("observacao") or ""),
-        operador=operador,
-        usuario=usuario,
-        data_ref=_parse_date(payload.get("data_ref")),
-        idempotencia_chave=chave,
-    )
+    if tipo == "saldo_inicial":
+        mov, criado, err = registrar_saldo_inicial_cofrinho(
+            valor=valor,
+            observacao=str(payload.get("observacao") or ""),
+            operador=operador,
+            usuario=usuario,
+            idempotencia_chave=chave,
+        )
+    else:
+        mov, criado, err = registrar_uso_ou_ajuste_cofrinho(
+            tipo=tipo,
+            valor=valor,
+            observacao=str(payload.get("observacao") or ""),
+            operador=operador,
+            usuario=usuario,
+            data_ref=_parse_date(payload.get("data_ref")),
+            idempotencia_chave=chave,
+        )
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
     return JsonResponse({"ok": True, "criado": criado, "movimento_id": mov.pk if mov else None, "cofrinho": resumo_cofrinho_vila()})

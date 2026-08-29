@@ -218,6 +218,83 @@ def saldo_cofrinho_vila(cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
     return max(ZERO, _dec(getattr(cfg, "saldo_reserva_vila", ZERO)))
 
 
+def _inicio_janela_reserva(dia: date, cfg: RepasseVilaConfigAgro | None = None) -> date:
+    desde = reserva_vila_desde_config(cfg)
+    piso = dia - timedelta(days=REPASSE_MAX_DIAS_ATRASO)
+    return max(desde, piso)
+
+
+def obrigacao_reserva_cofrinho_ate(dia: date, cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
+    """Soma das reservas previstas (diárias) desde a vigência até `dia`."""
+    cfg = cfg or obter_config()
+    inicio = _inicio_janela_reserva(dia, cfg)
+    if dia < inicio:
+        return ZERO
+    total = ZERO
+    cursor = inicio
+    while cursor <= dia:
+        calc = calcular_disponivel(cursor, _skip_acumulado=True)
+        total += _dec(calc.get("reserva_aplicada"))
+        cursor += timedelta(days=1)
+    return total.quantize(Decimal("0.01"))
+
+
+def credito_reserva_cofrinho_ate(dia: date, cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
+    """
+    Crédito que cobre a obrigação: separações líquidas + saldo inicial.
+    Separar a mais hoje abate os próximos dias; saldo inicial também conta.
+    """
+    cfg = cfg or obter_config()
+    inicio = _inicio_janela_reserva(dia, cfg)
+    total = ZERO
+    qs = (
+        RepasseVilaReservaMovimentoAgro.objects.filter(
+            data_ref__gte=inicio, data_ref__lte=dia
+        )
+        .select_related("estornado_de")
+        .order_by("criado_em", "pk")
+    )
+    for mov in qs:
+        if mov.tipo == RepasseVilaReservaMovimentoAgro.Tipo.SEPARACAO:
+            total += _dec(mov.valor)
+        elif (
+            mov.tipo == RepasseVilaReservaMovimentoAgro.Tipo.ESTORNO
+            and mov.estornado_de_id
+            and mov.estornado_de.tipo == RepasseVilaReservaMovimentoAgro.Tipo.SEPARACAO
+        ):
+            total += _dec(mov.valor)
+        elif (
+            mov.tipo == RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE
+            and mov.origem == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL
+            and _dec(mov.valor) > 0
+        ):
+            total += _dec(mov.valor)
+        elif (
+            mov.tipo == RepasseVilaReservaMovimentoAgro.Tipo.ESTORNO
+            and mov.estornado_de_id
+            and mov.estornado_de.tipo == RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE
+            and mov.estornado_de.origem
+            == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL
+        ):
+            total += _dec(mov.valor)
+    return total.quantize(Decimal("0.01"))
+
+
+def pendente_reserva_cofrinho_ate(dia: date, cfg: RepasseVilaConfigAgro | None = None) -> dict[str, Decimal]:
+    """Obrigação acumulada − crédito (separações + saldo inicial)."""
+    cfg = cfg or obter_config()
+    obrigacao = obrigacao_reserva_cofrinho_ate(dia, cfg)
+    credito = credito_reserva_cofrinho_ate(dia, cfg)
+    pendente = max(ZERO, (obrigacao - credito).quantize(Decimal("0.01")))
+    adiantado = max(ZERO, (credito - obrigacao).quantize(Decimal("0.01")))
+    return {
+        "obrigacao": obrigacao,
+        "credito": credito,
+        "pendente": pendente,
+        "adiantado": adiantado,
+    }
+
+
 def separacao_realizada_no_dia(dia: date) -> Decimal:
     """Total líquido separado no dia (inclui eventual estorno da separação)."""
     total = ZERO
@@ -242,6 +319,7 @@ def resumo_cofrinho_vila(dia: date | None = None, *, limit: int = 60) -> dict[st
     calc = calcular_disponivel(dia, _skip_acumulado=True)
     prevista = _dec(calc.get("reserva_aplicada"))
     realizada = separacao_realizada_no_dia(dia)
+    acum = pendente_reserva_cofrinho_ate(dia, cfg)
     movimentos = []
     qs = RepasseVilaReservaMovimentoAgro.objects.select_related(
         "sessao_caixa", "repasse", "estornado_de"
@@ -276,7 +354,10 @@ def resumo_cofrinho_vila(dia: date | None = None, *, limit: int = 60) -> dict[st
         "saldo": float(saldo_cofrinho_vila(cfg)),
         "prevista_dia": float(prevista),
         "realizada_dia": float(realizada),
-        "pendente_dia": float(max(ZERO, prevista - realizada)),
+        "pendente_dia": float(acum["pendente"]),
+        "obrigacao_acumulada": float(acum["obrigacao"]),
+        "credito_acumulado": float(acum["credito"]),
+        "adiantado": float(acum["adiantado"]),
         "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
         "movimentos": movimentos,
     }
@@ -354,7 +435,7 @@ def separar_reserva_diaria(
     repasse=None,
     observacao: str = "",
 ) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
-    """Separa somente o complemento do dia e cria retirada real do caixa da Vila."""
+    """Separa o pendente acumulado (dias anteriores + hoje) da gaveta para o cofrinho."""
     cfg_base = obter_config()
     RepasseVilaConfigAgro.objects.select_for_update().get(pk=cfg_base.pk)
     if dia < reserva_vila_desde_config():
@@ -366,7 +447,8 @@ def separar_reserva_diaria(
     calc = calcular_disponivel(dia, _skip_acumulado=True)
     prevista = _dec(calc.get("reserva_aplicada"))
     realizada = separacao_realizada_no_dia(dia)
-    falta = max(ZERO, (prevista - realizada).quantize(Decimal("0.01")))
+    acum = pendente_reserva_cofrinho_ate(dia)
+    falta = acum["pendente"]
     if falta <= 0:
         existente = RepasseVilaReservaMovimentoAgro.objects.filter(
             data_ref=dia, tipo=RepasseVilaReservaMovimentoAgro.Tipo.SEPARACAO
@@ -409,6 +491,9 @@ def separar_reserva_diaria(
             "prevista_dia": float(prevista),
             "realizada_antes": float(realizada),
             "realizada_depois": float(alvo_apos),
+            "obrigacao_acumulada": float(acum["obrigacao"]),
+            "credito_antes": float(acum["credito"]),
+            "pendente_antes": float(falta),
             "lucro_bruto_dia": calc.get("lucro_bruto_dia"),
             "reserva_vila_desde": calc.get("reserva_vila_desde"),
         },
@@ -427,26 +512,59 @@ def registrar_uso_ou_ajuste_cofrinho(
     usuario=None,
     data_ref: date | None = None,
     idempotencia_chave: str = "",
+    origem: str | None = None,
 ) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
     v = _dec(valor)
     if tipo == RepasseVilaReservaMovimentoAgro.Tipo.RETIRADA:
         v = -abs(v)
     elif tipo != RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE:
         return None, False, "Tipo de movimento inválido."
+    origem_mov = origem or RepasseVilaReservaMovimentoAgro.Origem.AJUSTE
+    if origem_mov not in {
+        RepasseVilaReservaMovimentoAgro.Origem.AJUSTE,
+        RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
+    }:
+        return None, False, "Origem de movimento inválida."
+    if origem_mov == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL and v <= 0:
+        return None, False, "Saldo inicial precisa ser um valor positivo."
     chave = idempotencia_chave or (
         f"reserva-vila:{tipo}:{timezone.now().strftime('%Y%m%d%H%M%S%f')}"
     )
     mov, criado, err = _registrar_movimento_cofrinho(
         tipo=tipo,
-        origem=RepasseVilaReservaMovimentoAgro.Origem.AJUSTE,
+        origem=origem_mov,
         valor=v,
         data_ref=data_ref or timezone.localdate(),
         operador=operador,
         observacao=observacao,
         idempotencia_chave=chave,
         usuario=usuario,
+        detalhe={"saldo_inicial": origem_mov == RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL},
     )
     return mov, criado, err
+
+
+def registrar_saldo_inicial_cofrinho(
+    *,
+    valor,
+    observacao: str,
+    operador: str,
+    usuario=None,
+    idempotencia_chave: str = "",
+) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
+    """Uma vez: sobe o saldo físico e já conta como crédito da obrigação acumulada."""
+    obs = str(observacao or "").strip() or "Saldo inicial do cofrinho (já separado fisicamente)"
+    return registrar_uso_ou_ajuste_cofrinho(
+        tipo=RepasseVilaReservaMovimentoAgro.Tipo.AJUSTE,
+        valor=valor,
+        observacao=obs,
+        operador=operador,
+        usuario=usuario,
+        data_ref=timezone.localdate(),
+        idempotencia_chave=idempotencia_chave
+        or f"reserva-vila:saldo-inicial:{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
+        origem=RepasseVilaReservaMovimentoAgro.Origem.SALDO_INICIAL,
+    )
 
 
 @transaction.atomic
@@ -500,7 +618,7 @@ def estornar_movimento_cofrinho(
 
 
 def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:
-    """Reserva ainda não separada nos dias abrangidos pelo turno aberto da Vila."""
+    """Reserva ainda não separada (acumulada) no turno aberto da Vila."""
     sessoes = [s for s in (sessoes or []) if getattr(s, "ponto_caixa", "") == "vila"]
     vazio = {
         "tem": False,
@@ -513,6 +631,10 @@ def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:
         return vazio
     hoje = timezone.localdate()
     cfg = obter_config()
+    acum = pendente_reserva_cofrinho_ate(hoje, cfg)
+    total = acum["pendente"]
+    if total <= 0:
+        return vazio
     desde = reserva_vila_desde_config(cfg)
     inicio = min(
         timezone.localdate(getattr(s, "aberto_em", None) or timezone.now())
@@ -520,27 +642,21 @@ def resumo_reserva_fechamento_vila(sessoes) -> dict[str, Any]:
     )
     inicio = max(inicio, desde, hoje - timedelta(days=REPASSE_MAX_DIAS_ATRASO))
     dias = []
-    total = ZERO
     dia = inicio
     while dia <= hoje:
         calc = calcular_disponivel(dia, _skip_acumulado=True)
         prevista = _dec(calc.get("reserva_aplicada"))
         realizada = separacao_realizada_no_dia(dia)
-        pendente = max(ZERO, (prevista - realizada).quantize(Decimal("0.01")))
-        if pendente > 0:
+        if prevista > 0 or realizada > 0:
             dias.append(
                 {
                     "data_ref": dia.isoformat(),
                     "prevista": str(prevista),
                     "realizada": str(realizada),
-                    "pendente": str(pendente),
+                    "pendente": str(max(ZERO, (prevista - realizada).quantize(Decimal("0.01")))),
                 }
             )
-            total += pendente
         dia += timedelta(days=1)
-    total = total.quantize(Decimal("0.01"))
-    if total <= 0:
-        return vazio
     br = f"{total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return {
         "tem": True,
@@ -605,23 +721,21 @@ def separar_reservas_ao_fechar_vila(
     if not principais:
         return [], ""
     resumo = resumo_reserva_fechamento_vila(principais)
-    feitos = []
-    for item in resumo.get("dias") or []:
-        mov, criado, err = separar_reserva_diaria(
-            date.fromisoformat(item["data_ref"]),
-            origem=RepasseVilaReservaMovimentoAgro.Origem.FECHAMENTO,
-            operador=operador,
-            usuario=usuario,
-            sessao_caixa=principais[0],
-            observacao="Separação automática confirmada no fechamento do caixa Vila",
-        )
-        if err:
-            if "dinheiro suficiente" in err.lower():
-                break
-            return feitos, err
-        if criado and mov:
-            feitos.append(mov)
-    return feitos, ""
+    if not resumo.get("tem"):
+        return [], ""
+    mov, criado, err = separar_reserva_diaria(
+        timezone.localdate(),
+        origem=RepasseVilaReservaMovimentoAgro.Origem.FECHAMENTO,
+        operador=operador,
+        usuario=usuario,
+        sessao_caixa=principais[0],
+        observacao="Separação automática confirmada no fechamento do caixa Vila",
+    )
+    if err:
+        return [], err
+    if criado and mov:
+        return [mov], ""
+    return [], ""
 
 
 def _norm_plano_nome(nome: str) -> str:
