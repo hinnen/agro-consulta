@@ -23,8 +23,14 @@
   #pdv-repasse-overlay .rp-hero-caixa {
     border-color: #475569; background: #f8fafc;
   }
-  #pdv-repasse-overlay .rp-hero-totais {
+  #pdv-repasse-overlay .rp-hero-totais-item {
     border-color: #94a3b8; background: #fff;
+  }
+  #pdv-repasse-overlay .rp-hero-totais-item .rp-tot-val {
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    font-weight: 900;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
   }
   #pdv-repasse-overlay .rp-hero-manual {
     border-color: #059669; background: #ecfdf5;
@@ -145,7 +151,7 @@
     <p class="sr-only" id="pdv-rp-data-hint">Hoje ou dia que passou (até 180 dias)</p>
 
     <div class="flex-1 min-h-0 overflow-y-auto p-3 sm:p-4 space-y-3">
-      {# —— Hero: 4×2 — cofres+levar+caixa / vazios+totais+manual —— #}
+      {# —— Hero: cards · inputs sob cada card · totais em linha —— #}
       <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-stretch">
         <div class="rp-hero rp-hero-cofre space-y-2 flex flex-col">
           <div class="text-xs font-black uppercase text-rose-900">Cofrinho Salário funcionário</div>
@@ -220,21 +226,6 @@
           </label>
         </div>
 
-        <div class="rp-hero rp-hero-totais flex flex-col justify-center gap-2">
-          <div class="flex items-baseline justify-between gap-2 min-w-0">
-            <span class="text-xs font-black uppercase text-amber-800 shrink-0">Acumulado</span>
-            <span class="text-lg font-black tabular-nums text-amber-950 text-right" id="pdv-rp-acum">R$ 0,00</span>
-          </div>
-          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
-            <span class="text-xs font-black uppercase text-sky-800 shrink-0">Enviado no mês</span>
-            <span class="text-lg font-black tabular-nums text-sky-950 text-right" id="pdv-rp-hero-mes">R$ 0,00</span>
-          </div>
-          <div class="flex items-baseline justify-between gap-2 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
-            <span class="text-xs font-black uppercase text-slate-600 shrink-0">Total geral</span>
-            <span class="text-lg font-black tabular-nums text-slate-900 text-right" id="pdv-rp-hero-geral">R$ 0,00</span>
-          </div>
-        </div>
-
         <div class="rp-hero rp-hero-manual space-y-2 flex flex-col min-w-0">
           <label class="block min-w-0 flex-1 flex flex-col">
             <span class="text-xs font-black uppercase text-emerald-900">Levar ao Centro</span>
@@ -249,6 +240,24 @@
             <input type="password" tabindex="-1" autocomplete="current-password" />
           </div>
         </div>
+
+        <div class="hidden xl:block" aria-hidden="true"></div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-4 gap-3 items-stretch" id="pdv-rp-totais-linha">
+        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0">
+          <span class="text-xs font-black uppercase text-amber-800">Acumulado</span>
+          <span class="rp-tot-val text-amber-950" id="pdv-rp-acum">R$ 0,00</span>
+        </div>
+        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0" title="Dinheiro levado + cartão/PIX/fiado já no Centro">
+          <span class="text-xs font-black uppercase text-sky-800">Enviado no mês</span>
+          <span class="rp-tot-val text-sky-950" id="pdv-rp-hero-mes">R$ 0,00</span>
+        </div>
+        <div class="rp-hero rp-hero-totais-item flex flex-col justify-center gap-1 min-w-0" title="Tudo enviado ao Centro (dinheiro + cartão/PIX)">
+          <span class="text-xs font-black uppercase text-slate-600">Total geral</span>
+          <span class="rp-tot-val text-slate-900" id="pdv-rp-hero-geral">R$ 0,00</span>
+        </div>
+        <div class="hidden xl:block" aria-hidden="true"></div>
       </div>
 
       <p id="pdv-rp-status" class="text-sm font-bold text-red-700 min-h-[1.1rem] px-1"></p>

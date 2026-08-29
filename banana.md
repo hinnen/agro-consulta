@@ -1260,6 +1260,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
+### 🩹 Repasse — totais em linha + Levar sob o card (`REPASSE-TOTAIS-LINHA` · **v19.19**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **O quê** | Inputs Salário / VE / Levar sob cada card · Acumulado · Enviado · Total geral numa linha embaixo |
+| **Onde** | `repasse_vila_overlay.html` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · Repasse · conferir alinhamento |
+
 ### 🩹 Repasse — campos sob cada cofre (`REPASSE-COFRE-CAMPOS-HERO` · **v19.08**) · 29/08/2026
 
 | Item | Detalhe |

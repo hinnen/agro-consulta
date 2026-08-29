@@ -84,7 +84,7 @@ check(HTML, "pdv-repasse-overlay", "rp-shell", "min(98rem", "96dvh", "rp-hero", 
 check(HTML, "pdv-rp-hero-cofre", "pdv-rp-hero-cofre-ve", "pdv-rp-hero-cofre-saldo", "pdv-rp-hero-cofre-ve-saldo", "pdv-rp-hero-cofre-hoje", "pdv-rp-hero-cofre-ve-hoje", "A separar", "Separado hoje", "Levado ao Centro hoje", "pdv-rp-levado-hoje", "Cofrinho Salário funcionário", "Cofre Vila Elias", "Levar ao Centro", "pdv-rp-total", "pdv-rp-total-acum", "pdv-rp-manual")
 check(HTML, "pdv-rp-caixa-din", "Caixa Vila · dinheiro agora")
 check(HTML, "pdv-rp-mes-dinheiro", "pdv-rp-card-cofre", "pdv-rp-mes-lucro-ficou", "pdv-rp-dia-todas")
-check(HTML, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "Enviado no mês", "Total geral", "rp-hero-totais", "flex flex-col")
+check(HTML, "pdv-rp-hero-mes", "pdv-rp-hero-geral", "Enviado no mês", "Total geral", "pdv-rp-totais-linha", "rp-hero-totais-item")
 count_ok(HTML, r">A separar<", 3, "A separar nos 3 cards (>=3)")
 check(HTML, "rp-fold", "Detalhes do dia", "% lucro e opções", "pdv-rp-receita", "pdv-rp-acumulado")
 check(HTML, "Separar · Salário", "Separar · Vila Elias", "pdv-rp-input-cofre-sal", "pdv-rp-input-cofre-ve", "Separar junto", "pdv-rp-separar-reserva", "pdv-repasse-confirmar")
