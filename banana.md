@@ -1242,7 +1242,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.70**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.72**
 
 | # | Pacote | Versão | O quê | Migrate |
 | - | ------ | ------ | ----- | ------- |
@@ -1258,7 +1258,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 · BI Nova saída (escolha) · Empréstimo Interno Registrar · PDV Repasse popup |
 | **Deploy loja** | **só** frase explícita + senha `99738595` |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · alvo **v18.70**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · alvo **v18.72**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
