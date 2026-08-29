@@ -58,7 +58,12 @@ def main() -> int:
     check("passo escolha no HTML", "id=\"agro-ns-passo-escolha\"" in html_ns)
     check("botão Novo Lançamento", "id=\"agro-ns-btn-escolha-lancamento\"" in html_ns)
     check("botão Empréstimo", "id=\"agro-ns-btn-escolha-emprestimo\"" in html_ns)
-    check("cards grandes estilo Externo/Interno", "min-h-[11rem]" in html_ns and "border-4" in html_ns)
+    check("cards escolha em coluna", "flex-col" in html_ns and "min-h-[7.5rem]" in html_ns and "border-4" in html_ns)
+    check("descrição horizontal (não nowrap no título longo)", "whitespace-normal" in html_ns and "Despesa ou receita normal" in html_ns)
+    check(
+        "sem nowrap espremendo descrição",
+        'whitespace-nowrap text-3xl sm:text-4xl font-black uppercase tracking-wide text-red-900">Novo Lançamento' not in html_ns,
+    )
     check("form começa oculto", 'id="agro-ns-form" class="hidden' in html_ns)
     check("JS showPassoEscolha", "function showPassoEscolha" in js)
     check("JS showPassoForm", "function showPassoForm" in js)

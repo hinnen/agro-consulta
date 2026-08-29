@@ -1242,6 +1242,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Nova saída cards escolha (`NS-ESCOLHA-MOLDURA` · **v18.75**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Card vermelho: descrição na vertical · moldura alta demais |
+| **Fix** | Cards `flex-col` · moldura mais baixa · descrição horizontal (fonte igual) |
+| **Onde** | `lancamento_nova_saida_modal.html` |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste v18.75** — Ctrl+F5 BI → Nova saída |
+| **Você** | Conferir 2 cards: texto na horizontal · moldura proporcional |
+
 ### ✅ Deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**) · **Live**
 
 | Campo | Valor |
