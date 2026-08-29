@@ -81,7 +81,7 @@ def main() -> int:
         "salvar_planos_desconto_centro",
         "despesas_caixa_vila_por_plano",
         "partir_despesas_centro_vila",
-        "lucro_alvo = max(ZERO, (lucro_alvo - desp_centro)",
+        "apos_planos = max(ZERO, (lucro - desp_centro)",
         "lucro_bruto_mes - lucro_enviado_mes - desp_vila",
         'deposito="vila"',
     )
@@ -247,10 +247,11 @@ def main() -> int:
         calc_on = _calc(["Alimentação"])
         calc_off = _calc([])
 
+        # Planos antes do 50/50: off = 50% de 600 = 300; on = 50% de (600-30) = 285
         lucro_on = Decimal(str(calc_on["alvos"]["lucro"]))
         lucro_off = Decimal(str(calc_off["alvos"]["lucro"]))
-        if lucro_off == Decimal("300.00") and lucro_on == Decimal("270.00"):
-            ok("50pct de 600 = 300; Alimentacao -30 = 270")
+        if lucro_off == Decimal("300.00") and lucro_on == Decimal("285.00"):
+            ok("50pct: off=300; com Alimentacao 30 antes do split = 285")
         else:
             fail(f"lucro on={lucro_on} off={lucro_off}")
         if calc_on["alvos"]["cmv"] == calc_off["alvos"]["cmv"] == 400.0:
