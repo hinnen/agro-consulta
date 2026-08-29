@@ -47,6 +47,8 @@
   var pinModal = document.getElementById('pdv-rp-pin-modal');
   var cofreConfirmModal = document.getElementById('pdv-rp-cofre-confirm-modal');
   var cofreConfirmPending = null;
+  var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
+  var forcarManualPendingBody = null;
 
   function todayIso() {
     var d = new Date();
@@ -552,9 +554,11 @@
 
   function closeOverlay() {
     pendingConfirmar = false;
+    closeForcarManualModal();
     hideModal(quemModal);
     hideModal(formaModal);
     hideModal(pinModal);
+    hideModal(cofreConfirmModal);
     hideModal(acumModal);
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
@@ -584,6 +588,61 @@
     cofreConfirmPending = onConfirm;
     showModal(cofreConfirmModal);
     focusSoon(document.getElementById('pdv-rp-cofre-confirm-ok'));
+  }
+
+  function autoLinhasZeradas() {
+    if (!calc) return false;
+    var d = calc.disponivel || {};
+    var t = 0;
+    if (dom.cmv && dom.cmv.checked) t += Number(d.cmv || 0);
+    if (dom.lucro && dom.lucro.checked) t += Number(d.lucro || 0);
+    if (dom.fiado && dom.fiado.checked) t += Number(d.fiado || 0);
+    return t < 0.009;
+  }
+
+  function closeForcarManualModal() {
+    forcarManualPendingBody = null;
+    hideModal(forcarManualModal);
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    if (pinF) pinF.value = '';
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (st) st.textContent = '';
+  }
+
+  function openForcarManualModal(msg, body) {
+    forcarManualPendingBody = body;
+    var elMsg = document.getElementById('pdv-rp-forcar-manual-msg');
+    if (elMsg) {
+      elMsg.textContent =
+        msg ||
+        'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Confirme com o PIN de novo.';
+    }
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    if (pinF) pinF.value = '';
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (st) st.textContent = '';
+    // PIN do fluxo normal não conta — exige digitar de novo neste modal
+    if (dom.pin) dom.pin.value = '';
+    showModal(forcarManualModal);
+    focusSoon(pinF);
+  }
+
+  function submitForcarManual() {
+    var pinF = document.getElementById('pdv-rp-forcar-manual-pin');
+    var pin = String((pinF && pinF.value) || '').trim();
+    var st = document.getElementById('pdv-rp-forcar-manual-status');
+    if (!pin) {
+      if (st) st.textContent = 'Digite o PIN de novo para confirmar.';
+      focusSoon(pinF);
+      return;
+    }
+    if (!forcarManualPendingBody) return;
+    var body = Object.assign({}, forcarManualPendingBody, {
+      pin: pin,
+      forcar_manual_zerado: true,
+    });
+    closeForcarManualModal();
+    enviarConfirmacao(body);
   }
 
   function confirmar() {
@@ -624,17 +683,31 @@
     var mv = parseManualValor();
     if (mv != null) body.valor_manual = String(mv);
 
+    function seguirAposCofre() {
+      if (mv != null && mv > 0 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
+        var br = money(mv);
+        openForcarManualModal(
+          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
+            br +
+            '. Confirme com o PIN de novo.',
+          body
+        );
+        return;
+      }
+      enviarConfirmacao(body);
+    }
+
     var cofre = (calc && calc.cofrinho) || {};
     var cofreVe = (calc && calc.cofre_vila_elias) || {};
     var pendenteCofre = Number(cofre.pendente_dia || 0);
     var pendenteVe = Number(cofreVe.pendente_dia || 0);
     if (pendenteCofre > 0.009 || pendenteVe > 0.009) {
       openCofreConfirmModal(money(pendenteCofre), money(pendenteVe), function () {
-        enviarConfirmacao(body);
+        seguirAposCofre();
       });
       return;
     }
-    enviarConfirmacao(body);
+    seguirAposCofre();
   }
 
   function enviarConfirmacao(body) {
@@ -659,6 +732,10 @@
         busy = false;
         var j = pack.j || {};
         if (!j.ok) {
+          if (j.precisa_forcar_manual && !body.forcar_manual_zerado) {
+            openForcarManualModal(j.erro, body);
+            return;
+          }
           if (dom.status) dom.status.textContent = j.erro || 'Não foi possível transferir';
           return;
         }
@@ -709,6 +786,20 @@
   var cofreOk = document.getElementById('pdv-rp-cofre-confirm-ok');
   if (cofreCancelar) cofreCancelar.addEventListener('click', function () { closeCofreConfirmModal(false); });
   if (cofreOk) cofreOk.addEventListener('click', function () { closeCofreConfirmModal(true); });
+
+  var forcarCancelar = document.getElementById('pdv-rp-forcar-manual-cancelar');
+  var forcarOk = document.getElementById('pdv-rp-forcar-manual-ok');
+  var forcarPin = document.getElementById('pdv-rp-forcar-manual-pin');
+  if (forcarCancelar) forcarCancelar.addEventListener('click', closeForcarManualModal);
+  if (forcarOk) forcarOk.addEventListener('click', submitForcarManual);
+  if (forcarPin) {
+    forcarPin.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        submitForcarManual();
+      }
+    });
+  }
 
   if (dom.todos) {
     dom.todos.addEventListener('change', function () {
@@ -803,6 +894,10 @@
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
+    if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
+      closeForcarManualModal();
+      return;
+    }
     if (cofreConfirmModal && !cofreConfirmModal.classList.contains('hidden')) {
       closeCofreConfirmModal(false);
       return;

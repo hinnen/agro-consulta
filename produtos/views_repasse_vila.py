@@ -509,6 +509,12 @@ def api_repasse_vila_confirmar(request):
         return JsonResponse({"ok": False, "erro": "Valor manual inválido"}, status=400)
 
     dia = _parse_date(payload.get("data_ref"))
+    forcar_manual = _parse_bool(payload.get("forcar_manual_zerado"), False)
+    if forcar_manual and not pin:
+        return JsonResponse(
+            {"ok": False, "erro": "Digite o PIN de novo para forçar o valor manual."},
+            status=400,
+        )
     rep, err = confirmar_repasse(
         request=request,
         quem_levou=quem,
@@ -523,8 +529,19 @@ def api_repasse_vila_confirmar(request):
         data_ref=dia,
         incluir_acumulado=_parse_bool(payload.get("incluir_acumulado"), False),
         separar_reserva=_parse_bool(payload.get("separar_reserva"), False),
+        forcar_manual_zerado=forcar_manual,
     )
     if err:
+        if err.startswith("PRECISA_FORCAR_MANUAL::"):
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "precisa_forcar_manual": True,
+                    "erro": err.split("::", 1)[1],
+                    "valor_manual": float(vm) if vm is not None else None,
+                },
+                status=409,
+            )
         return JsonResponse({"ok": False, "erro": err}, status=400)
     dia_out = dia or timezone.localdate()
     return JsonResponse({

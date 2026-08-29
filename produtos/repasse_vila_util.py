@@ -1767,10 +1767,13 @@ def confirmar_repasse(
     data_ref: date | None = None,
     incluir_acumulado: bool = False,
     separar_reserva: bool = False,
+    forcar_manual_zerado: bool = False,
 ) -> tuple[RepasseVilaCentroAgro | None, str]:
     """
     Saída no caixa Vila (obrigatório aberto) + entrada no Centro (agora ou pendente).
     valor_manual: se informado, usa esse total (proporcional nas linhas marcadas).
+    forcar_manual_zerado: permite valor manual quando CMV/%/fiado disponíveis = 0
+    (dia já coberto) — exige confirmação forte no cliente (PIN de novo).
     """
     from produtos.caixa_util import (
         normalizar_forma_pagamento_caixa,
@@ -1818,22 +1821,40 @@ def confirmar_repasse(
         # quando o cálculo deu R$ 512). Distribui nas linhas marcadas (proporção).
         base_soma = total
         if base_soma <= 0:
-            return None, "Não há valor disponível nas linhas marcadas para o valor manual."
-        fator = vm / base_soma
-        v_cmv = (v_cmv * fator).quantize(Decimal("0.01"))
-        v_lucro = (v_lucro * fator).quantize(Decimal("0.01"))
-        v_fiado = (v_fiado * fator).quantize(Decimal("0.01"))
-        # ajusta centavos no maior componente
-        total = (v_cmv + v_lucro + v_fiado).quantize(Decimal("0.01"))
-        dif = (vm - total).quantize(Decimal("0.01"))
-        if dif != 0:
-            if v_cmv >= v_lucro and v_cmv >= v_fiado:
-                v_cmv = (v_cmv + dif).quantize(Decimal("0.01"))
-            elif v_lucro >= v_fiado:
-                v_lucro = (v_lucro + dif).quantize(Decimal("0.01"))
+            br = f"{vm:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            msg_forcar = (
+                f"O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). "
+                f"Você está forçando R$ {br}. Confirme com o PIN de novo."
+            )
+            if not forcar_manual_zerado:
+                return None, f"PRECISA_FORCAR_MANUAL::{msg_forcar}"
+            if not (incluir_cmv or incluir_lucro or incluir_fiado):
+                return None, "Marque CMV, % lucro ou fiado para forçar o valor manual."
+            # Dia zerado: joga o valor forçado na 1ª linha marcada (sem proporção).
+            v_cmv = v_lucro = v_fiado = ZERO
+            if incluir_cmv:
+                v_cmv = vm
+            elif incluir_lucro:
+                v_lucro = vm
             else:
-                v_fiado = (v_fiado + dif).quantize(Decimal("0.01"))
+                v_fiado = vm
             total = vm
+        else:
+            fator = vm / base_soma
+            v_cmv = (v_cmv * fator).quantize(Decimal("0.01"))
+            v_lucro = (v_lucro * fator).quantize(Decimal("0.01"))
+            v_fiado = (v_fiado * fator).quantize(Decimal("0.01"))
+            # ajusta centavos no maior componente
+            total = (v_cmv + v_lucro + v_fiado).quantize(Decimal("0.01"))
+            dif = (vm - total).quantize(Decimal("0.01"))
+            if dif != 0:
+                if v_cmv >= v_lucro and v_cmv >= v_fiado:
+                    v_cmv = (v_cmv + dif).quantize(Decimal("0.01"))
+                elif v_lucro >= v_fiado:
+                    v_lucro = (v_lucro + dif).quantize(Decimal("0.01"))
+                else:
+                    v_fiado = (v_fiado + dif).quantize(Decimal("0.01"))
+                total = vm
     elif incluir_acumulado:
         acum = _dec(calc.get("acumulado_anterior"))
         if acum != 0:

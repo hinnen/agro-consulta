@@ -327,6 +327,31 @@
     </div>
   </div>
 
+  {# Forçar valor manual com dia zerado — PIN de novo #}
+  <div id="pdv-rp-forcar-manual-modal" class="rp-popup hidden items-center justify-center bg-amber-950/70 p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-rp-forcar-manual-title">
+    <div class="w-full max-w-[min(40rem,94vw)] max-h-[min(90dvh,36rem)] flex flex-col overflow-hidden rounded-2xl border-4 border-amber-600 bg-white shadow-2xl">
+      <header class="shrink-0 border-b-4 border-amber-600 bg-amber-500 px-4 py-3 sm:px-6">
+        <h3 id="pdv-rp-forcar-manual-title" class="text-center text-lg sm:text-xl font-black uppercase tracking-wide text-amber-950 leading-tight">
+          Atenção — valor forçado
+        </h3>
+      </header>
+      <div class="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 flex flex-col gap-3 text-center">
+        <p id="pdv-rp-forcar-manual-msg" class="rounded-xl border-4 border-amber-700 bg-amber-50 px-3 py-3 text-base sm:text-lg font-black text-amber-950 leading-snug" role="alert">
+          O cálculo automático deste dia já está zerado.
+        </p>
+        <label class="block text-left">
+          <span class="text-xs font-black uppercase text-slate-700">PIN de novo (confirmação)</span>
+          <input type="password" id="pdv-rp-forcar-manual-pin" class="rp-field mt-1 text-2xl tracking-widest" autocomplete="new-password" inputmode="numeric" name="rp_pin_forcar_manual" data-lpignore="true" placeholder="••••" />
+        </label>
+        <p id="pdv-rp-forcar-manual-status" class="min-h-[1.25rem] text-sm font-black text-red-800"></p>
+      </div>
+      <footer class="shrink-0 border-t-4 border-amber-300 bg-white px-4 py-3 flex flex-wrap gap-3 justify-center sm:justify-end">
+        <button type="button" id="pdv-rp-forcar-manual-cancelar" class="min-h-[3.25rem] min-w-[9rem] rounded-xl border-4 border-slate-400 bg-white px-5 text-sm font-black uppercase text-slate-800">Cancelar</button>
+        <button type="button" id="pdv-rp-forcar-manual-ok" class="min-h-[3.25rem] flex-1 sm:flex-none sm:min-w-[14rem] rounded-xl border-4 border-amber-800 bg-amber-600 px-6 text-sm sm:text-base font-black uppercase text-white hover:bg-amber-700">Confirmar com PIN</button>
+      </footer>
+    </div>
+  </div>
+
   <div id="pdv-rp-acum-modal" class="rp-popup hidden items-center justify-center bg-slate-900/55 p-2" role="dialog" aria-modal="true">
   <div class="w-full max-w-[min(40rem,96vw)] max-h-[min(88dvh,36rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-amber-500 bg-white shadow-2xl">
     <header class="flex items-center justify-between gap-2 border-b-2 border-amber-200 bg-amber-50 px-3 py-2">

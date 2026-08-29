@@ -1246,6 +1246,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Forçar valor manual dia zerado (`REPASSE-FORCAR-MANUAL` · **v18.82**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Se o automático das linhas = R$ 0 e digitar valor manual → aviso + **PIN de novo** (não bloqueia seco). Continua bloqueando gaveta/caixa/valor inválido. |
+| **Onde** | `confirmar_repasse` · API confirmar · overlay PDV |
+| **Migrate** | **NÃO** |
+| **Prova** | overlay path · vila path · node --check |
+| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse · digite R$ 1 com sugerido 0 |
+| **Você** | Deve abrir modal âmbar pedindo PIN de novo; depois grava. |
+
 ### 🔧 WIP — Dois cofrinhos Vila (`REPASSE-DOIS-COFRES` · **v18.81**)
 
 | Item | Detalhe |
