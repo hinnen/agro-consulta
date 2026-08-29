@@ -1,6 +1,6 @@
 /**
  * PDV — overlay Repasse Vila → Centro.
- * Hero limpo · detalhes recolhidos · quem / forma / PIN em popup (foco + Enter).
+ * Hero limpo · quem e PIN só no popup (Confirmar) · forma oculta (Dinheiro).
  */
 (function () {
   'use strict';
@@ -40,12 +40,6 @@
     quemGrid: document.getElementById('pdv-rp-quem-grid'),
     quemOutros: document.getElementById('pdv-rp-quem-outros'),
     formaGrid: document.getElementById('pdv-rp-forma-grid'),
-    btnQuem: document.getElementById('pdv-rp-btn-quem'),
-    btnForma: document.getElementById('pdv-rp-btn-forma'),
-    btnPin: document.getElementById('pdv-rp-btn-pin'),
-    quemLbl: document.getElementById('pdv-rp-quem-lbl'),
-    formaLbl: document.getElementById('pdv-rp-forma-lbl'),
-    pinLbl: document.getElementById('pdv-rp-pin-lbl'),
   };
 
   var quemModal = document.getElementById('pdv-rp-quem-modal');
@@ -179,23 +173,6 @@
     return String((dom.pin && dom.pin.value) || '').trim();
   }
 
-  function updateChips() {
-    var q = quemAtual();
-    if (dom.quemLbl) dom.quemLbl.textContent = q.length >= 2 ? q : 'Toque para escolher';
-    if (dom.btnQuem) {
-      if (q.length >= 2) dom.btnQuem.classList.add('is-ok');
-      else dom.btnQuem.classList.remove('is-ok');
-    }
-    if (dom.formaLbl) dom.formaLbl.textContent = formaPag || 'Dinheiro';
-    if (dom.btnForma) dom.btnForma.classList.add('is-ok');
-    var pin = pinAtual();
-    if (dom.pinLbl) dom.pinLbl.textContent = pin ? 'PIN preenchido' : 'Toque para digitar';
-    if (dom.btnPin) {
-      if (pin) dom.btnPin.classList.add('is-ok');
-      else dom.btnPin.classList.remove('is-ok');
-    }
-  }
-
   function applyQueryPrefs() {
     var q = qs();
     if (q.get('pct') && dom.pct) dom.pct.value = q.get('pct');
@@ -209,7 +186,6 @@
       dom.todos.checked = dom.cmv.checked && dom.lucro.checked && dom.fiado.checked;
     }
     updateDataHint();
-    updateChips();
   }
 
   function renderMesCards() {
@@ -290,10 +266,10 @@
       } else if (inclAcum && Math.abs(acum) > 0.009) {
         enviarHint.textContent =
           acum > 0
-            ? 'Inclui ' + money(acum) + ' de dias anteriores sem enviar'
-            : 'Abate crédito ' + money(Math.abs(acum)) + ' de envios a mais';
+            ? 'Inclui ' + money(acum) + ' de dias anteriores'
+            : 'Abate ' + money(Math.abs(acum));
       } else {
-        enviarHint.textContent = 'Hoje + dias anteriores (se marcar incluir acumulado)';
+        enviarHint.textContent = '';
       }
     }
 
@@ -301,35 +277,15 @@
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
 
     var pendente = Number(cofre.pendente_dia || 0);
-    var prevista = Number(cofre.prevista_dia || 0);
-    var realizada = Number(cofre.realizada_dia || 0);
     setText('pdv-rp-hero-cofre', money(pendente));
-    setText('pdv-rp-cofre-saldo', 'Saldo no cofrinho ' + money(cofre.saldo));
-    var cofreDia = document.getElementById('pdv-rp-cofre-dia');
-    if (cofreDia) {
-      cofreDia.textContent =
-        'Prevista ' +
-        money(prevista) +
-        ' · realizada ' +
-        money(realizada) +
-        ' · ainda separar (acumulado) ' +
-        money(pendente);
-      if (Number(cofre.adiantado || 0) > 0.009) {
-        cofreDia.textContent += ' · adiantado ' + money(cofre.adiantado);
-      }
-    }
     var cofreAviso = document.getElementById('pdv-rp-cofre-aviso');
     if (cofreAviso) {
       if (pendente > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent =
-          'ATENÇÃO: deixe ' +
-          money(pendente) +
-          ' na Vila (cofrinho). NÃO levar no envelope do Centro.';
+        cofreAviso.textContent = 'Deixe ' + money(pendente) + ' na Vila.';
       } else if (Number(cofre.saldo || 0) > 0.009) {
         cofreAviso.classList.remove('hidden');
-        cofreAviso.textContent =
-          'Cofrinho com ' + money(cofre.saldo) + ' — esse dinheiro permanece na Vila; NÃO levar ao Centro.';
+        cofreAviso.textContent = 'Cofrinho ' + money(cofre.saldo);
       } else {
         cofreAviso.classList.add('hidden');
         cofreAviso.textContent = '';
@@ -348,13 +304,7 @@
       b.className = 'rp-quem-btn' + (quem === f.nome ? ' is-on' : '');
       b.textContent = f.nome;
       b.addEventListener('click', function () {
-        quem = f.nome;
-        if (dom.quemOutros) {
-          dom.quemOutros.classList.add('hidden');
-          dom.quemOutros.value = '';
-        }
-        renderQuem();
-        updateChips();
+        pickQuem(f.nome);
       });
       dom.quemGrid.appendChild(b);
     });
@@ -371,7 +321,6 @@
         focusSoon(dom.quemOutros);
       }
       renderQuem();
-      updateChips();
     });
     dom.quemGrid.appendChild(outros);
   }
@@ -389,11 +338,9 @@
       b.addEventListener('click', function () {
         formaPag = fn;
         renderForma();
-        updateChips();
       });
       dom.formaGrid.appendChild(b);
     });
-    updateChips();
   }
 
   function fetchHistoricoMes() {
@@ -435,7 +382,19 @@
       });
   }
 
+  function pickQuem(nome) {
+    quem = String(nome || '').trim();
+    if (dom.quemOutros) {
+      dom.quemOutros.classList.add('hidden');
+      dom.quemOutros.value = '';
+    }
+    hideModal(quemModal);
+    if (dom.status) dom.status.textContent = '';
+    if (pendingConfirmar) tryConfirmarFlow();
+  }
+
   function openQuemModal() {
+    if (dom.status) dom.status.textContent = '';
     showModal(quemModal);
     renderQuem();
     if (dom.quemOutros && !dom.quemOutros.classList.contains('hidden')) {
@@ -446,51 +405,43 @@
     }
   }
 
-  function closeQuemModal() {
+  function closeQuemModal(cancel) {
+    if (cancel) {
+      pendingConfirmar = false;
+      hideModal(quemModal);
+      return;
+    }
+    if (quemAtual().length < 2) return;
     hideModal(quemModal);
-    updateChips();
     if (pendingConfirmar) tryConfirmarFlow();
   }
 
-  function openFormaModal() {
-    showModal(formaModal);
-    renderForma();
-    var on = dom.formaGrid && dom.formaGrid.querySelector('.rp-forma-btn.is-on');
-    focusSoon(on || (dom.formaGrid && dom.formaGrid.querySelector('.rp-forma-btn')));
-  }
-
-  function closeFormaModal() {
-    hideModal(formaModal);
-    updateChips();
-  }
-
   function openPinModal() {
+    if (dom.status) dom.status.textContent = '';
     showModal(pinModal);
     focusSoon(dom.pin);
   }
 
-  function closePinModal() {
+  function closePinModal(cancel) {
+    if (cancel) {
+      pendingConfirmar = false;
+      hideModal(pinModal);
+      return;
+    }
     hideModal(pinModal);
-    updateChips();
     if (pendingConfirmar) tryConfirmarFlow();
   }
 
   function tryConfirmarFlow() {
+    formaPag = 'Dinheiro';
     var q = quemAtual();
     if (q.length < 2) {
       pendingConfirmar = true;
-      if (dom.status) dom.status.textContent = 'Escolha quem levou';
       openQuemModal();
-      return;
-    }
-    if (!formaPag) {
-      pendingConfirmar = true;
-      openFormaModal();
       return;
     }
     if (!pinAtual()) {
       pendingConfirmar = true;
-      if (dom.status) dom.status.textContent = 'Digite o PIN';
       openPinModal();
       return;
     }
@@ -515,7 +466,6 @@
     }
     sanitizeManualField();
     updateDataHint();
-    updateChips();
     if (dom.status) dom.status.textContent = 'Carregando…';
     fetch('/api/repasse-vila/meta/', { credentials: 'same-origin' })
       .then(function (r) {
@@ -555,7 +505,6 @@
         }
         renderQuem();
         renderForma();
-        updateChips();
         fetchHistoricoMes();
         return fetchCalc();
       })
@@ -594,18 +543,14 @@
     sanitizeManualField();
     var q = quemAtual();
     if (q.length < 2) {
-      if (dom.status) dom.status.textContent = 'Informe quem levou';
+      pendingConfirmar = true;
       openQuemModal();
       return;
     }
-    if (!formaPag) {
-      if (dom.status) dom.status.textContent = 'Escolha a forma de pagamento';
-      openFormaModal();
-      return;
-    }
+    formaPag = 'Dinheiro';
     var pin = pinAtual();
     if (!pin) {
-      if (dom.status) dom.status.textContent = 'Digite o PIN';
+      pendingConfirmar = true;
       openPinModal();
       return;
     }
@@ -674,7 +619,6 @@
         }
         if (dom.pin) dom.pin.value = '';
         if (dom.manual) dom.manual.value = '';
-        updateChips();
         notifyParentFecharAtualizar();
         fetchHistoricoMes();
         fetchCalc();
@@ -699,24 +643,15 @@
     });
   }
 
-  if (dom.btnQuem) dom.btnQuem.addEventListener('click', openQuemModal);
-  if (dom.btnForma) dom.btnForma.addEventListener('click', openFormaModal);
-  if (dom.btnPin) dom.btnPin.addEventListener('click', openPinModal);
-
   var quemFechar = document.getElementById('pdv-rp-quem-fechar');
   var quemOk = document.getElementById('pdv-rp-quem-ok');
-  if (quemFechar) quemFechar.addEventListener('click', function () { pendingConfirmar = false; closeQuemModal(); });
-  if (quemOk) quemOk.addEventListener('click', closeQuemModal);
-
-  var formaFechar = document.getElementById('pdv-rp-forma-fechar');
-  var formaOk = document.getElementById('pdv-rp-forma-ok');
-  if (formaFechar) formaFechar.addEventListener('click', closeFormaModal);
-  if (formaOk) formaOk.addEventListener('click', closeFormaModal);
+  if (quemFechar) quemFechar.addEventListener('click', function () { closeQuemModal(true); });
+  if (quemOk) quemOk.addEventListener('click', function () { closeQuemModal(); });
 
   var pinFechar = document.getElementById('pdv-rp-pin-fechar');
   var pinOk = document.getElementById('pdv-rp-pin-ok');
-  if (pinFechar) pinFechar.addEventListener('click', function () { pendingConfirmar = false; closePinModal(); });
-  if (pinOk) pinOk.addEventListener('click', closePinModal);
+  if (pinFechar) pinFechar.addEventListener('click', function () { closePinModal(true); });
+  if (pinOk) pinOk.addEventListener('click', function () { closePinModal(); });
 
   if (dom.todos) {
     dom.todos.addEventListener('change', function () {
@@ -780,11 +715,7 @@
   if (dom.quemOutros) {
     dom.quemOutros.addEventListener('input', function () {
       quem = String(dom.quemOutros.value || '').trim();
-      updateChips();
     });
-  }
-  if (dom.pin) {
-    dom.pin.addEventListener('input', updateChips);
   }
 
   function onEnterConfirm(ev, fn) {
@@ -795,24 +726,12 @@
   }
   if (dom.quemOutros) {
     dom.quemOutros.addEventListener('keydown', function (ev) {
-      onEnterConfirm(ev, closeQuemModal);
-    });
-  }
-  if (quemModal) {
-    quemModal.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' && ev.target && ev.target.classList && ev.target.classList.contains('rp-quem-btn')) {
-        onEnterConfirm(ev, closeQuemModal);
-      }
-    });
-  }
-  if (formaModal) {
-    formaModal.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter') onEnterConfirm(ev, closeFormaModal);
+      onEnterConfirm(ev, function () { closeQuemModal(); });
     });
   }
   if (dom.pin) {
     dom.pin.addEventListener('keydown', function (ev) {
-      onEnterConfirm(ev, closePinModal);
+      onEnterConfirm(ev, function () { closePinModal(); });
     });
   }
   if (dom.manual) {
@@ -828,17 +747,11 @@
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;
     if (quemModal && !quemModal.classList.contains('hidden')) {
-      pendingConfirmar = false;
-      closeQuemModal();
-      return;
-    }
-    if (formaModal && !formaModal.classList.contains('hidden')) {
-      closeFormaModal();
+      closeQuemModal(true);
       return;
     }
     if (pinModal && !pinModal.classList.contains('hidden')) {
-      pendingConfirmar = false;
-      closePinModal();
+      closePinModal(true);
       return;
     }
     if (acumModal && !acumModal.classList.contains('hidden')) {

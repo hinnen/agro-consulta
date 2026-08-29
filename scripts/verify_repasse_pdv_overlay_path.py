@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-"""Prova detalhada do overlay PDV limpo (REPASSE-PDV-OVERLAY-LIMPO)."""
+"""Prova detalhada do overlay PDV limpo (REPASSE-PDV-OVERLAY-LIMPO).
+
+Quem/PIN só no popup (fluxo Confirmar). Forma oculta (= Dinheiro). Sem chips na tela.
+"""
 from __future__ import annotations
 
 import subprocess
@@ -42,28 +45,30 @@ def forbid(path: str, *needles: str) -> None:
 HTML = "produtos/templates/produtos/partials/pdv/repasse_vila_overlay.html"
 JS = "produtos/static/produtos/js/pdv_repasse_vila.js"
 
-# Shell grande + hero
+# Shell + hero (sem chips)
 check(HTML, "pdv-repasse-overlay", "rp-shell", "min(98rem", "96dvh", "rp-hero", "rp-hero-cofre")
-check(HTML, "pdv-rp-hero-cofre", "Ainda separar · cofrinho", "Levar ao Centro (acumulado)", "pdv-rp-total", "pdv-rp-manual")
+check(HTML, "pdv-rp-hero-cofre", "Cofrinho (ficar na Vila)", "Levar ao Centro", "pdv-rp-total", "pdv-rp-manual")
 check(HTML, "pdv-rp-mes-dinheiro", "pdv-rp-card-cofre", "pdv-rp-mes-lucro-ficou", "pdv-rp-dia-todas")
-check(HTML, "Enviado ao Centro (mês", "Cofrinho (saldo acumulado)", "Lucro ficou na Vila", "todas as formas")
-
-# Detalhes recolhidos (não inline quem/forma no hero)
 check(HTML, "rp-fold", "Detalhes do dia", "% lucro e opções", "pdv-rp-receita", "pdv-rp-acumulado")
-check(HTML, "pdv-rp-btn-quem", "pdv-rp-btn-forma", "pdv-rp-btn-pin", "Toque para escolher", "Toque para digitar")
 
-# Popups quem / forma / PIN
-check(HTML, "pdv-rp-quem-modal", "pdv-rp-forma-modal", "pdv-rp-pin-modal", "pdv-rp-btn-quem", "pdv-rp-btn-forma", "pdv-rp-btn-pin")
-check(HTML, "pdv-rp-quem-grid", "pdv-rp-forma-grid", "pdv-rp-pin", "pdv-rp-quem-ok", "pdv-rp-pin-ok", "pdv-rp-forma-ok")
-check(HTML, "Padrão: Dinheiro", "pdv-rp-enviar-hint", "pdv-rp-cofre-aviso", "NÃO levar")
+# Sem chips / forma na tela
+forbid(HTML, "pdv-rp-btn-quem", "pdv-rp-btn-forma", "pdv-rp-btn-pin", "rp-chip", "Toque para escolher", "Toque para digitar")
+forbid(HTML, "Forma de pagamento")
 
-# JS: foco + Enter + fluxo
-check(JS, "focusSoon", "openQuemModal", "openPinModal", "openFormaModal", "tryConfirmarFlow")
-check(JS, "ev.key === 'Enter'", "closeQuemModal", "closePinModal", "closeFormaModal")
-check(JS, "Inclui ", "dias anteriores", "fetchHistoricoMes", "api/repasse-vila/historico/")
+# Popups: quem + PIN; forma escondida (só grid oculto)
+check(HTML, "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-forma-modal", "rp-popup")
+check(HTML, "pdv-rp-quem-grid", "pdv-rp-forma-grid", "pdv-rp-pin", "pdv-rp-quem-ok", "pdv-rp-pin-ok")
+check(HTML, "pdv-rp-enviar-hint", "pdv-rp-cofre-aviso", "NÃO levar")
+check(HTML, 'id="pdv-rp-forma-modal"', "hidden")
+
+# JS: quem/PIN no Confirmar · forma fixa Dinheiro · sem chips
+check(JS, "focusSoon", "openQuemModal", "openPinModal", "tryConfirmarFlow")
+forbid(JS, "openFormaModal", "pdv-rp-btn-quem", "pdv-rp-btn-forma", "pdv-rp-btn-pin", "updateChips")
+check(JS, "ev.key === 'Enter'", "closeQuemModal", "closePinModal")
 check(JS, "formaPag = 'Dinheiro'", "pendingConfirmar", "Escape", "pdv-rp-hero-cofre")
-check(JS, "Deixe ", "Confirma o repasse", "ainda separar (acumulado)", "notifyParentFecharAtualizar")
+check(JS, "Deixe ", "Confirma o repasse", "notifyParentFecharAtualizar")
 check(JS, "api/repasse-vila/confirmar/", "incluir_acumulado", "separar_reserva")
+check(JS, "Inclui ", "dias anteriores", "fetchHistoricoMes")
 
 # Wiring PDV
 check("produtos/templates/produtos/pdv_wizard.html", "pdv_repasse_vila.js", "repasse_vila_overlay", "pdv-topbar-repasse-btn")
@@ -74,7 +79,6 @@ for f in fails:
 if fails:
     sys.exit(1)
 
-# Node syntax
 r = subprocess.run(
     ["node", "--check", str(ROOT / JS)],
     capture_output=True,

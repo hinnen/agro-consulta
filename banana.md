@@ -682,7 +682,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
 - **Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · v18.52):** «Ainda separar» soma dias sem separar; separar a mais / **Saldo inicial** abate próximos dias. Prova `verify_repasse_cofrinho` **28/28**.
-- **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO`):** hero cofrinho + levar Centro (acumulado) + manual · cards · quem/forma/PIN em popup (foco + Enter).
+- **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
@@ -1242,6 +1242,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Repasse overlay: só popup + limpeza (`REPASSE-PDV-OVERLAY-POPUP` · **v18.68**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Quem levou + PIN **só no popup** (ao Confirmar). Forma **oculta** (= Dinheiro). Sem chips na tela. Popup quem em grade de botões. Menos texto no hero. |
+| **Onde** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` · provas overlay/path |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste v18.68** — validar no PC (Ctrl+F5 PDV → Repasse) |
+| **Você** | Confirmar → escolhe quem no popup → PIN → envia. Sem «Forma de pagamento» na tela. |
+| **Loja** | Ainda **v18.64** (chips colados) até novo deploy com frase+senha |
+
 ### 🔧 WIP — Nova saída escolha Lançamento×Empréstimo (`NS-ESCOLHA-EMP` · **v18.67**)
 
 | Item | Detalhe |
@@ -1279,11 +1290,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Hero cofrinho + levar Centro (acumulado) + manual · cards · detalhes recolhidos · quem/forma/PIN popup (foco+Enter). |
-| **Prova** | overlay **73/73** · path **191/191** · cof **28** · deep **96** · reserva **60** · planos **49** · fechar **68+41** · acum **28** · `manage.py check` · migrations OK |
-| **Você** | Ctrl+F5 PDV · **Repasse** |
+| **O quê** | Hero limpo · quem/PIN só popup · forma oculta (= Dinheiro) · sem chips. Hotfix v18.68 (`REPASSE-PDV-OVERLAY-POPUP`). |
+| **Prova** | overlay path OK · vila path **200** · `node --check` |
+| **Você** | Ctrl+F5 PDV · **Repasse** · Confirmar abre quem → PIN |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **Live v18.64** |
+| **Status** | ⏳ **teste v18.68** (loja ainda v18.64 com chips) |
 
 ### ~~🚀 PREP deploy loja — lote checklist 28/08b~~ · **superado — Live v18.64**
 
