@@ -1416,6 +1416,7 @@ def registrar_ajuste_acumulado(
     operador: str = "",
     data_ref: date | None = None,
     repasse: RepasseVilaCentroAgro | None = None,
+    permitir_grande: bool = False,
 ) -> tuple[RepasseVilaAcumuladoAjusteAgro | None, str]:
     v = _dec(valor)
     if v == 0:
@@ -1423,7 +1424,9 @@ def registrar_ajuste_acumulado(
     obs = " ".join(str(observacao or "").strip().split())
     if len(obs) < 3:
         return None, "Descreva o motivo (mín. 3 caracteres)."
-    if v > Decimal("99999.99") or v < Decimal("-99999.99"):
+    # Zerar acumulado histórico pode passar de 100 mil (ex. dias sem transferir na ferramenta)
+    lim = Decimal("9999999.99") if permitir_grande else Decimal("999999.99")
+    if v > lim or v < -lim:
         return None, "Valor fora do limite."
     adj = RepasseVilaAcumuladoAjusteAgro.objects.create(
         valor=v,
@@ -1453,6 +1456,7 @@ def quitar_acumulado_zerar(
         observacao=obs,
         operador=operador,
         data_ref=dia,
+        permitir_grande=True,
     )
 
 
