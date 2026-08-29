@@ -1240,6 +1240,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### ✅ CHECKLIST ÚNICO — pronto para envio (28/08 · após loja **v18.50**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `REPASSE-COFRINHO-ACUM` | 📦 **pronto para envio** · teste **v18.52** · migrate **NÃO** |
+| 2 | `PDV-MODO-POR-FORMA` | 📦 **pronto para envio** · teste **v18.53** · migrate **NÃO** |
+
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.53**
+
+| Pacote | Badge | O quê | Migrate |
+| ------ | ----- | ----- | ------- |
+| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
+| `PDV-MODO-POR-FORMA` | **v18.53** | «Por forma» no PDV (não volta tabela A/B) · path **25/25** · Node **16/16** · Django **6/6** | NÃO |
+
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
 
 | Item | Detalhe |
@@ -1248,19 +1262,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | cofrinho **28/28** · path **152/152** |
 | **Você** | Ctrl+F5 `/repasse-vila/` · badge **v18.52** · se já tinha dinheiro no cofrinho: **Saldo inicial** + valor + motivo (não use mais só «Ajuste · entrada» para isso). |
 | **Migrate** | **NÃO** (só choice no ledger) |
-| **Status** | ✅ no `teste` · ⏳ loja ainda v18.50 |
+| **Status** | 📦 **pronto para envio** · `teste` · loja ainda v18.50 |
 
-### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.51** · 28/08/2026)
+### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.53** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | Cadastro em **Por forma** (badge 9), PDV ainda agia como **2 grupos / tabela**. |
-| **Causa** | Lixo A/B antigo no JSON + JS/catálogo forçavam «grupos» mesmo com modo por forma. |
-| **Fix** | JS respeita `por_forma` · save grava modo e limpa A/B · catálogo não promove lixo A/B. |
-| **Prova** | verify **16/16** · Django **4/4**. |
-| **Você** | Ctrl+F5 PDV · produto com preço por forma (não tabela) · pagar PIX/cartão = preço da forma. Se ainda errado: abrir produto → **Salvar no Agro** (limpa A/B). |
+| **Bug** | Cadastro em **Por forma**, PDV agia como **2 grupos / tabela**. |
+| **Fix** | JS + catálogo + save + consulta + pdv_state respeitam modo e limpam lixo A/B. |
+| **Prova** | path **25/25** · Node **16/16** · Django **6/6** (path detalhado). |
+| **Você** | Ctrl+F5 PDV · produto por forma · PIX/cartão = preço da forma. Se ainda errar: **Salvar no Agro**. |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ no `teste` · ⏳ loja ainda v18.50 |
+| **Status** | 📦 **pronto para envio** · `teste` v18.53 · loja ainda v18.50 |
 
 ### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 

@@ -140,19 +140,24 @@
             item.precos_por_forma = Object.assign({}, produto.cadastro_extras.precos_por_forma);
         }
         var pg = produto.precos_grupos || (produto.cadastro_extras && produto.cadastro_extras.precos_grupos);
-        if (pg && typeof pg === 'object') {
+        var modoRaw = produto.precos_modo != null
+            ? produto.precos_modo
+            : (produto.cadastro_extras && produto.cadastro_extras.precos_modo);
+        item.precos_modo = modoItem({
+            precos_modo: modoRaw,
+            precos_grupos: pg,
+            precos_por_forma: item.precos_por_forma
+        });
+        if (item.precos_modo === 'grupos' && pg && typeof pg === 'object') {
             item.precos_grupos = {
                 preco_a: pg.preco_a != null ? pg.preco_a : null,
                 preco_b: pg.preco_b != null ? pg.preco_b : null,
                 formas_a: Array.isArray(pg.formas_a) ? pg.formas_a.slice() : [],
                 formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : []
             };
+        } else {
+            try { delete item.precos_grupos; } catch (e) { item.precos_grupos = null; }
         }
-        var modoRaw = produto.precos_modo != null
-            ? produto.precos_modo
-            : (produto.cadastro_extras && produto.cadastro_extras.precos_modo);
-        item.precos_modo = modoRaw;
-        item.precos_modo = modoItem(item);
         var base = toNum(produto.preco_venda != null ? produto.preco_venda : produto.preco, 0);
         if (item.preco_padrao == null) item.preco_padrao = base;
         return item;

@@ -1431,7 +1431,8 @@ function metaOpcoesFromProd(p) {
     var modo = p.precos_modo || (p.cadastro_extras && p.cadastro_extras.precos_modo);
     if (modo) out.precos_modo = String(modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
     var pg = p.precos_grupos || (p.cadastro_extras && p.cadastro_extras.precos_grupos);
-    if (pg && typeof pg === 'object') {
+    /* Só carrega A/B no carrinho se o modo for grupos — lixo antigo não vira tabela. */
+    if (out.precos_modo === 'grupos' && pg && typeof pg === 'object') {
         out.precos_grupos = {
             preco_a: pg.preco_a,
             preco_b: pg.preco_b,
@@ -1485,7 +1486,11 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         if (item.preco_padrao == null) item.preco_padrao = precoPadrao;
         if (ppf && typeof ppf === 'object') item.precos_por_forma = Object.assign({}, ppf);
         if (modoPg) item.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-        if (pgMeta && typeof pgMeta === 'object') item.precos_grupos = Object.assign({}, pgMeta);
+        if (item.precos_modo === 'grupos' && pgMeta && typeof pgMeta === 'object') {
+            item.precos_grupos = Object.assign({}, pgMeta);
+        } else if (item.precos_modo === 'por_forma') {
+            try { delete item.precos_grupos; } catch (_) { item.precos_grupos = null; }
+        }
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
@@ -1501,7 +1506,9 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
         };
         if (ppf && typeof ppf === 'object') linha.precos_por_forma = Object.assign({}, ppf);
         if (modoPg) linha.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
-        if (pgMeta && typeof pgMeta === 'object') linha.precos_grupos = Object.assign({}, pgMeta);
+        if (linha.precos_modo === 'grupos' && pgMeta && typeof pgMeta === 'object') {
+            linha.precos_grupos = Object.assign({}, pgMeta);
+        }
         if (aud) linha.auditoria_codigo_bip = aud;
         carrinho.push(linha);
     }
