@@ -2088,6 +2088,16 @@
         return 'pdv-pay-maquina-card-outro';
     }
 
+    /** Venda só em dinheiro: Enter deve sair cupom (F9), não gravar sem impressão. */
+    function pagamentoSoDinheiro(state) {
+        state = state || State.getState();
+        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
+        if (!arr.length) return false;
+        return arr.every(function (L) {
+            return /dinheiro/i.test(String((L && L.forma) || ''));
+        });
+    }
+
     function afterCommitTrancheFlow() {
         setTimeout(function () {
             var inp = document.getElementById('pdv-pay-valor-tranche');
@@ -2097,6 +2107,11 @@
             var rest = saldoRestantePagamento(st, comp);
             if (rest > 0.009) {
                 openPaymentFormaModal();
+            } else if (pagamentoSoDinheiro(st) && dom.confirmSalePrint && !dom.confirmSalePrint.disabled) {
+                /* Dinheiro quitado → foco no COM impressão (Enter/F9 tira cupom). */
+                try {
+                    dom.confirmSalePrint.focus();
+                } catch (errF) {}
             } else {
                 var n = document.getElementById('pdv-confirm-sale-no-print');
                 if (n) n.focus();
@@ -10621,32 +10636,36 @@
             }
         }
         jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-        resetWizardParaNovaVenda();
-        invalidateEntregasPendentesCache();
-        refreshEntregasPendentesUi(true, true);
-        return imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao).then(function (printFail) {
-            return aguardarPosImpressao(imprimir ? 900 : 0).then(function () {
-                return printFail;
+        /* Cupom ANTES do modal «nova venda» — senão o foco do start cancela o print() do Chrome. */
+        return imprimirCupomAposVenda(imprimir, printWin, opts.vendaId, cupomImpressao)
+            .then(function (printFail) {
+                return aguardarPosImpressao(imprimir ? 900 : 0).then(function () {
+                    return printFail;
+                });
+            })
+            .then(function (printFail) {
+                resetWizardParaNovaVenda();
+                invalidateEntregasPendentesCache();
+                refreshEntregasPendentesUi(true, true);
+                if (opts.nfceErro) {
+                    mostrarAvisoNfcePendente(opts, saleDoneMessage(opts));
+                } else if (printFail) {
+                    showSaleDoneFeedback(
+                        'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
+                        'warn',
+                        { placementTop: true }
+                    );
+                } else if (opts.nfceOk) {
+                    showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
+                } else {
+                    var msg = saleDoneMessage(opts);
+                    var kind = opts.erpPendente ? 'info' : 'success';
+                    showSaleDoneFeedback(msg, kind);
+                }
+            })
+            .finally(function () {
+                releaseSaleProcessingLock();
             });
-        }).then(function (printFail) {
-            if (opts.nfceErro) {
-                mostrarAvisoNfcePendente(opts, saleDoneMessage(opts));
-            } else if (printFail) {
-                showSaleDoneFeedback(
-                    'Venda registrada — falha na impressão. Reimprima pela lista de vendas, se precisar.',
-                    'warn',
-                    { placementTop: true }
-                );
-            } else if (opts.nfceOk) {
-                showSaleDoneFeedback(saleDoneMessage(opts) + ' ' + opts.nfceOk, 'success');
-            } else {
-                var msg = saleDoneMessage(opts);
-                var kind = opts.erpPendente ? 'info' : 'success';
-                showSaleDoneFeedback(msg, kind);
-            }
-        }).finally(function () {
-            releaseSaleProcessingLock();
-        });
     }
 
     function confirmFiadoCobranca() {
@@ -11202,9 +11221,6 @@
                 }
                 saleFinalizeStarted = true;
                 jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                resetWizardParaNovaVenda();
-                invalidateEntregasPendentesCache();
-                refreshEntregasPendentesUi(true, true);
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp)
                     .then(function (printFail) {
                         return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
@@ -11212,6 +11228,9 @@
                         });
                     })
                     .then(function (printFail) {
+                        resetWizardParaNovaVenda();
+                        invalidateEntregasPendentesCache();
+                        refreshEntregasPendentesUi(true, true);
                         pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
                         if (nfceErro) {
                             mostrarAvisoNfcePendente({ nfceErro: nfceErro }, 'Venda confirmada.');
@@ -11409,14 +11428,14 @@
                 }
                 saleFinalizeStarted = true;
                 jsonPost(urls.apiPdvLimparCheckoutDraft, {}).catch(function () {});
-                resetWizardParaNovaVenda();
-                invalidateEntregasPendentesCache();
-                refreshEntregasPendentesUi(true, true);
                 return imprimirCupomAposVenda(withPrint, printWin, vIdMp, cupomImpMp).then(function (printFail) {
                     return aguardarPosImpressao(withPrint ? 900 : 0).then(function () {
                         return printFail;
                     });
                 }).then(function (printFail) {
+                    resetWizardParaNovaVenda();
+                    invalidateEntregasPendentesCache();
+                    refreshEntregasPendentesUi(true, true);
                     pdvMpPointBeep(mpPointFormaDivergiu ? 'err' : 'ok');
                     if (nfceErro) {
                         mostrarAvisoNfcePendente(
@@ -11758,7 +11777,9 @@
         var cur = raw ? State.toNumber(raw) : 0;
         if (!raw || cur <= 0.009) {
             if (rest <= 0.009) {
-                if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) tryConfirmSale(false);
+                if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
+                    tryConfirmSale(pagamentoSoDinheiro(st));
+                }
                 return;
             }
             var fmt = String(rest.toFixed(2)).replace('.', ',');
@@ -15426,7 +15447,10 @@
                     !inField
                 ) {
                     event.preventDefault();
-                    if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) tryConfirmSale(false);
+                    if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
+                        /* Dinheiro quitado: Enter = com cupom (igual F9). PIX/cartão seguem sem impressão. */
+                        tryConfirmSale(pagamentoSoDinheiro(st));
+                    }
                     return;
                 }
                 if (event.code === 'F9') {
