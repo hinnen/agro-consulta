@@ -69,6 +69,7 @@ check("scripts/verify_repasse_acum_net.py", "VERIFY_ACUM_NET_OK", "print 18/08",
 check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_vila", "lucro_penultimo", "listar_log_reserva", "reserva_aplicada_no_dia")
 check("scripts/verify_caixa_fechar_repasse_path.py", "VERIFY_FECHAR_REPASSE_OK", "escopo=loja", "notifyParentFecharAtualizar")
 check("scripts/verify_repasse_cofrinho.py", "VERIFY_REPASSE_COFRINHO_OK", "registrar_saldo_inicial_cofrinho", "hoje acumula ontem+hoje = 200", "adiantar/separar a mais abate próximo dia")
+check("scripts/verify_repasse_pdv_overlay_path.py", "VERIFY_REPASSE_PDV_OVERLAY_OK", "focusSoon", "pdv-rp-quem-modal", "Levar ao Centro (acumulado)")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
