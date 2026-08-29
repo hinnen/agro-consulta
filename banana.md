@@ -1241,29 +1241,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08 · após loja **v18.50**)
-
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · path **25/25** · migrate **NÃO** |
-| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **pronto para envio** · v18.52 · cof **28** · migrate **SIM** (`0102`) |
-| 3 | `CP-NE-BUSCA-EMPRESA` | ✅ **pronto para envio** · v18.54+ · **61+18** · migrate **NÃO** |
-| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · tip · overlay **73/73** · path **191** · migrate **NÃO** |
-
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.65**
-
-| Pacote | Badge | O quê | Migrate |
-| ------ | ----- | ----- | ------- |
-| `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV | NÃO |
-| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | **SIM** (`0102`) |
-| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto | NÃO |
-| `REPASSE-PDV-OVERLAY-LIMPO` | **tip** | Overlay PDV limpo · prova **73/73** | NÃO |
+### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Live hoje** | `origin/producao` @ **v18.50** |
-| **PREP** | `deploy/prep-checklist-2808b` @ **v18.64** |
-| **Produção** | ⏳ frase + senha |
+| **Status** | ✅ **enviado / Live v18.64** — `AGRO_APP_VERSION = "18.64"` · healthz **ok** · home/PDV/consulta **200** |
+| **Antes** | `origin/producao` @ **v18.50** / `4836ec1` |
+| **Agora** | `producao` @ **5e6e44a** |
+| **Pacotes** | PDV-MODO-POR-FORMA · REPASSE-COFRINHO-ACUM · CP-NE-BUSCA-EMPRESA · REPASSE-PDV-OVERLAY-LIMPO |
+| **Migrate** | **SIM** — `produtos.0102` (choice `saldo_inicial`, SQL **no-op**) no build |
+| **Rollback** | tag `rollback/pre-lote-checklist-2808b-v18.50` @ `4836ec1` · branch `producao-backup-pre-v1864-lote-checklist-20260828` · doc `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md` · **só** frase + senha |
+| **Você** | Ctrl+F5 nos PDVs · badge **v18.64**. Repasse overlay novo. Cofrinho: **Saldo inicial** se já tinha dinheiro físico. |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (28/08b · loja **v18.64**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-MODO-POR-FORMA` | ✅ **Live v18.64** |
+| 2 | `REPASSE-COFRINHO-ACUM` | ✅ **Live v18.64** · `0102` |
+| 3 | `CP-NE-BUSCA-EMPRESA` | ✅ **Live v18.64** |
+| 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **Live v18.64** |
+
+### ~~📦 PACOTE PRONTO — o que ainda falta subir · badge teste v18.65~~ · **superado — Live v18.64**
 
 ### 📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` · 28/08/2026)
 
@@ -1273,16 +1272,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | overlay **73/73** · path **191/191** · cof **28** · deep **96** · reserva **60** · planos **49** · fechar **68+41** · acum **28** · `manage.py check` · migrations OK |
 | **Você** | Ctrl+F5 PDV · **Repasse** |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
+| **Status** | ✅ **Live v18.64** |
 
-### 🚀 PREP deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟢 **prep pronta** · aguarda frase + senha |
-| **Base loja** | `origin/producao` @ **v18.50** / `4836ec1` |
-| **Migrate** | **SIM** — `0102` (choice `saldo_inicial`, no-op) |
-| **Pacotes** | PDV-MODO-POR-FORMA · REPASSE-COFRINHO-ACUM · CP-NE-BUSCA-EMPRESA · REPASSE-PDV-OVERLAY-LIMPO |
+### ~~🚀 PREP deploy loja — lote checklist 28/08b~~ · **superado — Live v18.64**
 
 ### 📦 PACOTE PRONTO — CP busca + empresa auto (`CP-NE-BUSCA-EMPRESA` · **v18.54** · 28/08/2026)
 
@@ -1292,7 +1284,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Empresa padrão** | Centro → Agro Mais Centro · Vila → Agro Mais Vila Elias |
 | **Parcelas** | Calendário perto da data · dívida+juros na mesma linha |
 | **Prova 28/08** | path **61/61** · extra **18/18** · `manage.py check` OK · commit `f7bae7d` |
-| **Status** | 🟢 **pronto para envio** · loja ainda v18.50 |
+| **Status** | ✅ **Live v18.64** |
 
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
 
@@ -1302,7 +1294,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **175/175** · cofrinho **28/28** · deep **96** · reserva **60** · planos **49** · fechar **68+41** · acum-net **28** · `manage.py check` · Node OK |
 | **Você** | Ctrl+F5 `/repasse-vila/` · **Saldo inicial** se já tinha dinheiro no cofrinho. |
 | **Migrate** | **SIM** (`0102` no-op) |
-| **Status** | 🟢 **PREP pronta** · loja ainda v18.50 |
+| **Status** | ✅ **Live v18.64** |
 
 ### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.56** · 28/08/2026)
 
@@ -1313,7 +1305,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | path **25/25** · Node **16/16** · Django **6/6** (path detalhado). |
 | **Você** | Ctrl+F5 PDV · produto por forma · PIX/cartão = preço da forma. Se ainda errar: **Salvar no Agro**. |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ **pronto para envio** · loja ainda v18.50 |
+| **Status** | ✅ **Live v18.64** |
 
 ### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 

@@ -202,21 +202,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 10. Checklist único — lote 28/08b (PREP · aguarda senha)
-
-Sobre loja **v18.50**. Branch `deploy/prep-checklist-2808b` · badge alvo **v18.64**. **Produção não alterada.**
+## 10. Checklist único — lote 28/08b (loja **v18.64**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **CP-NE-BUSCA-EMPRESA** | 🟢 PREP · prova **61+18** | **NÃO** |
-| 2 | **REPASSE-COFRINHO-ACUM** | 🟢 PREP · path **175** · cof **28** | **SIM** (`0102` no-op) |
-| 3 | **PDV-MODO-POR-FORMA** | 🟢 PREP · path **25/25** | **NÃO** |
-| 4 | **REPASSE-PDV-OVERLAY-LIMPO** | 🟢 PREP · path **187** | **NÃO** |
+| 1 | **CP-NE-BUSCA-EMPRESA** | ✅ **Live v18.64** | **NÃO** |
+| 2 | **REPASSE-COFRINHO-ACUM** | ✅ **Live v18.64** | **SIM** (`0102` no-op) |
+| 3 | **PDV-MODO-POR-FORMA** | ✅ **Live v18.64** | **NÃO** |
+| 4 | **REPASSE-PDV-OVERLAY-LIMPO** | ✅ **Live v18.64** | **NÃO** |
 
-- [x] Cherry só destes 4 (+ `0102`) sobre `origin/producao` @ v18.50
-- [x] Arquivos do lote idênticos ao `teste`
-- [x] Paths: PDV modo **25** · overlay/repasse **187** · cof **28** · fechar **68+41** · CP **61+18**
-- [x] `manage.py check` · Node JS · Django **6/6** modo por forma
-- [ ] Senha produção — **pendente** (próximo chat, lojas pausadas)
-
-Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md`. Detalhe CHECKPOINT em `banana.md`.
+**Status: enviado / Live v18.64.** `producao` @ `5e6e44a`. Rollback: tag `rollback/pre-lote-checklist-2808b-v18.50` @ `4836ec1` · `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md`.
