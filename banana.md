@@ -1306,7 +1306,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | ----- | ------------ |
 | `PDV-PRECO-MANUAL-FORMA` | v18.18 | Preço digitado no carrinho **não** volta ao lista ao escolher forma · **verificado 28/08** |
 | `REPASSE-UX` | v18.19 | Tirou texto rosa que quebrava linha sob reserva manual |
-| `CP-NOVO-EMPRESTIMO` | **v18.32** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · parcelas automáticas · **intervalo Outros (dias)** |
+| `CP-NOVO-EMPRESTIMO` | **v18.33** | Calendário Agro · ajuda «?» · grade 2 col. · sem Grupo · parcelas automáticas · **intervalo Outros (dias)** |
 | Campo | Valor |
 | ----- | ----- |
 | **Branch** | `teste` · três pacotes anteriores ainda aguardam envio |
@@ -1319,7 +1319,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto envio · ✅ verificado código/prova 28/08 |
 | 2 | `REPASSE-UX` | 🟢 pronto envio |
-| 3 | `CP-NOVO-EMPRESTIMO` (até v18.32) | 🟢 pronto envio |
+| 3 | `CP-NOVO-EMPRESTIMO` (até v18.33) | 🟢 pronto envio |
 
 **Você (loja):** Ctrl+F5 · badge **v18.25** · conferir Etiquetas 90/60 mm e recuperação de estoque da Entrada NF.
 
@@ -1428,21 +1428,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Risco** | Baixo — alinha backend ao que a tela já mostrava |
 | **Rollback** | `git revert` do commit deste pacote no `teste` (antes da loja) |
 
-### ✅ PACOTE ENVIADO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**)
+### ✅ PACOTE ENVIADO — Excel ↓ últimos 3 fornecedores (`CAD-XLSX-ULT-FORN` · **v18.02**) · ✅ Renan OK 28/08
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **enviado / Live v18.02** — cherry-pick só deste pacote (não a fila do `teste`) · **24/08** |
+| **Status** | ✅ **enviado / Live v18.02** (24/08) · ainda no tip da loja (**v18.27+**) · **Renan OK 28/08** (*«já foi resolvido»*) |
 | **O quê** | Excel ↓ do cadastro: 3 colunas opcionais — **Últ. / 2º / 3º fornecedor** (Entrada NF Agro; nome só; vazio se não houver) |
 | **Import** | Excel ↑ **ignora** essas colunas |
 | **Onde** | `cadastro_planilha_util.py` · `compras_ultimas_compras_util.py` · `views.py` · `cadastro_erp_panel.js` |
+| **Commits loja** | `8502f2c` · `5af9b6c` · `5e7c284` (ancestrais de `origin/producao`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `tests_cadastro_planilha_cols` **23/23 OK** |
-| **Você** | Ctrl+F5 `/produtos/cadastro-erp/` · Excel ↓ · marcar as 3 colunas · baixar |
+| **Prova** | `tests_cadastro_planilha_cols` (FORN export + enrich) · checkboxes JS `fornecedor_compra_1..3` |
+| **Conferência 28/08** | Código + doc rollback presentes no tip · tag `rollback/pre-cad-xlsx-ult-forn-v17.84` @ `da7c1cb` · branch backup `producao-backup-pre-v1802-cad-xlsx-ult-forn-20260824` |
 | **Risco** | Baixo — só export; enrich só se colunas marcadas |
-| **Checkpoint** | tag `rollback/pre-cad-xlsx-ult-forn-v17.84` → SHA `da7c1cb` (Live v17.84) |
-| **Backup** | `producao-backup-pre-v1802-cad-xlsx-ult-forn-20260824` |
-| **Doc** | `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md` |
+| **Doc** | `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md` · roteiro §9 |
 
 ### ✅ PACOTE ENVIADO — Ajuste: Feito grava código no cadastro (`AJUSTE-CB-PENDENTE-CADASTRO` · **v18.01**) · **Live v18.14**
 
