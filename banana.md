@@ -1300,37 +1300,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 cadastro · Excluir · confirmar |
 | **Produção** | só frase + senha |
 
-### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.02 loja**) · 29/08/2026
+### 📦 Meta C Vila — SOLO envio (`BI-META-C-VILA` · **v19.02 Live**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto envio SOLO** · branch `deploy/bi-meta-c-vila` **`6b1eeed`** (base loja `7c69fbc`) · ⏳ frase+senha |
+| **Status** | ✅ **Live loja** `producao` **`6b1eeed`** · VERSION **19.02** · tag rollback `rollback/pre-bi-meta-c-vila` → `7c69fbc` |
 | **O quê** | Meta C da Vila = mesma do Centro; base ignora dias **< 20/07/2026**; Centro+Vila = **soma** das metas; BI passa filtro Números na série compare |
 | **Onde** | `views.py` · `mongo_vendas_util` · `mongo_financeiro_util` · analytics PG · ajuda BI · `verify_meta_c_vila_abertura.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **VERIFY OK 51/51** (no branch de deploy) |
+| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **VERIFY OK 51/51** |
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
-| **Produção** | **Sozinho** · frase+senha → tag `rollback/pre-bi-meta-c-vila` + merge `deploy/bi-meta-c-vila` → `producao` + push · **sem migrate** |
+| **Rollback** | `docs/ROLLBACK-BI-META-C-VILA.md` · tag `rollback/pre-bi-meta-c-vila` (`7c69fbc` / v19.01) |
 
 
-### 📦 PACOTE PRONTO SOLO — Meta C Vila (`BI-META-C-VILA` · tip loja **v19.02**) · 29/08/2026
+### 📦 PACOTE ENVIADO SOLO — Meta C Vila (`BI-META-C-VILA` · **v19.02 Live**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip loja** | branch `deploy/bi-meta-c-vila` · commit **`6b1eeed`** · VERSION **19.02** · base `origin/producao` **`7c69fbc`** (v19.01) |
-| **Prova** | **VERIFY OK 51/51** no branch de deploy · regressão Centro · soma C+V · doc rollback |
+| **Tip loja** | `producao` **`6b1eeed`** · VERSION **19.02** · base anterior **`7c69fbc`** (v19.01) |
+| **Prova** | **VERIFY OK 51/51** · regressão Centro · soma C+V |
 | **Migrate** | **NÃO** |
 | **Env** | NÃO (default abertura 20/07/2026) |
-| **Status** | 🟡 **pronto — envio rápido** (só falta frase + senha na mesma mensagem) |
-| **Rollback** | `docs/ROLLBACK-BI-META-C-VILA.md` · tag `rollback/pre-bi-meta-c-vila` **antes** do push loja |
-| **Por quê sozinho** | Se der pepino, volta só este pacote — não desfaz o lote |
+| **Status** | ✅ **enviado / Live** (29/08 · frase+senha) |
+| **Rollback** | tag `rollback/pre-bi-meta-c-vila` · `docs/ROLLBACK-BI-META-C-VILA.md` |
 | **Você** | Ctrl+F5 BI · Centro · Vila · C+V · calendário CP |
 
-### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · tip loja **v19.02**)
+### ✅ CHECKLIST ÚNICO SOLO — BI-META-C-VILA (29/08 · **v19.02 Live**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | BI-META-C-VILA | Meta C Vila=Centro · corte 20/07 · soma C+V · prova **51/51** · `6b1eeed` | não | 🟡 pronto envio SOLO |
+| 1 | BI-META-C-VILA | Meta C Vila=Centro · corte 20/07 · soma C+V · prova **51/51** · `6b1eeed` | não | ✅ Live |
 
 ### 🩹 Repasse — aviso gaveta em popup (REPASSE-AVISO-POPUP · **v19.33**) · 29/08/2026
 
