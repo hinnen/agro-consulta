@@ -1263,17 +1263,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ no `teste` · 🟡 **pronto para envio** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 PDV · Chat embaixo à esquerda · abre pra cima |
 
-### 🩹 Entrada NF — etapa 5 bloqueio falso «finalizada» (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
+### 📦 PACOTE PRONTO — Entrada NF etapa 5 bloqueio falso (`NF-ESTOQUE-BLOQUEIO-FALSO` · **v19.41** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Relato** | Renan · NF 3024907 · ainda na etapa 5 · botão azul pedia «Reabra a nota» / caixa amarela de PIN |
-| **Causa** | `entradaNfeEstoqueBloqueadoNotaFinalizada` usava `FluxoLegadoOuConcluido` — confirmação das etapas 1–4 (normal) virava «finalizada com PIN» |
-| **Fix** | Bloqueia só com PIN (`aprovacao_wizard_em`), `financeiro_lancado` ou bucket concluída/encerrada |
-| **Prova** | `scripts/verify_nf_estoque_bloqueio_falso.js` **7/7** · recovery DOM OK |
+| **Relato** | Renan · NF 3024907 · etapa 5 · botão pedia «Reabra a nota» sem ter finalizado |
+| **Causa** | Confirmação das etapas 1–4 virava «finalizada com PIN» |
+| **Fix** | Bloqueia só PIN / financeiro / bucket concluída · botão azul livre no fluxo normal |
+| **Prova** | path **39/39** · recovery DOM OK · Django reabertura **10/10** |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ no `teste` · 🟡 pronto envio loja (frase+senha) |
-| **Você** | Ctrl+F5 em `/entrada-nota/` · etapa 5 · botão azul **Registrar entrada no estoque Agro** (sem caixa amarela) |
+| **Status** | 🟡 **pronto para envio** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 `/entrada-nota/` · etapa 5 · **Registrar entrada no estoque Agro** (sem caixa amarela) |
 
 ### 📦 PACOTE PRONTO — Pedir loja escrito + obs (`PDV-PEDIR-ESCRITO` · **v19.36** · 29/08/2026)
 
@@ -1427,20 +1427,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.37** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.42** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.37** · loja **v19.01** |
-| **Prova Repasse** | path **255** · overlay **188** · planos **49** · cofrinho **31** · node OK · deep 97/98 (1 fail dado: dia sem o que levar) |
-| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META SOLO 51 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 · Pedir escrito **66/66** |
-| **Migrate** | não (neste lote) |
+| **Tip** | `teste` **v19.42** · loja **v19.02** |
+| **Prova NF estoque** | path **39/39** · recovery DOM · Django reabertura **10/10** |
+| **Prova demais** | tip v19.37 (Repasse/PIN/NFC-e/cadastro/Pedir) + Chat loja no tip |
+| **Migrate** | **SIM** só `PDV-CHAT-LOJA` (`produtos.0105`) — demais **não** |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso) · Pedir loja escrito+obs · cupom · PIN · validade |
+| **Você** | Ctrl+F5 · Entrada NF etapa 5 (botão azul) · Pedir escrito · Repasse · Chat PDV |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.37**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08f · tip **v19.42**)
 
-> **Fora deste lote:** `BI-META-C-VILA` sobe **sozinho** (ver CHECKLIST ÚNICO SOLO acima) — rollback isolado.
+> **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**.
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1457,14 +1457,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 11 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
 | 12 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
 | 13 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
+| 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
+| 15 | PDV-CHAT-LOJA | Chat grupo Centro+Vila + som | **SIM** `0105` | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.36**
+### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.42**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.36**
+### ~~✅ CHECKLIST ÚNICO — tip v19.37~~ · superado pelo tip **v19.42**
 
-### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver bloco tip **v19.34** acima
+### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.42**
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.34**
+### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.42**
+
+### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver tip **v19.42**
+
+### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.42**
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
