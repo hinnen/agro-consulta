@@ -1239,7 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.47** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.50** · 28/08
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
@@ -1248,7 +1248,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `CP-NOVO-EMPRESTIMO` | **v18.44** | Novo empréstimo CP · parcelas auto · Outros (dias) · contorno · verify **57/57** | NÃO |
 | `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | **v18.41** | Cofrinho PG + overlay PDV (botão · aviso · sync) · path **152** · deep **96** | **SIM** (`0100`+) |
 | `NF-FIN-VINCULO-FORTE` | v18.29 | Vínculo financeiro NF só com prova forte · saneia marca falsa | NÃO |
-| `CAD-PRECO-CENTAVOS` | v18.39 | Cadastro: 82,90 não vira 829,00 nos preços por forma | NÃO |
+| `CAD-PRECO-CENTAVOS` | **v18.50** | Cadastro: **82,90** não vira **829,00** · path **51/51** · Node **31/31** | NÃO |
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1265,7 +1265,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `CP-NOVO-EMPRESTIMO` | 🟢 pronto para envio à produção · verify **57/57** |
 | 4 | `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | 🟢 pronto para envio à produção · **migrate** · cofrinho **22** · deep **96** · fechar **68+41** |
 | 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto para envio à produção |
-| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto para envio à produção |
+| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto para envio à produção · path **51/51** · Node **31/31** · **sem migrate** |
 
 **Loja:** só com frase + senha. Após cofrinho: `migrate` · se já houver dinheiro físico, Ajuste · entrada.
 
@@ -1278,7 +1278,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Commit** | `6ad46ab` |
 | **Status** | 🟢 **pronto para envio à produção** (junto com `REPASSE-COFRINHO-VILA`) · **produção não alterada**. |
 
-### 📦 PACOTE PRONTO — Cadastro centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.42** · 28/08/2026)
+### 📦 PACOTE PRONTO — Cadastro centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.50** · 28/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
