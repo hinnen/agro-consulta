@@ -68,6 +68,7 @@
     },
   ];
   var forcarManualModal = document.getElementById('pdv-rp-forcar-manual-modal');
+  var avisoModal = document.getElementById('pdv-rp-aviso-modal');
   var manualDirty = false;
   var manualAutoFmt = '';
   var selectManualPending = false;
@@ -839,6 +840,21 @@
     return t < 0.009;
   }
 
+  function closeAvisoModal() {
+    hideModal(avisoModal);
+  }
+
+  function openAvisoModal(msg) {
+    var el = document.getElementById('pdv-rp-aviso-msg');
+    if (el) el.textContent = msg || 'Não foi possível transferir';
+    if (dom.status) dom.status.textContent = msg || '';
+    // Atrasa um pouco p/ não fechar no mesmo clique do OK anterior
+    setTimeout(function () {
+      showModal(avisoModal);
+      focusSoon(document.getElementById('pdv-rp-aviso-ok'));
+    }, 120);
+  }
+
   function closeForcarManualModal() {
     forcarManualPendingBody = null;
     hideModal(forcarManualModal);
@@ -975,7 +991,7 @@
             openForcarManualModal(j.erro, body);
             return;
           }
-          if (dom.status) dom.status.textContent = j.erro || 'Não foi possível transferir';
+          openAvisoModal(j.erro || 'Não foi possível transferir');
           return;
         }
         var tot = (j.repasse && j.repasse.valor_total) || 0;
@@ -1001,7 +1017,7 @@
       })
       .catch(function () {
         busy = false;
-        if (dom.status) dom.status.textContent = 'Falha de rede';
+        openAvisoModal('Falha de rede');
       });
   }
 
@@ -1045,6 +1061,9 @@
       advanceCofreCheck();
     });
   }
+
+  var avisoOk = document.getElementById('pdv-rp-aviso-ok');
+  if (avisoOk) avisoOk.addEventListener('click', closeAvisoModal);
 
   var forcarCancelar = document.getElementById('pdv-rp-forcar-manual-cancelar');
   var forcarOk = document.getElementById('pdv-rp-forcar-manual-ok');
@@ -1193,6 +1212,10 @@
     if (ev.key !== 'Escape') return;
     if (forcarManualModal && !forcarManualModal.classList.contains('hidden')) {
       closeForcarManualModal();
+      return;
+    }
+    if (avisoModal && !avisoModal.classList.contains('hidden')) {
+      closeAvisoModal();
       return;
     }
     if (cofreCheckModal && !cofreCheckModal.classList.contains('hidden')) {

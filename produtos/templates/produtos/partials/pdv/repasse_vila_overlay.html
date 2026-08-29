@@ -179,6 +179,16 @@
   #pdv-repasse-overlay #pdv-rp-forcar-manual-modal {
     z-index: 80;
   }
+  #pdv-repasse-overlay #pdv-rp-aviso-modal {
+    z-index: 90;
+  }
+  #pdv-repasse-overlay .rp-aviso-panel {
+    width: min(28rem, 92vw);
+    border-radius: 1rem;
+    border: 4px solid #b91c1c;
+    background: #fff;
+    box-shadow: 0 20px 40px -12px rgba(127, 29, 29, 0.45);
+  }
   #pdv-repasse-overlay .rp-cofre-check-panel {
     width: min(42rem, 94vw);
     max-height: min(70dvh, 28rem);
@@ -507,6 +517,25 @@
         </button>
         <button type="button" id="pdv-rp-cofre-check-ok" class="min-h-[3.25rem] flex-1 sm:flex-none sm:min-w-[12rem] rounded-xl border-4 border-rose-800 bg-rose-600 px-8 text-base sm:text-lg font-black uppercase text-white">
           OK · Já separei
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  {# Aviso curto (ex.: gaveta insuficiente) #}
+  <div id="pdv-rp-aviso-modal" class="rp-popup hidden items-center justify-center bg-rose-950/75 p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-rp-aviso-title">
+    <div class="rp-aviso-panel flex flex-col overflow-hidden">
+      <header class="shrink-0 border-b-4 border-rose-700 bg-rose-600 px-4 py-2.5">
+        <h3 id="pdv-rp-aviso-title" class="text-center text-base sm:text-lg font-black uppercase tracking-wide text-white leading-tight">
+          Atenção
+        </h3>
+      </header>
+      <div class="px-4 py-4">
+        <p id="pdv-rp-aviso-msg" class="text-sm sm:text-base font-black text-rose-950 leading-snug text-center" role="alert">—</p>
+      </div>
+      <footer class="shrink-0 border-t-2 border-rose-200 bg-rose-50 px-4 py-2.5 flex justify-center">
+        <button type="button" id="pdv-rp-aviso-ok" class="min-h-[3rem] min-w-[10rem] rounded-xl border-4 border-rose-800 bg-rose-600 px-6 text-sm font-black uppercase text-white">
+          Entendi
         </button>
       </footer>
     </div>

@@ -116,7 +116,9 @@ forbid(HTML, "pdv-rp-cofre-confirm-input-sal", "pdv-rp-cofre-confirm-input-ve", 
 check(HTML, "pdv-rp-forcar-manual-modal", "pdv-rp-forcar-manual-pin", "Atenção — valor forçado", "PIN de novo")
 check(HTML, 'id="pdv-rp-forma-modal"', "hidden", "grid-template-columns", "rp-quem-btn")
 # Popups depois do shell (não atrás dos chips)
-check_order(HTML, "pdv-repasse-confirmar", "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-cofre-confirm-modal")
+check(HTML, "pdv-rp-aviso-modal", "pdv-rp-aviso-ok", "pdv-rp-aviso-msg", "Entendi", "Atenção")
+check(JS, "openAvisoModal", "closeAvisoModal")
+check_order(HTML, "pdv-repasse-confirmar", "pdv-rp-quem-modal", "pdv-rp-pin-modal", "pdv-rp-cofre-confirm-modal", "pdv-rp-aviso-modal")
 # Forma modal tem attribute hidden
 check(HTML, 'id="pdv-rp-forma-modal" class="rp-popup hidden')
 

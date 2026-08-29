@@ -1288,6 +1288,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
+### 🩹 Repasse — aviso gaveta em popup (REPASSE-AVISO-POPUP · **v19.33**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **O quê** | Erro de transferência (ex. dinheiro que precisa ficar na Vila) abre popup pequeno «Entendi» |
+| **Você** | Ctrl+F5 · tentar levar mais que a gaveta · deve abrir popup |
+
 ### 🩹 Repasse — último OK não transferia (REPASSE-3OK-GHOSTCLICK · **v19.27**) · 29/08/2026
 
 | Item | Detalhe |
