@@ -166,6 +166,9 @@ def main() -> int:
     check("modal auto parcelas", "agendarParcelasAuto" in txt_m and "silent: true" in txt_m)
     check("modal intervalo Outros", "__outro__" in txt_m and "neIntervaloDias" in txt_m)
     check("modal campos contorno unificado", "ne-field-label" in txt_m and "ne-field-control" in txt_m)
+    check("modal sugestao overflow ok", "ne-field--sug" in txt_m and "overflow: visible" in txt_m)
+    check("modal empresa padrao loja", "preencherEmpresaPadrao" in txt_m and "empresa_padrao" in txt_m)
+    check("modal parc composicao inline", "ne-parc-card-mid" in txt_m)
     check("modal grade 2 colunas", "ne-parc-grid" in txt_m)
     check(
         "vencimento calendário 30d",
@@ -222,6 +225,12 @@ def main() -> int:
         "CP chama garantir planos interno",
         "garantir_planos_emprestimo_interno_cadastro" in src_ext
         and "emprestimos_defaults" in src_ext,
+    )
+    check(
+        "CP defaults empresa pela loja",
+        "empresa_nome_saida_caixa" in src_ext
+        and "empresa_padrao" in src_ext
+        and "bootstrap_deposito" in src_ext,
     )
 
     print(f"\n=== Resultado: {OK} OK · {FAIL} FAIL ===")
