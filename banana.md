@@ -1247,44 +1247,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **aguarda senha**
+### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **PREP pronto** — **não** subiu loja (lojas abertas). Próximo chat: pausar vendas + frase + senha `99738595` |
-| **Loja agora** | **v18.72** Live @ `ae126d9` |
-| **PREP tip** | `deploy/prep-checklist-2908` @ **`d836982`** / **v18.83** |
-| **Base** | `origin/producao` + **só** arquivos do CHECKLIST (sem merge bruto `teste`→`producao` — histórico divergente) |
-| **Pacotes** | 8 itens CHECKLIST ÚNICO abaixo |
+| **Status** | ✅ **enviado / Live v18.83** — healthz **ok** · home **18.83** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v18.72** / `ae126d9` |
+| **Agora** | `producao` @ **`d836982`** |
+| **Pacotes** | REPASSE-DOIS-COFRES · FORCAR-MANUAL · CAIXA-DIN · HERO-TOTAIS · COFRE-CONFIRM · CP-EMP-ROW-TINT · NE-SUCESSO-OK · NS-ESCOLHA-MOLDURA |
 | **Migrate** | **SIM** — `produtos.0103` no build |
-| **Rollback** | tag `rollback/pre-lote-checklist-2908-v18.72` · branch `producao-backup-pre-v1883-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908.md` |
-| **Prova PREP** | overlay **134** · vila **242** · cofrinho **31** · CP tint **6** · NS+emp **35** · `manage.py check` |
-| **Risco venda** | **Não** mexe checkout/venda. **Sim** mexe Repasse (fórmula 2 cofres) — pausar Repasse no deploy |
-| **Deploy (próximo chat)** | `producao` ← `reset --hard origin/deploy/prep-checklist-2908` + push — **só** frase+senha |
+| **Rollback** | tag `rollback/pre-lote-checklist-2908-v18.72` @ `ae126d9` · branch `producao-backup-pre-v1883-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908.md` · **só** frase+senha |
+| **Você** | Ctrl+F5 nos PDVs · badge **v18.83** · smoke: venda · Repasse (2 cofres) · Nova saída |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.83** (29/08) · PREP `d836982`
+### ✅ CHECKLIST ÚNICO — enviado produção (29/08 · loja **v18.83**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Loja agora** | **v18.72** Live (`ae126d9`) |
-| **Tip teste / PREP** | **v18.83** · teste `4f0913c` · PREP **`d836982`** |
-| **Migrate** | **SIM** — `produtos.0103` (dois cofres) |
-| **Prova 29/08** | overlay **134** · vila **242** · cofrinho **31** · reserva **63** · planos **49** · NS **35** · tint **6** · fórmula 200→0 · forçar + `caixa_vila` |
-| **Status** | ✅ **PREP pronto / aguarda senha** |
-| **Você no deploy** | Pausar vendas ~2–3 min · Zap · Ctrl+F5 · smoke venda + Repasse + Nova saída |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `REPASSE-DOIS-COFRES` | ✅ **Live v18.83** · `0103` |
+| 2 | `REPASSE-FORCAR-MANUAL` | ✅ **Live v18.83** |
+| 3 | `REPASSE-CAIXA-DIN` | ✅ **Live v18.83** |
+| 4 | `REPASSE-HERO-TOTAIS` | ✅ **Live v18.83** |
+| 5 | `REPASSE-COFRE-CONFIRM` | ✅ **Live v18.83** |
+| 6 | `CP-EMP-ROW-TINT` | ✅ **Live v18.83** |
+| 7 | `NE-SUCESSO-OK` | ✅ **Live v18.83** |
+| 8 | `NS-ESCOLHA-MOLDURA` | ✅ **Live v18.83** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08 · tip **v18.83** · PREP **`d836982`**)
+### ~~🚀 PREP deploy loja — lote checklist 29/08~~ · **superado — Live v18.83 @ d836982**
 
-| # | Pacote | Versão | Migrate | Status |
-| - | ------ | ------ | ------- | ------ |
-| 1 | `REPASSE-DOIS-COFRES` | v18.81 | **0103** | ✅ **PREP / pronto envio** |
-| 2 | `REPASSE-FORCAR-MANUAL` | v18.82 | não | ✅ **PREP / pronto envio** |
-| 3 | `REPASSE-CAIXA-DIN` | v18.83 | não | ✅ **PREP / pronto envio** |
-| 4 | `REPASSE-HERO-TOTAIS` | v18.80 | não | ✅ **PREP / pronto envio** |
-| 5 | `REPASSE-COFRE-CONFIRM` | v18.78 | não | ✅ **PREP / pronto envio** |
-| 6 | `CP-EMP-ROW-TINT` | v18.77 | não | ✅ **PREP / pronto envio** |
-| 7 | `NE-SUCESSO-OK` | v18.76 | não | ✅ **PREP / pronto envio** |
-| 8 | `NS-ESCOLHA-MOLDURA` | v18.75 | não | ✅ **PREP / pronto envio** |
+### ~~📦 PACOTE PRONTO — o que ainda falta subir · tip v18.83~~ · **superado — Live v18.83**
 
 ### ✅ Deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**) · **Live**
 
