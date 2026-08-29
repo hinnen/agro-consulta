@@ -1321,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Revisão 28/08** | Código no `teste` OK · prova `tests_relatorios_central_filtros` **8/8** · loja já tem o cherry `cfcb526` (ancestral de `origin/producao` @ v18.27+). Renan: *«já foi resolvido»* — sem ação nova. |
 | **Deploy** | ✅ Live em produção v18.26.1 · `teste` d0d0498 · `producao` cfcb526 · backup `rollback/pre-relatorios-central-v18.25-20260827`. |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.42** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.44** · 28/08
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
@@ -1349,7 +1349,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto envio |
 | 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto envio |
 
-**Loja:** só com frase + senha. Após cofrinho: `migrate` · se já houver dinheiro físico, Ajuste · entrada.
+**Loja:** só com frase + senha. Smoke CP: Outros 45d · contorno campos. Após cofrinho: `migrate`.
 
 ### ✅ Deploy loja — Etiquetas 6 cm + recuperação estoque Entrada NF (**v18.25**) · 27/08
 
