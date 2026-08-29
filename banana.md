@@ -1244,15 +1244,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `CP-NE-BUSCA-EMPRESA` | 🟢 pronto envio · **v18.54+** · path **61/61** + extra **17/17** · migrate **NÃO** |
+| 1 | `CP-NE-BUSCA-EMPRESA` | 🟢 pronto envio · **v18.54+** · path **61/61** + extra **18/18** · migrate **NÃO** |
 | 2 | `REPASSE-COFRINHO-ACUM` | 🟢 pronto envio · **v18.52** · path **175** · migrate **NÃO** |
 | 3 | `PDV-MODO-POR-FORMA` | 🟢 pronto envio · **v18.56** · path **25/25** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.59** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.60** · 28/08
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
-| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros · **61+17** | NÃO |
+| `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto Centro/Vila · parcela dívida+juros · **61+18** | NÃO |
 | `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial · path **175** | NÃO |
 | `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV · path **25/25** | NÃO |
 
@@ -1268,7 +1268,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Busca** | Contorno overflow cortava lista Empresa/Credor — corrigido |
 | **Empresa padrão** | Centro → Agro Mais Centro · Vila → Agro Mais Vila Elias |
 | **Parcelas** | Calendário perto da data · dívida+juros na mesma linha |
-| **Prova 28/08** | path **61/61** · extra **17/17** · `manage.py check` OK · commit `f7bae7d` |
+| **Prova 28/08** | path **61/61** · extra **18/18** · `manage.py check` OK · commit `f7bae7d` |
 | **Status** | 🟢 **pronto para envio** · loja ainda v18.50 |
 
 ### 📦 PACOTE PRONTO — Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · **v18.52** · 28/08/2026)
