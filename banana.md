@@ -1239,7 +1239,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.45** · 28/08
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.46** · 28/08
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
