@@ -1242,6 +1242,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🚀 PREP deploy loja — lote checklist 28/08c (deploy/prep-checklist-2808c · **v18.72**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🚀 **PREP pronto** — **aguarda frase + senha** no próximo chat |
+| **Branch** | deploy/prep-checklist-2808c @ tip remoto |
+| **Base loja** | 5e6e44a / Live **v18.64** |
+| **Alvo** | **v18.72** |
+| **Pacotes** | NS-ESCOLHA-EMP · REPASSE-PDV-OVERLAY-POPUP · CP-EMP-PG-FALLBACK |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag 
+ollback/pre-lote-checklist-2808c-v18.64 · branch producao-backup-pre-v1872-lote-checklist-20260828 · doc docs/ROLLBACK-LOTE-CHECKLIST-2808c.md |
+| **Prova** | 30/30 · 61/61 · 18/18 · 93/93 · check OK |
+| **Risco PDV** | Baixo (não mexe Finalizar venda) |
+| **Próximo chat** | Zap pausa vendas → frase + senha → merge prep → producao |
+
 ### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.72**
 
 | # | Pacote | Versão | O quê | Migrate |

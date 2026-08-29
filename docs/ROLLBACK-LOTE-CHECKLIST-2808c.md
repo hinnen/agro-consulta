@@ -1,43 +1,32 @@
-﻿# Rollback — lote checklist 28/08c (v18.72)
+﻿# Rollback — lote checklist 2808c (loja alvo **v18.72**)
 
-**Só com frase explícita + senha `99738595` na mesma mensagem.**
+Ponto **antes** deste lote = loja **Live v18.64** (`5e6e44a`).
 
-## O que este lote sobe
-
-| # | Pacote | Risco PDV venda |
-| - | ------ | --------------- |
-| 1 | `NS-ESCOLHA-EMP` | **Baixo** — só Nova saída / BI (não Finalizar venda) |
-| 2 | `REPASSE-PDV-OVERLAY-POPUP` | **Baixo** — só overlay Repasse |
-| 3 | `CP-EMP-PG-FALLBACK` | **Baixo** — só Registrar empréstimo (melhora se Mongo off) |
-
-**Migrate:** **NÃO**
-
-## Antes do deploy (loja aberta)
-
-1. Zap: *«Atualização ~2 min — não finalize venda agora.»*
-2. Janela mais calma se possível.
-3. No chat: frase + senha.
-
-## Rollback (emergência)
+| Item | Valor |
+| ---- | ----- |
+| **Commit loja hoje** | `5e6e44a` (Live v18.64) |
+| **Tag (no deploy)** | `rollback/pre-lote-checklist-2808c-v18.64` |
+| **Branch backup (no deploy)** | `producao-backup-pre-v1872-lote-checklist-20260828` |
+| **Branch PREP** | `deploy/prep-checklist-2808c` @ **`ebe80b4`** / **v18.72** |
+| **O quê sobe** | `NS-ESCOLHA-EMP` · `REPASSE-PDV-OVERLAY-POPUP` · `CP-EMP-PG-FALLBACK` |
+| **O quê NÃO reverte** | lote v18.64 (modo por forma, cofrinho acumulado, CP busca, overlay limpo base) |
+| **Migrate** | **NÃO** — zero migration nova |
 
 ```bash
-git push origin 5e6e44a:producao
-# ou
-git push origin rollback/pre-lote-checklist-2808c-v18.64:producao
+git fetch origin
+git checkout producao
+git reset --hard rollback/pre-lote-checklist-2808c-v18.64
+git push origin producao --force-with-lease
 ```
 
-- Tag: `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a`
-- Branch backup: `producao-backup-pre-v1872-lote-checklist-20260828`
-- PREP: `deploy/prep-checklist-2808c`
+**Só** com frase + senha do Renan. Volta para Live **v18.64**. Badge da loja volta a **v18.64**.
 
-## Smoke pós-deploy
+## Risco operacional (lojas abertas)
 
-1. Ctrl+F5 · badge **v18.72**
-2. Venda R$ 0,01
-3. BI Nova saída → escolha
-4. Empréstimo Interno → Registrar
-5. PDV Repasse → popup quem/PIN
+| Pacote | Afeta venda PDV? | Nota |
+| ------ | ---------------- | ---- |
+| `NS-ESCOLHA-EMP` | **Não** | Só modal Nova saída (CP/BI) |
+| `REPASSE-PDV-OVERLAY-POPUP` | **Não** (venda) | Só tela Repasse; quem/PIN em popup; forma = Dinheiro |
+| `CP-EMP-PG-FALLBACK` | **Não** | Só gravação de empréstimo se Mongo off |
 
-## Provas
-
-NS+EMP 30/30 · CP 61/61 · CP-NE 18/18 · overlay 93/93 · check OK
+Rotina: pausar finalizações ~2 min · Zap · Ctrl+F5 nos PDVs após Live.
