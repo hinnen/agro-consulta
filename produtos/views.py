@@ -10524,6 +10524,7 @@ def dashboard_gerencial_view(request):
             **_dashboard_capri_context(request),
             "sync_status": sync_status,
             "repasse_aviso_abertura": aviso_rep if isinstance(aviso_rep, dict) else None,
+            "emprestimos_defaults": _emprestimos_defaults_para_template(request),
         },
     )
 
@@ -10561,7 +10562,11 @@ def dashboard_interno_preview_view(request):
     return render(
         request,
         "produtos/dashboard_gerencial.html",
-        {**_dashboard_interno_preview_context(request), "sync_status": sync_status},
+        {
+            **_dashboard_interno_preview_context(request),
+            "sync_status": sync_status,
+            "emprestimos_defaults": _emprestimos_defaults_para_template(request),
+        },
     )
 
 
@@ -14843,10 +14848,9 @@ def lancamentos_financeiros_view(request):
     return redirect(url)
 
 
-@ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
-def lancamentos_contas_pagar_view(request):
-    """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
+
+def _emprestimos_defaults_para_template(request):
+    """Defaults do modal Novo empréstimo (planos + empresa da loja do aparelho)."""
     try:
         garantir_planos_emprestimo_interno_cadastro()
     except Exception:
@@ -14865,13 +14869,20 @@ def lancamentos_contas_pagar_view(request):
         emp_defaults.setdefault("empresa_padrao", "Agro Mais Centro")
         emp_defaults.setdefault("empresa_padrao_id", "")
         emp_defaults.setdefault("deposito", "centro")
+    return emp_defaults
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
+def lancamentos_contas_pagar_view(request):
+    """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
     return render(
         request,
         "produtos/lancamentos_contas_pagar_teste.html",
         {
             "lancamentos_cp_bootstrap": _lancamentos_cp_bootstrap_payload(request),
             "lancamentos_pre_corte_admin": _lancamentos_mostrar_painel_pre_corte(request),
-            "emprestimos_defaults": emp_defaults,
+            "emprestimos_defaults": _emprestimos_defaults_para_template(request),
         },
     )
 
