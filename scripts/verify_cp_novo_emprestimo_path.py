@@ -98,7 +98,13 @@ def main() -> int:
         plano_divida_id=None,
         variante="interno",
     )
-    check("mongo off = erro", r_none.get("ok") is False, str(r_none.get("erro")))
+    # Mongo off → Postgres (ou simulação staging); não bloqueia com «serviço legado».
+    err_none = str(r_none.get("erro") or "")
+    check(
+        "mongo off = grava PG/sim (não legado)",
+        r_none.get("ok") is True and "Mongo indispon" not in err_none,
+        err_none or str(r_none.get("ref") or ""),
+    )
 
     r_cred = mfu.criar_emprestimo_externo_agro(
         object(),  # type: ignore[arg-type]

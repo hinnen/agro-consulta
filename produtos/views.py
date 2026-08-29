@@ -20818,8 +20818,7 @@ def api_emprestimos_criar(request):
             return None
 
     _, db = obter_conexao_mongo()
-    if db is None:
-        return JsonResponse({"ok": False, "erro": "Mongo indisponível"}, status=503)
+    # Mongo off: criar_emprestimo_externo_agro grava no Postgres via dispatch (não 503 «legado»).
 
     # Fluxo antigo «interno sócio» (cronograma) — desativado; usar Contas a pagar.
     if tipo == "interno" and (
@@ -20907,7 +20906,9 @@ def api_emprestimos_criar(request):
         parcelas_manual=parcelas_manual,
     )
 
-    erp_ok, erp_msg = _emprestimo_tentar_erp_batches(db, r)
+    erp_ok, erp_msg = (None, "")
+    if db is not None:
+        erp_ok, erp_msg = _emprestimo_tentar_erp_batches(db, r)
     out = dict(r)
     if erp_ok is not None:
         out["erp_lancamento_ok"] = erp_ok

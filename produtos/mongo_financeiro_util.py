@@ -6322,9 +6322,10 @@ def criar_emprestimo_externo_agro(
     Juros = max(0, total − recebido), rateado em cada parcela (como Nova saída dual).
     Vencimentos: calendário (30/60/90 = mesmo dia do mês). ``parcelas_manual`` opcional.
     ``variante=interno`` usa marca EMP-INT- e planos internos se os nomes vierem vazios.
+    Sem Mongo: grava títulos no Postgres (mesmo path da Nova saída).
     """
-    if db is None:
-        return {"ok": False, "erro": "Mongo indisponível", "ref": None}
+    from produtos.lancamentos_financeiro_pg_write_util import inserir_lancamentos_manual_lote_dispatch
+
     var = (variante or "externo").strip().lower()
     if var not in ("externo", "interno"):
         var = "externo"
@@ -6384,7 +6385,7 @@ def criar_emprestimo_externo_agro(
     else:
         obs_base = (f"Emprestimo EXT ref EMP-EXT-{ref}. " + (observacao or "").strip()).strip()[:900]
 
-    r_ent = inserir_lancamentos_manual_lote(
+    r_ent = inserir_lancamentos_manual_lote_dispatch(
         db,
         despesa=False,
         empresa_nome=empresa_nome,
@@ -6496,7 +6497,7 @@ def criar_emprestimo_externo_agro(
             )
         if not linhas_p:
             continue
-        r_p = inserir_lancamentos_manual_lote(
+        r_p = inserir_lancamentos_manual_lote_dispatch(
             db,
             despesa=True,
             empresa_nome=empresa_nome,
@@ -6551,13 +6552,15 @@ def criar_emprestimo_externo_agro(
         "created_at": now,
         "created_by": (usuario_label or "")[:200],
     }
-    try:
-        ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
-        meta_id = str(ins_m.inserted_id)
-    except Exception:
-        logger.exception("AgroEmprestimo insert meta externo")
-        meta_id = ""
-        all_ok = False
+    meta_id = ""
+    if db is not None:
+        try:
+            ins_m = db[COL_AGRO_EMPRESTIMO].insert_one(meta)
+            meta_id = str(ins_m.inserted_id)
+        except Exception:
+            logger.exception("AgroEmprestimo insert meta externo")
+            # Títulos já gravados (Mongo ou PG); meta é só rastreio.
+            meta_id = ""
 
     return {
         "ok": all_ok,
