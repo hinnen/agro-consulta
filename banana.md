@@ -1248,7 +1248,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.09**) · 29/08/2026
+### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.13**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1277,16 +1277,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · prova path **27/27** · ⏳ loja ainda sem |
 | **Relato** | Renan · Caixa Centro · 29/08 11:50 · venda dinheiro sem cupom (v18.27) · print = overlay Vendas branco |
 | **Causa** | Enter após dinheiro = sem impressão; modal nova venda antes do `print()`; `/vendas/` no iframe com `100dvh` |
 | **O quê** | Enter só-dinheiro = com cupom; print antes do reset; altura 100% no overlay |
-| **Onde** | `pdv_wizard.js` · `vendas_lista.html` |
+| **Onde** | `pdv_wizard.js` · `vendas_lista.html` · `scripts/verify_pdv_cupom_dinheiro_path.py` |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v19.06** · Dinheiro → Enter → Enter → cupom; Vendas no overlay lista |
+| **Prova** | VERIFY_OK **27/27** (contratos · print→reset · node · cupom PG · overlay) |
+| **Você** | Ctrl+F5 `/pdv/` · Dinheiro → Enter → Enter → cupom; Vendas no overlay lista |
 | **Risco** | Baixo — PIX/cartão Enter segue sem impressão |
 
-### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05→v19.10**) · bug loja #7 · 29/08/2026
+### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05→v19.12**) · bug loja #7 · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1300,17 +1301,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.10** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.12** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.09** · loja **v19.01** |
+| **Tip** | `teste` **v19.13** · loja **v19.01** |
 | **Prova** | NFCE-DESC **56/56** · PIN 50/50 · Repasse paths OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · PIN · Repasse · dinheiro+cupom · **desconto+cupom fiscal** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.10**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.12**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1320,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | `PDV-CUPOM-DINHEIRO` | Dinheiro Enter = cupom · overlay Vendas (bug #6) | não | 🟡 pronto envio |
 | 5 | `REPASSE-COFRE-CAMPOS-HERO` | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.10** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.12** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.04** · 29/08/2026)
 

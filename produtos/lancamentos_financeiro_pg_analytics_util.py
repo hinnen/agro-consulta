@@ -517,18 +517,13 @@ def financeiro_calendario_contas_pagar_dias_pg(
     pagar_map = lancamentos_contas_pagar_totais_diarios_pg(
         vencimento_de=grid_ini, vencimento_ate=grid_fim
     )
-    meta_hist_cache: dict[tuple[date, date], dict] = {}
+    meta_hist_cache: dict = {}
 
     def previsao_vendas_dia(d: date) -> float:
-        from produtos.views import (
-            _dashboard_meta_c_meses_por_dia,
-            _dashboard_vendas_meta_c_para_dia,
-        )
+        from produtos.views import _dashboard_vendas_meta_c_valor
 
-        val = _dashboard_vendas_meta_c_para_dia(
-            d, _dashboard_meta_c_meses_por_dia(d, meta_hist_cache)
-        )
-        return round(float(val), 2)
+        # Centro+Vila = soma das metas (mesma regra do BI).
+        return round(float(_dashboard_vendas_meta_c_valor(d, meta_hist_cache)), 2)
 
     dias_out: dict[str, dict[str, Any]] = {}
     cum = Decimal("0")

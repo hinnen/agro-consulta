@@ -341,13 +341,11 @@ def previsao_vendas_dia_dashboard_agro(alvo: date) -> Decimal:
     """
     Previsão diária = meta C do dashboard (média dos 3 meses anteriores
     no mesmo weekday/ocorrência), mesma regra do tooltip «Média base».
+    Centro + Vila = soma das metas (Vila corta dias antes da abertura).
     """
-    from produtos.views import (
-        _dashboard_meta_c_meses_por_dia,
-        _dashboard_vendas_meta_c_para_dia,
-    )
+    from produtos.views import _dashboard_vendas_meta_c_valor
 
-    val = _dashboard_vendas_meta_c_para_dia(alvo, _dashboard_meta_c_meses_por_dia(alvo))
+    val = _dashboard_vendas_meta_c_valor(alvo)
     return Decimal(str(val)).quantize(Decimal("0.01"))
 
 

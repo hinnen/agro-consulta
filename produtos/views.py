@@ -8378,17 +8378,44 @@ def _dashboard_label_mesmo_weekday_mes_ant(d: date, ref: date | None) -> dict[st
     }
 
 
+def _dashboard_meta_c_vila_abertura() -> date:
+    """1º dia com vendas na Vila Elias — base da Meta C nunca usa dias anteriores."""
+    raw = getattr(settings, "AGRO_VILA_ABERTURA", None) or "2026-07-20"
+    if isinstance(raw, date):
+        return raw
+    try:
+        return date.fromisoformat(str(raw).strip()[:10])
+    except ValueError:
+        return date(2026, 7, 20)
+
+
+def _dashboard_meta_c_data_min(deposito: str | None) -> date | None:
+    """Piso da base histórica: Vila ≥ abertura; Centro / outras = sem piso."""
+    if deposito == "vila":
+        return _dashboard_meta_c_vila_abertura()
+    return None
+
+
 def _dashboard_meta_c_um_mes(
-    wd: int, ocorrencia_idx: int, por_dia: dict, first_m: date, last_m: date
+    wd: int,
+    ocorrencia_idx: int,
+    por_dia: dict,
+    first_m: date,
+    last_m: date,
+    data_min: date | None = None,
 ) -> float | None:
     """
     Meta parcial para um único mês civil: (A + B) / 2 — A = média das vendas no mesmo weekday;
     B = venda da ocorrência equivalente (1ª, 2ª, 3ª...) daquele weekday no mês.
+    ``data_min``: ignora dias anteriores (Vila antes da abertura) — não entram como zero.
     """
     vals_same: list[float] = []
     picked_seq: float | None = None
     cur = first_m
     while cur <= last_m:
+        if data_min is not None and cur < data_min:
+            cur += timedelta(days=1)
+            continue
         if cur.weekday() == wd:
             v = round(_dashboard_float(por_dia.get(cur.isoformat())), 2)
             vals_same.append(v)
@@ -8440,18 +8467,24 @@ def _dashboard_meta_c_meses_por_dia(
 
 
 def _dashboard_vendas_meta_c_para_dia(
-    d: date, meses_por_dia: list[tuple[date, date, dict]]
+    d: date,
+    meses_por_dia: list[tuple[date, date, dict]],
+    data_min: date | None = None,
 ) -> float:
     """
     Meta diária C = média aritmética das metas dos últimos meses civis (M-1, M-2, M-3…).
     Em cada mês aplica-se ``_dashboard_meta_c_um_mes``. Se só alguns meses tiverem base,
     usa-se a média só dos que tiverem.
     """
+    if data_min is not None and d < data_min:
+        return 0.0
     wd = d.weekday()
     ocorrencia_idx = ((d.day - 1) // 7) + 1
     partes: list[float] = []
     for first_m, last_m, por_dia in meses_por_dia:
-        m = _dashboard_meta_c_um_mes(wd, ocorrencia_idx, por_dia, first_m, last_m)
+        m = _dashboard_meta_c_um_mes(
+            wd, ocorrencia_idx, por_dia, first_m, last_m, data_min=data_min
+        )
         if m is not None:
             partes.append(m)
     if not partes:
@@ -8459,23 +8492,71 @@ def _dashboard_vendas_meta_c_para_dia(
     return round(sum(partes) / len(partes), 2)
 
 
+def _dashboard_vendas_meta_c_valor(
+    d: date,
+    cache: dict | None = None,
+    deposito: str | None = None,
+) -> float:
+    """
+    Meta C de um dia.
+    ``deposito=centro|vila``: loja sozinha (Vila corta dias antes da abertura).
+    ``deposito=None``: soma Centro + Vila (não Meta C do total misturado).
+    """
+    if deposito not in ("centro", "vila"):
+        return round(
+            _dashboard_vendas_meta_c_valor(d, cache, "centro")
+            + _dashboard_vendas_meta_c_valor(d, cache, "vila"),
+            2,
+        )
+    data_min = _dashboard_meta_c_data_min(deposito)
+    return _dashboard_vendas_meta_c_para_dia(
+        d,
+        _dashboard_meta_c_meses_por_dia(d, cache, deposito=deposito),
+        data_min=data_min,
+    )
+
+
 def _dashboard_serie_meta_c_vendas(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> list[float]:
-    """Uma meta C por dia no intervalo (visão anual mensal não aplica esta regra)."""
-    dep_key = deposito if deposito in ("centro", "vila") else None
-    ck = f"dash:metac:v1:{dep_key or 'todas'}:{data_ini.isoformat()}:{data_fim.isoformat()}"
-    cached = cache.get(ck)
-    if isinstance(cached, list) and len(cached) == (data_fim - data_ini).days + 1:
-        return cached
+    """
+    Uma meta C por dia no intervalo (visão anual mensal não aplica esta regra).
+    ``deposito=None`` (Centro+Vila) = soma das metas das duas lojas.
+    Vila: base histórica ignora dias antes de ``AGRO_VILA_ABERTURA`` (padrão 2026-07-20).
+    """
     dias = (data_fim - data_ini).days + 1
+    if dias < 1:
+        return []
+
+    # Centro + Vila: soma das metas (cada loja na sua regra).
+    if deposito not in ("centro", "vila"):
+        ck = f"dash:metac:v2:todas-soma:{data_ini.isoformat()}:{data_fim.isoformat()}"
+        cached = cache.get(ck)
+        if isinstance(cached, list) and len(cached) == dias:
+            return cached
+        sc = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito="centro")
+        sv = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito="vila")
+        out = [
+            round(float(a or 0.0) + float(b or 0.0), 2) for a, b in zip(sc, sv)
+        ]
+        cache.set(ck, out, timeout=120)
+        return out
+
+    dep_key = deposito
+    data_min = _dashboard_meta_c_data_min(dep_key)
+    ck = f"dash:metac:v2:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    cached = cache.get(ck)
+    if isinstance(cached, list) and len(cached) == dias:
+        return cached
     hist_cache: dict = {}
     out: list[float] = []
     for i in range(dias):
         d = data_ini + timedelta(days=i)
         out.append(
             _dashboard_vendas_meta_c_para_dia(
-                d, _dashboard_meta_c_meses_por_dia(d, hist_cache, deposito=dep_key)
+                d,
+                _dashboard_meta_c_meses_por_dia(d, hist_cache, deposito=dep_key),
+                data_min=data_min,
             )
         )
     cache.set(ck, out, timeout=120)
@@ -10047,7 +10128,11 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
             )
         if periodo_key != "ano":
             fut["serie_compare"] = ex.submit(
-                _dashboard_worker, _dashboard_serie_meta_c_vendas, data_ini, data_fim
+                _dashboard_worker,
+                _dashboard_serie_meta_c_vendas,
+                data_ini,
+                data_fim,
+                deposito_filtro,
             )
         blk = {k: v.result() for k, v in fut.items()}
 
