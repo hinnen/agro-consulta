@@ -38,7 +38,10 @@ from produtos.repasse_vila_util import (
     confirmar_repasse,
     estornar_movimento_cofrinho,
     obter_config,
+    pendente_reserva_cofrinho_ate,
+    registrar_saldo_inicial_cofrinho,
     registrar_uso_ou_ajuste_cofrinho,
+    resumo_cofrinho_vila,
     saldo_cofrinho_vila,
     separar_reserva_diaria,
     separar_reservas_ao_fechar_vila,
@@ -125,6 +128,8 @@ def main():
     user, _ = User.objects.get_or_create(username="verify_cofre_bot", defaults={"is_staff": True})
     sessao = SessaoCaixa.objects.create(ponto_caixa="vila", valor_abertura=Decimal("500"), usuario=user)
     dia = date(2026, 8, 26)
+    cfg.reserva_vila_desde = dia
+    cfg.save(update_fields=["reserva_vila_desde"])
     try:
         with patch("produtos.repasse_vila_util.calcular_disponivel", return_value=calc_fake()):
             mov, criado, err = separar_reserva_diaria(
@@ -177,6 +182,16 @@ def main():
 
         # Fechamento: aviso/esperado virtual e persistência usam o mesmo valor, sem duplicar.
         hoje = timezone.localdate()
+        MovimentoCaixa.objects.create(
+            sessao_caixa=sessao,
+            tipo=MovimentoCaixa.Tipo.REFORCO,
+            forma_pagamento="Dinheiro",
+            valor=Decimal("2000.00"),
+            observacao=PREFIX + " reforco teste",
+            usuario=user,
+        )
+        cfg.reserva_vila_desde = hoje
+        cfg.save(update_fields=["reserva_vila_desde"])
         with patch("produtos.repasse_vila_util.calcular_disponivel", return_value=calc_fake(Decimal("60"), Decimal("0"))):
             estado = {"tot_esperado_dinheiro": "420.00", "linhas": [{"forma": "Dinheiro", "esperado": "420.00", "retiradas": "80.00"}], "cards": []}
             reserva = {"tem": True, "valor": "60.00", "saldo": str(saldo_cofrinho_vila()), "dias": [], "texto": ""}
@@ -186,6 +201,50 @@ def main():
             check(not err and sum((_dec(x.valor) for x in feitos), Decimal("0")) == Decimal("60.00"), "fechamento separa valor exato")
             feitos2, err2 = separar_reservas_ao_fechar_vila([sessao], operador="Bot Cofre", usuario=user)
             check(not err2 and not feitos2, "fechamento repetido não separa duas vezes")
+
+        # Acumulado: não separar ontem → hoje deve ontem+hoje; separar a mais / saldo inicial abate amanhã.
+        ontem = hoje - timedelta(days=1)
+        amanha = hoje + timedelta(days=1)
+        RepasseVilaReservaMovimentoAgro.objects.filter(
+            data_ref__gte=ontem, data_ref__lte=amanha
+        ).delete()
+        cfg.reserva_vila_desde = ontem
+        cfg.saldo_reserva_vila = Decimal("0.00")
+        cfg.save(update_fields=["reserva_vila_desde", "saldo_reserva_vila"])
+        with patch("produtos.repasse_vila_util.calcular_disponivel", return_value=calc_fake(Decimal("100"), Decimal("0"))):
+            pend_ontem = pendente_reserva_cofrinho_ate(ontem)
+            check(pend_ontem["pendente"] == Decimal("100.00"), "ontem sem separação deve 100")
+            pend_hoje = pendente_reserva_cofrinho_ate(hoje)
+            check(pend_hoje["pendente"] == Decimal("200.00"), "hoje acumula ontem+hoje = 200")
+            mov_extra, criado_extra, err_extra = separar_reserva_diaria(
+                hoje, origem="lancamento_separado", operador="Bot Cofre", usuario=user, sessao_caixa=sessao
+            )
+            check(not err_extra and criado_extra and _dec(mov_extra.valor) == Decimal("200.00"), "separação leva acumulado 200")
+            si, cri_si, err_si = registrar_saldo_inicial_cofrinho(
+                valor=Decimal("50"), observacao="Saldo inicial teste", operador="Bot Cofre",
+                usuario=user, idempotencia_chave=PREFIX + ":saldo-ini"
+            )
+            check(not err_si and cri_si and _dec(si.valor) == Decimal("50.00"), "saldo inicial sobe saldo físico")
+            pend_am = pendente_reserva_cofrinho_ate(amanha)
+            check(pend_am["pendente"] == Decimal("50.00"), "adiantar/separar a mais abate próximo dia")
+            rsum = resumo_cofrinho_vila(amanha)
+            check(rsum["pendente_dia"] == 50.0 and float(rsum.get("adiantado") or 0) == 0.0, "resumo expõe pendente acumulado")
+
+        # Repasse limpo: sem pendente acumulado e gaveta reforçada.
+        RepasseVilaReservaMovimentoAgro.objects.filter(
+            data_ref__gte=ontem, data_ref__lte=amanha
+        ).delete()
+        cfg.reserva_vila_desde = date(2026, 8, 27)
+        cfg.saldo_reserva_vila = Decimal("0.00")
+        cfg.save(update_fields=["reserva_vila_desde", "saldo_reserva_vila"])
+        MovimentoCaixa.objects.create(
+            sessao_caixa=sessao,
+            tipo=MovimentoCaixa.Tipo.REFORCO,
+            forma_pagamento="Dinheiro",
+            valor=Decimal("2000.00"),
+            observacao=PREFIX + " reforco repasse",
+            usuario=user,
+        )
 
         # Repasse + separação na mesma transação; fórmula não subtrai a reserva do total outra vez.
         dia_rep = date(2026, 8, 27)

@@ -208,7 +208,10 @@
       cofreDia.textContent =
         'Prevista ' + money(prevista) +
         ' · realizada ' + money(realizada) +
-        ' · ainda separar ' + money(pendente);
+        ' · ainda separar (acumulado) ' + money(pendente);
+      if (Number(cofre.adiantado || 0) > 0.009) {
+        cofreDia.textContent += ' · adiantado ' + money(cofre.adiantado);
+      }
     }
     var cofreAviso = document.getElementById('pdv-rp-cofre-aviso');
     if (cofreAviso) {

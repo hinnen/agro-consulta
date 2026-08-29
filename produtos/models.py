@@ -3036,6 +3036,7 @@ class RepasseVilaReservaMovimentoAgro(models.Model):
         REPASSE = "repasse", "Repasse Vila → Centro"
         SEPARADO = "lancamento_separado", "Lançamento separado"
         AJUSTE = "ajuste_manual", "Ajuste manual"
+        SALDO_INICIAL = "saldo_inicial", "Saldo inicial"
         ESTORNO = "estorno", "Estorno"
 
     tipo = models.CharField(max_length=16, choices=Tipo.choices, db_index=True)

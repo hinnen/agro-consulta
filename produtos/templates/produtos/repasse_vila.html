@@ -319,11 +319,13 @@
       <div class="rv-sum border-rose-500 bg-white"><div class="rv-lbl text-rose-800">Saldo no cofrinho</div><div class="rv-val-lg text-rose-950" id="rv-cofre-saldo">R$ {{ cofrinho.saldo|default:0|floatformat:2 }}</div></div>
       <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-prevista">R$ {{ cofrinho.prevista_dia|default:0|floatformat:2 }}</div></div>
       <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-realizada">R$ {{ cofrinho.realizada_dia|default:0|floatformat:2 }}</div></div>
-      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar (acumulado)</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
     </div>
-    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
-      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar reserva do dia</button>
-      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option></select></label>
+    <p id="rv-cofre-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Não separar hoje soma amanhã · separar a mais abate os próximos dias.</p>
+    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar reserva</button>
+      <button type="button" id="rv-cofre-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-rose-700 bg-white px-4 text-xs font-black uppercase text-rose-950">Saldo inicial</button>
+      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
       <label><span class="rv-lbl">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
       <button type="button" id="rv-cofre-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
     </div>
@@ -1010,6 +1012,15 @@
       var el = document.getElementById(ids[k]);
       if (el) el.textContent = money(c[k]);
     });
+    var hint = document.getElementById('rv-cofre-acum-hint');
+    if (hint) {
+      var adi = Number(c.adiantado || 0);
+      hint.textContent = adi > 0.009
+        ? ('Adiantado ' + money(adi) + ' — abate os próximos dias. Não separar hoje soma amanhã.')
+        : ('Obrigação acumulada ' + money(c.obrigacao_acumulada) +
+          ' · crédito ' + money(c.credito_acumulado) +
+          ' · não separar hoje soma amanhã · separar a mais abate os próximos.');
+    }
     var box = document.getElementById('rv-cofre-historico');
     if (!box) return;
     var rows = c.movimentos || [];
@@ -1062,6 +1073,20 @@
   if (btnCofreSep) btnCofreSep.addEventListener('click', function () {
     postCofre('/api/repasse-vila/cofrinho/separar/', { data_ref: dataRef(), observacao: 'Separação isolada pela tela de repasse' });
   });
+  var btnSaldoIni = document.getElementById('rv-cofre-saldo-inicial');
+  if (btnSaldoIni) {
+    btnSaldoIni.addEventListener('click', function () {
+      var tipoEl = document.getElementById('rv-cofre-tipo');
+      if (tipoEl) tipoEl.value = 'saldo_inicial';
+      var valorEl = document.getElementById('rv-cofre-valor');
+      if (valorEl) valorEl.focus();
+      var obsEl = document.getElementById('rv-cofre-obs');
+      if (obsEl && !String(obsEl.value || '').trim()) {
+        obsEl.value = 'Saldo inicial — já separado fisicamente nos dias anteriores';
+      }
+      setCofreStatus('Digite o valor já separado e clique em Registrar.');
+    });
+  }
   var btnCofreMov = document.getElementById('rv-cofre-movimentar');
   if (btnCofreMov) btnCofreMov.addEventListener('click', function () {
     var tipoUi = String(document.getElementById('rv-cofre-tipo').value || 'retirada');
@@ -1069,8 +1094,10 @@
     var obs = String(document.getElementById('rv-cofre-obs').value || '').trim();
     if (valor <= 0) { setCofreStatus('Informe um valor maior que zero.'); return; }
     if (obs.length < 3) { setCofreStatus('Informe o motivo/observação.'); return; }
-    var tipo = tipoUi === 'retirada' ? 'retirada' : 'ajuste';
-    if (tipoUi === 'ajuste_menos') valor = -valor;
+    var tipo = 'ajuste';
+    if (tipoUi === 'retirada') tipo = 'retirada';
+    else if (tipoUi === 'saldo_inicial') tipo = 'saldo_inicial';
+    else if (tipoUi === 'ajuste_menos') valor = -valor;
     var chave = 'cofre-ui:' + Date.now() + ':' + Math.random().toString(36).slice(2);
     postCofre('/api/repasse-vila/cofrinho/movimento/', { tipo: tipo, valor: valor, observacao: obs, data_ref: dataRef(), idempotencia_chave: chave });
   });
