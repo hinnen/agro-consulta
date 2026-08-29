@@ -1425,7 +1425,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.51** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.53** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1436,9 +1436,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | migrate loja · Ctrl+F5 · Chat 2 PCs · Entrada NF etapa 5 · Pedir escrito · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.51**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08g · tip **v19.53**)
 
-> **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**.
+> **Já Live (fora do lote):** `BI-META-C-VILA` → loja **v19.02**. **Pendente SOLO:** `BI-META-C-VILA-RAMP` (checklist acima).
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1458,7 +1458,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 14 | NF-ESTOQUE-BLOQUEIO-FALSO | Etapa 5 sem falso «finalizada» · **39/39** | não | 🟡 pronto envio |
 | 15 | PDV-CHAT-LOJA | Chat grupo + som + badge · **58/58** | **SIM** `0105` | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **v19.51**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.47~~ · superado pelo tip **v19.53**
 
 ### ~~📦 PACOTE PRONTO — tip v19.37~~ · superado pelo tip **v19.47**
 
