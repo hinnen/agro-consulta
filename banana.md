@@ -1247,36 +1247,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 29/08b (`deploy/prep-checklist-2908b` · **v19.01**) · aguarda senha
+### ✅ Deploy loja — lote checklist 29/08b (`deploy/prep-checklist-2908b` · **v19.01**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
-| **Base loja** | `origin/producao` @ **v18.83** / `d836982` |
-| **Branch PREP** | `deploy/prep-checklist-2908b` @ **`7c69fbc`** · tip **v19.01** |
+| **Status** | ✅ **enviado / Live v19.01** — healthz **ok** · home/consulta/PDV **200** · badge **v19.01** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v18.83** / `d836982` |
+| **Agora** | `producao` @ **`7c69fbc`** |
 | **Pacotes** | REPASSE-HERO-LOTE · TABELA-PRECO-FORMA · PDV-PEDIR-CUPOM-QTD |
-| **Migrate** | **SIM** — `produtos.0104` (seed **inativas**) · `estoque.0020` |
-| **Provas (29/08 prep)** | pedir-cupom **32/32** · tabela-forma **20/20** · pedir-loja **63/63** · Django **27** OK · repasse path/overlay/deep OK |
+| **Migrate** | **SIM** — `produtos.0104` · `estoque.0020` no build |
 | **Rollback** | tag `rollback/pre-lote-checklist-2908b-v18.83` @ `d836982` · branch `producao-backup-pre-v1901-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908b.md` · **só** frase+senha |
-| **Risco loja aberta** | Venda: tabelas **inativas** no seed (sem mudar preço até ativar) · JS PDV muda → **Ctrl+F5** · Repasse só UX · Pedir loja só overlay |
-| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-2908b` · pausar vendas ~2–3 min · Zap · healthz · badge **v19.01** · smoke venda + forma + Pedir loja + Repasse |
-| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+| **Você** | **Ctrl+F5** nos PDVs · badge **v19.01** · smoke: venda · forma · Pedir loja · Repasse · **não** ativar tabelas % ainda |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08b · tip **v19.01**) · PREP `7c69fbc`
+### ✅ CHECKLIST ÚNICO — enviado produção (29/08b · loja **v19.01**)
 
-| # | Pacote | O quê | Migrate | Status |
-| - | ------ | ----- | ------- | ------ |
-| 1 | `REPASSE-HERO-LOTE` | Hero UX (mês=tudo · cofres · Levar · totais coluna · zerar acum · manual) | não | 🟡 PREP / aguarda senha |
-| 2 | `TABELA-PRECO-FORMA` | Tabelas globais % por forma no PDV | **SIM** `0104` | 🟡 PREP / aguarda senha |
-| 3 | `PDV-PEDIR-CUPOM-QTD` | Cupom 80mm + qtd editável ao Transferir · path **32/32** | **SIM** `estoque.0020` | 🟡 PREP / aguarda senha |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `REPASSE-HERO-LOTE` | ✅ **Live v19.01** |
+| 2 | `TABELA-PRECO-FORMA` | ✅ **Live v19.01** · `0104` |
+| 3 | `PDV-PEDIR-CUPOM-QTD` | ✅ **Live v19.01** · `estoque.0020` |
 
-### 📦 PACOTE PRONTO — tip **v19.01** · 29/08/2026 · **superado pelo PREP acima**
+### ~~🚀 PREP deploy loja — lote checklist 29/08b~~ · **superado — Live v19.01 @ 7c69fbc**
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Tip** | `teste` **v19.01** · loja ainda **v18.83** · PREP `deploy/prep-checklist-2908b` @ `7c69fbc` |
-| **Migrate loja** | **SIM** — `produtos.0104` · `estoque.0020` |
-| **Status** | 🟡 PREP pronta (aguarda frase + senha) |
+### ~~📦 PACOTE PRONTO — tip v19.01~~ · **superado — Live v19.01**
 
 ### ✅ Deploy loja — lote checklist 29/08 (`deploy/prep-checklist-2908` · **v18.83**) · **Live**
 
