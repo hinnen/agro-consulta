@@ -1247,15 +1247,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Repasse fórmula + 3 valores + acum (`REPASSE-FORMULA-3VAL` · **v19.03** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **1 Fórmula** | Planos + Cofrinho Salário **antes** do 50/50 (VE / Centro) |
+| **2 Acumulado** | Após transferir, recalcula cache da janela (não fica «preso») |
+| **3 Confirmar** | Modal edita **3 valores**: Salário · Vila Elias · Levar; o que sobrar continua pedindo |
+| **Prova** | path/overlay/cofrinho/reserva/deep/acum OK |
+| **Status** | 🟡 **pronto para envio** · loja ainda **v19.01** |
+| **Você** | Ctrl+F5 · Repasse · Confirmar · editar os 3 |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.03**)
+
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `REPASSE-FORMULA-3VAL` | Planos+salário antes 50/50 · modal 3 valores · fix acum | não | 🟡 pronto envio |
+| 2 | `PIN-OPERADOR-QUEM` | Bug report / Geraldo Hinnen · PIN manda no nome | não | 🟡 pronto envio (v19.02) |
+
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.02** · 29/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no **teste** · loja ainda **v19.01** |
+| **Status** | ✅ no **teste** · loja ainda **v19.01** · ver **CHECKLIST ÚNICO** tip v19.03 |
 | **Bug report** | Campo **Seu nome** = PIN do descanso/caixa (editável) · não o login Chrome |
 | **Geraldo Hinnen** | Várias ações usavam login Django / pdv_caixa_gerido_operador grudado e **ignoravam** pdv_operador_nome do PIN |
 | **Fix** | operador_label_request prioriza PIN · PIN grava/limpa gerido · adotar caixa sem PIN usa sessão PIN |
-| **Arquivos** | caixa_util.py · pdv_transf_loja_util.py · iews.py · gro_bug_report.js · ug_report_views.py · _agro_consulta_ui.html |
 | **Você** | Ctrl+F5 · digitar seu PIN · abrir 🐞 · nome deve ser o do PIN · ação PDV não deve gravar Geraldo Hinnen se PIN for outro |
 | **Pendência** | Renan manda print da tela onde ainda aparecer Geraldo errado (se sobrar) |
 
