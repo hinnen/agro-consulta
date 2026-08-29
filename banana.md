@@ -681,6 +681,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
 - **Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · v18.52):** «Ainda separar» soma dias sem separar; separar a mais / **Saldo inicial** abate próximos dias. Prova `verify_repasse_cofrinho` **28/28**.
+- **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO`):** hero cofrinho + levar Centro (acumulado) + manual · cards · quem/forma/PIN em popup (foco + Enter).
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 
@@ -1249,14 +1250,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `PDV-MODO-POR-FORMA` | ✅ **pronto para envio** · v18.56 · migrate **NÃO** |
 | 4 | `REPASSE-PDV-OVERLAY-LIMPO` | ✅ **pronto para envio** · tip · path **187** · migrate **NÃO** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.61**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.62**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
 | `CP-NE-BUSCA-EMPRESA` | **v18.54** | Busca Empresa/Credor · empresa auto · parcela | NÃO |
-| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | NÃO |
+| `REPASSE-COFRINHO-ACUM` | **v18.52** | Cofrinho acumulado + saldo inicial | **SIM** (`0102` choice) |
 | `PDV-MODO-POR-FORMA` | **v18.56** | «Por forma» no PDV | NÃO |
-| `REPASSE-PDV-OVERLAY-LIMPO` | **tip** | Overlay PDV limpo: hero + cards · quem/forma/PIN popup (foco+Enter) | NÃO |
+| `REPASSE-PDV-OVERLAY-LIMPO` | **v18.62** | Overlay PDV limpo: hero + cards · quem/forma/PIN popup (foco+Enter) | NÃO |
 
 ### 📦 PACOTE PRONTO — Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` · 28/08/2026)
 
