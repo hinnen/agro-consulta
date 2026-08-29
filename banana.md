@@ -1246,83 +1246,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🔧 WIP — Forçar valor manual dia zerado (`REPASSE-FORCAR-MANUAL` · **v18.82**)
+
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v18.83** (29/08)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **O quê** | Se o automático das linhas = R$ 0 e digitar valor manual → aviso + **PIN de novo** (não bloqueia seco). Continua bloqueando gaveta/caixa/valor inválido. |
-| **Onde** | `confirmar_repasse` · API confirmar · overlay PDV |
-| **Migrate** | **NÃO** |
-| **Prova** | overlay path · vila path · node --check |
-| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse · digite R$ 1 com sugerido 0 |
-| **Você** | Deve abrir modal âmbar pedindo PIN de novo; depois grava. |
+| **Loja agora** | **v18.72** Live (`ae126d9`) |
+| **Tip teste** | **v18.83** @ `a5df0c8` |
+| **Migrate** | **SIM** — `produtos.0103` (dois cofres) |
+| **Prova 29/08** | overlay path **134** · vila path **242** · cofrinho **31/31** · reserva **63** · planos **49** · acum-net **28** · `manage.py check` · fórmula 200→Centro 0 · forçar manual (contrato) · API `caixa_vila` |
+| **Status** | ✅ **pronto para envio à produção** (só frase + senha) |
+| **Você após loja** | Ctrl+F5 · Repasse (2 cofres · gaveta · forçar R$ · hero) · CP (tint emp · sucesso OK · cards Nova saída) |
 
-### 🔧 WIP — Dois cofrinhos Vila (`REPASSE-DOIS-COFRES` · **v18.81**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08 · tip **v18.83**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Cofrinho atual → **Salário funcionário**; novo **Cofre Vila Elias** = fatia do lucro que não vai ao Centro. Fórmula: VE = lucro×(100−%)/100 · salário = min(config, lucro) · lucro Centro = resto. CMV/fiado iguais. |
-| **Ex.** | Lucro 200 · 50% · salário 100 → VE 100 · Salário 100 · lucro Centro **0** |
-| **Onde** | `repasse_vila_util` · models · views · overlay PDV · `/repasse-vila/` · ajuda · fechar caixa |
-| **Migrate** | **SIM** — `produtos.0103` (`saldo_cofre_vila_elias` + `cofre` nos movimentos) |
-| **Prova** | path **226** · overlay **119** · cofrinho **31** · reserva **63** · `manage.py check` |
-| **Status** | ⏳ **teste** — Ctrl+F5 PDV Repasse + `/repasse-vila/` |
-| **Você** | Conferir 2 cards · Separar junto · lucro Centro 0 no exemplo. Dinheiro já no cofre físico → **Saldo inicial** no Cofre Vila Elias. |
-
-### 🔧 WIP — Repasse: mês + total geral no hero (`REPASSE-HERO-TOTAIS` · **v18.80**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | No card «Levar ao Centro»: **Enviado no mês** + **Total geral** (pequeno, padrão Acumulado/Sugerido) |
-| **Onde** | overlay + `historico_mes` (`total_geral`) · `pdv_repasse_vila.js` |
-| **Prova** | overlay path **113** |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse |
-| **Você** | Conferir os 2 valores sob Acumulado/Sugerido |
-
-### 🔧 WIP — Repasse: modal cofrinho grande (`REPASSE-COFRE-CONFIRM` · **v18.78**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Tira o `confirm` do browser; modal rosa ~80% da tela: valor + «não no envelope» |
-| **Onde** | `repasse_vila_overlay.html` · `pdv_repasse_vila.js` |
-| **Prova** | overlay path **104** · vila path **208** |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — Ctrl+F5 PDV → Repasse → Confirmar (com cofrinho pendente) |
-| **Você** | Tem que aparecer o aviso grande, não a caixinha do Chrome |
-
-### 🔧 WIP — CP fundo laranja empréstimo (`CP-EMP-ROW-TINT` · **v18.77**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Linhas **Pagamento** e **Juros** de Empréstimo (ext/int) com fundo laranja leve na lista CP |
-| **Onde** | `lancamentos_contas_pagar_teste.html` · classe `sv-row-emp-pg` |
-| **Prova** | `scripts/verify_cp_emp_row_tint_path.py` |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — Ctrl+F5 Contas a pagar · filtrar plano empréstimo |
-| **Você** | Conferir se pagamento e juros ficam com o mesmo fundo |
-
-### 🔧 WIP — Empréstimo: tela de sucesso (`NE-SUCESSO-OK` · **v18.76**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Bug** | Após Registrar, modal fechava / lista recarregava sem feedback |
-| **Fix** | Painel verde «Empréstimo registrado» + OK (só então fecha e atualiza lista) |
-| **Onde** | `lancamento_novo_emprestimo_modal.html` |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste** — Ctrl+F5 · Novo empréstimo · Registrar |
-| **Você** | Tem que aparecer ✓ e OK antes de fechar |
-
-### 🔧 WIP — Nova saída cards escolha (`NS-ESCOLHA-MOLDURA` · **v18.75**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **Bug** | Card vermelho: descrição na vertical · moldura alta demais |
-| **Fix** | Cards `flex-col` · moldura mais baixa · descrição horizontal (fonte igual) |
-| **Onde** | `lancamento_nova_saida_modal.html` |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ **teste v18.75** — Ctrl+F5 BI → Nova saída |
-| **Você** | Conferir 2 cards: texto na horizontal · moldura proporcional |
+| # | Pacote | Versão | Migrate | Status |
+| - | ------ | ------ | ------- | ------ |
+| 1 | `REPASSE-DOIS-COFRES` | v18.81 | **0103** | ✅ **pronto para envio** |
+| 2 | `REPASSE-FORCAR-MANUAL` | v18.82 | não | ✅ **pronto para envio** |
+| 3 | `REPASSE-CAIXA-DIN` | v18.83 | não | ✅ **pronto para envio** |
+| 4 | `REPASSE-HERO-TOTAIS` | v18.80 | não | ✅ **pronto para envio** |
+| 5 | `REPASSE-COFRE-CONFIRM` | v18.78 | não | ✅ **pronto para envio** |
+| 6 | `CP-EMP-ROW-TINT` | v18.77 | não | ✅ **pronto para envio** |
+| 7 | `NE-SUCESSO-OK` | v18.76 | não | ✅ **pronto para envio** |
+| 8 | `NS-ESCOLHA-MOLDURA` | v18.75 | não | ✅ **pronto para envio** |
 
 ### ✅ Deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**) · **Live**
 
