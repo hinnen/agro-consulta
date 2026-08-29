@@ -1279,6 +1279,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v18.83** · teste tip sobe com UX abaixo |
 | **Você** | Ctrl+F5 · abrir Repasse · conferir número (deve subir vs R$ 345 só dinheiro) |
 
+### 📦 PACOTE PRONTO — Totais em coluna (`REPASSE-TOTAIS-COL` · **v18.97** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Card totais: 1 coluna · 3 linhas (Acumulado / Enviado no mês / Total geral) |
+| **Você** | Ctrl+F5 |
+
 ### 📦 PACOTE PRONTO — Levar «A separar» alinhado (`REPASSE-LEVAR-A-SEPARAR` · **v18.96** · 29/08/2026)
 
 | Item | Detalhe |
