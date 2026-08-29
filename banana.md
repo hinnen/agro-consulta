@@ -1229,6 +1229,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🩹 Cadastro — centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.39** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Caso** | Aba Preços → Preços por forma / 2 grupos: digitar **82,90** virava **829,00**. |
+| **Causa** | O leitor apagava todo ponto. O valor já em número (82.9) virava texto `82.9`, perdia o ponto e gravava 829. |
+| **Fix** | Número JS permanece; vírgula = real brasileiro (1.234,56). Vale por forma e grupos A/B. |
+| **Você** | Ctrl+F5 no cadastro · abrir o produto · Preços por forma · digitar 82,90 · sair do campo · tem que ficar **82,90**. Se já tinha salvado 829,00, corrigir na mão. |
+| **Provas** | `scripts/verify_cadastro_preco_centavos.py` · `produtos/tests_cadastro_preco_centavos.py` |
+| **Status** | Commit/push em `teste`; **produção não alterada**. |
+
 ### 📦 PACOTE PRONTO — Cofrinho físico da reserva Vila (`REPASSE-COFRINHO-VILA` · **v18.30** · 28/08/2026)
 
 | Item | Detalhe |

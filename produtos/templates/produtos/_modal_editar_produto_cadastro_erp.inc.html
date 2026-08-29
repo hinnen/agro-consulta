@@ -1664,19 +1664,30 @@
       .catch(function (e2) { if (typeof alert !== 'undefined') alert(e2.message || 'Erro'); });
   });
 
+  function _parseMoedaTexto(t) {
+    t = String(t == null ? '' : t).replace(/\s/g, '');
+    if (!t) return NaN;
+    /* Só tira ponto de milhar quando há vírgula (82,90). Número JS 82.9 não pode perder o ponto — virava 829. */
+    if (t.indexOf(',') >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    return parseFloat(t);
+  }
+
   function parseMoeda(s) {
     if (s === undefined || s === null || s === '') return 0;
-    var t = String(s).replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-    var n = parseFloat(t);
+    if (typeof s === 'number') return isFinite(s) ? s : 0;
+    var n = _parseMoedaTexto(s);
     return isFinite(n) ? n : 0;
   }
 
   /** Valor monetário digitado (obrigatório): não vazio, número finito e ≥ 0. */
   function parseMoedaStrict(s) {
+    if (typeof s === 'number') {
+      if (!isFinite(s) || s < 0) return null;
+      return s;
+    }
     var t = String(s == null ? '' : s).trim();
     if (!t) return null;
-    var t2 = t.replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
-    var n = parseFloat(t2);
+    var n = _parseMoedaTexto(t);
     if (!isFinite(n) || n < 0) return null;
     return n;
   }
@@ -5379,6 +5390,7 @@
           '<td class="px-4 py-2 text-right"><input type="text" class="preco-forma-input w-full min-h-[46px] px-3 rounded-lg border-2 border-slate-200 text-base font-bold text-right focus:border-orange-500 outline-none" data-forma="' + esc(forma) + '" value="' + esc(shown) + '" inputmode="decimal" placeholder="Padrão" autocomplete="off" spellcheck="false" /></td></tr>';
       }).join('');
       tb.querySelectorAll('.preco-forma-input').forEach(function (inp) {
+        wireSelectAllOnPrecoFocus(inp);
         inp.addEventListener('blur', function () {
           var f = inp.getAttribute('data-forma') || '';
           var raw = (inp.value || '').trim();
@@ -5477,6 +5489,39 @@
       }
       atualizarBadgePrecosForma();
     });
+
+    function commitPrecoGrupoCampo(el, key) {
+      if (!el) return;
+      var g = modalEdit._precosGrupos || { preco_a: null, preco_b: null, formas_a: [], formas_b: [] };
+      var raw = (el.value || '').trim();
+      if (!raw) {
+        g[key] = null;
+        el.value = '';
+      } else {
+        var n = parseMoeda(raw);
+        if (n > 0) {
+          g[key] = n;
+          el.value = fmtMoeda2(n);
+        } else {
+          g[key] = null;
+          el.value = '';
+        }
+      }
+      modalEdit._precosGrupos = g;
+      atualizarBadgePrecosForma();
+    }
+    var aInp = document.getElementById('precos-grupo-preco-a');
+    var bInp = document.getElementById('precos-grupo-preco-b');
+    if (aInp && !aInp._agroPrecoGrupoOk) {
+      aInp._agroPrecoGrupoOk = true;
+      aInp.addEventListener('blur', function () { commitPrecoGrupoCampo(aInp, 'preco_a'); });
+      wireSelectAllOnPrecoFocus(aInp);
+    }
+    if (bInp && !bInp._agroPrecoGrupoOk) {
+      bInp._agroPrecoGrupoOk = true;
+      bInp.addEventListener('blur', function () { commitPrecoGrupoCampo(bInp, 'preco_b'); });
+      wireSelectAllOnPrecoFocus(bInp);
+    }
     sub.addEventListener('click', function (e) {
       /* Fundo nao fecha — so X / FECHAR / Esc */
     });
