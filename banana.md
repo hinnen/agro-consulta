@@ -425,7 +425,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
-- **Pedir loja (15/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** (tela cheia, **busca | pedido**, Produto \| GM \| Centro \| Vila) · **Ajustar** saldo na busca · aviso pós-PIN se tem pedido · modal próprio · **estoque furado** + ajuste qtd 0 · **bip 1/min** · saldo **Agro** · WhatsApp fase 2 · migrate `estoque.0018`.
+- **Pedir loja (15/08 · +cupom/qtd 29/08):** overlay no wizard — Pedir/Recebidos/Enviados/Histórico · status sem mexer estoque · **Transferir** (botão rosa) move saldo · PIN da sessão · layout **só PC** · **Imprimir cupom** 80mm (separação) · na origem, **qtd editável por item** (pré-preenchida; 0 = não envia) · **Ajustar** saldo na busca · aviso pós-PIN · **estoque furado** · bip 1/min · migrate `estoque.0018` + `0020` (qtd pedida).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
 - **Interruptor efeitos (2026-06-19):** botÃ£o minÃºsculo **Â«FX on / FX offÂ»** acima do FAB PDV (`localStorage` `agro_reduzir_efeitos_v1`). **FX off** â†’ classe `html.agro-fx-reduced`: desliga arco-Ã­ris/pulso do FAB, pulso do card **Validade** vencida, pulso decorativo PDV/OrÃ§amento no BI. **NÃ£o** desliga: barra de loading, feedback de scanner, spinners de Â«salvandoÂ» (Ãºteis). API JS: `agroSetFxReduced(true|false)`, `agroFxReduced()`.
@@ -1246,6 +1246,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Pedir loja cupom + qtd (`PDV-PEDIR-CUPOM-QTD` · **v18.98** · 29/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Cupom térmico **80mm** (separação) + na origem, **qtd editável por item** (pré-preenchida com o pedido; 0 = não envia) |
+| **Tela** | PDV wizard · overlay Pedir loja · abas Recebidos/Enviados |
+| **Migrate** | **SIM** `estoque.0020_solicitacao_item_quantidade_pedida` |
+| **Prova** | `scripts/verify_pdv_pedir_loja.py` **62/62** · `produtos.tests_pdv_transf_loja` **23** OK |
+| **Loja** | só no `teste` até senha |
+| **Você** | `migrate` local · Ctrl+F5 PDV · badge **v18.98** · Aceitar → Imprimir cupom · mudar 1 qtd → Transferir |
 
 ### 📦 PACOTE PRONTO — Tabelas % por forma (`TABELA-PRECO-FORMA` · **v18.97** · 29/08/2026)
 

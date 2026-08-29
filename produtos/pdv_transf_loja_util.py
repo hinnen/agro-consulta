@@ -171,6 +171,7 @@ def criar_solicitacao(*, loja_destino: str, itens_raw, observacao: str, operador
                     nome_produto=it["nome_produto"],
                     codigo_interno=it["codigo_interno"],
                     quantidade=it["quantidade"],
+                    quantidade_pedida=it["quantidade"],
                 )
                 for it in itens
             ]
@@ -300,6 +301,63 @@ def _aplicar_ajuste_absoluto_origem(
     return True, ""
 
 
+def _resolver_qtds_envio(
+    itens: list[SolicitacaoTransferenciaPdvItem],
+    quantidades_envio=None,
+) -> tuple[dict[int, Decimal], str]:
+    """
+    Mapa item.pk → qtd a transferir.
+    Aceita lista [{id|item_id|produto_id, quantidade}] ou dict {id: qtd}.
+    Sem payload → usa quantidade atual (pedida). Qtd 0 = pular item.
+    """
+    mapa: dict[int, Decimal] = {}
+    por_pk: dict[str, Decimal] = {}
+    por_prod: dict[str, Decimal] = {}
+
+    if isinstance(quantidades_envio, dict) and quantidades_envio:
+        for k, raw in quantidades_envio.items():
+            q = qtd_decimal_ou_zero(raw)
+            if q is None:
+                return {}, "Quantidade inválida em um dos itens."
+            chave = str(k).strip()
+            if chave.isdigit():
+                por_pk[chave] = q
+            else:
+                por_prod[chave] = q
+    elif isinstance(quantidades_envio, list) and quantidades_envio:
+        for raw in quantidades_envio:
+            if not isinstance(raw, dict):
+                continue
+            q = qtd_decimal_ou_zero(
+                raw.get("quantidade") if raw.get("quantidade") is not None else raw.get("qtd")
+            )
+            if q is None:
+                return {}, "Quantidade inválida em um dos itens."
+            iid = raw.get("id") if raw.get("id") is not None else raw.get("item_id")
+            if iid is not None and str(iid).strip() != "":
+                por_pk[str(iid).strip()] = q
+            pid = str(raw.get("produto_id") or raw.get("produto_externo_id") or "").strip()
+            if pid:
+                por_prod[pid] = q
+
+    tem_override = bool(por_pk or por_prod)
+    for it in itens:
+        if tem_override:
+            if str(it.pk) in por_pk:
+                q = por_pk[str(it.pk)]
+            elif it.produto_externo_id in por_prod:
+                q = por_prod[it.produto_externo_id]
+            else:
+                q = it.quantidade if it.quantidade > 0 else Decimal("0")
+        else:
+            q = it.quantidade if it.quantidade > 0 else Decimal("0")
+        mapa[it.pk] = q.quantize(Decimal("0.001"))
+
+    if not any(q > 0 for q in mapa.values()):
+        return {}, "Informe ao menos uma quantidade maior que zero para enviar."
+    return mapa, ""
+
+
 def concluir_transferencia(
     request,
     sol: SolicitacaoTransferenciaPdv,
@@ -311,6 +369,7 @@ def concluir_transferencia(
     ajustar_estoque: bool = False,
     ajuste_quantidade=None,
     ajustes_por_produto: dict | None = None,
+    quantidades_envio=None,
 ) -> tuple[bool, str, list]:
     ok, err = pode_agir(sol, loja_atual, "transferir")
     if not ok:
@@ -320,6 +379,10 @@ def concluir_transferencia(
     itens = list(sol.itens.all())
     if not itens:
         return False, "Pedido sem itens.", []
+
+    mapa_envio, err_q = _resolver_qtds_envio(itens, quantidades_envio)
+    if err_q:
+        return False, err_q, []
 
     mapa_ajuste: dict[str, Decimal] = {}
     if estoque_furado and ajustar_estoque:
@@ -337,11 +400,20 @@ def concluir_transferencia(
                 mapa_ajuste[it.produto_externo_id] = q_padrao
 
     resultados = []
+    diffs = []
+    for it in itens:
+        pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
+        enviada = mapa_envio.get(it.pk, Decimal("0"))
+        if enviada != pedida:
+            diffs.append(f"{it.nome_produto[:40]} {_fmt_qtd(pedida)}→{_fmt_qtd(enviada)}")
     obs_evento = ""
+    if diffs:
+        obs_evento = "Qtd " + "; ".join(diffs)[:360]
     if estoque_furado:
-        obs_evento = "Estoque furado"
+        marca = "Estoque furado"
         if ajustar_estoque:
-            obs_evento += " · ajuste origem"
+            marca += " · ajuste origem"
+        obs_evento = f"{obs_evento} · {marca}".strip(" ·") if obs_evento else marca
     with transaction.atomic():
         if mapa_ajuste:
             for it in itens:
@@ -361,11 +433,19 @@ def concluir_transferencia(
                 if not ok_a:
                     return False, err_a or "Falha ao ajustar estoque furado.", resultados
         for it in itens:
+            q_env = mapa_envio.get(it.pk, Decimal("0"))
+            pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
+            if not it.quantidade_pedida or it.quantidade_pedida <= 0:
+                it.quantidade_pedida = pedida
+            it.quantidade = q_env
+            it.save(update_fields=["quantidade", "quantidade_pedida"])
+            if q_env <= 0:
+                continue
             res = _transferir_entre_depositos_exec(
                 request,
                 "",
                 it.produto_externo_id,
-                it.quantidade,
+                q_env,
                 it.nome_produto,
                 it.codigo_interno,
                 f"PDV #{sol.pk} · {operador_label}"[:500],
@@ -422,6 +502,7 @@ def _registrar_evento(sol, *, acao, status_de, status_para, operador_label, usua
 
 
 def serializar_item(it: SolicitacaoTransferenciaPdvItem) -> dict:
+    pedida = it.quantidade_pedida if it.quantidade_pedida and it.quantidade_pedida > 0 else it.quantidade
     return {
         "id": it.pk,
         "produto_id": it.produto_externo_id,
@@ -429,6 +510,8 @@ def serializar_item(it: SolicitacaoTransferenciaPdvItem) -> dict:
         "codigo_interno": it.codigo_interno,
         "quantidade": float(it.quantidade),
         "quantidade_texto": _fmt_qtd(it.quantidade),
+        "quantidade_pedida": float(pedida),
+        "quantidade_pedida_texto": _fmt_qtd(pedida),
     }
 
 
