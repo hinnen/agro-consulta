@@ -1364,17 +1364,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.30** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.32** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.29** · loja **v19.01** |
+| **Tip** | `teste` **v19.32** · loja **v19.01** |
 | **Prova** | CAD-EXCLUIR **37/37** · BI-META-C **43/43** · PDV-CUPOM **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · Excluir cadastro · validade aba 8 · Meta C · cupom · PIN · Repasse 3 OKs |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08d · tip **v19.30**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08d · tip **v19.32**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1391,9 +1391,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 11 | CAD-EXCLUIR-MSG-STAFF | Excluir: erro real + staff força · **37/37** | não | 🟡 pronto envio |
 | 12 | CAD-VAL-ESPELHO | Validade tela/NF na aba lote do cadastro | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tip v19.29 / v19.28~~ · ver bloco tip **v19.30** acima
+### ~~📦 PACOTE PRONTO — tip v19.30 / v19.29~~ · ver bloco tip **v19.32** acima
 
-### ~~✅ CHECKLIST ÚNICO — tip v19.29~~ · superado pelo tip **v19.30**
+### ~~✅ CHECKLIST ÚNICO — tip v19.30~~ · superado pelo tip **v19.32**
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
