@@ -1239,6 +1239,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 📦 PACOTE PRONTO — PDV modo por forma (`PDV-MODO-POR-FORMA` · **v18.51** · 28/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Cadastro em **Por forma** (badge 9), PDV ainda agia como **2 grupos / tabela**. |
+| **Causa** | Lixo A/B antigo no JSON + JS/catálogo forçavam «grupos» mesmo com modo por forma. |
+| **Fix** | JS respeita `por_forma` · save grava modo e limpa A/B · catálogo não promove lixo A/B. |
+| **Prova** | verify **16/16** · Django **4/4**. |
+| **Você** | Ctrl+F5 PDV · produto com preço por forma (não tabela) · pagar PIX/cartão = preço da forma. Se ainda errado: abrir produto → **Salvar no Agro** (limpa A/B). |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ no `teste` · ⏳ loja ainda v18.50 |
+
 ### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 
 | Campo | Valor |

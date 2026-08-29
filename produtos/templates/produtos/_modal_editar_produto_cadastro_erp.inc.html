@@ -5563,6 +5563,10 @@
       return modalEdit._precosModo === 'grupos' ? 'grupos' : 'por_forma';
     };
     window.agroCadastroObterPrecosGruposPayload = function () {
+      /* Em «Por forma» manda vazio para o backend limpar A/B antigo. */
+      if (modalEdit._precosModo !== 'grupos') {
+        return { preco_a: null, preco_b: null, formas_a: [], formas_b: [] };
+      }
       syncGruposInputsToState();
       var g = modalEdit._precosGrupos || {};
       return {

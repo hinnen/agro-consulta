@@ -60,8 +60,14 @@
     }
 
     function modoItem(item) {
-        var m = String((item && item.precos_modo) || '').toLowerCase();
-        if (m === 'grupos') return 'grupos';
+        var m = String((item && item.precos_modo) || '').toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+        if (m === 'grupos' || m === 'grupo' || m === '2_grupos' || m === 'dois_grupos' || m === 'ab' || m === 'a_b') {
+            return 'grupos';
+        }
+        /* Modo explícito «por forma» manda — não voltar para A/B por lixo antigo no JSON. */
+        if (m === 'por_forma' || m === 'forma' || m === 'porforma') {
+            return 'por_forma';
+        }
         /* Cache slim antigo / rascunho sem modo: se tem tabela A/B, trata como grupos. */
         if (gruposTemDados(precosGruposDoItem(item))) return 'grupos';
         return 'por_forma';
@@ -142,12 +148,11 @@
                 formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : []
             };
         }
-        var modo = String(produto.precos_modo || (produto.cadastro_extras && produto.cadastro_extras.precos_modo) || '');
-        if (String(modo).toLowerCase() === 'grupos' || gruposTemDados(item.precos_grupos)) {
-            item.precos_modo = 'grupos';
-        } else {
-            item.precos_modo = 'por_forma';
-        }
+        var modoRaw = produto.precos_modo != null
+            ? produto.precos_modo
+            : (produto.cadastro_extras && produto.cadastro_extras.precos_modo);
+        item.precos_modo = modoRaw;
+        item.precos_modo = modoItem(item);
         var base = toNum(produto.preco_venda != null ? produto.preco_venda : produto.preco, 0);
         if (item.preco_padrao == null) item.preco_padrao = base;
         return item;
