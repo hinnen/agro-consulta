@@ -565,6 +565,8 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 **Modal cadastro — marca/categoria (08/07):** «Salvar no Agro» grava online (Postgres + overlay). Botão **+** só preenche o campo — **não** substitui salvar. Ao reabrir, detalhe da API prevalece sobre linha da lista (fix bug que «apagava» marca/cat).
 
+**Validade / lotes na aba 8 (29/08 · `CAD-VAL-ESPELHO`):** mesma fonte da tela Validade (`EstoqueLote`). Se só existia data no resumo (`cadastro_extras`), ao abrir o produto (ou o relatório) cria o lote. Salvar na Validade sempre grava lote (não só extras). NF com etapa 4 também atualiza o resumo.
+
 **Faceta unidade/marca/cat (06/08 · FACETA-CACHE):** lista branca vinha de cache desatualizado (+ PIN não limpava chave `v6`). Corrigido: invalidar cache ao salvar/+ · servidor inclui valores do produto e do PIN · JS não sobrescreve o que já cadastrou na sessão.
 
 **Foto produto (06/08 · FOTO-PDV · v14.68):** aba Gerais usa o mesmo anexar foto da aba Delivery (uma foto só) · já aparece no PDV (fluxo Delivery desde v11.45). Removido campo URL que não gravava no Agro.
@@ -1247,6 +1249,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 🩹 Cadastro — validade da tela/NF na aba lote (`CAD-VAL-ESPELHO` · **v19.28**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Relato** | Validade na tela Validade / Entrada NF não aparecia na aba 8 do cadastro |
+| **Causa** | Relatório lia resumo (`cadastro_extras`); aba do cadastro só lista `EstoqueLote` |
+| **O quê** | Ao abrir produto / relatório, espelha extras→lote · Salvar na Validade sempre grava lote · NF atualiza resumo |
+| **Onde** | `models.py` · `views.py` · `relatorios_validade.html` · `verify_cad_validade_espelho_path.py` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 · abrir produto que tem validade na tela Validade · aba 8 tem que listar |
+| **Produção** | só frase + senha depois de validar local |
 
 ### 🩹 Cadastro — excluir produto «sem permissão» falso (`CAD-EXCLUIR-MSG-STAFF` · **v19.25**) · 29/08/2026
 

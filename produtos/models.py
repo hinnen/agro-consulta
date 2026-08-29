@@ -1827,6 +1827,36 @@ def sync_overlay_extra_validade_para_lote(
     return el
 
 
+def garantir_estoque_lote_desde_extras(
+    overlay: ProdutoGestaoOverlayAgro,
+    *,
+    quantidade_atual=None,
+) -> list:
+    """
+    Se o produto tem validade no resumo (tela Validade / extras) e ainda não tem
+    linha em ``EstoqueLote``, cria o lote. Assim a aba «Validade e lote» do
+    cadastro mostra o mesmo que o relatório.
+    """
+    existentes = list(
+        EstoqueLote.objects.filter(overlay=overlay).order_by("data_validade", "id")
+    )
+    if existentes:
+        return existentes
+    ex = (
+        dict(overlay.cadastro_extras) if isinstance(overlay.cadastro_extras, dict) else {}
+    )
+    if not ex.get("validade"):
+        return []
+    el = sync_overlay_extra_validade_para_lote(
+        overlay,
+        lote_codigo=ex.get("lote"),
+        quantidade_atual=quantidade_atual,
+    )
+    if el is None:
+        return []
+    return [el]
+
+
 def sync_overlay_validade_resumo_de_lotes(overlay: ProdutoGestaoOverlayAgro) -> None:
     """
     Atualiza cadastro_extras.validade e .lote com o lote mais crítico
@@ -1930,6 +1960,10 @@ def registrar_lote_validade_apos_entrada_nf(
             quantidade_atual=q_add,
             deposito=dep,
         )
+    try:
+        sync_overlay_validade_resumo_de_lotes(ov)
+    except Exception:
+        pass
     return {
         "lote_id": el.pk,
         "lote_codigo": el.lote_codigo,

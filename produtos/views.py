@@ -189,6 +189,7 @@ from .models import (
     compor_endereco_resumo_cliente,
     sync_overlay_validade_resumo_de_lotes,
     sync_overlay_extra_validade_para_lote,
+    garantir_estoque_lote_desde_extras,
     registrar_lote_validade_apos_entrada_nf,
     parse_data_validade_entrada_nf,
 )
@@ -23873,6 +23874,33 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
 
     if ov_det:
         row["overlay_id"] = ov_det.pk
+        # Resumo da tela Validade (extras) sem linha de lote → espelha na aba do cadastro
+        qtd_heal = None
+        if not EstoqueLote.objects.filter(overlay=ov_det).exists():
+            ex_heal = (
+                ov_det.cadastro_extras
+                if isinstance(ov_det.cadastro_extras, dict)
+                else {}
+            )
+            if ex_heal.get("validade"):
+                try:
+                    from produtos.estoque_saldo_agro_util import (
+                        mapa_saldos_operacionais_agro,
+                    )
+
+                    sinfo = mapa_saldos_operacionais_agro(
+                        [pid_det], db=db, client=client_m
+                    ).get(pid_det) or {}
+                    total_sv = float(sinfo.get("saldo_centro") or 0) + float(
+                        sinfo.get("saldo_vila") or 0
+                    )
+                    if total_sv > 0:
+                        qtd_heal = Decimal(str(total_sv)).quantize(Decimal("0.01"))
+                except Exception:
+                    qtd_heal = None
+                garantir_estoque_lote_desde_extras(
+                    ov_det, quantidade_atual=qtd_heal
+                )
         row["lotes"] = [
             {
                 "id": el.pk,
@@ -32667,6 +32695,7 @@ def relatorios_validade(request):
             )
             continue
 
+        teve_lote_ativo = False
         for el in lotes_ordenados:
             if el.quantidade_atual is None or el.quantidade_atual <= 0:
                 continue
@@ -32722,8 +32751,11 @@ def relatorios_validade(request):
                 },
                 saldo_lote_local=qtd if not estoque_mongo_ok else None,
             )
+            teve_lote_ativo = True
 
-        if lotes_ordenados:
+        # Só pula o resumo (extras) se já listou lote com qtd > 0.
+        # Lotes zerados sozinhos não escondem a data do cadastro_extras.
+        if teve_lote_ativo:
             continue
 
         validade_str = ex.get("validade")
@@ -32762,20 +32794,50 @@ def relatorios_validade(request):
         lote = lote_raw or "N/A"
         validade_alerta = bool(ex.get("validade_alerta"))
         validade_msg = str(ex.get("validade_msg") or "")[:200]
+        # Espelha extras → EstoqueLote (cadastro passa a listar a mesma linha)
+        lote_id_extras = None
+        lote_qtd_extras = None
+        try:
+            q_heal = None
+            s_heal = (saldos_map or {}).get(str(ov.produto_externo_id)) or {}
+            try:
+                total_h = float(s_heal.get("saldo_centro") or 0) + float(
+                    s_heal.get("saldo_vila") or 0
+                )
+            except (TypeError, ValueError):
+                total_h = 0.0
+            if total_h > 0:
+                q_heal = Decimal(str(total_h)).quantize(Decimal("0.01"))
+            healed = garantir_estoque_lote_desde_extras(
+                ov, quantidade_atual=q_heal
+            )
+            if healed:
+                lote_id_extras = healed[0].pk
+                lote_qtd_extras = float(healed[0].quantidade_atual or 0)
+                lote_raw = str(healed[0].lote_codigo or "").strip()[:80] or lote_raw
+                lote = lote_raw or "N/A"
+                data_venc = healed[0].data_validade
+        except Exception:
+            logger.exception(
+                "relatorio validade: heal extras→lote pid=%s",
+                str(ov.produto_externo_id)[:48],
+            )
         anexa_linha_validade(
             {
                 "produto_id": ov.produto_externo_id,
                 "nome": nome,
                 "lote": lote,
                 "lote_raw": lote_raw,
-                "lote_id": None,
+                "lote_id": lote_id_extras,
+                "lote_qtd": lote_qtd_extras,
                 "data_validade": data_venc,
                 "dias_restantes": dias_restantes,
                 "dias_restantes_abs": abs(dias_restantes),
                 "status": st,
                 "validade_alerta": validade_alerta,
                 "validade_msg": validade_msg,
-            }
+            },
+            saldo_lote_local=lote_qtd_extras if lote_qtd_extras else None,
         )
 
     if lista_validade and estoque_mongo_ok:

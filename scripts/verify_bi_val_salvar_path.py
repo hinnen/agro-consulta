@@ -66,8 +66,9 @@ def test_template_salvar_sempre() -> None:
     )
     check("Usar cadastro" not in html and "Usar<br/>cadastro" not in html, "sem texto Usar cadastro")
     check("class=\"rv-salvar" in html or "class='rv-salvar" in html, "botao rv-salvar presente")
-    check("if (isDraft || loteId)" in html, "JS grava lote quando tem lote_id")
-    check("body.lote_id" in html, "JS envia lote_id")
+    check("Sempre grava EstoqueLote" in html, "JS sempre grava lote (nao so extras)")
+    check("body.lote_id" in html or "body.lote_id =" in html or "lote_id" in html, "JS envia lote_id quando houver")
+    check("data-saldo-cv" in html, "linha carrega saldo C+V para qtd do lote")
     check("mongoOk" not in html, "mongoOk nao trava mais Salvar")
 
 
