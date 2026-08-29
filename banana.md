@@ -1389,10 +1389,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Tip** | `teste` **v19.36** · loja **v19.01** |
 | **Prova Repasse** | path **255** · overlay **188** · planos **49** · cofrinho **31** · node OK · deep 97/98 (1 fail dado: dia sem o que levar) |
-| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META-C 43 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 |
+| **Prova demais** | CAD-VAL 44 · CAD-EXCLUIR 37 · BI-META-C 43 · PDV-CUPOM 27 · NFCE-DESC 56 · PIN 50 · VAL-SALVAR 19 · Pedir escrito **66/66** |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso) · Pedir loja obs · cupom · PIN · validade · Meta C |
+| **Você** | Ctrl+F5 · Repasse (3 campos + 3 OKs + aviso) · Pedir loja escrito+obs · cupom · PIN · validade · Meta C |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08e · tip **v19.36**)
 
@@ -1411,9 +1411,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 11 | BI-META-C-VILA | Meta C Vila=Centro · **43/43** | não | 🟡 pronto envio |
 | 12 | CAD-EXCLUIR-MSG-STAFF | Excluir erro real · **37/37** | não | 🟡 pronto envio |
 | 13 | CAD-VAL-ESPELHO | Validade na aba lote · **44/44** | não | 🟡 pronto envio |
-| 14 | PDV-PEDIR-LOJA-OBS | Pedido escrito + observação/mensagem | não | 🟡 pronto envio |
+| 14 | PDV-PEDIR-ESCRITO | Pedido escrito + obs/mensagem · **66/66** | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.34**
+### ~~📦 PACOTE PRONTO — tip v19.34 / v19.32~~ · superado pelo tip **v19.36**
 
 ### ~~✅ CHECKLIST ÚNICO — tip v19.34 / v19.33~~ · superado pelo tip **v19.36**
 
