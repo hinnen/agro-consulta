@@ -734,11 +734,24 @@
   }
 
   function closeCofreCheckModal(okFinal) {
-    hideModal(cofreCheckModal);
-    cofreCheckStep = 0;
     var cb = cofreCheckPending;
     cofreCheckPending = null;
-    if (okFinal && typeof cb === 'function') cb();
+    cofreCheckStep = 0;
+    // Evita o clique do OK “cair” no Cancelar/botão de baixo (ghost click)
+    if (cofreCheckModal) {
+      try {
+        cofreCheckModal.style.pointerEvents = 'none';
+      } catch (_) {}
+    }
+    setTimeout(function () {
+      hideModal(cofreCheckModal);
+      if (cofreCheckModal) {
+        try {
+          cofreCheckModal.style.pointerEvents = '';
+        } catch (_) {}
+      }
+      if (okFinal && typeof cb === 'function') cb();
+    }, 160);
   }
 
   function renderCofreCheckPasso() {
@@ -764,11 +777,17 @@
     };
     cofreCheckPending = onDone;
     cofreCheckStep = 0;
+    if (cofreCheckModal) {
+      try {
+        cofreCheckModal.style.pointerEvents = '';
+      } catch (_) {}
+    }
     showModal(cofreCheckModal);
     renderCofreCheckPasso();
   }
 
   function advanceCofreCheck() {
+    if (cofreCheckPending == null) return;
     cofreCheckStep += 1;
     if (cofreCheckStep >= COFRE_CHECK_PASSOS.length) {
       closeCofreCheckModal(true);
@@ -784,7 +803,10 @@
     cofreConfirmPending = null;
     cofreConfirmValsSnapshot = null;
     if (!ok || typeof cb !== 'function') return;
-    openCofreCheckSequence(vals || {}, cb);
+    // Mesma proteção: não abrir o próximo no mesmo tick do clique
+    setTimeout(function () {
+      openCofreCheckSequence(vals || {}, cb);
+    }, 80);
   }
 
   var cofreConfirmValsSnapshot = null;
@@ -921,15 +943,8 @@
       valor_manual: String(vLev),
     };
     openCofreConfirmModal({ salario: vSal, vilaElias: vVe, levar: vLev }, function () {
-      if (vLev > 0.009 && autoLinhasZeradas() && !body.forcar_manual_zerado) {
-        openForcarManualModal(
-          'O cálculo automático deste dia já está zerado (já enviado ou cartão/PIX cobriu). Você está forçando ' +
-            money(vLev) +
-            '. Confirme com o PIN de novo.',
-          body
-        );
-        return;
-      }
+      // Já veio dos 3 campos + 3 OKs — manda direto (sem 4º modal de “forçar”)
+      body.forcar_manual_zerado = true;
       enviarConfirmacao(body);
     });
   }

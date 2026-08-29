@@ -1273,6 +1273,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
+### 🩹 Repasse — último OK não transferia (REPASSE-3OK-GHOSTCLICK · **v19.27**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **Causa** | Clique do 3º OK atravessava o popup (ghost click) / fluxo parado no forçar PIN |
+| **O quê** | Atrasa fechamento · pointer-events · após 3 OKs envia direto |
+| **Você** | Ctrl+F5 · Repasse · 3 OKs · tem que transferir |
+
 ### 🩹 Repasse — popup maior + 3 OKs gaveta (REPASSE-CONFIRM-3OK · **v19.26**) · 29/08/2026
 
 | Item | Detalhe |
