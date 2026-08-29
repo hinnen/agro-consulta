@@ -1242,6 +1242,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+### 🔧 WIP — Empréstimo CP sem Mongo (`CP-EMP-PG-FALLBACK` · **v18.69**)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | Registrar empréstimo → «serviço legado indisponível» (Mongo off) |
+| **Fix** | `criar_emprestimo_externo_agro` usa dispatch PG (igual Nova saída); API não dá 503 |
+| **Prova** | `verify_cp_novo_emprestimo_path` **61/61** |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ **teste** — Ctrl+F5 · Novo empréstimo Interno · Registrar |
+| **Você** | Repetir o lançamento do print (R$ 1 / R$ 2) |
+
 ### 🔧 WIP — Repasse overlay: só popup + limpeza (`REPASSE-PDV-OVERLAY-POPUP` · **v18.68**)
 
 | Item | Detalhe |
