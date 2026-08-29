@@ -1248,15 +1248,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.13**) · 29/08/2026
+### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.19**) · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **O quê** | Meta C da Vila = mesma do Centro; base ignora dias **< 20/07/2026**; Centro+Vila = **soma** das metas; BI passa filtro Números na série compare |
 | **Onde** | `views.py` · `mongo_vendas_util` · `mongo_financeiro_util` · analytics PG · ajuda BI · `verify_meta_c_vila_abertura.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **19/19** |
+| **Prova** | `scripts/verify_meta_c_vila_abertura.py` **VERIFY OK 43/43** · smoke série ago soma C+V |
 | **Você** | Ctrl+F5 BI · Números **Vila** · tooltip média base · comparar Centro / C+V |
 | **Produção** | só frase + senha depois de validar local |
 
@@ -1311,17 +1311,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.17** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.19** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | 	este **v19.17** · loja **v19.01** |
-| **Prova** | PDV-CUPOM-DINHEIRO **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
+| **Tip** | `teste` **v19.19** · loja **v19.01** |
+| **Prova** | BI-META-C-VILA **43/43** · PDV-CUPOM-DINHEIRO **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · dinheiro+cupom · desconto+cupom fiscal · PIN · Repasse · Meta C Vila |
+| **Você** | Ctrl+F5 · Meta C Vila · dinheiro+cupom · desconto+cupom · PIN · Repasse |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.17**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.19**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1330,9 +1330,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | NFCE-DESC-ITENS | Rateio vDesc itens (bug #7) · prova 56/56 | não | 🟡 pronto envio |
 | 4 | PDV-CUPOM-DINHEIRO | Dinheiro Enter = cupom · overlay Vendas (bug #6) · prova **27/27** | não | 🟡 pronto envio |
 | 5 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
-| 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V | não | 🟡 pronto envio |
+| 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V · prova **43/43** | não | 🟡 pronto envio |
+| 7 | REPASSE-TOTAIS-LINHA | Totais em linha + Levar sob card | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.17** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.19** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
