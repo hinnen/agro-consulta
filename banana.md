@@ -1252,43 +1252,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ação** | Conferir no Render se a loja já ficou **Live v18.72**. **Não** resetar `producao` sem frase+senha. |
 | **Você** | Abrir loja · badge versão · Ctrl+F5. Se ainda v18.64, Render ainda não puxou — avisar. |
 
-### 🚀 PREP deploy loja — lote checklist 28/08c (`deploy/prep-checklist-2808c` · **v18.72**)
+### ✅ Deploy loja — lote checklist 28/08c (deploy/prep-checklist-2808c · **v18.72**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | Código **já no tip `producao`** (`59429e2`) — confirmar Live no Render |
-| **Branch PREP** | `deploy/prep-checklist-2808c` @ **`ae126d9`** |
-| **Base antiga** | `5e6e44a` / Live **v18.64** (rollback se precisar) |
-| **Alvo** | **v18.72** |
+| **Status** | ✅ **enviado / Live v18.72** — healthz ok · home com **18.72** · Renan frase+senha |
+| **Antes** | origin/producao @ **v18.64** / 5e6e44a |
+| **Agora** | producao @ **59429e2** |
 | **Pacotes** | NS-ESCOLHA-EMP · REPASSE-PDV-OVERLAY-POPUP · CP-EMP-PG-FALLBACK |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha |
-| **Prova** | NS+EMP **30/30** · CP **61/61** · overlay **93/93** · path **203** · deep **103** · cof **28** · fechar **68** |
-| **Risco PDV** | **Baixo** — não mexe Finalizar venda |
+| **Rollback** | tag 
+ollback/pre-lote-checklist-2808c-v18.64 @ 5e6e44a · branch producao-backup-pre-v1872-lote-checklist-20260828 · docs/ROLLBACK-LOTE-CHECKLIST-2808c.md |
+| **Você** | Ctrl+F5 nos PDVs · badge **v18.72** · smoke: venda · Nova saída (escolha) · Empréstimo · Repasse popup |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.72**
-
-| # | Pacote | Versão | O quê | Migrate |
-| - | ------ | ------ | ----- | ------- |
-| 1 | `NS-ESCOLHA-EMP` | v18.67 | Nova saída → escolha **Novo Lançamento** × **Empréstimo** (BI + CP) | NÃO |
-| 2 | `REPASSE-PDV-OVERLAY-POPUP` | v18.68 | Repasse: quem/PIN só popup · forma oculta · tela limpa | NÃO |
-| 3 | `CP-EMP-PG-FALLBACK` | v18.69 | Empréstimo sem Mongo → grava Postgres (sem «serviço legado») | NÃO |
-
-| Campo | Valor |
-| ----- | ----- |
-| **Tip `teste`** | **v18.70** |
-| **Loja** | ainda **v18.64** |
-| **Prova** | path NS+EMP **30/30** · CP-NOVO **61/61** · CP-NE extra **18/18** · overlay **93/93** · `manage.py check` OK |
-| **Você** | Ctrl+F5 · BI Nova saída (escolha) · Empréstimo Interno Registrar · PDV Repasse popup |
-| **Deploy loja** | **só** frase explícita + senha `99738595` |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · alvo **v18.72**)
+### ✅ CHECKLIST ÚNICO — enviado produção (28/08c · loja **v18.72**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NS-ESCOLHA-EMP` | 📦 **pronto para envio** |
-| 2 | `REPASSE-PDV-OVERLAY-POPUP` | 📦 **pronto para envio** |
-| 3 | `CP-EMP-PG-FALLBACK` | 📦 **pronto para envio** |
+| 1 | NS-ESCOLHA-EMP | ✅ **Live v18.72** |
+| 2 | REPASSE-PDV-OVERLAY-POPUP | ✅ **Live v18.72** |
+| 3 | CP-EMP-PG-FALLBACK | ✅ **Live v18.72** |
+
+### ~~🚀 PREP / PACOTE PRONTO 28/08c~~ · **superado — Live v18.72**
 
 ### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
