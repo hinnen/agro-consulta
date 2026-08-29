@@ -1239,40 +1239,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 🚀 PREP deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**)
+### ✅ Deploy loja — lote checklist 28/08 (`deploy/prep-checklist-2808` · **v18.50**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **prep pronta** · **produção NÃO alterada** · aguarda frase + senha no **próximo chat** |
-| **Base loja hoje** | `origin/producao` @ **v18.27** / `3adddf2` |
-| **Branch prep** | `deploy/prep-checklist-2808` @ **4836ec1** (cherry limpo; só conflito VERSION/banana resolvido) |
-| **Badge alvo** | **v18.50** |
-| **Migrate** | **SIM** — `produtos.0100` (cofrinho) + drift `base.0010` / `estoque.0019` / `produtos.0101` |
-| **Rollback (no deploy)** | tag `rollback/pre-lote-checklist-2808-v18.27` @ `3adddf2` + branch backup · **só** com frase + senha |
+| **Status** | ✅ **enviado / Live v18.50** — `AGRO_APP_VERSION = "18.50"` · healthz **ok** |
+| **Antes** | `origin/producao` @ **v18.27** / `3adddf2` |
+| **Agora** | `producao` @ **4836ec1** |
+| **Pacotes** | REPASSE-UX · PDV-PRECO-MANUAL-FORMA · CP-NOVO-EMPRESTIMO (pós v18.14) · NF-FIN-VINCULO-FORTE · REPASSE-COFRINHO-VILA · REPASSE-PDV-COFRINHO · CAD-PRECO-CENTAVOS |
+| **Migrate** | **SIM** — no build (`0100` cofrinho + drift `0010`/`0019`/`0101`) |
+| **Rollback** | tag `rollback/pre-lote-checklist-2808-v18.27` @ `3adddf2` · branch `producao-backup-pre-v1850-lote-checklist-20260828` · **só** frase + senha |
+| **Você** | Ctrl+F5 nos PDVs · badge **v18.50** · smoke rápido (preço digitado+forma · 82,90 · Novo empréstimo · Repasse). Cofrinho saldo inicia **0** — se já tem dinheiro físico: Ajuste · entrada. |
 
-**Ordem dos cherries (já aplicados na branch prep):**
+### ✅ CHECKLIST ÚNICO — enviado produção (28/08 · loja **v18.50**)
 
-| # | Pacote | Commit origem `teste` | Risco loja aberta |
-| - | ------ | --------------------- | ----------------- |
-| 1 | `REPASSE-UX` | `2a96fab` | Baixo — só tira texto rosa |
-| 2 | `PDV-PRECO-MANUAL-FORMA` | `523c06a` | Médio — JS PDV; Ctrl+F5 |
-| 3–9 | `CP-NOVO-EMPRESTIMO` (pós Live v18.14) | `c680726`…`5ba1da0` | Baixo — modal CP |
-| 10 | `NF-FIN-VINCULO-FORTE` | `0306637` | Baixo — valida vínculo NF |
-| 11 | `REPASSE-COFRINHO-VILA` | `edfbe4d` | Médio — **migrate** + tela/repasse |
-| 12 | `REPASSE-PDV-COFRINHO` | `6ad46ab` | Médio — overlay PDV + botão |
-| 13 | `CAD-PRECO-CENTAVOS` | `556dee2` | Baixo — modal cadastro |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-PRECO-MANUAL-FORMA` | ✅ **Live v18.50** |
+| 2 | `REPASSE-UX` | ✅ **Live v18.50** |
+| 3 | `CP-NOVO-EMPRESTIMO` (pós v18.14) | ✅ **Live v18.50** |
+| 4 | `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | ✅ **Live v18.50** · migrate |
+| 5 | `NF-FIN-VINCULO-FORTE` | ✅ **Live v18.50** |
+| 6 | `CAD-PRECO-CENTAVOS` | ✅ **Live v18.50** |
 
-**Provas refeitas neste chat (28/08):** PDV-preço **37/37** · CAD-centavos **51/51** + Node **31/31** · CP **57/57** · repasse path **152** · cofrinho **22** · reserva **60** · deep **96** · fechar-repasse **68** · Django NF+centavos **12/12** · dry-run cherry **OK** · `manage.py check` OK.
+### ~~🚀 PREP deploy loja — lote checklist 28/08~~ · **superado — Live v18.50**
 
-**Zap (antes do deploy):** *«Atualização ~2–3 min — não finalize venda / não feche caixa agora. Quem já clicou, aguarda ou F5 e repete.»*
-
-**Após Live:** `migrate` no Render · Ctrl+F5 PDVs · badge **v18.50** · smoke: digitar preço no carrinho + forma; cadastro 82,90; Novo empréstimo; Entrada NF vínculo; Repasse/cofrinho (saldo inicia 0 — se já tem dinheiro físico, Ajuste · entrada).
-
-**Próximo chat:** Renan pausa vendas → *«pode subir produção»* + senha → assistente: tag/backup → fast-forward/`push` `producao` a partir de `deploy/prep-checklist-2808` (ou re-cherry) → Render Live → migrate → desliga pausa.
-
-**Pergunta dura:** algo subiu em **outro chat** depois de **v18.27**? Se sim, dizer antes do cherry.
-
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.50** · 28/08
+### ~~📦 PACOTE PRONTO — o que ainda falta subir · badge teste v18.50~~ · **superado — Live v18.50**
 
 | Pacote | Badge | O quê | Migrate |
 | ------ | ----- | ----- | ------- |
@@ -1285,31 +1277,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Branch** | `teste` |
-| **Live hoje** | `origin/producao` @ **v18.27** / `3adddf2` |
-| **Produção** | Relatórios / NF DOM / Etiquetas 6 cm / Excel fornecedores ✅ já na loja |
+| **Branch** | `teste` / `producao` alinhados no lote |
+| **Live hoje** | `origin/producao` @ **v18.50** / `4836ec1` |
+| **Produção** | Lote 28/08 ✅ Live |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção · 28/08 · **PREP pronta**
+### ~~✅ CHECKLIST ÚNICO — pronto para envio · 28/08 PREP~~ · **superado — Live v18.50**
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `PDV-PRECO-MANUAL-FORMA` | 🟢 pronto · prova **37/37** · na branch prep |
-| 2 | `REPASSE-UX` | 🟢 pronto · na branch prep |
-| 3 | `CP-NOVO-EMPRESTIMO` (pós v18.14) | 🟢 pronto · verify **57/57** · na branch prep |
-| 4 | `REPASSE-COFRINHO-VILA` + `REPASSE-PDV-COFRINHO` | 🟢 pronto · **migrate** · path **152** / cof **22** / deep **96** / fechar **68** · na branch prep |
-| 5 | `NF-FIN-VINCULO-FORTE` | 🟢 pronto · na branch prep |
-| 6 | `CAD-PRECO-CENTAVOS` | 🟢 pronto · path **51/51** · Node **31/31** · na branch prep |
-
-**Loja:** **não** alterada. Branch: `deploy/prep-checklist-2808` · badge alvo **v18.50**. Subir só com frase + senha no próximo chat.
-
-### 📦 PACOTE PRONTO — Repasse PDV + cofrinho (`REPASSE-PDV-COFRINHO` · **v18.41** · 28/08/2026)
+### 📦 PACOTE PRONTO — Repasse PDV + cofrinho (`REPASSE-PDV-COFRINHO` · **v18.41** · 28/08/2026) · ✅ **Live v18.50**
 
 | Item | Detalhe |
 | ---- | ------- |
 | **O quê** | Overlay do PDV alinhado ao cofrinho: botão **Repasse** na topbar, reserva sincroniza do Postgres ao abrir, faixa + confirm «deixe R$ X na Vila». |
 | **Prova** | path **152** · cofrinho **22/22** · reserva **60/60** · deep **96/96** · fechar-repasse **68/68** · fechar-loja **41/41** · `manage.py check` · `node --check` JS. |
 | **Commit** | `6ad46ab` |
-| **Status** | 🟢 **pronto para envio à produção** (junto com `REPASSE-COFRINHO-VILA`) · **produção não alterada**. |
+| **Status** | ✅ **Live v18.50** (junto com `REPASSE-COFRINHO-VILA`) |
 
 ### 📦 PACOTE PRONTO — Cadastro centavos no preço por forma (`CAD-PRECO-CENTAVOS` · **v18.50** · 28/08/2026)
 
