@@ -212,3 +212,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 | 4 | **REPASSE-PDV-OVERLAY-LIMPO** | ✅ **Live v18.64** | **NÃO** |
 
 **Status: enviado / Live v18.64.** `producao` @ `5e6e44a`. Rollback: tag `rollback/pre-lote-checklist-2808b-v18.50` @ `4836ec1` · `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md`.
+
+---
+
+## 11. Checklist único — lote 28/08c (PREP · alvo **v18.72** · loja hoje **v18.64**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NS-ESCOLHA-EMP** | 🚀 **PREP** — aguarda senha | **NÃO** |
+| 2 | **REPASSE-PDV-OVERLAY-POPUP** | 🚀 **PREP** — aguarda senha | **NÃO** |
+| 3 | **CP-EMP-PG-FALLBACK** | 🚀 **PREP** — aguarda senha | **NÃO** |
+
+**Branch PREP:** `deploy/prep-checklist-2808c` @ `5b942b3`.  
+**Rollback (no deploy):** tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md`.  
+**Provas:** NS+EMP 30 · CP 61 · overlay 93 · path 203 · deep 103 · cof 28 · fechar 68.  
+**Risco PDV:** baixo (não mexe Finalizar venda).  
+**Próximo chat:** pausar lojas → frase + senha → merge PREP → `producao`.
