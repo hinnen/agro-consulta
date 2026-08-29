@@ -1273,39 +1273,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge **v19.06** · Dinheiro → Enter → Enter → cupom; Vendas no overlay lista |
 | **Risco** | Baixo — PIX/cartão Enter segue sem impressão |
 
-### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05**) · bug loja #7 · 29/08/2026
+### 🩹 NFC-e desconto nos itens (`NFCE-DESC-ITENS` · **v19.05→v19.09**) · bug loja #7 · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · prova path **56/56** · ⏳ loja ainda sem |
 | **Relato** | Renan · Caixa Centro · 29/08 · «por causa do desconto não sai cupom» (v18.27 loja) |
-| **Causa** | Após `PDV-DESC-FINAL`, `venda.total` já vinha com desconto → XML mandava `ICMSTot/vDesc` **sem** `vDesc` nos itens → SEFAZ **531** → NFC-e falha → cupom não imprime |
-| **O quê** | Rateio proporcional do desconto em `det/prod/vDesc` · cupom 80mm mostra desconto · provas 3/3 |
-| **Onde** | `nfce_sp_emissao_util.py` · `nfce_cupom_util.py` · `tests_nfce_loja.py` |
+| **Causa** | `ICMSTot/vDesc` sem `vDesc` nos itens → SEFAZ **531** → cupom fiscal não sai |
+| **O quê** | Rateio nos itens · frete abatido se desconto passa dos produtos · cupom 80mm · verify path |
+| **Onde** | `nfce_sp_emissao_util.py` · `nfce_cupom_util.py` · `tests_nfce_loja.py` · `scripts/verify_nfce_desc_itens_path.py` |
 | **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 `/pdv/` · badge **v19.05** · item + desconto geral → cupom fiscal (F9) → deve autorizar e imprimir |
-| **Risco** | Baixo — só XML NFC-e com desconto; venda sem desconto igual |
+| **Prova** | VERIFY_OK **56/56** · Django NFC-e **11/11** |
+| **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
+| **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.08** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.09** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.08** · loja **v19.01** |
-| **Prova** | path 254 · overlay 165 · NFC-e desc (anteriores) |
+| **Tip** | `teste` **v19.09** · loja **v19.01** |
+| **Prova** | NFCE-DESC **56/56** · PIN 50/50 · Repasse paths OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 · smoke Repasse (3 campos) · PIN · **venda dinheiro + cupom** · **venda com desconto + cupom fiscal** |
+| **Você** | Ctrl+F5 · PIN · Repasse · dinheiro+cupom · **desconto+cupom fiscal** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.08**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.09**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | `REPASSE-FORMULA-3VAL` + `REPASSE-COFRE-CAMPOS-HERO` | Fórmula 3 val · campos sob cofres · popup só lê | não | 🟡 pronto envio |
-| 2 | `PIN-OPERADOR-QUEM` | Sem Chrome: exige PIN · bug report · Quem | não | 🟡 pronto envio |
-| 3 | `NFCE-DESC-ITENS` | Rateio vDesc nos itens (bug #7) | não | 🟡 pronto envio |
-| 4 | `PDV-CUPOM-DINHEIRO` | Enter dinheiro + print antes reset + overlay Vendas (bug #6) | não | 🟡 pronto envio |
+| 1 | `REPASSE-FORMULA-3VAL` | Planos+salário antes 50/50 · modal 3 valores · fix acum | não | 🟡 pronto envio |
+| 2 | `PIN-OPERADOR-QUEM` | Exige PIN · sem Chrome · bug report | não | 🟡 pronto envio |
+| 3 | `NFCE-DESC-ITENS` | Rateio vDesc itens (bug #7) · prova 56/56 | não | 🟡 pronto envio |
+| 4 | `PDV-CUPOM-DINHEIRO` | Dinheiro Enter = cupom · overlay Vendas (bug #6) | não | 🟡 pronto envio |
+| 5 | `REPASSE-COFRE-CAMPOS-HERO` | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — Repasse fórmula + 3 valores~~ · ver bloco tip **v19.08** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.09** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.04** · 29/08/2026)
 

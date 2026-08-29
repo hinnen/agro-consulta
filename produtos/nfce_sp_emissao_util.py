@@ -559,13 +559,19 @@ def _montar_xml_nfce(
         v_frete = Decimal("0")
     # SEFAZ 535: ICMSTot/vFrete = soma det/prod/vFrete — coloca o frete no 1º item.
     # SEFAZ 531: ICMSTot/vDesc = soma det/prod/vDesc — rateia desconto geral nos itens.
+    # Se o desconto “passa” dos produtos (ex. total R$ 0 com frete), o restante abate o frete.
     item_vprods: list[Decimal] = []
     for item in itens:
         item_vprods.append(Decimal(str(item.valor_total or 0)).quantize(Decimal("0.01")))
     total_prod = sum(item_vprods, Decimal("0"))
     total_nf = Decimal(str(venda.total if venda.total is not None else total_prod)).quantize(Decimal("0.01"))
-    v_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
+    raw_desc = max(Decimal("0"), (total_prod + v_frete - total_nf).quantize(Decimal("0.01")))
+    v_desc = min(raw_desc, total_prod)
+    resto_desc = (raw_desc - v_desc).quantize(Decimal("0.01"))
+    if resto_desc > 0 and v_frete > 0:
+        v_frete = max(Decimal("0"), (v_frete - resto_desc).quantize(Decimal("0.01")))
     descontos_itens = _ratear_valor_proporcional(item_vprods, v_desc)
+    v_desc = sum(descontos_itens, Decimal("0")).quantize(Decimal("0.01"))
     total_v_tot_trib = Decimal("0")
     for idx, item in enumerate(itens, start=1):
         fis = fiscal_itens[idx - 1] if idx - 1 < len(fiscal_itens) else fiscal_por_produto_id("", db=db, col_p=col_p)

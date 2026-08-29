@@ -201,3 +201,143 @@ class NfceDescontoRateioTests(SimpleTestCase):
         v_pag = Decimal(root.findtext(".//n:detPag/n:vPag", namespaces=ns) or "0")
         self.assertEqual(v_pag, Decimal("90.00"))
 
+    def test_xml_frete_e_desconto(self):
+        import xml.etree.ElementTree as ET
+        from datetime import datetime
+        from decimal import Decimal
+        from unittest.mock import patch
+
+        from produtos.nfce_sp_emissao_util import NS, _montar_xml_nfce
+
+        class Item:
+            quantidade = Decimal("1")
+            valor_unitario = Decimal("100.00")
+            valor_total = Decimal("100.00")
+            codigo = "GM1"
+            produto_id_externo = "1"
+            descricao = "PROD"
+            unidade = "UN"
+
+        class Venda:
+            pk = 1
+            total = Decimal("105.00")  # 100 + frete 10 − desc 5
+            frete = Decimal("10.00")
+            pagamentos_json = [{"forma": "Dinheiro", "valor": 105}]
+            cliente_nome = ""
+
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "48900774000103",
+            "razao_social": "T",
+            "fantasia": "T",
+            "logradouro": "R",
+            "numero": "1",
+            "bairro": "C",
+            "cmun": "3524600",
+            "cidade": "J",
+            "uf": "SP",
+            "cep": "11940000",
+            "fone": "",
+            "ie": "1",
+            "csc_id": "1",
+            "csc_token": "x",
+        }
+        fis = {"ncm": "01012100", "cfop": "5102", "origem": "0", "csosn": "102", "cest": ""}
+        with patch("produtos.nfce_sp_emissao_util.ibpt_valor_item", return_value=Decimal("0")), patch(
+            "produtos.nfce_sp_emissao_util.calcular_ibpt_venda_itens",
+            return_value={"ibpt_texto": "ok"},
+        ), patch("produtos.nfce_sp_emissao_util._qr_code_url", return_value="https://x"):
+            xml_body, _ = _montar_xml_nfce(
+                cfg,
+                Venda(),
+                [Item()],
+                serie=21,
+                numero=2,
+                chave="35" + "0" * 42,
+                dh_emi=datetime(2026, 8, 29, 12, 0, 0),
+                cpf_dest="",
+                fiscal_itens=[fis],
+            )
+        root = ET.fromstring(xml_body)
+        ns = {"n": NS}
+        self.assertEqual(Decimal(root.findtext(".//n:ICMSTot/n:vDesc", namespaces=ns)), Decimal("5.00"))
+        self.assertEqual(Decimal(root.findtext(".//n:ICMSTot/n:vFrete", namespaces=ns)), Decimal("10.00"))
+        self.assertEqual(Decimal(root.findtext(".//n:ICMSTot/n:vNF", namespaces=ns)), Decimal("105.00"))
+        self.assertEqual(
+            Decimal(root.findtext(".//n:det/n:prod/n:vDesc", namespaces=ns) or "0"),
+            Decimal("5.00"),
+        )
+
+    def test_xml_total_zero_com_frete_abate_frete(self):
+        """Desconto cobre itens+frete: vDesc nos itens + frete zerado (531 ok)."""
+        import xml.etree.ElementTree as ET
+        from datetime import datetime
+        from decimal import Decimal
+        from unittest.mock import patch
+
+        from produtos.nfce_sp_emissao_util import NS, _montar_xml_nfce
+
+        class Item:
+            quantidade = Decimal("1")
+            valor_unitario = Decimal("50.00")
+            valor_total = Decimal("50.00")
+            codigo = "G"
+            produto_id_externo = "1"
+            descricao = "P"
+            unidade = "UN"
+
+        class Venda:
+            pk = 2
+            total = Decimal("0")
+            frete = Decimal("10.00")
+            pagamentos_json = []
+            cliente_nome = ""
+            forma_pagamento = "Dinheiro"
+
+        cfg = {
+            "tp_amb": 2,
+            "cnpj": "48900774000103",
+            "razao_social": "T",
+            "fantasia": "T",
+            "logradouro": "R",
+            "numero": "1",
+            "bairro": "C",
+            "cmun": "3524600",
+            "cidade": "J",
+            "uf": "SP",
+            "cep": "11940000",
+            "fone": "",
+            "ie": "1",
+            "csc_id": "1",
+            "csc_token": "x",
+        }
+        fis = {"ncm": "01012100", "cfop": "5102", "origem": "0", "csosn": "102", "cest": ""}
+        with patch("produtos.nfce_sp_emissao_util.ibpt_valor_item", return_value=Decimal("0")), patch(
+            "produtos.nfce_sp_emissao_util.calcular_ibpt_venda_itens",
+            return_value={"ibpt_texto": "ok"},
+        ), patch("produtos.nfce_sp_emissao_util._qr_code_url", return_value="https://x"):
+            xml_body, _ = _montar_xml_nfce(
+                cfg,
+                Venda(),
+                [Item(), Item()],
+                serie=21,
+                numero=3,
+                chave="35" + "0" * 42,
+                dh_emi=datetime(2026, 8, 29, 12, 0, 0),
+                cpf_dest="",
+                fiscal_itens=[fis, fis],
+            )
+        root = ET.fromstring(xml_body)
+        ns = {"n": NS}
+        v_desc = Decimal(root.findtext(".//n:ICMSTot/n:vDesc", namespaces=ns) or "0")
+        v_frete = Decimal(root.findtext(".//n:ICMSTot/n:vFrete", namespaces=ns) or "0")
+        v_nf = Decimal(root.findtext(".//n:ICMSTot/n:vNF", namespaces=ns) or "0")
+        soma = sum(
+            Decimal(el.text or "0")
+            for el in root.findall(".//n:det/n:prod/n:vDesc", namespaces=ns)
+        )
+        self.assertEqual(v_desc, Decimal("100.00"))
+        self.assertEqual(soma, Decimal("100.00"))
+        self.assertEqual(v_frete, Decimal("0.00"))
+        self.assertEqual(v_nf, Decimal("0.00"))
+
