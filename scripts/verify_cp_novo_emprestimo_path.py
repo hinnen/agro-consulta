@@ -74,21 +74,25 @@ def main() -> int:
     ):
         check(f"defaults.{k}", bool(d.get(k)), str(d.get(k) or ""))
 
-    # 2) Validação criar sem Mongo
+    # 2) Validação criar sem Mongo (valores únicos evitam bloqueio de duplicidade no PG)
+    import time
+    from datetime import timedelta
+
+    uniq = int(time.time()) % 100000
     r_none = mfu.criar_emprestimo_externo_agro(
         None,
-        usuario_label="teste",
-        empresa_nome="E",
+        usuario_label=f"verify-cp-{uniq}",
+        empresa_nome="Agro Mais Centro",
         empresa_id=None,
-        credor_nome="C",
+        credor_nome=f"Credor Verify {uniq}",
         credor_id=None,
-        valor_recebido=Decimal("100"),
-        valor_total_devido=Decimal("100"),
+        valor_recebido=Decimal("100") + Decimal(uniq) / Decimal("100"),
+        valor_total_devido=Decimal("100") + Decimal(uniq) / Decimal("100"),
         data_entrada=date.today(),
-        primeiro_vencimento=date.today(),
+        primeiro_vencimento=date.today() + timedelta(days=1),
         parcelas=1,
         intervalo_dias=30,
-        banco_nome="B",
+        banco_nome="",
         banco_id=None,
         forma_nome="",
         forma_id=None,
@@ -105,6 +109,15 @@ def main() -> int:
         r_none.get("ok") is True and "Mongo indispon" not in err_none,
         err_none or str(r_none.get("ref") or ""),
     )
+    try:
+        from produtos.models import TituloFinanceiroAgro
+
+        for mid in list(r_none.get("ids_entrada") or []) + list(r_none.get("ids_divida") or []):
+            if str(mid).startswith("staging-dry:"):
+                continue
+            TituloFinanceiroAgro.objects.filter(mongo_id=str(mid)).delete()
+    except Exception:
+        pass
 
     r_cred = mfu.criar_emprestimo_externo_agro(
         object(),  # type: ignore[arg-type]

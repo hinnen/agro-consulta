@@ -1242,52 +1242,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
-### 📦 PACOTE PRONTO — o que ainda falta subir · badge **teste v18.69** · loja **v18.64**
+### 📦 PACOTE PRONTO — o que ainda falta subir · badge teste **v18.69**
 
-| Pacote | Versão | O quê | Migrate |
-| ------ | ------ | ----- | ------- |
-| `NS-ESCOLHA-EMP` | **v18.67** | Nova saída: Lançamento × Empréstimo | **NÃO** |
-| `REPASSE-PDV-OVERLAY-POPUP` | **v18.68** | Quem/PIN só popup · forma oculta · tela limpa | **NÃO** |
-| `CP-EMP-PG-FALLBACK` | **v18.69** | Empréstimo grava no PG se Mongo off | **NÃO** |
+| # | Pacote | Versão | O quê | Migrate |
+| - | ------ | ------ | ----- | ------- |
+| 1 | `NS-ESCOLHA-EMP` | v18.67 | Nova saída → escolha **Novo Lançamento** × **Empréstimo** (BI + CP) | NÃO |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | v18.68 | Repasse: quem/PIN só popup · forma oculta · tela limpa | NÃO |
+| 3 | `CP-EMP-PG-FALLBACK` | v18.69 | Empréstimo sem Mongo → grava Postgres (sem «serviço legado») | NÃO |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · teste **v18.69**)
+| Campo | Valor |
+| ----- | ----- |
+| **Tip `teste`** | **v18.69** |
+| **Loja** | ainda **v18.64** |
+| **Prova** | path NS+EMP **30/30** · CP-NOVO **61/61** · CP-NE extra **18/18** · overlay **93/93** · `manage.py check` OK |
+| **Você** | Ctrl+F5 · BI Nova saída (escolha) · Empréstimo Interno Registrar · PDV Repasse popup |
+| **Deploy loja** | **só** frase explícita + senha `99738595` |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (28/08c · alvo **v18.69**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NS-ESCOLHA-EMP` | 🟢 **pronto para envio** |
-| 2 | `REPASSE-PDV-OVERLAY-POPUP` | 🟢 **pronto para envio** · provas OK |
-| 3 | `CP-EMP-PG-FALLBACK` | 🟢 **pronto para envio** · path **61/61** |
-
-**Loja hoje:** **v18.64**. Envio: frase + senha. Sem migrate.
-
-### 📦 PACOTE PRONTO — Repasse overlay popup (`REPASSE-PDV-OVERLAY-POPUP` · **v18.68**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Quem + PIN só no Confirmar (popup). Forma oculta (= Dinheiro). Sem chips. Hero enxuto. |
-| **Prova** | overlay **93** · path **200** · deep **103** · reserva **62** · cof **28** · fechar **68** · `manage.py check` |
-| **Commit** | `93039f8` (+ provas alinhadas) |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** (loja ainda v18.64 com chips) |
-
-### 📦 PACOTE PRONTO — Empréstimo CP sem Mongo (`CP-EMP-PG-FALLBACK` · **v18.69**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Registrar empréstimo usa PG se Mongo off (sem «serviço legado») |
-| **Prova** | `verify_cp_novo_emprestimo_path` **61/61** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** |
-
-### 📦 PACOTE PRONTO — Nova saída escolha (`NS-ESCOLHA-EMP` · **v18.67**)
-
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Nova saída → **Novo Lançamento** ou **Empréstimo** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio** |
-
-### ~~🔧 WIP — Empréstimo CP / Repasse overlay / Nova saída~~ · ver PACOTE PRONTO + checklist acima
+| 1 | `NS-ESCOLHA-EMP` | 📦 **pronto para envio** |
+| 2 | `REPASSE-PDV-OVERLAY-POPUP` | 📦 **pronto para envio** |
+| 3 | `CP-EMP-PG-FALLBACK` | 📦 **pronto para envio** |
 
 ### ✅ Deploy loja — lote checklist 28/08b (`deploy/prep-checklist-2808b` · **v18.64**) · **Live**
 
