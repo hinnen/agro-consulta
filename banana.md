@@ -1301,17 +1301,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/pdv/` · badge tip · item + desconto → cupom fiscal (F9) |
 | **Risco** | Baixo — só XML com desconto |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.16** · 29/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.17** · 29/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | 	este **v19.16** · loja **v19.01** |
+| **Tip** | 	este **v19.17** · loja **v19.01** |
 | **Prova** | PDV-CUPOM-DINHEIRO **27/27** · NFCE-DESC **56/56** · PIN 50/50 · Repasse OK |
 | **Migrate** | não (neste lote) |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 · dinheiro+cupom · desconto+cupom fiscal · PIN · Repasse · Meta C Vila |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.16**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (29/08c · tip **v19.17**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1322,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | REPASSE-COFRE-CAMPOS-HERO | Inputs sob cada cofre · popup só confirma | não | 🟡 pronto envio |
 | 6 | BI-META-C-VILA | Meta C Vila = Centro · corte 20/07 · soma C+V | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.16** acima
+### ~~📦 PACOTE PRONTO — tips anteriores~~ · ver bloco tip **v19.17** acima
 
 ### 🩹 PIN / Quem — bug report + Geraldo Hinnen (PIN-OPERADOR-QUEM · **v19.15** · 29/08/2026)
 
