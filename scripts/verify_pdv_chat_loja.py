@@ -67,6 +67,10 @@ def _static_checks() -> None:
     check("js_cache_abrir", "cacheMsgs" in js)
     check("js_reset_enviar", "resetEnviarBtn" in js and "textContent = 'Enviar'" in js)
     check("js_fab", "pdv-chat-loja-fab" in js)
+    check("js_body_dock", "document.body.appendChild" in js)
+    check("js_url_fallback", "/api/pdv/chat-loja/lista/" in js)
+    check("js_z_alto", "z-index: 220" in html)
+    check("js_ignore_outside", "ignoreOutsideUntil" in js)
 
     check("util_criar", "def criar_mensagem" in util)
     check("util_listar", "def listar_mensagens" in util)
