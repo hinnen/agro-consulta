@@ -24582,17 +24582,23 @@ def api_produtos_somente_agro_excluir(request):
     if use_pg:
         if p_mod is None:
             return JsonResponse({"ok": False, "erro": "Produto não encontrado no catálogo."}, status=404)
-        somente_agro = bool(p_mod.cadastro_somente_agro) or _erp_wl_id_produto_eh_prefixo_agro(pid_raw)
+        pid_ext = str(getattr(p_mod, "produto_externo_id", None) or "").strip()
+        somente_agro = (
+            bool(p_mod.cadastro_somente_agro)
+            or _erp_wl_id_produto_eh_prefixo_agro(pid_raw)
+            or _erp_wl_id_produto_eh_prefixo_agro(pid_ext)
+        )
         if not somente_agro and not forcar_staff:
             return JsonResponse(
                 {
                     "ok": False,
                     "erro": (
                         "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
-                        "Itens importados do ERP legado devem ser inativados no cadastro."
+                        "Itens importados do ERP legado devem ser inativados no cadastro. "
+                        "Admin (staff): confirme de novo — o sistema tenta forçar a limpeza local."
                     ),
                 },
-                status=403,
+                status=409,
             )
         if forcar_staff and not somente_agro:
             logger.warning(
@@ -24615,11 +24621,10 @@ def api_produtos_somente_agro_excluir(request):
                         "erro": (
                             "Só é possível excluir aqui cadastros criados só no SisVale/Agro. "
                             "Itens espelhados do ERP devem ser inativados ou removidos no sistema antigo. "
-                            "Em emergência, usuário staff pode chamar a mesma API com "
-                            '{"forcar_exclusao_mongo_staff": true} (remove só o espelho Mongo + dados locais Agro).'
+                            "Admin (staff): na tela de cadastro o botão já envia a força de exclusão local."
                         ),
                     },
-                    status=403,
+                    status=409,
                 )
             logger.warning(
                 "api_produtos_somente_agro_excluir: exclusão Mongo forçada (staff) produto_id=%s user_id=%s",

@@ -1312,19 +1312,32 @@
     return el && el.value ? el.value : '';
   }
 
-  function erroHttpPermissao(response, textoBruto) {
+  function mensagemErroApiHttp(response, textoBruto, acaoRotulo) {
     var st = response && response.status;
     var raw = String(textoBruto || '');
+    var acao = String(acaoRotulo || 'salvar');
+    try {
+      var j = JSON.parse(raw);
+      if (j && typeof j === 'object') {
+        var msgApi = String(j.erro || j.mensagem || j.detail || '').trim();
+        if (msgApi) return msgApi;
+      }
+    } catch (_eJson) { /* HTML / texto puro */ }
     if (st === 403 && /csrf/i.test(raw)) {
-      return 'Token de segurança expirou. Recarregue a página (F5) e salve de novo.';
+      return 'Token de segurança expirou. Recarregue a página (F5) e tente de novo.';
     }
     if (st === 401) {
       return 'Sessão expirada. Entre em /admin/login/, volte ao cadastro e tente de novo.';
     }
     if (st === 403) {
-      return 'Sem permissão para salvar. Confira se está logado e recarregue a página (F5).';
+      return 'Sem permissão para ' + acao + '. Confira se está logado e recarregue a página (F5).';
     }
-    return 'Sem permissão para salvar. Entre no sistema (login), recarregue a página (F5) e tente de novo.';
+    return 'Sem permissão para ' + acao + '. Entre no sistema (login), recarregue a página (F5) e tente de novo.';
+  }
+
+  /** @deprecated use mensagemErroApiHttp — mantido por trechos antigos */
+  function erroHttpPermissao(response, textoBruto) {
+    return mensagemErroApiHttp(response, textoBruto, 'salvar');
   }
 
   /** Servidor pode devolver HTML (login redirect 200, erro Django, nginx) — evita SyntaxError ao dar .json(). */
@@ -3274,7 +3287,7 @@
     }).then(function (r) {
       if (r.status === 403 || r.status === 401) {
         return r.text().then(function (txt) {
-          throw new Error(erroHttpPermissao(r, txt));
+          throw new Error(mensagemErroApiHttp(r, txt, 'salvar'));
         });
       }
       return jsonOuErroHumano(r);
@@ -4292,26 +4305,39 @@
     var pid = modalEdit.getAttribute('data-produto-id');
     if (!pid || String(pid).trim().toLowerCase() === '__novo__') return;
     var nome = (document.getElementById('edit-nome') || {}).value || pid;
-    if (!window.confirm(
+    var isStaff = !!cfg.IS_STAFF;
+    var confMsg =
       'Excluir PERMANENTEMENTE este cadastro (criado só no SisVale)?\n\n' +
       String(nome).trim().substring(0, 120) +
-      '\n\nIsto não pode ser desfeito. Não use em produtos espelhados do ERP.'
-    )) return;
+      '\n\nIsto não pode ser desfeito. Não use em produtos espelhados do ERP.';
+    if (isStaff) {
+      confMsg +=
+        '\n\n(Admin: se o sistema achar que veio do ERP antigo, ainda assim remove o espelho local.)';
+    }
+    if (!window.confirm(confMsg)) return;
     var btn = document.getElementById('btn-excluir-somente-agro');
     var tok = obterCsrfCadastro(cfg);
+    if (!tok) {
+      if (typeof alert !== 'undefined') {
+        alert('Token de segurança ausente. Recarregue a página (F5) e tente de novo.');
+      }
+      return;
+    }
     if (btn) {
       btn.disabled = true;
       btn.classList.add('opacity-60');
     }
+    var bodyExcluir = { produto_id: String(pid).trim() };
+    if (isStaff) bodyExcluir.forcar_exclusao_mongo_staff = true;
     fetch(cfg.URL_SOMENTE_AGRO_EXCLUIR, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': tok },
-      body: JSON.stringify({ produto_id: String(pid).trim() })
+      body: JSON.stringify(bodyExcluir)
     }).then(function (r) {
       if (r.status === 403 || r.status === 401) {
         return r.text().then(function (txt) {
-          throw new Error(erroHttpPermissao(r, txt));
+          throw new Error(mensagemErroApiHttp(r, txt, 'excluir'));
         });
       }
       return jsonOuErroHumano(r);

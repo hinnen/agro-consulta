@@ -1248,6 +1248,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 Cadastro — excluir produto «sem permissão» falso (`CAD-EXCLUIR-MSG-STAFF` · **v19.25**) · 29/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Relato** | Renan · Excluir (só SisVale) → alerta «Sem permissão para salvar» apesar de logado no admin |
+| **Causa** | API devolvia 403 de regra de negócio; JS trocava pela mensagem genérica de login |
+| **O quê** | Mostra o erro real da API · admin (staff) envia força de exclusão local · regra de negócio vira 409 |
+| **Onde** | `_modal_editar_produto_cadastro_erp.inc.html` · `produtos_cadastro_erp.html` · `api_produtos_somente_agro_excluir` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 cadastro · abrir o produto · Excluir · confirmar |
+| **Produção** | só frase + senha depois de validar local |
+
 ### 📦 Meta C Vila — corte 20/07 + soma Centro+Vila (`BI-META-C-VILA` · **v19.23**) · 29/08/2026
 
 | Item | Detalhe |
