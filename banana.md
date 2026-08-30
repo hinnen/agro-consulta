@@ -1251,35 +1251,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 
-## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+## CHECKPOINT DE ATUALIZAÇÃO
 
-### ✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**) · **Live** · 30/08/2026
+### ✅ Deploy loja — NFC-e CSRF lista (NFCE-REEMIT-CSRF · **v20.07**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.94** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.92** @ `116aa74` |
-| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-bg-v1994` · VERSION **19.94** |
-| **Pacote** | `NFCE-REEMIT-BG` |
-| **Rollback** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` · branch `producao-backup-pre-v1994-nfce-reemit-bg-20260830` · `docs/ROLLBACK-NFCE-REEMIT-BG-V1994.md` · **só** frase+senha |
-| **Prova** | path **45/45** · DESC **67/67** · Django **12/12** |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.94** · Reemitir #6478 **1×** · «Em emissão» até ~1 min |
+| **Status** | ✅ **enviado / Live v20.07** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v20.01** @ e7f8154 |
+| **Agora** | PREP deploy/prep-nfce-csrf-v2007 · VERSION **20.07** |
+| **Pacote** | NFCE-REEMIT-CSRF |
+| **Rollback** | tag 
+ollback/pre-nfce-csrf-v20.01 @ e7f8154 · branch producao-backup-pre-v2007-nfce-csrf-20260830 · docs/ROLLBACK-NFCE-CSRF-V2007.md · **só** frase+senha |
+| **Prova** | path **70/70** · Django **13/13** |
+| **Você** | **Ctrl+F5** /vendas/ · badge **v20.07** · Reemitir #6507 **1×** |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v20.07**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-BG` | ✅ **Live v19.94** · prova **45/45** |
+| 1 | NFCE-REEMIT-CSRF | ✅ **Live v20.07** · prova **70/70** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado — Live v19.94**
+### ~~📦 PACOTE PRONTO tip v20.07~~ · **superado — Live v20.07**
 
-### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · reforço BG **v19.94** acima
+### ✅ Live anterior — stamp-first (NFCE-REEMIT-STAMP-FIRST · **v20.01**)
 
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
-
-### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
-
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.83 (aguarda senha)~~ · **superado — Live v19.83**
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v20.01** (base deste CSRF) |
+| **Rollback stamp** | tag 
+ollback/pre-nfce-stamp-first-v19.97 · docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md |
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
