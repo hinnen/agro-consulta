@@ -1253,17 +1253,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.81** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.83** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.81** · loja **v19.63** |
+| **Tip** | `teste` **v19.83** · loja **v19.63** |
 | **Prova** | PDV-TRANSF-FORCADA **88/88** · Pedir loja **68/68** · Logística forçada OK · Enter sem imp **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
 | **Migrate** | não |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 PDV Pedir loja (escolha + forçada) · Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.81**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.83**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1272,7 +1272,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devol MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
 | 4 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 · prova 38/38 | não | 🟡 pronto envio |
 
-### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.81**) · 30/08/2026
+### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1282,7 +1282,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Você** | Ctrl+F5 `/pdv/` · Pedir loja → Pedir · Forçada (direção Enter) → bip/transferir + PIN |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.75~~ · **superado — tip v19.81**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.82~~ · **superado — tip v19.83**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.75~~ · **superado — tip v19.83** (ver topo)
 
 ### 🩹 Fechar caixa — devolução MP mesma forma (`CAIXA-DEVOL-MP-MESMA` · **v19.69**) · bug loja #8 · 30/08/2026
 
