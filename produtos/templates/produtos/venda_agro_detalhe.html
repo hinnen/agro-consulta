@@ -951,7 +951,7 @@
       var ctrlEmit = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var hardTimer = setTimeout(function () {
         try { if (ctrlEmit) ctrlEmit.abort(); } catch (eAb) {}
-        terminar('Servidor/SEFAZ não respondeu em 20s. F5 e tente de novo.');
+        terminar('Não respondeu em 20s. F5 e confira se o erro mudou para «Tentativa…».');
       }, 20000);
       fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
         method: 'POST',
@@ -1002,7 +1002,7 @@
           var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
           terminar(
             aborted
-              ? 'Servidor/SEFAZ não respondeu em 20s. F5 e confira a venda.'
+              ? 'Não respondeu em 20s. F5 e confira se o erro mudou para «Tentativa…».'
               : 'Falha de rede.'
           );
         });

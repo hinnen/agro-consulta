@@ -127,11 +127,12 @@ class NfceReemitProcessandoTests(SimpleTestCase):
         from pathlib import Path
 
         src = Path(__file__).resolve().parent.joinpath("views_nfce.py").read_text(encoding="utf-8")
-        self.assertIn("result(timeout=20)", src)
+        self.assertIn("result(timeout=18)", src)
         self.assertIn("shutdown(wait=False", src)
         self.assertIn("cancel_futures=True", src)
         self.assertNotIn("with ThreadPoolExecutor", src)
         self.assertIn("Tentativa ", src)
+        self.assertIn("ANTES do lock Redis", src)
         self.assertIn('sefaz_perfil="sync"', src)
 
 

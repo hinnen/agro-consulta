@@ -197,7 +197,7 @@ def check_ui_abort() -> None:
             ok(f"{rel}: termina UI com mensagem")
         else:
             fail(f"{rel}: falta terminar()")
-        if "não respondeu em 20s" in txt or "nao respondeu em 20s" in txt:
+        if "não respondeu em 20s" in txt or "nao respondeu em 20s" in txt or "Não respondeu em 20s" in txt:
             ok(f"{rel}: mensagem timeout na tela")
         else:
             fail(f"{rel}: falta msg timeout")
@@ -223,10 +223,18 @@ def check_ui_abort() -> None:
         ok("views: carimbo tentativa no doc")
     else:
         fail("views: falta carimbo Tentativa")
-    if "fut.result(timeout=20)" in views or "result(timeout=20)" in views:
-        ok("views: teto 20s no worker")
+    if "result(timeout=18)" in views or "fut.result(timeout=18)" in views:
+        ok("views: teto 18s no worker")
     else:
-        fail("views: falta futures timeout 20s")
+        fail("views: falta futures timeout 18s")
+    if "Carimbo ANTES do lock Redis" in views or "carimba na hora" in views.lower() or "ANTES do lock Redis" in views:
+        ok("views: carimbo antes do lock Redis")
+    else:
+        fail("views: carimbo ainda depois do Redis lock")
+    if "SOCKET_CONNECT_TIMEOUT" in read("config/settings.py"):
+        ok("settings: Redis socket timeout curto")
+    else:
+        fail("settings: Redis sem SOCKET timeout")
     if "shutdown(wait=False" in views and "cancel_futures=True" in views:
         ok("views: shutdown sem wait (HTTP nao prende no orfao)")
     else:
