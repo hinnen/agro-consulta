@@ -931,6 +931,10 @@
       }
       btnRe.disabled = true;
       if (window.gmLoadingBar) window.gmLoadingBar.show();
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var to = setTimeout(function () {
+        try { if (ctrl) ctrl.abort(); } catch (eAb) {}
+      }, 28000);
       fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
         method: 'POST',
         credentials: 'same-origin',
@@ -940,6 +944,7 @@
           Accept: 'application/json',
         },
         body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
+        signal: ctrl ? ctrl.signal : undefined,
       })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
         .then(function (x) {
@@ -964,8 +969,16 @@
           }
           alert(err);
         })
-        .catch(function () { alert('Falha de rede.'); })
+        .catch(function (err) {
+          var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err && err.message || '')));
+          alert(
+            aborted
+              ? 'Demorou demais (SEFAZ/servidor). Espere 1 minuto, F5 e tente de novo.'
+              : 'Falha de rede.'
+          );
+        })
         .finally(function () {
+          clearTimeout(to);
           btnRe.disabled = false;
           if (window.gmLoadingBar) window.gmLoadingBar.hide();
         });

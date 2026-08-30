@@ -470,6 +470,27 @@ def api_venda_agro_nfce_emitir(request, pk):
     v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
     if v.devolvida_em:
         return JsonResponse({"ok": False, "erro": "Venda devolvida — não é possível emitir NFC-e."}, status=400)
+    from django.core.cache import cache
+
+    from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
+
+    lock_key = f"nfce_emit_lock_{int(pk)}"
+    if not cache.add(lock_key, "1", timeout=90):
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Cupom fiscal já está sendo emitido nesta venda — aguarde até 1 minuto e atualize (F5).",
+                "nfce_painel": painel_nfce_venda(v),
+            },
+            status=409,
+        )
+    try:
+        return _api_venda_agro_nfce_emitir_locked(request, v, body)
+    finally:
+        cache.delete(lock_key)
+
+
+def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
     from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
 
     if venda_nfce_processando(v):
@@ -527,16 +548,21 @@ def api_venda_agro_nfce_emitir(request, pk):
             "documento_id": doc.pk,
         }
     st = 200 if out.get("ok") else 502
-    return JsonResponse(
-        {
-            "ok": bool(out.get("ok")),
-            "nfce": out,
-            "nfce_painel": painel_nfce_venda(
-                VendaAgro.objects.select_related("nfce").get(pk=v.pk)
-            ),
-        },
-        status=st,
-    )
+    return _nfce_emitir_json_response(v, out, st)
+
+
+def _nfce_emitir_json_response(v: VendaAgro, out: dict, st: int):
+    from produtos.nfce_venda_util import painel_nfce_venda
+
+    v_fresh = VendaAgro.objects.select_related("nfce").get(pk=v.pk)
+    payload = {
+        "ok": bool(out.get("ok")),
+        "nfce": out,
+        "nfce_painel": painel_nfce_venda(v_fresh),
+    }
+    if out.get("erro") and not out.get("ok"):
+        payload["erro"] = out.get("erro")
+    return JsonResponse(payload, status=st)
 
 
 @login_required(login_url="/admin/login/")
