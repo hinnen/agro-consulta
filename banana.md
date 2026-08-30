@@ -1253,25 +1253,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**) · **Live** · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.95** (aguarda senha) · 30/08/2026
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | `NFCE-REEMIT-SYNC` | path **49/49** | **NÃO** |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.94** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.92** @ `116aa74` |
-| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-bg-v1994` · VERSION **19.94** |
-| **Pacote** | `NFCE-REEMIT-BG` |
-| **Rollback** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` · branch `producao-backup-pre-v1994-nfce-reemit-bg-20260830` · `docs/ROLLBACK-NFCE-REEMIT-BG-V1994.md` · **só** frase+senha |
-| **Prova** | path **45/45** · DESC **67/67** · Django **12/12** |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.94** · Reemitir #6478 **1×** · «Em emissão» até ~1 min |
+| **Status** | 📦 **pronto envio** — tip `teste` · **não** sobe sem frase+senha |
+| **Motivo** | Renan: após Live v19.94, reemitir #6478 «só carregando». DB loja ainda doc **2315** 537 de **29/08** — POST BG **não gravou** tentativa. Thread+poll = loading eterno no Render. |
+| **Fix** | Reemitir **síncrono** de novo (`sefaz_perfil=sync`) · Abort **28s** · loading **sempre some** (reset) · sem poll BG |
+| **Você** | Aguarda senha → Live → **Ctrl+F5** `/vendas/` → Reemitir **#6478** **1×** → em ~20s autoriza **ou** erro novo na tela |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)
+### ~~✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**)~~ · **Live** · superado por **SYNC v19.95** (aguarda senha)
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `NFCE-REEMIT-BG` | ✅ **Live v19.94** · prova **45/45** |
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ foi Live v19.94 · **falhou na prática** (loading eterno) → pacote SYNC acima |
+| **Rollback antigo** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado — Live v19.94**
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)~~ · ver PACOTE **v19.95**
+
+### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado**
 
 ### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · reforço BG **v19.94** acima
 
