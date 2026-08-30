@@ -184,6 +184,37 @@
     color: #334155;
   }
   #pdv-tf-direcao .pdv-tf-dir-btn--back:hover { background: #e2e8f0; }
+
+  /* Faixa superior do overlay: só a direção, bem grande */
+  #pdv-tf-overlay .pdv-tf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-shrink: 0;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 0.85rem 1rem 0.85rem 1.15rem;
+    border-radius: 1rem 1rem 0 0;
+  }
+  #pdv-tf-overlay .pdv-tf-header--vc {
+    background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%);
+  }
+  #pdv-tf-overlay .pdv-tf-header--cv {
+    background: linear-gradient(90deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%);
+  }
+  #pdv-tf-overlay #pdv-tf-titulo {
+    margin: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: clamp(1.65rem, 1.1vw + 1.35rem, 2.45rem);
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.1;
+    text-align: center;
+  }
+  #pdv-tf-overlay.tf-dir-vc #pdv-tf-titulo { color: #047857; }
+  #pdv-tf-overlay.tf-dir-cv #pdv-tf-titulo { color: #0369a1; }
 </style>
 
 {# Backdrop + direção #}
@@ -202,22 +233,10 @@
 </div>
 
 {# Overlay principal #}
-<div id="pdv-tf-overlay" class="fixed top-1/2 left-1/2 z-[143] hidden -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-titulo">
-  <div class="flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-t-2xl border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-5 pb-3 pt-4 sm:px-6">
-    <div class="flex min-w-0 flex-wrap items-center gap-2.5">
-      <h3 id="pdv-tf-titulo" class="text-base font-black uppercase leading-tight text-emerald-950 sm:text-xl">Transferência forçada</h3>
-      <span id="pdv-tf-direcao-badge" class="inline-flex rounded-lg border-2 border-emerald-300 bg-white px-3 py-1 text-[11px] font-black uppercase text-emerald-800 shadow-sm sm:text-xs">Vila → C</span>
-      <details class="relative shrink-0">
-        <summary class="list-none inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-2 border-emerald-600 bg-white text-sm font-black text-emerald-900 hover:bg-emerald-100 [&::-webkit-details-marker]:hidden" aria-label="Ajuda" title="Ajuda">?</summary>
-        <div class="absolute left-0 top-full z-20 mt-1 w-[min(22rem,85vw)] space-y-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-semibold leading-relaxed text-slate-700 shadow-xl">
-          <p>Tira estoque <b>agora</b> (sem fila Pedir). Esc volta à escolha.</p>
-          <p>Para trocar direção, <b>feche</b> e abra de novo.</p>
-          <p>Saldo zerado/negativo: <b>permitido</b>.</p>
-          <p><b>Bip:</b> +1 e volta na busca · <b>Digitar:</b> foco na qtd.</p>
-        </div>
-      </details>
-    </div>
-    <button type="button" id="pdv-tf-fechar" class="shrink-0 px-1 text-3xl font-black leading-none text-slate-400 hover:text-slate-700" aria-label="Fechar · Esc" title="Fechar · Esc">×</button>
+<div id="pdv-tf-overlay" class="fixed top-1/2 left-1/2 z-[143] hidden -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl tf-dir-vc" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-titulo">
+  <div id="pdv-tf-header" class="pdv-tf-header pdv-tf-header--vc">
+    <h3 id="pdv-tf-titulo">Vila → Centro</h3>
+    <button type="button" id="pdv-tf-fechar" class="shrink-0 inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-3xl font-black leading-none text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700" aria-label="Fechar · Esc" title="Fechar · Esc">×</button>
   </div>
   <div id="pdv-tf-grid-corpo" class="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
     <div id="pdv-tf-painel-busca" class="flex min-h-0 flex-col gap-2 border-b border-slate-200 p-4 sm:p-5 lg:border-b-0 lg:border-r">

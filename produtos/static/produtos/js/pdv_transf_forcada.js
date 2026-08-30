@@ -35,7 +35,8 @@
   var returnToEscolha = true;
 
   var dom = {
-    badge: document.getElementById('pdv-tf-direcao-badge'),
+    titulo: document.getElementById('pdv-tf-titulo'),
+    header: document.getElementById('pdv-tf-header'),
     btnOk: document.getElementById('pdv-tf-btn-transferir'),
     busca: document.getElementById('pdv-tf-busca'),
     status: document.getElementById('pdv-tf-busca-status'),
@@ -134,13 +135,20 @@
 
   function setDirecao(dir) {
     direcao = dir === 'centro_vila' ? 'centro_vila' : 'vila_centro';
-    var rotulo = direcao === 'centro_vila' ? 'Centro → Vila' : 'Vila → Centro';
-    if (dom.badge) dom.badge.textContent = rotulo;
+    var isCv = direcao === 'centro_vila';
+    var rotulo = isCv ? 'Centro → Vila' : 'Vila → Centro';
+    if (dom.titulo) dom.titulo.textContent = rotulo;
+    if (dom.header) {
+      dom.header.classList.toggle('pdv-tf-header--vc', !isCv);
+      dom.header.classList.toggle('pdv-tf-header--cv', isCv);
+    }
+    overlay.classList.toggle('tf-dir-vc', !isCv);
+    overlay.classList.toggle('tf-dir-cv', isCv);
     if (dom.btnOk) {
       dom.btnOk.textContent =
-        'Transferir ' + (direcao === 'centro_vila' ? 'C→Vila' : 'Vila→C');
+        'Transferir ' + (isCv ? 'C→Vila' : 'Vila→C');
     }
-    overlay.classList.toggle('tf-layout-invertido', direcao === 'centro_vila');
+    overlay.classList.toggle('tf-layout-invertido', isCv);
   }
 
   function reopenEscolha() {
