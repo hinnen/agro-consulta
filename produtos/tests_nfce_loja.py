@@ -94,7 +94,7 @@ class NfceDestDocumentoTests(SimpleTestCase):
 
 
 class NfceReemitProcessandoTests(SimpleTestCase):
-    """NFCE-REEMIT-BG — processando só com lock (não trava eternamente)."""
+    """NFCE-REEMIT — processando só com lock (não trava eternamente)."""
 
     def test_processando_exige_lock(self):
         from django.core.cache import cache
@@ -121,6 +121,18 @@ class NfceReemitProcessandoTests(SimpleTestCase):
         finally:
             cache.delete("nfce_emit_lock_6478")
         self.assertFalse(venda_nfce_processando(VendaFake()))
+
+    def test_reemit_api_nao_prende_http_apos_timeout(self):
+        """Contrato: após FuturesTimeout o HTTP não espera o worker (shutdown wait=False)."""
+        from pathlib import Path
+
+        src = Path(__file__).resolve().parent.joinpath("views_nfce.py").read_text(encoding="utf-8")
+        self.assertIn("result(timeout=20)", src)
+        self.assertIn("shutdown(wait=False", src)
+        self.assertIn("cancel_futures=True", src)
+        self.assertNotIn("with ThreadPoolExecutor", src)
+        self.assertIn("Tentativa ", src)
+        self.assertIn('sefaz_perfil="sync"', src)
 
 
 class NfceDescontoRateioTests(SimpleTestCase):

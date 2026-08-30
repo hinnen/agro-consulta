@@ -201,6 +201,14 @@ def check_ui_abort() -> None:
             ok(f"{rel}: mensagem timeout na tela")
         else:
             fail(f"{rel}: falta msg timeout")
+        if "var finished = false" in txt or "finished = false" in txt:
+            ok(f"{rel}: flag finished anti-duplo")
+        else:
+            fail(f"{rel}: falta flag finished")
+        if "dataset.busy" in txt:
+            ok(f"{rel}: busy anti double-click")
+        else:
+            fail(f"{rel}: falta dataset.busy")
     lista = read("produtos/templates/produtos/vendas_lista.html")
     if "Desconto já foi corrigido" in lista:
         ok("vendas_lista: tip 537 no modal")
@@ -219,6 +227,14 @@ def check_ui_abort() -> None:
         ok("views: teto 20s no worker")
     else:
         fail("views: falta futures timeout 20s")
+    if "shutdown(wait=False" in views and "cancel_futures=True" in views:
+        ok("views: shutdown sem wait (HTTP nao prende no orfao)")
+    else:
+        fail("views: ThreadPool ainda pode wait=True apos timeout")
+    if "with ThreadPoolExecutor" in views:
+        fail("views: with ThreadPoolExecutor espera worker no exit")
+    else:
+        ok("views: sem with ThreadPool (evita hang no exit)")
 
 
 def check_budget_js_vs_server() -> None:

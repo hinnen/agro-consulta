@@ -548,26 +548,26 @@ def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
             connections.close_all()
 
     out: dict
+    pool = ThreadPoolExecutor(max_workers=1)
     try:
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            fut = pool.submit(_trabalho)
-            try:
-                out = fut.result(timeout=20)
-            except FuturesTimeout:
-                logger.warning("NFC-e reemitir timeout 20s venda %s", v.pk)
-                cfg = nfce_config_resumo(nfce_loja_de_venda(v))
-                doc = registrar_nfce_erro_venda(
-                    v,
-                    f"Timeout {agora}: SEFAZ/servidor não respondeu em 20s. Tente de novo em 1 minuto.",
-                    cpf_dest=cpf,
-                    sem_identificacao=sem_id,
-                    tp_amb=int(cfg.get("tp_amb") or 2),
-                )
-                out = {
-                    "ok": False,
-                    "erro": "SEFAZ/servidor não respondeu em 20s. Aguarde 1 minuto e reemitir.",
-                    "documento_id": doc.pk,
-                }
+        fut = pool.submit(_trabalho)
+        try:
+            out = fut.result(timeout=20)
+        except FuturesTimeout:
+            logger.warning("NFC-e reemitir timeout 20s venda %s", v.pk)
+            cfg = nfce_config_resumo(nfce_loja_de_venda(v))
+            doc = registrar_nfce_erro_venda(
+                v,
+                f"Timeout {agora}: SEFAZ/servidor não respondeu em 20s. Tente de novo em 1 minuto.",
+                cpf_dest=cpf,
+                sem_identificacao=sem_id,
+                tp_amb=int(cfg.get("tp_amb") or 2),
+            )
+            out = {
+                "ok": False,
+                "erro": "SEFAZ/servidor não respondeu em 20s. Aguarde 1 minuto e reemitir.",
+                "documento_id": doc.pk,
+            }
     except Exception:
         logger.exception("NFC-e reemitir falhou (venda %s)", v.pk)
         cfg = nfce_config_resumo(nfce_loja_de_venda(v))
@@ -583,6 +583,9 @@ def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
             "erro": "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
             "documento_id": doc.pk,
         }
+    finally:
+        # NÃO wait=True: senão o HTTP fica preso no worker órfão após timeout.
+        pool.shutdown(wait=False, cancel_futures=True)
     st = 200 if out.get("ok") else 502
     return _nfce_emitir_json_response(v, out, st)
 

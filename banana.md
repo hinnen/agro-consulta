@@ -1253,52 +1253,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.96** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.97** (aguarda senha) · 30/08/2026
 
-| # | Pacote | Prova | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | `NFCE-REEMIT-HARD-TIMEOUT` | path **51/51** | **NÃO** |
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 📦 **pronto envio** — tip `teste` |
-| **Motivo** | Live v19.95: modal #6507 ficou em «Enviando à SEFAZ…» sem erro. DB sem carimbo novo. |
-| **Fix** | UI **teto duro 20s** (sempre mostra erro) · API carimba `Tentativa HH:MM:SS` · futures **timeout 20s** · SEFAZ sync (3,12) |
-| **Você** | Senha → Live **v19.96** → Ctrl+F5 → Reemitir **1×** → em ≤20s **autoriza** ou **mensagem vermelha** (não loading eterno) |
-
-### ~~✅ Deploy loja — NFC-e reemit sync (`NFCE-REEMIT-SYNC` · **v19.95**)~~ · **Live** · reforço **HARD-TIMEOUT v19.96** (aguarda senha)
+| # | Pacote | Prova | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `NFCE-REEMIT-HARD-TIMEOUT` | path **57/57** · Django **13/13** · DESC **67/67** | **NÃO** | 📦 **pronto para envio** |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ foi Live v19.95 · ainda «Enviando…» sem fechar → pacote **v19.96** |
-| **Rollback** | tag `rollback/pre-nfce-reemit-sync-v19.94` @ `f84ac71` |
+| **Tip** | `teste` · VERSION **19.97** |
+| **Loja hoje** | Live **v19.95** (ainda sem este fix) |
+| **O quê** | Teto **20s** UI+API · erro sempre na tela · carimbo `Tentativa HH:MM` · `shutdown(wait=False)` (HTTP não prende) · SEFAZ sync (3,12) · rateio 537 OK (#6478/#6507) |
+| **Você** | Frase+senha → Ctrl+F5 → Reemitir **#6507/#6478** **1×** → ≤20s autoriza **ou** mensagem vermelha |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.95**) · ver PACOTE **v19.96**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.97**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-SYNC` | ✅ foi Live v19.95 · reforço aguarda |
+| 1 | `NFCE-REEMIT-HARD-TIMEOUT` | 📦 **pronto para envio** · prova **57/57** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.95** (aguarda senha)~~ · **superado — Live v19.95**
+### ~~✅ Deploy loja — NFC-e reemit sync (`NFCE-REEMIT-SYNC` · **v19.95**)~~ · **Live** · reforço **HARD-TIMEOUT v19.97**
 
-### ~~✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**)~~ · **Live** · superado por **SYNC v19.95**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ foi Live v19.94 · **falhou na prática** (loading eterno) → SYNC **v19.95** Live |
-| **Rollback antigo** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` |
-
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)~~ · ver **v19.95**
-
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado**
-
-### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · reforço BG **v19.94** acima
-
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
-
-### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
-
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.83 (aguarda senha)~~ · **superado — Live v19.83**
+### ~~📦 PACOTE PRONTO tip **v19.96**~~ · **superado — tip v19.97**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
