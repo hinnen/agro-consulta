@@ -1257,7 +1257,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.89** · loja ainda **v19.83** |
+| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.92** · loja ainda **v19.83** |
 | **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
 | **Migrate** | **NÃO** |
 | **Prova** | path **44/44** · DESC **67/67** · Django NFC-e **11/11** · casos #6478/#6507 OK |
