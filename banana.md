@@ -1253,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.99** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v20.00** (aguarda senha) · 30/08/2026
 
 | # | Pacote | Prova | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1261,18 +1261,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Tip** | `teste` · **19.99** |
+| **Tip** | `teste` · **20.00** |
 | **Loja hoje** | Live **v19.97** — timeout na tela OK, mas POST **não carimbou** (#6507 ainda 537 de 29/08) |
 | **Fix** | Carimbo `Tentativa` **antes** do lock Redis · Redis socket 2s · config/SEFAZ no teto 18s · painel sem warmup |
 | **Você** | Senha → Ctrl+F5 → Reemitir **1×** → F5: erro deve virar «Tentativa HH:MM…» ou autorizar/timeout gravado |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.99**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v20.00**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | `NFCE-REEMIT-STAMP-FIRST` | 📦 **pronto para envio** |
 
-### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v19.98**
+### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v20.00**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
