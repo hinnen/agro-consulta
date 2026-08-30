@@ -1253,27 +1253,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**) · **Live** · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.98** (aguarda senha) · 30/08/2026
+
+| # | Pacote | Prova | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `NFCE-REEMIT-STAMP-FIRST` | path verify + Django **13/13** | **NÃO** | 📦 **pronto para envio** |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.97** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.95** @ `29c3613` |
-| **Agora** | `producao` @ PREP `5430647` · VERSION **19.97** |
-| **Pacote** | `NFCE-REEMIT-HARD-TIMEOUT` |
-| **Rollback** | tag `rollback/pre-nfce-reemit-hard-v19.95` @ `29c3613` · branch `producao-backup-pre-v1997-nfce-reemit-hard-20260830` · `docs/ROLLBACK-NFCE-REEMIT-HARD-V1997.md` · **só** frase+senha |
-| **Prova** | path **57/57** · Django **13/13** · DESC **67/67** |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.97** · Reemitir #6507/#6478 **1×** · ≤20s |
+| **Tip** | `teste` · **19.98** |
+| **Loja hoje** | Live **v19.97** — timeout na tela OK, mas POST **não carimbou** (#6507 ainda 537 de 29/08) |
+| **Fix** | Carimbo `Tentativa` **antes** do lock Redis · Redis socket 2s · config/SEFAZ só dentro do teto 18s |
+| **Você** | Senha → Ctrl+F5 → Reemitir **1×** → F5: erro deve virar «Tentativa HH:MM…» ou autorizar/timeout gravado |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.97**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.98**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-HARD-TIMEOUT` | ✅ **Live v19.97** · prova **57/57** |
+| 1 | `NFCE-REEMIT-STAMP-FIRST` | 📦 **pronto para envio** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.97** (aguarda senha)~~ · **superado — Live v19.97**
-
-### ~~✅ Deploy loja — NFC-e reemit sync (`NFCE-REEMIT-SYNC` · **v19.95**)~~ · **Live** · reforço **HARD-TIMEOUT v19.97**
+### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v19.98**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 

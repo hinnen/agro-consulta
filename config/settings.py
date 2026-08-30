@@ -310,6 +310,9 @@ if REDIS_URL:
             'LOCATION': REDIS_URL,
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                # Evita lock Redis segurar request NFC-e/PDV por minutos.
+                'SOCKET_CONNECT_TIMEOUT': 2,
+                'SOCKET_TIMEOUT': 2,
             },
             'KEY_PREFIX': 'agro',
             'TIMEOUT': 600,
