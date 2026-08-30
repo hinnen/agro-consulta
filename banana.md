@@ -1253,26 +1253,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.87** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.88** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.87** @ `c4dd474` · loja ainda **v19.83** |
+| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.88** @ `206701e` · loja ainda **v19.83** |
 | **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
 | **Migrate** | **NÃO** |
 | **Prova** | path **44/44** · DESC **67/67** · Django NFC-e **11/11** · casos #6478/#6507 OK |
 | **Você** | frase + senha → sobe · depois **Ctrl+F5** `/vendas/` · Reemitir #6478 **1×** · ≤22s |
 | **Fora** | `BI-META-C-VILA-RAMP` (SOLO) |
 
-### ✅ CHECKLIST ÚNICO — tip **v19.87** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — tip **v19.88** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.87** · prova path OK · loja **v19.83** ainda sem reforço |
+| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.88** · prova path OK · loja **v19.83** ainda sem reforço |
 
-### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.87 acima
+### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.88 acima
 
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.87** acima
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.88** acima
 
 ### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
 
@@ -1331,7 +1331,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê (v19.87)** | Sync **1 tentativa** (4,15)s · Abort **22s** · lock **45s** · tip 537 no modal · grava doc **só após** SEFAZ (não apaga rejeitada no começo) |
 | **Onde** | `sefaz_soap_util.py` · `views_nfce.py` · `nfce_sp_emissao_util.py` · `vendas_lista.html` · `venda_agro_detalhe.html` · verify path |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_nfce_reemit_timeout_path.py` **42/42** · DESC **57/57** |
+| **Prova** | `verify_nfce_reemit_timeout_path.py` **44/44** · DESC **67/67** · #6478/#6507 XML OK |
 | **Você** | Loja hoje: **Ctrl+F5** `/vendas/` · badge **v19.83** · Reemitir **1×** · ≤30s. Reforço v19.87 na loja = frase+senha. |
 | **Risco** | Baixo — só timeout/reemit |
 
