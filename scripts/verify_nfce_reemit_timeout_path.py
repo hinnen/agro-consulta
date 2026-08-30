@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """VERIFY NFCE-REEMIT-TIMEOUT — reemitir nao trava + SEFAZ 537.
 
-Cobre: timeout sync < proxy Render · Abort 28s nas telas · lock anti-duplo ·
+Cobre: timeout sync < proxy Render · Abort 22s nas telas · lock anti-duplo ·
 vDesc em todos os itens se ha desconto · sefaz_perfil=sync no emitir · AST ·
 reusa prova NFCE-DESC.
 
@@ -60,7 +60,6 @@ def check_ast() -> None:
             txt = read(rel)
             if not txt:
                 continue
-            # JS blocks must contain AbortController pattern without syntax bombs
             if "AbortController" in txt:
                 ok(f"html tem AbortController: {rel}")
             else:
@@ -90,23 +89,23 @@ def check_timeouts() -> None:
 
     connect, read = SEFAZ_HTTP_TIMEOUT_SYNC
     delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
-    # Pior caso 1 tentativa completa: connect + read + soma delays entre retries
-    # Com N delays ha N+1 attempts no loop tipico — estimar connect+read + sum(delays)
-    worst = connect + read + sum(delays)
-    if connect <= 6 and read <= 22:
+    n_try = max(1, len(delays))
+    worst = n_try * (connect + read) + sum(delays[1:] if len(delays) > 1 else [])
+    if connect <= 5 and read <= 18:
         ok(f"TIMEOUT_SYNC=({connect},{read})")
     else:
-        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura proxy")
-    if worst <= 28:
-        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=28)")
+        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura proxy/Abort")
+    if n_try <= 1:
+        ok(f"RETRY_DELAYS_SYNC 1 tentativa ({delays})")
+    elif worst <= 22:
+        ok(f"RETRY_DELAYS_SYNC={delays} pior~{worst:.1f}s")
     else:
-        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 28s")
-    if len(delays) <= 3 and all(d < 2 for d in delays):
-        ok(f"RETRY_DELAYS_SYNC={delays}")
+        fail(f"RETRY_DELAYS_SYNC pesado: {delays} pior~{worst:.1f}s")
+    if worst <= 22:
+        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=22)")
     else:
-        fail(f"RETRY_DELAYS_SYNC pesado: {delays}")
+        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 22s")
 
-    # Background pode ser maior
     from produtos.sefaz_soap_util import SEFAZ_HTTP_TIMEOUT
 
     if SEFAZ_HTTP_TIMEOUT[1] >= SEFAZ_HTTP_TIMEOUT_SYNC[1]:
@@ -118,16 +117,6 @@ def check_timeouts() -> None:
 def check_views_lock() -> None:
     print("\n[3] views_nfce — lock + sync")
     txt = read("produtos/views_nfce.py")
-    needles = [
-        'nfce_emit_lock_',
-        "cache.add(lock_key",
-        "cache.delete(lock_key)",
-        'sefaz_perfil="sync"',
-        "status=409",
-        "ja esta sendo emitido",
-        "já está sendo emitido",
-    ]
-    # accent or not
     found_lock_msg = ("já está sendo emitido" in txt) or ("ja esta sendo emitido" in txt)
     if found_lock_msg:
         ok("mensagem lock 409")
@@ -141,12 +130,12 @@ def check_views_lock() -> None:
         "status=409",
         "_api_venda_agro_nfce_emitir_locked",
         "_nfce_emitir_json_response",
+        "timeout=45",
     ):
         if n in txt:
             ok(f"views: `{n[:48]}`")
         else:
             fail(f"views: falta `{n}`")
-    # finally must release lock even on exception
     if re.search(r"try:\s*\n\s*return _api_venda_agro_nfce_emitir_locked", txt) and "finally:" in txt:
         ok("lock liberado no finally")
     else:
@@ -154,7 +143,7 @@ def check_views_lock() -> None:
 
 
 def check_vdesc_all_items() -> None:
-    print("\n[4] XML — vDesc em todos os itens (537)")
+    print("\n[4] XML — vDesc em todos os itens (537) + gravar apos SEFAZ")
     em = read("produtos/nfce_sp_emissao_util.py")
     if "SEFAZ 537" in em or "537" in em:
         ok("comentario/ref 537")
@@ -164,15 +153,25 @@ def check_vdesc_all_items() -> None:
         ok("vDesc escrito quando total > 0")
     else:
         fail("padrao vDesc em todos itens ausente")
-    # old pattern (only if item > 0) should not be the gate alone
     if re.search(r"if v_desc_item > 0:\s*\n\s*_sub\(prod, \"vDesc\"", em):
         fail("ainda so escreve vDesc se item > 0 (omitir 0.00)")
     else:
         ok("nao omite vDesc 0.00 quando ha desconto total")
+    if "def _gravar_doc_nfce_venda" in em:
+        ok("_gravar_doc_nfce_venda")
+    else:
+        fail("falta _gravar_doc_nfce_venda")
+    if re.search(
+        r"reutilizada.: True,\s*\n\s*\}\s*\n\s*NfceDocumentoAgro\.objects\.filter\(venda=venda\)\.exclude",
+        em,
+    ):
+        fail("ainda apaga doc rejeitado ANTES da SEFAZ")
+    else:
+        ok("nao apaga rejeitada antes da SEFAZ")
 
 
 def check_ui_abort() -> None:
-    print("\n[5] UI AbortController 28s")
+    print("\n[5] UI AbortController 22s")
     for rel in (
         "produtos/templates/produtos/vendas_lista.html",
         "produtos/templates/produtos/venda_agro_detalhe.html",
@@ -182,11 +181,11 @@ def check_ui_abort() -> None:
             fail(f"{rel}: sem AbortController")
             continue
         ok(f"{rel}: AbortController")
-        if "28000" in txt:
-            ok(f"{rel}: 28000ms")
+        if "22000" in txt:
+            ok(f"{rel}: 22000ms")
         else:
-            fail(f"{rel}: falta 28000")
-        if "ctrl.abort" in txt or "ctrl).abort" in txt or "ctrl.abort()" in txt:
+            fail(f"{rel}: falta 22000")
+        if "ctrl.abort" in txt or "ctrl.abort()" in txt:
             ok(f"{rel}: abort()")
         else:
             fail(f"{rel}: sem abort()")
@@ -202,15 +201,19 @@ def check_ui_abort() -> None:
             ok(f"{rel}: fetch signal")
         else:
             fail(f"{rel}: fetch sem signal")
-        # loading bar hide no finally
         if "gmLoadingBar" in txt and "finally" in txt:
             ok(f"{rel}: finally esconde loading")
         else:
             fail(f"{rel}: loading pode ficar preso")
+    lista = read("produtos/templates/produtos/vendas_lista.html")
+    if "Desconto já foi corrigido" in lista:
+        ok("vendas_lista: tip 537 no modal")
+    else:
+        fail("vendas_lista: falta tip 537")
 
 
 def check_budget_js_vs_server() -> None:
-    print("\n[6] JS abort (28s) > orcamento SEFAZ sync")
+    print("\n[6] JS abort (22s) > orcamento SEFAZ sync")
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
 
@@ -218,11 +221,13 @@ def check_budget_js_vs_server() -> None:
     from produtos.sefaz_soap_util import SEFAZ_HTTP_RETRY_DELAYS_SYNC, SEFAZ_HTTP_TIMEOUT_SYNC
 
     connect, read = SEFAZ_HTTP_TIMEOUT_SYNC
-    worst = connect + read + sum(SEFAZ_HTTP_RETRY_DELAYS_SYNC)
-    if worst < 28:
-        ok(f"servidor ~{worst:.1f}s < JS 28s")
+    delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
+    n_try = max(1, len(delays))
+    worst = n_try * (connect + read) + sum(delays[1:] if len(delays) > 1 else [])
+    if worst < 22:
+        ok(f"servidor ~{worst:.1f}s < JS 22s")
     else:
-        fail(f"servidor ~{worst:.1f}s >= JS 28s (abort antes da resposta)")
+        fail(f"servidor ~{worst:.1f}s >= JS 22s (abort antes da resposta)")
 
 
 def check_desc_path() -> None:
@@ -243,6 +248,97 @@ def check_desc_path() -> None:
         print(out[-600:])
 
 
+def check_casos_loja_6478_6507() -> None:
+    """XML das vendas reais que travaram no reemitir (537)."""
+    print("\n[8] Casos loja #6478 / #6507 (vDesc apos tostring)")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+    from datetime import datetime
+    from decimal import Decimal
+    from unittest.mock import patch
+    import xml.etree.ElementTree as ET
+
+    from produtos.nfce_sp_emissao_util import NS, _montar_xml_nfce
+    from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
+
+    class Item:
+        def __init__(self, q, vu, vt, nome="P"):
+            self.quantidade = Decimal(str(q))
+            self.valor_unitario = Decimal(str(vu))
+            self.valor_total = Decimal(str(vt))
+            self.codigo = "GM"
+            self.produto_id_externo = "1"
+            self.descricao = nome
+            self.unidade = "UN"
+
+    class Venda:
+        def __init__(self, pk, total):
+            self.pk = pk
+            self.total = Decimal(str(total))
+            self.frete = Decimal("0")
+            self.pagamentos_json = [{"forma": "Cartao de debito", "valor": float(total)}]
+            self.cliente_nome = ""
+
+    CFG = {
+        "tp_amb": 2,
+        "cnpj": "48900774000103",
+        "razao_social": "T",
+        "fantasia": "T",
+        "logradouro": "R",
+        "numero": "1",
+        "bairro": "C",
+        "cmun": "3524600",
+        "cidade": "J",
+        "uf": "SP",
+        "cep": "11940000",
+        "fone": "",
+        "ie": "1",
+        "csc_id": "1",
+        "csc_token": "x",
+    }
+    FIS = {"ncm": "01012100", "cfop": "5102", "origem": "0", "csosn": "102", "cest": ""}
+    casos = [
+        (6478, [(1, 136, 136), (12, 18, 216)], "334.00"),
+        (6507, [(1, 87, 87)], "82.90"),
+    ]
+    for pk, specs, total in casos:
+        itens = [Item(*s) for s in specs]
+        venda = Venda(pk, total)
+        with patch("produtos.nfce_sp_emissao_util.ibpt_valor_item", return_value=Decimal("0")), patch(
+            "produtos.nfce_sp_emissao_util.calcular_ibpt_venda_itens",
+            return_value={"ibpt_texto": "ok"},
+        ), patch("produtos.nfce_sp_emissao_util._qr_code_url", return_value="https://x"):
+            xml_body, _ = _montar_xml_nfce(
+                CFG,
+                venda,
+                itens,
+                serie=21,
+                numero=1,
+                chave="35" + "0" * 42,
+                dh_emi=datetime(2026, 8, 29, 12, 0, 0),
+                cpf_dest="",
+                fiscal_itens=[FIS] * len(itens),
+            )
+        xml2 = tostring_sem_prefixos(xml_body)
+        root = ET.fromstring(xml2)
+        ns = {"n": NS}
+        v_tot = Decimal(root.findtext(".//n:ICMSTot/n:vDesc", namespaces=ns) or "0")
+        itens_d = [
+            Decimal(el.text or "0")
+            for el in root.findall(".//n:det/n:prod/n:vDesc", namespaces=ns)
+        ]
+        soma = sum(itens_d, Decimal("0"))
+        if v_tot > 0 and len(itens_d) == len(itens) and v_tot == soma:
+            ok(f"#{pk}: vDesc tot={v_tot} itens={itens_d} apos tostring")
+        else:
+            fail(f"#{pk}: FAIL tot={v_tot} itens={itens_d} (esperado tags={len(itens)})")
+        # XML rejeitado antigo da loja NAO tinha vDesc nos itens — regressao
+        if any(x is None for x in itens_d) or len(itens_d) == 0:
+            fail(f"#{pk}: regressao bug #7 (sem vDesc nos itens)")
+
+
 def main() -> int:
     print("VERIFY NFCE-REEMIT-TIMEOUT")
     check_ast()
@@ -252,6 +348,7 @@ def main() -> int:
     check_ui_abort()
     check_budget_js_vs_server()
     check_desc_path()
+    check_casos_loja_6478_6507()
     print(f"\n=== RESULTADO: {oks} OK · {fails} FAIL ===")
     if fails:
         print("VERIFY_FAIL")

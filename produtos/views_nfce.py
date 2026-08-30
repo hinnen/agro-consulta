@@ -475,7 +475,7 @@ def api_venda_agro_nfce_emitir(request, pk):
     from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
 
     lock_key = f"nfce_emit_lock_{int(pk)}"
-    if not cache.add(lock_key, "1", timeout=90):
+    if not cache.add(lock_key, "1", timeout=45):
         return JsonResponse(
             {
                 "ok": False,

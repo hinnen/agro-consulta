@@ -285,7 +285,15 @@
           vendaIdAtual = id;
           document.getElementById('modal-nfce-msg').classList.add('hidden');
           if (window.gmLoadingBar) window.gmLoadingBar.show();
-          fetch('/venda/' + id + '/nfce/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+          var ctrlOpen = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var toOpen = setTimeout(function () {
+            try { if (ctrlOpen) ctrlOpen.abort(); } catch (eAb) {}
+          }, 12000);
+          fetch('/venda/' + id + '/nfce/', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal: ctrlOpen ? ctrlOpen.signal : undefined,
+          })
             .then(function (r) { return r.json(); })
             .then(function (d) {
               if (!d.ok || !d.nfce_painel) throw new Error('Não foi possível carregar dados fiscais.');
@@ -300,7 +308,11 @@
               modal.classList.add('flex');
               document.getElementById('modal-nfce-sub').textContent =
                 p.autorizada ? 'NFC-e já autorizada.' : 'A venda foi registrada; só o cupom fiscal ficou pendente.';
-              document.getElementById('modal-nfce-erro').textContent = p.erro || 'Sem detalhe registrado.';
+              var errTxt = p.erro || 'Sem detalhe registrado.';
+              if (/537|desconto difere/i.test(errTxt)) {
+                errTxt += ' — Desconto já foi corrigido no sistema: clique em REEMITIR NFC-E uma vez e aguarde até ~20s.';
+              }
+              document.getElementById('modal-nfce-erro').textContent = errTxt;
               var cpfIn = document.getElementById('modal-nfce-cpf');
               var chk = document.getElementById('modal-nfce-sem-id');
               if (cpfIn) cpfIn.value = p.dest_cpf || '';
@@ -309,10 +321,14 @@
               if (btnRe) btnRe.disabled = !p.pode_reemitir || !!p.autorizada;
             })
             .catch(function (err) {
-              alert(err.message || 'Erro.');
+              var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
+              alert(aborted ? 'Demorou a abrir o painel fiscal — F5 e tente de novo.' : (err.message || 'Erro.'));
               fechar();
             })
-            .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+            .finally(function () {
+              clearTimeout(toOpen);
+              if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
         }
         document.getElementById('modal-nfce-fechar').onclick = fechar;
         modal.addEventListener('click', function (e) { /* Fundo nao fecha — so X / FECHAR / Esc */ void e; });
@@ -330,7 +346,7 @@
           var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
           var to = setTimeout(function () {
             try { if (ctrl) ctrl.abort(); } catch (eAb) {}
-          }, 28000);
+          }, 22000);
           fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
             method: 'POST',
             credentials: 'same-origin',

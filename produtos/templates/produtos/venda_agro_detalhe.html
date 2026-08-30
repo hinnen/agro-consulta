@@ -934,7 +934,7 @@
       var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
       var to = setTimeout(function () {
         try { if (ctrl) ctrl.abort(); } catch (eAb) {}
-      }, 28000);
+      }, 22000);
       fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
         method: 'POST',
         credentials: 'same-origin',

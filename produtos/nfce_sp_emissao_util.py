@@ -936,6 +936,14 @@ def _validar_fiscal_itens_nfce(itens: list, fiscal_rows: list[dict[str, str]]) -
     return None
 
 
+def _gravar_doc_nfce_venda(venda: VendaAgro, **fields) -> NfceDocumentoAgro:
+    """Substitui doc rejeitado/erro da venda (OneToOne) pelo resultado novo."""
+    NfceDocumentoAgro.objects.filter(venda=venda).exclude(
+        status=NfceDocumentoAgro.Status.AUTORIZADA
+    ).delete()
+    return NfceDocumentoAgro.objects.create(venda=venda, **fields)
+
+
 def emitir_nfce_para_venda(
     venda: VendaAgro,
     *,
@@ -964,7 +972,8 @@ def emitir_nfce_para_venda(
             "documento_id": doc_existente.pk,
             "reutilizada": True,
         }
-    NfceDocumentoAgro.objects.filter(venda=venda).exclude(status=NfceDocumentoAgro.Status.AUTORIZADA).delete()
+    # Não apaga rejeitada/erro antes da SEFAZ — se a rede cair no meio, o motivo antigo
+    # (ex. 537) continua na tela; só substitui ao gravar o resultado novo.
     loja = nfce_loja_de_venda(venda)
     if not nfce_configurada(warmup=True, tentativas=3, loja=loja):
         rotulo = "Vila Elias" if loja == "vila" else "Centro"
@@ -1069,8 +1078,8 @@ def emitir_nfce_para_venda(
             )
         except Exception as exc:
             logger.exception("montar_xml_nfce venda %s", venda.pk)
-            doc = NfceDocumentoAgro.objects.create(
-                venda=venda,
+            doc = _gravar_doc_nfce_venda(
+                venda,
                 status=NfceDocumentoAgro.Status.ERRO,
                 numero=numero,
                 serie=serie,
@@ -1084,8 +1093,8 @@ def emitir_nfce_para_venda(
 
         signed, err_sign = _assinar_nfe_xml(xml_body, cfg["cert_path"], cfg["cert_password"], chave)
         if err_sign or not signed:
-            doc = NfceDocumentoAgro.objects.create(
-                venda=venda,
+            doc = _gravar_doc_nfce_venda(
+                venda,
                 status=NfceDocumentoAgro.Status.ERRO,
                 chave=chave,
                 numero=numero,
@@ -1103,8 +1112,8 @@ def emitir_nfce_para_venda(
             signed = tostring_sem_prefixos(signed)
         except Exception as exc:
             logger.exception("XML NFC-e inválido após QR venda %s", venda.pk)
-            doc = NfceDocumentoAgro.objects.create(
-                venda=venda,
+            doc = _gravar_doc_nfce_venda(
+                venda,
                 status=NfceDocumentoAgro.Status.ERRO,
                 chave=chave,
                 numero=numero,
@@ -1137,8 +1146,8 @@ def emitir_nfce_para_venda(
         )
 
     if err_http or not ret:
-        doc = NfceDocumentoAgro.objects.create(
-            venda=venda,
+        doc = _gravar_doc_nfce_venda(
+            venda,
             status=NfceDocumentoAgro.Status.ERRO,
             chave=chave,
             numero=numero,
@@ -1156,8 +1165,8 @@ def emitir_nfce_para_venda(
     mensagem_sefaz = f"{ret.get('c_stat', '')} — {ret.get('x_motivo', '')}".strip(" —")
     if ret.get("c_stat") == "270":
         mensagem_sefaz += f" (NFC_E_CMUN={cfg['cmun']}; Jacupiranga/SP=3524600)"
-    doc = NfceDocumentoAgro.objects.create(
-        venda=venda,
+    doc = _gravar_doc_nfce_venda(
+        venda,
         status=st,
         chave=ret.get("chave") or chave,
         numero=numero,

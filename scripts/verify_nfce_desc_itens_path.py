@@ -210,13 +210,16 @@ def assert_531(root: ET.Element, label: str) -> None:
 def check_runtime_xml() -> None:
     print("\n[4] XML runtime (531 / vNF / vPag)")
     casos = [
-        ("2 itens −10", ["50.00", "50.00"], "90.00", "0"),
-        ("1 item −5,55", ["40.00"], "34.45", "0"),
+        ("2 itens -10", ["50.00", "50.00"], "90.00", "0"),
+        ("1 item -5,55", ["40.00"], "34.45", "0"),
         ("3 itens centavos", ["10.00", "10.00", "10.00"], "29.99", "0"),
         ("sem desconto", ["15.00", "25.00"], "40.00", "0"),
-        ("frete+desc", ["100.00"], "105.00", "10.00"),  # itens 100 + frete 10 − desc 5
+        ("frete+desc", ["100.00"], "105.00", "10.00"),  # itens 100 + frete 10 - desc 5
         ("total zero c/ frete", ["80.00", "20.00"], "0.00", "10.00"),
         ("desconto 1 cent", ["10.00", "10.00"], "19.99", "0"),
+        # Loja real (reemitir travado): #6478 Centro / #6507 Vila
+        ("loja #6478", ["136.00", "216.00"], "334.00", "0"),
+        ("loja #6507", ["87.00"], "82.90", "0"),
     ]
     for label, vts, total, frete in casos:
         try:
