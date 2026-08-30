@@ -1253,11 +1253,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 NFC-e reemitir CSRF na lista (`NFCE-REEMIT-CSRF` · **v20.04**) · 30/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 📦 **pronto `teste` v20.04** — **aguarda frase+senha** loja · migrate **NÃO** |
+| **Causa** | `/vendas/` chamava `csrf()` **sem definir** → POST **nunca saía** → timeout 20s + 537 antigo; DB sem «Tentativa» |
+| **O quê** | `csrf()` + `{{ csrf_token }}` + aviso CSRF imediato em `vendas_lista.html` |
+| **Pacote** | `NFCE-REEMIT-CSRF` |
+| **Prova** | path **62/62** |
+| **Você** | após loja: **Ctrl+F5** `/vendas/` · badge **v20.04** · Reemitir #6507 **1×** |
+
 ### ✅ Deploy loja — NFC-e stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v20.01** — frase+senha neste chat · migrate **NÃO** |
+| **Status** | ✅ **enviado / Live v20.01** — reforço CSRF tip aguarda senha |
 | **Antes** | Live **v19.97** @ `5430647` |
 | **Agora** | `producao` @ PREP `e7f8154` · VERSION **20.01** |
 | **Pacote** | `NFCE-REEMIT-STAMP-FIRST` |
@@ -1270,6 +1281,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status |
 | - | ------ | ------ |
 | 1 | `NFCE-REEMIT-STAMP-FIRST` | ✅ **Live v20.01** · prova **59/59** |
+| 2 | `NFCE-REEMIT-CSRF` | 📦 tip — **aguarda senha** |
 
 ### ~~📦 PACOTE PRONTO / CHECKLIST tip **v20.00** (aguarda senha)~~ · **superado — Live v20.01**
 

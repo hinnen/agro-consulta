@@ -214,6 +214,18 @@ def check_ui_abort() -> None:
         ok("vendas_lista: tip 537 no modal")
     else:
         fail("vendas_lista: falta tip 537")
+    if "function csrf()" in lista and "agro-csrf-nfce-vendas" in lista and "{{ csrf_token }}" in lista:
+        ok("vendas_lista: csrf() definido + token no HTML")
+    else:
+        fail("vendas_lista: falta csrf() / token (POST nunca saia)")
+    if "Falha de segurança (CSRF)" in lista:
+        ok("vendas_lista: erro CSRF imediato na tela")
+    else:
+        fail("vendas_lista: falta aviso CSRF na tela")
+    if "'X-CSRFToken': token" in lista:
+        ok("vendas_lista: POST usa token (nao csrf() quebrado)")
+    else:
+        fail("vendas_lista: POST ainda sem token var")
     views = read("produtos/views_nfce.py")
     if 'sefaz_perfil="sync"' in views:
         ok("views: reemitir perfil sync")
