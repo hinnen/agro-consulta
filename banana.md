@@ -1259,7 +1259,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ---- | ------- |
 | **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **Pedido** | Renan · Pedir loja → overlay 2 botões · Forçada = Logística, nativo no PDV |
-| **O quê** | Escolha **Pedir** / **Transferência forçada** · textos claros · PIN sempre na forçada · Esc volta · badge só pedidos · APIs estoque existentes |
+| **O quê** | Escolha **Pedir** / **Transferência forçada** · textos claros · PIN sempre na forçada · Esc volta · badge só pedidos · botão direção da **loja do PDV** maior · APIs estoque existentes |
 | **Onde** | `pedir_loja_escolha_overlay.html` · `transf_forcada_overlay.html` · `pdv_transf_forcada.js` · `pdv_pedir_loja.js` · `pdv_wizard.html` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_transf_forcada_path.py` · Pedir loja **68/68** intacto |
