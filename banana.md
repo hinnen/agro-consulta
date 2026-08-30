@@ -1253,45 +1253,38 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**) · 30/08/2026
+### ✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** · **NÃO** enviado · aguarda frase + senha no **próximo chat** |
-| **Antes (loja)** | Live **v19.63** @ `71eea32` (Chat abre) |
-| **PREP** | `deploy/prep-checklist-3008` @ **`09d5968`** · VERSION **19.83** |
-| **Pacotes** | 4 do CHECKLIST ÚNICO tip v19.83 |
-| **Fora** | `BI-META-C-VILA-RAMP` (SOLO — **não** entrou no PREP) |
+| **Status** | ✅ **enviado / Live v19.83** — healthz **ok** · home badge **v19.83** · `/pdv/` `/consulta/` **200** · frase+senha neste chat |
+| **Antes** | Live **v19.63** @ `71eea32` |
+| **Agora** | `producao` @ **`09d5968`** |
+| **Pacotes** | PDV-TRANSF-FORCADA · PDV-ENTER-SEM-IMP · CAIXA-DEVOL-MP-MESMA · NFCE-REEMIT-TIMEOUT |
+| **Fora** | `BI-META-C-VILA-RAMP` (continua SOLO) |
 | **Migrate** | **NÃO** |
-| **Provas** | TRANSF-FORCADA **88/88** · Pedir **68/68** · Enter **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
-| **Rollback** | tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` |
-| **Deploy (só com senha)** | `producao` ← `origin/deploy/prep-checklist-3008` · force-with-lease · Ctrl+F5 · badge **v19.83** |
-| **Você no deploy** | Pausar vendas 2–3 min · Zap · smoke: Enter=sem · F9=com · Pedir/Forçada · Fechar caixa MP · Reemitir |
+| **Rollback** | tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** nos PDVs · badge **v19.83** · smoke: Enter=sem · F9=com · Pedir/Forçada · Fechar caixa MP · Reemitir |
+| **Nota** | Push intermediário acidental `6b1eeed` (v19.02) corrigido na hora para PREP `09d5968` — loja estabilizou em **v19.83** |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.83** · 30/08/2026
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Tip** | `teste` **v19.83** · loja **v19.63** · PREP **`09d5968`** |
-| **Prova** | PDV-TRANSF-FORCADA **88/88** · Pedir **68/68** · Enter **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
-| **Migrate** | não |
-| **Status** | 🟡 **PREP pronto / aguarda senha** (não subir com loja aberta sem pausa) |
-| **Você** | Próximo chat: pausar vendas + frase + senha → sobe PREP |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-TRANSF-FORCADA` | ✅ **Live v19.83** · prova **88/88** |
+| 2 | `PDV-ENTER-SEM-IMP` | ✅ **Live v19.83** · prova **41/41** |
+| 3 | `CAIXA-DEVOL-MP-MESMA` | ✅ **Live v19.83** · prova **171/171** |
+| 4 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.83** · prova **38/38** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.83** · PREP `09d5968`)
+### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83 @ 09d5968**
 
-| # | Pacote | O quê | Migrate | Status |
-| - | ------ | ----- | ------- | ------ |
-| 1 | `PDV-TRANSF-FORCADA` | Pedir × Forçada no PDV · prova **88/88** | não | 🟡 PREP pronto |
-| 2 | `PDV-ENTER-SEM-IMP` | Enter sempre sem cupom · prova **41/41** | não | 🟡 PREP pronto |
-| 3 | `CAIXA-DEVOL-MP-MESMA` | Devol MP não cai nas manuais · prova **171/171** | não | 🟡 PREP pronto |
-| 4 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · prova **38/38** | não | 🟡 PREP pronto |
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.83 (aguarda senha)~~ · **superado — Live v19.83**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova **88/88** · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **Status** | ✅ **Live v19.83** · prova **88/88** |
 | **O quê** | Escolha Pedir/Forçada · hero loja do PDV + Enter · 2 cards coloridos + seta · PIN · Esc · APIs estoque · Logística intocada |
 | **Prova** | `verify_pdv_transf_forcada_path.py` **88/88** · Pedir **68/68** · `verify_transf_forcada_ux` OK · node `--check` OK |
 | **Migrate** | **NÃO** |

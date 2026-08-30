@@ -267,12 +267,11 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-TRANSF-FORCADA** | 🟡 PREP pronto · prova **88/88** | **NÃO** |
-| 2 | **PDV-ENTER-SEM-IMP** | 🟡 PREP pronto · prova **41/41** | **NÃO** |
-| 3 | **CAIXA-DEVOL-MP-MESMA** | 🟡 PREP pronto · prova **171/171** | **NÃO** |
-| 4 | **NFCE-REEMIT-TIMEOUT** | 🟡 PREP pronto · prova **38/38** | **NÃO** |
+| 1 | **PDV-TRANSF-FORCADA** | ✅ **Live v19.83** · prova **88/88** | **NÃO** |
+| 2 | **PDV-ENTER-SEM-IMP** | ✅ **Live v19.83** · prova **41/41** | **NÃO** |
+| 3 | **CAIXA-DEVOL-MP-MESMA** | ✅ **Live v19.83** · prova **171/171** | **NÃO** |
+| 4 | **NFCE-REEMIT-TIMEOUT** | ✅ **Live v19.83** · prova **38/38** | **NÃO** |
 
-**Status: PREP pronto / NÃO enviado.** Branch `deploy/prep-checklist-3008` @ `09d5968`. Loja hoje **v19.63**.  
-**Fora do PREP:** `BI-META-C-VILA-RAMP` (SOLO).  
-**Rollback:** tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` · **só** frase+senha.  
-**Próximo chat:** pausar vendas + frase + senha → `producao` ← PREP · Ctrl+F5 · badge **v19.83**.
+**Status: enviado / Live v19.83.** `producao` @ `09d5968`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v19.83** · Ctrl+F5 · Enter=sem · Pedir/Forçada · Fechar caixa · Reemitir. **Pendente SOLO:** `BI-META-C-VILA-RAMP`.
