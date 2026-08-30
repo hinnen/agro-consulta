@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1259,7 +1259,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | 🟡 **pronto para envio à produção** · migrate **NÃO** |
 | **Live loja** | **v20.01** (`NFCE-REEMIT-STAMP-FIRST`) |
-| **Tip `teste`** | **v20.05** @ (após push) |
+| **Tip `teste`** | **v20.05** @ `5d8c119` |
 | **O que sobe** | `NFCE-REEMIT-CSRF` — Reemitir em `/vendas/` finalmente **envia** o POST (antes `csrf()` inexistente → timeout falso + 537 antigo) |
 | **Prova** | path **70/70** · DESC **67/67** · Django NFC-e **13/13** · node Live-bug + Django `csrf_token` |
 | **Você após loja** | **Ctrl+F5** `/vendas/` · badge **v20.05** · Reemitir #6507 **1×** |
