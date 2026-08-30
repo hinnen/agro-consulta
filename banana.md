@@ -1267,19 +1267,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Fechar caixa · Pix MP → devolver em **PIX** · «Pix — Mercado Pago» zera · PIX manual não cai |
 | **Risco** | Baixo-médio — só conferência do Fechar |
 
-### 🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · **v19.68**) · bug loja #9 · 30/08/2026
+### 🩹 PDV Enter = sem impressão (`PDV-ENTER-SEM-IMP` · **v19.72**) · bug loja #9 · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova path cupom **31/31** · ⏳ prova Renan local · ⏳ loja ainda sem |
-| **Relato** | Nathan · Caixa Centro · Enter «finaliza com impressão» · esperava sem |
-| **Causa** | Bug #6 (Live): dinheiro + Enter = COM cupom; botão ainda dizia «sem impressão Enter» |
-| **O quê** | Rótulos dinâmicos: dinheiro → Enter/F9 no COM; sem impressão só clique. PIX/cartão igual |
-| **Onde** | `pdv_wizard.js` (`refreshConfirmSaleLabels`) · `verify_pdv_cupom_dinheiro_path.py` |
+| **Status** | ✅ no `teste` · prova **20/20** · ⏳ Renan local · ⏳ loja ainda sem |
+| **Relato** | Nathan · Enter finalizava COM impressão · queria sem |
+| **Pedido Renan** | Enter = **sempre** sem impressão (reverte cupom no dinheiro do #6) |
+| **O quê** | Enter → sem cupom · F9 = com cupom · foco no SEM · rótulos Enter/F9 fixos |
+| **Onde** | `pdv_wizard.js` · `verify_pdv_cupom_dinheiro_path.py` · commit `316262d` |
 | **Migrate** | **NÃO** |
-| **Prova** | VERIFY cupom dinheiro **31/31** |
-| **Você** | Ctrl+F5 `/pdv/` · Dinheiro quitado → ver Enter no botão COM · Enter tira cupom · clique «sem» = sem |
-| **Risco** | Baixo — só UI; lógica Enter igual #6 · reverter fácil se não gostar |
+| **Prova** | VERIFY **20/20** |
+| **Você** | Ctrl+F5 `/pdv/` · Dinheiro → **Enter** = sem cupom · **F9** = com |
+| **Risco** | Baixo — desfaz Enter=cupom do #6 no dinheiro |
+
+### ~~🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · v19.68)~~ · **superado** por `PDV-ENTER-SEM-IMP`
 
 ### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.67**) · 30/08/2026
 
@@ -1300,17 +1302,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Item | Detalhe |
 | ---- | ------- |
 | **Tip** | `teste` **v19.72** · loja **v19.63** |
-| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · cupom dinheiro **31/31** · devol MP mesma forma **171/171** |
+| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · Enter sem imp **20/20** · devol MP mesma forma **171/171** |
 | **Migrate** | não |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 Vendas Reemitir · PDV dinheiro Enter no COM · Fechar caixa Pix MP → devolver em PIX |
+| **Você** | Ctrl+F5 Vendas Reemitir · PDV Enter = sem cupom (F9 = com) · Fechar caixa Pix MP → devolver em PIX |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.72**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 vDesc · prova 38/38 | não | 🟡 pronto envio |
-| 2 | `PDV-ENTER-ROTULO-DIN` | Bug #9 · rótulo Enter no COM (dinheiro) · prova 31/31 | não | 🟡 pronto envio |
+| 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 20/20 | não | ⏳ Renan local |
 | 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devolução Pix/débito/crédito MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
 
 ### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.71~~ · **superado — tip v19.72**
@@ -1409,7 +1411,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no 	este · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
 | **O quê** | Erro de transferência (ex. dinheiro que precisa ficar na Vila) abre popup pequeno «Entendi» |
 | **Você** | Ctrl+F5 · tentar levar mais que a gaveta · deve abrir popup |
 
