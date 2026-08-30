@@ -694,6 +694,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Hero totais (`REPASSE-HERO-TOTAIS` · v18.80):** Enviado no mês + Total geral no card «Levar ao Centro».
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
+- **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
 
 ### 4.12 RH
 
@@ -1252,6 +1253,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 Fechar caixa — devolução MP mesma forma (`CAIXA-DEVOL-MP-MESMA` · **v19.69**) · bug loja #8 · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · prova path **135/135** · ⏳ prova Renan local · ⏳ loja ainda sem |
+| **Relato** | Renan · Caixa Centro · devolução Pix MP automático descontava das máquinas manuais (provável débito/crédito igual) |
+| **Causa** | Venda Point soma em «Pix/cartão — Mercado Pago»; retirada da devolução ia no balde PIX/débito/crédito **manual** |
+| **O quê** | Mesma forma no mesmo turno → retirada remapeia para a linha «— Mercado Pago». Dinheiro → gaveta (v17.84) intacto. Cielo permanece no balde manual |
+| **Onde** | `produtos/caixa_util.py` · `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | VERIFY devolução MP **135/135** |
+| **Você** | Ctrl+F5 Fechar caixa · vender Pix MP · devolver em **PIX** · esperado «Pix — Mercado Pago» zera · linha PIX manual não cai |
+| **Risco** | Baixo-médio — só conferência do Fechar; venda/PDV intactos |
+
 ### 🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · **v19.68**) · bug loja #9 · 30/08/2026
 
 | Item | Detalhe |
@@ -1280,22 +1295,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.68** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.69** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.68** · loja **v19.63** |
-| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · cupom dinheiro rótulo **31/31** |
+| **Tip** | `teste` **v19.69** · loja **v19.63** |
+| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · cupom dinheiro rótulo **31/31** · devol MP mesma forma **135/135** |
 | **Migrate** | não |
-| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) · rótulo #9 ⏳ Renan local |
-| **Você** | Ctrl+F5 Vendas · Reemitir · PDV dinheiro Enter no COM |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) · #8 e #9 ⏳ Renan local |
+| **Você** | Ctrl+F5 Vendas · Reemitir · PDV dinheiro Enter no COM · Fechar caixa devolução Pix MP em PIX |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.68**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.69**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 vDesc todos itens · prova 38/38 | não | 🟡 pronto envio |
 | 2 | `PDV-ENTER-ROTULO-DIN` | Bug #9 · rótulo Enter no COM (dinheiro) · prova 31/31 | não | ⏳ Renan local |
+| 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devolução Pix/débito/crédito MP não cai nas manuais · prova 135/135 | não | ⏳ Renan local |
+
+### ~~📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.68** · 30/08/2026~~ · **superado — tip v19.69**
+
+### ~~✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.68**)~~ · **superado — tip v19.69**
 
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
