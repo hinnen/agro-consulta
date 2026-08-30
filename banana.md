@@ -1267,17 +1267,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Fechar caixa · Pix MP → devolver em **PIX** · «Pix — Mercado Pago» zera · PIX manual não cai |
 | **Risco** | Baixo-médio — só conferência do Fechar |
 
-### 🩹 PDV Enter = sem impressão (`PDV-ENTER-SEM-IMP` · **v19.72**) · bug loja #9 · 30/08/2026
+### 🩹 PDV Enter = sem impressão (`PDV-ENTER-SEM-IMP` · **v19.74**) · bug loja #9 · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova **20/20** · ⏳ Renan local · ⏳ loja ainda sem |
+| **Status** | ✅ no `teste` · prova **41/41** · 🟡 **pronto para envio** · ⏳ loja ainda sem |
 | **Relato** | Nathan · Enter finalizava COM impressão · queria sem |
 | **Pedido Renan** | Enter = **sempre** sem impressão (reverte cupom no dinheiro do #6) |
 | **O quê** | Enter → sem cupom · F9 = com cupom · foco no SEM · rótulos Enter/F9 fixos |
 | **Onde** | `pdv_wizard.js` · `verify_pdv_cupom_dinheiro_path.py` · commit `316262d` |
 | **Migrate** | **NÃO** |
-| **Prova** | VERIFY **20/20** |
+| **Prova** | VERIFY **41/41** (anti-regressão · Enter/F9 · rótulos · foco · print→reset · node · overlay · cupom PG) |
 | **Você** | Ctrl+F5 `/pdv/` · Dinheiro → **Enter** = sem cupom · **F9** = com |
 | **Risco** | Baixo — desfaz Enter=cupom do #6 no dinheiro |
 
@@ -1297,25 +1297,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.72** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.74** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.72** · loja **v19.63** |
-| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · Enter sem imp **20/20** · devol MP mesma forma **171/171** |
+| **Tip** | `teste` **v19.74** · loja **v19.63** |
+| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · Enter sem imp **41/41** · devol MP **171/171** |
 | **Migrate** | não |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 Vendas Reemitir · PDV Enter = sem cupom (F9 = com) · Fechar caixa Pix MP → devolver em PIX |
+| **Você** | Ctrl+F5 PDV Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.72**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.74**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 vDesc · prova 38/38 | não | 🟡 pronto envio |
-| 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 20/20 | não | ⏳ Renan local |
+| 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 41/41 | não | 🟡 pronto envio |
 | 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devolução Pix/débito/crédito MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.71~~ · **superado — tip v19.72**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.73~~ · **superado — tip v19.74**
 
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
