@@ -354,7 +354,7 @@ def nfce_config_resumo(loja: str | None = "centro") -> dict[str, Any]:
     c = nfce_cfg(loja_n)
     vila = nfce_cfg("vila")
     return {
-        "ativo": nfce_configurada(loja=loja_n),
+        "ativo": nfce_configurada(loja=loja_n, warmup=False),
         "ativo_centro": nfce_configurada(loja="centro", warmup=False),
         "ativo_vila": nfce_configurada(loja="vila", warmup=False),
         "loja": loja_n,
