@@ -1253,26 +1253,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v20.00** (aguarda senha) · 30/08/2026
-
-| # | Pacote | Prova | Migrate | Status |
-| - | ------ | ----- | ------- | ------ |
-| 1 | `NFCE-REEMIT-STAMP-FIRST` | path **59/59** · Django **13/13** | **NÃO** | 📦 **pronto para envio** |
+### ✅ Deploy loja — NFC-e stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Tip** | `teste` · **20.00** |
-| **Loja hoje** | Live **v19.97** — timeout na tela OK, mas POST **não carimbou** (#6507 ainda 537 de 29/08) |
-| **Fix** | Carimbo `Tentativa` **antes** do lock Redis · Redis socket 2s · config/SEFAZ no teto 18s · painel sem warmup |
-| **Você** | Senha → Ctrl+F5 → Reemitir **1×** → F5: erro deve virar «Tentativa HH:MM…» ou autorizar/timeout gravado |
+| **Status** | ✅ **enviado / Live v20.01** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v19.97** @ `5430647` |
+| **Agora** | `producao` @ PREP `e7f8154` · VERSION **20.01** |
+| **Pacote** | `NFCE-REEMIT-STAMP-FIRST` |
+| **Rollback** | tag `rollback/pre-nfce-stamp-first-v19.97` @ `5430647` · branch `producao-backup-pre-v2001-nfce-stamp-first-20260830` · `docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md` · **só** frase+senha |
+| **Prova** | path **59/59** · Django **13/13** |
+| **Você** | **Ctrl+F5** `/vendas/` · badge **v20.01** · Reemitir #6507 **1×** · F5 → «Tentativa HH:MM…» ou autorizar |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v20.00**)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v20.01**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-STAMP-FIRST` | 📦 **pronto para envio** |
+| 1 | `NFCE-REEMIT-STAMP-FIRST` | ✅ **Live v20.01** · prova **59/59** |
 
-### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v20.00**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip **v20.00** (aguarda senha)~~ · **superado — Live v20.01**
+
+### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v20.01**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
