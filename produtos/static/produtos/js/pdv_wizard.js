@@ -2098,6 +2098,28 @@
         });
     }
 
+    /**
+     * Rótulos dos botões de confirmação: no dinheiro Enter fica no COM impressão
+     * (bate com o atalho real); sem impressão só clique. PIX/cartão: Enter = sem.
+     */
+    function refreshConfirmSaleLabels() {
+        var n = dom.confirmSaleNoPrint;
+        var p = dom.confirmSalePrint;
+        if (!n || !p) return;
+        if (n.disabled && String(n.textContent || '').indexOf('Confirmando') === 0) return;
+        var soDinheiro = pagamentoSoDinheiro();
+        if (soDinheiro) {
+            n.innerHTML = 'Confirmar sem impressão';
+            p.innerHTML =
+                'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">Enter</kbd> <kbd class="ml-0.5 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+        } else {
+            n.innerHTML =
+                'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
+            p.innerHTML =
+                'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+        }
+    }
+
     function afterCommitTrancheFlow() {
         setTimeout(function () {
             var inp = document.getElementById('pdv-pay-valor-tranche');
@@ -7214,6 +7236,7 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
+        if (readyConfirm) refreshConfirmSaleLabels();
         if (err) {
             dom.paymentFeedback.textContent = err;
             dom.paymentFeedback.classList.remove('hidden');
@@ -10051,14 +10074,7 @@
             p.classList.toggle('cursor-not-allowed', !!busy);
         }
         if (!busy) {
-            if (n) {
-                n.innerHTML =
-                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
-            }
-            if (p) {
-                p.innerHTML =
-                    'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
-            }
+            refreshConfirmSaleLabels();
             State.setPagamentoField('observacaoFinal', State.getState().pagamento.observacaoFinal || '');
         }
     }

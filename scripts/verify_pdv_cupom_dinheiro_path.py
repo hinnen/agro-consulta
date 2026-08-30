@@ -76,16 +76,31 @@ def check_contracts() -> None:
 
     for needle in (
         "function pagamentoSoDinheiro",
+        "function refreshConfirmSaleLabels",
         "/dinheiro/i.test",
         "tryConfirmSale(pagamentoSoDinheiro(st))",
         "Cupom ANTES do modal",
         "confirmSalePrint.focus()",
         "Dinheiro quitado: Enter = com cupom",
+        "Enter fica no COM impressão",
     ):
         if needle in js:
             ok(f"js:{needle[:48]}")
         else:
             fail(f"js falta:{needle[:60]}")
+
+    # Dinheiro: rótulo sem Enter no botão sem-impressão; Enter no COM
+    if "Confirmar sem impressão</kbd>" not in js and 'n.innerHTML = \'Confirmar sem impressão\';' in js:
+        ok("js:rotulo_dinheiro_sem_enter_no_botao_sem")
+    elif "n.innerHTML = 'Confirmar sem impressão'" in js or 'n.innerHTML = "Confirmar sem impressão"' in js:
+        ok("js:rotulo_dinheiro_sem_enter_no_botao_sem")
+    else:
+        fail("js:rotulo_dinheiro_sem_enter")
+
+    if "refreshConfirmSaleLabels()" in js:
+        ok("js:refreshConfirmSaleLabels_chamado")
+    else:
+        fail("js:refreshConfirmSaleLabels_nao_chamado")
 
     # Enter handler usa so-dinheiro; botão explícito sem impressão = false
     if "dom.confirmSaleNoPrint.addEventListener" in js and "tryConfirmSale(false)" in js:

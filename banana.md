@@ -1252,6 +1252,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · **v19.68**) · bug loja #9 · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · prova path cupom **31/31** · ⏳ prova Renan local · ⏳ loja ainda sem |
+| **Relato** | Nathan · Caixa Centro · Enter «finaliza com impressão» · esperava sem |
+| **Causa** | Bug #6 (Live): dinheiro + Enter = COM cupom; botão ainda dizia «sem impressão Enter» |
+| **O quê** | Rótulos dinâmicos: dinheiro → Enter/F9 no COM; sem impressão só clique. PIX/cartão igual |
+| **Onde** | `pdv_wizard.js` (`refreshConfirmSaleLabels`) · `verify_pdv_cupom_dinheiro_path.py` |
+| **Migrate** | **NÃO** |
+| **Prova** | VERIFY cupom dinheiro **31/31** |
+| **Você** | Ctrl+F5 `/pdv/` · Dinheiro quitado → ver Enter no botão COM · Enter tira cupom · clique «sem» = sem |
+| **Risco** | Baixo — só UI; lógica Enter igual #6 · reverter fácil se não gostar |
+
 ### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.67**) · 30/08/2026
 
 | Item | Detalhe |
@@ -1266,21 +1280,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.67** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.68** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.67** · loja **v19.63** |
-| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** |
+| **Tip** | `teste` **v19.68** · loja **v19.63** |
+| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · cupom dinheiro rótulo **31/31** |
 | **Migrate** | não |
-| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 Vendas · Reemitir NFC-e (#6507 / desconto) |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) · rótulo #9 ⏳ Renan local |
+| **Você** | Ctrl+F5 Vendas · Reemitir · PDV dinheiro Enter no COM |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.67**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.68**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 vDesc todos itens · prova 38/38 | não | 🟡 pronto envio |
+| 2 | `PDV-ENTER-ROTULO-DIN` | Bug #9 · rótulo Enter no COM (dinheiro) · prova 31/31 | não | ⏳ Renan local |
 
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
