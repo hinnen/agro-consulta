@@ -1253,31 +1253,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — tip **v20.07** (aguarda senha) · 30/08/2026
+### ✅ Deploy loja — NFC-e CSRF lista (`NFCE-REEMIT-CSRF` · **v20.07**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **pronto para envio à produção** · migrate **NÃO** |
-| **Live loja** | **v20.01** (`NFCE-REEMIT-STAMP-FIRST`) |
-| **Tip `teste`** | **v20.07** |
-| **O que sobe** | `NFCE-REEMIT-CSRF` — Reemitir em `/vendas/` finalmente **envia** o POST (antes `csrf()` inexistente → timeout falso + 537 antigo) |
-| **Prova** | path **70/70** · DESC **67/67** · Django NFC-e **13/13** · node Live-bug + Django `csrf_token` |
-| **Você após loja** | **Ctrl+F5** `/vendas/` · badge **v20.07** · Reemitir #6507 **1×** |
+| **Status** | ✅ **enviado / Live v20.07** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v20.01** @ `e7f8154` |
+| **Agora** | `producao` @ `91a610a` · PREP `deploy/prep-nfce-csrf-v2007` · VERSION **20.07** |
+| **Pacote** | `NFCE-REEMIT-CSRF` |
+| **Rollback** | tag `rollback/pre-nfce-csrf-v20.01` @ `e7f8154` · branch `producao-backup-pre-v2007-nfce-csrf-20260830` · `docs/ROLLBACK-NFCE-CSRF-V2007.md` · **só** frase+senha |
+| **Prova** | path **70/70** · Django **13/13** |
+| **Você** | **Ctrl+F5** `/vendas/` · badge **v20.07** · Reemitir #6507 **1×** |
 
-### ✅ CHECKLIST ÚNICO — tip **v20.07** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v20.07**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-CSRF` | 🟡 **pronto para envio à produção** · v20.07 · prova **70/70** |
+| 1 | `NFCE-REEMIT-CSRF` | ✅ **Live v20.07** · prova **70/70** |
 
-### ✅ Live loja — stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**)
+### ~~📦 PACOTE PRONTO tip v20.07~~ · **superado — Live v20.07**
+
+### ✅ Live anterior — stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **Live v20.01** — CSRF da lista **ainda falta** (pacote acima) |
+| **Status** | ✅ base do CSRF · supersedido pela loja **v20.07** |
 | **Rollback stamp** | tag `rollback/pre-nfce-stamp-first-v19.97` · `docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md` |
-
-### ~~📦 PACOTE / CHECKLIST tip v20.00–v20.06~~ · **superado — tip v20.07**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
