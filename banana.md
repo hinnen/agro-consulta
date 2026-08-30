@@ -1253,39 +1253,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🩹 NFC-e reemitir CSRF na lista (`NFCE-REEMIT-CSRF` · **v20.04**) · 30/08/2026
+### 📦 PACOTE PRONTO — tip **v20.05** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 📦 **pronto `teste` v20.04** — **aguarda frase+senha** loja · migrate **NÃO** |
-| **Causa** | `/vendas/` chamava `csrf()` **sem definir** → POST **nunca saía** → timeout 20s + 537 antigo; DB sem «Tentativa» |
-| **O quê** | `csrf()` + `{{ csrf_token }}` + aviso CSRF imediato em `vendas_lista.html` |
-| **Pacote** | `NFCE-REEMIT-CSRF` |
-| **Prova** | path **62/62** |
-| **Você** | após loja: **Ctrl+F5** `/vendas/` · badge **v20.04** · Reemitir #6507 **1×** |
+| **Status** | 🟡 **pronto para envio à produção** · migrate **NÃO** |
+| **Live loja** | **v20.01** (`NFCE-REEMIT-STAMP-FIRST`) |
+| **Tip `teste`** | **v20.05** @ (após push) |
+| **O que sobe** | `NFCE-REEMIT-CSRF` — Reemitir em `/vendas/` finalmente **envia** o POST (antes `csrf()` inexistente → timeout falso + 537 antigo) |
+| **Prova** | path **70/70** · DESC **67/67** · Django NFC-e **13/13** · node Live-bug + Django `csrf_token` |
+| **Você após loja** | **Ctrl+F5** `/vendas/` · badge **v20.05** · Reemitir #6507 **1×** |
 
-### ✅ Deploy loja — NFC-e stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**) · **Live** · 30/08/2026
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v20.01** — reforço CSRF tip aguarda senha |
-| **Antes** | Live **v19.97** @ `5430647` |
-| **Agora** | `producao` @ PREP `e7f8154` · VERSION **20.01** |
-| **Pacote** | `NFCE-REEMIT-STAMP-FIRST` |
-| **Rollback** | tag `rollback/pre-nfce-stamp-first-v19.97` @ `5430647` · branch `producao-backup-pre-v2001-nfce-stamp-first-20260830` · `docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md` · **só** frase+senha |
-| **Prova** | path **59/59** · Django **13/13** |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v20.01** · Reemitir #6507 **1×** · F5 → «Tentativa HH:MM…» ou autorizar |
-
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v20.01**)
+### ✅ CHECKLIST ÚNICO — tip **v20.05** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-STAMP-FIRST` | ✅ **Live v20.01** · prova **59/59** |
-| 2 | `NFCE-REEMIT-CSRF` | 📦 tip — **aguarda senha** |
+| 1 | `NFCE-REEMIT-CSRF` | 🟡 **pronto para envio à produção** · v20.05 · prova **70/70** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v20.00** (aguarda senha)~~ · **superado — Live v20.01**
+### ✅ Live loja — stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**)
 
-### ~~✅ Deploy loja — NFC-e reemit hard timeout (`NFCE-REEMIT-HARD-TIMEOUT` · **v19.97**)~~ · **Live** · reforço **STAMP-FIRST v20.01**
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v20.01** — CSRF da lista **ainda falta** (pacote acima) |
+| **Rollback stamp** | tag `rollback/pre-nfce-stamp-first-v19.97` · `docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md` |
+
+### ~~📦 PACOTE / CHECKLIST tip v20.00–v20.04~~ · **superado — tip v20.05**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
