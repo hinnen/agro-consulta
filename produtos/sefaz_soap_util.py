@@ -33,10 +33,10 @@ _SEFAZ_ERRO_TRANSIENTE_NEEDLES = (
     "access is denied",
 )
 
-# Perfil sync (HTTP do PDV/reemitir): cabe no timeout ~30s do Render + margem JS.
-# Read 35s + retries estourava o proxy → loading infinito no browser.
-SEFAZ_HTTP_TIMEOUT_SYNC: tuple[int, int] = (5, 20)
-SEFAZ_HTTP_RETRY_DELAYS_SYNC: tuple[float, ...] = (0.25, 0.6)
+# Perfil sync (HTTP do PDV/reemitir): 1 tentativa, cabe no Abort JS (~22s) + proxy Render.
+# Antes: read 20s × 2 retries podia passar de 40s → Abort no browser e sensação de “loading eterno”.
+SEFAZ_HTTP_TIMEOUT_SYNC: tuple[int, int] = (4, 15)
+SEFAZ_HTTP_RETRY_DELAYS_SYNC: tuple[float, ...] = (0.0,)
 # Perfil completo (thread background): mais tentativas.
 SEFAZ_HTTP_TIMEOUT: tuple[int, int] = (8, 45)
 SEFAZ_HTTP_RETRY_DELAYS_S: tuple[float, ...] = (0.5, 1.5, 3.0, 5.0)

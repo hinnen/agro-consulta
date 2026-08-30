@@ -1274,7 +1274,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `PDV-TRANSF-FORCADA` | ✅ **Live v19.83** · prova **88/88** |
 | 2 | `PDV-ENTER-SEM-IMP` | ✅ **Live v19.83** · prova **41/41** |
 | 3 | `CAIXA-DEVOL-MP-MESMA` | ✅ **Live v19.83** · prova **171/171** |
-| 4 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.83** · prova **38/38** |
+| 4 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.83** · reforço tip **v19.87** no `teste` (aguarda senha) · prova **42/42** |
 
 ### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83 @ 09d5968**
 
@@ -1323,19 +1323,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · v19.68)~~ · **superado** por `PDV-ENTER-SEM-IMP`
 
-### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.67**) · 30/08/2026
+### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.87**) · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova path **38/38** (+ DESC **57/57**) · ⏳ loja ainda sem |
-| **Relato** | Renan · Vendas · reemitir #6507 · erro **537** · loading minutos |
-| **Causa** | Timeout SEFAZ sync > proxy Render · fetch sem Abort · vDesc total ≠ soma itens |
-| **O quê** | Sync (5,20)s · Abort 28s · lock 90s · vDesc em todos os itens se há desconto |
-| **Onde** | `sefaz_soap_util.py` · `views_nfce.py` · `nfce_sp_emissao_util.py` · `vendas_lista.html` · `venda_agro_detalhe.html` · `scripts/verify_nfce_reemit_timeout_path.py` |
+| **Status** | ✅ no `teste` tip **v19.87** · prova **42/42** (+ DESC **57/57**) · loja ainda **v19.83** (Abort 28s antigo) — **aguarda senha** p/ reforço |
+| **Relato** | Renan · #6478/#6507 · 537 na tela · «carrega por horas» |
+| **Achado** | XML rejeitado **29/08** tinha `ICMSTot/vDesc` **sem** `vDesc` nos itens (antes do rateio). **Nenhum** reemit concluído depois — doc antigo ainda na tela. Rateio atual (#6478 R$18 / #6507 R$4,10) **bate** na simulação. |
+| **O quê (v19.87)** | Sync **1 tentativa** (4,15)s · Abort **22s** · lock **45s** · tip 537 no modal · grava doc **só após** SEFAZ (não apaga rejeitada no começo) |
+| **Onde** | `sefaz_soap_util.py` · `views_nfce.py` · `nfce_sp_emissao_util.py` · `vendas_lista.html` · `venda_agro_detalhe.html` · verify path |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_nfce_reemit_timeout_path.py` **38/38** · DESC **57/57** |
-| **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
-| **Risco** | Baixo |
+| **Prova** | `verify_nfce_reemit_timeout_path.py` **42/42** · DESC **57/57** |
+| **Você** | Loja hoje: **Ctrl+F5** `/vendas/` · badge **v19.83** · Reemitir **1×** · ≤30s. Reforço v19.87 na loja = frase+senha. |
+| **Risco** | Baixo — só timeout/reemit |
 
 ### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.75~~ · **superado — tip v19.81** (ver topo)
 

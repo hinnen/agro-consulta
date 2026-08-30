@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """VERIFY NFCE-REEMIT-TIMEOUT — reemitir nao trava + SEFAZ 537.
 
-Cobre: timeout sync < proxy Render · Abort 28s nas telas · lock anti-duplo ·
+Cobre: timeout sync < proxy Render · Abort 22s nas telas · lock anti-duplo ·
 vDesc em todos os itens se ha desconto · sefaz_perfil=sync no emitir · AST ·
 reusa prova NFCE-DESC.
 
@@ -60,7 +60,6 @@ def check_ast() -> None:
             txt = read(rel)
             if not txt:
                 continue
-            # JS blocks must contain AbortController pattern without syntax bombs
             if "AbortController" in txt:
                 ok(f"html tem AbortController: {rel}")
             else:
@@ -90,23 +89,23 @@ def check_timeouts() -> None:
 
     connect, read = SEFAZ_HTTP_TIMEOUT_SYNC
     delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
-    # Pior caso 1 tentativa completa: connect + read + soma delays entre retries
-    # Com N delays ha N+1 attempts no loop tipico — estimar connect+read + sum(delays)
-    worst = connect + read + sum(delays)
-    if connect <= 6 and read <= 22:
+    n_try = max(1, len(delays))
+    worst = n_try * (connect + read) + sum(delays[1:] if len(delays) > 1 else [])
+    if connect <= 5 and read <= 18:
         ok(f"TIMEOUT_SYNC=({connect},{read})")
     else:
-        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura proxy")
-    if worst <= 28:
-        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=28)")
+        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura proxy/Abort")
+    if n_try <= 1:
+        ok(f"RETRY_DELAYS_SYNC 1 tentativa ({delays})")
+    elif worst <= 22:
+        ok(f"RETRY_DELAYS_SYNC={delays} pior~{worst:.1f}s")
     else:
-        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 28s")
-    if len(delays) <= 3 and all(d < 2 for d in delays):
-        ok(f"RETRY_DELAYS_SYNC={delays}")
+        fail(f"RETRY_DELAYS_SYNC pesado: {delays} pior~{worst:.1f}s")
+    if worst <= 22:
+        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=22)")
     else:
-        fail(f"RETRY_DELAYS_SYNC pesado: {delays}")
+        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 22s")
 
-    # Background pode ser maior
     from produtos.sefaz_soap_util import SEFAZ_HTTP_TIMEOUT
 
     if SEFAZ_HTTP_TIMEOUT[1] >= SEFAZ_HTTP_TIMEOUT_SYNC[1]:
@@ -118,16 +117,6 @@ def check_timeouts() -> None:
 def check_views_lock() -> None:
     print("\n[3] views_nfce — lock + sync")
     txt = read("produtos/views_nfce.py")
-    needles = [
-        'nfce_emit_lock_',
-        "cache.add(lock_key",
-        "cache.delete(lock_key)",
-        'sefaz_perfil="sync"',
-        "status=409",
-        "ja esta sendo emitido",
-        "já está sendo emitido",
-    ]
-    # accent or not
     found_lock_msg = ("já está sendo emitido" in txt) or ("ja esta sendo emitido" in txt)
     if found_lock_msg:
         ok("mensagem lock 409")
@@ -141,12 +130,12 @@ def check_views_lock() -> None:
         "status=409",
         "_api_venda_agro_nfce_emitir_locked",
         "_nfce_emitir_json_response",
+        "timeout=45",
     ):
         if n in txt:
             ok(f"views: `{n[:48]}`")
         else:
             fail(f"views: falta `{n}`")
-    # finally must release lock even on exception
     if re.search(r"try:\s*\n\s*return _api_venda_agro_nfce_emitir_locked", txt) and "finally:" in txt:
         ok("lock liberado no finally")
     else:
@@ -154,7 +143,7 @@ def check_views_lock() -> None:
 
 
 def check_vdesc_all_items() -> None:
-    print("\n[4] XML — vDesc em todos os itens (537)")
+    print("\n[4] XML — vDesc em todos os itens (537) + gravar apos SEFAZ")
     em = read("produtos/nfce_sp_emissao_util.py")
     if "SEFAZ 537" in em or "537" in em:
         ok("comentario/ref 537")
@@ -164,15 +153,25 @@ def check_vdesc_all_items() -> None:
         ok("vDesc escrito quando total > 0")
     else:
         fail("padrao vDesc em todos itens ausente")
-    # old pattern (only if item > 0) should not be the gate alone
     if re.search(r"if v_desc_item > 0:\s*\n\s*_sub\(prod, \"vDesc\"", em):
         fail("ainda so escreve vDesc se item > 0 (omitir 0.00)")
     else:
         ok("nao omite vDesc 0.00 quando ha desconto total")
+    if "def _gravar_doc_nfce_venda" in em:
+        ok("_gravar_doc_nfce_venda")
+    else:
+        fail("falta _gravar_doc_nfce_venda")
+    if re.search(
+        r"reutilizada.: True,\s*\n\s*\}\s*\n\s*NfceDocumentoAgro\.objects\.filter\(venda=venda\)\.exclude",
+        em,
+    ):
+        fail("ainda apaga doc rejeitado ANTES da SEFAZ")
+    else:
+        ok("nao apaga rejeitada antes da SEFAZ")
 
 
 def check_ui_abort() -> None:
-    print("\n[5] UI AbortController 28s")
+    print("\n[5] UI AbortController 22s")
     for rel in (
         "produtos/templates/produtos/vendas_lista.html",
         "produtos/templates/produtos/venda_agro_detalhe.html",
@@ -182,11 +181,11 @@ def check_ui_abort() -> None:
             fail(f"{rel}: sem AbortController")
             continue
         ok(f"{rel}: AbortController")
-        if "28000" in txt:
-            ok(f"{rel}: 28000ms")
+        if "22000" in txt:
+            ok(f"{rel}: 22000ms")
         else:
-            fail(f"{rel}: falta 28000")
-        if "ctrl.abort" in txt or "ctrl).abort" in txt or "ctrl.abort()" in txt:
+            fail(f"{rel}: falta 22000")
+        if "ctrl.abort" in txt or "ctrl.abort()" in txt:
             ok(f"{rel}: abort()")
         else:
             fail(f"{rel}: sem abort()")
@@ -202,15 +201,19 @@ def check_ui_abort() -> None:
             ok(f"{rel}: fetch signal")
         else:
             fail(f"{rel}: fetch sem signal")
-        # loading bar hide no finally
         if "gmLoadingBar" in txt and "finally" in txt:
             ok(f"{rel}: finally esconde loading")
         else:
             fail(f"{rel}: loading pode ficar preso")
+    lista = read("produtos/templates/produtos/vendas_lista.html")
+    if "Desconto já foi corrigido" in lista:
+        ok("vendas_lista: tip 537 no modal")
+    else:
+        fail("vendas_lista: falta tip 537")
 
 
 def check_budget_js_vs_server() -> None:
-    print("\n[6] JS abort (28s) > orcamento SEFAZ sync")
+    print("\n[6] JS abort (22s) > orcamento SEFAZ sync")
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     import django
 
@@ -218,11 +221,13 @@ def check_budget_js_vs_server() -> None:
     from produtos.sefaz_soap_util import SEFAZ_HTTP_RETRY_DELAYS_SYNC, SEFAZ_HTTP_TIMEOUT_SYNC
 
     connect, read = SEFAZ_HTTP_TIMEOUT_SYNC
-    worst = connect + read + sum(SEFAZ_HTTP_RETRY_DELAYS_SYNC)
-    if worst < 28:
-        ok(f"servidor ~{worst:.1f}s < JS 28s")
+    delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
+    n_try = max(1, len(delays))
+    worst = n_try * (connect + read) + sum(delays[1:] if len(delays) > 1 else [])
+    if worst < 22:
+        ok(f"servidor ~{worst:.1f}s < JS 22s")
     else:
-        fail(f"servidor ~{worst:.1f}s >= JS 28s (abort antes da resposta)")
+        fail(f"servidor ~{worst:.1f}s >= JS 22s (abort antes da resposta)")
 
 
 def check_desc_path() -> None:
