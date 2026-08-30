@@ -1252,6 +1252,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.65**) · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · ⏳ loja ainda sem |
+| **Relato** | Renan · Vendas · reemitir #6507 · erro **537** desconto · botão fica carregando minutos |
+| **Causa** | Timeout SEFAZ sync (35s) > proxy Render (~30s) → fetch sem Abort; 537 = vDesc total ≠ soma itens |
+| **O quê** | Timeout sync 20s · Abort 28s no REEMITIR · lock anti-duplo · vDesc em **todos** os itens se há desconto |
+| **Onde** | `sefaz_soap_util.py` · `views_nfce.py` · `nfce_sp_emissao_util.py` · `vendas_lista.html` · `venda_agro_detalhe.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | NFCE-DESC path **57/57** |
+| **Você** | Ctrl+F5 `/vendas/` · Reemitir #6507 · em ≤30s ou mensagem clara (não loading eterno) |
+| **Risco** | Baixo — só reemitir/PDV sync; background NFC-e igual |
+
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.65** · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Tip** | `teste` **v19.65** · loja **v19.63** |
+| **Prova** | NFCE path **57/57** |
+| **Migrate** | não |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 Vendas · Reemitir NFC-e com desconto |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.65**)
+
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir não trava · 537 vDesc em todos itens | não | 🟡 pronto envio |
+
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
 | Campo | Valor |
