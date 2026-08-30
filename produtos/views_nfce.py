@@ -463,6 +463,7 @@ def api_venda_agro_nfce_cupom(request, pk):
 @login_required(login_url="/admin/login/")
 @require_POST
 def api_venda_agro_nfce_emitir(request, pk):
+    """Reemitir NFC-e — síncrono (perfil sync). Thread em background travava loading no Render."""
     try:
         body = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
@@ -472,7 +473,7 @@ def api_venda_agro_nfce_emitir(request, pk):
         return JsonResponse({"ok": False, "erro": "Venda devolvida — não é possível emitir NFC-e."}, status=400)
     from django.core.cache import cache
 
-    from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
+    from produtos.nfce_venda_util import painel_nfce_venda
 
     lock_key = f"nfce_emit_lock_{int(pk)}"
     if not cache.add(lock_key, "1", timeout=120):
@@ -485,125 +486,17 @@ def api_venda_agro_nfce_emitir(request, pk):
             },
             status=409,
         )
-    if not nfce_configurada(warmup=True, tentativas=2, loja=nfce_loja_de_venda(v)):
-        cache.delete(lock_key)
-        return JsonResponse(
-            {"ok": False, "erro": _ERRO_NFCE_CFG},
-            status=503,
-        )
-    cpf, sem_id = _nfce_opts_payload(body)
-    digits_in = re.sub(r"\D", "", str(body.get("nfce_cpf") or body.get("cliente_documento") or ""))
-    if digits_in and not cpf and not sem_id:
-        cache.delete(lock_key)
-        return JsonResponse(
-            {"ok": False, "erro": mensagem_doc_dest_invalido(digits_in)},
-            status=400,
-        )
-    if not cpf and not sem_id:
-        cache.delete(lock_key)
-        return JsonResponse(
-            {"ok": False, "erro": "Informe CPF ou CNPJ válido ou marque venda sem identificação."},
-            status=400,
-        )
-    v.nfce_solicitada = True
-    v.save(update_fields=["nfce_solicitada"])
-    # Marca na hora — se o browser cair / Abort, o operador vê que pediu de novo.
-    NfceDocumentoAgro.objects.filter(venda=v).exclude(
-        status=NfceDocumentoAgro.Status.AUTORIZADA
-    ).update(
-        mensagem_sefaz="Em emissão na SEFAZ — aguarde (pode levar até 1 minuto). Atualize com F5 se a tela não mudar.",
-        status=NfceDocumentoAgro.Status.ERRO,
-    )
-    payload = {
-        "nfce_cpf": cpf,
-        "nfce_sem_identificacao": sem_id,
-        "cliente_documento": digits_in,
-    }
-    threading.Thread(
-        target=_nfce_reemitir_background_worker,
-        args=(int(pk), payload, lock_key),
-        daemon=True,
-        name=f"nfce-reemit-{pk}",
-    ).start()
-    v_fresh = VendaAgro.objects.select_related("nfce").get(pk=v.pk)
-    return JsonResponse(
-        {
-            "ok": False,
-            "processando": True,
-            "erro": "Emitindo cupom fiscal na SEFAZ — aguarde até 1 minuto (não feche a aba).",
-            "nfce_painel": painel_nfce_venda(v_fresh),
-        },
-        status=202,
-    )
-
-
-def _nfce_reemitir_background_worker(venda_id: int, data: dict, lock_key: str) -> None:
-    """Reemitir fora do HTTP — evita Abort/proxy Render matar a SEFAZ no meio."""
-    from django.core.cache import cache
-    from django.db import connections
-
-    from produtos.nfce_venda_util import registrar_nfce_erro_venda
-
-    connections.close_all()
     try:
-        try:
-            venda = VendaAgro.objects.prefetch_related("itens").get(pk=venda_id)
-        except VendaAgro.DoesNotExist:
-            return
-        if _nfce_ja_autorizada(venda):
-            return
-        cpf, sem_id = _nfce_opts_payload(data)
-        client, db = _mongo_conn()
-        col_p = getattr(client, "col_p", None) if client else None
-        out = emitir_nfce_para_venda(
-            venda,
-            cpf_dest=cpf,
-            sem_identificacao=sem_id,
-            db=db,
-            col_p=col_p,
-            sefaz_perfil="completo",
-        )
-        if out and out.get("ok"):
-            logger.info("NFC-e reemitir OK venda %s", venda_id)
-        elif out:
-            logger.warning(
-                "NFC-e reemitir rejeitada/erro venda %s — %s",
-                venda_id,
-                (out.get("erro") or "")[:300],
-            )
-    except Exception:
-        logger.exception("NFC-e reemitir background falhou (venda %s)", venda_id)
-        try:
-            venda = VendaAgro.objects.get(pk=venda_id)
-            cfg = nfce_config_resumo(nfce_loja_de_venda(venda))
-            registrar_nfce_erro_venda(
-                venda,
-                "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
-                cpf_dest=re.sub(r"\D", "", str(data.get("nfce_cpf") or ""))[:14],
-                sem_identificacao=bool(data.get("nfce_sem_identificacao")),
-                tp_amb=int(cfg.get("tp_amb") or 2),
-            )
-        except Exception:
-            logger.exception("NFC-e reemitir: falha ao registrar erro (venda %s)", venda_id)
+        return _api_venda_agro_nfce_emitir_locked(request, v, body)
     finally:
         cache.delete(lock_key)
-        connections.close_all()
 
 
 def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
-    """Legado sync — mantido para testes; a API pública usa background."""
-    from produtos.nfce_venda_util import painel_nfce_venda, venda_nfce_processando
+    """Emissão síncrona com timeout SEFAZ curto (cabe no proxy Render ~30s)."""
+    from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
 
-    if venda_nfce_processando(v):
-        return JsonResponse(
-            {
-                "ok": False,
-                "erro": "Cupom fiscal em processamento — aguarde alguns segundos e atualize a página.",
-                "nfce_painel": painel_nfce_venda(v),
-            },
-            status=409,
-        )
-    if not nfce_configurada(warmup=True, tentativas=3, loja=nfce_loja_de_venda(v)):
+    if not nfce_configurada(warmup=True, tentativas=2, loja=nfce_loja_de_venda(v)):
         return JsonResponse(
             {"ok": False, "erro": _ERRO_NFCE_CFG},
             status=503,
