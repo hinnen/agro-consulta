@@ -2088,16 +2088,6 @@
         return 'pdv-pay-maquina-card-outro';
     }
 
-    /** Venda só em dinheiro: Enter deve sair cupom (F9), não gravar sem impressão. */
-    function pagamentoSoDinheiro(state) {
-        state = state || State.getState();
-        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
-        if (!arr.length) return false;
-        return arr.every(function (L) {
-            return /dinheiro/i.test(String((L && L.forma) || ''));
-        });
-    }
-
     function afterCommitTrancheFlow() {
         setTimeout(function () {
             var inp = document.getElementById('pdv-pay-valor-tranche');
@@ -2107,12 +2097,8 @@
             var rest = saldoRestantePagamento(st, comp);
             if (rest > 0.009) {
                 openPaymentFormaModal();
-            } else if (pagamentoSoDinheiro(st) && dom.confirmSalePrint && !dom.confirmSalePrint.disabled) {
-                /* Dinheiro quitado → foco no COM impressão (Enter/F9 tira cupom). */
-                try {
-                    dom.confirmSalePrint.focus();
-                } catch (errF) {}
             } else {
+                /* Quitado → foco no SEM impressão (Enter = sem cupom; F9 = com). */
                 var n = document.getElementById('pdv-confirm-sale-no-print');
                 if (n) n.focus();
             }
@@ -11778,7 +11764,7 @@
         if (!raw || cur <= 0.009) {
             if (rest <= 0.009) {
                 if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
-                    tryConfirmSale(pagamentoSoDinheiro(st));
+                    tryConfirmSale(false);
                 }
                 return;
             }
@@ -15448,8 +15434,8 @@
                 ) {
                     event.preventDefault();
                     if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
-                        /* Dinheiro quitado: Enter = com cupom (igual F9). PIX/cartão seguem sem impressão. */
-                        tryConfirmSale(pagamentoSoDinheiro(st));
+                        /* Enter = sempre sem impressão; cupom só F9 (bug loja #9). */
+                        tryConfirmSale(false);
                     }
                     return;
                 }

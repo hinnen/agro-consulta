@@ -72,10 +72,11 @@ def check_source_contracts() -> None:
     for needle in (
         "def _ratear_valor_proporcional",
         "SEFAZ 531",
-        'if v_desc_item > 0:',
+        "SEFAZ 537",
         '_sub(prod, "vDesc"',
         "descontos_itens",
         "resto_desc",
+        "if v_desc > 0:",
     ):
         if needle in em:
             ok(f"emissao: `{needle[:48]}`")
@@ -226,8 +227,10 @@ def check_runtime_xml() -> None:
             n_tags = len(root.findall(".//n:det/n:prod/n:vDesc", ns))
             if v_tot == 0 and n_tags == 0:
                 ok(f"{label}: sem tag vDesc nos itens (desc=0)")
+            elif v_tot > 0 and n_tags == len(vts):
+                ok(f"{label}: tags vDesc em todos os {n_tags} itens")
             elif v_tot > 0 and n_tags >= 1:
-                ok(f"{label}: tags vDesc presentes")
+                ok(f"{label}: tags vDesc presentes ({n_tags})")
             elif v_tot > 0 and n_tags == 0:
                 fail(f"{label}: desc={v_tot} sem tags nos itens (bug #7)")
             for el in root.findall(".//n:det/n:prod", ns):

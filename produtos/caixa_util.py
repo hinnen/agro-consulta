@@ -351,6 +351,29 @@ def _pk_venda_devolucao_obs(obs: str) -> int | None:
         return None
 
 
+def linha_retirada_devolucao_conferencia(
+    fn_base: str,
+    venda,
+    *,
+    vendas_mp_point: set[int] | None = None,
+) -> str:
+    """Devolução na mesma forma do Point/Pix MP → linha «— Mercado Pago».
+
+    Sem isso, a retirada cai em PIX/débito/crédito manuais (Cielo etc.) e a
+    maquininha automática fica inflada.
+    """
+    fn = agrupar_forma_para_fechamento_caixa(fn_base)
+    if fn not in _FORMAS_SPLIT_MP_CONFERENCIA:
+        return fn
+    linhas = pagamentos_por_linha_conferencia_venda(
+        venda, vendas_mp_point=vendas_mp_point
+    )
+    mp_linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+    if _dec(linhas.get(mp_linha, 0)) > 0:
+        return mp_linha
+    return fn
+
+
 def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
     """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma.
 
@@ -359,6 +382,8 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     (ex.: dinheiro). Assim, venda no Mercado Pago automático + devolução em
     dinheiro não tira o valor da maquininha nem deixa o caixa de dinheiro alto.
     Mesma forma nas duas pontas (FL-017): venda + retirada se anulam.
+    Devolução Point/Pix MP na mesma forma (PIX/débito/crédito) desconta a linha
+    «— Mercado Pago», não as máquinas manuais.
     """
     esperado: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
@@ -366,10 +391,12 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
     retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
     esperado["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
 
+    vendas_list: list = []
+    vendas_mp_point: set[int] = set()
+    vendas_by_pk: dict[int, Any] = {}
     vendas_rel = getattr(sessao, "vendas", None)
     if vendas_rel is not None:
         vendas_list = list(vendas_rel.all())
-        vendas_mp_point: set[int] = set()
         if vendas_list:
             from produtos.models import PdvMercadoPagoPointOrder
 
@@ -380,6 +407,9 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
                 ).values_list("venda_id", flat=True)
             )
         for v in vendas_list:
+            pk = getattr(v, "pk", None)
+            if pk is not None:
+                vendas_by_pk[int(pk)] = v
             for fn_caixa, val in pagamentos_por_linha_conferencia_venda(
                 v, vendas_mp_point=vendas_mp_point
             ).items():
@@ -394,6 +424,21 @@ def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, 
             obs_m = str(getattr(m, "observacao", "") or "")
             if m.tipo == "reforco" and "[MP_POINT]" in obs_m:
                 fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+            elif (
+                m.tipo == "retirada"
+                and fn in _FORMAS_SPLIT_MP_CONFERENCIA
+            ):
+                if "[MP_POINT]" in obs_m:
+                    fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+                elif eh_movimento_retirada_devolucao(obs_m):
+                    vp = _pk_venda_devolucao_obs(obs_m)
+                    venda_ref = vendas_by_pk.get(vp) if vp is not None else None
+                    if venda_ref is not None:
+                        fn = linha_retirada_devolucao_conferencia(
+                            fn,
+                            venda_ref,
+                            vendas_mp_point=vendas_mp_point,
+                        )
             val = _dec(m.valor)
             if m.tipo == "reforco":
                 reforco_por[fn] += val

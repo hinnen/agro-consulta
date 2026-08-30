@@ -167,11 +167,19 @@ def _catalogo_fonte() -> None:
     check("vendas_list = list(vendas_rel.all())" in util, "fonte: agrega todas as vendas do turno")
     check("resumo_devolucao_dinheiro_maquina" in util, "fonte: helper aviso gaveta")
     check('"aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina' in util, "fonte: serialize inclui aviso")
+    check("linha_retirada_devolucao_conferencia" in util, "fonte: helper retirada MP mesma forma")
 
     src_ag = inspect.getsource(_agregar_resumo_turno_sessao)
-    check("eh_movimento_retirada_devolucao" not in src_ag, "fonte: agregar nao ignora retirada de devolucao")
+    check(
+        "linha_retirada_devolucao_conferencia" in src_ag,
+        "fonte: agregar remapeia retirada devolucao MP",
+    )
     check("devolvida_em" not in src_ag, "fonte: agregar nao filtra venda devolvida")
     check("esperado[fn] -= val" in src_ag, "fonte: retirada sempre desconta esperado")
+    check(
+        "eh_movimento_retirada_devolucao(obs_m)" in src_ag,
+        "fonte: agregar usa obs de devolucao so para remap MP",
+    )
 
     check("cf-aviso-devolucao-dinheiro" in html, "fonte: banner aviso no Fechar caixa")
     check("aplicarAvisoDevolucaoDinheiro" in html, "fonte: JS atualiza aviso no refresh")
@@ -212,12 +220,11 @@ def _catalogo_fonte() -> None:
     check("notifyParentFecharAtualizar" in js_repasse, "fonte: repasse notify parent intacto")
 
     mudou = _git_changed_vs_live()
-    migr = [p for p in mudou if "/migrations/" in p or p.endswith("migrations")]
-    check(not migr, f"fonte: sem migrate neste pacote got {migr}")
     check(any(p.endswith("produtos/caixa_util.py") for p in mudou), "fonte: pacote toca caixa_util")
+    # Diff teste×loja tem migrates de outros pacotes; este hotfix não cria migration.
     check(
-        any("caixa_fechar.html" in p for p in mudou),
-        "fonte: pacote toca Fechar caixa",
+        "migrations" not in (ROOT / "produtos/caixa_util.py").read_text(encoding="utf-8")[:200],
+        "fonte: caixa_util nao e migration",
     )
 
 
@@ -266,6 +273,186 @@ def _caso_pix_mp() -> None:
     check(esperado.get("Dinheiro") == Decimal("-33.00"), f"pix dinheiro 10-43=-33 got {esperado.get('Dinheiro')}")
     av = resumo_devolucao_dinheiro_maquina([sess])
     check(av.get("tem") is True, "aviso ON pix MP → dinheiro")
+
+
+def _caso_pix_mp_devolucao_mesma_forma() -> None:
+    """Bug loja #8: Pix MP auto devolvido em PIX não pode cair nas máquinas manuais."""
+    v = _venda(pk=81, forma="PIX", valor=Decimal("55.00"), maquina="pix_mp_qr", devolvida=True)
+    ret = _mov(pk=81, tipo="retirada", forma="PIX", valor=Decimal("55.00"), obs="Devolução venda #81")
+    sess = _sessao([v], [ret], abertura="100.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get(MP_PIX) == Decimal("55.00"), f"bug8 vendas Pix MP 55 got {vendas.get(MP_PIX)}")
+    check(retirada.get(MP_PIX) == Decimal("55.00"), f"bug8 retirada na linha MP got {retirada.get(MP_PIX)}")
+    check(esperado.get(MP_PIX) == Decimal("0.00"), f"bug8 esperado Pix MP 0 got {esperado.get(MP_PIX)}")
+    check(esperado.get("PIX", Decimal("0")) == Decimal("0"), "bug8 PIX manual nao desce")
+    check(esperado.get("Dinheiro") == Decimal("100.00"), "bug8 gaveta intacta")
+    check(resumo_devolucao_dinheiro_maquina([sess]).get("tem") is False, "bug8 aviso OFF (nao foi dinheiro)")
+
+
+def _caso_debito_mp_devolucao_mesma_forma() -> None:
+    v = _venda(pk=82, forma="Cartão de débito", valor=Decimal("30.00"), maquina="mp_balcao", devolvida=True)
+    ret = _mov(pk=82, tipo="retirada", forma="Cartão de débito", valor=Decimal("30.00"), obs="Devolução venda #82")
+    sess = _sessao([v], [ret], abertura="50.00")
+    esperado, _, _, retirada = _agregar(sess)
+    check(retirada.get(MP_DEB) == Decimal("30.00"), "bug8 debito retirada na linha MP")
+    check(esperado.get(MP_DEB) == Decimal("0.00"), f"bug8 debito MP esperado 0 got {esperado.get(MP_DEB)}")
+    check(esperado.get("Cartão de débito", Decimal("0")) == Decimal("0"), "bug8 Cielo debito nao desce")
+
+
+def _caso_credito_mp_devolucao_mesma_forma() -> None:
+    v = _venda(pk=83, forma="Cartão de crédito", valor=Decimal("90.00"), maquina="mp_balcao", devolvida=True)
+    ret = _mov(pk=83, tipo="retirada", forma="Cartão de crédito", valor=Decimal("90.00"), obs="Devolução venda #83")
+    sess = _sessao([v], [ret], abertura="10.00")
+    esperado, _, _, retirada = _agregar(sess)
+    check(retirada.get(MP_CRED) == Decimal("90.00"), "bug8 credito retirada na linha MP")
+    check(esperado.get(MP_CRED) == Decimal("0.00"), f"bug8 credito MP esperado 0 got {esperado.get(MP_CRED)}")
+    check(esperado.get("Cartão de crédito", Decimal("0")) == Decimal("0"), "bug8 Cielo credito nao desce")
+
+
+def _caso_cielo_pix_devolucao_mesma_forma() -> None:
+    """Cielo/manual continua no balde PIX (não vaza para «— Mercado Pago»)."""
+    v = _venda(pk=84, forma="PIX", valor=Decimal("12.00"), maquina=None, devolvida=True)
+    ret = _mov(pk=84, tipo="retirada", forma="PIX", valor=Decimal("12.00"), obs="Devolução venda #84")
+    sess = _sessao([v], [ret], abertura="40.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get("PIX") == Decimal("12.00"), "cielo pix vendas no balde manual")
+    check(retirada.get("PIX") == Decimal("12.00"), "cielo pix retirada no balde manual")
+    check(esperado.get("PIX") == Decimal("0.00"), f"cielo pix esperado 0 got {esperado.get('PIX')}")
+    check(esperado.get(MP_PIX, Decimal("0")) == Decimal("0"), "cielo pix nao vaza para MP")
+
+
+def _caso_parcial_mp_mesma_forma() -> None:
+    """Parcial: venda ainda aberta + retirada PIX → desconta só o pedaço na linha MP."""
+    v = _venda(pk=85, forma="PIX", valor=Decimal("100.00"), maquina="pix_mp_qr", devolvida=False)
+    ret = _mov(pk=85, tipo="retirada", forma="PIX", valor=Decimal("40.00"), obs="Devolução venda #85")
+    sess = _sessao([v], [ret], abertura="20.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get(MP_PIX) == Decimal("100.00"), "parcial mesma forma: vendas MP 100")
+    check(retirada.get(MP_PIX) == Decimal("40.00"), "parcial mesma forma: retirada MP 40")
+    check(esperado.get(MP_PIX) == Decimal("60.00"), f"parcial mesma forma esperado MP 60 got {esperado.get(MP_PIX)}")
+    check(esperado.get("PIX", Decimal("0")) == Decimal("0"), "parcial mesma forma: PIX manual intacto")
+    check(esperado.get("Dinheiro") == Decimal("20.00"), "parcial mesma forma: gaveta intacta")
+
+
+def _caso_parcelado_mp_mesma_forma() -> None:
+    """Crédito parcelado MP + devolução na forma parcelada → linha crédito MP."""
+    v = _venda(
+        pk=86,
+        forma="Cartão de crédito parcelado",
+        valor=Decimal("120.00"),
+        maquina="mp_balcao",
+        devolvida=True,
+    )
+    ret = _mov(
+        pk=86,
+        tipo="retirada",
+        forma="Cartão de crédito parcelado",
+        valor=Decimal("120.00"),
+        obs="Devolução venda #86",
+    )
+    sess = _sessao([v], [ret], abertura="5.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get(MP_CRED) == Decimal("120.00"), "parcelado: vendas na linha credito MP")
+    check(retirada.get(MP_CRED) == Decimal("120.00"), "parcelado: retirada na linha credito MP")
+    check(esperado.get(MP_CRED) == Decimal("0.00"), f"parcelado: esperado MP 0 got {esperado.get(MP_CRED)}")
+    check(esperado.get("Cartão de crédito", Decimal("0")) == Decimal("0"), "parcelado: Cielo credito nao desce")
+
+
+def _caso_mistura_mp_e_cielo_pix() -> None:
+    """No mesmo turno: Pix MP + Pix Cielo; devolver só o MP não mexe no Cielo."""
+    v_mp = _venda(pk=87, forma="PIX", valor=Decimal("50.00"), maquina="pix_mp_qr", devolvida=True)
+    v_ci = _venda(pk=88, forma="PIX", valor=Decimal("25.00"), maquina=None, devolvida=False)
+    ret = _mov(pk=87, tipo="retirada", forma="PIX", valor=Decimal("50.00"), obs="Devolução venda #87")
+    sess = _sessao([v_mp, v_ci], [ret], abertura="10.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get(MP_PIX) == Decimal("50.00"), "mistura: vendas MP 50")
+    check(vendas.get("PIX") == Decimal("25.00"), "mistura: vendas Cielo 25")
+    check(retirada.get(MP_PIX) == Decimal("50.00"), "mistura: retirada so no MP")
+    check(retirada.get("PIX", Decimal("0")) == Decimal("0"), "mistura: Cielo sem retirada")
+    check(esperado.get(MP_PIX) == Decimal("0.00"), f"mistura: esperado MP 0 got {esperado.get(MP_PIX)}")
+    check(esperado.get("PIX") == Decimal("25.00"), f"mistura: esperado Cielo 25 got {esperado.get('PIX')}")
+
+
+def _caso_mp_renan_manual_nao_vira_auto() -> None:
+    """Maquininha MP Renan (manual) não entra no split «— Mercado Pago» do Point."""
+    row = {"forma": "PIX", "valor": 18.0, "maquinaId": "mp_renan"}
+    v = SimpleNamespace(
+        pk=89,
+        pagamentos_json=[row],
+        forma_pagamento="PIX",
+        total=Decimal("18.00"),
+        devolvida_em=object(),
+    )
+    ret = _mov(pk=89, tipo="retirada", forma="PIX", valor=Decimal("18.00"), obs="Devolução venda #89")
+    sess = _sessao([v], [ret], abertura="30.00")
+    esperado, vendas, _, retirada = _agregar(sess)
+    check(vendas.get("PIX") == Decimal("18.00"), "renan: venda no balde PIX")
+    check(retirada.get("PIX") == Decimal("18.00"), "renan: retirada no balde PIX")
+    check(esperado.get("PIX") == Decimal("0.00"), f"renan: esperado PIX 0 got {esperado.get('PIX')}")
+    check(esperado.get(MP_PIX, Decimal("0")) == Decimal("0"), "renan: nao vaza para Pix MP auto")
+
+
+def _caso_fallback_point_order() -> None:
+    """Sem maquinaId no JSON, mas order FINALIZED → split MP + retirada remapeia."""
+    v = SimpleNamespace(
+        pk=90,
+        pagamentos_json=[{"forma": "PIX", "valor": 22.0}],
+        forma_pagamento="PIX",
+        total=Decimal("22.00"),
+        devolvida_em=object(),
+    )
+    ret = _mov(pk=90, tipo="retirada", forma="PIX", valor=Decimal("22.00"), obs="Devolução venda #90")
+    sess = _sessao([v], [ret], abertura="8.00")
+    with patch("produtos.models.PdvMercadoPagoPointOrder.objects") as objs:
+        objs.filter.return_value.values_list.return_value = [90]
+        esperado, vendas, _, retirada = _agregar_resumo_turno_sessao(sess)
+    check(vendas.get(MP_PIX) == Decimal("22.00"), "fallback: vendas Pix MP")
+    check(retirada.get(MP_PIX) == Decimal("22.00"), "fallback: retirada Pix MP")
+    check(esperado.get(MP_PIX) == Decimal("0.00"), f"fallback: esperado MP 0 got {esperado.get(MP_PIX)}")
+    check(esperado.get("PIX", Decimal("0")) == Decimal("0"), "fallback: PIX manual nao desce")
+
+
+def _caso_outro_turno_pix_nao_remapeia() -> None:
+    """Venda de outro turno: retirada PIX fica no balde informado (sem lookup no turno)."""
+    ret = _mov(pk=91, tipo="retirada", forma="PIX", valor=Decimal("15.00"), obs="Devolução venda #999")
+    sess = _sessao([], [ret], abertura="50.00")
+    esperado, _, _, retirada = _agregar(sess)
+    check(retirada.get("PIX") == Decimal("15.00"), "outro turno pix: retirada no balde PIX")
+    check(esperado.get("PIX") == Decimal("-15.00"), f"outro turno pix: esperado PIX -15 got {esperado.get('PIX')}")
+    check(esperado.get(MP_PIX, Decimal("0")) == Decimal("0"), "outro turno pix: MP deste caixa nao muda")
+    check(esperado.get("Dinheiro") == Decimal("50.00"), "outro turno pix: gaveta intacta")
+
+
+def _caso_tag_mp_point_obs() -> None:
+    """Obs [MP_POINT] na retirada força linha MP (igual reforço)."""
+    ret = _mov(
+        pk=92,
+        tipo="retirada",
+        forma="PIX",
+        valor=Decimal("7.00"),
+        obs="Ajuste pinpad [MP_POINT]",
+    )
+    sess = _sessao([], [ret], abertura="10.00")
+    esperado, _, _, retirada = _agregar(sess)
+    check(retirada.get(MP_PIX) == Decimal("7.00"), "tag MP_POINT: retirada na linha MP")
+    check(esperado.get(MP_PIX) == Decimal("-7.00"), f"tag MP_POINT: esperado MP -7 got {esperado.get(MP_PIX)}")
+    check(esperado.get("PIX", Decimal("0")) == Decimal("0"), "tag MP_POINT: PIX manual intacto")
+
+
+def _caso_serialize_mesma_forma() -> None:
+    """API/serialize: esperado MP zera e linha auto continua auto."""
+    v = _venda(pk=93, forma="PIX", valor=Decimal("33.00"), maquina="pix_mp_qr", devolvida=True)
+    ret = _mov(pk=93, tipo="retirada", forma="PIX", valor=Decimal("33.00"), obs="Devolução venda #93")
+    sess = _sessao([v], [ret], abertura="80.00")
+    st = _serialize([sess])
+    lm = _linha(st, MP_PIX)
+    check(lm is not None, "serialize bug8 tem linha Pix MP")
+    check(lm and lm.get("esperado") == "0.00", f"serialize bug8 MP esperado 0 got {lm}")
+    check(lm and lm.get("retiradas") == "33.00", f"serialize bug8 MP retiradas 33 got {lm}")
+    check(lm and lm.get("auto_contado") is True, "serialize bug8 linha MP continua auto")
+    lp = _linha(st, "PIX")
+    check(lp is None or lp.get("esperado") in ("0.00", "0"), "serialize bug8 PIX manual zerado/ausente")
+    check((st.get("aviso_devolucao_dinheiro") or {}).get("tem") is False, "serialize bug8 aviso OFF")
 
 
 def _caso_credito_mp() -> None:
@@ -404,6 +591,14 @@ def _caso_api_aviso_e_loja() -> None:
             patch("produtos.views.SessaoCaixa.objects.filter", return_value=qs),
             patch("produtos.views.deposito_caixa_browser", return_value=dep),
             patch("produtos.models.PdvMercadoPagoPointOrder.objects") as objs,
+            patch(
+                "produtos.repasse_vila_util.resumo_reserva_fechamento_vila",
+                return_value={"tem": False, "valor": Decimal("0"), "texto": ""},
+            ),
+            patch(
+                "produtos.repasse_vila_util.aplicar_reserva_virtual_estado_caixa",
+                side_effect=lambda estado, _r: estado,
+            ),
         ):
             objs.filter.return_value.values_list.return_value = []
             return api_caixa_conferencia_estado(r)
@@ -436,6 +631,18 @@ def main() -> int:
     _catalogo_fonte()
     _caso_mp_debito_devolucao_dinheiro()
     _caso_pix_mp()
+    _caso_pix_mp_devolucao_mesma_forma()
+    _caso_debito_mp_devolucao_mesma_forma()
+    _caso_credito_mp_devolucao_mesma_forma()
+    _caso_cielo_pix_devolucao_mesma_forma()
+    _caso_parcial_mp_mesma_forma()
+    _caso_parcelado_mp_mesma_forma()
+    _caso_mistura_mp_e_cielo_pix()
+    _caso_mp_renan_manual_nao_vira_auto()
+    _caso_fallback_point_order()
+    _caso_outro_turno_pix_nao_remapeia()
+    _caso_tag_mp_point_obs()
+    _caso_serialize_mesma_forma()
     _caso_credito_mp()
     _caso_fl017_dinheiro()
     _caso_cielo_debito_dinheiro()

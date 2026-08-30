@@ -1095,7 +1095,51 @@
     postAcao(id, acao);
   }
 
-  if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrir);
+  /* Escolha: Pedir × Transferência forçada (badge continua só nos pedidos) */
+  var escolha = document.getElementById('pdv-pedir-loja-escolha');
+  var escolhaFechar = document.getElementById('pdv-pedir-loja-escolha-fechar');
+  var escolhaCancelar = document.getElementById('pdv-pedir-loja-escolha-cancelar');
+  var escolhaPedir = document.getElementById('pdv-pedir-loja-escolha-pedir');
+  var escolhaForcada = document.getElementById('pdv-pedir-loja-escolha-forcada');
+
+  function escolhaAberta() {
+    return !!(escolha && !escolha.classList.contains('hidden'));
+  }
+
+  function fecharEscolha() {
+    if (!escolha) return;
+    escolha.classList.add('hidden');
+    escolha.classList.remove('flex');
+  }
+
+  function abrirEscolha() {
+    if (!escolha) {
+      abrir();
+      return;
+    }
+    escolha.classList.remove('hidden');
+    escolha.classList.add('flex');
+  }
+
+  if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrirEscolha);
+  if (escolhaFechar) escolhaFechar.addEventListener('click', fecharEscolha);
+  if (escolhaCancelar) escolhaCancelar.addEventListener('click', fecharEscolha);
+  if (escolhaPedir) {
+    escolhaPedir.addEventListener('click', function () {
+      fecharEscolha();
+      abrir();
+    });
+  }
+  if (escolhaForcada) {
+    escolhaForcada.addEventListener('click', function () {
+      fecharEscolha();
+      if (window.PdvTransfForcada && typeof window.PdvTransfForcada.abrirDirecao === 'function') {
+        window.PdvTransfForcada.abrirDirecao();
+      } else {
+        alert('Transferência forçada indisponível neste PDV.');
+      }
+    });
+  }
   if (dom.fechar) dom.fechar.addEventListener('click', fechar);
   overlay.addEventListener('click', function (e) {
     /* Fundo nao fecha — so X / FECHAR / Esc */
@@ -1206,6 +1250,11 @@
       }
       return;
     }
+    if (e.key === 'Escape' && escolhaAberta()) {
+      e.preventDefault();
+      fecharEscolha();
+      return;
+    }
     if (e.key === 'Escape' && dom.ajuste && dom.ajuste.classList.contains('is-open')) {
       e.preventDefault();
       fecharAjuste();
@@ -1221,6 +1270,9 @@
       fechar();
     }
   });
+
+  window.PdvPedirLoja = { abrir: abrir, fechar: fechar };
+  window.PdvPedirLojaEscolha = { abrir: abrirEscolha, fechar: fecharEscolha };
 
   if (dom.temPedidoOk) dom.temPedidoOk.addEventListener('click', fecharTemPedido);
   if (dom.temPedido) {

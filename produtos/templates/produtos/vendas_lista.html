@@ -327,11 +327,16 @@
           var btn = document.getElementById('modal-nfce-reemitir');
           btn.disabled = true;
           if (window.gmLoadingBar) window.gmLoadingBar.show();
+          var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var to = setTimeout(function () {
+            try { if (ctrl) ctrl.abort(); } catch (eAb) {}
+          }, 28000);
           fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
+            signal: ctrl ? ctrl.signal : undefined,
           })
             .then(function (r) {
               return r.text().then(function (txt) {
@@ -374,9 +379,15 @@
               msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
             })
             .catch(function (err) {
-              alert((err && err.message) || 'Falha de rede ou tempo esgotado — aguarde e tente de novo.');
+              var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
+              alert(
+                aborted
+                  ? 'Demorou demais (SEFAZ/servidor). Espere 1 minuto, F5 e tente de novo.'
+                  : ((err && err.message) || 'Falha de rede ou tempo esgotado — aguarde e tente de novo.')
+              );
             })
             .finally(function () {
+              clearTimeout(to);
               btn.disabled = false;
               if (window.gmLoadingBar) window.gmLoadingBar.hide();
             });

@@ -611,7 +611,8 @@ def _montar_xml_nfce(
         _sub(prod, "vUnTrib", _q4(vu))
         if v_frete_item > 0:
             _sub(prod, "vFrete", _q2(v_frete_item))
-        if v_desc_item > 0:
+        # SEFAZ 537: se há desconto no total, informar vDesc em todo item (0.00 ok).
+        if v_desc > 0:
             _sub(prod, "vDesc", _q2(v_desc_item))
         _sub(prod, "indTot", "1")
         imposto = _sub(det, "imposto")
