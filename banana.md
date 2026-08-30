@@ -1253,29 +1253,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**) · **Live** · 30/08/2026
+### ✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.92** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.83** @ `09d5968` |
-| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-v1992` · VERSION **19.92** |
-| **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
-| **Rollback** | tag `rollback/pre-nfce-reemit-v19.83` @ `09d5968` · branch `producao-backup-pre-v1992-nfce-reemit-20260830` · `docs/ROLLBACK-NFCE-REEMIT-V1992.md` · **só** frase+senha |
-| **Prova** | path **44/44** · DESC **67/67** · #6478/#6507 OK |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.92** · Reemitir #6478 **1×** · ≤22s |
+| **Status** | ✅ **enviado / Live v19.94** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v19.92** @ `116aa74` |
+| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-bg-v1994` · VERSION **19.94** |
+| **Pacote** | `NFCE-REEMIT-BG` |
+| **Rollback** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` · branch `producao-backup-pre-v1994-nfce-reemit-bg-20260830` · `docs/ROLLBACK-NFCE-REEMIT-BG-V1994.md` · **só** frase+senha |
+| **Prova** | path **45/45** · DESC **67/67** · Django **12/12** |
+| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.94** · Reemitir #6478 **1×** · «Em emissão» até ~1 min |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.92**)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.92** · prova **44/44** · DESC **67/67** |
+| 1 | `NFCE-REEMIT-BG` | ✅ **Live v19.94** · prova **45/45** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.92** (aguarda senha)~~ · **superado — Live v19.92**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado — Live v19.94**
 
-### ~~✅ CHECKLIST ÚNICO — tip **v19.92** (pronto para envio)~~ · **superado — Live v19.92**
-
-### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e **v19.92** acima
+### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · reforço BG **v19.94** acima
 
 ### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
 

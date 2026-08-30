@@ -343,30 +343,87 @@
           var btn = document.getElementById('modal-nfce-reemitir');
           btn.disabled = true;
           if (window.gmLoadingBar) window.gmLoadingBar.show();
-          var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          var to = setTimeout(function () {
-            try { if (ctrl) ctrl.abort(); } catch (eAb) {}
-          }, 22000);
+          var msgEl = document.getElementById('modal-nfce-msg');
+          function pararLoading() {
+            btn.disabled = false;
+            if (window.gmLoadingBar) window.gmLoadingBar.hide();
+          }
+          function pollResultado(tentativa) {
+            if (tentativa > 45) {
+              pararLoading();
+              alert('Ainda processando na SEFAZ. Espere 1 minuto, dê F5 e confira a venda.');
+              return;
+            }
+            setTimeout(function () {
+              fetch('/venda/' + vendaIdAtual + '/nfce/', {
+                credentials: 'same-origin',
+                headers: { Accept: 'application/json' },
+              })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                  var p = (d && d.nfce_painel) || {};
+                  var errTxt = p.erro || '';
+                  if (p.processando) {
+                    msgEl.classList.remove('hidden');
+                    msgEl.textContent = 'Emitindo cupom… aguarde (' + (tentativa + 1) + ')';
+                    msgEl.className = 'mt-2 text-sm font-bold text-amber-800';
+                    document.getElementById('modal-nfce-erro').textContent = errTxt || 'Em emissão na SEFAZ…';
+                    pollResultado(tentativa + 1);
+                    return;
+                  }
+                  pararLoading();
+                  if (p.autorizada) {
+                    msgEl.classList.remove('hidden');
+                    msgEl.textContent = 'NFC-e autorizada.';
+                    msgEl.className = 'mt-2 text-sm font-bold text-emerald-800';
+                    var vIdOk = vendaIdAtual;
+                    fechar();
+                    if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
+                      agroEscolherImprimirCupomPosNfce(vIdOk, {
+                        onDone: function () { window.location.reload(); }
+                      });
+                    } else {
+                      setTimeout(function () { window.location.reload(); }, 500);
+                    }
+                    return;
+                  }
+                  document.getElementById('modal-nfce-erro').textContent = errTxt || 'Falha na reemissão.';
+                  msgEl.classList.remove('hidden');
+                  msgEl.textContent = errTxt || 'Falha na reemissão.';
+                  msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
+                })
+                .catch(function () {
+                  pollResultado(tentativa + 1);
+                });
+            }, 2000);
+          }
           fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
-            signal: ctrl ? ctrl.signal : undefined,
           })
             .then(function (r) {
               return r.text().then(function (txt) {
                 var d = {};
-                try {
-                  d = JSON.parse(txt);
-                } catch (e) {
-                  throw new Error('Servidor demorou ou SEFAZ indisponível — aguarde e tente de novo.');
+                try { d = JSON.parse(txt); } catch (e) {
+                  throw new Error('Servidor não respondeu — F5 e tente de novo.');
                 }
-                return { ok: r.ok, data: d };
+                return { ok: r.ok, status: r.status, data: d };
               });
             })
             .then(function (res) {
-              var msgEl = document.getElementById('modal-nfce-msg');
+              if (res.data && (res.data.processando || res.status === 202)) {
+                msgEl.classList.remove('hidden');
+                msgEl.textContent = 'Emitindo cupom na SEFAZ… aguarde.';
+                msgEl.className = 'mt-2 text-sm font-bold text-amber-800';
+                if (res.data.nfce_painel && res.data.nfce_painel.erro) {
+                  document.getElementById('modal-nfce-erro').textContent = res.data.nfce_painel.erro;
+                }
+                pollResultado(0);
+                return;
+              }
+              pararLoading();
               msgEl.classList.remove('hidden');
               if (res.ok && res.data.ok) {
                 msgEl.textContent = 'NFC-e autorizada.';
@@ -375,9 +432,7 @@
                 fechar();
                 if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
                   agroEscolherImprimirCupomPosNfce(vIdOk, {
-                    onDone: function () {
-                      window.location.reload();
-                    }
+                    onDone: function () { window.location.reload(); }
                   });
                 } else {
                   setTimeout(function () { window.location.reload(); }, 500);
@@ -395,17 +450,8 @@
               msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
             })
             .catch(function (err) {
-              var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
-              alert(
-                aborted
-                  ? 'Demorou demais (SEFAZ/servidor). Espere 1 minuto, F5 e tente de novo.'
-                  : ((err && err.message) || 'Falha de rede ou tempo esgotado — aguarde e tente de novo.')
-              );
-            })
-            .finally(function () {
-              clearTimeout(to);
-              btn.disabled = false;
-              if (window.gmLoadingBar) window.gmLoadingBar.hide();
+              pararLoading();
+              alert((err && err.message) || 'Falha de rede — F5 e tente de novo.');
             });
         };
         document.querySelectorAll('.js-venda-nfce-erro').forEach(function (btn) {

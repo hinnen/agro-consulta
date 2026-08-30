@@ -93,6 +93,36 @@ class NfceDestDocumentoTests(SimpleTestCase):
         self.assertTrue(sem)
 
 
+class NfceReemitProcessandoTests(SimpleTestCase):
+    """NFCE-REEMIT-BG — processando só com lock (não trava eternamente)."""
+
+    def test_processando_exige_lock(self):
+        from django.core.cache import cache
+        from django.utils import timezone
+
+        from produtos.models import NfceDocumentoAgro
+        from produtos.nfce_venda_util import venda_nfce_processando
+
+        class NfceFake:
+            status = NfceDocumentoAgro.Status.REJEITADA
+            mensagem_sefaz = "Em emissão na SEFAZ — aguarde."
+
+        class VendaFake:
+            pk = 6478
+            nfce_solicitada = True
+            nfce = NfceFake()
+            criado_em = timezone.now()
+
+        cache.delete("nfce_emit_lock_6478")
+        self.assertFalse(venda_nfce_processando(VendaFake()))
+        cache.set("nfce_emit_lock_6478", "1", 30)
+        try:
+            self.assertTrue(venda_nfce_processando(VendaFake()))
+        finally:
+            cache.delete("nfce_emit_lock_6478")
+        self.assertFalse(venda_nfce_processando(VendaFake()))
+
+
 class NfceDescontoRateioTests(SimpleTestCase):
     """Bug loja #7 — desconto geral no total sem vDesc nos itens → SEFAZ 531."""
 

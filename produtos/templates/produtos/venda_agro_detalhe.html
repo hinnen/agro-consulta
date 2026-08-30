@@ -931,10 +931,51 @@
       }
       btnRe.disabled = true;
       if (window.gmLoadingBar) window.gmLoadingBar.show();
-      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var to = setTimeout(function () {
-        try { if (ctrl) ctrl.abort(); } catch (eAb) {}
-      }, 22000);
+      function parar() {
+        btnRe.disabled = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+      }
+      function pollResultado(tentativa) {
+        if (tentativa > 45) {
+          parar();
+          alert('Ainda processando na SEFAZ. Espere 1 minuto, F5 e confira.');
+          return;
+        }
+        setTimeout(function () {
+          fetch('{% url "api_venda_agro_nfce_info" v.pk %}', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              var p = (d && d.nfce_painel) || {};
+              var errTxt = p.erro || '';
+              if (p.processando) {
+                var el = document.getElementById('nfce-detalhe-erro-text');
+                if (el) el.textContent = errTxt || 'Em emissão na SEFAZ…';
+                pollResultado(tentativa + 1);
+                return;
+              }
+              parar();
+              if (p.autorizada) {
+                fecharModal();
+                if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
+                  agroEscolherImprimirCupomPosNfce('{{ v.pk }}', {
+                    onDone: function () { location.reload(); }
+                  });
+                } else {
+                  alert('NFC-e autorizada.');
+                  location.reload();
+                }
+                return;
+              }
+              var el2 = document.getElementById('nfce-detalhe-erro-text');
+              if (el2) el2.textContent = errTxt || 'Falha na reemissão.';
+              alert(errTxt || 'Falha na reemissão.');
+            })
+            .catch(function () { pollResultado(tentativa + 1); });
+        }, 2000);
+      }
       fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
         method: 'POST',
         credentials: 'same-origin',
@@ -944,17 +985,21 @@
           Accept: 'application/json',
         },
         body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
-        signal: ctrl ? ctrl.signal : undefined,
       })
-        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
         .then(function (x) {
+          if (x.j && (x.j.processando || x.status === 202)) {
+            var el = document.getElementById('nfce-detalhe-erro-text');
+            if (el) el.textContent = (x.j.nfce_painel && x.j.nfce_painel.erro) || 'Em emissão na SEFAZ…';
+            pollResultado(0);
+            return;
+          }
+          parar();
           if (x.j && x.j.ok) {
             fecharModal();
             if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
               agroEscolherImprimirCupomPosNfce('{{ v.pk }}', {
-                onDone: function () {
-                  location.reload();
-                }
+                onDone: function () { location.reload(); }
               });
             } else {
               alert('NFC-e autorizada.');
@@ -964,23 +1009,14 @@
           }
           var err = (x.j && x.j.nfce && x.j.nfce.erro) || (x.j && x.j.erro) || 'Falha na reemissão.';
           if (x.j && x.j.nfce_painel && x.j.nfce_painel.erro) {
-            var el = document.getElementById('nfce-detalhe-erro-text');
-            if (el) el.textContent = x.j.nfce_painel.erro;
+            var el3 = document.getElementById('nfce-detalhe-erro-text');
+            if (el3) el3.textContent = x.j.nfce_painel.erro;
           }
           alert(err);
         })
-        .catch(function (err) {
-          var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err && err.message || '')));
-          alert(
-            aborted
-              ? 'Demorou demais (SEFAZ/servidor). Espere 1 minuto, F5 e tente de novo.'
-              : 'Falha de rede.'
-          );
-        })
-        .finally(function () {
-          clearTimeout(to);
-          btnRe.disabled = false;
-          if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        .catch(function () {
+          parar();
+          alert('Falha de rede.');
         });
     });
   }
