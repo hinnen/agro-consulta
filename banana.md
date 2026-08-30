@@ -1321,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · v19.68)~~ · **superado** por `PDV-ENTER-SEM-IMP`
 
-### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.89**) · 30/08/2026
+### 🩹 NFC-e reemitir loading + 537 (`NFCE-REEMIT-TIMEOUT` · **v19.92**) · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
