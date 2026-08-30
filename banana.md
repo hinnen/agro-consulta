@@ -1253,25 +1253,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha) · 30/08/2026
+### ✅ Deploy loja — NFC-e reemit background (`NFCE-REEMIT-BG` · **v19.94**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.94** · loja ainda **v19.92** |
+| **Status** | ✅ **enviado / Live v19.94** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v19.92** @ `116aa74` |
+| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-bg-v1994` · VERSION **19.94** |
 | **Pacote** | `NFCE-REEMIT-BG` |
-| **Migrate** | **NÃO** |
-| **Prova** | path **45/45** · DESC **67/67** · Django NFC-e **12/12** · #6478/#6507 XML OK |
-| **Você** | frase+senha → Ctrl+F5 `/vendas/` · Reemitir #6478 **1×** · espera «Em emissão» até 1 min |
+| **Rollback** | tag `rollback/pre-nfce-reemit-bg-v19.92` @ `116aa74` · branch `producao-backup-pre-v1994-nfce-reemit-bg-20260830` · `docs/ROLLBACK-NFCE-REEMIT-BG-V1994.md` · **só** frase+senha |
+| **Prova** | path **45/45** · DESC **67/67** · Django **12/12** |
+| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.94** · Reemitir #6478 **1×** · «Em emissão» até ~1 min |
 
-### ✅ CHECKLIST ÚNICO — tip **v19.94** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.94**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-BG` | ✅ **pronto para envio** · tip **v19.94** · prova **45/45** |
+| 1 | `NFCE-REEMIT-BG` | ✅ **Live v19.94** · prova **45/45** |
 
-### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · insuficiente — ver tip **v19.94**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.94** (aguarda senha)~~ · **superado — Live v19.94**
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.93**~~ · **superado — tip v19.94**
+### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · reforço BG **v19.94** acima
 
 ### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
 
