@@ -1253,24 +1253,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**) · 30/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** · **NÃO** enviado · aguarda frase + senha no **próximo chat** |
+| **Antes (loja)** | Live **v19.63** @ `71eea32` (Chat abre) |
+| **PREP** | `deploy/prep-checklist-3008` @ **`09d5968`** · VERSION **19.83** |
+| **Pacotes** | 4 do CHECKLIST ÚNICO tip v19.83 |
+| **Fora** | `BI-META-C-VILA-RAMP` (SOLO — **não** entrou no PREP) |
+| **Migrate** | **NÃO** |
+| **Provas** | TRANSF-FORCADA **88/88** · Pedir **68/68** · Enter **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
+| **Rollback** | tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` |
+| **Deploy (só com senha)** | `producao` ← `origin/deploy/prep-checklist-3008` · force-with-lease · Ctrl+F5 · badge **v19.83** |
+| **Você no deploy** | Pausar vendas 2–3 min · Zap · smoke: Enter=sem · F9=com · Pedir/Forçada · Fechar caixa MP · Reemitir |
+
 ### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.83** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.83** · loja **v19.63** |
-| **Prova** | PDV-TRANSF-FORCADA **88/88** · Pedir loja **68/68** · Logística forçada OK · Enter sem imp **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
+| **Tip** | `teste` **v19.83** · loja **v19.63** · PREP **`09d5968`** |
+| **Prova** | PDV-TRANSF-FORCADA **88/88** · Pedir **68/68** · Enter **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
 | **Migrate** | não |
-| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 PDV Pedir loja (escolha + forçada) · Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
+| **Status** | 🟡 **PREP pronto / aguarda senha** (não subir com loja aberta sem pausa) |
+| **Você** | Próximo chat: pausar vendas + frase + senha → sobe PREP |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.83**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.83** · PREP `09d5968`)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | `PDV-TRANSF-FORCADA` | Pedir loja → Pedir × Forçada (overlay PDV · 2 cards · PIN · Enter) · prova **88/88** | não | 🟡 pronto envio |
-| 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 41/41 | não | 🟡 pronto envio |
-| 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devol MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
-| 4 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 · prova 38/38 | não | 🟡 pronto envio |
+| 1 | `PDV-TRANSF-FORCADA` | Pedir × Forçada no PDV · prova **88/88** | não | 🟡 PREP pronto |
+| 2 | `PDV-ENTER-SEM-IMP` | Enter sempre sem cupom · prova **41/41** | não | 🟡 PREP pronto |
+| 3 | `CAIXA-DEVOL-MP-MESMA` | Devol MP não cai nas manuais · prova **171/171** | não | 🟡 PREP pronto |
+| 4 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · prova **38/38** | não | 🟡 PREP pronto |
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
