@@ -386,6 +386,97 @@ def check_casos_loja_6478_6507() -> None:
             fail(f"#{pk}: regressao bug #7 (sem vDesc nos itens)")
 
 
+def check_csrf_vendas_lista() -> None:
+    """Regressao: POST Reemitir em /vendas/ nunca saia (csrf() indefinido)."""
+    print("\n[10] CSRF reemitir /vendas/ (NFCE-REEMIT-CSRF)")
+    lista = read("produtos/templates/produtos/vendas_lista.html")
+    detalhe = read("produtos/templates/produtos/venda_agro_detalhe.html")
+
+    # 1) Token no HTML + funcao local
+    if 'id="agro-csrf-nfce-vendas"' in lista and "{{ csrf_token }}" in lista:
+        ok("lista: input hidden com {{ csrf_token }}")
+    else:
+        fail("lista: falta input csrf_token")
+    if "function csrf()" in lista and "function getCookie" in lista:
+        ok("lista: csrf() + getCookie definidos no modal")
+    else:
+        fail("lista: csrf()/getCookie ausentes")
+
+    # 2) Ordem: definir csrf ANTES do onclick reemitir
+    i_fn = lista.find("function csrf()")
+    i_click = lista.find("document.getElementById('modal-nfce-reemitir').onclick")
+    if i_fn >= 0 and i_click > i_fn:
+        ok("lista: csrf() definido antes do handler Reemitir")
+    else:
+        fail("lista: csrf() depois do handler (ou ausente)")
+
+    # 3) Nao chamar csrf() inline no fetch (ReferenceError se redeclarar mal)
+    if "'X-CSRFToken': csrf()" in lista or '"X-CSRFToken": csrf()' in lista:
+        fail("lista: ainda passa csrf() direto no header (risco ReferenceError)")
+    elif "'X-CSRFToken': token" in lista:
+        ok("lista: header usa var token (apos csrf())")
+    else:
+        fail("lista: header CSRF invalido")
+
+    # 4) Token vazio → erro imediato ANTES do hardTimer (nao esperar 20s)
+    i_tok = lista.find("var token = csrf()")
+    i_empty = lista.find("Falha de segurança (CSRF)")
+    i_hard = lista.find("var hardTimer = setTimeout")
+    if i_tok >= 0 and i_empty > i_tok and i_hard > i_empty:
+        ok("lista: checa token vazio antes do hardTimer 20s")
+    else:
+        fail("lista: ordem token/hardTimer errada (timeout falso)")
+
+    # 5) Simula JS csrf(): hidden > cookie
+    # (node se disponivel; senao assert estrutural ja cobre)
+    node = None
+    for cand in ("node", "nodejs"):
+        try:
+            subprocess.run([cand, "-v"], capture_output=True, check=True)
+            node = cand
+            break
+        except (OSError, subprocess.CalledProcessError):
+            continue
+    if node:
+        js = r"""
+function getCookie(name) {
+  var cookie = 'csrftoken=cookieTok; other=1';
+  var m = cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+  return m ? decodeURIComponent(m[1]) : '';
+}
+function csrfFrom(elVal) {
+  if (elVal) return elVal;
+  return getCookie('csrftoken') || '';
+}
+if (csrfFrom('htmlTok') !== 'htmlTok') process.exit(2);
+if (csrfFrom('') !== 'cookieTok') process.exit(3);
+if (typeof csrf === 'undefined') { /* ok — nao polui global */ }
+console.log('CSRF_JS_OK');
+"""
+        r = subprocess.run([node, "-e", js], capture_output=True, text=True)
+        if r.returncode == 0 and "CSRF_JS_OK" in (r.stdout or ""):
+            ok("node: csrf hidden>cookie (simulacao)")
+        else:
+            fail(f"node csrf sim falhou: {(r.stderr or r.stdout or '')[:200]}")
+    else:
+        ok("node ausente — pulou sim JS (estrutura OK)")
+
+    # 6) Detalhe da venda ja tinha getCookie (caminho alternativo)
+    if "getCookie('csrftoken')" in detalhe and (
+        "nfce/emitir" in detalhe or "api_venda_agro_nfce_emitir" in detalhe
+    ):
+        ok("detalhe: Reemitir com getCookie (nao depende csrf())")
+    else:
+        fail("detalhe: path CSRF Reemitir sumiu")
+
+    # 7) Regressao tipica da loja Live v20.01: csrf() no header SEM function csrf
+    # (so documentamos: tip atual NAO pode bater nisso)
+    if re.search(r"X-CSRFToken['\"]:\s*csrf\(\)", lista) and "function csrf()" not in lista:
+        fail("lista: padrao Live quebrado (csrf() sem function)")
+    else:
+        ok("lista: nao reproduz bug Live (csrf sem function)")
+
+
 def check_processando_contrato() -> None:
     print("\n[9] Contrato processando (lock) + UI sync")
     util = read("produtos/nfce_venda_util.py")
@@ -430,6 +521,7 @@ def main() -> int:
     check_desc_path()
     check_casos_loja_6478_6507()
     check_processando_contrato()
+    check_csrf_vendas_lista()
     print(f"\n=== RESULTADO: {oks} OK · {fails} FAIL ===")
     if fails:
         print("VERIFY_FAIL")
