@@ -425,8 +425,8 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
-- **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (overlay pedido Centro↔Vila; não confundir com `/transferencias/`).
-- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** (sacola, café — sem cadastro; não mexe estoque) · **observação/mensagem** · cupom 80mm · qtd editável na origem · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`.
+- **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (1º clique = escolha Pedir × Forçada; não confundir com `/transferencias/`).
+- **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
 - **Perf. animaÃ§Ãµes (decisÃ£o Renan, 2026-06):** acÃºmulo de efeitos no app inteiro *pode* pesar em PC fraco â€” mas **este FAB Ã© impacto baixo** (1 elemento, CSS `transform`/`opacity`, sem JS extra nem rede). O que pesa mesmo: MPA pÃ¡gina inteira, listas grandes, Mongo, JS do PDV/LanÃ§amentos. Regra: poucos destaques globais (FAB, Validade vermelha); evitar animar tabelas/cards em massa.
@@ -1253,6 +1253,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.75**) · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **Pedido** | Renan · Pedir loja → overlay 2 botões · Forçada = Logística, nativo no PDV |
+| **O quê** | Escolha **Pedir** / **Transferência forçada** · textos claros · PIN sempre na forçada · Esc volta · badge só pedidos · APIs estoque existentes |
+| **Onde** | `pedir_loja_escolha_overlay.html` · `transf_forcada_overlay.html` · `pdv_transf_forcada.js` · `pdv_pedir_loja.js` · `pdv_wizard.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_transf_forcada_path.py` · Pedir loja **68/68** intacto |
+| **Você** | Ctrl+F5 `/pdv/` · Pedir loja → Pedir · Forçada → direção → bip/transferir + PIN |
+| **Risco** | Baixo — Logística intocada |
+
 ### 🩹 Fechar caixa — devolução MP mesma forma (`CAIXA-DEVOL-MP-MESMA` · **v19.69**) · bug loja #8 · 30/08/2026
 
 | Item | Detalhe |
@@ -1297,25 +1310,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.74** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.75** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.74** · loja **v19.63** |
-| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · Enter sem imp **41/41** · devol MP **171/171** |
+| **Tip** | `teste` **v19.75** · loja **v19.63** |
+| **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · Enter sem imp **41/41** · devol MP **171/171** · PDV-TRANSF-FORCADA OK |
 | **Migrate** | não |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
-| **Você** | Ctrl+F5 PDV Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
+| **Você** | Ctrl+F5 PDV Pedir loja (escolha) · Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.74**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.75**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
 | 1 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 vDesc · prova 38/38 | não | 🟡 pronto envio |
 | 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 41/41 | não | 🟡 pronto envio |
 | 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devolução Pix/débito/crédito MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
+| 4 | `PDV-TRANSF-FORCADA` | Pedir loja → Pedir × Forçada (overlay PDV) | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.73~~ · **superado — tip v19.74**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.74~~ · **superado — tip v19.75**
 
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
