@@ -185,36 +185,60 @@
   }
   #pdv-tf-direcao .pdv-tf-dir-btn--back:hover { background: #e2e8f0; }
 
-  /* Faixa superior do overlay: só a direção, bem grande */
+  /* Faixa superior: 2 cards de loja + seta */
   #pdv-tf-overlay .pdv-tf-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    justify-content: center;
+    gap: 0.65rem;
     flex-shrink: 0;
     border-bottom: 2px solid #e2e8f0;
-    padding: 0.85rem 1rem 0.85rem 1.15rem;
+    padding: 0.75rem 1rem 0.75rem 1.1rem;
     border-radius: 1rem 1rem 0 0;
+    background: #f8fafc;
   }
-  #pdv-tf-overlay .pdv-tf-header--vc {
-    background: linear-gradient(90deg, #ecfdf5 0%, #d1fae5 55%, #a7f3d0 100%);
-  }
-  #pdv-tf-overlay .pdv-tf-header--cv {
-    background: linear-gradient(90deg, #e0f2fe 0%, #bae6fd 55%, #7dd3fc 100%);
-  }
-  #pdv-tf-overlay #pdv-tf-titulo {
-    margin: 0;
-    min-width: 0;
+  #pdv-tf-overlay .pdv-tf-header-dir {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
     flex: 1 1 auto;
-    font-size: clamp(1.65rem, 1.1vw + 1.35rem, 2.45rem);
-    font-weight: 900;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    line-height: 1.1;
-    text-align: center;
+    min-width: 0;
   }
-  #pdv-tf-overlay.tf-dir-vc #pdv-tf-titulo { color: #047857; }
-  #pdv-tf-overlay.tf-dir-cv #pdv-tf-titulo { color: #0369a1; }
+  #pdv-tf-overlay .pdv-tf-loja-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.4rem;
+    min-width: 8.5rem;
+    padding: 0.55rem 1.35rem;
+    border-radius: 0.9rem;
+    border: 3px solid transparent;
+    font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.9rem);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+    box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.25);
+  }
+  #pdv-tf-overlay .pdv-tf-loja-card--vila {
+    background: #059669;
+    border-color: #047857;
+    color: #fff;
+  }
+  #pdv-tf-overlay .pdv-tf-loja-card--centro {
+    background: #0284c7;
+    border-color: #0369a1;
+    color: #fff;
+  }
+  #pdv-tf-overlay .pdv-tf-dir-seta {
+    flex-shrink: 0;
+    font-size: clamp(1.75rem, 0.9vw + 1.4rem, 2.4rem);
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1;
+    padding: 0 0.15rem;
+  }
 </style>
 
 {# Backdrop + direção #}
@@ -234,8 +258,13 @@
 
 {# Overlay principal #}
 <div id="pdv-tf-overlay" class="fixed top-1/2 left-1/2 z-[143] hidden -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl tf-dir-vc" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-titulo">
-  <div id="pdv-tf-header" class="pdv-tf-header pdv-tf-header--vc">
-    <h3 id="pdv-tf-titulo">Vila → Centro</h3>
+  <div id="pdv-tf-header" class="pdv-tf-header">
+    <div class="pdv-tf-header-dir" aria-live="polite">
+      <span id="pdv-tf-card-origem" class="pdv-tf-loja-card pdv-tf-loja-card--vila">Vila</span>
+      <span class="pdv-tf-dir-seta" aria-hidden="true">→</span>
+      <span id="pdv-tf-card-destino" class="pdv-tf-loja-card pdv-tf-loja-card--centro">Centro</span>
+      <span id="pdv-tf-titulo" class="sr-only">Vila → Centro</span>
+    </div>
     <button type="button" id="pdv-tf-fechar" class="shrink-0 inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-3xl font-black leading-none text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700" aria-label="Fechar · Esc" title="Fechar · Esc">×</button>
   </div>
   <div id="pdv-tf-grid-corpo" class="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">

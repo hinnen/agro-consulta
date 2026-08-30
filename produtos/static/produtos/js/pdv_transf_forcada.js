@@ -37,6 +37,8 @@
   var dom = {
     titulo: document.getElementById('pdv-tf-titulo'),
     header: document.getElementById('pdv-tf-header'),
+    cardOrigem: document.getElementById('pdv-tf-card-origem'),
+    cardDestino: document.getElementById('pdv-tf-card-destino'),
     btnOk: document.getElementById('pdv-tf-btn-transferir'),
     busca: document.getElementById('pdv-tf-busca'),
     status: document.getElementById('pdv-tf-busca-status'),
@@ -138,9 +140,18 @@
     var isCv = direcao === 'centro_vila';
     var rotulo = isCv ? 'Centro → Vila' : 'Vila → Centro';
     if (dom.titulo) dom.titulo.textContent = rotulo;
-    if (dom.header) {
-      dom.header.classList.toggle('pdv-tf-header--vc', !isCv);
-      dom.header.classList.toggle('pdv-tf-header--cv', isCv);
+    if (dom.cardOrigem && dom.cardDestino) {
+      if (isCv) {
+        dom.cardOrigem.textContent = 'Centro';
+        dom.cardOrigem.className = 'pdv-tf-loja-card pdv-tf-loja-card--centro';
+        dom.cardDestino.textContent = 'Vila';
+        dom.cardDestino.className = 'pdv-tf-loja-card pdv-tf-loja-card--vila';
+      } else {
+        dom.cardOrigem.textContent = 'Vila';
+        dom.cardOrigem.className = 'pdv-tf-loja-card pdv-tf-loja-card--vila';
+        dom.cardDestino.textContent = 'Centro';
+        dom.cardDestino.className = 'pdv-tf-loja-card pdv-tf-loja-card--centro';
+      }
     }
     overlay.classList.toggle('tf-dir-vc', !isCv);
     overlay.classList.toggle('tf-dir-cv', isCv);
