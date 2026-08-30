@@ -1253,20 +1253,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.98** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.99** (aguarda senha) · 30/08/2026
 
 | # | Pacote | Prova | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
-| 1 | `NFCE-REEMIT-STAMP-FIRST` | path verify + Django **13/13** | **NÃO** | 📦 **pronto para envio** |
+| 1 | `NFCE-REEMIT-STAMP-FIRST` | path **59/59** · Django **13/13** | **NÃO** | 📦 **pronto para envio** |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Tip** | `teste` · **19.98** |
+| **Tip** | `teste` · **19.99** |
 | **Loja hoje** | Live **v19.97** — timeout na tela OK, mas POST **não carimbou** (#6507 ainda 537 de 29/08) |
-| **Fix** | Carimbo `Tentativa` **antes** do lock Redis · Redis socket 2s · config/SEFAZ só dentro do teto 18s |
+| **Fix** | Carimbo `Tentativa` **antes** do lock Redis · Redis socket 2s · config/SEFAZ no teto 18s · painel sem warmup |
 | **Você** | Senha → Ctrl+F5 → Reemitir **1×** → F5: erro deve virar «Tentativa HH:MM…» ou autorizar/timeout gravado |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.98**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.99**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
