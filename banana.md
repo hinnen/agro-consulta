@@ -1253,22 +1253,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — tip **v20.05** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO — tip **v20.07** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | 🟡 **pronto para envio à produção** · migrate **NÃO** |
 | **Live loja** | **v20.01** (`NFCE-REEMIT-STAMP-FIRST`) |
-| **Tip `teste`** | **v20.05** @ `5d8c119` |
+| **Tip `teste`** | **v20.07** |
 | **O que sobe** | `NFCE-REEMIT-CSRF` — Reemitir em `/vendas/` finalmente **envia** o POST (antes `csrf()` inexistente → timeout falso + 537 antigo) |
 | **Prova** | path **70/70** · DESC **67/67** · Django NFC-e **13/13** · node Live-bug + Django `csrf_token` |
-| **Você após loja** | **Ctrl+F5** `/vendas/` · badge **v20.05** · Reemitir #6507 **1×** |
+| **Você após loja** | **Ctrl+F5** `/vendas/` · badge **v20.07** · Reemitir #6507 **1×** |
 
-### ✅ CHECKLIST ÚNICO — tip **v20.05** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — tip **v20.07** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-CSRF` | 🟡 **pronto para envio à produção** · v20.05 · prova **70/70** |
+| 1 | `NFCE-REEMIT-CSRF` | 🟡 **pronto para envio à produção** · v20.07 · prova **70/70** |
 
 ### ✅ Live loja — stamp-first (`NFCE-REEMIT-STAMP-FIRST` · **v20.01**)
 
@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live v20.01** — CSRF da lista **ainda falta** (pacote acima) |
 | **Rollback stamp** | tag `rollback/pre-nfce-stamp-first-v19.97` · `docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md` |
 
-### ~~📦 PACOTE / CHECKLIST tip v20.00–v20.04~~ · **superado — tip v20.05**
+### ~~📦 PACOTE / CHECKLIST tip v20.00–v20.06~~ · **superado — tip v20.07**
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
