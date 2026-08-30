@@ -493,8 +493,14 @@ def api_venda_agro_nfce_emitir(request, pk):
 
 
 def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
-    """Emissão síncrona com timeout SEFAZ curto (cabe no proxy Render ~30s)."""
-    from produtos.nfce_venda_util import painel_nfce_venda, registrar_nfce_erro_venda
+    """Emissão síncrona com teto duro (~20s) — sempre devolve JSON (nunca loading eterno)."""
+    from concurrent.futures import ThreadPoolExecutor
+    from concurrent.futures import TimeoutError as FuturesTimeout
+
+    from django.db import connections
+    from django.utils import timezone
+
+    from produtos.nfce_venda_util import registrar_nfce_erro_venda
 
     if not nfce_configurada(warmup=True, tentativas=2, loja=nfce_loja_de_venda(v)):
         return JsonResponse(
@@ -515,17 +521,53 @@ def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
         )
     v.nfce_solicitada = True
     v.save(update_fields=["nfce_solicitada"])
+    agora = timezone.localtime(timezone.now()).strftime("%H:%M:%S")
+    # Carimbo na hora — prova que o POST chegou (mesmo se SEFAZ travar depois).
+    NfceDocumentoAgro.objects.filter(venda=v).exclude(
+        status=NfceDocumentoAgro.Status.AUTORIZADA
+    ).update(
+        mensagem_sefaz=f"Tentativa {agora} — enviando à SEFAZ…",
+        status=NfceDocumentoAgro.Status.ERRO,
+    )
+
+    def _trabalho() -> dict:
+        connections.close_all()
+        try:
+            venda = VendaAgro.objects.prefetch_related("itens").get(pk=v.pk)
+            client, db = _mongo_conn()
+            col_p = getattr(client, "col_p", None) if client else None
+            return emitir_nfce_para_venda(
+                venda,
+                cpf_dest=cpf,
+                sem_identificacao=sem_id,
+                db=db,
+                col_p=col_p,
+                sefaz_perfil="sync",
+            )
+        finally:
+            connections.close_all()
+
+    out: dict
+    pool = ThreadPoolExecutor(max_workers=1)
     try:
-        client, db = _mongo_conn()
-        col_p = getattr(client, "col_p", None) if client else None
-        out = emitir_nfce_para_venda(
-            v,
-            cpf_dest=cpf,
-            sem_identificacao=sem_id,
-            db=db,
-            col_p=col_p,
-            sefaz_perfil="sync",
-        )
+        fut = pool.submit(_trabalho)
+        try:
+            out = fut.result(timeout=20)
+        except FuturesTimeout:
+            logger.warning("NFC-e reemitir timeout 20s venda %s", v.pk)
+            cfg = nfce_config_resumo(nfce_loja_de_venda(v))
+            doc = registrar_nfce_erro_venda(
+                v,
+                f"Timeout {agora}: SEFAZ/servidor não respondeu em 20s. Tente de novo em 1 minuto.",
+                cpf_dest=cpf,
+                sem_identificacao=sem_id,
+                tp_amb=int(cfg.get("tp_amb") or 2),
+            )
+            out = {
+                "ok": False,
+                "erro": "SEFAZ/servidor não respondeu em 20s. Aguarde 1 minuto e reemitir.",
+                "documento_id": doc.pk,
+            }
     except Exception:
         logger.exception("NFC-e reemitir falhou (venda %s)", v.pk)
         cfg = nfce_config_resumo(nfce_loja_de_venda(v))
@@ -541,6 +583,9 @@ def _api_venda_agro_nfce_emitir_locked(request, v: VendaAgro, body: dict):
             "erro": "Erro interno ao emitir NFC-e. Tente reemitir em instantes.",
             "documento_id": doc.pk,
         }
+    finally:
+        # NÃO wait=True: senão o HTTP fica preso no worker órfão após timeout.
+        pool.shutdown(wait=False, cancel_futures=True)
     st = 200 if out.get("ok") else 502
     return _nfce_emitir_json_response(v, out, st)
 
