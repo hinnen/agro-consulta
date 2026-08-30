@@ -338,49 +338,63 @@
             return;
           }
           var btn = document.getElementById('modal-nfce-reemitir');
+          if (btn.dataset.busy === '1') return;
+          btn.dataset.busy = '1';
           btn.disabled = true;
           if (window.gmLoadingBar) window.gmLoadingBar.show();
           var msgEl = document.getElementById('modal-nfce-msg');
           msgEl.classList.remove('hidden');
-          msgEl.textContent = 'Enviando à SEFAZ… aguarde até ~20s.';
+          msgEl.textContent = 'Enviando à SEFAZ… (máx. 20s)';
           msgEl.className = 'mt-2 text-sm font-bold text-amber-800';
-          function pararLoading() {
+          var finished = false;
+          function terminar(msg, isErr) {
+            if (finished) return;
+            finished = true;
+            btn.dataset.busy = '0';
             btn.disabled = false;
             if (window.gmLoadingBar) {
               window.gmLoadingBar.hide();
               if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
             }
+            if (msg) {
+              msgEl.classList.remove('hidden');
+              msgEl.textContent = msg;
+              msgEl.className = 'mt-2 text-sm font-bold ' + (isErr ? 'text-rose-800' : 'text-emerald-800');
+            }
           }
           var ctrlEmit = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          var toEmit = setTimeout(function () {
+          var hardTimer = setTimeout(function () {
             try { if (ctrlEmit) ctrlEmit.abort(); } catch (eAb2) {}
-          }, 28000);
-          fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
+            terminar(
+              'Servidor/SEFAZ não respondeu em 20s. Feche, dê F5 e tente de novo. Se repetir, anote a hora.',
+              true
+            );
+          }, 20000);
+          var fetchP = fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
             signal: ctrlEmit ? ctrlEmit.signal : undefined,
-          })
-            .then(function (r) {
-              return r.text().then(function (txt) {
-                var d = {};
-                try { d = JSON.parse(txt); } catch (e) {
-                  throw new Error('Servidor não respondeu — F5 e tente de novo.');
-                }
-                return { ok: r.ok, status: r.status, data: d };
-              });
-            })
+          }).then(function (r) {
+            return r.text().then(function (txt) {
+              var d = {};
+              try { d = JSON.parse(txt); } catch (e) {
+                throw new Error('Resposta inválida do servidor (HTTP ' + r.status + '). F5 e tente de novo.');
+              }
+              return { ok: r.ok, status: r.status, data: d };
+            });
+          });
+          fetchP
             .then(function (res) {
+              clearTimeout(hardTimer);
+              if (finished) return;
               if (res.data && res.data.processando && res.status === 409) {
-                msgEl.textContent = res.data.erro || 'Já está emitindo — aguarde 1 minuto e F5.';
-                msgEl.className = 'mt-2 text-sm font-bold text-amber-800';
+                terminar(res.data.erro || 'Já está emitindo — aguarde 1 minuto e F5.', true);
                 return;
               }
-              msgEl.classList.remove('hidden');
               if (res.ok && res.data.ok) {
-                msgEl.textContent = 'NFC-e autorizada.';
-                msgEl.className = 'mt-2 text-sm font-bold text-emerald-800';
+                terminar('NFC-e autorizada.', false);
                 var vIdOk = vendaIdAtual;
                 fechar();
                 if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
@@ -399,20 +413,18 @@
               if (res.data && res.data.nfce_painel && res.data.nfce_painel.erro) {
                 document.getElementById('modal-nfce-erro').textContent = res.data.nfce_painel.erro;
               }
-              msgEl.textContent = err;
-              msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
+              terminar(err, true);
             })
             .catch(function (err) {
+              clearTimeout(hardTimer);
+              if (finished) return;
               var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
-              msgEl.classList.remove('hidden');
-              msgEl.textContent = aborted
-                ? 'Demorou demais na SEFAZ. Espere 30s, dê F5 e confira a venda (pode ter autorizado).'
-                : ((err && err.message) || 'Falha de rede — F5 e tente de novo.');
-              msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
-            })
-            .finally(function () {
-              clearTimeout(toEmit);
-              pararLoading();
+              terminar(
+                aborted
+                  ? 'Servidor/SEFAZ não respondeu em 20s. F5 e confira a venda.'
+                  : ((err && err.message) || 'Falha de rede — F5 e tente de novo.'),
+                true
+              );
             });
         };
         document.querySelectorAll('.js-venda-nfce-erro').forEach(function (btn) {

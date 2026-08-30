@@ -929,21 +929,30 @@
         alert('Informe CPF ou CNPJ, ou marque venda sem identificação.');
         return;
       }
+      if (btnRe.dataset.busy === '1') return;
+      btnRe.dataset.busy = '1';
       btnRe.disabled = true;
       if (window.gmLoadingBar) window.gmLoadingBar.show();
       var elMsg = document.getElementById('nfce-detalhe-erro-text');
-      if (elMsg) elMsg.textContent = 'Enviando à SEFAZ… aguarde até ~20s.';
-      function parar() {
+      if (elMsg) elMsg.textContent = 'Enviando à SEFAZ… (máx. 20s)';
+      var finished = false;
+      function terminar(msg) {
+        if (finished) return;
+        finished = true;
+        btnRe.dataset.busy = '0';
         btnRe.disabled = false;
         if (window.gmLoadingBar) {
           window.gmLoadingBar.hide();
           if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
         }
+        if (msg && elMsg) elMsg.textContent = msg;
+        if (msg) alert(msg);
       }
       var ctrlEmit = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var toEmit = setTimeout(function () {
+      var hardTimer = setTimeout(function () {
         try { if (ctrlEmit) ctrlEmit.abort(); } catch (eAb) {}
-      }, 28000);
+        terminar('Servidor/SEFAZ não respondeu em 20s. F5 e tente de novo.');
+      }, 20000);
       fetch('{% url "api_venda_agro_nfce_emitir" v.pk %}', {
         method: 'POST',
         credentials: 'same-origin',
@@ -957,12 +966,19 @@
       })
         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
         .then(function (x) {
+          clearTimeout(hardTimer);
+          if (finished) return;
           if (x.j && x.j.processando && x.status === 409) {
-            if (elMsg) elMsg.textContent = x.j.erro || 'Já está emitindo — aguarde e F5.';
-            alert(x.j.erro || 'Já está emitindo — aguarde 1 minuto e F5.');
+            terminar(x.j.erro || 'Já está emitindo — aguarde e F5.');
             return;
           }
           if (x.j && x.j.ok) {
+            finished = true;
+            btnRe.dataset.busy = '0';
+            if (window.gmLoadingBar) {
+              window.gmLoadingBar.hide();
+              if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
+            }
             fecharModal();
             if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
               agroEscolherImprimirCupomPosNfce('{{ v.pk }}', {
@@ -975,24 +991,20 @@
             return;
           }
           var err = (x.j && x.j.nfce && x.j.nfce.erro) || (x.j && x.j.erro) || 'Falha na reemissão.';
-          if (x.j && x.j.nfce_painel && x.j.nfce_painel.erro) {
-            if (elMsg) elMsg.textContent = x.j.nfce_painel.erro;
-          } else if (elMsg) {
-            elMsg.textContent = err;
+          if (x.j && x.j.nfce_painel && x.j.nfce_painel.erro && elMsg) {
+            elMsg.textContent = x.j.nfce_painel.erro;
           }
-          alert(err);
+          terminar(err);
         })
         .catch(function (err) {
+          clearTimeout(hardTimer);
+          if (finished) return;
           var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
-          var msg = aborted
-            ? 'Demorou demais na SEFAZ. Espere 30s, F5 e confira (pode ter autorizado).'
-            : 'Falha de rede.';
-          if (elMsg) elMsg.textContent = msg;
-          alert(msg);
-        })
-        .finally(function () {
-          clearTimeout(toEmit);
-          parar();
+          terminar(
+            aborted
+              ? 'Servidor/SEFAZ não respondeu em 20s. F5 e confira a venda.'
+              : 'Falha de rede.'
+          );
         });
     });
   }

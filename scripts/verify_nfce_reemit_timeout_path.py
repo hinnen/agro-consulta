@@ -91,20 +91,20 @@ def check_timeouts() -> None:
     delays = SEFAZ_HTTP_RETRY_DELAYS_SYNC
     n_try = max(1, len(delays))
     worst = n_try * (connect + read) + sum(delays[1:] if len(delays) > 1 else [])
-    if connect <= 5 and read <= 18:
+    if connect <= 4 and read <= 14:
         ok(f"TIMEOUT_SYNC=({connect},{read})")
     else:
-        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura proxy/Abort")
+        fail(f"TIMEOUT_SYNC alto ({connect},{read}) — estoura teto 20s")
     if n_try <= 1:
         ok(f"RETRY_DELAYS_SYNC 1 tentativa ({delays})")
-    elif worst <= 22:
+    elif worst <= 18:
         ok(f"RETRY_DELAYS_SYNC={delays} pior~{worst:.1f}s")
     else:
         fail(f"RETRY_DELAYS_SYNC pesado: {delays} pior~{worst:.1f}s")
-    if worst <= 22:
-        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=22)")
+    if worst <= 18:
+        ok(f"orcamento SEFAZ sync pior caso ~{worst:.1f}s (<=18)")
     else:
-        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 22s")
+        fail(f"orcamento SEFAZ sync ~{worst:.1f}s > 18s")
 
     from produtos.sefaz_soap_util import SEFAZ_HTTP_TIMEOUT
 
@@ -175,7 +175,7 @@ def check_vdesc_all_items() -> None:
 
 
 def check_ui_abort() -> None:
-    print("\n[5] UI reemitir sync + Abort + loading sempre some")
+    print("\n[5] UI reemitir — teto duro 20s + erro na tela")
     for rel in (
         "produtos/templates/produtos/vendas_lista.html",
         "produtos/templates/produtos/venda_agro_detalhe.html",
@@ -185,22 +185,22 @@ def check_ui_abort() -> None:
             ok(f"{rel}: AbortController")
         else:
             fail(f"{rel}: falta AbortController")
-        if "28000" in txt or "28e3" in txt:
-            ok(f"{rel}: Abort ~28s no emitir")
+        if "20000" in txt and "hardTimer" in txt:
+            ok(f"{rel}: teto duro 20s")
         else:
-            fail(f"{rel}: falta Abort 28s no emitir")
+            fail(f"{rel}: falta hardTimer 20s")
         if "pollResultado" in txt:
             fail(f"{rel}: ainda tem pollResultado (BG)")
         else:
             ok(f"{rel}: sem poll BG")
-        if "gmLoadingBar" in txt and ("finally" in txt or "pararLoading" in txt or "function parar" in txt):
-            ok(f"{rel}: esconde loading")
+        if "terminar(" in txt or "function terminar" in txt:
+            ok(f"{rel}: termina UI com mensagem")
         else:
-            fail(f"{rel}: loading pode ficar preso")
-        if "gmLoadingBar.reset" in txt or "LoadingBar.reset" in txt:
-            ok(f"{rel}: reset loading se travar")
+            fail(f"{rel}: falta terminar()")
+        if "não respondeu em 20s" in txt or "nao respondeu em 20s" in txt:
+            ok(f"{rel}: mensagem timeout na tela")
         else:
-            fail(f"{rel}: falta reset loading")
+            fail(f"{rel}: falta msg timeout")
     lista = read("produtos/templates/produtos/vendas_lista.html")
     if "Desconto já foi corrigido" in lista:
         ok("vendas_lista: tip 537 no modal")
@@ -211,36 +211,34 @@ def check_ui_abort() -> None:
         ok("views: reemitir perfil sync")
     else:
         fail("views: falta sefaz_perfil=sync")
+    if "Tentativa " in views and "enviando à SEFAZ" in views:
+        ok("views: carimbo tentativa no doc")
+    else:
+        fail("views: falta carimbo Tentativa")
+    if "fut.result(timeout=20)" in views or "result(timeout=20)" in views:
+        ok("views: teto 20s no worker")
+    else:
+        fail("views: falta futures timeout 20s")
 
 
 def check_budget_js_vs_server() -> None:
-    print("\n[6] Orcamento Abort JS vs SEFAZ sync")
+    print("\n[6] Orcamento teto UI vs SEFAZ sync")
     views = read("produtos/views_nfce.py")
     if "_nfce_reemitir_background_worker" in views or (
-        "threading.Thread" in views and "nfce-reemit" in views
+        "nfce-reemit" in views and "daemon=True" in views
     ):
-        fail("POST ainda dispara thread reemit")
+        fail("POST ainda dispara thread reemit BG")
     else:
-        ok("POST reemitir sincrono (sem thread)")
+        ok("POST reemitir com teto (sem BG eterno)")
     lista = read("produtos/templates/produtos/vendas_lista.html")
-    post_block = ""
-    if "nfce/emitir/" in lista:
-        idx = lista.find("nfce/emitir/")
-        post_block = lista[max(0, idx - 500) : idx + 250]
-    if "signal: ctrlEmit" in post_block or "signal: ctrlEmit" in lista:
-        ok("POST emitir com AbortController")
-    elif "signal:" in post_block and "ctrlEmit" in lista:
-        ok("POST emitir com AbortController")
+    if "hardTimer" in lista and "20000" in lista:
+        ok("UI teto duro independente do fetch")
     else:
-        # fallback: look near emitir
-        if "ctrlEmit" in lista and "28000" in lista:
-            ok("POST emitir com AbortController")
-        else:
-            fail("POST emitir sem AbortController")
-    if "Enviando à SEFAZ" in lista or "Enviando a SEFAZ" in lista:
-        ok("texto aguardando SEFAZ no modal")
+        fail("UI sem teto duro")
+    if "máx. 20s" in lista or "max. 20s" in lista:
+        ok("texto máx 20s no modal")
     else:
-        fail("falta texto Enviando SEFAZ")
+        fail("falta texto máx 20s")
 
 
 def check_desc_path() -> None:

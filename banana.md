@@ -1253,23 +1253,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — NFC-e reemit sync (`NFCE-REEMIT-SYNC` · **v19.95**) · **Live** · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.96** (aguarda senha) · 30/08/2026
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | `NFCE-REEMIT-HARD-TIMEOUT` | path **51/51** | **NÃO** |
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.95** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.94** @ `f84ac71` |
-| **Agora** | `producao` @ PREP `29c3613` · VERSION **19.95** |
-| **Pacote** | `NFCE-REEMIT-SYNC` |
-| **Rollback** | tag `rollback/pre-nfce-reemit-sync-v19.94` @ `f84ac71` · branch `producao-backup-pre-v1995-nfce-reemit-sync-20260830` · `docs/ROLLBACK-NFCE-REEMIT-SYNC-V1995.md` · **só** frase+senha |
-| **Prova** | path **49/49** (teste) |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.95** · Reemitir #6478 **1×** · ~20s |
+| **Status** | 📦 **pronto envio** — tip `teste` |
+| **Motivo** | Live v19.95: modal #6507 ficou em «Enviando à SEFAZ…» sem erro. DB sem carimbo novo. |
+| **Fix** | UI **teto duro 20s** (sempre mostra erro) · API carimba `Tentativa HH:MM:SS` · futures **timeout 20s** · SEFAZ sync (3,12) |
+| **Você** | Senha → Live **v19.96** → Ctrl+F5 → Reemitir **1×** → em ≤20s **autoriza** ou **mensagem vermelha** (não loading eterno) |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.95**)
+### ~~✅ Deploy loja — NFC-e reemit sync (`NFCE-REEMIT-SYNC` · **v19.95**)~~ · **Live** · reforço **HARD-TIMEOUT v19.96** (aguarda senha)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ foi Live v19.95 · ainda «Enviando…» sem fechar → pacote **v19.96** |
+| **Rollback** | tag `rollback/pre-nfce-reemit-sync-v19.94` @ `f84ac71` |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.95**) · ver PACOTE **v19.96**
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-SYNC` | ✅ **Live v19.95** · prova **49/49** |
+| 1 | `NFCE-REEMIT-SYNC` | ✅ foi Live v19.95 · reforço aguarda |
 
 ### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.95** (aguarda senha)~~ · **superado — Live v19.95**
 
