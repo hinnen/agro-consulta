@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """VERIFY NFCE-REEMIT-TIMEOUT — reemitir nao trava + SEFAZ 537.
 
-Cobre: timeout sync < proxy Render · Abort 22s nas telas · lock anti-duplo ·
+Cobre: timeout sync < proxy Render · Abort 28s nas telas · lock anti-duplo ·
 vDesc em todos os itens se ha desconto · sefaz_perfil=sync no emitir · AST ·
-reusa prova NFCE-DESC.
+reusa prova NFCE-DESC · sem thread BG no reemitir (loading eterno).
 
 Uso: python scripts/verify_nfce_reemit_timeout_path.py
 """
@@ -60,7 +60,7 @@ def check_ast() -> None:
             txt = read(rel)
             if not txt:
                 continue
-            if "pollResultado" in txt or "AbortController" in txt or "nfce/emitir" in txt:
+            if "AbortController" in txt or "nfce/emitir" in txt:
                 ok(f"html reemit path: {rel}")
             else:
                 fail(f"html sem path reemit: {rel}")
@@ -137,9 +137,13 @@ def check_views_lock() -> None:
         else:
             fail(f"views: falta `{n}`")
     if "_nfce_reemitir_background_worker" in txt:
-        ok("lock liberado no worker finally")
+        fail("reemitir ainda usa background worker (loading eterno no Render)")
     else:
-        fail("lock sem worker finally")
+        ok("reemitir sem background worker")
+    if "status=202" in txt and "processando" in txt and "Thread" in txt:
+        fail("ainda responde 202 + thread no reemitir")
+    else:
+        ok("reemitir HTTP sincrono (sem 202/thread)")
 
 
 def check_vdesc_all_items() -> None:
@@ -171,61 +175,72 @@ def check_vdesc_all_items() -> None:
 
 
 def check_ui_abort() -> None:
-    print("\n[5] UI reemitir em background + poll")
+    print("\n[5] UI reemitir sync + Abort + loading sempre some")
     for rel in (
         "produtos/templates/produtos/vendas_lista.html",
         "produtos/templates/produtos/venda_agro_detalhe.html",
     ):
         txt = read(rel)
-        if "pollResultado" in txt or "processando" in txt:
-            ok(f"{rel}: poll/processando")
+        if "AbortController" in txt:
+            ok(f"{rel}: AbortController")
         else:
-            fail(f"{rel}: falta poll processando")
-        if "Em emissão" in txt or "Emitindo cupom" in txt:
-            ok(f"{rel}: texto emitindo")
+            fail(f"{rel}: falta AbortController")
+        if "28000" in txt or "28e3" in txt:
+            ok(f"{rel}: Abort ~28s no emitir")
         else:
-            fail(f"{rel}: falta texto emitindo")
-        if "gmLoadingBar" in txt and "finally" in txt or "pararLoading" in txt or "function parar" in txt:
+            fail(f"{rel}: falta Abort 28s no emitir")
+        if "pollResultado" in txt:
+            fail(f"{rel}: ainda tem pollResultado (BG)")
+        else:
+            ok(f"{rel}: sem poll BG")
+        if "gmLoadingBar" in txt and ("finally" in txt or "pararLoading" in txt or "function parar" in txt):
             ok(f"{rel}: esconde loading")
         else:
             fail(f"{rel}: loading pode ficar preso")
+        if "gmLoadingBar.reset" in txt or "LoadingBar.reset" in txt:
+            ok(f"{rel}: reset loading se travar")
+        else:
+            fail(f"{rel}: falta reset loading")
     lista = read("produtos/templates/produtos/vendas_lista.html")
     if "Desconto já foi corrigido" in lista:
         ok("vendas_lista: tip 537 no modal")
     else:
         fail("vendas_lista: falta tip 537")
     views = read("produtos/views_nfce.py")
-    if "_nfce_reemitir_background_worker" in views and 'status=202' in views:
-        ok("views: reemitir background 202")
+    if 'sefaz_perfil="sync"' in views:
+        ok("views: reemitir perfil sync")
     else:
-        fail("views: falta reemitir background 202")
-    if 'sefaz_perfil="completo"' in views and "nfce-reemit" in views:
-        ok("views: worker perfil completo")
-    else:
-        fail("views: worker sem perfil completo")
-    if 'mensagem_sefaz="Em emissão' in views or "Em emissão na SEFAZ" in views:
-        ok("views: marca Em emissão no doc")
-    else:
-        fail("views: nao marca Em emissão")
+        fail("views: falta sefaz_perfil=sync")
 
 
 def check_budget_js_vs_server() -> None:
-    print("\n[6] Reemitir HTTP retorna ja (background) — sem Abort no POST")
+    print("\n[6] Orcamento Abort JS vs SEFAZ sync")
     views = read("produtos/views_nfce.py")
-    if "threading.Thread" in views and "_nfce_reemitir_background_worker" in views:
-        ok("POST dispara thread e responde na hora")
+    if "_nfce_reemitir_background_worker" in views or (
+        "threading.Thread" in views and "nfce-reemit" in views
+    ):
+        fail("POST ainda dispara thread reemit")
     else:
-        fail("POST ainda sincrono com SEFAZ")
+        ok("POST reemitir sincrono (sem thread)")
     lista = read("produtos/templates/produtos/vendas_lista.html")
-    # POST de emitir nao deve mais abortar em 22s (mata a SEFAZ)
     post_block = ""
     if "nfce/emitir/" in lista:
         idx = lista.find("nfce/emitir/")
-        post_block = lista[max(0, idx - 400) : idx + 200]
-    if "signal: ctrl" in post_block:
-        fail("POST emitir ainda usa AbortController (corta SEFAZ)")
+        post_block = lista[max(0, idx - 500) : idx + 250]
+    if "signal: ctrlEmit" in post_block or "signal: ctrlEmit" in lista:
+        ok("POST emitir com AbortController")
+    elif "signal:" in post_block and "ctrlEmit" in lista:
+        ok("POST emitir com AbortController")
     else:
-        ok("POST emitir sem Abort (poll espera resultado)")
+        # fallback: look near emitir
+        if "ctrlEmit" in lista and "28000" in lista:
+            ok("POST emitir com AbortController")
+        else:
+            fail("POST emitir sem AbortController")
+    if "Enviando à SEFAZ" in lista or "Enviando a SEFAZ" in lista:
+        ok("texto aguardando SEFAZ no modal")
+    else:
+        fail("falta texto Enviando SEFAZ")
 
 
 def check_desc_path() -> None:
@@ -338,13 +353,12 @@ def check_casos_loja_6478_6507() -> None:
 
 
 def check_processando_contrato() -> None:
-    print("\n[9] Contrato processando (lock) + poll so com processando")
+    print("\n[9] Contrato processando (lock) + UI sync")
     util = read("produtos/nfce_venda_util.py")
     if 'cache.get(f"nfce_emit_lock_' in util or "nfce_emit_lock_" in util:
         ok("processando consulta lock")
     else:
         fail("processando sem lock")
-    # Nao pode travar so por texto Em emissao (orfao) DENTRO de venda_nfce_processando
     fn = util
     start = fn.find("def venda_nfce_processando")
     end = fn.find("\ndef ", start + 1)
@@ -358,17 +372,17 @@ def check_processando_contrato() -> None:
         "produtos/templates/produtos/venda_agro_detalhe.html",
     ):
         txt = read(rel)
-        if "p.processando || /Em emissão" in txt or "processando || /Em" in txt:
-            fail(f"{rel}: poll ainda usa Em emissão (loop eterno)")
-        elif "if (p.processando)" in txt:
-            ok(f"{rel}: poll so com processando")
+        if "pollResultado" in txt:
+            fail(f"{rel}: ainda poll BG")
         else:
-            fail(f"{rel}: poll sem if processando")
+            ok(f"{rel}: reemitir sync (sem poll)")
+        if "p.processando || /Em emissão" in txt or "processando || /Em" in txt:
+            fail(f"{rel}: loop por texto Em emissão")
     views = read("produtos/views_nfce.py")
     if "finally:" in views and "cache.delete(lock_key)" in views:
-        ok("worker finally libera lock")
+        ok("API finally libera lock")
     else:
-        fail("worker sem finally delete lock")
+        fail("API sem finally delete lock")
 
 
 def main() -> int:
