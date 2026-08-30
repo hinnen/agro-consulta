@@ -1257,15 +1257,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · prova path **135/135** · ⏳ prova Renan local · ⏳ loja ainda sem |
-| **Relato** | Renan · Caixa Centro · devolução Pix MP automático descontava das máquinas manuais (provável débito/crédito igual) |
-| **Causa** | Venda Point soma em «Pix/cartão — Mercado Pago»; retirada da devolução ia no balde PIX/débito/crédito **manual** |
-| **O quê** | Mesma forma no mesmo turno → retirada remapeia para a linha «— Mercado Pago». Dinheiro → gaveta (v17.84) intacto. Cielo permanece no balde manual |
+| **Status** | ✅ no `teste` · path **171/171** (casos-limite) · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **Relato** | Renan · Caixa Centro · devolução Pix MP automático descontava das máquinas manuais (débito/crédito igual) |
+| **Causa** | Venda Point soma em «— Mercado Pago»; retirada da devolução ia no balde PIX/débito/crédito **manual** |
+| **O quê** | Mesma forma no mesmo turno → retirada na linha MP. Dinheiro→gaveta intacto. Cielo/Renan manual intactos. Parcial · parcelado · mistura · fallback PointOrder cobertos |
 | **Onde** | `produtos/caixa_util.py` · `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` |
 | **Migrate** | **NÃO** |
-| **Prova** | VERIFY devolução MP **135/135** |
-| **Você** | Ctrl+F5 Fechar caixa · vender Pix MP · devolver em **PIX** · esperado «Pix — Mercado Pago» zera · linha PIX manual não cai |
-| **Risco** | Baixo-médio — só conferência do Fechar; venda/PDV intactos |
+| **Prova** | VERIFY **171/171** |
+| **Você** | Ctrl+F5 Fechar caixa · Pix MP → devolver em **PIX** · «Pix — Mercado Pago» zera · PIX manual não cai |
+| **Risco** | Baixo-médio — só conferência do Fechar |
 
 ### 🩹 PDV Enter rótulo dinheiro (`PDV-ENTER-ROTULO-DIN` · **v19.68**) · bug loja #9 · 30/08/2026
 
