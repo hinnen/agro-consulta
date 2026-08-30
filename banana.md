@@ -1295,17 +1295,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 `/vendas/` · Reemitir · ≤30s ou aviso claro |
 | **Risco** | Baixo |
 
-### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.71** · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.72** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Tip** | `teste` **v19.71** · loja **v19.63** |
+| **Tip** | `teste` **v19.72** · loja **v19.63** |
 | **Prova** | NFCE-REEMIT **38/38** · DESC **57/57** · cupom dinheiro **31/31** · devol MP mesma forma **171/171** |
 | **Migrate** | não |
 | **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
 | **Você** | Ctrl+F5 Vendas Reemitir · PDV dinheiro Enter no COM · Fechar caixa Pix MP → devolver em PIX |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.71**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.72**)
 
 | # | Pacote | O quê | Migrate | Status |
 | - | ------ | ----- | ------- | ------ |
@@ -1313,7 +1313,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `PDV-ENTER-ROTULO-DIN` | Bug #9 · rótulo Enter no COM (dinheiro) · prova 31/31 | não | 🟡 pronto envio |
 | 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devolução Pix/débito/crédito MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.70~~ · **superado — tip v19.71**
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.71~~ · **superado — tip v19.72**
 
 ### ✅ Deploy loja — hotfix Chat abre (`PDV-CHAT-OPEN` · **v19.63**) · **Live** · 29/08/2026
 
