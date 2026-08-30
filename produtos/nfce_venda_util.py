@@ -16,9 +16,15 @@ _NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
 
 def venda_nfce_processando(venda: VendaAgro) -> bool:
     """NFC-e pedida em background e ainda sem documento (evita reemitir no meio)."""
+    from django.core.cache import cache
+
+    if cache.get(f"nfce_emit_lock_{int(venda.pk)}"):
+        return True
+    nfce = getattr(venda, "nfce", None)
+    if nfce and (nfce.mensagem_sefaz or "").startswith("Em emissão"):
+        return True
     if not getattr(venda, "nfce_solicitada", False):
         return False
-    nfce = getattr(venda, "nfce", None)
     if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
         return False
     if nfce and nfce.status in (
@@ -128,7 +134,8 @@ def painel_nfce_venda(venda: VendaAgro, *, _cfg: dict[str, Any] | None = None) -
     if venda_nfce_processando(venda):
         out["processando"] = True
         out["status_label"] = "Emitindo"
-        out["erro"] = ""
+        msg = (nfce.mensagem_sefaz if nfce else "") or ""
+        out["erro"] = msg if msg.startswith("Em emissão") else "Em emissão na SEFAZ — aguarde…"
         out["pode_reemitir"] = False
         out["pode_imprimir_fiscal"] = False
         return out
