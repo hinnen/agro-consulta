@@ -117,6 +117,59 @@
     #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(4),
     #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(4) { display: none; }
   }
+
+  /* Direção: botão da loja do PDV em destaque */
+  #pdv-tf-direcao .pdv-tf-dir-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn {
+    width: 100%;
+    border-radius: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-width: 2px;
+    border-style: solid;
+    cursor: pointer;
+    transition: transform 0.08s ease, filter 0.08s ease;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn:active {
+    transform: scale(0.98);
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--hero {
+    min-height: 5.25rem;
+    padding: 1.25rem 1.1rem;
+    font-size: clamp(1.25rem, 0.55vw + 1.1rem, 1.65rem);
+    line-height: 1.15;
+    box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.35);
+    order: -1;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--sec {
+    min-height: 3.15rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    opacity: 0.95;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--vc {
+    border-color: #34d399;
+    background: #059669;
+    color: #fff;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--vc:hover { background: #047857; }
+  #pdv-tf-direcao .pdv-tf-dir-btn--cv {
+    border-color: #38bdf8;
+    background: #0284c7;
+    color: #fff;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--cv:hover { background: #0369a1; }
+  #pdv-tf-direcao .pdv-tf-dir-btn--back {
+    border-color: #e2e8f0;
+    background: #f1f5f9;
+    color: #334155;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--back:hover { background: #e2e8f0; }
 </style>
 
 {# Backdrop + direção #}
@@ -127,10 +180,10 @@
     <h3 id="pdv-tf-dir-titulo" class="text-center text-lg font-black uppercase leading-tight text-emerald-950 sm:text-xl">Transferência forçada</h3>
     <p class="mt-2 text-center text-sm font-semibold text-slate-600">Qual a direção? · Esc volta</p>
   </div>
-  <div class="space-y-3 p-5 sm:p-6">
-    <button type="button" id="pdv-tf-dir-vc" class="w-full rounded-xl border-2 border-emerald-400 bg-emerald-600 py-4 text-base font-black uppercase text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 sm:text-lg">Vila → Centro</button>
-    <button type="button" id="pdv-tf-dir-cv" class="w-full rounded-xl border-2 border-sky-400 bg-sky-600 py-4 text-base font-black uppercase text-white shadow-md shadow-sky-200 hover:bg-sky-700 sm:text-lg">Centro → Vila</button>
-    <button type="button" id="pdv-tf-dir-cancelar" class="w-full rounded-xl bg-slate-100 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-200">Voltar</button>
+  <div class="pdv-tf-dir-btns p-5 sm:p-6" data-pdv-tf-deposito="">
+    <button type="button" id="pdv-tf-dir-vc" class="pdv-tf-dir-btn pdv-tf-dir-btn--vc pdv-tf-dir-btn--sec">Vila → Centro</button>
+    <button type="button" id="pdv-tf-dir-cv" class="pdv-tf-dir-btn pdv-tf-dir-btn--cv pdv-tf-dir-btn--sec">Centro → Vila</button>
+    <button type="button" id="pdv-tf-dir-cancelar" class="pdv-tf-dir-btn pdv-tf-dir-btn--back pdv-tf-dir-btn--sec">Voltar</button>
   </div>
 </div>
 

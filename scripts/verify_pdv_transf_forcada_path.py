@@ -65,6 +65,8 @@ def main() -> int:
     check("tf_js_bip", "termoPareceBip" in tf_js, errors)
     check("tf_js_voltar_escolha", "voltarEscolha" in tf_js, errors)
     check("tf_js_esc", "Escape" in tf_js, errors)
+    check("tf_js_destaque_loja", "aplicarDestaqueDirecao" in tf_js and "pdv-tf-dir-btn--hero" in tf_js, errors)
+    check("tf_html_hero_css", "pdv-tf-dir-btn--hero" in tf_html, errors)
 
     # Badge ainda no topbar pedir (não na forçada)
     check("badge_pedir", "pdv-topbar-pedir-loja-count" in wiz, errors)

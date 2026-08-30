@@ -80,6 +80,40 @@
     return direcao === 'centro_vila' ? 'Centro→Vila' : 'Vila→Centro';
   }
 
+  function depositoAtual() {
+    try {
+      bootstrap = boot();
+    } catch (e) {}
+    var d = (bootstrap.pdvDeposito && bootstrap.pdvDeposito.deposito) || 'centro';
+    return String(d).toLowerCase() === 'vila' ? 'vila' : 'centro';
+  }
+
+  /** Destaque: botão que sai da loja do PDV fica maior; os outros = Voltar. */
+  function aplicarDestaqueDirecao() {
+    var dep = depositoAtual();
+    var hero = dep === 'vila' ? dom.dirVc : dom.dirCv;
+    var sec = dep === 'vila' ? dom.dirCv : dom.dirVc;
+    [dom.dirVc, dom.dirCv, dom.dirCancel].forEach(function (btn) {
+      if (!btn) return;
+      btn.classList.remove('pdv-tf-dir-btn--hero');
+      btn.classList.add('pdv-tf-dir-btn--sec');
+    });
+    if (hero) {
+      hero.classList.remove('pdv-tf-dir-btn--sec');
+      hero.classList.add('pdv-tf-dir-btn--hero');
+    }
+    if (sec) {
+      sec.classList.add('pdv-tf-dir-btn--sec');
+      sec.classList.remove('pdv-tf-dir-btn--hero');
+    }
+    if (dom.dirCancel) {
+      dom.dirCancel.classList.add('pdv-tf-dir-btn--sec');
+      dom.dirCancel.classList.remove('pdv-tf-dir-btn--hero');
+    }
+    var wrap = elDir.querySelector('.pdv-tf-dir-btns');
+    if (wrap) wrap.setAttribute('data-pdv-tf-deposito', dep);
+  }
+
   function showBackdrop(on) {
     if (!backdrop) return;
     if (on) backdrop.classList.remove('hidden');
@@ -168,6 +202,7 @@
 
   function abrirDirecao() {
     returnToEscolha = true;
+    aplicarDestaqueDirecao();
     showBackdrop(true);
     if (elDir) elDir.classList.remove('hidden');
   }
