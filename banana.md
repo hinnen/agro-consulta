@@ -1253,18 +1253,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.75**) · 30/08/2026
+### 📦 PACOTE PRONTO — o que ainda falta subir · tip **v19.81** · 30/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` · 🟡 **pronto para envio** · ⏳ loja ainda sem |
-| **Pedido** | Renan · Pedir loja → overlay 2 botões · Forçada = Logística, nativo no PDV |
-| **O quê** | Escolha **Pedir** / **Transferência forçada** · textos claros · PIN sempre na forçada · Esc volta · badge só pedidos · botão direção da **loja do PDV** maior · APIs estoque existentes |
-| **Onde** | `pedir_loja_escolha_overlay.html` · `transf_forcada_overlay.html` · `pdv_transf_forcada.js` · `pdv_pedir_loja.js` · `pdv_wizard.html` |
+| **Tip** | `teste` **v19.81** · loja **v19.63** |
+| **Prova** | PDV-TRANSF-FORCADA **88/88** · Pedir loja **68/68** · Logística forçada OK · Enter sem imp **41/41** · devol MP **171/171** · NFCE-REEMIT **38/38** |
+| **Migrate** | não |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 PDV Pedir loja (escolha + forçada) · Enter=sem · F9=com · Vendas Reemitir · Fechar caixa Pix MP |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (30/08 · tip **v19.81**)
+
+| # | Pacote | O quê | Migrate | Status |
+| - | ------ | ----- | ------- | ------ |
+| 1 | `PDV-TRANSF-FORCADA` | Pedir loja → Pedir × Forçada (overlay PDV · 2 cards · PIN · Enter) · prova **88/88** | não | 🟡 pronto envio |
+| 2 | `PDV-ENTER-SEM-IMP` | Bug #9 · Enter sempre sem impressão · prova 41/41 | não | 🟡 pronto envio |
+| 3 | `CAIXA-DEVOL-MP-MESMA` | Bug #8 · devol MP não cai nas manuais · prova 171/171 | não | 🟡 pronto envio |
+| 4 | `NFCE-REEMIT-TIMEOUT` | Reemitir sem loading eterno · 537 · prova 38/38 | não | 🟡 pronto envio |
+
+### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.81**) · 30/08/2026
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | ✅ no `teste` · prova **88/88** · 🟡 **pronto para envio** · ⏳ loja ainda sem |
+| **O quê** | Escolha Pedir/Forçada · hero loja do PDV + Enter · 2 cards coloridos + seta · PIN · Esc · APIs estoque · Logística intocada |
+| **Prova** | `verify_pdv_transf_forcada_path.py` **88/88** · Pedir **68/68** · `verify_transf_forcada_ux` OK · node `--check` OK |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_transf_forcada_path.py` · Pedir loja **68/68** intacto |
-| **Você** | Ctrl+F5 `/pdv/` · Pedir loja → Pedir · Forçada → direção → bip/transferir + PIN |
-| **Risco** | Baixo — Logística intocada |
+| **Você** | Ctrl+F5 `/pdv/` · Pedir loja → Pedir · Forçada (direção Enter) → bip/transferir + PIN |
+
+### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.75~~ · **superado — tip v19.81**
 
 ### 🩹 Fechar caixa — devolução MP mesma forma (`CAIXA-DEVOL-MP-MESMA` · **v19.69**) · bug loja #8 · 30/08/2026
 
