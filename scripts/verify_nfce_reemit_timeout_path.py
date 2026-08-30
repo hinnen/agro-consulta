@@ -248,6 +248,97 @@ def check_desc_path() -> None:
         print(out[-600:])
 
 
+def check_casos_loja_6478_6507() -> None:
+    """XML das vendas reais que travaram no reemitir (537)."""
+    print("\n[8] Casos loja #6478 / #6507 (vDesc apos tostring)")
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+    from datetime import datetime
+    from decimal import Decimal
+    from unittest.mock import patch
+    import xml.etree.ElementTree as ET
+
+    from produtos.nfce_sp_emissao_util import NS, _montar_xml_nfce
+    from produtos.sefaz_xml_fiscal_util import tostring_sem_prefixos
+
+    class Item:
+        def __init__(self, q, vu, vt, nome="P"):
+            self.quantidade = Decimal(str(q))
+            self.valor_unitario = Decimal(str(vu))
+            self.valor_total = Decimal(str(vt))
+            self.codigo = "GM"
+            self.produto_id_externo = "1"
+            self.descricao = nome
+            self.unidade = "UN"
+
+    class Venda:
+        def __init__(self, pk, total):
+            self.pk = pk
+            self.total = Decimal(str(total))
+            self.frete = Decimal("0")
+            self.pagamentos_json = [{"forma": "Cartao de debito", "valor": float(total)}]
+            self.cliente_nome = ""
+
+    CFG = {
+        "tp_amb": 2,
+        "cnpj": "48900774000103",
+        "razao_social": "T",
+        "fantasia": "T",
+        "logradouro": "R",
+        "numero": "1",
+        "bairro": "C",
+        "cmun": "3524600",
+        "cidade": "J",
+        "uf": "SP",
+        "cep": "11940000",
+        "fone": "",
+        "ie": "1",
+        "csc_id": "1",
+        "csc_token": "x",
+    }
+    FIS = {"ncm": "01012100", "cfop": "5102", "origem": "0", "csosn": "102", "cest": ""}
+    casos = [
+        (6478, [(1, 136, 136), (12, 18, 216)], "334.00"),
+        (6507, [(1, 87, 87)], "82.90"),
+    ]
+    for pk, specs, total in casos:
+        itens = [Item(*s) for s in specs]
+        venda = Venda(pk, total)
+        with patch("produtos.nfce_sp_emissao_util.ibpt_valor_item", return_value=Decimal("0")), patch(
+            "produtos.nfce_sp_emissao_util.calcular_ibpt_venda_itens",
+            return_value={"ibpt_texto": "ok"},
+        ), patch("produtos.nfce_sp_emissao_util._qr_code_url", return_value="https://x"):
+            xml_body, _ = _montar_xml_nfce(
+                CFG,
+                venda,
+                itens,
+                serie=21,
+                numero=1,
+                chave="35" + "0" * 42,
+                dh_emi=datetime(2026, 8, 29, 12, 0, 0),
+                cpf_dest="",
+                fiscal_itens=[FIS] * len(itens),
+            )
+        xml2 = tostring_sem_prefixos(xml_body)
+        root = ET.fromstring(xml2)
+        ns = {"n": NS}
+        v_tot = Decimal(root.findtext(".//n:ICMSTot/n:vDesc", namespaces=ns) or "0")
+        itens_d = [
+            Decimal(el.text or "0")
+            for el in root.findall(".//n:det/n:prod/n:vDesc", namespaces=ns)
+        ]
+        soma = sum(itens_d, Decimal("0"))
+        if v_tot > 0 and len(itens_d) == len(itens) and v_tot == soma:
+            ok(f"#{pk}: vDesc tot={v_tot} itens={itens_d} apos tostring")
+        else:
+            fail(f"#{pk}: FAIL tot={v_tot} itens={itens_d} (esperado tags={len(itens)})")
+        # XML rejeitado antigo da loja NAO tinha vDesc nos itens — regressao
+        if any(x is None for x in itens_d) or len(itens_d) == 0:
+            fail(f"#{pk}: regressao bug #7 (sem vDesc nos itens)")
+
+
 def main() -> int:
     print("VERIFY NFCE-REEMIT-TIMEOUT")
     check_ast()
@@ -257,6 +348,7 @@ def main() -> int:
     check_ui_abort()
     check_budget_js_vs_server()
     check_desc_path()
+    check_casos_loja_6478_6507()
     print(f"\n=== RESULTADO: {oks} OK · {fails} FAIL ===")
     if fails:
         print("VERIFY_FAIL")

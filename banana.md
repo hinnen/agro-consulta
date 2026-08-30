@@ -1253,30 +1253,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**) · **Live** · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.87** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.83** — healthz **ok** · home badge **v19.83** · `/pdv/` `/consulta/` **200** · frase+senha neste chat |
-| **Antes** | Live **v19.63** @ `71eea32` |
-| **Agora** | `producao` @ **`09d5968`** |
-| **Pacotes** | PDV-TRANSF-FORCADA · PDV-ENTER-SEM-IMP · CAIXA-DEVOL-MP-MESMA · NFCE-REEMIT-TIMEOUT |
-| **Fora** | `BI-META-C-VILA-RAMP` (continua SOLO) |
+| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.87** @ `c4dd474` · loja ainda **v19.83** |
+| **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** nos PDVs · badge **v19.83** · smoke: Enter=sem · F9=com · Pedir/Forçada · Fechar caixa MP · Reemitir |
-| **Nota** | Push intermediário acidental `6b1eeed` (v19.02) corrigido na hora para PREP `09d5968` — loja estabilizou em **v19.83** |
+| **Prova** | path **44/44** · DESC **67/67** · Django NFC-e **11/11** · casos #6478/#6507 OK |
+| **Você** | frase + senha → sobe · depois **Ctrl+F5** `/vendas/` · Reemitir #6478 **1×** · ≤22s |
+| **Fora** | `BI-META-C-VILA-RAMP` (SOLO) |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)
+### ✅ CHECKLIST ÚNICO — tip **v19.87** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `PDV-TRANSF-FORCADA` | ✅ **Live v19.83** · prova **88/88** |
-| 2 | `PDV-ENTER-SEM-IMP` | ✅ **Live v19.83** · prova **41/41** |
-| 3 | `CAIXA-DEVOL-MP-MESMA` | ✅ **Live v19.83** · prova **171/171** |
-| 4 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.83** · reforço tip **v19.87** no `teste` (aguarda senha) · prova **42/42** |
+| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.87** · prova path OK · loja **v19.83** ainda sem reforço |
 
-### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83 @ 09d5968**
+### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.87 acima
+
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.87** acima
+
+### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
 
 ### ~~📦 PACOTE PRONTO / CHECKLIST tip v19.83 (aguarda senha)~~ · **superado — Live v19.83**
 
@@ -1327,7 +1325,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ no `teste` tip **v19.87** · prova **42/42** (+ DESC **57/57**) · loja ainda **v19.83** (Abort 28s antigo) — **aguarda senha** p/ reforço |
+| **Status** | ✅ **pronto para envio** · tip **v19.87** · loja ainda **v19.83** |
 | **Relato** | Renan · #6478/#6507 · 537 na tela · «carrega por horas» |
 | **Achado** | XML rejeitado **29/08** tinha `ICMSTot/vDesc` **sem** `vDesc` nos itens (antes do rateio). **Nenhum** reemit concluído depois — doc antigo ainda na tela. Rateio atual (#6478 R$18 / #6507 R$4,10) **bate** na simulação. |
 | **O quê (v19.87)** | Sync **1 tentativa** (4,15)s · Abort **22s** · lock **45s** · tip 537 no modal · grava doc **só após** SEFAZ (não apaga rejeitada no começo) |
