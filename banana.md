@@ -1253,26 +1253,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.92** (aguarda senha) · 30/08/2026
+### ✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**) · **Live** · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.92** · loja ainda **v19.83** |
+| **Status** | ✅ **enviado / Live v19.92** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v19.83** @ `09d5968` |
+| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-v1992` · VERSION **19.92** |
 | **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
-| **Migrate** | **NÃO** |
-| **Prova** | path **44/44** · DESC **67/67** · Django NFC-e **11/11** · casos #6478/#6507 OK |
-| **Você** | frase + senha → sobe · depois **Ctrl+F5** `/vendas/` · Reemitir #6478 **1×** · ≤22s |
-| **Fora** | `BI-META-C-VILA-RAMP` (SOLO) |
+| **Rollback** | tag `rollback/pre-nfce-reemit-v19.83` @ `09d5968` · branch `producao-backup-pre-v1992-nfce-reemit-20260830` · `docs/ROLLBACK-NFCE-REEMIT-V1992.md` · **só** frase+senha |
+| **Prova** | path **44/44** · DESC **67/67** · #6478/#6507 OK |
+| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.92** · Reemitir #6478 **1×** · ≤22s |
 
-### ✅ CHECKLIST ÚNICO — tip **v19.92** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.92**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.92** · prova path OK · loja **v19.83** ainda sem reforço |
+| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.92** · prova **44/44** · DESC **67/67** |
 
-### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.92 acima
+### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.92** (aguarda senha)~~ · **superado — Live v19.92**
 
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.92** acima
+### ~~✅ CHECKLIST ÚNICO — tip **v19.92** (pronto para envio)~~ · **superado — Live v19.92**
+
+### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e **v19.92** acima
+
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
 
 ### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
 
@@ -1325,7 +1330,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** · tip **v19.92** · loja ainda **v19.83** |
+| **Status** | ✅ **Live v19.92** · loja |
 | **Relato** | Renan · #6478/#6507 · 537 na tela · «carrega por horas» (Ctrl+F5 recente) |
 | **Achado** | DB loja: docs ainda de **29/08** (sem vDesc nos itens). Reemitir recente **não gravou** tentativa nova — loading sem concluir. NFC-e novas hoje (#6614/#6615) autorizaram. XML tip #6478/#6507: rateio **bate**. |
 | **O quê** | Sync **1 tentativa** (4,15)s · Abort **22s** · lock **45s** · tip 537 no modal · grava doc **só após** SEFAZ |
