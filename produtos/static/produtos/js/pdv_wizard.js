@@ -2088,38 +2088,6 @@
         return 'pdv-pay-maquina-card-outro';
     }
 
-    /** Venda só em dinheiro: Enter deve sair cupom (F9), não gravar sem impressão. */
-    function pagamentoSoDinheiro(state) {
-        state = state || State.getState();
-        var arr = (state.pagamento && state.pagamento.lancamentos) || [];
-        if (!arr.length) return false;
-        return arr.every(function (L) {
-            return /dinheiro/i.test(String((L && L.forma) || ''));
-        });
-    }
-
-    /**
-     * Rótulos dos botões de confirmação: no dinheiro Enter fica no COM impressão
-     * (bate com o atalho real); sem impressão só clique. PIX/cartão: Enter = sem.
-     */
-    function refreshConfirmSaleLabels() {
-        var n = dom.confirmSaleNoPrint;
-        var p = dom.confirmSalePrint;
-        if (!n || !p) return;
-        if (n.disabled && String(n.textContent || '').indexOf('Confirmando') === 0) return;
-        var soDinheiro = pagamentoSoDinheiro();
-        if (soDinheiro) {
-            n.innerHTML = 'Confirmar sem impressão';
-            p.innerHTML =
-                'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">Enter</kbd> <kbd class="ml-0.5 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
-        } else {
-            n.innerHTML =
-                'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
-            p.innerHTML =
-                'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
-        }
-    }
-
     function afterCommitTrancheFlow() {
         setTimeout(function () {
             var inp = document.getElementById('pdv-pay-valor-tranche');
@@ -2129,12 +2097,8 @@
             var rest = saldoRestantePagamento(st, comp);
             if (rest > 0.009) {
                 openPaymentFormaModal();
-            } else if (pagamentoSoDinheiro(st) && dom.confirmSalePrint && !dom.confirmSalePrint.disabled) {
-                /* Dinheiro quitado → foco no COM impressão (Enter/F9 tira cupom). */
-                try {
-                    dom.confirmSalePrint.focus();
-                } catch (errF) {}
             } else {
+                /* Quitado → foco no SEM impressão (Enter = sem cupom; F9 = com). */
                 var n = document.getElementById('pdv-confirm-sale-no-print');
                 if (n) n.focus();
             }
@@ -7236,7 +7200,6 @@
             cp.disabled = !readyConfirm;
             cp.classList.toggle('opacity-40', !readyConfirm);
         }
-        if (readyConfirm) refreshConfirmSaleLabels();
         if (err) {
             dom.paymentFeedback.textContent = err;
             dom.paymentFeedback.classList.remove('hidden');
@@ -10074,7 +10037,14 @@
             p.classList.toggle('cursor-not-allowed', !!busy);
         }
         if (!busy) {
-            refreshConfirmSaleLabels();
+            if (n) {
+                n.innerHTML =
+                    'Confirmar sem impressão <kbd class="ml-1 rounded border border-emerald-300 bg-emerald-50 px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd>';
+            }
+            if (p) {
+                p.innerHTML =
+                    'Confirmar com impressão <kbd class="ml-1 rounded bg-emerald-500 px-1.5 py-0.5 font-mono text-[10px] text-white">F9</kbd>';
+            }
             State.setPagamentoField('observacaoFinal', State.getState().pagamento.observacaoFinal || '');
         }
     }
@@ -11794,7 +11764,7 @@
         if (!raw || cur <= 0.009) {
             if (rest <= 0.009) {
                 if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
-                    tryConfirmSale(pagamentoSoDinheiro(st));
+                    tryConfirmSale(false);
                 }
                 return;
             }
@@ -15464,8 +15434,8 @@
                 ) {
                     event.preventDefault();
                     if (dom.confirmSaleNoPrint && !dom.confirmSaleNoPrint.disabled) {
-                        /* Dinheiro quitado: Enter = com cupom (igual F9). PIX/cartão seguem sem impressão. */
-                        tryConfirmSale(pagamentoSoDinheiro(st));
+                        /* Enter = sempre sem impressão; cupom só F9 (bug loja #9). */
+                        tryConfirmSale(false);
                     }
                     return;
                 }

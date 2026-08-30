@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-"""VERIFY PDV-CUPOM-DINHEIRO — bug loja #6 (venda dinheiro sem cupom + overlay Vendas branco).
+"""VERIFY PDV Enter / cupom — bug loja #9 (Enter = sem impressão) + overlay Vendas.
 
 Cobre:
-  · Enter só-dinheiro → withPrint (igual F9)
-  · PIX/cartão Enter → sem impressão
+  · Enter (qualquer forma) → sem impressão (tryConfirmSale(false))
+  · F9 → com impressão
   · Botão «sem impressão» continua false
   · Print ANTES de resetWizard (3 paths: finalize + 2× MP)
-  · Foco pós-dinheiro no botão COM impressão
+  · Foco pós-quitado no botão SEM impressão
   · Overlay Vendas: classe agro-vendas-in-overlay + CSS 100%
-  · Lógica JS isolada (node) de pagamentoSoDinheiro
   · Cupom 80mm serializa venda Dinheiro (Postgres se disponível)
 
 Uso: python scripts/verify_pdv_cupom_dinheiro_path.py
@@ -17,7 +16,6 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -74,35 +72,42 @@ def check_contracts() -> None:
     if not js or not html:
         return
 
-    for needle in (
-        "function pagamentoSoDinheiro",
-        "function refreshConfirmSaleLabels",
-        "/dinheiro/i.test",
-        "tryConfirmSale(pagamentoSoDinheiro(st))",
-        "Cupom ANTES do modal",
-        "confirmSalePrint.focus()",
-        "Dinheiro quitado: Enter = com cupom",
-        "Enter fica no COM impressão",
+    # Bug #9: Enter NÃO usa mais pagamentoSoDinheiro para imprimir
+    if "tryConfirmSale(pagamentoSoDinheiro(st))" in js:
+        fail("js:Enter ainda força cupom no dinheiro (pagamentoSoDinheiro)")
+    else:
+        ok("js:Enter_nao_forca_cupom_dinheiro")
+
+    if "Enter = sempre sem impressão" in js or "tryConfirmSale(false)" in js:
+        ok("js:Enter_sem_impressao")
+    else:
+        fail("js:Enter_sem_impressao")
+
+    # Rótulo fixo: Enter no SEM, F9 no COM
+    if (
+        "Confirmar sem impressão" in js
+        and ">Enter</kbd>" in js
+        and "Confirmar com impressão" in js
+        and ">F9</kbd>" in js
     ):
-        if needle in js:
-            ok(f"js:{needle[:48]}")
-        else:
-            fail(f"js falta:{needle[:60]}")
-
-    # Dinheiro: rótulo sem Enter no botão sem-impressão; Enter no COM
-    if "Confirmar sem impressão</kbd>" not in js and 'n.innerHTML = \'Confirmar sem impressão\';' in js:
-        ok("js:rotulo_dinheiro_sem_enter_no_botao_sem")
-    elif "n.innerHTML = 'Confirmar sem impressão'" in js or 'n.innerHTML = "Confirmar sem impressão"' in js:
-        ok("js:rotulo_dinheiro_sem_enter_no_botao_sem")
+        ok("js:rotulo_Enter_no_sem_F9_no_com")
     else:
-        fail("js:rotulo_dinheiro_sem_enter")
+        fail("js:rotulo_atalhos")
 
-    if "refreshConfirmSaleLabels()" in js:
-        ok("js:refreshConfirmSaleLabels_chamado")
+    if "refreshConfirmSaleLabels" in js:
+        fail("js:refreshConfirmSaleLabels_ainda_existe")
     else:
-        fail("js:refreshConfirmSaleLabels_nao_chamado")
+        ok("js:sem_rotulo_dinamico_dinheiro")
 
-    # Enter handler usa so-dinheiro; botão explícito sem impressão = false
+    body_after = _fn_body(js, "afterCommitTrancheFlow")
+    if "confirmSalePrint.focus()" in body_after:
+        fail("js:foco_ainda_no_COM_impressao")
+    elif "pdv-confirm-sale-no-print" in body_after and ".focus()" in body_after:
+        ok("js:foco_pos_quitado_no_SEM")
+    else:
+        fail("js:foco_pos_quitado")
+
+    # Botão explícito sem impressão = false
     if "dom.confirmSaleNoPrint.addEventListener" in js and "tryConfirmSale(false)" in js:
         ok("js:botao_sem_impressao_continua_false")
     else:
@@ -116,6 +121,11 @@ def check_contracts() -> None:
         ok("js:F9_ainda_com_impressao")
     else:
         fail("js:F9")
+
+    if "Cupom ANTES do modal" in js:
+        ok("js:Cupom ANTES do modal")
+    else:
+        fail("js:Cupom ANTES do modal")
 
     # Overlay vendas
     for needle in (
@@ -133,20 +143,20 @@ def check_contracts() -> None:
 def check_print_before_reset() -> None:
     print("\n[2] Ordem print antes do reset (3 paths)")
     js = read(JS)
-    names = (
+    if not js:
+        return
+
+    for name in (
         "finalizeConfirmedSale",
         "confirmSaleFinalizarMpPointOrders",
         "confirmSaleMercadoPagoPointProsseguir",
-    )
-    # Em cada path, a 1ª ocorrência de imprimirCupomAposVenda deve vir ANTES
-    # da 1ª resetWizardParaNovaVenda no mesmo bloco de finalização.
-    for name in names:
+    ):
         body = _fn_body(js, name)
         if not body:
-            # MP paths são longas; buscar janela ao redor do nome
+            # fallback: trecho após nome
             idx = js.find(f"function {name}")
             if idx < 0:
-                fail(f"fn ausente:{name}")
+                fail(f"{name}:não achada")
                 continue
             body = js[idx : idx + 12000]
         i_print = body.find("imprimirCupomAposVenda")
@@ -159,7 +169,6 @@ def check_print_before_reset() -> None:
         else:
             fail(f"{name}:reset_antes_print (print@{i_print} reset@{i_reset})")
 
-    # Contagem: não deve restar padrão antigo reset→print colado
     bad = re.findall(
         r"resetWizardParaNovaVenda\(\);\s*\n\s*invalidateEntregasPendentesCache\(\);\s*\n\s*"
         r"refreshEntregasPendentesUi\([^)]+\);\s*\n\s*return imprimirCupomAposVenda",
@@ -169,57 +178,6 @@ def check_print_before_reset() -> None:
         ok("sem_padrao_legado_reset_antes_print")
     else:
         fail(f"padrao_legado_ainda_presente x{len(bad)}")
-
-
-def check_node_logic() -> None:
-    print("\n[3] Lógica pagamentoSoDinheiro (node)")
-    script = r"""
-function pagamentoSoDinheiro(state) {
-  var arr = (state.pagamento && state.pagamento.lancamentos) || [];
-  if (!arr.length) return false;
-  return arr.every(function (L) {
-    return /dinheiro/i.test(String((L && L.forma) || ''));
-  });
-}
-function assert(name, cond) {
-  if (!cond) { console.log('FAIL ' + name); process.exitCode = 1; }
-  else console.log('OK ' + name);
-}
-assert('vazio', pagamentoSoDinheiro({pagamento:{lancamentos:[]}}) === false);
-assert('so_dinheiro', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'Dinheiro'}]}}) === true);
-assert('dinheiro_x2', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'Dinheiro'},{forma:'Dinheiro'}]}}) === true);
-assert('pix', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'PIX'}]}}) === false);
-assert('misto', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'Dinheiro'},{forma:'PIX'}]}}) === false);
-assert('cartao', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'Cartão de débito'}]}}) === false);
-assert('case', pagamentoSoDinheiro({pagamento:{lancamentos:[{forma:'dinheiro'}]}}) === true);
-"""
-    tmp = ROOT / "scripts" / "_tmp_cupom_din_logic.js"
-    try:
-        tmp.write_text(script, encoding="utf-8")
-        r = subprocess.run(
-            ["node", str(tmp)],
-            capture_output=True,
-            text=True,
-            cwd=str(ROOT),
-            timeout=15,
-        )
-        out = (r.stdout or "") + (r.stderr or "")
-        for line in out.strip().splitlines():
-            if line.startswith("OK "):
-                ok(f"node:{line[3:]}")
-            elif line.startswith("FAIL "):
-                fail(f"node:{line[5:]}")
-        if r.returncode not in (0, 1):
-            fail(f"node exit {r.returncode}: {out[:200]}")
-    except FileNotFoundError:
-        fail("node não instalado")
-    except Exception as exc:
-        fail(f"node:{exc}")
-    finally:
-        try:
-            tmp.unlink(missing_ok=True)
-        except Exception:
-            pass
 
 
 def check_cupom_runtime() -> None:
@@ -247,7 +205,6 @@ def check_cupom_runtime() -> None:
         fail("nenhuma venda Dinheiro no PG (pule se DB vazio)")
         return
     if not v.itens.exists():
-        # tenta mais uma recente com itens
         v = None
         for cand in (
             VendaAgro.objects.filter(forma_pagamento__icontains="Dinheiro")
@@ -272,9 +229,11 @@ def check_cupom_runtime() -> None:
         fail(f"cupom forma inesperada:{forma!r}")
 
 
-def check_overlay_class_script() -> None:
+def check_overlay_script() -> None:
     print("\n[5] Script overlay liga classe no query")
     html = read(HTML)
+    if not html:
+        return
     if "classList.add('agro-vendas-in-overlay')" in html or 'classList.add("agro-vendas-in-overlay")' in html:
         ok("overlay_script_add_class")
     else:
@@ -286,11 +245,10 @@ def check_overlay_class_script() -> None:
 
 
 def main() -> int:
-    print("VERIFY PDV-CUPOM-DINHEIRO PATH (bug loja #6)")
+    print("VERIFY PDV ENTER SEM IMPRESSÃO PATH (bug loja #9)")
     check_contracts()
     check_print_before_reset()
-    check_node_logic()
-    check_overlay_class_script()
+    check_overlay_script()
     check_cupom_runtime()
     print(f"\nRESULTADO: {oks} OK · {fails} FAIL")
     return 1 if fails else 0
