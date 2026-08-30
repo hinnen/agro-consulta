@@ -138,12 +138,23 @@
     transform: scale(0.98);
   }
   #pdv-tf-direcao .pdv-tf-dir-btn--hero {
-    min-height: 5.25rem;
-    padding: 1.25rem 1.1rem;
-    font-size: clamp(1.25rem, 0.55vw + 1.1rem, 1.65rem);
-    line-height: 1.15;
-    box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.35);
+    min-height: 7.5rem;
+    padding: 1.75rem 1.25rem;
+    font-size: clamp(1.55rem, 0.85vw + 1.3rem, 2.1rem);
+    line-height: 1.12;
+    letter-spacing: 0.03em;
+    box-shadow: 0 14px 32px -8px rgba(15, 23, 42, 0.4);
     order: -1;
+    border-width: 3px;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--hero .pdv-tf-dir-atalho {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+    text-transform: uppercase;
   }
   #pdv-tf-direcao .pdv-tf-dir-btn--sec {
     min-height: 3.15rem;
@@ -151,6 +162,9 @@
     font-size: 0.95rem;
     line-height: 1.2;
     opacity: 0.95;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--sec .pdv-tf-dir-atalho {
+    display: none;
   }
   #pdv-tf-direcao .pdv-tf-dir-btn--vc {
     border-color: #34d399;
@@ -178,11 +192,11 @@
 <div id="pdv-tf-direcao" class="fixed top-1/2 left-1/2 z-[143] hidden w-11/12 max-w-[min(28rem,96vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-dir-titulo">
   <div class="rounded-t-2xl border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-5 pb-4 pt-5 sm:px-6">
     <h3 id="pdv-tf-dir-titulo" class="text-center text-lg font-black uppercase leading-tight text-emerald-950 sm:text-xl">Transferência forçada</h3>
-    <p class="mt-2 text-center text-sm font-semibold text-slate-600">Qual a direção? · Esc volta</p>
+    <p class="mt-2 text-center text-sm font-semibold text-slate-600">Qual a direção? · Esc volta · Enter = destaque</p>
   </div>
   <div class="pdv-tf-dir-btns p-5 sm:p-6" data-pdv-tf-deposito="">
-    <button type="button" id="pdv-tf-dir-vc" class="pdv-tf-dir-btn pdv-tf-dir-btn--vc pdv-tf-dir-btn--sec">Vila → Centro</button>
-    <button type="button" id="pdv-tf-dir-cv" class="pdv-tf-dir-btn pdv-tf-dir-btn--cv pdv-tf-dir-btn--sec">Centro → Vila</button>
+    <button type="button" id="pdv-tf-dir-vc" class="pdv-tf-dir-btn pdv-tf-dir-btn--vc pdv-tf-dir-btn--sec">Vila → Centro<span class="pdv-tf-dir-atalho">Enter</span></button>
+    <button type="button" id="pdv-tf-dir-cv" class="pdv-tf-dir-btn pdv-tf-dir-btn--cv pdv-tf-dir-btn--sec">Centro → Vila<span class="pdv-tf-dir-atalho">Enter</span></button>
     <button type="button" id="pdv-tf-dir-cancelar" class="pdv-tf-dir-btn pdv-tf-dir-btn--back pdv-tf-dir-btn--sec">Voltar</button>
   </div>
 </div>

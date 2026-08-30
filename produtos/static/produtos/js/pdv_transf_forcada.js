@@ -205,6 +205,14 @@
     aplicarDestaqueDirecao();
     showBackdrop(true);
     if (elDir) elDir.classList.remove('hidden');
+    setTimeout(function () {
+      var hero = elDir && elDir.querySelector('.pdv-tf-dir-btn--hero');
+      if (hero) {
+        try {
+          hero.focus();
+        } catch (e) {}
+      }
+    }, 40);
   }
 
   function iniciar(dir) {
@@ -805,6 +813,13 @@
   document.addEventListener(
     'keydown',
     function (e) {
+      if (e.key === 'Enter' && isDirOpen() && !isOverlayOpen() && !isPinOpen()) {
+        e.preventDefault();
+        e.stopPropagation();
+        var hero = elDir.querySelector('.pdv-tf-dir-btn--hero');
+        if (hero) hero.click();
+        return;
+      }
       if (e.key !== 'Escape') return;
       if (isPinOpen()) {
         e.preventDefault();
