@@ -950,7 +950,7 @@
             .then(function (d) {
               var p = (d && d.nfce_painel) || {};
               var errTxt = p.erro || '';
-              if (p.processando || /Em emissão/i.test(errTxt)) {
+              if (p.processando) {
                 var el = document.getElementById('nfce-detalhe-erro-text');
                 if (el) el.textContent = errTxt || 'Em emissão na SEFAZ…';
                 pollResultado(tentativa + 1);

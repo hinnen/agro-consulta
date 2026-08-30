@@ -363,7 +363,7 @@
                 .then(function (d) {
                   var p = (d && d.nfce_painel) || {};
                   var errTxt = p.erro || '';
-                  if (p.processando || /Em emissão/i.test(errTxt)) {
+                  if (p.processando) {
                     msgEl.classList.remove('hidden');
                     msgEl.textContent = 'Emitindo cupom… aguarde (' + (tentativa + 1) + ')';
                     msgEl.className = 'mt-2 text-sm font-bold text-amber-800';

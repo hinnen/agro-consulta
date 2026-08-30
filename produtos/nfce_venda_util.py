@@ -15,16 +15,15 @@ _NFCE_PROCESSANDO_JANELA = timedelta(seconds=120)
 
 
 def venda_nfce_processando(venda: VendaAgro) -> bool:
-    """NFC-e pedida em background e ainda sem documento (evita reemitir no meio)."""
+    """NFC-e em voo (lock de reemitir/emissão). Sem lock = não trava o botão."""
     from django.core.cache import cache
 
+    # Só o lock conta: «Em emissão» órfão (worker morto) não pode bloquear reemitir pra sempre.
     if cache.get(f"nfce_emit_lock_{int(venda.pk)}"):
-        return True
-    nfce = getattr(venda, "nfce", None)
-    if nfce and (nfce.mensagem_sefaz or "").startswith("Em emissão"):
         return True
     if not getattr(venda, "nfce_solicitada", False):
         return False
+    nfce = getattr(venda, "nfce", None)
     if nfce and nfce.status == NfceDocumentoAgro.Status.AUTORIZADA:
         return False
     if nfce and nfce.status in (

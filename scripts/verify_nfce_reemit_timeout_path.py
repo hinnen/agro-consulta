@@ -337,6 +337,40 @@ def check_casos_loja_6478_6507() -> None:
             fail(f"#{pk}: regressao bug #7 (sem vDesc nos itens)")
 
 
+def check_processando_contrato() -> None:
+    print("\n[9] Contrato processando (lock) + poll so com processando")
+    util = read("produtos/nfce_venda_util.py")
+    if 'cache.get(f"nfce_emit_lock_' in util or "nfce_emit_lock_" in util:
+        ok("processando consulta lock")
+    else:
+        fail("processando sem lock")
+    # Nao pode travar so por texto Em emissao (orfao) DENTRO de venda_nfce_processando
+    fn = util
+    start = fn.find("def venda_nfce_processando")
+    end = fn.find("\ndef ", start + 1)
+    body = fn[start:end] if start >= 0 else ""
+    if 'startswith("Em emissão")' in body or "startswith('Em emissão')" in body:
+        fail("processando ainda trava por texto Em emissão (orfao)")
+    else:
+        ok("processando nao trava por texto orfao")
+    for rel in (
+        "produtos/templates/produtos/vendas_lista.html",
+        "produtos/templates/produtos/venda_agro_detalhe.html",
+    ):
+        txt = read(rel)
+        if "p.processando || /Em emissão" in txt or "processando || /Em" in txt:
+            fail(f"{rel}: poll ainda usa Em emissão (loop eterno)")
+        elif "if (p.processando)" in txt:
+            ok(f"{rel}: poll so com processando")
+        else:
+            fail(f"{rel}: poll sem if processando")
+    views = read("produtos/views_nfce.py")
+    if "finally:" in views and "cache.delete(lock_key)" in views:
+        ok("worker finally libera lock")
+    else:
+        fail("worker sem finally delete lock")
+
+
 def main() -> int:
     print("VERIFY NFCE-REEMIT-TIMEOUT")
     check_ast()
@@ -347,6 +381,7 @@ def main() -> int:
     check_budget_js_vs_server()
     check_desc_path()
     check_casos_loja_6478_6507()
+    check_processando_contrato()
     print(f"\n=== RESULTADO: {oks} OK · {fails} FAIL ===")
     if fails:
         print("VERIFY_FAIL")
