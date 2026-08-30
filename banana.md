@@ -1253,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO / CHECKLIST tip **v19.90** (aguarda senha) · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.92** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1264,15 +1264,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | frase + senha → sobe · depois **Ctrl+F5** `/vendas/` · Reemitir #6478 **1×** · ≤22s |
 | **Fora** | `BI-META-C-VILA-RAMP` (SOLO) |
 
-### ✅ CHECKLIST ÚNICO — tip **v19.90** (pronto para envio)
+### ✅ CHECKLIST ÚNICO — tip **v19.92** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.90** · prova path OK · loja **v19.83** ainda sem reforço |
+| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **pronto para envio** · tip **v19.92** · prova path OK · loja **v19.83** ainda sem reforço |
 
-### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.90 acima
+### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e tip v19.92 acima
 
-### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.90** acima
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver tip **v19.92** acima
 
 ### ~~🚀 PREP deploy loja — lote checklist 3008~~ · **superado — Live v19.83**
 
@@ -1325,7 +1325,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Status** | ✅ **pronto para envio** · tip **v19.90** · loja ainda **v19.83** |
+| **Status** | ✅ **pronto para envio** · tip **v19.92** · loja ainda **v19.83** |
 | **Relato** | Renan · #6478/#6507 · 537 na tela · «carrega por horas» (Ctrl+F5 recente) |
 | **Achado** | DB loja: docs ainda de **29/08** (sem vDesc nos itens). Reemitir recente **não gravou** tentativa nova — loading sem concluir. NFC-e novas hoje (#6614/#6615) autorizaram. XML tip #6478/#6507: rateio **bate**. |
 | **O quê** | Sync **1 tentativa** (4,15)s · Abort **22s** · lock **45s** · tip 537 no modal · grava doc **só após** SEFAZ |
