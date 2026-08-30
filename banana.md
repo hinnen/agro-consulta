@@ -1253,29 +1253,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**) · **Live** · 30/08/2026
+### 📦 PACOTE PRONTO / CHECKLIST tip **v19.93** (aguarda senha) · 30/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v19.92** — frase+senha neste chat · migrate **NÃO** |
-| **Antes** | Live **v19.83** @ `09d5968` |
-| **Agora** | `producao` @ PREP `deploy/prep-nfce-reemit-v1992` · VERSION **19.92** |
-| **Pacote** | `NFCE-REEMIT-TIMEOUT` (reforço) |
-| **Rollback** | tag `rollback/pre-nfce-reemit-v19.83` @ `09d5968` · branch `producao-backup-pre-v1992-nfce-reemit-20260830` · `docs/ROLLBACK-NFCE-REEMIT-V1992.md` · **só** frase+senha |
-| **Prova** | path **44/44** · DESC **67/67** · #6478/#6507 OK |
-| **Você** | **Ctrl+F5** `/vendas/` · badge **v19.92** · Reemitir #6478 **1×** · ≤22s |
+| **Status** | ✅ **pronto para envio à produção** · tip `teste` **v19.93** · loja ainda **v19.92** (reemit sync morre no proxy) |
+| **Pacote** | `NFCE-REEMIT-BG` |
+| **Causa** | Clique Reemitir na loja **não gravava** doc novo — HTTP sync + Abort/proxy Render matava antes da SEFAZ |
+| **O quê** | Reemitir em **thread** (igual pós-venda) · responde **202** na hora · tela **poll** até autorizar/erro · marca «Em emissão…» |
+| **Migrate** | **NÃO** |
+| **Prova** | path **40/40** · DESC **67/67** |
+| **Você** | frase+senha → Ctrl+F5 `/vendas/` · Reemitir #6478 **1×** · espera até 1 min (texto Em emissão) |
 
-### ✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.92**)
+### ✅ CHECKLIST ÚNICO — tip **v19.93** (pronto para envio)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `NFCE-REEMIT-TIMEOUT` | ✅ **Live v19.92** · prova **44/44** · DESC **67/67** |
+| 1 | `NFCE-REEMIT-BG` | ✅ **pronto para envio** · tip **v19.93** |
 
-### ~~📦 PACOTE PRONTO / CHECKLIST tip **v19.92** (aguarda senha)~~ · **superado — Live v19.92**
+### ~~✅ Deploy loja — NFC-e reemit reforço (`NFCE-REEMIT-TIMEOUT` · **v19.92**)~~ · **Live** · insuficiente (sync) — ver tip **v19.93**
 
-### ~~✅ CHECKLIST ÚNICO — tip **v19.92** (pronto para envio)~~ · **superado — Live v19.92**
-
-### ~~✅ Deploy loja — lote checklist 3008 (`deploy/prep-checklist-3008` · **v19.83**)~~ · **Live** · reforço NFC-e **v19.92** acima
+### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.92**)~~ · ver tip **v19.93**
 
 ### ~~✅ CHECKLIST ÚNICO — enviado produção (30/08 · loja **v19.83**)~~ · ver **v19.92** acima
 
