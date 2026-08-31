@@ -1254,15 +1254,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **teste v20.22**) · 31/08/2026
+### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.22**) · 31/08/2026
 
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ no `teste` · prova local · **não** na loja |
-| **O quê** | Consulta/carrinho **sem** PIN · Confirmar venda / Pedir loja / chat **exigem** PIN fresco (~**45 s**). Mouse **não** renova. Descanso ~3 min continua (trava tela). Abrir PDV **não** pede PIN na entrada. |
-| **Onde** | `_screensaver_pin.html` (`gmSspinGarantirOperador`) · `pdv_transf_loja_util` (frescor) · venda/chat/Pedir · wizard sem `sspin_pedir_pin_ao_abrir` |
-| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **28/28** |
-| **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s sem PIN · espere 45s+ → pede de novo · outro operador não herda nome |
+| Item | Detalhe |
+| ---- | ------- |
+| **Status** | 🟡 **pronto para envio** · aguarda frase + senha · loja ainda **v20.21** |
+| **O quê** | Consulta/carrinho sem PIN · Confirmar / Pedir / chat exigem PIN fresco (~45s; mouse não renova) · abrir PDV sem trava · descanso 3 min = tela |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **67/67** |
+| **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s · espere 45s+ → pede de novo |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.22**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-PIN-NA-ACAO` | 🟡 **pronto para envio** · prova **67/67** | **NÃO** |
+
+**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.22**.
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
