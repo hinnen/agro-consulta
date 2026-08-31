@@ -88,6 +88,14 @@ def main() -> int:
     check("js_sem_window_confirm", "window.confirm" not in js)
     check("js_ajuste_busca", "abrirAjuste" in js and "apiPdvTransfLojaAjustar" in js and "data-pl-aj" in js)
     check("js_aviso_pos_pin", "abrirTemPedido" in js and "aposPin" in js)
+    # Popup «tem pedido» só após PIN do Pedir loja — não no evento global (chat/venda).
+    _sspin_idx = js.find("gm-sspin-operador")
+    _sspin_chunk = js[_sspin_idx : _sspin_idx + 280] if _sspin_idx >= 0 else ""
+    check(
+        "js_sspin_sem_aviso_tem_pedido",
+        "gm-sspin-operador" in js and "aposPin" not in _sspin_chunk,
+    )
+    check("js_abrir_pin_com_aviso", "abrirPin" in js and "refreshResumo({ aposPin: true })" in js)
     check("js_cupom_80mm", "imprimirCupomSeparacao" in js and "SEPARAÇÃO" in js)
     check("js_qtd_envio", "lerQtdsDoCard" in js and "pl-item-qtd" in js and "podeEditarQtd" in js)
     check("js_pedido_escrito", "addCartLivre" in js and "livre:" in js and "pdv-pedir-loja-livre" in html)

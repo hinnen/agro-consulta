@@ -1254,6 +1254,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🐛 Hotfix — chat dispara popup «tem pedido» (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.28**) · 31/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Sintoma** | Live **v20.22**: ao enviar msg no chat, popup do Pedir loja («tem pedido…») abre de novo |
+| **Causa** | `gm-sspin-operador` (renova PIN ~45s no chat) chamava `refreshResumo({ aposPin: true })` |
+| **Fix** | evento global só atualiza badge; popup só no PIN do Pedir loja (`abrirPin`) |
+| **Prova** | `verify_pdv_pedir_loja.py` **70/70** · pin-na-acao **67/67** |
+| **Status** | ✅ em `teste` **v20.28** · **ainda NÃO** loja — precisa frase+senha |
+| **Smoke loja** | healthz **200** · badge **v20.22** · JS live ainda com bug (confirmado) |
+
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
 | Campo | Valor |

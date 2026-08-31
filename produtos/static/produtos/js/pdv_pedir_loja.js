@@ -1326,12 +1326,10 @@
   pollTimer = setInterval(function () {
     refreshResumo();
   }, 25000);
-  window.addEventListener('gm-sspin-operador', function (ev) {
-    var nome = ev && ev.detail && ev.detail.nome;
-    if (!nome) {
-      refreshResumo();
-      return;
-    }
-    refreshResumo({ aposPin: true });
+  /* Só badge/beep — NÃO abrir «tem pedido» aqui.
+     Chat/venda também disparam gm-sspin-operador ao renovar PIN (~45s).
+     O popup «tem pedido» fica só em abrirPin() (botão PIN do Pedir loja). */
+  window.addEventListener('gm-sspin-operador', function () {
+    refreshResumo();
   });
 })();
