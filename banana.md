@@ -1265,16 +1265,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir (tip **v20.48** · 31/08)
+### 📦 PACOTE PRONTO — o que ainda falta subir (tip **v20.49** · 31/08)
 
 | # | Pacote | O quê | Migrate |
 | - | ------ | ----- | ------- |
 | 1 | `PDV-WA-COR` | Zap do PDV verde oficial **#25D366** (loja v20.45 ainda cinza) | **NÃO** |
-| 2 | `REPASSE-ARREDONDA-COFRE` | Cofres aceitam o valor digitado (pra mais = crédito amanhã) | **NÃO** |
+| 2 | `REPASSE-ARREDONDA-COFRE` | 3 campos aceitam o valor (pra menos = falta amanhã · pra mais = acumulado negativo) | **NÃO** |
 
-**Fora:** `WA-ATEND-QR` (chat QR) · `BI-META-C-VILA-RAMP`. **Prova:** WA **36/36** · Chrome verde + «Em breve». **Loja hoje:** **v20.45**.
+**Fora:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`. **Prova:** WA **36/36** · arredonda path **41/41** · cofrinho **35/35** · overlay **188** · PIN loja OK. **Loja hoje:** **v20.45**.
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.45** → tip **v20.48**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · loja **v20.45** → tip **v20.49**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
