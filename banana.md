@@ -1255,14 +1255,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.29** · 31/08/2026)
+### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.30** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Faixa do PDV menos apertada: **quente** = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Conta cliques no Postgres (média futura). |
 | **Onde** | `pdv_wizard.html` · `pdv_topbar_mais.js` · `PdvTopbarCliqueDiaAgro` · migrate **`0107`** · APIs `api/pdv/topbar-clique/` + `topbar-cliques/` |
 | **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **24/24** |
-| **Status** | ✅ em `teste` **v20.29** · **ainda NÃO** loja |
+| **Status** | ✅ em `teste` **v20.30** · **ainda NÃO** loja |
 | **Você** | `migrate` local · Ctrl+F5 no PDV · abrir **Mais ⋯** · conferir quente/frio |
 
 ### 📦 WIP — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · 31/08/2026)
