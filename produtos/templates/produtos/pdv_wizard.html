@@ -2057,6 +2057,11 @@
     background: #fff !important;
     color: #475569 !important;
   }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--mais-destaque {
+    border-color: #c2410c !important;
+    background: #ea580c !important;
+    color: #fff !important;
+  }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--emerald:hover,
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--amber:hover,
@@ -2065,6 +2070,11 @@
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--slate:hover {
     background: #f8fafc !important;
     color: #334155 !important;
+  }
+  #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--mais-destaque:hover {
+    background: #c2410c !important;
+    border-color: #9a3412 !important;
+    color: #fff !important;
   }
   #pdv-topbar-compact .pdv-wiz-topbar-actions .pdv-wiz-topbar-btn--alert {
     border-color: #64748b !important;
@@ -2126,6 +2136,9 @@
     gap: 0.45rem;
     width: 100%;
     min-width: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 55;
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
@@ -2331,6 +2344,49 @@
     position: relative;
     z-index: 50;
   }
+  #pdv-topbar-mais.pdv-topbar-mais {
+    position: relative;
+    z-index: 60;
+    flex-shrink: 0;
+  }
+  .pdv-topbar-mais-panel {
+    position: fixed;
+    z-index: 120;
+    min-width: min(16.5rem, calc(100vw - 1.25rem));
+    width: max-content;
+    max-width: min(20rem, calc(100vw - 1.25rem));
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    padding: 0.55rem;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .pdv-topbar-mais-panel.hidden {
+    display: none !important;
+  }
+  .pdv-topbar-mais-panel .pdv-wiz-topbar-btn,
+  .pdv-topbar-mais-panel #pdv-estoque-vila-menu > summary {
+    width: 100%;
+    justify-content: center;
+  }
+  .pdv-topbar-mais-panel #pdv-estoque-vila-menu {
+    width: 100%;
+    position: relative;
+  }
+  .pdv-topbar-mais-panel .pdv-estoque-vila-panel {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    min-width: 0;
+    width: 100%;
+    max-width: none;
+    margin-top: 0.35rem;
+    box-shadow: none;
+  }
   #pdv-estoque-vila-menu > summary {
     list-style: none;
   }
@@ -2346,6 +2402,17 @@
     background: #6d28d9 !important;
     border-color: #6d28d9 !important;
   }
+  .pdv-wiz-topbar-btn--mais-destaque {
+    border-color: #c2410c !important;
+    background: #ea580c !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+  }
+  .pdv-wiz-topbar-btn--mais-destaque:hover {
+    background: #c2410c !important;
+    border-color: #9a3412 !important;
+    color: #fff !important;
+  }
   .pdv-wiz-topbar-btn--rose {
     border-color: #fb7185 !important;
     background: #e11d48 !important;
@@ -2355,6 +2422,75 @@
     background: #be123c !important;
     border-color: #be123c !important;
     color: #fff !important;
+  }
+  .pdv-topbar-organizar-btn {
+    width: 100%;
+    justify-content: center;
+    border-style: dashed !important;
+  }
+  #pdv-topbar-organizar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.5);
+  }
+  #pdv-topbar-organizar-overlay.is-open { display: flex; }
+  .pdv-topbar-organizar-box {
+    width: min(28rem, calc(100vw - 1.5rem));
+    max-height: min(85dvh, 36rem);
+    overflow: auto;
+    border-radius: 1rem;
+    border: 2px solid #cbd5e1;
+    background: #fff;
+    padding: 1rem;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
+  }
+  .pdv-topbar-organizar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.75rem;
+    border: 2px solid #e2e8f0;
+    background: #f8fafc;
+    margin-bottom: 0.4rem;
+  }
+  .pdv-topbar-organizar-row span {
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #334155;
+  }
+  .pdv-topbar-organizar-toggle {
+    display: inline-flex;
+    border-radius: 0.65rem;
+    border: 2px solid #cbd5e1;
+    overflow: hidden;
+  }
+  .pdv-topbar-organizar-toggle button {
+    min-height: 2.1rem;
+    min-width: 4.2rem;
+    padding: 0.25rem 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border: 0;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+  }
+  .pdv-topbar-organizar-toggle button.is-on {
+    background: #ea580c;
+    color: #fff;
+  }
+  .pdv-topbar-organizar-toggle button[data-zona="frio"].is-on {
+    background: #475569;
   }
   .pdv-estoque-vila-panel {
     position: absolute;
@@ -2423,7 +2559,7 @@
     gap: 0.35rem;
     margin-left: auto;
     max-width: 100%;
-    overflow-x: auto;
+    overflow: visible;
     padding: 0.3rem 0.4rem;
     border: 2px solid #e2e8f0;
     border-radius: 0.95rem;
@@ -2443,6 +2579,19 @@
     color: #047857 !important;
   }
   .pdv-wiz-topbar-btn--emerald:hover { background: #d1fae5 !important; }
+  .pdv-wiz-topbar-btn--wa {
+    min-width: 2.45rem !important;
+    padding: 0.3rem 0.45rem !important;
+    border-color: #22c55e !important;
+    background: #ecfdf5 !important;
+    color: #15803d !important;
+  }
+  .pdv-wiz-topbar-btn--wa:hover { background: #d1fae5 !important; }
+  .pdv-wiz-topbar-btn--wa svg {
+    display: block;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
   .pdv-wiz-topbar-btn--amber {
     border-color: #fbbf24 !important;
     background: #fef3c7 !important;
@@ -3683,36 +3832,46 @@
               </nav>
               <button type="button" id="pdv-topbar-help" class="pdv-wiz-help pdv-topbar-help shrink-0" data-pdv-help="produtos" title="Ajuda — etapa atual">?</button>
             </div>
-            <div class="pdv-wiz-topbar-estoque-vila">
-              <details id="pdv-estoque-vila-menu" class="relative">
-                <summary class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--violet cursor-pointer select-none" title="Atalho Folha Compras — abre a folha no overlay do PDV">Saldo Vila ▾</summary>
-                <div class="pdv-estoque-vila-panel" role="menu" aria-label="Folhas de estoque / compras">
-                  <a href="{% url 'compras_relatorio_planilha_fornecedor' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--fornecedor" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por fornecedor (A4 · A6)</a>
-                  <a href="{% url 'compras_view' %}?folha=ocr&folha_so=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--ocr" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Ler foto da planilha</a>
-                  <a href="{% url 'compras_relatorio_planilha_categoria' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--categoria" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por categoria (A4 · A6)</a>
-                  <a href="{% url 'compras_relatorio_planilha_unidade' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--unidade" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por unidade (A4 · A6)</a>
-                  <a href="{% url 'compras_relatorio_saldo' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--saldo" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Folha de saldo (A4 · A5 · 80mm)</a>
-                </div>
-              </details>
-              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--rose relative" title="Pedir produto da outra loja (Centro ↔ Vila)">
+            <div class="pdv-wiz-topbar-estoque-vila" id="pdv-topbar-quente" aria-label="Atalhos frequentes">
+              <button type="button" id="pdv-topbar-pedir-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="pedir_loja" data-pdv-topbar-node="pedir_loja" title="Pedir produto da outra loja (Centro ↔ Vila)">
                 Pedir loja
                 <span id="pdv-topbar-pedir-loja-count" class="pdv-topbar-pedir-loja-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
-              <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
-            </div>
-            <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
-              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
-              <a href="{% url 'vendas_lista' %}" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Consultar vendas — filtro por período e exportar CSV">Vendas</a>
-              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
-              <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" title="Saída de produto para uso interno da loja">Uso loja</button>
-              <button type="button" id="pdv-topbar-repasse-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange" title="Repasse de dinheiro Vila → Centro · não leve o cofrinho">Repasse</button>
-              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
+              <a href="{% url 'vendas_lista' %}" id="pdv-topbar-vendas-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="vendas" data-pdv-topbar-node="vendas" title="Consultar vendas — filtro por período e exportar CSV">Vendas</a>
+              <button type="button" id="pdv-topbar-uso-loja-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="uso_loja" data-pdv-topbar-node="uso_loja" title="Saída de produto para uso interno da loja">Uso loja</button>
+              <button type="button" id="pdv-topbar-entregas-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative" data-pdv-topbar-key="entregas" data-pdv-topbar-node="entregas" title="Entregas aguardando pagamento no PDV (cobrar na entrega)">
                 Entregas
                 <span id="pdv-topbar-entregas-count" class="pdv-topbar-entregas-count hidden absolute -right-1 -top-1 min-w-[1.1rem] rounded-full bg-slate-600 px-1 text-[8px] font-black leading-tight text-white tabular-nums">0</span>
               </button>
-              <button type="button" id="pdv-topbar-nova-venda-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--amber" title="Descartar venda atual e começar outra · F12">Nova venda <kbd class="ml-0.5 rounded border border-amber-400 bg-white px-1 font-mono text-[9px]">F12</kbd></button>
+              <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="caixa" data-pdv-topbar-node="caixa" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
+              <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
+            </div>
+            <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
+              <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" title="WhatsApp das lojas">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.5 14.4c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.1-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4 0-.2 0-.3 0-.4 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9 0 1.1.8 2.2.9 2.3.1.2 1.6 2.5 3.9 3.5.5.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/><path fill="currentColor" d="M12.04 2C6.5 2 2 6.4 2 11.8c0 1.7.5 3.4 1.3 4.9L2 22l5.4-1.4c1.4.8 3 .1 4.6.8 5.5 0 10-4.4 10-9.8S17.5 2 12.04 2zm0 17.9c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3.2.8.9-3.1-.2-.3c-.8-1.3-1.3-2.7-1.3-4.2 0-4.5 3.7-8.1 8.2-8.1s8.2 3.6 8.2 8.1-3.7 8.1-8.2 8.1z"/></svg>
+                <span class="sr-only">WhatsApp</span>
+              </button>
+              <button type="button" id="pdv-topbar-nova-venda-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--amber" data-pdv-topbar-key="nova_venda" data-pdv-topbar-node="nova_venda" title="Descartar venda atual e começar outra · F12">Nova venda <kbd class="ml-0.5 rounded border border-amber-400 bg-white px-1 font-mono text-[9px]">F12</kbd></button>
               <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 max-w-[9rem] truncate" title="Operador com PIN neste computador"></span>
-              <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
+              <div id="pdv-topbar-mais" class="pdv-topbar-mais">
+                <button type="button" id="pdv-topbar-mais-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--mais-destaque" data-pdv-topbar-key="mais" aria-expanded="false" aria-controls="pdv-topbar-mais-panel" title="Mais atalhos do PDV">Mais ⋯</button>
+                <div id="pdv-topbar-mais-panel" class="pdv-topbar-mais-panel hidden" role="menu" aria-label="Mais atalhos do PDV">
+                  <details id="pdv-estoque-vila-menu" class="relative" data-pdv-topbar-node="saldo_vila">
+                    <summary class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--violet cursor-pointer select-none" data-pdv-topbar-key="saldo_vila" title="Atalho Folha Compras — abre a folha no overlay do PDV">Saldo Vila ▾</summary>
+                    <div class="pdv-estoque-vila-panel" role="menu" aria-label="Folhas de estoque / compras">
+                      <a href="{% url 'compras_relatorio_planilha_fornecedor' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--fornecedor" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por fornecedor (A4 · A6)</a>
+                      <a href="{% url 'compras_view' %}?folha=ocr&folha_so=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--ocr" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Ler foto da planilha</a>
+                      <a href="{% url 'compras_relatorio_planilha_categoria' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--categoria" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por categoria (A4 · A6)</a>
+                      <a href="{% url 'compras_relatorio_planilha_unidade' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--unidade" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Por unidade (A4 · A6)</a>
+                      <a href="{% url 'compras_relatorio_saldo' %}?embed=1" class="pdv-estoque-vila-link pdv-estoque-vila-link--saldo" role="menuitem" data-pdv-folha-atalho="1" data-agro-pdv-native="1">Folha de saldo (A4 · A5 · 80mm)</a>
+                    </div>
+                  </details>
+                  <button type="button" id="pdv-topbar-repasse-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--orange" data-pdv-topbar-key="repasse" data-pdv-topbar-node="repasse" role="menuitem" title="Repasse de dinheiro Vila → Centro · não leve o cofrinho">Repasse</button>
+                  <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" data-pdv-topbar-key="pesar" data-pdv-topbar-node="pesar" role="menuitem" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
+                  <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="pin" data-pdv-topbar-node="pin" role="menuitem" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
+                  <button type="button" id="pdv-topbar-organizar-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate pdv-topbar-organizar-btn" title="Definir quais atalhos ficam no quente ou no Mais">Organizar atalhos</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -4518,8 +4677,33 @@
       </div>
     </div>
   </div>
+</div>
+
+<div id="pdv-wa-em-breve" class="hidden fixed inset-0 z-[10050] flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-wa-em-breve-titulo">
+  <div class="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border-2 border-emerald-400 bg-white p-5 shadow-2xl">
+    <p id="pdv-wa-em-breve-titulo" class="text-xl font-black uppercase tracking-wide text-emerald-900">Em breve…</p>
+    <p class="mt-2 text-sm font-bold text-slate-600">O chat WhatsApp das lojas ainda não abre pelo PDV.</p>
+    <button type="button" id="pdv-wa-em-breve-ok" class="pdv-action-btn mt-4 min-h-[3rem] w-full rounded-xl bg-emerald-600 font-black uppercase text-white">Ok</button>
+  </div>
+</div>
+
+<div id="pdv-topbar-organizar-overlay" aria-hidden="true">
+  <div class="pdv-topbar-organizar-box" role="dialog" aria-modal="true" aria-labelledby="pdv-topbar-organizar-titulo">
+    <h2 id="pdv-topbar-organizar-titulo" class="mb-1 text-base font-black uppercase tracking-wide text-slate-800">Organizar atalhos</h2>
+    <p class="mb-3 text-xs font-bold text-slate-500">Toque em Quente ou Frio. Vale para todos os PCs da loja.</p>
+    <div id="pdv-topbar-organizar-lista"></div>
+    <p id="pdv-topbar-organizar-erro" class="mt-2 hidden text-sm font-bold text-red-600" role="alert"></p>
+    <div class="mt-3 flex gap-2">
+      <button type="button" id="pdv-topbar-organizar-cancelar" class="pdv-action-btn min-h-[2.75rem] flex-1 rounded-xl border-2 border-slate-300 bg-white font-black uppercase text-slate-700">Cancelar</button>
+      <button type="button" id="pdv-topbar-organizar-salvar" class="pdv-action-btn min-h-[2.75rem] flex-1 rounded-xl border-2 border-orange-600 bg-orange-500 font-black uppercase text-white hover:bg-orange-600">Salvar</button>
+    </div>
+  </div>
+</div>
 
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_transf_forcada.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

@@ -2957,6 +2957,16 @@ class RepasseVilaConfigAgro(models.Model):
         default=0,
         help_text="Saldo do Cofrinho Salário funcionário (reserva diária configurável).",
     )
+
+    fundo_troco_vila = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=500,
+        help_text=(
+            "Alvo de dinheiro que deve ficar na gaveta da Vila após o repasse (troco). "
+            "Só aviso — não bloqueia. Prioridade: Salário → Vila Elias → Centro."
+        ),
+    )
     saldo_cofre_vila_elias = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -3360,3 +3370,52 @@ class ChatLojaMensagemAgro(models.Model):
     def __str__(self):
         trecho = (self.texto or "")[:40]
         return f"#{self.pk} {self.autor_nome}: {trecho}"
+
+
+class PdvTopbarCliqueDiaAgro(models.Model):
+    """Contagem diária de cliques na topbar do PDV (quente/frio · base futura)."""
+
+    botao = models.CharField(max_length=40, db_index=True)
+    deposito = models.CharField(max_length=16, blank=True, default="", db_index=True)
+    data = models.DateField(db_index=True)
+    cliques = models.PositiveIntegerField(default=0)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Clique topbar PDV (dia)"
+        verbose_name_plural = "Cliques topbar PDV (dia)"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["botao", "deposito", "data"],
+                name="pdv_topbar_clique_botao_dep_dia_uq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["data", "botao"], name="pdv_topbar_clique_data_btn_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.data} {self.botao}@{self.deposito or '-'}: {self.cliques}"
+
+
+class PdvTopbarLayoutAgro(models.Model):
+    """Quente/frio da topbar do PDV — loja inteira (Postgres / multi-PC)."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    quente = models.JSONField(default=list, blank=True)
+    frio = models.JSONField(default=list, blank=True)
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_topbar_layouts",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Layout topbar PDV"
+        verbose_name_plural = "Layouts topbar PDV"
+
+    def __str__(self):
+        return f"topbar:{self.chave}"

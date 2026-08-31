@@ -234,6 +234,15 @@
           <button type="button" id="rv-salvar-reserva" class="min-h-[2.5rem] shrink-0 rounded-lg border-2 border-rose-600 bg-white px-2.5 text-[0.65rem] font-black uppercase text-rose-950">Salvar</button>
         </div>
       </div>
+      <div class="rv-metric border-slate-300 bg-slate-50">
+        <div class="rv-lbl text-slate-700">Fundo troco gaveta (alvo)</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <input id="rv-fundo-troco" type="text" inputmode="decimal" autocomplete="off"
+            value="{{ fundo_troco_vila|default:500|floatformat:2 }}"
+            class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-slate-300 bg-white px-2 text-lg font-black tabular-nums text-slate-950"
+            title="Quanto deve ficar na gaveta após o repasse (só aviso)" />
+        </div>
+      </div>
       <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
     </div>
 
@@ -470,6 +479,15 @@
   function reservaAtual() {
     var el = document.getElementById('rv-reserva');
     if (!el) return Number((state.calc || {}).reserva_vila || 0);
+    return parseMoneyBR(el.value);
+  }
+  function fundoTrocoAtual() {
+    var el = document.getElementById('rv-fundo-troco');
+    if (!el || String(el.value || '').trim() === '') {
+      var c = state.calc || {};
+      if (c.fundo_troco_vila != null) return Number(c.fundo_troco_vila || 0);
+      return 500;
+    }
     return parseMoneyBR(el.value);
   }
   function bootJson(id) {
@@ -720,7 +738,11 @@
   }
   document.getElementById('rv-salvar-pct').addEventListener('click', function () {
     postConfig(
-      { percentual_lucro_padrao: pctEl.value, reserva_vila: reservaAtual() },
+      {
+        percentual_lucro_padrao: pctEl.value,
+        reserva_vila: reservaAtual(),
+        fundo_troco_vila: fundoTrocoAtual(),
+      },
       function (j) { return 'Padrão salvo: ' + j.percentual_lucro_padrao + '%'; }
     );
   });
@@ -731,12 +753,21 @@
     if (btnRes) {
       btnRes.addEventListener('click', function () {
         postConfig(
-          { reserva_vila: reservaAtual() },
-          function (j) { return 'Reserva diária salva: ' + money(j.reserva_vila); }
+          { reserva_vila: reservaAtual(), fundo_troco_vila: fundoTrocoAtual() },
+          function (j) {
+            return (
+              'Salvo · reserva ' +
+              money(j.reserva_vila) +
+              ' · fundo troco ' +
+              money(j.fundo_troco_vila)
+            );
+          }
         );
       });
     }
   }
+  var fundoEl = document.getElementById('rv-fundo-troco');
+  if (fundoEl) fundoEl.addEventListener('input', renderCalc);
 
   var planosState = bootJson('rv-planos-boot');
   if (!Array.isArray(planosState)) planosState = [];

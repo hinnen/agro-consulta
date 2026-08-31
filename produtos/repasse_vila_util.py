@@ -163,6 +163,96 @@ def salvar_reserva_vila(valor, *, operador: str = "") -> RepasseVilaConfigAgro:
     return cfg
 
 
+FUNDO_TROCO_VILA_DEFAULT = Decimal("500.00")
+
+
+def fundo_troco_vila_config(cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
+    cfg = cfg or obter_config()
+    return max(ZERO, _dec(getattr(cfg, "fundo_troco_vila", FUNDO_TROCO_VILA_DEFAULT)))
+
+
+def salvar_fundo_troco_vila(valor, *, operador: str = "") -> RepasseVilaConfigAgro:
+    """Alvo de troco na gaveta da Vila após o repasse (só aviso / sugestão)."""
+    v = _dec(valor)
+    if v < 0:
+        v = ZERO
+    if v > Decimal("99999.99"):
+        v = Decimal("99999.99")
+    cfg = obter_config()
+    cfg.fundo_troco_vila = v
+    cfg.atualizado_por = (operador or "")[:120]
+    cfg.save(update_fields=["fundo_troco_vila", "atualizado_em", "atualizado_por"])
+    return cfg
+
+
+def sugerir_alocacao_fundo_troco(
+    *,
+    saldo_gaveta,
+    alvo_troco,
+    sep_salario,
+    sep_vila_elias,
+    levar_centro,
+) -> dict[str, Any]:
+    """
+    Sugere Separar Salário / Vila Elias / Levar ao Centro para deixar ~alvo na gaveta.
+
+    Pool = max(0, gaveta − alvo). Preenche nesta ordem: Salário → Vila Elias → Centro.
+    Assim, se faltar: corta Centro primeiro, depois Vila Elias, por último Salário.
+    Só sugestão/aviso — não bloqueia transferência.
+    """
+    gaveta = max(ZERO, _dec(saldo_gaveta))
+    alvo = max(ZERO, _dec(alvo_troco))
+    base_sal = max(ZERO, _dec(sep_salario))
+    base_ve = max(ZERO, _dec(sep_vila_elias))
+    base_cen = max(ZERO, _dec(levar_centro))
+
+    pool = max(ZERO, (gaveta - alvo).quantize(Decimal("0.01")))
+    sal = min(base_sal, pool)
+    pool = (pool - sal).quantize(Decimal("0.01"))
+    ve = min(base_ve, pool)
+    pool = (pool - ve).quantize(Decimal("0.01"))
+    cen = min(base_cen, pool)
+
+    sobra = (gaveta - sal - ve - cen).quantize(Decimal("0.01"))
+    cortou_cen = (base_cen - cen).quantize(Decimal("0.01"))
+    cortou_ve = (base_ve - ve).quantize(Decimal("0.01"))
+    cortou_sal = (base_sal - sal).quantize(Decimal("0.01"))
+
+    avisos: list[str] = []
+    if alvo > ZERO:
+        if sobra + Decimal("0.009") < alvo:
+            avisos.append(
+                f"Troco ficaria em R$ {sobra} (alvo R$ {alvo}). "
+                "Cortamos Centro → Vila Elias → Salário."
+            )
+        elif sobra > alvo + Decimal("0.99"):
+            avisos.append(
+                f"Gaveta ficaria com R$ {sobra} (alvo R$ {alvo}). "
+                "Cofres já no teto do pendente — sobra fica de troco."
+            )
+        if cortou_cen > Decimal("0.009") or cortou_ve > Decimal("0.009") or cortou_sal > Decimal("0.009"):
+            partes = []
+            if cortou_cen > Decimal("0.009"):
+                partes.append(f"Centro −{cortou_cen}")
+            if cortou_ve > Decimal("0.009"):
+                partes.append(f"Vila Elias −{cortou_ve}")
+            if cortou_sal > Decimal("0.009"):
+                partes.append(f"Salário −{cortou_sal}")
+            avisos.append("Ajuste fundo troco: " + " · ".join(partes))
+
+    return {
+        "sep_salario": float(sal),
+        "sep_vila_elias": float(ve),
+        "levar_centro": float(cen),
+        "sobra_gaveta": float(sobra),
+        "alvo_troco": float(alvo),
+        "aviso": " · ".join(avisos),
+        "cortou_centro": float(cortou_cen),
+        "cortou_vila_elias": float(cortou_ve),
+        "cortou_salario": float(cortou_sal),
+    }
+
+
 def reserva_vila_config(cfg: RepasseVilaConfigAgro | None = None) -> Decimal:
     cfg = cfg or obter_config()
     return max(ZERO, _dec(getattr(cfg, "reserva_vila", ZERO)))

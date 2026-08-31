@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_pdv_chat_loja
+from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
 from . import views_cliente_cadastro
@@ -747,6 +748,22 @@ urlpatterns = [
         'api/pdv/chat-loja/enviar/',
         views_pdv_chat_loja.api_pdv_chat_loja_enviar,
         name='api_pdv_chat_loja_enviar',
+    ),
+    
+    path(
+        'api/pdv/topbar-clique/',
+        views_pdv_topbar.api_pdv_topbar_clique,
+        name='api_pdv_topbar_clique',
+    ),
+    path(
+        'api/pdv/topbar-cliques/',
+        views_pdv_topbar.api_pdv_topbar_cliques_resumo,
+        name='api_pdv_topbar_cliques_resumo',
+    ),
+    path(
+        'api/pdv/topbar-layout/',
+        views_pdv_topbar.api_pdv_topbar_layout,
+        name='api_pdv_topbar_layout',
     ),
     path(
         'api/pdv/transf-loja/resumo/',

@@ -403,13 +403,18 @@
           <label class="rp-check"><input type="checkbox" id="pdv-rp-fiado" checked /><span class="flex-1">Fiado pago <span id="pdv-rp-disp-fiado" class="tabular-nums text-orange-800">R$ 0,00</span></span></label>
           <label class="rp-check"><input type="checkbox" id="pdv-rp-acumulado" checked /><span>Incluir acumulado</span></label>
           <label class="rp-check"><input type="checkbox" id="pdv-rp-cheio" /><span>Dia cheio de novo</span></label>
-          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end pt-1">
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end pt-1">
             <label class="block">
-              <span class="text-[0.65rem] font-black uppercase text-rose-800">Reserva diária</span>
+              <span class="text-[0.65rem] font-black uppercase text-rose-800">Reserva diária (salário)</span>
               <input type="text" id="pdv-rp-reserva" class="rp-field mt-0.5 min-h-[2.5rem]" inputmode="decimal" placeholder="0,00" autocomplete="off" />
             </label>
-            <button type="button" id="pdv-rp-salvar-reserva" class="min-h-[2.5rem] rounded-lg border-2 border-rose-600 bg-rose-50 px-3 text-xs font-black uppercase text-rose-950">Salvar reserva</button>
+            <label class="block">
+              <span class="text-[0.65rem] font-black uppercase text-slate-700">Fundo troco gaveta</span>
+              <input type="text" id="pdv-rp-fundo-troco" class="rp-field mt-0.5 min-h-[2.5rem]" inputmode="decimal" placeholder="500,00" autocomplete="off" title="Quanto deve ficar na gaveta após o repasse (só aviso)" />
+            </label>
+            <button type="button" id="pdv-rp-salvar-reserva" class="min-h-[2.5rem] rounded-lg border-2 border-rose-600 bg-rose-50 px-3 text-xs font-black uppercase text-rose-950">Salvar</button>
           </div>
+          <p id="pdv-rp-fundo-aviso" class="hidden text-sm font-black text-amber-950 leading-snug rounded-lg border-2 border-amber-400 bg-amber-50 px-2 py-1.5" role="status"></p>
         </div>
       </details>
     </div>

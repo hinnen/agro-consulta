@@ -5023,6 +5023,8 @@ function aplicarBasePdv(produtos, statusTxt) {
 
 function salvarCacheCatalogoPdv(payload) {
     try {
+        if (!payload || !Array.isArray(payload.produtos) || !payload.produtos.length) return;
+        if (String(payload.catalog_version || '') === 'catalogo-full-off') return;
         localStorage.setItem(
             PDV_CACHE_KEY,
             JSON.stringify({
@@ -5153,7 +5155,8 @@ function lerCacheCatalogoPdv() {
         const raw = localStorage.getItem(PDV_CACHE_KEY);
         if (!raw) return null;
         const p = JSON.parse(raw);
-        if (!p || !Array.isArray(p.produtos)) return null;
+        if (!p || !Array.isArray(p.produtos) || !p.produtos.length) return null;
+        if (String(p.catalog_version || '') === 'catalogo-full-off') return null;
         const age = Date.now() - Number(p.saved_at || 0);
         if (!window.AGRO_MANUAL_SYNC_ONLY && age > PDV_CACHE_TTL_MS) return null;
         return p;
@@ -5196,11 +5199,18 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
 }
 
 function fetchCatalogoPdvLocalCompleto() {
-    return fetch('/api/todos-produtos/local/', { credentials: 'same-origin', cache: 'no-store' })
+    /* Freio catalogo-full-off: /local/ e /delta/ vêm vazios — slim PG não é freiado. */
+    return fetch('/api/pdv/catalogo-slim/', { credentials: 'same-origin', cache: 'no-store' })
         .then(function (r) { return r.json(); })
         .then(function (d) {
             if (d && Array.isArray(d.produtos) && d.produtos.length) return d;
-            return null;
+            return fetch('/api/todos-produtos/local/', { credentials: 'same-origin', cache: 'no-store' })
+                .then(function (r2) { return r2.json(); })
+                .then(function (d2) {
+                    if (d2 && Array.isArray(d2.produtos) && d2.produtos.length) return d2;
+                    return null;
+                })
+                .catch(function () { return null; });
         })
         .catch(function () { return null; });
 }
@@ -5256,7 +5266,8 @@ function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
                     finish();
                     return;
                 }
-                if (d && Array.isArray(d.produtos)) {
+                /* Lista cheia só conta se tiver itens; freio catalogo-full-off manda []. */
+                if (d && Array.isArray(d.produtos) && d.produtos.length && String(d.catalog_version || '') !== 'catalogo-full-off') {
                     aplicarBasePdv(d.produtos, silent ? '' : `Base local pronta com ${d.produtos.length} itens`);
                     salvarCacheCatalogoPdv(d);
                     pdvCatalogBootHide();
