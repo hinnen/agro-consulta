@@ -423,7 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · teste v20.28):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada · **hotfix v20.28:** renovar PIN no chat **não** abre mais o popup «tem pedido» do Pedir loja.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.30):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Contagem diária PG (`PdvTopbarCliqueDiaAgro` · migrate `0107`) p/ ajustar quente/frio depois.
@@ -1255,48 +1255,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.31** · 31/08/2026)
+### 📦 PACOTE PRONTO — Chat sem popup Pedir (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.33** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Faixa do PDV menos apertada: **quente** = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Conta cliques no Postgres (média futura). |
-| **Onde** | `pdv_wizard.html` · `pdv_topbar_mais.js` · `PdvTopbarCliqueDiaAgro` · migrate **`0107`** · APIs `api/pdv/topbar-clique/` + `topbar-cliques/` |
-| **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **24/24** |
-| **Status** | ✅ em `teste` **v20.31** · **ainda NÃO** loja |
-| **Você** | `migrate` local · Ctrl+F5 no PDV · abrir **Mais ⋯** · conferir quente/frio |
+| **O quê** | Renovar PIN no chat/venda **não** abre o aviso «tem pedido». Popup só no PIN do Pedir loja. |
+| **Onde** | `pdv_pedir_loja.js` |
+| **Prova** | path **16/16** · pedir-loja **70/70** · pin-na-acao **67/67** · smoke loja: bug vivo **v20.22** |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ `teste` · **pronto para envio à produção** |
 
-### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32** · 31/08/2026)
+### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.31+** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Alvo na gaveta da Vila após repasse (padrão **R$ 500**). Campo em **% lucro e opções**. Só **aviso**. |
-| **Prioridade** | Preenche Salário → Vila Elias → Centro. Falta: corta Centro → Vila Elias → Salário. |
-| **Onde** | `fundo_troco_vila` · migrate **0106** · overlay + `/repasse-vila/` |
-| **Prova** | `verify_repasse_fundo_troco.py` **56/56** · overlay path **188/188** · PIN 9973 OK |
-| **Status** | ✅ em `teste` **v20.32** · **pronto para envio** · migrate **SIM** (`0106`) |
-| **Você** | Ctrl+F5 · Repasse · **Fundo troco gaveta** · Salvar |
+| **O quê** | Quente = Pedir · Vendas · Uso · Entregas · Caixa · Nova. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. |
+| **Prova** | path **24/24** |
+| **Migrate** | **`0107`** |
+| **Status** | ✅ `teste` · **pronto para envio à produção** |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo loja **v20.32**)
+### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32+** · 31/08/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Alvo na gaveta da Vila após repasse (padrão **R$ 500**). Só **aviso**. |
+| **Prova** | `verify_repasse_fundo_troco.py` **56/56** |
+| **Migrate** | **`0106`** |
+| **Status** | ✅ `teste` · **pronto para envio à produção** |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo **v20.33**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · `teste` **v20.32** | **SIM** (`0106`) |
-| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · `teste` **v20.31+** | **SIM** (`0107`) |
-| 3 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · `teste` **v20.28+** | **NÃO** |
+| 1 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
+| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **24/24** | **SIM** (`0107`) |
+| 3 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · prova **56/56** | **SIM** (`0106`) |
 
 **Loja agora:** **v20.22**. Envio só com frase + senha.
-
-### 🐛 Hotfix — chat dispara popup «tem pedido» (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.28**) · 31/08/2026
-
-| Campo | Valor |
-| ----- | ----- |
-| **Sintoma** | Live **v20.22**: ao enviar msg no chat, popup do Pedir loja («tem pedido…») abre de novo |
-| **Causa** | `gm-sspin-operador` (renova PIN ~45s no chat) chamava `refreshResumo({ aposPin: true })` |
-| **Fix** | evento global só atualiza badge; popup só no PIN do Pedir loja (`abrirPin`) |
-| **Prova** | `verify_pdv_pedir_loja.py` **70/70** · pin-na-acao **67/67** |
-| **Status** | ✅ em `teste` **v20.28** · **ainda NÃO** loja — precisa frase+senha |
-| **Smoke loja** | healthz **200** · badge **v20.22** · JS live ainda com bug (confirmado) · teste PIN no PDV (31/08): evento `gm-sspin-operador` abre popup «tem pedido» com resumo mock · fresco ~45s OK · abrir PDV sem PIN OK |
-
 
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
