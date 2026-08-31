@@ -35,6 +35,11 @@
         permanente: document.getElementById('promo-permanente'),
         wrapQtdX: document.getElementById('wrap-qtd-x'),
         wrapPrecoY: document.getElementById('wrap-preco-y'),
+        precoYT1: document.getElementById('promo-preco-y-t1'),
+        precoYT2: document.getElementById('promo-preco-y-t2'),
+        wrapPrecoYT1: document.getElementById('wrap-preco-y-t1'),
+        wrapPrecoYT2: document.getElementById('wrap-preco-y-t2'),
+        regraVsTabela: document.getElementById('promo-regra-vs-tabela'),
         labelQtdX: document.getElementById('label-qtd-x'),
         colPrecoPromo: document.getElementById('col-preco-promo'),
         busca: document.getElementById('promo-busca-produto'),
@@ -240,11 +245,13 @@
         var valorDireto = tipoAtual() === 'valor_direto';
         if (dom.wrapQtdX) dom.wrapQtdX.style.display = valorDireto ? 'none' : '';
         if (dom.wrapPrecoY) dom.wrapPrecoY.style.display = valorDireto ? 'none' : '';
+        if (dom.wrapPrecoYT1) dom.wrapPrecoYT1.style.display = valorDireto ? 'none' : '';
+        if (dom.wrapPrecoYT2) dom.wrapPrecoYT2.style.display = valorDireto ? 'none' : '';
         if (dom.labelQtdX) {
             dom.labelQtdX.textContent = tipoAtual() === 'acima_unidades' ? 'Acima de X unidades' : 'Leve X unidades';
         }
         if (dom.colPrecoPromo) {
-            dom.colPrecoPromo.textContent = valorDireto ? 'Informe preço promo' : 'Preço promo: critério';
+            dom.colPrecoPromo.textContent = valorDireto ? 'Padrão / T1 / T2' : 'Regra vs tabela';
         }
         renderListaProdutos();
     }
@@ -262,6 +269,12 @@
         if (dom.tipo) dom.tipo.value = state.tipo || 'leve_pague';
         if (dom.qtdX && state.qtd_x != null) dom.qtdX.value = String(state.qtd_x).replace('.', ',');
         if (dom.precoY && state.preco_y != null) dom.precoY.value = String(state.preco_y).replace('.', ',');
+        if (dom.precoYT1 && state.preco_y_t1 != null) dom.precoYT1.value = String(state.preco_y_t1).replace('.', ',');
+        if (dom.precoYT2 && state.preco_y_t2 != null) dom.precoYT2.value = String(state.preco_y_t2).replace('.', ',');
+        if (dom.regraVsTabela) dom.regraVsTabela.value = state.regra_vs_tabela || 'maior';
+        if (!state.resolucoes_vs_tabela || typeof state.resolucoes_vs_tabela !== 'object') {
+            state.resolucoes_vs_tabela = {};
+        }
         if (dom.inicio) dom.inicio.value = state.data_inicio || '';
         if (dom.fim) dom.fim.value = state.data_fim || '';
         if (dom.permanente) dom.permanente.checked = !!state.permanente;
@@ -397,12 +410,34 @@
         }
 
         var html = '';
+        if (!valorDireto && n) {
+            html +=
+                '<div class="px-3 py-2 flex flex-wrap gap-2 bg-orange-50 border-b border-orange-200">' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-slate-800 text-white" data-regra="maior">Todos → maior</button>' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-emerald-700 text-white" data-regra="promo">Todos → promo</button>' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-orange-600 text-white" data-regra="tabela">Todos → tabela %</button>' +
+                '</div>';
+        }
         state.produtos.forEach(function (p, idx) {
+            var pid = String(p.produto_externo_id || '');
+            var regraItem = (state.resolucoes_vs_tabela && state.resolucoes_vs_tabela[pid]) || '';
             var precoPromoCell = valorDireto
-                ? '<input type="text" inputmode="decimal" data-idx="' + idx + '" aria-label="Preço promocional" ' +
-                  'class="promo-preco-prod w-full rounded-lg border-2 border-emerald-300 px-3 py-2 font-black text-base min-h-[48px]" value="' +
-                  (p.preco_promocional != null ? String(p.preco_promocional).replace('.', ',') : '') + '">'
-                : '<span class="text-sm font-bold text-slate-500">Pelo critério</span>';
+                ? '<div class="grid grid-cols-3 gap-1 w-full">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="padrao" aria-label="Preço promocional padrão" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-emerald-300 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="Padrão" value="' +
+                  (p.preco_promocional != null ? String(p.preco_promocional).replace('.', ',') : '') + '">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="t1" aria-label="Preço promocional T1" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-orange-200 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="T1" value="' +
+                  (p.preco_promocional_t1 != null ? String(p.preco_promocional_t1).replace('.', ',') : '') + '">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="t2" aria-label="Preço promocional T2" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-orange-200 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="T2" value="' +
+                  (p.preco_promocional_t2 != null ? String(p.preco_promocional_t2).replace('.', ',') : '') + '"></div>'
+                : '<select data-regra-pid="' + pid + '" class="promo-regra-item w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-[10px] font-black uppercase min-h-[44px]">' +
+                  '<option value=""' + (!regraItem ? ' selected' : '') + '>Padrão promo</option>' +
+                  '<option value="maior"' + (regraItem === 'maior' ? ' selected' : '') + '>Maior</option>' +
+                  '<option value="promo"' + (regraItem === 'promo' ? ' selected' : '') + '>Promo</option>' +
+                  '<option value="tabela"' + (regraItem === 'tabela' ? ' selected' : '') + '>Tabela %</option>' +
+                  '</select>';
             html +=
                 '<div class="promo-prod-row border-b border-slate-100 last:border-0 bg-white">' +
                 '<p class="text-sm font-black text-slate-800">' + (p.codigo || '—') + '</p>' +
@@ -426,7 +461,33 @@
         dom.lista.querySelectorAll('.promo-preco-prod').forEach(function (inp) {
             inp.addEventListener('change', function () {
                 var i = parseInt(inp.getAttribute('data-idx'), 10);
-                if (state.produtos[i]) state.produtos[i].preco_promocional = parseMoney(inp.value);
+                if (!state.produtos[i]) return;
+                var campo = inp.getAttribute('data-campo') || 'padrao';
+                var val = parseMoney(inp.value);
+                if (campo === 't1') state.produtos[i].preco_promocional_t1 = val;
+                else if (campo === 't2') state.produtos[i].preco_promocional_t2 = val;
+                else state.produtos[i].preco_promocional = val;
+            });
+        });
+        dom.lista.querySelectorAll('.promo-regra-item').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                var pid = sel.getAttribute('data-regra-pid');
+                if (!pid) return;
+                if (!state.resolucoes_vs_tabela) state.resolucoes_vs_tabela = {};
+                var v = sel.value;
+                if (!v) delete state.resolucoes_vs_tabela[pid];
+                else state.resolucoes_vs_tabela[pid] = v;
+            });
+        });
+        dom.lista.querySelectorAll('.promo-massa-regra').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var r = btn.getAttribute('data-regra');
+                if (!state.resolucoes_vs_tabela) state.resolucoes_vs_tabela = {};
+                state.produtos.forEach(function (p) {
+                    var id = String(p.produto_externo_id || '');
+                    if (id) state.resolucoes_vs_tabela[id] = r;
+                });
+                renderListaProdutos();
             });
         });
         renderResultadosBusca();
@@ -711,6 +772,10 @@
             tipo: tipoAtual(),
             qtd_x: dom.qtdX ? dom.qtdX.value.trim() : null,
             preco_y: dom.precoY ? dom.precoY.value.trim() : null,
+            preco_y_t1: dom.precoYT1 ? dom.precoYT1.value.trim() : null,
+            preco_y_t2: dom.precoYT2 ? dom.precoYT2.value.trim() : null,
+            regra_vs_tabela: dom.regraVsTabela ? dom.regraVsTabela.value : 'maior',
+            resolucoes_vs_tabela: state.resolucoes_vs_tabela || {},
             data_inicio: dom.inicio ? dom.inicio.value : '',
             data_fim: permanente ? '' : dom.fim ? dom.fim.value : '',
             permanente: permanente,
@@ -724,6 +789,8 @@
                     nome_produto: p.nome_produto,
                     preco_padrao: p.preco_padrao,
                     preco_promocional: p.preco_promocional,
+                    preco_promocional_t1: p.preco_promocional_t1,
+                    preco_promocional_t2: p.preco_promocional_t2,
                 };
             }),
         };

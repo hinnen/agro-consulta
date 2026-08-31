@@ -153,8 +153,18 @@
       }
     }
     if (dom.btnOpen) {
-      if (count > 0) dom.btnOpen.classList.add('is-alerta');
-      else dom.btnOpen.classList.remove('is-alerta');
+      if (count > 0) {
+        dom.btnOpen.classList.add('is-alerta');
+        dom.btnOpen.setAttribute(
+          'title',
+          count === 1 ? '1 mensagem nova no chat' : count + ' mensagens novas no chat'
+        );
+        dom.btnOpen.setAttribute('aria-label', 'Chat lojas — ' + count + ' nova(s)');
+      } else {
+        dom.btnOpen.classList.remove('is-alerta');
+        dom.btnOpen.setAttribute('title', 'Chat entre todos os PCs (Centro + Vila)');
+        dom.btnOpen.setAttribute('aria-label', 'Chat lojas');
+      }
     }
   }
 
