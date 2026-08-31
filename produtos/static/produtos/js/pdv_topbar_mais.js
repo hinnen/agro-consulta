@@ -122,21 +122,23 @@
     toggleMais(ev);
   });
 
+  panel.addEventListener('click', function (ev) {
+    var keyEl = ev.target && ev.target.closest ? ev.target.closest('[data-pdv-topbar-key]') : null;
+    if (keyEl && keyEl.getAttribute('data-pdv-topbar-key') !== 'mais') {
+      registrarClique(keyEl.getAttribute('data-pdv-topbar-key'));
+    }
+    if (ev.target.closest('#pdv-estoque-vila-menu > summary')) return;
+    if (ev.target.closest('a, button, .pdv-estoque-vila-link')) {
+      window.setTimeout(fecharMais, 0);
+    }
+  });
+
   root.addEventListener(
     'click',
     function (ev) {
       var keyEl = ev.target && ev.target.closest ? ev.target.closest('[data-pdv-topbar-key]') : null;
       if (keyEl && keyEl.getAttribute('data-pdv-topbar-key') !== 'mais') {
         registrarClique(keyEl.getAttribute('data-pdv-topbar-key'));
-      }
-      if (!maisAberto()) return;
-      if (ev.target.closest('#pdv-topbar-mais-btn')) return;
-      if (ev.target.closest('#pdv-estoque-vila-menu > summary')) return;
-      if (
-        panel.contains(ev.target) &&
-        ev.target.closest('a, button, .pdv-estoque-vila-link')
-      ) {
-        window.setTimeout(fecharMais, 0);
       }
     },
     true
