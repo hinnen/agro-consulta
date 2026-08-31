@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PDV-CHAT-FAB-UX — aba maior + alerta laranja com mensagem nova."""
+"""PDV-CHAT-FAB-UX — aba um pouco maior + alerta pisca 2 cores."""
 from __future__ import annotations
 
 import sys
@@ -27,8 +27,11 @@ def main() -> int:
     js = (ROOT / "produtos/static/produtos/js/pdv_chat_loja.js").read_text(encoding="utf-8")
 
     print("=== chat fab ===")
-    check("min-height: 2.85rem" in html, "aba maior (2.85rem)")
-    check("cl-pulse-alerta" in html, "animacao alerta laranja")
+    check("min-height: 3.15rem" in html, "aba um pouco maior (3.15rem)")
+    check("width: min(30rem" in html, "janela um pouco maior (30rem)")
+    check("height: min(34rem" in html, "janela um pouco mais alta (34rem)")
+    check("cl-pisca-alerta" in html, "animacao pisca 2 cores")
+    check("#ffedd5" in html and "#fecaca" in html, "laranja ↔ vermelho no alerta")
     check("cl-badge-pop" in html, "badge pulsa com mensagem")
     check("is-alerta" in js and "mensagens novas" in js, "title/aria com contagem")
     check("classList.add('is-alerta')" in js, "JS aplica is-alerta")

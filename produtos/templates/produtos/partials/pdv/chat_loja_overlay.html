@@ -20,16 +20,16 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.4rem;
-    min-height: 2.85rem;
-    min-width: 6.75rem;
-    padding: 0.5rem 1.25rem 0.55rem;
-    border-radius: 0.85rem 0.85rem 0 0;
+    gap: 0.45rem;
+    min-height: 3.15rem;
+    min-width: 7.5rem;
+    padding: 0.55rem 1.4rem 0.6rem;
+    border-radius: 0.9rem 0.9rem 0 0;
     border: 2px solid #94a3b8;
     border-bottom: none;
     background: #f8fafc;
     color: #334155;
-    font-size: 0.9375rem;
+    font-size: 1rem;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -48,12 +48,9 @@
   }
   #pdv-chat-loja-fab.is-alerta {
     border-color: #ea580c;
-    background: linear-gradient(180deg, #fff7ed 0%, #ffedd5 100%);
+    background: #ffedd5;
     color: #9a3412;
-    animation: cl-pulse-alerta 1s ease-in-out infinite;
-    box-shadow:
-      0 -0.2rem 0.75rem rgba(234, 88, 12, 0.22),
-      0 0 0 2px rgba(251, 146, 60, 0.35);
+    animation: cl-pisca-alerta 0.85s ease-in-out infinite;
   }
   #pdv-chat-loja-fab.is-open.is-alerta {
     background: #0284c7;
@@ -82,31 +79,41 @@
     box-shadow: 0 0.12rem 0.35rem rgba(220, 38, 38, 0.45);
   }
   #pdv-chat-loja-fab.is-alerta #pdv-chat-loja-count {
-    animation: cl-badge-pop 1s ease-in-out infinite;
+    animation: cl-badge-pop 0.85s ease-in-out infinite;
   }
   #pdv-chat-loja-count.hidden {
     display: none !important;
   }
-  @keyframes cl-pulse-alerta {
+  /* Laranja ↔ vermelho + pulso leve — chama atenção com msg nova */
+  @keyframes cl-pisca-alerta {
     0%, 100% {
       transform: translateY(0);
+      border-color: #ea580c;
+      background: #ffedd5;
+      color: #9a3412;
       box-shadow:
-        0 -0.2rem 0.75rem rgba(234, 88, 12, 0.22),
-        0 0 0 2px rgba(251, 146, 60, 0.35);
+        0 -0.2rem 0.75rem rgba(234, 88, 12, 0.25),
+        0 0 0 2px rgba(251, 146, 60, 0.4);
     }
     50% {
-      transform: translateY(-0.12rem);
+      transform: translateY(-0.14rem);
+      border-color: #b91c1c;
+      background: #fecaca;
+      color: #7f1d1d;
       box-shadow:
-        0 -0.35rem 1rem rgba(234, 88, 12, 0.32),
-        0 0 0 0.35rem rgba(251, 146, 60, 0.15);
+        0 -0.35rem 1rem rgba(185, 28, 28, 0.35),
+        0 0 0 0.35rem rgba(248, 113, 113, 0.25);
     }
   }
   @keyframes cl-badge-pop {
     0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
+    50% { transform: scale(1.14); }
   }
   html.agro-fx-reduced #pdv-chat-loja-fab.is-alerta {
     animation: none;
+    border-color: #ea580c;
+    background: #ffedd5;
+    color: #9a3412;
   }
   html.agro-fx-reduced #pdv-chat-loja-fab.is-alerta #pdv-chat-loja-count {
     animation: none;
@@ -114,8 +121,8 @@
 
   #pdv-chat-loja-overlay {
     display: none;
-    width: min(28rem, calc(100vw - 1.25rem));
-    height: min(32rem, calc(100dvh - 5.25rem));
+    width: min(30rem, calc(100vw - 1.25rem));
+    height: min(34rem, calc(100dvh - 5.25rem));
     min-height: 0;
     flex-direction: column;
     overflow: hidden;
