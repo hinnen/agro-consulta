@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **29/29** | **SIM** (`0110`) |
 | 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **31/31** | **SIM** (`0107`) |
-| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** | **NÃO** |
+| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** · path **35/35** | **NÃO** |
 | 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
 | 5 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · **56/56** | **SIM** (`0106`) |
 
