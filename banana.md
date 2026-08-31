@@ -423,7 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · v20.27):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · teste v20.28):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada · **hotfix v20.28:** renovar PIN no chat **não** abre mais o popup «tem pedido» do Pedir loja.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (1º clique = escolha Pedir × Forçada; não confundir com `/transferencias/`).
