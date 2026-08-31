@@ -1253,27 +1253,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ⏳ PREP deploy loja — Chat + Promo (`deploy/prep-chat-promo-v2016` · **v20.16** · 31/08/2026) · **aguarda senha**
+### ✅ Deploy loja — Chat + Promo (`deploy/prep-chat-promo-v2016` · **v20.16**) · **Live** · 31/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⏳ **PREP pronta** — **não** enviado · lojas abertas |
+| **Status** | ✅ **enviado / Live v20.16** — frase+senha neste chat · migrate **NÃO** |
 | **Antes** | Live **v20.07** @ `91a610a` |
-| **PREP** | `deploy/prep-chat-promo-v2016` @ `f7f326e` · VERSION **20.16** |
+| **Agora** | `producao` @ `f7f326e` |
+| **Pacotes** | `PDV-CHAT-FAB-UX` · `PROMO-REGRA-TABELA-SAVE` |
 | **Rollback** | tag `rollback/pre-v2016-chat-promo-v2007` @ `91a610a` · `docs/ROLLBACK-CHAT-PROMO-V2016.md` |
-| **Migrate** | **NÃO** |
 | **Prova** | chat **5/5** · promo **23/23** |
-| **NÃO sobe** | BI Meta C ramp e WIP restante do `teste` |
-| **Próximo chat** | pausar vendas → frase + senha **`99738595`** |
+| **Você** | **Ctrl+F5** PDV · smoke: venda dinheiro · Chat · promo «Sempre promoção» |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → **v20.16**)
+### ✅ CHECKLIST ÚNICO — enviado produção (31/08 · loja **v20.16**)
 
-| # | Pacote | Status | Risco venda |
-| - | ------ | ------ | ----------- |
-| 1 | `PDV-CHAT-FAB-UX` | ⏳ PREP · chat **5/5** | **Não** (só aba Chat) |
-| 2 | `PROMO-REGRA-TABELA-SAVE` | ⏳ PREP · promo **23/23** | **Não** (só tela promo) |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-CHAT-FAB-UX` | ✅ **Live v20.16** |
+| 2 | `PROMO-REGRA-TABELA-SAVE` | ✅ **Live v20.16** |
 
-**Smoke pós-deploy:** Ctrl+F5 PDV · venda dinheiro rápida · Chat msg de outro PC · promo «Sempre promoção» salvar/reabrir.
+### ~~⏳ PREP deploy loja — Chat + Promo~~ · **Live v20.16**
+
+### ~~✅ CHECKLIST ÚNICO — pronto envio produção (31/08)~~ · **Live v20.16**
 
 ### 📦 PACOTE PRONTO — Chat PDV maior + alerta (`PDV-CHAT-FAB-UX` · **v20.15** · 31/08/2026)
 
