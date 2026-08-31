@@ -423,6 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · v20.22):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (1º clique = escolha Pedir × Forçada; não confundir com `/transferencias/`).
@@ -1252,6 +1253,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **teste v20.22**) · 31/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ no `teste` · prova local · **não** na loja |
+| **O quê** | Consulta/carrinho **sem** PIN · Confirmar venda / Pedir loja / chat **exigem** PIN fresco (~**45 s**). Mouse **não** renova. Descanso ~3 min continua (trava tela). Abrir PDV **não** pede PIN na entrada. |
+| **Onde** | `_screensaver_pin.html` (`gmSspinGarantirOperador`) · `pdv_transf_loja_util` (frescor) · venda/chat/Pedir · wizard sem `sspin_pedir_pin_ao_abrir` |
+| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **28/28** |
+| **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s sem PIN · espere 45s+ → pede de novo · outro operador não herda nome |
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 

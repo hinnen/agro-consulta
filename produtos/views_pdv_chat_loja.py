@@ -64,5 +64,9 @@ def api_pdv_chat_loja_enviar(request):
     device_id = str(data.get("device_id") or "").strip()
     m, err = criar_mensagem(request, texto=texto, device_id=device_id, payload=data)
     if err or m is None:
-        return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
+        precisa = "PIN" in str(err or "").upper() or "identifique" in str(err or "").lower()
+        body = {"ok": False, "erro": err or "Não enviou."}
+        if precisa:
+            body["precisa_pin"] = True
+        return JsonResponse(body, status=403 if precisa else 400)
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})

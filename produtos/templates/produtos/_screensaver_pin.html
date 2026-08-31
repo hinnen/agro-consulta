@@ -464,8 +464,8 @@
       var ae = document.activeElement;
       if (ae && typeof ae.blur === 'function') ae.blur();
     } catch (e) {}
-    /* Limpa nome no Chrome; sessão do servidor só atualiza no próximo PIN online
-       (evitar corrida: limpar async após o desbloqueio apagaria o nome certo). */
+    /* Limpa nome no Chrome; frescor no servidor expira sozinho (~45s) ou no próximo PIN.
+       Não limpar async aqui — corrida apagaria o PIN novo. */
     setOperador('');
     try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
     locked = true;
@@ -653,8 +653,12 @@
     fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        if (data && data.ok && data.operador) setOperador(String(data.operador).trim());
-        else refreshOperadorChip();
+        if (data && data.ok && data.fresco && data.operador) {
+          setOperador(String(data.operador).trim());
+        } else {
+          setOperador('');
+          refreshOperadorChip();
+        }
       })
       .catch(function () { refreshOperadorChip(); });
   }
@@ -663,9 +667,7 @@
     if (!lancamentosMode) {
       try { sessionStorage.removeItem(LS_LANC_DESBLOQ); } catch (eClr) {}
     }
-    /* PDV: cada abertura pede PIN — não reaproveita operador da visita anterior.
-       Só limpa Chrome aqui; a sessão do servidor atualiza no desbloqueio (evita
-       corrida se limpar async chegar depois do PIN novo). */
+    /* PDV: consulta livre — PIN só na ação (garantirOperador) ou no descanso. */
     if (requirePinOnLoad) {
       setOperador('');
       try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
@@ -701,7 +703,75 @@
     openLock(true);
   };
 
+  /**
+   * Garante operador fresco (~45s no servidor). Mouse NÃO renova.
+   * Se fresco → renova TTL e chama onSuccess(nome). Senão abre PIN.
+   */
+  window.gmSspinGarantirOperador = function (onSuccess, opts) {
+    opts = opts || {};
+    if (typeof onSuccess !== 'function') return;
+    var tituloAcao = (opts.titulo || 'Identifique-se').trim();
+    var done = false;
+    function finish(nome) {
+      if (done) return;
+      done = true;
+      try { onSuccess(nome || ''); } catch (eCb) {}
+    }
+    function pedirPin() {
+      var callbackExecutado = false;
+      var originalCloseLock = closeLock;
+      var originalShow = showPinPanel;
+      showPinPanel = function () {
+        originalShow();
+        if (titleEl) titleEl.textContent = tituloAcao;
+        if (subEl) subEl.innerHTML = 'Digite seu PIN para gravar a ação';
+      };
+      closeLock = function () {
+        showPinPanel = originalShow;
+        originalCloseLock();
+        if (callbackExecutado) return;
+        callbackExecutado = true;
+        closeLock = originalCloseLock;
+        var nome = '';
+        try { nome = (localStorage.getItem(LS_OPERADOR) || '').trim(); } catch (eN) {}
+        if (!nome) {
+          /* PIN cancelado / falhou — não segue a ação */
+          return;
+        }
+        finish(nome);
+      };
+      openLock(true);
+    }
+    fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.ok && data.fresco && data.operador) {
+          return fetch(API_OPERADOR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ renovar: true })
+          })
+            .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, data: d2 }; }); })
+            .then(function (res) {
+              if (res.ok && res.data && res.data.ok && res.data.operador) {
+                setOperador(String(res.data.operador).trim());
+                finish(String(res.data.operador).trim());
+                return;
+              }
+              pedirPin();
+            });
+        }
+        pedirPin();
+      })
+      .catch(function () { pedirPin(); });
+  };
+
   window.gmSspinProtegerAcao = function (onSuccess) {
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(onSuccess);
+      return;
+    }
     if (typeof onSuccess !== 'function') return;
     var callbackExecutado = false;
     var originalCloseLock = closeLock;

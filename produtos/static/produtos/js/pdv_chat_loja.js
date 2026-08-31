@@ -350,44 +350,57 @@
     var texto = (dom.input && dom.input.value) || '';
     texto = String(texto).trim();
     if (!texto) return;
-    busy = true;
-    if (dom.enviar) {
-      dom.enviar.disabled = true;
-      dom.enviar.textContent = 'Enviar';
-    }
-    setStatus('');
-    fetch(urls.apiPdvChatLojaEnviar, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRFToken': csrf(),
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({ texto: texto, device_id: deviceId() }),
-    })
-      .then(function (r) {
-        return r.json().then(function (data) {
-          return { okHttp: r.ok, data: data };
+    var doSend = function () {
+      busy = true;
+      if (dom.enviar) {
+        dom.enviar.disabled = true;
+        dom.enviar.textContent = 'Enviar';
+      }
+      setStatus('');
+      fetch(urls.apiPdvChatLojaEnviar, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf(),
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ texto: texto, device_id: deviceId() }),
+      })
+        .then(function (r) {
+          return r.json().then(function (data) {
+            return { okHttp: r.ok, data: data };
+          });
+        })
+        .then(function (pack) {
+          resetEnviarBtn();
+          var data = pack && pack.data;
+          if (!data || !data.ok) {
+            if (data && data.precisa_pin && typeof window.gmSspinGarantirOperador === 'function') {
+              window.gmSspinGarantirOperador(function () {
+                enviar({ preventDefault: function () {} });
+              }, { titulo: 'PIN para o chat' });
+              return;
+            }
+            setStatus((data && data.erro) || 'Não enviou');
+            return;
+          }
+          if (dom.input) dom.input.value = '';
+          appendNew([data.mensagem], false);
+          saveSeen(lastId);
+          syncBadge(0);
+          if (dom.input) dom.input.focus();
+        })
+        .catch(function () {
+          resetEnviarBtn();
+          setStatus('Sem rede');
         });
-      })
-      .then(function (pack) {
-        resetEnviarBtn();
-        var data = pack && pack.data;
-        if (!data || !data.ok) {
-          setStatus((data && data.erro) || 'Não enviou');
-          return;
-        }
-        if (dom.input) dom.input.value = '';
-        appendNew([data.mensagem], false);
-        saveSeen(lastId);
-        syncBadge(0);
-        if (dom.input) dom.input.focus();
-      })
-      .catch(function () {
-        resetEnviarBtn();
-        setStatus('Sem rede');
-      });
+    };
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(doSend, { titulo: 'PIN para o chat' });
+    } else {
+      doSend();
+    }
   }
 
   if (dom.btnOpen) {

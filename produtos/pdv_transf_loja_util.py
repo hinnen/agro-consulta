@@ -1,6 +1,7 @@
 """Solicitação de transferência entre lojas no PDV (Centro ↔ Vila)."""
 from __future__ import annotations
 
+import time
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth import get_user_model
@@ -14,6 +15,11 @@ from estoque.models import (
 )
 from produtos.caixa_util import operador_label_de_pin, usuario_django_de_pin
 from produtos.pdv_deposito_util import DEPOSITOS_VALIDOS, normalizar_deposito, rotulo_deposito
+
+# Identidade do operador para ações (venda, Pedir, chat…): NÃO renova com mouse.
+PDV_OPERADOR_FRESCO_TTL_S = 45
+PDV_OPERADOR_FRESCO_KEY = "pdv_operador_fresco_em"
+MSG_PIN_PDV_ACAO = "Entre com o PIN no PDV para registrar a ação."
 
 STATUS_PENDENTE = SolicitacaoTransferenciaPdv.STATUS_PENDENTE
 STATUS_ACEITO = SolicitacaoTransferenciaPdv.STATUS_ACEITO
@@ -88,6 +94,66 @@ def _parse_decimal(valor) -> Decimal | None:
         return None
 
 
+def marcar_operador_pdv_fresco(request) -> None:
+    """Marca o instante do último PIN / ação autenticada (TTL curto)."""
+    try:
+        request.session[PDV_OPERADOR_FRESCO_KEY] = float(time.time())
+        request.session.modified = True
+    except Exception:
+        pass
+
+
+def limpar_operador_pdv_sessao(request) -> None:
+    for key in (
+        "pdv_operador_nome",
+        "pdv_operador_user_id",
+        "pdv_caixa_gerido_operador",
+        PDV_OPERADOR_FRESCO_KEY,
+    ):
+        try:
+            request.session.pop(key, None)
+        except Exception:
+            pass
+    try:
+        request.session.modified = True
+    except Exception:
+        pass
+
+
+def operador_pdv_restante_fresco_s(
+    request, ttl_s: int | None = None
+) -> int:
+    """Segundos restantes da identidade «ainda sou eu». 0 = precisa PIN."""
+    if request is None:
+        return 0
+    label = str(request.session.get("pdv_operador_nome") or "").strip()
+    if not label:
+        return 0
+    ttl = int(ttl_s if ttl_s is not None else PDV_OPERADOR_FRESCO_TTL_S)
+    if ttl <= 0:
+        return 0
+    try:
+        ts = float(request.session.get(PDV_OPERADOR_FRESCO_KEY) or 0)
+    except (TypeError, ValueError):
+        return 0
+    if ts <= 0:
+        return 0
+    left = int(ttl - (time.time() - ts))
+    return max(0, left)
+
+
+def operador_pdv_esta_fresco(request, ttl_s: int | None = None) -> bool:
+    return operador_pdv_restante_fresco_s(request, ttl_s) > 0
+
+
+def renovar_operador_pdv_fresco(request, ttl_s: int | None = None) -> bool:
+    """Renova o TTL só se ainda estiver fresco (ação autenticada)."""
+    if not operador_pdv_esta_fresco(request, ttl_s):
+        return False
+    marcar_operador_pdv_fresco(request)
+    return True
+
+
 def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | None, str]:
     ok, label, err = operador_label_de_pin(pin)
     if not ok:
@@ -103,22 +169,32 @@ def gravar_operador_sessao_pdv(request, pin: str) -> tuple[bool, str, object | N
         request.session["pdv_operador_user_id"] = int(user.pk)
     else:
         request.session.pop("pdv_operador_user_id", None)
+    marcar_operador_pdv_fresco(request)
     request.session.modified = True
     return True, label[:150], user, ""
 
 
+def peek_operador_pdv(request) -> tuple[bool, str]:
+    """Lê operador fresco **sem** renovar o TTL (poll/resumo)."""
+    label = str(request.session.get("pdv_operador_nome") or "").strip()
+    if label and operador_pdv_esta_fresco(request):
+        return True, label[:150]
+    return False, ""
+
+
 def resolver_operador_pdv(request, pin: str = "") -> tuple[bool, str, object | None, str]:
-    """Usa PIN informado ou o operador já logado no PDV (sem redigitar)."""
+    """PIN informado ou operador fresco no PDV (~45s desde PIN/ação). Renova TTL."""
     pin = (pin or "").strip()
     if pin:
         return gravar_operador_sessao_pdv(request, pin)
     label = str(request.session.get("pdv_operador_nome") or "").strip()
-    if not label:
-        return False, "", None, "Entre com o PIN no PDV (botão PIN) para registrar a ação."
+    if not label or not operador_pdv_esta_fresco(request):
+        return False, "", None, MSG_PIN_PDV_ACAO
     uid = request.session.get("pdv_operador_user_id")
     user = None
     if uid:
         user = get_user_model().objects.filter(pk=uid).first()
+    renovar_operador_pdv_fresco(request)
     return True, label[:150], user, ""
 
 

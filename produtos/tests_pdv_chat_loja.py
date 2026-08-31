@@ -16,10 +16,25 @@ class ChatLojaUtilTests(TestCase):
         self.user = User.objects.create_user(username="chatop", password="x")
 
     def _req(self):
+        import time
+
+        from produtos.pdv_transf_loja_util import PDV_OPERADOR_FRESCO_KEY
+
+        req = self.rf.get("/")
+        req.user = self.user
+        req.session = {
+            "pdv_operador_nome": "Chat Op",
+            PDV_OPERADOR_FRESCO_KEY: time.time(),
+        }
+        return req
+
+    def test_criar_sem_pin_bloqueia(self):
         req = self.rf.get("/")
         req.user = self.user
         req.session = {}
-        return req
+        m, err = criar_mensagem(req, texto="oi")
+        self.assertIsNone(m)
+        self.assertIn("PIN", err)
 
     def test_criar_e_listar(self):
         req = self._req()
@@ -27,6 +42,7 @@ class ChatLojaUtilTests(TestCase):
         self.assertEqual(err, "")
         self.assertIsNotNone(m)
         self.assertEqual(m.texto, "oi loja")
+        self.assertEqual(m.autor_nome, "Chat Op")
         rows = listar_mensagens(after_id=0, limit=10)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["texto"], "oi loja")

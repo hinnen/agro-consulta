@@ -59,14 +59,7 @@ def resolver_autor_chat(request: HttpRequest, payload: dict | None = None) -> st
             return str(label).strip()[:120]
     except Exception:
         pass
-    u = getattr(request, "user", None)
-    if u is not None and getattr(u, "is_authenticated", False):
-        nome = (u.get_full_name() or "").strip() or (
-            u.get_username() if hasattr(u, "get_username") else ""
-        )
-        if nome:
-            return str(nome).strip()[:120]
-    return "Alguém"
+    return ""
 
 
 def serializar_mensagem(m: ChatLojaMensagemAgro) -> dict:
@@ -118,8 +111,18 @@ def criar_mensagem(
         return None, "Digite uma mensagem."
     if len(t) > TEXTO_MAX:
         return None, f"Máximo {TEXTO_MAX} caracteres."
+    pin = ""
+    if isinstance(payload, dict):
+        pin = str(payload.get("pin") or "").strip()
+    try:
+        from produtos.pdv_transf_loja_util import MSG_PIN_PDV_ACAO, resolver_operador_pdv
+
+        ok, autor, _user, err = resolver_operador_pdv(request, pin)
+        if not ok or not autor:
+            return None, err or MSG_PIN_PDV_ACAO
+    except Exception:
+        return None, "Entre com o PIN no PDV para registrar a ação."
     origem = resolver_origem_chat(request)
-    autor = resolver_autor_chat(request, payload)
     m = ChatLojaMensagemAgro.objects.create(
         canal=CANAL,
         texto=t[:TEXTO_MAX],

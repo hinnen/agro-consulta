@@ -209,6 +209,12 @@
   }
 
   function abrirPin() {
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(function () {
+        refreshResumo({ aposPin: true });
+      }, { titulo: 'PIN do PDV' });
+      return;
+    }
     if (typeof window.gmSspinAbrirEntrada === 'function') window.gmSspinAbrirEntrada();
   }
 
@@ -679,6 +685,18 @@
       }
       return;
     }
+    var doEnviar = function () {
+      enviarPedidoExec();
+    };
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(doEnviar, { titulo: 'PIN para Pedir loja' });
+    } else {
+      doEnviar();
+    }
+  }
+
+  function enviarPedidoExec() {
+    if (busy) return;
     var url = urls.apiPdvTransfLojaCriar;
     if (!url) return;
     busy = true;
@@ -725,6 +743,11 @@
         if (res.data && res.data.precisa_pin) {
           setPinAviso(true);
           setStatus(res.data.erro || 'Entre com o PIN.', true);
+          if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(function () {
+              enviarPedidoExec();
+            }, { titulo: 'PIN para Pedir loja' });
+          }
           return;
         }
         if (!res.ok || !res.data || !res.data.ok) {
@@ -1001,6 +1024,18 @@
 
   function postAcao(id, acao, extra) {
     if (busy) return;
+    var run = function () {
+      postAcaoExec(id, acao, extra);
+    };
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(run, { titulo: 'PIN para Pedir loja' });
+    } else {
+      run();
+    }
+  }
+
+  function postAcaoExec(id, acao, extra) {
+    if (busy) return;
     var pattern = urls.apiPdvTransfLojaAcaoPattern || '';
     var url = pattern.replace('__pk__', String(id));
     if (!url) return;
@@ -1027,6 +1062,11 @@
         if (res.data && res.data.precisa_pin) {
           setPinAviso(true);
           setStatus(res.data.erro || 'Entre com o PIN.', true);
+          if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(function () {
+              postAcaoExec(id, acao, extra);
+            }, { titulo: 'PIN para Pedir loja' });
+          }
           return;
         }
         if (!res.ok || !res.data || !res.data.ok) {
