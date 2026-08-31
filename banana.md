@@ -1285,7 +1285,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | evento global só atualiza badge; popup só no PIN do Pedir loja (`abrirPin`) |
 | **Prova** | `verify_pdv_pedir_loja.py` **70/70** · pin-na-acao **67/67** |
 | **Status** | ✅ em `teste` **v20.28** · **ainda NÃO** loja — precisa frase+senha |
-| **Smoke loja** | healthz **200** · badge **v20.22** · JS live ainda com bug (confirmado) |
+| **Smoke loja** | healthz **200** · badge **v20.22** · JS live ainda com bug (confirmado) · teste PIN no PDV (31/08): evento `gm-sspin-operador` abre popup «tem pedido» com resumo mock · fresco ~45s OK · abrir PDV sem PIN OK |
+
 
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
