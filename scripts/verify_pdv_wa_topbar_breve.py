@@ -54,6 +54,7 @@ def main():
     check("html_sr_only", "sr-only" in html and "WhatsApp" in html)
     check("html_classe_wa", "pdv-wiz-topbar-btn--wa" in html)
     check("html_css_wa", ".pdv-wiz-topbar-btn--wa" in html)
+    check("html_cor_oficial", "#25D366" in html and "color: #fff" in html)
     check("html_overlay", 'id="pdv-wa-em-breve"' in html)
     check("html_titulo_breve", "Em breve" in html)
     check("html_ok", 'id="pdv-wa-em-breve-ok"' in html)
