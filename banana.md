@@ -423,7 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · v20.26):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · v20.27):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (1º clique = escolha Pedir × Forçada; não confundir com `/transferencias/`).
@@ -1264,13 +1264,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_pdv_pin_na_acao.py` **67/67** |
 | **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s · espere 45s+ → pede de novo |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.25**)
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.27**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-PIN-NA-ACAO` | 🟡 **pronto para envio** · prova **67/67** | **NÃO** |
 
-**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.25**.
+**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.27**.
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
