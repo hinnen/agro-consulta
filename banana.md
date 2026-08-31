@@ -1264,7 +1264,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.42**)
+### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.43**)
 
 | Pacote | O quê (1 linha) | Prova | Migrate |
 | ------ | --------------- | ----- | ------- |
@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Você (PDV topbar):** Ctrl+F5 · badge tip · **Mais ⋯** → Organizar (lista Quente/Frio) · Salvar com PIN.
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.41**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.43**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
