@@ -1264,26 +1264,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.43**)
+### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.44**)
 
 | Pacote | O quê (1 linha) | Prova | Migrate |
 | ------ | --------------- | ----- | ------- |
 | `PDV-TOPBAR-LAYOUT` | Quente/frio + Fiado quente + **Organizar** (overlay no `body`; PIN ao salvar) | path **29/29** · API GET/POST OK · PIN **9973** válido | **`0110`** |
 | `PDV-TOPBAR-MAIS` | **Mais ⋯** abre (botão+painel) · contagem PG | path **31/31** | **`0107`** |
-| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** (fica no lugar na faixa) | path **35/35** | **NÃO** |
+| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** (não abre o chat) | path **35/35** · Chrome: clique abre · Ok fecha | **NÃO** |
 | `PDV-PIN-CHAT-TEMPEDIDO` | Renovar PIN no chat **não** abre «tem pedido» | path **16/16** | **NÃO** |
 | `REPASSE-FUNDO-TROCO` | Fundo troco gaveta Vila (aviso R$ 500) | **56/56** | **`0106`** |
 | `WA-ATEND-QR` | `/atendimento-whatsapp/` filas+QR · **ainda não** no checklist loja | verify WA | **`0108`+`0109`** |
 
 **Você (PDV topbar):** Ctrl+F5 · badge tip · **Mais ⋯** → Organizar (lista Quente/Frio) · Salvar com PIN.
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.43**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.44**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **29/29** | **SIM** (`0110`) |
 | 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **31/31** | **SIM** (`0107`) |
-| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** · path **35/35** | **NÃO** |
+| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** · path **35/35** · Chrome OK | **NÃO** |
 | 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
 | 5 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · **56/56** | **SIM** (`0106`) |
 
