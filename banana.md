@@ -1260,12 +1260,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ⏳ **PREP pronta** · **SOLO** · aguarda frase + senha · lojas pausam vendas no chat do deploy |
 | **Base loja** | origin/producao @ **v20.21** / 26cb4f9 |
-| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge 	este inteiro) |
-| **Cherry** | 173de5 (+ prova detalhada no PREP) |
+| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge teste inteiro) |
+| **Cherry** | a173de5 (+ prova detalhada no PREP) |
 | **Migrate** | **NÃO** |
 | **Prova** | scripts/verify_pdv_pin_na_acao.py **67/67** |
-| **Rollback** | tag 
-ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md · **só** frase+senha |
+| **Rollback** | tag rollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md · **só** frase+senha |
 | **Risco venda** | Baixo-médio — Confirmar/Pedir/chat pedem PIN fresco (~45s). Consulta livre. Ctrl+F5. |
 | **Você no deploy** | Pausar vendas → frase+senha → Ctrl+F5 → 1 venda com PIN → Pedir/chat |
 
@@ -1291,8 +1290,7 @@ ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md · 
 | **Antes** | Live **v20.01** @ e7f8154 |
 | **Agora** | PREP deploy/prep-nfce-csrf-v2007 · VERSION **20.07** |
 | **Pacote** | NFCE-REEMIT-CSRF |
-| **Rollback** | tag 
-ollback/pre-nfce-csrf-v20.01 @ e7f8154 · branch producao-backup-pre-v2007-nfce-csrf-20260830 · docs/ROLLBACK-NFCE-CSRF-V2007.md · **só** frase+senha |
+| **Rollback** | tag rollback/pre-nfce-csrf-v20.01 @ e7f8154 · branch producao-backup-pre-v2007-nfce-csrf-20260830 · docs/ROLLBACK-NFCE-CSRF-V2007.md · **só** frase+senha |
 | **Prova** | path **70/70** · Django **13/13** |
 | **Você** | **Ctrl+F5** /vendas/ · badge **v20.07** · Reemitir #6507 **1×** |
 
@@ -1309,8 +1307,7 @@ ollback/pre-nfce-csrf-v20.01 @ e7f8154 · branch producao-backup-pre-v2007-nfce-
 | Campo | Valor |
 | ----- | ----- |
 | **Status** | ✅ **Live v20.01** (base deste CSRF) |
-| **Rollback stamp** | tag 
-ollback/pre-nfce-stamp-first-v19.97 · docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md |
+| **Rollback stamp** | tag rollback/pre-nfce-stamp-first-v19.97 · docs/ROLLBACK-NFCE-STAMP-FIRST-V2001.md |
 
 ### ✨ PDV Pedir × Transferência forçada (`PDV-TRANSF-FORCADA` · **v19.83**) · 30/08/2026
 
@@ -4290,8 +4287,7 @@ Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** n
 | **Diff** | **16 arquivos** / +2011 · FL-008 preservado |
 | **Prova** | 21/21 + VERIFY_OK na branch isolada |
 | **Migrate** | **NÃO** |
-| **Rollback** | git push origin a0f0db2:producao · tag 
-ollback/pre-pdv-cad-rapido-v13.81 |
+| **Rollback** | git push origin a0f0db2:producao · tag rollback/pre-pdv-cad-rapido-v13.81 |
 | **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
 | **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
 
@@ -4331,7 +4327,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | ---- | ------- |
 | **Status** | ✅ **Live loja v13.81** · 3381d0d |
 | **Inclui** | + Novo/Produto · Cosmos/OFF · NCM silencioso · foto se existir · card **PDV conferir** · modal **?** · busca maior |
-| **Rollback** | 0f0db2 / 
+| **Rollback** | a0f0db2 / 
 ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### ⚠️ Lembrete — NÃO subir 	este inteiro
@@ -4340,7 +4336,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP · **histórico**
 
-Base antes do PDV-CAD: 0f0db2.
+Base antes do PDV-CAD: a0f0db2.
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
 
