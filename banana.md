@@ -1265,50 +1265,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 31/08b (`deploy/prep-checklist-3108b` · **v20.49**) · aguarda senha
+### ✅ Deploy loja — lote checklist 31/08b (`deploy/prep-checklist-3108b` · **v20.49**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
-| **Base loja** | `origin/producao` @ **v20.45** / `18fc7d1` |
-| **Branch PREP** | `deploy/prep-checklist-3108b` @ **`31941b8`** · tip **v20.49** |
+| **Status** | ✅ **enviado / Live v20.49** — healthz **ok** · home/consulta/PDV **200** · badge **v20.49** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v20.45** / `18fc7d1` |
+| **Agora** | `producao` @ **`31941b8`** |
 | **Pacotes** | `PDV-WA-COR` · `REPASSE-ARREDONDA-COFRE` |
 | **Fora** | `WA-ATEND-QR` · `BI-META-C-VILA-RAMP` |
 | **Migrate** | **NÃO** |
-| **Provas** | WA **36/36** · arredonda **41/41** · cofrinho **35/35** · overlay **188** |
 | **Rollback** | tag `rollback/pre-lote-checklist-3108b-v20.45` @ `18fc7d1` · branch `producao-backup-pre-v2049-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md` · **só** frase+senha |
-| **Risco loja aberta** | Só CSS Zap verde · Repasse arredonda campos · **não** muda finalizar venda |
-| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-3108b` · pausar vendas ~2–3 min · Zap · healthz · badge **v20.49** · Ctrl+F5 |
-| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+| **Você** | **Ctrl+F5** nos PDVs · badge **v20.49** · smoke: Zap verde · Repasse 50/100 |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08b · tip **v20.49**) · PREP `31941b8`
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PDV-WA-COR` | 🟡 PREP / aguarda senha · **36/36** | **NÃO** |
-| 2 | `REPASSE-ARREDONDA-COFRE` | 🟡 PREP / aguarda senha · **41/41** | **NÃO** |
-
-### ~~📦 PACOTE PRONTO — tip v20.49~~ · **superado pelo PREP acima**
-
-### 📦 PACOTE PRONTO — o que ainda falta subir (tip **v20.49** · 31/08)
-
-| # | Pacote | O quê | Migrate |
-| - | ------ | ----- | ------- |
-| 1 | `PDV-WA-COR` | Zap do PDV verde oficial **#25D366** (loja v20.45 ainda cinza) | **NÃO** |
-| 2 | `REPASSE-ARREDONDA-COFRE` | 3 campos aceitam o valor (pra menos = falta amanhã · pra mais = acumulado negativo) | **NÃO** |
-
-**Fora:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`. **Prova:** WA **36/36** · arredonda path **41/41** · cofrinho **35/35** · overlay **188** · PIN loja OK. **Loja hoje:** **v20.45**.
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · loja **v20.45** → tip **v20.49**)
+### ✅ CHECKLIST ÚNICO — enviado produção (31/08b · loja **v20.49**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
-| 1 | `PDV-WA-COR` | 🟡 **pronto para envio à produção** |
-| 2 | `REPASSE-ARREDONDA-COFRE` | 🟡 **pronto para envio à produção** |
+| 1 | `PDV-WA-COR` | ✅ **Live v20.49** |
+| 2 | `REPASSE-ARREDONDA-COFRE` | ✅ **Live v20.49** |
 
-Sobe **só** com frase + senha. Smoke: Ctrl+F5 PDV · Zap verde · Repasse 50 e 100.
+### ~~🚀 PREP deploy loja — lote checklist 31/08b~~ · **superado — Live v20.49 @ 31941b8**
 
-### ~~✅ CHECKLIST ÚNICO — tip v20.49 (cópia)~~ · **ver PREP + CHECKLIST no topo**
+### ~~📦 PACOTE PRONTO — tip v20.49~~ · **superado — Live v20.49**
+
+### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 
 ### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 

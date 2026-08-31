@@ -295,14 +295,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 16. Checklist único — lote 31/08b (loja alvo **v20.49**)
+## 16. Checklist único — lote 31/08b (loja **v20.49**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-WA-COR** | 🟡 PREP / aguarda senha · **36/36** | **NÃO** |
-| 2 | **REPASSE-ARREDONDA-COFRE** | 🟡 PREP / aguarda senha · **41/41** | **NÃO** |
+| 1 | **PDV-WA-COR** | ✅ **Live v20.49** | **NÃO** |
+| 2 | **REPASSE-ARREDONDA-COFRE** | ✅ **Live v20.49** | **NÃO** |
 
-**PREP:** `deploy/prep-checklist-3108b` @ `31941b8` · base loja **v20.45** `18fc7d1`.  
-**Fora:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.  
-**Rollback:** tag `rollback/pre-lote-checklist-3108b-v20.45` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md`.  
-**Deploy:** só frase + senha · pausar vendas · Ctrl+F5 · smoke Zap verde · Repasse 50/100.
+**Status: enviado / Live v20.49.** `producao` @ `31941b8`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3108b-v20.45` @ `18fc7d1` · branch `producao-backup-pre-v2049-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v20.49** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.
