@@ -1254,25 +1254,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — PIN na ação (deploy/prep-pin-na-acao-v2027 · **v20.22**) · 31/08/2026
+### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⏳ **PREP pronta** · **SOLO** · aguarda frase + senha no próximo chat |
-| **Branch** | deploy/prep-pin-na-acao-v2027 @ tip PREP |
-| **Base loja** | origin/producao @ **v20.21** / 26cb4f9 |
-| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge teste inteiro) |
-| **Migrate** | **NÃO** |
-| **Prova** | scripts/verify_pdv_pin_na_acao.py **67/67** (revalidado) |
-| **Rollback** | tag rollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md |
-| **Risco venda** | Baixo-médio — PIN no Confirmar/Pedir/chat; consulta livre; Ctrl+F5 |
-| **Próximo chat** | Lojas pausam vendas → frase + senha 99738595 → merge PREP em producao |
+| **Status** | ✅ **enviado / Live v20.22** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v20.21** @ `26cb4f9` |
+| **Agora** | `producao` @ `75779df` |
+| **Pacote** | `PDV-PIN-NA-ACAO` (SOLO) |
+| **Branch PREP** | `deploy/prep-pin-na-acao-v2027` |
+| **Rollback** | tag `rollback/pre-pin-na-acao-v20.21` @ `26cb4f9` · branch `producao-backup-pre-v2022-pin-na-acao-20260831` · `docs/ROLLBACK-PDV-PIN-NA-ACAO.md` · **só** frase+senha |
+| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **67/67** |
+| **Você** | **Ctrl+F5** PDVs · badge **v20.22** · consulta sem PIN · Confirmar → PIN · Pedir/chat |
 
-### ✅ CHECKLIST ÚNICO — PREP SOLO pronto envio (31/08 · loja **v20.21** → **v20.22**)
+### ✅ CHECKLIST ÚNICO — enviado produção (31/08 · loja **v20.22**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | PDV-PIN-NA-ACAO | ⏳ **PREP pronta** · prova **67/67** | **NÃO** |
+| 1 | `PDV-PIN-NA-ACAO` | ✅ **Live v20.22** · prova **67/67** | **NÃO** |
+
+### ~~🚀 PREP deploy loja — PIN na ação~~ · **superado — Live v20.22 @ 75779df**
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
