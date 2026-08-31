@@ -1265,27 +1265,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — WhatsApp cor oficial (`PDV-WA-COR` · 31/08/2026)
+### 📦 PACOTE PRONTO — o que ainda falta subir (tip **v20.48** · 31/08)
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Botão PDV verde **#25D366** · ícone branco (cor padrão do Zap) |
-| **Onde** | `pdv_wizard.html` (compact + base; a faixa branca não “lava” mais o botão) |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_wa_topbar_breve.py` 36/36 |
-| **Você** | Ctrl+F5 no PDV · o Zap fica verde, não cinza |
-| **Status** | 🟡 `teste` **v20.48** · loja ainda **v20.45** (botão lá está clarinho) |
+| # | Pacote | O quê | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | `PDV-WA-COR` | Zap do PDV verde oficial **#25D366** (loja v20.45 ainda cinza) | **NÃO** |
+| 2 | `REPASSE-ARREDONDA-COFRE` | Cofres aceitam o valor digitado (pra mais = crédito amanhã) | **NÃO** |
 
-### 📦 PACOTE PRONTO — Arredondar cofres do repasse (`REPASSE-ARREDONDA-COFRE` · **v20.47** · 31/08/2026)
+**Fora:** `WA-ATEND-QR` (chat QR) · `BI-META-C-VILA-RAMP`. **Prova:** WA **36/36** · Chrome verde + «Em breve». **Loja hoje:** **v20.45**.
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Digitar qualquer valor nos 3 campos (Salário · Vila Elias · Levar ao Centro). Pra menos = falta amanhã. Pra mais = acumulado negativo / crédito no dia seguinte. |
-| **Bug** | Tela barrava «maior que o pendente» (ex. 100 no lugar de 66,43). |
-| **Prova** | `verify_repasse_cofrinho` **35/35** (100 > 66,43 → crédito 33,57 → amanhã 32,86). |
-| **Migrate** | **NÃO** |
-| **Você** | Ctrl+F5 PDV · Repasse · digite 50 e 100 · Confirmar. |
-| **Status** | **v20.47** no `teste` — aguarda validação local |
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.45** → tip **v20.48**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-WA-COR` | 🟡 **pronto para envio à produção** |
+| 2 | `REPASSE-ARREDONDA-COFRE` | 🟡 **pronto para envio à produção** |
+
+Sobe **só** com frase + senha. Smoke: Ctrl+F5 PDV · Zap verde · Repasse 50 e 100.
 
 ### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 
