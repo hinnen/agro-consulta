@@ -1261,11 +1261,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ⏳ **PREP pronta** · **SOLO** · aguarda frase + senha no próximo chat |
 | **Branch** | deploy/prep-pin-na-acao-v2027 @ tip PREP |
 | **Base loja** | origin/producao @ **v20.21** / 26cb4f9 |
-| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge 	este inteiro) |
+| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge teste inteiro) |
 | **Migrate** | **NÃO** |
 | **Prova** | scripts/verify_pdv_pin_na_acao.py **67/67** (revalidado) |
-| **Rollback** | tag 
-ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md |
+| **Rollback** | tag rollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md |
 | **Risco venda** | Baixo-médio — PIN no Confirmar/Pedir/chat; consulta livre; Ctrl+F5 |
 | **Próximo chat** | Lojas pausam vendas → frase + senha 99738595 → merge PREP em producao |
 
@@ -4352,8 +4351,7 @@ Renan montou lista civil (giro alto / médio / baixo). Conferido **giro alto** n
 | **Diff** | **16 arquivos** / +2011 · FL-008 preservado |
 | **Prova** | 21/21 + VERIFY_OK na branch isolada |
 | **Migrate** | **NÃO** |
-| **Rollback** | git push origin a0f0db2:producao · tag 
-ollback/pre-pdv-cad-rapido-v13.81 |
+| **Rollback** | git push origin a0f0db2:producao · tag rollback/pre-pdv-cad-rapido-v13.81 |
 | **Você** | Ctrl+F5 PDV · busca · **+ Novo Produto** · Cadastro **PDV conferir** · 1 venda |
 | **Cosmos** | opcional no Render: AGRO_COSMOS_TOKEN |
 
@@ -4393,7 +4391,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 | ---- | ------- |
 | **Status** | ✅ **Live loja v13.81** · 3381d0d |
 | **Inclui** | + Novo/Produto · Cosmos/OFF · NCM silencioso · foto se existir · card **PDV conferir** · modal **?** · busca maior |
-| **Rollback** | 0f0db2 / 
+| **Rollback** | 0f0db2 / 
 ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### ⚠️ Lembrete — NÃO subir 	este inteiro
@@ -4402,7 +4400,7 @@ ollback/pre-pdv-cad-rapido-v13.81 |
 
 ### ✅ Deploy loja **v13.80** — lote CAD/NF + DSP · **histórico**
 
-Base antes do PDV-CAD: 0f0db2.
+Base antes do PDV-CAD: 0f0db2.
 
 ### 🚀 DEPLOY PRONTO — lote CAD/NF + Dispenser (`deploy/lote-cad-nf-dsp-v13.80` · 03/08) · **enviado**
 
