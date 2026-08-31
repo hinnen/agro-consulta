@@ -292,3 +292,17 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v20.45.** `producao` @ `18fc7d1`.  
 **Rollback:** tag `rollback/pre-lote-checklist-3108-v20.22` @ `75779df` · branch `producao-backup-pre-v2045-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md` · **só** frase+senha.  
 **Smoke:** healthz ok · badge **v20.45** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 16. Checklist único — lote 31/08b (loja alvo **v20.49**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-WA-COR** | 🟡 PREP / aguarda senha · **36/36** | **NÃO** |
+| 2 | **REPASSE-ARREDONDA-COFRE** | 🟡 PREP / aguarda senha · **41/41** | **NÃO** |
+
+**PREP:** `deploy/prep-checklist-3108b` @ `31941b8` · base loja **v20.45** `18fc7d1`.  
+**Fora:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3108b-v20.45` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md`.  
+**Deploy:** só frase + senha · pausar vendas · Ctrl+F5 · smoke Zap verde · Repasse 50/100.

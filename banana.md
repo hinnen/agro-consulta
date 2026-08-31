@@ -1265,6 +1265,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 31/08b (`deploy/prep-checklist-3108b` · **v20.49**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
+| **Base loja** | `origin/producao` @ **v20.45** / `18fc7d1` |
+| **Branch PREP** | `deploy/prep-checklist-3108b` @ **`31941b8`** · tip **v20.49** |
+| **Pacotes** | `PDV-WA-COR` · `REPASSE-ARREDONDA-COFRE` |
+| **Fora** | `WA-ATEND-QR` · `BI-META-C-VILA-RAMP` |
+| **Migrate** | **NÃO** |
+| **Provas** | WA **36/36** · arredonda **41/41** · cofrinho **35/35** · overlay **188** |
+| **Rollback** | tag `rollback/pre-lote-checklist-3108b-v20.45` @ `18fc7d1` · branch `producao-backup-pre-v2049-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md` · **só** frase+senha |
+| **Risco loja aberta** | Só CSS Zap verde · Repasse arredonda campos · **não** muda finalizar venda |
+| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-3108b` · pausar vendas ~2–3 min · Zap · healthz · badge **v20.49** · Ctrl+F5 |
+| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08b · tip **v20.49**) · PREP `31941b8`
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-WA-COR` | 🟡 PREP / aguarda senha · **36/36** | **NÃO** |
+| 2 | `REPASSE-ARREDONDA-COFRE` | 🟡 PREP / aguarda senha · **41/41** | **NÃO** |
+
+### ~~📦 PACOTE PRONTO — tip v20.49~~ · **superado pelo PREP acima**
+
 ### 📦 PACOTE PRONTO — o que ainda falta subir (tip **v20.49** · 31/08)
 
 | # | Pacote | O quê | Migrate |
@@ -1282,6 +1307,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `REPASSE-ARREDONDA-COFRE` | 🟡 **pronto para envio à produção** |
 
 Sobe **só** com frase + senha. Smoke: Ctrl+F5 PDV · Zap verde · Repasse 50 e 100.
+
+### ~~✅ CHECKLIST ÚNICO — tip v20.49 (cópia)~~ · **ver PREP + CHECKLIST no topo**
 
 ### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 
