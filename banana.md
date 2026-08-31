@@ -1253,7 +1253,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Promo regra vs tabela (`PROMO-REGRA-TABELA-SAVE` · **v20.12** · 31/08/2026)
+### 📦 PACOTE PRONTO — Promo regra vs tabela (`PROMO-REGRA-TABELA-SAVE` · **v20.13** · 31/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
