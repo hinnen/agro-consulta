@@ -26254,11 +26254,25 @@ def api_pdv_deposito(request):
 
 
 def api_pdv_registrar_operador(request):
-    """Sessão do operador PDV: GET lê; POST limpa ou grava após validar PIN no RH."""
-    if request.method == "GET":
-        op = str(request.session.get("pdv_operador_nome") or "").strip()
-        return JsonResponse({"ok": True, "operador": op})
+    """Sessão do operador PDV: GET lê (só se fresco); POST limpa, renova ou grava PIN."""
+    from produtos.pdv_transf_loja_util import (
+        limpar_operador_pdv_sessao,
+        operador_pdv_restante_fresco_s,
+        renovar_operador_pdv_fresco,
+    )
 
+    if request.method == "GET":
+        restante = operador_pdv_restante_fresco_s(request)
+        fresco = restante > 0
+        op = str(request.session.get("pdv_operador_nome") or "").strip() if fresco else ""
+        return JsonResponse(
+            {
+                "ok": True,
+                "operador": op,
+                "fresco": fresco,
+                "restante_s": restante,
+            }
+        )
 
     try:
         data = json.loads(request.body.decode("utf-8") or "{}")
@@ -26266,6 +26280,7 @@ def api_pdv_registrar_operador(request):
         data = {}
     pin = str(data.get("pin") or "").strip()
     op_req = str(data.get("operador") or data.get("operador_pdv") or "").strip()
+    renovar = bool(data.get("renovar") or data.get("touch"))
 
     if pin:
         from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
@@ -26273,14 +26288,41 @@ def api_pdv_registrar_operador(request):
         ok_pin, label, _user, err_pin = gravar_operador_sessao_pdv(request, pin)
         if not ok_pin:
             return JsonResponse({"ok": False, "erro": err_pin}, status=403)
-        return JsonResponse({"ok": True, "operador": label[:120]})
+        return JsonResponse(
+            {
+                "ok": True,
+                "operador": label[:120],
+                "fresco": True,
+                "restante_s": operador_pdv_restante_fresco_s(request),
+            }
+        )
+
+    if renovar:
+        if renovar_operador_pdv_fresco(request):
+            return JsonResponse(
+                {
+                    "ok": True,
+                    "operador": str(request.session.get("pdv_operador_nome") or "").strip()[:120],
+                    "fresco": True,
+                    "restante_s": operador_pdv_restante_fresco_s(request),
+                }
+            )
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": "Identifique-se com o PIN antes de continuar.",
+                "precisa_pin": True,
+                "fresco": False,
+                "restante_s": 0,
+            },
+            status=403,
+        )
 
     if not op_req:
-        request.session.pop("pdv_operador_nome", None)
-        request.session.pop("pdv_operador_user_id", None)
-        request.session.pop("pdv_caixa_gerido_operador", None)
-        request.session.modified = True
-        return JsonResponse({"ok": True, "operador": ""})
+        limpar_operador_pdv_sessao(request)
+        return JsonResponse(
+            {"ok": True, "operador": "", "fresco": False, "restante_s": 0}
+        )
 
     return JsonResponse(
         {

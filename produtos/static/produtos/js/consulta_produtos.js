@@ -2093,6 +2093,15 @@ async function pdvEnviarOrcamentoErpCarrinho() {
     if (!url) {
         return alert('URL do ERP não configurada no bootstrap.');
     }
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+        const pinOk = await new Promise(function (resolve) {
+            window.gmSspinGarantirOperador(function () {
+                resolve(true);
+            }, { titulo: 'PIN para confirmar a venda' });
+            /* Se abandonar o PIN, a Promise fica pendente — ok (não envia). */
+        });
+        if (!pinOk) return;
+    }
     salvarHistoricoLocal();
     const payload = { cliente: nomeClientePdv(), itens: carrinho };
     if (clienteSelecionado && clienteSelecionado.id) {

@@ -125,7 +125,10 @@ def check_static() -> None:
         check("MSG_PIN_OPERADOR_OBRIGATORIO" in m3.group(0), "adotar caixa pede PIN")
 
     check("pdv_caixa_gerido_operador" in transf and "pdv_operador_nome" in transf, "PIN grava gerido+nome")
-    check("pdv_caixa_gerido_operador" in views and 'pop("pdv_caixa_gerido_operador"' in views, "limpa gerido ao sair")
+    check(
+        "limpar_operador_pdv_sessao" in views or 'pop("pdv_caixa_gerido_operador"' in views,
+        "limpa gerido ao sair",
+    )
 
     check("gm_sspin_operador" in bug_js, "bug JS lê PIN localStorage")
     check("agro-user-display" not in bug_js, "bug JS sem meta Chrome")
@@ -147,7 +150,12 @@ def check_runtime() -> None:
     check(operador_label_request(req) == "Geraldo Hinnen", "gerido sozinho ainda conta (sessao)")
     req.session["pdv_operador_nome"] = "Renan"
     check(operador_label_request(req) == "Renan", "PIN descanso vence gerido grudado")
-    check(rotulo_usuario_registro_venda(req, {}) == "Renan", "registro venda usa PIN sessao")
+    # Sem frescor: venda exige PIN de novo
+    check(rotulo_usuario_registro_venda(req, {}) == "", "registro venda sem frescor = vazio")
+    from produtos.pdv_transf_loja_util import marcar_operador_pdv_fresco
+
+    marcar_operador_pdv_fresco(req)
+    check(rotulo_usuario_registro_venda(req, {}) == "Renan", "registro venda usa PIN fresco")
 
     req2 = _req_chrome_geraldo()
     req2.session["ajuste_mobile_operador"] = "Queila"

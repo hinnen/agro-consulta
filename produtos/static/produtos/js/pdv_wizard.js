@@ -10813,49 +10813,64 @@
     }
 
     function confirmSale(withPrint) {
-        if (isFiadoCobrancaAtiva()) {
-            confirmFiadoCobranca();
-            return;
-        }
-        if (isCompraValeCreditoAtiva()) {
-            withPrint = false;
-        }
         if (isProcessingSale) return;
-        var state = State.getState();
-        var computed = State.getComputed();
-        var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
-        if (validation) {
-            alert(validation);
+        var state0 = State.getState();
+        var computed0 = State.getComputed();
+        var validation0 = canAdvance(Object.assign({}, state0, { currentStep: 'pagamento' }), computed0);
+        if (validation0 && !isFiadoCobrancaAtiva() && !isCompraValeCreditoAtiva()) {
+            alert(validation0);
             return;
         }
-        ensureCaixaAbertoParaVenda().then(function (caixaOk) {
-            if (!caixaOk) return;
-            if (withPrint && nfceAtivoNoPdv()) {
-                // Mercado Pago Renan: imprime cupom de venda, sem NFC-e automática.
-                if (nfceVendaUsaMaquinaMpRenan(state)) {
-                    prepararNfceComImpressao('venda');
-                    resolverNfceAntesConfirmar(true);
-                    return;
-                }
-                if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
-                    prepararNfceComImpressao('nfce');
-                    resolverNfceAntesConfirmar(true);
-                    return;
-                }
-                abrirModalEscolhaImpressao(function (escolha) {
-                    if (!escolha) return;
-                    prepararNfceComImpressao(escolha);
-                    resolverNfceAntesConfirmar(true);
-                });
+        var runConfirm = function () {
+            if (isFiadoCobrancaAtiva()) {
+                confirmFiadoCobranca();
                 return;
             }
-            if (withPrint) {
-                prepararNfceComImpressao('venda');
-            } else {
-                prepararNfceSemImpressao();
+            if (isCompraValeCreditoAtiva()) {
+                withPrint = false;
             }
-            resolverNfceAntesConfirmar(!!withPrint);
-        });
+            if (isProcessingSale) return;
+            var state = State.getState();
+            var computed = State.getComputed();
+            var validation = canAdvance(Object.assign({}, state, { currentStep: 'pagamento' }), computed);
+            if (validation) {
+                alert(validation);
+                return;
+            }
+            ensureCaixaAbertoParaVenda().then(function (caixaOk) {
+                if (!caixaOk) return;
+                if (withPrint && nfceAtivoNoPdv()) {
+                    // Mercado Pago Renan: imprime cupom de venda, sem NFC-e automática.
+                    if (nfceVendaUsaMaquinaMpRenan(state)) {
+                        prepararNfceComImpressao('venda');
+                        resolverNfceAntesConfirmar(true);
+                        return;
+                    }
+                    if (nfceModoGlobalAuto() || nfceVendaTemFormaAuto(state)) {
+                        prepararNfceComImpressao('nfce');
+                        resolverNfceAntesConfirmar(true);
+                        return;
+                    }
+                    abrirModalEscolhaImpressao(function (escolha) {
+                        if (!escolha) return;
+                        prepararNfceComImpressao(escolha);
+                        resolverNfceAntesConfirmar(true);
+                    });
+                    return;
+                }
+                if (withPrint) {
+                    prepararNfceComImpressao('venda');
+                } else {
+                    prepararNfceSemImpressao();
+                }
+                resolverNfceAntesConfirmar(!!withPrint);
+            });
+        };
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+            window.gmSspinGarantirOperador(runConfirm, { titulo: 'PIN para confirmar a venda' });
+        } else {
+            runConfirm();
+        }
     }
 
     function confirmSaleProsseguir(withPrint) {

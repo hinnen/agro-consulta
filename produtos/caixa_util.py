@@ -1513,25 +1513,45 @@ def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
 
 def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
     """
-    Rótulo do vendedor/operador na venda Agro: **só** PIN.
+    Rótulo do vendedor/operador na venda Agro: **só** PIN fresco.
 
-    Ordem: PIN no payload → sessão do último PIN (descanso/caixa/ajuste).
+    Ordem: PIN no payload → sessão com identidade ainda válida (~45s).
     **Não** usa login Chrome nem nome mandado pelo navegador sem PIN validado.
+    Mouse/consulta **não** estendem o frescor.
     """
     data = data if isinstance(data, dict) else {}
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
     if pin:
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        ok, label, _user, _err = gravar_operador_sessao_pdv(request, pin)
+        if ok and label:
+            return label[:150]
         rot = rotulo_operador_pin(pin)
         if rot:
             return rot[:150]
-    return (operador_label_request(request) or "").strip()[:150]
+        return ""
+    try:
+        from produtos.pdv_transf_loja_util import (
+            operador_pdv_esta_fresco,
+            renovar_operador_pdv_fresco,
+        )
+
+        if operador_pdv_esta_fresco(request):
+            rot = (operador_label_request(request) or "").strip()
+            if rot:
+                renovar_operador_pdv_fresco(request)
+                return rot[:150]
+    except Exception:
+        pass
+    return ""
 
 
 def exigir_operador_pin_request(
     request, data: dict | None = None
 ) -> tuple[str, str]:
     """
-    Retorno: ``(rotulo, erro)``. Se sem PIN → rotulo vazio + mensagem para a UI.
+    Retorno: ``(rotulo, erro)``. Se sem PIN fresco → rotulo vazio + mensagem para a UI.
     """
     rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
     if rot:

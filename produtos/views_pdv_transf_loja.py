@@ -17,6 +17,7 @@ from produtos.pdv_transf_loja_util import (
     aplicar_status,
     concluir_transferencia,
     criar_solicitacao,
+    peek_operador_pdv,
     resolver_operador_pdv,
     resumo_loja,
     serializar_solicitacao,
@@ -80,7 +81,7 @@ def api_pdv_transf_loja_saldos(request):
 @require_GET
 def api_pdv_transf_loja_resumo(request):
     loja = _loja_atual(request)
-    ok, label, _user, _err = resolver_operador_pdv(request, "")
+    ok, label = peek_operador_pdv(request)
     return JsonResponse(
         {
             "ok": True,

@@ -423,6 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · v20.22):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08):** badge **Esto: Vila/Centro** · **Saldo Vila** · **Vendas** · botão rosa **Pedir loja** (1º clique = escolha Pedir × Forçada; não confundir com `/transferencias/`).
@@ -1252,6 +1253,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÇÃO
+
+### 🚀 PREP deploy loja — PIN na ação (deploy/prep-pin-na-acao-v2027 · **v20.22**) · 31/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ⏳ **PREP pronta** · **SOLO** · aguarda frase + senha · lojas pausam vendas no chat do deploy |
+| **Base loja** | origin/producao @ **v20.21** / 26cb4f9 |
+| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge 	este inteiro) |
+| **Cherry** | 173de5 (+ prova detalhada no PREP) |
+| **Migrate** | **NÃO** |
+| **Prova** | erify_pdv_pin_na_acao.py **67/67** |
+| **Rollback** | tag 
+ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md · **só** frase+senha |
+| **Risco venda** | Baixo-médio — Confirmar/Pedir/chat pedem PIN fresco (~45s). Consulta livre. Ctrl+F5. |
+| **Você no deploy** | Pausar vendas → frase+senha → Ctrl+F5 → 1 venda com PIN → Pedir/chat |
+
+### ✅ CHECKLIST ÚNICO — PREP SOLO pronto (31/08 · loja **v20.21** → **v20.22**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | PDV-PIN-NA-ACAO | ⏳ PREP · prova **67/67** | **NÃO** |
+
+### ✅ Deploy loja — Chat pisca (deploy/prep-chat-pisca-v2020 · **v20.21**) · **Live** · 31/08/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v20.21** · migrate **NÃO** |
+| **Agora** | producao @ 26cb4f9 |
+| **Pacote** | PDV-CHAT-FAB-PISCA |
 
 ### ✅ Deploy loja — NFC-e CSRF lista (NFCE-REEMIT-CSRF · **v20.07**) · **Live** · 30/08/2026
 

@@ -88,15 +88,44 @@ class PodeAgirTests(SimpleTestCase):
 
 class ResolverOperadorTests(SimpleTestCase):
     def test_sessao_sem_pin(self):
-        from produtos.pdv_transf_loja_util import resolver_operador_pdv
+        import time
 
-        req = SimpleNamespace(session={"pdv_operador_nome": "Maria", "pdv_operador_user_id": None})
+        from produtos.pdv_transf_loja_util import (
+            PDV_OPERADOR_FRESCO_KEY,
+            resolver_operador_pdv,
+        )
+
+        req = SimpleNamespace(
+            session={
+                "pdv_operador_nome": "Maria",
+                "pdv_operador_user_id": None,
+                PDV_OPERADOR_FRESCO_KEY: time.time(),
+            }
+        )
         with patch("produtos.pdv_transf_loja_util.get_user_model"):
             ok, label, user, err = resolver_operador_pdv(req, "")
         self.assertTrue(ok)
         self.assertEqual(label, "Maria")
         self.assertIsNone(user)
         self.assertEqual(err, "")
+
+    def test_sessao_expirada_pede_pin(self):
+        import time
+
+        from produtos.pdv_transf_loja_util import (
+            PDV_OPERADOR_FRESCO_KEY,
+            resolver_operador_pdv,
+        )
+
+        req = SimpleNamespace(
+            session={
+                "pdv_operador_nome": "Maria",
+                PDV_OPERADOR_FRESCO_KEY: time.time() - 120,
+            }
+        )
+        ok, label, user, err = resolver_operador_pdv(req, "")
+        self.assertFalse(ok)
+        self.assertIn("PIN", err)
 
     def test_sem_sessao_pede_pin(self):
         from produtos.pdv_transf_loja_util import resolver_operador_pdv
@@ -279,7 +308,10 @@ class ApiViewsTests(SimpleTestCase):
                 data=b'{"itens":[{"produto_id":"X","nome":"Milho","quantidade":2}]}',
                 content_type="application/json",
             ),
-            session={"pdv_operador_nome": "Maria"},
+            session={
+                "pdv_operador_nome": "Maria",
+                "pdv_operador_fresco_em": __import__("time").time(),
+            },
         )
         with patch(
             "produtos.views_pdv_transf_loja.bootstrap_deposito",
