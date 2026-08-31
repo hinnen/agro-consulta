@@ -1254,7 +1254,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.26**) · 31/08/2026
+### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.27**) · 31/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
