@@ -1253,6 +1253,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Chat PDV maior + alerta (`PDV-CHAT-FAB-UX` · **v20.15** · 31/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Aba Chat um pouco maior · mensagem nova = laranja + badge pulsando |
+| **Arquivos** | `chat_loja_overlay.html` · `pdv_chat_loja.js` |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 no PDV · mandar msg de outro PC |
+
 ### 📦 PACOTE PRONTO — Promo regra vs tabela (`PROMO-REGRA-TABELA-SAVE` · **v20.13** · 31/08/2026)
 
 | Item | Detalhe |
@@ -1264,7 +1273,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v20.07** |
 | **Você** | Ctrl+F5 · editar promo · salvar · reabrir |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → tip **v20.12**)
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → tip **v20.13**)
 
 | # | Pacote | Status |
 | - | ------ | ------ |
