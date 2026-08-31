@@ -1263,7 +1263,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Pacote** | PDV-PIN-NA-ACAO **só** (não merge 	este inteiro) |
 | **Cherry** | 173de5 (+ prova detalhada no PREP) |
 | **Migrate** | **NÃO** |
-| **Prova** | erify_pdv_pin_na_acao.py **67/67** |
+| **Prova** | scripts/verify_pdv_pin_na_acao.py **67/67** |
 | **Rollback** | tag 
 ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md · **só** frase+senha |
 | **Risco venda** | Baixo-médio — Confirmar/Pedir/chat pedem PIN fresco (~45s). Consulta livre. Ctrl+F5. |
