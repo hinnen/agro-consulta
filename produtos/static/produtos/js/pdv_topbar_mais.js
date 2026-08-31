@@ -1,13 +1,16 @@
 /**
  * PDV topbar — menu Mais ⋯ + contagem de cliques (Postgres).
+ * Botão + painel (não <details>) — evita fechar no mesmo clique e overflow clip.
  */
 (function () {
   'use strict';
 
   var URL_CLIQUE = '/api/pdv/topbar-clique/';
   var root = document.getElementById('pdv-topbar-compact');
-  var mais = document.getElementById('pdv-topbar-mais');
-  if (!root) return;
+  var wrap = document.getElementById('pdv-topbar-mais');
+  var btn = document.getElementById('pdv-topbar-mais-btn');
+  var panel = document.getElementById('pdv-topbar-mais-panel');
+  if (!root || !wrap || !btn || !panel) return;
 
   function csrfToken() {
     try {
@@ -67,24 +70,70 @@
     flushCliques();
   }
 
+  function maisAberto() {
+    return !panel.classList.contains('hidden');
+  }
+
+  var panelHost = panel.parentNode;
+  var panelNoBody = false;
+
+  function posicionarPainel() {
+    var r = btn.getBoundingClientRect();
+    var gap = 6;
+    panel.style.top = Math.round(r.bottom + gap) + 'px';
+    panel.style.right = Math.max(8, Math.round(window.innerWidth - r.right)) + 'px';
+    panel.style.left = 'auto';
+  }
+
   function fecharMais() {
-    if (mais && mais.open) mais.open = false;
+    panel.classList.add('hidden');
+    wrap.removeAttribute('data-open');
+    btn.setAttribute('aria-expanded', 'false');
+    if (panelNoBody && panelHost && panel.parentNode !== panelHost) {
+      panelHost.appendChild(panel);
+      panelNoBody = false;
+    }
     var saldo = document.getElementById('pdv-estoque-vila-menu');
     if (saldo && saldo.open) saldo.open = false;
   }
+
+  function abrirMais() {
+    if (panel.parentNode !== document.body) {
+      document.body.appendChild(panel);
+      panelNoBody = true;
+    }
+    posicionarPainel();
+    panel.classList.remove('hidden');
+    wrap.setAttribute('data-open', '1');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+
+  function toggleMais(ev) {
+    if (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+    }
+    if (maisAberto()) fecharMais();
+    else abrirMais();
+  }
+
+  btn.addEventListener('click', function (ev) {
+    registrarClique('mais');
+    toggleMais(ev);
+  });
 
   root.addEventListener(
     'click',
     function (ev) {
       var keyEl = ev.target && ev.target.closest ? ev.target.closest('[data-pdv-topbar-key]') : null;
-      if (keyEl) {
+      if (keyEl && keyEl.getAttribute('data-pdv-topbar-key') !== 'mais') {
         registrarClique(keyEl.getAttribute('data-pdv-topbar-key'));
       }
-      if (!mais || !mais.open) return;
-      if (ev.target.closest('#pdv-topbar-mais > summary')) return;
+      if (!maisAberto()) return;
+      if (ev.target.closest('#pdv-topbar-mais-btn')) return;
       if (ev.target.closest('#pdv-estoque-vila-menu > summary')) return;
       if (
-        mais.contains(ev.target) &&
+        panel.contains(ev.target) &&
         ev.target.closest('a, button, .pdv-estoque-vila-link')
       ) {
         window.setTimeout(fecharMais, 0);
@@ -94,14 +143,18 @@
   );
 
   document.addEventListener('click', function (ev) {
-    if (!mais || !mais.open) return;
-    if (mais.contains(ev.target)) return;
+    if (!maisAberto()) return;
+    if (wrap.contains(ev.target) || panel.contains(ev.target)) return;
     fecharMais();
   });
 
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && mais && mais.open) {
+    if (ev.key === 'Escape' && maisAberto()) {
       fecharMais();
     }
+  });
+
+  window.addEventListener('resize', function () {
+    if (maisAberto()) posicionarPainel();
   });
 })();

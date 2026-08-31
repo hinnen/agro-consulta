@@ -2126,6 +2126,9 @@
     gap: 0.45rem;
     width: 100%;
     min-width: 0;
+    overflow: visible;
+    position: relative;
+    z-index: 55;
   }
   .pdv-wiz-topbar-stepper-wrap {
     display: flex;
@@ -2336,16 +2339,9 @@
     z-index: 60;
     flex-shrink: 0;
   }
-  #pdv-topbar-mais > summary {
-    list-style: none;
-  }
-  #pdv-topbar-mais > summary::-webkit-details-marker {
-    display: none;
-  }
   .pdv-topbar-mais-panel {
-    position: absolute;
-    right: 0;
-    top: calc(100% + 0.35rem);
+    position: fixed;
+    z-index: 120;
     min-width: min(16.5rem, calc(100vw - 1.25rem));
     width: max-content;
     max-width: min(20rem, calc(100vw - 1.25rem));
@@ -2357,6 +2353,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+  }
+  .pdv-topbar-mais-panel.hidden {
+    display: none !important;
   }
   .pdv-topbar-mais-panel .pdv-wiz-topbar-btn,
   .pdv-topbar-mais-panel #pdv-estoque-vila-menu > summary {
@@ -2470,7 +2469,7 @@
     gap: 0.35rem;
     margin-left: auto;
     max-width: 100%;
-    overflow-x: auto;
+    overflow: visible;
     padding: 0.3rem 0.4rem;
     border: 2px solid #e2e8f0;
     border-radius: 0.95rem;
@@ -3743,12 +3742,12 @@
               </button>
               <a href="{% url 'caixa_painel' %}" id="pdv-topbar-caixa-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="caixa" title="{% if caixa_aberto %}Painel do caixa — turno aberto{% else %}Caixa fechado — abra o turno para vender{% endif %}">{% if caixa_aberto %}{{ caixa_rotulo|default:"Caixa aberto" }}{% else %}Caixa fechado{% endif %}</a>
             </div>
-            <div class="pdv-wiz-topbar-actions pdv-wizard-scroll">
+            <div class="pdv-wiz-topbar-actions">
               <button type="button" id="pdv-topbar-nova-venda-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--amber" data-pdv-topbar-key="nova_venda" title="Descartar venda atual e começar outra · F12">Nova venda <kbd class="ml-0.5 rounded border border-amber-400 bg-white px-1 font-mono text-[9px]">F12</kbd></button>
               <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 max-w-[9rem] truncate" title="Operador com PIN neste computador"></span>
-              <details id="pdv-topbar-mais" class="pdv-topbar-mais">
-                <summary class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate cursor-pointer select-none" data-pdv-topbar-key="mais" title="Mais atalhos do PDV">Mais ⋯</summary>
-                <div class="pdv-topbar-mais-panel" role="menu" aria-label="Mais atalhos do PDV">
+              <div id="pdv-topbar-mais" class="pdv-topbar-mais">
+                <button type="button" id="pdv-topbar-mais-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="mais" aria-expanded="false" aria-controls="pdv-topbar-mais-panel" title="Mais atalhos do PDV">Mais ⋯</button>
+                <div id="pdv-topbar-mais-panel" class="pdv-topbar-mais-panel hidden" role="menu" aria-label="Mais atalhos do PDV">
                   <details id="pdv-estoque-vila-menu" class="relative">
                     <summary class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--violet cursor-pointer select-none" data-pdv-topbar-key="saldo_vila" title="Atalho Folha Compras — abre a folha no overlay do PDV">Saldo Vila ▾</summary>
                     <div class="pdv-estoque-vila-panel" role="menu" aria-label="Folhas de estoque / compras">
@@ -3764,7 +3763,7 @@
                   <button type="button" id="pdv-topbar-balanca-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--emerald" data-pdv-topbar-key="pesar" role="menuitem" title="Pesar ração a granel · F10">Pesar <kbd class="ml-0.5 rounded border border-emerald-400 bg-white px-1 font-mono text-[9px]">F10</kbd></button>
                   <button type="button" id="pdv-pin-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate" data-pdv-topbar-key="pin" role="menuitem" onclick="if (typeof window.gmSspinSairEAbrirPin === 'function') window.gmSspinSairEAbrirPin();">PIN</button>
                 </div>
-              </details>
+              </div>
             </div>
           </div>
         </div>

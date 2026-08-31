@@ -1250,6 +1250,7 @@
             if (!raw) return null;
             var parsed = JSON.parse(raw);
             if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return null;
+            if (String(parsed.catalog_version || '') === 'catalogo-full-off') return null;
             var age = Date.now() - Number(parsed.saved_at || 0);
             if (age > WIZARD_CATALOG_TTL_MS) return null;
             return parsed;
@@ -1260,17 +1261,21 @@
 
     function salvarWizardCatalogSharedCache(payload) {
         try {
+            var rows = Array.isArray(payload && payload.produtos) ? payload.produtos : wizardProductCatalog;
+            var ver = String((payload && payload.catalog_version) || '');
+            if (!rows.length || ver === 'catalogo-full-off') return;
             localStorage.setItem(
                 PDV_SHARED_CATALOG_LS_KEY,
                 JSON.stringify({
                     saved_at: Date.now(),
-                    catalog_version: payload.catalog_version || '',
-                    catalog_updated_at: payload.catalog_updated_at || '',
-                    produtos: Array.isArray(payload.produtos) ? payload.produtos : wizardProductCatalog,
+                    catalog_version: ver,
+                    catalog_updated_at: (payload && payload.catalog_updated_at) || '',
+                    produtos: rows,
                 })
             );
         } catch (err2) {}
         try {
+            if (!wizardProductCatalog.length) return;
             sessionStorage.setItem(
                 CATALOG_STORAGE_KEY,
                 JSON.stringify({ produtos: wizardProductCatalog, t: Date.now() })

@@ -43,7 +43,8 @@ def main():
     check("js", (ROOT / "produtos/static/produtos/js/pdv_topbar_mais.js").exists())
 
     html = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(encoding="utf-8")
-    check("html_mais", 'id="pdv-topbar-mais"' in html)
+    check("html_mais", 'id="pdv-topbar-mais"' in html and 'id="pdv-topbar-mais-btn"' in html)
+    check("html_mais_panel", 'id="pdv-topbar-mais-panel"' in html and "pdv-topbar-mais-panel hidden" in html)
     check("html_quente_pedir", 'data-pdv-topbar-key="pedir_loja"' in html and "pdv-wiz-topbar-estoque-vila" in html)
     check("html_quente_vendas", 'data-pdv-topbar-key="vendas"' in html)
     check("html_quente_uso", 'data-pdv-topbar-key="uso_loja"' in html)
@@ -51,6 +52,10 @@ def main():
     check("html_frio_pesar", 'data-pdv-topbar-key="pesar"' in html and "pdv-topbar-mais-panel" in html)
     check("html_frio_pin", 'data-pdv-topbar-key="pin"' in html and "pdv-topbar-mais-panel" in html)
     check("html_js_include", "pdv_topbar_mais.js" in html)
+    check("js_btn_toggle", "pdv-topbar-mais-btn" in (ROOT / "produtos/static/produtos/js/pdv_topbar_mais.js").read_text(encoding="utf-8"))
+    check("js_overflow_fix", "overflow: visible" in html or "overflow:visible" in html.replace(" ", ""))
+    check("catalog_slim_fallback", "catalogo-slim" in (ROOT / "produtos/static/produtos/js/consulta_produtos.js").read_text(encoding="utf-8"))
+    check("catalog_no_poison", "catalogo-full-off" in (ROOT / "produtos/static/produtos/js/consulta_produtos.js").read_text(encoding="utf-8"))
 
     urls = (ROOT / "produtos/urls.py").read_text(encoding="utf-8")
     check("url_clique", "api_pdv_topbar_clique" in urls)
