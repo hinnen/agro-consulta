@@ -1264,76 +1264,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Ícone WhatsApp PDV (`PDV-WA-TOPBAR-BREVE` · 31/08/2026)
+### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.40**)
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Símbolo WhatsApp na topbar do PDV · clique = **Em breve…** (ainda não abre o chat) |
-| **Onde** | `pdv_wizard.html` · `pdv_topbar_whatsapp.js` |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **não** loja |
+| Pacote | O quê (1 linha) | Prova | Migrate |
+| ------ | --------------- | ----- | ------- |
+| `PDV-TOPBAR-LAYOUT` | Quente/frio + Fiado quente + **Organizar** (overlay no `body`; PIN ao salvar) | path **29/29** · API GET/POST OK · PIN **9973** válido | **`0110`** |
+| `PDV-TOPBAR-MAIS` | **Mais ⋯** abre (botão+painel) · contagem PG | path **31/31** | **`0107`** |
+| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** | HTML+JS no tip | **NÃO** |
+| `PDV-PIN-CHAT-TEMPEDIDO` | Renovar PIN no chat **não** abre «tem pedido» | path **16/16** | **NÃO** |
+| `REPASSE-FUNDO-TROCO` | Fundo troco gaveta Vila (aviso R$ 500) | **56/56** | **`0106`** |
+| `WA-ATEND-QR` | `/atendimento-whatsapp/` filas+QR · **ainda não** no checklist loja | verify WA | **`0108`+`0109`** |
 
-### 📦 PACOTE PRONTO — WhatsApp lojas QR (`WA-ATEND-QR` · 31/08/2026)
+**Você (PDV topbar):** Ctrl+F5 · badge tip · **Mais ⋯** → Organizar (lista Quente/Frio) · Salvar com PIN.
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Página `/atendimento-whatsapp/` · bot 1=Centro / 2=Vila · filas no Agro · ponte QR (`iniciar.bat`) · **sem** disparo · **sem** botão PDV ainda |
-| **Arquivos** | `atendimento_whatsapp_util.py` · `views_atendimento_whatsapp.py` · `whatsapp_atendimento/` · migrate **`0108`+`0109`** |
-| **Prova** | `scripts/verify_atendimento_whatsapp.py` + `produtos.tests_atendimento_whatsapp` |
-| **Risco Zap** | Nunca 0% (não é oficial). Volume baixo + só resposta = risco parecido com WhatsApp Web |
-| **Você** | 1) migrate 2) no PC: `whatsapp_atendimento\iniciar.bat` 3) abrir `/atendimento-whatsapp/` 4) ler QR no celular da loja |
-| **Status** | 🟡 `teste` · **não** sobe loja sem você testar local + frase/senha |
-
-### 📦 PACOTE PRONTO — Chat sem popup Pedir (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.33** · 31/08/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Renovar PIN no chat/venda **não** abre o aviso «tem pedido». Popup só no PIN do Pedir loja. |
-| **Onde** | `pdv_pedir_loja.js` |
-| **Prova** | path **16/16** · pedir-loja **70/70** · pin-na-acao **67/67** · smoke loja: bug vivo **v20.22** |
-| **Migrate** | **NÃO** |
-| **Status** | ✅ `teste` · **pronto para envio à produção** |
-
-### 📦 PACOTE PRONTO — Topbar layout quente/frio (`PDV-TOPBAR-LAYOUT` · **v20.38** · 31/08/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Pedir/Uso = slate · **Mais ⋯** laranja · **Fiado** no quente · **Organizar atalhos** (PG multi-PC, PIN ao salvar). |
-| **Onde** | `pdv_topbar_layout.js` · `pdv_topbar_layout_util.py` · `pdv_wizard.html` · migrate **`0110`** |
-| **Prova** | `scripts/verify_pdv_topbar_layout_path.py` **25/25** · mais **31/31** |
-| **Migrate** | **`0110`** |
-| **Status** | ✅ `teste` **v20.38** · **ainda NÃO** loja |
-| **Você** | Ctrl+F5 PDV · badge **v20.38** · **Mais ⋯** → Organizar atalhos |
-
-### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.34** · 31/08/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | **Mais ⋯** abre de verdade: botão+painel (não `<details>`), painel `fixed` no `body`. Quente/frio iguais. Contagem PG. Bônus consulta: freio `catalogo-full-off` → slim (não trava «Baixando…»). |
-| **Onde** | `pdv_topbar_mais.js` · `pdv_wizard.html` · `consulta_produtos.js` · migrate **`0107`** |
-| **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **31/31** |
-| **Migrate** | **`0107`** |
-| **Status** | ✅ `teste` **v20.38** · **ainda NÃO** loja |
-| **Você** | Ctrl+F5 PDV · badge **v20.38** · clicar **Mais ⋯** |
-
-### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32+** · 31/08/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Alvo na gaveta da Vila após repasse (padrão **R$ 500**). Só **aviso**. |
-| **Prova** | `verify_repasse_fundo_troco.py` **56/56** |
-| **Migrate** | **`0106`** |
-| **Status** | ✅ `teste` · **pronto para envio à produção** |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo **v20.33**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.40**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
+| 1 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **29/29** | **SIM** (`0110`) |
 | 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **31/31** | **SIM** (`0107`) |
-| 3 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · prova **56/56** | **SIM** (`0106`) |
-| 4 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **25/25** | **SIM** (`0110`) |
+| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** | **NÃO** |
+| 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
+| 5 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · **56/56** | **SIM** (`0106`) |
 
+**Fora do checklist (ainda testar local):** `WA-ATEND-QR`.  
 **Loja agora:** **v20.22**. Envio só com frase + senha.
 
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026

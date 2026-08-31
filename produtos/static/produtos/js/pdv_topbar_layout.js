@@ -17,6 +17,11 @@
   var btnCancelar = document.getElementById('pdv-topbar-organizar-cancelar');
   if (!quenteHost || !actionsHost || !frioPanel || !orgBtn || !overlay) return;
 
+  /* Overlay não pode ficar dentro de outro modal hidden (ex.: cadastro rápido). */
+  if (overlay.parentElement !== document.body) {
+    document.body.appendChild(overlay);
+  }
+
   var draft = { quente: [], frio: [], labels: {} };
   var chip = document.getElementById('gm-sspin-operador-chip');
 
@@ -141,9 +146,30 @@
 
   function openOrganizar() {
     setErro('');
-    renderLista();
-    overlay.classList.add('is-open');
-    overlay.setAttribute('aria-hidden', 'false');
+    function show() {
+      renderLista();
+      overlay.classList.add('is-open');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    if ((draft.quente && draft.quente.length) || (draft.frio && draft.frio.length)) {
+      show();
+      return;
+    }
+    fetch(URL_LAYOUT, { credentials: 'same-origin' })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.ok) {
+          draft.labels = data.labels || {};
+          draft.quente = data.quente || [];
+          draft.frio = data.frio || [];
+        }
+        show();
+      })
+      .catch(function () {
+        show();
+      });
   }
 
   function closeOrganizar() {
