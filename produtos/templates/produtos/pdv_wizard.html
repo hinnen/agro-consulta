@@ -2579,6 +2579,19 @@
     color: #047857 !important;
   }
   .pdv-wiz-topbar-btn--emerald:hover { background: #d1fae5 !important; }
+  .pdv-wiz-topbar-btn--wa {
+    min-width: 2.45rem !important;
+    padding: 0.3rem 0.45rem !important;
+    border-color: #22c55e !important;
+    background: #ecfdf5 !important;
+    color: #15803d !important;
+  }
+  .pdv-wiz-topbar-btn--wa:hover { background: #d1fae5 !important; }
+  .pdv-wiz-topbar-btn--wa svg {
+    display: block;
+    width: 1.35rem;
+    height: 1.35rem;
+  }
   .pdv-wiz-topbar-btn--amber {
     border-color: #fbbf24 !important;
     background: #fef3c7 !important;
@@ -3834,6 +3847,10 @@
               <a href="{% url 'fiado_gestao' %}?from=pdv" id="pdv-topbar-fiado-link" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate no-underline" data-pdv-topbar-key="fiado" data-pdv-topbar-node="fiado" title="Gestão crédito loja — saldos em aberto e baixa">Fiado</a>
             </div>
             <div class="pdv-wiz-topbar-actions" id="pdv-topbar-actions">
+              <button type="button" id="pdv-topbar-whatsapp-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--wa" data-pdv-topbar-key="whatsapp" title="WhatsApp das lojas">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.5 14.4c-.3-.1-1.6-.8-1.8-.9-.2-.1-.4-.1-.6.1-.2.3-.7.9-.8 1-.2.1-.3.2-.6.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.2-.3 0-.4.1-.6l.4-.5c.1-.1.2-.3.2-.4 0-.2 0-.3 0-.4 0-.1-.6-1.5-.8-2-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.3-.8.8-.8 1.9 0 1.1.8 2.2.9 2.3.1.2 1.6 2.5 3.9 3.5.5.2 1 .4 1.3.5.6.2 1.1.2 1.5.1.5-.1 1.6-.6 1.8-1.3.2-.6.2-1.2.1-1.3-.1 0-.3-.1-.6-.2z"/><path fill="currentColor" d="M12.04 2C6.5 2 2 6.4 2 11.8c0 1.7.5 3.4 1.3 4.9L2 22l5.4-1.4c1.4.8 3 .1 4.6.8 5.5 0 10-4.4 10-9.8S17.5 2 12.04 2zm0 17.9c-1.5 0-2.9-.4-4.1-1.1l-.3-.2-3.2.8.9-3.1-.2-.3c-.8-1.3-1.3-2.7-1.3-4.2 0-4.5 3.7-8.1 8.2-8.1s8.2 3.6 8.2 8.1-3.7 8.1-8.2 8.1z"/></svg>
+                <span class="sr-only">WhatsApp</span>
+              </button>
               <button type="button" id="pdv-topbar-nova-venda-btn" class="pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--amber" data-pdv-topbar-key="nova_venda" data-pdv-topbar-node="nova_venda" title="Descartar venda atual e começar outra · F12">Nova venda <kbd class="ml-0.5 rounded border border-amber-400 bg-white px-1 font-mono text-[9px]">F12</kbd></button>
               <span id="gm-sspin-operador-chip" class="hidden items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 max-w-[9rem] truncate" title="Operador com PIN neste computador"></span>
               <div id="pdv-topbar-mais" class="pdv-topbar-mais">
@@ -4660,6 +4677,15 @@
       </div>
     </div>
   </div>
+</div>
+
+<div id="pdv-wa-em-breve" class="hidden fixed inset-0 z-[10050] flex items-center justify-center bg-slate-900/50 p-4" role="dialog" aria-modal="true" aria-labelledby="pdv-wa-em-breve-titulo">
+  <div class="w-[min(22rem,calc(100vw-2rem))] rounded-2xl border-2 border-emerald-400 bg-white p-5 shadow-2xl">
+    <p id="pdv-wa-em-breve-titulo" class="text-xl font-black uppercase tracking-wide text-emerald-900">Em breve…</p>
+    <p class="mt-2 text-sm font-bold text-slate-600">O chat WhatsApp das lojas ainda não abre pelo PDV.</p>
+    <button type="button" id="pdv-wa-em-breve-ok" class="pdv-action-btn mt-4 min-h-[3rem] w-full rounded-xl bg-emerald-600 font-black uppercase text-white">Ok</button>
+  </div>
+</div>
 
 <div id="pdv-topbar-organizar-overlay" aria-hidden="true">
   <div class="pdv-topbar-organizar-box" role="dialog" aria-modal="true" aria-labelledby="pdv-topbar-organizar-titulo">
@@ -4676,6 +4702,7 @@
 
 <script src="{% static 'produtos/js/pdv_wizard.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_mais.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
+<script src="{% static 'produtos/js/pdv_topbar_whatsapp.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_topbar_layout.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_uso_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
 <script src="{% static 'produtos/js/pdv_pedir_loja.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>

@@ -61,6 +61,9 @@ def _static() -> None:
     check("bat_iniciar", "node index.js" in bat)
     check("node_baileys", "@whiskeysockets/baileys" in node or "makeWASocket" in node)
     check("gitignore_auth", "whatsapp_atendimento/auth/" in gitig)
+    html_pdv = _read("produtos/templates/produtos/pdv_wizard.html")
+    check("pdv_wa_btn", 'id="pdv-topbar-whatsapp-btn"' in html_pdv)
+    check("pdv_wa_js", "pdv_topbar_whatsapp.js" in html_pdv)
 
 
 def _logic() -> None:

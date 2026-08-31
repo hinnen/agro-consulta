@@ -48,6 +48,8 @@ def main():
 
     check("mig_0110", (ROOT / "produtos/migrations/0110_pdv_topbar_layout.py").exists())
     check("util", (ROOT / "produtos/pdv_topbar_layout_util.py").exists())
+    js_layout = (ROOT / "produtos/static/produtos/js/pdv_topbar_layout.js").read_text(encoding="utf-8")
+    check("js_append_body", "document.body.appendChild(overlay)" in js_layout)
     check("js_layout", (ROOT / "produtos/static/produtos/js/pdv_topbar_layout.js").exists())
 
     html = (ROOT / "produtos/templates/produtos/pdv_wizard.html").read_text(encoding="utf-8")
@@ -61,7 +63,17 @@ def main():
     check("html_mais_destaque", "pdv-wiz-topbar-btn--mais-destaque" in html)
     check("html_organizar", 'id="pdv-topbar-organizar-btn"' in html and "Organizar atalhos" in html)
     check("html_overlay", 'id="pdv-topbar-organizar-overlay"' in html)
+    # Overlay não pode ficar dentro do cadastro rápido (hidden).
+    idx_org = html.find('id="pdv-topbar-organizar-overlay"')
+    idx_cad_close = html.rfind("pdv-cadastro-rapido", 0, idx_org)
+    check(
+        "html_overlay_fora_cadastro",
+        idx_org > 0 and html.count("<div", html.find('id="pdv-cadastro-rapido-overlay"'), idx_org)
+        <= html.count("</div>", html.find('id="pdv-cadastro-rapido-overlay"'), idx_org),
+    )
     check("html_js", "pdv_topbar_layout.js" in html)
+    check("html_wa_icon", 'id="pdv-topbar-whatsapp-btn"' in html)
+    check("html_wa_breve", 'id="pdv-wa-em-breve"' in html and "Em breve" in html)
 
     js_pedir = (ROOT / "produtos/static/produtos/js/pdv_pedir_loja.js").read_text(encoding="utf-8")
     check("js_pedir_slate", "pdv-wiz-topbar-btn--slate relative" in js_pedir)

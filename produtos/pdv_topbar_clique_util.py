@@ -22,6 +22,7 @@ BOTAO_KEYS = frozenset(
         "entregas",
         "nova_venda",
         "pin",
+        "whatsapp",
     }
 )
 
