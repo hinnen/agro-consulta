@@ -1253,14 +1253,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Promo regra vs tabela salva (`PROMO-REGRA-TABELA-SAVE` · **v20.10** · 31/08/2026)
+### 📦 PACOTE PRONTO — Promo regra vs tabela (`PROMO-REGRA-TABELA-SAVE` · **v20.12** · 31/08/2026)
 
 | Item | Detalhe |
 | ---- | ------- |
-| **Bug** | «Sempre a promoção» voltava para «maior valor» após salvar |
-| **Causa** | Script inline da promo não mandava `regra_vs_tabela` no POST |
-| **Fix** | `promocoes_form_script.html` — commit `742e7d8` |
-| **Você** | Ctrl+F5 · editar promo · mudar regra · salvar · reabrir |
+| **O quê** | «Sempre promoção» / «Sempre tabela %» persiste ao salvar promo |
+| **Arquivo** | `promocoes_form_script.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_promo_regra_tabela_path.py` **23/23** · tabela **20/20** |
+| **Loja** | ainda **v20.07** |
+| **Você** | Ctrl+F5 · editar promo · salvar · reabrir |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → tip **v20.12**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PROMO-REGRA-TABELA-SAVE` | ⏳ **pronto envio** · migrate **NÃO** · prova **23/23** |
 
 ### ✅ Deploy loja — NFC-e CSRF lista (`NFCE-REEMIT-CSRF` · **v20.07**) · **Live** · 30/08/2026
 
