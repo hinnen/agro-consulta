@@ -1,13 +1,14 @@
-"""APIs PDV — cliques da topbar (quente/frio)."""
+"""APIs PDV — cliques e layout da topbar (quente/frio)."""
 from __future__ import annotations
 
 import json
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from produtos.pdv_topbar_clique_util import registrar_clique, resumo_cliques
+from produtos.pdv_topbar_layout_util import payload_api, salvar_layout
 
 
 def _payload(request) -> dict | None:
@@ -52,3 +53,22 @@ def api_pdv_topbar_cliques_resumo(request):
     except (TypeError, ValueError):
         dias = 14
     return JsonResponse({"ok": True, "dias": dias, "ranking": resumo_cliques(dias=dias)})
+
+
+@login_required(login_url="/admin/login/")
+@require_http_methods(["GET", "POST"])
+def api_pdv_topbar_layout(request):
+    if request.method == "GET":
+        return JsonResponse(payload_api())
+    data = _payload(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    layout = salvar_layout(
+        quente=data.get("quente"),
+        frio=data.get("frio"),
+        usuario=request.user,
+    )
+    body = payload_api()
+    body["quente"] = layout["quente"]
+    body["frio"] = layout["frio"]
+    return JsonResponse(body)

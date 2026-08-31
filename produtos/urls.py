@@ -816,6 +816,11 @@ urlpatterns = [
         name='api_pdv_topbar_cliques_resumo',
     ),
     path(
+        'api/pdv/topbar-layout/',
+        views_pdv_topbar.api_pdv_topbar_layout,
+        name='api_pdv_topbar_layout',
+    ),
+    path(
         'api/pdv/transf-loja/resumo/',
         views_pdv_transf_loja.api_pdv_transf_loja_resumo,
         name='api_pdv_transf_loja_resumo',

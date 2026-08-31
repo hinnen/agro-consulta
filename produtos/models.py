@@ -3397,6 +3397,29 @@ class PdvTopbarCliqueDiaAgro(models.Model):
         return f"{self.data} {self.botao}@{self.deposito or '-'}: {self.cliques}"
 
 
+class PdvTopbarLayoutAgro(models.Model):
+    """Quente/frio da topbar do PDV — loja inteira (Postgres / multi-PC)."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    quente = models.JSONField(default=list, blank=True)
+    frio = models.JSONField(default=list, blank=True)
+    atualizado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pdv_topbar_layouts",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Layout topbar PDV"
+        verbose_name_plural = "Layouts topbar PDV"
+
+    def __str__(self):
+        return f"topbar:{self.chave}"
+
+
 class WhatsAppPonteEstadoAgro(models.Model):
     """Singleton da ponte QR (PC da loja ↔ Django)."""
 

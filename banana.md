@@ -426,7 +426,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
-- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = botão+painel Saldo Vila · Fiado · Repasse · Pesar · PIN (fix: abre sem sumir). Contagem diária PG (`0107`).
+- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
@@ -1285,16 +1285,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | ✅ `teste` · **pronto para envio à produção** |
 
+### 📦 PACOTE PRONTO — Topbar layout quente/frio (`PDV-TOPBAR-LAYOUT` · **v20.38** · 31/08/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Pedir/Uso = slate · **Mais ⋯** laranja · **Fiado** no quente · **Organizar atalhos** (PG multi-PC, PIN ao salvar). |
+| **Onde** | `pdv_topbar_layout.js` · `pdv_topbar_layout_util.py` · `pdv_wizard.html` · migrate **`0110`** |
+| **Prova** | `scripts/verify_pdv_topbar_layout_path.py` **25/25** · mais **31/31** |
+| **Migrate** | **`0110`** |
+| **Status** | ✅ `teste` **v20.38** · **ainda NÃO** loja |
+| **Você** | Ctrl+F5 PDV · badge **v20.38** · **Mais ⋯** → Organizar atalhos |
+
 ### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.34** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | **Mais ⋯** abre de verdade: botão+painel (não `<details>`), painel `fixed` no `body`. Quente/frio iguais. Contagem PG. Bônus consulta: freio `catalogo-full-off` → slim (não trava «Baixando…»). |
 | **Onde** | `pdv_topbar_mais.js` · `pdv_wizard.html` · `consulta_produtos.js` · migrate **`0107`** |
-| **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **29/29** |
+| **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **31/31** |
 | **Migrate** | **`0107`** |
-| **Status** | ✅ `teste` **v20.35** · **ainda NÃO** loja |
-| **Você** | Ctrl+F5 PDV · badge **v20.35** · clicar **Mais ⋯** |
+| **Status** | ✅ `teste` **v20.38** · **ainda NÃO** loja |
+| **Você** | Ctrl+F5 PDV · badge **v20.38** · clicar **Mais ⋯** |
 
 ### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32+** · 31/08/2026)
 
@@ -1310,8 +1321,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
-| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **24/24** | **SIM** (`0107`) |
+| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **31/31** | **SIM** (`0107`) |
 | 3 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · prova **56/56** | **SIM** (`0106`) |
+| 4 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **25/25** | **SIM** (`0110`) |
 
 **Loja agora:** **v20.22**. Envio só com frase + senha.
 

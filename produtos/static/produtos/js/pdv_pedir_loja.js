@@ -257,7 +257,7 @@
   function applyBadge(n) {
     n = Number(n || 0);
     if (dom.btnOpen) {
-      var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--rose relative';
+      var base = 'pdv-action-btn pdv-wiz-topbar-btn pdv-wiz-topbar-btn--slate relative';
       if (n > 0) base += ' pdv-wiz-topbar-btn--pedir-loja-alerta';
       dom.btnOpen.className = base;
       dom.btnOpen.title =
