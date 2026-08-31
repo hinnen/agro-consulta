@@ -2963,15 +2963,6 @@ class RepasseVilaConfigAgro(models.Model):
         default=0,
         help_text="Saldo do Cofre Vila Elias (fatia do lucro que não vai ao Centro).",
     )
-    fundo_troco_vila = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=500,
-        help_text=(
-            "Alvo de dinheiro que deve ficar na gaveta da Vila após o repasse (troco). "
-            "Só aviso — não bloqueia. Prioridade: Salário → Vila Elias → Centro."
-        ),
-    )
     atualizado_em = models.DateTimeField(auto_now=True)
     atualizado_por = models.CharField(max_length=120, blank=True, default="")
 
