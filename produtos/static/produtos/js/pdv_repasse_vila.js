@@ -32,6 +32,8 @@
     cheio: document.getElementById('pdv-rp-cheio'),
     acumulado: document.getElementById('pdv-rp-acumulado'),
     reserva: document.getElementById('pdv-rp-reserva'),
+    fundoTroco: document.getElementById('pdv-rp-fundo-troco'),
+    fundoAviso: document.getElementById('pdv-rp-fundo-aviso'),
     salvarReserva: document.getElementById('pdv-rp-salvar-reserva'),
     separarReserva: document.getElementById('pdv-rp-separar-reserva'),
     manual: document.getElementById('pdv-rp-manual'),
@@ -127,6 +129,59 @@
   function reservaAtual() {
     if (dom.reserva) return parseMoneyBR(dom.reserva.value);
     return Number((calc || {}).reserva_vila || 0);
+  }
+
+  function fundoTrocoAtual() {
+    if (dom.fundoTroco && String(dom.fundoTroco.value || '').trim() !== '') {
+      return parseMoneyBR(dom.fundoTroco.value);
+    }
+    var c = calc || {};
+    if (c.fundo_troco_vila != null) return Number(c.fundo_troco_vila || 0);
+    return 500;
+  }
+
+  function sugerirFundoTroco(gaveta, alvo, sepSal, sepVe, levar) {
+    gaveta = Math.max(0, Number(gaveta || 0));
+    alvo = Math.max(0, Number(alvo || 0));
+    var baseSal = Math.max(0, Number(sepSal || 0));
+    var baseVe = Math.max(0, Number(sepVe || 0));
+    var baseCen = Math.max(0, Number(levar || 0));
+    var pool = Math.max(0, Math.round((gaveta - alvo) * 100) / 100);
+    var sal = Math.min(baseSal, pool);
+    pool = Math.round((pool - sal) * 100) / 100;
+    var ve = Math.min(baseVe, pool);
+    pool = Math.round((pool - ve) * 100) / 100;
+    var cen = Math.min(baseCen, pool);
+    var sobra = Math.round((gaveta - sal - ve - cen) * 100) / 100;
+    var cortouCen = Math.round((baseCen - cen) * 100) / 100;
+    var cortouVe = Math.round((baseVe - ve) * 100) / 100;
+    var cortouSal = Math.round((baseSal - sal) * 100) / 100;
+    var avisos = [];
+    if (alvo > 0.009) {
+      if (sobra + 0.009 < alvo) {
+        avisos.push(
+          'Troco ficaria em ' + money(sobra) + ' (alvo ' + money(alvo) + '). Cortamos Centro → Vila Elias → Salário.'
+        );
+      } else if (sobra > alvo + 0.99) {
+        avisos.push(
+          'Gaveta ficaria com ' + money(sobra) + ' (alvo ' + money(alvo) + '). Cofres no teto do pendente — sobra fica de troco.'
+        );
+      }
+      if (cortouCen > 0.009 || cortouVe > 0.009 || cortouSal > 0.009) {
+        var partes = [];
+        if (cortouCen > 0.009) partes.push('Centro −' + money(cortouCen));
+        if (cortouVe > 0.009) partes.push('Vila Elias −' + money(cortouVe));
+        if (cortouSal > 0.009) partes.push('Salário −' + money(cortouSal));
+        avisos.push('Ajuste fundo troco: ' + partes.join(' · '));
+      }
+    }
+    return {
+      sep_salario: sal,
+      sep_vila_elias: ve,
+      levar_centro: cen,
+      sobra_gaveta: sobra,
+      aviso: avisos.join(' · '),
+    };
   }
 
   function money(n) {
@@ -347,11 +402,32 @@
     if (inclAcum) {
       totAuto = Math.max(0, diaAuto + acum);
     }
+
+    var sepJunto = !!(dom.separarReserva && dom.separarReserva.checked);
+    var pendSal = sepJunto ? Number(cofre.pendente_dia || 0) : 0;
+    var pendVe = sepJunto ? Number(cofreVe.pendente_dia || 0) : 0;
+    var cx = c.caixa_vila || {};
+    var gaveta = cx.aberto ? Number(cx.saldo_dinheiro || 0) : 0;
+    var alvoTroco = fundoTrocoAtual();
+    var aloc = cx.aberto
+      ? sugerirFundoTroco(gaveta, alvoTroco, pendSal, pendVe, totAuto)
+      : {
+          sep_salario: pendSal,
+          sep_vila_elias: pendVe,
+          levar_centro: totAuto,
+          sobra_gaveta: 0,
+          aviso: '',
+        };
+    totAuto = aloc.levar_centro;
+    pendSal = aloc.sep_salario;
+    pendVe = aloc.sep_vila_elias;
+
     syncManualFromAuto(totAuto);
     var mv = manualDirty ? parseManualValor() : null;
     var tot = mv != null ? mv : totAuto;
-    // Grande = só o dia · menor = acumulado (na mesma tag)
-    setText('pdv-rp-total', money(diaAuto));
+    // Grande = dia (já com fundo troco) · menor = acumulado
+    var diaHero = inclAcum ? Math.max(0, Math.round((totAuto - acum) * 100) / 100) : totAuto;
+    setText('pdv-rp-total', money(diaHero));
     var acumHero = document.getElementById('pdv-rp-total-acum');
     if (acumHero) {
       acumHero.textContent = money(acum);
@@ -372,18 +448,30 @@
       }
     }
 
-    var cx = c.caixa_vila || {};
     var cxEl = document.getElementById('pdv-rp-caixa-din');
     var cxHint = document.getElementById('pdv-rp-caixa-din-hint');
     if (cxEl) {
       if (cx.aberto) {
         cxEl.textContent = money(cx.saldo_dinheiro);
         cxEl.className = 'text-3xl sm:text-4xl font-black tabular-nums text-slate-950 leading-none';
-        if (cxHint) cxHint.textContent = 'Esperado na gaveta (antes de levar)';
+        if (cxHint) {
+          cxHint.textContent =
+            'Esperado na gaveta (antes) · após: ' + money(aloc.sobra_gaveta) + ' (alvo ' + money(alvoTroco) + ')';
+        }
       } else {
         cxEl.textContent = 'Fechado';
         cxEl.className = 'text-3xl sm:text-4xl font-black tabular-nums text-red-800 leading-none';
         if (cxHint) cxHint.textContent = 'Abra o caixa da Vila para ver o saldo';
+      }
+    }
+
+    if (dom.fundoAviso) {
+      if (aloc.aviso) {
+        dom.fundoAviso.classList.remove('hidden');
+        dom.fundoAviso.textContent = aloc.aviso;
+      } else {
+        dom.fundoAviso.classList.add('hidden');
+        dom.fundoAviso.textContent = '';
       }
     }
 
@@ -446,9 +534,6 @@
       aviso: 'pdv-rp-cofre-ve-aviso',
     }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
 
-    var sepJunto = !!(dom.separarReserva && dom.separarReserva.checked);
-    var pendSal = sepJunto ? Number(cofre.pendente_dia || 0) : 0;
-    var pendVe = sepJunto ? Number(cofreVe.pendente_dia || 0) : 0;
     cofreSalAutoFmt = syncCofreInput(dom.inputCofreSal, cofreSalDirty, pendSal);
     cofreVeAutoFmt = syncCofreInput(dom.inputCofreVe, cofreVeDirty, pendVe);
 
@@ -662,6 +747,18 @@
         if (dom.reserva && (j.reserva_vila != null || (j.calc && j.calc.reserva_vila != null))) {
           var rv = j.reserva_vila != null ? j.reserva_vila : j.calc.reserva_vila;
           dom.reserva.value = Number(rv || 0).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          });
+        }
+        if (dom.fundoTroco) {
+          var ft =
+            j.fundo_troco_vila != null
+              ? j.fundo_troco_vila
+              : j.calc && j.calc.fundo_troco_vila != null
+                ? j.calc.fundo_troco_vila
+                : 500;
+          dom.fundoTroco.value = Number(ft || 0).toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
           });
@@ -1137,6 +1234,12 @@
     });
   }
   if (dom.reserva) dom.reserva.addEventListener('input', renderCalc);
+  if (dom.fundoTroco) {
+    dom.fundoTroco.addEventListener('input', function () {
+      sanitizeMoneyField(dom.fundoTroco);
+      renderCalc();
+    });
+  }
   if (dom.salvarReserva) {
     dom.salvarReserva.addEventListener('click', function () {
       if (dom.status) dom.status.textContent = 'Salvando…';
@@ -1144,7 +1247,10 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ reserva_vila: reservaAtual() }),
+        body: JSON.stringify({
+          reserva_vila: reservaAtual(),
+          fundo_troco_vila: fundoTrocoAtual(),
+        }),
       })
         .then(function (r) {
           return r.json();
@@ -1152,10 +1258,21 @@
         .then(function (j) {
           if (dom.status) {
             dom.status.textContent = j.ok
-              ? 'Reserva diária salva: ' + money(j.reserva_vila)
+              ? 'Salvo · reserva ' +
+                money(j.reserva_vila) +
+                ' · fundo troco ' +
+                money(j.fundo_troco_vila)
               : j.erro || 'Erro';
           }
-          if (j && j.ok) fetchCalc();
+          if (j && j.ok) {
+            if (dom.fundoTroco && j.fundo_troco_vila != null) {
+              dom.fundoTroco.value = Number(j.fundo_troco_vila || 0).toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              });
+            }
+            fetchCalc();
+          }
         })
         .catch(function () {
           if (dom.status) dom.status.textContent = 'Falha ao salvar';

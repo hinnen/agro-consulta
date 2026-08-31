@@ -426,7 +426,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · teste v20.28):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s só renova com PIN/ação (não mouse) · descanso ~3 min = trava tela · abrir PDV sem PIN na entrada · **hotfix v20.28:** renovar PIN no chat **não** abre mais o popup «tem pedido» do Pedir loja.
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
-- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.29):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Contagem diária PG (`PdvTopbarCliqueDiaAgro` · migrate `0107`) p/ ajustar quente/frio depois.
+- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.30):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Contagem diária PG (`PdvTopbarCliqueDiaAgro` · migrate `0107`) p/ ajustar quente/frio depois.
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
@@ -1255,26 +1255,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.30** · 31/08/2026)
+### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.31** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Faixa do PDV menos apertada: **quente** = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Conta cliques no Postgres (média futura). |
 | **Onde** | `pdv_wizard.html` · `pdv_topbar_mais.js` · `PdvTopbarCliqueDiaAgro` · migrate **`0107`** · APIs `api/pdv/topbar-clique/` + `topbar-cliques/` |
 | **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **24/24** |
-| **Status** | ✅ em `teste` **v20.30** · **ainda NÃO** loja |
+| **Status** | ✅ em `teste` **v20.31** · **ainda NÃO** loja |
 | **Você** | `migrate` local · Ctrl+F5 no PDV · abrir **Mais ⋯** · conferir quente/frio |
 
-### 📦 WIP — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · 31/08/2026)
+### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Alvo de dinheiro na gaveta da Vila após repasse (padrão **R$ 500**). Campo em **% lucro e opções**. Só **aviso** — não bloqueia. |
-| **Prioridade** | Preenche Salário → Vila Elias → Centro. Se faltar: corta Centro → Vila Elias → Salário. |
-| **Onde** | `RepasseVilaConfigAgro.fundo_troco_vila` · migrate **0106** · overlay PDV + `/repasse-vila/` · `sugerir_alocacao_fundo_troco` |
-| **Prova** | `scripts/verify_repasse_fundo_troco.py` **20/20** |
-| **Status** | código local · migrate local OK · **ainda NÃO** commit/`teste`/loja |
-| **Você** | Ctrl+F5 · Repasse · conferir campo **Fundo troco gaveta** · Salvar · ver sugestão/aviso |
+| **O quê** | Alvo na gaveta da Vila após repasse (padrão **R$ 500**). Campo em **% lucro e opções**. Só **aviso**. |
+| **Prioridade** | Preenche Salário → Vila Elias → Centro. Falta: corta Centro → Vila Elias → Salário. |
+| **Onde** | `fundo_troco_vila` · migrate **0106** · overlay + `/repasse-vila/` |
+| **Prova** | `verify_repasse_fundo_troco.py` **56/56** · overlay path **188/188** · PIN 9973 OK |
+| **Status** | ✅ em `teste` **v20.32** · **pronto para envio** · migrate **SIM** (`0106`) |
+| **Você** | Ctrl+F5 · Repasse · **Fundo troco gaveta** · Salvar |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo loja **v20.32**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · `teste` **v20.32** | **SIM** (`0106`) |
+| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · `teste` **v20.31+** | **SIM** (`0107`) |
+| 3 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · `teste` **v20.28+** | **NÃO** |
+
+**Loja agora:** **v20.22**. Envio só com frase + senha.
 
 ### 🐛 Hotfix — chat dispara popup «tem pedido» (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.28**) · 31/08/2026
 

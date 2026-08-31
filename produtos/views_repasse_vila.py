@@ -22,6 +22,7 @@ from produtos.caixa_util import (
 from produtos.repasse_vila_util import (
     calcular_disponivel,
     confirmar_repasse,
+    fundo_troco_vila_config,
     historico_mes,
     listar_acumulado_detalhe,
     listar_log_reserva,
@@ -37,6 +38,7 @@ from produtos.repasse_vila_util import (
     registrar_uso_ou_ajuste_cofrinho,
     registrar_saldo_inicial_cofrinho,
     estornar_movimento_cofrinho,
+    salvar_fundo_troco_vila,
     salvar_percentual_padrao,
     salvar_planos_desconto_centro,
     salvar_reserva_vila,
@@ -92,6 +94,7 @@ def repasse_vila_view(request):
         {
             "percentual_padrao": cfg.percentual_lucro_padrao,
             "reserva_padrao": cfg.reserva_vila,
+            "fundo_troco_vila": fundo_troco_vila_config(cfg),
             "reserva_desde": reserva_vila_desde_config(cfg),
             "planos_repasse": listar_planos_repasse_config(cfg),
             "calc": calc,
@@ -121,6 +124,7 @@ def api_repasse_vila_calc(request):
     out["cofrinho"] = resumo_cofrinho_vila(dia, limit=10, cofre="salario")
     out["cofre_vila_elias"] = resumo_cofrinho_vila(dia, limit=10, cofre="vila_elias")
     out["caixa_vila"] = saldo_dinheiro_caixa_vila()
+    out["fundo_troco_vila"] = float(fundo_troco_vila_config())
     out["ok"] = True
     return JsonResponse(out)
 
@@ -231,6 +235,7 @@ def api_repasse_vila_config(request):
                 "ok": True,
                 "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
                 "reserva_vila": float(cfg.reserva_vila),
+                "fundo_troco_vila": float(fundo_troco_vila_config(cfg)),
                 "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
                 "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
                 "planos": listar_planos_repasse_config(cfg),
@@ -243,6 +248,7 @@ def api_repasse_vila_config(request):
         payload = {
             "percentual_lucro_padrao": request.POST.get("percentual_lucro_padrao"),
             "reserva_vila": request.POST.get("reserva_vila"),
+            "fundo_troco_vila": request.POST.get("fundo_troco_vila"),
             "operador": request.POST.get("operador"),
         }
     op = str(payload.get("operador") or "").strip()
@@ -262,6 +268,13 @@ def api_repasse_vila_config(request):
         except Exception:
             return JsonResponse({"ok": False, "erro": "Valor da reserva diária inválido"}, status=400)
         cfg = salvar_reserva_vila(reserva, operador=op)
+    if "fundo_troco_vila" in payload:
+        raw_ft = payload.get("fundo_troco_vila")
+        try:
+            fundo = Decimal(str(raw_ft if raw_ft not in (None, "") else "500").replace(",", "."))
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Fundo de troco inválido"}, status=400)
+        cfg = salvar_fundo_troco_vila(fundo, operador=op)
     if "planos_desconto_centro" in payload:
         raw = payload.get("planos_desconto_centro")
         if raw is None:
@@ -278,6 +291,7 @@ def api_repasse_vila_config(request):
             "ok": True,
             "percentual_lucro_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
+            "fundo_troco_vila": float(fundo_troco_vila_config(cfg)),
             "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
             "planos_desconto_centro": nomes_planos_desconto_centro(cfg),
             "planos": listar_planos_repasse_config(cfg),
@@ -470,6 +484,7 @@ def api_repasse_vila_meta(request):
             "caixa_vila": saldo_dinheiro_caixa_vila(),
             "percentual_padrao": float(cfg.percentual_lucro_padrao),
             "reserva_vila": float(cfg.reserva_vila),
+            "fundo_troco_vila": float(fundo_troco_vila_config(cfg)),
             "reserva_vila_desde": reserva_vila_desde_config(cfg).isoformat(),
             "funcionarios": funcionarios,
             "formas_pagamento": formas,
