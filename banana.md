@@ -1253,16 +1253,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Chat aba + pisca 2 cores (`PDV-CHAT-FAB-PISCA` · **v20.20** · 31/08/2026)
+### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
-| Item | Detalhe |
-| ---- | ------- |
-| **O quê** | Aba/janela um pouco maior · msg nova = **pisca laranja ↔ vermelho** + pulso + badge |
-| **Arquivo** | `chat_loja_overlay.html` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_chat_fab_path.py` **8/8** |
-| **Loja** | ainda **v20.16** (só sobe com frase+senha) |
-| **Você** | Ctrl+F5 PDV · msg de outro PC → aba piscando |
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v20.21** — frase+senha neste chat · migrate **NÃO** |
+| **Antes** | Live **v20.16** @ `f7f326e` |
+| **Agora** | `producao` @ `26cb4f9` |
+| **Pacote** | `PDV-CHAT-FAB-PISCA` (SOLO — só CSS Chat) |
+| **Rollback** | tag `rollback/pre-v2021-chat-pisca-v2016` @ `f7f326e` · `docs/ROLLBACK-CHAT-FAB-PISCA-V2021.md` |
+| **Prova** | chat fab **8/8** |
+| **Você** | **Ctrl+F5** PDV · msg outro PC → aba **pisca laranja↔vermelho** |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (31/08 · loja **v20.21**)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-CHAT-FAB-PISCA` | ✅ **Live v20.21** |
+
+### ~~📦 PACOTE PRONTO — Chat aba + pisca 2 cores (`PDV-CHAT-FAB-PISCA`)~~ · **Live v20.21**
 
 ### ✅ Deploy loja — Chat + Promo (`deploy/prep-chat-promo-v2016` · **v20.16**) · **Live** · 31/08/2026
 
