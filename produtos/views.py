@@ -7918,6 +7918,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "WhatsApp lojas",
+            "href": reverse("atendimento_whatsapp"),
+            "icon": "message-circle",
+            "shortcut": "Z",
+            "shortcut_key": "z",
+            "pin_protected": True,
+        },
+        {
             "title": "Ajuste Mobile",
             "href": reverse("ajuste_mobile"),
             "icon": "smartphone",

@@ -1,0 +1,66 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}WhatsApp lojas | SisVale{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-900 overflow-hidden{% endblock %}
+{% block pdv_shell_class %}h-[100dvh] min-h-0 bg-slate-100 flex flex-col overflow-hidden{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
+
+{% block pdv_header %}
+<header class="shrink-0 border-b border-slate-200 bg-white">
+  <div class="flex flex-wrap items-center gap-3 px-3 py-2 sm:px-4">
+    <div class="min-w-0 flex-1">
+      <p class="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Atendimento</p>
+      <h1 class="truncate text-lg font-black tracking-tight text-slate-900 sm:text-xl">WhatsApp · Centro e Vila</h1>
+    </div>
+    <div id="wa-status" class="text-xs font-bold text-slate-600">Checando conexão…</div>
+    {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex min-h-[44px] items-center justify-center rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-xs font-black uppercase text-slate-800 hover:border-orange-400" %}
+  </div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+{% csrf_token %}
+<div id="wa-app" class="flex min-h-0 flex-1 flex-col gap-2">
+  <div id="wa-qr-box" class="hidden shrink-0 rounded-2xl border-2 border-amber-300 bg-amber-50 p-3">
+    <p class="text-sm font-black text-amber-950">Leia o QR no celular do WhatsApp da loja (Aparelhos conectados).</p>
+    <img id="wa-qr-img" alt="QR WhatsApp" class="mx-auto mt-2 h-48 w-48 rounded-xl bg-white p-2" />
+  </div>
+
+  <div class="flex shrink-0 gap-2">
+    <button type="button" data-loja="pendente" class="wa-tab flex-1 min-h-[48px] rounded-xl border-2 border-amber-400 bg-amber-50 text-sm font-black uppercase text-amber-950">Fila <span data-badge="pendente" class="wa-badge">0</span></button>
+    <button type="button" data-loja="centro" class="wa-tab flex-1 min-h-[48px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black uppercase text-slate-800">Centro <span data-badge="centro" class="wa-badge">0</span></button>
+    <button type="button" data-loja="vila" class="wa-tab flex-1 min-h-[48px] rounded-xl border-2 border-slate-300 bg-white text-sm font-black uppercase text-slate-800">Vila <span data-badge="vila" class="wa-badge">0</span></button>
+  </div>
+
+  <div class="grid min-h-0 flex-1 grid-cols-1 gap-2 md:grid-cols-[minmax(16rem,22rem)_1fr]">
+    <div id="wa-lista" class="min-h-0 overflow-y-auto rounded-2xl border border-slate-200 bg-white"></div>
+    <div class="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white">
+      <div id="wa-topo-conv" class="shrink-0 border-b border-slate-200 px-3 py-2 text-sm font-black text-slate-800">Escolha uma conversa</div>
+      <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
+      <form id="wa-form" class="flex shrink-0 gap-2 border-t border-slate-200 p-2">
+        <input id="wa-input" type="text" maxlength="4000" autocomplete="off" placeholder="Responder…" class="min-h-[48px] flex-1 rounded-xl border-2 border-slate-300 px-3 text-base font-semibold" />
+        <button type="submit" class="min-h-[48px] min-w-[7rem] rounded-xl bg-emerald-600 px-4 text-sm font-black uppercase text-white">Enviar</button>
+      </form>
+      <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pb-2">
+        <button type="button" data-move="centro" class="min-h-[40px] flex-1 rounded-lg border border-slate-300 text-xs font-black uppercase">Mover p/ Centro</button>
+        <button type="button" data-move="vila" class="min-h-[40px] flex-1 rounded-lg border border-slate-300 text-xs font-black uppercase">Mover p/ Vila</button>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+  .wa-tab.is-on { border-color: #059669; background: #ecfdf5; color: #064e3b; }
+  .wa-badge { display: inline-block; min-width: 1.4rem; margin-left: .2rem; border-radius: 999px; background: #ea580c; color: #fff; font-size: .7rem; padding: 0 .35rem; }
+  .wa-badge.is-zero { background: #cbd5e1; color: #334155; }
+  .wa-item { display: block; width: 100%; text-align: left; padding: .75rem .85rem; border-bottom: 1px solid #e2e8f0; }
+  .wa-item.is-on { background: #ecfdf5; }
+  .wa-item .wa-n { font-weight: 800; }
+  .wa-item .wa-p { color: #475569; font-size: .85rem; }
+  .wa-b { max-width: 85%; margin: .35rem 0; padding: .55rem .75rem; border-radius: .85rem; font-size: .95rem; line-height: 1.35; white-space: pre-wrap; }
+  .wa-b.in { background: #f1f5f9; }
+  .wa-b.out { background: #d1fae5; margin-left: auto; }
+  .wa-b.bot { background: #fef3c7; }
+</style>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}"></script>
+{% endblock %}

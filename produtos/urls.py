@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_pdv_chat_loja
+from . import views_atendimento_whatsapp
 from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
@@ -27,6 +28,11 @@ urlpatterns = [
     # --- PÁGINAS ---
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
+    path(
+        "atendimento-whatsapp/",
+        views_atendimento_whatsapp.atendimento_whatsapp_view,
+        name="atendimento_whatsapp",
+    ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),
@@ -748,6 +754,56 @@ urlpatterns = [
         'api/pdv/chat-loja/enviar/',
         views_pdv_chat_loja.api_pdv_chat_loja_enviar,
         name='api_pdv_chat_loja_enviar',
+    ),
+    path(
+        'api/atendimento-whatsapp/estado/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_estado,
+        name='api_atendimento_whatsapp_estado',
+    ),
+    path(
+        'api/atendimento-whatsapp/conversas/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_conversas,
+        name='api_atendimento_whatsapp_conversas',
+    ),
+    path(
+        'api/atendimento-whatsapp/mensagens/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_mensagens,
+        name='api_atendimento_whatsapp_mensagens',
+    ),
+    path(
+        'api/atendimento-whatsapp/enviar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_enviar,
+        name='api_atendimento_whatsapp_enviar',
+    ),
+    path(
+        'api/atendimento-whatsapp/marcar-lida/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_marcar_lida,
+        name='api_atendimento_whatsapp_marcar_lida',
+    ),
+    path(
+        'api/atendimento-whatsapp/definir-loja/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_definir_loja,
+        name='api_atendimento_whatsapp_definir_loja',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/estado/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
+        name='api_atendimento_whatsapp_bridge_estado',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/entrada/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_entrada,
+        name='api_atendimento_whatsapp_bridge_entrada',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/saida/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida,
+        name='api_atendimento_whatsapp_bridge_saida',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/saida-ok/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida_ok,
+        name='api_atendimento_whatsapp_bridge_saida_ok',
     ),
     path(
         'api/pdv/topbar-clique/',

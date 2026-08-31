@@ -1,0 +1,15 @@
+{
+  "name": "agro-whatsapp-atendimento",
+  "private": true,
+  "type": "module",
+  "description": "Ponte QR (Baileys) → Django Agro Consulta. Uso próprio, sem disparo em massa.",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}

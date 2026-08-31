@@ -569,6 +569,8 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 ).strip() or "Crédito Loja"
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+# Ponte QR (uso próprio, sem API Meta). Mesmo valor no iniciar.bat / .env do PC da ponte.
+AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
 # Backup Postgres noturno (FL-048) — só produção; ver pg_backup_nightly.py

@@ -426,7 +426,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 - **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
-- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.30):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. Contagem diária PG (`PdvTopbarCliqueDiaAgro` · migrate `0107`) p/ ajustar quente/frio depois.
+- **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34):** faixa quente = Pedir loja · Vendas · Uso loja · Entregas · Loja/caixa · Nova venda. **Mais ⋯** = botão+painel Saldo Vila · Fiado · Repasse · Pesar · PIN (fix: abre sem sumir). Contagem diária PG (`0107`).
 - **Pedir loja (15/08 · +cupom/qtd/escrito 29/08 · +escolha/forçada 30/08):** overlay Pedir/Recebidos/Enviados/Histórico · **pedido escrito** · obs · cupom 80mm · qtd · Transferir rosa · PIN · furado · bip · migrate `0018`+`0020`. **Clique topbar** → escolha: **Pedir** (fila) ou **Transferência forçada** (estoque agora, overlay PDV = Logística; PIN na confirmação; Esc volta à escolha). Badge só conta pedidos.
 - **Chat lojas (29/08 · `PDV-CHAT-LOJA` + `PDV-CHAT-OPEN`):** aba **Chat** colada embaixo · grupo único · som + badge/pisca · sem Processando · Postgres `ChatLojaMensagemAgro` · migrate `0105` · **Live v19.63** (dock→`body`, janela abre).
 - **Botão flutuante PDV** (2026-06-19): canto **inferior esquerdo** por padrão; **reposiciona sozinho** (6 cantos: BL/BR/TL/TR/meio L/R) se encostar em botão — prioridade **BR** em `/caixa/`. **Aa** (Display Scale) idem: TR → TL → BR → BL.
@@ -718,6 +718,13 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - `_agro_open_external.html` â€” links externos.
 
 **Popups / modais (decisÃ£o 08/07 â€” Renan):** padrÃ£o do produto = **`<div>` + Tailwind + JavaScript puro** (MPA Django). Abrir/fechar = tirar/colocar classe `hidden` (+ `modal-open` no `body` quando precisar). **NÃ£o** usar biblioteca de modal (Bootstrap, SweetAlert, etc.). **`<dialog>` nativo:** avaliado â€” **nÃ£o** adotar em popup novo por padrÃ£o (dezenas de modais jÃ¡ no padrÃ£o `div`; operador nÃ£o ganha nada; CPU/memÃ³ria imperceptÃ­vel). **Regra:** popup novo numa tela que jÃ¡ tem modal â†’ **copiar o padrÃ£o da tela**; tela zerada / FOOD do zero â†’ pode usar `<dialog>` se padronizar a tela inteira. CanÃ´nico tambÃ©m em **`SISTVALE.md`** e **`FOOD.md`**.
+
+### 4.16 WhatsApp lojas (`/atendimento-whatsapp/`)
+
+- Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
+- Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
+- Sem disparo em massa. Botão PDV ainda **não** — atalho no Menu / `Z`.
+- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`. Pacote `WA-ATEND-QR`.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1191,6 +1198,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | `AGRO_RH_PLANO_SALARIO_FOLHA` | Plano Mongo do tÃ­tulo de salÃ¡rio         |
 | `MP_POINT_*`                   | Point Centro (token + terminal)          |
 | `MP_POINT_VILA_*`              | Point Vila (outra conta MP)              |
+| `ALERTA_VENDAS_CRON_TOKEN` | Cron interno |
+| `AGRO_WA_BRIDGE_TOKEN` | Ponte WhatsApp QR (`WA-ATEND-QR`) — mesmo valor no PC da ponte |
 
 
 ---
@@ -1255,6 +1264,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — WhatsApp lojas QR (`WA-ATEND-QR` · 31/08/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Página `/atendimento-whatsapp/` · bot 1=Centro / 2=Vila · filas no Agro · ponte QR (`iniciar.bat`) · **sem** disparo · **sem** botão PDV ainda |
+| **Arquivos** | `atendimento_whatsapp_util.py` · `views_atendimento_whatsapp.py` · `whatsapp_atendimento/` · migrate **`0108`+`0109`** |
+| **Prova** | `scripts/verify_atendimento_whatsapp.py` + `produtos.tests_atendimento_whatsapp` |
+| **Risco Zap** | Nunca 0% (não é oficial). Volume baixo + só resposta = risco parecido com WhatsApp Web |
+| **Você** | 1) migrate 2) no PC: `whatsapp_atendimento\iniciar.bat` 3) abrir `/atendimento-whatsapp/` 4) ler QR no celular da loja |
+| **Status** | 🟡 `teste` · **não** sobe loja sem você testar local + frase/senha |
+
 ### 📦 PACOTE PRONTO — Chat sem popup Pedir (`PDV-PIN-CHAT-TEMPEDIDO` · **v20.33** · 31/08/2026)
 
 | Campo | Valor |
@@ -1265,14 +1285,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | ✅ `teste` · **pronto para envio à produção** |
 
-### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.31+** · 31/08/2026)
+### 📦 PACOTE PRONTO — Topbar Mais ⋯ (`PDV-TOPBAR-MAIS` · **v20.34** · 31/08/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Quente = Pedir · Vendas · Uso · Entregas · Caixa · Nova. **Mais ⋯** = Saldo Vila · Fiado · Repasse · Pesar · PIN. |
-| **Prova** | path **24/24** |
+| **O quê** | **Mais ⋯** abre de verdade: botão+painel (não `<details>`), painel `fixed` no `body`. Quente/frio iguais. Contagem PG. Bônus consulta: freio `catalogo-full-off` → slim (não trava «Baixando…»). |
+| **Onde** | `pdv_topbar_mais.js` · `pdv_wizard.html` · `consulta_produtos.js` · migrate **`0107`** |
+| **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **29/29** |
 | **Migrate** | **`0107`** |
-| **Status** | ✅ `teste` · **pronto para envio à produção** |
+| **Status** | ✅ `teste` · **ainda NÃO** loja |
+| **Você** | Ctrl+F5 PDV · badge · clicar **Mais ⋯** |
 
 ### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32+** · 31/08/2026)
 

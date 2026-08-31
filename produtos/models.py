@@ -3395,3 +3395,105 @@ class PdvTopbarCliqueDiaAgro(models.Model):
 
     def __str__(self):
         return f"{self.data} {self.botao}@{self.deposito or '-'}: {self.cliques}"
+
+
+class WhatsAppPonteEstadoAgro(models.Model):
+    """Singleton da ponte QR (PC da loja ↔ Django)."""
+
+    STATUS_DESCONECTADO = "desconectado"
+    STATUS_QR = "qr"
+    STATUS_CONECTADO = "conectado"
+    STATUS_CHOICES = (
+        (STATUS_DESCONECTADO, "Desconectado"),
+        (STATUS_QR, "Aguardando QR"),
+        (STATUS_CONECTADO, "Conectado"),
+    )
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_DESCONECTADO, db_index=True
+    )
+    qr_data_url = models.TextField(blank=True, default="")
+    numero = models.CharField(max_length=32, blank=True, default="")
+    aviso = models.CharField(max_length=240, blank=True, default="")
+    heartbeat_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Ponte WhatsApp (estado)"
+        verbose_name_plural = "Ponte WhatsApp (estado)"
+
+    def __str__(self):
+        return f"{self.chave} · {self.status}"
+
+
+class WhatsAppConversaAgro(models.Model):
+    """Conversa de um cliente no número da loja, roteada para Centro ou Vila."""
+
+    LOJA_PENDENTE = "pendente"
+    LOJA_CENTRO = "centro"
+    LOJA_VILA = "vila"
+    LOJA_CHOICES = (
+        (LOJA_PENDENTE, "Fila (escolhe loja)"),
+        (LOJA_CENTRO, "Centro"),
+        (LOJA_VILA, "Vila Elias"),
+    )
+
+    jid = models.CharField(max_length=80, unique=True)
+    telefone = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    nome = models.CharField(max_length=120, blank=True, default="")
+    loja = models.CharField(
+        max_length=16, choices=LOJA_CHOICES, default=LOJA_PENDENTE, db_index=True
+    )
+    menu_enviado = models.BooleanField(default=False)
+    nao_lidas = models.PositiveIntegerField(default=0)
+    ultima_preview = models.CharField(max_length=160, blank=True, default="")
+    ultima_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Conversa WhatsApp"
+        verbose_name_plural = "Conversas WhatsApp"
+        ordering = ["-ultima_em", "-id"]
+        indexes = [
+            models.Index(fields=["loja", "ultima_em"], name="wa_conv_loja_ult_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.telefone or self.jid} · {self.loja}"
+
+
+class WhatsAppMensagemAgro(models.Model):
+    DIRECAO_IN = "in"
+    DIRECAO_OUT = "out"
+    DIRECAO_BOT = "bot"
+    DIRECAO_CHOICES = (
+        (DIRECAO_IN, "Cliente"),
+        (DIRECAO_OUT, "Loja"),
+        (DIRECAO_BOT, "Bot"),
+    )
+
+    conversa = models.ForeignKey(
+        WhatsAppConversaAgro,
+        on_delete=models.CASCADE,
+        related_name="mensagens",
+    )
+    direcao = models.CharField(max_length=8, choices=DIRECAO_CHOICES, db_index=True)
+    texto = models.TextField()
+    wa_id = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    pendente_envio = models.BooleanField(default=False, db_index=True)
+    enviado_em = models.DateTimeField(null=True, blank=True)
+    erro_envio = models.CharField(max_length=200, blank=True, default="")
+    autor_nome = models.CharField(max_length=120, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Mensagem WhatsApp"
+        verbose_name_plural = "Mensagens WhatsApp"
+        ordering = ["id"]
+        indexes = [
+            models.Index(fields=["conversa", "id"], name="wa_msg_conv_id_idx"),
+        ]
+
+    def __str__(self):
+        return f"#{self.pk} {self.direcao} {(self.texto or '')[:40]}"
