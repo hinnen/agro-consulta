@@ -1293,8 +1293,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `pdv_topbar_mais.js` · `pdv_wizard.html` · `consulta_produtos.js` · migrate **`0107`** |
 | **Prova** | `scripts/verify_pdv_topbar_mais_path.py` **29/29** |
 | **Migrate** | **`0107`** |
-| **Status** | ✅ `teste` · **ainda NÃO** loja |
-| **Você** | Ctrl+F5 PDV · badge · clicar **Mais ⋯** |
+| **Status** | ✅ `teste` **v20.35** · **ainda NÃO** loja |
+| **Você** | Ctrl+F5 PDV · badge **v20.35** · clicar **Mais ⋯** |
 
 ### 📦 PACOTE PRONTO — Fundo troco gaveta Vila (`REPASSE-FUNDO-TROCO` · **v20.32+** · 31/08/2026)
 
