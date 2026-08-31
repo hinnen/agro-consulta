@@ -1253,6 +1253,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Promo regra vs tabela salva (`PROMO-REGRA-TABELA-SAVE` · **v20.10** · 31/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **Bug** | «Sempre a promoção» voltava para «maior valor» após salvar |
+| **Causa** | Script inline da promo não mandava `regra_vs_tabela` no POST |
+| **Fix** | `promocoes_form_script.html` — commit `742e7d8` |
+| **Você** | Ctrl+F5 · editar promo · mudar regra · salvar · reabrir |
+
 ### ✅ Deploy loja — NFC-e CSRF lista (`NFCE-REEMIT-CSRF` · **v20.07**) · **Live** · 30/08/2026
 
 | Campo | Valor |
