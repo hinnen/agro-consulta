@@ -1264,6 +1264,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
+| **Base loja** | `origin/producao` @ **v20.22** / `75779df` |
+| **Branch PREP** | `deploy/prep-checklist-3108` @ **`18fc7d1`** · tip **v20.45** |
+| **Pacotes** | PDV-TOPBAR-LAYOUT · TOPBAR-MAIS · WA-TOPBAR-BREVE · PIN-CHAT-TEMPEDIDO · REPASSE-FUNDO-TROCO |
+| **Fora do lote** | `WA-ATEND-QR` · `BI-META-C-VILA-RAMP` |
+| **Migrate** | **SIM** — `0106` · `0107` · `0110` (no PREP `0110`→`0107`, **sem** `0108`/`0109`) |
+| **Provas (31/08 prep)** | topbar layout **29/29** · Mais **31/31** · WA breve **35/35** · PIN-chat **16/16** · fundo troco **56/56** |
+| **Rollback** | tag `rollback/pre-lote-checklist-3108-v20.22` @ `75779df` · branch `producao-backup-pre-v2045-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md` · **só** frase+senha |
+| **Risco loja aberta** | Topbar/Mais/Organizar · WA só «Em breve» · Repasse aviso troco · **não** muda finalizar venda |
+| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-3108` · pausar vendas ~2–3 min · Zap · healthz · badge **v20.45** · Ctrl+F5 |
+| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · tip **v20.45**) · PREP `18fc7d1`
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-TOPBAR-LAYOUT` | 🟡 PREP / aguarda senha · path **29/29** | **SIM** (`0110`) |
+| 2 | `PDV-TOPBAR-MAIS` | 🟡 PREP / aguarda senha · path **31/31** | **SIM** (`0107`) |
+| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 PREP / aguarda senha · path **35/35** | **NÃO** |
+| 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 PREP / aguarda senha · path **16/16** | **NÃO** |
+| 5 | `REPASSE-FUNDO-TROCO` | 🟡 PREP / aguarda senha · **56/56** | **SIM** (`0106`) |
+
+**Fora:** `WA-ATEND-QR`. **Loja agora:** **v20.22**.
+
+### ~~📦 PACOTE PRONTO — tip v20.45~~ · **superado pelo PREP acima**
+
 ### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.45**)
 
 | Pacote | O quê (1 linha) | Prova | Migrate |
@@ -1289,6 +1319,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Fora do checklist (ainda testar local):** `WA-ATEND-QR`.  
 **Loja agora:** **v20.22**. Envio só com frase + senha.
+
+### ~~✅ CHECKLIST ÚNICO — tip v20.45 (cópia antiga)~~ · **ver PREP + CHECKLIST no topo**
 
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
