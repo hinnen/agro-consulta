@@ -1259,7 +1259,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ⏳ **PREP pronta** — **não** enviado · lojas abertas |
 | **Antes** | Live **v20.07** @ `91a610a` |
-| **PREP** | `deploy/prep-chat-promo-v2016` · VERSION **20.16** |
+| **PREP** | `deploy/prep-chat-promo-v2016` @ `f7f326e` · VERSION **20.16** |
 | **Rollback** | tag `rollback/pre-v2016-chat-promo-v2007` @ `91a610a` · `docs/ROLLBACK-CHAT-PROMO-V2016.md` |
 | **Migrate** | **NÃO** |
 | **Prova** | chat **5/5** · promo **23/23** |
