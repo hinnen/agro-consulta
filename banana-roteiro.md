@@ -279,18 +279,16 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 ---
 
-## 15. Checklist único — lote 31/08 (loja alvo **v20.45**)
+## 15. Checklist único — lote 31/08 (loja **v20.45**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-TOPBAR-LAYOUT** | 🟡 PREP / aguarda senha · **29/29** | **SIM** (`0110`) |
-| 2 | **PDV-TOPBAR-MAIS** | 🟡 PREP / aguarda senha · **31/31** | **SIM** (`0107`) |
-| 3 | **PDV-WA-TOPBAR-BREVE** | 🟡 PREP / aguarda senha · **35/35** | **NÃO** |
-| 4 | **PDV-PIN-CHAT-TEMPEDIDO** | 🟡 PREP / aguarda senha · **16/16** | **NÃO** |
-| 5 | **REPASSE-FUNDO-TROCO** | 🟡 PREP / aguarda senha · **56/56** | **SIM** (`0106`) |
+| 1 | **PDV-TOPBAR-LAYOUT** | ✅ **Live v20.45** | **SIM** (`0110`) |
+| 2 | **PDV-TOPBAR-MAIS** | ✅ **Live v20.45** | **SIM** (`0107`) |
+| 3 | **PDV-WA-TOPBAR-BREVE** | ✅ **Live v20.45** | **NÃO** |
+| 4 | **PDV-PIN-CHAT-TEMPEDIDO** | ✅ **Live v20.45** | **NÃO** |
+| 5 | **REPASSE-FUNDO-TROCO** | ✅ **Live v20.45** | **SIM** (`0106`) |
 
-**PREP:** `deploy/prep-checklist-3108` @ `18fc7d1` · base loja **v20.22** `75779df`.  
-**Fora:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.  
-**Migrate note:** PREP pula `0108`/`0109` — `0110` depende de `0107`.  
-**Rollback:** tag `rollback/pre-lote-checklist-3108-v20.22` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md`.  
-**Deploy:** só frase + senha · pausar vendas · Ctrl+F5 · smoke Mais/Organizar · WA «Em breve» · Repasse.
+**Status: enviado / Live v20.45.** `producao` @ `18fc7d1`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3108-v20.22` @ `75779df` · branch `producao-backup-pre-v2045-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v20.45** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.

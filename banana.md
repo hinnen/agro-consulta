@@ -1264,63 +1264,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · aguarda senha
+### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronta** — aguarda frase + senha no **próximo chat** (lojas abertas agora) |
-| **Base loja** | `origin/producao` @ **v20.22** / `75779df` |
-| **Branch PREP** | `deploy/prep-checklist-3108` @ **`18fc7d1`** · tip **v20.45** |
+| **Status** | ✅ **enviado / Live v20.45** — healthz **ok** · home/consulta/PDV **200** · badge **v20.45** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v20.22** / `75779df` |
+| **Agora** | `producao` @ **`18fc7d1`** |
 | **Pacotes** | PDV-TOPBAR-LAYOUT · TOPBAR-MAIS · WA-TOPBAR-BREVE · PIN-CHAT-TEMPEDIDO · REPASSE-FUNDO-TROCO |
-| **Fora do lote** | `WA-ATEND-QR` · `BI-META-C-VILA-RAMP` |
-| **Migrate** | **SIM** — `0106` · `0107` · `0110` (no PREP `0110`→`0107`, **sem** `0108`/`0109`) |
-| **Provas (31/08 prep)** | topbar layout **29/29** · Mais **31/31** · WA breve **35/35** · PIN-chat **16/16** · fundo troco **56/56** |
+| **Fora** | `WA-ATEND-QR` · `BI-META-C-VILA-RAMP` |
+| **Migrate** | **SIM** — `0106` · `0107` · `0110` no build |
 | **Rollback** | tag `rollback/pre-lote-checklist-3108-v20.22` @ `75779df` · branch `producao-backup-pre-v2045-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md` · **só** frase+senha |
-| **Risco loja aberta** | Topbar/Mais/Organizar · WA só «Em breve» · Repasse aviso troco · **não** muda finalizar venda |
-| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-checklist-3108` · pausar vendas ~2–3 min · Zap · healthz · badge **v20.45** · Ctrl+F5 |
-| **Você** | No próximo chat: pausar vendas + «pode subir produção» + senha |
+| **Você** | **Ctrl+F5** nos PDVs · badge **v20.45** · smoke: venda · Mais/Organizar · WA «Em breve» · Repasse · chat+PIN |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · tip **v20.45**) · PREP `18fc7d1`
+### ✅ CHECKLIST ÚNICO — enviado produção (31/08 · loja **v20.45**)
 
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PDV-TOPBAR-LAYOUT` | 🟡 PREP / aguarda senha · path **29/29** | **SIM** (`0110`) |
-| 2 | `PDV-TOPBAR-MAIS` | 🟡 PREP / aguarda senha · path **31/31** | **SIM** (`0107`) |
-| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 PREP / aguarda senha · path **35/35** | **NÃO** |
-| 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 PREP / aguarda senha · path **16/16** | **NÃO** |
-| 5 | `REPASSE-FUNDO-TROCO` | 🟡 PREP / aguarda senha · **56/56** | **SIM** (`0106`) |
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-TOPBAR-LAYOUT` | ✅ **Live v20.45** · `0110` |
+| 2 | `PDV-TOPBAR-MAIS` | ✅ **Live v20.45** · `0107` |
+| 3 | `PDV-WA-TOPBAR-BREVE` | ✅ **Live v20.45** |
+| 4 | `PDV-PIN-CHAT-TEMPEDIDO` | ✅ **Live v20.45** |
+| 5 | `REPASSE-FUNDO-TROCO` | ✅ **Live v20.45** · `0106` |
 
-**Fora:** `WA-ATEND-QR`. **Loja agora:** **v20.22**.
+### ~~🚀 PREP deploy loja — lote checklist 31/08~~ · **superado — Live v20.45 @ 18fc7d1**
 
-### ~~📦 PACOTE PRONTO — tip v20.45~~ · **superado pelo PREP acima**
-
-### 📦 PACOTE PRONTO — o que ainda falta subir (31/08 · tip **v20.45**)
-
-| Pacote | O quê (1 linha) | Prova | Migrate |
-| ------ | --------------- | ----- | ------- |
-| `PDV-TOPBAR-LAYOUT` | Quente/frio + Fiado quente + **Organizar** (overlay no `body`; PIN ao salvar) | path **29/29** · API GET/POST OK · PIN **9973** válido | **`0110`** |
-| `PDV-TOPBAR-MAIS` | **Mais ⋯** abre (botão+painel) · contagem PG | path **31/31** | **`0107`** |
-| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** (não abre o chat) | path **35/35** · Chrome: clique abre · Ok fecha | **NÃO** |
-| `PDV-PIN-CHAT-TEMPEDIDO` | Renovar PIN no chat **não** abre «tem pedido» | path **16/16** | **NÃO** |
-| `REPASSE-FUNDO-TROCO` | Fundo troco gaveta Vila (aviso R$ 500) | **56/56** | **`0106`** |
-| `WA-ATEND-QR` | `/atendimento-whatsapp/` filas+QR · **ainda não** no checklist loja | verify WA | **`0108`+`0109`** |
-
-**Você (PDV topbar):** Ctrl+F5 · badge tip · **Mais ⋯** → Organizar (lista Quente/Frio) · Salvar com PIN.
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (31/08 · alvo tip **v20.45**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PDV-TOPBAR-LAYOUT` | 🟡 **pronto para envio** · path **29/29** | **SIM** (`0110`) |
-| 2 | `PDV-TOPBAR-MAIS` | 🟡 **pronto para envio** · path **31/31** | **SIM** (`0107`) |
-| 3 | `PDV-WA-TOPBAR-BREVE` | 🟡 **pronto para envio** · path **35/35** · Chrome OK | **NÃO** |
-| 4 | `PDV-PIN-CHAT-TEMPEDIDO` | 🟡 **pronto para envio** · path **16/16** | **NÃO** |
-| 5 | `REPASSE-FUNDO-TROCO` | 🟡 **pronto para envio** · **56/56** | **SIM** (`0106`) |
-
-**Fora do checklist (ainda testar local):** `WA-ATEND-QR`.  
-**Loja agora:** **v20.22**. Envio só com frase + senha.
-
-### ~~✅ CHECKLIST ÚNICO — tip v20.45 (cópia antiga)~~ · **ver PREP + CHECKLIST no topo**
+### ~~📦 PACOTE PRONTO — tip v20.45~~ · **superado — Live v20.45**
 
 ### ✅ Deploy loja — PIN na ação (`PDV-PIN-NA-ACAO` · **v20.22**) · **Live** · 31/08/2026
 
