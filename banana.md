@@ -1274,7 +1274,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_wa_topbar_breve.py` 36/36 |
 | **Você** | Ctrl+F5 no PDV · o Zap fica verde, não cinza |
-| **Status** | 🟡 `teste` **v20.46** · loja ainda **v20.45** (botão lá está clarinho) |
+| **Status** | 🟡 `teste` **v20.48** · loja ainda **v20.45** (botão lá está clarinho) |
 
 ### 📦 PACOTE PRONTO — Arredondar cofres do repasse (`REPASSE-ARREDONDA-COFRE` · **v20.47** · 31/08/2026)
 
