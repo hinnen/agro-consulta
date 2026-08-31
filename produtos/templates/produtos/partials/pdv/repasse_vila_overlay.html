@@ -242,6 +242,10 @@
             <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
             <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-hoje">R$ 0,00</div>
           </div>
+          <div class="rounded-lg border-2 border-amber-400 bg-amber-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado</div>
+            <div class="text-lg font-black tabular-nums text-slate-600 leading-none" id="pdv-rp-hero-cofre-acum" title="Falta (positivo) ou excedente (negativo) depois do valor digitado">R$ 0,00</div>
+          </div>
           <p id="pdv-rp-cofre-aviso" class="hidden text-sm font-black text-rose-950 leading-snug" role="alert"></p>
           <label class="rp-check border-rose-500 bg-white mt-auto"><input type="checkbox" id="pdv-rp-separar-reserva" checked /><span>Separar junto</span></label>
         </div>
@@ -257,6 +261,10 @@
           <div id="pdv-rp-hero-cofre-ve-hoje-wrap" class="hidden rounded-lg border-2 border-emerald-500 bg-emerald-50 px-2 py-1">
             <div class="text-[0.65rem] font-black uppercase text-emerald-900">Separado hoje</div>
             <div class="text-lg font-black tabular-nums text-emerald-950 leading-none" id="pdv-rp-hero-cofre-ve-hoje">R$ 0,00</div>
+          </div>
+          <div class="rounded-lg border-2 border-amber-400 bg-amber-50 px-2 py-1">
+            <div class="text-[0.65rem] font-black uppercase text-amber-800">Acumulado</div>
+            <div class="text-lg font-black tabular-nums text-slate-600 leading-none" id="pdv-rp-hero-cofre-ve-acum" title="Falta (positivo) ou excedente (negativo) depois do valor digitado">R$ 0,00</div>
           </div>
           <p id="pdv-rp-cofre-ve-aviso" class="hidden text-sm font-black text-indigo-950 leading-snug mt-auto" role="alert"></p>
         </div>
@@ -289,7 +297,7 @@
             <input type="text" id="pdv-rp-input-cofre-sal" class="rp-field rp-hero-cofre-input mt-1 text-4xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
                    placeholder="0,00" autocomplete="off" name="rp_cofre_sal"
                    data-lpignore="true" data-1p-ignore="true" data-form-type="other"
-                   title="Quanto separar no cofrinho salário (pode 0,00)" />
+                   title="Quanto separar no cofrinho salário — pode arredondar pra mais ou pra menos" />
           </label>
         </div>
 
@@ -299,7 +307,7 @@
             <input type="text" id="pdv-rp-input-cofre-ve" class="rp-field rp-hero-cofre-ve-input mt-1 text-4xl font-black tabular-nums flex-1 min-h-[4.25rem] w-full leading-none" inputmode="decimal"
                    placeholder="0,00" autocomplete="off" name="rp_cofre_ve"
                    data-lpignore="true" data-1p-ignore="true" data-form-type="other"
-                   title="Quanto separar no cofre Vila Elias (pode 0,00)" />
+                   title="Quanto separar no cofre Vila Elias — pode arredondar pra mais ou pra menos" />
           </label>
         </div>
 

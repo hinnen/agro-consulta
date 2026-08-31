@@ -477,8 +477,13 @@
 
     var enviarHint = document.getElementById('pdv-rp-enviar-hint');
     if (enviarHint) {
-      if (mv != null) {
-        enviarHint.textContent = 'Valor digitado manualmente · total a levar ' + money(tot);
+      var difLev = Math.round((tot - totAuto) * 100) / 100;
+      if (mv != null && difLev > 0.009) {
+        enviarHint.textContent = 'Digitou a mais · excedente ' + money(difLev) + ' desconta amanhã';
+      } else if (mv != null && difLev < -0.009) {
+        enviarHint.textContent = 'Digitou a menos · falta ' + money(-difLev) + ' soma amanhã';
+      } else if (mv != null) {
+        enviarHint.textContent = 'Valor digitado · total a levar ' + money(tot);
       } else if (inclAcum && Math.abs(acum) > 0.009) {
         enviarHint.textContent = 'Total a levar ' + money(tot) + ' (dia + acumulado)';
       } else {
@@ -489,8 +494,9 @@
     var hintOp = document.getElementById('pdv-rp-opcoes-hint');
     if (hintOp && dom.pct) hintOp.textContent = (dom.pct.value || '50') + '%';
 
-    function renderCofreHero(resumo, ids, avisoTxt) {
+    function renderCofreHero(resumo, ids, avisoTxt, valorSep) {
       var pendente = Number(resumo.pendente_dia || 0);
+      var adiantado = Number(resumo.adiantado || 0);
       var saldo = Number(resumo.saldo || 0);
       var realizado = Number(resumo.realizada_dia || 0);
       setText(ids.aSeparar, money(pendente));
@@ -506,6 +512,15 @@
           hojeEl.textContent = money(0);
         }
       }
+      var acumEl = document.getElementById(ids.acum);
+      if (acumEl) {
+        var liquido = pendente - adiantado;
+        var apos = Math.round((liquido - Number(valorSep || 0)) * 100) / 100;
+        acumEl.textContent = money(apos);
+        acumEl.className =
+          'text-lg font-black tabular-nums leading-none ' +
+          (apos > 0.009 ? 'text-amber-950' : apos < -0.009 ? 'text-sky-900' : 'text-slate-600');
+      }
       var aviso = document.getElementById(ids.aviso);
       if (aviso) {
         if (pendente > 0.009) {
@@ -518,13 +533,21 @@
       }
     }
 
+    cofreSalAutoFmt = syncCofreInput(dom.inputCofreSal, cofreSalDirty, pendSal);
+    cofreVeAutoFmt = syncCofreInput(dom.inputCofreVe, cofreVeDirty, pendVe);
+    var vSalNow = parseMoneyInput(dom.inputCofreSal);
+    var vVeNow = parseMoneyInput(dom.inputCofreVe);
+    if (!isFinite(vSalNow)) vSalNow = pendSal;
+    if (!isFinite(vVeNow)) vVeNow = pendVe;
+
     renderCofreHero(cofre, {
       aSeparar: 'pdv-rp-hero-cofre',
       saldo: 'pdv-rp-hero-cofre-saldo',
       hojeWrap: 'pdv-rp-hero-cofre-hoje-wrap',
       hoje: 'pdv-rp-hero-cofre-hoje',
       aviso: 'pdv-rp-cofre-aviso',
-    }, 'NÃO levar no envelope · Separar junto puxa o acumulado.');
+      acum: 'pdv-rp-hero-cofre-acum',
+    }, 'NÃO levar no envelope · arredondar puxa o acumulado.', sepJunto ? vSalNow : 0);
 
     renderCofreHero(cofreVe, {
       aSeparar: 'pdv-rp-hero-cofre-ve',
@@ -532,10 +555,8 @@
       hojeWrap: 'pdv-rp-hero-cofre-ve-hoje-wrap',
       hoje: 'pdv-rp-hero-cofre-ve-hoje',
       aviso: 'pdv-rp-cofre-ve-aviso',
-    }, 'Lucro que fica na Vila · Separar junto puxa o acumulado.');
-
-    cofreSalAutoFmt = syncCofreInput(dom.inputCofreSal, cofreSalDirty, pendSal);
-    cofreVeAutoFmt = syncCofreInput(dom.inputCofreVe, cofreVeDirty, pendVe);
+      acum: 'pdv-rp-hero-cofre-ve-acum',
+    }, 'Lucro que fica na Vila · arredondar puxa o acumulado.', sepJunto ? vVeNow : 0);
 
     renderMesCards();
   }
@@ -1198,6 +1219,7 @@
   if (dom.inputCofreSal) {
     dom.inputCofreSal.addEventListener('input', function () {
       markCofreDirty('sal');
+      renderCalc();
     });
     dom.inputCofreSal.addEventListener('focus', function () {
       try {
@@ -1208,6 +1230,7 @@
   if (dom.inputCofreVe) {
     dom.inputCofreVe.addEventListener('input', function () {
       markCofreDirty('ve');
+      renderCalc();
     });
     dom.inputCofreVe.addEventListener('focus', function () {
       try {

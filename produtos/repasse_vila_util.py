@@ -533,6 +533,7 @@ def resumo_cofrinho_vila(
         "prevista_dia": float(prevista),
         "realizada_dia": float(realizada),
         "pendente_dia": float(acum["pendente"]),
+        "pendente_liquido": float((acum["pendente"] - acum["adiantado"]).quantize(Decimal("0.01"))),
         "obrigacao_acumulada": float(acum["obrigacao"]),
         "credito_acumulado": float(acum["credito"]),
         "adiantado": float(acum["adiantado"]),
@@ -628,7 +629,11 @@ def separar_reserva_diaria(
     cofre: str = COFRE_SALARIO,
     valor: Decimal | float | str | None = None,
 ) -> tuple[RepasseVilaReservaMovimentoAgro | None, bool, str]:
-    """Separa o pendente (ou um valor parcial) da gaveta para o cofre."""
+    """Separa o valor pedido (ou o pendente) da gaveta para o cofre.
+
+    Pode ser maior que o pendente: o excedente vira crédito (acumulado negativo)
+    e abate os próximos dias. Menor que o pendente deixa o resto para amanhã.
+    """
     cofre_n = _norm_cofre(cofre)
     cfg_base = obter_config()
     RepasseVilaConfigAgro.objects.select_for_update().get(pk=cfg_base.pk)
@@ -652,35 +657,38 @@ def separar_reserva_diaria(
     realizada = separacao_realizada_no_dia(dia, cofre=cofre_n)
     acum = pendente_reserva_cofrinho_ate(dia, cofre=cofre_n)
     falta = acum["pendente"]
-    if falta <= 0:
-        existente = (
-            RepasseVilaReservaMovimentoAgro.objects.filter(
-                data_ref=dia,
-                tipo=RepasseVilaReservaMovimentoAgro.Tipo.SEPARACAO,
-                cofre=cofre_n,
-            )
-            .order_by("-criado_em", "-pk")
-            .first()
-        )
-        return existente, False, ""
-    pedido = falta
+    pedido = None
     if valor is not None and str(valor).strip() != "":
         pedido = _dec(valor)
         if pedido < 0:
             return None, False, f"Valor de separação do {nome} inválido."
         if pedido == 0:
             return None, False, ""
-        if pedido > falta + Decimal("0.009"):
-            return None, False, (
-                f"Separação do {nome} R$ {pedido} maior que o pendente R$ {falta}."
+    if pedido is None:
+        if falta <= 0:
+            existente = (
+                RepasseVilaReservaMovimentoAgro.objects.filter(
+                    data_ref=dia,
+                    tipo=RepasseVilaReservaMovimentoAgro.Tipo.SEPARACAO,
+                    cofre=cofre_n,
+                )
+                .order_by("-criado_em", "-pk")
+                .first()
             )
+            return existente, False, ""
+        pedido = falta
     from produtos.caixa_util import resumo_esperado_por_forma
 
     dinheiro = max(
         ZERO,
         _dec(resumo_esperado_por_forma(sessao_caixa).get("Dinheiro")),
     )
-    separar = min(pedido, falta, dinheiro)
+    if pedido > dinheiro + Decimal("0.009"):
+        return None, False, (
+            f"Não há dinheiro suficiente na gaveta para separar o {nome} "
+            f"(R$ {pedido} · gaveta R$ {dinheiro})."
+        )
+    separar = pedido.quantize(Decimal("0.01"))
     if separar <= 0:
         return None, False, f"Não há dinheiro suficiente na gaveta para separar o {nome}."
     rotulo = "cofre Vila Elias" if cofre_n == COFRE_VILA_ELIAS else "cofrinho Salário"
@@ -2068,8 +2076,8 @@ def confirmar_repasse(
         )
         pend_sal = _dec(resumo_cofrinho_vila(dia, cofre=COFRE_SALARIO).get("pendente_dia"))
         pend_ve = _dec(resumo_cofrinho_vila(dia, cofre=COFRE_VILA_ELIAS).get("pendente_dia"))
-        sep_sal = pend_sal if v_cof_sal is None else min(v_cof_sal, pend_sal)
-        sep_ve = pend_ve if v_cof_ve is None else min(v_cof_ve, pend_ve)
+        sep_sal = pend_sal if v_cof_sal is None else max(ZERO, v_cof_sal)
+        sep_ve = pend_ve if v_cof_ve is None else max(ZERO, v_cof_ve)
         pendente_reserva = (sep_sal + sep_ve).quantize(Decimal("0.01"))
         limite_transferencia = max(ZERO, dinheiro_gaveta - pendente_reserva)
         if total > limite_transferencia:

@@ -689,6 +689,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Repasse acumulado (18/08):** saldo dos dias anteriores (+ falta / − crédito) · total sugerido · ajuste manual PG · migrate `0093`. **v17.41:** dinheiro já levado a mais **abate** o acumulado na hora (não pede o mesmo valor de novo).
 - **Reserva no lucro (Live · migrate 0097):** card **Reserva Vila** — bruto − reserva = penúltimo → % ao Centro; reserva **não** corta o total sugerido de novo. Prova: `verify_repasse_reserva` / `verify_repasse_vila_deep`.
 - **Cofrinho acumulado + saldo inicial (`REPASSE-COFRINHO-ACUM` · v18.52):** «Ainda separar» soma dias sem separar; separar a mais / **Saldo inicial** abate próximos dias. Prova `verify_repasse_cofrinho` **28/28**.
+- **Arredondar cofres (`REPASSE-ARREDONDA-COFRE` · 31/08):** Salário, Vila Elias e Levar ao Centro aceitam o valor digitado (pra mais ou pra menos). Excedente = acumulado **negativo** e desconta amanhã; falta soma amanhã. Sem trava «maior que o pendente».
 - **Fundo troco gaveta (`REPASSE-FUNDO-TROCO` · 31/08):** alvo configurável (padrão R$ 500) em % lucro/opções; sugestão Salário→VE→Centro; falta corta Centro→VE→Salário; só aviso. Migrate `0106`.
 - **Dois cofrinhos (`REPASSE-DOIS-COFRES` · v18.81):** Salário (config) + Vila Elias (fatia que fica); fórmula sem cortar salário antes do %; migrate `0103`.
 - **Overlay PDV limpo (`REPASSE-PDV-OVERLAY-LIMPO` → hotfix `REPASSE-PDV-OVERLAY-POPUP` · v18.68):** quem/PIN só no popup · forma oculta (= Dinheiro) · sem chips · hero enxuto.
@@ -1263,6 +1264,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — WhatsApp cor oficial (`PDV-WA-COR` · 31/08/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão PDV verde **#25D366** · ícone branco (cor padrão do Zap) |
+| **Onde** | `pdv_wizard.html` (compact + base; a faixa branca não “lava” mais o botão) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_wa_topbar_breve.py` 36/36 |
+| **Você** | Ctrl+F5 no PDV · o Zap fica verde, não cinza |
+| **Status** | 🟡 `teste` **v20.46** · loja ainda **v20.45** (botão lá está clarinho) |
+
+### 📦 PACOTE PRONTO — Arredondar cofres do repasse (`REPASSE-ARREDONDA-COFRE` · **v20.47** · 31/08/2026)
+
+| Item | Detalhe |
+| ---- | ------- |
+| **O quê** | Digitar qualquer valor nos 3 campos (Salário · Vila Elias · Levar ao Centro). Pra menos = falta amanhã. Pra mais = acumulado negativo / crédito no dia seguinte. |
+| **Bug** | Tela barrava «maior que o pendente» (ex. 100 no lugar de 66,43). |
+| **Prova** | `verify_repasse_cofrinho` **35/35** (100 > 66,43 → crédito 33,57 → amanhã 32,86). |
+| **Migrate** | **NÃO** |
+| **Você** | Ctrl+F5 PDV · Repasse · digite 50 e 100 · Confirmar. |
+| **Status** | **v20.47** no `teste` — aguarda validação local |
 
 ### ✅ Deploy loja — lote checklist 31/08 (`deploy/prep-checklist-3108` · **v20.45**) · **Live**
 

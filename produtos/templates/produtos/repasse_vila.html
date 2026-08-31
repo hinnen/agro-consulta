@@ -1105,11 +1105,17 @@
       if (el) el.textContent = money(c[k]);
     });
     var hint = document.getElementById(p + 'acum-hint');
-    if (hint && cofre === 'salario') {
+    if (hint) {
       var adi = Number(c.adiantado || 0);
-      hint.textContent = adi > 0.009
-        ? ('Adiantado ' + money(adi) + ' — abate os próximos dias.')
-        : ('Obrigação ' + money(c.obrigacao_acumulada) + ' · crédito ' + money(c.credito_acumulado));
+      var liq = Number(c.pendente_liquido);
+      if (!isFinite(liq)) liq = Number(c.pendente_dia || 0) - adi;
+      if (liq < -0.009) {
+        hint.textContent = 'Excedente ' + money(-liq) + ' — desconta amanhã (acumulado negativo).';
+      } else if (adi > 0.009) {
+        hint.textContent = 'Adiantado ' + money(adi) + ' — abate os próximos dias.';
+      } else {
+        hint.textContent = 'Obrigação ' + money(c.obrigacao_acumulada) + ' · crédito ' + money(c.credito_acumulado);
+      }
     }
     var box = document.getElementById(p + 'historico');
     if (!box) return;

@@ -236,6 +236,49 @@ def main():
             rsum = resumo_cofrinho_vila(amanha)
             check(rsum["pendente_dia"] == 50.0 and float(rsum.get("adiantado") or 0) == 0.0, "resumo expõe pendente acumulado")
 
+        # Arredondar pra mais: valor > pendente vira crédito (amanhã desconta).
+        RepasseVilaReservaMovimentoAgro.objects.filter(
+            data_ref__gte=ontem, data_ref__lte=amanha, cofre="salario"
+        ).delete()
+        cfg.reserva_vila_desde = hoje
+        cfg.saldo_reserva_vila = Decimal("0.00")
+        cfg.save(update_fields=["reserva_vila_desde", "saldo_reserva_vila"])
+        MovimentoCaixa.objects.create(
+            sessao_caixa=sessao,
+            tipo=MovimentoCaixa.Tipo.REFORCO,
+            forma_pagamento="Dinheiro",
+            valor=Decimal("500.00"),
+            observacao=PREFIX + " reforco arredonda",
+            usuario=user,
+        )
+        with patch("produtos.repasse_vila_util.calcular_disponivel", return_value=calc_fake(Decimal("66.43"), Decimal("0"))):
+            mov_ar, cri_ar, err_ar = separar_reserva_diaria(
+                hoje,
+                origem="lancamento_separado",
+                operador="Bot Cofre",
+                usuario=user,
+                sessao_caixa=sessao,
+                valor=Decimal("100.00"),
+            )
+            check(
+                not err_ar and cri_ar and _dec(mov_ar.valor) == Decimal("100.00"),
+                f"arredonda pra mais aceita 100 > 66.43 · {err_ar}",
+            )
+            pend_ar = pendente_reserva_cofrinho_ate(hoje)
+            check(
+                pend_ar["pendente"] == Decimal("0.00")
+                and pend_ar["adiantado"] == Decimal("33.57"),
+                "excedente vira crédito no dia",
+            )
+            rsum_ar = resumo_cofrinho_vila(hoje)
+            check(
+                float(rsum_ar.get("adiantado") or 0) == 33.57
+                and float(rsum_ar.get("pendente_liquido") or 0) == -33.57,
+                "resumo mostra acumulado líquido negativo",
+            )
+            pend_am_ar = pendente_reserva_cofrinho_ate(amanha)
+            check(pend_am_ar["pendente"] == Decimal("32.86"), "crédito desconta o dia seguinte")
+
         # Repasse limpo: sem pendente acumulado e gaveta reforçada.
         RepasseVilaReservaMovimentoAgro.objects.filter(
             data_ref__gte=ontem, data_ref__lte=amanha
