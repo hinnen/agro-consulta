@@ -1254,23 +1254,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.27**) · 31/08/2026
+### 🚀 PREP deploy loja — PIN na ação (deploy/prep-pin-na-acao-v2027 · **v20.22**) · 31/08/2026
 
-| Item | Detalhe |
-| ---- | ------- |
-| **Status** | 🟡 **pronto para envio** · aguarda frase + senha · loja ainda **v20.21** |
-| **O quê** | Consulta/carrinho sem PIN · Confirmar / Pedir / chat exigem PIN fresco (~45s; mouse não renova) · abrir PDV sem trava · descanso 3 min = tela |
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ⏳ **PREP pronta** · **SOLO** · aguarda frase + senha no próximo chat |
+| **Branch** | deploy/prep-pin-na-acao-v2027 @ tip PREP |
+| **Base loja** | origin/producao @ **v20.21** / 26cb4f9 |
+| **Pacote** | PDV-PIN-NA-ACAO **só** (não merge 	este inteiro) |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **67/67** |
-| **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s · espere 45s+ → pede de novo |
+| **Prova** | scripts/verify_pdv_pin_na_acao.py **67/67** (revalidado) |
+| **Rollback** | tag 
+ollback/pre-pin-na-acao-v20.21 @ 26cb4f9 · docs/ROLLBACK-PDV-PIN-NA-ACAO.md |
+| **Risco venda** | Baixo-médio — PIN no Confirmar/Pedir/chat; consulta livre; Ctrl+F5 |
+| **Próximo chat** | Lojas pausam vendas → frase + senha 99738595 → merge PREP em producao |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.27**)
+### ✅ CHECKLIST ÚNICO — PREP SOLO pronto envio (31/08 · loja **v20.21** → **v20.22**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-PIN-NA-ACAO` | 🟡 **pronto para envio** · prova **67/67** | **NÃO** |
-
-**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.27**.
+| 1 | PDV-PIN-NA-ACAO | ⏳ **PREP pronta** · prova **67/67** | **NÃO** |
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
