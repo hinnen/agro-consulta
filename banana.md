@@ -1253,6 +1253,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ⏳ PREP deploy loja — Chat + Promo (`deploy/prep-chat-promo-v2016` · **v20.16** · 31/08/2026) · **aguarda senha**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ⏳ **PREP pronta** — **não** enviado · lojas abertas |
+| **Antes** | Live **v20.07** @ `91a610a` |
+| **PREP** | `deploy/prep-chat-promo-v2016` · VERSION **20.16** |
+| **Rollback** | tag `rollback/pre-v2016-chat-promo-v2007` @ `91a610a` · `docs/ROLLBACK-CHAT-PROMO-V2016.md` |
+| **Migrate** | **NÃO** |
+| **Prova** | chat **5/5** · promo **23/23** |
+| **NÃO sobe** | BI Meta C ramp e WIP restante do `teste` |
+| **Próximo chat** | pausar vendas → frase + senha **`99738595`** |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → **v20.16**)
+
+| # | Pacote | Status | Risco venda |
+| - | ------ | ------ | ----------- |
+| 1 | `PDV-CHAT-FAB-UX` | ⏳ PREP · chat **5/5** | **Não** (só aba Chat) |
+| 2 | `PROMO-REGRA-TABELA-SAVE` | ⏳ PREP · promo **23/23** | **Não** (só tela promo) |
+
+**Smoke pós-deploy:** Ctrl+F5 PDV · venda dinheiro rápida · Chat msg de outro PC · promo «Sempre promoção» salvar/reabrir.
+
 ### 📦 PACOTE PRONTO — Chat PDV maior + alerta (`PDV-CHAT-FAB-UX` · **v20.15** · 31/08/2026)
 
 | Item | Detalhe |
@@ -1273,11 +1295,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Loja** | ainda **v20.07** |
 | **Você** | Ctrl+F5 · editar promo · salvar · reabrir |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → tip **v20.13**)
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.07** → **v20.16**)
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `PROMO-REGRA-TABELA-SAVE` | ⏳ **pronto envio** · migrate **NÃO** · prova **23/23** |
+| # | Pacote | Status | Risco venda |
+| - | ------ | ------ | ----------- |
+| 1 | `PDV-CHAT-FAB-UX` | ⏳ PREP · chat **5/5** | **Não** (só aba Chat) |
+| 2 | `PROMO-REGRA-TABELA-SAVE` | ⏳ PREP · promo **23/23** | **Não** (só tela promo) |
+
+**Smoke pós-deploy:** Ctrl+F5 PDV · venda dinheiro rápida · Chat msg de outro PC · promo «Sempre promoção» salvar/reabrir.
 
 ### ✅ Deploy loja — NFC-e CSRF lista (`NFCE-REEMIT-CSRF` · **v20.07**) · **Live** · 30/08/2026
 
