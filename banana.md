@@ -1270,7 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ------ | --------------- | ----- | ------- |
 | `PDV-TOPBAR-LAYOUT` | Quente/frio + Fiado quente + **Organizar** (overlay no `body`; PIN ao salvar) | path **29/29** · API GET/POST OK · PIN **9973** válido | **`0110`** |
 | `PDV-TOPBAR-MAIS` | **Mais ⋯** abre (botão+painel) · contagem PG | path **31/31** | **`0107`** |
-| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** | HTML+JS no tip | **NÃO** |
+| `PDV-WA-TOPBAR-BREVE` | Ícone WhatsApp → **Em breve…** (fica no lugar na faixa) | path **35/35** | **NÃO** |
 | `PDV-PIN-CHAT-TEMPEDIDO` | Renovar PIN no chat **não** abre «tem pedido» | path **16/16** | **NÃO** |
 | `REPASSE-FUNDO-TROCO` | Fundo troco gaveta Vila (aviso R$ 500) | **56/56** | **`0106`** |
 | `WA-ATEND-QR` | `/atendimento-whatsapp/` filas+QR · **ainda não** no checklist loja | verify WA | **`0108`+`0109`** |

@@ -13,6 +13,18 @@
     document.body.appendChild(box);
   }
 
+  var actionsHost = document.getElementById('pdv-topbar-actions');
+
+  function keepPlace() {
+    if (!btn || !actionsHost) return;
+    if (btn.parentNode !== actionsHost || actionsHost.firstElementChild !== btn) {
+      actionsHost.insertBefore(btn, actionsHost.firstChild);
+    }
+  }
+  keepPlace();
+  window.setTimeout(keepPlace, 0);
+  window.setTimeout(keepPlace, 600);
+
   function abrir() {
     box.classList.remove('hidden');
     box.setAttribute('aria-hidden', 'false');
