@@ -1254,7 +1254,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.22**) · 31/08/2026
+### 📦 PACOTE PRONTO — PIN na ação PDV (`PDV-PIN-NA-ACAO` · **v20.24**) · 31/08/2026
 
 | Item | Detalhe |
 | ---- | ------- |
@@ -1264,13 +1264,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `scripts/verify_pdv_pin_na_acao.py` **67/67** |
 | **Você** | Ctrl+F5 PDV · busca sem PIN · Confirmar → PIN · 2ª ação &lt;45s · espere 45s+ → pede de novo |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.22**)
+### ✅ CHECKLIST ÚNICO — pronto envio produção (31/08 · loja **v20.21** → **v20.24**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-PIN-NA-ACAO` | 🟡 **pronto para envio** · prova **67/67** | **NÃO** |
 
-**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.22**.
+**Smoke pós-deploy:** Ctrl+F5 PDV · consulta livre · Confirmar com PIN · Pedir/chat · badge **v20.24**.
 
 ### ✅ Deploy loja — Chat pisca (`deploy/prep-chat-pisca-v2020` · **v20.21**) · **Live** · 31/08/2026
 
