@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | `/vendas/lojas/` abaixo do total: tag dividida **Sem fiado** · **Com quitado** + modal explicativo no celular |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ local · ⏳ `teste` após push |
+| **Status** | ✅ `teste` **v20.62** · ⏳ loja **v20.58** |
 | **Você** | PC: `/vendas/lojas/` · toque na tag · conferir valores |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
