@@ -309,6 +309,24 @@
       color: #fff;
       box-shadow: none;
     }
+    .vl-cal-grid button.no-intervalo {
+      background: #ecfdf5;
+      color: #047857;
+    }
+    .vl-cal-grid button.sel-ini,
+    .vl-cal-grid button.sel-fim {
+      background: var(--green);
+      color: #fff;
+      box-shadow: none;
+    }
+    .vl-cal-hint {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.35;
+    }
     .vl-cal-hoje {
       width: 100%;
       margin-top: 0.85rem;
@@ -477,6 +495,7 @@
 <body
   data-hoje="{{ hoje_iso }}"
   data-sel="{{ data_iso }}"
+  data-sel-fim="{{ data_fim_iso }}"
   data-key="{{ periodo_key }}">
   <div class="vl-shell">
     <header class="vl-top">
@@ -504,7 +523,7 @@
       <button type="submit" name="periodo" value="mes_ant"
         class="vl-filtro {% if periodo_key == 'mes_ant' %}ativo{% endif %}">Mês ant.</button>
       <button type="button" id="vl-abrir-cal"
-        class="vl-filtro vl-filtro-cal {% if periodo_key == 'dia' %}ativo{% endif %}">
+        class="vl-filtro vl-filtro-cal {% if periodo_key == 'dia' or periodo_key == 'intervalo' %}ativo{% endif %}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
           <rect x="3.5" y="5" width="17" height="15.5" rx="2.2"></rect>
           <path d="M8 3.5v3M16 3.5v3M3.5 10h17"></path>
@@ -573,8 +592,9 @@
 
   <div id="vl-sheet" class="vl-sheet" hidden>
     <div class="vl-sheet-bg" data-fechar></div>
-    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-label="Escolher dia">
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-label="Escolher intervalo">
       <div class="vl-sheet-handle"></div>
+      <p id="vl-cal-hint" class="vl-cal-hint">Toque o 1º dia · depois o 2º</p>
       <div class="vl-cal-nav">
         <button type="button" id="vl-cal-prev" aria-label="Mês anterior">‹</button>
         <h3 id="vl-cal-titulo">—</h3>
@@ -636,29 +656,57 @@
     </div>
   </div>
 
-  <form id="vl-goto-dia" method="get" hidden>
-    <input type="hidden" name="periodo" value="dia">
+  <form id="vl-goto-intervalo" method="get" hidden>
+    <input type="hidden" name="periodo" value="intervalo">
     <input type="hidden" name="data" id="vl-goto-data" value="">
+    <input type="hidden" name="data_fim" id="vl-goto-data-fim" value="">
   </form>
 
   <script>
   (function () {
     var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
     var hoje = new Date(document.body.getAttribute("data-hoje") + "T12:00:00");
-    var sel = new Date((document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
-    var view = new Date(sel.getTime());
+    var selIni = new Date((document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
+    var selFim = new Date((document.body.getAttribute("data-sel-fim") || document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
+    var view = new Date(selIni.getTime());
     view.setDate(1);
     var sheet = document.getElementById("vl-sheet");
     var grid = document.getElementById("vl-cal-grid");
     var titulo = document.getElementById("vl-cal-titulo");
+    var calHint = document.getElementById("vl-cal-hint");
+    var pickIni = null;
 
     function iso(d) {
       return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
     }
+    function parseIso(s) {
+      return new Date(s + "T12:00:00");
+    }
     function sameDay(a, b) {
       return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
     }
+    function atualizarHint(segundo) {
+      if (!calHint) return;
+      calHint.textContent = segundo
+        ? "Agora toque o 2º dia"
+        : "Toque o 1º dia · depois o 2º";
+    }
+    function limitesSelecao() {
+      var key = document.body.getAttribute("data-key") || "";
+      if (pickIni) return { ini: pickIni, fim: pickIni };
+      if (key === "intervalo") return { ini: selIni, fim: selFim };
+      if (key === "dia") return { ini: selIni, fim: selIni };
+      return null;
+    }
+    function noIntervalo(d, ini, fim) {
+      var t = d.getTime();
+      var lo = Math.min(ini.getTime(), fim.getTime());
+      var hi = Math.max(ini.getTime(), fim.getTime());
+      return t >= lo && t <= hi;
+    }
     function abrir() {
+      pickIni = null;
+      atualizarHint(false);
       sheet.hidden = false;
       sheet.classList.add("aberto");
       desenhar();
@@ -666,14 +714,19 @@
     function fechar() {
       sheet.classList.remove("aberto");
       sheet.hidden = true;
+      pickIni = null;
     }
-    function irDia(d) {
-      document.getElementById("vl-goto-data").value = iso(d);
-      document.getElementById("vl-goto-dia").submit();
+    function irIntervalo(d0, d1) {
+      var a = d0.getTime() <= d1.getTime() ? d0 : d1;
+      var b = d0.getTime() <= d1.getTime() ? d1 : d0;
+      document.getElementById("vl-goto-data").value = iso(a);
+      document.getElementById("vl-goto-data-fim").value = iso(b);
+      document.getElementById("vl-goto-intervalo").submit();
     }
     function desenhar() {
       var y = view.getFullYear(), m = view.getMonth();
       titulo.textContent = MESES[m] + " " + y;
+      var bounds = limitesSelecao();
       var first = new Date(y, m, 1);
       var startPad = (first.getDay() + 6) % 7;
       var days = new Date(y, m + 1, 0).getDate();
@@ -684,7 +737,16 @@
         var d = new Date(y, m, i, 12);
         var cls = [];
         if (sameDay(d, hoje)) cls.push("hoje");
-        if (sameDay(d, sel) && document.body.getAttribute("data-key") === "dia") cls.push("sel");
+        if (bounds) {
+          var ini = bounds.ini;
+          var fim = bounds.fim;
+          if (sameDay(ini, fim) && sameDay(d, ini)) cls.push("sel");
+          else {
+            if (sameDay(d, ini)) cls.push("sel-ini");
+            if (sameDay(d, fim)) cls.push("sel-fim");
+            if (!sameDay(ini, fim) && noIntervalo(d, ini, fim)) cls.push("no-intervalo");
+          }
+        }
         var dis = d > hoje ? " disabled" : "";
         html += "<button type='button' class='" + cls.join(" ") + "'" + dis + " data-iso='" + iso(d) + "'>" + i + "</button>";
       }
@@ -707,7 +769,14 @@
     grid.addEventListener("click", function (ev) {
       var btn = ev.target.closest("button[data-iso]");
       if (!btn || btn.disabled) return;
-      irDia(new Date(btn.getAttribute("data-iso") + "T12:00:00"));
+      var d = parseIso(btn.getAttribute("data-iso"));
+      if (!pickIni) {
+        pickIni = d;
+        atualizarHint(true);
+        desenhar();
+        return;
+      }
+      irIntervalo(pickIni, d);
     });
     var sheetMedia = document.getElementById("vl-sheet-media");
     var mediaBtn = null;

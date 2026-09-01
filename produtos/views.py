@@ -7631,6 +7631,7 @@ def _vendas_lojas_periodo_from_request(request):
         timezone.localdate(),
         request.GET.get("periodo"),
         request.GET.get("data") or request.GET.get("dia"),
+        request.GET.get("data_fim"),
     )
 
 
@@ -11219,6 +11220,7 @@ def vendas_lojas_resumo(request):
             "mostra_toggle_media": mostra_toggle,
             "hoje_iso": hoje.isoformat(),
             "data_iso": data_ini.isoformat(),
+            "data_fim_iso": data_fim.isoformat(),
         },
     )
 
