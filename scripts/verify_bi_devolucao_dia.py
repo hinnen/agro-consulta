@@ -59,7 +59,12 @@ def main() -> None:
     check("hoje_pdv_usa_lojas", "vendas_lojas_total_deposito" in views[views.find("def _dashboard_vendas_hoje_pdv"):views.find("def _dashboard_devolucoes_periodo")])
     check("dia_agro_usa_lojas", "vendas_lojas_total_deposito" in views[views.find("def _dashboard_mongo_total_por_dia_vendas_agro"):views.find("def _dashboard_invalidar_cache_vendas_serie")])
     check("periodo_usa_lojas", "vendas_lojas_total_deposito(data_ini, data_fim, deposito_filtro)" in views)
-    check("lojas_helper", "def vendas_lojas_total_deposito" in lojas)
+    check("atalhos_usa_lojas", "vendas_lojas_totais" in views[views.find("def _home_quick_stats"):views.find("def _empresa_home_atual")])
+    check("rank_abate_op", "abatimento_devolucoes_por_operador" in views)
+    check("cli_abate", "abatimento_devolucoes_por_cliente" in views)
+    check("util_abate_op", "def abatimento_devolucoes_por_operador" in util)
+    check("compras_intocado", "venda__devolvida_em__isnull=True" in (ROOT / "produtos/compras_metricas_util.py").read_text(encoding="utf-8"))
+    check("relat_intocado", "devolvida_em__isnull=True" in (ROOT / "produtos/relatorios_vendas_util.py").read_text(encoding="utf-8"))
 
     import django
 
@@ -103,11 +108,13 @@ def main() -> None:
             home = c.get(reverse("home"), follow=True)
             dash = c.get(reverse("dashboard_gerencial"), follow=True)
             vl = c.get("/vendas/lojas/", follow=True)
+            atalhos = c.get(reverse("home_atalhos"), follow=True)
         bh = home.content.decode("utf-8", "replace")
         bd = dash.content.decode("utf-8", "replace")
         check("http_home_200", home.status_code == 200, str(home.status_code))
         check("http_dash_200", dash.status_code == 200, str(dash.status_code))
         check("http_lojas_200", vl.status_code == 200, str(vl.status_code))
+        check("http_atalhos_200", atalhos.status_code == 200, str(atalhos.status_code))
         check("http_home_bi", "dashboard" in bh.lower() or "kpi" in bh.lower() or "vendas" in bh.lower())
         check("http_nao_login_home", 'name="username"' not in bh or "dashboard" in bh.lower())
     else:

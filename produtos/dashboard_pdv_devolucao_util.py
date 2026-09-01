@@ -27,8 +27,8 @@ def venda_deposito_bate_filtro(deposito_venda: str | None, filtro: str | None) -
     return dep != "vila"
 
 
-def _iter_abatimentos(data_ini: date, data_fim: date):
-    """(dia, deposito_norm, valor) — evento de devolução; legado sem evento."""
+def _iter_abatimentos_com_venda(data_ini: date, data_fim: date):
+    """(dia, deposito_norm, valor, venda|None)."""
     qs_ev = DevolucaoVendaAgro.objects.filter(
         criado_em__date__gte=data_ini,
         criado_em__date__lte=data_fim,
@@ -39,7 +39,7 @@ def _iter_abatimentos(data_ini: date, data_fim: date):
         d = timezone_local_date(getattr(ev, "criado_em", None))
         if d is None:
             continue
-        yield d, dep, _dec(ev.total)
+        yield d, dep, _dec(ev.total), venda
 
     has_ev = Exists(DevolucaoVendaAgro.objects.filter(venda_id=OuterRef("pk")))
     qs_leg = (
@@ -56,7 +56,13 @@ def _iter_abatimentos(data_ini: date, data_fim: date):
         if d is None:
             continue
         dep = normalizar_deposito(getattr(v, "deposito", None) or "centro")
-        yield d, dep, _dec(v.total)
+        yield d, dep, _dec(v.total), v
+
+
+def _iter_abatimentos(data_ini: date, data_fim: date):
+    """(dia, deposito_norm, valor) — evento de devolução; legado sem evento."""
+    for d, dep, val, _venda in _iter_abatimentos_com_venda(data_ini, data_fim):
+        yield d, dep, val
 
 
 def timezone_local_date(dt) -> date | None:
@@ -111,6 +117,41 @@ def abatimento_devolucoes_totais_loja(
         else:
             centro += val
     return centro.quantize(Decimal("0.01")), vila.quantize(Decimal("0.01"))
+
+
+def abatimento_devolucoes_por_operador(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict[str, Decimal]:
+    """Desconto no ranking do vendedor: evento no intervalo, PIN da venda original."""
+    out: dict[str, Decimal] = {}
+    for _d, dep, val, venda in _iter_abatimentos_com_venda(data_ini, data_fim):
+        if not venda_deposito_bate_filtro(dep, deposito):
+            continue
+        op = (getattr(venda, "usuario_registro", None) or "").strip() if venda else ""
+        if not op:
+            continue
+        out[op] = out.get(op, Decimal("0.00")) + val
+    return {k: v.quantize(Decimal("0.01")) for k, v in out.items()}
+
+
+def abatimento_devolucoes_por_cliente(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> dict[str, Decimal]:
+    """Desconto no top cliente do BI — mesma chave da lista (nome / ERP / avulso)."""
+    out: dict[str, Decimal] = {}
+    for _d, dep, val, venda in _iter_abatimentos_com_venda(data_ini, data_fim):
+        if not venda_deposito_bate_filtro(dep, deposito):
+            continue
+        if venda is None:
+            continue
+        nm = (getattr(venda, "cliente_nome", None) or "").strip()
+        if nm:
+            chave = nm
+        else:
+            cid = (getattr(venda, "cliente_id_erp", None) or "").strip()
+            chave = f"Cliente ERP {cid}" if cid else "Consumidor não identificado"
+        out[chave] = out.get(chave, Decimal("0.00")) + val
+    return {k: v.quantize(Decimal("0.01")) for k, v in out.items()}
 
 
 def soma_devolucoes_periodo(

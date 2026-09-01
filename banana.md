@@ -1260,6 +1260,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento. Compras e relatório de produto **não** mudam. |
+| **Onde** | `/atalhos/` · BI `/` ranking |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** |
+| **Você** | PC: Ctrl+F5 atalhos + BI. Loja só com senha. |
+
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
 | Campo | Valor |
