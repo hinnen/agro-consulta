@@ -5,6 +5,7 @@
 import { Boom } from "@hapi/boom";
 import makeWASocket, {
   DisconnectReason,
+  downloadMediaMessage,
   fetchLatestBaileysVersion,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
@@ -123,6 +124,43 @@ function ehChatPrivado(jid) {
   return true;
 }
 
+function tipoMidiaDe(msg) {
+  const m = msg && msg.message;
+  if (!m) return "";
+  if (m.imageMessage) return "image";
+  if (m.audioMessage) return "audio";
+  if (m.stickerMessage) return "sticker";
+  if (m.videoMessage) return "video";
+  if (m.documentMessage) return "document";
+  return "";
+}
+
+function mimeDe(msg) {
+  const m = msg && msg.message;
+  if (!m) return "";
+  if (m.imageMessage) return String(m.imageMessage.mimetype || "");
+  if (m.audioMessage) return String(m.audioMessage.mimetype || "");
+  if (m.stickerMessage) return String(m.stickerMessage.mimetype || "image/webp");
+  if (m.videoMessage) return String(m.videoMessage.mimetype || "");
+  if (m.documentMessage) return String(m.documentMessage.mimetype || "");
+  return "";
+}
+
+async function baixarMidia(m) {
+  const tipo = tipoMidiaDe(m);
+  if (!["image", "audio", "sticker"].includes(tipo)) {
+    return { tipo, b64: "", mime: mimeDe(m) };
+  }
+  try {
+    const buf = await downloadMediaMessage(m, "buffer", {}, { logger, reuploadRequest: sock.updateMediaMessage });
+    if (!buf || !buf.length || buf.length > 6000000) return { tipo, b64: "", mime: mimeDe(m) };
+    return { tipo, b64: Buffer.from(buf).toString("base64"), mime: mimeDe(m) };
+  } catch (e) {
+    console.error("midia:", e.message || e);
+    return { tipo, b64: "", mime: mimeDe(m) };
+  }
+}
+
 async function enviarEntrada(m, extra) {
   if (!m || !m.message) return;
   const jid = String((m.key && m.key.remoteJid) || "");
@@ -131,9 +169,11 @@ async function enviarEntrada(m, extra) {
   const historico = !!(extra && extra.historico);
   if (historico && Date.now() - quando > HIST_MS) return;
   const texto = textoDe(m);
-  if (!texto) return;
+  const tipo = tipoMidiaDe(m);
+  if (!texto && !tipo) return;
   const nome = String(m.pushName || "").slice(0, 120);
   const waId = String((m.key && m.key.id) || "");
+  const midia = await baixarMidia(m);
   await post("/api/atendimento-whatsapp/bridge/entrada/", {
     jid,
     texto,
@@ -142,6 +182,10 @@ async function enviarEntrada(m, extra) {
     historico,
     de_mim: !!(m.key && m.key.fromMe),
     ts: Math.floor(quando / 1000),
+    tipo_midia: midia.tipo || tipo,
+    midia_b64: midia.b64 || "",
+    mime: midia.mime || "",
+    nome_arquivo: String((m.message.documentMessage && m.message.documentMessage.fileName) || ""),
   });
 }
 

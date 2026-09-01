@@ -821,6 +821,16 @@ urlpatterns = [
         name='api_atendimento_whatsapp_historico',
     ),
     path(
+        'api/atendimento-whatsapp/excluir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_excluir,
+        name='api_atendimento_whatsapp_excluir',
+    ),
+    path(
+        'api/atendimento-whatsapp/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_midia,
+        name='api_atendimento_whatsapp_midia',
+    ),
+    path(
         'api/atendimento-whatsapp/bridge/estado/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
         name='api_atendimento_whatsapp_bridge_estado',

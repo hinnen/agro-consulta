@@ -63,6 +63,7 @@ def main():
     check("js_open_blank", "window.open" in js)
     check("js_keep_place", "keepPlace" in js and "insertBefore" in js)
     check("js_sem_em_breve", "pdv-wa-em-breve" not in js)
+    check("js_ponte_off", "is-off" in js and "ponte_viva" in js)
 
     check("layout_sem_node_wa", "whatsapp" not in layout_js)
     check("util_sem_wa_movel", "whatsapp" not in QUENTE_DEFAULT and "whatsapp" not in FRIO_DEFAULT)

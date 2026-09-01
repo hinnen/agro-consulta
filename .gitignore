@@ -17,3 +17,4 @@ config/build_stamp.json
 whatsapp_atendimento/auth/
 whatsapp_atendimento/node_modules/
 whatsapp_atendimento/.env
+/media/

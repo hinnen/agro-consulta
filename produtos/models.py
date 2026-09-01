@@ -3525,6 +3525,8 @@ class WhatsAppMensagemAgro(models.Model):
     pendente_envio = models.BooleanField(default=False, db_index=True)
     enviado_em = models.DateTimeField(null=True, blank=True)
     erro_envio = models.CharField(max_length=200, blank=True, default="")
+    tipo_midia = models.CharField(max_length=16, blank=True, default="")
+    arquivo = models.FileField(upload_to="whatsapp/%Y/%m/", blank=True)
     autor_nome = models.CharField(max_length=120, blank=True, default="")
     liberar_envio_em = models.DateTimeField(null=True, blank=True, db_index=True)
     criado_em = models.DateTimeField(default=timezone.now, db_index=True)

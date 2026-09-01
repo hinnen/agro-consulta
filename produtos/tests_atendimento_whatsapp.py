@@ -87,6 +87,25 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertIn("Não achamos cadastro", bot.texto)
 
 
+    def test_nome_do_cadastro(self):
+        from produtos.models import ClienteAgro
+
+        ClienteAgro.objects.create(nome="Maria Cadastro", whatsapp="13988887777")
+        processar_entrada(jid="5513988887777@s.whatsapp.net", texto="Oi", nome="ZapNome")
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.nome, "Maria Cadastro")
+
+    def test_excluir_conversa(self):
+        from produtos.atendimento_whatsapp_util import excluir_conversa
+
+        processar_entrada(jid="5513999000222@s.whatsapp.net", texto="Oi")
+        conv = WhatsAppConversaAgro.objects.get()
+        ok, err = excluir_conversa(conv.pk)
+        self.assertTrue(ok)
+        self.assertEqual(err, "")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+
+
 class UrlAtendimentoTests(TestCase):
     def setUp(self):
         User = get_user_model()

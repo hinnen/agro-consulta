@@ -210,6 +210,8 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 # Render / Docker (SAVEINCLOUD): sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
 # (o edge costuma devolver 502 quando o worker cai ou responde mal).
 if _on_render or _on_saveincloud:

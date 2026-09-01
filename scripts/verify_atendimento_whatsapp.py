@@ -82,8 +82,17 @@ def _static() -> None:
     check("node_baileys", "@whiskeysockets/baileys" in node or "makeWASocket" in node)
     check("gitignore_auth", "whatsapp_atendimento/auth/" in gitig)
     html_pdv = _read("produtos/templates/produtos/pdv_wizard.html")
-    check("pdv_wa_btn", 'id="pdv-topbar-whatsapp-btn"' in html_pdv)
-    check("pdv_wa_js", "pdv_topbar_whatsapp.js" in html_pdv)
+    check("url_excluir", "api_atendimento_whatsapp_excluir" in urls)
+    check("url_midia", "api_atendimento_whatsapp_midia" in urls)
+    check("html_apagar", "wa-del" in html)
+    check("js_apagar", "atendimento-whatsapp/excluir/" in js)
+    check("js_notify", "Notification" in js)
+    check("util_cadastro_nome", "aplicar_nome_cadastro" in util)
+    check("util_midia", "def anexar_midia" in util)
+    check("mig_0114", (ROOT / "produtos/migrations/0114_whatsapp_midia.py").is_file())
+    check("node_download", "downloadMediaMessage" in node)
+    check("bat_loop", "goto loop" in bat)
+    check("bat_inicio_win", (ROOT / "whatsapp_atendimento/instalar_inicio_windows.bat").is_file())
 
 
 def _logic() -> None:

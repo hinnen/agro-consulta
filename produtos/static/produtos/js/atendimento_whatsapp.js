@@ -8,6 +8,8 @@
   var convId = 0;
   var afterId = 0;
   var lastSeenIn = 0;
+  var lastUnread = -1;
+  var notifyOk = false;
 
   function csrf() {
     var inp = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -36,6 +38,27 @@
         ctx.close();
       }, 140);
     } catch (e) {}
+  }
+
+  function pedirAviso() {
+    try {
+      if (!window.Notification || Notification.permission !== 'default') return;
+      Notification.requestPermission().then(function (p) {
+        notifyOk = p === 'granted';
+      });
+    } catch (e) {}
+  }
+
+  function avisarNova(qtd, titulo) {
+    beep();
+    if (document.hidden && window.Notification && Notification.permission === 'granted') {
+      try {
+        new Notification(titulo || 'WhatsApp loja', {
+          body: qtd > 1 ? qtd + ' mensagens novas' : 'Mensagem nova',
+          silent: true,
+        });
+      } catch (e) {}
+    }
   }
 
   function rotuloTel(c) {
@@ -111,6 +134,8 @@
           on +
           '" data-id="' +
           c.id +
+          '" data-nome="' +
+          escapeHtml(rotuloTel(c)) +
           '"><div class="wa-n">' +
           escapeHtml(rotuloTel(c)) +
           badge +
@@ -139,6 +164,13 @@
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         var who =
           m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
+        var corpo = escapeHtml(m.texto || '');
+        var midia = '';
+        if (m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
+          midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
+        } else if (m.midia_url && m.tipo_midia === 'audio') {
+          midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
+        }
         return (
           '<div class="wa-b ' +
           cls +
@@ -147,7 +179,8 @@
           ' · ' +
           escapeHtml(m.hora || '') +
           '</div>' +
-          escapeHtml(m.texto) +
+          midia +
+          corpo +
           '</div>'
         );
       })
@@ -168,6 +201,15 @@
       if (!j || !j.ok) return;
       pintarStatus(j.ponte);
       pintarBadges(j.nao_lidas);
+      var tot = 0;
+      var n = j.nao_lidas || {};
+      tot += parseInt(n.pendente || 0, 10) || 0;
+      tot += parseInt(n.centro || 0, 10) || 0;
+      tot += parseInt(n.vila || 0, 10) || 0;
+      if (lastUnread >= 0 && tot > lastUnread) {
+        avisarNova(tot - lastUnread, 'WhatsApp loja');
+      }
+      lastUnread = tot;
     });
   }
 
@@ -183,9 +225,12 @@
   function abrirConversa(id) {
     convId = Number(id) || 0;
     afterId = 0;
-    $('wa-topo-nome').textContent = 'Conversa #' + convId;
+    var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
+    $('wa-topo-nome').textContent = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
     var hist = $('wa-hist');
     if (hist) hist.classList.remove('hidden');
+    var del = $('wa-del');
+    if (del) del.classList.remove('hidden');
     $('wa-move').classList.remove('hidden');
     $('wa-move').classList.add('flex');
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
@@ -218,8 +263,6 @@
         afterId = Math.max(afterId, m.id);
         if (m.direcao === 'in' && m.id > lastSeenIn) {
           lastSeenIn = m.id;
-          var old = m.criado_em && Date.now() - Date.parse(m.criado_em) > 120000;
-          if (!old) beep();
         }
       });
     });
@@ -234,6 +277,8 @@
       $('wa-topo-nome').textContent = 'Escolha uma conversa';
       var hist = $('wa-hist');
       if (hist) hist.classList.add('hidden');
+      var del = $('wa-del');
+      if (del) del.classList.add('hidden');
       $('wa-msgs').innerHTML = '';
       $('wa-move').classList.add('hidden');
       carregarLista();
@@ -408,8 +453,35 @@
       });
     });
   }
+  var btnDel = $('wa-del');
+  if (btnDel) {
+    btnDel.addEventListener('click', function () {
+      if (!convId) return;
+      if (!window.confirm('Apagar esta conversa da lista? (Só no Agro — não apaga no celular.)')) return;
+      fetchJson('/api/atendimento-whatsapp/excluir/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ conversa_id: convId }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não apagou.');
+          return;
+        }
+        convId = 0;
+        afterId = 0;
+        $('wa-topo-nome').textContent = 'Escolha uma conversa';
+        $('wa-msgs').innerHTML = '';
+        $('wa-move').classList.add('hidden');
+        btnDel.classList.add('hidden');
+        if (btnHist) btnHist.classList.add('hidden');
+        carregarLista();
+      });
+    });
+  }
 
   setTab();
+  pedirAviso();
+  document.addEventListener('click', pedirAviso, { once: true });
   carregarEstado();
   carregarLista();
   setInterval(function () {

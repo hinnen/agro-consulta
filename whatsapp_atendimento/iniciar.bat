@@ -27,8 +27,10 @@ if not exist node_modules (
     exit /b 1
   )
 )
+:loop
 echo Ligando...
 node index.js
 echo.
-echo A ponte parou. Se fechou sozinha, copie o erro acima.
-pause
+echo A ponte parou. Religa em 5 segundos. Feche esta janela para parar de vez.
+timeout /t 5 /nobreak >nul
+goto loop

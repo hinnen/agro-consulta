@@ -1,17 +1,21 @@
 """Atendimento WhatsApp — roteamento Centro/Vila + fila da ponte QR."""
 from __future__ import annotations
 
+import base64
 import hmac
 import re
 import unicodedata
+import uuid
 from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpRequest
 from django.utils import timezone
 
+from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
 from produtos.models import (
     ClienteAgro,
     WhatsAppAgendaContatoAgro,
@@ -23,6 +27,7 @@ from produtos.models import (
 
 MAX_NOVOS_DIA = 20
 MAX_HIST_MSGS = 40
+MAX_MIDIA_BYTES = 6_000_000
 DIAS_HISTORICO = 7
 
 CHAVE_PONTE = "default"
@@ -161,6 +166,64 @@ def jid_para_telefone(jid: str) -> str:
     return re.sub(r"\D+", "", raw)[:32]
 
 
+def aplicar_nome_cadastro(conv: WhatsAppConversaAgro) -> None:
+    tel = conv.telefone or jid_para_telefone(conv.jid)
+    cli = cliente_agro_por_whatsapp_flex(tel)
+    if cli is None or cli == "varios":
+        return
+    n = (getattr(cli, "nome", None) or "").strip()[:120]
+    if n:
+        conv.nome = n
+
+
+def _ext_midia(tipo: str, mime: str, nome: str) -> str:
+    n = (nome or "").lower()
+    for ext in (".jpg", ".jpeg", ".png", ".webp", ".ogg", ".opus", ".mp3", ".m4a", ".mp4"):
+        if n.endswith(ext):
+            return ext if ext != ".jpeg" else ".jpg"
+    m = (mime or "").lower()
+    if "png" in m:
+        return ".png"
+    if "webp" in m:
+        return ".webp"
+    if "ogg" in m or "opus" in m:
+        return ".ogg"
+    if "mpeg" in m or "mp3" in m:
+        return ".mp3"
+    if "mp4" in m:
+        return ".mp4"
+    if (tipo or "") in ("image", "sticker"):
+        return ".jpg"
+    if tipo == "audio":
+        return ".ogg"
+    return ".bin"
+
+
+def anexar_midia(
+    msg: WhatsAppMensagemAgro,
+    *,
+    tipo_midia: str = "",
+    midia_b64: str = "",
+    mime: str = "",
+    nome_arquivo: str = "",
+) -> None:
+    tipo = (tipo_midia or "").strip().lower()[:16]
+    if tipo:
+        msg.tipo_midia = tipo
+    raw_b64 = (midia_b64 or "").strip()
+    if not raw_b64:
+        return
+    try:
+        raw = base64.b64decode(raw_b64)
+    except Exception:
+        return
+    if not raw or len(raw) > MAX_MIDIA_BYTES:
+        return
+    ext = _ext_midia(tipo, mime, nome_arquivo)
+    fname = f"{uuid.uuid4().hex[:16]}{ext}"
+    msg.arquivo.save(fname, ContentFile(raw), save=False)
+
+
 def jid_eh_chat_privado(jid: str) -> bool:
     """Só conversa 1-a-1 de celular — bloqueia grupo, canal e ID falso."""
     j = (jid or "").strip().lower()
@@ -280,6 +343,8 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         "hora": criado_l.strftime("%H:%M") if criado_l else "",
         "data": criado_l.strftime("%d/%m") if criado_l else "",
         "criado_em": criado.isoformat() if criado else "",
+        "tipo_midia": m.tipo_midia or "",
+        "midia_url": f"/api/atendimento-whatsapp/midia/{int(m.pk)}/" if m.arquivo else "",
     }
 
 
@@ -385,13 +450,24 @@ def processar_entrada(
     historico: bool = False,
     de_mim: bool = False,
     ts=None,
+    tipo_midia: str = "",
+    midia_b64: str = "",
+    mime: str = "",
+    nome_arquivo: str = "",
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
     if not jid_eh_chat_privado(jid_n):
         return None, "ignorado"
     t = str(texto or "").strip()
+    tipo_n = (tipo_midia or "").strip().lower()[:16]
     if not t:
-        t = "[mensagem sem texto]"
+        t = {
+            "image": "[imagem]",
+            "audio": "[áudio]",
+            "sticker": "[figurinha]",
+            "video": "[vídeo]",
+            "document": "[arquivo]",
+        }.get(tipo_n, "[mensagem sem texto]")
     t = t[:TEXTO_MAX]
     wa = (wa_id or "").strip()[:80]
     if wa and WhatsAppMensagemAgro.objects.filter(wa_id=wa).exists():
@@ -414,6 +490,7 @@ def processar_entrada(
         conv.nome = nome[:120]
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
+    aplicar_nome_cadastro(conv)
 
     direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
     msg = WhatsAppMensagemAgro(
@@ -424,7 +501,9 @@ def processar_entrada(
         pendente_envio=False,
         autor_nome="Celular" if de_mim else "",
         criado_em=quando,
+        tipo_midia=tipo_n,
     )
+    anexar_midia(msg, tipo_midia=tipo_n, midia_b64=midia_b64, mime=mime, nome_arquivo=nome_arquivo)
     msg.save()
     conv.ultima_preview = _preview(t)
     if not historico:
@@ -592,13 +671,18 @@ def abrir_conversa_saida(
             menu_enviado=True,
             origem_abertura="loja",
         )
+        aplicar_nome_cadastro(conv)
+        conv.save(update_fields=["nome"])
     else:
+        campos = []
         if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
             conv.loja = loja_n
-            conv.save(update_fields=["loja"])
+            campos.append("loja")
         if nome and not conv.nome:
             conv.nome = nome[:120]
-            conv.save(update_fields=["nome"])
+        aplicar_nome_cadastro(conv)
+        campos.append("nome")
+        conv.save(update_fields=campos)
     return enviar_loja(conversa_id=int(conv.pk), texto=t, autor=autor)
 
 

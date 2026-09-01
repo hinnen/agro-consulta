@@ -724,10 +724,13 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
-- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**. Pacote `WA-ATEND-QR`.
+- Sem disparo em massa. Ícone PDV → **abre o chat** (`WA-BOT-CFG-RENAN`); ponte no PC (`iniciar.bat`).
+- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). Fora da loja.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). **Apagar** = tira da lista no Agro (não apaga no celular). Fora da loja.
+- **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
+- **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
+- **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1268,7 +1271,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Horário seg–sáb 8–18 (domingo off) · pausa 2s · boas-vindas · aviso ocupado · PDV abre chat |
 | **Migrate** | **SIM** `0113` |
 | **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
-| **Ponte** | Continua no PC da loja (`iniciar.bat`) — Render só o site Django |
+| **Ponte** | Neste PC (hoje) + `iniciar.bat` na Inicializar · Render só o site Django |
+
+### 📦 PACOTE PRONTO — Avisos + mídia WhatsApp (`WA-UX-AVISO` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Apagar conversa · som/aviso no PDV · Off no ícone · foto/áudio · nome do cadastro · `.bat` religa sozinho |
+| **Migrate** | **SIM** `0114` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Chamar contato + histórico curto (`WA-CHAMAR-HIST` · 01/09/2026)
 
@@ -1280,6 +1291,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_atendimento_whatsapp.py` |
 | **Status** | 🟡 `teste` **v20.68** · **fora da loja** (junto do `WA-ATEND-QR`) |
 | **Fix 01/09** | Fantasma grupo/canal (`120363…`) + histórico automático — só celular 1-a-1 ao vivo |
+| **Apagar** | Botão na conversa — só some no Agro (lixo #3/#4) |
 
 ### 📦 PACOTE PRONTO — Visual WhatsApp (`WA-BOT-UX` · 01/09/2026)
 

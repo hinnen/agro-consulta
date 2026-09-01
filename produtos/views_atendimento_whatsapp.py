@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -17,6 +17,7 @@ from produtos.atendimento_whatsapp_util import (
     contar_nao_lidas,
     definir_loja,
     enviar_loja,
+    excluir_conversa,
     gravar_agenda_zap,
     listar_conversas,
     listar_mensagens,
@@ -34,6 +35,7 @@ from produtos.atendimento_whatsapp_util import (
     token_ponte_ok,
     toque_heartbeat,
 )
+from produtos.models import WhatsAppMensagemAgro
 
 
 def _json_body(request) -> dict | None:
@@ -247,6 +249,44 @@ def api_atendimento_whatsapp_historico(request):
     return JsonResponse({"ok": True})
 
 
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_excluir(request):
+    data = _json_body(request) or {}
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    ok, err = excluir_conversa(cid)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err or "Não apagou."}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_midia(request, pk: int):
+    try:
+        m = WhatsAppMensagemAgro.objects.get(pk=int(pk))
+    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError) as exc:
+        raise Http404("Mídia não encontrada.") from exc
+    if not m.arquivo:
+        raise Http404("Mídia não encontrada.")
+    ctype = "application/octet-stream"
+    name = (m.arquivo.name or "").lower()
+    if m.tipo_midia in ("image", "sticker") or name.endswith((".jpg", ".jpeg", ".png", ".webp")):
+        ctype = "image/jpeg"
+        if name.endswith(".png"):
+            ctype = "image/png"
+        elif name.endswith(".webp"):
+            ctype = "image/webp"
+    elif m.tipo_midia == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a")):
+        ctype = "audio/ogg"
+        if name.endswith(".mp3"):
+            ctype = "audio/mpeg"
+    return FileResponse(m.arquivo.open("rb"), content_type=ctype)
+
+
 @csrf_exempt
 @require_POST
 def api_atendimento_whatsapp_bridge_estado(request):
@@ -276,6 +316,10 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         historico=bool(data.get("historico")),
         de_mim=bool(data.get("de_mim")),
         ts=data.get("ts"),
+        tipo_midia=str(data.get("tipo_midia") or ""),
+        midia_b64=str(data.get("midia_b64") or ""),
+        mime=str(data.get("mime") or ""),
+        nome_arquivo=str(data.get("nome_arquivo") or ""),
     )
     if err == "ignorado":
         return JsonResponse({"ok": True, "ignorado": True})
