@@ -393,6 +393,85 @@
       color: var(--green);
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }
+    .vl-fiado-tag {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 0.15rem;
+      padding: 0.55rem 0.65rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 0.95rem;
+      background: #fff;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+      text-align: center;
+    }
+    .vl-fiado-tag:active { background: #f8fafc; }
+    .vl-fiado-tag:focus-visible {
+      outline: 3px solid #fdba74;
+      outline-offset: 2px;
+    }
+    .vl-fiado-part {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.12rem;
+      min-width: 0;
+    }
+    .vl-fiado-div {
+      width: 1px;
+      background: #e2e8f0;
+      margin: 0.1rem 0.35rem;
+    }
+    .vl-fiado-k {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      line-height: 1.1;
+    }
+    .vl-fiado-v {
+      font-size: clamp(0.95rem, 4.2vw + 0.2rem, 1.12rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #334155;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .vl-fiado-explica {
+      margin: 0.75rem 0 0;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.95rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .vl-fiado-explica + .vl-fiado-explica { margin-top: 0.55rem; }
+    .vl-fiado-explica h4 {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .vl-fiado-explica p {
+      margin: 0.35rem 0 0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #334155;
+      line-height: 1.45;
+    }
+    .vl-fiado-explica strong {
+      font-weight: 900;
+      color: var(--ink);
+    }
   </style>
 </head>
 <body
@@ -477,6 +556,17 @@
         <h2>Total das duas lojas</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
       </button>
+      <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e com quitado">
+        <span class="vl-fiado-part">
+          <span class="vl-fiado-k">Sem fiado</span>
+          <span class="vl-fiado-v">R$ {{ sem_fiado_fmt }}</span>
+        </span>
+        <span class="vl-fiado-div" aria-hidden="true"></span>
+        <span class="vl-fiado-part">
+          <span class="vl-fiado-k">Com quitado</span>
+          <span class="vl-fiado-v">R$ {{ sem_fiado_quit_fmt }}</span>
+        </span>
+      </button>
     </div>
     <p class="vl-hint">Toque para a média</p>
   </div>
@@ -495,6 +585,30 @@
       </div>
       <div id="vl-cal-grid" class="vl-cal-grid"></div>
       <button type="button" class="vl-cal-hoje" id="vl-cal-hoje">Ir para hoje</button>
+    </div>
+  </div>
+
+  <div id="vl-sheet-fiado" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar-fiado></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-fiado-titulo">
+      <div class="vl-sheet-handle"></div>
+      <h3 id="vl-fiado-titulo">Sem fiado e com quitado</h3>
+      <div class="vl-fiado-explica">
+        <h4>Sem fiado — R$ {{ sem_fiado_fmt }}</h4>
+        <p>
+          Vendas do período <strong>sem a parte fiado</strong> (dinheiro, cartão, pix e outras formas).
+          Se a venda foi mista, só entra o que não foi fiado.
+          Devoluções abatidas no <strong>dia em que foram feitas</strong>, também só na parte não-fiado.
+        </p>
+      </div>
+      <div class="vl-fiado-explica">
+        <h4>Com quitado — R$ {{ sem_fiado_quit_fmt }}</h4>
+        <p>
+          Igual ao «Sem fiado», mais o que os clientes <strong>pagaram de fiados antigos</strong>
+          neste período (quitados no caixa ou PDV), mesmo que a venda fiado foi em outro dia.
+        </p>
+      </div>
+      <button type="button" class="vl-cal-hoje" data-fechar-fiado>Fechar</button>
     </div>
   </div>
 
@@ -673,6 +787,19 @@
     });
     sheetMedia.querySelectorAll("[data-fechar-media]").forEach(function (el) {
       el.addEventListener("click", fecharMedia);
+    });
+    var sheetFiado = document.getElementById("vl-sheet-fiado");
+    function abrirFiado() {
+      sheetFiado.hidden = false;
+      sheetFiado.classList.add("aberto");
+    }
+    function fecharFiado() {
+      sheetFiado.classList.remove("aberto");
+      sheetFiado.hidden = true;
+    }
+    document.getElementById("vl-abrir-fiado").addEventListener("click", abrirFiado);
+    sheetFiado.querySelectorAll("[data-fechar-fiado]").forEach(function (el) {
+      el.addEventListener("click", fecharFiado);
     });
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
