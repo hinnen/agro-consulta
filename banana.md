@@ -1260,7 +1260,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — BI devolução vs planilha (`BI-DEVOL-PLANILHA` · **v20.57** · 01/09/2026)
+### 🚀 PREP deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · alvo **v20.58**) · 01/09/2026
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **não** subiu loja (lojas abertas). Próximo chat: pausar vendas + frase + senha |
+| **Sobe** | só `BI-DEVOL-PLANILHA` |
+| **Não sobe** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` · resto do `teste` (~230 arquivos vs loja) |
+| **Como** | **não** resetar `producao` no `teste`. Cherry-pick em cima de Live **v20.56** `d30c5ca` |
+| **Loja hoje** | **v20.56** @ `d30c5ca` |
+| **Branch PREP** | `deploy/prep-checklist-0109c` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0109c-v20.56` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` |
+| **Migrate** | **NÃO** |
+| **Prova** | BI **28/28** · HTTP home/PDV/consulta/caixa **200** · path PDV/caixa **não** muda neste lote |
+| **Você no deploy** | pausar ~1–2 min · badge **v20.58** · Ctrl+F5 no BI · hoje cai a devolução · F7 uma venda (smoke) |
+
+### 📦 PACOTE PRONTO — BI devolução vs planilha (`BI-DEVOL-PLANILHA` · **v20.58** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1268,14 +1283,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | Home `/` · gráfico/card |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_bi_devolucao_dia.py` **28/28** · PIN 9973 · home/BI/vendas-lojas **200** · healthz local |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Depois de subir: Ctrl+F5 no BI · hoje deve cair a devolução |
+| **Status** | 🟡 **PREP** · aguarda pausa + frase + senha |
+| **Você** | Próximo chat: lojas pausam · autoriza deploy |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (01/09c)
+### ✅ CHECKLIST ÚNICO — PREP 01/09c (só planilha)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `BI-DEVOL-PLANILHA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `BI-DEVOL-PLANILHA` | 🟡 **PREP** · alvo loja **v20.58** | **NÃO** |
 
 **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`
 

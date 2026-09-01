@@ -319,3 +319,15 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v20.56.** `producao` @ `d30c5ca`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · branch `producao-backup-pre-v2056-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` · **só** frase+senha.  
 **Smoke:** healthz ok · badge **v20.56** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 18. Checklist único — lote 01/09c (`deploy/prep-checklist-0109c` · alvo loja **v20.58**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-DEVOL-PLANILHA** | 🟡 **PREP** · prova **28/28** | **NÃO** |
+
+**Status: PREP — ainda não na loja.** Loja hoje **v20.56** @ `d30c5ca`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
+**Deploy:** **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c`. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`. PDV/caixa **iguais**.
