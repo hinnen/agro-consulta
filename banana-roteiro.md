@@ -59,7 +59,7 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | Se a tarefa é sobre… | Ler em `banana.md` | Extra |
 | -------------------- | ------------------ | ----- |
 | **PDV** — `/consulta/`, `/pdv/checkout/`, carrinho, F8, promo, overlay topbar | `### 4.2` | CHECKPOINT: `PDV`, `F8`, `wizard`, `overlay` |
-| **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` |
+| **Cadastro ERP** — `/produtos/cadastro-erp/`, planilha Excel | `### 4.6` (cadastro) | CHECKPOINT: `cadastro`, `ERP`, `planilha`, `busca cadastro` · Excel ↓ fornecedores: **§9** |
 | **Gestão produtos** — `/produtos/gestao/`, overlay, lentidão pós-NF | `### 4.6` (gestão) | CHECKPOINT: `gestão`, `gestao` · `AGENTS.md` §7 gestão se perf |
 | **NFC-e / cupom fiscal** | `### 4.3` | `docs/NFCE-PRODUCAO.md` se produção SEFAZ |
 | **Vendas / devolução** | `### 4.3` (devolução) + `### 4.4` | CHECKPOINT: `devolução`, `FL-017` |
@@ -71,8 +71,9 @@ Escolha o ramo que mais se aproxima. Leia **na ordem**; pare quando tiver contex
 | **Caixa** — abrir, fechar, sangria, gaveta | `### 4.11` | CHECKPOINT: `caixa`, `Caixa` |
 | **RH** — folha, vale, ficha | `### 4.12` | `AGENTS.md` §9 · CHECKPOINT: `RH`, `folha` |
 | **Home / BI** — `/`, gráficos | `### 4.1` | CHECKPOINT: `BI`, `dashboard`, `gastos` |
-| **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar |
+| **Relatórios** — Central `/relatorios/`, filtros cat/sub 1–4, ABC, ranking | `### 4.1` (bullet Central) + CHECKPOINT `relatórios` | Filtros: período · **categoria** · **sub 1/2/3/4** (combinar) · agrupar · **500 cat/sub → ✅ Live v18.26.1** (Renan OK 28/08) |
 | **Entregas** — `/entregas/`, rota terça, painel | CHECKPOINT: `entrega`, `entregas`, `FL-006`, `FL-031` | Fluxo loja: PDV → retorno entregador → baixa PDV |
+| **WhatsApp lojas** — `/atendimento-whatsapp/`, QR, filas Centro/Vila | `### 4.16` | CHECKPOINT: `WhatsApp`, `WA-ATEND-QR` |
 
 ### 2.2 Tipo de mudança (somar ao ramo acima)
 
@@ -102,7 +103,7 @@ Tarefa
 
 Usar **Grep** em `banana.md`, seção `## CHECKPOINT`, com 1–3 termos:
 
-`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `relatórios` · `relatorio` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome`
+`PDV` · `cadastro` · `gestão` · `gestao` · `caixa` · `fiado` · `F8` · `RH` · `folha` · `Lançamentos` · `CP` · `NF` · `entrada` · `compras` · `estoque` · `relatórios` · `relatorio` · `deploy` · `loja` · `teste` · `v6` · `Mongo` · `overlay` · `Chrome` · `WhatsApp` · `WA-ATEND`
 
 Ler no máximo **5** subseções `###` que baterem + a linha **Versão app**.
 
@@ -167,3 +168,166 @@ Verificação **23/08/2026**. Um só checklist. Tudo cruzado com código + **118
 - [x] Sem migrate
 
 **Status: enviado / Live v17.84.** Rollback: tag `rollback/pre-caixa-devol-dinheiro-mp-v17.83` @ `8bb72875` · `docs/ROLLBACK-CAIXA-DEVOL-DINHEIRO-MP.md`. Prova: `scripts/verify_caixa_devolucao_dinheiro_mp_path.py` (118/118).
+
+---
+
+## 8. Checklist — path PDV-PRECO-MANUAL-FORMA (loja v18.50)
+
+Preço digitado no carrinho **não** volta ao lista ao escolher forma.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-PRECO-MANUAL-FORMA** | ✅ **Live v18.50** | **NÃO** |
+
+**Prova (histórico):** `scripts/verify_pdv_preco_manual_forma.py`. Lote atual pendente: **§10**.
+
+---
+
+## 9. Checklist — path CAD-XLSX-ULT-FORN (loja v18.02 · conferido 28/08/2026)
+
+Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entrada NF Agro). Cruzado com tip `origin/producao` @ **v18.27+**.
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CAD-XLSX-ULT-FORN** | ✅ **Live v18.02+** · Renan OK **28/08** | **NÃO** |
+
+- [x] Cherry só deste pacote (24/08) — commits `8502f2c` · `5af9b6c` · `5e7c284` ainda ancestrais do tip
+- [x] `FORNECEDOR_EXPORT_KEYS` / `enriquecer_rows_ultimos_fornecedores` no tip
+- [x] `ultimos_fornecedores_por_produto_ids` (lote, não N+1)
+- [x] Checkboxes JS `fornecedor_compra_1..3` no Excel ↓
+- [x] Excel ↑ ignora essas colunas
+- [x] Sem migrate
+- [x] Rollback: tag `rollback/pre-cad-xlsx-ult-forn-v17.84` @ `da7c1cb` · branch backup · `docs/ROLLBACK-CAD-XLSX-ULT-FORN.md`
+
+**Status: fechado / Live.** Renan 28/08: *«já foi resolvido»* — sem ação nova. Detalhe CHECKPOINT em `banana.md`.
+
+---
+
+## 10. Checklist único — lote 28/08b (loja **v18.64**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **CP-NE-BUSCA-EMPRESA** | ✅ **Live v18.64** | **NÃO** |
+| 2 | **REPASSE-COFRINHO-ACUM** | ✅ **Live v18.64** | **SIM** (`0102` no-op) |
+| 3 | **PDV-MODO-POR-FORMA** | ✅ **Live v18.64** | **NÃO** |
+| 4 | **REPASSE-PDV-OVERLAY-LIMPO** | ✅ **Live v18.64** | **NÃO** |
+
+**Status: enviado / Live v18.64.** `producao` @ `5e6e44a`. Rollback: tag `rollback/pre-lote-checklist-2808b-v18.50` @ `4836ec1` · `docs/ROLLBACK-LOTE-CHECKLIST-2808b.md`.
+
+---
+
+## 11. Checklist único — lote 28/08c (loja **v18.72**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **NS-ESCOLHA-EMP** | ✅ **Live v18.72** | **NÃO** |
+| 2 | **REPASSE-PDV-OVERLAY-POPUP** | ✅ **Live v18.72** | **NÃO** |
+| 3 | **CP-EMP-PG-FALLBACK** | ✅ **Live v18.72** | **NÃO** |
+
+**Status: enviado / Live v18.72.** `producao` @ `ae126d9`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2808c-v18.64` @ `5e6e44a` · branch `producao-backup-pre-v1872-lote-checklist-20260828` · `docs/ROLLBACK-LOTE-CHECKLIST-2808c.md` · **só** frase+senha.  
+**Smoke:** healthz ok · home **18.72** · PDV/consulta **200**.
+
+---
+
+## 12. Checklist único — lote 29/08b (loja **v19.01**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-HERO-LOTE** | ✅ **Live v19.01** | **NÃO** |
+| 2 | **TABELA-PRECO-FORMA** | ✅ **Live v19.01** | **SIM** (`produtos.0104`) |
+| 3 | **PDV-PEDIR-CUPOM-QTD** | ✅ **Live v19.01** | **SIM** (`estoque.0020`) |
+
+**Status: enviado / Live v19.01.** `producao` @ `7c69fbc`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2908b-v18.83` @ `d836982` · branch `producao-backup-pre-v1901-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908b.md` · **só** frase+senha.  
+**Smoke:** healthz ok · home/consulta/PDV **200** · badge **v19.01** · Ctrl+F5 · tabelas % **inativas**.
+
+---
+
+## 13. Checklist único — lote 29/08g (loja **v19.60**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1–7 | **REPASSE-*** (formula·campos·totais·contraste·3OK·ghost·aviso) | ✅ **Live v19.60** | **NÃO** |
+| 8 | **PIN-OPERADOR-QUEM** | ✅ **Live v19.60** | **NÃO** |
+| 9 | **NFCE-DESC-ITENS** | ✅ **Live v19.60** | **NÃO** |
+| 10 | **PDV-CUPOM-DINHEIRO** | ✅ **Live v19.60** | **NÃO** |
+| 11 | **CAD-EXCLUIR-MSG-STAFF** | ✅ **Live v19.60** | **NÃO** |
+| 12 | **CAD-VAL-ESPELHO** | ✅ **Live v19.60** | **NÃO** |
+| 13 | **PDV-PEDIR-ESCRITO-UX** | ✅ **Live v19.60** | **NÃO** |
+| 14 | **NF-ESTOQUE-BLOQUEIO-FALSO** | ✅ **Live v19.60** | **NÃO** |
+| 15 | **PDV-CHAT-LOJA** | ✅ **Live v19.60** | **SIM** (`produtos.0105`) |
+
+**Status: enviado / Live v19.60.** `producao` @ `460e1c7`.  
+**Rollback:** tag `rollback/pre-lote-checklist-2908g-v19.02` @ `6b1eeed` · branch `producao-backup-pre-v1960-lote-checklist-20260829` · `docs/ROLLBACK-LOTE-CHECKLIST-2908g.md` · **só** frase+senha.  
+**Smoke:** healthz ok · home/consulta/PDV **200** · badge **v19.60** · Ctrl+F5. **Pendente SOLO:** `BI-META-C-VILA-RAMP`.
+
+---
+
+## 14. Checklist único — lote 30/08 (`deploy/prep-checklist-3008` · alvo loja **v19.83**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-TRANSF-FORCADA** | ✅ **Live v19.83** · prova **88/88** | **NÃO** |
+| 2 | **PDV-ENTER-SEM-IMP** | ✅ **Live v19.83** · prova **41/41** | **NÃO** |
+| 3 | **CAIXA-DEVOL-MP-MESMA** | ✅ **Live v19.83** · prova **171/171** | **NÃO** |
+| 4 | **NFCE-REEMIT-TIMEOUT** | ✅ **Live v19.83** · prova **38/38** | **NÃO** |
+
+**Status: enviado / Live v19.83.** `producao` @ `09d5968`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3008-v19.63` @ `71eea32` · branch `producao-backup-pre-v1983-lote-checklist-20260830` · `docs/ROLLBACK-LOTE-CHECKLIST-3008.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v19.83** · Ctrl+F5 · Enter=sem · Pedir/Forçada · Fechar caixa · Reemitir. **Pendente SOLO:** `BI-META-C-VILA-RAMP`.
+
+---
+
+## 15. Checklist único — lote 31/08 (loja **v20.45**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-TOPBAR-LAYOUT** | ✅ **Live v20.45** | **SIM** (`0110`) |
+| 2 | **PDV-TOPBAR-MAIS** | ✅ **Live v20.45** | **SIM** (`0107`) |
+| 3 | **PDV-WA-TOPBAR-BREVE** | ✅ **Live v20.45** | **NÃO** |
+| 4 | **PDV-PIN-CHAT-TEMPEDIDO** | ✅ **Live v20.45** | **NÃO** |
+| 5 | **REPASSE-FUNDO-TROCO** | ✅ **Live v20.45** | **SIM** (`0106`) |
+
+**Status: enviado / Live v20.45.** `producao` @ `18fc7d1`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3108-v20.22` @ `75779df` · branch `producao-backup-pre-v2045-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v20.45** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 16. Checklist único — lote 31/08b (loja **v20.49**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-WA-COR** | ✅ **Live v20.49** | **NÃO** |
+| 2 | **REPASSE-ARREDONDA-COFRE** | ✅ **Live v20.49** | **NÃO** |
+
+**Status: enviado / Live v20.49.** `producao` @ `31941b8`.  
+**Rollback:** tag `rollback/pre-lote-checklist-3108b-v20.45` @ `18fc7d1` · branch `producao-backup-pre-v2049-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v20.49** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 17. Checklist único — lote 01/09 (`deploy/prep-checklist-0109` · alvo loja **v20.56**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-F3** | ✅ **Live v20.56** · prova **68/68** | **NÃO** |
+| 2 | **BI-DEVOL-DIA** | ✅ **Live v20.56** | **NÃO** |
+| 3 | **ENT-VIA-DIN-SEM-MAQ** | ✅ **Live v20.56** · prova **49/49** | **NÃO** |
+
+**Status: enviado / Live v20.56.** `producao` @ `d30c5ca`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · branch `producao-backup-pre-v2056-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v20.56** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 18. Checklist único — lote 01/09c (`deploy/prep-checklist-0109c` · alvo loja **v20.58**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **BI-DEVOL-PLANILHA** | 🟡 **PREP** · prova **28/28** | **NÃO** |
+
+**Status: PREP — ainda não na loja.** Loja hoje **v20.56** @ `d30c5ca`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
+**Deploy:** **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c`. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`. PDV/caixa **iguais**.

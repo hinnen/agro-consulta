@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1254,16 +1254,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — lote checklist 01/09 (`deploy/prep-checklist-0109` · **v20.56**) · aguarda senha
+### 🚀 PREP deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · alvo **v20.58**) · 01/09/2026
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** subiu na loja |
-| **Antes** | `origin/producao` @ **v20.49** / `31941b8` |
-| **Sobe** | `PDV-ENTREGA-F3` · `BI-DEVOL-DIA` · `ENT-VIA-DIN-SEM-MAQ` |
-| **Fora** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` |
+| **Status** | 🟡 **PREP pronto** — **não** subiu loja. Próximo chat: pausar vendas + frase + senha |
+| **Loja hoje** | **v20.56** @ `d30c5ca` (F3 · BI-DEVOL-DIA · via dinheiro **já Live**) |
+| **Sobe** | só `BI-DEVOL-PLANILHA` |
+| **Não sobe** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` · resto do `teste` |
+| **Como** | **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c` |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` |
+| **Prova** | BI **28/28** · HTTP home/PDV/consulta/caixa **200** |
+| **Rollback** | tag `rollback/pre-lote-checklist-0109c-v20.56` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` |
+| **Você no deploy** | pausar ~1–2 min · badge **v20.58** · Ctrl+F5 no BI · F7 uma venda |
+
+### ✅ CHECKLIST ÚNICO — PREP 01/09c
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `BI-DEVOL-PLANILHA` | 🟡 **PREP** · alvo **v20.58** | **NÃO** |
 
 ### 🚀 PREP deploy loja — PIN na ação (deploy/prep-pin-na-acao-v2027 · **v20.22**) · 31/08/2026
 
