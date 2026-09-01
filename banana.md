@@ -1285,6 +1285,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `WA-BOT-CFG` | 🟡 no `teste` · sobe **junto** do chat QR · **não** vai sozinho à produção |
 
+### 📦 PACOTE PRONTO — Vendas lojas calendário intervalo (`VL-CAL-INTERVALO` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ `teste` **v20.65** |
+| **Você** | Calendário · ex. dia 1 e dia 10 · label `01/09 — 10/09` |
+
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
 | Campo | Valor |
