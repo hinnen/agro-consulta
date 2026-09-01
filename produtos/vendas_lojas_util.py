@@ -19,13 +19,28 @@ def vendas_lojas_periodo_bounds(
     hoje: date,
     periodo: str | None,
     dia_iso: str | None = None,
+    dia_fim_iso: str | None = None,
 ) -> tuple[date, date, str, str]:
     """
     Dia (padrão) · ontem · semana (segunda até hoje) · mês até hoje ·
-    mês anterior (mês civil completo) · ano até hoje · um dia do calendário.
+    mês anterior (mês civil completo) · ano até hoje · um dia do calendário ·
+    intervalo entre dois dias (calendário).
     Período inválido cai em hoje.
     """
     raw = (periodo or "hoje").strip().lower()
+    if raw in ("intervalo", "entre"):
+        ini = _parse_iso(dia_iso) or hoje
+        fim = _parse_iso(dia_fim_iso) or ini
+        if ini > hoje:
+            ini = hoje
+        if fim > hoje:
+            fim = hoje
+        if ini > fim:
+            ini, fim = fim, ini
+        if ini == fim:
+            return ini, fim, ini.strftime("%d/%m/%Y"), "dia"
+        label = f"{ini.strftime('%d/%m/%Y')} — {fim.strftime('%d/%m/%Y')}"
+        return ini, fim, label, "intervalo"
     if raw == "ontem":
         d = hoje - timedelta(days=1)
         return d, d, f"Ontem — {d.strftime('%d/%m/%Y')}", "ontem"
