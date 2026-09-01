@@ -1266,13 +1266,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Entrega F3 (`PDV-ENTREGA-F3` · **v20.51** · 01/09/2026)
+### 📦 PACOTE PRONTO — Entrega F3 (`PDV-ENTREGA-F3` · **v20.52** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Entrega / F3 abre a etapa de entrega (não o pagamento) |
 | **Onde** | `/pdv/` · botão ao lado de Pagar |
-| **Commit** | `8ebcefa` + prova neste commit |
+| **Commit** | fix `8ebcefa` · prova `595d4bb` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_pdv_entrega_f3_path.py` **68/68** · PIN 9973 ok no PC |
 | **Status** | 🟢 **pronto para envio à produção** (aguarda frase+senha) |
