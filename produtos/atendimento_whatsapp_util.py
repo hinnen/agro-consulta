@@ -26,9 +26,10 @@ MSG_MENU = (
     "Olá! Você quer falar com qual loja?\n\n"
     "1 — Centro (Jacupiranga)\n"
     "2 — Vila Elias\n\n"
-    "Responda *1* ou *2*."
+    "Responda *1* ou *2*.\n\n"
+    "Para ver o fiado em aberto, escreva *fiado*."
 )
-MSG_PEDIR_DE_NOVO = "Responda *1* para o Centro ou *2* para a Vila Elias."
+MSG_PEDIR_DE_NOVO = "Responda *1* para o Centro ou *2* para a Vila Elias. Para o fiado, escreva *fiado*."
 MSG_OK_CENTRO = "Certo! Você está falando com a loja do *Centro*. Em breve alguém atende por aqui."
 MSG_OK_VILA = "Certo! Você está falando com a loja da *Vila Elias*. Em breve alguém atende por aqui."
 
@@ -54,6 +55,92 @@ def token_ponte_ok(request: HttpRequest) -> bool:
 def _sem_acento(s: str) -> str:
     n = unicodedata.normalize("NFD", s or "")
     return "".join(c for c in n if unicodedata.category(c) != "Mn")
+
+
+def interpretar_consulta_fiado(texto: str) -> bool:
+    t = _sem_acento(" ".join(str(texto or "").strip().lower().split()))
+    if not t or t in ("1", "2", "c", "v"):
+        return False
+    if t in ("centro", "vila", "vila elias", "jacupiranga"):
+        return False
+    if t in (
+        "fiado",
+        "meu fiado",
+        "saldo",
+        "saldo fiado",
+        "consulta fiado",
+        "consultar fiado",
+        "quanto eu devo",
+        "quanto devo",
+        "o que eu devo",
+        "divida",
+        "minha divida",
+    ):
+        return True
+    if "fiado" in t:
+        return True
+    if "devo" in t and ("quanto" in t or "o que" in t or "qto" in t):
+        return True
+    return False
+
+
+def _fmt_rs(val) -> str:
+    from produtos.caixa_util import format_moeda_br
+
+    return f"R$ {format_moeda_br(val)}"
+
+
+def montar_texto_fiado(telefone: str) -> str:
+    from decimal import Decimal
+
+    from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
+    from produtos.models import FiadoTituloAgro
+
+    cli = cliente_agro_por_whatsapp_flex(telefone)
+    if cli == "varios":
+        return (
+            "Encontramos mais de um cadastro com este WhatsApp. "
+            "Fale com a loja (responda *1* ou *2*) para conferir o fiado."
+        )
+    if cli is None:
+        return (
+            "Não achamos cadastro com este WhatsApp.\n"
+            "Confira se o número na loja é o mesmo deste celular."
+        )
+    qs = (
+        FiadoTituloAgro.objects.filter(cliente_agro_id=cli.pk)
+        .exclude(
+            situacao__in=(
+                FiadoTituloAgro.Situacao.QUITADO,
+                FiadoTituloAgro.Situacao.CANCELADO,
+            )
+        )
+        .order_by("vencimento", "pk")
+    )
+    linhas = []
+    total = Decimal("0.00")
+    for tit in qs:
+        s = tit.saldo_aberto
+        if s <= 0:
+            continue
+        total += s
+        venc = tit.vencimento.strftime("%d/%m") if tit.vencimento else "—"
+        linhas.append(f"• {venc} · {_fmt_rs(s)}")
+    nome = (cli.nome or "cliente").strip()
+    if not linhas:
+        return f"Olá, {nome}. Você *não* tem fiado em aberto neste cadastro."
+    extra = ""
+    mostrar = linhas[:8]
+    if len(linhas) > 8:
+        extra = f"\n… e mais {len(linhas) - 8} parcela(s)."
+    corpo = "\n".join(mostrar)
+    return (
+        f"*Fiado em aberto*\n\n"
+        f"Olá, {nome}.\n"
+        f"Total: *{_fmt_rs(total)}*\n\n"
+        f"{corpo}{extra}\n\n"
+        "Para pagar, passe na loja."
+    )
 
 
 def interpretar_loja(texto: str) -> str:
@@ -254,6 +341,20 @@ def processar_entrada(
     conv.ultima_preview = _preview(t)
     conv.ultima_em = timezone.now()
     conv.nao_lidas = int(conv.nao_lidas or 0) + 1
+
+    if interpretar_consulta_fiado(t):
+        fone = conv.telefone or jid_para_telefone(jid_n)
+        campos = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
+        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and not conv.menu_enviado:
+            conv.menu_enviado = True
+            campos.append("menu_enviado")
+            conv.save(update_fields=campos)
+            responder_bot(conv, montar_texto_fiado(fone))
+            responder_bot(conv, MSG_MENU)
+        else:
+            conv.save(update_fields=campos)
+            responder_bot(conv, montar_texto_fiado(fone))
+        return msg, ""
 
     if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
         escolha = interpretar_loja(t)

@@ -51,6 +51,8 @@ def _static() -> None:
     check("model_msg", "class WhatsAppMensagemAgro" in models)
     check("migrate", mig.is_file() and "WhatsAppConversaAgro" in mig.read_text(encoding="utf-8"))
     check("util_bot", "MSG_MENU" in util and "interpretar_loja" in util)
+    check("util_fiado_msg", "interpretar_consulta_fiado" in util and "montar_texto_fiado" in util)
+    check("menu_cita_fiado", "escreva *fiado*" in util)
     check("util_entrada", "def processar_entrada" in util)
     check("view_csrf_bridge", "csrf_exempt" in views)
     check("html_abas", 'data-loja="vila"' in html and 'data-loja="centro"' in html)
@@ -72,11 +74,13 @@ def _logic() -> None:
     import django
 
     django.setup()
-    from produtos.atendimento_whatsapp_util import interpretar_loja
+    from produtos.atendimento_whatsapp_util import interpretar_consulta_fiado, interpretar_loja
 
     check("logic_vila", interpretar_loja("2") == "vila")
     check("logic_centro", interpretar_loja("centro") == "centro")
     check("logic_vazio", interpretar_loja("oi") == "")
+    check("logic_fiado", interpretar_consulta_fiado("fiado") is True)
+    check("logic_fiado_nao_loja", interpretar_consulta_fiado("1") is False)
 
 
 def main() -> int:

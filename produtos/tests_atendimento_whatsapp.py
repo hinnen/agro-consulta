@@ -41,6 +41,36 @@ class BotRoteamentoTests(TestCase):
         self.assertEqual(conv.loja, "centro")
 
 
+class ConsultaFiadoWhatsAppTests(TestCase):
+    def test_fiado_pelo_zap(self):
+        from datetime import date
+        from decimal import Decimal
+
+        from produtos.models import ClienteAgro, FiadoTituloAgro
+
+        cli = ClienteAgro.objects.create(nome="Maria Zap", whatsapp="13988887777")
+        FiadoTituloAgro.objects.create(
+            chave_unica="test-wa-fiado-1",
+            cliente_agro=cli,
+            cliente_nome="Maria Zap",
+            vencimento=date(2026, 9, 15),
+            valor_bruto=Decimal("80.50"),
+            valor_pago=Decimal("0"),
+        )
+        processar_entrada(jid="5513988887777@s.whatsapp.net", texto="fiado")
+        bots = list(WhatsAppMensagemAgro.objects.filter(direcao="bot").order_by("id"))
+        self.assertGreaterEqual(len(bots), 1)
+        self.assertIn("80,50", bots[0].texto.replace(".", ","))
+        self.assertIn("Maria", bots[0].texto)
+        self.assertIn("Fiado", bots[0].texto)
+
+    def test_fiado_sem_cadastro(self):
+        processar_entrada(jid="5513999000111@s.whatsapp.net", texto="quanto eu devo")
+        bot = WhatsAppMensagemAgro.objects.filter(direcao="bot").order_by("id").first()
+        self.assertIsNotNone(bot)
+        self.assertIn("Não achamos cadastro", bot.texto)
+
+
 class UrlAtendimentoTests(TestCase):
     def setUp(self):
         User = get_user_model()

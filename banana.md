@@ -726,6 +726,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
 - Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`. Pacote `WA-ATEND-QR`.
+- **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate. **Ainda fora da loja** (junto do chat QR).
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1264,6 +1265,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Fiado pelo WhatsApp (`WA-FIADO-MSG` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Cliente manda *fiado* no Zap da loja e o bot responde o pendente |
+| **Onde** | Chat QR `/atendimento-whatsapp/` (não o botão «Em breve» do PDV) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_atendimento_whatsapp.py` · teste Django consulta fiado |
+| **Status** | 🟡 `teste` · **fora da loja** (mesmo lote do `WA-ATEND-QR`) |
+
+### ✅ CHECKLIST ÚNICO SOLO — `WA-FIADO-MSG` (01/09 · **não** envio loja)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `WA-FIADO-MSG` | 🟡 no `teste` · sobe **junto** do chat QR (`WA-ATEND-QR`) · **não** vai sozinho à produção |
+
+Cliente escreve **fiado** no Zap. PDV continua só «Em breve».
 
 ### ✅ Deploy loja — lote checklist 31/08b (`deploy/prep-checklist-3108b` · **v20.49**) · **Live**
 
