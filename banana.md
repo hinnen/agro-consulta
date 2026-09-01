@@ -1300,10 +1300,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Busca achar contato salvo no celular pelo nome · ponte sincroniza nomes (sem puxar histórico de msgs) |
+| **O quê** | Busca mistura cadastro + agenda incremental (sem sync pesado que derruba a ponte) |
 | **Migrate** | **NÃO** |
 | **Ops** | Reiniciar `iniciar.bat` após atualizar |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) · sync bootstrap **revertido** (estabilidade) |
 
 ### 📦 PACOTE PRONTO — Busca estilo Zap Web (`WA-BUSCA-WEB` · 01/09/2026)
 

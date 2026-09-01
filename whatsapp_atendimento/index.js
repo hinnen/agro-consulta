@@ -7,7 +7,6 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
-  proto,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import fs from "node:fs";
@@ -23,13 +22,10 @@ carregarEnv(path.join(__dirname, "..", ".env"));
 const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
 const AUTH = path.join(__dirname, "auth");
-const AGENDA_FILE = path.join(AUTH, "contatos_agenda.json");
+const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
 const logger = pino({ level: "silent" });
-const SYNC_NOMES = new Set([
-  proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP,
-  proto.HistorySync.HistorySyncType.PUSH_NAME,
-]);
 let salvarAgendaTimer = 0;
+let ligando = false;
 
 function carregarEnv(fp) {
   try {
@@ -257,7 +253,30 @@ async function estado(payload) {
   }
 }
 
+async function desligarSock() {
+  const s = sock;
+  sock = null;
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  if (!s) return;
+  try {
+    s.ev.removeAllListeners();
+  } catch {
+    /* ignore */
+  }
+  try {
+    s.end(undefined);
+  } catch {
+    /* ignore */
+  }
+}
+
 async function ligar() {
+  if (ligando) return;
+  ligando = true;
+  await desligarSock();
   fs.mkdirSync(AUTH, { recursive: true });
   await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
   const { state, saveCreds } = await useMultiFileAuthState(AUTH);
@@ -269,8 +288,9 @@ async function ligar() {
     browser: ["Agro Consulta", "Chrome", "20.33"],
     markOnlineOnConnect: false,
     syncFullHistory: false,
-    shouldSyncHistoryMessage: (msg) => SYNC_NOMES.has(msg && msg.syncType),
+    shouldSyncHistoryMessage: () => false,
   });
+  ligando = false;
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
     const { connection, lastDisconnect, qr } = u;
@@ -290,21 +310,18 @@ async function ligar() {
       const numero = String(me).split(":")[0].split("@")[0];
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
-      setTimeout(() => enviarAgenda(0), 2500);
-      setTimeout(() => enviarAgenda(0), 12000);
+      setTimeout(() => enviarAgenda(0), 4000);
     }
     if (connection === "close") {
       const err = lastDisconnect && lastDisconnect.error;
       const code = err instanceof Boom ? err.output.statusCode : 0;
       const loggedOut = code === DisconnectReason.loggedOut;
+      console.error("WhatsApp caiu", code || "", err && (err.message || err));
       await estado({
         status: "desconectado",
         aviso: loggedOut ? "Desconectou. Escaneie o QR de novo." : "Reconectando…",
       });
-      if (pollTimer) {
-        clearInterval(pollTimer);
-        pollTimer = null;
-      }
+      await desligarSock();
       if (loggedOut) {
         try {
           fs.rmSync(AUTH, { recursive: true, force: true });
@@ -312,7 +329,7 @@ async function ligar() {
           /* ignore */
         }
       }
-      setTimeout(ligar, loggedOut ? 1500 : 4000);
+      setTimeout(ligar, loggedOut ? 1500 : 6000);
     }
   });
   sock.ev.on("contacts.upsert", (lista) => {
@@ -345,7 +362,6 @@ async function ligar() {
     for (const ch of chats || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
     }
-    setTimeout(() => enviarAgenda(0), 1500);
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify" && type !== "append") return;
@@ -390,10 +406,6 @@ async function executarPedido(p) {
   try {
     if (p.tipo === "contatos") {
       await enviarAgenda(pid);
-      if (agenda.size < 30) {
-        setTimeout(() => enviarAgenda(pid).catch(() => {}), 3000);
-        setTimeout(() => enviarAgenda(pid).catch(() => {}), 9000);
-      }
       return;
     }
     if (p.tipo === "pairing") {
