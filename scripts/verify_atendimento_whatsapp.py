@@ -57,6 +57,8 @@ def _static() -> None:
     check("util_agenda", "def gravar_agenda_zap" in util)
     check("node_hist", "fetchMessageHistory" in node)
     check("node_sem_full", "syncFullHistory: false" in node)
+    check("node_so_notify", "type !== \"notify\"" in node and "historicoPermitido" in node)
+    check("node_jid_privado", "ehChatPrivado" in node)
     check("html_btn_bot", "atendimento_whatsapp_bot" in html)
     check("html_skin", "wa-skin" in html or "_wa_skin" in html)
     check("js_bot_cfg", "atendimento_whatsapp_bot.js" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
@@ -69,7 +71,7 @@ def _static() -> None:
     check("util_bot", "MSG_MENU" in util and "interpretar_loja" in util)
     check("util_fiado_msg", "interpretar_consulta_fiado" in util and "montar_texto_fiado" in util)
     check("menu_cita_fiado", "escreva *fiado*" in util)
-    check("util_entrada", "def processar_entrada" in util)
+    check("util_entrada", "def processar_entrada" in util and "jid_eh_chat_privado" in util)
     check("view_csrf_bridge", "csrf_exempt" in views)
     check("html_abas", 'data-loja="vila"' in html and 'data-loja="centro"' in html)
     check("js_poll", "2500" in js)
@@ -91,7 +93,7 @@ def _logic() -> None:
 
     django.setup()
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, delays_bot
-    from produtos.atendimento_whatsapp_util import interpretar_consulta_fiado, interpretar_loja
+    from produtos.atendimento_whatsapp_util import interpretar_consulta_fiado, interpretar_loja, jid_eh_chat_privado
 
     check("logic_vila", interpretar_loja("2") == "vila")
     check("logic_centro", interpretar_loja("centro") == "centro")
@@ -99,6 +101,9 @@ def _logic() -> None:
     check("logic_fiado", interpretar_consulta_fiado("fiado") is True)
     check("logic_fiado_nao_loja", interpretar_consulta_fiado("1") is False)
     check("logic_delay", delays_bot(BOT_DEFAULT, 2)[0] >= 0)
+    check("logic_jid_cel", jid_eh_chat_privado("5513988887777@s.whatsapp.net") is True)
+    check("logic_jid_grupo", jid_eh_chat_privado("120363162264887116@s.whatsapp.net") is False)
+    check("logic_jid_canal", jid_eh_chat_privado("123@newsletter") is False)
 
 
 def main() -> int:

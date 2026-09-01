@@ -89,6 +89,13 @@ let sock = null;
 let pollTimer = null;
 const agenda = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
+/** Só aceita append/histórico quando a loja pediu «Anteriores» neste chat. */
+let histJid = "";
+let histAte = 0;
+
+function historicoPermitido(jid) {
+  return histJid && String(jid) === histJid && Date.now() < histAte;
+}
 
 function tsMs(m) {
   const raw = m && (m.messageTimestamp || m.timestamp);
@@ -105,10 +112,21 @@ function guardarContato(c) {
   agenda.set(jid, { nome, telefone: jid.split("@")[0] });
 }
 
+function ehChatPrivado(jid) {
+  const j = String(jid || "").toLowerCase();
+  if (!j.endsWith("@s.whatsapp.net")) return false;
+  if (j.includes("@g.us") || j.includes("@newsletter") || j.includes("@broadcast")) return false;
+  const num = j.split("@")[0].replace(/\D/g, "");
+  if (!num) return false;
+  if (num.startsWith("120") && num.length >= 15) return false;
+  if (num.length < 10 || num.length > 13) return false;
+  return true;
+}
+
 async function enviarEntrada(m, extra) {
   if (!m || !m.message) return;
   const jid = String((m.key && m.key.remoteJid) || "");
-  if (!jid || jid.endsWith("@g.us") || jid === "status@broadcast") return;
+  if (!ehChatPrivado(jid)) return;
   const quando = tsMs(m);
   const historico = !!(extra && extra.historico);
   if (historico && Date.now() - quando > HIST_MS) return;
@@ -191,21 +209,22 @@ async function ligar() {
   sock.ev.on("contacts.update", (lista) => {
     for (const c of lista || []) guardarContato(c);
   });
-  sock.ev.on("messaging-history.set", async ({ messages }) => {
-    for (const m of messages || []) {
-      try {
-        await enviarEntrada(m, { historico: true });
-      } catch (e) {
-        console.error("hist:", e.message || e);
-      }
-    }
+  sock.ev.on("messaging-history.set", async () => {
+    /* não importar histórico automático — só com «Anteriores» na tela */
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    if (type !== "notify" && type !== "append") return;
     for (const m of messages || []) {
       try {
+        const jid = String((m.key && m.key.remoteJid) || "");
+        if (type === "notify") {
+          await enviarEntrada(m, { historico: false });
+          continue;
+        }
+        if (!historicoPermitido(jid)) continue;
         const quando = tsMs(m);
-        const hist = type === "append" && Date.now() - quando > 60000;
-        await enviarEntrada(m, { historico: hist });
+        if (Date.now() - quando > HIST_MS) continue;
+        await enviarEntrada(m, { historico: true });
       } catch (e) {
         console.error("entrada:", e.message || e);
       }
@@ -235,6 +254,8 @@ async function executarPedido(p) {
     }
     if (p.tipo === "historico") {
       const count = Math.min(40, Math.max(5, Number(p.count) || 30));
+      histJid = String(p.jid || "");
+      histAte = Date.now() + 120000;
       await sock.fetchMessageHistory(
         count,
         {

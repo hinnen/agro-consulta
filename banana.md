@@ -727,7 +727,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. Fora da loja.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). Fora da loja.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1269,7 +1269,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/atendimento-whatsapp/` · **Novo** · **Anteriores** |
 | **Migrate** | **SIM** `0112` |
 | **Prova** | `verify_atendimento_whatsapp.py` |
-| **Status** | 🟡 `teste` · **fora da loja** (junto do `WA-ATEND-QR`) |
+| **Status** | 🟡 `teste` **v20.68** · **fora da loja** (junto do `WA-ATEND-QR`) |
+| **Fix 01/09** | Fantasma grupo/canal (`120363…`) + histórico automático — só celular 1-a-1 ao vivo |
 
 ### 📦 PACOTE PRONTO — Visual WhatsApp (`WA-BOT-UX` · 01/09/2026)
 

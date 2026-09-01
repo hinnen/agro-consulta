@@ -161,6 +161,25 @@ def jid_para_telefone(jid: str) -> str:
     return re.sub(r"\D+", "", raw)[:32]
 
 
+def jid_eh_chat_privado(jid: str) -> bool:
+    """Só conversa 1-a-1 de celular — bloqueia grupo, canal e ID falso."""
+    j = (jid or "").strip().lower()
+    if not j.endswith("@s.whatsapp.net"):
+        return False
+    bloqueados = ("@g.us", "@newsletter", "@broadcast", "@lid")
+    if any(x in j for x in bloqueados):
+        return False
+    num = jid_para_telefone(j)
+    if not num:
+        return False
+    # Grupo/canal costuma vir como 120363… (não é celular BR)
+    if num.startswith("120") and len(num) >= 15:
+        return False
+    if len(num) < 10 or len(num) > 13:
+        return False
+    return True
+
+
 def telefone_para_jid(tel: str) -> str:
     d = re.sub(r"\D+", "", tel or "")
     if not d:
@@ -368,7 +387,7 @@ def processar_entrada(
     ts=None,
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
-    if not jid_n or jid_n.endswith("@g.us") or jid_n == "status@broadcast":
+    if not jid_eh_chat_privado(jid_n):
         return None, "ignorado"
     t = str(texto or "").strip()
     if not t:

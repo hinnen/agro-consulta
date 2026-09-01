@@ -101,6 +101,16 @@ class UrlAtendimentoTests(TestCase):
 
 
 class ChamarHistoricoWhatsAppTests(TestCase):
+    def test_ignora_grupo_falso(self):
+        m, err = processar_entrada(
+            jid="120363162264887116@s.whatsapp.net",
+            texto="Link de fofoca",
+            wa_id="grp-1",
+        )
+        self.assertEqual(err, "ignorado")
+        self.assertIsNone(m)
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+
     def test_historico_nao_dispara_bot(self):
         from datetime import timedelta
 
