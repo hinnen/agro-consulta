@@ -176,6 +176,24 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro) -> None:
         conv.nome = n
 
 
+def aplicar_nome_agenda(conv: WhatsAppConversaAgro) -> None:
+    if (conv.nome or "").strip():
+        return
+    ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
+    n = (ag.nome if ag else "") or ""
+    n = n.strip()[:120]
+    if n:
+        conv.nome = n
+
+
+def _nome_parece_telefone(nome: str, telefone: str) -> bool:
+    n = re.sub(r"\D+", "", nome or "")
+    t = re.sub(r"\D+", "", telefone or "")
+    if not n or not t:
+        return False
+    return n == t or n.endswith(t) or t.endswith(n)
+
+
 def _ext_midia(tipo: str, mime: str, nome: str) -> str:
     n = (nome or "").lower()
     for ext in (".jpg", ".jpeg", ".png", ".webp", ".ogg", ".opus", ".mp3", ".m4a", ".mp4"):
@@ -487,11 +505,12 @@ def processar_entrada(
             "nome": (nome or "")[:120],
         },
     )
-    if nome and not conv.nome:
+    if nome and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
         conv.nome = nome[:120]
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
     aplicar_nome_cadastro(conv)
+    aplicar_nome_agenda(conv)
 
     direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
     msg = WhatsAppMensagemAgro(
@@ -519,6 +538,7 @@ def processar_entrada(
     cfg = carregar_bot()
     campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
     fone = conv.telefone or jid_para_telefone(jid_n)
+    eh_fiado = interpretar_consulta_fiado(t, cfg)
 
     def _ok_loja(escolha: str) -> str:
         if escolha == str(cfg.get("loja2_id") or "vila"):
@@ -540,6 +560,10 @@ def processar_entrada(
 
     lote: list[str] = []
     if fora_do_horario(cfg):
+        if eh_fiado and cfg.get("fiado_ligado"):
+            conv.save(update_fields=campos_base)
+            _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
+            return msg, ""
         fh = str(cfg.get("msg_fora_horario") or "").strip()
         if fh:
             lote.append(fh)
@@ -548,7 +572,6 @@ def processar_entrada(
             _enviar_lote_bot(conv, lote, cfg)
             return msg, ""
 
-    eh_fiado = interpretar_consulta_fiado(t, cfg)
     escolha = interpretar_loja(t, cfg) if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE else ""
     ordem_loja_primeiro = str(cfg.get("ordem") or "") == "loja_primeiro"
 
@@ -709,6 +732,7 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "") -> tuple[WhatsAppConv
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid)
     aplicar_nome_cadastro(conv)
+    aplicar_nome_agenda(conv)
     conv.save(update_fields=["nome", "telefone"])
     return conv, ""
 
@@ -755,12 +779,14 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
     for c in convs.order_by("-ultima_em")[:lim]:
         _add("conversa", c.nome or "", c.telefone or "", c.jid)
 
-    ag = WhatsAppAgendaContatoAgro.objects.all()
-    qag = Q(nome__icontains=t)
-    if dig:
-        qag |= Q(telefone__icontains=dig)
-    for c in ag.filter(qag).order_by("nome")[:lim]:
-        _add("zap", c.nome or "", c.telefone or "", c.jid)
+    ag = WhatsAppAgendaContatoAgro.objects.all().order_by("nome")
+    tn = _sem_acento(t.lower())
+    for c in ag[:800]:
+        if len(out) >= lim:
+            break
+        cn = _sem_acento((c.nome or "").lower())
+        if (tn and tn in cn) or (dig and dig in re.sub(r"\D+", "", c.telefone or "")):
+            _add("zap", c.nome or "", c.telefone or "", c.jid)
 
     if dig and len(dig) >= 10:
         _add("número", "", dig, telefone_para_jid(dig))

@@ -86,7 +86,15 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertIsNotNone(bot)
         self.assertIn("Não achamos cadastro", bot.texto)
 
+    def test_fiado_fora_do_horario(self):
+        from unittest.mock import patch
 
+        with patch("produtos.atendimento_whatsapp_bot_config.fora_do_horario", return_value=True):
+            processar_entrada(jid="5513999000111@s.whatsapp.net", texto="fiado")
+        bot = WhatsAppMensagemAgro.objects.filter(direcao="bot").order_by("id").last()
+        self.assertIsNotNone(bot)
+        self.assertNotIn("fora do horário", bot.texto.lower())
+        self.assertTrue("cadastro" in bot.texto.lower() or "fiado" in bot.texto.lower())
     def test_nome_do_cadastro(self):
         from produtos.models import ClienteAgro
 

@@ -26,6 +26,7 @@ const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
 let salvarAgendaTimer = 0;
+let enviarAgendaTimer = 0;
 
 function carregarEnv(fp) {
   try {
@@ -203,6 +204,14 @@ function salvarAgendaDebounced() {
   }, 800);
 }
 
+function agendarEnvioAgenda() {
+  if (enviarAgendaTimer) clearTimeout(enviarAgendaTimer);
+  enviarAgendaTimer = setTimeout(() => {
+    enviarAgendaTimer = 0;
+    enviarAgenda(0).catch(() => {});
+  }, 4000);
+}
+
 function guardarContato(c) {
   if (!c) return;
   vincularLid(c);
@@ -214,6 +223,7 @@ function guardarContato(c) {
   if (prev && prev.nome && !nome) return;
   agenda.set(jid, { nome: nome || (prev && prev.nome) || "", telefone: jid.split("@")[0] });
   salvarAgendaDebounced();
+  agendarEnvioAgenda();
 }
 
 function jidDaMensagem(m) {
