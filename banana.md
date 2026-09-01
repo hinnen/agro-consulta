@@ -724,10 +724,13 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
-- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**. Pacote `WA-ATEND-QR`.
+- Sem disparo em massa. Ícone PDV → **abre o chat** (`WA-BOT-CFG-RENAN`); ponte no PC (`iniciar.bat`).
+- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Config bot (`WA-BOT-CFG` · 01/09):** tela `/atendimento-whatsapp/bot/` — textos, ordem, intervalo, horário, fiado. Postgres `WhatsAppBotConfigAgro` (chave `default` agora; outros clientes depois). Migrate `0111`.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). **Apagar** = tira da lista no Agro (não apaga no celular). Fora da loja.
+- **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
+- **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
+- **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1261,13 +1264,65 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja hoje** | **v20.58** @ `751c0d4` |
+| **Teste** | **v20.73** · PIN **9973** OK |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** · `verify_bi_devolucao_dia.py` **43/43** |
+| **Você** | Ctrl+F5 `/vendas/lojas/` · calendário 2 toques · tag fiado · BI bate com vendas-lojas |
+| **Loja** | **aguarda senha** neste chat |
+
+### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `BI-DEVOL-CARD` | 🟢 **pronto envio** | **NÃO** |
+| 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
+| 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
+| 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
+| 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
+
+**Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+
+### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Horário seg–sáb 8–18 (domingo off) · pausa 2s · boas-vindas · aviso ocupado · PDV abre chat |
+| **Migrate** | **SIM** `0113` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+| **Ponte** | Neste PC (hoje) + `iniciar.bat` na Inicializar · Render só o site Django |
+
+### 📦 PACOTE PRONTO — Avisos + mídia WhatsApp (`WA-UX-AVISO` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Apagar conversa · som/aviso no PDV · Off no ícone · foto/áudio · nome do cadastro · `.bat` religa sozinho |
+| **Migrate** | **SIM** `0114` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+
+### 📦 PACOTE PRONTO — Chamar contato + histórico curto (`WA-CHAMAR-HIST` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Novo: mandar para poucos (cadastro). Agenda Zap só se pedir. Anteriores: uns dias daquele chat, sem baixar tudo |
+| **Onde** | `/atendimento-whatsapp/` · **Novo** · **Anteriores** |
+| **Migrate** | **SIM** `0112` |
+| **Prova** | `verify_atendimento_whatsapp.py` |
+| **Status** | 🟡 `teste` **v20.68** · **fora da loja** (junto do `WA-ATEND-QR`) |
+| **Fix 01/09** | Fantasma grupo/canal (`120363…`) + histórico automático — só celular 1-a-1 ao vivo |
+| **Apagar** | Botão na conversa — só some no Agro (lixo #3/#4) |
+
 ### 📦 PACOTE PRONTO — Visual WhatsApp (`WA-BOT-UX` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Chat + bot mais limpos: menos texto, abas, verde Zap, bolhas tipo conversa |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · fora da loja |
+| **Status** | 🟡 `teste` **v20.64** · fora da loja |
 
 ### 📦 PACOTE PRONTO — Configurar bot WhatsApp (`WA-BOT-CFG` · **v20.61** · 01/09/2026)
 
@@ -1285,36 +1340,41 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ |
 | 1 | `WA-BOT-CFG` | 🟡 no `teste` · sobe **junto** do chat QR · **não** vai sozinho à produção |
 
+### 📦 PACOTE PRONTO — Vendas lojas calendário intervalo (`VL-CAL-INTERVALO` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
+
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/vendas/lojas/` abaixo do total: tag dividida **Sem fiado** · **Com quitado** + modal explicativo no celular |
+| **O quê** | Tag **Sem fiado** · **c/ fiado quitado** + modal no celular |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ local · ⏳ `teste` após push |
-| **Você** | PC: `/vendas/lojas/` · toque na tag · conferir valores |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` (fiado DB + HTTP) |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento. Compras e relatório de produto **não** mudam. |
-| **Onde** | `/atalhos/` · BI `/` ranking |
+| **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
-| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** |
-| **Você** | PC: Ctrl+F5 atalhos + BI. Loja só com senha. |
+| **Prova** | `verify_bi_devolucao_dia.py` **43/43** |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Card/total do BI `/` usava soma crua do PDV (sem devolução). Agora a mesma conta do `/vendas-lojas`. |
-| **Onde** | Home BI · Faturamento do Dia · total do período · barra de hoje |
+| **O quê** | Card/total do BI `/` = mesma conta do `/vendas/lojas/` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
-| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** (card velho) |
-| **Você** | No PC: Ctrl+F5 no BI — tem que bater com `/vendas-lojas`. Loja só com senha. |
+| **Prova** | `verify_bi_devolucao_dia.py` |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
