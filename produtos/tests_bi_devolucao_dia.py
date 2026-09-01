@@ -79,3 +79,13 @@ class BiDevolucaoMathTests(SimpleTestCase):
             {"2026-09-01": 25.0}, {"2026-09-01": Decimal("40.00")}
         )
         self.assertEqual(out["2026-09-01"], -15.0)
+
+    def test_planilha_nao_esconde_devolucao(self):
+        from produtos.dashboard_vendas_historico_util import merge_planilha_pdv_por_dia
+
+        out = merge_planilha_pdv_por_dia(
+            {"2026-09-01": 100.0}, {"2026-09-01": 80.0}
+        )
+        self.assertEqual(out["2026-09-01"], 80.0)
+        out2 = merge_planilha_pdv_por_dia({"2026-01-10": 50.0}, {})
+        self.assertEqual(out2["2026-01-10"], 50.0)
