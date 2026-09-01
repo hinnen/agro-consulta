@@ -199,3 +199,17 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         m, err2 = enviar_loja(conversa_id=conv.pk, texto="Oi", autor="Loja")
         self.assertEqual(err2, "")
         self.assertIsNotNone(m)
+
+    def test_transferir_centro_vila(self):
+        from produtos.atendimento_whatsapp_util import transferir_conversa
+
+        processar_entrada(jid="5513999000333@s.whatsapp.net", texto="1")
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.loja, "centro")
+        dest, err = transferir_conversa(conv.pk, "vila", autor="Renan")
+        self.assertEqual(err, "")
+        self.assertEqual(dest.loja, "vila")
+        self.assertGreaterEqual(dest.nao_lidas, 1)
+        self.assertTrue(
+            WhatsAppMensagemAgro.objects.filter(conversa=dest, direcao="bot", texto__icontains="Vila").exists()
+        )

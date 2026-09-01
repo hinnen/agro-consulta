@@ -906,6 +906,36 @@ def definir_loja(conversa_id: int, loja: str) -> tuple[WhatsAppConversaAgro | No
     return conv, ""
 
 
+@transaction.atomic
+def transferir_conversa(
+    conversa_id: int, loja: str, *, autor: str = ""
+) -> tuple[WhatsAppConversaAgro | None, str]:
+    dest = (loja or "").strip().lower()
+    if dest not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):
+        return None, "Escolha Centro ou Vila."
+    try:
+        conv = WhatsAppConversaAgro.objects.select_for_update().get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None, "Conversa não encontrada."
+    if conv.loja == dest:
+        return None, "Já está nessa loja."
+    conv.loja = dest
+    conv.nao_lidas = int(conv.nao_lidas or 0) + 1
+    conv.save(update_fields=["loja", "nao_lidas"])
+    rotulo = "Centro" if dest == WhatsAppConversaAgro.LOJA_CENTRO else "Vila Elias"
+    txt = (
+        f"Seu atendimento foi passado para a loja *{rotulo}*. "
+        "Eles continuam falando com você por aqui."
+    )
+    _enfileirar_saida(
+        conv,
+        txt,
+        direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
+        autor=(autor or "Loja")[:120],
+    )
+    return conv, ""
+
+
 def toque_heartbeat() -> WhatsAppPonteEstadoAgro:
     obj = obter_ponte()
     obj.heartbeat_em = timezone.now()

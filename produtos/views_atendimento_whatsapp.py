@@ -19,6 +19,7 @@ from produtos.atendimento_whatsapp_util import (
     definir_loja,
     enviar_loja,
     excluir_conversa,
+    transferir_conversa,
     gravar_agenda_zap,
     listar_conversas,
     listar_mensagens,
@@ -187,6 +188,28 @@ def api_atendimento_whatsapp_definir_loja(request):
     conv, err = definir_loja(cid, data.get("loja") or "")
     if err or conv is None:
         return JsonResponse({"ok": False, "erro": err or "Não moveu."}, status=400)
+    return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_transferir(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    autor = ""
+    try:
+        if request.user.is_authenticated:
+            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
+    except Exception:
+        autor = ""
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    conv, err = transferir_conversa(cid, data.get("loja") or "", autor=autor)
+    if err or conv is None:
+        return JsonResponse({"ok": False, "erro": err or "Não passou."}, status=400)
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 

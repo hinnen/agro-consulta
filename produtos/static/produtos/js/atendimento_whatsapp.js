@@ -6,6 +6,7 @@
 
   var loja = 'pendente';
   var convId = 0;
+  var convLoja = '';
   var afterId = 0;
   var lastSeenIn = 0;
   var lastUnread = -1;
@@ -147,6 +148,8 @@
           on +
           '" data-id="' +
           c.id +
+          '" data-loja="' +
+          escapeHtml(c.loja || '') +
           '" data-nome="' +
           escapeHtml(rotuloTel(c)) +
           '"><div class="wa-n">' +
@@ -236,10 +239,18 @@
     );
   }
 
+  function pintarXfer() {
+    document.querySelectorAll('[data-xfer]').forEach(function (b) {
+      var dest = b.getAttribute('data-xfer') || '';
+      b.classList.toggle('hidden', !!(convLoja && dest === convLoja));
+    });
+  }
+
   function abrirConversa(id) {
     convId = Number(id) || 0;
     afterId = 0;
     var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
+    convLoja = (item && item.getAttribute('data-loja')) || loja || '';
     $('wa-topo-nome').textContent = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
     var hist = $('wa-hist');
     if (hist) hist.classList.remove('hidden');
@@ -247,6 +258,7 @@
     if (del) del.classList.remove('hidden');
     $('wa-move').classList.remove('hidden');
     $('wa-move').classList.add('flex');
+    pintarXfer();
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
       var rows = (j && j.mensagens) || [];
       pintarMsgs(rows, false);
@@ -286,6 +298,7 @@
     b.addEventListener('click', function () {
       loja = b.getAttribute('data-loja') || 'pendente';
       convId = 0;
+      convLoja = '';
       afterId = 0;
       setTab();
       $('wa-topo-nome').textContent = 'Escolha uma conversa';
@@ -325,18 +338,32 @@
     });
   });
 
-  document.querySelectorAll('[data-move]').forEach(function (b) {
+  document.querySelectorAll('[data-xfer]').forEach(function (b) {
     b.addEventListener('click', function () {
       if (!convId) return;
-      fetchJson('/api/atendimento-whatsapp/definir-loja/', {
+      var dest = b.getAttribute('data-xfer') || '';
+      var nome = dest === 'vila' ? 'Vila' : 'Centro';
+      if (!window.confirm('Passar este atendimento para a ' + nome + '? O cliente é avisado no Zap.')) return;
+      fetchJson('/api/atendimento-whatsapp/transferir/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ conversa_id: convId, loja: b.getAttribute('data-move') }),
+        body: JSON.stringify({ conversa_id: convId, loja: dest }),
       }).then(function (j) {
         if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não moveu.');
+          window.alert((j && j.erro) || 'Não passou.');
           return;
         }
+        convId = 0;
+        convLoja = '';
+        afterId = 0;
+        $('wa-topo-nome').textContent = 'Escolha uma conversa';
+        $('wa-msgs').innerHTML = '';
+        $('wa-move').classList.add('hidden');
+        var hist = $('wa-hist');
+        var del = $('wa-del');
+        if (hist) hist.classList.add('hidden');
+        if (del) del.classList.add('hidden');
+        carregarEstado();
         carregarLista();
       });
     });

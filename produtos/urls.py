@@ -801,6 +801,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_definir_loja',
     ),
     path(
+        'api/atendimento-whatsapp/transferir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_transferir,
+        name='api_atendimento_whatsapp_transferir',
+    ),
+    path(
         'api/atendimento-whatsapp/contatos/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_contatos,
         name='api_atendimento_whatsapp_contatos',
