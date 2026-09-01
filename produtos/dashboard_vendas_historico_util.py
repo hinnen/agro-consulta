@@ -42,8 +42,8 @@ def dashboard_vendas_serie_meta_merged(
     dep_key = "todas"
     if deposito in ("centro", "vila"):
         dep_key = deposito
-    # v8: corrige vendas_por_loja (não usar total_filtrado − vila).
-    ck = f"dash:mvs:v8:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    # v9: PDV abate devolução no dia do evento (cache da série pdv v7).
+    ck = f"dash:mvs:v9:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}

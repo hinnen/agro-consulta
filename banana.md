@@ -1258,13 +1258,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-
-
-
-
-
-
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — BI desconta devolução no dia (`BI-DEVOL-DIA` · **v20.53** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | No BI, o valor devolvido **cai no dia da devolução**. A venda original **permanece** no dia em que foi feita. |
+| **Onde** | Home `/` (gráfico/card) · também Vendas das lojas |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Status** | 🟡 **teste** — Ctrl+F5 no BI; **não** sobe loja sem frase+senha |
+| **Você** | Abre o BI · F5 · o dia de hoje deve **diminuir** pelo que devolveu hoje (mesmo se a venda era de outro dia) + somar a compra nova |
+
 
 ### 📦 PACOTE PRONTO — Entrega F3 (`PDV-ENTREGA-F3` · **v20.52** · 01/09/2026)
 

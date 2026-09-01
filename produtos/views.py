@@ -8806,11 +8806,10 @@ def _dashboard_deposito_filtro_key(deposito: str | None) -> str:
 def _dashboard_vendas_qs_pdv_periodo(
     data_ini: date, data_fim: date, deposito: str | None = None
 ):
-    """Vendas PDV no intervalo (exclui devoluções). ``deposito`` filtra Centro/Vila do BI."""
+    """Vendas PDV no intervalo (inclui devolvidas — o abatimento é no dia do evento)."""
     qs = VendaAgro.objects.filter(
         criado_em__date__gte=data_ini,
         criado_em__date__lte=data_fim,
-        devolvida_em__isnull=True,
     )
     return _vendas_aplicar_filtro_loja(qs, deposito)
 
@@ -8819,9 +8818,15 @@ def _dashboard_vendas_serie_pdv(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> dict:
     """Série diária e faturamento por unidade só a partir do PDV (``VendaAgro``)."""
+    from produtos.dashboard_pdv_devolucao_util import (
+        abatimento_devolucoes_por_dia,
+        abatimento_devolucoes_totais_loja,
+        aplicar_abatimento_por_dia,
+    )
+
     dep_key = _dashboard_deposito_filtro_key(deposito)
-    # v6: alinhado ao meta v8 (comparativo por unidade sempre absoluto).
-    ck = f"dash:mvs:v6:pdv:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    # v7: devolução desconta no dia do evento, não some a venda original do dia dela.
+    ck = f"dash:mvs:v7:pdv:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -8843,6 +8848,10 @@ def _dashboard_vendas_serie_pdv(
         qtd_por_dia[chave] = int(row.get("n") or 0)
         total += v
 
+    abat = abatimento_devolucoes_por_dia(data_ini, data_fim, deposito=deposito)
+    por_dia = aplicar_abatimento_por_dia(por_dia, abat)
+    total = round(sum(float(v or 0) for v in por_dia.values()), 2)
+
     # Comparativo Centro × Vila sempre absoluto (sem filtro de loja do aparelho).
     loja_acc = [0.0, 0.0]
     try:
@@ -8857,9 +8866,10 @@ def _dashboard_vendas_serie_pdv(
             .aggregate(soma=Sum("total"))
             .get("soma")
         )
+        ab_c, ab_v = abatimento_devolucoes_totais_loja(data_ini, data_fim)
         loja_acc = [
-            round(_dashboard_float(agg_c), 2),
-            round(_dashboard_float(agg_v), 2),
+            round(_dashboard_float(agg_c) - float(ab_c), 2),
+            round(_dashboard_float(agg_v) - float(ab_v), 2),
         ]
     except Exception:
         if dep_key == "vila":
@@ -9832,34 +9842,12 @@ def _dashboard_vendas_hoje_pdv(deposito: str | None = None) -> tuple[float, int]
 
 def _dashboard_devolucoes_periodo(data_ini: date, data_fim: date) -> dict[str, int | float]:
     """Devoluções registradas no intervalo (data do evento; legado sem evento)."""
-    from django.db.models import Exists, OuterRef
+    from produtos.dashboard_pdv_devolucao_util import soma_devolucoes_periodo
 
-    from produtos.models import DevolucaoVendaAgro
-
-    qs_ev = DevolucaoVendaAgro.objects.filter(
-        criado_em__date__gte=data_ini,
-        criado_em__date__lte=data_fim,
-    )
-    agg = qs_ev.aggregate(n=Count("id"), soma=Sum("total"))
-    n = int(agg.get("n") or 0)
-    soma = _dashboard_float(agg.get("soma"))
-    if n == 0:
-        has_ev = Exists(DevolucaoVendaAgro.objects.filter(venda_id=OuterRef("pk")))
-        qs = (
-            VendaAgro.objects.filter(
-                devolvida_em__isnull=False,
-                devolvida_em__date__gte=data_ini,
-                devolvida_em__date__lte=data_fim,
-            )
-            .annotate(_tem_ev=has_ev)
-            .filter(_tem_ev=False)
-        )
-        agg2 = qs.aggregate(n=Count("id"), soma=Sum("total"))
-        n = int(agg2.get("n") or 0)
-        soma = _dashboard_float(agg2.get("soma"))
+    n, soma = soma_devolucoes_periodo(data_ini, data_fim)
     return {
         "quantidade": n,
-        "valor": round(soma, 2),
+        "valor": round(float(soma), 2),
     }
 
 
