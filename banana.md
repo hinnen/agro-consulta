@@ -1260,6 +1260,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 01/09 (`deploy/prep-checklist-0109` · **v20.56**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **não** subiu na loja · próximo chat: pausar vendas + frase + senha |
+| **Antes** | `origin/producao` @ **v20.49** / `31941b8` |
+| **Sobe** | `PDV-ENTREGA-F3` · `BI-DEVOL-DIA` · `ENT-VIA-DIN-SEM-MAQ` |
+| **Fora** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` |
+| **Migrate** | **NÃO** |
+| **Prova** | F3 **68/68** · via **49/49** · BI script OK · HTTP local PDV/entregas 200 (PC Renan) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · branch `producao-backup-pre-v2056-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` |
+| **Você no próximo chat** | lojas pausam · «pode subir» + senha · Ctrl+F5 · badge **v20.56** · F7 venda · F3 entrega · via dinheiro sem troco |
+
 ### 📦 PACOTE PRONTO — Via entregador dinheiro sem troco (`ENT-VIA-DIN-SEM-MAQ` · **v20.55** · 01/09/2026)
 
 | Campo | Valor |
@@ -1293,13 +1306,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 no PDV · Entrega = onde pagar · Pagar/F7 = pagamento |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (01/09)
+### ✅ CHECKLIST ÚNICO — PREP envio (01/09 · alvo **v20.56**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-F3` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `BI-DEVOL-DIA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `ENT-VIA-DIN-SEM-MAQ` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PDV-ENTREGA-F3` | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 2 | `BI-DEVOL-DIA` | 🟡 **PREP** · aguarda senha | **NÃO** |
+| 3 | `ENT-VIA-DIN-SEM-MAQ` | 🟡 **PREP** · aguarda senha | **NÃO** |
 
 **Fora deste lote:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`
 

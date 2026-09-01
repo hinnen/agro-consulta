@@ -305,3 +305,17 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v20.49.** `producao` @ `31941b8`.  
 **Rollback:** tag `rollback/pre-lote-checklist-3108b-v20.45` @ `18fc7d1` · branch `producao-backup-pre-v2049-lote-checklist-20260831` · `docs/ROLLBACK-LOTE-CHECKLIST-3108b.md` · **só** frase+senha.  
 **Smoke:** healthz ok · badge **v20.49** · Ctrl+F5. **Fora ainda:** `WA-ATEND-QR` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 17. Checklist único — lote 01/09 (`deploy/prep-checklist-0109` · alvo loja **v20.56**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-F3** | 🟡 **PREP** · prova **68/68** | **NÃO** |
+| 2 | **BI-DEVOL-DIA** | 🟡 **PREP** · prova estática OK | **NÃO** |
+| 3 | **ENT-VIA-DIN-SEM-MAQ** | 🟡 **PREP** · prova **49/49** | **NÃO** |
+
+**Status: PREP pronto · aguarda frase+senha.** Base loja `31941b8` v20.49.  
+**Rollback:** tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · branch `producao-backup-pre-v2056-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` · **só** frase+senha.  
+**Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
