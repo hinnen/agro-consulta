@@ -7725,11 +7725,11 @@ def _format_moeda_br(val: Decimal) -> str:
 
 
 def _home_quick_stats(request):
-    """Indicadores leves para a home administrativa (sem agregações Mongo pesadas)."""
+    """Indicadores leves da grade de atalhos — vendas hoje = mesma conta do /vendas-lojas."""
+    from produtos.vendas_lojas_util import vendas_lojas_totais
+
     hoje = timezone.localdate()
-    agg = VendaAgro.objects.filter(criado_em__date=hoje).aggregate(soma=Sum("total"))
-    soma = agg["soma"] if agg["soma"] is not None else Decimal("0")
-    total_vendas_dia = soma.quantize(Decimal("0.01"))
+    _c, _v, total_vendas_dia = vendas_lojas_totais(hoje, hoje)
     entregas_pendentes = PedidoEntrega.objects.exclude(
         status__in=(PedidoEntrega.Status.ENTREGUE, PedidoEntrega.Status.CANCELADO)
     ).count()
@@ -9149,27 +9149,35 @@ def _dashboard_top_produtos_sqlite(data_ini, data_fim, limite=8, deposito: str |
 def _dashboard_ranking_vendedores_sqlite(
     data_ini, data_fim, limite=8, deposito: str | None = None
 ):
-    """Ranking por operador do PDV (PIN / ``usuario_registro``), igual à lista Consulta → Vendas."""
+    """Ranking por operador do PDV — venda no dia; devolução abate no dia do evento."""
+    from produtos.dashboard_pdv_devolucao_util import abatimento_devolucoes_por_operador
     from produtos.mongo_vendas_util import _nome_vendedor_erp_e_rotulo_generico
 
+    acc: dict[str, list] = {}
     rows = (
         _dashboard_vendas_qs_pdv_periodo(data_ini, data_fim, deposito=deposito)
         .values("usuario_registro")
         .annotate(total=Sum("total"), n_vendas=Count("id"))
-        .order_by("-total")
     )
-    out = []
     for row in rows:
         raw = (row.get("usuario_registro") or "").strip()
         if not raw or _nome_vendedor_erp_e_rotulo_generico(raw):
             continue
-        out.append(
-            {
-                "nome": raw[:120],
-                "total": round(_dashboard_float(row.get("total")), 2),
-                "n_vendas": int(row.get("n_vendas") or 0),
-            }
-        )
+        acc[raw] = [
+            round(_dashboard_float(row.get("total")), 2),
+            int(row.get("n_vendas") or 0),
+        ]
+    for op, desc in abatimento_devolucoes_por_operador(
+        data_ini, data_fim, deposito=deposito
+    ).items():
+        if not op or _nome_vendedor_erp_e_rotulo_generico(op):
+            continue
+        atual, n = acc.get(op, [0.0, 0])
+        acc[op] = [round(atual - float(desc), 2), n]
+    ranked = sorted(acc.items(), key=lambda kv: kv[1][0], reverse=True)
+    out = []
+    for nome, (total, n_vendas) in ranked:
+        out.append({"nome": nome[:120], "total": total, "n_vendas": n_vendas})
         if len(out) >= limite:
             break
     return out
@@ -9237,7 +9245,7 @@ def _dashboard_ranking_vendedores_capri(
     e **sem** filtro de loja (senão Vila vazia puxava ranking do Centro).
     """
     dep_key = _dashboard_deposito_filtro_key(deposito)
-    ck = f"dash:rv:v5:operador:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
+    ck = f"dash:rv:v6:operador:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}:{limite}"
     hit = cache.get(ck)
     if isinstance(hit, list):
         return hit
@@ -9350,6 +9358,16 @@ def _dashboard_top_clientes_sqlite(
             continue
         label = f"Cliente ERP {cid}"
         acc[label] = acc.get(label, 0.0) + _dashboard_float(row.get("total"))
+    from produtos.dashboard_pdv_devolucao_util import abatimento_devolucoes_por_cliente
+
+    for chave, desc in abatimento_devolucoes_por_cliente(
+        data_ini, data_fim, deposito=deposito
+    ).items():
+        if not incluir_consumidor and chave == "Consumidor não identificado":
+            continue
+        if not incluir_consumidor and _nome_cliente_excluir_top_ranking(chave):
+            continue
+        acc[chave] = round(acc.get(chave, 0.0) - float(desc), 2)
     ranked = sorted(acc.items(), key=lambda kv: kv[1], reverse=True)[:limite]
     return [{"nome": k[:200], "total": round(v, 2)} for k, v in ranked]
 
@@ -9449,7 +9467,7 @@ def _dashboard_top_clientes_mes_anterior_capri(
     dep_key = _dashboard_deposito_filtro_key(deposito)
     raw_manual = (getattr(settings, "AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON", "") or "").strip()
     ck_suffix = hashlib.sha256(raw_manual.encode("utf-8")).hexdigest()[:12] if raw_manual else "fat20"
-    ck = f"dash:tcma:v7:{dep_key}:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
+    ck = f"dash:tcma:v8:{dep_key}:{mes_ini.isoformat()}:{mes_fim.isoformat()}:{ck_suffix}"
     hit = cache.get(ck)
     if isinstance(hit, dict) and hit.get("_t") == "tcma":
         return hit["payload"]
