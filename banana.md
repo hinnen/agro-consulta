@@ -1264,43 +1264,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Dinheiro **sem troco** na entrega **não** imprime **LEVAR MÁQUINA**. Sai **COBRAR DINHEIRO**. |
-| **Causa** | O PDV gravava «Maquininha: não» na observação e o papel lia a palavra maquininha. |
-| **Onde** | Via entregador (PDV + painel Entregas) |
+| **O quê** | Dinheiro **sem troco** na entrega imprime **COBRAR DINHEIRO** — **não** LEVAR MÁQUINA |
+| **Onde** | Via entregador (PDV + `/entregas/`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_ent_via_dinheiro_sem_maquina.py` |
-| **Status** | 🟡 **teste** |
-| **Você** | Ctrl+F5 no PDV · entrega · dinheiro · troco 0 · imprimir via do entregador |
+| **Prova** | `scripts/verify_ent_via_dinheiro_sem_maquina.py` **49/49** · PIN 9973 · healthz local · JS vivo |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · entrega · dinheiro · troco 0 · via do entregador = COBRAR DINHEIRO |
 
 ### 📦 PACOTE PRONTO — BI desconta devolução no dia (`BI-DEVOL-DIA` · **v20.53** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No BI, o valor devolvido **cai no dia da devolução**. A venda original **permanece** no dia em que foi feita. |
-| **Onde** | Home `/` (gráfico/card) · também Vendas das lojas |
+| **O quê** | Devolução **cai no dia em que devolveu**. Venda original fica no dia da venda. |
+| **Onde** | BI `/` · Vendas das lojas |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_bi_devolucao_dia.py` |
-| **Status** | 🟡 **teste** — Ctrl+F5 no BI; **não** sobe loja sem frase+senha |
-| **Você** | Abre o BI · F5 · o dia de hoje deve **diminuir** pelo que devolveu hoje (mesmo se a venda era de outro dia) + somar a compra nova |
-
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 no BI · conferir o dia |
 
 ### 📦 PACOTE PRONTO — Entrega F3 (`PDV-ENTREGA-F3` · **v20.52** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Entrega / F3 abre a etapa de entrega (não o pagamento) |
-| **Onde** | `/pdv/` · botão ao lado de Pagar |
-| **Commit** | fix `8ebcefa` · prova `595d4bb` |
+| **Onde** | `/pdv/` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_pdv_entrega_f3_path.py` **68/68** · PIN 9973 ok no PC |
-| **Status** | 🟢 **pronto para envio à produção** (aguarda frase+senha) |
-| **Você** | Ctrl+F5 no PDV · 1 item · Entrega = pergunta onde pagar · Pagar/F7 = pagamento |
+| **Prova** | `scripts/verify_pdv_entrega_f3_path.py` **68/68** · PIN 9973 |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 no PDV · Entrega = onde pagar · Pagar/F7 = pagamento |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (01/09)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-ENTREGA-F3` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `BI-DEVOL-DIA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `ENT-VIA-DIN-SEM-MAQ` | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Fora deste lote:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`
 
