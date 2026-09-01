@@ -28,10 +28,10 @@ oks: list[str] = []
 def check(name: str, cond: bool, detail: str = "") -> None:
     if cond:
         oks.append(name)
-        print(f"  OK  {name}" + (f" — {detail}" if detail else ""))
+        print(f"  OK  {name}" + (f" -- {detail}" if detail else ""))
     else:
         fails.append(name)
-        print(f"  FAIL {name}" + (f" — {detail}" if detail else ""))
+        print(f"  FAIL {name}" + (f" -- {detail}" if detail else ""))
 
 
 def _read(rel: str) -> str:
@@ -98,10 +98,19 @@ def test_arquivos() -> None:
     check("tpl_standalone", "<!DOCTYPE html>" in tpl and "extends" not in tpl)
     check("util_sem_cache", "cache." not in util)
     check("util_sem_mongo", "obter_conexao_mongo" not in util and "DtoVenda" not in util)
-    check("util_exclui_devolvida", "devolvida_em__isnull=True" in util)
+    check("util_abate_devolucao", "abatimento_devolucoes_totais_loja" in util)
+    check("util_sem_fiado", "vendas_lojas_sem_fiado_totais" in util)
+    check("util_fiado_baixa", "vendas_lojas_fiado_baixas_periodo" in util)
+    check("util_intervalo", "intervalo" in util and "dia_fim_iso" in util)
     check("util_vila_iexact", 'deposito__iexact="vila"' in util)
     check("util_centro_exclude_vila", "exclude(deposito__iexact=" in util)
     check("util_soma_total", "centro + vila" in util)
+    check("view_pass_fiado", "sem_fiado_fmt" in view_fn and "sem_fiado_quit_fmt" in view_fn)
+    check("view_pass_data_fim", "data_fim_iso" in view_fn or "data_fim" in views)
+    check("tpl_fiado_tag", "vl-fiado-tag" in tpl and "Sem fiado" in tpl)
+    check("tpl_fiado_quit_label", "c/ fiado quitado" in tpl)
+    check("tpl_fiado_sheet", "vl-sheet-fiado" in tpl)
+    check("tpl_intervalo_form", "vl-goto-intervalo" in tpl and "data_fim" in tpl)
     check("view_usa_meta", "vendas_lojas_meta_c_modos" in view_fn)
     check("view_meta_centro", '"centro"' in view_fn or "'centro'" in view_fn)
     check("view_meta_vila", '"vila"' in view_fn or "'vila'" in view_fn)
@@ -127,7 +136,7 @@ def test_arquivos() -> None:
     hist_fn = _fn_src("produtos/views.py", "_dashboard_vendas_serie_meta_historico")
     meses_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_meses_por_dia")
     check("meta_c_param_deposito", "deposito" in meta_fn)
-    check("meta_c_cache_loja", "dash:metac:v2:" in meta_fn)
+    check("meta_c_cache_loja", "dash:metac:v3:" in meta_fn)
     check("meta_c_todas_soma", "todas-soma" in meta_fn)
     abert_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_abertura")
     um_mes_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_um_mes")
@@ -158,7 +167,7 @@ def test_periodo() -> None:
     check("hoje", key == "hoje" and ini == fim == sab)
 
     ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "semana")
-    check("semana_seg_hoje", key == "semana" and ini == date(2026, 8, 10) and fim == sab, f"{ini}→{fim}")
+    check("semana_seg_hoje", key == "semana" and ini == date(2026, 8, 10) and fim == sab, f"{ini}->{fim}")
     check("semana_sem_domingo_futuro", fim <= sab)
 
     ini, fim, _l, key = vendas_lojas_periodo_bounds(date(2026, 8, 17), "semana")
@@ -177,7 +186,7 @@ def test_periodo() -> None:
     check("ontem", key == "ontem" and ini == fim == date(2026, 8, 14), f"{ini} {label}")
 
     ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "mes_ant")
-    check("mes_ant", key == "mes_ant" and ini == date(2026, 7, 1) and fim == date(2026, 7, 31), f"{ini}→{fim}")
+    check("mes_ant", key == "mes_ant" and ini == date(2026, 7, 1) and fim == date(2026, 7, 31), f"{ini}->{fim}")
 
     ini, fim, label, key = vendas_lojas_periodo_bounds(sab, "dia", "2026-08-10")
     check("dia_cal", key == "dia" and ini == fim == date(2026, 8, 10) and "10/08/2026" in label)
@@ -187,6 +196,29 @@ def test_periodo() -> None:
 
     ini, fim, _l, key = vendas_lojas_periodo_bounds(date(2026, 3, 5), "mes_ant")
     check("mes_ant_fev", ini == date(2026, 2, 1) and fim == date(2026, 2, 28))
+
+    ini, fim, label, key = vendas_lojas_periodo_bounds(
+        date(2026, 9, 10), "intervalo", "2026-09-01", "2026-09-10"
+    )
+    check(
+        "intervalo_cal",
+        key == "intervalo"
+        and ini == date(2026, 9, 1)
+        and fim == date(2026, 9, 10)
+        and "01/09/2026" in label
+        and "10/09/2026" in label,
+        f"{ini}->{fim} {key}",
+    )
+
+    ini, fim, _l, key = vendas_lojas_periodo_bounds(
+        date(2026, 9, 10), "intervalo", "2026-09-10", "2026-09-01"
+    )
+    check("intervalo_troca", key == "intervalo" and ini == date(2026, 9, 1) and fim == date(2026, 9, 10))
+
+    ini, fim, _l, key = vendas_lojas_periodo_bounds(
+        date(2026, 9, 1), "intervalo", "2026-09-01", "2026-09-10"
+    )
+    check("intervalo_futuro_corta", key == "dia" and ini == fim == date(2026, 9, 1))
 
 
 def test_totais_mock() -> None:
@@ -254,6 +286,87 @@ def test_fracao_expediente() -> None:
     check("manha_nao_e_dia_todo", ate < dia)
 
 
+def test_fiado_math() -> None:
+    print("== Fiado (DB local) ==")
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+
+    from datetime import date
+    from decimal import Decimal
+
+    from produtos.caixa_util import _perfil_usuario_por_pin, validar_pin_operador
+    from produtos.vendas_lojas_util import (
+        vendas_lojas_fiado_baixas_periodo,
+        vendas_lojas_sem_fiado_mais_quitacoes_totais,
+        vendas_lojas_sem_fiado_totais,
+        vendas_lojas_soma_fiado_vendas_periodo,
+        vendas_lojas_totais,
+    )
+
+    pin_ok, pin_msg = validar_pin_operador("9973")
+    check("pin_9973", pin_ok, pin_msg[:40] if pin_msg else "")
+    check("pin_9973_perfil", _perfil_usuario_por_pin("9973") is not None)
+
+    h = date.today()
+    _, _, total = vendas_lojas_totais(h, h)
+    _, _, sem_fiado = vendas_lojas_sem_fiado_totais(h, h)
+    _, _, quit = vendas_lojas_sem_fiado_mais_quitacoes_totais(h, h)
+    fc, fv = vendas_lojas_soma_fiado_vendas_periodo(h, h)
+    _, _, baixas = vendas_lojas_fiado_baixas_periodo(h, h)
+    fiado = (fc + fv).quantize(Decimal("0.01"))
+    esperado_quit = (sem_fiado + baixas).quantize(Decimal("0.01"))
+    check("sem_fiado_le_total", sem_fiado <= total, f"{sem_fiado} <= {total}")
+    check("quit_ge_sem_fiado", quit >= sem_fiado, f"{quit} >= {sem_fiado}")
+    check("quit_formula", quit == esperado_quit, f"{quit} vs {esperado_quit}")
+    check(
+        "total_fiado_parte",
+        (sem_fiado + fiado).quantize(Decimal("0.01")) >= total - Decimal("0.02"),
+        f"sf+fi={sem_fiado + fiado} total={total}",
+    )
+
+
+def test_http() -> None:
+    print("== HTTP Django ==")
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+
+    from django.contrib.auth import get_user_model
+    from django.test import Client, override_settings
+    from django.urls import reverse
+
+    User = get_user_model()
+    user = User.objects.filter(is_active=True).order_by("id").first()
+    if not user:
+        check("http_user", False, "sem usuario")
+        return
+    with override_settings(ALLOWED_HOSTS=["testserver", "127.0.0.1", "localhost", "*"]):
+        c = Client()
+        c.force_login(user)
+        r = c.get("/vendas/lojas/", follow=True)
+        body = r.content.decode("utf-8", "replace")
+        check("http_lojas_200", r.status_code == 200, str(r.status_code))
+        check("http_fiado_tag", "vl-fiado-tag" in body)
+        check("http_label_quit", "c/ fiado quitado" in body)
+        check("http_intervalo_form", "vl-goto-intervalo" in body)
+        r2 = c.get(
+            "/vendas/lojas/?periodo=intervalo&data=2026-08-01&data_fim=2026-08-15",
+            follow=True,
+        )
+        b2 = r2.content.decode("utf-8", "replace")
+        check("http_intervalo_200", r2.status_code == 200, str(r2.status_code))
+        check("http_intervalo_label", "01/08/2026" in b2 and "15/08/2026" in b2)
+        hub = c.get(reverse("relatorios_hub"), follow=True)
+        check("http_hub_link", "/vendas/lojas/" in hub.content.decode("utf-8", "replace"))
+
+
 def test_versao() -> None:
     print("== Versão ==")
     ver = _read("VERSION").strip()
@@ -267,6 +380,8 @@ def main() -> int:
     test_totais_mock()
     test_cmp_meta()
     test_fracao_expediente()
+    test_fiado_math()
+    test_http()
     test_versao()
     print(f"\nVERIFY {'OK' if not fails else 'FAIL'} {len(oks)}/{len(oks) + len(fails)}")
     if fails:

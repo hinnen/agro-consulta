@@ -1264,6 +1264,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Loja hoje** | **v20.58** @ `751c0d4` |
+| **Teste** | **v20.73** · PIN **9973** OK |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** · `verify_bi_devolucao_dia.py` **43/43** |
+| **Você** | Ctrl+F5 `/vendas/lojas/` · calendário 2 toques · tag fiado · BI bate com vendas-lojas |
+| **Loja** | **aguarda senha** neste chat |
+
+### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `BI-DEVOL-CARD` | 🟢 **pronto envio** | **NÃO** |
+| 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
+| 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
+| 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
+| 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
+
+**Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+
 ### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
 
 | Campo | Valor |
@@ -1323,39 +1346,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ `teste` **v20.65** |
-| **Você** | Calendário · ex. dia 1 e dia 10 · label `01/09 — 10/09` |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/vendas/lojas/` abaixo do total: tag dividida **Sem fiado** · **Com quitado** + modal explicativo no celular |
+| **O quê** | Tag **Sem fiado** · **c/ fiado quitado** + modal no celular |
 | **Migrate** | **NÃO** |
-| **Status** | ✅ `teste` **v20.62** · ⏳ loja **v20.58** |
-| **Você** | PC: `/vendas/lojas/` · toque na tag · conferir valores |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` (fiado DB + HTTP) |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento. Compras e relatório de produto **não** mudam. |
-| **Onde** | `/atalhos/` · BI `/` ranking |
+| **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` **37/37** · teste **v20.60** |
-| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** |
-| **Você** | PC: Ctrl+F5 atalhos + BI. Loja só com senha. |
+| **Prova** | `verify_bi_devolucao_dia.py` **43/43** |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Card/total do BI `/` usava soma crua do PDV (sem devolução). Agora a mesma conta do `/vendas-lojas`. |
-| **Onde** | Home BI · Faturamento do Dia · total do período · barra de hoje |
+| **O quê** | Card/total do BI `/` = mesma conta do `/vendas/lojas/` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` **31/31** · teste **v20.59** |
-| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** (card velho) |
-| **Você** | No PC: Ctrl+F5 no BI — tem que bater com `/vendas-lojas`. Loja só com senha. |
+| **Prova** | `verify_bi_devolucao_dia.py` |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
