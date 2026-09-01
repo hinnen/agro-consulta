@@ -732,6 +732,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
+- **Celular (`WA-CEL` · 01/09):** link separado `/atendimento-whatsapp/celular/` (atalho **Y**) — mesma fila, visual de Zap no telefone. PC continua em `/atendimento-whatsapp/` (**Z**).
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
@@ -1290,6 +1291,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Fora (ainda só `teste`):** WhatsApp · resto do `teste`
 
 ### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
+
+- **Celular (`WA-CEL` · 01/09):** link separado `/atendimento-whatsapp/celular/` (atalho **Y**) — mesma fila, visual de Zap no telefone. PC continua em `/atendimento-whatsapp/` (**Z**).
+
+### 📦 PACOTE PRONTO — WhatsApp celular (`WA-CEL` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Tela no celular (lista → conversa) · não mexe na tela do PC |
+| **Onde** | `/atendimento-whatsapp/celular/` · menu **WhatsApp celular** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Mensagens WhatsApp estáveis (`WA-MSG-LID` · 01/09/2026)
 

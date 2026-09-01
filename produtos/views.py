@@ -7927,6 +7927,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "WhatsApp celular",
+            "href": reverse("atendimento_whatsapp_celular"),
+            "icon": "smartphone",
+            "shortcut": "Y",
+            "shortcut_key": "y",
+            "pin_protected": True,
+        },
+        {
             "title": "Ajuste Mobile",
             "href": reverse("ajuste_mobile"),
             "icon": "smartphone",

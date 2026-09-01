@@ -1,0 +1,88 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}WhatsApp celular | SisVale{% endblock %}
+{% block extra_head %}
+<meta name="theme-color" content="#075e54" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Zap loja" />
+{% endblock %}
+{% block body_class %}bg-[#ece5dd] text-slate-900 overflow-hidden wa-skin wa-cel{% endblock %}
+{% block pdv_shell_class %}h-[100dvh] min-h-0 bg-[#075e54] flex flex-col overflow-hidden{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col p-0{% endblock %}
+
+{% block pdv_header %}
+{% include "produtos/_wa_skin.html" %}
+<style>
+  .wa-cel .wa-top { background: #075e54; border: 0; color: #fff; padding: .7rem .9rem; padding-top: max(.7rem, env(safe-area-inset-top)); }
+  .wa-cel .wa-title { color: #fff; font-size: 1.15rem; }
+  .wa-cel .wa-pill { background: rgba(255,255,255,.14); color: #ecfdf5; }
+  .wa-cel .wa-pill.ok { background: #25d366; color: #064e3b; }
+  .wa-cel .wa-pill.warn { background: #fbbf24; color: #78350f; }
+  .wa-cel .wa-pill.bad { background: #fecaca; color: #7f1d1d; }
+  .wa-cel .wa-top .wa-ico, .wa-cel #wa-chat-bar .wa-ico { min-height: 2.5rem; background: transparent; border-color: rgba(255,255,255,.25); color: #fff; }
+  .wa-cel #wa-move .wa-ico { min-height: 2.7rem; background: #fff; color: #075e54; border-color: #d1d5db; }
+  .wa-cel .wa-tabs { margin: .45rem .7rem; background: rgba(0,0,0,.12); }
+  .wa-cel .wa-tab { color: #d1fae5; }
+  .wa-cel .wa-tab.is-on { background: #fff; color: #075e54; }
+  .wa-cel .pane-lista, .wa-cel .pane-chat { min-height: 0; flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 1.1rem 1.1rem 0 0; overflow: hidden; }
+  .wa-cel .pane-chat { display: none; background: #ece5dd; }
+  .wa-cel.is-chat .pane-lista { display: none; }
+  .wa-cel.is-chat .pane-chat { display: flex; }
+  .wa-cel.is-chat .wa-tabs { display: none; }
+  .wa-cel #wa-chat-bar { background: #075e54; color: #fff; }
+  .wa-cel #wa-topo-nome { color: #fff; }
+  .wa-cel #wa-form { padding-bottom: max(.5rem, env(safe-area-inset-bottom)); }
+  .wa-cel .wa-item { min-height: 3.6rem; padding: .85rem 1rem; }
+  .wa-cel .wa-item .wa-n { font-size: 1rem; }
+</style>
+<header class="wa-top">
+  <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
+  <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
+  <div id="wa-status" class="wa-pill">…</div>
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+{% csrf_token %}
+<div id="wa-app" class="flex min-h-0 flex-1 flex-col">
+  <div id="wa-qr-box" class="wa-qr hidden shrink-0 mx-3 mt-2">
+    <p class="text-sm font-extrabold text-amber-950">Ligar o Zap — use o PC da ponte</p>
+    <p class="mt-1 text-xs font-semibold text-slate-600">QR e código ficam no computador. Aqui é só atender.</p>
+  </div>
+
+  <div class="wa-tabs shrink-0">
+    <button type="button" data-loja="pendente" class="wa-tab is-on">Fila <span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+    <button type="button" data-loja="centro" class="wa-tab">Centro <span data-badge="centro" class="wa-badge is-zero">0</span></button>
+    <button type="button" data-loja="vila" class="wa-tab">Vila <span data-badge="vila" class="wa-badge is-zero">0</span></button>
+  </div>
+
+  <div class="pane-lista">
+    <div class="shrink-0 border-b border-slate-100 p-2">
+      <input id="wa-busca" type="search" autocomplete="off" placeholder="Buscar nome ou telefone" class="min-h-[2.85rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
+    </div>
+    <div id="wa-busca-hits" class="hidden min-h-0 flex-1 overflow-y-auto"></div>
+    <div id="wa-lista" class="min-h-0 flex-1 overflow-y-auto"></div>
+  </div>
+
+  <div class="pane-chat">
+    <div id="wa-chat-bar" class="flex shrink-0 items-center gap-2 px-2 py-2">
+      <button type="button" id="wa-cel-back" class="wa-ico" title="Voltar">‹</button>
+      <div id="wa-topo-nome" class="min-w-0 flex-1 truncate text-sm font-extrabold">Conversa</div>
+      <button type="button" id="wa-hist" class="wa-ico hidden" title="Puxar uns dias deste chat">Ant.</button>
+      <button type="button" id="wa-del" class="wa-ico hidden" title="Apagar esta conversa da lista">Apagar</button>
+    </div>
+    <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
+    <form id="wa-form" class="flex shrink-0 gap-2 border-t border-slate-200 bg-white p-2" data-agro-no-double-guard="1">
+      <input id="wa-input" type="text" maxlength="4000" autocomplete="off" placeholder="Mensagem" inputmode="text" class="min-h-[2.85rem] flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
+      <button type="submit" id="wa-send" class="min-h-[2.85rem] min-w-[5.2rem] rounded-2xl bg-[#25d366] px-4 text-sm font-extrabold text-white">Enviar</button>
+    </form>
+    <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pb-2 bg-white">
+      <button type="button" data-xfer="centro" class="wa-ico flex-1" title="Passar este atendimento para o Centro">Centro</button>
+      <button type="button" data-xfer="vila" class="wa-ico flex-1" title="Passar este atendimento para a Vila">Vila</button>
+    </div>
+  </div>
+</div>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}"></script>
+{% endblock %}

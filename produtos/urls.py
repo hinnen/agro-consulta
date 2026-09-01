@@ -34,6 +34,11 @@ urlpatterns = [
         name="atendimento_whatsapp",
     ),
     path(
+        "atendimento-whatsapp/celular/",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_view,
+        name="atendimento_whatsapp_celular",
+    ),
+    path(
         "atendimento-whatsapp/bot/",
         views_atendimento_whatsapp.atendimento_whatsapp_bot_view,
         name="atendimento_whatsapp_bot",

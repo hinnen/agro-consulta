@@ -60,6 +60,11 @@ def atendimento_whatsapp_view(request):
 
 
 @login_required(login_url="/admin/login/")
+def atendimento_whatsapp_celular_view(request):
+    return render(request, "produtos/atendimento_whatsapp_celular.html", {})
+
+
+@login_required(login_url="/admin/login/")
 def atendimento_whatsapp_bot_view(request):
     return render(request, "produtos/atendimento_whatsapp_bot.html", {})
 
@@ -371,6 +376,7 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         midia_b64=str(data.get("midia_b64") or ""),
         mime=str(data.get("mime") or ""),
         nome_arquivo=str(data.get("nome_arquivo") or ""),
+        telefone=str(data.get("telefone") or ""),
     )
     if err == "ignorado":
         return JsonResponse({"ok": True, "ignorado": True})

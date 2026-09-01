@@ -44,6 +44,7 @@ def _static() -> None:
     mig = ROOT / "produtos/migrations/0108_atendimento_whatsapp.py"
 
     check("url_pagina", "atendimento_whatsapp" in urls and "atendimento-whatsapp/" in urls)
+    check("url_celular", "atendimento_whatsapp_celular" in urls and "atendimento-whatsapp/celular/" in urls)
     check("url_bot_cfg", "atendimento_whatsapp_bot" in urls)
     check("model_bot_cfg", "class WhatsAppBotConfigAgro" in models)
     check("mig_0113", (ROOT / "produtos/migrations/0113_whatsapp_bot_cfg_renan.py").is_file())
@@ -66,8 +67,11 @@ def _static() -> None:
     check("node_sem_full", "syncFullHistory: false" in node and "shouldSyncHistoryMessage: () => false" in node)
     check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_agenda_sync", "agendarEnvioAgenda" in node)
-    check("node_so_notify", "type !== \"notify\"" in node and "historicoPermitido" in node)
+    check("node_so_notify", "historicoPermitido" in node)
     check("node_jid_privado", "ehChatPrivado" in node)
+    check("html_bot_guard", "data-agro-no-double-guard" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
+    check("js_bot_save", "wa-bot-save" in _read("produtos/static/produtos/js/atendimento_whatsapp_bot.js"))
+    check("util_merge", "def _achar_ou_criar_conversa" in util)
     check("html_btn_bot", "atendimento_whatsapp_bot" in html)
     check("html_skin", "wa-skin" in html or "_wa_skin" in html)
     check("js_bot_cfg", "atendimento_whatsapp_bot.js" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
@@ -86,6 +90,9 @@ def _static() -> None:
     check("js_poll", "2500" in js)
     check("menu_dash", "atendimento_whatsapp" in dash)
     check("menu_home", "WhatsApp lojas" in home)
+    check("html_celular", "wa-cel" in _read("produtos/templates/produtos/atendimento_whatsapp_celular.html") and "wa-cel-back" in js)
+    check("menu_dash_cel", "atendimento_whatsapp_celular" in dash)
+    check("menu_home_cel", "WhatsApp celular" in home)
     check("settings_token", "AGRO_WA_BRIDGE_TOKEN" in sett)
     check("bat_iniciar", "node index.js" in bat)
     check("node_baileys", "@whiskeysockets/baileys" in node or "makeWASocket" in node)
@@ -125,6 +132,7 @@ def _logic() -> None:
     check("logic_fiado_nao_loja", interpretar_consulta_fiado("1") is False)
     check("logic_delay", delays_bot(BOT_DEFAULT, 2)[0] >= 0)
     check("logic_jid_cel", jid_eh_chat_privado("5513988887777@s.whatsapp.net") is True)
+    check("logic_jid_lid", jid_eh_chat_privado("123456789012345@lid") is True)
     check("logic_jid_grupo", jid_eh_chat_privado("120363162264887116@s.whatsapp.net") is False)
     check("logic_jid_canal", jid_eh_chat_privado("123@newsletter") is False)
     from datetime import datetime

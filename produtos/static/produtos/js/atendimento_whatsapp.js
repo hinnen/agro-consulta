@@ -11,6 +11,12 @@
   var lastSeenIn = 0;
   var lastUnread = -1;
   var notifyOk = false;
+  var ehCel = !!(document.body && document.body.classList.contains('wa-cel'));
+
+  function telaCel(chat) {
+    if (!ehCel) return;
+    document.body.classList.toggle('is-chat', !!chat);
+  }
 
   function csrf() {
     var inp = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -259,6 +265,7 @@
     $('wa-move').classList.remove('hidden');
     $('wa-move').classList.add('flex');
     pintarXfer();
+    telaCel(true);
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
       var rows = (j && j.mensagens) || [];
       pintarMsgs(rows, false);
@@ -308,6 +315,7 @@
       if (del) del.classList.add('hidden');
       $('wa-msgs').innerHTML = '';
       $('wa-move').classList.add('hidden');
+      telaCel(false);
       carregarLista();
     });
   });
@@ -379,6 +387,7 @@
         var del = $('wa-del');
         if (hist) hist.classList.add('hidden');
         if (del) del.classList.add('hidden');
+        telaCel(false);
         carregarEstado();
         carregarLista();
       });
@@ -556,8 +565,27 @@
         $('wa-move').classList.add('hidden');
         btnDel.classList.add('hidden');
         if (btnHist) btnHist.classList.add('hidden');
+        telaCel(false);
         carregarLista();
       });
+    });
+  }
+
+  var btnBack = $('wa-cel-back');
+  if (btnBack) {
+    btnBack.addEventListener('click', function () {
+      convId = 0;
+      convLoja = '';
+      afterId = 0;
+      $('wa-topo-nome').textContent = 'Conversa';
+      var hist = $('wa-hist');
+      var del = $('wa-del');
+      if (hist) hist.classList.add('hidden');
+      if (del) del.classList.add('hidden');
+      $('wa-msgs').innerHTML = '';
+      $('wa-move').classList.add('hidden');
+      telaCel(false);
+      carregarLista();
     });
   }
 
