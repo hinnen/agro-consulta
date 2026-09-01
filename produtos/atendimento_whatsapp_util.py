@@ -751,8 +751,15 @@ def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro 
     return p, ""
 
 
-def marcar_lidas(conversa_id: int) -> None:
-    WhatsAppConversaAgro.objects.filter(pk=int(conversa_id)).update(nao_lidas=0)
+def excluir_conversa(conversa_id: int) -> tuple[bool, str]:
+    try:
+        cid = int(conversa_id)
+    except (TypeError, ValueError):
+        return False, "Conversa inválida."
+    n, _ = WhatsAppConversaAgro.objects.filter(pk=cid).delete()
+    if not n:
+        return False, "Conversa não encontrada."
+    return True, ""
 
 
 def definir_loja(conversa_id: int, loja: str) -> tuple[WhatsAppConversaAgro | None, str]:
@@ -833,3 +840,7 @@ def marcar_enviadas(ids: list[int], *, erro: str = "") -> int:
         enviado_em=agora,
         erro_envio="",
     )
+
+
+def marcar_lidas(conversa_id: int) -> None:
+    WhatsAppConversaAgro.objects.filter(pk=int(conversa_id)).update(nao_lidas=0)
