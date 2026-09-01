@@ -119,6 +119,33 @@ def abatimento_devolucoes_totais_loja(
     return centro.quantize(Decimal("0.01")), vila.quantize(Decimal("0.01"))
 
 
+def _abatimento_devolucao_sem_fiado(val: Decimal, venda: VendaAgro | None) -> Decimal:
+    """Desconta só a parte não-fiado da devolução (alinhado a vendas sem fiado)."""
+    if venda is None:
+        return val
+    from produtos.fiado_credito_util import valor_fiado_venda_local
+
+    fiado = valor_fiado_venda_local(venda)
+    limite = max(Decimal("0.00"), _dec(venda.total) - fiado)
+    ab = min(_dec(val), limite)
+    return ab.quantize(Decimal("0.01"))
+
+
+def abatimento_devolucoes_sem_fiado_totais_loja(
+    data_ini: date, data_fim: date
+) -> tuple[Decimal, Decimal]:
+    """(centro, vila) — abate só o que não era fiado na venda original."""
+    centro = Decimal("0.00")
+    vila = Decimal("0.00")
+    for _d, dep, val, venda in _iter_abatimentos_com_venda(data_ini, data_fim):
+        ab = _abatimento_devolucao_sem_fiado(val, venda)
+        if dep == "vila":
+            vila += ab
+        else:
+            centro += ab
+    return centro.quantize(Decimal("0.01")), vila.quantize(Decimal("0.01"))
+
+
 def abatimento_devolucoes_por_operador(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> dict[str, Decimal]:

@@ -98,6 +98,107 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
 
 
+def vendas_lojas_soma_fiado_vendas_periodo(
+    data_ini: date, data_fim: date
+) -> tuple[Decimal, Decimal]:
+    """Parte fiado das vendas PDV no intervalo (criado_em), por loja."""
+    from django.utils import timezone
+
+    from produtos.fiado_credito_util import valor_fiado_venda_local
+    from produtos.models import VendaAgro
+
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_ini, time.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_fim, time.max), tz)
+    qs = VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim).only(
+        "pk", "deposito", "pagamentos_json", "forma_pagamento", "total"
+    )
+    centro = vila = Decimal("0.00")
+    for v in qs:
+        f = valor_fiado_venda_local(v)
+        if (v.deposito or "").strip().lower() == "vila":
+            vila += f
+        else:
+            centro += f
+    return _q2(centro), _q2(vila)
+
+
+def _deposito_fiado_baixa(baixa) -> str:
+    titulo = getattr(baixa, "titulo", None)
+    if titulo is not None and titulo.venda_agro_id:
+        if (titulo.venda_agro.deposito or "").strip().lower() == "vila":
+            return "vila"
+    sessao = baixa.sessao_caixa
+    if sessao is None and getattr(baixa, "movimento_caixa", None):
+        sessao = baixa.movimento_caixa.sessao_caixa
+    if sessao is not None and getattr(sessao, "ponto_caixa", "") == "vila":
+        return "vila"
+    return "centro"
+
+
+def vendas_lojas_fiado_baixas_periodo(
+    data_ini: date, data_fim: date
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Quitaciones de fiado recebidas no intervalo (criado_em da baixa), por loja."""
+    from django.utils import timezone
+
+    from produtos.models import FiadoBaixaAgro
+
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_ini, time.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_fim, time.max), tz)
+    qs = FiadoBaixaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim).select_related(
+        "titulo",
+        "titulo__venda_agro",
+        "sessao_caixa",
+        "movimento_caixa",
+        "movimento_caixa__sessao_caixa",
+    )
+    centro = vila = Decimal("0.00")
+    for b in qs:
+        val = _q2(b.valor)
+        if _deposito_fiado_baixa(b) == "vila":
+            vila += val
+        else:
+            centro += val
+    total = (centro + vila).quantize(Decimal("0.01"))
+    return _q2(centro), _q2(vila), total
+
+
+def vendas_lojas_sem_fiado_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decimal, Decimal]:
+    """Vendas do período sem a parte fiado; devolução abate só o não-fiado."""
+    from django.db.models import Sum
+    from django.utils import timezone
+
+    from produtos.dashboard_pdv_devolucao_util import abatimento_devolucoes_sem_fiado_totais_loja
+    from produtos.models import VendaAgro
+
+    tz = timezone.get_current_timezone()
+    ini = timezone.make_aware(datetime.combine(data_ini, time.min), tz)
+    fim = timezone.make_aware(datetime.combine(data_fim, time.max), tz)
+    qs = VendaAgro.objects.filter(criado_em__gte=ini, criado_em__lte=fim)
+    centro = _q2(
+        qs.exclude(deposito__iexact="vila").aggregate(soma=Sum("total")).get("soma")
+    )
+    vila = _q2(qs.filter(deposito__iexact="vila").aggregate(soma=Sum("total")).get("soma"))
+    cf, vf = vendas_lojas_soma_fiado_vendas_periodo(data_ini, data_fim)
+    ab_c, ab_v = abatimento_devolucoes_sem_fiado_totais_loja(data_ini, data_fim)
+    centro = _q2(centro - cf - ab_c)
+    vila = _q2(vila - vf - ab_v)
+    return centro, vila, (centro + vila).quantize(Decimal("0.01"))
+
+
+def vendas_lojas_sem_fiado_mais_quitacoes_totais(
+    data_ini: date, data_fim: date
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Sem fiado + quitaciones de fiado antigo recebidas no período."""
+    c, v, t = vendas_lojas_sem_fiado_totais(data_ini, data_fim)
+    bc, bv, bt = vendas_lojas_fiado_baixas_periodo(data_ini, data_fim)
+    centro = _q2(c + bc)
+    vila = _q2(v + bv)
+    return centro, vila, _q2(t + bt)
+
+
 def vendas_lojas_total_deposito(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> Decimal:

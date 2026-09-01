@@ -11065,10 +11065,17 @@ def _vendas_lojas_cmp_ctx(vendido, esperado, *, esperado_dia=None) -> dict:
 @require_GET
 def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
-    from produtos.vendas_lojas_util import vendas_lojas_meta_c_modos, vendas_lojas_totais
+    from produtos.vendas_lojas_util import (
+        vendas_lojas_meta_c_modos,
+        vendas_lojas_sem_fiado_mais_quitacoes_totais,
+        vendas_lojas_sem_fiado_totais,
+        vendas_lojas_totais,
+    )
 
     data_ini, data_fim, periodo_label, periodo_key = _vendas_lojas_periodo_from_request(request)
     centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    _, _, sem_fiado = vendas_lojas_sem_fiado_totais(data_ini, data_fim)
+    _, _, sem_fiado_quit = vendas_lojas_sem_fiado_mais_quitacoes_totais(data_ini, data_fim)
     hoje = timezone.localdate()
     agora = timezone.localtime()
     try:
@@ -11103,6 +11110,8 @@ def vendas_lojas_resumo(request):
             "centro_fmt": _format_moeda_br(centro),
             "vila_fmt": _format_moeda_br(vila),
             "total_fmt": _format_moeda_br(total),
+            "sem_fiado_fmt": _format_moeda_br(sem_fiado),
+            "sem_fiado_quit_fmt": _format_moeda_br(sem_fiado_quit),
             "centro_val": centro,
             "vila_val": vila,
             "total_val": total,

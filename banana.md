@@ -725,8 +725,9 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
 - Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
-- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`. Pacote `WA-ATEND-QR`.
-- **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate. **Ainda fora da loja** (junto do chat QR).
+- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**. Pacote `WA-ATEND-QR`.
+- **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
+- **Config bot (`WA-BOT-CFG` · 01/09):** tela `/atendimento-whatsapp/bot/` — textos, ordem, intervalo, horário, fiado. Postgres `WhatsAppBotConfigAgro` (chave `default` agora; outros clientes depois). Migrate `0111`.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1259,6 +1260,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Configurar bot WhatsApp (`WA-BOT-CFG` · **v20.61** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Tela para editar mensagens, ordem, intervalo, horário e fiado do bot |
+| **Onde** | Chat → **Configurar bot** · `/atendimento-whatsapp/bot/` |
+| **Migrate** | **SIM** `0111` |
+| **Prova** | `verify_atendimento_whatsapp.py` |
+| **Status** | 🟡 `teste` · **fora da loja** (junto do `WA-ATEND-QR`) |
+
+### ✅ CHECKLIST ÚNICO SOLO — `WA-BOT-CFG` (01/09 · **não** envio loja)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `WA-BOT-CFG` | 🟡 no `teste` · sobe **junto** do chat QR · **não** vai sozinho à produção |
+
+### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/lojas/` abaixo do total: tag dividida **Sem fiado** · **Com quitado** + modal explicativo no celular |
+| **Migrate** | **NÃO** |
+| **Status** | ✅ local · ⏳ `teste` após push |
+| **Você** | PC: `/vendas/lojas/` · toque na tag · conferir valores |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
