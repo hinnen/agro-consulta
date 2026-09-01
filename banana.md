@@ -1267,7 +1267,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Card/total do BI `/` usava soma crua do PDV (sem devolução). Agora a mesma conta do `/vendas-lojas`. |
 | **Onde** | Home BI · Faturamento do Dia · total do período · barra de hoje |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` **31/31** · teste **v20.59** |
 | **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** (card velho) |
 | **Você** | No PC: Ctrl+F5 no BI — tem que bater com `/vendas-lojas`. Loja só com senha. |
 
