@@ -3440,6 +3440,7 @@ class WhatsAppPonteEstadoAgro(models.Model):
     qr_data_url = models.TextField(blank=True, default="")
     numero = models.CharField(max_length=32, blank=True, default="")
     aviso = models.CharField(max_length=240, blank=True, default="")
+    pairing_code = models.CharField(max_length=16, blank=True, default="")
     heartbeat_em = models.DateTimeField(null=True, blank=True, db_index=True)
     atualizado_em = models.DateTimeField(auto_now=True)
 
@@ -3564,9 +3565,11 @@ class WhatsAppPontePedidoAgro(models.Model):
 
     TIPO_CONTATOS = "contatos"
     TIPO_HISTORICO = "historico"
+    TIPO_PAIRING = "pairing"
     TIPO_CHOICES = (
         (TIPO_CONTATOS, "Agenda"),
         (TIPO_HISTORICO, "Histórico"),
+        (TIPO_PAIRING, "Código de ligação"),
     )
     STATUS_PENDENTE = "pendente"
     STATUS_OK = "ok"

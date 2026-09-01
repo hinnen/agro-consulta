@@ -731,6 +731,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
+- **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1286,6 +1287,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
 
 **Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+
+### 📦 PACOTE PRONTO — Código de ligação WhatsApp (`WA-PAIR-CODE` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Ligar o Zap com código (sem câmera), igual o WhatsApp Web · QR continua |
+| **Onde** | `/atendimento-whatsapp/` · Gerar código |
+| **Migrate** | **SIM** `0115` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
 

@@ -104,18 +104,31 @@
       if (qrBox) qrBox.classList.add('hidden');
       return;
     }
-    if (p.qr) {
-      pill('warn', 'QR');
-      if (qrBox) qrBox.classList.remove('hidden');
-      if (img) img.src = p.qr;
-      return;
-    }
-    if (qrBox) qrBox.classList.add('hidden');
     if (p.conectada) {
       pill('ok', p.numero ? p.numero : 'Online');
+      if (qrBox) qrBox.classList.add('hidden');
       return;
     }
-    pill('', p.aviso || 'Ligando');
+    if (qrBox) qrBox.classList.remove('hidden');
+    var codeEl = $('wa-pair-code');
+    if (codeEl) {
+      if (p.pairing_code) {
+        codeEl.textContent = String(p.pairing_code).replace(/-/g, '').replace(/(.{4})/g, '$1-').replace(/-$/, '');
+        codeEl.classList.remove('hidden');
+      } else {
+        codeEl.classList.add('hidden');
+      }
+    }
+    if (p.qr) {
+      pill('warn', p.pairing_code ? 'Código' : 'QR');
+      if (img) {
+        img.src = p.qr;
+        img.classList.remove('hidden');
+      }
+      return;
+    }
+    if (img) img.classList.add('hidden');
+    pill('warn', p.pairing_code ? 'Código' : p.aviso || 'Ligando');
   }
 
   function pintarLista(rows) {
@@ -450,6 +463,23 @@
         window.setTimeout(function () {
           abrirConversa(convId);
         }, 3500);
+      });
+    });
+  }
+  var btnPair = $('wa-pair-ok');
+  if (btnPair) {
+    btnPair.addEventListener('click', function () {
+      var tel = ($('wa-pair-tel') && $('wa-pair-tel').value) || '';
+      fetchJson('/api/atendimento-whatsapp/pairing/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ telefone: tel }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não gerou. Ponte ligada?');
+          return;
+        }
+        window.setTimeout(carregarEstado, 1500);
       });
     });
   }

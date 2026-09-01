@@ -88,6 +88,7 @@ function textoDe(msg) {
 
 let sock = null;
 let pollTimer = null;
+let lastPairing = "";
 const agenda = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 /** Só aceita append/histórico quando a loja pediu «Anteriores» neste chat. */
@@ -216,10 +217,16 @@ async function ligar() {
     const { connection, lastDisconnect, qr } = u;
     if (qr) {
       const dataUrl = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
-      await estado({ status: "qr", qr: dataUrl, aviso: "Leia o QR no celular da loja" });
+      await estado({
+        status: "qr",
+        qr: dataUrl,
+        pairing_code: lastPairing,
+        aviso: lastPairing ? "Digite o código no celular (sem câmera)" : "Leia o QR ou use o código",
+      });
       console.log("QR enviado ao Agro. Abra /atendimento-whatsapp/");
     }
     if (connection === "open") {
+      lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
       const numero = String(me).split(":")[0].split("@")[0];
       await estado({ status: "conectado", numero, aviso: "" });
@@ -296,6 +303,27 @@ async function executarPedido(p) {
       await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pid, itens });
       return;
     }
+    if (p.tipo === "pairing") {
+      let tel = String(p.telefone || "").replace(/\D/g, "");
+      if (tel.length === 10 || tel.length === 11) tel = "55" + tel;
+      if (tel.length < 12 || tel.length > 13) {
+        throw new Error("Número inválido");
+      }
+      if (sock.authState && sock.authState.creds && sock.authState.creds.registered) {
+        throw new Error("Já está ligado neste PC.");
+      }
+      const raw = await sock.requestPairingCode(tel);
+      const code = String(raw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+      lastPairing = code.replace(/(.{4})/g, "$1-").replace(/-$/, "");
+      await estado({
+        status: "qr",
+        pairing_code: lastPairing,
+        aviso: "No celular: Vincular com número de telefone",
+      });
+      console.log("Código de ligação:", lastPairing);
+      await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      return;
+    }
     if (p.tipo === "historico") {
       const count = Math.min(40, Math.max(5, Number(p.count) || 30));
       histJid = String(p.jid || "");
@@ -310,6 +338,7 @@ async function executarPedido(p) {
         Number(p.oldest_ts) || Date.now()
       );
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      return;
     }
   } catch (e) {
     console.error("pedido:", e.message || e);

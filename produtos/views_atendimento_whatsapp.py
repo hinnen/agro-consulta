@@ -27,6 +27,7 @@ from produtos.atendimento_whatsapp_util import (
     marcar_lidas,
     marcar_pedido,
     pedir_agenda_zap,
+    pedir_codigo_pareamento,
     pedir_historico_conversa,
     processar_entrada,
     serializar_conversa,
@@ -264,6 +265,16 @@ def api_atendimento_whatsapp_excluir(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_pairing(request):
+    data = _json_body(request) or {}
+    _p, err = pedir_codigo_pareamento(str(data.get("telefone") or ""))
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
 @require_GET
 def api_atendimento_whatsapp_midia(request, pk: int):
     try:
@@ -298,6 +309,7 @@ def api_atendimento_whatsapp_bridge_estado(request):
         qr=str(data.get("qr") or ""),
         numero=str(data.get("numero") or ""),
         aviso=str(data.get("aviso") or ""),
+        pairing_code=str(data.get("pairing_code") or ""),
     )
     return JsonResponse({"ok": True})
 

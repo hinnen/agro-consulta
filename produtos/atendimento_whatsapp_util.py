@@ -296,6 +296,7 @@ def serializar_ponte(estado: WhatsAppPonteEstadoAgro | None = None) -> dict:
         "numero": estado.numero or "",
         "aviso": estado.aviso or "",
         "qr": estado.qr_data_url if mostrar_qr else "",
+        "pairing_code": (estado.pairing_code or "") if viva and status != WhatsAppPonteEstadoAgro.STATUS_CONECTADO else "",
         "heartbeat_em": estado.heartbeat_em.isoformat() if estado.heartbeat_em else "",
     }
 
@@ -835,6 +836,26 @@ def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro 
     return p, ""
 
 
+def pedir_codigo_pareamento(telefone: str) -> tuple[WhatsAppPontePedidoAgro | None, str]:
+    d = re.sub(r"\D+", "", telefone or "")
+    if len(d) in (10, 11):
+        d = "55" + d
+    if len(d) < 12 or len(d) > 13:
+        return None, "Número da loja com DDD (ex.: 13 9xxxx-xxxx)."
+    recente = WhatsAppPontePedidoAgro.objects.filter(
+        tipo=WhatsAppPontePedidoAgro.TIPO_PAIRING,
+        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        criado_em__gte=timezone.now() - timedelta(seconds=20),
+    ).first()
+    if recente:
+        return recente, ""
+    p = WhatsAppPontePedidoAgro.objects.create(
+        tipo=WhatsAppPontePedidoAgro.TIPO_PAIRING,
+        payload={"telefone": d},
+    )
+    return p, ""
+
+
 def excluir_conversa(conversa_id: int) -> tuple[bool, str]:
     try:
         cid = int(conversa_id)
@@ -866,7 +887,14 @@ def toque_heartbeat() -> WhatsAppPonteEstadoAgro:
     return obj
 
 
-def atualizar_ponte(*, status: str, qr: str = "", numero: str = "", aviso: str = "") -> WhatsAppPonteEstadoAgro:
+def atualizar_ponte(
+    *,
+    status: str,
+    qr: str = "",
+    numero: str = "",
+    aviso: str = "",
+    pairing_code: str = "",
+) -> WhatsAppPonteEstadoAgro:
     st = (status or "").strip().lower()
     if st not in (
         WhatsAppPonteEstadoAgro.STATUS_DESCONECTADO,
@@ -883,8 +911,10 @@ def atualizar_ponte(*, status: str, qr: str = "", numero: str = "", aviso: str =
         obj.qr_data_url = ""
     if numero:
         obj.numero = str(numero).strip()[:32]
-    if st == WhatsAppPonteEstadoAgro.STATUS_DESCONECTADO and not numero:
-        pass
+    if st == WhatsAppPonteEstadoAgro.STATUS_CONECTADO:
+        obj.pairing_code = ""
+    elif pairing_code:
+        obj.pairing_code = str(pairing_code).replace(" ", "")[:16]
     obj.aviso = (aviso or "")[:240]
     obj.save()
     return obj

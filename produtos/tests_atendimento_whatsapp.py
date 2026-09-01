@@ -95,6 +95,13 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         conv = WhatsAppConversaAgro.objects.get()
         self.assertEqual(conv.nome, "Maria Cadastro")
 
+    def test_pairing_numero_curto(self):
+        from produtos.atendimento_whatsapp_util import pedir_codigo_pareamento
+
+        p, err = pedir_codigo_pareamento("123")
+        self.assertIsNone(p)
+        self.assertTrue(err)
+
     def test_excluir_conversa(self):
         from produtos.atendimento_whatsapp_util import excluir_conversa
 
