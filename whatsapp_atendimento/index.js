@@ -87,6 +87,45 @@ function textoDe(msg) {
 
 let sock = null;
 let pollTimer = null;
+const agenda = new Map();
+const HIST_MS = 7 * 24 * 60 * 60 * 1000;
+
+function tsMs(m) {
+  const raw = m && (m.messageTimestamp || m.timestamp);
+  const n = Number(raw || 0);
+  if (!n) return Date.now();
+  return n > 1e12 ? n : n * 1000;
+}
+
+function guardarContato(c) {
+  const jid = String((c && (c.id || c.jid)) || "");
+  if (!jid.endsWith("@s.whatsapp.net")) return;
+  if (agenda.size >= 200 && !agenda.has(jid)) return;
+  const nome = String((c && (c.notify || c.name || c.verifiedName)) || "").slice(0, 120);
+  agenda.set(jid, { nome, telefone: jid.split("@")[0] });
+}
+
+async function enviarEntrada(m, extra) {
+  if (!m || !m.message) return;
+  const jid = String((m.key && m.key.remoteJid) || "");
+  if (!jid || jid.endsWith("@g.us") || jid === "status@broadcast") return;
+  const quando = tsMs(m);
+  const historico = !!(extra && extra.historico);
+  if (historico && Date.now() - quando > HIST_MS) return;
+  const texto = textoDe(m);
+  if (!texto) return;
+  const nome = String(m.pushName || "").slice(0, 120);
+  const waId = String((m.key && m.key.id) || "");
+  await post("/api/atendimento-whatsapp/bridge/entrada/", {
+    jid,
+    texto,
+    nome,
+    wa_id: waId,
+    historico,
+    de_mim: !!(m.key && m.key.fromMe),
+    ts: Math.floor(quando / 1000),
+  });
+}
 
 async function estado(payload) {
   try {
@@ -106,6 +145,9 @@ async function ligar() {
     auth: state,
     logger,
     browser: ["Agro Consulta", "Chrome", "20.33"],
+    markOnlineOnConnect: false,
+    syncFullHistory: false,
+    shouldSyncHistoryMessage: () => false,
   });
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
@@ -143,22 +185,27 @@ async function ligar() {
       setTimeout(ligar, loggedOut ? 1500 : 4000);
     }
   });
-  sock.ev.on("messages.upsert", async ({ messages }) => {
+  sock.ev.on("contacts.upsert", (lista) => {
+    for (const c of lista || []) guardarContato(c);
+  });
+  sock.ev.on("contacts.update", (lista) => {
+    for (const c of lista || []) guardarContato(c);
+  });
+  sock.ev.on("messaging-history.set", async ({ messages }) => {
     for (const m of messages || []) {
       try {
-        if (!m.message || m.key.fromMe) continue;
-        const jid = String(m.key.remoteJid || "");
-        if (!jid || jid.endsWith("@g.us") || jid === "status@broadcast") continue;
-        const texto = textoDe(m);
-        if (!texto) continue;
-        const nome = (m.pushName || "").slice(0, 120);
-        const waId = String(m.key.id || "");
-        await post("/api/atendimento-whatsapp/bridge/entrada/", {
-          jid,
-          texto,
-          nome,
-          wa_id: waId,
-        });
+        await enviarEntrada(m, { historico: true });
+      } catch (e) {
+        console.error("hist:", e.message || e);
+      }
+    }
+  });
+  sock.ev.on("messages.upsert", async ({ messages, type }) => {
+    for (const m of messages || []) {
+      try {
+        const quando = tsMs(m);
+        const hist = type === "append" && Date.now() - quando > 60000;
+        await enviarEntrada(m, { historico: hist });
       } catch (e) {
         console.error("entrada:", e.message || e);
       }
@@ -166,6 +213,46 @@ async function ligar() {
   });
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(puxarSaida, 2500);
+}
+
+async function executarPedido(p) {
+  if (!sock || !p) return;
+  const pid = p.id;
+  try {
+    if (p.tipo === "contatos") {
+      const itens = [];
+      for (const [jid, v] of agenda.entries()) {
+        if (!jid.endsWith("@s.whatsapp.net")) continue;
+        itens.push({
+          jid,
+          nome: String((v && v.nome) || "").slice(0, 120),
+          telefone: String((v && v.telefone) || jid.split("@")[0]),
+        });
+        if (itens.length >= 80) break;
+      }
+      await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pid, itens });
+      return;
+    }
+    if (p.tipo === "historico") {
+      const count = Math.min(40, Math.max(5, Number(p.count) || 30));
+      await sock.fetchMessageHistory(
+        count,
+        {
+          remoteJid: String(p.jid || ""),
+          id: String(p.oldest_id || ""),
+          fromMe: !!p.oldest_from_me,
+        },
+        Number(p.oldest_ts) || Date.now()
+      );
+      await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+    }
+  } catch (e) {
+    console.error("pedido:", e.message || e);
+    await post("/api/atendimento-whatsapp/bridge/pedido-ok/", {
+      pedido_id: pid,
+      erro: String(e.message || e).slice(0, 180),
+    });
+  }
 }
 
 async function puxarSaida() {
@@ -184,6 +271,9 @@ async function puxarSaida() {
           erro: String(e.message || e).slice(0, 180),
         });
       }
+    }
+    for (const p of (j && j.pedidos) || []) {
+      await executarPedido(p);
     }
   } catch (e) {
     console.error("poll:", e.message || e);

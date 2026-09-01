@@ -183,7 +183,9 @@
   function abrirConversa(id) {
     convId = Number(id) || 0;
     afterId = 0;
-    $('wa-topo-conv').textContent = 'Conversa #' + convId;
+    $('wa-topo-nome').textContent = 'Conversa #' + convId;
+    var hist = $('wa-hist');
+    if (hist) hist.classList.remove('hidden');
     $('wa-move').classList.remove('hidden');
     $('wa-move').classList.add('flex');
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
@@ -216,7 +218,8 @@
         afterId = Math.max(afterId, m.id);
         if (m.direcao === 'in' && m.id > lastSeenIn) {
           lastSeenIn = m.id;
-          beep();
+          var old = m.criado_em && Date.now() - Date.parse(m.criado_em) > 120000;
+          if (!old) beep();
         }
       });
     });
@@ -228,7 +231,9 @@
       convId = 0;
       afterId = 0;
       setTab();
-      $('wa-topo-conv').textContent = 'Escolha uma conversa';
+      $('wa-topo-nome').textContent = 'Escolha uma conversa';
+      var hist = $('wa-hist');
+      if (hist) hist.classList.add('hidden');
       $('wa-msgs').innerHTML = '';
       $('wa-move').classList.add('hidden');
       carregarLista();
@@ -277,6 +282,132 @@
       });
     });
   });
+
+  function abrirNovo(on) {
+    var box = $('wa-novo-box');
+    if (!box) return;
+    box.classList.toggle('hidden', !on);
+  }
+
+  function buscarNovo() {
+    var q = ($('wa-novo-q') && $('wa-novo-q').value) || '';
+    fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
+      var el = $('wa-novo-lista');
+      if (!el) return;
+      var rows = (j && j.contatos) || [];
+      if (!rows.length) {
+        el.innerHTML = '<p class="p-3 text-sm font-semibold text-slate-400">Nada</p>';
+        return;
+      }
+      el.innerHTML = rows
+        .map(function (c) {
+          return (
+            '<button type="button" class="wa-item" data-tel="' +
+            escapeHtml(c.telefone || '') +
+            '" data-nome="' +
+            escapeHtml(c.nome || '') +
+            '"><div class="wa-n">' +
+            escapeHtml((c.nome || '') + ' · ' + (c.telefone || '')) +
+            '</div><div class="wa-p">' +
+            escapeHtml(c.origem || '') +
+            '</div></button>'
+          );
+        })
+        .join('');
+    });
+  }
+
+  var novoTimer = 0;
+  var btnNovo = $('wa-novo');
+  if (btnNovo) {
+    btnNovo.addEventListener('click', function () {
+      abrirNovo(true);
+      buscarNovo();
+    });
+  }
+  var btnNovoX = $('wa-novo-x');
+  if (btnNovoX) btnNovoX.addEventListener('click', function () { abrirNovo(false); });
+  var qNovo = $('wa-novo-q');
+  if (qNovo) {
+    qNovo.addEventListener('input', function () {
+      window.clearTimeout(novoTimer);
+      novoTimer = window.setTimeout(buscarNovo, 280);
+    });
+  }
+  var listaNovo = $('wa-novo-lista');
+  if (listaNovo) {
+    listaNovo.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-tel]');
+      if (!btn) return;
+      $('wa-novo-tel').value = btn.getAttribute('data-tel') || '';
+      $('wa-novo-nome').value = btn.getAttribute('data-nome') || '';
+    });
+  }
+  var btnAgenda = $('wa-agenda-zap');
+  if (btnAgenda) {
+    btnAgenda.addEventListener('click', function () {
+      fetchJson('/api/atendimento-whatsapp/agenda-zap/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: '{}',
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Ponte desligada?');
+          return;
+        }
+        window.setTimeout(buscarNovo, 2500);
+      });
+    });
+  }
+  var btnNovoOk = $('wa-novo-ok');
+  if (btnNovoOk) {
+    btnNovoOk.addEventListener('click', function () {
+      var tel = ($('wa-novo-tel') && $('wa-novo-tel').value) || '';
+      var txt = ($('wa-novo-txt') && $('wa-novo-txt').value) || '';
+      var lojaEl = document.querySelector('input[name="wa-novo-loja"]:checked');
+      fetchJson('/api/atendimento-whatsapp/novo/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({
+          telefone: tel,
+          texto: txt,
+          loja: lojaEl ? lojaEl.value : 'centro',
+          nome: ($('wa-novo-nome') && $('wa-novo-nome').value) || '',
+        }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não enviou.');
+          return;
+        }
+        abrirNovo(false);
+        if (j.conversa && j.conversa.loja) {
+          loja = j.conversa.loja;
+          setTab();
+        }
+        if (j.conversa && j.conversa.id) abrirConversa(j.conversa.id);
+        carregarLista();
+      });
+    });
+  }
+  var btnHist = $('wa-hist');
+  if (btnHist) {
+    btnHist.addEventListener('click', function () {
+      if (!convId) return;
+      fetchJson('/api/atendimento-whatsapp/historico/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ conversa_id: convId }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não puxou.');
+          return;
+        }
+        window.setTimeout(function () {
+          abrirConversa(convId);
+        }, 3500);
+      });
+    });
+  }
 
   setTab();
   carregarEstado();

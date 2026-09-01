@@ -801,6 +801,26 @@ urlpatterns = [
         name='api_atendimento_whatsapp_definir_loja',
     ),
     path(
+        'api/atendimento-whatsapp/contatos/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_contatos,
+        name='api_atendimento_whatsapp_contatos',
+    ),
+    path(
+        'api/atendimento-whatsapp/novo/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_novo,
+        name='api_atendimento_whatsapp_novo',
+    ),
+    path(
+        'api/atendimento-whatsapp/agenda-zap/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_agenda_zap,
+        name='api_atendimento_whatsapp_agenda_zap',
+    ),
+    path(
+        'api/atendimento-whatsapp/historico/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_historico,
+        name='api_atendimento_whatsapp_historico',
+    ),
+    path(
         'api/atendimento-whatsapp/bridge/estado/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
         name='api_atendimento_whatsapp_bridge_estado',
@@ -819,6 +839,16 @@ urlpatterns = [
         'api/atendimento-whatsapp/bridge/saida-ok/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida_ok,
         name='api_atendimento_whatsapp_bridge_saida_ok',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/contatos/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_contatos,
+        name='api_atendimento_whatsapp_bridge_contatos',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/pedido-ok/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_pedido_ok,
+        name='api_atendimento_whatsapp_bridge_pedido_ok',
     ),
     path(
         'api/pdv/topbar-clique/',

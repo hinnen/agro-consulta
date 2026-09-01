@@ -12,14 +12,21 @@ from django.views.decorators.http import require_GET, require_POST
 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
     atualizar_ponte,
+    abrir_conversa_saida,
+    buscar_contatos_envio,
     contar_nao_lidas,
     definir_loja,
     enviar_loja,
+    gravar_agenda_zap,
     listar_conversas,
     listar_mensagens,
+    listar_pedidos_pendentes,
     listar_saida_pendente,
     marcar_enviadas,
     marcar_lidas,
+    marcar_pedido,
+    pedir_agenda_zap,
+    pedir_historico_conversa,
     processar_entrada,
     serializar_conversa,
     serializar_mensagem,
@@ -179,6 +186,67 @@ def api_atendimento_whatsapp_definir_loja(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_contatos(request):
+    q = (request.GET.get("q") or "").strip()
+    return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_novo(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    autor = ""
+    try:
+        if request.user.is_authenticated:
+            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
+    except Exception:
+        autor = ""
+    tel = str(data.get("telefone") or data.get("jid") or "")
+    m, err = abrir_conversa_saida(
+        telefone=tel,
+        loja=str(data.get("loja") or ""),
+        texto=str(data.get("texto") or ""),
+        nome=str(data.get("nome") or ""),
+        autor=autor,
+    )
+    if err or m is None:
+        return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": serializar_mensagem(m),
+            "conversa": serializar_conversa(m.conversa),
+        }
+    )
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_agenda_zap(request):
+    _p, err = pedir_agenda_zap()
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_historico(request):
+    data = _json_body(request) or {}
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    _p, err = pedir_historico_conversa(cid)
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True})
+
+
 @csrf_exempt
 @require_POST
 def api_atendimento_whatsapp_bridge_estado(request):
@@ -205,6 +273,9 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         texto=str(data.get("texto") or ""),
         nome=str(data.get("nome") or ""),
         wa_id=str(data.get("wa_id") or ""),
+        historico=bool(data.get("historico")),
+        de_mim=bool(data.get("de_mim")),
+        ts=data.get("ts"),
     )
     if err == "ignorado":
         return JsonResponse({"ok": True, "ignorado": True})
@@ -219,7 +290,9 @@ def api_atendimento_whatsapp_bridge_saida(request):
     if not token_ponte_ok(request):
         return _bridge_forbidden()
     toque_heartbeat()
-    return JsonResponse({"ok": True, "saida": listar_saida_pendente()})
+    return JsonResponse(
+        {"ok": True, "saida": listar_saida_pendente(), "pedidos": listar_pedidos_pendentes()}
+    )
 
 
 @csrf_exempt
@@ -238,3 +311,32 @@ def api_atendimento_whatsapp_bridge_saida_ok(request):
                 continue
     n = marcar_enviadas(ids, erro=str(data.get("erro") or ""))
     return JsonResponse({"ok": True, "n": n})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_contatos(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    try:
+        pid = int(data.get("pedido_id") or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    n = gravar_agenda_zap(data.get("itens") or [], pedido_id=pid)
+    return JsonResponse({"ok": True, "n": n})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_pedido_ok(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    try:
+        pid = int(data.get("pedido_id") or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    erro = str(data.get("erro") or "")
+    marcar_pedido(pid, ok=not bool(erro), erro=erro)
+    return JsonResponse({"ok": True})

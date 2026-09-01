@@ -4,7 +4,7 @@ from __future__ import annotations
 import hmac
 import re
 import unicodedata
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone as dt_timezone
 
 from django.conf import settings
 from django.db import transaction
@@ -13,10 +13,17 @@ from django.http import HttpRequest
 from django.utils import timezone
 
 from produtos.models import (
+    ClienteAgro,
+    WhatsAppAgendaContatoAgro,
     WhatsAppConversaAgro,
     WhatsAppMensagemAgro,
     WhatsAppPonteEstadoAgro,
+    WhatsAppPontePedidoAgro,
 )
+
+MAX_NOVOS_DIA = 20
+MAX_HIST_MSGS = 40
+DIAS_HISTORICO = 7
 
 CHAVE_PONTE = "default"
 TEXTO_MAX = 4000
@@ -154,6 +161,34 @@ def jid_para_telefone(jid: str) -> str:
     return re.sub(r"\D+", "", raw)[:32]
 
 
+def telefone_para_jid(tel: str) -> str:
+    d = re.sub(r"\D+", "", tel or "")
+    if not d:
+        return ""
+    if d.startswith("55") and len(d) >= 12:
+        pass
+    elif len(d) in (10, 11):
+        d = "55" + d
+    elif len(d) < 10:
+        return ""
+    return f"{d}@s.whatsapp.net"
+
+
+def _ts_aware(ts) -> datetime:
+    if ts in (None, "", 0, "0"):
+        return timezone.now()
+    try:
+        n = float(ts)
+    except (TypeError, ValueError):
+        return timezone.now()
+    if n > 1e12:
+        n = n / 1000.0
+    try:
+        return datetime.fromtimestamp(n, tz=dt_timezone.utc)
+    except (OSError, OverflowError, ValueError):
+        return timezone.now()
+
+
 def obter_ponte() -> WhatsAppPonteEstadoAgro:
     obj, _ = WhatsAppPonteEstadoAgro.objects.get_or_create(chave=CHAVE_PONTE)
     return obj
@@ -249,10 +284,10 @@ def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -
     if aid > 0:
         qs = qs.filter(id__gt=aid).order_by("id")[:lim]
         return [serializar_mensagem(m) for m in qs]
-    ids = list(qs.order_by("-id").values_list("id", flat=True)[:lim])
+    ids = list(qs.order_by("-criado_em", "-id").values_list("id", flat=True)[:lim])
     if not ids:
         return []
-    rows = list(WhatsAppMensagemAgro.objects.filter(id__in=ids).order_by("id"))
+    rows = list(WhatsAppMensagemAgro.objects.filter(id__in=ids).order_by("criado_em", "id"))
     return [serializar_mensagem(m) for m in rows]
 
 
@@ -328,6 +363,9 @@ def processar_entrada(
     texto: str,
     nome: str = "",
     wa_id: str = "",
+    historico: bool = False,
+    de_mim: bool = False,
+    ts=None,
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
     if not jid_n or jid_n.endswith("@g.us") or jid_n == "status@broadcast":
@@ -339,6 +377,12 @@ def processar_entrada(
     wa = (wa_id or "").strip()[:80]
     if wa and WhatsAppMensagemAgro.objects.filter(wa_id=wa).exists():
         return None, "duplicada"
+
+    quando = _ts_aware(ts)
+    if historico:
+        limite = timezone.now() - timedelta(days=DIAS_HISTORICO)
+        if quando < limite:
+            return None, "ignorado"
 
     conv, _criada = WhatsAppConversaAgro.objects.select_for_update().get_or_create(
         jid=jid_n[:80],
@@ -352,16 +396,24 @@ def processar_entrada(
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
 
-    msg = WhatsAppMensagemAgro.objects.create(
+    direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
+    msg = WhatsAppMensagemAgro(
         conversa=conv,
-        direcao=WhatsAppMensagemAgro.DIRECAO_IN,
+        direcao=direcao,
         texto=t,
         wa_id=wa,
         pendente_envio=False,
+        autor_nome="Celular" if de_mim else "",
+        criado_em=quando,
     )
+    msg.save()
     conv.ultima_preview = _preview(t)
-    conv.ultima_em = timezone.now()
-    conv.nao_lidas = int(conv.nao_lidas or 0) + 1
+    if not historico:
+        conv.ultima_em = timezone.now()
+        if not de_mim:
+            conv.nao_lidas = int(conv.nao_lidas or 0) + 1
+    elif not conv.ultima_em:
+        conv.ultima_em = quando
 
     from produtos.atendimento_whatsapp_bot_config import carregar_bot, fora_do_horario
 
@@ -383,7 +435,7 @@ def processar_entrada(
         out.append(str(cfg.get("msg_menu") or MSG_MENU))
         return out
 
-    if not cfg.get("bot_ligado"):
+    if historico or de_mim or not cfg.get("bot_ligado"):
         conv.save(update_fields=campos_base)
         return msg, ""
 
@@ -480,6 +532,204 @@ def enviar_loja(*, conversa_id: int, texto: str, autor: str = "") -> tuple[Whats
         autor=autor,
     )
     return m, ""
+
+
+def _novos_loja_24h() -> int:
+    corte = timezone.now() - timedelta(hours=24)
+    return WhatsAppConversaAgro.objects.filter(
+        origem_abertura="loja", criado_em__gte=corte
+    ).count()
+
+
+@transaction.atomic
+def abrir_conversa_saida(
+    *,
+    telefone: str,
+    loja: str,
+    texto: str,
+    nome: str = "",
+    autor: str = "",
+) -> tuple[WhatsAppMensagemAgro | None, str]:
+    jid = telefone_para_jid(telefone)
+    if not jid:
+        return None, "Número inválido."
+    loja_n = (loja or "").strip().lower()
+    if loja_n not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):
+        return None, "Escolha Centro ou Vila."
+    t = str(texto or "").strip()
+    if not t:
+        return None, "Digite uma mensagem."
+    if len(t) > TEXTO_MAX:
+        return None, f"Máximo {TEXTO_MAX} caracteres."
+    conv = WhatsAppConversaAgro.objects.select_for_update().filter(jid=jid[:80]).first()
+    if conv is None:
+        if _novos_loja_24h() >= MAX_NOVOS_DIA:
+            return None, "Limite de conversas novas hoje (20). Sem disparo em massa."
+        conv = WhatsAppConversaAgro.objects.create(
+            jid=jid[:80],
+            telefone=jid_para_telefone(jid),
+            nome=(nome or "")[:120],
+            loja=loja_n,
+            menu_enviado=True,
+            origem_abertura="loja",
+        )
+    else:
+        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
+            conv.loja = loja_n
+            conv.save(update_fields=["loja"])
+        if nome and not conv.nome:
+            conv.nome = nome[:120]
+            conv.save(update_fields=["nome"])
+    return enviar_loja(conversa_id=int(conv.pk), texto=t, autor=autor)
+
+
+def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
+    lim = max(1, min(int(limit or 20), 40))
+    t = (termo or "").strip()
+    dig = re.sub(r"\D+", "", t)
+    out: list[dict] = []
+    seen: set[str] = set()
+
+    def _add(origem: str, nome: str, telefone: str, jid: str) -> None:
+        j = (jid or telefone_para_jid(telefone) or "").strip()[:80]
+        if not j or j in seen:
+            return
+        seen.add(j)
+        out.append(
+            {
+                "origem": origem,
+                "nome": (nome or "")[:120],
+                "telefone": (telefone or jid_para_telefone(j))[:32],
+                "jid": j,
+            }
+        )
+
+    cli = ClienteAgro.objects.filter(ativo=True).exclude(whatsapp="")
+    if t:
+        q = Q(nome__icontains=t)
+        if dig:
+            q |= Q(whatsapp__icontains=dig)
+        cli = cli.filter(q)
+    for c in cli.order_by("nome")[:lim]:
+        _add("cadastro", c.nome or "", c.whatsapp or "", telefone_para_jid(c.whatsapp or ""))
+        if len(out) >= lim:
+            return out
+
+    convs = WhatsAppConversaAgro.objects.all()
+    if t:
+        q = Q(nome__icontains=t) | Q(telefone__icontains=dig or t)
+        convs = convs.filter(q)
+    for c in convs.order_by("-ultima_em")[:lim]:
+        _add("conversa", c.nome or "", c.telefone or "", c.jid)
+        if len(out) >= lim:
+            return out
+
+    ag = WhatsAppAgendaContatoAgro.objects.all()
+    if t:
+        q = Q(nome__icontains=t)
+        if dig:
+            q |= Q(telefone__icontains=dig)
+        ag = ag.filter(q)
+    for c in ag.order_by("nome")[:lim]:
+        _add("zap", c.nome or "", c.telefone or "", c.jid)
+        if len(out) >= lim:
+            break
+    return out
+
+
+def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
+    n = 0
+    if not isinstance(itens, list):
+        itens = []
+    for raw in itens[:80]:
+        if not isinstance(raw, dict):
+            continue
+        jid = str(raw.get("jid") or "").strip()[:80]
+        if not jid.endswith("@s.whatsapp.net"):
+            continue
+        tel = str(raw.get("telefone") or jid_para_telefone(jid))[:32]
+        nome = str(raw.get("nome") or "")[:120]
+        WhatsAppAgendaContatoAgro.objects.update_or_create(
+            jid=jid, defaults={"telefone": tel, "nome": nome}
+        )
+        n += 1
+    if pedido_id:
+        marcar_pedido(int(pedido_id), ok=True)
+    return n
+
+
+def listar_pedidos_pendentes(limit: int = 3) -> list[dict]:
+    lim = max(1, min(int(limit or 3), 8))
+    qs = WhatsAppPontePedidoAgro.objects.filter(
+        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE
+    ).order_by("id")[:lim]
+    out = []
+    for p in qs:
+        payload = p.payload if isinstance(p.payload, dict) else {}
+        item = {
+            "id": int(p.pk),
+            "tipo": p.tipo,
+            "jid": p.jid or "",
+        }
+        item.update(payload)
+        out.append(item)
+    return out
+
+
+def marcar_pedido(pedido_id: int, *, ok: bool, erro: str = "") -> None:
+    try:
+        p = WhatsAppPontePedidoAgro.objects.get(pk=int(pedido_id))
+    except (WhatsAppPontePedidoAgro.DoesNotExist, TypeError, ValueError):
+        return
+    p.status = WhatsAppPontePedidoAgro.STATUS_OK if ok else WhatsAppPontePedidoAgro.STATUS_ERRO
+    p.erro = (erro or "")[:200]
+    p.save(update_fields=["status", "erro"])
+
+
+def pedir_agenda_zap() -> tuple[WhatsAppPontePedidoAgro | None, str]:
+    recente = WhatsAppPontePedidoAgro.objects.filter(
+        tipo=WhatsAppPontePedidoAgro.TIPO_CONTATOS,
+        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        criado_em__gte=timezone.now() - timedelta(seconds=90),
+    ).first()
+    if recente:
+        return recente, ""
+    p = WhatsAppPontePedidoAgro.objects.create(tipo=WhatsAppPontePedidoAgro.TIPO_CONTATOS)
+    return p, ""
+
+
+def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro | None, str]:
+    try:
+        conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None, "Conversa não encontrada."
+    recente = WhatsAppPontePedidoAgro.objects.filter(
+        tipo=WhatsAppPontePedidoAgro.TIPO_HISTORICO,
+        jid=conv.jid,
+        criado_em__gte=timezone.now() - timedelta(seconds=90),
+    ).exclude(status=WhatsAppPontePedidoAgro.STATUS_ERRO).first()
+    if recente:
+        return recente, ""
+    oldest = (
+        WhatsAppMensagemAgro.objects.filter(conversa=conv)
+        .exclude(wa_id="")
+        .order_by("criado_em", "id")
+        .first()
+    )
+    if oldest is None:
+        return None, "Ainda não tem mensagem deste chat depois do QR. Sem isso o Zap não libera o passado."
+    ts_ms = int(oldest.criado_em.timestamp() * 1000) if oldest.criado_em else int(timezone.now().timestamp() * 1000)
+    p = WhatsAppPontePedidoAgro.objects.create(
+        tipo=WhatsAppPontePedidoAgro.TIPO_HISTORICO,
+        jid=conv.jid,
+        payload={
+            "count": MAX_HIST_MSGS,
+            "oldest_id": oldest.wa_id,
+            "oldest_from_me": oldest.direcao != WhatsAppMensagemAgro.DIRECAO_IN,
+            "oldest_ts": ts_ms,
+        },
+    )
+    return p, ""
 
 
 def marcar_lidas(conversa_id: int) -> None:

@@ -98,3 +98,41 @@ class UrlAtendimentoTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(r.status_code, 403)
+
+
+class ChamarHistoricoWhatsAppTests(TestCase):
+    def test_historico_nao_dispara_bot(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        ts = int((timezone.now() - timedelta(days=1)).timestamp())
+        m, err = processar_entrada(
+            jid="5513999000111@s.whatsapp.net",
+            texto="Oi antigo",
+            wa_id="hist-1",
+            historico=True,
+            ts=ts,
+        )
+        self.assertEqual(err, "")
+        self.assertIsNotNone(m)
+        self.assertEqual(WhatsAppMensagemAgro.objects.filter(direcao="bot").count(), 0)
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.nao_lidas, 0)
+
+    def test_telefone_jid_e_novo(self):
+        from produtos.atendimento_whatsapp_util import abrir_conversa_saida, telefone_para_jid
+
+        self.assertEqual(telefone_para_jid("13988887777"), "5513988887777@s.whatsapp.net")
+        m, err = abrir_conversa_saida(
+            telefone="13988887777",
+            loja="centro",
+            texto="Oi da loja",
+            nome="Maria",
+        )
+        self.assertEqual(err, "")
+        self.assertIsNotNone(m)
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.loja, "centro")
+        self.assertEqual(conv.origem_abertura, "loja")
+        self.assertTrue(m.pendente_envio)

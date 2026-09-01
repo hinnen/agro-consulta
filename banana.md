@@ -725,9 +725,9 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
 - Sem disparo em massa. Ícone PDV = **Em breve…** (`PDV-WA-TOPBAR-BREVE`); chat ainda em `/atendimento-whatsapp/`.
-- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**. Pacote `WA-ATEND-QR`.
+- Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Config bot (`WA-BOT-CFG` · 01/09):** tela `/atendimento-whatsapp/bot/` — textos, ordem, intervalo, horário, fiado. Postgres `WhatsAppBotConfigAgro` (chave `default` agora; outros clientes depois). Migrate `0111`.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. Fora da loja.
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1260,6 +1260,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Chamar contato + histórico curto (`WA-CHAMAR-HIST` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Novo: mandar para poucos (cadastro). Agenda Zap só se pedir. Anteriores: uns dias daquele chat, sem baixar tudo |
+| **Onde** | `/atendimento-whatsapp/` · **Novo** · **Anteriores** |
+| **Migrate** | **SIM** `0112` |
+| **Prova** | `verify_atendimento_whatsapp.py` |
+| **Status** | 🟡 `teste` · **fora da loja** (junto do `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Visual WhatsApp (`WA-BOT-UX` · 01/09/2026)
 

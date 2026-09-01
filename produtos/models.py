@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 def compor_endereco_resumo_cliente(
@@ -3488,6 +3489,7 @@ class WhatsAppConversaAgro(models.Model):
     nao_lidas = models.PositiveIntegerField(default=0)
     ultima_preview = models.CharField(max_length=160, blank=True, default="")
     ultima_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    origem_abertura = models.CharField(max_length=8, default="in", db_index=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -3525,7 +3527,7 @@ class WhatsAppMensagemAgro(models.Model):
     erro_envio = models.CharField(max_length=200, blank=True, default="")
     autor_nome = models.CharField(max_length=120, blank=True, default="")
     liberar_envio_em = models.DateTimeField(null=True, blank=True, db_index=True)
-    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+    criado_em = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
         verbose_name = "Mensagem WhatsApp"
@@ -3537,3 +3539,54 @@ class WhatsAppMensagemAgro(models.Model):
 
     def __str__(self):
         return f"#{self.pk} {self.direcao} {(self.texto or '')[:40]}"
+
+
+class WhatsAppAgendaContatoAgro(models.Model):
+    """Recorte da agenda do Zap (máx. ~80, só quando a loja pede)."""
+
+    jid = models.CharField(max_length=80, unique=True)
+    telefone = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    nome = models.CharField(max_length=120, blank=True, default="")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Contato agenda WhatsApp"
+        verbose_name_plural = "Contatos agenda WhatsApp"
+
+    def __str__(self):
+        return f"{self.nome or self.telefone or self.jid}"
+
+
+class WhatsAppPontePedidoAgro(models.Model):
+    """Pedido da tela para a ponte (agenda / histórico curto)."""
+
+    TIPO_CONTATOS = "contatos"
+    TIPO_HISTORICO = "historico"
+    TIPO_CHOICES = (
+        (TIPO_CONTATOS, "Agenda"),
+        (TIPO_HISTORICO, "Histórico"),
+    )
+    STATUS_PENDENTE = "pendente"
+    STATUS_OK = "ok"
+    STATUS_ERRO = "erro"
+    STATUS_CHOICES = (
+        (STATUS_PENDENTE, "Pendente"),
+        (STATUS_OK, "Ok"),
+        (STATUS_ERRO, "Erro"),
+    )
+
+    tipo = models.CharField(max_length=16, choices=TIPO_CHOICES, db_index=True)
+    jid = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    payload = models.JSONField(default=dict, blank=True)
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_PENDENTE, db_index=True
+    )
+    erro = models.CharField(max_length=200, blank=True, default="")
+    criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Pedido ponte WhatsApp"
+        verbose_name_plural = "Pedidos ponte WhatsApp"
+
+    def __str__(self):
+        return f"{self.tipo} {self.status} {self.jid}"
