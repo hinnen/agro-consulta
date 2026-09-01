@@ -63,7 +63,7 @@ def _static() -> None:
     check("util_agenda", "def gravar_agenda_zap" in util)
     check("node_hist", "fetchMessageHistory" in node)
     check("node_sem_full", "syncFullHistory: false" in node and "shouldSyncHistoryMessage: () => false" in node)
-    check("node_reconnect", "desligarSock" in node)
+    check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_so_notify", "type !== \"notify\"" in node and "historicoPermitido" in node)
     check("node_jid_privado", "ehChatPrivado" in node)
     check("html_btn_bot", "atendimento_whatsapp_bot" in html)

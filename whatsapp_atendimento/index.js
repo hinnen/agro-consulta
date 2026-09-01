@@ -23,9 +23,9 @@ const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
 const AUTH = path.join(__dirname, "auth");
 const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
+const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
 let salvarAgendaTimer = 0;
-let ligando = false;
 
 function carregarEnv(fp) {
   try {
@@ -45,6 +45,43 @@ function carregarEnv(fp) {
   } catch {
     /* ignore */
   }
+}
+
+function garantirUmaInstancia() {
+  if (fs.existsSync(LOCK_FILE)) {
+    try {
+      const pid = parseInt(String(fs.readFileSync(LOCK_FILE, "utf8")).trim(), 10);
+      if (pid > 0) process.kill(pid, 0);
+      console.error("");
+      console.error("ERRO: Ja existe outra ponte WhatsApp neste PC (PID " + pid + ").");
+      console.error("Feche a outra janela do iniciar.bat e abra so uma.");
+      console.error("");
+      process.exit(1);
+    } catch {
+      try {
+        fs.unlinkSync(LOCK_FILE);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  fs.writeFileSync(LOCK_FILE, String(process.pid));
+  const limpar = () => {
+    try {
+      fs.unlinkSync(LOCK_FILE);
+    } catch {
+      /* ignore */
+    }
+  };
+  process.on("exit", limpar);
+  process.on("SIGINT", () => {
+    limpar();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    limpar();
+    process.exit(0);
+  });
 }
 
 function headersJson() {
@@ -92,7 +129,10 @@ function textoDe(msg) {
 let sock = null;
 let pollTimer = null;
 let lastPairing = "";
+let connId = 0;
+let primeiraLigacao = true;
 const agenda = new Map();
+const lidParaJid = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 /** Só aceita append/histórico quando a loja pediu «Anteriores» neste chat. */
 let histJid = "";
@@ -115,6 +155,13 @@ function jidDeContato(c) {
   if (jid.endsWith("@s.whatsapp.net")) return jid;
   if (id.endsWith("@s.whatsapp.net")) return id;
   return "";
+}
+
+function vincularLid(c) {
+  const jidPhone = jidDeContato(c);
+  const id = String((c && c.id) || "");
+  const lid = id.endsWith("@lid") ? id : String((c && c.lid) || "");
+  if (lid.endsWith("@lid") && jidPhone) lidParaJid.set(lid, jidPhone);
 }
 
 function nomeDeContato(c, prev) {
@@ -149,7 +196,6 @@ function salvarAgendaDebounced() {
     try {
       const obj = {};
       for (const [jid, v] of agenda.entries()) obj[jid] = v;
-      fs.mkdirSync(AUTH, { recursive: true });
       fs.writeFileSync(AGENDA_FILE, JSON.stringify(obj));
     } catch {
       /* ignore */
@@ -159,6 +205,7 @@ function salvarAgendaDebounced() {
 
 function guardarContato(c) {
   if (!c) return;
+  vincularLid(c);
   const jid = jidDeContato(c);
   if (!ehChatPrivado(jid)) return;
   if (agenda.size >= 2000 && !agenda.has(jid)) return;
@@ -167,6 +214,18 @@ function guardarContato(c) {
   if (prev && prev.nome && !nome) return;
   agenda.set(jid, { nome: nome || (prev && prev.nome) || "", telefone: jid.split("@")[0] });
   salvarAgendaDebounced();
+}
+
+function jidDaMensagem(m) {
+  const key = m && m.key;
+  if (!key) return "";
+  let jid = String(key.remoteJid || "");
+  if (jid.endsWith("@lid") && lidParaJid.has(jid)) jid = lidParaJid.get(jid);
+  if (!ehChatPrivado(jid) && key.participant) {
+    const p = String(key.participant);
+    if (ehChatPrivado(p)) jid = p;
+  }
+  return jid;
 }
 
 function ehChatPrivado(jid) {
@@ -219,7 +278,7 @@ async function baixarMidia(m) {
 
 async function enviarEntrada(m, extra) {
   if (!m || !m.message) return;
-  const jid = String((m.key && m.key.remoteJid) || "");
+  const jid = jidDaMensagem(m);
   if (!ehChatPrivado(jid)) return;
   const quando = tsMs(m);
   const historico = !!(extra && extra.historico);
@@ -253,13 +312,9 @@ async function estado(payload) {
   }
 }
 
-async function desligarSock() {
+function fecharSockAntigo() {
   const s = sock;
   sock = null;
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
-  }
   if (!s) return;
   try {
     s.ev.removeAllListeners();
@@ -267,18 +322,23 @@ async function desligarSock() {
     /* ignore */
   }
   try {
-    s.end(undefined);
+    if (s.ws && typeof s.ws.close === "function") s.ws.close();
   } catch {
     /* ignore */
   }
 }
 
 async function ligar() {
-  if (ligando) return;
-  ligando = true;
-  await desligarSock();
+  const myId = ++connId;
+  fecharSockAntigo();
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
   fs.mkdirSync(AUTH, { recursive: true });
-  await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
+  if (primeiraLigacao) {
+    await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
+  }
   const { state, saveCreds } = await useMultiFileAuthState(AUTH);
   const { version } = await fetchLatestBaileysVersion();
   sock = makeWASocket({
@@ -290,9 +350,9 @@ async function ligar() {
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
   });
-  ligando = false;
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
+    if (myId !== connId) return;
     const { connection, lastDisconnect, qr } = u;
     if (qr) {
       const dataUrl = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
@@ -305,6 +365,7 @@ async function ligar() {
       console.log("QR enviado ao Agro. Abra /atendimento-whatsapp/");
     }
     if (connection === "open") {
+      primeiraLigacao = false;
       lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
       const numero = String(me).split(":")[0].split("@")[0];
@@ -313,6 +374,7 @@ async function ligar() {
       setTimeout(() => enviarAgenda(0), 4000);
     }
     if (connection === "close") {
+      if (myId !== connId) return;
       const err = lastDisconnect && lastDisconnect.error;
       const code = err instanceof Boom ? err.output.statusCode : 0;
       const loggedOut = code === DisconnectReason.loggedOut;
@@ -321,15 +383,18 @@ async function ligar() {
         status: "desconectado",
         aviso: loggedOut ? "Desconectou. Escaneie o QR de novo." : "Reconectando…",
       });
-      await desligarSock();
+      fecharSockAntigo();
       if (loggedOut) {
+        primeiraLigacao = true;
         try {
           fs.rmSync(AUTH, { recursive: true, force: true });
         } catch {
           /* ignore */
         }
       }
-      setTimeout(ligar, loggedOut ? 1500 : 6000);
+      setTimeout(() => {
+        if (myId === connId) ligar();
+      }, loggedOut ? 2000 : 5000);
     }
   });
   sock.ev.on("contacts.upsert", (lista) => {
@@ -338,10 +403,6 @@ async function ligar() {
   sock.ev.on("contacts.update", (lista) => {
     for (const c of lista || []) guardarContato(c);
   });
-  sock.ev.on("contacts.set", (data) => {
-    const lista = Array.isArray(data) ? data : (data && data.contacts) || [];
-    for (const c of lista) guardarContato(c);
-  });
   sock.ev.on("chats.upsert", (lista) => {
     for (const ch of lista || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
@@ -349,8 +410,9 @@ async function ligar() {
   });
   sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
     const jj = String(jid || "");
-    if (!ehChatPrivado(jj)) return;
     const lj = String(lid || "");
+    if (lj.endsWith("@lid") && ehChatPrivado(jj)) lidParaJid.set(lj, jj);
+    if (!ehChatPrivado(jj)) return;
     const prev = agenda.get(lj) || agenda.get(jj);
     if (!prev) return;
     if (lj) agenda.delete(lj);
@@ -367,7 +429,7 @@ async function ligar() {
     if (type !== "notify" && type !== "append") return;
     for (const m of messages || []) {
       try {
-        const jid = String((m.key && m.key.remoteJid) || "");
+        const jid = jidDaMensagem(m);
         if (type === "notify") {
           await enviarEntrada(m, { historico: false });
           continue;
@@ -381,7 +443,6 @@ async function ligar() {
       }
     }
   });
-  if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(puxarSaida, 2500);
 }
 
@@ -480,6 +541,7 @@ async function puxarSaida() {
 }
 
 console.log("Django:", BASE);
+garantirUmaInstancia();
 carregarAgenda();
 ligar().catch((e) => {
   console.error(e);

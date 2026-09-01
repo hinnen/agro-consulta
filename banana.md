@@ -1302,7 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Busca mistura cadastro + agenda incremental (sem sync pesado que derruba a ponte) |
 | **Migrate** | **NÃO** |
-| **Ops** | Reiniciar `iniciar.bat` após atualizar |
+| **Ops** | Reiniciar `iniciar.bat` · **só uma** janela preta aberta |
 | **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) · sync bootstrap **revertido** (estabilidade) |
 
 ### 📦 PACOTE PRONTO — Busca estilo Zap Web (`WA-BUSCA-WEB` · 01/09/2026)
