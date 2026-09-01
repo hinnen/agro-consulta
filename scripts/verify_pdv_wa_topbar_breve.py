@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Prova detalhada path PDV-WA-TOPBAR-BREVE — ícone PDV + Em breve (sem chat QR).
+"""Prova PDV topbar WhatsApp — abre chat `/atendimento-whatsapp/`.
 
   python scripts/verify_pdv_wa_topbar_breve.py
 """
@@ -41,7 +41,7 @@ def _read(rel: str) -> str:
 
 
 def main():
-    print("=== PDV-WA-TOPBAR-BREVE ===")
+    print("=== PDV-WA-TOPBAR-CHAT ===")
     html = _read("produtos/templates/produtos/pdv_wizard.html")
     js = _read("produtos/static/produtos/js/pdv_topbar_whatsapp.js")
     layout_js = _read("produtos/static/produtos/js/pdv_topbar_layout.js")
@@ -55,37 +55,14 @@ def main():
     check("html_classe_wa", "pdv-wiz-topbar-btn--wa" in html)
     check("html_css_wa", ".pdv-wiz-topbar-btn--wa" in html)
     check("html_cor_oficial", "#25D366" in html and "color: #fff" in html)
-    check("html_overlay", 'id="pdv-wa-em-breve"' in html)
-    check("html_titulo_breve", "Em breve" in html)
-    check("html_ok", 'id="pdv-wa-em-breve-ok"' in html)
-    check("html_script", "pdv_topbar_whatsapp.js" in html)
-    check(
-        "script_depois_mais_antes_layout",
-        html.find("pdv_topbar_mais.js") < html.find("pdv_topbar_whatsapp.js") < html.find("pdv_topbar_layout.js"),
-    )
-    check("btn_na_actions", html.find('id="pdv-topbar-actions"') < html.find('id="pdv-topbar-whatsapp-btn"'))
-    check(
-        "btn_antes_nova_venda",
-        html.find('id="pdv-topbar-whatsapp-btn"') < html.find('id="pdv-topbar-nova-venda-btn"'),
-    )
-    check(
-        "sem_node_movel",
-        'data-pdv-topbar-node="whatsapp"' not in html,
-        "não entra no Organizar atalhos",
-    )
-    check("key_clique", 'data-pdv-topbar-key="whatsapp"' in html)
-    check("overlay_z", "z-[10050]" in html)
-    check("overlay_depois_cadastro", html.find("pdv-cadastro-rapido") < html.find("pdv-wa-em-breve"))
-    check("nao_abre_chat_url", "atendimento-whatsapp" not in html.split("pdv-topbar-whatsapp-btn")[1][:2500])
+    check("html_chat_url", "data-wa-chat-url" in html and "atendimento_whatsapp" in html)
+    check("html_overlay_legacy", 'id="pdv-wa-em-breve"' in html)
 
-    check("js_abrir", "function abrir" in js and 'classList.remove("hidden")' in js.replace("'", '"') or "hidden" in js)
-    check("js_fechar", "function fechar" in js)
+    check("js_abrir_chat", "abrirChat" in js and "data-wa-chat-url" in js)
     check("js_prevent", "preventDefault" in js and "stopPropagation" in js)
-    check("js_body_box", "document.body.appendChild(box)" in js)
-    check("js_esc", "Escape" in js)
-    check("js_ok_click", "pdv-wa-em-breve-ok" in js or "ok.addEventListener" in js)
+    check("js_open_blank", "window.open" in js)
     check("js_keep_place", "keepPlace" in js and "insertBefore" in js)
-    check("js_sem_href_chat", "/atendimento-whatsapp/" not in js)
+    check("js_sem_em_breve", "pdv-wa-em-breve" not in js)
 
     check("layout_sem_node_wa", "whatsapp" not in layout_js)
     check("util_sem_wa_movel", "whatsapp" not in QUENTE_DEFAULT and "whatsapp" not in FRIO_DEFAULT)

@@ -1,17 +1,11 @@
 /**
- * PDV topbar — ícone WhatsApp (placeholder «Em breve…»).
+ * PDV topbar — ícone WhatsApp abre o chat da loja.
  */
 (function () {
   'use strict';
 
   var btn = document.getElementById('pdv-topbar-whatsapp-btn');
-  var box = document.getElementById('pdv-wa-em-breve');
-  var ok = document.getElementById('pdv-wa-em-breve-ok');
-  if (!btn || !box) return;
-
-  if (box.parentElement !== document.body) {
-    document.body.appendChild(box);
-  }
+  if (!btn) return;
 
   var actionsHost = document.getElementById('pdv-topbar-actions');
 
@@ -25,28 +19,20 @@
   window.setTimeout(keepPlace, 0);
   window.setTimeout(keepPlace, 600);
 
-  function abrir() {
-    box.classList.remove('hidden');
-    box.setAttribute('aria-hidden', 'false');
-  }
-
-  function fechar() {
-    box.classList.add('hidden');
-    box.setAttribute('aria-hidden', 'true');
+  function abrirChat() {
+    var url = btn.getAttribute('data-wa-chat-url') || '/atendimento-whatsapp/';
+    try {
+      if (window.agroAbrirUrlExterna) {
+        window.agroAbrirUrlExterna(url);
+        return;
+      }
+    } catch (e) {}
+    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   btn.addEventListener('click', function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
-    abrir();
-  });
-  if (ok) ok.addEventListener('click', fechar);
-  box.addEventListener('click', function (ev) {
-    if (ev.target === box) fechar();
-  });
-  document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !box.classList.contains('hidden')) {
-      fechar();
-    }
+    abrirChat();
   });
 })();

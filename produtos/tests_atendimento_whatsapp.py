@@ -1,12 +1,28 @@
 """Testes — atendimento WhatsApp (bot Vila/Centro)."""
 from __future__ import annotations
 
+from datetime import datetime
+
 from django.contrib.auth import get_user_model
 from django.test import Client, SimpleTestCase, TestCase
 from django.urls import reverse
+from django.utils import timezone
 
+from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, fora_do_horario
 from produtos.atendimento_whatsapp_util import interpretar_loja, processar_entrada
 from produtos.models import WhatsAppConversaAgro, WhatsAppMensagemAgro
+
+
+class BotConfigPadraoTests(SimpleTestCase):
+    def test_horario_e_mensagens(self):
+        self.assertTrue(BOT_DEFAULT["horario_ativo"])
+        self.assertFalse(BOT_DEFAULT["ainda_atende_fora"])
+        self.assertTrue(BOT_DEFAULT["enviar_boas_vindas"])
+        self.assertTrue(BOT_DEFAULT["ausencia_ligada"])
+        domingo = timezone.make_aware(datetime(2026, 9, 6, 10, 0, 0))
+        self.assertTrue(fora_do_horario(BOT_DEFAULT, domingo))
+        segunda = timezone.make_aware(datetime(2026, 9, 7, 10, 0, 0))
+        self.assertFalse(fora_do_horario(BOT_DEFAULT, segunda))
 
 
 class InterpretarLojaTests(SimpleTestCase):

@@ -1261,6 +1261,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Horário seg–sáb 8–18 (domingo off) · pausa 2s · boas-vindas · aviso ocupado · PDV abre chat |
+| **Migrate** | **SIM** `0113` |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+| **Ponte** | Continua no PC da loja (`iniciar.bat`) — Render só o site Django |
+
 ### 📦 PACOTE PRONTO — Chamar contato + histórico curto (`WA-CHAMAR-HIST` · 01/09/2026)
 
 | Campo | Valor |

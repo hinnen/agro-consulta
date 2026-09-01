@@ -46,7 +46,7 @@ def _static() -> None:
     check("url_pagina", "atendimento_whatsapp" in urls and "atendimento-whatsapp/" in urls)
     check("url_bot_cfg", "atendimento_whatsapp_bot" in urls)
     check("model_bot_cfg", "class WhatsAppBotConfigAgro" in models)
-    check("mig_0112", (ROOT / "produtos/migrations/0112_whatsapp_chamar_historico.py").is_file())
+    check("mig_0113", (ROOT / "produtos/migrations/0113_whatsapp_bot_cfg_renan.py").is_file())
     check("url_novo", "api_atendimento_whatsapp_novo" in urls)
     check("url_hist", "api_atendimento_whatsapp_historico" in urls)
     check("url_contatos", "api_atendimento_whatsapp_contatos" in urls)
@@ -104,6 +104,18 @@ def _logic() -> None:
     check("logic_jid_cel", jid_eh_chat_privado("5513988887777@s.whatsapp.net") is True)
     check("logic_jid_grupo", jid_eh_chat_privado("120363162264887116@s.whatsapp.net") is False)
     check("logic_jid_canal", jid_eh_chat_privado("123@newsletter") is False)
+    from datetime import datetime
+
+    from django.utils import timezone
+
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, fora_do_horario
+
+    check("bot_horario_on", BOT_DEFAULT.get("horario_ativo") is True)
+    check("bot_boas_vindas", BOT_DEFAULT.get("enviar_boas_vindas") is True)
+    check("bot_ausencia", BOT_DEFAULT.get("ausencia_ligada") is True)
+    check("bot_delay_2", int(BOT_DEFAULT.get("atraso_resposta_seg") or 0) == 2)
+    domingo = timezone.make_aware(datetime(2026, 9, 6, 10, 0, 0))
+    check("bot_dom_fora", fora_do_horario(BOT_DEFAULT, domingo) is True)
 
 
 def main() -> int:

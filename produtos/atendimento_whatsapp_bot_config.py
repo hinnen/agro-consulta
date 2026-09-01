@@ -12,18 +12,18 @@ CHAVE_DEFAULT = "default"
 BOT_DEFAULT: dict = {
     "bot_ligado": True,
     "nome_empresa": "GM Agro",
-    "atraso_resposta_seg": 1,
-    "atraso_entre_msgs_seg": 1,
-    "horario_ativo": False,
+    "atraso_resposta_seg": 2,
+    "atraso_entre_msgs_seg": 2,
+    "horario_ativo": True,
     "horario_ini": "08:00",
     "horario_fim": "18:00",
     "horario_dias": [1, 2, 3, 4, 5, 6],
     "msg_fora_horario": (
-        "Olá! Agora estamos fora do horário de atendimento.\n"
-        "Deixe a mensagem que a loja responde no próximo expediente."
+        "Olá! Agora estamos *fora do horário* (seg–sáb 8h–18h).\n"
+        "Deixe sua mensagem que a loja responde no próximo expediente."
     ),
-    "ainda_atende_fora": True,
-    "enviar_boas_vindas": False,
+    "ainda_atende_fora": False,
+    "enviar_boas_vindas": True,
     "msg_boas_vindas": "Olá! Bem-vindo à *{empresa}*.",
     "ordem": "fiado_depois_loja",
     "msg_menu": (
@@ -68,7 +68,7 @@ BOT_DEFAULT: dict = {
         "Fale com a loja (responda *1* ou *2*) para conferir o fiado."
     ),
     "fiado_manda_menu": True,
-    "ausencia_ligada": False,
+    "ausencia_ligada": True,
     "msg_ausencia": "No momento a loja está ocupada. Já já alguém responde por aqui.",
 }
 
