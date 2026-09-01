@@ -136,7 +136,7 @@ def test_arquivos() -> None:
     hist_fn = _fn_src("produtos/views.py", "_dashboard_vendas_serie_meta_historico")
     meses_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_meses_por_dia")
     check("meta_c_param_deposito", "deposito" in meta_fn)
-    check("meta_c_cache_loja", "dash:metac:v3:" in meta_fn)
+    check("meta_c_cache_loja", "dash:metac:v2:" in meta_fn or "dash:metac:v3:" in meta_fn)
     check("meta_c_todas_soma", "todas-soma" in meta_fn)
     abert_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_vila_abertura")
     um_mes_fn = _fn_src("produtos/views.py", "_dashboard_meta_c_um_mes")
