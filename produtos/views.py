@@ -8188,9 +8188,13 @@ def _dashboard_ticket_medio_intervalo(
         ticket_qs = _dashboard_vendas_qs_pdv_periodo(
             data_ini, data_fim, deposito=deposito
         )
-        ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
-        total = _dashboard_float(ticket_agg.get("total"))
+        ticket_agg = ticket_qs.aggregate(n=Count("id"))
         qtd = int(ticket_agg.get("n") or 0)
+        from produtos.vendas_lojas_util import vendas_lojas_total_deposito
+
+        total = _dashboard_float(
+            vendas_lojas_total_deposito(data_ini, data_fim, deposito)
+        )
     return round((total / qtd), 2) if qtd > 0 else 0.0
 
 
@@ -9691,11 +9695,9 @@ def _dashboard_mongo_total_por_dia_vendas_agro(
     para não antecipar venda que ainda é orçamento no ERP. Modo ``pdv``: só VendaAgro.
     """
     if _dashboard_vendas_fonte_pdv():
-        return _dashboard_float(
-            _dashboard_vendas_qs_pdv_periodo(alvo, alvo, deposito=deposito)
-            .aggregate(soma=Sum("total"))
-            .get("soma")
-        )
+        from produtos.vendas_lojas_util import vendas_lojas_total_deposito
+
+        return _dashboard_float(vendas_lojas_total_deposito(alvo, alvo, deposito))
     return _dashboard_float(
         _dashboard_mongo_vendas_serie(alvo, alvo, deposito=deposito).get("total", 0.0)
     )
@@ -9753,13 +9755,14 @@ def _dashboard_invalidar_cache_apos_venda_agro(venda: VendaAgro | None = None) -
 
 
 def _dashboard_vendas_hoje_pdv(deposito: str | None = None) -> tuple[float, int]:
-    """Faturamento e quantidade de hoje direto do Postgres (sem cache)."""
+    """Faturamento de hoje = mesma conta do /vendas-lojas (com devolução). Qtd = vendas do dia."""
+    from produtos.vendas_lojas_util import vendas_lojas_total_deposito
+
     hoje = timezone.localdate()
     qs = _dashboard_vendas_qs_pdv_periodo(hoje, hoje, deposito=deposito)
-    agg = qs.aggregate(soma=Sum("total"), n=Count("id"))
     return (
-        round(_dashboard_float(agg.get("soma")), 2),
-        int(agg.get("n") or 0),
+        round(_dashboard_float(vendas_lojas_total_deposito(hoje, hoje, deposito)), 2),
+        int(qs.count()),
     )
 
 
@@ -10202,23 +10205,23 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     else:
         vendas_por_loja = _dashboard_vendas_por_loja(data_ini, data_fim)
 
-    # Fonte da verdade do total exibido: agregação filtrada (não confiar só no cache da série).
+    # Total do período = PDV líquido (devolução no dia do evento), igual /vendas-lojas.
     if _dashboard_vendas_fonte_pdv() or _dashboard_vendas_fonte_hibrido():
+        from produtos.vendas_lojas_util import vendas_lojas_total_deposito
+
         total_periodo_filtrado = _dashboard_float(
-            _dashboard_vendas_qs_pdv_periodo(
-                data_ini, data_fim, deposito=deposito_filtro
-            )
-            .aggregate(soma=Sum("total"))
-            .get("soma")
+            vendas_lojas_total_deposito(data_ini, data_fim, deposito_filtro)
         )
-        if abs(total_periodo_filtrado - _dashboard_float(atual.get("total"))) > 0.02:
-            try:
-                atual = _dashboard_mongo_vendas_serie(
-                    data_ini, data_fim, deposito=deposito_filtro
-                )
-            except Exception:
-                pass
-            atual = {**atual, "total": round(total_periodo_filtrado, 2)}
+        por_dia_live = dict(atual.get("por_dia") or {})
+        por_dia_live[hoje.isoformat()] = round(
+            _dashboard_float(vendas_lojas_total_deposito(hoje, hoje, deposito_filtro)),
+            2,
+        )
+        atual = {
+            **atual,
+            "total": round(total_periodo_filtrado, 2),
+            "por_dia": por_dia_live,
+        }
     else:
         total_periodo_filtrado = _dashboard_float(atual.get("total"))
 
@@ -10242,11 +10245,15 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
     qtd_total_periodo = sum(int(v or 0) for v in (atual.get("qtd_por_dia") or {}).values())
     total_ticket = _dashboard_float(atual.get("total"))
     if qtd_total_periodo <= 0 and _dashboard_vendas_fonte_pdv():
+        from produtos.vendas_lojas_util import vendas_lojas_total_deposito
+
         ticket_qs = _dashboard_vendas_qs_pdv_periodo(
             data_ini, data_fim, deposito=deposito_filtro
         )
-        ticket_agg = ticket_qs.aggregate(total=Sum("total"), n=Count("id"))
-        total_ticket = _dashboard_float(ticket_agg.get("total"))
+        ticket_agg = ticket_qs.aggregate(n=Count("id"))
+        total_ticket = _dashboard_float(
+            vendas_lojas_total_deposito(data_ini, data_fim, deposito_filtro)
+        )
         qtd_total_periodo = int(ticket_agg.get("n") or 0)
     ticket_medio = (total_ticket / qtd_total_periodo) if qtd_total_periodo > 0 else 0.0
 
