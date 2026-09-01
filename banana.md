@@ -1260,14 +1260,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Via entregador dinheiro sem troco (`ENT-VIA-DIN-SEM-MAQ` · **v20.54** · 01/09/2026)
+### 📦 PACOTE PRONTO — Via entregador dinheiro sem troco (`ENT-VIA-DIN-SEM-MAQ` · **v20.55** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Dinheiro **sem troco** na entrega imprime **COBRAR DINHEIRO** — **não** LEVAR MÁQUINA |
 | **Onde** | Via entregador (PDV + `/entregas/`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_ent_via_dinheiro_sem_maquina.py` **49/49** · PIN 9973 · healthz local · JS vivo |
+| **Prova** | `scripts/verify_ent_via_dinheiro_sem_maquina.py` **49/49** · PIN 9973 · healthz local · JS vivo · tip **v20.55** |
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · entrega · dinheiro · troco 0 · via do entregador = COBRAR DINHEIRO |
 
