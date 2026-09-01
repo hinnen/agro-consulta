@@ -326,8 +326,8 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **BI-DEVOL-PLANILHA** | 🟡 **PREP** · prova **28/28** | **NÃO** |
+| 1 | **BI-DEVOL-PLANILHA** | ✅ **Live v20.58** · prova **28/28** | **NÃO** |
 
-**Status: PREP — ainda não na loja.** Loja hoje **v20.56** @ `d30c5ca`.  
+**Status: enviado / Live v20.58.** `producao` @ `751c0d4`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
-**Deploy:** **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c`. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`. PDV/caixa **iguais**.
+**Smoke:** healthz ok · badge **v20.58** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.

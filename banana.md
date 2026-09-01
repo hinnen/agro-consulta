@@ -1260,20 +1260,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · alvo **v20.58**) · 01/09/2026
+### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** subiu loja (lojas abertas). Próximo chat: pausar vendas + frase + senha |
-| **Sobe** | só `BI-DEVOL-PLANILHA` |
-| **Não sobe** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` · resto do `teste` (~230 arquivos vs loja) |
-| **Como** | **não** resetar `producao` no `teste`. Cherry-pick em cima de Live **v20.56** `d30c5ca` |
-| **Loja hoje** | **v20.56** @ `d30c5ca` |
-| **Branch PREP** | `deploy/prep-checklist-0109c` |
-| **Rollback** | tag `rollback/pre-lote-checklist-0109c-v20.56` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` |
+| **Status** | ✅ **enviado / Live v20.58** — healthz **ok** · badge **v20.58** · frase+senha neste chat |
+| **Antes** | `origin/producao` @ **v20.56** / `d30c5ca` |
+| **Agora** | `producao` @ **`751c0d4`** |
+| **Pacotes** | `BI-DEVOL-PLANILHA` |
+| **Fora** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` |
 | **Migrate** | **NÃO** |
-| **Prova** | BI **28/28** · HTTP home/PDV/consulta/caixa **200** · path PDV/caixa **não** muda neste lote |
-| **Você no deploy** | pausar ~1–2 min · badge **v20.58** · Ctrl+F5 no BI · hoje cai a devolução · F7 uma venda (smoke) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha |
+| **Nota** | 1º push local `producao` (worktree antigo) apontou **v19.02** uns minutos; corrigido na hora para `751c0d4`. |
+| **Você** | **Ctrl+F5** · badge **v20.58** · BI hoje deve cair a devolução · F7 uma venda |
+
+### ~~🚀 PREP deploy loja — lote checklist 01/09c~~ · **superado — Live v20.58 @ 751c0d4**
 
 ### 📦 PACOTE PRONTO — BI devolução vs planilha (`BI-DEVOL-PLANILHA` · **v20.58** · 01/09/2026)
 
@@ -1283,14 +1284,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | Home `/` · gráfico/card |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_bi_devolucao_dia.py` **28/28** · PIN 9973 · home/BI/vendas-lojas **200** · healthz local |
-| **Status** | 🟡 **PREP** · aguarda pausa + frase + senha |
-| **Você** | Próximo chat: lojas pausam · autoriza deploy |
+| **Status** | ✅ **Live v20.58** |
+| **Você** | Ctrl+F5 no BI · hoje cai a devolução |
 
-### ✅ CHECKLIST ÚNICO — PREP 01/09c (só planilha)
+### ✅ CHECKLIST ÚNICO — 01/09c · **Live v20.58**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `BI-DEVOL-PLANILHA` | 🟡 **PREP** · alvo loja **v20.58** | **NÃO** |
+| 1 | `BI-DEVOL-PLANILHA` | ✅ **Live v20.58** | **NÃO** |
 
 **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`
 
