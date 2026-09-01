@@ -1,62 +1,129 @@
-"""Prova estática + math: BI desconta devolução no dia do evento."""
+# -*- coding: utf-8 -*-
+"""Prova detalhada path BI-DEVOL-DIA + BI-DEVOL-PLANILHA.
+
+Cobre: qs PDV, abatimento no dia do evento, merge planilha (PDV manda),
+cache v7/v10, PIN 9973, HTTP home/BI, healthz se o runserver estiver no ar.
+
+  python scripts/verify_bi_devolucao_dia.py
+"""
 from __future__ import annotations
 
+import os
 import sys
+import urllib.request
 from decimal import Decimal
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
-FAIL = 0
+ok = 0
+fail = 0
 
 
-def check(cond, msg):
-    global FAIL
+def check(name: str, cond: bool, detail: str = "") -> None:
+    global ok, fail
+    msg = name + ((" -- " + detail) if detail else "")
+    safe = msg.encode("ascii", "replace").decode("ascii")
     if cond:
-        print("OK", msg)
+        ok += 1
+        print("  OK ", safe)
     else:
-        FAIL += 1
-        print("FAIL", msg)
+        fail += 1
+        print(" FAIL", safe)
 
 
-def main():
-    views = (ROOT / "produtos" / "views.py").read_text(encoding="utf-8")
-    lojas = (ROOT / "produtos" / "vendas_lojas_util.py").read_text(encoding="utf-8")
-    util = (ROOT / "produtos" / "dashboard_pdv_devolucao_util.py").read_text(encoding="utf-8")
+def main() -> None:
+    print("=== BI-DEVOL-PLANILHA / BI-DEVOL-DIA detalhado ===")
+
+    views = (ROOT / "produtos/views.py").read_text(encoding="utf-8")
+    lojas = (ROOT / "produtos/vendas_lojas_util.py").read_text(encoding="utf-8")
+    util = (ROOT / "produtos/dashboard_pdv_devolucao_util.py").read_text(encoding="utf-8")
+    hist = (ROOT / "produtos/dashboard_vendas_historico_util.py").read_text(encoding="utf-8")
 
     i_qs = views.find("def _dashboard_vendas_qs_pdv_periodo")
     i_ser = views.find("def _dashboard_vendas_serie_pdv")
     bloco_qs = views[i_qs:i_ser]
-    check("devolvida_em__isnull=True" not in bloco_qs, "qs PDV keeps returned sale on original day")
-    check("dash:mvs:v7:pdv:" in views, "cache BI pdv v7")
-    check("abatimento_devolucoes_por_dia" in views, "PDV series uses abatement")
-    check("abatimento_devolucoes_totais_loja" in lojas, "vendas lojas uses abatement")
-    check("DevolucaoVendaAgro" in util, "util uses DevolucaoVendaAgro")
+    check("qs_nao_some_devolvida", "devolvida_em__isnull=True" not in bloco_qs)
+    check("cache_pdv_v7", "dash:mvs:v7:pdv:" in views)
+    check("serie_abate", "abatimento_devolucoes_por_dia" in views)
+    check("lojas_abate", "abatimento_devolucoes_totais_loja" in lojas)
+    check("util_evento", "DevolucaoVendaAgro" in util)
+    check("util_legado", "devolvida_em__isnull=False" in util)
+    check("sem_max_planilha", "por_dia[k] = round(max(vp, vd), 2)" not in hist)
+    check("fn_merge", "def merge_planilha_pdv_por_dia" in hist)
+    check("usa_merge", "por_dia = merge_planilha_pdv_por_dia(plan, pdv_por_dia)" in hist)
+    check("cache_meta_v10", "dash:mvs:v10:meta:" in hist)
+    check("views_chama_merged", "dashboard_vendas_serie_meta_merged" in views)
+    check("mongo_serie_merged", views.find("return dashboard_vendas_serie_meta_merged") > 0)
 
-    def aplicar_abatimento_por_dia(por_dia, abat):
-        out = dict(por_dia)
-        for k, val in abat.items():
-            atual = Decimal(str(out.get(k) or 0))
-            out[k] = float((atual - val).quantize(Decimal("0.01")))
-        return out
+    import django
 
-    out = aplicar_abatimento_por_dia({"2026-09-01": 25.0}, {"2026-09-01": Decimal("40.00")})
-    check(out["2026-09-01"] == -15.0, "hoje = venda nova menos devolucao")
-    out2 = aplicar_abatimento_por_dia({"2026-08-31": 140.0}, {})
-    check(out2["2026-08-31"] == 140.0, "dia da venda original intacto se nao houve evento nele")
+    django.setup()
 
-    hist = (ROOT / "produtos" / "dashboard_vendas_historico_util.py").read_text(encoding="utf-8")
-    check("por_dia[k] = round(max(vp, vd), 2)" not in hist, "BI nao usa max planilha vs PDV")
-    check("def merge_planilha_pdv_por_dia" in hist, "merge PDV sobrescreve o dia")
-    check("dash:mvs:v10:meta:" in hist, "cache meta v10")
+    from produtos.dashboard_pdv_devolucao_util import aplicar_abatimento_por_dia
+    from produtos.dashboard_vendas_historico_util import merge_planilha_pdv_por_dia
 
-    if FAIL:
-        print(f"\n{FAIL} falha(s)")
-        return 1
-    print("\nOK verify_bi_devolucao_dia")
-    return 0
+    ab = aplicar_abatimento_por_dia({"2026-09-01": 25.0}, {"2026-09-01": Decimal("40.00")})
+    check("math_hoje_menos_dev", ab["2026-09-01"] == -15.0)
+    ab2 = aplicar_abatimento_por_dia({"2026-08-31": 140.0}, {})
+    check("math_dia_venda_intacto", ab2["2026-08-31"] == 140.0)
+    ab3 = aplicar_abatimento_por_dia({"2026-09-01": 1431.26}, {"2026-09-01": Decimal("360.00")})
+    check("math_caso_loja_centro", abs(ab3["2026-09-01"] - 1071.26) < 0.001)
+
+    m = merge_planilha_pdv_por_dia({"2026-09-01": 1431.26}, {"2026-09-01": 1071.26})
+    check("merge_pdv_vence_planilha", m["2026-09-01"] == 1071.26)
+    m2 = merge_planilha_pdv_por_dia({"2026-01-10": 50.0}, {})
+    check("merge_planilha_so_buraco", m2["2026-01-10"] == 50.0)
+    m3 = merge_planilha_pdv_por_dia({}, {"2026-09-01": 1196.56})
+    check("merge_so_pdv", m3["2026-09-01"] == 1196.56)
+    m4 = merge_planilha_pdv_por_dia({"2026-09-01": 0.0}, {"2026-09-01": -15.0})
+    check("merge_pdv_negativo", m4["2026-09-01"] == -15.0)
+
+    from django.contrib.auth import get_user_model
+    from django.test import Client, override_settings
+    from django.urls import reverse
+    from produtos.caixa_util import validar_pin_operador, _perfil_usuario_por_pin
+
+    pin_ok, pin_msg = validar_pin_operador("9973")
+    perfil = _perfil_usuario_por_pin("9973")
+    check("pin_9973_valido", pin_ok, pin_msg)
+    check("pin_9973_tem_perfil", perfil is not None)
+
+    User = get_user_model()
+    user = User.objects.filter(is_active=True).order_by("id").first()
+    if user:
+        with override_settings(ALLOWED_HOSTS=["testserver", "127.0.0.1", "localhost", "*"]):
+            c = Client()
+            c.force_login(user)
+            home = c.get(reverse("home"), follow=True)
+            dash = c.get(reverse("dashboard_gerencial"), follow=True)
+            vl = c.get("/vendas/lojas/", follow=True)
+        bh = home.content.decode("utf-8", "replace")
+        bd = dash.content.decode("utf-8", "replace")
+        check("http_home_200", home.status_code == 200, str(home.status_code))
+        check("http_dash_200", dash.status_code == 200, str(dash.status_code))
+        check("http_lojas_200", vl.status_code == 200, str(vl.status_code))
+        check("http_home_bi", "dashboard" in bh.lower() or "kpi" in bh.lower() or "vendas" in bh.lower())
+        check("http_nao_login_home", 'name="username"' not in bh or "dashboard" in bh.lower())
+    else:
+        check("http_user", False, "sem usuario Django")
+
+    try:
+        with urllib.request.urlopen("http://127.0.0.1:8000/healthz", timeout=4) as resp:
+            hz = resp.status
+        check("live_healthz", hz == 200, str(hz))
+        with urllib.request.urlopen("http://127.0.0.1:8000/", timeout=8) as resp:
+            live = resp.read().decode("utf-8", "replace")
+        check("live_home_ou_login", resp.status in (200, 302) or "html" in live.lower())
+    except Exception as exc:
+        check("live_healthz", False, str(exc)[:80])
+
+    print("")
+    print("%s OK / %s FAIL" % (ok, fail))
+    raise SystemExit(1 if fail else 0)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
