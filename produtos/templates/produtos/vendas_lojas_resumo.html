@@ -575,14 +575,14 @@
         <h2>Total das duas lojas</h2>
         <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
       </button>
-      <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e com quitado">
+      <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
         <span class="vl-fiado-part">
           <span class="vl-fiado-k">Sem fiado</span>
           <span class="vl-fiado-v">R$ {{ sem_fiado_fmt }}</span>
         </span>
         <span class="vl-fiado-div" aria-hidden="true"></span>
         <span class="vl-fiado-part">
-          <span class="vl-fiado-k">Com quitado</span>
+          <span class="vl-fiado-k">c/ fiado quitado</span>
           <span class="vl-fiado-v">R$ {{ sem_fiado_quit_fmt }}</span>
         </span>
       </button>
@@ -612,7 +612,7 @@
     <div class="vl-sheet-bg" data-fechar-fiado></div>
     <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-fiado-titulo">
       <div class="vl-sheet-handle"></div>
-      <h3 id="vl-fiado-titulo">Sem fiado e com quitado</h3>
+      <h3 id="vl-fiado-titulo">Sem fiado e c/ fiado quitado</h3>
       <div class="vl-fiado-explica">
         <h4>Sem fiado — R$ {{ sem_fiado_fmt }}</h4>
         <p>
@@ -622,7 +622,7 @@
         </p>
       </div>
       <div class="vl-fiado-explica">
-        <h4>Com quitado — R$ {{ sem_fiado_quit_fmt }}</h4>
+        <h4>c/ fiado quitado — R$ {{ sem_fiado_quit_fmt }}</h4>
         <p>
           Igual ao «Sem fiado», mais o que os clientes <strong>pagaram de fiados antigos</strong>
           neste período (quitados no caixa ou PDV), mesmo que a venda fiado foi em outro dia.
