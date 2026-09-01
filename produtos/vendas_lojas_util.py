@@ -98,6 +98,18 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
 
 
+def vendas_lojas_total_deposito(
+    data_ini: date, data_fim: date, deposito: str | None = None
+) -> Decimal:
+    """Mesmo número do /vendas-lojas, filtrado pela loja do aparelho (ou as duas)."""
+    centro, vila, total = vendas_lojas_totais(data_ini, data_fim)
+    if deposito == "vila":
+        return vila
+    if deposito == "centro":
+        return centro
+    return total
+
+
 # Expediente da loja — média «até agora» cresce da abertura até o fechamento.
 VL_EXPEDIENTE_INI = time(7, 30)
 VL_EXPEDIENTE_FIM = time(18, 30)

@@ -56,7 +56,10 @@ def main() -> None:
     check("usa_merge", "por_dia = merge_planilha_pdv_por_dia(plan, pdv_por_dia)" in hist)
     check("cache_meta_v10", "dash:mvs:v10:meta:" in hist)
     check("views_chama_merged", "dashboard_vendas_serie_meta_merged" in views)
-    check("mongo_serie_merged", views.find("return dashboard_vendas_serie_meta_merged") > 0)
+    check("hoje_pdv_usa_lojas", "vendas_lojas_total_deposito" in views[views.find("def _dashboard_vendas_hoje_pdv"):views.find("def _dashboard_devolucoes_periodo")])
+    check("dia_agro_usa_lojas", "vendas_lojas_total_deposito" in views[views.find("def _dashboard_mongo_total_por_dia_vendas_agro"):views.find("def _dashboard_invalidar_cache_vendas_serie")])
+    check("periodo_usa_lojas", "vendas_lojas_total_deposito(data_ini, data_fim, deposito_filtro)" in views)
+    check("lojas_helper", "def vendas_lojas_total_deposito" in lojas)
 
     import django
 

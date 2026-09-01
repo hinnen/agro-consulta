@@ -1260,6 +1260,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Card/total do BI `/` usava soma crua do PDV (sem devolução). Agora a mesma conta do `/vendas-lojas`. |
+| **Onde** | Home BI · Faturamento do Dia · total do período · barra de hoje |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** (card velho) |
+| **Você** | No PC: Ctrl+F5 no BI — tem que bater com `/vendas-lojas`. Loja só com senha. |
+
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
 | Campo | Valor |
