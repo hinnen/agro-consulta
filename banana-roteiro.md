@@ -312,10 +312,10 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ENTREGA-F3** | 🟡 **PREP** · prova **68/68** | **NÃO** |
-| 2 | **BI-DEVOL-DIA** | 🟡 **PREP** · prova estática OK | **NÃO** |
-| 3 | **ENT-VIA-DIN-SEM-MAQ** | 🟡 **PREP** · prova **49/49** | **NÃO** |
+| 1 | **PDV-ENTREGA-F3** | ✅ **Live v20.56** · prova **68/68** | **NÃO** |
+| 2 | **BI-DEVOL-DIA** | ✅ **Live v20.56** | **NÃO** |
+| 3 | **ENT-VIA-DIN-SEM-MAQ** | ✅ **Live v20.56** · prova **49/49** | **NÃO** |
 
-**Status: PREP pronto · aguarda frase+senha.** Base loja `31941b8` v20.49.  
+**Status: enviado / Live v20.56.** `producao` @ `d30c5ca`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · branch `producao-backup-pre-v2056-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` · **só** frase+senha.  
-**Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
+**Smoke:** healthz ok · badge **v20.56** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
