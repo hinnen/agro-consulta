@@ -46,6 +46,11 @@ def main():
     out2 = aplicar_abatimento_por_dia({"2026-08-31": 140.0}, {})
     check(out2["2026-08-31"] == 140.0, "dia da venda original intacto se nao houve evento nele")
 
+    hist = (ROOT / "produtos" / "dashboard_vendas_historico_util.py").read_text(encoding="utf-8")
+    check("por_dia[k] = round(max(vp, vd), 2)" not in hist, "BI nao usa max planilha vs PDV")
+    check("def merge_planilha_pdv_por_dia" in hist, "merge PDV sobrescreve o dia")
+    check("dash:mvs:v10:meta:" in hist, "cache meta v10")
+
     if FAIL:
         print(f"\n{FAIL} falha(s)")
         return 1

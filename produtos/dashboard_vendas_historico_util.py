@@ -30,20 +30,37 @@ def dashboard_vendas_historico_planilha_por_dia(
     return out
 
 
+def merge_planilha_pdv_por_dia(
+    plan: dict[str, float], pdv_por_dia: dict[str, float]
+) -> dict[str, float]:
+    """
+    Dia com movimento PDV (venda ou devolução) = número do PDV.
+    Planilha só preenche dia sem PDV (histórico antigo).
+    Não usa max(): senão devolução some atrás de um total velho da planilha.
+    """
+    out: dict[str, float] = {}
+    for k in set(plan) | set(pdv_por_dia):
+        if k in pdv_por_dia:
+            out[k] = round(float(pdv_por_dia.get(k) or 0), 2)
+        else:
+            out[k] = round(float(plan.get(k) or 0), 2)
+    return out
+
+
 def dashboard_vendas_serie_meta_merged(
     data_ini: date, data_fim: date, deposito: str | None = None
 ) -> dict:
     """
-    Série diária merge planilha + PDV: usa o **maior** dos dois no dia (evita venda teste
-    PDV apagar histórico da planilha). Jun+ só tem PDV. Usada na meta C e no gráfico.
+    Série diária merge planilha + PDV: no dia com PDV, **o PDV manda** (inclui devolução).
+    Planilha só entra em dia sem venda/devolução Agro. Jun+ costuma ser só PDV.
     ``deposito=centro|vila``: filtra total/série/qtd dessa loja.
     ``vendas_por_loja``: sempre comparativo Centro × Vila (sem filtro do aparelho).
     """
     dep_key = "todas"
     if deposito in ("centro", "vila"):
         dep_key = deposito
-    # v9: PDV abate devolução no dia do evento (cache da série pdv v7).
-    ck = f"dash:mvs:v9:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+    # v10: PDV sobrescreve o dia (devolução visível; não max com planilha).
+    ck = f"dash:mvs:v10:meta:{dep_key}:{data_ini.isoformat()}:{data_fim.isoformat()}"
     cached = cache.get(ck)
     if isinstance(cached, dict) and cached.get("_t") == "mvs":
         return {k: v for k, v in cached.items() if k != "_t"}
@@ -64,11 +81,7 @@ def dashboard_vendas_serie_meta_merged(
     plan = dashboard_vendas_historico_planilha_por_dia(data_ini, data_fim)
     pdv = _dashboard_vendas_serie_pdv(data_ini, data_fim, deposito=deposito)
     pdv_por_dia = pdv.get("por_dia") or {}
-    por_dia: dict[str, float] = {}
-    for k in set(plan) | set(pdv_por_dia):
-        vp = float(plan.get(k) or 0)
-        vd = float(pdv_por_dia.get(k) or 0)
-        por_dia[k] = round(max(vp, vd), 2)
+    por_dia = merge_planilha_pdv_por_dia(plan, pdv_por_dia)
 
     qtd_por_dia = dict(pdv.get("qtd_por_dia") or {})
     total = round(sum(float(v or 0) for v in por_dia.values()), 2)
@@ -112,6 +125,12 @@ def dashboard_invalidar_cache_meta_merged(
             cache.delete(
                 f"dash:mvs:v8:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
             )
+            cache.delete(
+                f"dash:mvs:v9:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+            )
+            cache.delete(
+                f"dash:mvs:v10:meta:{dep}:{data_ini.isoformat()}:{data_fim.isoformat()}"
+            )
         return
     hoje = timezone.localdate()
     cur = hoje.replace(day=1)
@@ -122,6 +141,8 @@ def dashboard_invalidar_cache_meta_merged(
         for dep in deps:
             cache.delete(f"dash:mvs:v7:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
             cache.delete(f"dash:mvs:v8:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
+            cache.delete(f"dash:mvs:v9:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
+            cache.delete(f"dash:mvs:v10:meta:{dep}:{fp.isoformat()}:{lp.isoformat()}")
         cur = fp - timedelta(days=1)
         cur = cur.replace(day=1)
 
