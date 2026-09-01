@@ -70,7 +70,7 @@ def _q2(val) -> Decimal:
 def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decimal, Decimal]:
     """
     Soma PDV no intervalo local (início do dia ini → fim do dia fim).
-    Exclui devolvidas. Vila = deposito vila; demais (centro / vazio / outro) = Centro.
+    Devolução desconta no dia do evento. Vila = deposito vila; demais = Centro.
     """
     from django.db.models import Sum
     from django.utils import timezone
@@ -83,7 +83,6 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     qs = VendaAgro.objects.filter(
         criado_em__gte=ini,
         criado_em__lte=fim,
-        devolvida_em__isnull=True,
     )
     centro = _q2(
         qs.exclude(deposito__iexact="vila").aggregate(soma=Sum("total")).get("soma")
@@ -91,6 +90,11 @@ def vendas_lojas_totais(data_ini: date, data_fim: date) -> tuple[Decimal, Decima
     vila = _q2(
         qs.filter(deposito__iexact="vila").aggregate(soma=Sum("total")).get("soma")
     )
+    from produtos.dashboard_pdv_devolucao_util import abatimento_devolucoes_totais_loja
+
+    ab_c, ab_v = abatimento_devolucoes_totais_loja(data_ini, data_fim)
+    centro = _q2(centro - ab_c)
+    vila = _q2(vila - ab_v)
     return centro, vila, (centro + vila).quantize(Decimal("0.01"))
 
 
