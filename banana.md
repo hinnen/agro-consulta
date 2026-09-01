@@ -1267,7 +1267,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Chat + bot mais limpos: menos texto, abas, verde Zap, bolhas tipo conversa |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · fora da loja |
+| **Status** | 🟡 `teste` **v20.64** · fora da loja |
 
 ### 📦 PACOTE PRONTO — Configurar bot WhatsApp (`WA-BOT-CFG` · **v20.61** · 01/09/2026)
 
