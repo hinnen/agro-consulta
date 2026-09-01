@@ -9,6 +9,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
+from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
     atualizar_ponte,
     contar_nao_lidas,
@@ -44,6 +45,37 @@ def _bridge_forbidden():
 @login_required(login_url="/admin/login/")
 def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
+
+
+@login_required(login_url="/admin/login/")
+def atendimento_whatsapp_bot_view(request):
+    return render(request, "produtos/atendimento_whatsapp_bot.html", {})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_bot_get(request):
+    return JsonResponse({"ok": True, "bot": carregar_bot(), "padrao": BOT_DEFAULT})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_bot_salvar(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    autor = ""
+    try:
+        if request.user.is_authenticated:
+            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
+    except Exception:
+        autor = ""
+    if data.get("reset"):
+        bot = resetar_bot(usuario=autor)
+        return JsonResponse({"ok": True, "bot": bot})
+    payload = data.get("bot") if isinstance(data.get("bot"), dict) else data
+    bot = salvar_bot(payload, usuario=autor)
+    return JsonResponse({"ok": True, "bot": bot})
 
 
 @login_required(login_url="/admin/login/")

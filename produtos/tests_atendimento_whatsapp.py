@@ -86,6 +86,11 @@ class UrlAtendimentoTests(TestCase):
         r = self.client.get(reverse("atendimento_whatsapp"))
         self.assertEqual(r.status_code, 200)
 
+    def test_pagina_bot_ok_logado(self):
+        self.client.force_login(self.user)
+        r = self.client.get(reverse("atendimento_whatsapp_bot"))
+        self.assertEqual(r.status_code, 200)
+
     def test_bridge_sem_token(self):
         r = self.client.post(
             reverse("api_atendimento_whatsapp_bridge_entrada"),

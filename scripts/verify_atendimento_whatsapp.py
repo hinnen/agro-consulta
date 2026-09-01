@@ -44,6 +44,11 @@ def _static() -> None:
     mig = ROOT / "produtos/migrations/0108_atendimento_whatsapp.py"
 
     check("url_pagina", "atendimento_whatsapp" in urls and "atendimento-whatsapp/" in urls)
+    check("url_bot_cfg", "atendimento_whatsapp_bot" in urls)
+    check("model_bot_cfg", "class WhatsAppBotConfigAgro" in models)
+    check("mig_0111", (ROOT / "produtos/migrations/0111_whatsapp_bot_config.py").is_file())
+    check("html_btn_bot", "atendimento_whatsapp_bot" in html)
+    check("js_bot_cfg", "atendimento_whatsapp_bot.js" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
     check("url_bridge_entrada", "api_atendimento_whatsapp_bridge_entrada" in urls)
     check("url_bridge_saida", "api_atendimento_whatsapp_bridge_saida" in urls)
     check("model_ponte", "class WhatsAppPonteEstadoAgro" in models)
@@ -74,6 +79,7 @@ def _logic() -> None:
     import django
 
     django.setup()
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, delays_bot
     from produtos.atendimento_whatsapp_util import interpretar_consulta_fiado, interpretar_loja
 
     check("logic_vila", interpretar_loja("2") == "vila")
@@ -81,6 +87,7 @@ def _logic() -> None:
     check("logic_vazio", interpretar_loja("oi") == "")
     check("logic_fiado", interpretar_consulta_fiado("fiado") is True)
     check("logic_fiado_nao_loja", interpretar_consulta_fiado("1") is False)
+    check("logic_delay", delays_bot(BOT_DEFAULT, 2)[0] >= 0)
 
 
 def main() -> int:

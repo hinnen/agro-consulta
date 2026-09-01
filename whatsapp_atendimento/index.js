@@ -98,6 +98,7 @@ async function estado(payload) {
 
 async function ligar() {
   fs.mkdirSync(AUTH, { recursive: true });
+  await estado({ status: "desconectado", aviso: "Ligando WhatsApp…" });
   const { state, saveCreds } = await useMultiFileAuthState(AUTH);
   const { version } = await fetchLatestBaileysVersion();
   sock = makeWASocket({

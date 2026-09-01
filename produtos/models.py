@@ -3450,6 +3450,22 @@ class WhatsAppPonteEstadoAgro(models.Model):
         return f"{self.chave} · {self.status}"
 
 
+class WhatsAppBotConfigAgro(models.Model):
+    """Textos, ordem e intervalos do bot WhatsApp (Postgres · uma chave por cliente SisVale)."""
+
+    chave = models.CharField(max_length=32, unique=True, default="default")
+    dados = models.JSONField(default=dict, blank=True)
+    atualizado_por = models.CharField(max_length=120, blank=True, default="")
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Config bot WhatsApp"
+        verbose_name_plural = "Configs bot WhatsApp"
+
+    def __str__(self):
+        return f"bot {self.chave}"
+
+
 class WhatsAppConversaAgro(models.Model):
     """Conversa de um cliente no número da loja, roteada para Centro ou Vila."""
 
@@ -3508,6 +3524,7 @@ class WhatsAppMensagemAgro(models.Model):
     enviado_em = models.DateTimeField(null=True, blank=True)
     erro_envio = models.CharField(max_length=200, blank=True, default="")
     autor_nome = models.CharField(max_length=120, blank=True, default="")
+    liberar_envio_em = models.DateTimeField(null=True, blank=True, db_index=True)
     criado_em = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:

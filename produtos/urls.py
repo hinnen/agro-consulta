@@ -33,6 +33,11 @@ urlpatterns = [
         views_atendimento_whatsapp.atendimento_whatsapp_view,
         name="atendimento_whatsapp",
     ),
+    path(
+        "atendimento-whatsapp/bot/",
+        views_atendimento_whatsapp.atendimento_whatsapp_bot_view,
+        name="atendimento_whatsapp_bot",
+    ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),
@@ -754,6 +759,16 @@ urlpatterns = [
         'api/pdv/chat-loja/enviar/',
         views_pdv_chat_loja.api_pdv_chat_loja_enviar,
         name='api_pdv_chat_loja_enviar',
+    ),
+    path(
+        'api/atendimento-whatsapp/bot/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bot_get,
+        name='api_atendimento_whatsapp_bot_get',
+    ),
+    path(
+        'api/atendimento-whatsapp/bot/salvar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bot_salvar,
+        name='api_atendimento_whatsapp_bot_salvar',
     ),
     path(
         'api/atendimento-whatsapp/estado/',

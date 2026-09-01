@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest
 from django.utils import timezone
 
@@ -57,31 +58,18 @@ def _sem_acento(s: str) -> str:
     return "".join(c for c in n if unicodedata.category(c) != "Mn")
 
 
-def interpretar_consulta_fiado(texto: str) -> bool:
+def interpretar_consulta_fiado(texto: str, cfg: dict | None = None) -> bool:
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, _casa_palavra, _palavras
+
+    c = cfg if cfg is not None else BOT_DEFAULT
+    if not c.get("fiado_ligado", True):
+        return False
     t = _sem_acento(" ".join(str(texto or "").strip().lower().split()))
-    if not t or t in ("1", "2", "c", "v"):
+    if not t:
         return False
-    if t in ("centro", "vila", "vila elias", "jacupiranga"):
+    if interpretar_loja(t, c):
         return False
-    if t in (
-        "fiado",
-        "meu fiado",
-        "saldo",
-        "saldo fiado",
-        "consulta fiado",
-        "consultar fiado",
-        "quanto eu devo",
-        "quanto devo",
-        "o que eu devo",
-        "divida",
-        "minha divida",
-    ):
-        return True
-    if "fiado" in t:
-        return True
-    if "devo" in t and ("quanto" in t or "o que" in t or "qto" in t):
-        return True
-    return False
+    return _casa_palavra(t, _palavras(c.get("fiado_palavras") or ""))
 
 
 def _fmt_rs(val) -> str:
@@ -90,23 +78,19 @@ def _fmt_rs(val) -> str:
     return f"R$ {format_moeda_br(val)}"
 
 
-def montar_texto_fiado(telefone: str) -> str:
+def montar_texto_fiado(telefone: str, cfg: dict | None = None) -> str:
     from decimal import Decimal
 
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
     from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
     from produtos.models import FiadoTituloAgro
 
+    c = cfg if cfg is not None else BOT_DEFAULT
     cli = cliente_agro_por_whatsapp_flex(telefone)
     if cli == "varios":
-        return (
-            "Encontramos mais de um cadastro com este WhatsApp. "
-            "Fale com a loja (responda *1* ou *2*) para conferir o fiado."
-        )
+        return str(c.get("msg_fiado_varios") or BOT_DEFAULT["msg_fiado_varios"])
     if cli is None:
-        return (
-            "Não achamos cadastro com este WhatsApp.\n"
-            "Confira se o número na loja é o mesmo deste celular."
-        )
+        return str(c.get("msg_fiado_sem_cadastro") or BOT_DEFAULT["msg_fiado_sem_cadastro"])
     qs = (
         FiadoTituloAgro.objects.filter(cliente_agro_id=cli.pk)
         .exclude(
@@ -119,6 +103,7 @@ def montar_texto_fiado(telefone: str) -> str:
     )
     linhas = []
     total = Decimal("0.00")
+    max_p = int(c.get("fiado_max_parcelas") or 8)
     for tit in qs:
         s = tit.saldo_aberto
         if s <= 0:
@@ -128,33 +113,39 @@ def montar_texto_fiado(telefone: str) -> str:
         linhas.append(f"• {venc} · {_fmt_rs(s)}")
     nome = (cli.nome or "cliente").strip()
     if not linhas:
-        return f"Olá, {nome}. Você *não* tem fiado em aberto neste cadastro."
+        tpl = str(c.get("msg_fiado_vazio") or BOT_DEFAULT["msg_fiado_vazio"])
+        return tpl.replace("{nome}", nome)
     extra = ""
-    mostrar = linhas[:8]
-    if len(linhas) > 8:
-        extra = f"\n… e mais {len(linhas) - 8} parcela(s)."
-    corpo = "\n".join(mostrar)
+    mostrar = linhas[:max_p]
+    if len(linhas) > max_p:
+        extra = f"\n… e mais {len(linhas) - max_p} parcela(s)."
+    corpo = "\n".join(mostrar) + extra
+    tpl = str(c.get("msg_fiado_aberto") or BOT_DEFAULT["msg_fiado_aberto"])
     return (
-        f"*Fiado em aberto*\n\n"
-        f"Olá, {nome}.\n"
-        f"Total: *{_fmt_rs(total)}*\n\n"
-        f"{corpo}{extra}\n\n"
-        "Para pagar, passe na loja."
+        tpl.replace("{nome}", nome)
+        .replace("{total}", _fmt_rs(total))
+        .replace("{linhas}", corpo)
+        .replace("{empresa}", str(c.get("nome_empresa") or ""))
     )
 
 
-def interpretar_loja(texto: str) -> str:
+def interpretar_loja(texto: str, cfg: dict | None = None) -> str:
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, _casa_palavra, _palavras
+
+    c = cfg if cfg is not None else BOT_DEFAULT
     t = _sem_acento(" ".join(str(texto or "").strip().lower().split()))
     if not t:
         return ""
-    if t in ("1", "centro", "loja centro", "jacupiranga", "c"):
-        return WhatsAppConversaAgro.LOJA_CENTRO
-    if t in ("2", "vila", "vila elias", "loja vila", "v"):
-        return WhatsAppConversaAgro.LOJA_VILA
-    if "vila" in t:
-        return WhatsAppConversaAgro.LOJA_VILA
-    if "centro" in t:
-        return WhatsAppConversaAgro.LOJA_CENTRO
+    id1 = str(c.get("loja1_id") or WhatsAppConversaAgro.LOJA_CENTRO).strip().lower()
+    id2 = str(c.get("loja2_id") or WhatsAppConversaAgro.LOJA_VILA).strip().lower()
+    if id1 not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):
+        id1 = WhatsAppConversaAgro.LOJA_CENTRO
+    if id2 not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):
+        id2 = WhatsAppConversaAgro.LOJA_VILA
+    if _casa_palavra(t, _palavras(c.get("loja1_palavras") or "")):
+        return id1
+    if _casa_palavra(t, _palavras(c.get("loja2_palavras") or "")):
+        return id2
     return ""
 
 
@@ -281,14 +272,29 @@ def contar_nao_lidas() -> dict:
     return out
 
 
-def _enfileirar_saida(conversa: WhatsAppConversaAgro, texto: str, *, direcao: str, autor: str = "") -> WhatsAppMensagemAgro:
+def _enfileirar_saida(
+    conversa: WhatsAppConversaAgro,
+    texto: str,
+    *,
+    direcao: str,
+    autor: str = "",
+    delay_seg: int = 0,
+) -> WhatsAppMensagemAgro:
     agora = timezone.now()
+    liberar = None
+    try:
+        d = int(delay_seg or 0)
+    except (TypeError, ValueError):
+        d = 0
+    if d > 0:
+        liberar = agora + timedelta(seconds=d)
     m = WhatsAppMensagemAgro.objects.create(
         conversa=conversa,
         direcao=direcao,
         texto=texto[:TEXTO_MAX],
         pendente_envio=True,
         autor_nome=(autor or "")[:120],
+        liberar_envio_em=liberar,
     )
     conversa.ultima_preview = _preview(texto)
     conversa.ultima_em = agora
@@ -296,8 +302,23 @@ def _enfileirar_saida(conversa: WhatsAppConversaAgro, texto: str, *, direcao: st
     return m
 
 
-def responder_bot(conversa: WhatsAppConversaAgro, texto: str) -> WhatsAppMensagemAgro:
-    return _enfileirar_saida(conversa, texto, direcao=WhatsAppMensagemAgro.DIRECAO_BOT, autor="Bot")
+def responder_bot(conversa: WhatsAppConversaAgro, texto: str, *, delay_seg: int = 0) -> WhatsAppMensagemAgro:
+    return _enfileirar_saida(
+        conversa, texto, direcao=WhatsAppMensagemAgro.DIRECAO_BOT, autor="Bot", delay_seg=delay_seg
+    )
+
+
+def _enviar_lote_bot(conversa: WhatsAppConversaAgro, textos: list[str], cfg: dict) -> None:
+    from produtos.atendimento_whatsapp_bot_config import delays_bot
+
+    msgs = [str(x).strip() for x in textos if str(x or "").strip()]
+    if not msgs:
+        return
+    empresa = str(cfg.get("nome_empresa") or "")
+    ds = delays_bot(cfg, len(msgs))
+    for i, txt in enumerate(msgs):
+        t = txt.replace("{empresa}", empresa)[:TEXTO_MAX]
+        responder_bot(conversa, t, delay_seg=ds[i] if i < len(ds) else 0)
 
 
 @transaction.atomic
@@ -342,47 +363,101 @@ def processar_entrada(
     conv.ultima_em = timezone.now()
     conv.nao_lidas = int(conv.nao_lidas or 0) + 1
 
-    if interpretar_consulta_fiado(t):
-        fone = conv.telefone or jid_para_telefone(jid_n)
-        campos = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
-        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and not conv.menu_enviado:
-            conv.menu_enviado = True
-            campos.append("menu_enviado")
-            conv.save(update_fields=campos)
-            responder_bot(conv, montar_texto_fiado(fone))
-            responder_bot(conv, MSG_MENU)
-        else:
-            conv.save(update_fields=campos)
-            responder_bot(conv, montar_texto_fiado(fone))
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot, fora_do_horario
+
+    cfg = carregar_bot()
+    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
+    fone = conv.telefone or jid_para_telefone(jid_n)
+
+    def _ok_loja(escolha: str) -> str:
+        if escolha == str(cfg.get("loja2_id") or "vila"):
+            return str(cfg.get("msg_ok_loja2") or MSG_OK_VILA)
+        return str(cfg.get("msg_ok_loja1") or MSG_OK_CENTRO)
+
+    def _menu_textos() -> list[str]:
+        out = []
+        if cfg.get("enviar_boas_vindas"):
+            bv = str(cfg.get("msg_boas_vindas") or "").strip()
+            if bv:
+                out.append(bv)
+        out.append(str(cfg.get("msg_menu") or MSG_MENU))
+        return out
+
+    if not cfg.get("bot_ligado"):
+        conv.save(update_fields=campos_base)
         return msg, ""
 
+    lote: list[str] = []
+    if fora_do_horario(cfg):
+        fh = str(cfg.get("msg_fora_horario") or "").strip()
+        if fh:
+            lote.append(fh)
+        if not cfg.get("ainda_atende_fora"):
+            conv.save(update_fields=campos_base)
+            _enviar_lote_bot(conv, lote, cfg)
+            return msg, ""
+
+    eh_fiado = interpretar_consulta_fiado(t, cfg)
+    escolha = interpretar_loja(t, cfg) if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE else ""
+    ordem_loja_primeiro = str(cfg.get("ordem") or "") == "loja_primeiro"
+
+    def _fiado_fluxo() -> None:
+        lote.append(montar_texto_fiado(fone, cfg))
+        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and cfg.get("fiado_manda_menu"):
+            if not conv.menu_enviado:
+                conv.menu_enviado = True
+                lote.extend(_menu_textos())
+
     if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
-        escolha = interpretar_loja(t)
+        if ordem_loja_primeiro and escolha:
+            conv.loja = escolha
+            conv.save(update_fields=campos_base + ["loja"])
+            lote.append(_ok_loja(escolha))
+            if cfg.get("ausencia_ligada"):
+                au = str(cfg.get("msg_ausencia") or "").strip()
+                if au:
+                    lote.append(au)
+            _enviar_lote_bot(conv, lote, cfg)
+            return msg, ""
+        if eh_fiado:
+            _fiado_fluxo()
+            campos = list(campos_base)
+            if conv.menu_enviado:
+                campos.append("menu_enviado")
+            conv.save(update_fields=campos)
+            _enviar_lote_bot(conv, lote, cfg)
+            return msg, ""
         if escolha:
             conv.loja = escolha
-            conv.save(
-                update_fields=["nome", "telefone", "loja", "ultima_preview", "ultima_em", "nao_lidas"]
-            )
-            ok = MSG_OK_VILA if escolha == WhatsAppConversaAgro.LOJA_VILA else MSG_OK_CENTRO
-            responder_bot(conv, ok)
-        elif not conv.menu_enviado:
+            conv.save(update_fields=campos_base + ["loja"])
+            lote.append(_ok_loja(escolha))
+            if cfg.get("ausencia_ligada"):
+                au = str(cfg.get("msg_ausencia") or "").strip()
+                if au:
+                    lote.append(au)
+            _enviar_lote_bot(conv, lote, cfg)
+            return msg, ""
+        if not conv.menu_enviado:
             conv.menu_enviado = True
-            conv.save(
-                update_fields=[
-                    "nome",
-                    "telefone",
-                    "menu_enviado",
-                    "ultima_preview",
-                    "ultima_em",
-                    "nao_lidas",
-                ]
-            )
-            responder_bot(conv, MSG_MENU)
-        else:
-            conv.save(update_fields=["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"])
-            responder_bot(conv, MSG_PEDIR_DE_NOVO)
-    else:
-        conv.save(update_fields=["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"])
+            conv.save(update_fields=campos_base + ["menu_enviado"])
+            lote.extend(_menu_textos())
+            _enviar_lote_bot(conv, lote, cfg)
+            return msg, ""
+        conv.save(update_fields=campos_base)
+        if cfg.get("repetir_menu", True):
+            lote.append(str(cfg.get("msg_pedir_de_novo") or MSG_PEDIR_DE_NOVO))
+        _enviar_lote_bot(conv, lote, cfg)
+        return msg, ""
+
+    if eh_fiado:
+        conv.save(update_fields=campos_base)
+        lote.append(montar_texto_fiado(fone, cfg))
+        _enviar_lote_bot(conv, lote, cfg)
+        return msg, ""
+
+    conv.save(update_fields=campos_base)
+    if lote:
+        _enviar_lote_bot(conv, lote, cfg)
     return msg, ""
 
 
@@ -460,6 +535,7 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     qs = (
         WhatsAppMensagemAgro.objects.select_related("conversa")
         .filter(pendente_envio=True)
+        .filter(Q(liberar_envio_em__isnull=True) | Q(liberar_envio_em__lte=timezone.now()))
         .order_by("id")[:lim]
     )
     out = []
