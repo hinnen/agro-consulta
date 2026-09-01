@@ -63,38 +63,43 @@
 
   function pintarStatus(p) {
     var box = $('wa-status');
+    var dot = $('wa-dot');
     var qrBox = $('wa-qr-box');
     var img = $('wa-qr-img');
     if (!box) return;
     p = p || {};
+    function pill(kind, txt, title) {
+      box.textContent = txt;
+      box.className = 'wa-pill' + (kind ? ' ' + kind : '');
+      if (title) box.title = title;
+      if (dot) {
+        dot.className = 'wa-dot ' + (kind === 'ok' ? 'on' : kind === 'warn' ? 'wait' : 'off');
+      }
+    }
     if (!p.ponte_viva) {
-      box.textContent = 'Ponte desligada — no PC da loja, rode whatsapp_atendimento\\iniciar.bat';
-      box.className = 'text-xs font-bold text-red-700';
+      pill('bad', 'Off', 'Rode whatsapp_atendimento\\iniciar.bat e deixe a janela aberta');
       if (qrBox) qrBox.classList.add('hidden');
       return;
     }
     if (p.qr) {
-      box.textContent = 'Leia o QR no celular do WhatsApp da loja';
-      box.className = 'text-xs font-bold text-amber-800';
+      pill('warn', 'QR');
       if (qrBox) qrBox.classList.remove('hidden');
       if (img) img.src = p.qr;
       return;
     }
     if (qrBox) qrBox.classList.add('hidden');
     if (p.conectada) {
-      box.textContent = 'Conectado' + (p.numero ? ' · ' + p.numero : '');
-      box.className = 'text-xs font-bold text-emerald-800';
+      pill('ok', p.numero ? p.numero : 'Online');
       return;
     }
-    box.textContent = p.aviso || 'Ponte ligada · aguardando WhatsApp';
-    box.className = 'text-xs font-bold text-slate-600';
+    pill('', p.aviso || 'Ligando');
   }
 
   function pintarLista(rows) {
     var el = $('wa-lista');
     if (!el) return;
     if (!rows || !rows.length) {
-      el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-500">Nenhuma conversa nesta aba.</p>';
+      el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Vazio</p>';
       return;
     }
     el.innerHTML = rows

@@ -48,6 +48,7 @@ def _static() -> None:
     check("model_bot_cfg", "class WhatsAppBotConfigAgro" in models)
     check("mig_0111", (ROOT / "produtos/migrations/0111_whatsapp_bot_config.py").is_file())
     check("html_btn_bot", "atendimento_whatsapp_bot" in html)
+    check("html_skin", "wa-skin" in html or "_wa_skin" in html)
     check("js_bot_cfg", "atendimento_whatsapp_bot.js" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
     check("url_bridge_entrada", "api_atendimento_whatsapp_bridge_entrada" in urls)
     check("url_bridge_saida", "api_atendimento_whatsapp_bridge_saida" in urls)

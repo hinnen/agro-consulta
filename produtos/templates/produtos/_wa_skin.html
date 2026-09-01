@@ -1,0 +1,130 @@
+{# Visual WhatsApp lojas — Agro + Zap, pouco texto. #}
+<style id="wa-skin">
+  .wa-skin { --wa: #25d366; --wa-ink: #075e54; }
+  .wa-skin .wa-top {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .55rem .9rem; border-bottom: 1px solid #e2e8f0; background: #fff;
+  }
+  .wa-skin .wa-dot {
+    width: .7rem; height: .7rem; border-radius: 999px; background: #94a3b8; flex-shrink: 0;
+  }
+  .wa-skin .wa-dot.on { background: var(--wa); box-shadow: 0 0 0 4px #dcfce7; }
+  .wa-skin .wa-dot.wait { background: #f59e0b; box-shadow: 0 0 0 4px #fef3c7; }
+  .wa-skin .wa-dot.off { background: #ef4444; box-shadow: 0 0 0 4px #fee2e2; }
+  .wa-skin .wa-title { font-size: 1.05rem; font-weight: 800; letter-spacing: -.02em; color: #0f172a; line-height: 1.2; }
+  .wa-skin .wa-pill {
+    display: inline-flex; align-items: center; min-height: 2rem; padding: 0 .7rem;
+    border-radius: 999px; font-size: .75rem; font-weight: 800; background: #f1f5f9; color: #334155;
+  }
+  .wa-skin .wa-pill.ok { background: #ecfdf5; color: #047857; }
+  .wa-skin .wa-pill.warn { background: #fff7ed; color: #c2410c; }
+  .wa-skin .wa-pill.bad { background: #fef2f2; color: #b91c1c; }
+  .wa-skin .wa-ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.75rem; min-width: 2.75rem; padding: 0 .85rem;
+    border-radius: .9rem; border: 1px solid #e2e8f0; background: #fff;
+    font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #334155;
+  }
+  .wa-skin .wa-ico:hover { border-color: #86efac; background: #f0fdf4; }
+  .wa-skin .wa-ico.pri { border-color: transparent; background: var(--wa); color: #fff; }
+  .wa-skin .wa-ico.pri:hover { filter: brightness(.95); background: var(--wa); }
+  .wa-skin .wa-tabs { display: flex; gap: .35rem; padding: .15rem; background: #f1f5f9; border-radius: 1rem; }
+  .wa-skin .wa-tab {
+    flex: 1; min-height: 2.6rem; border: 0; border-radius: .8rem; background: transparent;
+    font-size: .8rem; font-weight: 800; color: #64748b; cursor: pointer;
+  }
+  .wa-skin .wa-tab.is-on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgb(15 23 42 / .08); }
+  .wa-skin .wa-badge {
+    display: inline-block; min-width: 1.25rem; margin-left: .2rem; border-radius: 999px;
+    background: #ea580c; color: #fff; font-size: .65rem; padding: .05rem .3rem;
+  }
+  .wa-skin .wa-badge.is-zero { background: #e2e8f0; color: #64748b; }
+  .wa-skin .wa-pane { background: #fff; border: 1px solid #e8eef4; border-radius: 1.1rem; overflow: hidden; }
+  .wa-skin .wa-item { display: block; width: 100%; text-align: left; padding: .7rem .85rem; border-bottom: 1px solid #f1f5f9; background: #fff; }
+  .wa-skin .wa-item:hover { background: #f8fafc; }
+  .wa-skin .wa-item.is-on { background: #ecfdf5; }
+  .wa-skin .wa-item .wa-n { font-weight: 800; font-size: .9rem; }
+  .wa-skin .wa-item .wa-p { color: #64748b; font-size: .8rem; }
+  .wa-skin #wa-msgs { background: #ece5dd; }
+  .wa-skin .wa-b {
+    max-width: 78%; margin: .4rem .15rem; padding: .5rem .7rem; font-size: .92rem; line-height: 1.35;
+    white-space: pre-wrap; box-shadow: 0 1px 1px rgb(15 23 42 / .06);
+  }
+  .wa-skin .wa-b.in { background: #fff; border-radius: .25rem 1rem 1rem 1rem; }
+  .wa-skin .wa-b.out { background: #d9fdd3; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; }
+  .wa-skin .wa-b.bot { background: #fff7ed; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; color: #9a3412; }
+  .wa-skin .wa-cfg {
+    display: grid; grid-template-columns: 10.5rem minmax(0, 1fr); gap: .75rem;
+    width: 100%; max-width: 70rem; margin: 0 auto; min-height: 0; flex: 1;
+  }
+  @media (max-width: 720px) {
+    .wa-skin .wa-cfg { grid-template-columns: 1fr; }
+    .wa-skin .wa-nav { display: flex; flex-wrap: wrap; gap: .3rem; }
+  }
+  .wa-skin .wa-nav { display: flex; flex-direction: column; gap: .25rem; }
+  .wa-skin .wa-nav button {
+    text-align: left; min-height: 2.55rem; padding: 0 .8rem; border: 0; border-radius: .8rem;
+    background: transparent; font-size: .8rem; font-weight: 800; color: #64748b; cursor: pointer;
+  }
+  .wa-skin .wa-nav button.is-on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgb(15 23 42 / .08); }
+  .wa-skin .wa-card { background: #fff; border-radius: 1.15rem; padding: 1rem 1.1rem 1.15rem; border: 1px solid #e8eef4; }
+  .wa-skin .wa-lab { display: block; font-size: .72rem; font-weight: 800; color: #64748b; margin-bottom: .3rem; }
+  .wa-skin .wa-inp, .wa-skin .wa-card textarea, .wa-skin .wa-card select, .wa-skin .wa-card input[type="number"],
+  .wa-skin .wa-card input[type="time"], .wa-skin .wa-card input[type="text"] {
+    width: 100%; min-height: 2.7rem; border-radius: .85rem; border: 1px solid #e2e8f0;
+    padding: .45rem .75rem; font-size: 1rem; font-weight: 600; background: #f8fafc; color: #0f172a;
+  }
+  .wa-skin .wa-card textarea { min-height: 5.5rem; background: #f8fafc; }
+  .wa-skin .wa-card textarea.wa-long { min-height: 9rem; }
+  .wa-skin .wa-inp:focus, .wa-skin .wa-card textarea:focus, .wa-skin .wa-card select:focus {
+    outline: 2px solid #86efac; border-color: var(--wa); background: #fff;
+  }
+  .wa-skin .wa-row { display: grid; gap: .75rem; }
+  @media (min-width: 640px) { .wa-skin .wa-row-2 { grid-template-columns: 1fr 1fr; } }
+  .wa-skin .wa-sw {
+    display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+    min-height: 2.8rem; padding: .35rem 0;
+  }
+  .wa-skin .wa-sw span { font-size: .92rem; font-weight: 800; color: #0f172a; }
+  .wa-skin .wa-sw input {
+    appearance: none; width: 2.7rem; height: 1.5rem; border-radius: 999px; background: #cbd5e1;
+    position: relative; cursor: pointer; flex-shrink: 0; border: 0;
+  }
+  .wa-skin .wa-sw input:checked { background: var(--wa); }
+  .wa-skin .wa-sw input::after {
+    content: ""; position: absolute; top: .15rem; left: .15rem; width: 1.2rem; height: 1.2rem;
+    border-radius: 999px; background: #fff; transition: left .15s;
+  }
+  .wa-skin .wa-sw input:checked::after { left: 1.35rem; }
+  .wa-skin .wa-q {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 1.15rem; height: 1.15rem; margin-left: .25rem; border-radius: 999px;
+    background: #e2e8f0; color: #475569; font-size: .65rem; font-weight: 900; cursor: help; border: 0;
+  }
+  .wa-skin .wa-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 2.6rem; min-height: 2.2rem; border-radius: .7rem; border: 1px solid #e2e8f0;
+    font-size: .75rem; font-weight: 800; color: #64748b; background: #fff; cursor: pointer;
+  }
+  .wa-skin .wa-chip.is-on { background: #ecfdf5; border-color: var(--wa); color: #047857; }
+  .wa-skin .wa-chip input { display: none; }
+  .wa-skin .wa-foot {
+    position: sticky; bottom: .6rem; display: flex; gap: .5rem;
+    padding: .45rem; background: #fff; border-radius: 1rem; border: 1px solid #e8eef4;
+    box-shadow: 0 8px 24px rgb(15 23 42 / .08);
+  }
+  .wa-skin .wa-foot button {
+    min-height: 2.8rem; border-radius: .85rem; font-size: .8rem; font-weight: 800; text-transform: uppercase;
+    border: 0; cursor: pointer; padding: 0 1.1rem;
+  }
+  .wa-skin .wa-foot .go { flex: 1; background: var(--wa); color: #fff; }
+  .wa-skin .wa-foot .ghost { background: #f1f5f9; color: #334155; }
+  .wa-skin .wa-toast { display: none; margin: 0 0 .6rem; padding: .55rem .8rem; border-radius: .85rem; font-size: .85rem; font-weight: 800; }
+  .wa-skin .wa-toast.show { display: block; }
+  .wa-skin .wa-toast.ok { background: #ecfdf5; color: #047857; }
+  .wa-skin .wa-toast.bad { background: #fef2f2; color: #b91c1c; }
+  .wa-skin .wa-panel { display: none; }
+  .wa-skin .wa-panel.is-on { display: block; }
+  .wa-skin .wa-qr { background: linear-gradient(180deg, #fff7ed, #fff); border: 1px solid #fed7aa; border-radius: 1.1rem; padding: .75rem; text-align: center; }
+  .wa-skin .wa-qr img { width: 11rem; height: 11rem; margin: .4rem auto 0; border-radius: .75rem; background: #fff; padding: .4rem; }
+</style>

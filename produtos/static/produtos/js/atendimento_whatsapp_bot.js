@@ -44,10 +44,7 @@
     var box = $('wa-bot-msg');
     if (!box) return;
     box.textContent = t;
-    box.className =
-      'rounded-xl border-2 px-3 py-2 text-sm font-bold ' +
-      (ok ? 'border-emerald-400 bg-emerald-50 text-emerald-900' : 'border-red-400 bg-red-50 text-red-900');
-    box.classList.remove('hidden');
+    box.className = 'wa-toast show ' + (ok ? 'ok' : 'bad');
   }
 
   function montarDias(sel) {
@@ -59,15 +56,20 @@
       set[Number(d)] = true;
     });
     DIAS.forEach(function (d) {
+      var on = !!set[d.v];
       var lab = document.createElement('label');
-      lab.className = 'inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1';
+      lab.className = 'wa-chip' + (on ? ' is-on' : '');
       lab.innerHTML =
         '<input type="checkbox" data-dia="' +
         d.v +
-        '" class="h-4 w-4"' +
-        (set[d.v] ? ' checked' : '') +
-        ' /> ' +
+        '"' +
+        (on ? ' checked' : '') +
+        ' />' +
         d.n;
+      lab.addEventListener('change', function () {
+        var inp = lab.querySelector('input');
+        lab.classList.toggle('is-on', !!(inp && inp.checked));
+      });
       box.appendChild(lab);
     });
   }
@@ -170,7 +172,7 @@
         return;
       }
       preencher(j.bot);
-      aviso(true, 'Salvo. Vale na próxima mensagem do cliente.');
+      aviso(true, 'Salvo');
     }).catch(function () {
       aviso(false, 'Não salvou');
     });
@@ -178,14 +180,28 @@
   var rst = $('wa-bot-reset');
   if (rst) {
     rst.addEventListener('click', function () {
-      if (!window.confirm('Voltar todos os textos e tempos ao padrão da GM Agro?')) return;
+      if (!window.confirm('Voltar ao padrão?')) return;
       salvar({ reset: true }).then(function (j) {
         if (!j || !j.ok) {
           aviso(false, (j && j.erro) || 'Não resetou');
           return;
         }
         preencher(j.bot);
-        aviso(true, 'Padrão restaurado.');
+        aviso(true, 'Padrão');
+      });
+    });
+  }
+  var nav = $('wa-bot-nav');
+  if (nav) {
+    nav.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-panel]');
+      if (!b) return;
+      var id = b.getAttribute('data-panel');
+      nav.querySelectorAll('button').forEach(function (x) {
+        x.classList.toggle('is-on', x === b);
+      });
+      document.querySelectorAll('#wa-bot-form .wa-panel').forEach(function (p) {
+        p.classList.toggle('is-on', p.getAttribute('data-panel') === id);
       });
     });
   }
