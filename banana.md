@@ -732,6 +732,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
+- **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1265,30 +1266,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote vendas + BI (`deploy/prep-lote-vendas-bi-0109d` · **v20.85** · 01/09/2026)
+### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Loja hoje** | **v20.58** @ `751c0d4` |
-| **Branch PREP** | `deploy/prep-lote-vendas-bi-0109d` @ **`798caaa`** |
-| **Rollback** | `docs/ROLLBACK-LOTE-VENDAS-BI-0109d.md` · tag `rollback/pre-lote-vendas-bi-0109d-v20.58` |
+| **Status** | ✅ **enviado / Live v20.86** — healthz **ok** · frase+senha neste chat |
+| **Antes** | `producao` @ **v20.58** / `751c0d4` |
+| **Agora** | `producao` @ **`798caaa`** |
+| **Pacotes** | `BI-DEVOL-CARD` · `BI-DEVOL-MEIO` · `VL-FIADO-TAGS` · `VL-CAL-INTERVALO` |
 | **Migrate** | **NÃO** |
-| **Prova** | vendas-lojas **140/140** · BI devolução **43/43** · PIN **9973** |
-| **Risco PDV** | **Não** — só BI, atalhos e `/vendas/lojas/` |
-| **Loja** | **aguarda senha** — pausar vendas ~1–2 min |
+| **Rollback** | `docs/ROLLBACK-LOTE-VENDAS-BI-0109d.md` · tag `rollback/pre-lote-vendas-bi-0109d-v20.58` |
+| **Você** | Ctrl+F5 · badge **v20.86** · `/vendas/lojas/` tag fiado · BI = vendas-lojas |
 
-### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
+### ✅ CHECKLIST ÚNICO — 01/09d · **Live v20.86**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `BI-DEVOL-CARD` | 🟢 **pronto envio** | **NÃO** |
-| 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
-| 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
-| 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
+| 1 | `BI-DEVOL-CARD` | ✅ **Live v20.86** | **NÃO** |
+| 2 | `BI-DEVOL-MEIO` | ✅ **Live v20.86** | **NÃO** |
+| 3 | `VL-FIADO-TAGS` | ✅ **Live v20.86** | **NÃO** |
+| 4 | `VL-CAL-INTERVALO` | ✅ **Live v20.86** | **NÃO** |
 
-**Fora:** WhatsApp · `marcar_lidas` (só `teste` com chat) · resto do `teste`
+**Fora (ainda só `teste`):** WhatsApp · resto do `teste`
 
-**Deploy:** `git reset --hard origin/deploy/prep-lote-vendas-bi-0109d` na `producao` + senha.
+### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
+
+### 📦 PACOTE PRONTO — Mensagens WhatsApp estáveis (`WA-MSG-LID` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aceita msg offline + ID `@lid` · junta conversa antiga · Salvar bot não trava |
+| **Migrate** | **NÃO** |
+| **Ops** | Fechar todas janelas do `.bat` · abrir **uma** · Ctrl+F5 |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Transferir atendimento WhatsApp (`WA-XFER-LOJA` · 01/09/2026)
 
@@ -1384,7 +1394,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** |
-| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
@@ -1393,7 +1403,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Tag **Sem fiado** · **c/ fiado quitado** + modal no celular |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` (fiado DB + HTTP) |
-| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
@@ -1402,7 +1412,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` **43/43** |
-| **Status** | 🟢 **pronto envio** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
@@ -1411,7 +1421,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Card/total do BI `/` = mesma conta do `/vendas/lojas/` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` |
-| **Status** | 🟢 **pronto envio** · loja **v20.58** |
+| **Status** | ✅ **Live v20.86** |
 
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
