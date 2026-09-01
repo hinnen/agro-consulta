@@ -1266,7 +1266,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Fiado pelo WhatsApp (`WA-FIADO-MSG` · 01/09/2026)
+### 📦 PACOTE PRONTO — Fiado pelo WhatsApp (`WA-FIADO-MSG` · **v20.50** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
