@@ -9838,6 +9838,23 @@
         return payload;
     }
 
+    function linhaObsMaquininhaEntrega(val) {
+        var raw = String(val == null ? '' : val).trim();
+        if (!raw) return '';
+        var s = raw.toLowerCase();
+        if (
+            s === 'nao' ||
+            s === 'não' ||
+            s === 'n' ||
+            s === '0' ||
+            s === 'false' ||
+            s === 'off'
+        ) {
+            return '';
+        }
+        return 'Maquininha: ' + raw;
+    }
+
     /** Flags para via do entregador: PAGO / LEVAR TROCO / LEVAR MÁQUINA. */
     function entregaFlagsPagamentoPrint(state, computed) {
         var e = (state && state.entrega) || {};
@@ -9888,7 +9905,7 @@
             state.entrega.observacao || '',
             state.pagamento.observacaoFinal || '',
             extraPag,
-            state.entrega.maquininha ? 'Maquininha: ' + state.entrega.maquininha : '',
+            linhaObsMaquininhaEntrega(state.entrega.maquininha),
             extras.obsExtra || ''
         ].filter(Boolean);
         var observacoes = obsParts.join(' | ');
@@ -12216,7 +12233,7 @@
             e.observacao,
             state.pagamento && state.pagamento.observacaoFinal,
             pagamentoResumoExtra(state, computed),
-            e.maquininha ? 'Maquininha: ' + e.maquininha : '',
+            linhaObsMaquininhaEntrega(e.maquininha),
             obsExtra
         ].filter(Boolean);
         var itensJson = (state.itens || []).map(function (it) {
@@ -12367,10 +12384,12 @@
         if (!pago && pag.label && /pago/i.test(String(pag.label)) && !/cobrar|n[aã]o\s*pago/i.test(String(pag.label))) {
             pago = true;
         }
-        var cartao =
-            /cart[aã]o|maquininha|pinpad|cr[eé]dito|d[eé]bito/i.test(forma + ' ' + obs) ||
-            (aguarda && /cart[aã]o|maquininha/i.test(obs));
         var dinheiro = /dinheiro/i.test(forma + ' ' + obs) || (aguarda && /dinheiro/i.test(obs));
+        var blobCartao = (forma + ' ' + obs).replace(/maquininha\s*:\s*n[aã]o/gi, ' ');
+        var cartao =
+            /cart[aã]o|maquininha|pinpad|cr[eé]dito|d[eé]bito/i.test(blobCartao) ||
+            (aguarda && /cart[aã]o|maquininha/i.test(blobCartao));
+        if (dinheiro) cartao = false;
         var trocoPrecisa = e.troco_precisa === true;
         var trocoVal = wizardPrintTrocoLevarValor(e);
         if (trocoVal != null) trocoPrecisa = true;
@@ -12414,6 +12433,14 @@
                     'background:#000;color:#fff">' +
                     '<div style="font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1.15">LEVAR MÁQUINA</div>' +
                     '<div style="font-size:12px;font-weight:700;margin-top:4px">Cartão no local</div></div>'
+            );
+        } else if (dinheiro) {
+            parts.push(
+                '<div style="' +
+                    box +
+                    'background:#000;color:#fff">' +
+                    '<div style="font-size:20px;font-weight:900;letter-spacing:0.03em;line-height:1.15">COBRAR DINHEIRO</div>' +
+                    '<div style="font-size:12px;font-weight:700;margin-top:4px">Sem troco — valor exato</div></div>'
             );
         }
         return parts.join('');

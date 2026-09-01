@@ -1260,6 +1260,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Via entregador dinheiro sem troco (`ENT-VIA-DIN-SEM-MAQ` · **v20.54** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Dinheiro **sem troco** na entrega **não** imprime **LEVAR MÁQUINA**. Sai **COBRAR DINHEIRO**. |
+| **Causa** | O PDV gravava «Maquininha: não» na observação e o papel lia a palavra maquininha. |
+| **Onde** | Via entregador (PDV + painel Entregas) |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_ent_via_dinheiro_sem_maquina.py` |
+| **Status** | 🟡 **teste** |
+| **Você** | Ctrl+F5 no PDV · entrega · dinheiro · troco 0 · imprimir via do entregador |
+
 ### 📦 PACOTE PRONTO — BI desconta devolução no dia (`BI-DEVOL-DIA` · **v20.53** · 01/09/2026)
 
 | Campo | Valor |
