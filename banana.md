@@ -1254,6 +1254,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — lote checklist 01/09 (`deploy/prep-checklist-0109` · **v20.56**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **não** subiu na loja |
+| **Antes** | `origin/producao` @ **v20.49** / `31941b8` |
+| **Sobe** | `PDV-ENTREGA-F3` · `BI-DEVOL-DIA` · `ENT-VIA-DIN-SEM-MAQ` |
+| **Fora** | `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-0109-v20.49` @ `31941b8` · `docs/ROLLBACK-LOTE-CHECKLIST-0109.md` |
+
 ### 🚀 PREP deploy loja — PIN na ação (deploy/prep-pin-na-acao-v2027 · **v20.22**) · 31/08/2026
 
 | Campo | Valor |
