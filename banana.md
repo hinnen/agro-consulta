@@ -1300,7 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Busca mistura cadastro + agenda incremental (sem sync pesado que derruba a ponte) |
+| **O quê** | Busca mistura cadastro + agenda incremental · fiado responde mesmo fora do horário |
 | **Migrate** | **NÃO** |
 | **Ops** | Reiniciar `iniciar.bat` · **só uma** janela preta aberta |
 | **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) · sync bootstrap **revertido** (estabilidade) |

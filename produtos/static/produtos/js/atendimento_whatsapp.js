@@ -321,21 +321,37 @@
   $('wa-form').addEventListener('submit', function (ev) {
     ev.preventDefault();
     var inp = $('wa-input');
+    var btn = $('wa-send');
     var t = (inp.value || '').trim();
-    if (!t || !convId) return;
+    if (!t || !convId || (btn && btn.disabled)) return;
     inp.value = '';
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+    }
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify({ conversa_id: convId, texto: t }),
-    }).then(function (j) {
-      if (!j || !j.ok) {
-        window.alert((j && j.erro) || 'Não enviou.');
+    })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não enviou.');
+          inp.value = t;
+          return;
+        }
+        pollMsgs();
+      })
+      .catch(function () {
+        window.alert('Falha de rede ao enviar.');
         inp.value = t;
-        return;
-      }
-      pollMsgs();
-    });
+      })
+      .finally(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Enviar';
+        }
+      });
   });
 
   document.querySelectorAll('[data-xfer]').forEach(function (b) {
