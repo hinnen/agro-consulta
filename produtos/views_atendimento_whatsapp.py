@@ -12,6 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
     atualizar_ponte,
+    abrir_conversa_busca,
     abrir_conversa_saida,
     buscar_contatos_envio,
     contar_nao_lidas,
@@ -194,6 +195,21 @@ def api_atendimento_whatsapp_definir_loja(request):
 def api_atendimento_whatsapp_contatos(request):
     q = (request.GET.get("q") or "").strip()
     return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_abrir(request):
+    data = _json_body(request)
+    if data is None:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    conv, err = abrir_conversa_busca(
+        telefone=str(data.get("telefone") or data.get("jid") or ""),
+        nome=str(data.get("nome") or ""),
+    )
+    if err or conv is None:
+        return JsonResponse({"ok": False, "erro": err or "Não abriu."}, status=400)
+    return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
 @login_required(login_url="/admin/login/")

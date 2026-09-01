@@ -622,7 +622,7 @@ def enviar_loja(*, conversa_id: int, texto: str, autor: str = "") -> tuple[Whats
         conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
     except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
         return None, "Conversa não encontrada."
-    if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
+    if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and conv.origem_abertura != "loja":
         return None, "Cliente ainda não escolheu a loja."
     m = _enfileirar_saida(
         conv,
@@ -687,57 +687,83 @@ def abrir_conversa_saida(
     return enviar_loja(conversa_id=int(conv.pk), texto=t, autor=autor)
 
 
+@transaction.atomic
+def abrir_conversa_busca(*, telefone: str, nome: str = "") -> tuple[WhatsAppConversaAgro | None, str]:
+    jid = telefone_para_jid(telefone)
+    if not jid:
+        return None, "Número inválido."
+    conv = WhatsAppConversaAgro.objects.select_for_update().filter(jid=jid[:80]).first()
+    if conv is None:
+        if _novos_loja_24h() >= MAX_NOVOS_DIA:
+            return None, "Limite de conversas novas hoje (20)."
+        conv = WhatsAppConversaAgro.objects.create(
+            jid=jid[:80],
+            telefone=jid_para_telefone(jid),
+            nome=(nome or "")[:120],
+            loja=WhatsAppConversaAgro.LOJA_PENDENTE,
+            menu_enviado=True,
+            origem_abertura="loja",
+        )
+    if nome and not conv.nome:
+        conv.nome = nome[:120]
+    if not conv.telefone:
+        conv.telefone = jid_para_telefone(jid)
+    aplicar_nome_cadastro(conv)
+    conv.save(update_fields=["nome", "telefone"])
+    return conv, ""
+
+
 def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
     lim = max(1, min(int(limit or 20), 40))
     t = (termo or "").strip()
+    if len(t) < 1:
+        return []
     dig = re.sub(r"\D+", "", t)
     out: list[dict] = []
     seen: set[str] = set()
 
     def _add(origem: str, nome: str, telefone: str, jid: str) -> None:
+        if len(out) >= lim:
+            return
         j = (jid or telefone_para_jid(telefone) or "").strip()[:80]
         if not j or j in seen:
             return
         seen.add(j)
+        conv = WhatsAppConversaAgro.objects.filter(jid=j).only("id", "loja").first()
         out.append(
             {
                 "origem": origem,
                 "nome": (nome or "")[:120],
                 "telefone": (telefone or jid_para_telefone(j))[:32],
                 "jid": j,
+                "conversa_id": int(conv.pk) if conv else 0,
+                "loja": (conv.loja if conv else "") or "",
             }
         )
 
-    cli = ClienteAgro.objects.filter(ativo=True).exclude(whatsapp="")
-    if t:
-        q = Q(nome__icontains=t)
-        if dig:
-            q |= Q(whatsapp__icontains=dig)
-        cli = cli.filter(q)
-    for c in cli.order_by("nome")[:lim]:
-        _add("cadastro", c.nome or "", c.whatsapp or "", telefone_para_jid(c.whatsapp or ""))
-        if len(out) >= lim:
-            return out
+    if len(t) >= 2:
+        pedir_agenda_zap()
 
-    convs = WhatsAppConversaAgro.objects.all()
-    if t:
-        q = Q(nome__icontains=t) | Q(telefone__icontains=dig or t)
-        convs = convs.filter(q)
+    cli = ClienteAgro.objects.filter(ativo=True).exclude(whatsapp="")
+    q = Q(nome__icontains=t)
+    if dig:
+        q |= Q(whatsapp__icontains=dig)
+    for c in cli.filter(q).order_by("nome")[:lim]:
+        _add("cadastro", c.nome or "", c.whatsapp or "", telefone_para_jid(c.whatsapp or ""))
+
+    convs = WhatsAppConversaAgro.objects.filter(Q(nome__icontains=t) | Q(telefone__icontains=dig or t))
     for c in convs.order_by("-ultima_em")[:lim]:
         _add("conversa", c.nome or "", c.telefone or "", c.jid)
-        if len(out) >= lim:
-            return out
 
     ag = WhatsAppAgendaContatoAgro.objects.all()
-    if t:
-        q = Q(nome__icontains=t)
-        if dig:
-            q |= Q(telefone__icontains=dig)
-        ag = ag.filter(q)
-    for c in ag.order_by("nome")[:lim]:
+    qag = Q(nome__icontains=t)
+    if dig:
+        qag |= Q(telefone__icontains=dig)
+    for c in ag.filter(qag).order_by("nome")[:lim]:
         _add("zap", c.nome or "", c.telefone or "", c.jid)
-        if len(out) >= lim:
-            break
+
+    if dig and len(dig) >= 10:
+        _add("número", "", dig, telefone_para_jid(dig))
     return out
 
 
@@ -745,7 +771,7 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
     n = 0
     if not isinstance(itens, list):
         itens = []
-    for raw in itens[:80]:
+    for raw in itens[:500]:
         if not isinstance(raw, dict):
             continue
         jid = str(raw.get("jid") or "").strip()[:80]

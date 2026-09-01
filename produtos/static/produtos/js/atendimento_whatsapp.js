@@ -227,6 +227,7 @@
   }
 
   function carregarLista() {
+    if ($('wa-busca') && ($('wa-busca').value || '').trim()) return Promise.resolve();
     return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(loja)).then(
       function (j) {
         if (!j || !j.ok) return;
@@ -341,33 +342,82 @@
     });
   });
 
-  function abrirNovo(on) {
-    var box = $('wa-novo-box');
-    if (!box) return;
-    box.classList.toggle('hidden', !on);
+  function mostrarBusca(on) {
+    var hits = $('wa-busca-hits');
+    var lista = $('wa-lista');
+    if (!hits || !lista) return;
+    hits.classList.toggle('hidden', !on);
+    lista.classList.toggle('hidden', !!on);
   }
 
-  function buscarNovo() {
-    var q = ($('wa-novo-q') && $('wa-novo-q').value) || '';
-    fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
-      var el = $('wa-novo-lista');
-      if (!el) return;
-      var rows = (j && j.contatos) || [];
-      if (!rows.length) {
-        el.innerHTML = '<p class="p-3 text-sm font-semibold text-slate-400">Nada</p>';
+  function rotuloOrigem(o) {
+    if (o === 'cadastro') return 'cadastro';
+    if (o === 'zap') return 'zap';
+    if (o === 'conversa') return 'já no chat';
+    return 'número';
+  }
+
+  function irParaConversa(conv) {
+    if (!conv || !conv.id) return;
+    loja = conv.loja || 'pendente';
+    setTab();
+    if ($('wa-busca')) $('wa-busca').value = '';
+    mostrarBusca(false);
+    carregarLista();
+    abrirConversa(conv.id);
+  }
+
+  function abrirHit(c) {
+    if (!c) return;
+    if (c.conversa_id) {
+      irParaConversa({ id: c.conversa_id, loja: c.loja || 'pendente' });
+      return;
+    }
+    fetchJson('/api/atendimento-whatsapp/abrir/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ telefone: c.telefone || c.jid || '', nome: c.nome || '' }),
+    }).then(function (j) {
+      if (!j || !j.ok) {
+        window.alert((j && j.erro) || 'Não abriu.');
         return;
       }
-      el.innerHTML = rows
+      irParaConversa(j.conversa);
+    });
+  }
+
+  function buscarTopo() {
+    var q = (($('wa-busca') && $('wa-busca').value) || '').trim();
+    var hits = $('wa-busca-hits');
+    if (!hits) return;
+    if (!q) {
+      mostrarBusca(false);
+      return;
+    }
+    mostrarBusca(true);
+    fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
+      var rows = (j && j.contatos) || [];
+      if (!rows.length) {
+        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada. Digite o telefone com DDD para abrir.</p>';
+        return;
+      }
+      hits.innerHTML = rows
         .map(function (c) {
           return (
             '<button type="button" class="wa-item" data-tel="' +
             escapeHtml(c.telefone || '') +
             '" data-nome="' +
             escapeHtml(c.nome || '') +
+            '" data-jid="' +
+            escapeHtml(c.jid || '') +
+            '" data-cid="' +
+            String(c.conversa_id || 0) +
+            '" data-loja="' +
+            escapeHtml(c.loja || '') +
             '"><div class="wa-n">' +
-            escapeHtml((c.nome || '') + ' · ' + (c.telefone || '')) +
+            escapeHtml((c.nome || '') + (c.nome && c.telefone ? ' · ' : '') + (c.telefone || '')) +
             '</div><div class="wa-p">' +
-            escapeHtml(c.origem || '') +
+            escapeHtml(rotuloOrigem(c.origem)) +
             '</div></button>'
           );
         })
@@ -375,75 +425,25 @@
     });
   }
 
-  var novoTimer = 0;
-  var btnNovo = $('wa-novo');
-  if (btnNovo) {
-    btnNovo.addEventListener('click', function () {
-      abrirNovo(true);
-      buscarNovo();
+  var buscaTimer = 0;
+  var inpBusca = $('wa-busca');
+  if (inpBusca) {
+    inpBusca.addEventListener('input', function () {
+      window.clearTimeout(buscaTimer);
+      buscaTimer = window.setTimeout(buscarTopo, 220);
     });
   }
-  var btnNovoX = $('wa-novo-x');
-  if (btnNovoX) btnNovoX.addEventListener('click', function () { abrirNovo(false); });
-  var qNovo = $('wa-novo-q');
-  if (qNovo) {
-    qNovo.addEventListener('input', function () {
-      window.clearTimeout(novoTimer);
-      novoTimer = window.setTimeout(buscarNovo, 280);
-    });
-  }
-  var listaNovo = $('wa-novo-lista');
-  if (listaNovo) {
-    listaNovo.addEventListener('click', function (ev) {
-      var btn = ev.target.closest('[data-tel]');
+  var hitsEl = $('wa-busca-hits');
+  if (hitsEl) {
+    hitsEl.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-tel], [data-jid]');
       if (!btn) return;
-      $('wa-novo-tel').value = btn.getAttribute('data-tel') || '';
-      $('wa-novo-nome').value = btn.getAttribute('data-nome') || '';
-    });
-  }
-  var btnAgenda = $('wa-agenda-zap');
-  if (btnAgenda) {
-    btnAgenda.addEventListener('click', function () {
-      fetchJson('/api/atendimento-whatsapp/agenda-zap/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: '{}',
-      }).then(function (j) {
-        if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Ponte desligada?');
-          return;
-        }
-        window.setTimeout(buscarNovo, 2500);
-      });
-    });
-  }
-  var btnNovoOk = $('wa-novo-ok');
-  if (btnNovoOk) {
-    btnNovoOk.addEventListener('click', function () {
-      var tel = ($('wa-novo-tel') && $('wa-novo-tel').value) || '';
-      var txt = ($('wa-novo-txt') && $('wa-novo-txt').value) || '';
-      var lojaEl = document.querySelector('input[name="wa-novo-loja"]:checked');
-      fetchJson('/api/atendimento-whatsapp/novo/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({
-          telefone: tel,
-          texto: txt,
-          loja: lojaEl ? lojaEl.value : 'centro',
-          nome: ($('wa-novo-nome') && $('wa-novo-nome').value) || '',
-        }),
-      }).then(function (j) {
-        if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não enviou.');
-          return;
-        }
-        abrirNovo(false);
-        if (j.conversa && j.conversa.loja) {
-          loja = j.conversa.loja;
-          setTab();
-        }
-        if (j.conversa && j.conversa.id) abrirConversa(j.conversa.id);
-        carregarLista();
+      abrirHit({
+        telefone: btn.getAttribute('data-tel') || '',
+        nome: btn.getAttribute('data-nome') || '',
+        jid: btn.getAttribute('data-jid') || '',
+        conversa_id: parseInt(btn.getAttribute('data-cid') || '0', 10) || 0,
+        loja: btn.getAttribute('data-loja') || '',
       });
     });
   }

@@ -727,7 +727,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - Sem disparo em massa. Ícone PDV → **abre o chat** (`WA-BOT-CFG-RENAN`); ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). **Apagar** = tira da lista no Agro (não apaga no celular). Fora da loja.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** busca no topo da lista (cadastro + agenda Zap + conversa). Clique abre o chat, como o Zap Web. **Anteriores** = ~40 msgs / 7 dias. Teto 20 conversas novas/dia. Só celular 1-a-1. **Apagar** = só no Agro. Fora da loja.
 - **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
@@ -1287,6 +1287,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
 
 **Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+
+### 📦 PACOTE PRONTO — Busca estilo Zap Web (`WA-BUSCA-WEB` · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Campo busca no topo da lista · clique abre chat · cadastro + agenda Zap juntos |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
 
 ### 📦 PACOTE PRONTO — Código de ligação WhatsApp (`WA-PAIR-CODE` · 01/09/2026)
 

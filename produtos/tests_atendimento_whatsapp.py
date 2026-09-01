@@ -188,3 +188,14 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertEqual(conv.loja, "centro")
         self.assertEqual(conv.origem_abertura, "loja")
         self.assertTrue(m.pendente_envio)
+
+    def test_abrir_busca_sem_mensagem(self):
+        from produtos.atendimento_whatsapp_util import abrir_conversa_busca, enviar_loja
+
+        conv, err = abrir_conversa_busca(telefone="13977776666", nome="Joao Zap")
+        self.assertEqual(err, "")
+        self.assertEqual(conv.loja, "pendente")
+        self.assertEqual(conv.origem_abertura, "loja")
+        m, err2 = enviar_loja(conversa_id=conv.pk, texto="Oi", autor="Loja")
+        self.assertEqual(err2, "")
+        self.assertIsNotNone(m)

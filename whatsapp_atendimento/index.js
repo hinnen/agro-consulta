@@ -107,11 +107,16 @@ function tsMs(m) {
 }
 
 function guardarContato(c) {
-  const jid = String((c && (c.id || c.jid)) || "");
-  if (!jid.endsWith("@s.whatsapp.net")) return;
-  if (agenda.size >= 200 && !agenda.has(jid)) return;
-  const nome = String((c && (c.notify || c.name || c.verifiedName)) || "").slice(0, 120);
-  agenda.set(jid, { nome, telefone: jid.split("@")[0] });
+  if (!c) return;
+  const id = String(c.id || "");
+  let jid = String(c.jid || "");
+  if (!jid.endsWith("@s.whatsapp.net") && id.endsWith("@s.whatsapp.net")) jid = id;
+  if (!ehChatPrivado(jid)) return;
+  if (agenda.size >= 2000 && !agenda.has(jid)) return;
+  const nome = String(c.name || c.notify || c.verifiedName || "").slice(0, 120);
+  const prev = agenda.get(jid);
+  if (prev && prev.nome && !nome) return;
+  agenda.set(jid, { nome: nome || (prev && prev.nome) || "", telefone: jid.split("@")[0] });
 }
 
 function ehChatPrivado(jid) {
@@ -231,6 +236,7 @@ async function ligar() {
       const numero = String(me).split(":")[0].split("@")[0];
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
+      setTimeout(enviarAgenda, 2500);
     }
     if (connection === "close") {
       const err = lastDisconnect && lastDisconnect.error;
@@ -260,8 +266,20 @@ async function ligar() {
   sock.ev.on("contacts.update", (lista) => {
     for (const c of lista || []) guardarContato(c);
   });
-  sock.ev.on("messaging-history.set", async () => {
-    /* não importar histórico automático — só com «Anteriores» na tela */
+  sock.ev.on("contacts.set", (data) => {
+    const lista = Array.isArray(data) ? data : (data && data.contacts) || [];
+    for (const c of lista) guardarContato(c);
+  });
+  sock.ev.on("chats.upsert", (lista) => {
+    for (const ch of lista || []) {
+      guardarContato({ id: ch.id, jid: ch.id, name: ch.name, notify: ch.name });
+    }
+  });
+  sock.ev.on("messaging-history.set", async ({ contacts, chats }) => {
+    for (const c of contacts || []) guardarContato(c);
+    for (const ch of chats || []) {
+      guardarContato({ id: ch.id, jid: ch.id, name: ch.name, notify: ch.name });
+    }
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify" && type !== "append") return;
@@ -285,22 +303,27 @@ async function ligar() {
   pollTimer = setInterval(puxarSaida, 2500);
 }
 
+async function enviarAgenda(pedidoId) {
+  const itens = [];
+  for (const [jid, v] of agenda.entries()) {
+    if (!jid.endsWith("@s.whatsapp.net")) continue;
+    itens.push({
+      jid,
+      nome: String((v && v.nome) || "").slice(0, 120),
+      telefone: String((v && v.telefone) || jid.split("@")[0]),
+    });
+    if (itens.length >= 500) break;
+  }
+  if (!itens.length && !pedidoId) return;
+  await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pedidoId || 0, itens });
+}
+
 async function executarPedido(p) {
   if (!sock || !p) return;
   const pid = p.id;
   try {
     if (p.tipo === "contatos") {
-      const itens = [];
-      for (const [jid, v] of agenda.entries()) {
-        if (!jid.endsWith("@s.whatsapp.net")) continue;
-        itens.push({
-          jid,
-          nome: String((v && v.nome) || "").slice(0, 120),
-          telefone: String((v && v.telefone) || jid.split("@")[0]),
-        });
-        if (itens.length >= 80) break;
-      }
-      await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pid, itens });
+      await enviarAgenda(pid);
       return;
     }
     if (p.tipo === "pairing") {
