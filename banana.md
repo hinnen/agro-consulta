@@ -1267,7 +1267,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento. Compras e relatório de produto **não** mudam. |
 | **Onde** | `/atalhos/` · BI `/` ranking |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` **37/37** · teste **v20.60** |
 | **Status** | ✅ no `teste` · ⏳ loja ainda **v20.58** |
 | **Você** | PC: Ctrl+F5 atalhos + BI. Loja só com senha. |
 
