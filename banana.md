@@ -1266,23 +1266,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Entrega F3 não pula pagamento (`PDV-ENTREGA-F3` · **v20.51** · 01/09/2026)
+### 📦 PACOTE PRONTO — Entrega F3 (`PDV-ENTREGA-F3` · **v20.51** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão **Entrega (F3)** no PDV ia para **pagamento** se a venda já tinha sido marcada como balcão |
-| **Onde** | `/pdv/checkout/` · botão ao lado de Pagar |
+| **O quê** | Entrega / F3 abre a etapa de entrega (não o pagamento) |
+| **Onde** | `/pdv/` · botão ao lado de Pagar |
+| **Commit** | `8ebcefa` + prova neste commit |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_pdv_entrega_f3_path.py` |
-| **Status** | 🟡 `teste` · Ctrl+F5 no PC |
+| **Prova** | `scripts/verify_pdv_entrega_f3_path.py` **68/68** · PIN 9973 ok no PC |
+| **Status** | 🟢 **pronto para envio à produção** (aguarda frase+senha) |
+| **Você** | Ctrl+F5 no PDV · 1 item · Entrega = pergunta onde pagar · Pagar/F7 = pagamento |
 
-### ✅ CHECKLIST ÚNICO SOLO — `PDV-ENTREGA-F3` (01/09)
+### ✅ CHECKLIST ÚNICO — pronto envio (01/09)
 
-| # | Pacote | Status |
-| - | ------ | ------ |
-| 1 | `PDV-ENTREGA-F3` | 🟡 no `teste` |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-F3` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-Clique **Entrega** / **F3** → pergunta **onde pagar** (entrega ou loja). **Pagar** / **F7** continua indo ao pagamento.
+**Fora deste lote:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`
 
 ### 📦 PACOTE PRONTO — Fiado pelo WhatsApp (`WA-FIADO-MSG` · **v20.50** · 01/09/2026)
 
