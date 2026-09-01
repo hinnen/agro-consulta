@@ -1265,16 +1265,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
+### 🚀 PREP deploy loja — lote vendas + BI (`deploy/prep-lote-vendas-bi-0109d` · **v20.85** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **Loja hoje** | **v20.58** @ `751c0d4` |
-| **Teste** | **v20.73** · PIN **9973** OK |
+| **Branch PREP** | `deploy/prep-lote-vendas-bi-0109d` @ **`798caaa`** |
+| **Rollback** | `docs/ROLLBACK-LOTE-VENDAS-BI-0109d.md` · tag `rollback/pre-lote-vendas-bi-0109d-v20.58` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** · `verify_bi_devolucao_dia.py` **43/43** |
-| **Você** | Ctrl+F5 `/vendas/lojas/` · calendário 2 toques · tag fiado · BI bate com vendas-lojas |
-| **Loja** | **aguarda senha** neste chat |
+| **Prova** | vendas-lojas **140/140** · BI devolução **43/43** · PIN **9973** |
+| **Risco PDV** | **Não** — só BI, atalhos e `/vendas/lojas/` |
+| **Loja** | **aguarda senha** — pausar vendas ~1–2 min |
 
 ### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
 
@@ -1284,9 +1285,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
 | 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
 | 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
-| 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
 
-**Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
+**Fora:** WhatsApp · `marcar_lidas` (só `teste` com chat) · resto do `teste`
+
+**Deploy:** `git reset --hard origin/deploy/prep-lote-vendas-bi-0109d` na `producao` + senha.
 
 ### 📦 PACOTE PRONTO — Transferir atendimento WhatsApp (`WA-XFER-LOJA` · 01/09/2026)
 
