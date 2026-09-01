@@ -643,7 +643,21 @@ async function puxarSaida() {
     const lista = (j && j.saida) || [];
     for (const item of lista) {
       try {
-        await enviarComRetry(item.jid, { text: String(item.texto || "") });
+        const tipo = String(item.tipo_midia || "");
+        const b64 = String(item.midia_b64 || "");
+        const txt = String(item.texto || "");
+        const caption = txt === "[imagem]" || txt === "[áudio]" ? "" : txt;
+        let content = { text: txt };
+        if (tipo === "image" && b64) {
+          content = { image: Buffer.from(b64, "base64"), caption };
+        } else if (tipo === "audio" && b64) {
+          content = {
+            audio: Buffer.from(b64, "base64"),
+            ptt: true,
+            mimetype: String(item.mime || "audio/ogg; codecs=opus"),
+          };
+        }
+        await enviarComRetry(item.jid, content);
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", { ids: [item.id] });
       } catch (e) {
         console.error("saida:", e.message || e);

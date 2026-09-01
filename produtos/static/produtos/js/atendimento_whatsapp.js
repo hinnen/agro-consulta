@@ -195,7 +195,9 @@
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         var who =
           m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
-        var corpo = escapeHtml(m.texto || '');
+        var corpoTxt = m.texto || '';
+        if (corpoTxt === '[imagem]' || corpoTxt === '[áudio]') corpoTxt = '';
+        var corpo = escapeHtml(corpoTxt);
         var midia = '';
         if (m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
@@ -338,13 +340,14 @@
     abrirConversa(btn.getAttribute('data-id'));
   });
 
-  $('wa-form').addEventListener('submit', function (ev) {
-    ev.preventDefault();
-    var inp = $('wa-input');
+  var MIDIA_TETO = 3 * 1024 * 1024;
+  var recStream = null;
+  var recChunks = [];
+  var recObj = null;
+
+  function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
-    var t = (inp.value || '').trim();
-    if (!t || !convId || (btn && btn.disabled)) return;
-    inp.value = '';
+    if (!convId || (btn && btn.disabled)) return;
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Enviando…';
@@ -352,19 +355,19 @@
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ conversa_id: convId, texto: t }),
+      body: JSON.stringify(payload),
     })
       .then(function (j) {
         if (!j || !j.ok) {
           window.alert((j && j.erro) || 'Não enviou.');
-          inp.value = t;
+          if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
           return;
         }
         pollMsgs();
       })
       .catch(function () {
         window.alert('Falha de rede ao enviar.');
-        inp.value = t;
+        if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
       })
       .finally(function () {
         if (btn) {
@@ -372,6 +375,190 @@
           btn.textContent = 'Enviar';
         }
       });
+  }
+
+  function arquivoParaB64(file, ok) {
+    if (!file) return;
+    if (file.size > MIDIA_TETO) {
+      window.alert('Foto ou áudio grande demais (máximo 3 MB). Mande um arquivo menor.');
+      return;
+    }
+    var r = new FileReader();
+    r.onload = function () {
+      var s = String(r.result || '');
+      var b64 = s.indexOf(',') >= 0 ? s.split(',')[1] : s;
+      ok(b64, file.type || '', file.name || '');
+    };
+    r.readAsDataURL(file);
+  }
+
+  function pararRec(enviar) {
+    var mic = $('wa-mic');
+    var cancel = $('wa-mic-x');
+    if (mic) mic.classList.remove('is-rec');
+    if (cancel) cancel.classList.add('hidden');
+    if (!recObj) {
+      if (recStream) recStream.getTracks().forEach(function (t) { t.stop(); });
+      recStream = null;
+      return;
+    }
+    recObj.onstop = function () {
+      if (recStream) recStream.getTracks().forEach(function (t) { t.stop(); });
+      recStream = null;
+      var mime = (recObj && recObj.mimeType) || 'audio/webm';
+      recObj = null;
+      if (!enviar) {
+        recChunks = [];
+        return;
+      }
+      var blob = new Blob(recChunks, { type: mime });
+      recChunks = [];
+      if (!blob.size) {
+        window.alert('Não gravou áudio.');
+        return;
+      }
+      if (blob.size > MIDIA_TETO) {
+        window.alert('Áudio grande demais (máximo 3 MB). Grave mais curto.');
+        return;
+      }
+      if (!window.confirm('Enviar este áudio?')) return;
+      var fr = new FileReader();
+      fr.onload = function () {
+        var s = String(fr.result || '');
+        var b64 = s.indexOf(',') >= 0 ? s.split(',')[1] : s;
+        enviarPayload({
+          conversa_id: convId,
+          texto: '',
+          tipo_midia: 'audio',
+          midia_b64: b64,
+          mime: mime,
+          nome_arquivo: 'audio.webm',
+        });
+      };
+      fr.readAsDataURL(blob);
+    };
+    try {
+      recObj.stop();
+    } catch (_) {
+      recObj = null;
+    }
+  }
+
+  function ligarMicUi() {
+    var temRec = typeof window.MediaRecorder === 'function' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    var mic = $('wa-mic');
+    var arq = $('wa-audio-arq');
+    if (temRec) {
+      if (mic) mic.classList.remove('hidden');
+      if (arq) arq.classList.add('hidden');
+    } else {
+      if (mic) mic.classList.add('hidden');
+      if (arq) arq.classList.remove('hidden');
+    }
+  }
+  ligarMicUi();
+
+  var fotoBtn = $('wa-foto');
+  var fotoInp = $('wa-foto-inp');
+  if (fotoBtn && fotoInp) {
+    fotoBtn.addEventListener('click', function () {
+      if (!convId) {
+        window.alert('Abra uma conversa primeiro.');
+        return;
+      }
+      fotoInp.value = '';
+      fotoInp.click();
+    });
+    fotoInp.addEventListener('change', function () {
+      var f = fotoInp.files && fotoInp.files[0];
+      fotoInp.value = '';
+      if (!f) return;
+      if (!window.confirm('Enviar esta foto?')) return;
+      arquivoParaB64(f, function (b64, mime, nome) {
+        enviarPayload({
+          conversa_id: convId,
+          texto: '',
+          tipo_midia: 'image',
+          midia_b64: b64,
+          mime: mime || 'image/jpeg',
+          nome_arquivo: nome || 'foto.jpg',
+        });
+      });
+    });
+  }
+
+  var micBtn = $('wa-mic');
+  var micX = $('wa-mic-x');
+  if (micBtn) {
+    micBtn.addEventListener('click', function () {
+      if (!convId) {
+        window.alert('Abra uma conversa primeiro.');
+        return;
+      }
+      if (recObj) {
+        pararRec(true);
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+        recStream = stream;
+        recChunks = [];
+        var opts = {};
+        if (window.MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+          opts.mimeType = 'audio/webm;codecs=opus';
+        }
+        recObj = new MediaRecorder(stream, opts);
+        recObj.ondataavailable = function (e) {
+          if (e.data && e.data.size) recChunks.push(e.data);
+        };
+        recObj.start();
+        micBtn.classList.add('is-rec');
+        if (micX) micX.classList.remove('hidden');
+      }).catch(function () {
+        window.alert('Não deu para gravar. Permita o microfone ou mande um arquivo de áudio.');
+      });
+    });
+  }
+  if (micX) {
+    micX.addEventListener('click', function () {
+      pararRec(false);
+    });
+  }
+  var audioArq = $('wa-audio-arq');
+  var audioInp = $('wa-audio-inp');
+  if (audioArq && audioInp) {
+    audioArq.addEventListener('click', function () {
+      if (!convId) {
+        window.alert('Abra uma conversa primeiro.');
+        return;
+      }
+      audioInp.value = '';
+      audioInp.click();
+    });
+    audioInp.addEventListener('change', function () {
+      var f = audioInp.files && audioInp.files[0];
+      audioInp.value = '';
+      if (!f) return;
+      if (!window.confirm('Enviar este áudio?')) return;
+      arquivoParaB64(f, function (b64, mime, nome) {
+        enviarPayload({
+          conversa_id: convId,
+          texto: '',
+          tipo_midia: 'audio',
+          midia_b64: b64,
+          mime: mime || 'audio/ogg',
+          nome_arquivo: nome || 'audio.ogg',
+        });
+      });
+    });
+  }
+
+  $('wa-form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var inp = $('wa-input');
+    var t = (inp.value || '').trim();
+    if (!t || !convId) return;
+    inp.value = '';
+    enviarPayload({ conversa_id: convId, texto: t }, t);
   });
 
   document.querySelectorAll('[data-xfer]').forEach(function (b) {

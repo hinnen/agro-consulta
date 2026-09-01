@@ -9,6 +9,8 @@ echo  Site: %AGRO_WA_DJANGO_URL%
 echo  NAO FECHE esta janela preta.
 echo  Abra so UMA janela (nao duplique o .bat).
 echo  O QR aparece no Chrome em /atendimento-whatsapp/
+echo  Se o Zap estiver no site Render de TESTE, aponte
+echo  AGRO_WA_DJANGO_URL para o HTTPS desse site (nao 127.0.0.1).
 echo ========================================
 echo.
 where node >nul 2>&1

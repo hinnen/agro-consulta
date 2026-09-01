@@ -28,6 +28,7 @@ from produtos.models import (
 MAX_NOVOS_DIA = 20
 MAX_HIST_MSGS = 40
 MAX_MIDIA_BYTES = 6_000_000
+MAX_SAIDA_MIDIA_BYTES = 3_000_000
 DIAS_HISTORICO = 7
 
 CHAVE_PONTE = "default"
@@ -207,7 +208,7 @@ def _nome_parece_telefone(nome: str, telefone: str) -> bool:
 
 def _ext_midia(tipo: str, mime: str, nome: str) -> str:
     n = (nome or "").lower()
-    for ext in (".jpg", ".jpeg", ".png", ".webp", ".ogg", ".opus", ".mp3", ".m4a", ".mp4"):
+    for ext in (".jpg", ".jpeg", ".png", ".webp", ".ogg", ".opus", ".mp3", ".m4a", ".mp4", ".webm"):
         if n.endswith(ext):
             return ext if ext != ".jpeg" else ".jpg"
     m = (mime or "").lower()
@@ -215,6 +216,8 @@ def _ext_midia(tipo: str, mime: str, nome: str) -> str:
         return ".png"
     if "webp" in m:
         return ".webp"
+    if "webm" in m:
+        return ".webm"
     if "ogg" in m or "opus" in m:
         return ".ogg"
     if "mpeg" in m or "mp3" in m:
@@ -228,29 +231,49 @@ def _ext_midia(tipo: str, mime: str, nome: str) -> str:
     return ".bin"
 
 
+def _b64_para_bytes(midia_b64: str, *, teto: int = MAX_MIDIA_BYTES) -> tuple[bytes | None, str]:
+    raw_b64 = (midia_b64 or "").strip()
+    if not raw_b64:
+        return None, ""
+    if "," in raw_b64 and raw_b64[:5].lower() == "data:":
+        raw_b64 = raw_b64.split(",", 1)[1]
+    try:
+        raw = base64.b64decode(raw_b64)
+    except Exception:
+        return None, "Arquivo inválido."
+    if not raw:
+        return None, "Arquivo vazio."
+    if len(raw) > int(teto):
+        return None, "Foto ou áudio grande demais (máximo 3 MB). Mande um arquivo menor."
+    return raw, ""
+
+
 def anexar_midia(
     msg: WhatsAppMensagemAgro,
     *,
     tipo_midia: str = "",
     midia_b64: str = "",
+    midia_raw: bytes | None = None,
     mime: str = "",
     nome_arquivo: str = "",
-) -> None:
+    teto: int = MAX_MIDIA_BYTES,
+) -> str:
     tipo = (tipo_midia or "").strip().lower()[:16]
     if tipo:
         msg.tipo_midia = tipo
-    raw_b64 = (midia_b64 or "").strip()
-    if not raw_b64:
-        return
-    try:
-        raw = base64.b64decode(raw_b64)
-    except Exception:
-        return
-    if not raw or len(raw) > MAX_MIDIA_BYTES:
-        return
+    raw = midia_raw
+    if raw is None:
+        raw, err = _b64_para_bytes(midia_b64, teto=teto)
+        if err:
+            return err
+    if not raw:
+        return ""
+    if len(raw) > int(teto):
+        return "Foto ou áudio grande demais (máximo 3 MB). Mande um arquivo menor."
     ext = _ext_midia(tipo, mime, nome_arquivo)
     fname = f"{uuid.uuid4().hex[:16]}{ext}"
     msg.arquivo.save(fname, ContentFile(raw), save=False)
+    return ""
 
 
 def jid_eh_chat_privado(jid: str) -> bool:
@@ -428,6 +451,10 @@ def _enfileirar_saida(
     direcao: str,
     autor: str = "",
     delay_seg: int = 0,
+    tipo_midia: str = "",
+    midia_raw: bytes | None = None,
+    mime: str = "",
+    nome_arquivo: str = "",
 ) -> WhatsAppMensagemAgro:
     agora = timezone.now()
     liberar = None
@@ -437,14 +464,25 @@ def _enfileirar_saida(
         d = 0
     if d > 0:
         liberar = agora + timedelta(seconds=d)
-    m = WhatsAppMensagemAgro.objects.create(
+    m = WhatsAppMensagemAgro(
         conversa=conversa,
         direcao=direcao,
         texto=texto[:TEXTO_MAX],
         pendente_envio=True,
         autor_nome=(autor or "")[:120],
         liberar_envio_em=liberar,
+        tipo_midia=(tipo_midia or "")[:16],
     )
+    if midia_raw:
+        anexar_midia(
+            m,
+            tipo_midia=tipo_midia,
+            midia_raw=midia_raw,
+            mime=mime,
+            nome_arquivo=nome_arquivo,
+            teto=MAX_SAIDA_MIDIA_BYTES,
+        )
+    m.save()
     conversa.ultima_preview = _preview(texto)
     conversa.ultima_em = agora
     conversa.save(update_fields=["ultima_preview", "ultima_em"])
@@ -713,10 +751,31 @@ def processar_entrada(
     return msg, ""
 
 
-def enviar_loja(*, conversa_id: int, texto: str, autor: str = "") -> tuple[WhatsAppMensagemAgro | None, str]:
+def enviar_loja(
+    *,
+    conversa_id: int,
+    texto: str,
+    autor: str = "",
+    tipo_midia: str = "",
+    midia_b64: str = "",
+    mime: str = "",
+    nome_arquivo: str = "",
+) -> tuple[WhatsAppMensagemAgro | None, str]:
     t = str(texto or "").strip()
-    if not t:
-        return None, "Digite uma mensagem."
+    tipo_n = (tipo_midia or "").strip().lower()[:16]
+    if tipo_n and tipo_n not in ("image", "audio"):
+        return None, "Só foto ou áudio."
+    raw = None
+    if midia_b64 or tipo_n:
+        raw, err = _b64_para_bytes(midia_b64, teto=MAX_SAIDA_MIDIA_BYTES)
+        if err:
+            return None, err
+        if tipo_n and raw is None:
+            return None, "Arquivo da foto/áudio não chegou."
+    if not t and raw is None:
+        return None, "Digite uma mensagem ou envie foto/áudio."
+    if not t and raw is not None:
+        t = "[imagem]" if tipo_n == "image" else "[áudio]"
     if len(t) > TEXTO_MAX:
         return None, f"Máximo {TEXTO_MAX} caracteres."
     try:
@@ -730,6 +789,10 @@ def enviar_loja(*, conversa_id: int, texto: str, autor: str = "") -> tuple[Whats
         t,
         direcao=WhatsAppMensagemAgro.DIRECAO_OUT,
         autor=autor,
+        tipo_midia=tipo_n,
+        midia_raw=raw,
+        mime=mime,
+        nome_arquivo=nome_arquivo,
     )
     return m, ""
 
@@ -1083,6 +1146,44 @@ def atualizar_ponte(
     return obj
 
 
+def _mime_saida(m: WhatsAppMensagemAgro) -> str:
+    name = (getattr(m.arquivo, "name", "") or "").lower()
+    tipo = (m.tipo_midia or "").strip().lower()
+    if tipo == "image":
+        if name.endswith(".png"):
+            return "image/png"
+        if name.endswith(".webp"):
+            return "image/webp"
+        return "image/jpeg"
+    if tipo == "audio":
+        if name.endswith(".webm"):
+            return "audio/webm; codecs=opus"
+        if name.endswith(".mp4") or name.endswith(".m4a"):
+            return "audio/mp4"
+        if name.endswith(".mp3"):
+            return "audio/mpeg"
+        return "audio/ogg; codecs=opus"
+    return ""
+
+
+def _arquivo_b64(m: WhatsAppMensagemAgro) -> str:
+    if not m.arquivo:
+        return ""
+    try:
+        m.arquivo.open("rb")
+        raw = m.arquivo.read()
+    except Exception:
+        return ""
+    finally:
+        try:
+            m.arquivo.close()
+        except Exception:
+            pass
+    if not raw or len(raw) > MAX_SAIDA_MIDIA_BYTES:
+        return ""
+    return base64.b64encode(raw).decode("ascii")
+
+
 def listar_saida_pendente(limit: int = 20) -> list[dict]:
     lim = max(1, min(int(limit or 20), 50))
     qs = (
@@ -1093,13 +1194,16 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     )
     out = []
     for m in qs:
-        out.append(
-            {
-                "id": int(m.pk),
-                "jid": m.conversa.jid,
-                "texto": m.texto or "",
-            }
-        )
+        tipo = (m.tipo_midia or "").strip().lower()
+        item = {
+            "id": int(m.pk),
+            "jid": m.conversa.jid,
+            "texto": m.texto or "",
+            "tipo_midia": tipo,
+            "mime": _mime_saida(m) if tipo else "",
+            "midia_b64": _arquivo_b64(m) if tipo in ("image", "audio") else "",
+        }
+        out.append(item)
     return out
 
 

@@ -541,6 +541,10 @@
     var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
     return p === '/historico' || p.indexOf('/historico/') === 0;
   }
+  function pathLookLikeWhatsAppCelular(pathStr) {
+    var p = String(pathStr || '').split('?')[0].toLowerCase().replace(/\/+$/, '') || '/';
+    return p === '/atendimento-whatsapp/celular' || p.indexOf('/atendimento-whatsapp/celular/') === 0;
+  }
   window.__agroPathLookLikeFolhaPlanilha = pathLookLikeFolhaPlanilha;
   window.__agroIsPaginaAuxiliarSemShell = function () {
     try {
@@ -551,6 +555,7 @@
     var path = (location.pathname || '').split('?')[0];
     if (pathLookLikeAjusteMobile(path)) return true;
     if (pathLookLikeHistoricoAjustes(path)) return true;
+    if (pathLookLikeWhatsAppCelular(path)) return true;
     return pathLookLikeFolhaPlanilha(path);
   };
 })();
@@ -1878,6 +1883,10 @@
         try {
           var pNorm = String(p || '').toLowerCase().replace(/\/+$/, '') || '/';
           if (pNorm === '/historico' || pNorm.indexOf('/historico/') === 0) {
+            (window.top || window).location.assign(href);
+            return;
+          }
+          if (pNorm === '/atendimento-whatsapp/celular' || pNorm.indexOf('/atendimento-whatsapp/celular/') === 0) {
             (window.top || window).location.assign(href);
             return;
           }

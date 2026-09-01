@@ -1193,6 +1193,10 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         var p = pathFromHref(href).replace(/\/+$/, "") || "/";
         return p === "/historico" || p.indexOf("/historico/") === 0;
     }
+    function isWhatsAppCelularHref(href) {
+        var p = pathFromHref(href).replace(/\/+$/, "") || "/";
+        return p === "/atendimento-whatsapp/celular" || p.indexOf("/atendimento-whatsapp/celular/") === 0;
+    }
     function openInShellTab(href) {
         try {
             if (window.parent !== window) {
@@ -1214,8 +1218,8 @@ function dashLaunchpadAbrir(titulo, url, icone) {
         return false;
     }
     function go() {
-        /* Ajuste Mobile / Histórico = tela cheia; nunca iframe/aba do BI. */
-        if (isAjusteMobileHref(url) || isHistoricoAjustesHref(url)) {
+        /* Ajuste Mobile / Histórico / Zap celular = tela cheia; nunca iframe/aba do BI. */
+        if (isAjusteMobileHref(url) || isHistoricoAjustesHref(url) || isWhatsAppCelularHref(url)) {
             try {
                 (window.top || window).location.assign(url);
             } catch (_) {

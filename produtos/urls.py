@@ -34,6 +34,16 @@ urlpatterns = [
         name="atendimento_whatsapp",
     ),
     path(
+        "atendimento-whatsapp/celular/manifest.webmanifest",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_manifest,
+        name="atendimento_whatsapp_celular_manifest",
+    ),
+    path(
+        "atendimento-whatsapp/celular/sw.js",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_sw,
+        name="atendimento_whatsapp_celular_sw",
+    ),
+    path(
         "atendimento-whatsapp/celular/",
         views_atendimento_whatsapp.atendimento_whatsapp_celular_view,
         name="atendimento_whatsapp_celular",

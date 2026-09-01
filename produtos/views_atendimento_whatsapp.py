@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404, JsonResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
@@ -57,6 +57,52 @@ def _bridge_forbidden():
 @login_required(login_url="/admin/login/")
 def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
+
+
+def atendimento_whatsapp_celular_manifest(request):
+    """Manifest PWA do Zap loja (público — Chrome baixa sem login)."""
+    icon_192 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-192.png")
+    icon_512 = request.build_absolute_uri("/static/produtos/pwa/zap-loja-512.png")
+    payload = {
+        "id": "/atendimento-whatsapp/celular/",
+        "name": "Zap loja",
+        "short_name": "Zap loja",
+        "description": "SisVale WhatsApp — atendimento Centro e Vila",
+        "start_url": "/atendimento-whatsapp/celular/",
+        "scope": "/atendimento-whatsapp/celular/",
+        "display": "standalone",
+        "display_override": ["standalone", "minimal-ui"],
+        "orientation": "portrait",
+        "lang": "pt-BR",
+        "dir": "ltr",
+        "background_color": "#075E54",
+        "theme_color": "#128C7E",
+        "icons": [
+            {"src": icon_192, "sizes": "192x192", "type": "image/png", "purpose": "any"},
+            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "any"},
+            {"src": icon_512, "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    }
+    resp = JsonResponse(payload)
+    resp["Content-Type"] = "application/manifest+json"
+    return resp
+
+
+def atendimento_whatsapp_celular_sw(request):
+    """SW mínimo — instala no celular. Rede nas APIs; não guarda conversa."""
+    js = (
+        "self.addEventListener('install',function(e){self.skipWaiting();});\n"
+        "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n"
+        "self.addEventListener('fetch',function(e){"
+        "var u=String(e.request.url||'');"
+        "if(u.indexOf('/api/')!==-1){e.respondWith(fetch(e.request));return;}"
+        "e.respondWith(fetch(e.request));"
+        "});\n"
+    )
+    resp = HttpResponse(js, content_type="text/javascript; charset=utf-8")
+    resp["Service-Worker-Allowed"] = "/atendimento-whatsapp/celular/"
+    resp["Cache-Control"] = "no-cache"
+    return resp
 
 
 @login_required(login_url="/admin/login/")
@@ -160,6 +206,10 @@ def api_atendimento_whatsapp_enviar(request):
         conversa_id=cid,
         texto=data.get("texto") or "",
         autor=autor,
+        tipo_midia=data.get("tipo_midia") or "",
+        midia_b64=data.get("midia_b64") or "",
+        mime=data.get("mime") or "",
+        nome_arquivo=data.get("nome_arquivo") or "",
     )
     if err or m is None:
         return JsonResponse({"ok": False, "erro": err or "Não enviou."}, status=400)
