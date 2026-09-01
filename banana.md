@@ -1260,16 +1260,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — BI devolução vs planilha (`BI-DEVOL-PLANILHA` · 01/09/2026)
+### 📦 PACOTE PRONTO — BI devolução vs planilha (`BI-DEVOL-PLANILHA` · **v20.57** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | No dia com venda/devolução Agro, o BI usa o **PDV** (já desconta devolução). Planilha antiga **não** segura o número maior. |
-| **Onde** | Home `/` (card e gráfico de hoje) |
+| **O quê** | No dia com venda/devolução Agro, o BI usa o **PDV** (já desconta devolução). Planilha **não** segura o número maior. |
+| **Onde** | Home `/` · gráfico/card |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_bi_devolucao_dia.py` |
+| **Prova** | `scripts/verify_bi_devolucao_dia.py` **28/28** · PIN 9973 · home/BI/vendas-lojas **200** · healthz local |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Depois de subir: Ctrl+F5 no BI · conferir o dia |
+| **Você** | Depois de subir: Ctrl+F5 no BI · hoje deve cair a devolução |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (01/09c)
 
