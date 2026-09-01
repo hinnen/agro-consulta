@@ -4,7 +4,12 @@
 (function () {
   'use strict';
 
+  var TAB_KEY = 'agro_wa_loja_tab';
   var loja = 'pendente';
+  try {
+    var tabSalva = localStorage.getItem(TAB_KEY);
+    if (tabSalva === 'centro' || tabSalva === 'vila' || tabSalva === 'pendente') loja = tabSalva;
+  } catch (e) {}
   var convId = 0;
   var convLoja = '';
   var afterId = 0;
@@ -142,7 +147,11 @@
     var el = $('wa-lista');
     if (!el) return;
     if (!rows || !rows.length) {
-      el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Vazio</p>';
+      var dica =
+        loja === 'pendente'
+          ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
+          : 'Nenhuma conversa nesta aba.';
+      el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
       return;
     }
     el.innerHTML = rows
@@ -304,6 +313,9 @@
   document.querySelectorAll('.wa-tab').forEach(function (b) {
     b.addEventListener('click', function () {
       loja = b.getAttribute('data-loja') || 'pendente';
+      try {
+        localStorage.setItem(TAB_KEY, loja);
+      } catch (e) {}
       convId = 0;
       convLoja = '';
       afterId = 0;
@@ -412,6 +424,9 @@
   function irParaConversa(conv) {
     if (!conv || !conv.id) return;
     loja = conv.loja || 'pendente';
+    try {
+      localStorage.setItem(TAB_KEY, loja);
+    } catch (e) {}
     setTab();
     if ($('wa-busca')) $('wa-busca').value = '';
     mostrarBusca(false);

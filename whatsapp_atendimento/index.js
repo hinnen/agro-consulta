@@ -7,6 +7,7 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  normalizeMessageContent,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import fs from "node:fs";
@@ -23,10 +24,12 @@ const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
 const AUTH = path.join(__dirname, "auth");
 const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
+const LID_FILE = path.join(__dirname, "lid_map.json");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
 let salvarAgendaTimer = 0;
 let enviarAgendaTimer = 0;
+let salvarLidTimer = 0;
 
 function carregarEnv(fp) {
   try {
@@ -114,8 +117,16 @@ async function get(url) {
   return r.json().catch(() => ({}));
 }
 
+function conteudoDe(msg) {
+  try {
+    return normalizeMessageContent(msg && msg.message) || (msg && msg.message) || null;
+  } catch {
+    return (msg && msg.message) || null;
+  }
+}
+
 function textoDe(msg) {
-  const m = msg && msg.message;
+  const m = conteudoDe(msg);
   if (!m) return "";
   if (m.conversation) return String(m.conversation);
   if (m.extendedTextMessage && m.extendedTextMessage.text) return String(m.extendedTextMessage.text);
@@ -134,8 +145,10 @@ let connId = 0;
 let primeiraLigacao = true;
 const agenda = new Map();
 const lidParaJid = new Map();
+const msgCache = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
-/** Só aceita append/histórico quando a loja pediu «Anteriores» neste chat. */
+const LIVE_MS = 20 * 60 * 1000;
+/** Só aceita append antigo quando a loja pediu «Anteriores» neste chat. */
 let histJid = "";
 let histAte = 0;
 
@@ -150,6 +163,42 @@ function tsMs(m) {
   return n > 1e12 ? n : n * 1000;
 }
 
+function ehMensagemAoVivo(m, type) {
+  if (type === "notify") return true;
+  if (type !== "append") return false;
+  const age = Date.now() - tsMs(m);
+  return age >= 0 && age < LIVE_MS;
+}
+
+function guardarMsgCache(m) {
+  const id = m && m.key && m.key.id;
+  if (!id) return;
+  msgCache.set(id, m);
+  if (msgCache.size > 400) {
+    const first = msgCache.keys().next().value;
+    msgCache.delete(first);
+  }
+}
+
+function ehChatPrivado(jid) {
+  const j = String(jid || "").toLowerCase();
+  if (j.includes("@g.us") || j.includes("@newsletter") || j.includes("@broadcast")) return false;
+  const num = j.split("@")[0].replace(/\D/g, "");
+  if (!num) return false;
+  if (j.endsWith("@lid")) return num.length >= 6 && num.length <= 22;
+  if (!j.endsWith("@s.whatsapp.net")) return false;
+  if (num.startsWith("120") && num.length >= 15) return false;
+  return num.length >= 10 && num.length <= 13;
+}
+
+function telefoneDeJid(jid) {
+  const j = String(jid || "");
+  if (!j.endsWith("@s.whatsapp.net")) return "";
+  const d = j.split("@")[0].replace(/\D/g, "");
+  if (d.length < 10 || d.length > 13) return "";
+  return d;
+}
+
 function jidDeContato(c) {
   const jid = String((c && c.jid) || "");
   const id = String((c && c.id) || "");
@@ -158,11 +207,72 @@ function jidDeContato(c) {
   return "";
 }
 
+function salvarLidDebounced() {
+  if (salvarLidTimer) clearTimeout(salvarLidTimer);
+  salvarLidTimer = setTimeout(() => {
+    salvarLidTimer = 0;
+    try {
+      const obj = {};
+      for (const [lid, phone] of lidParaJid.entries()) obj[lid] = phone;
+      fs.writeFileSync(LID_FILE, JSON.stringify(obj));
+    } catch {
+      /* ignore */
+    }
+  }, 400);
+}
+
+function carregarLidMap() {
+  try {
+    if (!fs.existsSync(LID_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(LID_FILE, "utf8"));
+    for (const [lid, phone] of Object.entries(data || {})) {
+      if (String(lid).endsWith("@lid") && ehChatPrivado(phone)) lidParaJid.set(lid, phone);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 function vincularLid(c) {
   const jidPhone = jidDeContato(c);
   const id = String((c && c.id) || "");
   const lid = id.endsWith("@lid") ? id : String((c && c.lid) || "");
-  if (lid.endsWith("@lid") && jidPhone) lidParaJid.set(lid, jidPhone);
+  if (lid.endsWith("@lid") && jidPhone) {
+    lidParaJid.set(lid, jidPhone);
+    salvarLidDebounced();
+  }
+}
+
+function telefoneDeKey(key) {
+  if (!key) return "";
+  const cands = [key.senderPn, key.participantPn, key.remoteJidAlt, key.participantAlt];
+  for (const c of cands) {
+    const s = String(c || "");
+    if (ehChatPrivado(s) && s.endsWith("@s.whatsapp.net")) return s;
+  }
+  return "";
+}
+
+function jidDaMensagem(m) {
+  const key = m && m.key;
+  if (!key) return "";
+  const phone = telefoneDeKey(key);
+  let jid = String(key.remoteJid || "");
+  if (jid.endsWith("@lid")) {
+    if (phone) {
+      lidParaJid.set(jid, phone);
+      salvarLidDebounced();
+      jid = phone;
+    } else if (lidParaJid.has(jid)) {
+      jid = lidParaJid.get(jid);
+    }
+  }
+  if (phone) return phone;
+  if (!ehChatPrivado(jid) && key.participant) {
+    const p = String(key.participant);
+    if (ehChatPrivado(p)) jid = p;
+  }
+  return jid;
 }
 
 function nomeDeContato(c, prev) {
@@ -226,31 +336,8 @@ function guardarContato(c) {
   agendarEnvioAgenda();
 }
 
-function jidDaMensagem(m) {
-  const key = m && m.key;
-  if (!key) return "";
-  let jid = String(key.remoteJid || "");
-  if (jid.endsWith("@lid") && lidParaJid.has(jid)) jid = lidParaJid.get(jid);
-  if (!ehChatPrivado(jid) && key.participant) {
-    const p = String(key.participant);
-    if (ehChatPrivado(p)) jid = p;
-  }
-  return jid;
-}
-
-function ehChatPrivado(jid) {
-  const j = String(jid || "").toLowerCase();
-  if (!j.endsWith("@s.whatsapp.net")) return false;
-  if (j.includes("@g.us") || j.includes("@newsletter") || j.includes("@broadcast")) return false;
-  const num = j.split("@")[0].replace(/\D/g, "");
-  if (!num) return false;
-  if (num.startsWith("120") && num.length >= 15) return false;
-  if (num.length < 10 || num.length > 13) return false;
-  return true;
-}
-
 function tipoMidiaDe(msg) {
-  const m = msg && msg.message;
+  const m = conteudoDe(msg);
   if (!m) return "";
   if (m.imageMessage) return "image";
   if (m.audioMessage) return "audio";
@@ -261,7 +348,7 @@ function tipoMidiaDe(msg) {
 }
 
 function mimeDe(msg) {
-  const m = msg && msg.message;
+  const m = conteudoDe(msg);
   if (!m) return "";
   if (m.imageMessage) return String(m.imageMessage.mimetype || "");
   if (m.audioMessage) return String(m.audioMessage.mimetype || "");
@@ -287,7 +374,7 @@ async function baixarMidia(m) {
 }
 
 async function enviarEntrada(m, extra) {
-  if (!m || !m.message) return;
+  if (!m || !(m.message || conteudoDe(m))) return;
   const jid = jidDaMensagem(m);
   if (!ehChatPrivado(jid)) return;
   const quando = tsMs(m);
@@ -299,8 +386,10 @@ async function enviarEntrada(m, extra) {
   const nome = String(m.pushName || "").slice(0, 120);
   const waId = String((m.key && m.key.id) || "");
   const midia = await baixarMidia(m);
+  const tel = telefoneDeJid(jid);
   await post("/api/atendimento-whatsapp/bridge/entrada/", {
     jid,
+    telefone: tel,
     texto,
     nome,
     wa_id: waId,
@@ -310,7 +399,7 @@ async function enviarEntrada(m, extra) {
     tipo_midia: midia.tipo || tipo,
     midia_b64: midia.b64 || "",
     mime: midia.mime || "",
-    nome_arquivo: String((m.message.documentMessage && m.message.documentMessage.fileName) || ""),
+    nome_arquivo: String((conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""),
   });
 }
 
@@ -359,6 +448,11 @@ async function ligar() {
     markOnlineOnConnect: false,
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
+    getMessage: async (key) => {
+      const id = key && key.id;
+      const hit = id && msgCache.get(id);
+      return (hit && hit.message) || undefined;
+    },
   });
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
@@ -421,7 +515,10 @@ async function ligar() {
   sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
     const jj = String(jid || "");
     const lj = String(lid || "");
-    if (lj.endsWith("@lid") && ehChatPrivado(jj)) lidParaJid.set(lj, jj);
+    if (lj.endsWith("@lid") && ehChatPrivado(jj)) {
+      lidParaJid.set(lj, jj);
+      salvarLidDebounced();
+    }
     if (!ehChatPrivado(jj)) return;
     const prev = agenda.get(lj) || agenda.get(jj);
     if (!prev) return;
@@ -439,8 +536,9 @@ async function ligar() {
     if (type !== "notify" && type !== "append") return;
     for (const m of messages || []) {
       try {
+        guardarMsgCache(m);
         const jid = jidDaMensagem(m);
-        if (type === "notify") {
+        if (ehMensagemAoVivo(m, type)) {
           await enviarEntrada(m, { historico: false });
           continue;
         }
@@ -525,6 +623,19 @@ async function executarPedido(p) {
   }
 }
 
+async function enviarComRetry(jid, content) {
+  let last = null;
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await sock.sendMessage(jid, content);
+    } catch (e) {
+      last = e;
+      await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 async function puxarSaida() {
   if (!sock) return;
   try {
@@ -532,7 +643,7 @@ async function puxarSaida() {
     const lista = (j && j.saida) || [];
     for (const item of lista) {
       try {
-        await sock.sendMessage(item.jid, { text: String(item.texto || "") });
+        await enviarComRetry(item.jid, { text: String(item.texto || "") });
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", { ids: [item.id] });
       } catch (e) {
         console.error("saida:", e.message || e);
@@ -552,6 +663,7 @@ async function puxarSaida() {
 
 console.log("Django:", BASE);
 garantirUmaInstancia();
+carregarLidMap();
 carregarAgenda();
 ligar().catch((e) => {
   console.error(e);

@@ -733,7 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 - **Celular (`WA-CEL` · 01/09):** link separado `/atendimento-whatsapp/celular/` (atalho **Y**) — mesma fila, visual de Zap no telefone. PC continua em `/atendimento-whatsapp/` (**Z**).
-- **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Salvar bot (ausência) não trava em «Processando».
+- **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1307,10 +1307,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Aceita msg offline + ID `@lid` · junta conversa antiga · Salvar bot não trava |
+| **O quê** | Aceita msg offline + ID `@lid` · junta conversa antiga · aba lembrada · Salvar bot não trava |
 | **Migrate** | **NÃO** |
-| **Ops** | Fechar todas janelas do `.bat` · abrir **uma** · Ctrl+F5 |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+| **Ops** | Fechar **todas** janelas do `.bat` · abrir **uma** · Ctrl+F5 no chat |
+| **Status** | 🟡 `teste` **v20.90** · fora da loja (lote `WA-ATEND-QR`) · prova 89/89 |
 
 ### 📦 PACOTE PRONTO — Transferir atendimento WhatsApp (`WA-XFER-LOJA` · 01/09/2026)
 

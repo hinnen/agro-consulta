@@ -67,11 +67,13 @@ def _static() -> None:
     check("node_sem_full", "syncFullHistory: false" in node and "shouldSyncHistoryMessage: () => false" in node)
     check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_agenda_sync", "agendarEnvioAgenda" in node)
-    check("node_so_notify", "historicoPermitido" in node)
-    check("node_jid_privado", "ehChatPrivado" in node)
+    check("node_so_notify", "ehMensagemAoVivo" in node and "LIVE_MS" in node)
+    check("node_jid_privado", "ehChatPrivado" in node and "@lid" in node)
+    check("node_lid_pn", "senderPn" in node and "normalizeMessageContent" in node)
     check("html_bot_guard", "data-agro-no-double-guard" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
     check("js_bot_save", "wa-bot-save" in _read("produtos/static/produtos/js/atendimento_whatsapp_bot.js"))
-    check("util_merge", "def _achar_ou_criar_conversa" in util)
+    check("util_merge", "def _achar_ou_criar_conversa" in util and "def _telefone_real" in util)
+    check("gitignore_lid", "lid_map.json" in gitig)
     check("html_btn_bot", "atendimento_whatsapp_bot" in html)
     check("html_skin", "wa-skin" in html or "_wa_skin" in html)
     check("js_bot_cfg", "atendimento_whatsapp_bot.js" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
@@ -123,7 +125,12 @@ def _logic() -> None:
 
     django.setup()
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, delays_bot
-    from produtos.atendimento_whatsapp_util import interpretar_consulta_fiado, interpretar_loja, jid_eh_chat_privado
+    from produtos.atendimento_whatsapp_util import (
+        _telefone_real,
+        interpretar_consulta_fiado,
+        interpretar_loja,
+        jid_eh_chat_privado,
+    )
 
     check("logic_vila", interpretar_loja("2") == "vila")
     check("logic_centro", interpretar_loja("centro") == "centro")
@@ -133,6 +140,8 @@ def _logic() -> None:
     check("logic_delay", delays_bot(BOT_DEFAULT, 2)[0] >= 0)
     check("logic_jid_cel", jid_eh_chat_privado("5513988887777@s.whatsapp.net") is True)
     check("logic_jid_lid", jid_eh_chat_privado("123456789012345@lid") is True)
+    check("logic_tel_lid", _telefone_real("123456789012345@lid") == "")
+    check("logic_tel_ok", _telefone_real("13988887777") == "13988887777")
     check("logic_jid_grupo", jid_eh_chat_privado("120363162264887116@s.whatsapp.net") is False)
     check("logic_jid_canal", jid_eh_chat_privado("123@newsletter") is False)
     from datetime import datetime

@@ -16,6 +16,7 @@ config/build_stamp.json
 # Ponte WhatsApp (sessão QR — não versionar)
 whatsapp_atendimento/auth/
 whatsapp_atendimento/contatos_agenda.json
+whatsapp_atendimento/lid_map.json
 whatsapp_atendimento/.ponte.lock
 whatsapp_atendimento/node_modules/
 whatsapp_atendimento/.env

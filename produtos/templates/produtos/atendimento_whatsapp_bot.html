@@ -19,7 +19,7 @@
 
 {% block pdv_content %}
 {% csrf_token %}
-<form id="wa-bot-form" class="wa-cfg pb-4">
+<form id="wa-bot-form" class="wa-cfg pb-4" data-agro-no-double-guard="1">
   <nav class="wa-nav" id="wa-bot-nav" aria-label="Seções">
     <button type="button" data-panel="geral" class="is-on">Geral</button>
     <button type="button" data-panel="tempo">Tempo</button>
@@ -137,7 +137,7 @@
     </section>
 
     <div class="wa-foot">
-      <button type="submit" class="go">Salvar</button>
+      <button type="submit" id="wa-bot-save" class="go">Salvar</button>
       <button type="button" id="wa-bot-reset" class="ghost">Padrão</button>
     </div>
   </div>

@@ -166,16 +166,30 @@
   carregar();
   f.addEventListener('submit', function (ev) {
     ev.preventDefault();
-    salvar({ bot: coletar() }).then(function (j) {
-      if (!j || !j.ok) {
-        aviso(false, (j && j.erro) || 'Não salvou');
-        return;
-      }
-      preencher(j.bot);
-      aviso(true, 'Salvo');
-    }).catch(function () {
-      aviso(false, 'Não salvou');
-    });
+    var btn = $('wa-bot-save');
+    if (btn && btn.disabled) return;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Salvando…';
+    }
+    salvar({ bot: coletar() })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          aviso(false, (j && j.erro) || 'Não salvou');
+          return;
+        }
+        preencher(j.bot);
+        aviso(true, 'Salvo');
+      })
+      .catch(function () {
+        aviso(false, 'Não salvou');
+      })
+      .finally(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Salvar';
+        }
+      });
   });
   var rst = $('wa-bot-reset');
   if (rst) {
