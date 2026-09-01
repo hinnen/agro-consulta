@@ -1266,6 +1266,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Entrega F3 não pula pagamento (`PDV-ENTREGA-F3` · **v20.51** · 01/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão **Entrega (F3)** no PDV ia para **pagamento** se a venda já tinha sido marcada como balcão |
+| **Onde** | `/pdv/checkout/` · botão ao lado de Pagar |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_entrega_f3_path.py` |
+| **Status** | 🟡 `teste` · Ctrl+F5 no PC |
+
+### ✅ CHECKLIST ÚNICO SOLO — `PDV-ENTREGA-F3` (01/09)
+
+| # | Pacote | Status |
+| - | ------ | ------ |
+| 1 | `PDV-ENTREGA-F3` | 🟡 no `teste` |
+
+Clique **Entrega** / **F3** → pergunta **onde pagar** (entrega ou loja). **Pagar** / **F7** continua indo ao pagamento.
+
 ### 📦 PACOTE PRONTO — Fiado pelo WhatsApp (`WA-FIADO-MSG` · **v20.50** · 01/09/2026)
 
 | Campo | Valor |

@@ -5485,8 +5485,16 @@
     function prepararEntregaAoSairDeProdutos() {
         State.setEntregaPatch({
             modoRetiradaEntrega: 'entrega',
-            ativa: true
+            ativa: true,
+            localPagamento: '',
+            meioNaEntrega: '',
+            taxaEntregaRespondida: false,
+            taxaEntregaModo: '',
+            detalhesEntregaRespondidos: false,
+            enderecoPassoConcluido: false,
+            entregaFreteLiberadoPagamento: false
         });
+        State.setPagamentoField('frete', 0);
         syncEntregaEnderecoFromCliente();
     }
 
@@ -14437,8 +14445,7 @@
                     return;
                 }
                 prepararEntregaAoSairDeProdutos();
-                var target = nextStep(state, computed);
-                if (target) State.setCurrentStep(target);
+                State.setCurrentStep('entrega');
             });
         }
 
