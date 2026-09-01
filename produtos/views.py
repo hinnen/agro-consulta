@@ -7887,6 +7887,14 @@ def _home_admin_navegacao():
             "pin_protected": True,
         },
         {
+            "title": "WhatsApp lojas",
+            "href": reverse("atendimento_whatsapp"),
+            "icon": "message-circle",
+            "shortcut": "Z",
+            "shortcut_key": "z",
+            "pin_protected": True,
+        },
+        {
             "title": "Caixa",
             "href": reverse("caixa_painel"),
             "icon": "banknote",
@@ -7916,22 +7924,6 @@ def _home_admin_navegacao():
             "icon": "truck",
             "shortcut": "E",
             "shortcut_key": "e",
-            "pin_protected": True,
-        },
-        {
-            "title": "WhatsApp lojas",
-            "href": reverse("atendimento_whatsapp"),
-            "icon": "message-circle",
-            "shortcut": "Z",
-            "shortcut_key": "z",
-            "pin_protected": True,
-        },
-        {
-            "title": "WhatsApp celular",
-            "href": reverse("atendimento_whatsapp_celular"),
-            "icon": "smartphone",
-            "shortcut": "Y",
-            "shortcut_key": "y",
             "pin_protected": True,
         },
         {
