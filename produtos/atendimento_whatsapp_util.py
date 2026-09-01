@@ -779,6 +779,9 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
             continue
         tel = str(raw.get("telefone") or jid_para_telefone(jid))[:32]
         nome = str(raw.get("nome") or "")[:120]
+        prev = WhatsAppAgendaContatoAgro.objects.filter(jid=jid).only("nome").first()
+        if prev and prev.nome and not nome:
+            nome = prev.nome
         WhatsAppAgendaContatoAgro.objects.update_or_create(
             jid=jid, defaults={"telefone": tel, "nome": nome}
         )

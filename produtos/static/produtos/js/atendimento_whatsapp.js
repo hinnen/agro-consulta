@@ -413,7 +413,7 @@
     });
   }
 
-  function buscarTopo() {
+  function buscarTopo(tentativa) {
     var q = (($('wa-busca') && $('wa-busca').value) || '').trim();
     var hits = $('wa-busca-hits');
     if (!hits) return;
@@ -426,29 +426,38 @@
       var rows = (j && j.contatos) || [];
       if (!rows.length) {
         hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada. Digite o telefone com DDD para abrir.</p>';
-        return;
+      } else {
+        hits.innerHTML = rows
+          .map(function (c) {
+            return (
+              '<button type="button" class="wa-item" data-tel="' +
+              escapeHtml(c.telefone || '') +
+              '" data-nome="' +
+              escapeHtml(c.nome || '') +
+              '" data-jid="' +
+              escapeHtml(c.jid || '') +
+              '" data-cid="' +
+              String(c.conversa_id || 0) +
+              '" data-loja="' +
+              escapeHtml(c.loja || '') +
+              '"><div class="wa-n">' +
+              escapeHtml((c.nome || '') + (c.nome && c.telefone ? ' · ' : '') + (c.telefone || '')) +
+              '</div><div class="wa-p">' +
+              escapeHtml(rotuloOrigem(c.origem)) +
+              '</div></button>'
+            );
+          })
+          .join('');
       }
-      hits.innerHTML = rows
-        .map(function (c) {
-          return (
-            '<button type="button" class="wa-item" data-tel="' +
-            escapeHtml(c.telefone || '') +
-            '" data-nome="' +
-            escapeHtml(c.nome || '') +
-            '" data-jid="' +
-            escapeHtml(c.jid || '') +
-            '" data-cid="' +
-            String(c.conversa_id || 0) +
-            '" data-loja="' +
-            escapeHtml(c.loja || '') +
-            '"><div class="wa-n">' +
-            escapeHtml((c.nome || '') + (c.nome && c.telefone ? ' · ' : '') + (c.telefone || '')) +
-            '</div><div class="wa-p">' +
-            escapeHtml(rotuloOrigem(c.origem)) +
-            '</div></button>'
-          );
-        })
-        .join('');
+      var n = tentativa || 0;
+      var temZap = rows.some(function (c) {
+        return c.origem === 'zap';
+      });
+      if (q.length >= 2 && n < 2 && !temZap) {
+        window.setTimeout(function () {
+          buscarTopo(n + 1);
+        }, 2200);
+      }
     });
   }
 

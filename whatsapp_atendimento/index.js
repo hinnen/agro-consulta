@@ -7,6 +7,7 @@ import makeWASocket, {
   DisconnectReason,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  proto,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import fs from "node:fs";
@@ -22,7 +23,13 @@ carregarEnv(path.join(__dirname, "..", ".env"));
 const BASE = (process.env.AGRO_WA_DJANGO_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
 const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
 const AUTH = path.join(__dirname, "auth");
+const AGENDA_FILE = path.join(AUTH, "contatos_agenda.json");
 const logger = pino({ level: "silent" });
+const SYNC_NOMES = new Set([
+  proto.HistorySync.HistorySyncType.INITIAL_BOOTSTRAP,
+  proto.HistorySync.HistorySyncType.PUSH_NAME,
+]);
+let salvarAgendaTimer = 0;
 
 function carregarEnv(fp) {
   try {
@@ -106,17 +113,64 @@ function tsMs(m) {
   return n > 1e12 ? n : n * 1000;
 }
 
+function jidDeContato(c) {
+  const jid = String((c && c.jid) || "");
+  const id = String((c && c.id) || "");
+  if (jid.endsWith("@s.whatsapp.net")) return jid;
+  if (id.endsWith("@s.whatsapp.net")) return id;
+  return "";
+}
+
+function nomeDeContato(c, prev) {
+  const salvo = String((c && c.name) || "").trim();
+  const zap = String((c && c.notify) || (c && c.verifiedName) || "").trim();
+  if (salvo) return salvo.slice(0, 120);
+  if (zap) return zap.slice(0, 120);
+  return (prev && prev.nome) || "";
+}
+
+function carregarAgenda() {
+  try {
+    if (!fs.existsSync(AGENDA_FILE)) return;
+    const data = JSON.parse(fs.readFileSync(AGENDA_FILE, "utf8"));
+    for (const [jid, v] of Object.entries(data || {})) {
+      if (ehChatPrivado(jid) && v && typeof v === "object") {
+        agenda.set(jid, {
+          nome: String(v.nome || "").slice(0, 120),
+          telefone: String(v.telefone || jid.split("@")[0]),
+        });
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function salvarAgendaDebounced() {
+  if (salvarAgendaTimer) clearTimeout(salvarAgendaTimer);
+  salvarAgendaTimer = setTimeout(() => {
+    salvarAgendaTimer = 0;
+    try {
+      const obj = {};
+      for (const [jid, v] of agenda.entries()) obj[jid] = v;
+      fs.mkdirSync(AUTH, { recursive: true });
+      fs.writeFileSync(AGENDA_FILE, JSON.stringify(obj));
+    } catch {
+      /* ignore */
+    }
+  }, 800);
+}
+
 function guardarContato(c) {
   if (!c) return;
-  const id = String(c.id || "");
-  let jid = String(c.jid || "");
-  if (!jid.endsWith("@s.whatsapp.net") && id.endsWith("@s.whatsapp.net")) jid = id;
+  const jid = jidDeContato(c);
   if (!ehChatPrivado(jid)) return;
   if (agenda.size >= 2000 && !agenda.has(jid)) return;
-  const nome = String(c.name || c.notify || c.verifiedName || "").slice(0, 120);
   const prev = agenda.get(jid);
+  const nome = nomeDeContato(c, prev);
   if (prev && prev.nome && !nome) return;
   agenda.set(jid, { nome: nome || (prev && prev.nome) || "", telefone: jid.split("@")[0] });
+  salvarAgendaDebounced();
 }
 
 function ehChatPrivado(jid) {
@@ -215,7 +269,7 @@ async function ligar() {
     browser: ["Agro Consulta", "Chrome", "20.33"],
     markOnlineOnConnect: false,
     syncFullHistory: false,
-    shouldSyncHistoryMessage: () => false,
+    shouldSyncHistoryMessage: (msg) => SYNC_NOMES.has(msg && msg.syncType),
   });
   sock.ev.on("creds.update", saveCreds);
   sock.ev.on("connection.update", async (u) => {
@@ -236,7 +290,8 @@ async function ligar() {
       const numero = String(me).split(":")[0].split("@")[0];
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
-      setTimeout(enviarAgenda, 2500);
+      setTimeout(() => enviarAgenda(0), 2500);
+      setTimeout(() => enviarAgenda(0), 12000);
     }
     if (connection === "close") {
       const err = lastDisconnect && lastDisconnect.error;
@@ -272,14 +327,25 @@ async function ligar() {
   });
   sock.ev.on("chats.upsert", (lista) => {
     for (const ch of lista || []) {
-      guardarContato({ id: ch.id, jid: ch.id, name: ch.name, notify: ch.name });
+      guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
     }
+  });
+  sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
+    const jj = String(jid || "");
+    if (!ehChatPrivado(jj)) return;
+    const lj = String(lid || "");
+    const prev = agenda.get(lj) || agenda.get(jj);
+    if (!prev) return;
+    if (lj) agenda.delete(lj);
+    agenda.set(jj, { nome: prev.nome || "", telefone: jj.split("@")[0] });
+    salvarAgendaDebounced();
   });
   sock.ev.on("messaging-history.set", async ({ contacts, chats }) => {
     for (const c of contacts || []) guardarContato(c);
     for (const ch of chats || []) {
-      guardarContato({ id: ch.id, jid: ch.id, name: ch.name, notify: ch.name });
+      guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
     }
+    setTimeout(() => enviarAgenda(0), 1500);
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify" && type !== "append") return;
@@ -324,6 +390,10 @@ async function executarPedido(p) {
   try {
     if (p.tipo === "contatos") {
       await enviarAgenda(pid);
+      if (agenda.size < 30) {
+        setTimeout(() => enviarAgenda(pid).catch(() => {}), 3000);
+        setTimeout(() => enviarAgenda(pid).catch(() => {}), 9000);
+      }
       return;
     }
     if (p.tipo === "pairing") {
@@ -398,6 +468,7 @@ async function puxarSaida() {
 }
 
 console.log("Django:", BASE);
+carregarAgenda();
 ligar().catch((e) => {
   console.error(e);
   process.exit(1);
