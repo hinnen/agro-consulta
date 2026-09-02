@@ -3707,6 +3707,10 @@
             }
         }
         updateSearchAwaitingPulse();
+        if (!window.__pdvOrcamentosRecentesBoot) {
+            window.__pdvOrcamentosRecentesBoot = true;
+            syncHistoricoOrcamentosRecentes({ silent: true });
+        }
         var budgetKeyNow = budgetClienteKeyFromState(state);
         if (state.clienteMode !== 'unset' && budgetKeyNow !== lastBudgetSyncKey) {
             lastBudgetSyncKey = budgetKeyNow;
@@ -3834,6 +3838,29 @@
         });
         if (historico.length > 300) historico.length = 300;
         writeHistoricoOrcamentos(historico);
+    }
+
+    function syncHistoricoOrcamentosRecentes(opts) {
+        opts = opts || {};
+        var url = apiPdvOrcamentosUrl();
+        if (!url) {
+            if (!opts.silent) renderRecentBudgetsSnippet();
+            return Promise.resolve();
+        }
+        return fetch(url + '?recentes=1&limite=80', { credentials: 'same-origin' })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok || !Array.isArray(data.items)) return;
+                data.items.forEach(function (item) {
+                    mergeOrcamentoIntoHistorico(item);
+                });
+            })
+            .catch(function () {})
+            .finally(function () {
+                renderRecentBudgetsSnippet();
+            });
     }
 
     function syncHistoricoOrcamentosCliente(clienteKey, opts) {
@@ -4237,9 +4264,7 @@
     function renderRecentBudgetsSnippet() {
         var el = document.getElementById('pdv-step1-budget-snippet');
         if (!el) return;
-        var state = State.getState();
-        var key = budgetClienteKeyFromState(state);
-        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
+        var historico = readHistoricoOrcamentos();
         var slice = historico.slice(0, PDV_BUDGET_CARD_VISIBLE);
         if (dom.step1BudgetVerMais) {
             if (historico.length > PDV_BUDGET_CARD_VISIBLE) {
@@ -7549,17 +7574,8 @@
     }
 
     function openBudgetHistory() {
-        var state = State.getState();
-        var key = budgetClienteKeyFromState(state);
-        var clienteNome =
-            state.cliente && state.cliente.nome
-                ? String(state.cliente.nome).trim()
-                : state.clienteMode === 'consumidor_final'
-                  ? 'Consumidor não identificado'
-                  : 'Cliente';
-
         function paintModal() {
-            var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
+            var historico = readHistoricoOrcamentos();
             var lista = historico;
             dom.budgetHistoryList.innerHTML = lista.length
             ? lista
@@ -7595,17 +7611,13 @@
                   })
                   .join('')
             : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">' +
-              (historico.length
-                  ? 'Nenhum orçamento extra — os da lista acima são os de ' +
-                    escapeHtml(clienteNome) +
-                    '.'
-                  : 'Nenhum orçamento salvo para ' + escapeHtml(clienteNome) + '.') +
+              'Nenhum orçamento na loja ainda.' +
               '</div>';
             dom.budgetHistoryModal.classList.remove('hidden');
             dom.budgetHistoryModal.classList.add('flex');
         }
 
-        syncHistoricoOrcamentosCliente(key, { silent: true }).finally(function () {
+        syncHistoricoOrcamentosRecentes({ silent: true }).finally(function () {
             paintModal();
         });
     }

@@ -55,6 +55,7 @@ def check_static() -> None:
     check("pSave.then(abrirZap)" in cons, "consulta Zap espera gravar")
     check("await salvarHistoricoLocal" in cons, "consulta botao espera gravar")
     check("var lista = historico;" in wiz, "lista Orçamentos mostra todos")
+    check("recentes=1" in wiz and "syncHistoricoOrcamentosRecentes" in wiz, "PDV baixa recentes no servidor")
     check("X-CSRFToken" in wiz and "pdvCsrfTokenOrcamentos" in wiz, "wizard manda CSRF")
     check("X-CSRFToken" in cons and "gmCsrfTokenParaFetch" in cons, "consulta manda CSRF")
     pdv = read("pdv/views.py")

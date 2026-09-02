@@ -9,6 +9,7 @@
 {% block pdv_section_class %}flex min-h-0 flex-1 flex-col max-w-none overflow-hidden p-0{% endblock %}
 
 {% block head_extra %}
+<meta name="csrfmiddlewaretoken" content="{{ csrf_token }}">
 <style>
   .pdv-wizard-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
   .pdv-wizard-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.55); border-radius: 999px; }
@@ -4245,7 +4246,7 @@
     <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
       <div>
         <h3 class="text-lg font-black text-slate-900">Orçamentos anteriores</h3>
-        <p class="text-[11px] font-semibold text-slate-500">Além dos 3 mais recentes no card lateral. Mesmo cliente deste aparelho — reabra ou use o código GMORC na busca.</p>
+        <p class="text-[11px] font-semibold text-slate-500">Últimos orçamentos da loja (todos os PCs). Reabra ou use o código GMORC na busca. F6 abre esta lista.</p>
       </div>
       <button type="button" id="pdv-budget-history-close" class="pdv-action-btn border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-700" title="Fechar · Esc">Fechar <kbd class="pointer-events-none ml-1 rounded border border-slate-200 px-1 font-mono text-[9px]">Esc</kbd></button>
     </div>

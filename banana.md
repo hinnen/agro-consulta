@@ -406,7 +406,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE`):** API sem login Chrome · CSRF do PDV · Zap espera o POST. Prova **33/33**. 🟢 pronto envio · loja ainda **v20.86**.
+- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE` · Live v21.06):** API sem login. **Bug #14 (caixa Centro):** lista do `/pdv/` só puxava orçamento depois de escolher cliente — outro PC parecia «não salvar». Fix: baixa `recentes` ao abrir (F6). Loja ainda sem este hotfix.
 
 
 | Tela                  | URL              | JS principal                    |
@@ -1270,6 +1270,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Orçamento some no outro PC (`PDV-ORC-LISTA-PC` · bug #14 · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/pdv/` baixa orçamentos da loja ao abrir (não só do cliente da tela) |
+| **Causa** | Caixa Centro ficava no modal de consumidor → não pedia a lista no servidor |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · **Ctrl+F5** no `/pdv/` · F6 · loja ainda **v21.06** sem este hotfix |
+
 ### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
 
 | Campo | Valor |
@@ -1288,6 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | ✅ **Live v21.06** | **NÃO** |
 | 2 | `PDV-ORC-SAVE` | ✅ **Live v21.06** | **NÃO** |
+| 3 | `PDV-ORC-LISTA-PC` (bug #14) | 🟢 **pronto para envio** · só `teste` | **NÃO** |
 
 **Fora (ainda só `teste`):** WhatsApp (`WA-*`).
 
