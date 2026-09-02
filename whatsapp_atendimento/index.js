@@ -670,6 +670,36 @@ async function executarPedido(p) {
   }
 }
 
+function lidDePhone(phoneJid) {
+  const j = jidPhoneDeValor(phoneJid) || String(phoneJid || "");
+  if (!j || j.endsWith("@lid")) return "";
+  for (const [lid, pn] of lidParaJid.entries()) {
+    if (pn === j || jidPhoneDeValor(pn) === j) return lid;
+  }
+  try {
+    const map = sock && sock.signalRepository && sock.signalRepository.lidMapping;
+    if (map && typeof map.getLIDForPN === "function") {
+      const lid = map.getLIDForPN(j);
+      if (lid && String(lid).endsWith("@lid")) {
+        lidParaJid.set(String(lid), j);
+        salvarLidDebounced();
+        return String(lid);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
+function jidParaEnvio(item) {
+  const raw = String((item && item.jid) || "");
+  const lidItem = String((item && item.jid_lid) || "");
+  if (lidItem.endsWith("@lid")) return lidItem;
+  if (raw.endsWith("@lid")) return raw;
+  return lidDePhone(raw) || raw;
+}
+
 async function enviarComRetry(jid, content) {
   let last = null;
   for (let i = 0; i < 3; i++) {
@@ -704,7 +734,7 @@ async function puxarSaida() {
             mimetype: String(item.mime || "audio/ogg; codecs=opus"),
           };
         }
-        await enviarComRetry(item.jid, content);
+        await enviarComRetry(jidParaEnvio(item), content);
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", { ids: [item.id] });
       } catch (e) {
         console.error("saida:", e.message || e);

@@ -1191,9 +1191,10 @@ def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro 
         conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
     except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
         return None, "Conversa não encontrada."
+    envio = _jid_envio(conv)
     recente = WhatsAppPontePedidoAgro.objects.filter(
         tipo=WhatsAppPontePedidoAgro.TIPO_HISTORICO,
-        jid=conv.jid,
+        jid=envio,
         criado_em__gte=timezone.now() - timedelta(seconds=90),
     ).exclude(status=WhatsAppPontePedidoAgro.STATUS_ERRO).first()
     if recente:
@@ -1209,7 +1210,7 @@ def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro 
     ts_ms = int(oldest.criado_em.timestamp() * 1000) if oldest.criado_em else int(timezone.now().timestamp() * 1000)
     p = WhatsAppPontePedidoAgro.objects.create(
         tipo=WhatsAppPontePedidoAgro.TIPO_HISTORICO,
-        jid=conv.jid,
+        jid=envio,
         payload={
             "count": MAX_HIST_MSGS,
             "oldest_id": oldest.wa_id,
@@ -1372,6 +1373,14 @@ def _arquivo_b64(m: WhatsAppMensagemAgro) -> str:
     return base64.b64encode(raw).decode("ascii")
 
 
+def _jid_envio(conv: WhatsAppConversaAgro) -> str:
+    """Zap cifra a sessão no @lid — mandar no telefone deixa o cliente em 'aguardando mensagem'."""
+    lid = _jid_lid(getattr(conv, "jid_lid", "") or "") or _jid_lid(conv.jid)
+    if lid:
+        return lid
+    return (conv.jid or "")[:80]
+
+
 def listar_saida_pendente(limit: int = 20) -> list[dict]:
     lim = max(1, min(int(limit or 20), 50))
     qs = (
@@ -1385,7 +1394,8 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
         tipo = (m.tipo_midia or "").strip().lower()
         item = {
             "id": int(m.pk),
-            "jid": m.conversa.jid,
+            "jid": _jid_envio(m.conversa),
+            "jid_lid": _jid_lid(getattr(m.conversa, "jid_lid", "") or "") or _jid_lid(m.conversa.jid),
             "texto": m.texto or "",
             "tipo_midia": tipo,
             "mime": _mime_saida(m) if tipo else "",

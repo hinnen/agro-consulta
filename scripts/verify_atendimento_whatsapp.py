@@ -114,6 +114,8 @@ def _static() -> None:
     check("dw_cel_standalone", "isWhatsAppCelularPath" in dw and "openWhatsAppCelularStandalone" in dw)
     check("enviar_midia", "tipo_midia" in util and "midia_b64" in util and "MAX_SAIDA_MIDIA_BYTES" in util)
     check("saida_midia", "midia_b64" in util and "tipo_midia" in util and "def listar_saida_pendente" in util)
+    check("util_jid_envio", "def _jid_envio" in util)
+    check("node_jid_envio", "jidParaEnvio" in node)
     check("js_foto_mic", "wa-foto" in js and "wa-mic" in js and "MediaRecorder" in js)
     check("html_composer", "wa-foto" in composer and "_wa_composer.html" in html and "_wa_composer.html" in cel)
     check("node_saida_midia", "tipo_midia" in node and "Buffer.from" in node and "ptt: true" in node)
