@@ -406,7 +406,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE` · Live v21.06):** API sem login. **Bug #14 (caixa Centro):** lista do `/pdv/` só puxava orçamento depois de escolher cliente — outro PC parecia «não salvar». Fix: baixa `recentes` ao abrir (F6). Loja ainda sem este hotfix.
+- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE` · Live v21.06):** API sem login. **Bug #14 (`PDV-ORC-LISTA-PC` · Live v21.07):** `/pdv/` baixa `recentes` ao abrir (F6) — outro PC vê a lista.
 
 
 | Tela                  | URL              | JS principal                    |
@@ -1270,38 +1270,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lista orçamento (`deploy/prep-orc-lista-0209` · alvo **v21.07**)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | 🟡 **PREP pronto · aguarda senha** — **loja ainda v21.06** (não sobe neste chat) |
-| **Loja agora** | `producao` @ **`a08dfed`** · v21.06 |
-| **PREP** | `deploy/prep-orc-lista-0209` @ **`0f5bd5d`** · VERSION **21.07** |
-| **Sobe** | só `PDV-ORC-LISTA-PC` (bug #14) |
-| **Não sobe** | WhatsApp (`WA-*`) · resto do `teste` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_orcamento_save.py` **44/44** |
-| **Diff PREP vs loja** | só `pdv_wizard.js` · CSRF+texto F6 no HTML · verify · VERSION — **sem** botão/CSS Zap |
-| **Rollback** | tag `rollback/pre-orc-lista-0209-v21.06` · `docs/ROLLBACK-PDV-ORC-LISTA-0209.md` |
-| **Próximo chat** | lojas pausam venda · frase + senha → `producao` = tip do PREP · **não** merge `teste` |
-
-### ✅ CHECKLIST ÚNICO — PREP pronto / aguarda senha (02/09 · alvo **v21.07**)
+### ✅ CHECKLIST ÚNICO — Live v21.07 (02/09)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-LISTA-PC` (bug #14) | 🟡 **PREP pronto · aguarda senha** | **NÃO** |
+| 1 | `PDV-ORC-LISTA-PC` (bug #14) | ✅ **enviado / Live v21.07** | **NÃO** |
 
-**Fora:** WhatsApp (`WA-*`). PIN + gravar orçamento **já Live v21.06**.
+**Fora ainda:** WhatsApp (`WA-*`). Sem fila de envio agora.
 
-### 📦 PACOTE PRONTO — Orçamento some no outro PC (`PDV-ORC-LISTA-PC` · bug #14 · 02/09/2026)
+### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/pdv/` baixa a lista da loja ao abrir e no F6 (todos os PCs) |
-| **Causa** | Caixa Centro no modal de consumidor não pedia a lista no servidor |
-| **Prova** | `verify_pdv_orcamento_save.py` **44/44** (recentes · outro PC · `/pdv/?agro_dual=1`) |
+| **Status** | ✅ **enviado / Live v21.07** — healthz **ok** · home/PDV/consulta **200** · commit **`0f5bd5d`** |
+| **Antes** | `producao` @ **`a08dfed`** · v21.06 |
+| **Agora** | `producao` @ **`0f5bd5d`** |
+| **Pacotes** | só `PDV-ORC-LISTA-PC` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **PREP `deploy/prep-orc-lista-0209` · alvo v21.07 · aguarda senha** |
+| **Rollback** | tag `rollback/pre-orc-lista-0209-v21.06` · `docs/ROLLBACK-PDV-ORC-LISTA-0209.md` · volta **v21.06** |
+| **Você** | **Ctrl+F5** · badge **v21.07** · F7 1 venda · F6 no caixa Centro |
+
+### ~~🚀 PREP deploy loja — lista orçamento~~ · **superado — Live v21.07**
+
+### 📦 PACOTE — Orçamento some no outro PC (`PDV-ORC-LISTA-PC`) · ✅ **Live v21.07**
+
+`/pdv/` baixa a lista da loja ao abrir e no F6. Prova **44/44**.
 
 ### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
 
