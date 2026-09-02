@@ -200,6 +200,25 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertNotIn("Não achamos cadastro", bot.texto)
         self.assertIn("Renan", bot.texto)
 
+    def test_fiado_no_lid_com_chat_gemeo(self):
+        from produtos.models import ClienteAgro
+
+        ClienteAgro.objects.create(nome="Renan Hinnen 1403", whatsapp="13997851403")
+        lid = "201812074319879@lid"
+        processar_entrada(jid=lid, texto="Oi", nome="Renan Hinnen", wa_id="gemeo-1")
+        processar_entrada(
+            jid="5513997851403@s.whatsapp.net",
+            texto="Oi",
+            nome="Renan Hinnen 1403",
+            wa_id="gemeo-2",
+        )
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 2)
+        processar_entrada(jid=lid, texto="fiado", nome="Renan Hinnen", wa_id="gemeo-3")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 1)
+        bot = WhatsAppMensagemAgro.objects.filter(direcao="bot").order_by("id").last()
+        self.assertIsNotNone(bot)
+        self.assertNotIn("Não achamos cadastro", bot.texto)
+
     def test_pairing_numero_curto(self):
         from produtos.atendimento_whatsapp_util import pedir_codigo_pareamento
 

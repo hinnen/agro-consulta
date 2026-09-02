@@ -76,6 +76,7 @@ def _static() -> None:
     check("js_bot_save", "wa-bot-save" in _read("produtos/static/produtos/js/atendimento_whatsapp_bot.js"))
     check("util_merge", "def _achar_ou_criar_conversa" in util and "def _telefone_real" in util)
     check("util_mapa_lid", "def aplicar_mapa_lid" in util)
+    check("util_juntar_lid", "def juntar_conversas_lid_orfas" in util)
     check("mig_0116", (ROOT / "produtos/migrations/0116_whatsapp_jid_lid.py").is_file())
     check("model_jid_lid", "jid_lid" in models)
     check("url_bridge_lids", "api_atendimento_whatsapp_bridge_lids" in urls)

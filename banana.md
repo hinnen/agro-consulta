@@ -733,7 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-- **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real (ex. 13997851403). Migrate **`0116`**.
+- **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real (ex. 13997851403). Sem o `.bat` novo, o site junta pelo nome na lista. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
@@ -1291,7 +1291,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Fora (ainda só `teste`):** WhatsApp · resto do `teste`
 
-- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro pelo telefone, não pelo `@lid`. Migrate **`0116`**. **v20.94**.
+- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro pelo telefone, não pelo `@lid`. Lista junta sozinha pelo nome. Migrate **`0116`**. **v20.95**.
+
+### 📦 PACOTE PRONTO — Um chat por número (`WA-LID-UM` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Junta `@lid` + telefone no mesmo fio · fiado lê o número da loja (ex. 13997851403) |
+| **Onde** | `/atendimento-whatsapp/` |
+| **Migrate** | **`0116`** (`jid_lid`) |
+| **Status** | 🟡 `teste` **v20.95** · **fora da loja** |
+| **Você** | Recarrega o `runserver` · Ctrl+F5 · lista deve cair de 6 pra 3 · manda *fiado* de novo. O `.bat` ainda precisa **uma** vez (é o Zap, não o site). |
 
 ### 📦 PACOTE PRONTO — Um chat por número (`WA-LID-UM` · 02/09/2026)
 

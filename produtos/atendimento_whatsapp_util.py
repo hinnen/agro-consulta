@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import base64
 import hmac
+import json
 import re
 import unicodedata
 import uuid
 from datetime import datetime, timedelta, timezone as dt_timezone
+from pathlib import Path
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -402,6 +404,7 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
 
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
+    juntar_conversas_lid_orfas()
     loja_n = (loja or "").strip().lower()
     qs = WhatsAppConversaAgro.objects.all()
     if loja_n in (
@@ -498,6 +501,82 @@ def responder_bot(conversa: WhatsAppConversaAgro, texto: str, *, delay_seg: int 
 def _jid_lid(s: str) -> str:
     j = (s or "").strip().lower()
     return j[:80] if j.endswith("@lid") else ""
+
+
+def _nome_chave(s: str) -> str:
+    t = _sem_acento(s or "").casefold()
+    t = re.sub(r"[^a-z0-9 ]+", " ", t)
+    return " ".join(t.split())
+
+
+def _nomes_casam(a: str, b: str) -> bool:
+    if not a or not b or min(len(a), len(b)) < 8:
+        return False
+    return a == b or a.startswith(b + " ") or b.startswith(a + " ")
+
+
+def _mapa_lid_disco() -> dict:
+    p = Path(getattr(settings, "BASE_DIR", ".")) / "whatsapp_atendimento" / "lid_map.json"
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _telefone_cadastro_por_nome(nome: str) -> str:
+    chave = _nome_chave(nome)
+    if len(chave) < 8:
+        return ""
+    hits = []
+    for cli in ClienteAgro.objects.filter(ativo=True).only("nome", "whatsapp"):
+        if _nomes_casam(chave, _nome_chave(cli.nome)):
+            hits.append(cli)
+            if len(hits) > 1:
+                return ""
+    if len(hits) != 1:
+        return ""
+    return _telefone_real(hits[0].whatsapp)
+
+
+def _telefone_mesmo(a: str, b: str) -> bool:
+    x, y = _telefone_real(a), _telefone_real(b)
+    if not x or not y:
+        return False
+    return x == y or x[-11:] == y[-11:]
+
+
+@transaction.atomic
+def juntar_conversas_lid_orfas() -> int:
+    """Junta chat @lid com o telefone do mesmo cliente (mapa do PC ou nome)."""
+    aplicar_mapa_lid(_mapa_lid_disco())
+    n = 0
+    lids = list(WhatsAppConversaAgro.objects.select_for_update().filter(jid__endswith="@lid"))
+    if not lids:
+        return 0
+    phones = list(
+        WhatsAppConversaAgro.objects.select_for_update().filter(jid__endswith="@s.whatsapp.net")
+    )
+    vivos = {p.pk: p for p in phones}
+    for lc in lids:
+        if not WhatsAppConversaAgro.objects.filter(pk=lc.pk).exists():
+            continue
+        chave_l = _nome_chave(lc.nome)
+        hits = [p for p in vivos.values() if _nomes_casam(chave_l, _nome_chave(p.nome))]
+        if len(hits) != 1:
+            tel_cad = _telefone_cadastro_por_nome(lc.nome)
+            hits = []
+            if tel_cad:
+                for p in vivos.values():
+                    if _telefone_mesmo(p.telefone, tel_cad) or _telefone_mesmo(p.jid, tel_cad):
+                        hits.append(p)
+        if len(hits) != 1:
+            continue
+        manter = _fundir_conversas(hits[0], lc)
+        vivos[manter.pk] = manter
+        vivos.pop(lc.pk, None)
+        n += 1
+    return n
 
 
 def _melhor_conversa(cands: list[WhatsAppConversaAgro]) -> WhatsAppConversaAgro:
@@ -661,6 +740,10 @@ def processar_entrada(
     jid_n = (jid or "").strip()
     lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
     tel_limpo = _telefone_real(telefone) or _telefone_real(jid_n)
+    if lid and not tel_limpo:
+        pares = _mapa_lid_disco()
+        tel_limpo = _telefone_real(str(pares.get(lid) or pares.get(jid_n) or ""))
+    juntar_conversas_lid_orfas()
     tel_extra = telefone_para_jid(tel_limpo) if tel_limpo else ""
     if tel_extra:
         jid_n = tel_extra
@@ -694,6 +777,20 @@ def processar_entrada(
         conv.nome = nome[:120]
     if not conv.telefone and tel_limpo:
         conv.telefone = tel_limpo[:32]
+    if not _telefone_real(conv.telefone):
+        tel_cad = _telefone_cadastro_por_nome(conv.nome) or _telefone_cadastro_por_nome(nome)
+        if tel_cad:
+            conv.telefone = tel_cad[:32]
+            tel_limpo = tel_cad
+            phone_jid = telefone_para_jid(tel_cad)
+            outro = (
+                WhatsAppConversaAgro.objects.select_for_update()
+                .filter(jid=phone_jid)
+                .exclude(pk=conv.pk)
+                .first()
+            )
+            if outro:
+                conv = _fundir_conversas(outro, conv)
     aplicar_nome_cadastro(conv)
     aplicar_nome_agenda(conv)
 
@@ -723,6 +820,8 @@ def processar_entrada(
     cfg = carregar_bot()
     campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas", "jid_lid"]
     fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
+    if not fone:
+        fone = _telefone_cadastro_por_nome(conv.nome)
     eh_fiado = interpretar_consulta_fiado(t, cfg)
 
     def _ok_loja(escolha: str) -> str:
