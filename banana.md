@@ -733,6 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
+- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**.
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
@@ -1291,17 +1292,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Fora (ainda só `teste`):** WhatsApp · resto do `teste`
 
-- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio: não manda o texto `[imagem]` no lugar do arquivo. **v20.97**.
+- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
 
-### 📦 PACOTE PRONTO — Um chat por número (`WA-LID-UM` · 02/09/2026)
+### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Junta `@lid` + telefone no mesmo fio · fiado lê o número da loja (ex. 13997851403) |
-| **Onde** | `/atendimento-whatsapp/` |
-| **Migrate** | **`0116`** (`jid_lid`) |
-| **Status** | 🟡 `teste` **v20.97** · **fora da loja** |
-| **Você** | Recarrega `runserver` · **fecha o .bat e abre um** · Ctrl+F5 · manda foto/áudio de novo. |
+| **O quê** | Intervalo do aviso fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta |
+| **Onde** | `/atendimento-whatsapp/bot/` |
+| **Migrate** | **`0117`** (`aviso_fora_em`) |
+| **Status** | 🟡 `teste` **v20.98** · **fora da loja** |
+| **Você** | Recarrega `runserver` · Ctrl+F5 no Bot e no chat. `.bat` só se o Zap estiver mudo. |
 
 ### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
 

@@ -1,7 +1,8 @@
-{# Barra de enviar — texto + foto + mic + Enviar (PC e celular). #}
+{# Barra de enviar — texto + foto + áudio. #}
+<p id="wa-rec-bar" class="wa-rec-bar hidden">Gravando <span id="wa-rec-t">0:00</span> — toque em <b>Enviar áudio</b>. X cancela.</p>
 <button type="button" id="wa-foto" class="wa-ico" title="Enviar foto">Foto</button>
 <input id="wa-foto-inp" type="file" accept="image/*"{% if wa_cel_capture %} capture="environment"{% endif %} class="sr-only" tabindex="-1" />
-<button type="button" id="wa-mic" class="wa-ico" title="Gravar áudio">Mic</button>
+<button type="button" id="wa-mic" class="wa-ico" title="Gravar áudio">Áudio</button>
 <button type="button" id="wa-mic-x" class="wa-ico hidden" title="Cancelar gravação">X</button>
 <button type="button" id="wa-audio-arq" class="wa-ico hidden" title="Enviar áudio">Áudio</button>
 <input id="wa-audio-inp" type="file" accept="audio/*" class="sr-only" tabindex="-1" />

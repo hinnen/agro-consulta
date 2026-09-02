@@ -421,10 +421,41 @@
     r.readAsDataURL(file);
   }
 
-  function pararRec(enviar) {
+  var recTimer = 0;
+  var recSecs = 0;
+
+  function fmtRec(s) {
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function ligarRecUi(on) {
     var mic = $('wa-mic');
+    var bar = $('wa-rec-bar');
+    var t = $('wa-rec-t');
+    if (mic) {
+      mic.classList.toggle('is-rec', !!on);
+      mic.textContent = on ? 'Enviar áudio' : 'Áudio';
+    }
+    if (bar) bar.classList.toggle('hidden', !on);
+    if (recTimer) {
+      clearInterval(recTimer);
+      recTimer = 0;
+    }
+    recSecs = 0;
+    if (on) {
+      if (t) t.textContent = '0:00';
+      recTimer = setInterval(function () {
+        recSecs += 1;
+        if (t) t.textContent = fmtRec(recSecs);
+      }, 1000);
+    }
+  }
+
+  function pararRec(enviar) {
     var cancel = $('wa-mic-x');
-    if (mic) mic.classList.remove('is-rec');
+    ligarRecUi(false);
     if (cancel) cancel.classList.add('hidden');
     if (!recObj) {
       if (recStream) recStream.getTracks().forEach(function (t) { t.stop(); });
@@ -450,7 +481,6 @@
         window.alert('Áudio grande demais (máximo 3 MB). Grave mais curto.');
         return;
       }
-      if (!window.confirm('Enviar este áudio?')) return;
       var fr = new FileReader();
       fr.onload = function () {
         var s = String(fr.result || '');
@@ -502,7 +532,6 @@
       var f = fotoInp.files && fotoInp.files[0];
       fotoInp.value = '';
       if (!f) return;
-      if (!window.confirm('Enviar esta foto?')) return;
       arquivoParaB64(f, function (b64, mime, nome) {
         enviarPayload({
           conversa_id: convId,
@@ -540,7 +569,7 @@
           if (e.data && e.data.size) recChunks.push(e.data);
         };
         recObj.start();
-        micBtn.classList.add('is-rec');
+        ligarRecUi(true);
         if (micX) micX.classList.remove('hidden');
       }).catch(function () {
         window.alert('Não deu para gravar. Permita o microfone ou mande um arquivo de áudio.');
@@ -567,7 +596,6 @@
       var f = audioInp.files && audioInp.files[0];
       audioInp.value = '';
       if (!f) return;
-      if (!window.confirm('Enviar este áudio?')) return;
       arquivoParaB64(f, function (b64, mime, nome) {
         enviarPayload({
           conversa_id: convId,

@@ -180,24 +180,44 @@ def _telefone_real(s: str) -> str:
     return ""
 
 
-def aplicar_nome_cadastro(conv: WhatsAppConversaAgro) -> None:
+def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: dict | None = None) -> None:
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
     tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
-    cli = cliente_agro_por_whatsapp_flex(tel)
-    if cli is None or cli == "varios":
+    raw = str((cfg or {}).get("nome_fontes") or BOT_DEFAULT.get("nome_fontes") or "")
+    ordem = []
+    for p in raw.replace(";", ",").split(","):
+        k = p.strip().lower()
+        if k in ("cadastro", "agenda", "perfil", "telefone") and k not in ordem:
+            ordem.append(k)
+    for k in ("cadastro", "agenda", "perfil", "telefone"):
+        if k not in ordem:
+            ordem.append(k)
+    for fonte in ordem:
+        hit = ""
+        if fonte == "cadastro" and tel:
+            cli = cliente_agro_por_whatsapp_flex(tel)
+            if cli is not None and cli != "varios":
+                hit = (getattr(cli, "nome", None) or "").strip()
+        elif fonte == "agenda":
+            ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
+            if ag is None and (conv.jid_lid or ""):
+                ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid_lid).only("nome").first()
+            hit = ((ag.nome if ag else "") or "").strip()
+        elif fonte == "perfil":
+            hit = (perfil or "").strip()
+        elif fonte == "telefone":
+            hit = tel
+        if not hit:
+            continue
+        if fonte != "telefone" and _nome_parece_telefone(hit, tel):
+            continue
+        conv.nome = hit[:120]
         return
-    n = (getattr(cli, "nome", None) or "").strip()[:120]
-    if n:
-        conv.nome = n
 
 
 def aplicar_nome_agenda(conv: WhatsAppConversaAgro) -> None:
-    if (conv.nome or "").strip():
-        return
-    ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
-    n = (ag.nome if ag else "") or ""
-    n = n.strip()[:120]
-    if n:
-        conv.nome = n
+    aplicar_nome_cadastro(conv)
 
 
 def _nome_parece_telefone(nome: str, telefone: str) -> bool:
@@ -707,17 +727,56 @@ def aplicar_mapa_lid(pares: dict) -> int:
     return n
 
 
+def _preencher_msg_bot(txt: str, cfg: dict, conv: WhatsAppConversaAgro | None = None) -> str:
+    empresa = str((cfg or {}).get("nome_empresa") or "")
+    nome = ((conv.nome if conv else "") or "").strip()
+    tel = _telefone_real(conv.telefone) if conv else ""
+    if nome and _nome_parece_telefone(nome, tel):
+        nome = ""
+    t = str(txt or "")
+    t = t.replace("{empresa}", empresa)
+    t = t.replace("{cliente}", nome or "cliente")
+    t = t.replace("{nome}", nome or "cliente")
+    return t[:TEXTO_MAX]
+
+
 def _enviar_lote_bot(conversa: WhatsAppConversaAgro, textos: list[str], cfg: dict) -> None:
     from produtos.atendimento_whatsapp_bot_config import delays_bot
 
     msgs = [str(x).strip() for x in textos if str(x or "").strip()]
     if not msgs:
         return
-    empresa = str(cfg.get("nome_empresa") or "")
     ds = delays_bot(cfg, len(msgs))
     for i, txt in enumerate(msgs):
-        t = txt.replace("{empresa}", empresa)[:TEXTO_MAX]
+        t = _preencher_msg_bot(txt, cfg, conversa)
         responder_bot(conversa, t, delay_seg=ds[i] if i < len(ds) else 0)
+
+
+def _texto_eh_so_midia(texto: str, tipo_midia: str) -> bool:
+    tipo = (tipo_midia or "").strip().lower()
+    if tipo not in ("image", "audio", "sticker", "video", "document"):
+        return False
+    t = (texto or "").strip().lower()
+    return t in ("", "[imagem]", "[áudio]", "[audio]", "[figurinha]", "[vídeo]", "[video]", "[arquivo]")
+
+
+def _pode_aviso_fora(conv: WhatsAppConversaAgro, cfg: dict, *, texto: str = "", tipo_midia: str = "") -> bool:
+    from produtos.atendimento_whatsapp_bot_config import cfg_flag
+
+    if not cfg_flag(cfg, "aviso_fora_ligado"):
+        return False
+    if cfg_flag(cfg, "aviso_fora_so_texto") and _texto_eh_so_midia(texto, tipo_midia):
+        return False
+    last = conv.aviso_fora_em
+    if cfg_flag(cfg, "aviso_fora_uma_vez") and last:
+        return False
+    try:
+        mins = max(0, min(1440, int(cfg.get("aviso_fora_minutos") or 0)))
+    except (TypeError, ValueError):
+        mins = 60
+    if mins > 0 and last and timezone.now() - last < timedelta(minutes=mins):
+        return False
+    return True
 
 
 @transaction.atomic
@@ -773,8 +832,6 @@ def processar_entrada(
             return None, "ignorado"
 
     conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
-    if nome and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
-        conv.nome = nome[:120]
     if not conv.telefone and tel_limpo:
         conv.telefone = tel_limpo[:32]
     if not _telefone_real(conv.telefone):
@@ -791,8 +848,10 @@ def processar_entrada(
             )
             if outro:
                 conv = _fundir_conversas(outro, conv)
-    aplicar_nome_cadastro(conv)
-    aplicar_nome_agenda(conv)
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag, fora_do_horario
+
+    cfg = carregar_bot()
+    aplicar_nome_cadastro(conv, perfil=nome, cfg=cfg)
 
     direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
     msg = WhatsAppMensagemAgro(
@@ -815,10 +874,9 @@ def processar_entrada(
     elif not conv.ultima_em:
         conv.ultima_em = quando
 
-    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag, fora_do_horario
-
-    cfg = carregar_bot()
-    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas", "jid_lid"]
+    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas", "jid_lid", "aviso_fora_em"]
+    if not fora_do_horario(cfg) and conv.aviso_fora_em:
+        conv.aviso_fora_em = None
     fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
     if not fone:
         fone = _telefone_cadastro_por_nome(conv.nome)
@@ -848,10 +906,11 @@ def processar_entrada(
             conv.save(update_fields=campos_base)
             _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
             return msg, ""
-        if cfg_flag(cfg, "aviso_fora_ligado"):
+        if _pode_aviso_fora(conv, cfg, texto=t, tipo_midia=tipo_n):
             fh = str(cfg.get("msg_fora_horario") or "").strip()
             if fh:
                 lote.append(fh)
+                conv.aviso_fora_em = timezone.now()
         if not cfg_flag(cfg, "ainda_atende_fora"):
             conv.save(update_fields=campos_base)
             _enviar_lote_bot(conv, lote, cfg)
@@ -866,6 +925,12 @@ def processar_entrada(
             conv.save(update_fields=campos)
             _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
             return msg, ""
+        if cfg_flag(cfg, "enviar_boas_vindas") and not conv.menu_enviado:
+            bv = str(cfg.get("msg_boas_vindas") or "").strip()
+            if bv:
+                lote.append(bv)
+            conv.menu_enviado = True
+            campos.append("menu_enviado")
         conv.save(update_fields=campos)
         if lote:
             _enviar_lote_bot(conv, lote, cfg)

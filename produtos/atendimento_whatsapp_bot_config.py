@@ -24,9 +24,13 @@ BOT_DEFAULT: dict = {
     ),
     "ainda_atende_fora": False,
     "aviso_fora_ligado": True,
+    "aviso_fora_minutos": 60,
+    "aviso_fora_uma_vez": False,
+    "aviso_fora_so_texto": False,
     "separar_lojas": True,
     "enviar_boas_vindas": True,
     "msg_boas_vindas": "Olá! Bem-vindo à *{empresa}*.",
+    "nome_fontes": "cadastro,agenda,perfil,telefone",
     "ordem": "fiado_depois_loja",
     "msg_menu": (
         "Olá! Você quer falar com qual loja?\n\n"
@@ -79,6 +83,8 @@ BOOL_KEYS = (
     "horario_ativo",
     "ainda_atende_fora",
     "aviso_fora_ligado",
+    "aviso_fora_uma_vez",
+    "aviso_fora_so_texto",
     "separar_lojas",
     "enviar_boas_vindas",
     "repetir_menu",
@@ -144,6 +150,10 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     except (TypeError, ValueError):
         limpo["atraso_entre_msgs_seg"] = 1
     try:
+        limpo["aviso_fora_minutos"] = max(0, min(1440, int(limpo.get("aviso_fora_minutos") or 0)))
+    except (TypeError, ValueError):
+        limpo["aviso_fora_minutos"] = 60
+    try:
         limpo["fiado_max_parcelas"] = max(1, min(20, int(limpo.get("fiado_max_parcelas") or 8)))
     except (TypeError, ValueError):
         limpo["fiado_max_parcelas"] = 8
@@ -151,6 +161,15 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     if not isinstance(dias, list):
         dias = []
     limpo["horario_dias"] = sorted({int(d) for d in dias if str(d).isdigit() and 0 <= int(d) <= 6})
+    fontes = []
+    for p in str(limpo.get("nome_fontes") or "").replace(";", ",").split(","):
+        k = p.strip().lower()
+        if k in ("cadastro", "agenda", "perfil", "telefone") and k not in fontes:
+            fontes.append(k)
+    for k in ("cadastro", "agenda", "perfil", "telefone"):
+        if k not in fontes:
+            fontes.append(k)
+    limpo["nome_fontes"] = ",".join(fontes)
     obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=(chave or CHAVE_DEFAULT)[:32])
     obj.dados = limpo
     obj.atualizado_por = (usuario or "")[:120]

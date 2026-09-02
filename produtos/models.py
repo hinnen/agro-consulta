@@ -3492,6 +3492,7 @@ class WhatsAppConversaAgro(models.Model):
     ultima_em = models.DateTimeField(null=True, blank=True, db_index=True)
     origem_abertura = models.CharField(max_length=8, default="in", db_index=True)
     jid_lid = models.CharField(max_length=80, blank=True, null=True, unique=True)
+    aviso_fora_em = models.DateTimeField(null=True, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -19,12 +19,21 @@
     'horario_ativo',
     'ainda_atende_fora',
     'aviso_fora_ligado',
+    'aviso_fora_uma_vez',
+    'aviso_fora_so_texto',
     'separar_lojas',
     'enviar_boas_vindas',
     'repetir_menu',
     'fiado_ligado',
     'fiado_manda_menu',
     'ausencia_ligada',
+  ];
+
+  var FONTES_NOME = [
+    { v: 'cadastro', n: 'Cadastro da loja' },
+    { v: 'agenda', n: 'Nome salvo no celular' },
+    { v: 'perfil', n: 'Nome do perfil no Zap' },
+    { v: 'telefone', n: 'Telefone' },
   ];
 
   function csrf() {
@@ -84,6 +93,39 @@
     return out;
   }
 
+  function montarFontes(sel) {
+    var ordem = String(sel || 'cadastro,agenda,perfil,telefone').split(',');
+    var limpo = [];
+    ordem.forEach(function (x) {
+      var k = String(x || '').trim();
+      if (k && limpo.indexOf(k) < 0) limpo.push(k);
+    });
+    FONTES_NOME.forEach(function (f) {
+      if (limpo.indexOf(f.v) < 0) limpo.push(f.v);
+    });
+    [1, 2, 3, 4].forEach(function (i) {
+      var el = form() && form().querySelector('[name="nome_fonte_' + i + '"]');
+      if (!el) return;
+      el.innerHTML = FONTES_NOME.map(function (f) {
+        return '<option value="' + f.v + '">' + f.n + '</option>';
+      }).join('');
+      el.value = limpo[i - 1] || FONTES_NOME[i - 1].v;
+    });
+  }
+
+  function lerFontes() {
+    var out = [];
+    [1, 2, 3, 4].forEach(function (i) {
+      var el = form() && form().querySelector('[name="nome_fonte_' + i + '"]');
+      var v = el ? el.value : '';
+      if (v && out.indexOf(v) < 0) out.push(v);
+    });
+    FONTES_NOME.forEach(function (f) {
+      if (out.indexOf(f.v) < 0) out.push(f.v);
+    });
+    return out.join(',');
+  }
+
   function preencher(bot) {
     var f = form();
     if (!f || !bot) return;
@@ -114,12 +156,14 @@
       'msg_fiado_sem_cadastro',
       'msg_fiado_varios',
       'msg_fora_horario',
+      'aviso_fora_minutos',
       'msg_ausencia',
     ].forEach(function (k) {
       var el = f.querySelector('[name="' + k + '"]');
       if (el && bot[k] != null) el.value = bot[k];
     });
     montarDias(bot.horario_dias || []);
+    montarFontes(bot.nome_fontes || '');
   }
 
   function coletar() {
@@ -132,10 +176,12 @@
     Array.prototype.forEach.call(f.querySelectorAll('input, textarea, select'), function (el) {
       var n = el.name;
       if (!n || CHECKS.indexOf(n) >= 0) return;
+      if (n.indexOf('nome_fonte_') === 0) return;
       if (el.type === 'number') o[n] = parseInt(el.value || '0', 10);
       else o[n] = el.value;
     });
     o.horario_dias = lerDias();
+    o.nome_fontes = lerFontes();
     o.loja1_id = 'centro';
     o.loja2_id = 'vila';
     return o;

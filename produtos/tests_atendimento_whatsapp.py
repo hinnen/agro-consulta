@@ -110,7 +110,53 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         textos = " ".join(m.texto.lower() for m in WhatsAppMensagemAgro.objects.filter(direcao="bot"))
         self.assertNotIn("fora do horário", textos)
 
-    def test_aviso_fora_desligado(self):
+    def test_aviso_fora_respeita_intervalo(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+        cfg = dict(BOT_DEFAULT)
+        cfg["aviso_fora_minutos"] = 60
+        cfg["ainda_atende_fora"] = False
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            with patch("produtos.atendimento_whatsapp_bot_config.fora_do_horario", return_value=True):
+                processar_entrada(jid="5513999000666@s.whatsapp.net", texto="Oi", wa_id="fora-1")
+                processar_entrada(jid="5513999000666@s.whatsapp.net", texto="Oi de novo", wa_id="fora-2")
+        n = WhatsAppMensagemAgro.objects.filter(direcao="bot").count()
+        self.assertEqual(n, 1)
+
+    def test_saudacao_sem_separar_lojas(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+        cfg = dict(BOT_DEFAULT)
+        cfg["separar_lojas"] = False
+        cfg["horario_ativo"] = False
+        cfg["enviar_boas_vindas"] = True
+        cfg["msg_boas_vindas"] = "Oi da {empresa}"
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(jid="5513999000777@s.whatsapp.net", texto="Oi", nome="Ana")
+        textos = " ".join(m.texto for m in WhatsAppMensagemAgro.objects.filter(direcao="bot"))
+        self.assertIn("GM Agro", textos)
+        self.assertNotIn("Responda *1*", textos)
+
+    def test_nome_olha_perfil_primeiro(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+        from produtos.models import ClienteAgro
+
+        ClienteAgro.objects.create(nome="Maria Cadastro", whatsapp="13988887777")
+        cfg = dict(BOT_DEFAULT)
+        cfg["nome_fontes"] = "perfil,cadastro,agenda,telefone"
+        cfg["horario_ativo"] = False
+        cfg["separar_lojas"] = False
+        cfg["enviar_boas_vindas"] = False
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(jid="5513988887777@s.whatsapp.net", texto="Oi", nome="ZapNome")
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.nome, "ZapNome")
         from unittest.mock import patch
 
         from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT

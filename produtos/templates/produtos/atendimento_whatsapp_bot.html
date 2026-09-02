@@ -59,6 +59,12 @@
       <label class="wa-sw"><span>Usar horário</span><input type="checkbox" name="horario_ativo" /></label>
       <label class="wa-sw"><span>Mandar aviso fora do horário</span><input type="checkbox" name="aviso_fora_ligado" /></label>
       <label class="wa-sw"><span>Fora do horário ainda entra na fila</span><input type="checkbox" name="ainda_atende_fora" /></label>
+      <label class="wa-sw"><span>Só uma vez até a loja abrir de novo</span><input type="checkbox" name="aviso_fora_uma_vez" /></label>
+      <label class="wa-sw"><span>Não avisar se for só foto ou áudio</span><input type="checkbox" name="aviso_fora_so_texto" /></label>
+      <label class="wa-lab">Esperar (minutos) para avisar de novo
+        <button type="button" class="wa-q" title="0 = em toda mensagem. 60 = no máximo 1 aviso por hora neste chat.">?</button>
+      </label>
+      <input type="number" min="0" max="1440" name="aviso_fora_minutos" />
       <div class="wa-row wa-row-2">
         <div>
           <label class="wa-lab">Abre</label>
@@ -73,6 +79,7 @@
       <div id="wa-bot-dias" class="flex flex-wrap gap-1.5"></div>
       <label class="wa-lab" style="margin-top:.75rem">Aviso fora do horário</label>
       <textarea name="msg_fora_horario" rows="3"></textarea>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> (ordem do nome na aba Menu).</p>
     </section>
 
     <section data-panel="menu" class="wa-panel wa-card">
@@ -81,9 +88,18 @@
         <option value="fiado_depois_loja">Fiado, depois loja</option>
         <option value="loja_primeiro">Loja, depois fiado</option>
       </select>
-      <label class="wa-sw"><span>Boas-vindas antes do menu</span><input type="checkbox" name="enviar_boas_vindas" /></label>
+      <label class="wa-sw"><span>Boas-vindas (também sem separar as 2 lojas)</span><input type="checkbox" name="enviar_boas_vindas" /></label>
       <label class="wa-sw"><span>Repetir se não escolher</span><input type="checkbox" name="repetir_menu" /></label>
-      <label class="wa-lab">Boas-vindas <button type="button" class="wa-q" title="{empresa} vira o nome da empresa.">?</button></label>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b>. O bot pega o nome na ordem que você escolher. Só o primeiro que achar vale.</p>
+      <label class="wa-lab">Nome do cliente — 1º</label>
+      <select name="nome_fonte_1"></select>
+      <label class="wa-lab">2º</label>
+      <select name="nome_fonte_2"></select>
+      <label class="wa-lab">3º</label>
+      <select name="nome_fonte_3"></select>
+      <label class="wa-lab">4º</label>
+      <select name="nome_fonte_4"></select>
+      <label class="wa-lab">Boas-vindas</label>
       <textarea name="msg_boas_vindas" rows="2"></textarea>
       <label class="wa-lab">Menu</label>
       <textarea name="msg_menu" class="wa-long" rows="7"></textarea>
