@@ -1270,40 +1270,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — orçamento por cliente (`deploy/prep-orc-cliente-0209` · alvo **v21.08**)
+### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto · aguarda senha** — **loja ainda v21.07** (não sobe neste chat) |
-| **Loja agora** | `producao` @ **`0f5bd5d`** · v21.07 · healthz **ok** |
-| **PREP** | `deploy/prep-orc-cliente-0209` @ **`3a89b86`** · VERSION **21.08** |
-| **Sobe** | só `PDV-ORC-POR-CLIENTE` |
-| **Não sobe** | WhatsApp (`WA-*`) · resto do `teste` |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×2 |
-| **Diff PREP vs loja** | só `pdv_wizard.js` · 1 linha texto F6 · verify · VERSION · rollback — **sem** Zap |
-| **Rollback** | tag `rollback/pre-orc-cliente-0209-v21.07` · `docs/ROLLBACK-PDV-ORC-CLIENTE-0209.md` · volta **v21.07** |
-| **Próximo chat** | lojas pausam venda · frase + senha → `producao` = tip do PREP · **não** merge `teste` |
+| **Já limpo** | Temp / npm / pip / `.cache` / cache Chrome / snapshots Cursor / cache agent — C: ~**9 GB** livres |
+| **Não mexido** | projetos GitHub · `settings.json` · extensões · `state.vscdb` (histórico) |
+| **Pendente** | mover `state.vscdb` (~43 GB) C: → **D:\CursorOffload** com Cursor **fechado** |
+| **Script** | `D:\CursorOffload\MOVER-CURSOR-STATE.ps1` · reverter: `REVERTER-CURSOR-STATE.ps1` · `LEIA-ME.txt` |
+| **Projetos** | **fora** do script (só AppData do Cursor) |
 
-### ✅ CHECKLIST ÚNICO — PREP pronto / aguarda senha (02/09 · alvo **v21.08**)
+### ✅ CHECKLIST ÚNICO — Live v21.08 (02/09)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-POR-CLIENTE` | 🟡 **PREP pronto · aguarda senha** | **NÃO** |
+| 1 | `PDV-ORC-POR-CLIENTE` | ✅ **enviado / Live v21.08** | **NÃO** |
 
-**Fora:** WhatsApp (`WA-*`).
+**Fora ainda:** WhatsApp (`WA-*`). Sem fila de envio agora.
 
-### 📦 PACOTE PRONTO — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`)
+### ✅ Deploy loja — orçamento por cliente (`prep-orc-cliente-0209` · **v21.08**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Salva na pasta do cliente da tela; F6/card só dele; sync online em todos os PCs; `unset`/consumidor = mesma pasta |
-| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×2 |
-| **Arquivos** | `pdv_wizard.js` · texto F6 · verify |
+| **Status** | ✅ **enviado / Live v21.08** — healthz **ok** · PDV/consulta **200** · commit **`3a89b86`** |
+| **Antes** | `producao` @ **`0f5bd5d`** · v21.07 |
+| **Agora** | `producao` @ **`3a89b86`** |
+| **Pacotes** | só `PDV-ORC-POR-CLIENTE` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **PREP `deploy/prep-orc-cliente-0209` @ `3a89b86` · alvo v21.08 · aguarda senha** |
+| **Rollback** | tag `rollback/pre-orc-cliente-0209-v21.07` · `docs/ROLLBACK-PDV-ORC-CLIENTE-0209.md` · volta **v21.07** |
+| **Você** | **Ctrl+F5** · badge **v21.08** · F7 1 venda · Renan salvar · outro PC F6 só dele |
 
-### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (UX parcial — ver PREP acima)
+### ~~🚀 PREP deploy loja — orçamento por cliente~~ · **superado — Live v21.08**
+
+### 📦 PACOTE — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`) · ✅ **Live v21.08**
+
+Salva na pasta do cliente; F6/card só dele; sync multi-PC. Prova **68/68**.
+
+### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (superado pelo v21.08 acima)
 
 | Campo | Valor |
 | ----- | ----- |
