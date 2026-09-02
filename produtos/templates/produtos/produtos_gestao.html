@@ -271,6 +271,11 @@
     if (!t) { banEl.classList.add('hidden'); banEl.textContent = ''; return; }
     banEl.textContent = t;
     banEl.classList.remove('hidden');
+    if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+      try {
+        window.gmSspinAbrirSeErroPin(t, function () {}, { titulo: 'Identifique-se com o PIN' });
+      } catch (ePinBan) {}
+    }
   }
 
   function paramsLista() {
@@ -829,5 +834,6 @@
   carregar();
 })();
   </script>
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>

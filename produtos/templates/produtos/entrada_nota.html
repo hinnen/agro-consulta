@@ -6731,6 +6731,12 @@
     );
     el.classList.remove('hidden');
     entradaNfeMsgGlobalTimer = setTimeout(() => entradaNfeClearMsgGlobal(), 5200);
+    /* Erro «precisa PIN» sem teclado → abre a linha do PIN na hora. */
+    if (!ok && typeof window.gmSspinAbrirSeErroPin === 'function') {
+      try {
+        window.gmSspinAbrirSeErroPin(text, function () {}, { titulo: 'Identifique-se com o PIN' });
+      } catch (_) {}
+    }
   }
 
   let ultimaNotaParse = null;
@@ -11213,8 +11219,103 @@
 
   const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
   let entradaNfeEstoqueAgroEmCurso = false;
-  btnEstoqueAgro?.addEventListener('click', async () => {
-    if (entradaNfeEstoqueAgroEmCurso || btnEstoqueAgro.disabled) return;
+  async function entradaNfeRegistrarEstoqueAgroPost() {
+    if (entradaNfeEstoqueAgroEmCurso || (btnEstoqueAgro && btnEstoqueAgro.disabled)) return;
+    const linhas = coletarLinhas();
+    const comPid = linhas.filter((ln) => ln.produto_id && !String(ln.produto_id).startsWith('local:'));
+    const depVal = String(document.getElementById('m-deposito-entrada').value || '').trim();
+    entradaNfeEstoqueAgroEmCurso = true;
+    if (btnEstoqueAgro) {
+      btnEstoqueAgro.disabled = true;
+      btnEstoqueAgro.setAttribute('aria-busy', 'true');
+    }
+    const cab = coletarCabecalho();
+    const body = {
+      linhas,
+      cabecalho: cab,
+      deposito: depVal,
+      salvar_rascunho: true,
+      modo: entradaNfeModoParaSalvar(),
+      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
+      extra: { origem: 'entrada_nfe_estoque_agro' },
+      rascunho_id: entradaNfeRascunhoEditId || undefined,
+    };
+    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    try {
+      const r = await entradaNfeFetch(URL_ESTOQUE_AGRO, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      }, 90000);
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 403 && window.gmSspinErroPedePin && window.gmSspinErroPedePin(j.erro)) {
+        if (btnEstoqueAgro) {
+          btnEstoqueAgro.disabled = false;
+          btnEstoqueAgro.removeAttribute('aria-busy');
+        }
+        entradaNfeEstoqueAgroEmCurso = false;
+        if (window.gmLoadingBar) window.gmLoadingBar.hide();
+        if (typeof window.gmSspinGarantirOperador === 'function') {
+          window.gmSspinGarantirOperador(function () {
+            entradaNfeRegistrarEstoqueAgroPost();
+          }, { titulo: 'PIN para registrar estoque' });
+        } else {
+          showMsg(j.erro || 'Identifique-se com o PIN antes de continuar.', false);
+        }
+        return;
+      }
+      if (r.status === 409 && j.erro) {
+        showMsg(j.erro, false);
+        if (btnEstoqueAgro) {
+          btnEstoqueAgro.disabled = false;
+          btnEstoqueAgro.removeAttribute('aria-busy');
+        }
+        return;
+      }
+      const jrasc = j.rascunho;
+      if (jrasc && jrasc.id && !entradaNfeRascunhoEditId) {
+        entradaNfeRascunhoEditId = String(jrasc.id);
+        setEntradaNfeRascunhoEdit(entradaNfeRascunhoEditId);
+      }
+      const est = j.estoque || {};
+      const aplicados = est.aplicados || [];
+      if (aplicados.length) {
+        const resumo = aplicados.map((a) => `${a.produto_id}: +${a.quantidade} → saldo Agro ${a.saldo_agro_depois}`).join(' · ');
+        let t = `Estoque Agro atualizado. ${resumo}`;
+        if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
+        showMsg(t, r.ok && !j.aviso_status_rascunho);
+        carregarRascunhos();
+        entradaNfeRascunhoStatusUltimo = 'estoque_aplicado';
+        entradaNfeAtualizarUiBotaoEstoqueAgro({ status: 'estoque_aplicado' });
+        entradaNfeWizardApplyStepUi(entradaNfeBonificacaoAtiva() ? 7 : 6);
+        entradaNfeWizardAgendarAtualizarCores();
+        try {
+          entradaNfeAplicarTravasEtapasWizardUi();
+          entradaNfeAplicarCongelamentoEditorUi();
+        } catch (_) {}
+      } else {
+        showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
+        if (btnEstoqueAgro) {
+          btnEstoqueAgro.disabled = false;
+          btnEstoqueAgro.removeAttribute('aria-busy');
+        }
+      }
+    } catch (e) {
+      showMsg((e && e.aborted) ? e.message : 'Erro de rede.', false);
+      if (btnEstoqueAgro) {
+        btnEstoqueAgro.disabled = false;
+        btnEstoqueAgro.removeAttribute('aria-busy');
+      }
+    } finally {
+      entradaNfeEstoqueAgroEmCurso = false;
+      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    }
+  }
+  btnEstoqueAgro?.addEventListener('click', () => {
+    if (entradaNfeEstoqueAgroEmCurso || (btnEstoqueAgro && btnEstoqueAgro.disabled)) return;
     if (entradaNfeEditorCongeladoAtivo()) {
       showMsg('Nota finalizada: use «Reabrir nota» na etapa 8 para alterar.', false);
       return;
@@ -11247,71 +11348,13 @@
     const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);
     const depNome = depLbl ? depLbl.textContent.trim() : depVal;
     if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depNome}`)) return;
-    entradaNfeEstoqueAgroEmCurso = true;
-    btnEstoqueAgro.disabled = true;
-    btnEstoqueAgro.setAttribute('aria-busy', 'true');
-    const cab = coletarCabecalho();
-    const body = {
-      linhas,
-      cabecalho: cab,
-      deposito: depVal,
-      salvar_rascunho: true,
-      modo: entradaNfeModoParaSalvar(),
-      xml_chave: ultimaNotaParse && ultimaNotaParse.chave ? ultimaNotaParse.chave : (cab.chave || null),
-      extra: { origem: 'entrada_nfe_estoque_agro' },
-      rascunho_id: entradaNfeRascunhoEditId || undefined,
-    };
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
-    try {
-      const r = await entradaNfeFetch(URL_ESTOQUE_AGRO, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(body),
-      }, 90000);
-      const j = await r.json().catch(() => ({}));
-      if (r.status === 409 && j.erro) {
-        showMsg(j.erro, false);
-        btnEstoqueAgro.disabled = false;
-        btnEstoqueAgro.removeAttribute('aria-busy');
-        return;
-      }
-      const jrasc = j.rascunho;
-      if (jrasc && jrasc.id && !entradaNfeRascunhoEditId) {
-        entradaNfeRascunhoEditId = String(jrasc.id);
-        setEntradaNfeRascunhoEdit(entradaNfeRascunhoEditId);
-      }
-      const est = j.estoque || {};
-      const aplicados = est.aplicados || [];
-      if (aplicados.length) {
-        const resumo = aplicados.map((a) => `${a.produto_id}: +${a.quantidade} → saldo Agro ${a.saldo_agro_depois}`).join(' · ');
-        let t = `Estoque Agro atualizado. ${resumo}`;
-        if (j.aviso_status_rascunho) t += ` (${j.aviso_status_rascunho})`;
-        showMsg(t, r.ok && !j.aviso_status_rascunho);
-        carregarRascunhos();
-        entradaNfeRascunhoStatusUltimo = 'estoque_aplicado';
-        entradaNfeAtualizarUiBotaoEstoqueAgro({ status: 'estoque_aplicado' });
-        entradaNfeWizardApplyStepUi(entradaNfeBonificacaoAtiva() ? 7 : 6);
-        entradaNfeWizardAgendarAtualizarCores();
-        try {
-          entradaNfeAplicarTravasEtapasWizardUi();
-          entradaNfeAplicarCongelamentoEditorUi();
-        } catch (_) {}
-      } else {
-        showMsg(j.erro || est.erros?.[0]?.erro || 'Nada foi aplicado.', false);
-        btnEstoqueAgro.disabled = false;
-        btnEstoqueAgro.removeAttribute('aria-busy');
-      }
-    } catch (e) {
-      showMsg((e && e.aborted) ? e.message : 'Erro de rede.', false);
-      btnEstoqueAgro.disabled = false;
-      btnEstoqueAgro.removeAttribute('aria-busy');
-    } finally {
-      entradaNfeEstoqueAgroEmCurso = false;
-      if (window.gmLoadingBar) window.gmLoadingBar.hide();
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(function () {
+        entradaNfeRegistrarEstoqueAgroPost();
+      }, { titulo: 'PIN para registrar estoque' });
+      return;
     }
+    entradaNfeRegistrarEstoqueAgroPost();
   });
   document.getElementById('btn-salvar-xml').addEventListener('click', () => salvar('xml', { origem: 'upload_xml' }));
 
@@ -12512,5 +12555,6 @@
 })();
   </script>
 {% if not entrada_embed %}{% include "produtos/_atalho_voltar_pdv.html" %}{% endif %}
+{% include "produtos/_screensaver_pin.html" %}
 </body>
 </html>

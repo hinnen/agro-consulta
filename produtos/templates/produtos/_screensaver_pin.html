@@ -50,6 +50,18 @@
 </div>
 <script>
 (function () {
+  /* Evita 2 teclados se a página incluir o partial mais de uma vez. */
+  try {
+    var dups = document.querySelectorAll('#sspin-root');
+    if (dups && dups.length > 1) {
+      for (var di = 1; di < dups.length; di++) {
+        try { dups[di].parentNode.removeChild(dups[di]); } catch (eDup) {}
+      }
+    }
+  } catch (eDupAll) {}
+  if (window.__GM_SSPIN_INIT__) return;
+  window.__GM_SSPIN_INIT__ = true;
+
   var BOOTSTRAP_PIN = '1234';
   var LS_OPERADOR = 'gm_sspin_operador';
   var LS_LANC_DESBLOQ = 'gm_lancamentos_desbloqueado';
@@ -69,6 +81,29 @@
     try { document.body.appendChild(root); } catch (eReparent) {}
   }
   garantirSspinNoBody();
+
+  function forcarVisibilidadeLock() {
+    if (!root) return;
+    try {
+      root.classList.remove('opacity-0', 'pointer-events-none', 'hidden', 'invisible');
+      root.style.opacity = '1';
+      root.style.pointerEvents = 'auto';
+      root.style.visibility = 'visible';
+      root.style.display = 'flex';
+      root.style.zIndex = '2147483646';
+      root.setAttribute('aria-hidden', 'false');
+    } catch (eVis) {}
+  }
+
+  function limparVisibilidadeLock() {
+    if (!root) return;
+    try {
+      root.style.opacity = '';
+      root.style.pointerEvents = '';
+      root.style.visibility = '';
+      root.style.display = '';
+    } catch (eClr) {}
+  }
 
   var lancamentosMode = root.getAttribute('data-sspin-lancamentos') === '1';
   var entryOnly = root.getAttribute('data-sspin-entry-only') === '1';
@@ -469,14 +504,25 @@
     setOperador('');
     try { sessionStorage.removeItem(SS_PIN_SESSION); } catch (ePinSess) {}
     locked = true;
-    root.classList.remove('opacity-0', 'pointer-events-none');
-    root.setAttribute('aria-hidden', 'false');
+    root.classList.remove('opacity-0', 'pointer-events-none', 'hidden', 'invisible');
+    forcarVisibilidadeLock();
     showPinPanel();
     document.body.classList.add('sspin-locked');
+    /* Foco no campo — sem isso o teclado físico não digita e parece «sem linha». */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        if (!locked || !input) return;
+        try { input.focus({ preventScroll: true }); } catch (eF) {
+          try { input.focus(); } catch (eF2) {}
+        }
+        try { input.select(); } catch (eS) {}
+      });
+    });
   }
 
   function closeLock() {
     locked = false;
+    limparVisibilidadeLock();
     root.classList.add('opacity-0', 'pointer-events-none');
     root.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('sspin-locked');
@@ -641,13 +687,34 @@
   style.textContent =
     'body.sspin-locked { overflow: hidden !important; } ' +
     'body.sspin-locked > *:not(#sspin-root) { user-select: none; pointer-events: none; } ' +
-    'body.sspin-locked #sspin-root { pointer-events: auto !important; filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; isolation: isolate; } ' +
+    'body.sspin-locked #sspin-root { ' +
+      'display: flex !important; opacity: 1 !important; visibility: visible !important; ' +
+      'pointer-events: auto !important; filter: none !important; backdrop-filter: none !important; ' +
+      '-webkit-backdrop-filter: none !important; isolation: isolate; z-index: 2147483646 !important; ' +
+    '} ' +
     'body.sspin-locked #sspin-root > * { filter: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: translateZ(0); } ' +
+    'body.sspin-locked #sspin-input, body.sspin-locked #sspin-numpad, body.sspin-locked #sspin-numpad * { ' +
+      'pointer-events: auto !important; visibility: visible !important; opacity: 1 !important; ' +
+    '} ' +
     /* Entregas pendentes (dialog) pode abrir por cima do PIN — precisa receber clique. */
     'body.sspin-locked dialog#pdv-entregas-pendentes-modal[open], ' +
     'body.sspin-locked dialog#pdv-entregas-pendentes-modal[open] * { pointer-events: auto !important; } ' +
     '@media print { #sspin-root { display: none !important; } body.sspin-locked > * { pointer-events: auto !important; } }';
   document.head.appendChild(style);
+
+  /* Travou o body sem teclado visível → recupera (bug recorrente loja). */
+  setInterval(function () {
+    try {
+      if (!document.body || !document.body.classList.contains('sspin-locked')) return;
+      if (!locked) {
+        locked = true;
+      }
+      forcarVisibilidadeLock();
+      if (panelPin && panelPin.classList.contains('hidden') && panelSetup && panelSetup.classList.contains('hidden')) {
+        showPinPanel();
+      }
+    } catch (eWatch) {}
+  }, 1200);
 
   function carregarOperadorSessao() {
     fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
@@ -701,6 +768,33 @@
 
   window.gmSspinAbrirEntrada = function () {
     openLock(true);
+  };
+
+  /** Detecta erro do servidor «precisa PIN / modo descanso» (toast sem teclado). */
+  window.gmSspinErroPedePin = function (erro) {
+    var t = String(erro == null ? '' : erro);
+    if (!t) return false;
+    if (/Identifique-se com o PIN/i.test(t)) return true;
+    if (/modo descanso/i.test(t) && /PIN/i.test(t)) return true;
+    if (/Entre com o PIN no PDV/i.test(t)) return true;
+    if (/precisa.?pin/i.test(t)) return true;
+    return false;
+  };
+
+  /**
+   * Se a mensagem for de PIN obrigatório, abre o teclado e chama onOk após digitar.
+   * Retorna true se abriu (chamador NÃO deve só mostrar toast).
+   */
+  window.gmSspinAbrirSeErroPin = function (erro, onOk, opts) {
+    if (!window.gmSspinErroPedePin(erro)) return false;
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(typeof onOk === 'function' ? onOk : function () {}, opts || {
+        titulo: 'Identifique-se com o PIN'
+      });
+      return true;
+    }
+    openLock(true);
+    return true;
   };
 
   /**

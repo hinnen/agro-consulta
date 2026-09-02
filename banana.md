@@ -1269,6 +1269,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 PIN sem teclado — toast sem linha (`PIN-TECLADO-OBRIG` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | Aviso «Identifique-se com o PIN (modo descanso)» **sem** campo/teclado (Entrada NF estoque · Gestão · PDV) |
+| **Causa** | Servidor exige PIN; Entrada NF/Gestão/Cadastro **não** tinham a tela do PIN; toast só mostrava o erro |
+| **Fix** | Teclado PIN nessas telas · abre no erro · estoque NF pede PIN antes · PDV toast abre PIN · trava sem teclado se recupera |
+| **Prova** | `scripts/verify_pin_teclado_obrigatorio.py` **18/18** · pin-na-ação **67/67** · pin-quem **51/51** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · **Ctrl+F5** · registrar estoque NF → deve abrir teclado escuro com ···· |
+| **Você** | Prova local; loja **só** com frase+senha |
+
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
 | Campo | Valor |

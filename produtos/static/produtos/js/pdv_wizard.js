@@ -294,6 +294,12 @@
             keepNewlines: !!opts.keepNewlines,
             durationMs: opts.persistent ? 0 : opts.durationMs || 12000
         });
+        /* Toast «precisa PIN» sem teclado → abre a linha do PIN. */
+        if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+            try {
+                window.gmSspinAbrirSeErroPin(texto, function () {}, { titulo: 'Identifique-se com o PIN' });
+            } catch (ePinToast) {}
+        }
     }
 
     function showPdvConfirmacao(msg, opts) {
