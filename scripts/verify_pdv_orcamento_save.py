@@ -56,11 +56,18 @@ def check_static() -> None:
     check("syncHistoricoOrcamentosCliente" in wiz, "PDV baixa orcamentos por cliente")
     check("syncHistoricoOrcamentosRecentes" not in wiz, "nao mistura recentes da loja no UI")
     check("__pdvOrcamentosRecentesBoot" not in wiz, "boot nao usa recentes misturados")
+    check("?recentes=1" not in wiz, "wizard nao chama recentes=1")
+    check("cliente_key=' + encodeURIComponent(key)" in wiz, "GET sync manda cliente_key")
     check("clienteMode !== 'unset' && budgetKeyNow" not in wiz, "sync nao espera sair do modal")
     check(
         "clienteMode === 'unset' || state.clienteMode === 'consumidor_final'" in wiz,
         "unset e consumidor = mesma pasta",
     )
+    idx_save = wiz.find("function salvarOrcamentoWizard")
+    save = wiz[idx_save : idx_save + 2200]
+    check(idx_save > 0 and "cliente_key: key" in save, "salvar grava cliente_key do estado")
+    check("budgetClienteKeyFromState(state)" in save, "salvar usa pasta do cliente da tela")
+    check("setConsumidorFinal" in save, "salvar com modal aberto vira consumidor")
     idx_snip = wiz.find("function renderRecentBudgetsSnippet")
     snip = wiz[idx_snip : idx_snip + 500]
     check(idx_snip > 0 and "filterHistoricoPorCliente" in snip, "card lateral filtra pelo cliente")
@@ -69,13 +76,22 @@ def check_static() -> None:
     check(idx_hist > 0 and "filterHistoricoPorCliente" in hist, "F6 lista filtra pelo cliente")
     check("syncHistoricoOrcamentosCliente(key, { silent: true })" in hist, "F6 sincroniza o cliente da tela")
     check("event.code === 'F6'" in wiz and "openBudgetHistory();" in wiz, "F6 abre lista")
+    # Boot sync: muda a chave e chama sync por cliente (nao so render).
+    boot_mark = "// Sync online do cliente da tela"
+    idx_boot = wiz.find(boot_mark)
+    boot = wiz[idx_boot : idx_boot + 350] if idx_boot >= 0 else ""
+    check(idx_boot > 0 and "syncHistoricoOrcamentosCliente(budgetKeyNow)" in boot, "boot sync por cliente da tela")
+    check(idx_boot > 0 and "clienteMode !== 'unset'" not in boot, "boot sync mesmo com modal unset")
     html_wiz = read("produtos/templates/produtos/pdv_wizard.html")
     check('name="csrfmiddlewaretoken"' in html_wiz, "PDV HTML tem CSRF")
-    check("deste cliente" in html_wiz.lower() or "deste cliente" in html_wiz, "ajuda F6 fala deste cliente")
+    check("deste cliente" in html_wiz.lower(), "ajuda F6 fala deste cliente")
     check("X-CSRFToken" in wiz and "pdvCsrfTokenOrcamentos" in wiz, "wizard manda CSRF")
     check("X-CSRFToken" in cons and "gmCsrfTokenParaFetch" in cons, "consulta manda CSRF")
+    check("cliente_key:" in cons, "consulta tambem grava cliente_key")
     pdv = read("pdv/views.py")
     check("@ensure_csrf_cookie\ndef pdv_home" in pdv.replace("\r\n", "\n"), "wizard PDV seta cookie CSRF")
+    check('OrcamentoPdvAgro.objects.filter(cliente_key=key)' in chunk, "API lista filtra por cliente_key")
+    check('escopo": "cliente"' in chunk, "API responde escopo cliente")
 
 
 def _ids(resp) -> list[int]:
@@ -223,6 +239,31 @@ def check_runtime() -> None:
         ids_pc2_cf = _ids(c_outro.get(url + "?cliente_key=consumidor_final"))
         check(oid_cf in ids_pc2_cf, "outro PC com consumidor ve o dele")
         check(oid_renan not in ids_pc2_cf, "outro PC consumidor nao ve Renan")
+
+        # Troca de PC + troca de cliente: Renan some quando abre outro.
+        r_outro_cli = c_outro.get(url + "?cliente_key=id:999001")
+        check(r_outro_cli.status_code == 200, f"GET outro cliente ({r_outro_cli.status_code})")
+        check(oid_renan not in _ids(r_outro_cli), "outro cliente nao ve orcamento Renan")
+
+        # id: estilo (sem pk) tambem isola.
+        oid_id = 1999990000009
+        OrcamentoPdvAgro.objects.filter(orc_local_id=oid_id).delete()
+        body_id = {
+            "entry": {
+                "id": oid_id,
+                "cliente": "Cliente ID Style",
+                "cliente_key": "id:555",
+                "cliente_mode": "cliente",
+                "total": "R$ 3,00",
+                "itens": [{"id": "z", "nome": "Z", "qtd": 1, "preco": 3}],
+                "origem": "manual",
+            }
+        }
+        r_id = c.post(url, data=json.dumps(body_id), content_type="application/json")
+        check(r_id.status_code == 200, f"POST chave id: ({r_id.status_code})")
+        check(oid_id in _ids(c.get(url + "?cliente_key=id%3A555")), "GET id:555 acha o seu")
+        check(oid_id not in _ids(c.get(url + "?cliente_key=" + "pk%3A1403")), "pk:1403 nao puxa id:555")
+        OrcamentoPdvAgro.objects.filter(orc_local_id=oid_id).delete()
 
         OrcamentoPdvAgro.objects.filter(orc_local_id__in=keys).delete()
 
