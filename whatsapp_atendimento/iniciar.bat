@@ -29,6 +29,22 @@ if not exist node_modules (
     pause
     exit /b 1
   )
+) else if not exist node_modules\ffmpeg-static (
+  echo Instalando conversor de audio. Espere 1 minuto.
+  call npm install
+  if errorlevel 1 (
+    echo ERRO: npm install falhou. Confira internet e tente de novo.
+    pause
+    exit /b 1
+  )
+)
+if exist node_modules\ffmpeg-static\install.js (
+  if not exist node_modules\ffmpeg-static\ffmpeg.exe (
+    if not exist node_modules\ffmpeg-static\ffmpeg (
+      echo Baixando o conversor de audio. Espere.
+      node node_modules\ffmpeg-static\install.js
+    )
+  )
 )
 :loop
 echo Ligando...

@@ -85,6 +85,8 @@ def _static() -> None:
     check("bot_fora_intervalo", "aviso_fora_minutos" in _read("produtos/atendimento_whatsapp_bot_config.py"))
     check("bot_nome_fontes", "nome_fontes" in _read("produtos/atendimento_whatsapp_bot_config.py"))
     check("html_rec_bar", "wa-rec-bar" in composer)
+    check("html_send_some_rec", "is-rec #wa-send" in _read("produtos/templates/produtos/_wa_skin.html"))
+    check("pkg_ffmpeg", "ffmpeg-static" in _read("whatsapp_atendimento/package.json"))
     check("model_jid_lid", "jid_lid" in models)
     check("url_bridge_lids", "api_atendimento_whatsapp_bridge_lids" in urls)
     check("node_jid_lid", "jid_lid" in node and "enviarLidMap" in node)

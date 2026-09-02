@@ -15,9 +15,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import pino from "pino";
-import QRCode from "qrcode";
+
+const require = createRequire(import.meta.url);
+const ffmpegStatic = require("ffmpeg-static");
+if (ffmpegStatic) console.log("ffmpeg:", ffmpegStatic);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 carregarEnv(path.join(__dirname, ".env"));
@@ -820,16 +824,17 @@ async function audioParaZap(buf, mime) {
   if (m.includes("ogg") && !m.includes("webm")) {
     return { buf, mime: "audio/ogg; codecs=opus", ptt: true };
   }
+  const bin = typeof ffmpegStatic === "string" && ffmpegStatic ? ffmpegStatic : "ffmpeg";
   const inn = path.join(os.tmpdir(), "agro-wa-" + Date.now());
   const out = inn + ".ogg";
   try {
     fs.writeFileSync(inn, buf);
     await new Promise((resolve, reject) => {
-      const p = spawn("ffmpeg", ["-y", "-i", inn, "-vn", "-c:a", "libopus", "-b:a", "24k", out], {
+      const p = spawn(bin, ["-y", "-i", inn, "-vn", "-c:a", "libopus", "-b:a", "24k", "-ar", "16000", "-ac", "1", out], {
         windowsHide: true,
       });
       p.on("error", reject);
-      p.on("close", (c) => (c === 0 ? resolve() : reject(new Error("ffmpeg"))));
+      p.on("close", (c) => (c === 0 ? resolve() : reject(new Error("ffmpeg " + c))));
     });
     const converted = fs.readFileSync(out);
     if (converted && converted.length) return { buf: converted, mime: "audio/ogg; codecs=opus", ptt: true };
@@ -883,7 +888,35 @@ async function puxarSaida() {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
             const aud = await audioParaZap(buf, item.mime);
-            content = { audio: aud.buf, ptt: aud.ptt, mimetype: aud.mime };
+            const dest = jidParaEnvio(item);
+            let sent;
+            try {
+              sent = await enviarComRetry(dest, {
+                audio: aud.buf,
+                ptt: true,
+                mimetype: "audio/ogg; codecs=opus",
+              });
+            } catch (e1) {
+              try {
+                sent = await enviarComRetry(dest, {
+                  audio: aud.buf,
+                  ptt: false,
+                  mimetype: aud.mime || "audio/ogg; codecs=opus",
+                });
+              } catch (e2) {
+                sent = await enviarComRetry(dest, {
+                  document: aud.buf,
+                  mimetype: aud.mime || "audio/ogg",
+                  fileName: "audio.ogg",
+                });
+              }
+            }
+            const waId = sent && sent.key && sent.key.id;
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              wa_id: waId || "",
+            });
+            continue;
           }
         } else {
           if (!txt.trim()) continue;

@@ -734,7 +734,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
 - **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**.
-- **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio converte se tiver ffmpeg.
+- **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho.
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
@@ -1350,7 +1350,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
 - **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v21.01**. **Não** copiamos código do WASeller.
-- **Eco + áudio (`WA-ECO-AUD` · 02/09):** o que a loja manda não aparece duas vezes (RENAN + CELULAR). Áudio tenta virar formato do Zap. Busca pede a agenda do **Zap** aos poucos (nome salvo no WhatsApp). Não abre a lista de contatos do iPhone/Android de quem não tem Zap.
+- **Eco + áudio (`WA-ECO-AUD` · 02/09 · teste v21.14):** eco cortado. Áudio converte com ffmpeg-static (baixa sozinho no `.bat`). Na gravação some o botão verde — envia no microfone vermelho. **Ctrl+F5** + **religar o `.bat` uma vez**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 
