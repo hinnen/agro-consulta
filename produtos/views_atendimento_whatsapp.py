@@ -21,6 +21,7 @@ from produtos.atendimento_whatsapp_util import (
     excluir_conversa,
     transferir_conversa,
     gravar_agenda_zap,
+    importar_agenda_vcard,
     listar_conversas,
     listar_mensagens,
     listar_pedidos_pendentes,
@@ -278,6 +279,40 @@ def api_atendimento_whatsapp_transferir(request):
 def api_atendimento_whatsapp_contatos(request):
     q = (request.GET.get("q") or "").strip()
     return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_agenda_vcf(request):
+    f = request.FILES.get("arquivo") or request.FILES.get("file") or request.FILES.get("vcf")
+    if f is None:
+        return JsonResponse({"ok": False, "erro": "Escolha o arquivo .vcf da agenda."}, status=400)
+    if f.size and f.size > 8 * 1024 * 1024:
+        return JsonResponse({"ok": False, "erro": "Arquivo grande demais (máx. 8 MB)."}, status=400)
+    nome = (getattr(f, "name", "") or "").lower()
+    if nome and not (nome.endswith(".vcf") or nome.endswith(".vcard")):
+        return JsonResponse({"ok": False, "erro": "Use um arquivo .vcf (contatos do celular)."}, status=400)
+    raw = f.read()
+    texto = ""
+    for enc in ("utf-8", "utf-8-sig", "latin-1"):
+        try:
+            texto = raw.decode(enc)
+            break
+        except UnicodeDecodeError:
+            continue
+    if not texto.strip():
+        return JsonResponse({"ok": False, "erro": "Arquivo vazio."}, status=400)
+    if "BEGIN:VCARD" not in texto.upper():
+        return JsonResponse({"ok": False, "erro": "Isso não parece um arquivo de contatos (.vcf)."}, status=400)
+    out = importar_agenda_vcard(texto)
+    return JsonResponse(
+        {
+            "ok": True,
+            "lidos": int(out.get("lidos") or 0),
+            "gravados": int(out.get("gravados") or 0),
+            "aviso": "Pronto. Busque pelo nome na caixa de pesquisa.",
+        }
+    )
 
 
 @login_required(login_url="/admin/login/")

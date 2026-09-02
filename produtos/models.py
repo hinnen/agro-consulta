@@ -3547,7 +3547,7 @@ class WhatsAppMensagemAgro(models.Model):
 
 
 class WhatsAppAgendaContatoAgro(models.Model):
-    """Recorte da agenda do Zap (máx. ~80, só quando a loja pede)."""
+    """Agenda do Zap / import .vcf — usada na busca para abrir chat."""
 
     jid = models.CharField(max_length=80, unique=True)
     telefone = models.CharField(max_length=32, blank=True, default="", db_index=True)

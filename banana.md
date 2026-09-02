@@ -1270,26 +1270,40 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (02/09)
+### 🚀 PREP deploy loja — orçamento por cliente (`deploy/prep-orc-cliente-0209` · alvo **v21.08**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto · aguarda senha** — **loja ainda v21.07** (não sobe neste chat) |
+| **Loja agora** | `producao` @ **`0f5bd5d`** · v21.07 · healthz **ok** |
+| **PREP** | `deploy/prep-orc-cliente-0209` @ **`3a89b86`** · VERSION **21.08** |
+| **Sobe** | só `PDV-ORC-POR-CLIENTE` |
+| **Não sobe** | WhatsApp (`WA-*`) · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×2 |
+| **Diff PREP vs loja** | só `pdv_wizard.js` · 1 linha texto F6 · verify · VERSION · rollback — **sem** Zap |
+| **Rollback** | tag `rollback/pre-orc-cliente-0209-v21.07` · `docs/ROLLBACK-PDV-ORC-CLIENTE-0209.md` · volta **v21.07** |
+| **Próximo chat** | lojas pausam venda · frase + senha → `producao` = tip do PREP · **não** merge `teste` |
+
+### ✅ CHECKLIST ÚNICO — PREP pronto / aguarda senha (02/09 · alvo **v21.08**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-POR-CLIENTE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PDV-ORC-POR-CLIENTE` | 🟡 **PREP pronto · aguarda senha** | **NÃO** |
 
-**Fora:** WhatsApp (`WA-*`). Loja hoje **v21.07** (lista misturava — este pacote corrige).
+**Fora:** WhatsApp (`WA-*`).
 
 ### 📦 PACOTE PRONTO — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Salva na pasta do cliente da tela; F6/card só dele; sync online em todos os PCs; `unset`/consumidor = mesma pasta |
-| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×3 (Renan · consumidor · outro PC · sem misturar · CSRF) |
-| **Arquivos** | `pdv_wizard.js` · `pdv_wizard.html` · verify |
+| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×2 |
+| **Arquivos** | `pdv_wizard.js` · texto F6 · verify |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Local: Ctrl+F5 · Renan · salvar · outro PC mesmo cliente · F6 |
+| **Status** | 🟡 **PREP `deploy/prep-orc-cliente-0209` @ `3a89b86` · alvo v21.08 · aguarda senha** |
 
-### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (UX parcial — ver pacote acima)
+### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (UX parcial — ver PREP acima)
 
 | Campo | Valor |
 | ----- | ----- |

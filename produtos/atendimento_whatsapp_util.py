@@ -1255,6 +1255,99 @@ def _phone_jid_de_lid(lid: str) -> str:
     return ""
 
 
+def _vcard_desdobrar(texto: str) -> str:
+    t = re.sub(r"=\r?\n", "", texto or "")
+    linhas: list[str] = []
+    for ln in t.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if linhas and (ln.startswith(" ") or ln.startswith("\t")):
+            linhas[-1] += ln[1:]
+        else:
+            linhas.append(ln)
+    return "\n".join(linhas)
+
+
+def _vcard_decode_valor(valor: str, meta: str) -> str:
+    v = (valor or "").strip()
+    m = (meta or "").upper()
+    if "QUOTED-PRINTABLE" in m:
+        try:
+            import quopri
+
+            v = quopri.decodestring(v.encode("utf-8", errors="replace")).decode("utf-8", errors="replace")
+        except Exception:
+            pass
+    return re.sub(r"\s+", " ", v).strip()
+
+
+def _vcard_tel_digits(raw: str) -> str:
+    d = re.sub(r"\D+", "", raw or "")
+    while d.startswith("0") and len(d) > 11:
+        d = d[1:]
+    if d.startswith("55") and len(d) >= 12:
+        return d
+    if len(d) in (10, 11):
+        return "55" + d
+    if 12 <= len(d) <= 15:
+        return d
+    return ""
+
+
+def parse_agenda_vcard(texto: str) -> list[dict]:
+    """Extrai nome + telefone de um .vcf (agenda do celular)."""
+    bloco = _vcard_desdobrar(texto)
+    itens: list[dict] = []
+    seen: set[str] = set()
+    cards = re.split(r"(?i)BEGIN:VCARD", bloco)
+    for card in cards:
+        if not card.strip():
+            continue
+        nome = ""
+        tels: list[tuple[int, str]] = []
+        for ln in card.split("\n"):
+            if ":" not in ln:
+                continue
+            meta, val = ln.split(":", 1)
+            key = meta.split(";", 1)[0].upper()
+            mu = meta.upper()
+            if key == "FN":
+                nome = _vcard_decode_valor(val, meta) or nome
+            elif key == "N" and not nome:
+                parts = [_vcard_decode_valor(p, meta) for p in val.split(";")]
+                nome = " ".join(p for p in parts if p).strip()
+            elif key == "TEL":
+                dig = _vcard_tel_digits(val)
+                if not dig:
+                    continue
+                score = 0
+                if "WHATSAPP" in mu:
+                    score += 30
+                if "PREF" in mu:
+                    score += 10
+                if "CELL" in mu or "MOBILE" in mu or "VOICE" in mu:
+                    score += 5
+                tels.append((score, dig))
+        if not tels:
+            continue
+        tels.sort(key=lambda x: (-x[0], x[1]))
+        dig = tels[0][1]
+        jid = telefone_para_jid(dig)
+        if not jid or jid in seen:
+            continue
+        seen.add(jid)
+        itens.append({"jid": jid, "nome": (nome or "")[:120], "telefone": dig[:32]})
+        if len(itens) >= 5000:
+            break
+    return itens
+
+
+def importar_agenda_vcard(texto: str) -> dict:
+    itens = parse_agenda_vcard(texto)
+    n = 0
+    for i in range(0, len(itens), 500):
+        n += gravar_agenda_zap(itens[i : i + 500])
+    return {"ok": True, "lidos": len(itens), "gravados": n}
+
+
 def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
     n = 0
     if not isinstance(itens, list):

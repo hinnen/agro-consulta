@@ -720,7 +720,12 @@
     fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
       var rows = (j && j.contatos) || [];
       if (!rows.length) {
-        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Procurando na agenda do Zap… Se não achar, a pessoa precisa ter WhatsApp (nome salvo no Zap). Sem WhatsApp, digite o telefone com DDD.</p>';
+        var n0 = tentativa || 0;
+        if (q.length >= 2 && n0 < 5) {
+          hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Procurando…</p>';
+        } else {
+          hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada achado. Use <b>Importar agenda</b> (.vcf), digite o telefone com DDD, ou cadastre no Agro.</p>';
+        }
       } else {
         hits.innerHTML = rows
           .map(function (c) {
@@ -762,6 +767,48 @@
     inpBusca.addEventListener('input', function () {
       window.clearTimeout(buscaTimer);
       buscaTimer = window.setTimeout(buscarTopo, 220);
+    });
+  }
+
+  var vcfInp = $('wa-vcf-inp');
+  var vcfMsg = $('wa-vcf-msg');
+  if (vcfInp) {
+    vcfInp.addEventListener('change', function () {
+      var f = vcfInp.files && vcfInp.files[0];
+      if (!f) return;
+      if (vcfMsg) vcfMsg.textContent = 'Importando…';
+      var fd = new FormData();
+      fd.append('arquivo', f);
+      fetch('/api/atendimento-whatsapp/agenda-vcf/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrf() },
+        body: fd,
+      })
+        .then(function (r) {
+          return r.json().then(function (j) {
+            return { okHttp: r.ok, j: j };
+          });
+        })
+        .then(function (pack) {
+          var j = pack.j || {};
+          if (!pack.okHttp || !j.ok) {
+            if (vcfMsg) vcfMsg.textContent = '';
+            window.alert((j && j.erro) || 'Não importou a agenda.');
+            return;
+          }
+          var txt = 'Pronto: ' + String(j.gravados || 0) + ' contato(s). Busque pelo nome.';
+          if (vcfMsg) vcfMsg.textContent = txt;
+          window.alert(txt);
+          if (((inpBusca && inpBusca.value) || '').trim()) buscarTopo(0);
+        })
+        .catch(function () {
+          if (vcfMsg) vcfMsg.textContent = '';
+          window.alert('Falha ao enviar o arquivo.');
+        })
+        .finally(function () {
+          vcfInp.value = '';
+        });
     });
   }
   var hitsEl = $('wa-busca-hits');
