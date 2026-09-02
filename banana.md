@@ -1270,11 +1270,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja **v21.06**)
+### 🚀 PREP deploy loja — lista orçamento (`deploy/prep-orc-lista-0209` · alvo **v21.07**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto · aguarda senha** — **loja ainda v21.06** (não sobe neste chat) |
+| **Loja agora** | `producao` @ **`a08dfed`** · v21.06 |
+| **PREP** | `deploy/prep-orc-lista-0209` @ **`0f5bd5d`** · VERSION **21.07** |
+| **Sobe** | só `PDV-ORC-LISTA-PC` (bug #14) |
+| **Não sobe** | WhatsApp (`WA-*`) · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_orcamento_save.py` **44/44** |
+| **Diff PREP vs loja** | só `pdv_wizard.js` · CSRF+texto F6 no HTML · verify · VERSION — **sem** botão/CSS Zap |
+| **Rollback** | tag `rollback/pre-orc-lista-0209-v21.06` · `docs/ROLLBACK-PDV-ORC-LISTA-0209.md` |
+| **Próximo chat** | lojas pausam venda · frase + senha → `producao` = tip do PREP · **não** merge `teste` |
+
+### ✅ CHECKLIST ÚNICO — PREP pronto / aguarda senha (02/09 · alvo **v21.07**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-LISTA-PC` (bug #14) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PDV-ORC-LISTA-PC` (bug #14) | 🟡 **PREP pronto · aguarda senha** | **NÃO** |
 
 **Fora:** WhatsApp (`WA-*`). PIN + gravar orçamento **já Live v21.06**.
 
@@ -1286,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Causa** | Caixa Centro no modal de consumidor não pedia a lista no servidor |
 | **Prova** | `verify_pdv_orcamento_save.py` **44/44** (recentes · outro PC · `/pdv/?agro_dual=1`) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · loja ainda **v21.06** sem este hotfix |
+| **Status** | 🟡 **PREP `deploy/prep-orc-lista-0209` · alvo v21.07 · aguarda senha** |
 
 ### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
 
