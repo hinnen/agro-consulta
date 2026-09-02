@@ -1359,15 +1359,13 @@ def _arquivo_b64(m: WhatsAppMensagemAgro) -> str:
     if not m.arquivo:
         return ""
     try:
-        m.arquivo.open("rb")
-        raw = m.arquivo.read()
+        fh = m.arquivo.open("rb")
+        try:
+            raw = fh.read()
+        finally:
+            fh.close()
     except Exception:
         return ""
-    finally:
-        try:
-            m.arquivo.close()
-        except Exception:
-            pass
     if not raw or len(raw) > MAX_SAIDA_MIDIA_BYTES:
         return ""
     return base64.b64encode(raw).decode("ascii")

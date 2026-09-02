@@ -204,6 +204,10 @@
           midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
         } else if (m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
+        } else if (m.tipo_midia === 'image' || m.tipo_midia === 'sticker') {
+          midia = '<span class="text-xs text-slate-500">Foto (ainda baixando)</span>';
+        } else if (m.tipo_midia === 'audio') {
+          midia = '<span class="text-xs text-slate-500">Áudio (ainda baixando)</span>';
         }
         return (
           '<div class="wa-b ' +

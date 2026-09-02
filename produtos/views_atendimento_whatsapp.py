@@ -373,13 +373,7 @@ def api_atendimento_whatsapp_pairing(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
-@require_GET
-def api_atendimento_whatsapp_midia(request, pk: int):
-    try:
-        m = WhatsAppMensagemAgro.objects.get(pk=int(pk))
-    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError) as exc:
-        raise Http404("Mídia não encontrada.") from exc
+def _arquivo_midia_response(m: WhatsAppMensagemAgro) -> FileResponse:
     if not m.arquivo:
         raise Http404("Mídia não encontrada.")
     ctype = "application/octet-stream"
@@ -390,11 +384,23 @@ def api_atendimento_whatsapp_midia(request, pk: int):
             ctype = "image/png"
         elif name.endswith(".webp"):
             ctype = "image/webp"
-    elif m.tipo_midia == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a")):
+    elif m.tipo_midia == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a", ".webm")):
         ctype = "audio/ogg"
         if name.endswith(".mp3"):
             ctype = "audio/mpeg"
+        elif name.endswith(".webm"):
+            ctype = "audio/webm"
     return FileResponse(m.arquivo.open("rb"), content_type=ctype)
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_midia(request, pk: int):
+    try:
+        m = WhatsAppMensagemAgro.objects.get(pk=int(pk))
+    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError) as exc:
+        raise Http404("Mídia não encontrada.") from exc
+    return _arquivo_midia_response(m)
 
 
 @csrf_exempt
@@ -455,6 +461,18 @@ def api_atendimento_whatsapp_bridge_entrada(request):
     if err == "duplicada":
         return JsonResponse({"ok": True, "duplicada": True})
     return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_GET
+def api_atendimento_whatsapp_bridge_midia(request, pk: int):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    try:
+        m = WhatsAppMensagemAgro.objects.get(pk=int(pk))
+    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError) as exc:
+        raise Http404("Mídia não encontrada.") from exc
+    return _arquivo_midia_response(m)
 
 
 @csrf_exempt

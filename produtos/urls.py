@@ -876,6 +876,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_bridge_entrada',
     ),
     path(
+        'api/atendimento-whatsapp/bridge/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_midia,
+        name='api_atendimento_whatsapp_bridge_midia',
+    ),
+    path(
         'api/atendimento-whatsapp/bridge/saida/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida,
         name='api_atendimento_whatsapp_bridge_saida',

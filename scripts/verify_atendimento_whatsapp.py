@@ -119,6 +119,8 @@ def _static() -> None:
     check("js_foto_mic", "wa-foto" in js and "wa-mic" in js and "MediaRecorder" in js)
     check("html_composer", "wa-foto" in composer and "_wa_composer.html" in html and "_wa_composer.html" in cel)
     check("node_saida_midia", "tipo_midia" in node and "Buffer.from" in node and "ptt: true" in node)
+    check("url_bridge_midia", "api_atendimento_whatsapp_bridge_midia" in urls)
+    check("node_baixar_saida", "baixarSaidaArquivo" in node and "downloadContentFromMessage" in node)
     check("icon_192", (ROOT / "produtos/static/produtos/pwa/zap-loja-192.png").is_file())
     check("icon_512", (ROOT / "produtos/static/produtos/pwa/zap-loja-512.png").is_file())
     check("menu_dash_par", "launch-wa-pair" in dash and "WhatsApp computador" in dash)

@@ -5,6 +5,7 @@
 import { Boom } from "@hapi/boom";
 import makeWASocket, {
   DisconnectReason,
+  downloadContentFromMessage,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
   normalizeMessageContent,
@@ -86,6 +87,10 @@ function garantirUmaInstancia() {
     limpar();
     process.exit(0);
   });
+}
+
+function headersAuth() {
+  return { "X-Agro-Wa-Token": TOKEN };
 }
 
 function headersJson() {
@@ -396,19 +401,54 @@ function mimeDe(msg) {
   return "";
 }
 
+async function streamParaBuf(stream) {
+  const chunks = [];
+  for await (const c of stream) chunks.push(c);
+  return Buffer.concat(chunks);
+}
+
 async function baixarMidia(m) {
   const tipo = tipoMidiaDe(m);
   if (!["image", "audio", "sticker"].includes(tipo)) {
     return { tipo, b64: "", mime: mimeDe(m) };
   }
-  try {
-    const buf = await downloadMediaMessage(m, "buffer", {}, { logger, reuploadRequest: sock.updateMediaMessage });
-    if (!buf || !buf.length || buf.length > 6000000) return { tipo, b64: "", mime: mimeDe(m) };
-    return { tipo, b64: Buffer.from(buf).toString("base64"), mime: mimeDe(m) };
-  } catch (e) {
-    console.error("midia:", e.message || e);
-    return { tipo, b64: "", mime: mimeDe(m) };
+  const inner = conteudoDe(m);
+  const node =
+    (inner && (inner.imageMessage || inner.audioMessage || inner.stickerMessage)) || null;
+  const kind = tipo === "sticker" ? "sticker" : tipo;
+  for (let i = 0; i < 4; i++) {
+    try {
+      let buf = null;
+      if (node && (node.mediaKey || node.url || node.directPath)) {
+        const stream = await downloadContentFromMessage(node, kind, {});
+        buf = await streamParaBuf(stream);
+      }
+      if (!buf || !buf.length) {
+        buf = await downloadMediaMessage(
+          m,
+          "buffer",
+          {},
+          { logger, reuploadRequest: sock.updateMediaMessage }
+        );
+      }
+      if (buf && buf.length && buf.length <= 6000000) {
+        return { tipo, b64: Buffer.from(buf).toString("base64"), mime: mimeDe(m) };
+      }
+    } catch (e) {
+      console.error("midia:", e.message || e);
+    }
+    await new Promise((r) => setTimeout(r, 500 * (i + 1)));
   }
+  return { tipo, b64: "", mime: mimeDe(m) };
+}
+
+async function baixarSaidaArquivo(id) {
+  const r = await fetch(BASE + "/api/atendimento-whatsapp/bridge/midia/" + id + "/", {
+    headers: headersAuth(),
+  });
+  if (!r.ok) return null;
+  const buf = Buffer.from(await r.arrayBuffer());
+  return buf.length ? buf : null;
 }
 
 async function enviarEntrada(m, extra) {
@@ -724,15 +764,23 @@ async function puxarSaida() {
         const b64 = String(item.midia_b64 || "");
         const txt = String(item.texto || "");
         const caption = txt === "[imagem]" || txt === "[áudio]" ? "" : txt;
-        let content = { text: txt };
-        if (tipo === "image" && b64) {
-          content = { image: Buffer.from(b64, "base64"), caption };
-        } else if (tipo === "audio" && b64) {
-          content = {
-            audio: Buffer.from(b64, "base64"),
-            ptt: true,
-            mimetype: String(item.mime || "audio/ogg; codecs=opus"),
-          };
+        let content;
+        if (tipo === "image" || tipo === "audio") {
+          let buf = await baixarSaidaArquivo(item.id);
+          if (!buf && b64) buf = Buffer.from(b64, "base64");
+          if (!buf || !buf.length) continue;
+          if (tipo === "image") {
+            content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
+          } else {
+            content = {
+              audio: buf,
+              ptt: true,
+              mimetype: String(item.mime || "audio/ogg; codecs=opus"),
+            };
+          }
+        } else {
+          if (!txt.trim()) continue;
+          content = { text: txt };
         }
         await enviarComRetry(jidParaEnvio(item), content);
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", { ids: [item.id] });
