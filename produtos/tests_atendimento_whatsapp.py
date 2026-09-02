@@ -375,6 +375,27 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertEqual(conv.origem_abertura, "loja")
         self.assertTrue(m.pendente_envio)
 
+    def test_importar_agenda_vcard(self):
+        from produtos.atendimento_whatsapp_util import buscar_contatos_envio, importar_agenda_vcard
+        from produtos.models import WhatsAppAgendaContatoAgro
+
+        vcf = (
+            "BEGIN:VCARD\nVERSION:2.1\n"
+            "FN:Esposa My life\n"
+            "TEL;CELL;PREF:+5513996911723\n"
+            "END:VCARD\n"
+            "BEGIN:VCARD\nVERSION:2.1\n"
+            "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:=41=6E=64=72=C3=A9\n"
+            "TEL;X-WhatsApp:+5547999906228\n"
+            "END:VCARD\n"
+        )
+        out = importar_agenda_vcard(vcf)
+        self.assertEqual(out["lidos"], 2)
+        self.assertGreaterEqual(out["gravados"], 2)
+        self.assertTrue(WhatsAppAgendaContatoAgro.objects.filter(nome="Esposa My life").exists())
+        rows = buscar_contatos_envio("Esposa")
+        self.assertTrue(any("Esposa" in (r.get("nome") or "") for r in rows))
+
     def test_busca_agenda_nome_lid(self):
         from produtos.atendimento_whatsapp_util import buscar_contatos_envio, gravar_agenda_zap
         from produtos.models import WhatsAppAgendaContatoAgro
