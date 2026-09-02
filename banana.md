@@ -406,7 +406,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE` · Live v21.06):** API sem login. **Bug #14 (`PDV-ORC-LISTA-PC` · Live v21.07):** `/pdv/` baixa `recentes` ao abrir (F6) — outro PC vê a lista.
+- **Orçamento PDV (02/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · no `teste`, corrige misturada da v21.07).
 
 
 | Tela                  | URL              | JS principal                    |
