@@ -12,7 +12,9 @@ import makeWASocket, {
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import pino from "pino";
 import QRCode from "qrcode";
@@ -622,6 +624,16 @@ async function ligar() {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
     }
   });
+  sock.ev.on("chats.update", (lista) => {
+    for (const ch of lista || []) {
+      guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+    }
+  });
+  sock.ev.on("chats.set", (dados) => {
+    for (const ch of (dados && dados.chats) || []) {
+      guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+    }
+  });
   sock.ev.on("chats.phoneNumberShare", ({ lid, jid }) => {
     const jj = String(jid || "");
     const lj = String(lid || "");
@@ -787,6 +799,41 @@ function jidParaEnvio(item) {
   return lidDePhone(raw) || raw;
 }
 
+async function audioParaZap(buf, mime) {
+  const m = String(mime || "").toLowerCase();
+  if (m.includes("ogg") && !m.includes("webm")) {
+    return { buf, mime: "audio/ogg; codecs=opus", ptt: true };
+  }
+  const inn = path.join(os.tmpdir(), "agro-wa-" + Date.now());
+  const out = inn + ".ogg";
+  try {
+    fs.writeFileSync(inn, buf);
+    await new Promise((resolve, reject) => {
+      const p = spawn("ffmpeg", ["-y", "-i", inn, "-vn", "-c:a", "libopus", "-b:a", "24k", out], {
+        windowsHide: true,
+      });
+      p.on("error", reject);
+      p.on("close", (c) => (c === 0 ? resolve() : reject(new Error("ffmpeg"))));
+    });
+    const converted = fs.readFileSync(out);
+    if (converted && converted.length) return { buf: converted, mime: "audio/ogg; codecs=opus", ptt: true };
+  } catch (e) {
+    console.error("audio ffmpeg:", e.message || e);
+  } finally {
+    try {
+      fs.unlinkSync(inn);
+    } catch {
+      /* ignore */
+    }
+    try {
+      fs.unlinkSync(out);
+    } catch {
+      /* ignore */
+    }
+  }
+  return { buf, mime: m || "audio/webm", ptt: false };
+}
+
 async function enviarComRetry(jid, content) {
   let last = null;
   for (let i = 0; i < 3; i++) {
@@ -819,18 +866,19 @@ async function puxarSaida() {
           if (tipo === "image") {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
-            content = {
-              audio: buf,
-              ptt: true,
-              mimetype: String(item.mime || "audio/ogg; codecs=opus"),
-            };
+            const aud = await audioParaZap(buf, item.mime);
+            content = { audio: aud.buf, ptt: aud.ptt, mimetype: aud.mime };
           }
         } else {
           if (!txt.trim()) continue;
           content = { text: txt };
         }
-        await enviarComRetry(jidParaEnvio(item), content);
-        await post("/api/atendimento-whatsapp/bridge/saida-ok/", { ids: [item.id] });
+        const sent = await enviarComRetry(jidParaEnvio(item), content);
+        const waId = sent && sent.key && sent.key.id;
+        await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+          ids: [item.id],
+          wa_id: waId || "",
+        });
       } catch (e) {
         console.error("saida:", e.message || e);
         await post("/api/atendimento-whatsapp/bridge/saida-ok/", {

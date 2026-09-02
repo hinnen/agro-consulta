@@ -53,6 +53,22 @@ class BotRoteamentoTests(TestCase):
         self.assertGreaterEqual(len(bots), 2)
         self.assertIn("Vila", bots[-1].texto)
 
+    def test_eco_do_zap_nao_duplica(self):
+        processar_entrada(jid="5513999111222@s.whatsapp.net", texto="1", nome="Ana")
+        conv = WhatsAppConversaAgro.objects.get()
+        from produtos.atendimento_whatsapp_util import enviar_loja
+
+        enviar_loja(conversa_id=conv.pk, texto="oi", autor="Renan")
+        n = WhatsAppMensagemAgro.objects.filter(texto="oi").count()
+        _m, err = processar_entrada(
+            jid="5513999111222@s.whatsapp.net",
+            texto="oi",
+            de_mim=True,
+            wa_id="eco-oi-1",
+        )
+        self.assertEqual(err, "duplicada")
+        self.assertEqual(WhatsAppMensagemAgro.objects.filter(texto="oi").count(), n)
+
     def test_ja_diz_centro_na_primeira(self):
         processar_entrada(jid="5513888888888@s.whatsapp.net", texto="quero o centro")
         conv = WhatsAppConversaAgro.objects.get()

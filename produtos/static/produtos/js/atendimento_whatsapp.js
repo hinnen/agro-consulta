@@ -720,7 +720,7 @@
     fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
       var rows = (j && j.contatos) || [];
       if (!rows.length) {
-        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada. Digite o telefone com DDD para abrir.</p>';
+        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Não achei. A busca pega nome do cadastro da loja e de quem já está no WhatsApp (conversa/agenda do Zap). A lista inteira do celular o Zap não entrega. Digite o telefone com DDD.</p>';
       } else {
         hits.innerHTML = rows
           .map(function (c) {

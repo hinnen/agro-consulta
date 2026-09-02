@@ -70,6 +70,8 @@ def _static() -> None:
     check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_agenda_sync", "agendarEnvioAgenda" in node)
     check("node_agenda_lid", "jid_lid" in node and "varrerStore" in node and "@lid" in node)
+    check("node_audio_ffmpeg", "audioParaZap" in node and "libopus" in node)
+    check("util_eco_de_mim", "de_mim and not historico" in util)
     check("node_so_notify", "ehMensagemAoVivo" in node and "LIVE_MS" in node)
     check("node_jid_privado", "ehChatPrivado" in node and "@lid" in node)
     check("node_lid_pn", "senderPn" in node and "normalizeMessageContent" in node)

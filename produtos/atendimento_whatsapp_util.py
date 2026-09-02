@@ -853,6 +853,18 @@ def processar_entrada(
     cfg = carregar_bot()
     aplicar_nome_cadastro(conv, perfil=nome, cfg=cfg)
 
+    if de_mim and not historico:
+        corte = timezone.now() - timedelta(seconds=45)
+        eco = WhatsAppMensagemAgro.objects.filter(
+            conversa=conv,
+            direcao__in=[WhatsAppMensagemAgro.DIRECAO_OUT, WhatsAppMensagemAgro.DIRECAO_BOT],
+            criado_em__gte=corte,
+        )
+        if tipo_n in ("image", "audio", "sticker") and eco.filter(tipo_midia=tipo_n).exists():
+            return None, "duplicada"
+        if tipo_n not in ("image", "audio", "sticker") and eco.filter(texto=t).exists():
+            return None, "duplicada"
+
     direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
     msg = WhatsAppMensagemAgro(
         conversa=conv,
@@ -1537,7 +1549,7 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     return out
 
 
-def marcar_enviadas(ids: list[int], *, erro: str = "") -> int:
+def marcar_enviadas(ids: list[int], *, erro: str = "", wa_id: str = "") -> int:
     if not ids:
         return 0
     agora = timezone.now()
@@ -1546,11 +1558,15 @@ def marcar_enviadas(ids: list[int], *, erro: str = "") -> int:
             pendente_envio=False,
             erro_envio=str(erro)[:200],
         )
-    return WhatsAppMensagemAgro.objects.filter(id__in=ids, pendente_envio=True).update(
-        pendente_envio=False,
-        enviado_em=agora,
-        erro_envio="",
-    )
+    campos = {
+        "pendente_envio": False,
+        "enviado_em": agora,
+        "erro_envio": "",
+    }
+    wid = (wa_id or "").strip()[:80]
+    if wid and len(ids) == 1:
+        campos["wa_id"] = wid
+    return WhatsAppMensagemAgro.objects.filter(id__in=ids, pendente_envio=True).update(**campos)
 
 
 def marcar_lidas(conversa_id: int) -> None:

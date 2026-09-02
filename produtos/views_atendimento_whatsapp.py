@@ -501,7 +501,7 @@ def api_atendimento_whatsapp_bridge_saida_ok(request):
                 ids.append(int(x))
             except (TypeError, ValueError):
                 continue
-    n = marcar_enviadas(ids, erro=str(data.get("erro") or ""))
+    n = marcar_enviadas(ids, erro=str(data.get("erro") or ""), wa_id=str(data.get("wa_id") or ""))
     return JsonResponse({"ok": True, "n": n})
 
 

@@ -53,9 +53,8 @@
     background: transparent; color: #ea0038; font-size: .85rem; font-weight: 700;
   }
   .wa-skin #wa-form.is-rec .wa-rec-bar { display: flex; }
-  .wa-skin #wa-form.is-rec #wa-foto,
-  .wa-skin #wa-form.is-rec #wa-input,
-  .wa-skin #wa-form.is-rec #wa-send { display: none; }
+  .wa-skin #wa-form:not(.is-rec) #wa-mic-x,
+  .wa-skin #wa-form:not(.is-rec) #wa-audio-arq.hidden { display: none !important; }
   .wa-skin .wa-rec-dot {
     width: .55rem; height: .55rem; border-radius: 999px; background: #ea0038;
     animation: wa-rec-pulse 1s ease-in-out infinite;
