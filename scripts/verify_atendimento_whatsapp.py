@@ -53,6 +53,8 @@ def _static() -> None:
     check("url_novo", "api_atendimento_whatsapp_novo" in urls)
     check("url_hist", "api_atendimento_whatsapp_historico" in urls)
     check("url_contatos", "api_atendimento_whatsapp_contatos" in urls)
+    check("url_ficha", "api_atendimento_whatsapp_ficha" in urls and "ficha/" in urls)
+    check("util_ficha", "ficha_contato_conversa" in util)
     check("url_agenda_vcf", "api_atendimento_whatsapp_agenda_vcf" in urls and "agenda-vcf" in urls)
     check("util_vcard", "importar_agenda_vcard" in util and "parse_agenda_vcard" in util)
     check("html_vcf", "wa-vcf-inp" in html)

@@ -826,6 +826,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_contatos',
     ),
     path(
+        'api/atendimento-whatsapp/ficha/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_ficha,
+        name='api_atendimento_whatsapp_ficha',
+    ),
+    path(
         'api/atendimento-whatsapp/agenda-vcf/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_agenda_vcf,
         name='api_atendimento_whatsapp_agenda_vcf',

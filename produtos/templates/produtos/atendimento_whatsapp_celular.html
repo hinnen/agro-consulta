@@ -119,7 +119,7 @@
       <div class="pane-chat">
         <div id="wa-chat-bar" class="flex shrink-0 items-center gap-2 px-2 py-2">
           <button type="button" id="wa-cel-back" class="wa-ico" title="Voltar">‹</button>
-          <div id="wa-topo-nome" class="min-w-0 flex-1 truncate text-sm font-extrabold">Conversa</div>
+          <div id="wa-topo-nome" class="min-w-0 flex-1 truncate text-sm font-extrabold" role="button" tabindex="0" title="Ver dados do contato">Conversa</div>
           <button type="button" id="wa-hist" class="wa-ico hidden" title="Puxar uns dias deste chat">Ant.</button>
           <button type="button" id="wa-del" class="wa-ico hidden" title="Apagar esta conversa da lista">Apagar</button>
         </div>
@@ -132,6 +132,16 @@
           {% include "produtos/_wa_composer.html" with wa_cel_capture=1 %}
         </form>
       </div>
+    </div>
+  </div>
+</div>
+<div id="wa-ficha" class="wa-ficha">
+  <div class="wa-ficha-card" role="dialog" aria-modal="true" aria-labelledby="wa-ficha-titulo">
+    <h2 id="wa-ficha-titulo">Contato</h2>
+    <div id="wa-ficha-body"></div>
+    <div class="wa-ficha-actions">
+      <a id="wa-ficha-cadastro" href="#" class="wa-ico pri hidden">Abrir cadastro</a>
+      <button type="button" id="wa-ficha-fechar" class="wa-ico">Fechar</button>
     </div>
   </div>
 </div>

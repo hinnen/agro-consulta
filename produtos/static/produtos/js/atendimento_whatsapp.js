@@ -74,8 +74,20 @@
     }
   }
 
+  function nomeExibicao(c) {
+    var nome = String((c && c.nome) || '').trim();
+    var tel = String((c && (c.telefone || c.jid)) || '').trim();
+    if (!nome) return tel || 'Sem nome';
+    var nd = nome.replace(/\D/g, '');
+    var td = tel.replace(/\D/g, '');
+    if (nd.length >= 10 && td && (nd === td || nd.endsWith(td) || td.endsWith(nd))) {
+      return tel || nome;
+    }
+    return nome;
+  }
+
   function rotuloTel(c) {
-    return (c.nome ? c.nome + ' · ' : '') + (c.telefone || c.jid || '');
+    return nomeExibicao(c);
   }
 
   function fetchJson(url, opt) {
@@ -159,6 +171,7 @@
       .map(function (c) {
         var on = Number(c.id) === convId ? ' is-on' : '';
         var badge = c.nao_lidas ? ' · ' + c.nao_lidas + ' nova' : '';
+        var titulo = nomeExibicao(c);
         return (
           '<button type="button" class="wa-item' +
           on +
@@ -167,9 +180,11 @@
           '" data-loja="' +
           escapeHtml(c.loja || '') +
           '" data-nome="' +
-          escapeHtml(rotuloTel(c)) +
+          escapeHtml(titulo) +
+          '" data-tel="' +
+          escapeHtml(c.telefone || '') +
           '"><div class="wa-n">' +
-          escapeHtml(rotuloTel(c)) +
+          escapeHtml(titulo) +
           badge +
           '</div><div class="wa-p">' +
           escapeHtml(c.ultima_preview || '') +
@@ -729,6 +744,7 @@
       } else {
         hits.innerHTML = rows
           .map(function (c) {
+            var titulo = nomeExibicao(c);
             return (
               '<button type="button" class="wa-item" data-tel="' +
               escapeHtml(c.telefone || '') +
@@ -741,9 +757,10 @@
               '" data-loja="' +
               escapeHtml(c.loja || '') +
               '"><div class="wa-n">' +
-              escapeHtml((c.nome || '') + (c.nome && c.telefone ? ' · ' : '') + (c.telefone || '')) +
+              escapeHtml(titulo) +
               '</div><div class="wa-p">' +
               escapeHtml(rotuloOrigem(c.origem)) +
+              (c.telefone && titulo !== c.telefone ? ' · toque p/ abrir' : '') +
               '</div></button>'
             );
           })
@@ -905,6 +922,93 @@
       carregarLista();
     });
   }
+
+  function fecharFicha() {
+    var box = $('wa-ficha');
+    if (box) box.classList.remove('is-on');
+  }
+
+  function linhaFicha(label, valor) {
+    if (!valor) return '';
+    return (
+      '<div class="wa-ficha-row"><dt>' +
+      escapeHtml(label) +
+      '</dt><dd>' +
+      escapeHtml(valor) +
+      '</dd></div>'
+    );
+  }
+
+  function abrirFicha() {
+    if (!convId) return;
+    var box = $('wa-ficha');
+    var body = $('wa-ficha-body');
+    var link = $('wa-ficha-cadastro');
+    if (!box || !body) return;
+    body.innerHTML = '<p class="text-sm font-semibold text-slate-500">Carregando…</p>';
+    if (link) {
+      link.classList.add('hidden');
+      link.removeAttribute('href');
+    }
+    box.classList.add('is-on');
+    fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (j) {
+      if (!j || !j.ok || !j.ficha) {
+        body.innerHTML = '<p class="text-sm font-semibold text-red-600">' + escapeHtml((j && j.erro) || 'Não carregou.') + '</p>';
+        return;
+      }
+      var f = j.ficha;
+      var html = '';
+      html += linhaFicha('Nome no chat', f.nome || '—');
+      html += linhaFicha('Telefone / WhatsApp', f.telefone || '—');
+      html += linhaFicha('Fila', f.loja_label || f.loja || '—');
+      if (f.agenda_nome && f.agenda_nome !== f.nome) {
+        html += linhaFicha('Nome na agenda', f.agenda_nome);
+      }
+      if (f.cadastro) {
+        html += linhaFicha('Cadastro Agro', f.cadastro.nome || '—');
+        html += linhaFicha('WhatsApp no cadastro', f.cadastro.whatsapp || '—');
+        if (f.cadastro.cpf) html += linhaFicha('CPF', f.cadastro.cpf);
+        if (f.cadastro.endereco) html += linhaFicha('Endereço', f.cadastro.endereco);
+        else if (f.cadastro.cidade) html += linhaFicha('Cidade', f.cadastro.cidade);
+        if (link && f.cadastro.url) {
+          link.href = f.cadastro.url;
+          link.classList.remove('hidden');
+        }
+      } else if (f.cadastro_varios) {
+        html += linhaFicha('Cadastro Agro', 'Mais de um cliente com este número');
+      } else {
+        html += linhaFicha('Cadastro Agro', 'Não encontrado pelo número');
+      }
+      body.innerHTML = html;
+      var tit = $('wa-ficha-titulo');
+      if (tit) tit.textContent = nomeExibicao({ nome: f.nome, telefone: f.telefone }) || 'Contato';
+    });
+  }
+
+  var topoNome = $('wa-topo-nome');
+  if (topoNome) {
+    topoNome.addEventListener('click', function () {
+      if (!convId) return;
+      abrirFicha();
+    });
+    topoNome.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        if (convId) abrirFicha();
+      }
+    });
+  }
+  var fichaFechar = $('wa-ficha-fechar');
+  if (fichaFechar) fichaFechar.addEventListener('click', fecharFicha);
+  var fichaBox = $('wa-ficha');
+  if (fichaBox) {
+    fichaBox.addEventListener('click', function (ev) {
+      if (ev.target === fichaBox) fecharFicha();
+    });
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') fecharFicha();
+  });
 
   setTab();
   pedirAviso();

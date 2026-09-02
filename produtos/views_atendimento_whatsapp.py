@@ -19,6 +19,7 @@ from produtos.atendimento_whatsapp_util import (
     definir_loja,
     enviar_loja,
     excluir_conversa,
+    ficha_contato_conversa,
     transferir_conversa,
     gravar_agenda_zap,
     importar_agenda_vcard,
@@ -279,6 +280,19 @@ def api_atendimento_whatsapp_transferir(request):
 def api_atendimento_whatsapp_contatos(request):
     q = (request.GET.get("q") or "").strip()
     return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_ficha(request):
+    try:
+        cid = int(request.GET.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    ficha, err = ficha_contato_conversa(cid)
+    if err or ficha is None:
+        return JsonResponse({"ok": False, "erro": err or "Não achou."}, status=404)
+    return JsonResponse({"ok": True, "ficha": ficha})
 
 
 @login_required(login_url="/admin/login/")

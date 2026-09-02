@@ -402,6 +402,55 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
     }
 
 
+def ficha_contato_conversa(conversa_id: int) -> tuple[dict | None, str]:
+    """Dados do chat + cadastro Agro (quando o número casa)."""
+    from produtos.cliente_whatsapp_util import cliente_agro_por_whatsapp_flex
+
+    try:
+        conv = WhatsAppConversaAgro.objects.get(pk=int(conversa_id))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
+        return None, "Conversa não encontrada."
+    tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
+    loja_lbl = {
+        WhatsAppConversaAgro.LOJA_PENDENTE: "Fila",
+        WhatsAppConversaAgro.LOJA_CENTRO: "Centro",
+        WhatsAppConversaAgro.LOJA_VILA: "Vila Elias",
+    }.get(conv.loja or "", conv.loja or "")
+    ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
+    if ag is None and (conv.jid_lid or ""):
+        ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid_lid).only("nome").first()
+    cli = None
+    varios = False
+    if tel:
+        hit = cliente_agro_por_whatsapp_flex(tel)
+        if hit == "varios":
+            varios = True
+        elif hit is not None:
+            cli = hit
+    out = {
+        "conversa_id": int(conv.pk),
+        "nome": (conv.nome or "")[:120],
+        "telefone": tel or (conv.telefone or ""),
+        "jid": conv.jid or "",
+        "loja": conv.loja or "",
+        "loja_label": loja_lbl,
+        "agenda_nome": ((ag.nome if ag else "") or "")[:120],
+        "cadastro": None,
+        "cadastro_varios": varios,
+    }
+    if cli is not None:
+        out["cadastro"] = {
+            "id": int(cli.pk),
+            "nome": (cli.nome or "")[:200],
+            "whatsapp": (cli.whatsapp or "")[:32],
+            "cpf": (cli.cpf or "")[:14],
+            "endereco": (cli.endereco or "")[:300],
+            "cidade": (cli.cidade or "")[:120],
+            "url": f"/clientes/{int(cli.pk)}/editar/",
+        }
+    return out, ""
+
+
 def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
     criado = m.criado_em
     try:

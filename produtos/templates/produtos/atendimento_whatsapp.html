@@ -55,7 +55,7 @@
     </div>
     <div class="wa-pane flex min-h-0 flex-col">
       <div class="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
-        <div id="wa-topo-nome" class="min-w-0 truncate text-sm font-extrabold text-slate-800">Conversa</div>
+        <div id="wa-topo-nome" class="min-w-0 truncate text-sm font-extrabold text-slate-800" role="button" tabindex="0" title="Ver dados do contato">Conversa</div>
         <button type="button" id="wa-hist" class="wa-ico hidden" title="Puxar uns dias deste chat">Anteriores</button>
         <button type="button" id="wa-del" class="wa-ico hidden text-red-700" title="Apagar esta conversa da lista">Apagar</button>
       </div>
@@ -71,4 +71,14 @@
   </div>
 </div>
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}"></script>
+<div id="wa-ficha" class="wa-ficha">
+  <div class="wa-ficha-card" role="dialog" aria-modal="true" aria-labelledby="wa-ficha-titulo">
+    <h2 id="wa-ficha-titulo">Contato</h2>
+    <div id="wa-ficha-body"></div>
+    <div class="wa-ficha-actions">
+      <a id="wa-ficha-cadastro" href="#" class="wa-ico pri hidden">Abrir cadastro</a>
+      <button type="button" id="wa-ficha-fechar" class="wa-ico">Fechar</button>
+    </div>
+  </div>
+</div>
 {% endblock %}
