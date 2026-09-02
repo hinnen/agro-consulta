@@ -3741,7 +3741,47 @@
         } catch (eCs) {}
         var m = document.querySelector('meta[name=csrfmiddlewaretoken]');
         if (m && m.getAttribute('content')) return m.getAttribute('content');
+        try {
+            var c = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
+            if (c) return decodeURIComponent(c[1]);
+        } catch (eCk) {}
         return '';
+    }
+
+    function cloneOrcamentoItens(itens) {
+        try {
+            return JSON.parse(JSON.stringify(itens || []));
+        } catch (eClone) {
+            return (itens || []).map(function (it) {
+                return {
+                    id: it && it.id,
+                    nome: it && it.nome,
+                    preco: it && it.preco,
+                    preco_padrao: it && it.preco_padrao,
+                    qtd: it && it.qtd,
+                    codigo: it && it.codigo,
+                    codigoGm: it && it.codigoGm
+                };
+            });
+        }
+    }
+
+    function parseJsonRespostaOrcamento(r) {
+        return r.text().then(function (txt) {
+            var data = {};
+            try {
+                data = txt ? JSON.parse(txt) : {};
+            } catch (eJ) {
+                data = {
+                    ok: false,
+                    erro:
+                        r.status === 403
+                            ? 'Sessão/CSRF — recarregue o PDV (Ctrl+F5).'
+                            : 'Servidor não gravou o orçamento.'
+                };
+            }
+            return { okHttp: r.ok, data: data };
+        });
     }
 
     function apiPdvOrcamentosUrl() {
@@ -3977,7 +4017,7 @@
                     prominent: true
                 });
             }
-            return false;
+            return Promise.resolve(false);
         }
         var computed = State.getComputed();
         var historico = readHistoricoOrcamentos();
@@ -4009,9 +4049,7 @@
             cliente_key: key,
             cliente_mode: state.clienteMode || 'cliente',
             total: formatMoney(computed.subtotal != null ? computed.subtotal : computed.total || 0),
-            itens: state.itens.map(function (item) {
-                return JSON.parse(JSON.stringify(item));
-            }),
+            itens: cloneOrcamentoItens(state.itens),
             forma_pagamento: state.pagamento && state.pagamento.forma ? state.pagamento.forma : '',
             entrega: !!(state.entrega && state.entrega.ativa),
             usuario: usuarioSalvo || undefined,
@@ -4039,10 +4077,10 @@
         var urlSave = apiPdvOrcamentosUrl();
         if (!urlSave) {
             doneFeedback();
-            return true;
+            return Promise.resolve(false);
         }
         if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = true;
-        fetch(urlSave, {
+        return fetch(urlSave, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {
@@ -4051,41 +4089,38 @@
             },
             body: JSON.stringify({ entry: novo })
         })
-            .then(function (r) {
-                return r.json().then(function (data) {
-                    return { okHttp: r.ok, data: data };
-                });
-            })
+            .then(parseJsonRespostaOrcamento)
             .then(function (res) {
                 if (res && res.data && res.data.ok && res.data.item) {
                     mergeOrcamentoIntoHistorico(res.data.item);
                     renderRecentBudgetsSnippet();
                     doneFeedback();
-                    return;
+                    return true;
                 }
                 renderRecentBudgetsSnippet();
                 if (!opts.silent) {
                     showPdvAviso(
                         (res && res.data && res.data.erro) ||
-                            'Orçamento salvo só neste navegador — servidor não confirmou. Tente de novo.',
+                            'Orçamento não gravou no servidor. Tente de novo.',
                         { title: 'Aviso', tone: 'warn', prominent: true }
                     );
                 }
+                return false;
             })
             .catch(function () {
                 renderRecentBudgetsSnippet();
                 if (!opts.silent) {
-                    showPdvAviso('Falha de rede ao gravar orçamento no servidor. Ficou só neste navegador.', {
+                    showPdvAviso('Falha de rede ao gravar orçamento no servidor.', {
                         title: 'Rede',
                         tone: 'warn',
                         prominent: true
                     });
                 }
+                return false;
             })
             .finally(function () {
                 if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = false;
             });
-        return true;
     }
 
     function montarTextoOrcamentoWhatsappWizard() {
@@ -4168,11 +4203,11 @@
             });
             return;
         }
-        salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
-        renderRecentBudgetsSnippet();
         var txt = montarTextoOrcamentoWhatsappWizard();
         var telOk = tel;
-        window.setTimeout(function () {
+        var pSave = salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
+        var abrirZap = function (gravou) {
+            renderRecentBudgetsSnippet();
             if (!abrirUrlWhatsappOrcamento(telOk, txt)) {
                 showPdvAviso('Não foi possível abrir o WhatsApp.', {
                     title: 'Erro',
@@ -4181,11 +4216,22 @@
                 });
                 return;
             }
-            showSaleDoneFeedback('Orçamento salvo em Orçamentos e enviado no WhatsApp.', 'success', {
-                title: 'Salvo e enviado',
-                placementTop: true,
-            });
-        }, 120);
+            showSaleDoneFeedback(
+                gravou
+                    ? 'Orçamento salvo em Orçamentos e enviado no WhatsApp.'
+                    : 'WhatsApp aberto. Orçamento pode não ter gravado — confira a lista.',
+                gravou ? 'success' : 'warn',
+                {
+                    title: gravou ? 'Salvo e enviado' : 'WhatsApp',
+                    placementTop: true
+                }
+            );
+        };
+        if (pSave && typeof pSave.then === 'function') {
+            pSave.then(abrirZap);
+        } else {
+            abrirZap(!!pSave);
+        }
     }
 
     function renderRecentBudgetsSnippet() {
@@ -7514,9 +7560,9 @@
 
         function paintModal() {
             var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
-            var older = historico.slice(PDV_BUDGET_CARD_VISIBLE);
-            dom.budgetHistoryList.innerHTML = older.length
-            ? older
+            var lista = historico;
+            dom.budgetHistoryList.innerHTML = lista.length
+            ? lista
                   .map(function (item) {
                       var itens = Array.isArray(item.itens) ? item.itens.length : 0;
                       return (
@@ -7550,11 +7596,9 @@
                   .join('')
             : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">' +
               (historico.length
-                  ? 'Não há orçamentos mais antigos para ' +
+                  ? 'Nenhum orçamento extra — os da lista acima são os de ' +
                     escapeHtml(clienteNome) +
-                    '. Os ' +
-                    PDV_BUDGET_CARD_VISIBLE +
-                    ' mais recentes estão no card ao lado — clique na linha para reabrir.'
+                    '.'
                   : 'Nenhum orçamento salvo para ' + escapeHtml(clienteNome) + '.') +
               '</div>';
             dom.budgetHistoryModal.classList.remove('hidden');

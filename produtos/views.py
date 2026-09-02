@@ -10798,6 +10798,7 @@ def api_cron_pg_backup_nightly(request):
     return JsonResponse(result, status=status)
 
 
+@ensure_csrf_cookie
 def _render_pdv_operacional(request, rota_nome="consulta_produtos"):
     pdv_root_url = reverse(rota_nome)
     pdv_dedicado = rota_nome == "pdv_home"
@@ -29193,9 +29194,12 @@ def _orcamento_pdv_trim_cliente(cliente_key: str, *, keep: int = 30) -> None:
         OrcamentoPdvAgro.objects.filter(pk__in=excess).delete()
 
 
-@login_required(login_url="/admin/login/")
 def api_pdv_orcamentos(request):
-    """GET: lista por cliente_key ou recentes=1 (todas as lojas) · POST: grava orçamento."""
+    """GET: lista por cliente_key ou recentes=1 · POST: grava orçamento.
+
+    Sem login Django: o PDV da loja roda aberto (igual buscar/caixa). Orçamento
+    precisa ficar no Postgres para todos os PCs — login_required quebrava o save.
+    """
     if request.method == "GET":
         recentes = str(request.GET.get("recentes") or "").strip().lower() in (
             "1",
@@ -29279,7 +29283,6 @@ def api_pdv_orcamentos(request):
     return JsonResponse({"ok": True, "item": _orcamento_pdv_entry_from_model(obj)})
 
 
-@login_required(login_url="/admin/login/")
 @require_GET
 def api_pdv_orcamento_detalhe(request, orc_local_id: int):
     obj = OrcamentoPdvAgro.objects.filter(orc_local_id=orc_local_id).first()
