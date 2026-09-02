@@ -1270,26 +1270,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja ainda **v21.07**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (02/09)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-POR-CLIENTE` (corrige lista v21.07) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PDV-ORC-POR-CLIENTE` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-**Fora:** WhatsApp (`WA-*`).
+**Fora:** WhatsApp (`WA-*`). Loja hoje **v21.07** (lista misturava — este pacote corrige).
 
-### 📦 PACOTE PRONTO — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE` · 02/09/2026)
+### 📦 PACOTE PRONTO — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lista F6/card = **só o cliente da tela**; grava e sincroniza **online** em todos os PCs; modal inicial/`unset` = pasta **consumidor** |
-| **Corrige** | Live **v21.07** misturava recentes da loja inteira (errado) |
-| **Prova** | `verify_pdv_orcamento_save.py` **53/53** ×2 (Renan `pk:1403` · consumidor · outro PC · sem misturar) |
+| **O quê** | Salva na pasta do cliente da tela; F6/card só dele; sync online em todos os PCs; `unset`/consumidor = mesma pasta |
+| **Prova** | `verify_pdv_orcamento_save.py` **68/68** ×3 (Renan · consumidor · outro PC · sem misturar · CSRF) |
+| **Arquivos** | `pdv_wizard.js` · `pdv_wizard.html` · verify |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · loja ainda **v21.07** |
-| **Você (local)** | Ctrl+F5 · cliente Renan · salvar orç. · outro PC com o mesmo cliente · F6 |
-
-### ~~✅ CHECKLIST ÚNICO — Live v21.07~~ · **lista misturava loja — corrigido no teste (`PDV-ORC-POR-CLIENTE`)**
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Local: Ctrl+F5 · Renan · salvar · outro PC mesmo cliente · F6 |
 
 ### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (UX parcial — ver pacote acima)
 
