@@ -179,7 +179,7 @@ def _telefone_real(s: str) -> str:
 
 
 def aplicar_nome_cadastro(conv: WhatsAppConversaAgro) -> None:
-    tel = conv.telefone or jid_para_telefone(conv.jid)
+    tel = _telefone_real(conv.telefone) or _telefone_real(conv.jid)
     cli = cliente_agro_por_whatsapp_flex(tel)
     if cli is None or cli == "varios":
         return
@@ -495,9 +495,25 @@ def responder_bot(conversa: WhatsAppConversaAgro, texto: str, *, delay_seg: int 
     )
 
 
+def _jid_lid(s: str) -> str:
+    j = (s or "").strip().lower()
+    return j[:80] if j.endswith("@lid") else ""
+
+
+def _melhor_conversa(cands: list[WhatsAppConversaAgro]) -> WhatsAppConversaAgro:
+    for c in cands:
+        if str(c.jid or "").endswith("@s.whatsapp.net"):
+            return c
+    return cands[0]
+
+
 def _fundir_conversas(manter: WhatsAppConversaAgro, sobra: WhatsAppConversaAgro) -> WhatsAppConversaAgro:
     if manter.pk == sobra.pk:
         return manter
+    if str(sobra.jid or "").endswith("@s.whatsapp.net") and not str(manter.jid or "").endswith(
+        "@s.whatsapp.net"
+    ):
+        manter, sobra = sobra, manter
     WhatsAppMensagemAgro.objects.filter(conversa=sobra).update(conversa=manter)
     if not (manter.nome or "").strip() and (sobra.nome or "").strip():
         manter.nome = sobra.nome
@@ -508,48 +524,68 @@ def _fundir_conversas(manter: WhatsAppConversaAgro, sobra: WhatsAppConversaAgro)
         manter.ultima_preview = sobra.ultima_preview or manter.ultima_preview
     if manter.loja == WhatsAppConversaAgro.LOJA_PENDENTE and sobra.loja != WhatsAppConversaAgro.LOJA_PENDENTE:
         manter.loja = sobra.loja
+    if not (manter.telefone or "").strip() and (sobra.telefone or "").strip():
+        manter.telefone = sobra.telefone
+    lid_m = (manter.jid_lid or "") or _jid_lid(manter.jid)
+    lid_s = (sobra.jid_lid or "") or _jid_lid(sobra.jid)
+    sobra.jid_lid = None
+    sobra.save(update_fields=["jid_lid"])
+    manter.jid_lid = lid_m or lid_s or None
     manter.save()
     sobra.delete()
     return manter
 
 
-def _achar_ou_criar_conversa(*, jid_n: str, telefone: str = "", nome: str = "") -> WhatsAppConversaAgro:
+def _achar_ou_criar_conversa(
+    *, jid_n: str, telefone: str = "", nome: str = "", jid_lid: str = ""
+) -> WhatsAppConversaAgro:
     tel = _telefone_real(telefone) or _telefone_real(jid_n)
     phone_jid = telefone_para_jid(tel) if tel else ""
-    canon = (phone_jid or jid_n)[:80]
+    lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
+    canon = (phone_jid or lid or jid_n)[:80]
     candidatos = []
     seen: set[int] = set()
-    for j in (canon, jid_n):
-        if not j:
-            continue
-        hit = WhatsAppConversaAgro.objects.select_for_update().filter(jid=j).first()
+
+    def _add(hit: WhatsAppConversaAgro | None) -> None:
         if hit and hit.pk not in seen:
             candidatos.append(hit)
             seen.add(hit.pk)
+
+    qs = WhatsAppConversaAgro.objects.select_for_update()
+    for j in (phone_jid, lid, jid_n, canon):
+        if j:
+            _add(qs.filter(jid=j).first())
+    if lid:
+        _add(qs.filter(jid_lid=lid).first())
     if tel:
         tels = {tel}
         if len(tel) >= 11:
             tels.add(tel[-11:])
         if tel.startswith("55") and len(tel) >= 12:
             tels.add(tel[2:])
-        for extra in WhatsAppConversaAgro.objects.select_for_update().filter(telefone__in=list(tels)):
-            if extra.pk not in seen:
-                candidatos.append(extra)
-                seen.add(extra.pk)
+        for extra in qs.filter(telefone__in=list(tels)):
+            _add(extra)
     if candidatos:
-        base = candidatos[0]
-        for extra in candidatos[1:]:
-            base = _fundir_conversas(base, extra)
+        base = _melhor_conversa(candidatos)
+        for extra in candidatos:
+            if extra.pk != base.pk:
+                base = _fundir_conversas(base, extra)
         campos = []
         if phone_jid and base.jid != phone_jid:
-            outro = WhatsAppConversaAgro.objects.filter(jid=phone_jid).exclude(pk=base.pk).first()
+            outro = qs.filter(jid=phone_jid).exclude(pk=base.pk).first()
             if outro:
                 return _fundir_conversas(outro, base)
             base.jid = phone_jid
             campos.append("jid")
-        if tel and not base.telefone:
+        if tel and base.telefone != tel:
             base.telefone = tel[:32]
             campos.append("telefone")
+        if lid and (base.jid_lid or "") != lid:
+            outro_lid = qs.filter(jid_lid=lid).exclude(pk=base.pk).first()
+            if outro_lid:
+                return _fundir_conversas(base, outro_lid)
+            base.jid_lid = lid
+            campos.append("jid_lid")
         if nome and (not base.nome or _nome_parece_telefone(base.nome, base.telefone)):
             base.nome = nome[:120]
             campos.append("nome")
@@ -558,9 +594,38 @@ def _achar_ou_criar_conversa(*, jid_n: str, telefone: str = "", nome: str = "") 
         return base
     conv, _criada = WhatsAppConversaAgro.objects.select_for_update().get_or_create(
         jid=canon,
-        defaults={"telefone": (tel or "")[:32], "nome": (nome or "")[:120]},
+        defaults={
+            "telefone": (tel or "")[:32],
+            "nome": (nome or "")[:120],
+            "jid_lid": lid or None,
+        },
     )
+    campos = []
+    if tel and not conv.telefone:
+        conv.telefone = tel[:32]
+        campos.append("telefone")
+    if lid and not conv.jid_lid:
+        conv.jid_lid = lid
+        campos.append("jid_lid")
+    if campos:
+        conv.save(update_fields=campos)
     return conv
+
+
+@transaction.atomic
+def aplicar_mapa_lid(pares: dict) -> int:
+    """Recebe { 'xxx@lid': '5513...@s.whatsapp.net' } e junta os chats."""
+    if not isinstance(pares, dict):
+        return 0
+    n = 0
+    for lid_raw, phone_raw in pares.items():
+        lid = _jid_lid(str(lid_raw or ""))
+        tel = _telefone_real(str(phone_raw or ""))
+        if not lid or not tel:
+            continue
+        _achar_ou_criar_conversa(jid_n=telefone_para_jid(tel), telefone=tel, jid_lid=lid)
+        n += 1
+    return n
 
 
 def _enviar_lote_bot(conversa: WhatsAppConversaAgro, textos: list[str], cfg: dict) -> None:
@@ -591,14 +656,18 @@ def processar_entrada(
     mime: str = "",
     nome_arquivo: str = "",
     telefone: str = "",
+    jid_lid: str = "",
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
-    tel_limpo = _telefone_real(telefone)
+    lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
+    tel_limpo = _telefone_real(telefone) or _telefone_real(jid_n)
     tel_extra = telefone_para_jid(tel_limpo) if tel_limpo else ""
     if tel_extra:
         jid_n = tel_extra
-    if not jid_eh_chat_privado(jid_n):
+    if not jid_eh_chat_privado(jid_n) and not lid:
         return None, "ignorado"
+    if lid and not jid_eh_chat_privado(jid_n):
+        jid_n = lid
     t = str(texto or "").strip()
     tipo_n = (tipo_midia or "").strip().lower()[:16]
     if not t:
@@ -620,7 +689,7 @@ def processar_entrada(
         if quando < limite:
             return None, "ignorado"
 
-    conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome)
+    conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
     if nome and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
         conv.nome = nome[:120]
     if not conv.telefone and tel_limpo:
@@ -652,8 +721,8 @@ def processar_entrada(
     from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag, fora_do_horario
 
     cfg = carregar_bot()
-    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
-    fone = conv.telefone or tel_limpo
+    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas", "jid_lid"]
+    fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
     eh_fiado = interpretar_consulta_fiado(t, cfg)
 
     def _ok_loja(escolha: str) -> str:

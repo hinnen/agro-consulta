@@ -32,6 +32,7 @@ from produtos.atendimento_whatsapp_util import (
     pedir_codigo_pareamento,
     pedir_historico_conversa,
     processar_entrada,
+    aplicar_mapa_lid,
     serializar_conversa,
     serializar_mensagem,
     serializar_ponte,
@@ -409,7 +410,20 @@ def api_atendimento_whatsapp_bridge_estado(request):
         aviso=str(data.get("aviso") or ""),
         pairing_code=str(data.get("pairing_code") or ""),
     )
+    lids = data.get("lids")
+    if isinstance(lids, dict) and lids:
+        aplicar_mapa_lid(lids)
     return JsonResponse({"ok": True})
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_lids(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    n = aplicar_mapa_lid(data.get("lids") or {})
+    return JsonResponse({"ok": True, "n": n})
 
 
 @csrf_exempt
@@ -431,7 +445,11 @@ def api_atendimento_whatsapp_bridge_entrada(request):
         mime=str(data.get("mime") or ""),
         nome_arquivo=str(data.get("nome_arquivo") or ""),
         telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
     )
+    lids = data.get("lids")
+    if isinstance(lids, dict) and lids:
+        aplicar_mapa_lid(lids)
     if err == "ignorado":
         return JsonResponse({"ok": True, "ignorado": True})
     if err == "duplicada":

@@ -3491,6 +3491,7 @@ class WhatsAppConversaAgro(models.Model):
     ultima_preview = models.CharField(max_length=160, blank=True, default="")
     ultima_em = models.DateTimeField(null=True, blank=True, db_index=True)
     origem_abertura = models.CharField(max_length=8, default="in", db_index=True)
+    jid_lid = models.CharField(max_length=80, blank=True, null=True, unique=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

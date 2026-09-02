@@ -191,20 +191,57 @@ function ehChatPrivado(jid) {
   return num.length >= 10 && num.length <= 13;
 }
 
+function jidPhoneDeValor(v) {
+  const s = String(v || "").trim();
+  if (!s) return "";
+  const low = s.toLowerCase();
+  if (low.endsWith("@lid")) return "";
+  if (low.endsWith("@s.whatsapp.net")) return ehChatPrivado(s) ? s : "";
+  const d = s.replace(/\D+/g, "");
+  if (d.length >= 10 && d.length <= 13) return d + "@s.whatsapp.net";
+  return "";
+}
+
+function pnDeLid(lid) {
+  const L = String(lid || "");
+  if (!L.endsWith("@lid")) return "";
+  if (lidParaJid.has(L)) return lidParaJid.get(L);
+  try {
+    const map = sock && sock.signalRepository && sock.signalRepository.lidMapping;
+    if (map && typeof map.getPNForLID === "function") {
+      const pn = map.getPNForLID(L);
+      const j = jidPhoneDeValor(pn);
+      if (j) {
+        lidParaJid.set(L, j);
+        salvarLidDebounced();
+        return j;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return "";
+}
+
 function telefoneDeJid(jid) {
-  const j = String(jid || "");
-  if (!j.endsWith("@s.whatsapp.net")) return "";
-  const d = j.split("@")[0].replace(/\D/g, "");
-  if (d.length < 10 || d.length > 13) return "";
-  return d;
+  return (jidPhoneDeValor(jid) || "").split("@")[0].replace(/\D/g, "");
 }
 
 function jidDeContato(c) {
   const jid = String((c && c.jid) || "");
   const id = String((c && c.id) || "");
+  const pn = jidPhoneDeValor((c && (c.phoneNumber || c.pn || c.jid)) || "");
+  if (pn) return pn;
   if (jid.endsWith("@s.whatsapp.net")) return jid;
   if (id.endsWith("@s.whatsapp.net")) return id;
   return "";
+}
+
+function enviarLidMap() {
+  const lids = {};
+  for (const [lid, phone] of lidParaJid.entries()) lids[lid] = phone;
+  if (!Object.keys(lids).length) return;
+  post("/api/atendimento-whatsapp/bridge/lids/", { lids }).catch(() => {});
 }
 
 function salvarLidDebounced() {
@@ -218,6 +255,7 @@ function salvarLidDebounced() {
     } catch {
       /* ignore */
     }
+    enviarLidMap();
   }, 400);
 }
 
@@ -245,10 +283,10 @@ function vincularLid(c) {
 
 function telefoneDeKey(key) {
   if (!key) return "";
-  const cands = [key.senderPn, key.participantPn, key.remoteJidAlt, key.participantAlt];
+  const cands = [key.senderPn, key.participantPn, key.remoteJidAlt, key.participantAlt, key.peerRecipientPn];
   for (const c of cands) {
-    const s = String(c || "");
-    if (ehChatPrivado(s) && s.endsWith("@s.whatsapp.net")) return s;
+    const j = jidPhoneDeValor(c);
+    if (j) return j;
   }
   return "";
 }
@@ -256,8 +294,8 @@ function telefoneDeKey(key) {
 function jidDaMensagem(m) {
   const key = m && m.key;
   if (!key) return "";
-  const phone = telefoneDeKey(key);
   let jid = String(key.remoteJid || "");
+  const phone = telefoneDeKey(key) || pnDeLid(jid);
   if (jid.endsWith("@lid")) {
     if (phone) {
       lidParaJid.set(jid, phone);
@@ -375,7 +413,14 @@ async function baixarMidia(m) {
 
 async function enviarEntrada(m, extra) {
   if (!m || !(m.message || conteudoDe(m))) return;
-  const jid = jidDaMensagem(m);
+  const key = m.key || {};
+  const orig = String(key.remoteJid || "");
+  const lid = orig.endsWith("@lid") ? orig : "";
+  let jid = jidDaMensagem(m);
+  if (jid.endsWith("@lid")) {
+    const pn = pnDeLid(jid);
+    if (pn) jid = pn;
+  }
   if (!ehChatPrivado(jid)) return;
   const quando = tsMs(m);
   const historico = !!(extra && extra.historico);
@@ -386,9 +431,10 @@ async function enviarEntrada(m, extra) {
   const nome = String(m.pushName || "").slice(0, 120);
   const waId = String((m.key && m.key.id) || "");
   const midia = await baixarMidia(m);
-  const tel = telefoneDeJid(jid);
+  const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
   await post("/api/atendimento-whatsapp/bridge/entrada/", {
     jid,
+    jid_lid: lid,
     telefone: tel,
     texto,
     nome,
@@ -475,6 +521,7 @@ async function ligar() {
       const numero = String(me).split(":")[0].split("@")[0];
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
+      enviarLidMap();
       setTimeout(() => enviarAgenda(0), 4000);
     }
     if (connection === "close") {

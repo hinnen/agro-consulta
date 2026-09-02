@@ -163,6 +163,43 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         conv = WhatsAppConversaAgro.objects.get()
         self.assertEqual(conv.nome, "Maria Cadastro")
 
+    def test_lid_e_telefone_viram_um_chat(self):
+        lid = "201812074319879@lid"
+        processar_entrada(jid=lid, texto="Oi", nome="Renan", wa_id="lid-1")
+        processar_entrada(
+            jid="5513997851403@s.whatsapp.net",
+            texto="Oi de novo",
+            nome="Renan",
+            wa_id="pn-1",
+            telefone="5513997851403",
+            jid_lid=lid,
+        )
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 1)
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertTrue(conv.jid.endswith("@s.whatsapp.net"))
+        self.assertEqual(conv.jid_lid, lid)
+        self.assertEqual(WhatsAppMensagemAgro.objects.filter(conversa=conv, direcao="in").count(), 2)
+
+    def test_fiado_pelo_lid_depois_do_numero(self):
+        from produtos.models import ClienteAgro
+
+        ClienteAgro.objects.create(nome="Renan Hinnen", whatsapp="13997851403")
+        lid = "201812074319879@lid"
+        processar_entrada(jid=lid, texto="Oi", wa_id="lid-fiado-1")
+        processar_entrada(
+            jid=lid,
+            texto="fiado",
+            wa_id="lid-fiado-2",
+            telefone="5513997851403",
+            jid_lid=lid,
+        )
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertIn("13997851403", conv.telefone or conv.jid)
+        bot = WhatsAppMensagemAgro.objects.filter(direcao="bot").order_by("id").last()
+        self.assertIsNotNone(bot)
+        self.assertNotIn("Não achamos cadastro", bot.texto)
+        self.assertIn("Renan", bot.texto)
+
     def test_pairing_numero_curto(self):
         from produtos.atendimento_whatsapp_util import pedir_codigo_pareamento
 
