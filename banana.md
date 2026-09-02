@@ -1270,7 +1270,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Salvar orçamento PDV (`PDV-ORC-SAVE` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão salvar + Zap passam a gravar no Postgres (PDV da loja sem login Chrome) |
+| **Causa** | API `/api/pdv/orcamentos/` pedia login admin → não gravava |
+| **Prova** | `verify_pdv_orcamento_save.py` **16/16** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · **Ctrl+F5** PDV · salvar · F2 lista · outro PC |
+| **Você** | Prova local. Loja só com frase+senha |
+
 ### 🚀 PREP deploy loja — PIN teclado (`PIN-TECLADO-OBRIG` · **v21.02**) · **aguarda senha**
+
 
 | Campo | Valor |
 | ----- | ----- |

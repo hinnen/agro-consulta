@@ -1846,6 +1846,7 @@ function salvarHistoricoLocal(extra) {
         itens: JSON.parse(JSON.stringify(carrinho)),
         forma_pagamento: fpEl && fpEl.value ? fpEl.value : '',
         entrega: !!extra.entrega,
+        origem: extra.origem || (extra.fromWhatsapp ? 'whatsapp' : 'manual'),
         usuario: usuarioSalvo || undefined,
         cliente_extra:
             clienteSelecionado && typeof clienteSelecionado === 'object'
@@ -1990,7 +1991,7 @@ function pdvWhatsappOrcamentoCarrinho() {
         tocarSom('erro');
         return alert('Carrinho vazio.');
     }
-    salvarHistoricoLocal();
+    salvarHistoricoLocal({ origem: 'whatsapp' });
     let numeroWhatsapp =
         clienteSelecionado && clienteSelecionado.telefone
             ? String(clienteSelecionado.telefone)
@@ -2534,8 +2535,16 @@ function postOrcamentoPdvServidor(entry) {
         },
         body: JSON.stringify({ entry: entry }),
     })
-        .then(function (r) { return r.json(); })
-        .catch(function () { return null; });
+        .then(function (r) {
+            return r.text().then(function (txt) {
+                try {
+                    return txt ? JSON.parse(txt) : {};
+                } catch (e) {
+                    return { ok: false, erro: 'Servidor não gravou o orçamento.' };
+                }
+            });
+        })
+        .catch(function () { return { ok: false, erro: 'Falha de rede.' }; });
 }
 
 function posicionarSetaBalaoEstoque() {
