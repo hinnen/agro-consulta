@@ -1203,7 +1203,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
         )
 
     if len(t) >= 2:
-        pedir_agenda_zap()
+        pedir_agenda_zap(t)
 
     cli = ClienteAgro.objects.filter(ativo=True).exclude(whatsapp="")
     q = Q(nome__icontains=t)
@@ -1320,15 +1320,21 @@ def marcar_pedido(pedido_id: int, *, ok: bool, erro: str = "") -> None:
     p.save(update_fields=["status", "erro"])
 
 
-def pedir_agenda_zap() -> tuple[WhatsAppPontePedidoAgro | None, str]:
+def pedir_agenda_zap(termo: str = "") -> tuple[WhatsAppPontePedidoAgro | None, str]:
+    q = (termo or "").strip()[:80]
     recente = WhatsAppPontePedidoAgro.objects.filter(
         tipo=WhatsAppPontePedidoAgro.TIPO_CONTATOS,
         status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
-        criado_em__gte=timezone.now() - timedelta(seconds=90),
+        criado_em__gte=timezone.now() - timedelta(seconds=8),
     ).first()
     if recente:
-        return recente, ""
-    p = WhatsAppPontePedidoAgro.objects.create(tipo=WhatsAppPontePedidoAgro.TIPO_CONTATOS)
+        prev = recente.payload if isinstance(recente.payload, dict) else {}
+        if str(prev.get("q") or "") == q:
+            return recente, ""
+    p = WhatsAppPontePedidoAgro.objects.create(
+        tipo=WhatsAppPontePedidoAgro.TIPO_CONTATOS,
+        payload={"q": q} if q else {},
+    )
     return p, ""
 
 

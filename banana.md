@@ -1378,7 +1378,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
 - **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v21.01**. **Não** copiamos código do WASeller.
-- **Eco + áudio (`WA-ECO-AUD` · 02/09):** o que a loja manda não aparece duas vezes (RENAN + CELULAR). Áudio tenta virar formato do Zap. Busca **não** lê a agenda inteira do celular — só Zap/cadastro.
+- **Eco + áudio (`WA-ECO-AUD` · 02/09):** o que a loja manda não aparece duas vezes (RENAN + CELULAR). Áudio tenta virar formato do Zap. Busca pede a agenda do **Zap** aos poucos (nome salvo no WhatsApp). Não abre a lista de contatos do iPhone/Android de quem não tem Zap.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 

@@ -720,7 +720,7 @@
     fetchJson('/api/atendimento-whatsapp/contatos/?q=' + encodeURIComponent(q)).then(function (j) {
       var rows = (j && j.contatos) || [];
       if (!rows.length) {
-        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Não achei. A busca pega nome do cadastro da loja e de quem já está no WhatsApp (conversa/agenda do Zap). A lista inteira do celular o Zap não entrega. Digite o telefone com DDD.</p>';
+        hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Procurando na agenda do Zap… Se não achar, a pessoa precisa ter WhatsApp (nome salvo no Zap). Sem WhatsApp, digite o telefone com DDD.</p>';
       } else {
         hits.innerHTML = rows
           .map(function (c) {
@@ -748,10 +748,10 @@
       var temZap = rows.some(function (c) {
         return c.origem === 'zap';
       });
-      if (q.length >= 2 && n < 2 && !temZap) {
+      if (q.length >= 2 && n < 5 && !temZap) {
         window.setTimeout(function () {
           buscarTopo(n + 1);
-        }, 2200);
+        }, 900);
       }
     });
   }

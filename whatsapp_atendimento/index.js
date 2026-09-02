@@ -696,23 +696,39 @@ function varrerStore() {
   }
 }
 
-async function enviarAgenda(pedidoId) {
+function semAcento(s) {
+  return String(s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+async function enviarAgenda(pedidoId, filtro) {
+  const f = semAcento(filtro);
   const itens = [];
   for (const [jid, v] of agenda.entries()) {
     const lid = jid.endsWith("@lid") ? jid : "";
     const phone = jid.endsWith("@s.whatsapp.net") ? jid : pnDeLid(jid);
     const dest = phone || jid;
     if (!dest.endsWith("@s.whatsapp.net") && !dest.endsWith("@lid")) continue;
-    itens.push({
-      jid: dest,
-      jid_lid: lid,
-      nome: String((v && v.nome) || "").slice(0, 120),
-      telefone: String((v && v.telefone) || (phone || "").split("@")[0] || ""),
-    });
-    if (itens.length >= 2000) break;
+    const nome = String((v && v.nome) || "").slice(0, 120);
+    const tel = String((v && v.telefone) || (phone || "").split("@")[0] || "");
+    const dig = String(filtro || "").replace(/\D/g, "");
+    if (f && !semAcento(nome).includes(f) && !(dig && tel.includes(dig))) continue;
+    itens.push({ jid: dest, jid_lid: lid, nome, telefone: tel });
+    if (itens.length >= 400) break;
   }
+  console.log("Agenda Zap:", agenda.size, "filtro:", f || "(todos)", "enviados:", itens.length);
   if (!itens.length && !pedidoId) return;
-  await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pedidoId || 0, itens });
+  const lote = 80;
+  for (let i = 0; i < Math.max(itens.length, 1); i += lote) {
+    const fatia = itens.slice(i, i + lote);
+    await post("/api/atendimento-whatsapp/bridge/contatos/", {
+      pedido_id: i === 0 ? pedidoId || 0 : 0,
+      itens: fatia,
+    });
+    if (!fatia.length) break;
+  }
 }
 
 async function executarPedido(p) {
@@ -720,7 +736,7 @@ async function executarPedido(p) {
   const pid = p.id;
   try {
     if (p.tipo === "contatos") {
-      await enviarAgenda(pid);
+      await enviarAgenda(pid, String(p.q || p.termo || ""));
       return;
     }
     if (p.tipo === "pairing") {

@@ -69,7 +69,7 @@ def _static() -> None:
     check("node_sem_full", "syncFullHistory: false" in node and "shouldSyncHistoryMessage: () => false" in node)
     check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_agenda_sync", "agendarEnvioAgenda" in node)
-    check("node_agenda_lid", "jid_lid" in node and "varrerStore" in node and "@lid" in node)
+    check("node_agenda_filtro", "semAcento" in node and "filtro:" in node)
     check("node_audio_ffmpeg", "audioParaZap" in node and "libopus" in node)
     check("util_eco_de_mim", "de_mim and not historico" in util)
     check("node_so_notify", "ehMensagemAoVivo" in node and "LIVE_MS" in node)
