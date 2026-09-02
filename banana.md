@@ -1270,17 +1270,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🩹 PIN sem teclado — toast sem linha (`PIN-TECLADO-OBRIG` · 02/09/2026)
+### 📦 PACOTE PRONTO — PIN teclado obrigatório (`PIN-TECLADO-OBRIG` · **v21.01** · 02/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Bug** | Aviso «Identifique-se com o PIN (modo descanso)» **sem** campo/teclado (Entrada NF estoque · Gestão · PDV) |
-| **Causa** | Servidor exige PIN; Entrada NF/Gestão/Cadastro **não** tinham a tela do PIN; toast só mostrava o erro |
-| **Fix** | Teclado PIN nessas telas · abre no erro · estoque NF pede PIN antes · PDV toast abre PIN · trava sem teclado se recupera |
-| **Prova** | `scripts/verify_pin_teclado_obrigatorio.py` **18/18** · pin-na-ação **67/67** · pin-quem **51/51** |
+| **O quê** | Aviso PIN sem linha → teclado escuro · Entrada NF/Gestão/Cadastro/PDV |
+| **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** (PIN 9973 · HTML · API 403/fresco) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v20.99** · **Ctrl+F5** · registrar estoque NF → teclado escuro com ···· |
-| **Você** | Prova local; loja **só** com frase+senha |
+| **Status** | 🟢 **pronto para envio à produção** · `teste` tip |
+| **Você** | Ctrl+F5 · NF etapa 5 → Registrar → teclado · loja só frase+senha |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · alvo loja **v21.01+**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PIN-TECLADO-OBRIG` | 🟢 **pronto para envio** | **NÃO** |
+
+**Fora deste checklist:** WhatsApp (`WA-*`) e demais SOLO ainda só no `teste`.
 
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
