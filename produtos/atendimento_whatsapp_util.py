@@ -1105,17 +1105,48 @@ def abrir_conversa_saida(
 
 
 @transaction.atomic
-def abrir_conversa_busca(*, telefone: str, nome: str = "") -> tuple[WhatsAppConversaAgro | None, str]:
-    jid = telefone_para_jid(telefone)
-    if not jid:
+def abrir_conversa_busca(*, telefone: str, nome: str = "", jid: str = "") -> tuple[WhatsAppConversaAgro | None, str]:
+    raw_jid = (jid or "").strip()
+    lid = _jid_lid(raw_jid) or _jid_lid(telefone)
+    phone_jid = telefone_para_jid(telefone)
+    if not phone_jid and raw_jid.endswith("@s.whatsapp.net"):
+        phone_jid = raw_jid[:80]
+    if lid and not phone_jid:
+        phone_jid = _phone_jid_de_lid(lid)
+    if not phone_jid and lid:
+        conv = (
+            WhatsAppConversaAgro.objects.select_for_update()
+            .filter(Q(jid_lid=lid) | Q(jid=lid[:80]))
+            .first()
+        )
+        if conv is None:
+            if _novos_loja_24h() >= MAX_NOVOS_DIA:
+                return None, "Limite de conversas novas hoje (20)."
+            conv = WhatsAppConversaAgro.objects.create(
+                jid=lid[:80],
+                jid_lid=lid[:80],
+                telefone="",
+                nome=(nome or "")[:120],
+                loja=WhatsAppConversaAgro.LOJA_PENDENTE,
+                menu_enviado=True,
+                origem_abertura="loja",
+            )
+        if nome and not conv.nome:
+            conv.nome = nome[:120]
+        aplicar_nome_cadastro(conv)
+        aplicar_nome_agenda(conv)
+        conv.save(update_fields=["nome", "telefone", "jid_lid"])
+        return conv, ""
+    jid_n = phone_jid
+    if not jid_n:
         return None, "Número inválido."
-    conv = WhatsAppConversaAgro.objects.select_for_update().filter(jid=jid[:80]).first()
+    conv = WhatsAppConversaAgro.objects.select_for_update().filter(jid=jid_n[:80]).first()
     if conv is None:
         if _novos_loja_24h() >= MAX_NOVOS_DIA:
             return None, "Limite de conversas novas hoje (20)."
         conv = WhatsAppConversaAgro.objects.create(
-            jid=jid[:80],
-            telefone=jid_para_telefone(jid),
+            jid=jid_n[:80],
+            telefone=jid_para_telefone(jid_n),
             nome=(nome or "")[:120],
             loja=WhatsAppConversaAgro.LOJA_PENDENTE,
             menu_enviado=True,
@@ -1124,7 +1155,7 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "") -> tuple[WhatsAppConv
     if nome and not conv.nome:
         conv.nome = nome[:120]
     if not conv.telefone:
-        conv.telefone = jid_para_telefone(jid)
+        conv.telefone = jid_para_telefone(jid_n)
     aplicar_nome_cadastro(conv)
     aplicar_nome_agenda(conv)
     conv.save(update_fields=["nome", "telefone"])
@@ -1147,7 +1178,7 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
         if not j or j in seen:
             return
         seen.add(j)
-        conv = WhatsAppConversaAgro.objects.filter(jid=j).only("id", "loja").first()
+        conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).only("id", "loja").first()
         out.append(
             {
                 "origem": origem,
@@ -1173,9 +1204,9 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
     for c in convs.order_by("-ultima_em")[:lim]:
         _add("conversa", c.nome or "", c.telefone or "", c.jid)
 
-    ag = WhatsAppAgendaContatoAgro.objects.all().order_by("nome")
+    ag = WhatsAppAgendaContatoAgro.objects.exclude(nome="").order_by("nome")
     tn = _sem_acento(t.lower())
-    for c in ag[:800]:
+    for c in ag[:2500]:
         if len(out) >= lim:
             break
         cn = _sem_acento((c.nome or "").lower())
@@ -1187,23 +1218,61 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
     return out
 
 
+def _phone_jid_de_lid(lid: str) -> str:
+    lid_n = _jid_lid(lid)
+    if not lid_n:
+        return ""
+    conv = (
+        WhatsAppConversaAgro.objects.filter(jid_lid=lid_n)
+        .exclude(jid__endswith="@lid")
+        .only("jid")
+        .first()
+    )
+    if conv and (conv.jid or "").endswith("@s.whatsapp.net"):
+        return conv.jid
+    try:
+        data = json.loads(_mapa_lid_disco().read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if _jid_lid(str(k)) == lid_n:
+                j = telefone_para_jid(str(v))
+                if j:
+                    return j
+    return ""
+
+
 def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
     n = 0
     if not isinstance(itens, list):
         itens = []
-    for raw in itens[:500]:
+    for raw in itens[:2000]:
         if not isinstance(raw, dict):
             continue
-        jid = str(raw.get("jid") or "").strip()[:80]
-        if not jid.endswith("@s.whatsapp.net"):
+        jid_raw = str(raw.get("jid") or "").strip()[:80]
+        lid = _jid_lid(str(raw.get("jid_lid") or "")) or _jid_lid(jid_raw)
+        tel = str(raw.get("telefone") or "")[:32]
+        dig = re.sub(r"\D+", "", tel)
+        phone = ""
+        if dig and 10 <= len(dig) <= 13:
+            phone = telefone_para_jid(tel)
+        if jid_raw.endswith("@s.whatsapp.net"):
+            phone = jid_raw
+        if lid and not phone:
+            phone = _phone_jid_de_lid(lid)
+        key = (phone or lid or jid_raw)[:80]
+        if not (key.endswith("@s.whatsapp.net") or key.endswith("@lid")):
             continue
-        tel = str(raw.get("telefone") or jid_para_telefone(jid))[:32]
+        tel_ok = str(raw.get("telefone") or jid_para_telefone(key))[:32]
+        if key.endswith("@lid"):
+            tel_ok = str(raw.get("telefone") or "")[:32]
         nome = str(raw.get("nome") or "")[:120]
-        prev = WhatsAppAgendaContatoAgro.objects.filter(jid=jid).only("nome").first()
+        prev = WhatsAppAgendaContatoAgro.objects.filter(jid=key).only("nome").first()
         if prev and prev.nome and not nome:
             nome = prev.nome
         WhatsAppAgendaContatoAgro.objects.update_or_create(
-            jid=jid, defaults={"telefone": tel, "nome": nome}
+            jid=key, defaults={"telefone": tel_ok, "nome": nome}
         )
         n += 1
     if pedido_id:

@@ -377,10 +377,7 @@
   function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
     if (!convId || (btn && btn.disabled)) return;
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = 'Enviando…';
-    }
+    if (btn) btn.disabled = true;
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
@@ -399,10 +396,8 @@
         if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
       })
       .finally(function () {
-        if (btn) {
-          btn.disabled = false;
-          btn.textContent = 'Enviar';
-        }
+        if (btn) btn.disabled = false;
+        atualizarBarra();
       });
   }
 
@@ -434,10 +429,9 @@
     var mic = $('wa-mic');
     var bar = $('wa-rec-bar');
     var t = $('wa-rec-t');
-    if (mic) {
-      mic.classList.toggle('is-rec', !!on);
-      mic.textContent = on ? 'Enviar áudio' : 'Áudio';
-    }
+    var form = $('wa-form');
+    if (form) form.classList.toggle('is-rec', !!on);
+    if (mic) mic.classList.toggle('is-rec', !!on);
     if (bar) bar.classList.toggle('hidden', !on);
     if (recTimer) {
       clearInterval(recTimer);
@@ -451,6 +445,18 @@
         if (t) t.textContent = fmtRec(recSecs);
       }, 1000);
     }
+    atualizarBarra();
+  }
+
+  function atualizarBarra() {
+    var inp = $('wa-input');
+    var send = $('wa-send');
+    var mic = $('wa-mic');
+    var rec = !!recObj;
+    var tem = !!(inp && String(inp.value || '').trim());
+    var temRec = typeof window.MediaRecorder === 'function' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    if (send) send.classList.toggle('hidden', rec || !tem);
+    if (mic && temRec) mic.classList.toggle('hidden', rec ? false : tem);
   }
 
   function pararRec(enviar) {
@@ -516,6 +522,11 @@
     }
   }
   ligarMicUi();
+  atualizarBarra();
+  var inpBarra = $('wa-input');
+  if (inpBarra) {
+    inpBarra.addEventListener('input', atualizarBarra);
+  }
 
   var fotoBtn = $('wa-foto');
   var fotoInp = $('wa-foto-inp');
@@ -687,7 +698,7 @@
     fetchJson('/api/atendimento-whatsapp/abrir/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ telefone: c.telefone || c.jid || '', nome: c.nome || '' }),
+      body: JSON.stringify({ telefone: c.telefone || '', nome: c.nome || '', jid: c.jid || '' }),
     }).then(function (j) {
       if (!j || !j.ok) {
         window.alert((j && j.erro) || 'Não abriu.');

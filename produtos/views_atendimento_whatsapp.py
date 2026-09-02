@@ -287,8 +287,9 @@ def api_atendimento_whatsapp_abrir(request):
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
     conv, err = abrir_conversa_busca(
-        telefone=str(data.get("telefone") or data.get("jid") or ""),
+        telefone=str(data.get("telefone") or ""),
         nome=str(data.get("nome") or ""),
+        jid=str(data.get("jid") or ""),
     )
     if err or conv is None:
         return JsonResponse({"ok": False, "erro": err or "Não abriu."}, status=400)

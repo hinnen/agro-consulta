@@ -232,13 +232,25 @@ function telefoneDeJid(jid) {
   return (jidPhoneDeValor(jid) || "").split("@")[0].replace(/\D/g, "");
 }
 
+function lidDeContato(c) {
+  if (!c) return "";
+  for (const x of [c.lid, c.id, c.jid]) {
+    const s = String(x || "");
+    if (s.endsWith("@lid")) return s;
+  }
+  return "";
+}
+
 function jidDeContato(c) {
-  const jid = String((c && c.jid) || "");
-  const id = String((c && c.id) || "");
-  const pn = jidPhoneDeValor((c && (c.phoneNumber || c.pn || c.jid)) || "");
-  if (pn) return pn;
-  if (jid.endsWith("@s.whatsapp.net")) return jid;
-  if (id.endsWith("@s.whatsapp.net")) return id;
+  if (!c) return "";
+  for (const x of [c.phoneNumber, c.pn, c.jid, c.id]) {
+    const pn = jidPhoneDeValor(x);
+    if (pn) return pn;
+  }
+  const lid = lidDeContato(c);
+  const mapped = lid && pnDeLid(lid);
+  if (mapped) return mapped;
+  if (lid && ehChatPrivado(lid)) return lid;
   return "";
 }
 
@@ -277,11 +289,15 @@ function carregarLidMap() {
 }
 
 function vincularLid(c) {
-  const jidPhone = jidDeContato(c);
-  const id = String((c && c.id) || "");
-  const lid = id.endsWith("@lid") ? id : String((c && c.lid) || "");
-  if (lid.endsWith("@lid") && jidPhone) {
-    lidParaJid.set(lid, jidPhone);
+  const lid = lidDeContato(c);
+  let phone = "";
+  for (const x of [(c && c.phoneNumber) || "", (c && c.pn) || "", (c && c.jid) || "", (c && c.id) || ""]) {
+    phone = jidPhoneDeValor(x);
+    if (phone) break;
+  }
+  if (!phone && lid) phone = pnDeLid(lid);
+  if (lid.endsWith("@lid") && phone && !phone.endsWith("@lid")) {
+    lidParaJid.set(lid, phone);
     salvarLidDebounced();
   }
 }
@@ -562,7 +578,10 @@ async function ligar() {
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
       enviarLidMap();
-      setTimeout(() => enviarAgenda(0), 4000);
+      setTimeout(() => {
+        varrerStore();
+        enviarAgenda(0).catch(() => {});
+      }, 4000);
     }
     if (connection === "close") {
       if (myId !== connId) return;
@@ -592,6 +611,10 @@ async function ligar() {
     for (const c of lista || []) guardarContato(c);
   });
   sock.ev.on("contacts.update", (lista) => {
+    for (const c of lista || []) guardarContato(c);
+  });
+  sock.ev.on("contacts.set", (dados) => {
+    const lista = (dados && dados.contacts) || dados || [];
     for (const c of lista || []) guardarContato(c);
   });
   sock.ev.on("chats.upsert", (lista) => {
@@ -641,16 +664,40 @@ async function ligar() {
   pollTimer = setInterval(puxarSaida, 2500);
 }
 
+function varrerStore() {
+  try {
+    const st = sock && sock.store;
+    if (!st) return;
+    for (const c of Object.values(st.contacts || {})) guardarContato(c);
+    const chats = st.chats;
+    const lista = chats && typeof chats.all === "function" ? chats.all() : Object.values(chats || {});
+    for (const ch of lista || []) {
+      guardarContato({
+        id: ch.id,
+        jid: ch.jid || ch.id,
+        name: ch.name,
+        notify: ch.notify || ch.name,
+      });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 async function enviarAgenda(pedidoId) {
   const itens = [];
   for (const [jid, v] of agenda.entries()) {
-    if (!jid.endsWith("@s.whatsapp.net")) continue;
+    const lid = jid.endsWith("@lid") ? jid : "";
+    const phone = jid.endsWith("@s.whatsapp.net") ? jid : pnDeLid(jid);
+    const dest = phone || jid;
+    if (!dest.endsWith("@s.whatsapp.net") && !dest.endsWith("@lid")) continue;
     itens.push({
-      jid,
+      jid: dest,
+      jid_lid: lid,
       nome: String((v && v.nome) || "").slice(0, 120),
-      telefone: String((v && v.telefone) || jid.split("@")[0]),
+      telefone: String((v && v.telefone) || (phone || "").split("@")[0] || ""),
     });
-    if (itens.length >= 500) break;
+    if (itens.length >= 2000) break;
   }
   if (!itens.length && !pedidoId) return;
   await post("/api/atendimento-whatsapp/bridge/contatos/", { pedido_id: pedidoId || 0, itens });

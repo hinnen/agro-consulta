@@ -359,6 +359,18 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertEqual(conv.origem_abertura, "loja")
         self.assertTrue(m.pendente_envio)
 
+    def test_busca_agenda_nome_lid(self):
+        from produtos.atendimento_whatsapp_util import buscar_contatos_envio, gravar_agenda_zap
+        from produtos.models import WhatsAppAgendaContatoAgro
+
+        n = gravar_agenda_zap(
+            [{"jid": "201812074319879@lid", "jid_lid": "201812074319879@lid", "nome": "Joao da Agenda", "telefone": ""}]
+        )
+        self.assertEqual(n, 1)
+        self.assertTrue(WhatsAppAgendaContatoAgro.objects.filter(nome="Joao da Agenda").exists())
+        rows = buscar_contatos_envio("Joao")
+        self.assertTrue(any(r.get("nome") == "Joao da Agenda" for r in rows))
+
     def test_abrir_busca_sem_mensagem(self):
         from produtos.atendimento_whatsapp_util import abrir_conversa_busca, enviar_loja
 

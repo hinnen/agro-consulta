@@ -1,10 +1,18 @@
-{# Barra de enviar — texto + foto + áudio. #}
-<p id="wa-rec-bar" class="wa-rec-bar hidden">Gravando <span id="wa-rec-t">0:00</span> — toque em <b>Enviar áudio</b>. X cancela.</p>
-<button type="button" id="wa-foto" class="wa-ico" title="Enviar foto">Foto</button>
+{# Barra estilo WhatsApp Web: clipe · texto · microfone / enviar. #}
+<p id="wa-rec-bar" class="wa-rec-bar hidden"><span class="wa-rec-dot"></span> Gravando <span id="wa-rec-t">0:00</span></p>
+<button type="button" id="wa-foto" class="wa-tool" title="Anexar foto" aria-label="Anexar foto">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.5 6.8v8.3a4.5 4.5 0 1 1-9 0V6.2a3.2 3.2 0 1 1 6.4 0v8.4a1.9 1.9 0 1 1-3.8 0V7.5h1.5v6.9a.4.4 0 1 0 .8 0V6.2a1.7 1.7 0 1 0-3.4 0v8.9a3 3 0 0 0 6 0V6.8h1.5Z"/></svg>
+</button>
 <input id="wa-foto-inp" type="file" accept="image/*"{% if wa_cel_capture %} capture="environment"{% endif %} class="sr-only" tabindex="-1" />
-<button type="button" id="wa-mic" class="wa-ico" title="Gravar áudio">Áudio</button>
-<button type="button" id="wa-mic-x" class="wa-ico hidden" title="Cancelar gravação">X</button>
-<button type="button" id="wa-audio-arq" class="wa-ico hidden" title="Enviar áudio">Áudio</button>
+<input id="wa-input" type="text" maxlength="4000" autocomplete="off" placeholder="Digite uma mensagem" inputmode="text" />
+<button type="button" id="wa-mic" class="wa-tool wa-tool-mic" title="Gravar áudio" aria-label="Gravar áudio">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 15.2a3.2 3.2 0 0 0 3.2-3.2V7.2a3.2 3.2 0 1 0-6.4 0v4.8A3.2 3.2 0 0 0 12 15.2Zm5.2-3.2a5.2 5.2 0 0 1-10.4 0H5.2a6.7 6.7 0 0 0 5.9 6.5v2.3h1.8v-2.3a6.7 6.7 0 0 0 5.9-6.5h-1.6Z"/></svg>
+</button>
+<button type="submit" id="wa-send" class="wa-tool wa-tool-send hidden" title="Enviar" aria-label="Enviar">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.4 20.6 21 12 3.4 3.4l.1 6.8L15 12 3.5 13.8l-.1 6.8Z"/></svg>
+</button>
+<button type="button" id="wa-mic-x" class="wa-tool hidden" title="Cancelar gravação" aria-label="Cancelar gravação">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3 1.4 1.4Z"/></svg>
+</button>
+<button type="button" id="wa-audio-arq" class="wa-tool hidden" title="Enviar áudio" aria-label="Enviar áudio">Áudio</button>
 <input id="wa-audio-inp" type="file" accept="audio/*" class="sr-only" tabindex="-1" />
-<input id="wa-input" type="text" maxlength="4000" autocomplete="off" placeholder="Mensagem" inputmode="text" class="min-h-[2.85rem] min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
-<button type="submit" id="wa-send" class="min-h-[2.85rem] min-w-[5.2rem] rounded-2xl bg-[#25d366] px-4 text-sm font-extrabold text-white">Enviar</button>
