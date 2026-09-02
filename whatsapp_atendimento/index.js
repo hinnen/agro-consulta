@@ -897,25 +897,59 @@ function jidParaEnvio(item) {
 
 async function audioParaZap(buf, mime) {
   const m = String(mime || "").toLowerCase();
-  if (m.includes("ogg") && !m.includes("webm")) {
-    return { buf, mime: "audio/ogg; codecs=opus", ptt: true };
-  }
   const bin = typeof ffmpegStatic === "string" && ffmpegStatic ? ffmpegStatic : "ffmpeg";
-  const inn = path.join(os.tmpdir(), "agro-wa-" + Date.now());
-  const out = inn + ".ogg";
+  const stamp = Date.now();
+  const inn = path.join(os.tmpdir(), "agro-wa-" + stamp + ".webm");
+  const out = path.join(os.tmpdir(), "agro-wa-" + stamp + ".ogg");
+
+  if (m.includes("ogg") && !m.includes("webm")) {
+    return { ok: true, buf, mime: "audio/ogg; codecs=opus", ptt: true, seconds: 0 };
+  }
+
   try {
     fs.writeFileSync(inn, buf);
+    let seconds = 0;
     await new Promise((resolve, reject) => {
-      const p = spawn(bin, ["-y", "-i", inn, "-vn", "-c:a", "libopus", "-b:a", "24k", "-ar", "16000", "-ac", "1", out], {
-        windowsHide: true,
+      const args = [
+        "-y",
+        "-i",
+        inn,
+        "-vn",
+        "-ac",
+        "1",
+        "-ar",
+        "48000",
+        "-c:a",
+        "libopus",
+        "-b:a",
+        "32k",
+        "-application",
+        "voip",
+        "-frame_duration",
+        "20",
+        out,
+      ];
+      const p = spawn(bin, args, { windowsHide: true });
+      let errTxt = "";
+      p.stderr.on("data", (d) => {
+        errTxt += String(d || "");
       });
       p.on("error", reject);
-      p.on("close", (c) => (c === 0 ? resolve() : reject(new Error("ffmpeg " + c))));
+      p.on("close", (c) => {
+        const hit = /Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i.exec(errTxt);
+        if (hit) {
+          seconds = Math.max(1, Math.round(Number(hit[1]) * 3600 + Number(hit[2]) * 60 + Number(hit[3])));
+        }
+        c === 0 ? resolve() : reject(new Error("ffmpeg " + c + " " + errTxt.slice(-180)));
+      });
     });
     const converted = fs.readFileSync(out);
-    if (converted && converted.length) return { buf: converted, mime: "audio/ogg; codecs=opus", ptt: true };
+    if (!converted || !converted.length) throw new Error("ffmpeg vazio");
+    console.log("audio ok:", buf.length, "->", converted.length, "s=", seconds);
+    return { ok: true, buf: converted, mime: "audio/ogg; codecs=opus", ptt: true, seconds };
   } catch (e) {
     console.error("audio ffmpeg:", e.message || e);
+    return { ok: false, buf, mime: m || "audio/webm", ptt: false, seconds: 0, erro: String(e.message || e) };
   } finally {
     try {
       fs.unlinkSync(inn);
@@ -928,7 +962,6 @@ async function audioParaZap(buf, mime) {
       /* ignore */
     }
   }
-  return { buf, mime: m || "audio/webm", ptt: false };
 }
 
 async function enviarComRetry(jid, content) {
@@ -942,6 +975,29 @@ async function enviarComRetry(jid, content) {
     }
   }
   throw last;
+}
+
+async function enviarAudioZap(dest, aud) {
+  const base = {
+    audio: aud.buf,
+    mimetype: "audio/ogg; codecs=opus",
+  };
+  if (aud.seconds > 0) base.seconds = aud.seconds;
+  try {
+    return await enviarComRetry(dest, { ...base, ptt: true });
+  } catch (e1) {
+    console.error("audio ptt:", e1.message || e1);
+  }
+  try {
+    return await enviarComRetry(dest, { ...base, ptt: false });
+  } catch (e2) {
+    console.error("audio file:", e2.message || e2);
+  }
+  return await enviarComRetry(dest, {
+    document: aud.buf,
+    mimetype: "audio/ogg",
+    fileName: "audio.ogg",
+  });
 }
 
 async function puxarSaida() {
@@ -964,29 +1020,12 @@ async function puxarSaida() {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
             const aud = await audioParaZap(buf, item.mime);
-            const dest = jidParaEnvio(item);
-            let sent;
-            try {
-              sent = await enviarComRetry(dest, {
-                audio: aud.buf,
-                ptt: true,
-                mimetype: "audio/ogg; codecs=opus",
-              });
-            } catch (e1) {
-              try {
-                sent = await enviarComRetry(dest, {
-                  audio: aud.buf,
-                  ptt: false,
-                  mimetype: aud.mime || "audio/ogg; codecs=opus",
-                });
-              } catch (e2) {
-                sent = await enviarComRetry(dest, {
-                  document: aud.buf,
-                  mimetype: aud.mime || "audio/ogg",
-                  fileName: "audio.ogg",
-                });
-              }
+            if (!aud.ok) {
+              throw new Error("Conversão de áudio falhou: " + (aud.erro || "ffmpeg"));
             }
+            const dest = jidParaEnvio(item);
+            console.log("enviando audio ->", dest, "bytes", aud.buf.length, "s", aud.seconds);
+            const sent = await enviarAudioZap(dest, aud);
             const waId = sent && sent.key && sent.key.id;
             await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
               ids: [item.id],
