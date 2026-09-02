@@ -1264,6 +1264,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **aguarda senha**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** · **não** subiu loja |
+| **Antes (loja hoje)** | `producao` @ **`798caaa`** · Live **v20.86** |
+| **PREP** | `deploy/prep-pin-orc-0209` · VERSION **21.06** |
+| **Pacotes** | `PIN-TECLADO-OBRIG` · `PIN-ET5-CAMPO` · `PDV-ORC-SAVE` |
+| **Fora** | WhatsApp `WA-*` · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Prova** | PIN **54/54** · orçamento **33/33** (PIN 9973) |
+| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` @ `798caaa` · `docs/ROLLBACK-PIN-ORC-0209.md` |
+| **Risco loja aberta** | **Baixo** — venda F7 / caixa / NFC-e **iguais**; só PIN na ação que já pedia + gravar orçamento |
+| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-pin-orc-0209` · **não** merge `teste` |
+| **Smoke** | badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 campo PIN |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (02/09 · alvo **v21.06**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | 🟢 **PREP / aguarda senha** | **NÃO** |
+| 2 | `PDV-ORC-SAVE` | 🟢 **PREP / aguarda senha** | **NÃO** |
+
 ### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
 
 | Campo | Valor |
