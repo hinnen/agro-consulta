@@ -1270,23 +1270,39 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN teclado obrigatório (`PIN-TECLADO-OBRIG` · **v21.01** · 02/09/2026)
+### 🚀 PREP deploy loja — PIN teclado (`PIN-TECLADO-OBRIG` · **v21.02**) · **aguarda senha**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** · **não** subiu loja · aguarda pausa vendas + frase + senha no **próximo chat** |
+| **Antes (loja hoje)** | `producao` @ **`798caaa`** · Live **v20.86** |
+| **PREP** | `deploy/prep-pin-teclado-obrig` @ **`d2ed850`** · VERSION **21.02** |
+| **Pacote** | `PIN-TECLADO-OBRIG` (**só** este) |
+| **Fora** | WhatsApp `WA-*` · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** (PIN 9973) · arquivos PREP = tip `teste` · pin-na-ação **67/67** |
+| **Rollback** | tag `rollback/pre-pin-teclado-obrig-v20.86` @ `798caaa` · branch `producao-backup-pre-v2102-pin-teclado-20260902` · `docs/ROLLBACK-PIN-TECLADO-OBRIG.md` |
+| **Risco loja aberta** | **Baixo** — não muda regra de venda/caixa/NFC-e; só abre teclado quando já pedia PIN |
+| **Deploy (com senha)** | `producao` ← reset hard `origin/deploy/prep-pin-teclado-obrig` · **não** merge `teste` inteiro |
+| **Smoke** | badge **v21.02** · NF etapa 5 PIN · Gestão/Cadastro tem teclado · F7 1 venda |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · alvo loja **v21.02**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PIN-TECLADO-OBRIG` | 🟢 **PREP pronto / aguarda senha** | **NÃO** |
+
+**Fora deste checklist:** WhatsApp (`WA-*`) e demais SOLO ainda só no `teste`.
+
+### 📦 PACOTE PRONTO — PIN teclado obrigatório (`PIN-TECLADO-OBRIG` · **v21.02** · 02/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Aviso PIN sem linha → teclado escuro · Entrada NF/Gestão/Cadastro/PDV |
 | **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** (PIN 9973 · HTML · API 403/fresco) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · `teste` tip |
-| **Você** | Ctrl+F5 · NF etapa 5 → Registrar → teclado · loja só frase+senha |
-
-### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · alvo loja **v21.01+**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` | 🟢 **pronto para envio** | **NÃO** |
-
-**Fora deste checklist:** WhatsApp (`WA-*`) e demais SOLO ainda só no `teste`.
+| **Status** | 🟢 **PREP** `deploy/prep-pin-teclado-obrig` · aguarda senha |
+| **Você** | No próximo chat: pausar vendas · «pode subir» + senha |
 
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
