@@ -846,18 +846,36 @@
   if (btnHist) {
     btnHist.addEventListener('click', function () {
       if (!convId) return;
+      var antes = (($('wa-msgs') && $('wa-msgs').querySelectorAll('.wa-b').length) || 0);
+      btnHist.disabled = true;
+      var rotulo = btnHist.textContent;
+      btnHist.textContent = '…';
       fetchJson('/api/atendimento-whatsapp/historico/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
         body: JSON.stringify({ conversa_id: convId }),
       }).then(function (j) {
         if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não puxou.');
+          window.alert((j && j.erro) || 'Não puxou. Ponte ligada?');
+          btnHist.disabled = false;
+          btnHist.textContent = rotulo;
           return;
         }
         window.setTimeout(function () {
           abrirConversa(convId);
-        }, 3500);
+          window.setTimeout(function () {
+            var depois = (($('wa-msgs') && $('wa-msgs').querySelectorAll('.wa-b').length) || 0);
+            btnHist.disabled = false;
+            btnHist.textContent = rotulo;
+            if (depois <= antes) {
+              window.alert('O Zap não mandou mensagens novas deste chat (só ~7 dias, e às vezes não libera).');
+            }
+          }, 2500);
+        }, 4500);
+      }).catch(function () {
+        btnHist.disabled = false;
+        btnHist.textContent = rotulo;
+        window.alert('Falha ao pedir anteriores.');
       });
     });
   }

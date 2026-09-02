@@ -159,12 +159,52 @@ const lidParaJid = new Map();
 const msgCache = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 const LIVE_MS = 20 * 60 * 1000;
-/** Só aceita append antigo quando a loja pediu «Anteriores» neste chat. */
-let histJid = "";
+/** Só aceita append/histórico antigo quando a loja pediu «Anteriores» neste chat. */
+let histJids = new Set();
 let histAte = 0;
 
+function normJid(j) {
+  return String(j || "")
+    .split(":")[0]
+    .trim()
+    .toLowerCase();
+}
+
+function marcarHistPedido(...jids) {
+  histJids = new Set();
+  histAte = Date.now() + 180000;
+  for (const raw of jids) {
+    const j = String(raw || "");
+    if (!j) continue;
+    histJids.add(normJid(j));
+    if (j.endsWith("@lid")) {
+      const pn = pnDeLid(j);
+      if (pn) histJids.add(normJid(pn));
+    } else if (j.endsWith("@s.whatsapp.net")) {
+      const lid = lidDePhone(j);
+      if (lid) histJids.add(normJid(lid));
+    }
+  }
+  console.log("Hist pedido jids:", [...histJids]);
+}
+
 function historicoPermitido(jid) {
-  return histJid && String(jid) === histJid && Date.now() < histAte;
+  if (!histJids.size || Date.now() >= histAte) return false;
+  const j = normJid(jid);
+  if (!j) return false;
+  if (histJids.has(j)) return true;
+  if (j.endsWith("@lid")) {
+    const pn = pnDeLid(j);
+    if (pn && histJids.has(normJid(pn))) return true;
+  } else if (j.endsWith("@s.whatsapp.net")) {
+    const lid = lidDePhone(j);
+    if (lid && histJids.has(normJid(lid))) return true;
+  }
+  return false;
+}
+
+function histJanelaAberta() {
+  return histJids.size > 0 && Date.now() < histAte;
 }
 
 function tsMs(m) {
@@ -652,10 +692,29 @@ async function ligar() {
     agenda.set(jj, { nome: prev.nome || "", telefone: jj.split("@")[0] });
     salvarAgendaDebounced();
   });
-  sock.ev.on("messaging-history.set", async ({ contacts, chats }) => {
+  sock.ev.on("messaging-history.set", async (dados) => {
+    const contacts = (dados && dados.contacts) || [];
+    const chats = (dados && dados.chats) || [];
+    const messages = (dados && dados.messages) || [];
     for (const c of contacts || []) guardarContato(c);
     for (const ch of chats || []) {
       guardarContato({ id: ch.id, jid: ch.jid || ch.id, name: ch.name, notify: ch.notify || ch.name });
+    }
+    if (!messages.length) return;
+    console.log("Hist sync msgs:", messages.length, "janela:", histJanelaAberta());
+    for (const m of messages) {
+      try {
+        guardarMsgCache(m);
+        const raw = String((m && m.key && m.key.remoteJid) || "");
+        const jid = jidDaMensagem(m);
+        if (!histJanelaAberta()) continue;
+        if (!historicoPermitido(jid) && !historicoPermitido(raw)) continue;
+        const quando = tsMs(m);
+        if (Date.now() - quando > HIST_MS) continue;
+        await enviarEntrada(m, { historico: true });
+      } catch (e) {
+        console.error("hist set:", e.message || e);
+      }
     }
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
@@ -663,12 +722,13 @@ async function ligar() {
     for (const m of messages || []) {
       try {
         guardarMsgCache(m);
+        const raw = String((m && m.key && m.key.remoteJid) || "");
         const jid = jidDaMensagem(m);
         if (ehMensagemAoVivo(m, type)) {
           await enviarEntrada(m, { historico: false });
           continue;
         }
-        if (!historicoPermitido(jid)) continue;
+        if (!historicoPermitido(jid) && !historicoPermitido(raw)) continue;
         const quando = tsMs(m);
         if (Date.now() - quando > HIST_MS) continue;
         await enviarEntrada(m, { historico: true });
@@ -766,17 +826,33 @@ async function executarPedido(p) {
     }
     if (p.tipo === "historico") {
       const count = Math.min(40, Math.max(5, Number(p.count) || 30));
-      histJid = String(p.jid || "");
-      histAte = Date.now() + 120000;
-      await sock.fetchMessageHistory(
-        count,
-        {
-          remoteJid: String(p.jid || ""),
-          id: String(p.oldest_id || ""),
-          fromMe: !!p.oldest_from_me,
-        },
-        Number(p.oldest_ts) || Date.now()
-      );
+      const jidPed = String(p.jid || "");
+      const jidPhone = String(p.jid_phone || "");
+      const candidatos = [];
+      for (const j of [jidPed, jidPhone, pnDeLid(jidPed), lidDePhone(jidPhone || jidPed)]) {
+        const s = String(j || "");
+        if (s && !candidatos.includes(s)) candidatos.push(s);
+      }
+      marcarHistPedido(...candidatos);
+      const oldestKeyBase = {
+        id: String(p.oldest_id || ""),
+        fromMe: !!p.oldest_from_me,
+      };
+      const ts = Number(p.oldest_ts) || Date.now();
+      let ok = false;
+      let lastErr = null;
+      for (const jid of candidatos) {
+        try {
+          console.log("fetchMessageHistory", count, jid, oldestKeyBase.id);
+          await sock.fetchMessageHistory(count, { ...oldestKeyBase, remoteJid: jid }, ts);
+          ok = true;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error("fetchMessageHistory falhou", jid, e.message || e);
+        }
+      }
+      if (!ok && lastErr) throw lastErr;
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
       return;
     }

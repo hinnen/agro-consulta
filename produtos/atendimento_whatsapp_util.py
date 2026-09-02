@@ -1510,6 +1510,7 @@ def pedir_historico_conversa(conversa_id: int) -> tuple[WhatsAppPontePedidoAgro 
             "oldest_id": oldest.wa_id,
             "oldest_from_me": oldest.direcao != WhatsAppMensagemAgro.DIRECAO_IN,
             "oldest_ts": ts_ms,
+            "jid_phone": (conv.jid if (conv.jid or "").endswith("@s.whatsapp.net") else "")[:80],
         },
     )
     return p, ""

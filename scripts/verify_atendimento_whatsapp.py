@@ -72,6 +72,8 @@ def _static() -> None:
     check("util_abrir", "def abrir_conversa_saida" in util)
     check("util_agenda", "def gravar_agenda_zap" in util and "aplicar_nome_agenda" in util)
     check("node_hist", "fetchMessageHistory" in node)
+    check("node_hist_set", "messaging-history.set" in node and "Hist sync msgs" in node)
+    check("util_hist_phone", "jid_phone" in util)
     check("node_sem_full", "syncFullHistory: false" in node and "shouldSyncHistoryMessage: () => false" in node)
     check("node_reconnect", "garantirUmaInstancia" in node and "connId" in node)
     check("node_agenda_sync", "agendarEnvioAgenda" in node)
