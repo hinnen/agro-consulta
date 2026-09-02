@@ -57,6 +57,7 @@
 
     <section data-panel="horario" class="wa-panel wa-card">
       <label class="wa-sw"><span>Usar horário</span><input type="checkbox" name="horario_ativo" /></label>
+      <label class="wa-sw"><span>Mandar aviso fora do horário</span><input type="checkbox" name="aviso_fora_ligado" /></label>
       <label class="wa-sw"><span>Fora do horário ainda entra na fila</span><input type="checkbox" name="ainda_atende_fora" /></label>
       <div class="wa-row wa-row-2">
         <div>
@@ -91,6 +92,8 @@
     </section>
 
     <section data-panel="lojas" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Separar Centro e Vila</span><input type="checkbox" name="separar_lojas" /></label>
+      <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue para uma lista só, sem perguntar 1 ou 2 no Zap.</p>
       <div class="wa-row wa-row-2">
         <div>
           <p class="wa-lab" style="color:#047857">Loja 1</p>

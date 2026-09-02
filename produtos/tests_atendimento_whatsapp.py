@@ -17,6 +17,8 @@ class BotConfigPadraoTests(SimpleTestCase):
     def test_horario_e_mensagens(self):
         self.assertTrue(BOT_DEFAULT["horario_ativo"])
         self.assertFalse(BOT_DEFAULT["ainda_atende_fora"])
+        self.assertTrue(BOT_DEFAULT["aviso_fora_ligado"])
+        self.assertTrue(BOT_DEFAULT["separar_lojas"])
         self.assertTrue(BOT_DEFAULT["enviar_boas_vindas"])
         self.assertTrue(BOT_DEFAULT["ausencia_ligada"])
         domingo = timezone.make_aware(datetime(2026, 9, 6, 10, 0, 0))
@@ -95,6 +97,64 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertIsNotNone(bot)
         self.assertNotIn("fora do horário", bot.texto.lower())
         self.assertTrue("cadastro" in bot.texto.lower() or "fiado" in bot.texto.lower())
+
+    def test_horario_desligado_nao_avisa(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+        cfg = dict(BOT_DEFAULT)
+        cfg["horario_ativo"] = False
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(jid="5513999000333@s.whatsapp.net", texto="Oi")
+        textos = " ".join(m.texto.lower() for m in WhatsAppMensagemAgro.objects.filter(direcao="bot"))
+        self.assertNotIn("fora do horário", textos)
+
+    def test_aviso_fora_desligado(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+        cfg = dict(BOT_DEFAULT)
+        cfg["aviso_fora_ligado"] = False
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            with patch("produtos.atendimento_whatsapp_bot_config.fora_do_horario", return_value=True):
+                processar_entrada(jid="5513999000444@s.whatsapp.net", texto="Oi")
+        textos = " ".join(m.texto.lower() for m in WhatsAppMensagemAgro.objects.filter(direcao="bot"))
+        self.assertNotIn("fora do horário", textos)
+
+    def test_sem_separar_lojas(self):
+        from unittest.mock import patch
+
+        from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+        cfg = dict(BOT_DEFAULT)
+        cfg["separar_lojas"] = False
+        cfg["horario_ativo"] = False
+        with patch("produtos.atendimento_whatsapp_bot_config.carregar_bot", return_value=cfg):
+            processar_entrada(jid="5513999000555@s.whatsapp.net", texto="Oi")
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.loja, "centro")
+        textos = " ".join(m.texto.lower() for m in WhatsAppMensagemAgro.objects.filter(direcao="bot"))
+        self.assertNotIn("responda *1*", textos)
+
+    def test_salvar_desliga_flags(self):
+        from produtos.atendimento_whatsapp_bot_config import carregar_bot, salvar_bot
+
+        salvar_bot(
+            {
+                "horario_ativo": False,
+                "aviso_fora_ligado": False,
+                "separar_lojas": False,
+                "ausencia_ligada": False,
+            }
+        )
+        b = carregar_bot()
+        self.assertFalse(b["horario_ativo"])
+        self.assertFalse(b["aviso_fora_ligado"])
+        self.assertFalse(b["separar_lojas"])
+        self.assertFalse(b["ausencia_ligada"])
+
     def test_nome_do_cadastro(self):
         from produtos.models import ClienteAgro
 

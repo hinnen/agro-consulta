@@ -144,11 +144,15 @@ def api_atendimento_whatsapp_bot_salvar(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_atendimento_whatsapp_estado(request):
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
+
+    cfg = carregar_bot()
     return JsonResponse(
         {
             "ok": True,
             "ponte": serializar_ponte(),
             "nao_lidas": contar_nao_lidas(),
+            "bot": {"separar_lojas": cfg_flag(cfg, "separar_lojas")},
         }
     )
 

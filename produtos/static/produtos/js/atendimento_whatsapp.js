@@ -6,6 +6,7 @@
 
   var TAB_KEY = 'agro_wa_loja_tab';
   var loja = 'pendente';
+  var separarLojas = true;
   try {
     var tabSalva = localStorage.getItem(TAB_KEY);
     if (tabSalva === 'centro' || tabSalva === 'vila' || tabSalva === 'pendente') loja = tabSalva;
@@ -229,11 +230,31 @@
     });
   }
 
+  function aplicarSeparacao(on) {
+    separarLojas = on !== false;
+    document.querySelectorAll('.wa-tabs').forEach(function (el) {
+      el.classList.toggle('hidden', !separarLojas);
+    });
+    if (!separarLojas) {
+      loja = 'todas';
+      var mv = $('wa-move');
+      if (mv && !convId) mv.classList.add('hidden');
+    } else if (loja === 'todas') {
+      loja = 'pendente';
+    }
+    setTab();
+  }
+
   function carregarEstado() {
     return fetchJson('/api/atendimento-whatsapp/estado/').then(function (j) {
       if (!j || !j.ok) return;
       pintarStatus(j.ponte);
       pintarBadges(j.nao_lidas);
+      if (j.bot && typeof j.bot.separar_lojas === 'boolean') {
+        var mudou = j.bot.separar_lojas !== separarLojas || (!j.bot.separar_lojas && loja !== 'todas');
+        aplicarSeparacao(j.bot.separar_lojas);
+        if (mudou) carregarLista();
+      }
       var tot = 0;
       var n = j.nao_lidas || {};
       tot += parseInt(n.pendente || 0, 10) || 0;
@@ -273,9 +294,13 @@
     if (hist) hist.classList.remove('hidden');
     var del = $('wa-del');
     if (del) del.classList.remove('hidden');
-    $('wa-move').classList.remove('hidden');
-    $('wa-move').classList.add('flex');
-    pintarXfer();
+    if (separarLojas) {
+      $('wa-move').classList.remove('hidden');
+      $('wa-move').classList.add('flex');
+      pintarXfer();
+    } else {
+      $('wa-move').classList.add('hidden');
+    }
     telaCel(true);
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
       var rows = (j && j.mensagens) || [];

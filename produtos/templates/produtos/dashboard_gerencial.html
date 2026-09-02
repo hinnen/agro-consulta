@@ -396,26 +396,19 @@
         opacity: 1;
         border-color: rgba(0, 191, 255, 0.55);
     }
-    .launch-chip-cel {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 0.35rem;
-        padding: 0.12rem 0.42rem;
-        border-radius: 999px;
-        border: 1px solid rgba(52, 211, 153, 0.55);
-        background: rgba(16, 185, 129, 0.22);
-        color: #d1fae5;
-        font-size: 0.58rem;
-        font-weight: 900;
-        letter-spacing: 0.04em;
-        line-height: 1.1;
-        text-transform: uppercase;
-        cursor: pointer;
-        flex-shrink: 0;
+    .launch-wa-pair {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.55rem;
     }
-    .launch-chip-cel:hover {
-        background: rgba(16, 185, 129, 0.4);
-        border-color: rgba(110, 231, 183, 0.9);
+    .launch-wa-pair .launch-btn {
+        min-height: 2.85rem;
+        padding: 0.7rem 0.7rem;
+        font-size: 0.62rem;
+        gap: 0.4rem;
+    }
+    .launch-wa-pair .launch-btn span.inline-flex {
+        gap: 0.45rem;
     }
     .launch-col {
         border-radius: 1.15rem;
@@ -1068,7 +1061,10 @@
                 <button type="button" onclick="dashLaunchpadAbrir('Vendas', '{% url 'vendas_lista' %}', 'dollar-sign')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="dollar-sign"></i><span>Gestão de Vendas</span></span><span class="launch-key">V</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Vendas das lojas', '{% url 'vendas_lojas_resumo' %}', 'store')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="store"></i><span>Vendas das lojas</span></span><span class="launch-key">S</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Clientes', '{% url 'clientes_lista' %}', 'users')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="users"></i><span>Clientes</span></span><span class="launch-key">C</span></button>
-                <button type="button" onclick="dashLaunchpadAbrir('WhatsApp lojas', '{% url 'atendimento_whatsapp' %}', 'message-circle')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="message-circle"></i><span>WhatsApp lojas</span><span class="launch-chip-cel" onclick="event.stopPropagation(); dashLaunchpadAbrir('WhatsApp celular', '{% url 'atendimento_whatsapp_celular' %}', 'smartphone')">Celular</span></span><span class="launch-key">Z</span></button>
+                <div class="launch-wa-pair">
+                    <button type="button" onclick="dashLaunchpadAbrir('WhatsApp lojas', '{% url 'atendimento_whatsapp' %}', 'message-circle')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="monitor"></i><span>WhatsApp computador</span></span><span class="launch-key">Z</span></button>
+                    <button type="button" onclick="dashLaunchpadAbrir('WhatsApp celular', '{% url 'atendimento_whatsapp_celular' %}', 'smartphone')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="smartphone"></i><span>WhatsApp celular</span></span><span class="launch-key">Y</span></button>
+                </div>
                 <button type="button" onclick="dashLaunchpadAbrir('Orçamentos', '{% url 'consulta_produtos' %}?orcamentos=1', 'history')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="history"></i><span>Orçamentos salvos</span></span><span class="launch-key">F2</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Promoções', '{% url 'promocoes_lista' %}', 'badge-percent')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="badge-percent"></i><span>Promoções</span></span><span class="launch-key">P</span></button>
                 <button type="button" onclick="dashLaunchpadAbrir('Entregas', '{% url 'entregas_painel' %}', 'truck')" class="launch-btn group"><span class="inline-flex items-center gap-3"><i data-lucide="truck"></i><span>Entregas</span></span><span class="launch-key">E</span></button>

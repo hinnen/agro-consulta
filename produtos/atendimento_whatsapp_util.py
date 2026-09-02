@@ -72,10 +72,10 @@ def _sem_acento(s: str) -> str:
 
 
 def interpretar_consulta_fiado(texto: str, cfg: dict | None = None) -> bool:
-    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, _casa_palavra, _palavras
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, _casa_palavra, _palavras, cfg_flag
 
     c = cfg if cfg is not None else BOT_DEFAULT
-    if not c.get("fiado_ligado", True):
+    if not cfg_flag(c, "fiado_ligado"):
         return False
     t = _sem_acento(" ".join(str(texto or "").strip().lower().split()))
     if not t:
@@ -649,7 +649,7 @@ def processar_entrada(
     elif not conv.ultima_em:
         conv.ultima_em = quando
 
-    from produtos.atendimento_whatsapp_bot_config import carregar_bot, fora_do_horario
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag, fora_do_horario
 
     cfg = carregar_bot()
     campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas"]
@@ -663,37 +663,52 @@ def processar_entrada(
 
     def _menu_textos() -> list[str]:
         out = []
-        if cfg.get("enviar_boas_vindas"):
+        if cfg_flag(cfg, "enviar_boas_vindas"):
             bv = str(cfg.get("msg_boas_vindas") or "").strip()
             if bv:
                 out.append(bv)
         out.append(str(cfg.get("msg_menu") or MSG_MENU))
         return out
 
-    if historico or de_mim or not cfg.get("bot_ligado"):
+    if historico or de_mim or not cfg_flag(cfg, "bot_ligado"):
         conv.save(update_fields=campos_base)
         return msg, ""
 
     lote: list[str] = []
     if fora_do_horario(cfg):
-        if eh_fiado and cfg.get("fiado_ligado"):
+        if eh_fiado and cfg_flag(cfg, "fiado_ligado"):
             conv.save(update_fields=campos_base)
             _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
             return msg, ""
-        fh = str(cfg.get("msg_fora_horario") or "").strip()
-        if fh:
-            lote.append(fh)
-        if not cfg.get("ainda_atende_fora"):
+        if cfg_flag(cfg, "aviso_fora_ligado"):
+            fh = str(cfg.get("msg_fora_horario") or "").strip()
+            if fh:
+                lote.append(fh)
+        if not cfg_flag(cfg, "ainda_atende_fora"):
             conv.save(update_fields=campos_base)
             _enviar_lote_bot(conv, lote, cfg)
             return msg, ""
+
+    if not cfg_flag(cfg, "separar_lojas"):
+        campos = list(campos_base)
+        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
+            conv.loja = WhatsAppConversaAgro.LOJA_CENTRO
+            campos.append("loja")
+        if eh_fiado and cfg_flag(cfg, "fiado_ligado"):
+            conv.save(update_fields=campos)
+            _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
+            return msg, ""
+        conv.save(update_fields=campos)
+        if lote:
+            _enviar_lote_bot(conv, lote, cfg)
+        return msg, ""
 
     escolha = interpretar_loja(t, cfg) if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE else ""
     ordem_loja_primeiro = str(cfg.get("ordem") or "") == "loja_primeiro"
 
     def _fiado_fluxo() -> None:
         lote.append(montar_texto_fiado(fone, cfg))
-        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and cfg.get("fiado_manda_menu"):
+        if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and cfg_flag(cfg, "fiado_manda_menu"):
             if not conv.menu_enviado:
                 conv.menu_enviado = True
                 lote.extend(_menu_textos())
@@ -703,7 +718,7 @@ def processar_entrada(
             conv.loja = escolha
             conv.save(update_fields=campos_base + ["loja"])
             lote.append(_ok_loja(escolha))
-            if cfg.get("ausencia_ligada"):
+            if cfg_flag(cfg, "ausencia_ligada"):
                 au = str(cfg.get("msg_ausencia") or "").strip()
                 if au:
                     lote.append(au)
@@ -721,7 +736,7 @@ def processar_entrada(
             conv.loja = escolha
             conv.save(update_fields=campos_base + ["loja"])
             lote.append(_ok_loja(escolha))
-            if cfg.get("ausencia_ligada"):
+            if cfg_flag(cfg, "ausencia_ligada"):
                 au = str(cfg.get("msg_ausencia") or "").strip()
                 if au:
                     lote.append(au)
@@ -734,12 +749,12 @@ def processar_entrada(
             _enviar_lote_bot(conv, lote, cfg)
             return msg, ""
         conv.save(update_fields=campos_base)
-        if cfg.get("repetir_menu", True):
+        if cfg_flag(cfg, "repetir_menu"):
             lote.append(str(cfg.get("msg_pedir_de_novo") or MSG_PEDIR_DE_NOVO))
         _enviar_lote_bot(conv, lote, cfg)
         return msg, ""
 
-    if eh_fiado:
+    if eh_fiado and cfg_flag(cfg, "fiado_ligado"):
         conv.save(update_fields=campos_base)
         lote.append(montar_texto_fiado(fone, cfg))
         _enviar_lote_bot(conv, lote, cfg)
@@ -783,7 +798,12 @@ def enviar_loja(
     except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError):
         return None, "Conversa não encontrada."
     if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE and conv.origem_abertura != "loja":
-        return None, "Cliente ainda não escolheu a loja."
+        from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
+
+        if cfg_flag(carregar_bot(), "separar_lojas"):
+            return None, "Cliente ainda não escolheu a loja."
+        conv.loja = WhatsAppConversaAgro.LOJA_CENTRO
+        conv.save(update_fields=["loja"])
     m = _enfileirar_saida(
         conv,
         t,

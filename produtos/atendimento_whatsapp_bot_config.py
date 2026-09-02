@@ -23,6 +23,8 @@ BOT_DEFAULT: dict = {
         "Deixe sua mensagem que a loja responde no próximo expediente."
     ),
     "ainda_atende_fora": False,
+    "aviso_fora_ligado": True,
+    "separar_lojas": True,
     "enviar_boas_vindas": True,
     "msg_boas_vindas": "Olá! Bem-vindo à *{empresa}*.",
     "ordem": "fiado_depois_loja",
@@ -72,14 +74,53 @@ BOT_DEFAULT: dict = {
     "msg_ausencia": "No momento a loja está ocupada. Já já alguém responde por aqui.",
 }
 
+BOOL_KEYS = (
+    "bot_ligado",
+    "horario_ativo",
+    "ainda_atende_fora",
+    "aviso_fora_ligado",
+    "separar_lojas",
+    "enviar_boas_vindas",
+    "repetir_menu",
+    "fiado_ligado",
+    "fiado_manda_menu",
+    "ausencia_ligada",
+)
+
+
+def _as_bool(v, default: bool = False) -> bool:
+    if isinstance(v, bool):
+        return v
+    if v is None:
+        return default
+    if isinstance(v, (int, float)):
+        return v != 0
+    s = str(v).strip().lower()
+    if s in ("0", "false", "off", "nao", "não", "n", "no", ""):
+        return False
+    if s in ("1", "true", "on", "sim", "s", "yes"):
+        return True
+    return default
+
+
+def cfg_flag(cfg: dict | None, key: str, default: bool | None = None) -> bool:
+    if default is None:
+        default = bool(BOT_DEFAULT.get(key, False))
+    if not cfg or not isinstance(cfg, dict):
+        return default
+    if key not in cfg:
+        return default
+    return _as_bool(cfg.get(key), default)
+
 
 def _merge(base: dict, extra: dict | None) -> dict:
     out = copy.deepcopy(base)
-    if not extra or not isinstance(extra, dict):
-        return out
-    for k, v in extra.items():
-        if k in out:
-            out[k] = v
+    if extra and isinstance(extra, dict):
+        for k, v in extra.items():
+            if k in out:
+                out[k] = v
+    for k in BOOL_KEYS:
+        out[k] = _as_bool(out.get(k), bool(BOT_DEFAULT.get(k, False)))
     return out
 
 
@@ -150,7 +191,7 @@ def _casa_palavra(texto: str, palavras: list[str]) -> bool:
 
 
 def fora_do_horario(cfg: dict, agora: datetime | None = None) -> bool:
-    if not cfg.get("horario_ativo"):
+    if not cfg_flag(cfg, "horario_ativo"):
         return False
     agora = agora or timezone.localtime()
     wd = int(agora.weekday())  # 0=seg … 6=dom — JS/ISO: 0=dom no nosso form

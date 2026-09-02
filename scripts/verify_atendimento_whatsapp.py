@@ -113,9 +113,14 @@ def _static() -> None:
     check("node_saida_midia", "tipo_midia" in node and "Buffer.from" in node and "ptt: true" in node)
     check("icon_192", (ROOT / "produtos/static/produtos/pwa/zap-loja-192.png").is_file())
     check("icon_512", (ROOT / "produtos/static/produtos/pwa/zap-loja-512.png").is_file())
-    check("menu_dash_cel", "atendimento_whatsapp_celular" in dash and "launch-chip-cel" in dash)
-    check("menu_dash_um_wa", dash.count("class=\"launch-btn group\"") >= 1 and dash.count("dashLaunchpadAbrir('WhatsApp lojas'") == 1 and 'dashLaunchpadAbrir(\'WhatsApp celular\'' in dash)
-    check("menu_home_sem_card_cel", '"title": "WhatsApp celular"' not in home)
+    check("menu_dash_par", "launch-wa-pair" in dash and "WhatsApp computador" in dash)
+    check("menu_dash_cel", "atendimento_whatsapp_celular" in dash and "WhatsApp celular" in dash)
+    check("menu_dash_sem_chip", "launch-chip-cel" not in dash)
+    check("menu_home_cel", '"title": "WhatsApp celular"' in home)
+    check("html_bot_separar", "separar_lojas" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
+    check("html_bot_aviso_fora", "aviso_fora_ligado" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
+    check("js_separar", "separarLojas" in js and "aplicarSeparacao" in js)
+    check("util_cfg_flag", "cfg_flag" in util and "separar_lojas" in util)
     check("settings_token", "AGRO_WA_BRIDGE_TOKEN" in sett)
     check("bat_iniciar", "node index.js" in bat)
     check("node_baileys", "@whiskeysockets/baileys" in node or "makeWASocket" in node)
@@ -169,9 +174,12 @@ def _logic() -> None:
 
     from django.utils import timezone
 
-    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, fora_do_horario
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, cfg_flag, fora_do_horario
 
     check("bot_horario_on", BOT_DEFAULT.get("horario_ativo") is True)
+    check("bot_aviso_fora", BOT_DEFAULT.get("aviso_fora_ligado") is True)
+    check("bot_separar", BOT_DEFAULT.get("separar_lojas") is True)
+    check("bot_flag_off", cfg_flag({"horario_ativo": False}, "horario_ativo") is False)
     check("bot_boas_vindas", BOT_DEFAULT.get("enviar_boas_vindas") is True)
     check("bot_ausencia", BOT_DEFAULT.get("ausencia_ligada") is True)
     check("bot_delay_2", int(BOT_DEFAULT.get("atraso_resposta_seg") or 0) == 2)

@@ -732,7 +732,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
-- **Celular (`WA-CEL` · 01/09):** `/atendimento-whatsapp/celular/` = **só o Zap** (PWA, sem sidebar SisVale). Chip **Celular** no botão WhatsApp (Z). Foto + gravar áudio. PC em `/atendimento-whatsapp/` não redesenha. Fora da loja.
+- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
@@ -1292,16 +1292,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
 
-- **Celular (`WA-CEL` · 01/09):** `/atendimento-whatsapp/celular/` = **só o Zap** (PWA, sem sidebar SisVale). Chip **Celular** no botão WhatsApp (Z). Foto + gravar áudio. PC em `/atendimento-whatsapp/` não redesenha. Fora da loja.
+- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
 
 ### 📦 PACOTE PRONTO — WhatsApp celular (`WA-CEL` · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Zap no celular **sem** chrome SisVale · PWA instalável · foto + gravar áudio · PC igual |
-| **Onde** | `/atendimento-whatsapp/celular/` · chip **Celular** no botão WhatsApp lojas (Z) |
+| **O quê** | Zap no celular **sem** chrome SisVale · PWA · foto/áudio · menu com **computador + celular** · bot respeita desligar · dá para não separar lojas |
+| **Onde** | Menu: **WhatsApp computador (Z)** e **WhatsApp celular (Y)** · `/atendimento-whatsapp/` e `/atendimento-whatsapp/celular/` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v20.92** · **fora da loja** · Render teste (não Consulta) |
+| **Status** | 🟡 `teste` **v20.93** · **fora da loja** · Render teste (não Consulta) |
 | **Ponte** | 1 `iniciar.bat` · `AGRO_WA_DJANGO_URL` = HTTPS do **agro-consulta-teste** (não 127.0.0.1) · token = env Render · senão a tela em casa fica vazia |
 
 ### 📦 PACOTE PRONTO — Mensagens WhatsApp estáveis (`WA-MSG-LID` · 01/09/2026)

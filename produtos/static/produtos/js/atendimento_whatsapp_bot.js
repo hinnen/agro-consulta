@@ -18,6 +18,8 @@
     'bot_ligado',
     'horario_ativo',
     'ainda_atende_fora',
+    'aviso_fora_ligado',
+    'separar_lojas',
     'enviar_boas_vindas',
     'repetir_menu',
     'fiado_ligado',
