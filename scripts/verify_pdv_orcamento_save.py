@@ -56,6 +56,14 @@ def check_static() -> None:
     check("await salvarHistoricoLocal" in cons, "consulta botao espera gravar")
     check("var lista = historico;" in wiz, "lista Orçamentos mostra todos")
     check("recentes=1" in wiz and "syncHistoricoOrcamentosRecentes" in wiz, "PDV baixa recentes no servidor")
+    check("__pdvOrcamentosRecentesBoot" in wiz, "boot recentes sem esperar cliente")
+    idx_snip = wiz.find("function renderRecentBudgetsSnippet")
+    check(idx_snip > 0 and "filterHistoricoPorCliente" not in wiz[idx_snip : idx_snip + 500], "card lateral sem filtro de cliente")
+    idx_hist = wiz.find("function openBudgetHistory")
+    check(idx_hist > 0 and "filterHistoricoPorCliente" not in wiz[idx_hist : idx_hist + 800], "F6 lista sem filtro de cliente")
+    check("event.code === 'F6'" in wiz and "openBudgetHistory();" in wiz, "F6 abre lista")
+    html_wiz = read("produtos/templates/produtos/pdv_wizard.html")
+    check('name="csrfmiddlewaretoken"' in html_wiz, "PDV HTML tem CSRF")
     check("X-CSRFToken" in wiz and "pdvCsrfTokenOrcamentos" in wiz, "wizard manda CSRF")
     check("X-CSRFToken" in cons and "gmCsrfTokenParaFetch" in cons, "consulta manda CSRF")
     pdv = read("pdv/views.py")
@@ -172,6 +180,25 @@ def check_runtime() -> None:
         )
         r_wiz = c_page.get(reverse("pdv_home"))
         check(r_wiz.status_code == 200, f"GET /pdv/ sem login ({r_wiz.status_code})")
+        html_pdv = r_wiz.content.decode("utf-8", errors="replace")
+        check("apiPdvOrcamentos" in html_pdv, "PDV HTML tem URL orcamentos")
+        check("csrfmiddlewaretoken" in html_pdv or "csrfToken" in html_pdv, "PDV HTML tem token CSRF")
+        r_dual = c_page.get(reverse("pdv_home") + "?agro_dual=1&agro_app_role=pdv")
+        check(r_dual.status_code == 200, f"GET /pdv/ agro_dual ({r_dual.status_code})")
+        c_outro = Client(enforce_csrf_checks=False)
+        r_pc2 = c_outro.get(url + "?recentes=1&limite=80")
+        ids2 = []
+        try:
+            ids2 = [int(x.get("id") or x.get("orc_local_id") or 0) for x in (r_pc2.json().get("items") or [])]
+        except Exception:
+            ids2 = []
+        check(oid in ids2 and (oid + 7) in ids2, "outro PC ve orcamentos no recentes")
+        r_consu = c_outro.get(url + "?cliente_key=consumidor_final")
+        try:
+            ids_cf = [int(x.get("id") or 0) for x in (r_consu.json().get("items") or [])]
+        except Exception:
+            ids_cf = []
+        check(oid not in ids_cf, "filtro consumidor nao esconde o recentes (path certo e recentes)")
         OrcamentoPdvAgro.objects.filter(orc_local_id__in=[oid, oid + 7]).delete()
 
 

@@ -1270,14 +1270,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja **v21.06**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ORC-LISTA-PC` (bug #14) | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Fora:** WhatsApp (`WA-*`). PIN + gravar orçamento **já Live v21.06**.
+
 ### 📦 PACOTE PRONTO — Orçamento some no outro PC (`PDV-ORC-LISTA-PC` · bug #14 · 02/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/pdv/` baixa orçamentos da loja ao abrir (não só do cliente da tela) |
-| **Causa** | Caixa Centro ficava no modal de consumidor → não pedia a lista no servidor |
+| **O quê** | `/pdv/` baixa a lista da loja ao abrir e no F6 (todos os PCs) |
+| **Causa** | Caixa Centro no modal de consumidor não pedia a lista no servidor |
+| **Prova** | `verify_pdv_orcamento_save.py` **44/44** (recentes · outro PC · `/pdv/?agro_dual=1`) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **Ctrl+F5** no `/pdv/` · F6 · loja ainda **v21.06** sem este hotfix |
+| **Status** | 🟢 **pronto para envio à produção** · loja ainda **v21.06** sem este hotfix |
 
 ### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
 
@@ -1291,15 +1300,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` · `docs/ROLLBACK-PIN-ORC-0209.md` |
 | **Você** | **Ctrl+F5** · badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 PIN |
 
-### ✅ CHECKLIST ÚNICO — 02/09 · **Live v21.06**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | ✅ **Live v21.06** | **NÃO** |
-| 2 | `PDV-ORC-SAVE` | ✅ **Live v21.06** | **NÃO** |
-| 3 | `PDV-ORC-LISTA-PC` (bug #14) | 🟢 **pronto para envio** · só `teste` | **NÃO** |
-
-**Fora (ainda só `teste`):** WhatsApp (`WA-*`).
+### ~~✅ CHECKLIST ÚNICO — Live v21.06~~ · **ver checklist no topo** (falta `PDV-ORC-LISTA-PC`)
 
 ### 📦 PACOTE — PIN teclado + campo NF etapa 5 · ✅ **Live v21.06**
 
