@@ -1799,7 +1799,7 @@ async function irParaCheckout() {
 
 // --- HISTÓRICO LOCAL ---
 function salvarHistoricoLocal(extra) {
-    if (!carrinho.length) return;
+    if (!carrinho.length) return Promise.resolve(null);
     extra = extra || {};
     let historico = [];
     try {
@@ -1857,13 +1857,14 @@ function salvarHistoricoLocal(extra) {
     if (historico.length > 20) historico.pop();
     localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
     renderizarHistoricoResumido();
-    postOrcamentoPdvServidor(novo).then(function (data) {
+    return postOrcamentoPdvServidor(novo).then(function (data) {
         if (data && data.ok && data.item) {
             var h2 = historico.filter(function (x) { return String(x.id) !== String(data.item.id); });
             h2.unshift(data.item);
             localStorage.setItem('historicoOrcamentos', JSON.stringify(h2));
             renderizarHistoricoResumido();
         }
+        return data;
     });
 }
 
@@ -1939,7 +1940,7 @@ async function salvarOrcamentoManual() {
                 'Dinheiro'
             );
         }
-        salvarHistoricoLocal({ entrega: comEntrega, orcId });
+        const serverSave = await salvarHistoricoLocal({ entrega: comEntrega, orcId });
         tocarSom('add');
         if (comEntrega) {
             const escImp = await pdvModalEscolhaImpressaoEntrega();
@@ -1958,10 +1959,13 @@ async function salvarOrcamentoManual() {
                 alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
             }
         }
+        const gravou = !!(serverSave && serverSave.ok);
         alert(
             comEntrega
                 ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
-                : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
+                : gravou
+                  ? 'Orçamento salvo. Abra Orçamentos (F6) para listar ou recuperar.'
+                  : 'Orçamento neste PC, mas o servidor não confirmou. Dê Ctrl+F5 e tente de novo.'
         );
     } finally {
         isSavingOrcamento = false;
@@ -1991,19 +1995,26 @@ function pdvWhatsappOrcamentoCarrinho() {
         tocarSom('erro');
         return alert('Carrinho vazio.');
     }
-    salvarHistoricoLocal({ origem: 'whatsapp' });
+    const msg = pdvGerarTextoWhatsappOrcamentoCarrinho();
     let numeroWhatsapp =
         clienteSelecionado && clienteSelecionado.telefone
             ? String(clienteSelecionado.telefone)
             : '5513997673389';
     numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
     if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) numeroWhatsapp = '55' + numeroWhatsapp;
-    const msg = pdvGerarTextoWhatsappOrcamentoCarrinho();
-    window.open(
-        'https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg),
-        '_blank',
-        'noopener,noreferrer'
-    );
+    const abrirZap = function () {
+        window.open(
+            'https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg),
+            '_blank',
+            'noopener,noreferrer'
+        );
+    };
+    const pSave = salvarHistoricoLocal({ origem: 'whatsapp' });
+    if (pSave && typeof pSave.then === 'function') {
+        pSave.then(abrirZap);
+    } else {
+        abrirZap();
+    }
 }
 
 function pdvImprimirOrcamentoCarrinho() {
