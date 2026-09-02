@@ -1278,7 +1278,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Teclado PIN nessas telas · abre no erro · estoque NF pede PIN antes · PDV toast abre PIN · trava sem teclado se recupera |
 | **Prova** | `scripts/verify_pin_teclado_obrigatorio.py` **18/18** · pin-na-ação **67/67** · pin-quem **51/51** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **Ctrl+F5** · registrar estoque NF → deve abrir teclado escuro com ···· |
+| **Status** | 🟡 `teste` **v20.99** · **Ctrl+F5** · registrar estoque NF → teclado escuro com ···· |
 | **Você** | Prova local; loja **só** com frase+senha |
 
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
