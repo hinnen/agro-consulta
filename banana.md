@@ -406,7 +406,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-**Duas interfaces:**
+- **Orçamento grava no servidor (02/09 · `PDV-ORC-SAVE`):** API sem login Chrome · CSRF do PDV · Zap espera o POST. Prova **33/33**. 🟢 pronto envio · loja ainda **v20.86**.
 
 
 | Tela                  | URL              | JS principal                    |
@@ -1274,23 +1274,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Botão salvar + Zap passam a gravar no Postgres (PDV da loja sem login Chrome) |
-| **Causa** | API `/api/pdv/orcamentos/` pedia login admin → não gravava |
-| **Prova** | `verify_pdv_orcamento_save.py` **16/16** |
+| **O quê** | Salvar + Zap gravam no Postgres (PDV aberto, sem login Chrome) |
+| **Causa** | API pedia login admin |
+| **Prova** | `verify_pdv_orcamento_save.py` **33/33** (sem login · CSRF 403/200 · lista · `/consulta/` · `/pdv/`) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **Ctrl+F5** PDV · salvar · F2 lista · outro PC |
-| **Você** | Prova local. Loja só com frase+senha |
+| **Status** | 🟢 **pronto para envio à produção** · `teste` **v21.04** · loja ainda **v20.86** |
+| **Você** | Ctrl+F5 PDV · 1 item · Salvar · F2 · Zap. Loja só frase+senha |
 
 ### 📦 PACOTE PRONTO — PIN visível na NF etapa 5 (`PIN-ET5-CAMPO` · 02/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Campo PIN acima do botão azul (estoque). Aviso vermelho sem teclado **não** trava. |
-| **Por quê** | PREP overlay **não** subiu loja; no PC o overlay ainda falhava — agora o PIN está na tela. |
-| **Prova** | `verify_pin_teclado_obrigatorio.py` (campo + `body.pin`) |
+| **O quê** | Campo PIN acima do botão azul (estoque) |
+| **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **Ctrl+F5** Entrada NF etapa 5 · **não** na loja |
-| **PREP loja antigo** | `deploy/prep-pin-teclado-obrig` **não** tem este campo — **não** enviar aquele PREP; rebase depois se for subir |
+| **Status** | 🟢 **pronto para envio** (junto do teclado PIN) · **não** usar PREP `d2ed850` sozinho |
+
+### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja hoje **v20.86**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | 🟢 **pronto para envio** | **NÃO** |
+| 2 | `PDV-ORC-SAVE` | 🟢 **pronto para envio** | **NÃO** |
+
+**Fora:** WhatsApp (`WA-*`) e resto do `teste`. **Não** merge `teste` inteiro. PREP antigo `deploy/prep-pin-teclado-obrig` @ `d2ed850` **não** tem o campo da etapa 5.
 
 ### 🚀 PREP deploy loja — PIN teclado (`PIN-TECLADO-OBRIG` · **v21.02**) · **NÃO enviar assim**
 
@@ -1309,13 +1316,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Deploy (com senha)** | `producao` ← reset hard `origin/deploy/prep-pin-teclado-obrig` · **não** merge `teste` inteiro |
 | **Smoke** | badge **v21.02** · NF etapa 5 PIN · Gestão/Cadastro tem teclado · F7 1 venda |
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · alvo loja **v21.02**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | ⛔ PREP velho **não** enviar · campo visível só no `teste` | **NÃO** |
-
-**Fora deste checklist:** WhatsApp (`WA-*`) e demais SOLO ainda só no `teste`.
+### ~~✅ CHECKLIST ÚNICO — alvo v21.02~~ · **ver CHECKLIST no topo** (inclui `PDV-ORC-SAVE` + campo PIN etapa 5)
 
 ### 📦 PACOTE PRONTO — PIN teclado obrigatório (`PIN-TECLADO-OBRIG` · **v21.02** · 02/09/2026)
 
