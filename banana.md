@@ -617,7 +617,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
-- **Etapa 5 bloqueio falso (29/08 · `NF-ESTOQUE-BLOQUEIO-FALSO`):** confirmar 1–4 **não** é «finalizada com PIN»; caixa amarela só com PIN/financeiro/bucket concluída.
+- **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
@@ -1281,12 +1281,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` · **Ctrl+F5** PDV · salvar · F2 lista · outro PC |
 | **Você** | Prova local. Loja só com frase+senha |
 
-### 🚀 PREP deploy loja — PIN teclado (`PIN-TECLADO-OBRIG` · **v21.02**) · **aguarda senha**
+### 📦 PACOTE PRONTO — PIN visível na NF etapa 5 (`PIN-ET5-CAMPO` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Campo PIN acima do botão azul (estoque). Aviso vermelho sem teclado **não** trava. |
+| **Por quê** | PREP overlay **não** subiu loja; no PC o overlay ainda falhava — agora o PIN está na tela. |
+| **Prova** | `verify_pin_teclado_obrigatorio.py` (campo + `body.pin`) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` · **Ctrl+F5** Entrada NF etapa 5 · **não** na loja |
+| **PREP loja antigo** | `deploy/prep-pin-teclado-obrig` **não** tem este campo — **não** enviar aquele PREP; rebase depois se for subir |
+
+### 🚀 PREP deploy loja — PIN teclado (`PIN-TECLADO-OBRIG` · **v21.02**) · **NÃO enviar assim**
 
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** · **não** subiu loja · aguarda pausa vendas + frase + senha no **próximo chat** |
+| **Status** | ⛔ **não enviar** — falta `PIN-ET5-CAMPO` (campo visível). Loja continua **v20.86** |
 | **Antes (loja hoje)** | `producao` @ **`798caaa`** · Live **v20.86** |
 | **PREP** | `deploy/prep-pin-teclado-obrig` @ **`d2ed850`** · VERSION **21.02** |
 | **Pacote** | `PIN-TECLADO-OBRIG` (**só** este) |
@@ -1302,7 +1313,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` | 🟢 **PREP pronto / aguarda senha** | **NÃO** |
+| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | ⛔ PREP velho **não** enviar · campo visível só no `teste` | **NÃO** |
 
 **Fora deste checklist:** WhatsApp (`WA-*`) e demais SOLO ainda só no `teste`.
 

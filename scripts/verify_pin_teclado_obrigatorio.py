@@ -75,12 +75,11 @@ def check_static() -> None:
     check("openLock(true)" in sspin, "openLock forçado")
 
     check('_screensaver_pin.html' in entrada, "Entrada NF inclui sspin")
-    check("PIN para registrar estoque" in entrada, "estoque: título PIN")
-    check("gmSspinGarantirOperador" in entrada, "estoque chama garantirOperador")
+    check("nfe-wiz-pin-registrar-estoque" in entrada, "estoque: campo PIN visível etapa 5")
     check("entradaNfeRegistrarEstoqueAgroPost" in entrada, "função POST estoque")
+    check("if (pinEstoque) body.pin = pinEstoque" in entrada, "POST estoque manda pin")
     check("r.status === 403" in entrada and "gmSspinErroPedePin" in entrada, "403 estoque → PIN")
-    check("gmSspinAbrirSeErroPin" in entrada and "function showMsg" in entrada, "showMsg abre PIN")
-    # Clique: confirm → garantirOperador (trecho do addEventListener)
+    check("gmSspinErroPedePin" in entrada and "function showMsg" in entrada, "showMsg trata PIN")
     click_chunk = entrada
     idx_btn = entrada.find("btnEstoqueAgro?.addEventListener('click'")
     if idx_btn < 0:
@@ -88,8 +87,8 @@ def check_static() -> None:
     if idx_btn >= 0:
         click_chunk = entrada[idx_btn : idx_btn + 2500]
     idx_confirm = click_chunk.find("window.confirm(`Registrar")
-    idx_garantir = click_chunk.find("PIN para registrar estoque")
-    check(idx_confirm > 0 and idx_garantir > idx_confirm, "confirm estoque antes do PIN (no clique)")
+    idx_pin = click_chunk.find("entradaNfePinRegistrarEstoque")
+    check(idx_confirm > 0 and idx_pin > idx_confirm, "confirm estoque depois pede PIN no campo")
 
     check('_screensaver_pin.html' in gestao, "Gestão inclui sspin")
     check("gmSspinAbrirSeErroPin" in gestao and "function showBan" in gestao, "showBan abre PIN")
