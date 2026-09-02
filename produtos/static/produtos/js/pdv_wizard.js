@@ -3707,12 +3707,9 @@
             }
         }
         updateSearchAwaitingPulse();
-        if (!window.__pdvOrcamentosRecentesBoot) {
-            window.__pdvOrcamentosRecentesBoot = true;
-            syncHistoricoOrcamentosRecentes({ silent: true });
-        }
+        // Sync online do cliente da tela (unset = consumidor) — todos os PCs veem o mesmo cadastro.
         var budgetKeyNow = budgetClienteKeyFromState(state);
-        if (state.clienteMode !== 'unset' && budgetKeyNow !== lastBudgetSyncKey) {
+        if (budgetKeyNow !== lastBudgetSyncKey) {
             lastBudgetSyncKey = budgetKeyNow;
             syncHistoricoOrcamentosCliente(budgetKeyNow);
         } else {
@@ -3840,29 +3837,6 @@
         writeHistoricoOrcamentos(historico);
     }
 
-    function syncHistoricoOrcamentosRecentes(opts) {
-        opts = opts || {};
-        var url = apiPdvOrcamentosUrl();
-        if (!url) {
-            if (!opts.silent) renderRecentBudgetsSnippet();
-            return Promise.resolve();
-        }
-        return fetch(url + '?recentes=1&limite=80', { credentials: 'same-origin' })
-            .then(function (r) {
-                return r.json();
-            })
-            .then(function (data) {
-                if (!data || !data.ok || !Array.isArray(data.items)) return;
-                data.items.forEach(function (item) {
-                    mergeOrcamentoIntoHistorico(item);
-                });
-            })
-            .catch(function () {})
-            .finally(function () {
-                renderRecentBudgetsSnippet();
-            });
-    }
-
     function syncHistoricoOrcamentosCliente(clienteKey, opts) {
         opts = opts || {};
         var url = apiPdvOrcamentosUrl();
@@ -3919,7 +3893,10 @@
 
     function budgetClienteKeyFromState(state) {
         if (!state) return 'consumidor_final';
-        if (state.clienteMode === 'consumidor_final') return 'consumidor_final';
+        // Modal inicial (unset) e consumidor = mesma pasta online.
+        if (state.clienteMode === 'unset' || state.clienteMode === 'consumidor_final') {
+            return 'consumidor_final';
+        }
         var c = state.cliente;
         if (!c) return 'consumidor_final';
         var pk = c.cliente_agro_pk != null ? String(c.cliente_agro_pk).trim() : '';
@@ -4264,7 +4241,9 @@
     function renderRecentBudgetsSnippet() {
         var el = document.getElementById('pdv-step1-budget-snippet');
         if (!el) return;
-        var historico = readHistoricoOrcamentos();
+        var state = State.getState();
+        var key = budgetClienteKeyFromState(state);
+        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
         var slice = historico.slice(0, PDV_BUDGET_CARD_VISIBLE);
         if (dom.step1BudgetVerMais) {
             if (historico.length > PDV_BUDGET_CARD_VISIBLE) {
@@ -7574,8 +7553,17 @@
     }
 
     function openBudgetHistory() {
+        var state = State.getState();
+        var key = budgetClienteKeyFromState(state);
+        var clienteNome =
+            state.cliente && state.cliente.nome
+                ? String(state.cliente.nome).trim()
+                : state.clienteMode === 'consumidor_final' || state.clienteMode === 'unset'
+                  ? 'Consumidor não identificado'
+                  : 'Cliente';
+
         function paintModal() {
-            var historico = readHistoricoOrcamentos();
+            var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
             var lista = historico;
             dom.budgetHistoryList.innerHTML = lista.length
             ? lista
@@ -7611,13 +7599,17 @@
                   })
                   .join('')
             : '<div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm font-bold text-slate-400">' +
-              'Nenhum orçamento na loja ainda.' +
+              (historico.length
+                  ? 'Nenhum orçamento extra — os da lista acima são os de ' +
+                    escapeHtml(clienteNome) +
+                    '.'
+                  : 'Nenhum orçamento salvo para ' + escapeHtml(clienteNome) + '.') +
               '</div>';
             dom.budgetHistoryModal.classList.remove('hidden');
             dom.budgetHistoryModal.classList.add('flex');
         }
 
-        syncHistoricoOrcamentosRecentes({ silent: true }).finally(function () {
+        syncHistoricoOrcamentosCliente(key, { silent: true }).finally(function () {
             paintModal();
         });
     }

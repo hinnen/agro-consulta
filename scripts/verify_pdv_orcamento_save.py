@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""PDV-ORC-SAVE: orçamento grava no Postgres sem login Chrome."""
+"""PDV orçamento: grava no Postgres por cliente; lista filtrada; sync multi-PC."""
 from __future__ import annotations
 
 import json
@@ -43,7 +43,6 @@ def check_static() -> None:
     cons = read("produtos/static/produtos/js/consulta_produtos.js")
     chunk = views[views.find("def api_pdv_orcamentos") : views.find("def api_pdv_orcamento_detalhe")]
     check("@login_required" not in chunk, "API orcamentos sem login_required")
-    det = views[views.find("def api_pdv_orcamento_detalhe") : views.find("def api_pdv_orcamento_detalhe") + 200]
     before = views[views.find("@require_GET\ndef api_pdv_orcamento_detalhe") - 80 : views.find("def api_pdv_orcamento_detalhe")]
     check("@login_required" not in before, "detalhe orcamento sem login_required")
     check("@ensure_csrf_cookie\ndef _render_pdv_operacional" in views.replace("\r\n", "\n"), "PDV seta cookie CSRF")
@@ -54,20 +53,36 @@ def check_static() -> None:
     check("return postOrcamentoPdvServidor(novo)" in cons, "consulta POST retorna promise")
     check("pSave.then(abrirZap)" in cons, "consulta Zap espera gravar")
     check("await salvarHistoricoLocal" in cons, "consulta botao espera gravar")
-    check("var lista = historico;" in wiz, "lista Orçamentos mostra todos")
-    check("recentes=1" in wiz and "syncHistoricoOrcamentosRecentes" in wiz, "PDV baixa recentes no servidor")
-    check("__pdvOrcamentosRecentesBoot" in wiz, "boot recentes sem esperar cliente")
+    check("syncHistoricoOrcamentosCliente" in wiz, "PDV baixa orcamentos por cliente")
+    check("syncHistoricoOrcamentosRecentes" not in wiz, "nao mistura recentes da loja no UI")
+    check("__pdvOrcamentosRecentesBoot" not in wiz, "boot nao usa recentes misturados")
+    check("clienteMode !== 'unset' && budgetKeyNow" not in wiz, "sync nao espera sair do modal")
+    check(
+        "clienteMode === 'unset' || state.clienteMode === 'consumidor_final'" in wiz,
+        "unset e consumidor = mesma pasta",
+    )
     idx_snip = wiz.find("function renderRecentBudgetsSnippet")
-    check(idx_snip > 0 and "filterHistoricoPorCliente" not in wiz[idx_snip : idx_snip + 500], "card lateral sem filtro de cliente")
+    snip = wiz[idx_snip : idx_snip + 500]
+    check(idx_snip > 0 and "filterHistoricoPorCliente" in snip, "card lateral filtra pelo cliente")
     idx_hist = wiz.find("function openBudgetHistory")
-    check(idx_hist > 0 and "filterHistoricoPorCliente" not in wiz[idx_hist : idx_hist + 800], "F6 lista sem filtro de cliente")
+    hist = wiz[idx_hist : idx_hist + 4500]
+    check(idx_hist > 0 and "filterHistoricoPorCliente" in hist, "F6 lista filtra pelo cliente")
+    check("syncHistoricoOrcamentosCliente(key, { silent: true })" in hist, "F6 sincroniza o cliente da tela")
     check("event.code === 'F6'" in wiz and "openBudgetHistory();" in wiz, "F6 abre lista")
     html_wiz = read("produtos/templates/produtos/pdv_wizard.html")
     check('name="csrfmiddlewaretoken"' in html_wiz, "PDV HTML tem CSRF")
+    check("deste cliente" in html_wiz.lower() or "deste cliente" in html_wiz, "ajuda F6 fala deste cliente")
     check("X-CSRFToken" in wiz and "pdvCsrfTokenOrcamentos" in wiz, "wizard manda CSRF")
     check("X-CSRFToken" in cons and "gmCsrfTokenParaFetch" in cons, "consulta manda CSRF")
     pdv = read("pdv/views.py")
     check("@ensure_csrf_cookie\ndef pdv_home" in pdv.replace("\r\n", "\n"), "wizard PDV seta cookie CSRF")
+
+
+def _ids(resp) -> list[int]:
+    try:
+        return [int(x.get("id") or x.get("orc_local_id") or 0) for x in (resp.json().get("items") or [])]
+    except Exception:
+        return []
 
 
 def check_runtime() -> None:
@@ -84,56 +99,70 @@ def check_runtime() -> None:
     if "testserver" not in hosts:
         hosts = hosts + ["testserver", "localhost", "127.0.0.1"]
 
-    oid = 1999990000001
-    OrcamentoPdvAgro.objects.filter(orc_local_id=oid).delete()
+    oid_renan = 1999990000001
+    oid_cf = 1999990000002
+    oid_csrf = 1999990000008
+    keys = [oid_renan, oid_cf, oid_csrf]
+    OrcamentoPdvAgro.objects.filter(orc_local_id__in=keys).delete()
 
     with override_settings(ALLOWED_HOSTS=hosts):
         c = Client(enforce_csrf_checks=False)
         url = reverse("api_pdv_orcamentos")
-        r0 = c.get(url + "?recentes=1&limite=5")
-        check(r0.status_code == 200, f"GET recentes sem login ({r0.status_code})")
-        try:
-            j0 = r0.json()
-        except Exception:
-            j0 = {}
-        check(j0.get("ok") is True, "GET recentes ok JSON")
 
-        body = {
+        body_renan = {
             "entry": {
-                "id": oid,
-                "cliente": "Cliente Path Orc",
-                "cliente_key": "tmp:cliente path orc:13999999999",
+                "id": oid_renan,
+                "cliente": "Renan Hinnen 1403",
+                "cliente_key": "pk:1403",
                 "cliente_mode": "cliente",
                 "total": "R$ 10,00",
                 "itens": [{"id": "x", "nome": "Item", "qtd": 1, "preco": 10}],
-                "origem": "whatsapp",
+                "origem": "manual",
             }
         }
-        r1 = c.post(url, data=json.dumps(body), content_type="application/json")
-        check(r1.status_code == 200, f"POST sem login ({r1.status_code})")
+        r1 = c.post(url, data=json.dumps(body_renan), content_type="application/json")
+        check(r1.status_code == 200, f"POST Renan sem login ({r1.status_code})")
         try:
             j1 = r1.json()
         except Exception:
             j1 = {}
-        check(j1.get("ok") is True and j1.get("item"), f"POST grava item ({j1})")
-        obj = OrcamentoPdvAgro.objects.filter(orc_local_id=oid).first()
-        check(obj is not None, "Postgres tem orcamento")
+        check(j1.get("ok") is True and j1.get("item"), f"POST Renan grava item ({j1})")
+        obj = OrcamentoPdvAgro.objects.filter(orc_local_id=oid_renan).first()
+        check(obj is not None, "Postgres tem orcamento Renan")
         if obj:
-            check(obj.cliente_nome == "Cliente Path Orc", "nome gravado")
-            pay = obj.payload_json if isinstance(obj.payload_json, dict) else {}
-            check(pay.get("origem") == "whatsapp", "origem whatsapp no payload")
-        r2 = c.get(reverse("api_pdv_orcamento_detalhe", args=[oid]))
+            check(obj.cliente_key == "pk:1403", "cliente_key Renan gravado")
+            check(obj.cliente_nome == "Renan Hinnen 1403", "nome Renan gravado")
+
+        body_cf = {
+            "entry": {
+                "id": oid_cf,
+                "cliente": "Consumidor nao identificado",
+                "cliente_key": "consumidor_final",
+                "cliente_mode": "consumidor_final",
+                "total": "R$ 5,00",
+                "itens": [{"id": "y", "nome": "Item CF", "qtd": 1, "preco": 5}],
+                "origem": "manual",
+            }
+        }
+        r_cf = c.post(url, data=json.dumps(body_cf), content_type="application/json")
+        check(r_cf.status_code == 200, f"POST consumidor ({r_cf.status_code})")
+
+        r_renan = c.get(url + "?cliente_key=" + "pk%3A1403")
+        check(r_renan.status_code == 200, f"GET por cliente Renan ({r_renan.status_code})")
+        ids_renan = _ids(r_renan)
+        check(oid_renan in ids_renan, "lista Renan inclui o gravado")
+        check(oid_cf not in ids_renan, "lista Renan nao mistura consumidor")
+
+        r_consu = c.get(url + "?cliente_key=consumidor_final")
+        ids_cf = _ids(r_consu)
+        check(oid_cf in ids_cf, "lista consumidor inclui o gravado")
+        check(oid_renan not in ids_cf, "lista consumidor nao mistura Renan")
+
+        r2 = c.get(reverse("api_pdv_orcamento_detalhe", args=[oid_renan]))
         check(r2.status_code == 200, f"GET detalhe sem login ({r2.status_code})")
-        r3 = c.get(url + "?recentes=1&limite=80")
-        ids = []
-        try:
-            ids = [int(x.get("id") or x.get("orc_local_id") or 0) for x in (r3.json().get("items") or [])]
-        except Exception:
-            ids = []
-        check(oid in ids, "GET recentes inclui o gravado")
         r400 = c.post(
             url,
-            data=json.dumps({"entry": {"id": oid + 1, "itens": []}}),
+            data=json.dumps({"entry": {"id": oid_renan + 99, "itens": []}}),
             content_type="application/json",
         )
         check(r400.status_code == 400, f"POST sem itens = 400 ({r400.status_code})")
@@ -150,7 +179,7 @@ def check_runtime() -> None:
         check(bool(tok), "cookie CSRF apos GET consulta")
         body_csrf = {
             "entry": {
-                "id": oid + 7,
+                "id": oid_csrf,
                 "cliente": "Cliente CSRF Orc",
                 "cliente_key": "tmp:csrf orc:13988887777",
                 "cliente_mode": "cliente",
@@ -175,7 +204,7 @@ def check_runtime() -> None:
             joc = {}
         check(joc.get("ok") is True, "POST CSRF grava JSON ok")
         check(
-            OrcamentoPdvAgro.objects.filter(orc_local_id=oid + 7).exists(),
+            OrcamentoPdvAgro.objects.filter(orc_local_id=oid_csrf).exists(),
             "Postgres CSRF gravou",
         )
         r_wiz = c_page.get(reverse("pdv_home"))
@@ -183,27 +212,23 @@ def check_runtime() -> None:
         html_pdv = r_wiz.content.decode("utf-8", errors="replace")
         check("apiPdvOrcamentos" in html_pdv, "PDV HTML tem URL orcamentos")
         check("csrfmiddlewaretoken" in html_pdv or "csrfToken" in html_pdv, "PDV HTML tem token CSRF")
+        check("deste cliente" in html_pdv.lower(), "PDV HTML ajuda deste cliente")
         r_dual = c_page.get(reverse("pdv_home") + "?agro_dual=1&agro_app_role=pdv")
         check(r_dual.status_code == 200, f"GET /pdv/ agro_dual ({r_dual.status_code})")
+
+        # Outro aparelho: mesma pasta do cliente vê o orçamento.
         c_outro = Client(enforce_csrf_checks=False)
-        r_pc2 = c_outro.get(url + "?recentes=1&limite=80")
-        ids2 = []
-        try:
-            ids2 = [int(x.get("id") or x.get("orc_local_id") or 0) for x in (r_pc2.json().get("items") or [])]
-        except Exception:
-            ids2 = []
-        check(oid in ids2 and (oid + 7) in ids2, "outro PC ve orcamentos no recentes")
-        r_consu = c_outro.get(url + "?cliente_key=consumidor_final")
-        try:
-            ids_cf = [int(x.get("id") or 0) for x in (r_consu.json().get("items") or [])]
-        except Exception:
-            ids_cf = []
-        check(oid not in ids_cf, "filtro consumidor nao esconde o recentes (path certo e recentes)")
-        OrcamentoPdvAgro.objects.filter(orc_local_id__in=[oid, oid + 7]).delete()
+        ids_pc2 = _ids(c_outro.get(url + "?cliente_key=" + "pk%3A1403"))
+        check(oid_renan in ids_pc2, "outro PC com Renan ve o orcamento")
+        ids_pc2_cf = _ids(c_outro.get(url + "?cliente_key=consumidor_final"))
+        check(oid_cf in ids_pc2_cf, "outro PC com consumidor ve o dele")
+        check(oid_renan not in ids_pc2_cf, "outro PC consumidor nao ve Renan")
+
+        OrcamentoPdvAgro.objects.filter(orc_local_id__in=keys).delete()
 
 
 def main() -> int:
-    print("=== PDV-ORC-SAVE ===")
+    print("=== PDV-ORC-POR-CLIENTE ===")
     check_static()
     try:
         check_runtime()

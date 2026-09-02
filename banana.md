@@ -1270,15 +1270,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — Live v21.07 (02/09)
+### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja ainda **v21.07**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ORC-LISTA-PC` (bug #14) | ✅ **enviado / Live v21.07** | **NÃO** |
+| 1 | `PDV-ORC-POR-CLIENTE` (corrige lista v21.07) | 🟢 **pronto para envio à produção** | **NÃO** |
 
-**Fora ainda:** WhatsApp (`WA-*`). Sem fila de envio agora.
+**Fora:** WhatsApp (`WA-*`).
 
-### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live**
+### 📦 PACOTE PRONTO — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE` · 02/09/2026)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Lista F6/card = **só o cliente da tela**; grava e sincroniza **online** em todos os PCs; modal inicial/`unset` = pasta **consumidor** |
+| **Corrige** | Live **v21.07** misturava recentes da loja inteira (errado) |
+| **Prova** | `verify_pdv_orcamento_save.py` **53/53** ×2 (Renan `pk:1403` · consumidor · outro PC · sem misturar) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** · loja ainda **v21.07** |
+| **Você (local)** | Ctrl+F5 · cliente Renan · salvar orç. · outro PC com o mesmo cliente · F6 |
+
+### ~~✅ CHECKLIST ÚNICO — Live v21.07~~ · **lista misturava loja — corrigido no teste (`PDV-ORC-POR-CLIENTE`)**
+
+### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (UX parcial — ver pacote acima)
 
 | Campo | Valor |
 | ----- | ----- |
