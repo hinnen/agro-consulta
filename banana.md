@@ -1325,7 +1325,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Aviso PIN sem linha → teclado escuro · Entrada NF/Gestão/Cadastro/PDV |
 | **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** (PIN 9973 · HTML · API 403/fresco) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **PREP** `deploy/prep-pin-teclado-obrig` · aguarda senha |
+| **Status** | 🟢 **pronto para envio** (com `PIN-ET5-CAMPO`) · **não** reset no PREP `d2ed850` |
 | **Você** | No próximo chat: pausar vendas · «pode subir» + senha |
 
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
