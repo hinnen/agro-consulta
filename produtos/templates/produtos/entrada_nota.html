@@ -673,7 +673,7 @@
       width: 100%;
     }
     /* Nota finalizada (PIN etapa 6 · ``aprovacao_wizard_em``): bloqueia edição; etapa 6 sem atributo lock mantém PIN + Reabrir. */
-    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque),
+    #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque):not(#nfe-wiz-pin-registrar-estoque),
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] select,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] textarea,
     #entrada-nfe-view-editor.entrada-nfe-editor--congelado [data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin):not(#btn-estoque-reabrir-nota),
@@ -684,7 +684,7 @@
     }
     /* Confirmações das etapas 1–5 / estoque / financeiro não congelam a UI — só a finalização (etapa 6). */
     /* #btn-salvar-fin fica clicável p/ religar conta a pagar se o carimbo sumiu (sem reabrir a nota). */
-    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque),
+    #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] input:not(#nfe-wiz-pin-estoque):not(#nfe-wiz-pin-registrar-estoque),
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] select,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] textarea,
     #entrada-nfe-wizard-pages .nfe-wiz-page--locked[data-nfe-wiz-lock="1"] button:not(.nfe-wiz-help):not(#btn-salvar-fin):not(#btn-estoque-reabrir-nota),
@@ -1687,6 +1687,10 @@
           <h3 class="text-sm font-black uppercase text-blue-950">Registrar no estoque Agro</h3>
           <button type="button" class="nfe-wiz-help min-h-[36px] min-w-[36px] rounded-lg border-2 border-blue-400 bg-white text-sm font-black text-blue-950 shrink-0 hover:bg-blue-50" data-help-w="5b" title="Ajuda" aria-label="Ajuda: Com empresa e depósito conferidos acima, use o botão para gravar a nota e atualizar o estoque num passo só.">?</button>
         </div>
+        <label class="block max-w-sm mb-3">
+          <span class="text-[10px] font-black uppercase tracking-wide text-blue-950">PIN (senha rápida) *</span>
+          <input type="password" id="nfe-wiz-pin-registrar-estoque" autocomplete="off" inputmode="numeric" maxlength="12" placeholder="····" class="mt-1 w-full min-h-[52px] rounded-xl border-2 border-blue-400 bg-white px-4 text-xl font-mono tracking-[0.2em] text-slate-900 focus:border-blue-700 outline-none">
+        </label>
         <button type="button" id="btn-estoque-agro" class="min-h-[52px] px-8 py-3.5 rounded-xl bg-blue-700 text-white font-black text-sm sm:text-base uppercase hover:bg-blue-800 shadow-md border-2 border-blue-900 w-full sm:w-auto">
           Registrar entrada no estoque Agro
         </button>
@@ -6731,11 +6735,16 @@
     );
     el.classList.remove('hidden');
     entradaNfeMsgGlobalTimer = setTimeout(() => entradaNfeClearMsgGlobal(), 5200);
-    /* Erro «precisa PIN» sem teclado → abre a linha do PIN na hora. */
-    if (!ok && typeof window.gmSspinAbrirSeErroPin === 'function') {
-      try {
-        window.gmSspinAbrirSeErroPin(text, function () {}, { titulo: 'Identifique-se com o PIN' });
-      } catch (_) {}
+    /* Etapa 5 tem campo PIN na tela — não cobre o botão com overlay. Demais telas: teclado escuro. */
+    if (!ok && typeof window.gmSspinErroPedePin === 'function' && window.gmSspinErroPedePin(text)) {
+      const pinEt5 = document.getElementById('nfe-wiz-pin-registrar-estoque');
+      if (pinEt5 && pinEt5.offsetParent !== null) {
+        try { pinEt5.focus(); pinEt5.select(); } catch (_) {}
+      } else if (typeof window.gmSspinAbrirSeErroPin === 'function') {
+        try {
+          window.gmSspinAbrirSeErroPin(text, function () {}, { titulo: 'Identifique-se com o PIN' });
+        } catch (_) {}
+      }
     }
   }
 
@@ -7844,6 +7853,7 @@
         'fin-empresa-id',
         'nfe-wiz-pin',
         'nfe-wiz-pin-estoque',
+        'nfe-wiz-pin-registrar-estoque',
       ].forEach(limparVal);
       const selEmpFat = document.getElementById('m-empresa-faturada');
       if (selEmpFat) selEmpFat.selectedIndex = 0;
@@ -11219,6 +11229,9 @@
 
   const btnEstoqueAgro = document.getElementById('btn-estoque-agro');
   let entradaNfeEstoqueAgroEmCurso = false;
+  function entradaNfePinRegistrarEstoque() {
+    return String(document.getElementById('nfe-wiz-pin-registrar-estoque')?.value || '').trim();
+  }
   async function entradaNfeRegistrarEstoqueAgroPost() {
     if (entradaNfeEstoqueAgroEmCurso || (btnEstoqueAgro && btnEstoqueAgro.disabled)) return;
     const linhas = coletarLinhas();
@@ -11230,6 +11243,7 @@
       btnEstoqueAgro.setAttribute('aria-busy', 'true');
     }
     const cab = coletarCabecalho();
+    const pinEstoque = entradaNfePinRegistrarEstoque();
     const body = {
       linhas,
       cabecalho: cab,
@@ -11240,6 +11254,7 @@
       extra: { origem: 'entrada_nfe_estoque_agro' },
       rascunho_id: entradaNfeRascunhoEditId || undefined,
     };
+    if (pinEstoque) body.pin = pinEstoque;
     if (window.gmLoadingBar) window.gmLoadingBar.show();
     try {
       const r = await entradaNfeFetch(URL_ESTOQUE_AGRO, {
@@ -11258,7 +11273,11 @@
         }
         entradaNfeEstoqueAgroEmCurso = false;
         if (window.gmLoadingBar) window.gmLoadingBar.hide();
-        if (typeof window.gmSspinGarantirOperador === 'function') {
+        const pinEl = document.getElementById('nfe-wiz-pin-registrar-estoque');
+        if (pinEl) {
+          try { pinEl.focus(); pinEl.select(); } catch (_) {}
+          showMsg('Digite o PIN na linha acima do botão azul e tente de novo.', false);
+        } else if (typeof window.gmSspinGarantirOperador === 'function') {
           window.gmSspinGarantirOperador(function () {
             entradaNfeRegistrarEstoqueAgroPost();
           }, { titulo: 'PIN para registrar estoque' });
@@ -11348,13 +11367,20 @@
     const depLbl = Array.from(document.getElementById('m-deposito-entrada').options).find((o) => o.value === depVal);
     const depNome = depLbl ? depLbl.textContent.trim() : depVal;
     if (!window.confirm(`Registrar ${comPid.length} produto(s) no estoque Agro?\nEmpresa: ${empNome}\nDepósito: ${depNome}`)) return;
-    if (typeof window.gmSspinGarantirOperador === 'function') {
-      window.gmSspinGarantirOperador(function () {
-        entradaNfeRegistrarEstoqueAgroPost();
-      }, { titulo: 'PIN para registrar estoque' });
+    const pinEstoque = entradaNfePinRegistrarEstoque();
+    if (pinEstoque.length < 4) {
+      const pinEl = document.getElementById('nfe-wiz-pin-registrar-estoque');
+      try { pinEl?.focus(); } catch (_) {}
+      showMsg('Digite o PIN na linha acima do botão azul (senha rápida, 4 dígitos ou mais).', false);
       return;
     }
     entradaNfeRegistrarEstoqueAgroPost();
+  });
+  document.getElementById('nfe-wiz-pin-registrar-estoque')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('btn-estoque-agro')?.click();
+    }
   });
   document.getElementById('btn-salvar-xml').addEventListener('click', () => salvar('xml', { origem: 'upload_xml' }));
 
