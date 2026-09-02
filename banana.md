@@ -1270,36 +1270,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio produção (02/09 · loja **v20.86** → alvo **v21.06**)
+### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.06** — healthz **ok** · frase+senha neste chat |
+| **Antes** | `producao` @ **`798caaa`** · v20.86 |
+| **Agora** | `producao` @ **`a08dfed`** |
+| **Pacotes** | `PIN-TECLADO-OBRIG` · `PIN-ET5-CAMPO` · `PDV-ORC-SAVE` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` · `docs/ROLLBACK-PIN-ORC-0209.md` |
+| **Você** | **Ctrl+F5** · badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 PIN |
+
+### ✅ CHECKLIST ÚNICO — 02/09 · **Live v21.06**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `PDV-ORC-SAVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | ✅ **Live v21.06** | **NÃO** |
+| 2 | `PDV-ORC-SAVE` | ✅ **Live v21.06** | **NÃO** |
 
-**Via:** `deploy/prep-pin-orc-0209` · **não** merge `teste` · **não** usar PREP antigo `prep-pin-teclado-obrig`. **Fora:** WhatsApp (`WA-*`).
+**Fora (ainda só `teste`):** WhatsApp (`WA-*`).
 
-### 📦 PACOTE PRONTO — PIN teclado + campo NF etapa 5 (`PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` · 02/09/2026)
+### 📦 PACOTE — PIN teclado + campo NF etapa 5 · ✅ **Live v21.06**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Teclado PIN (NF/Gestão/Cadastro/PDV) + linha de PIN no botão azul da etapa 5 |
-| **Prova** | `verify_pin_teclado_obrigatorio.py` **54/54** (PIN 9973) |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · PREP `prep-pin-orc-0209` · loja **v20.86** |
+Teclado PIN + linha na etapa 5. Prova **54/54**.
 
-### 📦 PACOTE PRONTO — Salvar orçamento PDV (`PDV-ORC-SAVE` · 02/09/2026)
+### 📦 PACOTE — Salvar orçamento PDV · ✅ **Live v21.06**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Salvar + Zap gravam no Postgres (PDV sem login Chrome) |
-| **Prova** | `verify_pdv_orcamento_save.py` **33/33** |
-| **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** · PREP `prep-pin-orc-0209` · loja **v20.86** |
-
-### 🚀 PREP — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **pronto para envio**
-
-Loja hoje `798caaa` **v20.86**. Rollback: `rollback/pre-pin-orc-0209-v20.86` · `docs/ROLLBACK-PIN-ORC-0209.md`. Frase + senha no chat do deploy.
+Grava no Postgres sem login Chrome. Prova **33/33**.
 
 ### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
 
