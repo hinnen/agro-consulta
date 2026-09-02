@@ -1306,7 +1306,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Fora (ainda só `teste`):** WhatsApp · resto do `teste`
 
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
-- **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v20.99**. **Não** copiamos código do WASeller.
+- **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v21.00**. **Não** copiamos código do WASeller.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 
@@ -1315,7 +1315,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Intervalo do aviso fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta |
 | **Onde** | `/atendimento-whatsapp/bot/` |
 | **Migrate** | **`0117`** (`aviso_fora_em`) |
-| **Status** | 🟡 `teste` **v20.99** · **fora da loja** |
+| **Status** | 🟡 `teste` **v21.00** · **fora da loja** |
 | **Você** | Recarrega `runserver` · Ctrl+F5. **Nome da agenda na busca:** fecha a janela preta **uma vez** e abre o `.bat`. |
 
 ### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
