@@ -14,6 +14,7 @@ from . import views_dispenser_a6
 from . import views_uso_loja
 from . import views_pdv_transf_loja
 from . import views_pdv_chat_loja
+from . import views_atendimento_whatsapp
 from . import views_pdv_topbar
 from . import views_repasse_vila
 from . import views_tabela_preco_forma
@@ -27,6 +28,31 @@ urlpatterns = [
     # --- PÁGINAS ---
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
+    path(
+        "atendimento-whatsapp/",
+        views_atendimento_whatsapp.atendimento_whatsapp_view,
+        name="atendimento_whatsapp",
+    ),
+    path(
+        "atendimento-whatsapp/celular/manifest.webmanifest",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_manifest,
+        name="atendimento_whatsapp_celular_manifest",
+    ),
+    path(
+        "atendimento-whatsapp/celular/sw.js",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_sw,
+        name="atendimento_whatsapp_celular_sw",
+    ),
+    path(
+        "atendimento-whatsapp/celular/",
+        views_atendimento_whatsapp.atendimento_whatsapp_celular_view,
+        name="atendimento_whatsapp_celular",
+    ),
+    path(
+        "atendimento-whatsapp/bot/",
+        views_atendimento_whatsapp.atendimento_whatsapp_bot_view,
+        name="atendimento_whatsapp_bot",
+    ),
     path("consulta/", views.consulta_produtos, name="consulta_produtos"),
     path("gestao/bugs/", bug_report_views.bug_reports_lista_view, name="bug_reports_lista"),
     path("gestao/bugs/<int:pk>/", bug_report_views.bug_report_detalhe_view, name="bug_report_detalhe"),
@@ -749,7 +775,181 @@ urlpatterns = [
         views_pdv_chat_loja.api_pdv_chat_loja_enviar,
         name='api_pdv_chat_loja_enviar',
     ),
-    
+    path(
+        'api/atendimento-whatsapp/bot/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bot_get,
+        name='api_atendimento_whatsapp_bot_get',
+    ),
+    path(
+        'api/atendimento-whatsapp/bot/salvar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bot_salvar,
+        name='api_atendimento_whatsapp_bot_salvar',
+    ),
+    path(
+        'api/atendimento-whatsapp/estado/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_estado,
+        name='api_atendimento_whatsapp_estado',
+    ),
+    path(
+        'api/atendimento-whatsapp/conversas/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_conversas,
+        name='api_atendimento_whatsapp_conversas',
+    ),
+    path(
+        'api/atendimento-whatsapp/mensagens/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_mensagens,
+        name='api_atendimento_whatsapp_mensagens',
+    ),
+    path(
+        'api/atendimento-whatsapp/enviar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_enviar,
+        name='api_atendimento_whatsapp_enviar',
+    ),
+    path(
+        'api/atendimento-whatsapp/marcar-lida/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_marcar_lida,
+        name='api_atendimento_whatsapp_marcar_lida',
+    ),
+    path(
+        'api/atendimento-whatsapp/definir-loja/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_definir_loja,
+        name='api_atendimento_whatsapp_definir_loja',
+    ),
+    path(
+        'api/atendimento-whatsapp/transferir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_transferir,
+        name='api_atendimento_whatsapp_transferir',
+    ),
+    path(
+        'api/atendimento-whatsapp/contatos/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_contatos,
+        name='api_atendimento_whatsapp_contatos',
+    ),
+    path(
+        'api/atendimento-whatsapp/ficha/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_ficha,
+        name='api_atendimento_whatsapp_ficha',
+    ),
+    path(
+        'api/atendimento-whatsapp/agenda-vcf/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_agenda_vcf,
+        name='api_atendimento_whatsapp_agenda_vcf',
+    ),
+    path(
+        'api/atendimento-whatsapp/abrir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_abrir,
+        name='api_atendimento_whatsapp_abrir',
+    ),
+    path(
+        'api/atendimento-whatsapp/novo/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_novo,
+        name='api_atendimento_whatsapp_novo',
+    ),
+    path(
+        'api/atendimento-whatsapp/agenda-zap/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_agenda_zap,
+        name='api_atendimento_whatsapp_agenda_zap',
+    ),
+    path(
+        'api/atendimento-whatsapp/historico/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_historico,
+        name='api_atendimento_whatsapp_historico',
+    ),
+    path(
+        'api/atendimento-whatsapp/excluir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_excluir,
+        name='api_atendimento_whatsapp_excluir',
+    ),
+    path(
+        'api/atendimento-whatsapp/apagar-mensagem/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_apagar_mensagem,
+        name='api_atendimento_whatsapp_apagar_mensagem',
+    ),
+    path(
+        'api/atendimento-whatsapp/concluir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_concluir,
+        name='api_atendimento_whatsapp_concluir',
+    ),
+    path(
+        'api/atendimento-whatsapp/pairing/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_pairing,
+        name='api_atendimento_whatsapp_pairing',
+    ),
+    path(
+        'api/atendimento-whatsapp/trocar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_trocar,
+        name='api_atendimento_whatsapp_trocar',
+    ),
+    path(
+        'api/atendimento-whatsapp/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_midia,
+        name='api_atendimento_whatsapp_midia',
+    ),
+    path(
+        'api/atendimento-whatsapp/foto/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_foto,
+        name='api_atendimento_whatsapp_foto',
+    ),
+    path(
+        'api/atendimento-whatsapp/status/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_status,
+        name='api_atendimento_whatsapp_status',
+    ),
+    path(
+        'api/atendimento-whatsapp/status/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_status_midia,
+        name='api_atendimento_whatsapp_status_midia',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/estado/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
+        name='api_atendimento_whatsapp_bridge_estado',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/lids/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_lids,
+        name='api_atendimento_whatsapp_bridge_lids',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/entrada/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_entrada,
+        name='api_atendimento_whatsapp_bridge_entrada',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/status/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_status,
+        name='api_atendimento_whatsapp_bridge_status',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/foto/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_foto,
+        name='api_atendimento_whatsapp_bridge_foto',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_midia,
+        name='api_atendimento_whatsapp_bridge_midia',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/saida/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida,
+        name='api_atendimento_whatsapp_bridge_saida',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/saida-ok/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_saida_ok,
+        name='api_atendimento_whatsapp_bridge_saida_ok',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/contatos/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_contatos,
+        name='api_atendimento_whatsapp_bridge_contatos',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/pedido-ok/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_pedido_ok,
+        name='api_atendimento_whatsapp_bridge_pedido_ok',
+    ),
     path(
         'api/pdv/topbar-clique/',
         views_pdv_topbar.api_pdv_topbar_clique,

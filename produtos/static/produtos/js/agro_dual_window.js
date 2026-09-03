@@ -36,6 +36,20 @@
     return p === '/pdv' || p.indexOf('/pdv/') === 0 || p === '/consulta' || p.indexOf('/consulta/') === 0;
   }
 
+  function isWhatsAppCelularPath(p) {
+    p = pathnameNorm(p);
+    return p === '/atendimento-whatsapp/celular' || p.indexOf('/atendimento-whatsapp/celular/') === 0;
+  }
+
+  function openWhatsAppCelularStandalone(href) {
+    var url = absUrl(href);
+    try {
+      (window.top || window).location.assign(url);
+    } catch (_) {
+      window.location.assign(url);
+    }
+  }
+
   function isGestaoShellPath(p) {
     p = pathnameNorm(p);
     return p === '/' || p === '/atalhos' || p.indexOf('/atalhos/') === 0 || p.indexOf('/dashboard') === 0;
@@ -266,6 +280,10 @@
     } catch (_) {
       navPath = '';
     }
+    if (isWhatsAppCelularPath(navPath)) {
+      openWhatsAppCelularStandalone(url);
+      return;
+    }
     if (inEmbed()) {
       postToTop({ type: 'agro-open-inapp-tab', href: url });
       return;
@@ -412,6 +430,7 @@
   function shouldOpenInPdvOverlay(pathname) {
     if (!shouldRoutePdvLinkToGestao(pathname)) return false;
     if (isGestaoShellPath(pathname)) return false;
+    if (isWhatsAppCelularPath(pathname)) return false;
     return true;
   }
 
@@ -511,6 +530,10 @@
           var u = new URL(a.href, window.location.origin);
           if (u.origin !== location.origin) return;
           e.preventDefault();
+          if (isWhatsAppCelularPath(u.pathname)) {
+            openWhatsAppCelularStandalone(u.href);
+            return;
+          }
           if (isPdvPath(u.pathname)) {
             focusPdv(u.href);
             return;
@@ -537,6 +560,10 @@
         p = new URL(u).pathname;
       } catch (_) {
         p = '';
+      }
+      if (isWhatsAppCelularPath(p)) {
+        openWhatsAppCelularStandalone(u);
+        return;
       }
       if (inEmbed()) {
         if (isPdvPath(p)) {
@@ -590,6 +617,12 @@
         try {
           var u = new URL(a.href, window.location.origin);
           if (u.origin !== location.origin) return;
+          if (isWhatsAppCelularPath(u.pathname)) {
+            e.preventDefault();
+            e.stopPropagation();
+            openWhatsAppCelularStandalone(u.href);
+            return;
+          }
           if (!shouldRoutePdvLinkToGestao(u.pathname)) return;
           e.preventDefault();
           e.stopPropagation();
@@ -620,6 +653,10 @@
               msgPath = pathnameNorm(new URL(d.href, location.origin).pathname);
             } catch (_) {
               msgPath = '';
+            }
+            if (isWhatsAppCelularPath(msgPath)) {
+              openWhatsAppCelularStandalone(d.href);
+              return;
             }
             if (window.AgroPdvOverlay && window.AgroPdvOverlay.isOpen && window.AgroPdvOverlay.isOpen()) {
               // Não trocar overlay de caixa/consulta pelo BI (mensagem vinda da janela Gestão).

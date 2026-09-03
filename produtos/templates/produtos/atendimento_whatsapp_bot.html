@@ -1,0 +1,174 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}Bot WhatsApp | SisVale{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-900 wa-skin{% endblock %}
+{% block pdv_shell_class %}min-h-[100dvh] bg-slate-100 flex flex-col{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
+
+{% block pdv_header %}
+{% include "produtos/_wa_skin.html" %}
+<header class="wa-top">
+  <div class="min-w-0 flex-1">
+    <h1 class="wa-title">Bot</h1>
+  </div>
+  <a href="{% url 'atendimento_whatsapp' %}" class="wa-ico">Chat</a>
+  {% include "produtos/_pdv_voltar_link.html" with link_class="wa-ico" %}
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+{% csrf_token %}
+<form id="wa-bot-form" class="wa-cfg pb-4" data-agro-no-double-guard="1">
+  <nav class="wa-nav" id="wa-bot-nav" aria-label="Seções">
+    <button type="button" data-panel="geral" class="is-on">Geral</button>
+    <button type="button" data-panel="tempo">Tempo</button>
+    <button type="button" data-panel="horario">Horário</button>
+    <button type="button" data-panel="menu">Menu</button>
+    <button type="button" data-panel="lojas">Lojas</button>
+    <button type="button" data-panel="fiado">Fiado</button>
+    <button type="button" data-panel="ausencia">Ausência</button>
+  </nav>
+  <div>
+    <p id="wa-bot-msg" class="wa-toast"></p>
+
+    <section data-panel="geral" class="wa-panel wa-card is-on">
+      <label class="wa-sw"><span>Bot ligado</span><input type="checkbox" name="bot_ligado" /></label>
+      <label class="wa-lab" for="id_nome_empresa">Empresa</label>
+      <input id="id_nome_empresa" name="nome_empresa" class="wa-inp" autocomplete="off" />
+      <p class="wa-lab" style="margin-top:1rem">Agenda do celular</p>
+      <p class="wa-hint">Arquivo <b>.vcf</b> dos Contatos (exportar no celular). Serve para achar nome na busca do chat.</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <label class="wa-ico cursor-pointer normal-case tracking-normal" title="Importar agenda (.vcf)">
+          Importar agenda
+          <input id="wa-vcf-inp" type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard" class="hidden" />
+        </label>
+        <span id="wa-vcf-msg" class="text-sm font-semibold text-slate-500"></span>
+      </div>
+    </section>
+
+    <section data-panel="tempo" class="wa-panel wa-card">
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">1ª resposta
+            <button type="button" class="wa-q" title="Segundos antes da primeira mensagem do bot. 0 = na hora.">?</button>
+          </label>
+          <input type="number" min="0" max="120" name="atraso_resposta_seg" />
+        </div>
+        <div>
+          <label class="wa-lab">Entre msgs
+            <button type="button" class="wa-q" title="Pausa entre uma mensagem e a seguinte.">?</button>
+          </label>
+          <input type="number" min="0" max="60" name="atraso_entre_msgs_seg" />
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="horario" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Usar horário</span><input type="checkbox" name="horario_ativo" /></label>
+      <label class="wa-sw"><span>Mandar aviso fora do horário</span><input type="checkbox" name="aviso_fora_ligado" /></label>
+      <label class="wa-sw"><span>Fora do horário ainda entra na fila</span><input type="checkbox" name="ainda_atende_fora" /></label>
+      <label class="wa-sw"><span>Só uma vez até a loja abrir de novo</span><input type="checkbox" name="aviso_fora_uma_vez" /></label>
+      <label class="wa-sw"><span>Não avisar se for só foto ou áudio</span><input type="checkbox" name="aviso_fora_so_texto" /></label>
+      <label class="wa-lab">Esperar (minutos) para avisar de novo
+        <button type="button" class="wa-q" title="0 = em toda mensagem. 60 = no máximo 1 aviso por hora neste chat.">?</button>
+      </label>
+      <input type="number" min="0" max="1440" name="aviso_fora_minutos" />
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">Abre</label>
+          <input type="time" name="horario_ini" />
+        </div>
+        <div>
+          <label class="wa-lab">Fecha</label>
+          <input type="time" name="horario_fim" />
+        </div>
+      </div>
+      <p class="wa-lab" style="margin-top:.75rem">Dias</p>
+      <div id="wa-bot-dias" class="flex flex-wrap gap-1.5"></div>
+      <label class="wa-lab" style="margin-top:.75rem">Aviso fora do horário</label>
+      <textarea name="msg_fora_horario" rows="3"></textarea>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> (ordem do nome na aba Menu).</p>
+    </section>
+
+    <section data-panel="menu" class="wa-panel wa-card">
+      <label class="wa-lab">Olha primeiro</label>
+      <select name="ordem">
+        <option value="fiado_depois_loja">Fiado, depois loja</option>
+        <option value="loja_primeiro">Loja, depois fiado</option>
+      </select>
+      <label class="wa-sw"><span>Boas-vindas (também sem separar as 2 lojas)</span><input type="checkbox" name="enviar_boas_vindas" /></label>
+      <label class="wa-sw"><span>Repetir se não escolher</span><input type="checkbox" name="repetir_menu" /></label>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b>. O bot pega o nome na ordem que você escolher. Só o primeiro que achar vale.</p>
+      <label class="wa-lab">Nome do cliente — 1º</label>
+      <select name="nome_fonte_1"></select>
+      <label class="wa-lab">2º</label>
+      <select name="nome_fonte_2"></select>
+      <label class="wa-lab">3º</label>
+      <select name="nome_fonte_3"></select>
+      <label class="wa-lab">4º</label>
+      <select name="nome_fonte_4"></select>
+      <label class="wa-lab">Boas-vindas</label>
+      <textarea name="msg_boas_vindas" rows="2"></textarea>
+      <label class="wa-lab">Menu</label>
+      <textarea name="msg_menu" class="wa-long" rows="7"></textarea>
+      <label class="wa-lab">Não escolheu</label>
+      <textarea name="msg_pedir_de_novo" rows="2"></textarea>
+    </section>
+
+    <section data-panel="lojas" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Separar Centro e Vila</span><input type="checkbox" name="separar_lojas" /></label>
+      <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue para uma lista só, sem perguntar 1 ou 2 no Zap.</p>
+      <div class="wa-row wa-row-2">
+        <div>
+          <p class="wa-lab" style="color:#047857">Loja 1</p>
+          <label class="wa-lab">Nome</label>
+          <input name="loja1_rotulo" class="wa-inp" />
+          <label class="wa-lab">Palavras <button type="button" class="wa-q" title="Separadas por vírgula. Ex.: 1, centro">?</button></label>
+          <input name="loja1_palavras" class="wa-inp" />
+          <label class="wa-lab">Confirmação</label>
+          <textarea name="msg_ok_loja1" rows="3"></textarea>
+        </div>
+        <div>
+          <p class="wa-lab" style="color:#c2410c">Loja 2</p>
+          <label class="wa-lab">Nome</label>
+          <input name="loja2_rotulo" class="wa-inp" />
+          <label class="wa-lab">Palavras</label>
+          <input name="loja2_palavras" class="wa-inp" />
+          <label class="wa-lab">Confirmação</label>
+          <textarea name="msg_ok_loja2" rows="3"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="fiado" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Consulta por mensagem</span><input type="checkbox" name="fiado_ligado" /></label>
+      <label class="wa-sw"><span>Depois, manda o menu</span><input type="checkbox" name="fiado_manda_menu" /></label>
+      <label class="wa-lab">Palavras</label>
+      <input name="fiado_palavras" class="wa-inp" />
+      <label class="wa-lab">Parcelas na msg</label>
+      <input type="number" min="1" max="20" name="fiado_max_parcelas" />
+      <label class="wa-lab">Com fiado <button type="button" class="wa-q" title="{nome} {total} {linhas}">?</button></label>
+      <textarea name="msg_fiado_aberto" class="wa-long" rows="6"></textarea>
+      <label class="wa-lab">Sem fiado</label>
+      <textarea name="msg_fiado_vazio" rows="2"></textarea>
+      <label class="wa-lab">Sem cadastro</label>
+      <textarea name="msg_fiado_sem_cadastro" rows="2"></textarea>
+      <label class="wa-lab">Número duplicado</label>
+      <textarea name="msg_fiado_varios" rows="2"></textarea>
+    </section>
+
+    <section data-panel="ausencia" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Aviso extra ao escolher a loja</span><input type="checkbox" name="ausencia_ligada" /></label>
+      <label class="wa-lab">Texto</label>
+      <textarea name="msg_ausencia" rows="2"></textarea>
+    </section>
+
+    <div class="wa-foot">
+      <button type="submit" id="wa-bot-save" class="go">Salvar</button>
+      <button type="button" id="wa-bot-reset" class="ghost">Padrão</button>
+    </div>
+  </div>
+</form>
+<script src="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+{% endblock %}

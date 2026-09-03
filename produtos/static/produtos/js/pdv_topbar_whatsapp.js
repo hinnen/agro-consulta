@@ -1,5 +1,6 @@
 /**
  * PDV topbar — ícone WhatsApp (placeholder «Em breve…»).
+ * Chat das lojas abre só pelo menu/gestão (WhatsApp computador), não pelo PDV.
  */
 (function () {
   'use strict';
@@ -40,13 +41,19 @@
     ev.stopPropagation();
     abrir();
   });
-  if (ok) ok.addEventListener('click', fechar);
+
+  if (ok) {
+    ok.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      fechar();
+    });
+  }
+
   box.addEventListener('click', function (ev) {
     if (ev.target === box) fechar();
   });
+
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && !box.classList.contains('hidden')) {
-      fechar();
-    }
+    if (ev.key === 'Escape' && !box.classList.contains('hidden')) fechar();
   });
 })();

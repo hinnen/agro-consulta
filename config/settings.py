@@ -210,6 +210,8 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 # Render / Docker (SAVEINCLOUD): sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
 # (o edge costuma devolver 502 quando o worker cai ou responde mal).
 if _on_render or _on_saveincloud:
@@ -569,6 +571,7 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 ).strip() or "Crédito Loja"
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
 # Backup Postgres noturno (FL-048) — só produção; ver pg_backup_nightly.py

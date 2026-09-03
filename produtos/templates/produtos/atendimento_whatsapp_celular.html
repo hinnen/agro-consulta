@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Zap loja</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#075E54">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Zap loja">
+  <link rel="manifest" href="{% url 'atendimento_whatsapp_celular_manifest' %}">
+  <link rel="apple-touch-icon" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'produtos/pwa/zap-loja-192.png' %}">
+  <script>
+  (function () {
+    try {
+      if (window.top === window.self) return;
+      var u = new URL(window.location.href);
+      u.searchParams.delete("agro_inapp_embed");
+      u.searchParams.delete("embed");
+      window.top.location.replace(u.pathname + u.search + u.hash);
+    } catch (e) {
+      try { window.top.location.href = "/atendimento-whatsapp/celular/"; } catch (_) {}
+    }
+  })();
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body { height: 100%; margin: 0; }
+    html { background: #075E54; }
+    body.wa-cel {
+      min-height: 100dvh;
+      height: 100dvh;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-[#ece5dd] text-slate-900 overflow-hidden wa-skin wa-cel">
+{% include "produtos/_wa_skin.html" %}
+<style>
+  .wa-cel .wa-top { background: #075e54; border: 0; color: #fff; padding: .7rem .9rem; padding-top: max(.7rem, env(safe-area-inset-top)); }
+  .wa-cel .wa-title { color: #fff; font-size: 1.15rem; }
+  .wa-cel .wa-pill { background: rgba(255,255,255,.14); color: #ecfdf5; }
+  .wa-cel .wa-pill.ok { background: #25d366; color: #064e3b; }
+  .wa-cel .wa-pill.warn { background: #fbbf24; color: #78350f; }
+  .wa-cel .wa-pill.bad { background: #fecaca; color: #7f1d1d; }
+  .wa-cel .wa-top .wa-ico, .wa-cel #wa-chat-bar .wa-ico { min-height: 2.5rem; background: transparent; border-color: rgba(255,255,255,.25); color: #fff; }
+  .wa-cel #wa-move .wa-ico { min-height: 2.7rem; background: #fff; color: #075e54; border-color: #d1d5db; }
+  .wa-cel .wa-tabs { margin: .45rem .7rem; background: rgba(0,0,0,.12); }
+  .wa-cel .wa-tabs.hidden,
+  .wa-cel .wa-tabs.is-off { display: none !important; }
+  .wa-cel .wa-tab { color: #d1fae5; }
+  .wa-cel .wa-tab.is-on { background: #fff; color: #075e54; }
+  .wa-cel .pane-lista, .wa-cel .pane-chat { min-height: 0; flex: 1; display: flex; flex-direction: column; background: #fff; border-radius: 1.1rem 1.1rem 0 0; overflow: hidden; }
+  .wa-cel .pane-chat { display: none; background: #ece5dd; }
+  .wa-cel.is-chat .pane-lista { display: none; }
+  .wa-cel.is-chat .pane-chat { display: flex; }
+  .wa-cel.is-chat .wa-tabs { display: none; }
+  .wa-cel #wa-chat-bar { background: #075e54; color: #fff; }
+  .wa-cel #wa-topo-nome { color: #fff; }
+  .wa-cel #wa-form { padding-bottom: max(.5rem, env(safe-area-inset-bottom)); }
+  .wa-cel #wa-form .wa-tool { width: 2.85rem; height: 2.85rem; }
+  .wa-cel #wa-move { padding-bottom: 0; }
+  .wa-cel .wa-item { min-height: 3.6rem; padding: .85rem 1rem; }
+  .wa-cel .wa-item .wa-n { font-size: 1rem; }
+  .wa-cel .wa-item .wa-t { font-size: .75rem; }
+  .wa-cel #wa-pwa-instalar {
+    display: none; min-height: 2.2rem; padding: 0 .7rem; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.16);
+    color: #fff; font-size: .72rem; font-weight: 800; white-space: nowrap;
+  }
+  .wa-cel #wa-pwa-ios {
+    display: none; margin: .4rem .7rem 0; padding: .55rem .75rem;
+    border-radius: .85rem; background: #064e3b; color: #ecfdf5;
+    font-size: .8rem; font-weight: 700; line-height: 1.35;
+  }
+  .wa-cel #wa-pwa-ios button { float: right; border: 0; background: transparent; color: #fff; font-weight: 900; font-size: 1rem; padding: 0 .2rem; }
+</style>
+<div class="h-[100dvh] min-h-0 bg-[#075e54] flex flex-col overflow-hidden">
+  <header class="wa-top">
+    <span id="wa-dot" class="wa-dot off" aria-hidden="true"></span>
+    <h1 class="wa-title min-w-0 flex-1 truncate">Zap loja</h1>
+    <button type="button" id="wa-pwa-instalar">Instalar no celular</button>
+    <div id="wa-status" class="wa-pill">…</div>
+  </header>
+  <p id="wa-pwa-ios">
+    <button type="button" id="wa-pwa-ios-ok" aria-label="Fechar">×</button>
+    No iPhone: toque em <strong>Compartilhar</strong> (quadradinho com setinha) e depois em <strong>Adicionar à Tela de Início</strong>. Aí o Zap abre sozinho, sem o resto do sistema.
+  </p>
+  <div class="flex min-h-0 flex-1 flex-col p-0">
+    {% csrf_token %}
+    <div id="wa-app" class="flex min-h-0 flex-1 flex-col">
+      <div id="wa-qr-box" class="wa-qr hidden shrink-0 mx-3 mt-2">
+        <p class="text-sm font-extrabold text-amber-950">Ligar o Zap — use o PC da ponte</p>
+        <p class="mt-1 text-xs font-semibold text-slate-600">QR e código ficam no computador. Aqui é só atender.</p>
+      </div>
+
+      <div class="wa-tabs shrink-0">
+        <button type="button" data-loja="pendente" class="wa-tab is-on">Fila <span data-badge="pendente" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="centro" class="wa-tab">Centro <span data-badge="centro" class="wa-badge is-zero">0</span></button>
+        <button type="button" data-loja="vila" class="wa-tab">Vila <span data-badge="vila" class="wa-badge is-zero">0</span></button>
+      </div>
+
+      <div class="pane-lista">
+        <div class="shrink-0 border-b border-slate-100 p-2">
+          {% include "produtos/_wa_filtros.html" %}
+          <input id="wa-busca" type="search" autocomplete="off" placeholder="Pesquisar ou começar uma nova conversa" class="min-h-[2.85rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
+        </div>
+        <div id="wa-busca-hits" class="hidden min-h-0 flex-1 overflow-y-auto"></div>
+        <div id="wa-lista" class="min-h-0 flex-1 overflow-y-auto"></div>
+      </div>
+
+      <div class="pane-chat">
+        <div id="wa-chat-bar" class="wa-chat-bar-cel">
+          <button type="button" id="wa-cel-back" class="wa-act" title="Voltar">‹</button>
+          {% include "produtos/_wa_chat_head.html" %}
+        </div>
+        <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
+        <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pt-1 pb-1 bg-white">
+          <button type="button" data-xfer="centro" class="wa-ico flex-1" title="Passar este atendimento para o Centro">Centro</button>
+          <button type="button" data-xfer="vila" class="wa-ico flex-1" title="Passar este atendimento para a Vila">Vila</button>
+        </div>
+        <form id="wa-form" class="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white p-2" data-agro-no-double-guard="1">
+          {% include "produtos/_wa_composer.html" with wa_cel_capture=1 %}
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% include "produtos/_wa_status.html" %}
+{% include "produtos/_wa_ficha.html" %}
+<script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+<script>
+(function () {
+  var IOS_KEY = "agro_wa_cel_ios_hint_v1";
+  var deferred;
+  var btn = document.getElementById("wa-pwa-instalar");
+  var ios = document.getElementById("wa-pwa-ios");
+  var iosOk = document.getElementById("wa-pwa-ios-ok");
+  function ehStandalone() {
+    try {
+      if (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) return true;
+      if (window.navigator && window.navigator.standalone) return true;
+    } catch (_) {}
+    return false;
+  }
+  function ehIos() {
+    var ua = String(navigator.userAgent || "");
+    return /iPhone|iPad|iPod/i.test(ua);
+  }
+  if (btn) {
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      deferred = e;
+      btn.style.display = "inline-flex";
+    });
+    btn.addEventListener("click", function () {
+      if (!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.finally(function () {
+        deferred = null;
+        btn.style.display = "none";
+      });
+    });
+  }
+  window.addEventListener("appinstalled", function () {
+    if (btn) btn.style.display = "none";
+  });
+  if (ios && ehIos() && !ehStandalone()) {
+    try {
+      if (localStorage.getItem(IOS_KEY) !== "1") ios.style.display = "block";
+    } catch (_) {
+      ios.style.display = "block";
+    }
+  }
+  if (iosOk) {
+    iosOk.addEventListener("click", function () {
+      if (ios) ios.style.display = "none";
+      try { localStorage.setItem(IOS_KEY, "1"); } catch (_) {}
+    });
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("{% url 'atendimento_whatsapp_celular_sw' %}", { scope: "/atendimento-whatsapp/celular/" }).catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
