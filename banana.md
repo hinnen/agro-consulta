@@ -1285,24 +1285,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Vazio → hist PG → Excel. Pacote: marca/cat/forn/unidade + barras (principal + opcionais). NCM fora. Comando `recuperar_cadastro_vazios_excel`. |
 | **Produção (leitura)** | **841 produtos** · marca 96 · cat 91 · forn 336 · und 517 · barras 90 · opcionais 93 · HTML `conferencia-cadastro-excel-2026-09-03.html` |
-| **Status** | Pacote local pronto · **loja ainda não** |
-| **Você** | Conferir HTML · gravar loja = frase + senha |
+| **Status** | Teste loja **10 produtos** aplicados (poucas vendas) · snapshot antes/depois OK (preço intacto) · lote 841 **não** rodou · HTML `conferencia-teste10-antes-depois.html` |
+| **Você** | Conferir os 10 na loja · se OK, liberar lote (frase+senha) |
 
-### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.74** · 03/09)
+### 📦 PACOTE PRONTO — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.77** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa**; loja só em Todas). No **overlay**, o topo útil sobe para a barra verde: o header interno some e o período/CSV vão para a topbar do PDV. Coluna **Fiscal** saiu; o 4º slot de **Ações** concentra o estado NFC-e: **Reemitir**, **Emitindo...**, **Fiscal** ou **Interno**. Venda **devolvida** usa o próprio slot do botão Devolver com card alinhado. **Busca** `q` no servidor: nº venda, cliente, CPF, valor, forma (também combinada), operador, loja, data, hora, cupom NFC-e, produto. Demo local `?demo_nfce_ui=1` mostra estados visuais sem depender da SEFAZ. |
+| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa** e **Fiscal**). Overlay: header interno some · período/CSV na topbar verde. Ações em grade 4 slots (Ver/Imprimir/Devolver\|Devolvida/NFC-e). Busca `q` no servidor. Colunas fixed · R$ menor · valor 20px · Data sem vazar. |
 | **Migrate** | **NÃO** |
-| **Status** | WIP local — aguarda prova no PC |
-| **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
+| **Prova** | `verify_vendas_lista_ux_path` **52/52** · HTTP local `/vendas/` **200** · busca fiado OK |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
 ### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.75** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada em cima: a de baixo fica **inativa** (sem Fechar/Esc/F1 da barra verde). Motor `AgroOverlayStack` + trava no `AgroPdvOverlay`. Cobre: Fiado, Vendas (NFC-e), Caixa (modais), Clientes/cadastro, Compras (modais), Repasse, Pedir/Uso loja, Transf. forçada, Balança, Entrega wizard, forma pagamento, cadastro/edição rápida. |
-| **Hotfix Esc fiado** | Esc/F1 com cliente aberto **não** fecha o overlay (atalho `_atalho_voltar_pdv`); tabela lançamentos mais compacta + fonte maior |
+| **Hotfix Esc fiado** | Esc/F1 com cliente aberto **não** fecha o overlay (atalho `_atalho_voltar_pdv`); tabela lançamentos mais compacta + fonte maior · **Ver pedido** abre overlay em cima (não troca a página) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_overlay_stack_path` · `verify_fiado_ver_recibos_path` · check OK |
 | **Status** | 🟡 **pronto para envio à produção** |
@@ -1329,13 +1330,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.75**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.77**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PIN-VENDA-10S` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 2 | `FIADO-VER-RECIBOS` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 3 | `PDV-OVERLAY-STACK` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 4 | `VENDAS-LISTA-UX` | 🟡 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** v21.08. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
 

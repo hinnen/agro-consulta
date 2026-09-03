@@ -7755,10 +7755,14 @@ def _vendas_parse_valor_busca(tok: str) -> Decimal | None:
     t = (tok or "").strip().lower().replace("r$", "").replace(" ", "")
     if not t:
         return None
-    if not re.fullmatch(r"-?\d{1,12}([.,]\d{1,2})?", t):
-        return None
-    if "," in t:
+    # BR milhar: 1.000 / 1.000,00 · simples: 9,99 · 1000,00 · 9.99
+    if re.fullmatch(r"-?\d{1,3}(\.\d{3})+(,\d{1,2})?", t):
         t = t.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,12}([.,]\d{1,2})?", t):
+        if "," in t:
+            t = t.replace(".", "").replace(",", ".")
+    else:
+        return None
     try:
         return Decimal(t).quantize(Decimal("0.01"))
     except Exception:
@@ -7845,7 +7849,7 @@ def _vendas_keep_query(request, *, q: str = "", fiado: str = "") -> str:
         d["q"] = qq
     if (fiado or "").strip() in ("1", "sim"):
         d["fiado"] = "1"
-    for k in ("agro_pdv_overlay", "agro_inapp_embed", "agro_app_role"):
+    for k in ("agro_pdv_overlay", "agro_inapp_embed", "agro_app_role", "demo_nfce_ui"):
         v = (request.GET.get(k) or "").strip()
         if v:
             d[k] = v
