@@ -803,7 +803,7 @@
         if (q.length >= 2 && n0 < 5) {
           hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Procurando…</p>';
         } else {
-          hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada achado. Use <b>Importar agenda</b> (.vcf), digite o telefone com DDD, ou cadastre no Agro.</p>';
+          hits.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">Nada achado. Digite o telefone com DDD, cadastre no Agro, ou importe a agenda em <b>Bot</b>.</p>';
         }
       } else {
         hits.innerHTML = rows

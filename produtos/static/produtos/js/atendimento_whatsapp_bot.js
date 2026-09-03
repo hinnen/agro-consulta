@@ -267,4 +267,45 @@
       });
     });
   }
+
+  var vcfInp = $('wa-vcf-inp');
+  var vcfMsg = $('wa-vcf-msg');
+  if (vcfInp) {
+    vcfInp.addEventListener('change', function () {
+      var f = vcfInp.files && vcfInp.files[0];
+      if (!f) return;
+      if (vcfMsg) vcfMsg.textContent = 'Importando…';
+      var fd = new FormData();
+      fd.append('arquivo', f);
+      fetch('/api/atendimento-whatsapp/agenda-vcf/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'X-CSRFToken': csrf() },
+        body: fd,
+      })
+        .then(function (r) {
+          return r.json().then(function (j) {
+            return { okHttp: r.ok, j: j };
+          });
+        })
+        .then(function (pack) {
+          var j = pack.j || {};
+          if (!pack.okHttp || !j.ok) {
+            if (vcfMsg) vcfMsg.textContent = '';
+            window.alert((j && j.erro) || 'Não importou a agenda.');
+            return;
+          }
+          var txt = 'Pronto: ' + String(j.gravados || 0) + ' contato(s).';
+          if (vcfMsg) vcfMsg.textContent = txt;
+          window.alert(txt + ' Volte ao chat e busque pelo nome.');
+        })
+        .catch(function () {
+          if (vcfMsg) vcfMsg.textContent = '';
+          window.alert('Falha ao enviar o arquivo.');
+        })
+        .finally(function () {
+          vcfInp.value = '';
+        });
+    });
+  }
 })();

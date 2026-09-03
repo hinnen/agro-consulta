@@ -36,6 +36,15 @@
       <label class="wa-sw"><span>Bot ligado</span><input type="checkbox" name="bot_ligado" /></label>
       <label class="wa-lab" for="id_nome_empresa">Empresa</label>
       <input id="id_nome_empresa" name="nome_empresa" class="wa-inp" autocomplete="off" />
+      <p class="wa-lab" style="margin-top:1rem">Agenda do celular</p>
+      <p class="wa-hint">Arquivo <b>.vcf</b> dos Contatos (exportar no celular). Serve para achar nome na busca do chat.</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <label class="wa-ico cursor-pointer normal-case tracking-normal" title="Importar agenda (.vcf)">
+          Importar agenda
+          <input id="wa-vcf-inp" type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard" class="hidden" />
+        </label>
+        <span id="wa-vcf-msg" class="text-sm font-semibold text-slate-500"></span>
+      </div>
     </section>
 
     <section data-panel="tempo" class="wa-panel wa-card">
@@ -161,5 +170,5 @@
     </div>
   </div>
 </form>
-<script src="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 {% endblock %}
