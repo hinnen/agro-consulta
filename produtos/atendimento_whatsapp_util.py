@@ -390,13 +390,22 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         ult_l = timezone.localtime(ult) if ult else None
     except Exception:
         ult_l = ult
+    nao = int(c.nao_lidas or 0)
+    if nao > 0:
+        status = "nova"
+    elif bool(c.aguardando_loja):
+        status = "espera"
+    else:
+        status = "ok"
     return {
         "id": int(c.pk),
         "jid": c.jid,
         "telefone": c.telefone or "",
         "nome": c.nome or "",
         "loja": c.loja,
-        "nao_lidas": int(c.nao_lidas or 0),
+        "nao_lidas": nao,
+        "aguardando_loja": bool(c.aguardando_loja),
+        "status": status,
         "ultima_preview": c.ultima_preview or "",
         "ultima_em": ult.isoformat() if ult else "",
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
@@ -559,7 +568,11 @@ def _enfileirar_saida(
     m.save()
     conversa.ultima_preview = _preview(texto)
     conversa.ultima_em = agora
-    conversa.save(update_fields=["ultima_preview", "ultima_em"])
+    campos = ["ultima_preview", "ultima_em"]
+    if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
+        conversa.aguardando_loja = False
+        campos.append("aguardando_loja")
+    conversa.save(update_fields=campos)
     return m
 
 
@@ -669,9 +682,12 @@ def _fundir_conversas(manter: WhatsAppConversaAgro, sobra: WhatsAppConversaAgro)
         manter.nome = sobra.nome
     if sobra.nao_lidas:
         manter.nao_lidas = int(manter.nao_lidas or 0) + int(sobra.nao_lidas or 0)
+    if sobra.aguardando_loja:
+        manter.aguardando_loja = True
     if sobra.ultima_em and (not manter.ultima_em or sobra.ultima_em > manter.ultima_em):
         manter.ultima_em = sobra.ultima_em
         manter.ultima_preview = sobra.ultima_preview or manter.ultima_preview
+        manter.aguardando_loja = bool(sobra.aguardando_loja)
     if manter.loja == WhatsAppConversaAgro.LOJA_PENDENTE and sobra.loja != WhatsAppConversaAgro.LOJA_PENDENTE:
         manter.loja = sobra.loja
     if not (manter.telefone or "").strip() and (sobra.telefone or "").strip():
@@ -939,10 +955,22 @@ def processar_entrada(
         conv.ultima_em = timezone.now()
         if not de_mim:
             conv.nao_lidas = int(conv.nao_lidas or 0) + 1
+            conv.aguardando_loja = True
+        else:
+            conv.aguardando_loja = False
     elif not conv.ultima_em:
         conv.ultima_em = quando
 
-    campos_base = ["nome", "telefone", "ultima_preview", "ultima_em", "nao_lidas", "jid_lid", "aviso_fora_em"]
+    campos_base = [
+        "nome",
+        "telefone",
+        "ultima_preview",
+        "ultima_em",
+        "nao_lidas",
+        "jid_lid",
+        "aviso_fora_em",
+        "aguardando_loja",
+    ]
     if not fora_do_horario(cfg) and conv.aviso_fora_em:
         conv.aviso_fora_em = None
     fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
@@ -1727,3 +1755,15 @@ def marcar_enviadas(ids: list[int], *, erro: str = "", wa_id: str = "") -> int:
 
 def marcar_lidas(conversa_id: int) -> None:
     WhatsAppConversaAgro.objects.filter(pk=int(conversa_id)).update(nao_lidas=0)
+
+
+def concluir_atendimento(conversa_id: int) -> tuple[bool, str]:
+    """✓ — tira a cor de espera mesmo se a última msg for do cliente."""
+    try:
+        cid = int(conversa_id)
+    except (TypeError, ValueError):
+        return False, "Conversa inválida."
+    n = WhatsAppConversaAgro.objects.filter(pk=cid).update(aguardando_loja=False, nao_lidas=0)
+    if not n:
+        return False, "Conversa não encontrada."
+    return True, ""

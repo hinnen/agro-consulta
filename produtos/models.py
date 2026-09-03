@@ -3488,6 +3488,10 @@ class WhatsAppConversaAgro(models.Model):
     )
     menu_enviado = models.BooleanField(default=False)
     nao_lidas = models.PositiveIntegerField(default=0)
+    aguardando_loja = models.BooleanField(
+        default=False,
+        help_text="Cliente falou por último e a loja ainda não respondeu / não concluiu.",
+    )
     ultima_preview = models.CharField(max_length=160, blank=True, default="")
     ultima_em = models.DateTimeField(null=True, blank=True, db_index=True)
     origem_abertura = models.CharField(max_length=8, default="in", db_index=True)

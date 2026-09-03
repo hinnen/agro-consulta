@@ -376,6 +376,50 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertIsNotNone(m)
         self.assertEqual(WhatsAppMensagemAgro.objects.filter(direcao="bot").count(), 0)
 
+    def test_aguardando_e_concluir(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from produtos.atendimento_whatsapp_util import (
+            concluir_atendimento,
+            enviar_loja,
+            marcar_lidas,
+            serializar_conversa,
+        )
+
+        ts_hist = int((timezone.now() - timedelta(hours=2)).timestamp())
+        processar_entrada(
+            jid="5513999000999@s.whatsapp.net",
+            texto="Oi antigo",
+            wa_id="ag-1",
+            historico=True,
+            ts=ts_hist,
+        )
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertFalse(conv.aguardando_loja)
+        processar_entrada(jid="5513999000999@s.whatsapp.net", texto="Preciso de ração", wa_id="ag-2")
+        conv.refresh_from_db()
+        self.assertTrue(conv.aguardando_loja)
+        self.assertEqual(serializar_conversa(conv)["status"], "nova")
+        marcar_lidas(conv.pk)
+        conv.refresh_from_db()
+        self.assertEqual(serializar_conversa(conv)["status"], "espera")
+        ok, err = concluir_atendimento(conv.pk)
+        self.assertTrue(ok)
+        self.assertEqual(err, "")
+        conv.refresh_from_db()
+        self.assertFalse(conv.aguardando_loja)
+        self.assertEqual(serializar_conversa(conv)["status"], "ok")
+        processar_entrada(jid="5513999000999@s.whatsapp.net", texto="Oi de novo", wa_id="ag-3")
+        conv.refresh_from_db()
+        self.assertTrue(conv.aguardando_loja)
+        marcar_lidas(conv.pk)
+        enviar_loja(conversa_id=conv.pk, texto="Já te ajudo", autor="Loja")
+        conv.refresh_from_db()
+        self.assertFalse(conv.aguardando_loja)
+        self.assertEqual(serializar_conversa(conv)["status"], "ok")
+
     def test_telefone_jid_e_novo(self):
         from produtos.atendimento_whatsapp_util import abrir_conversa_saida, telefone_para_jid
 

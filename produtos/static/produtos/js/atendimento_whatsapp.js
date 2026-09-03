@@ -221,7 +221,10 @@
     el.innerHTML = rows
       .map(function (c) {
         var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
+        var st = String(c.status || '');
+        if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
         var on = Number(c.id) === convId ? ' is-on' : '';
+        var clsExtra = st === 'nova' ? ' has-new' : st === 'espera' ? ' has-wait' : '';
         var titulo = nomeExibicao(c);
         var unread = qNao
           ? '<span class="wa-unread" title="' + qNao + ' não lida' + (qNao > 1 ? 's' : '') + '">' + escapeHtml(String(qNao)) + '</span>'
@@ -229,11 +232,13 @@
         return (
           '<button type="button" class="wa-item' +
           on +
-          (qNao ? ' has-new' : '') +
+          clsExtra +
           '" data-id="' +
           c.id +
           '" data-loja="' +
           escapeHtml(c.loja || '') +
+          '" data-status="' +
+          escapeHtml(st) +
           '" data-nome="' +
           escapeHtml(titulo) +
           '" data-tel="' +
@@ -357,16 +362,22 @@
     });
   }
 
+  function mostrarBotoesChat(on) {
+    var hist = $('wa-hist');
+    var ok = $('wa-ok');
+    var del = $('wa-del');
+    if (hist) hist.classList.toggle('hidden', !on);
+    if (ok) ok.classList.toggle('hidden', !on);
+    if (del) del.classList.toggle('hidden', !on);
+  }
+
   function abrirConversa(id) {
     convId = Number(id) || 0;
     afterId = 0;
     var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
     convLoja = (item && item.getAttribute('data-loja')) || loja || '';
     $('wa-topo-nome').textContent = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
-    var hist = $('wa-hist');
-    if (hist) hist.classList.remove('hidden');
-    var del = $('wa-del');
-    if (del) del.classList.remove('hidden');
+    mostrarBotoesChat(true);
     if (separarLojas) {
       $('wa-move').classList.remove('hidden');
       $('wa-move').classList.add('flex');
@@ -421,10 +432,7 @@
       afterId = 0;
       setTab();
       $('wa-topo-nome').textContent = 'Escolha uma conversa';
-      var hist = $('wa-hist');
-      if (hist) hist.classList.add('hidden');
-      var del = $('wa-del');
-      if (del) del.classList.add('hidden');
+      mostrarBotoesChat(false);
       $('wa-msgs').innerHTML = '';
       $('wa-move').classList.add('hidden');
       telaCel(false);
@@ -459,6 +467,7 @@
           return;
         }
         pollMsgs();
+        carregarLista();
       })
       .catch(function () {
         window.alert('Falha de rede ao enviar.');
@@ -719,10 +728,7 @@
         $('wa-topo-nome').textContent = 'Escolha uma conversa';
         $('wa-msgs').innerHTML = '';
         $('wa-move').classList.add('hidden');
-        var hist = $('wa-hist');
-        var del = $('wa-del');
-        if (hist) hist.classList.add('hidden');
-        if (del) del.classList.add('hidden');
+        mostrarBotoesChat(false);
         telaCel(false);
         carregarEstado();
         carregarLista();
@@ -950,6 +956,24 @@
       });
     });
   }
+  var btnOk = $('wa-ok');
+  if (btnOk) {
+    btnOk.addEventListener('click', function () {
+      if (!convId) return;
+      fetchJson('/api/atendimento-whatsapp/concluir/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ conversa_id: convId }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não concluiu.');
+          return;
+        }
+        carregarEstado();
+        carregarLista();
+      });
+    });
+  }
   var btnDel = $('wa-del');
   if (btnDel) {
     btnDel.addEventListener('click', function () {
@@ -969,8 +993,7 @@
         $('wa-topo-nome').textContent = 'Escolha uma conversa';
         $('wa-msgs').innerHTML = '';
         $('wa-move').classList.add('hidden');
-        btnDel.classList.add('hidden');
-        if (btnHist) btnHist.classList.add('hidden');
+        mostrarBotoesChat(false);
         telaCel(false);
         carregarLista();
       });
@@ -984,10 +1007,7 @@
       convLoja = '';
       afterId = 0;
       $('wa-topo-nome').textContent = 'Conversa';
-      var hist = $('wa-hist');
-      var del = $('wa-del');
-      if (hist) hist.classList.add('hidden');
-      if (del) del.classList.add('hidden');
+      mostrarBotoesChat(false);
       $('wa-msgs').innerHTML = '';
       $('wa-move').classList.add('hidden');
       telaCel(false);
