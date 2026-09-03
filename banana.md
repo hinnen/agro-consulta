@@ -1284,14 +1284,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
-### 📦 PACOTE — F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.87** · 03/09)
+### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Aba **Histórico** do F8: some **Itens mais comprados**. Abre direto em **Últimas vendas**. Top produtos continua no **Resumo**. |
 | **Migrate** | **NÃO** |
-| **Status** | teste — Ctrl+F5 no PDV · F8 · aba Histórico |
-| **Você** | Conferir lista de vendas; +1 nos itens da venda |
+| **Prova** | `verify_f8_hist_vendas_path` **11/11** · overlay stack **16/16** · HTTP local **off** |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · F8 · aba Histórico (lista vendas; sem cards) |
 
 ### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
 
@@ -1352,7 +1353,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.87**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.90**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1360,8 +1361,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `FIADO-VER-RECIBOS` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 3 | `PDV-OVERLAY-STACK` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | `VENDAS-LISTA-UX` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 5 | `F8-HIST-VENDAS` | 🟡 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** v21.08. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
+**Live agora:** **v21.82** (WA-ATEND). Fila tip **v21.90**. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
