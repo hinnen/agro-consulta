@@ -1298,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.83** · 03/09)
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.84** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1329,7 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.83**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.84**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
