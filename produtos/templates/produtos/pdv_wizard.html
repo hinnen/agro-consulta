@@ -1018,8 +1018,30 @@
   /* Pop-up edição cliente: cabe na tela sem scroll interno */
   .pdv-client-edit-panel {
     width: min(96vw, 78rem);
-    max-height: 96dvh;
+    max-height: min(96dvh, 100%);
     height: auto;
+    margin: auto;
+    align-self: center;
+  }
+  /* Acima do CHAT (z 220); centro firme (zoom Agro + focus não empurra) */
+  #pdv-quick-client-edit-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 240;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #pdv-quick-product-edit-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 241;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  html.pdv-client-edit-open #pdv-chat-loja-dock,
+  html.pdv-product-edit-open #pdv-chat-loja-dock {
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
   #pdv-step1-client-bar {
     flex-wrap: nowrap;
@@ -3983,7 +4005,7 @@
     </footer>
   </div>
 </div>
-<div id="pdv-quick-client-edit-overlay" class="fixed inset-0 z-[137] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-edit-title">
+<div id="pdv-quick-client-edit-overlay" class="fixed inset-0 z-[240] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-client-edit-title" style="position:fixed">
     <div class="pdv-client-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-emerald-500 bg-white shadow-2xl" role="document">
       <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-4 py-2.5 sm:px-5 sm:py-3">
         <div class="min-w-0 flex-1">
@@ -4061,7 +4083,7 @@
   </div>
 {% include "produtos/includes/cliente_cadastro_acoes.html" %}
 
-<div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[138] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title">
+<div id="pdv-quick-product-edit-overlay" class="fixed inset-0 z-[241] hidden items-center justify-center bg-slate-950/55 p-0.5 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="pdv-quick-product-edit-title" style="position:fixed">
   <div class="pdv-product-edit-panel flex flex-col overflow-hidden rounded-2xl border-[3px] border-orange-400 bg-white shadow-2xl" role="document">
     <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-orange-100 bg-orange-50 px-4 py-2.5 sm:px-5 sm:py-3">
       <div class="min-w-0 flex-1">
