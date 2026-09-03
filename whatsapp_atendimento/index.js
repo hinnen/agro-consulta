@@ -18,6 +18,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import pino from "pino";
+import { repacketizeOggOpusToCode3 } from "./opus_ptt.js";
 
 const require = createRequire(import.meta.url);
 const ffmpegStatic = require("ffmpeg-static");
@@ -902,8 +903,22 @@ async function audioParaZap(buf, mime) {
   const inn = path.join(os.tmpdir(), "agro-wa-" + stamp + ".webm");
   const out = path.join(os.tmpdir(), "agro-wa-" + stamp + ".ogg");
 
+  const finalizar = (oggBuf, seconds) => {
+    let finalBuf = oggBuf;
+    try {
+      const remade = repacketizeOggOpusToCode3(oggBuf);
+      if (remade && remade.length && remade !== oggBuf) {
+        finalBuf = remade;
+        console.log("audio ptt code3:", oggBuf.length, "->", remade.length);
+      }
+    } catch (e) {
+      console.error("audio code3:", e.message || e);
+    }
+    return { ok: true, buf: finalBuf, mime: "audio/ogg; codecs=opus", ptt: true, seconds: seconds || 0 };
+  };
+
   if (m.includes("ogg") && !m.includes("webm")) {
-    return { ok: true, buf, mime: "audio/ogg; codecs=opus", ptt: true, seconds: 0 };
+    return finalizar(buf, 0);
   }
 
   try {
@@ -927,6 +942,12 @@ async function audioParaZap(buf, mime) {
         "voip",
         "-frame_duration",
         "20",
+        "-avoid_negative_ts",
+        "make_zero",
+        "-map_metadata",
+        "-1",
+        "-f",
+        "ogg",
         out,
       ];
       const p = spawn(bin, args, { windowsHide: true });
@@ -946,7 +967,7 @@ async function audioParaZap(buf, mime) {
     const converted = fs.readFileSync(out);
     if (!converted || !converted.length) throw new Error("ffmpeg vazio");
     console.log("audio ok:", buf.length, "->", converted.length, "s=", seconds);
-    return { ok: true, buf: converted, mime: "audio/ogg; codecs=opus", ptt: true, seconds };
+    return finalizar(converted, seconds);
   } catch (e) {
     console.error("audio ffmpeg:", e.message || e);
     return { ok: false, buf, mime: m || "audio/webm", ptt: false, seconds: 0, erro: String(e.message || e) };

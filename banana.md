@@ -1376,6 +1376,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Lista sem número (`WA-FICHA-NOME` · 02/09):** com nome salvo, lista e topo mostram só o nome; clique no nome abre ficha (telefone + cadastro Agro se casar).
 - **Anteriores (`WA-HIST-FIX` · 02/09 · v21.27):** ANT. lia o sync do Zap; LID≠telefone descartava. Agora aceita os dois + mensagens do `messaging-history.set`. **Religar `.bat`**.
 - **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
+- **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 
