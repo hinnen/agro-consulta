@@ -406,7 +406,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 ### 4.2 PDV â€” ponto de venda
 
-- **Orçamento PDV (02/09):** grava no servidor (`PDV-ORC-SAVE` · Live v21.06). Lista = **só o cliente da tela**, sync online multi-PC (`PDV-ORC-POR-CLIENTE` · **Live v21.08**).
+**Duas interfaces:**
 
 
 | Tela                  | URL              | JS principal                    |
@@ -423,7 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix chat v20.33 · `PIN-VENDA-10S` tip v21.32):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · Pedir/chat ~45s · **fechar venda ~10s** (🟡 pronto envio) · descanso ~3 min · abrir PDV sem PIN.
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -546,7 +546,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
-- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
+- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/`.
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 
@@ -617,7 +617,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
-- **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
+- **Etapa 5 bloqueio falso (29/08 · `NF-ESTOQUE-BLOQUEIO-FALSO`):** confirmar 1–4 **não** é «finalizada com PIN»; caixa amarela só com PIN/financeiro/bucket concluída.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
 - **Trocar/remover produto com estoque lançado (05/08 · v14.48):** exige **estorno** antes — modal «Estornar e trocar» (PIN) chama a rotina de reabrir e joga o usuário de volta à etapa 2; backend recusa salvar linhas com `produto_id` diferente enquanto houver carimbo de estoque (`requer_estorno`).
 - **Custo do cadastro na etapa 2 (03/08 · v13.71):** V. unit puxa custo do Cadastro (overlay/PG) — JS ignora `preco_custo_final=0` do Mongo; overlay sincroniza final/acréscimo; `buscar-produto-id` fallback `Produto.custo`. Linha com custo da NF (`preservar`) continua sem sobrescrever.
@@ -698,8 +698,6 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 - **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
-- **Fiado caixinha no Fechar caixa (`CAIXA-FIADO-CONF`):** **Confirmar** grava no Postgres (`fiado_nota_caixa_conferida_em`). Reabrir não pede de novo. **Pular + PIN** não grava. Migrate `0123`.
-- **Repasse popups (`REPASSE-STACK-NEST`):** Confirmar + 3 OKs = filhos do overlay; stack **não** põe vidro no pai (senão trava o clique). Prova `verify_repasse_stack_nest_path` **35/35**.
 
 ### 4.12 RH
 
@@ -726,19 +724,13 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
+- Sem disparo em massa. Ícone PDV → **abre o chat** (`WA-BOT-CFG-RENAN`); ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
-- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** busca no topo da lista (cadastro + agenda Zap + conversa). Nome salvo no celular vem da ponte (`WA-AGENDA-NOME`). **Enviar** não pode travar em «Processando» (guard PDV). Clique abre o chat, como o Zap Web. **Passar p/ Centro ou Vila** = transfere o atendimento, avisa o cliente e cai na fila da outra loja. **Anteriores** = ~40 msgs / 7 dias. Teto 20 conversas novas/dia. Só celular 1-a-1. **Apagar conversa** = só no Agro. **Apagar msg** (`WA-MSG-DEL` · 03/09) = × na bolha enviada → some no Zap do cliente também. Migrate **`0122`**. Fora da loja.
+- **Chamar + histórico (`WA-CHAMAR-HIST` · 01/09):** botão **Novo** = poucos envios (cadastro Agro; agenda do Zap só se pedir, teto 80, sem grupo). **Anteriores** = ~40 msgs / 7 dias daquele chat — **não** baixa o Zap inteiro. Teto 20 conversas novas/dia. **Só celular 1-a-1** — ignora grupo/canal (`120363…`). **Apagar** = tira da lista no Agro (não apaga no celular). Fora da loja.
 - **Operação PC:** sessão salva em `whatsapp_atendimento/auth/` — desligar/reiniciar **não** pede QR de novo, salvo logout do Zap. De noite: PC off = bot parado (ninguém atende até ligar de manhã).
 - **01/09 decisão:** ponte **neste PC** (Renan, 01/09) · `iniciar.bat` na Inicializar do Windows · se a janela cair, religa em 5s · failover automático **adiado**.
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
-- **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
-- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF`/`WA-STATUS-VER`/`WA-CHAT-HEAD` · 03/09):** stories fora do chat · chip **Status** no cabeçalho da conversa (só se o contato tiver). Migrate **`0120`**. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
-- **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
-- **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
-- **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
 
 ### 4.15 DesvinculaÃ§Ã£o ERP (Mongo espelho â†’ Postgres SisVale)
 
@@ -1272,409 +1264,95 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🩹 Bug loja #16 — pagar com vale não descia o saldo (`PDV-VALE-USADO` · 03/09)
-
-| | |
-| --- | --- |
-| **Relato** | 03/09 · v21.08 · Caixa Centro · pagar com **vale crédito** · o número na tela não mudava (nem após reiniciar o PDV) |
-| **Causa** | A venda **entrava no caixa**, mas o saldo do cliente no Postgres **não era baixado** (só creditava ao *comprar* vale). Por isso não era só visual. |
-| **Fix** | Baixa `saldo_vale_credito` na venda · bloqueia se passar do saldo · devolve o vale se a devolução for na forma Vale crédito · atualiza o número/cache no PDV |
-| **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_vale_credito_venda_path.py` **11/11** |
-| **Status** | 🟡 `teste` **v22.11** · loja **não** |
-| **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
-
-### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · 03/09)
+### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Bug loja **#12**: lançar entrega (dinheiro/cartão) agora liga a tabela de preço da forma. |
-| **Onde** | `/pdv/` etapa Entrega |
+| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) · commit **`53b565a`** |
+| **Antes** | `producao` @ **`9adc305`** · v21.86 |
+| **Agora** | `producao` @ **`53b565a`** |
+| **Pacote** | `REPASSE-STACK-NEST` — Confirmar/3 OKs sem vidro |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_tabela_preco_forma.py` |
-| **Status** | 🟡 `teste` · **não** loja |
-| **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão (ou Dinheiro) · conferir total |
+| **Rollback** | tag `rollback/pre-repasse-stack-nest-0309-v21.86` · branch `producao-backup-pre-v2187-repasse-stack-nest-20260903` · `docs/ROLLBACK-REPASSE-STACK-NEST-0309.md` |
+| **Você** | **Ctrl+F5** · badge **v21.87** · Repasse → Confirmar → OKs |
 
-### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.08** · 03/09)
+### ✅ CHECKLIST ÚNICO — 03/09b · **Live v21.87**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `REPASSE-STACK-NEST` | ✅ **Live v21.87** | **NÃO** |
+
+**Live agora:** **v21.87**. WhatsApp UI extra / Excel cadastro **fora**.
+
+### Live loja — WhatsApp 1 Zap = 1 SisVale (`WA-DEDUP` · **v21.86**) — 03/09/2026
+
+### Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
 | --- | --- |
-| **Relato** | Geraldinho · Caixa Centro · 31/08 · venda **6682** R$ 101,90 débito Point · máquina cobrou · gravar venda **500** (6x) |
-| **Causa** | PIN da venda (10s) + espera na maquininha / F5. `finalizar` estourava **500 HTML** com o cartão já pago. |
-| **Fix** | Carimba quem cobrou · se o PIN acabar, usa o carimbo · 500 vira JSON e o PDV tenta de novo · PIN 45s se a máquina já cobrou |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v22.08** |
-| **Você** | Ctrl+F5 no PDV · débito Point · esperar na máquina · Confirmar. Tem que gravar sem tela vermelha. |
-
-### 📦 PACOTE — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bug loja **#15**: vale crédito creditado não atualizava o saldo à direita do PDV (cache do fiado/lista). Agora aplica o saldo na hora e busca de novo no servidor. |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ `teste` **v22.02** · loja **não** |
-| **Você** | Ctrl+F5 no PDV · cliente na tela · adicionar vale (manual) · o número **Vale crédito** tem que mudar na hora |
-
-### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
-
-| | |
-| --- | --- |
-| **Loja** | **Live v21.86** @ `9adc305` · cherry (não merge `teste`) |
+| **Loja** | **Live v21.86** · cherry só WA-DEDUP (não merge `teste`) |
 | **O quê** | 1 msg Zap = 1 SisVale · unique `wa_id` · migrate **0124** · ponte só notify · claim saída |
-| **Migrate** | **SIM — 0124** |
+| **Migrate** | **SIM — 0124** (só índice; limpa wa_id duplicado antigo) |
 | **Rollback** | Tag `rollback/pre-wa-dedup-0309-v21.85` @ `10b2821` · branch `producao-backup-pre-wa-dedup-0309-v21.85` · `docs/ROLLBACK-WA-DEDUP-0309.md` |
 | **Ponte** | **Uma** janela `iniciar.bat` — **reiniciar** após Render verde |
-| **Smoke** | badge **v21.86** · 1 «aa» = 1 bolha |
-| **teste** | mesmo fix em `c9bd6fd` · VERSION teste **22.00** |
+| **Smoke** | badge **v21.86** · 1 «aa» cliente = 1 bolha · 1 envio loja = 1 no celular |
 
-### WIP — foto perfil loja (`WA-FOTO-RETRY` · 03/09/2026)
-
-| | |
-| --- | --- |
-| **Problema** | Local OK; loja sem foto — 1ª falha (LID) travava **6 h** |
-| **Fix** | Tenta número `@s.whatsapp.net` antes do LID · retry **15 min** se falhar |
-| **Onde** | só `whatsapp_atendimento/index.js` (ponte) — **sem** migrate |
-| **Status** | 🟡 `teste` — reiniciar `iniciar.bat` já aplica na loja se a ponte usar o código do PC; senão cherry + senha |
-
-### WIP — envio com bolha na hora (`WA-SEND-OPTIMIST` · 03/09/2026)
+### ~~Live loja — fix WhatsApp Limpar/entrada/foto (**v21.85**)~~ · base do rollback acima
 
 | | |
 | --- | --- |
-| **Problema** | Loja: msg demorava a aparecer na própria tela (poll); cliente já recebia rápido |
-| **Fix** | Bolha **na hora** ao mandar · confirma com resposta da API (sem esperar poll) |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` — loja precisa senha (static JS) |
+| **Loja** | foi **v21.85** @ `10b2821` · agora tip = v21.86 |
+| **O quê** | Limpar lista · msg após limpar · foto sem duplicar · `iniciar-local.bat` |
+| **Migrate** | **NÃO** (na época) |
+| **Rollback** | Tag `rollback/pre-wa-fix-0309-v21.84` @ `c165db2` · `docs/ROLLBACK-WA-FIX-0309.md` |
+| **Ponte** | Loja: `iniciar.bat` + `.env` sistvale. Local: `iniciar-local.bat` |
+| **Smoke** | badge **v21.85** · Limpar · 1 oi · 1 foto |
 
-### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
-
-| | |
-| --- | --- |
-| **Junto com** | `WA-SEND-OPTIMIST` · `WA-FOTO-RETRY` (ponte) · outras mudanças que Renan for juntando |
-| **1 Foto** | Miniatura menor · clique = tela cheia (Esc/clique fecha) |
-| **2 Nome** | Verde: **PIN do PDV** · Branco: **só horário** |
-| **3 Bolha** | Largura do texto · verde à direita (tipo Zap Web) |
-| **4 Fonte** | Corpo ~**+30%** (1.2rem) · meta legível |
-| **5 Cor** | Msg real **não** fica cinza (só rascunho tmp) — pendente_envio não apaga a bolha |
-| **Assinatura PIN** | `pdv_operador_nome` no mesmo Chrome · Zap pelo menu |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · subir com o lote + senha |
-
-### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
-
-| | |
-| --- | --- |
-| **Loja** | **Live v21.82** · commit `527be62` (cherry em `producao`, **nao** merge full `teste`) |
-| **Pacote** | WhatsApp lojas pelo **menu/gestao** + celular PWA · migrations `0108`–`0122` (grafo: `0107`→`0110`→`0108`→`0109`→`0111`…→`0122`) |
-| **PDV** | Icone WhatsApp continua **Em breve** (nao abre chat) |
-| **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
-| **Prep** | Branch `deploy/prep-wa-atend-0309` |
-
-**Ponte:** local OK (msg/áudio/Limpar). Foto duplicava por poll cruzado — trava `saidaEmVoo`. Pacote WA pós-loja: Limpar, iniciar-local, entrada pós-Limpar, foto 1x. **Loja:** frase + senha (cherry, não merge full `teste`).
-
----
-
-### 📦 PACOTE PRONTO — Repasse sem vidro nos popups (`REPASSE-STACK-NEST` · 03/09)
+### 🚀 PREP deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **aguarda senha**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Depois de **Confirmar transferência**, os popups (confirmar / 3 OKs) ficavam com vidro na frente e sem clique. Stack congelava o overlay pai (popup é filho). |
-| **Fix** | Se a camada de cima é **filha** da de baixo → sem vidro/`pointer-events:none` no pai. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_repasse_stack_nest_path` **35/35** (contratos + sim Node filho sem vidro + sibling congela + stack **23/23** + PIN 9973) |
-| **Status** | 🟡 **pronto para envio à produção** |
-| **Commit** | `b57c63b` · tip **v22.17+** |
-| **Você** | Ctrl+F5 · Repasse → Confirmar → clicar Confirmar / OKs até transferir |
-
-### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Aba **Histórico** do F8: some **Itens mais comprados**. Abre direto em **Últimas vendas**. Top produtos continua no **Resumo**. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_f8_hist_vendas_path` **11/11** · overlay stack **16/16** · HTTP local **off** |
-| **Status** | ✅ **Live v21.84** |
-| **Você** | Ctrl+F5 · F8 · aba Histórico (lista vendas; sem cards) |
-
-### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/clientes/…/editar/` (e novo): tela larga no visual do PDV (grade emerald, botões grandes). No overlay some o header interno — usa a barra verde FECHAR. Campos `referencia_rural` + `maps_url_manual` passam a aparecer (já estavam no form; antes sumiam e podiam zerar no save). **Não** mexe save/API/saldos. |
-| **Migrate** | **NÃO** |
-| **Status** | teste — aguarda Ctrl+F5 no PC |
-| **Você** | Abrir cliente no Zap/overlay · editar/salvar · Vale/Excluir/Histórico |
-
-### 📦 WIP — cadastro vazio + Excel/histórico (`CAD-FALLBACK-HIST` · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Vazio → hist PG → Excel. Pacote: marca/cat/forn/unidade + barras (principal + opcionais). NCM fora. Comando `recuperar_cadastro_vazios_excel`. |
-| **Produção (leitura)** | **841 produtos** · marca 96 · cat 91 · forn 336 · und 517 · barras 90 · opcionais 93 · HTML `conferencia-cadastro-excel-2026-09-03.html` |
-| **Status** | Teste loja **10 produtos** aplicados (poucas vendas) · snapshot antes/depois OK (preço intacto) · lote 841 **não** rodou · HTML `conferencia-teste10-antes-depois.html` |
-| **Você** | Conferir os 10 na loja · se OK, liberar lote (frase+senha) |
-
-### 📦 PACOTE PRONTO — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.77** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa** e **Fiscal**). Overlay: header interno some · período/CSV na topbar verde. Ações em grade 4 slots (Ver/Imprimir/Devolver\|Devolvida/NFC-e). Busca `q` no servidor. Colunas fixed · R$ menor · valor 20px · Data sem vazar. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lista_ux_path` **52/52** · HTTP local `/vendas/` **200** · busca fiado OK |
-| **Status** | ✅ **Live v21.84** |
-| **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
-
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.84** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
-| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). **Repasse Confirmar** (`REPASSE-STACK-NEST`): popup filho sem vidro. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **23/23** · vendas UX **52/52** |
-| **Status** | 🟡 **pronto para envio à produção** (hotfix nest; base Live v21.84) |
-
-### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Fechar caixa: **Confirmar** na conferência fiado grava no Postgres. Reabrir a tela **não** pede de novo as notas já conferidas. Só aparece venda/pagamento **novo**. |
-| **Migrate** | **SIM** `produtos.0123` |
-| **Prova** | `verify_caixa_fiado_conferencia_path` **30/30** (contratos + validar + PIN 9973 + Pular não grava + API só turno/loja + HTTP login) |
-| **Status** | ✅ **Live v21.84** |
-
-### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/fiado/`: KPIs mês; Limite na linha; cliente tela cheia; Recibos modal; Pedido/**Ver** = overlay em cima (não troca página); Esc/← Lista volta ao fiado (não ao PDV); tabela compacta + fonte maior; top bar some no overlay. |
-| **Migrate** | **NÃO** |
-| **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **14/14** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
-| **Status** | ✅ **Live v21.84** |
-| **Inclui** | `FIADO-TOPBAR-OVERLAY` · hotfixes Esc + Ver overlay |
-
-### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Fechar venda: «ainda sou eu» **10s**. Pedir/chat: **45s**. Descanso: **3 min**. |
-| **Prova** | path **78/78** · API local PIN 9973 (ttl 10 vs 45) **OK** · Pedir/chat sem 10s |
-| **Migrate** | **NÃO** |
-| **Commit código** | `73c0b2e` · Live **v21.84** |
-| **Status** | ✅ **Live v21.84** |
-| **Fora** | WhatsApp (`WA-*`) |
-
-### ✅ Deploy loja — lote checklist 03/09 (`deploy/prep-checklist-0309` · **v21.84**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.84** — healthz **ok** · consulta **200** · badge **21.84** · commit **`c165db2`** |
-| **Antes** | `producao` @ **`527be62`** · v21.82 |
-| **Agora** | `producao` @ **`c165db2`** |
-| **Pacotes** | `PIN-VENDA-10S` · `FIADO-VER-RECIBOS` · `PDV-OVERLAY-STACK` · `VENDAS-LISTA-UX` · `F8-HIST-VENDAS` · `CAIXA-FIADO-CONF` |
-| **Hotfix** | 1ª tentativa v21.83 falhou no build (rota WA `excluir-todas` sem view). Loja **não** caiu (ficou no v21.82). Tirei a rota e subi **v21.84**. |
-| **Migrate** | **SIM** `produtos.0123` |
-| **Não sobe** | WhatsApp extra do `teste` · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST` |
-| **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
-| **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip **v22.18**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `REPASSE-STACK-NEST` | 🟡 **pronto para envio à produção** | **NÃO** |
-
-**Live agora:** **v21.84**. Fila: vidro do Repasse nos popups pós-Confirmar. Sobe **só** com frase + senha (cherry).
-
-### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · fila agora = tip acima
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PIN-VENDA-10S` | ✅ **Live v21.84** | **NÃO** |
-| 2 | `FIADO-VER-RECIBOS` | ✅ **Live v21.84** | **NÃO** |
-| 3 | `PDV-OVERLAY-STACK` | ✅ **Live v21.84** | **NÃO** |
-| 4 | `VENDAS-LISTA-UX` | ✅ **Live v21.84** | **NÃO** |
-| 5 | `F8-HIST-VENDAS` | ✅ **Live v21.84** | **NÃO** |
-| 6 | `CAIXA-FIADO-CONF` | ✅ **Live v21.84** | **SIM** `0123` |
-
-**Live agora:** **v21.84**. WhatsApp extra / cadastro cliente layout / Excel vazio **fora**.
-
-### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Já limpo** | Temp / npm / pip / `.cache` / cache Chrome / snapshots Cursor / cache agent — C: ~**9 GB** livres |
-| **Não mexido** | projetos GitHub · `settings.json` · extensões · `state.vscdb` (histórico) |
-| **Pendente** | mover `state.vscdb` (~43 GB) C: → **D:\CursorOffload** com Cursor **fechado** |
-| **Script** | `D:\CursorOffload\MOVER-CURSOR-STATE.ps1` · reverter: `REVERTER-CURSOR-STATE.ps1` · `LEIA-ME.txt` |
-| **Projetos** | **fora** do script (só AppData do Cursor) |
-
-### ~~✅ CHECKLIST ÚNICO — Live v21.08~~ · fila agora = tip **v21.32** acima
-
-### ✅ Deploy loja — orçamento por cliente (`prep-orc-cliente-0209` · **v21.08**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.08** — healthz **ok** · PDV/consulta **200** · commit **`3a89b86`** |
-| **Antes** | `producao` @ **`0f5bd5d`** · v21.07 |
-| **Agora** | `producao` @ **`3a89b86`** |
-| **Pacotes** | só `PDV-ORC-POR-CLIENTE` |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-orc-cliente-0209-v21.07` · `docs/ROLLBACK-PDV-ORC-CLIENTE-0209.md` · volta **v21.07** |
-| **Você** | **Ctrl+F5** · badge **v21.08** · F7 1 venda · Renan salvar · outro PC F6 só dele |
-
-### ~~🚀 PREP deploy loja — orçamento por cliente~~ · **superado — Live v21.08**
-
-### 📦 PACOTE — Orçamento por cliente online (`PDV-ORC-POR-CLIENTE`) · ✅ **Live v21.08**
-
-Salva na pasta do cliente; F6/card só dele; sync multi-PC. Prova **68/68**.
-
-### ✅ Deploy loja — lista orçamento (`prep-orc-lista-0209` · **v21.07**) · **Live** (superado pelo v21.08 acima)
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.07** — healthz **ok** · home/PDV/consulta **200** · commit **`0f5bd5d`** |
-| **Antes** | `producao` @ **`a08dfed`** · v21.06 |
-| **Agora** | `producao` @ **`0f5bd5d`** |
-| **Pacotes** | só `PDV-ORC-LISTA-PC` |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-orc-lista-0209-v21.06` · `docs/ROLLBACK-PDV-ORC-LISTA-0209.md` · volta **v21.06** |
-| **Você** | **Ctrl+F5** · badge **v21.07** · F7 1 venda · F6 no caixa Centro |
-
-### ~~🚀 PREP deploy loja — lista orçamento~~ · **superado — Live v21.07**
-
-### 📦 PACOTE — Orçamento some no outro PC (`PDV-ORC-LISTA-PC`) · ✅ **Live v21.07**
-
-`/pdv/` baixa a lista da loja ao abrir e no F6. Prova **44/44**.
-
-### ✅ Deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.06** — healthz **ok** · frase+senha neste chat |
-| **Antes** | `producao` @ **`798caaa`** · v20.86 |
-| **Agora** | `producao` @ **`a08dfed`** |
+| **Status** | 🟢 **PREP pronto** · **não** subiu loja |
+| **Antes (loja hoje)** | `producao` @ **`798caaa`** · Live **v20.86** |
+| **PREP** | `deploy/prep-pin-orc-0209` · VERSION **21.06** |
 | **Pacotes** | `PIN-TECLADO-OBRIG` · `PIN-ET5-CAMPO` · `PDV-ORC-SAVE` |
+| **Fora** | WhatsApp `WA-*` · resto do `teste` |
 | **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` · `docs/ROLLBACK-PIN-ORC-0209.md` |
-| **Você** | **Ctrl+F5** · badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 PIN |
+| **Prova** | PIN **54/54** · orçamento **33/33** (PIN 9973) |
+| **Rollback** | tag `rollback/pre-pin-orc-0209-v20.86` @ `798caaa` · `docs/ROLLBACK-PIN-ORC-0209.md` |
+| **Risco loja aberta** | **Baixo** — venda F7 / caixa / NFC-e **iguais**; só PIN na ação que já pedia + gravar orçamento |
+| **Deploy (com senha)** | `producao` ← `origin/deploy/prep-pin-orc-0209` · **não** merge `teste` |
+| **Smoke** | badge **v21.06** · F7 1 venda · salvar orç. · NF etapa 5 campo PIN |
 
-### ~~✅ CHECKLIST ÚNICO — Live v21.06~~ · **ver checklist no topo** (falta `PDV-ORC-LISTA-PC`)
-
-### 📦 PACOTE — PIN teclado + campo NF etapa 5 · ✅ **Live v21.06**
-
-Teclado PIN + linha na etapa 5. Prova **54/54**.
-
-### 📦 PACOTE — Salvar orçamento PDV · ✅ **Live v21.06**
-
-Grava no Postgres sem login Chrome. Prova **33/33**.
-
-### ✅ Deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.86**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v20.86** — healthz **ok** · frase+senha neste chat |
-| **Antes** | `producao` @ **v20.58** / `751c0d4` |
-| **Agora** | `producao` @ **`798caaa`** |
-| **Pacotes** | `BI-DEVOL-CARD` · `BI-DEVOL-MEIO` · `VL-FIADO-TAGS` · `VL-CAL-INTERVALO` |
-| **Migrate** | **NÃO** |
-| **Rollback** | `docs/ROLLBACK-LOTE-VENDAS-BI-0109d.md` · tag `rollback/pre-lote-vendas-bi-0109d-v20.58` |
-| **Você** | Ctrl+F5 · badge **v20.86** · `/vendas/lojas/` tag fiado · BI = vendas-lojas |
-
-### ✅ CHECKLIST ÚNICO — 01/09d · **Live v20.86**
+### ✅ CHECKLIST ÚNICO — pronto envio (02/09 · alvo **v21.06**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `BI-DEVOL-CARD` | ✅ **Live v20.86** | **NÃO** |
-| 2 | `BI-DEVOL-MEIO` | ✅ **Live v20.86** | **NÃO** |
-| 3 | `VL-FIADO-TAGS` | ✅ **Live v20.86** | **NÃO** |
-| 4 | `VL-CAL-INTERVALO` | ✅ **Live v20.86** | **NÃO** |
+| 1 | `PIN-TECLADO-OBRIG` + `PIN-ET5-CAMPO` | 🟢 **PREP / aguarda senha** | **NÃO** |
+| 2 | `PDV-ORC-SAVE` | 🟢 **PREP / aguarda senha** | **NÃO** |
 
-**Fora (ainda só `teste`):** WhatsApp · resto do `teste`
-
-- **Chat duplicado LID (`WA-LID-UM` · 02/09):** um número = um chat; fiado acha cadastro; envio usa `@lid`. Foto/áudio arquivo. **Bot:** intervalo fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. **v20.98**. Migrate **`0117`**.
-- **Agenda + barra Zap (`WA-AGENDA-LID` · 02/09):** busca acha nome salvo no celular (`@lid`). Barra de enviar no jeito do WhatsApp Web (clipe · texto · microfone/enviar). **v21.01**. **Não** copiamos código do WASeller.
-- **Eco + áudio (`WA-ECO-AUD` · 02/09 · teste v21.14):** eco cortado. Áudio converte com ffmpeg-static (baixa sozinho no `.bat`). Na gravação some o botão verde — envia no microfone vermelho. **Ctrl+F5** + **religar o `.bat` uma vez**.
-- **Import agenda VCF (`WA-AGENDA-VCF` · 02/09 · teste v21.19):** botão **Importar agenda** sob a busca (PC e celular). Arquivo `.vcf` dos Contatos do celular → Postgres. Arquivo de teste do Renan tinha **11** contatos (sem “Esposa”).
-- **Lista sem número (`WA-FICHA-NOME` · 02/09):** com nome salvo, lista e topo mostram só o nome; clique no nome abre ficha (telefone + cadastro Agro se casar).
-- **Anteriores (`WA-HIST-FIX` · 02/09 · v21.27):** ANT. lia o sync do Zap; LID≠telefone descartava. Agora aceita os dois + mensagens do `messaging-history.set`. **Religar `.bat`**.
-- **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
-- **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
-- **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
-- **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
-- **Ver status (`WA-STATUS-VER` · 03/09):** visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
-- **Cabeçalho chat (`WA-CHAT-HEAD` · 03/09 · teste v21.77):** sem conversa = só «Selecione…»; aberta = foto+nome · Status (se houver) · Anteriores/✓/Apagar num grupo. Faixa STATUS sumiu da lista.
-- **Apagar mensagem (`WA-MSG-DEL` · 03/09 · teste v21.78):** × na bolha da loja/bot → apaga no Zap do cliente (pra todos) + “Mensagem apagada” no Agro. Migrate **`0122`**. **Religar `.bat`** + migrate + Ctrl+F5.
-- **PDV sem Zap (`PDV-WA-TOPBAR-BREVE` · 03/09):** ícone do PDV volta a **Em breve…** — atendimento só pelo menu (WhatsApp computador). Combinado antes de subir loja.
-- **Ficha (`WA-FICHA-OVERLAY` · 03/09):** **Fechar** da ficha (antes o JS carregava antes do botão). **Abrir cadastro** abre em overlay (não troca a página).
-- **Status áudio + foto (`WA-STATUS-AUD` / `WA-FOTO-PERFIL` · 03/09):** Esc/fecha para o áudio/vídeo do status. Lista com foto de perfil (ponte Baileys). Migrate **`0121`**. **Religar `.bat`** + migrate + Ctrl+F5.
-- **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.
-
-### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
+### 🚀 PREP deploy loja — lote vendas + BI (`prep-lote-vendas-bi-0109d` · **v20.73** · 01/09/2026)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Intervalo do aviso fora do horário · saudação sem 2 lojas · `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta |
-| **Onde** | `/atendimento-whatsapp/bot/` |
-| **Migrate** | **`0117`** (`aviso_fora_em`) |
-| **Status** | 🟡 `teste` **v21.00** · **fora da loja** |
-| **Você** | Recarrega `runserver` · Ctrl+F5. **Nome da agenda na busca:** fecha a janela preta **uma vez** e abre o `.bat`. |
-
-### ~~🚀 PREP deploy loja — lote vendas + BI~~ · **superado — Live v20.86 @ 798caaa**
-
-- **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-
-### 📦 PACOTE PRONTO — WhatsApp celular (`WA-CEL` · 01/09/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Zap no celular **sem** chrome SisVale · PWA · foto/áudio · menu com **computador + celular** · bot respeita desligar · dá para não separar lojas |
-| **Onde** | Menu: **WhatsApp computador (Z)** e **WhatsApp celular (Y)** · `/atendimento-whatsapp/` e `/atendimento-whatsapp/celular/` |
+| **Loja hoje** | **v20.58** @ `751c0d4` |
+| **Teste** | **v20.73** · PIN **9973** OK |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v20.93** · **fora da loja** · Render teste (não Consulta) |
-| **Ponte** | 1 `iniciar.bat` · `AGRO_WA_DJANGO_URL` = HTTPS do **agro-consulta-teste** (não 127.0.0.1) · token = env Render · senão a tela em casa fica vazia |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** · `verify_bi_devolucao_dia.py` **43/43** |
+| **Você** | Ctrl+F5 `/vendas/lojas/` · calendário 2 toques · tag fiado · BI bate com vendas-lojas |
+| **Loja** | **aguarda senha** neste chat |
 
-### 📦 PACOTE PRONTO — Mensagens WhatsApp estáveis (`WA-MSG-LID` · 01/09/2026)
+### ✅ CHECKLIST ÚNICO — 01/09d · **pronto envio produção**
 
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Aceita msg offline + ID `@lid` · junta conversa antiga · aba lembrada · Salvar bot não trava |
-| **Migrate** | **NÃO** |
-| **Ops** | Fechar **todas** janelas do `.bat` · abrir **uma** · Ctrl+F5 no chat |
-| **Status** | 🟡 `teste` **v20.90** · fora da loja (lote `WA-ATEND-QR`) · prova 89/89 |
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `BI-DEVOL-CARD` | 🟢 **pronto envio** | **NÃO** |
+| 2 | `BI-DEVOL-MEIO` | 🟢 **pronto envio** | **NÃO** |
+| 3 | `VL-FIADO-TAGS` | 🟢 **pronto envio** | **NÃO** |
+| 4 | `VL-CAL-INTERVALO` | 🟢 **pronto envio** | **NÃO** |
+| 5 | `fix marcar_lidas` | 🟢 **pronto envio** | **NÃO** |
 
-### 📦 PACOTE PRONTO — Transferir atendimento WhatsApp (`WA-XFER-LOJA` · 01/09/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Passar chat Centro ↔ Vila · avisa o cliente no Zap · outra loja vê como nova |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
-
-### 📦 PACOTE PRONTO — Agenda Zap por nome (`WA-AGENDA-NOME` · 01/09/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Busca mistura cadastro + agenda incremental · fiado responde mesmo fora do horário |
-| **Migrate** | **NÃO** |
-| **Ops** | Reiniciar `iniciar.bat` · **só uma** janela preta aberta |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) · sync bootstrap **revertido** (estabilidade) |
-
-### 📦 PACOTE PRONTO — Busca estilo Zap Web (`WA-BUSCA-WEB` · 01/09/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Campo busca no topo da lista · clique abre chat · cadastro + agenda Zap juntos |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
-
-### 📦 PACOTE PRONTO — Código de ligação WhatsApp (`WA-PAIR-CODE` · 01/09/2026)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Ligar o Zap com código (sem câmera), igual o WhatsApp Web · QR continua |
-| **Onde** | `/atendimento-whatsapp/` · Gerar código |
-| **Migrate** | **SIM** `0115` |
-| **Status** | 🟡 `teste` · fora da loja (lote `WA-ATEND-QR`) |
+**Fora deste lote:** `WA-ATEND-QR` e derivados (migrate `0111–0114`) · `WA-BOT-*` · `BI-META-C-VILA-RAMP`
 
 ### 📦 PACOTE PRONTO — Bot + PDV WhatsApp (`WA-BOT-CFG-RENAN` · 01/09/2026)
 
@@ -1736,7 +1414,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 | **O quê** | Calendário: 1º toque = início · 2º = fim · totais entre os dias (inclusive) |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` **140/140** |
-| **Status** | ✅ **Live v20.86** |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — Vendas lojas tags fiado (`VL-FIADO-TAGS` · 01/09/2026)
 
@@ -1745,7 +1423,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 | **O quê** | Tag **Sem fiado** · **c/ fiado quitado** + modal no celular |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lojas_resumo_path.py` (fiado DB + HTTP) |
-| **Status** | ✅ **Live v20.86** |
+| **Status** | 🟢 **pronto envio** · `teste` **v20.73** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI/atalhos alinhados (`BI-DEVOL-MEIO` · 01/09/2026)
 
@@ -1754,7 +1432,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 | **O quê** | Atalhos «Vendas hoje» + ranking vendedor/cliente do BI abatem devolução no dia do evento |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` **43/43** |
-| **Status** | ✅ **Live v20.86** |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### 📦 PACOTE PRONTO — BI card igual vendas-lojas (`BI-DEVOL-CARD` · 01/09/2026)
 
@@ -1763,7 +1441,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 | **O quê** | Card/total do BI `/` = mesma conta do `/vendas/lojas/` |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_bi_devolucao_dia.py` |
-| **Status** | ✅ **Live v20.86** |
+| **Status** | 🟢 **pronto envio** · loja **v20.58** |
 
 ### ✅ Deploy loja — lote checklist 01/09c (`deploy/prep-checklist-0109c` · **v20.58**) · **Live**
 
