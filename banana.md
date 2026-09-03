@@ -1280,7 +1280,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Baixa `saldo_vale_credito` na venda · bloqueia se passar do saldo · devolve o vale se a devolução for na forma Vale crédito · atualiza o número/cache no PDV |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_vale_credito_venda_path.py` **11/11** |
-| **Status** | 🟡 `teste` · loja **não** |
+| **Status** | 🟡 `teste` **v22.11** · loja **não** |
 | **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
 
 ### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · 03/09)
