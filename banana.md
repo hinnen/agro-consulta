@@ -1271,14 +1271,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### WIP — WhatsApp msgs duplicadas (`WA-DEDUP-MSG` · 03/09/2026)
+### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
 | --- | --- |
-| **Problema** | 1 msg no Zap virava várias no SisVale (notify×append / corrida / 2 pontes) |
-| **Fix** | Unique `wa_id` (migrate **0124**) · soft eco 4s · ponte só `notify` ao vivo · claim saída 90s · UI não re-appenda |
-| **Status** | 🟡 `teste` — **precisa senha** p/ loja + **migrate** na loja + **reiniciar** `iniciar.bat` (só **uma** janela) |
-| **Smoke** | 1 «aa» do cliente = 1 bolha · 1 envio da loja = 1 no celular |
+| **Loja** | **Live v21.86** @ `9adc305` · cherry (não merge `teste`) |
+| **O quê** | 1 msg Zap = 1 SisVale · unique `wa_id` · migrate **0124** · ponte só notify · claim saída |
+| **Migrate** | **SIM — 0124** |
+| **Rollback** | Tag `rollback/pre-wa-dedup-0309-v21.85` @ `10b2821` · branch `producao-backup-pre-wa-dedup-0309-v21.85` · `docs/ROLLBACK-WA-DEDUP-0309.md` |
+| **Ponte** | **Uma** janela `iniciar.bat` — **reiniciar** após Render verde |
+| **Smoke** | badge **v21.86** · 1 «aa» = 1 bolha |
+| **teste** | mesmo fix em `c9bd6fd` · VERSION teste **22.00** |
 
 ### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
 
