@@ -333,7 +333,20 @@
   function pintarMsgs(rows, append) {
     var el = $('wa-msgs');
     if (!el) return;
+    var ja = {};
+    if (append) {
+      el.querySelectorAll('[data-msg-id]').forEach(function (n) {
+        ja[n.getAttribute('data-msg-id') || ''] = true;
+      });
+    }
     var html = (rows || [])
+      .filter(function (m) {
+        if (!append) return true;
+        var id = String((m && m.id) || '');
+        if (!id || ja[id]) return false;
+        ja[id] = true;
+        return true;
+      })
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
@@ -376,8 +389,9 @@
         );
       })
       .join('');
-    if (append) el.insertAdjacentHTML('beforeend', html);
-    else el.innerHTML = html || '<p class="text-sm text-slate-500">Sem mensagens.</p>';
+    if (append) {
+      if (html) el.insertAdjacentHTML('beforeend', html);
+    } else el.innerHTML = html || '<p class="text-sm text-slate-500">Sem mensagens.</p>';
     el.scrollTop = el.scrollHeight;
   }
 

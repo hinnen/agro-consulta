@@ -171,6 +171,9 @@ const lidParaJid = new Map();
 const msgCache = new Map();
 /** Evita mandar a mesma saída 2x se o poll cruzar (foto/áudio demora). */
 const saidaEmVoo = new Set();
+/** Evita postar a mesma entrada 2x (notify + append / retry). */
+const entradaJaPostada = new Set();
+const ENTRADA_DEDUP_MAX = 800;
 let puxarSaidaRodando = false;
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 /** Mensagem “ao vivo” (dispara bot). Notify antigo no reconnect NÃO conta. */
@@ -633,6 +636,15 @@ async function baixarSaidaArquivo(id) {
 async function enviarEntrada(m, extra) {
   if (!m || !(m.message || conteudoDe(m))) return;
   const key = m.key || {};
+  const waId = String((key && key.id) || "");
+  if (waId) {
+    if (entradaJaPostada.has(waId)) return;
+    entradaJaPostada.add(waId);
+    if (entradaJaPostada.size > ENTRADA_DEDUP_MAX) {
+      const first = entradaJaPostada.keys().next().value;
+      entradaJaPostada.delete(first);
+    }
+  }
   const orig = String(key.remoteJid || "");
   if (ehStatusOuGrupo(orig)) return;
   const lid = orig.endsWith("@lid") ? orig : "";
@@ -649,24 +661,28 @@ async function enviarEntrada(m, extra) {
   const tipo = tipoMidiaDe(m);
   if (!texto && !tipo) return;
   const nome = String(m.pushName || "").slice(0, 120);
-  const waId = String((m.key && m.key.id) || "");
   const midia = await baixarMidia(m);
   const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
-  await post("/api/atendimento-whatsapp/bridge/entrada/", {
-    jid,
-    jid_lid: lid,
-    telefone: tel,
-    texto,
-    nome,
-    wa_id: waId,
-    historico,
-    de_mim: !!(m.key && m.key.fromMe),
-    ts: Math.floor(quando / 1000),
-    tipo_midia: midia.tipo || tipo,
-    midia_b64: midia.b64 || "",
-    mime: midia.mime || "",
-    nome_arquivo: String((conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""),
-  });
+  try {
+    await post("/api/atendimento-whatsapp/bridge/entrada/", {
+      jid,
+      jid_lid: lid,
+      telefone: tel,
+      texto,
+      nome,
+      wa_id: waId,
+      historico,
+      de_mim: !!(m.key && m.key.fromMe),
+      ts: Math.floor(quando / 1000),
+      tipo_midia: midia.tipo || tipo,
+      midia_b64: midia.b64 || "",
+      mime: midia.mime || "",
+      nome_arquivo: String((conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""),
+    });
+  } catch (e) {
+    if (waId) entradaJaPostada.delete(waId);
+    throw e;
+  }
   if (!historico && !(m.key && m.key.fromMe)) {
     agendarFotoPerfil(jid, { telefone: tel, jid_lid: lid });
   }
@@ -903,7 +919,7 @@ async function ligar() {
         if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
         if (m.key && m.key.fromMe && !histJanelaAberta()) continue;
-        // Cliente escreveu agora: sempre manda ao Agro (após Limpar precisa criar chat).
+        // Ao vivo: só notify (append = sync; mandava a mesma msg de novo).
         if (type === "notify" && !(m.key && m.key.fromMe)) {
           const quando = tsMs(m);
           const idade = quando ? Date.now() - quando : 0;
@@ -912,12 +928,6 @@ async function ligar() {
             continue;
           }
           console.log("Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
-          await enviarEntrada(m, { historico: false });
-          continue;
-        }
-        if (ehMensagemAoVivo(m, type)) {
-          if (m.key && m.key.fromMe) continue;
-          console.log("Entrada append:", jid, textoDe(m).slice(0, 40));
           await enviarEntrada(m, { historico: false });
           continue;
         }

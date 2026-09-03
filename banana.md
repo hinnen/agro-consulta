@@ -1264,14 +1264,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### Live loja — fix WhatsApp Limpar/entrada/foto (**v21.85**) — 03/09/2026
+### Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
 | --- | --- |
-| **Loja** | **Live v21.85** · cherry só WA (não merge `teste`) |
+| **Loja** | **Live v21.86** · cherry só WA-DEDUP (não merge `teste`) |
+| **O quê** | 1 msg Zap = 1 SisVale · unique `wa_id` · migrate **0124** · ponte só notify · claim saída |
+| **Migrate** | **SIM — 0124** (só índice; limpa wa_id duplicado antigo) |
+| **Rollback** | Tag `rollback/pre-wa-dedup-0309-v21.85` @ `10b2821` · branch `producao-backup-pre-wa-dedup-0309-v21.85` · `docs/ROLLBACK-WA-DEDUP-0309.md` |
+| **Ponte** | **Uma** janela `iniciar.bat` — **reiniciar** após Render verde |
+| **Smoke** | badge **v21.86** · 1 «aa» cliente = 1 bolha · 1 envio loja = 1 no celular |
+
+### ~~Live loja — fix WhatsApp Limpar/entrada/foto (**v21.85**)~~ · base do rollback acima
+
+| | |
+| --- | --- |
+| **Loja** | foi **v21.85** @ `10b2821` · agora tip = v21.86 |
 | **O quê** | Limpar lista · msg após limpar · foto sem duplicar · `iniciar-local.bat` |
-| **Migrate** | **NÃO** |
-| **Rollback** | Tag `rollback/pre-wa-fix-0309-v21.84` @ `c165db2` · branch `producao-backup-pre-wa-fix-0309-v21.84` · `docs/ROLLBACK-WA-FIX-0309.md` |
+| **Migrate** | **NÃO** (na época) |
+| **Rollback** | Tag `rollback/pre-wa-fix-0309-v21.84` @ `c165db2` · `docs/ROLLBACK-WA-FIX-0309.md` |
 | **Ponte** | Loja: `iniciar.bat` + `.env` sistvale. Local: `iniciar-local.bat` |
 | **Smoke** | badge **v21.85** · Limpar · 1 oi · 1 foto |
 
