@@ -351,6 +351,29 @@
     return openFlag;
   }
 
+  /** Esc no pai: se o iframe está no Ver venda, volta à lista (1 nível). */
+  function tryFrameBackOne() {
+    var root = document.getElementById(ROOT_ID);
+    var frame = root && root.querySelector('#agro-pdv-overlay-frame');
+    if (!frame || !frame.contentWindow) return false;
+    try {
+      var win = frame.contentWindow;
+      var path = String((win.location && win.location.pathname) || '').replace(/\/+$/, '') || '/';
+      if (!/^\/venda\/\d+$/.test(path)) return false;
+      try {
+        var ref = String(win.document.referrer || '');
+        if (ref && ref.indexOf('/vendas') >= 0 && win.history.length > 1) {
+          win.history.back();
+          return true;
+        }
+      } catch (_) {}
+      win.location.href = overlayUrl('/vendas/');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function onKeydown(e) {
     if (!openFlag) return;
     var k = e.key || '';
@@ -362,6 +385,7 @@
       }
       e.preventDefault();
       e.stopPropagation();
+      if (k === 'Escape' && tryFrameBackOne()) return;
       close();
     }
   }
