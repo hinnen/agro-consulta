@@ -2197,6 +2197,10 @@
   }
   function abrirPopupNested(url, titulo) {
     if (!popupNested || !popupNestedFrame) return;
+    try {
+      var path = String(new URL(url, window.location.origin).pathname || '').toLowerCase();
+      if (path.indexOf('/repasse-vila') >= 0) return;
+    } catch (_) {}
     if (popup && popup.classList.contains('hidden')) {
       abrirPopup(url, titulo, true);
       return;

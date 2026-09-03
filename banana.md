@@ -1327,9 +1327,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
-| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados (token invisível não congela o iframe). |
+| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **18/18** · vendas UX **52/52** |
+| **Prova** | `verify_pdv_overlay_stack_path` **22/22** · vendas UX **52/52** |
 | **Status** | 🟡 **pronto para envio à produção** |
 
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
