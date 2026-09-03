@@ -203,3 +203,40 @@ class MpPointPinForcarNaoVoltaTests(SimpleTestCase):
         self.assertEqual(pend.status, PdvMercadoPagoPointOrder.Status.ABANDONED)
         self.assertTrue(_mp_point_row_foi_forcado_liberar(pend))
         get_order.assert_called_once()
+
+
+class MpPointOperadorCarimboTests(SimpleTestCase):
+    def test_carimbo_grava_operador_do_pin(self):
+        from produtos.views_mp_point import _mp_point_carimbar_operador
+
+        req = RequestFactory().post("/")
+        erp = {}
+        with patch(
+            "produtos.views_mp_point.exigir_operador_pin_request",
+            return_value=("Geraldinho", ""),
+        ):
+            _mp_point_carimbar_operador(req, erp)
+        self.assertEqual(erp.get("mp_point_operador"), "Geraldinho")
+
+    def test_injetar_restaura_sessao_quando_pin_expirou(self):
+        from produtos.views_mp_point import _mp_point_injetar_operador_carimbo
+
+        req = RequestFactory().post("/")
+        req.session = {}
+        row = SimpleNamespace(erp_payload={"mp_point_operador": "Geraldinho"})
+        with patch(
+            "produtos.views_mp_point.exigir_operador_pin_request",
+            return_value=("", "Identifique-se"),
+        ):
+            nome = _mp_point_injetar_operador_carimbo(req, row, {})
+        self.assertEqual(nome, "Geraldinho")
+        self.assertEqual(req.session.get("pdv_operador_nome"), "Geraldinho")
+
+    def test_saneamento_mantem_operador(self):
+        from produtos.views_mp_point import _sanear_erp_payload
+
+        out = _sanear_erp_payload(
+            {"itens": [{"id": "1"}], "mp_point_operador": "Geraldinho", "lixo": 1}
+        )
+        self.assertEqual(out.get("mp_point_operador"), "Geraldinho")
+        self.assertNotIn("lixo", out)
