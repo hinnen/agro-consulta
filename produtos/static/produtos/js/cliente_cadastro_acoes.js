@@ -67,6 +67,9 @@
         if (!root) return;
         root.classList.add('hidden');
         root.classList.remove('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(root, false);
+        } catch (_) {}
         var extra = el('agro-cli-acao-extra');
         if (extra) extra.innerHTML = '';
         var err = el('agro-cli-acao-erro');
@@ -111,6 +114,9 @@
         showErro('');
         root.classList.remove('hidden');
         root.classList.add('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(root, true);
+        } catch (_) {}
         var pin = root.querySelector('#agro-cli-acao-pin');
         if (pin) setTimeout(function () { pin.focus(); }, 40);
     }

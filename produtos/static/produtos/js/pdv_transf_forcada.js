@@ -174,7 +174,12 @@
 
   function fecharDirecao(opts) {
     opts = opts || {};
-    if (elDir) elDir.classList.add('hidden');
+    if (elDir) {
+      elDir.classList.add('hidden');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(elDir, false);
+      } catch (_) {}
+    }
     if (!isOverlayOpen() && !isPinOpen()) showBackdrop(false);
     if (opts.voltarEscolha) reopenEscolha();
   }
@@ -184,6 +189,9 @@
     if (overlay) {
       overlay.classList.add('hidden');
       overlay.classList.remove('flex');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, false);
+      } catch (_) {}
     }
     if (!isDirOpen() && !isPinOpen()) showBackdrop(false);
     if (opts.voltarEscolha) reopenEscolha();
@@ -193,6 +201,9 @@
     if (elPin) {
       elPin.classList.add('hidden');
       elPin.classList.remove('flex');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(elPin, false);
+      } catch (_) {}
     }
     var r = pinResolve;
     pinResolve = null;
@@ -207,6 +218,9 @@
       if (elPin) {
         elPin.classList.remove('hidden');
         elPin.classList.add('flex');
+        try {
+          if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(elPin, true);
+        } catch (_) {}
       }
       setTimeout(function () {
         if (dom.pinInput) {
@@ -223,7 +237,12 @@
     returnToEscolha = true;
     aplicarDestaqueDirecao();
     showBackdrop(true);
-    if (elDir) elDir.classList.remove('hidden');
+    if (elDir) {
+      elDir.classList.remove('hidden');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(elDir, true);
+      } catch (_) {}
+    }
     setTimeout(function () {
       var hero = elDir && elDir.querySelector('.pdv-tf-dir-btn--hero');
       if (hero) {
@@ -251,6 +270,9 @@
     showBackdrop(true);
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
+    } catch (_) {}
     setTimeout(function () {
       if (dom.busca) {
         dom.busca.value = '';

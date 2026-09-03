@@ -567,6 +567,9 @@
       dom.stepPop.removeAttribute('data-quem-outros');
       dom.stepPop.removeAttribute('data-motivo-outros');
       dom.stepPop.removeAttribute('data-motivo-brinde');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.stepPop, false);
+      } catch (_) {}
     }
   }
 
@@ -801,6 +804,9 @@
     if (!dom.stepPop) return;
     dom.stepPop.classList.remove('hidden');
     dom.stepPop.setAttribute('data-step', name);
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.stepPop, true);
+    } catch (_) {}
     if (name !== 'quem') {
       quemOutrosMode = false;
       dom.stepPop.removeAttribute('data-quem-outros');
@@ -888,6 +894,9 @@
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
+    } catch (_) {}
     hideStepPop();
     setView('saida');
     setStatus('');
@@ -906,6 +915,9 @@
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, false);
+    } catch (_) {}
     draft = emptyDraft();
   }
 

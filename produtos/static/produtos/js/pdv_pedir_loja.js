@@ -166,6 +166,9 @@
     if (dom.confirm) {
       dom.confirm.classList.remove('is-open');
       dom.confirm.setAttribute('aria-hidden', 'true');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.confirm, false);
+      } catch (_) {}
     }
     var cb = confirmCb;
     confirmCb = null;
@@ -205,6 +208,9 @@
       }
       dom.confirm.classList.add('is-open');
       dom.confirm.setAttribute('aria-hidden', 'false');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.confirm, true);
+      } catch (_) {}
     });
   }
 
@@ -221,6 +227,9 @@
   function abrir() {
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
+    } catch (_) {}
     if (dom.sub) {
       dom.sub.textContent = 'Pedindo para ' + lojaOutraLabel();
     }
@@ -236,6 +245,9 @@
   function fechar() {
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, false);
+    } catch (_) {}
     fecharAjuste();
     if (dom.confirm && dom.confirm.classList.contains('is-open')) fecharConfirm(false);
   }
@@ -287,6 +299,9 @@
     if (!dom.temPedido) return;
     dom.temPedido.classList.remove('is-open');
     dom.temPedido.setAttribute('aria-hidden', 'true');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.temPedido, false);
+    } catch (_) {}
   }
 
   function abrirTemPedido(n) {
@@ -299,6 +314,9 @@
     }
     dom.temPedido.classList.add('is-open');
     dom.temPedido.setAttribute('aria-hidden', 'false');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.temPedido, true);
+    } catch (_) {}
     window.setTimeout(function () {
       try {
         if (dom.temPedidoOk) dom.temPedidoOk.focus();
@@ -355,6 +373,9 @@
     if (dom.ajuste) {
       dom.ajuste.classList.remove('is-open');
       dom.ajuste.setAttribute('aria-hidden', 'true');
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.ajuste, false);
+      } catch (_) {}
     }
     ajusteProduto = null;
   }
@@ -372,6 +393,9 @@
     if (dom.ajusteVila) dom.ajusteVila.value = String(numSaldo(p, 'saldo_vila'));
     dom.ajuste.classList.add('is-open');
     dom.ajuste.setAttribute('aria-hidden', 'false');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.ajuste, true);
+    } catch (_) {}
     window.setTimeout(function () {
       try {
         if (dom.ajusteCentro) {
@@ -1150,6 +1174,9 @@
     if (!escolha) return;
     escolha.classList.add('hidden');
     escolha.classList.remove('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(escolha, false);
+    } catch (_) {}
   }
 
   function abrirEscolha() {
@@ -1159,6 +1186,9 @@
     }
     escolha.classList.remove('hidden');
     escolha.classList.add('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(escolha, true);
+    } catch (_) {}
   }
 
   if (dom.btnOpen) dom.btnOpen.addEventListener('click', abrirEscolha);

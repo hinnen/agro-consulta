@@ -5,8 +5,9 @@
   'use strict';
 
   var ROOT_ID = 'agro-pdv-overlay';
-  var STYLE_ID = 'agro-pdv-overlay-styles-v6';
+  var STYLE_ID = 'agro-pdv-overlay-styles-v7';
   var openFlag = false;
+  var chromeLocked = false;
 
   function titleFromUrl(url) {
     try {
@@ -77,6 +78,8 @@
     if (oldV4) oldV4.remove();
     var oldV5 = document.getElementById('agro-pdv-overlay-styles-v5');
     if (oldV5) oldV5.remove();
+    var oldV6 = document.getElementById('agro-pdv-overlay-styles-v6');
+    if (oldV6) oldV6.remove();
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -92,6 +95,7 @@
       '.agro-pdv-overlay-panel[data-overlay-size="folha"]{width:min(94vw,64rem);height:min(92vh,52rem);max-width:94vw;max-height:92vh}' +
       '.agro-pdv-overlay-head{display:flex;align-items:center;gap:.55rem;flex-shrink:0;padding:.5rem .75rem;border-bottom:2px solid #e2e8f0;background:linear-gradient(180deg,#fff,#f1f5f9);flex-wrap:nowrap}' +
       '.agro-pdv-overlay-panel.is-chrome-hidden .agro-pdv-overlay-head{display:none!important}' +
+      '.agro-pdv-overlay-panel.is-chrome-hidden{border-color:#94a3b8}' +
       '.agro-pdv-overlay-brand{flex-shrink:0;width:2.25rem;height:2.25rem;border-radius:.65rem;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 1px 3px rgba(15,23,42,.08)}' +
       '.agro-pdv-overlay-brand .g{color:#059669}.agro-pdv-overlay-brand .m{color:#f97316}' +
       '.agro-pdv-overlay-titles{flex:1;min-width:0;display:flex;flex-direction:column;gap:.1rem}' +
@@ -196,7 +200,10 @@
       '<iframe id="agro-pdv-overlay-frame" title="Consulta no balcão"></iframe>' +
       '</div>';
     document.body.appendChild(root);
-    root.querySelector('#agro-pdv-overlay-close').addEventListener('click', close);
+    root.querySelector('#agro-pdv-overlay-close').addEventListener('click', function () {
+      if (chromeLocked) return;
+      close();
+    });
     root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', function () {
       /* Fundo nao fecha — so X / FECHAR / Esc */
     });
@@ -228,7 +235,8 @@
     var helpBtn = root.querySelector('#agro-pdv-overlay-help');
     var helpPanel = root.querySelector('#agro-pdv-overlay-help-panel');
     if (panel && Object.prototype.hasOwnProperty.call(d, 'hideChrome')) {
-      panel.classList.toggle('is-chrome-hidden', !!d.hideChrome);
+      chromeLocked = !!d.hideChrome;
+      panel.classList.toggle('is-chrome-hidden', chromeLocked);
     }
     if (titleEl && d.title != null) titleEl.textContent = String(d.title || '');
     if (subEl && (d.subtitle != null || d.title != null)) {
@@ -268,6 +276,7 @@
       helpHtml: '',
       hideChrome: false,
     });
+    chromeLocked = false;
   }
 
   function detectOverlaySize(href) {
@@ -329,6 +338,7 @@
     root.setAttribute('hidden', '');
     document.documentElement.classList.remove('agro-pdv-overlay-open');
     openFlag = false;
+    chromeLocked = false;
     // Após fechar caixa/abrir no overlay, PDV precisa saber se o turno ainda existe
     try {
       if (typeof window.AgroPdvRefreshCaixa === 'function') {
@@ -345,6 +355,11 @@
     if (!openFlag) return;
     var k = e.key || '';
     if (k === 'Escape' || k === 'F1') {
+      if (chromeLocked) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       close();
@@ -376,6 +391,10 @@
           applyMeta(d);
           return;
         }
+        if (d.type === 'agro-caixa-modal-layer') {
+          applyMeta({ hideChrome: !!d.open });
+          return;
+        }
         if (d.type === 'agro-pdv-caixa-changed') {
           try {
             if (typeof window.AgroPdvRefreshCaixa === 'function') {
@@ -402,6 +421,9 @@
     open: open,
     close: close,
     isOpen: isOpen,
+    isChromeLocked: function () {
+      return !!chromeLocked;
+    },
     overlayUrl: overlayUrl,
     titleFromUrl: titleFromUrl,
   };
