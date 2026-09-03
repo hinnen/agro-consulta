@@ -258,7 +258,7 @@
   <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   <script>
   (function () {
-    /* Dentro do popup do Fechar caixa: Nova saída / Repasse abrem 2ª camada no pai. */
+    /* Dentro do popup do Fechar caixa: Nova saída abre 2ª camada. Repasse = overlay PDV nesta página (não a tela de gestão). */
     function inCfPopupFrame() {
       try {
         if (window.parent === window) return false;
@@ -285,18 +285,6 @@
         e.preventDefault();
         askNested(nova.getAttribute('href') || '', 'Nova saída');
       });
-    }
-    var repasseBtn = document.getElementById('crh-btn-repasse');
-    if (repasseBtn) {
-      repasseBtn.addEventListener(
-        'click',
-        function (e) {
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          askNested('{% url "repasse_vila" %}?embed=1', 'Repasse Vila → Centro');
-        },
-        true
-      );
     }
   })();
   </script>

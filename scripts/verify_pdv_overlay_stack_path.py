@@ -41,6 +41,9 @@ def main() -> int:
         "caixa_popup_not_nested_token",
         "not(#cf-popup)" in caixa_html and "setNested(outroModal && !popupAberto" in caixa_html,
     )
+    crh = (ROOT / "produtos/templates/produtos/caixa_retiradas_historico.html").read_text(encoding="utf-8")
+    check("caixa_repasse_not_gestao_iframe", "url \"repasse_vila\"" not in crh and "askNested" in crh)
+    check("caixa_nested_blocks_repasse_url", "indexOf('/repasse-vila')" in caixa_html)
     check("overlay_caixa_layer", "agro-caixa-modal-layer" in overlay)
     check("ui_includes_stack", "agro_overlay_stack.js" in ui)
     check("vendas_nfce_modal_fixed", 'id="modal-nfce-venda"' in vendas and 'style="position:fixed"' in vendas)
@@ -53,7 +56,7 @@ def main() -> int:
     check("wizard_stack", "AgroOverlayStack" in (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8"))
     check("compras_auto", 'data-agro-stack="auto"' in (ROOT / "produtos/templates/produtos/compras.html").read_text(encoding="utf-8"))
 
-    total = 20
+    total = 22
     print(("OK" if fails == 0 else "FAIL") + f" verify_pdv_overlay_stack_path — {total - fails}/{total}")
     return 1 if fails else 0
 
