@@ -1571,6 +1571,19 @@ def pedir_codigo_pareamento(telefone: str) -> tuple[WhatsAppPontePedidoAgro | No
     return p, ""
 
 
+def pedir_trocar_whatsapp() -> tuple[WhatsAppPontePedidoAgro | None, str]:
+    """Desliga a sessão neste PC → novo QR / código."""
+    recente = WhatsAppPontePedidoAgro.objects.filter(
+        tipo=WhatsAppPontePedidoAgro.TIPO_LOGOUT,
+        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        criado_em__gte=timezone.now() - timedelta(seconds=15),
+    ).first()
+    if recente:
+        return recente, ""
+    p = WhatsAppPontePedidoAgro.objects.create(tipo=WhatsAppPontePedidoAgro.TIPO_LOGOUT, payload={})
+    return p, ""
+
+
 def excluir_conversa(conversa_id: int) -> tuple[bool, str]:
     try:
         cid = int(conversa_id)
@@ -1654,12 +1667,16 @@ def atualizar_ponte(
         obj.qr_data_url = (qr or "")[:200000]
     else:
         obj.qr_data_url = ""
-    if numero:
-        obj.numero = str(numero).strip()[:32]
     if st == WhatsAppPonteEstadoAgro.STATUS_CONECTADO:
+        if numero:
+            obj.numero = str(numero).strip()[:32]
         obj.pairing_code = ""
-    elif pairing_code:
-        obj.pairing_code = str(pairing_code).replace(" ", "")[:16]
+    else:
+        obj.numero = str(numero).strip()[:32] if numero else ""
+        if pairing_code:
+            obj.pairing_code = str(pairing_code).replace(" ", "")[:16]
+        elif st == WhatsAppPonteEstadoAgro.STATUS_DESCONECTADO:
+            obj.pairing_code = ""
     obj.aviso = (aviso or "")[:240]
     obj.save()
     return obj

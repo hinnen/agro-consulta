@@ -34,6 +34,7 @@ from produtos.atendimento_whatsapp_util import (
     pedir_agenda_zap,
     pedir_codigo_pareamento,
     pedir_historico_conversa,
+    pedir_trocar_whatsapp,
     processar_entrada,
     aplicar_mapa_lid,
     serializar_conversa,
@@ -433,6 +434,15 @@ def api_atendimento_whatsapp_concluir(request):
 def api_atendimento_whatsapp_pairing(request):
     data = _json_body(request) or {}
     _p, err = pedir_codigo_pareamento(str(data.get("telefone") or ""))
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_trocar(request):
+    _p, err = pedir_trocar_whatsapp()
     if err:
         return JsonResponse({"ok": False, "erro": err}, status=400)
     return JsonResponse({"ok": True})

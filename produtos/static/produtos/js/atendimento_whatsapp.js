@@ -127,8 +127,12 @@
     if (!p.ponte_viva) {
       pill('bad', 'Off', 'Rode whatsapp_atendimento\\iniciar.bat e deixe a janela aberta');
       if (qrBox) qrBox.classList.add('hidden');
+      var btnTrocarOff = $('wa-trocar');
+      if (btnTrocarOff) btnTrocarOff.classList.add('hidden');
       return;
     }
+    var btnTrocar = $('wa-trocar');
+    if (btnTrocar) btnTrocar.classList.toggle('hidden', !p.conectada);
     if (p.conectada) {
       pill('ok', p.numero ? p.numero : 'Online');
       if (qrBox) qrBox.classList.add('hidden');
@@ -954,6 +958,35 @@
         }
         window.setTimeout(carregarEstado, 1500);
       });
+    });
+  }
+  var btnTrocar = $('wa-trocar');
+  if (btnTrocar) {
+    btnTrocar.addEventListener('click', function () {
+      if (
+        !window.confirm(
+          'Desligar este WhatsApp neste PC?\nVai precisar ler o QR ou gerar um código de novo (pode ser outro número).'
+        )
+      ) {
+        return;
+      }
+      btnTrocar.disabled = true;
+      fetchJson('/api/atendimento-whatsapp/trocar/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: '{}',
+      })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            window.alert((j && j.erro) || 'Não desligou. Ponte ligada?');
+            return;
+          }
+          window.setTimeout(carregarEstado, 1200);
+          window.setTimeout(carregarEstado, 3500);
+        })
+        .finally(function () {
+          btnTrocar.disabled = false;
+        });
     });
   }
   var btnOk = $('wa-ok');

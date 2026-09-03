@@ -3572,10 +3572,12 @@ class WhatsAppPontePedidoAgro(models.Model):
     TIPO_CONTATOS = "contatos"
     TIPO_HISTORICO = "historico"
     TIPO_PAIRING = "pairing"
+    TIPO_LOGOUT = "logout"
     TIPO_CHOICES = (
         (TIPO_CONTATOS, "Agenda"),
         (TIPO_HISTORICO, "Histórico"),
         (TIPO_PAIRING, "Código de ligação"),
+        (TIPO_LOGOUT, "Trocar WhatsApp"),
     )
     STATUS_PENDENTE = "pendente"
     STATUS_OK = "ok"

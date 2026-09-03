@@ -817,7 +817,7 @@ async function executarPedido(p) {
         throw new Error("Número inválido");
       }
       if (sock.authState && sock.authState.creds && sock.authState.creds.registered) {
-        throw new Error("Já está ligado neste PC.");
+        throw new Error("Já está ligado neste PC. Use Trocar Zap antes.");
       }
       const raw = await sock.requestPairingCode(tel);
       const code = String(raw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
@@ -829,6 +829,33 @@ async function executarPedido(p) {
       });
       console.log("Código de ligação:", lastPairing);
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      return;
+    }
+    if (p.tipo === "logout") {
+      lastPairing = "";
+      primeiraLigacao = true;
+      try {
+        if (sock && typeof sock.logout === "function") {
+          await sock.logout();
+        }
+      } catch (e) {
+        console.error("logout zap:", e.message || e);
+      }
+      fecharSockAntigo();
+      try {
+        fs.rmSync(AUTH, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+      await estado({
+        status: "desconectado",
+        aviso: "Zap desligado neste PC. Leia o QR ou gere um código.",
+        numero: "",
+        qr: "",
+        pairing_code: "",
+      });
+      await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      setTimeout(() => ligar(), 800);
       return;
     }
     if (p.tipo === "historico") {

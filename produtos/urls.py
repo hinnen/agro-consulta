@@ -871,6 +871,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_pairing',
     ),
     path(
+        'api/atendimento-whatsapp/trocar/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_trocar,
+        name='api_atendimento_whatsapp_trocar',
+    ),
+    path(
         'api/atendimento-whatsapp/midia/<int:pk>/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_midia,
         name='api_atendimento_whatsapp_midia',
