@@ -12944,4 +12944,4 @@ Ao **entregar** fix, feature ou deploy (teste ou produÃ§Ã£o) â†’ **edit
 
 ### Fim do checkpoint v1.0.77
 
-*PrÃ³xima edi
+*PrÃ³xima ediÃ§Ã£o comeÃ§a abaixo desta linha ou substituindo o bloco CHECKPOINT acima.*
