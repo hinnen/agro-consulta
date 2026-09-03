@@ -76,6 +76,12 @@
   function setModalBodyLock(on) {
     document.body.classList.toggle('fiado-modal-aberto', !!on);
     try {
+      if (window.AgroOverlayStack) {
+        window.AgroOverlayStack.setNested(!!on, 'fiado-cliente');
+        return;
+      }
+    } catch (_) {}
+    try {
       if (window.top && window.top !== window) {
         window.top.postMessage(
           {

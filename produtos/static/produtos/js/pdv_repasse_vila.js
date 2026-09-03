@@ -275,12 +275,18 @@
     if (!el) return;
     el.classList.remove('hidden');
     el.classList.add('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el, true);
+    } catch (_) {}
   }
 
   function hideModal(el) {
     if (!el) return;
     el.classList.add('hidden');
     el.classList.remove('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el, false);
+    } catch (_) {}
   }
 
   function focusSoon(el) {
@@ -726,6 +732,9 @@
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
     document.body.classList.add('modal-open');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
+    } catch (_) {}
     pendingConfirmar = false;
     setupDataField();
     applyQueryPrefs();
@@ -831,6 +840,9 @@
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
     document.body.classList.remove('modal-open');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, false);
+    } catch (_) {}
   }
 
   function notifyParentFecharAtualizar() {

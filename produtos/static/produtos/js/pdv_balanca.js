@@ -933,6 +933,9 @@
     }
     overlay.classList.remove('hidden');
     overlay.classList.add('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, true);
+    } catch (_) {}
     setStatus('');
     if (dom.codigo) {
       dom.codigo.value = '';
@@ -958,6 +961,9 @@
   function closeOverlay() {
     overlay.classList.add('hidden');
     overlay.classList.remove('flex');
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(overlay, false);
+    } catch (_) {}
     /* Mantém a porta aberta no PC para reabrir rápido; só limpa UI. */
     setStatus('');
   }

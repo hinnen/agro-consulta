@@ -89,8 +89,9 @@ def test_arquivos() -> None:
     check("moeda_html", "fmtMoedaHtml" in js and "fiado-moeda" in html)
 
     check("overlay_hide_chrome", "hideChrome" in overlay and "is-chrome-hidden" in overlay)
-    check("overlay_styles_v6", "agro-pdv-overlay-styles-v6" in overlay)
-    check("fiado_post_hide", "hideChrome: !!on" in js)
+    check("overlay_styles_v7", "agro-pdv-overlay-styles-v7" in overlay)
+    check("overlay_chrome_locked", "chromeLocked" in overlay)
+    check("fiado_post_hide", "setNested" in js or "hideChrome: !!on" in js)
     check("overlay_in_iframe", "agro-fiado-in-overlay" in html)
 
 

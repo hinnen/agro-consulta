@@ -1306,7 +1306,7 @@
 {% if tem_caixa_operacional and fiado_baixas_wizard %}
 {% include "produtos/includes/caixa_fiado_wizard_modal.html" with modal_id="cf-fiado-modal-baixas" title_id="cf-fiado-baixas-title" passo_num=fiado_vendas_wizard|yesno:"2,1" passo_total=fiado_vendas_wizard|yesno:"2,1" titulo="Pagamentos fiado — nota devolvida ao cliente" intro="Confira se cada nota assinada foi retirada da caixinha e devolvida ao cliente após o pagamento." fiado_items=fiado_baixas_wizard checkbox_name="fiado_retirado" checkbox_class="cf-fiado-check-retirado" btn_pular_id="cf-fiado-baixas-pular" btn_confirmar_id="cf-fiado-baixas-confirmar" %}
 {% endif %}
-<div id="cf-cedulas-modal" class="cf-modal-overlay cf-cedulas-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cf-cedulas-modal-title">
+<div id="cf-cedulas-modal" data-agro-stack="auto" class="cf-modal-overlay cf-cedulas-modal hidden" role="dialog" aria-modal="true" aria-labelledby="cf-cedulas-modal-title">
   <div class="cf-modal-panel cf-cedulas-modal-panel">
     <div class="cf-cedulas-modal-head">
       <h3 id="cf-cedulas-modal-title" class="cf-cedulas-modal-title">Cédulas e moedas</h3>
@@ -1709,6 +1709,9 @@
     );
     try {
       if (window.gmSspinSetPausado) window.gmSspinSetPausado('caixa-modal', open);
+    } catch (_) {}
+    try {
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setNested(open, 'caixa-modal');
     } catch (_) {}
     try {
       if (window.top !== window.self) {

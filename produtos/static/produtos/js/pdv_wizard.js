@@ -6345,6 +6345,15 @@
         if (modo === 'entrega' && fase === 'done') {
             renderEntregaResumo(state, State.getComputed());
         }
+        try {
+            if (window.AgroOverlayStack && dom.entregaWizard) {
+                var wizOn =
+                    state.currentStep === 'entrega' &&
+                    !dom.entregaWizard.hidden &&
+                    !dom.entregaWizard.classList.contains('hidden');
+                window.AgroOverlayStack.setOpen(dom.entregaWizard, wizOn);
+            }
+        } catch (_) {}
     }
 
     function fecharModaisEntregaAntesImpressao() {
@@ -8281,6 +8290,9 @@
         initQuickClientEditMissingListenersOnce();
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickClientEditOverlay, true);
+        } catch (_) {}
         window.setTimeout(function () {
             if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
         }, 60);
@@ -8306,6 +8318,9 @@
             dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden');
         dom.quickClientEditOverlay.classList.add('hidden');
         dom.quickClientEditOverlay.classList.remove('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickClientEditOverlay, false);
+        } catch (_) {}
         clearQuickClientEditForm();
         if (pickerOpen) window.setTimeout(focusQuickClientSearchField, 40);
     }
@@ -8650,6 +8665,9 @@
         closeQuickProductUnidadeLista();
         dom.quickProductEditOverlay.classList.add('hidden');
         dom.quickProductEditOverlay.classList.remove('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickProductEditOverlay, false);
+        } catch (_) {}
         quickProductEditItemId = null;
         quickProductEditProdutoId = null;
     }
@@ -8711,6 +8729,9 @@
         } catch (_) {}
         dom.quickProductEditOverlay.classList.remove('hidden');
         dom.quickProductEditOverlay.classList.add('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickProductEditOverlay, true);
+        } catch (_) {}
         var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
         if (!pattern) {
             setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
@@ -11599,6 +11620,9 @@
         dom.paymentFormaModal.classList.remove('hidden');
         dom.paymentFormaModal.classList.add('flex');
         try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.paymentFormaModal, true);
+        } catch (_) {}
+        try {
             document.body.style.overflow = 'hidden';
         } catch (err) {}
         syncPdvSspinIdlePause();
@@ -11610,6 +11634,9 @@
         if (!dom.paymentFormaModal) return;
         dom.paymentFormaModal.classList.add('hidden');
         dom.paymentFormaModal.classList.remove('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.paymentFormaModal, false);
+        } catch (_) {}
         try {
             document.body.style.overflow = '';
         } catch (err2) {}
@@ -13061,6 +13088,9 @@
         if (!el.overlay) return;
         el.overlay.classList.add('hidden');
         el.overlay.classList.remove('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el.overlay, false);
+        } catch (_) {}
         cadastroRapidoExistente = null;
         cadastroRapidoCodigoSys = '';
         cadastroRapidoLimparPreview();
@@ -13103,6 +13133,9 @@
         cadastroRapidoShowStep('ean');
         el.overlay.classList.remove('hidden');
         el.overlay.classList.add('flex');
+        try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el.overlay, true);
+        } catch (_) {}
         window.setTimeout(function () {
             if (el.ean) el.ean.focus();
         }, 40);

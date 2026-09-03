@@ -1297,6 +1297,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | WIP local — aguarda prova no PC |
 | **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
 
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.74** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | 2ª/3ª camada em cima: a de baixo fica **inativa** (sem Fechar/Esc/F1 da barra verde). Motor `AgroOverlayStack` + trava no `AgroPdvOverlay`. Cobre: Fiado, Vendas (NFC-e), Caixa (modais), Clientes/cadastro, Compras (modais), Repasse, Pedir/Uso loja, Transf. forçada, Balança, Entrega wizard, forma pagamento, cadastro/edição rápida. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_overlay_stack_path` · `verify_fiado_ver_recibos_path` · check OK |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Reverter** | `git revert` deste commit (pacote único) |
+
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.74** · 03/09)
 
 | Campo | Valor |
@@ -1324,6 +1334,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | - | ------ | ------ | ------- |
 | 1 | `PIN-VENDA-10S` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 2 | `FIADO-VER-RECIBOS` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-OVERLAY-STACK` | 🟡 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** v21.08. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
 
