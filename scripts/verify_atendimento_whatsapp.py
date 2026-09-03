@@ -61,7 +61,7 @@ def _static() -> None:
     check("html_vcf", "wa-vcf-inp" in html)
     check("js_vcf", "agenda-vcf" in js)
     check("html_lista_larga", "minmax(18rem,26rem)" in html)
-    check("js_preview_ico", "htmlPreviewLista" in js && "wa-p-ico" in js)
+    check("js_preview_ico", "htmlPreviewLista" in js and "wa-p-ico" in js)
     check("skin_hora_direita", "wa-row1" in skin and ".wa-t" in skin)
     check("js_enviar_busy", "btn.disabled = true" in js and ".finally" in js)
     check("js_abrir", "atendimento-whatsapp/abrir/" in js)
