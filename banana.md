@@ -733,7 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF`/`WA-STATUS-VER` · 03/09):** stories fora do chat · faixa para ver. Migrate **`0120`**. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
+- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF`/`WA-STATUS-VER`/`WA-CHAT-HEAD` · 03/09):** stories fora do chat · chip **Status** no cabeçalho da conversa (só se o contato tiver). Migrate **`0120`**. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
 - **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
@@ -1328,7 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.74**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1441,7 +1441,8 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
 - **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
 - **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
-- **Ver status (`WA-STATUS-VER` · 03/09):** faixa circular no topo da lista + visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
+- **Ver status (`WA-STATUS-VER` · 03/09):** visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
+- **Cabeçalho chat (`WA-CHAT-HEAD` · 03/09 · teste v21.77):** sem conversa = só «Selecione…»; aberta = foto+nome · Status (se houver) · Anteriores/✓/Apagar num grupo. Faixa STATUS sumiu da lista.
 - **Ficha (`WA-FICHA-OVERLAY` · 03/09):** **Fechar** da ficha (antes o JS carregava antes do botão). **Abrir cadastro** abre em overlay (não troca a página).
 - **Status áudio + foto (`WA-STATUS-AUD` / `WA-FOTO-PERFIL` · 03/09):** Esc/fecha para o áudio/vídeo do status. Lista com foto de perfil (ponte Baileys). Migrate **`0121`**. **Religar `.bat`** + migrate + Ctrl+F5.
 - **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.

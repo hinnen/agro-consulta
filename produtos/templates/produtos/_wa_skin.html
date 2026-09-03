@@ -190,11 +190,94 @@
     font-size: .72rem; font-weight: 900; line-height: 1;
     box-shadow: 0 1px 2px rgb(15 23 42 / .12);
   }
-  .wa-skin #wa-topo-nome {
-    border: 0; background: transparent; padding: 0; cursor: pointer;
-    text-align: left; color: inherit; font: inherit; font-weight: 800;
+  .wa-skin .wa-chat-head {
+    display: flex; align-items: center; min-height: 3.35rem;
+    padding: .45rem .75rem; border-bottom: 1px solid #e8eef4; background: #f8fafc;
   }
-  .wa-skin #wa-topo-nome:hover { text-decoration: underline; text-underline-offset: 2px; }
+  .wa-skin .wa-chat-head.is-empty .wa-chat-on { display: none; }
+  .wa-skin .wa-chat-head:not(.is-empty) .wa-chat-empty { display: none; }
+  .wa-skin .wa-chat-empty {
+    margin: 0; width: 100%; text-align: center;
+    font-size: .82rem; font-weight: 700; color: #94a3b8;
+  }
+  .wa-skin .wa-chat-on {
+    display: flex; align-items: center; gap: .55rem; width: 100%; min-width: 0;
+  }
+  .wa-skin .wa-chat-who {
+    display: flex; align-items: center; gap: .55rem; flex: 1; min-width: 0;
+    border: 0; background: transparent; padding: 0; cursor: pointer; text-align: left;
+  }
+  .wa-skin .wa-chat-who:hover .wa-topo-nome { text-decoration: underline; text-underline-offset: 2px; }
+  .wa-skin .wa-topo-av {
+    flex-shrink: 0; width: 2.45rem; height: 2.45rem; border-radius: 999px; overflow: hidden;
+    background: #e2e8f0; display: flex; align-items: center; justify-content: center;
+    font-size: .95rem; font-weight: 900; color: #475569;
+  }
+  .wa-skin .wa-topo-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .wa-skin .wa-topo-nome {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: .95rem; font-weight: 800; color: #0f172a;
+  }
+  .wa-skin .wa-chat-tools {
+    display: flex; align-items: center; gap: .4rem; flex-shrink: 0; margin-left: auto;
+  }
+  .wa-skin .wa-chat-actions {
+    display: flex; align-items: center; gap: .2rem; flex-shrink: 0;
+    padding: .12rem; border-radius: .85rem; background: #fff; border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 2px rgb(15 23 42 / .04);
+  }
+  .wa-skin .wa-act {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 2.35rem; padding: 0 .7rem; border: 0; border-radius: .65rem;
+    background: transparent; color: #334155; font-size: .72rem; font-weight: 800;
+    letter-spacing: .03em; text-transform: uppercase; cursor: pointer;
+  }
+  .wa-skin .wa-act:hover { background: #f1f5f9; }
+  .wa-skin .wa-act-ok { color: #047857; font-size: 1rem; min-width: 2.35rem; padding: 0; }
+  .wa-skin .wa-act-del { color: #b91c1c; }
+  .wa-skin .wa-st-chip {
+    display: inline-flex; align-items: center; gap: .35rem; flex-shrink: 0;
+    min-height: 2.35rem; padding: 0 .55rem 0 .2rem; border: 0; border-radius: 999px;
+    background: #fff; border: 1.5px solid #d1fae5; cursor: pointer;
+  }
+  .wa-skin .wa-st-chip.hidden { display: none !important; }
+  .wa-skin .wa-st-chip:hover { background: #ecfdf5; }
+  .wa-skin .wa-st-chip.is-new { border-color: #25d366; box-shadow: 0 0 0 2px #dcfce7; }
+  .wa-skin .wa-st-chip-ring {
+    width: 1.85rem; height: 1.85rem; border-radius: 999px; padding: 2px;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .wa-skin .wa-st-chip:not(.is-new) .wa-st-chip-ring { background: #cbd5e1; }
+  .wa-skin .wa-st-chip-ini {
+    width: 100%; height: 100%; border-radius: 999px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 900; color: #334155;
+  }
+  .wa-skin .wa-st-chip-txt {
+    font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: #047857;
+  }
+  .wa-skin .wa-chat-bar-cel {
+    display: flex; align-items: center; gap: .35rem; padding: .35rem .45rem;
+    background: #075e54; border-bottom: 0;
+  }
+  .wa-skin .wa-chat-bar-cel .wa-chat-head {
+    flex: 1; min-width: 0; border: 0; background: transparent; padding: .2rem .25rem; min-height: 0;
+  }
+  .wa-skin .wa-chat-bar-cel .wa-chat-empty { display: none !important; }
+  .wa-skin .wa-chat-bar-cel .wa-topo-nome { color: #fff; }
+  .wa-skin .wa-chat-bar-cel .wa-chat-actions {
+    background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2);
+  }
+  .wa-skin .wa-chat-bar-cel .wa-act { color: #ecfdf5; }
+  .wa-skin .wa-chat-bar-cel .wa-act:hover { background: rgba(255,255,255,.12); }
+  .wa-skin .wa-chat-bar-cel .wa-act-ok { color: #bbf7d0; }
+  .wa-skin .wa-chat-bar-cel .wa-act-del { color: #fecaca; }
+  .wa-skin .wa-chat-bar-cel .wa-st-chip {
+    background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.28);
+  }
+  .wa-skin .wa-chat-bar-cel .wa-st-chip-txt { color: #ecfdf5; }
+  .wa-skin .wa-chat-bar-cel .wa-st-chip-ini { background: #064e3b; color: #ecfdf5; }
   .wa-skin .wa-ficha {
     position: fixed; inset: 0; z-index: 130; display: none;
     align-items: flex-end; justify-content: center;
@@ -299,39 +382,6 @@
   .wa-skin .wa-qr { background: linear-gradient(180deg, #fff7ed, #fff); border: 1px solid #fed7aa; border-radius: 1.1rem; padding: .75rem; text-align: center; }
   .wa-skin .wa-qr img { width: 11rem; height: 11rem; margin: .4rem auto 0; border-radius: .75rem; background: #fff; padding: .4rem; }
   .wa-skin .wa-st-wrap { margin: 0 0 .35rem; }
-  .wa-skin .wa-st-label {
-    font-size: .68rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
-    color: #64748b; padding: 0 .15rem .15rem;
-  }
-  .wa-skin .wa-st-empty {
-    margin: 0; padding: .35rem .15rem .2rem; font-size: .75rem; font-weight: 600; color: #94a3b8;
-  }
-  .wa-skin .wa-st-strip {
-    display: flex; gap: .65rem; overflow-x: auto; padding: .15rem .15rem .35rem;
-    scrollbar-width: thin;
-  }
-  .wa-skin .wa-st-strip.hidden { display: none !important; }
-  .wa-skin .wa-st-item {
-    display: flex; flex-direction: column; align-items: center; gap: .25rem;
-    min-width: 4.1rem; border: 0; background: transparent; cursor: pointer; padding: 0;
-  }
-  .wa-skin .wa-st-ring {
-    display: flex; align-items: center; justify-content: center;
-    width: 3.35rem; height: 3.35rem; border-radius: 999px;
-    background: linear-gradient(135deg, #25d366, #128c7e); padding: 2px;
-  }
-  .wa-skin .wa-st-item:not(.is-new) .wa-st-ring {
-    background: #cbd5e1;
-  }
-  .wa-skin .wa-st-av {
-    display: flex; align-items: center; justify-content: center;
-    width: 100%; height: 100%; border-radius: 999px; background: #e2e8f0;
-    font-size: 1.05rem; font-weight: 900; color: #334155;
-  }
-  .wa-skin .wa-st-n {
-    max-width: 4.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: .68rem; font-weight: 700; color: #64748b;
-  }
   .wa-skin .wa-st-view {
     position: fixed; inset: 0; z-index: 120; background: #0b141a;
     display: flex; flex-direction: column;

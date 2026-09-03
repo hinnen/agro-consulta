@@ -23,6 +23,9 @@
   var statusCache = [];
   var stAutorIdx = 0;
   var stItemIdx = 0;
+  var convTel = '';
+  var convNome = '';
+  var convFoto = '';
   var ST_VISTOS_KEY = 'agro_wa_status_vistos_v1';
   var listaCache = [];
 
@@ -307,6 +310,8 @@
           escapeHtml(titulo) +
           '" data-tel="' +
           escapeHtml(c.telefone || '') +
+          '" data-foto="' +
+          escapeHtml(c.foto_url || '') +
           '"><span class="wa-av">' +
           (c.foto_url
             ? '<img alt="" src="' + escapeHtml(c.foto_url) + '" />'
@@ -449,36 +454,75 @@
     return (a && (a.nome || a.telefone)) || 'Contato';
   }
 
-  function pintarStatusStrip() {
-    var el = $('wa-st-strip');
-    if (!el) return;
-    if (!statusCache.length) {
-      el.innerHTML =
-        '<p id="wa-st-empty" class="wa-st-empty">Quando um contato postar, aparece aqui</p>';
+  function digitosTel(s) {
+    return String(s || '').replace(/\D/g, '');
+  }
+
+  function acharStatusIdx(tel, nome) {
+    var d = digitosTel(tel);
+    var n = String(nome || '')
+      .trim()
+      .toLowerCase();
+    var i;
+    for (i = 0; i < statusCache.length; i++) {
+      var ad = digitosTel(statusCache[i].telefone);
+      if (d && ad && d.slice(-10) === ad.slice(-10)) return i;
+    }
+    for (i = 0; i < statusCache.length; i++) {
+      var nm = String(statusCache[i].nome || '')
+        .trim()
+        .toLowerCase();
+      if (n && nm && (nm === n || nm.indexOf(n) === 0 || n.indexOf(nm) === 0)) return i;
+    }
+    return -1;
+  }
+
+  function pintarStatusDoChat() {
+    var btn = $('wa-topo-status');
+    var ini = $('wa-topo-st-ini');
+    if (!btn) return;
+    if (!convId) {
+      btn.classList.add('hidden');
       return;
     }
+    var idx = acharStatusIdx(convTel, convNome);
+    if (idx < 0) {
+      btn.classList.add('hidden');
+      return;
+    }
+    var autor = statusCache[idx];
     var vistos = lerStatusVistos();
-    el.innerHTML = statusCache
-      .map(function (a, idx) {
-        var nome = nomeStatusAutor(a);
-        var ini = nome.charAt(0).toUpperCase();
-        var temNovo = (a.itens || []).some(function (it) {
-          return vistos.indexOf(String(it.id)) < 0;
-        });
-        var rotulo = nome.split(' ')[0];
-        return (
-          '<button type="button" class="wa-st-item' +
-          (temNovo ? ' is-new' : '') +
-          '" data-st-idx="' +
-          idx +
-          '"><span class="wa-st-ring"><span class="wa-st-av">' +
-          escapeHtml(ini) +
-          '</span></span><span class="wa-st-n">' +
-          escapeHtml(rotulo) +
-          '</span></button>'
-        );
-      })
-      .join('');
+    var temNovo = (autor.itens || []).some(function (it) {
+      return vistos.indexOf(String(it.id)) < 0;
+    });
+    btn.classList.remove('hidden');
+    btn.classList.toggle('is-new', temNovo);
+    btn.setAttribute('data-st-idx', String(idx));
+    if (ini) ini.textContent = nomeStatusAutor(autor).charAt(0).toUpperCase();
+  }
+
+  function pintarStatusStrip() {
+    pintarStatusDoChat();
+  }
+
+  function pintarTopoAvatar(titulo, foto) {
+    var av = $('wa-topo-av');
+    if (!av) return;
+    if (foto) {
+      av.innerHTML = '<img alt="" src="' + escapeHtml(foto) + '" />';
+      return;
+    }
+    av.innerHTML =
+      '<span id="wa-topo-ini">' + escapeHtml((titulo || '?').charAt(0).toUpperCase()) + '</span>';
+  }
+
+  function mostrarBotoesChat(on) {
+    var head = $('wa-chat-head');
+    if (head) head.classList.toggle('is-empty', !on);
+    if (!on) {
+      var st = $('wa-topo-status');
+      if (st) st.classList.add('hidden');
+    }
   }
 
   function pintarStatusViewer() {
@@ -614,22 +658,19 @@
     });
   }
 
-  function mostrarBotoesChat(on) {
-    var hist = $('wa-hist');
-    var ok = $('wa-ok');
-    var del = $('wa-del');
-    if (hist) hist.classList.toggle('hidden', !on);
-    if (ok) ok.classList.toggle('hidden', !on);
-    if (del) del.classList.toggle('hidden', !on);
-  }
-
   function abrirConversa(id) {
     convId = Number(id) || 0;
     afterId = 0;
     var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
     convLoja = (item && item.getAttribute('data-loja')) || loja || '';
-    $('wa-topo-nome').textContent = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
+    convNome = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
+    convTel = (item && item.getAttribute('data-tel')) || '';
+    convFoto = (item && item.getAttribute('data-foto')) || '';
+    var nomeEl = $('wa-topo-nome');
+    if (nomeEl) nomeEl.textContent = convNome;
+    pintarTopoAvatar(convNome, convFoto);
     mostrarBotoesChat(true);
+    pintarStatusDoChat();
     if (separarLojas) {
       $('wa-move').classList.remove('hidden');
       $('wa-move').classList.add('flex');
@@ -656,6 +697,21 @@
     });
   }
 
+  function limparChatAberto() {
+    convId = 0;
+    convLoja = '';
+    convTel = '';
+    convNome = '';
+    convFoto = '';
+    afterId = 0;
+    var nomeEl = $('wa-topo-nome');
+    if (nomeEl) nomeEl.textContent = 'Conversa';
+    pintarTopoAvatar('?', '');
+    mostrarBotoesChat(false);
+    if ($('wa-msgs')) $('wa-msgs').innerHTML = '';
+    if ($('wa-move')) $('wa-move').classList.add('hidden');
+  }
+
   function pollMsgs() {
     if (!convId) return Promise.resolve();
     return fetchJson(
@@ -679,14 +735,8 @@
       try {
         localStorage.setItem(TAB_KEY, loja);
       } catch (e) {}
-      convId = 0;
-      convLoja = '';
-      afterId = 0;
       setTab();
-      $('wa-topo-nome').textContent = 'Escolha uma conversa';
-      mostrarBotoesChat(false);
-      $('wa-msgs').innerHTML = '';
-      $('wa-move').classList.add('hidden');
+      limparChatAberto();
       telaCel(false);
       carregarLista();
     });
@@ -980,13 +1030,7 @@
           window.alert((j && j.erro) || 'Não passou.');
           return;
         }
-        convId = 0;
-        convLoja = '';
-        afterId = 0;
-        $('wa-topo-nome').textContent = 'Escolha uma conversa';
-        $('wa-msgs').innerHTML = '';
-        $('wa-move').classList.add('hidden');
-        mostrarBotoesChat(false);
+        limparChatAberto();
         telaCel(false);
         carregarEstado();
         carregarLista();
@@ -1275,12 +1319,7 @@
           window.alert((j && j.erro) || 'Não apagou.');
           return;
         }
-        convId = 0;
-        afterId = 0;
-        $('wa-topo-nome').textContent = 'Escolha uma conversa';
-        $('wa-msgs').innerHTML = '';
-        $('wa-move').classList.add('hidden');
-        mostrarBotoesChat(false);
+        limparChatAberto();
         telaCel(false);
         carregarLista();
       });
@@ -1290,13 +1329,7 @@
   var btnBack = $('wa-cel-back');
   if (btnBack) {
     btnBack.addEventListener('click', function () {
-      convId = 0;
-      convLoja = '';
-      afterId = 0;
-      $('wa-topo-nome').textContent = 'Conversa';
-      mostrarBotoesChat(false);
-      $('wa-msgs').innerHTML = '';
-      $('wa-move').classList.add('hidden');
+      limparChatAberto();
       telaCel(false);
       carregarLista();
     });
@@ -1374,17 +1407,19 @@
     window.location.href = href;
   }
 
-  var topoNome = $('wa-topo-nome');
-  if (topoNome) {
-    topoNome.addEventListener('click', function () {
+  var topoWho = $('wa-topo-who');
+  if (topoWho) {
+    topoWho.addEventListener('click', function () {
       if (!convId) return;
       abrirFicha();
     });
-    topoNome.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' || ev.key === ' ') {
-        ev.preventDefault();
-        if (convId) abrirFicha();
-      }
+  }
+  var topoStatus = $('wa-topo-status');
+  if (topoStatus) {
+    topoStatus.addEventListener('click', function () {
+      var idx = topoStatus.getAttribute('data-st-idx');
+      if (idx == null || idx === '') return;
+      abrirStatusViewer(idx, 0);
     });
   }
   document.addEventListener('click', function (ev) {
@@ -1418,14 +1453,6 @@
     if (ev.key === 'ArrowLeft') anteriorStatusItem();
   });
 
-  var stStrip = $('wa-st-strip');
-  if (stStrip) {
-    stStrip.addEventListener('click', function (ev) {
-      var btn = ev.target.closest('[data-st-idx]');
-      if (!btn) return;
-      abrirStatusViewer(btn.getAttribute('data-st-idx'), 0);
-    });
-  }
   var stX = $('wa-st-view-x');
   if (stX) stX.addEventListener('click', fecharStatusViewer);
   var stPrev = $('wa-st-prev');

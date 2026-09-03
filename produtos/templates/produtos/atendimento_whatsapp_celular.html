@@ -107,7 +107,6 @@
       <div class="pane-lista">
         <div class="shrink-0 border-b border-slate-100 p-2">
           {% include "produtos/_wa_filtros.html" %}
-          {% include "produtos/_wa_status.html" %}
           <input id="wa-busca" type="search" autocomplete="off" placeholder="Pesquisar ou começar uma nova conversa" class="min-h-[2.85rem] w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 text-base font-semibold" />
         </div>
         <div id="wa-busca-hits" class="hidden min-h-0 flex-1 overflow-y-auto"></div>
@@ -115,12 +114,9 @@
       </div>
 
       <div class="pane-chat">
-        <div id="wa-chat-bar" class="flex shrink-0 items-center gap-2 px-2 py-2">
-          <button type="button" id="wa-cel-back" class="wa-ico" title="Voltar">‹</button>
-          <div id="wa-topo-nome" class="min-w-0 flex-1 truncate text-sm font-extrabold" role="button" tabindex="0" title="Ver dados do contato">Conversa</div>
-          <button type="button" id="wa-hist" class="wa-ico hidden" title="Puxar uns dias deste chat">Ant.</button>
-          <button type="button" id="wa-ok" class="wa-ico hidden" title="Concluir atendimento">✓</button>
-          <button type="button" id="wa-del" class="wa-ico hidden" title="Apagar esta conversa da lista">Apagar</button>
+        <div id="wa-chat-bar" class="wa-chat-bar-cel">
+          <button type="button" id="wa-cel-back" class="wa-act" title="Voltar">‹</button>
+          {% include "produtos/_wa_chat_head.html" %}
         </div>
         <div id="wa-msgs" class="min-h-0 flex-1 overflow-y-auto px-3 py-2"></div>
         <div id="wa-move" class="hidden shrink-0 flex gap-2 px-2 pt-1 pb-1 bg-white">
@@ -134,6 +130,7 @@
     </div>
   </div>
 </div>
+{% include "produtos/_wa_status.html" %}
 {% include "produtos/_wa_ficha.html" %}
 <script src="{% static 'produtos/js/agro_pdv_overlay.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
