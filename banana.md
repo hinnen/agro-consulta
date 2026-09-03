@@ -1302,6 +1302,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada em cima: a de baixo fica **inativa** (sem Fechar/Esc/F1 da barra verde). Motor `AgroOverlayStack` + trava no `AgroPdvOverlay`. Cobre: Fiado, Vendas (NFC-e), Caixa (modais), Clientes/cadastro, Compras (modais), Repasse, Pedir/Uso loja, Transf. forçada, Balança, Entrega wizard, forma pagamento, cadastro/edição rápida. |
+| **Hotfix Esc fiado** | Esc/F1 com cliente aberto **não** fecha o overlay (atalho `_atalho_voltar_pdv`); tabela lançamentos mais compacta + fonte maior |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_overlay_stack_path` · `verify_fiado_ver_recibos_path` · check OK |
 | **Status** | 🟡 **pronto para envio à produção** |
