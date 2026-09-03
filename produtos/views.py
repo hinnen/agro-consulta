@@ -11412,6 +11412,7 @@ def vendas_exportar_csv(request):
     qs = _vendas_qs_periodo(di, df)
     _modo_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
     qs = _vendas_aplicar_filtro_loja(qs, dep_filtro)
+    qs = _vendas_aplicar_busca(qs, (request.GET.get("q") or "").strip())
     from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
 
     resp = HttpResponse(content_type="text/csv; charset=utf-8")

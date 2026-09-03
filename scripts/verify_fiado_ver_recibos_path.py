@@ -1,20 +1,20 @@
 """
-Prova detalhada — Fiado UX cliente (`FIADO-VER-RECIBOS`).
+Prova detalhada — Fiado UX (`FIADO-VER-RECIBOS` + hotfixes overlay).
 
 Path:
-  /fiado/ lista compacta · KPIs mês/mês ant · Limite na coluna
-  → modal cliente tela cheia · hideChrome overlay PDV
-  → Pedido clicável + Ver → popup /venda/<id>/
+  /fiado/ lista · KPIs · Limite na coluna
+  → modal cliente tela cheia · hideChrome / setNested
+  → Esc/F1 com cliente aberto NÃO fecha overlay PDV (_atalho_voltar_pdv)
+  → Pedido/Ver → overlay iframe venda (não location.href)
   → sem venda = Sistema antigo
-  → Recibos em modal (não lista fixa)
-  → tabela lançamentos com linha vertical + grade Baixa/Ver/Editar
-
-  Sem migrate.
+  → Recibos em modal
+  → tabela lançamentos compacta (table-layout fixed)
 
   python scripts/verify_fiado_ver_recibos_path.py
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from datetime import datetime
@@ -29,6 +29,8 @@ import django
 
 django.setup()
 
+from django.contrib.auth import get_user_model
+from django.test import Client
 from django.utils import timezone
 
 from produtos.fiado_gestao_util import _kpis_mensais_fiado, resumo_gestao_fiado
@@ -57,6 +59,9 @@ def test_arquivos() -> None:
     js = _read("produtos/static/produtos/js/fiado_gestao.js")
     util = _read("produtos/fiado_gestao_util.py")
     overlay = _read("produtos/static/produtos/js/agro_pdv_overlay.js")
+    atalho = _read("produtos/templates/produtos/_atalho_voltar_pdv.html")
+    venda = _read("produtos/templates/produtos/venda_agro_detalhe.html")
+    stack = _read("produtos/static/produtos/js/agro_overlay_stack.js")
 
     check("kpi_html_vendido_mes", 'id="fiado-kpi-vendido-mes"' in html and "vendido_mes" in html)
     check("kpi_html_vendido_ant", 'id="fiado-kpi-vendido-ant"' in html)
@@ -70,10 +75,15 @@ def test_arquivos() -> None:
     check("limite_input_js", "fiado-limite-input" in js and "gravarLimiteNaLinha" in js)
     check("limite_css", ".fiado-limite-input" in html)
 
-    check("pedido_link_js", "fiado-link-pedido" in js and "abrirVendaPopup" in js)
+    check("pedido_link_js", "fiado-link-pedido" in js and "abrirVendaOverlay" in js)
     check("btn_ver_js", "fiado-btn-ver-tit" in js)
     check("sistema_antigo", "Sistema antigo" in js)
     check("venda_detalhe_url", "vendaDetalheBase" in html and "vendaDetalheUrl" in js)
+    check("venda_overlay_modal", 'id="fiado-modal-venda"' in html and 'id="fiado-venda-frame"' in html)
+    check("venda_overlay_js", "abrirVendaOverlay" in js and "fecharVendaOverlay" in js)
+    check("venda_sem_location_href", "window.location.href = url" not in js)
+    check("venda_embed_param", "agro_fiado_embed" in js)
+    check("venda_embed_html", "agro-venda-fiado-embed" in venda and "fiado-venda-overlay-close" in venda)
 
     check("recibos_botao", 'id="fiado-btn-recibos"' in html)
     check("recibos_modal", 'id="fiado-modal-recibos"' in html)
@@ -83,8 +93,10 @@ def test_arquivos() -> None:
     check("modal_fullscreen", "position: fixed" in html and "fiado-modal-panel" in html)
     check("modal_sem_borda_arred", "border-radius: 0 !important" in html)
     check("esconde_header_main", "body.fiado-modal-aberto > header" in html)
+    check("btn_volta_lista", "Lista fiado" in html or "fiado-cli-modal-fechar" in html)
 
     check("tit_vertical", ".fiado-tit-table th:not(:last-child)" in html and "border-right" in html)
+    check("tit_fixed_layout", "table-layout: fixed" in html and "fiado-tit-c-acoes" in html)
     check("tit_acoes_grade", ".fiado-tit-acoes" in html and "fiado-tit-acoes" in js)
     check("moeda_html", "fmtMoedaHtml" in js and "fiado-moeda" in html)
 
@@ -93,6 +105,8 @@ def test_arquivos() -> None:
     check("overlay_chrome_locked", "chromeLocked" in overlay)
     check("fiado_post_hide", "setNested" in js or "hideChrome: !!on" in js)
     check("overlay_in_iframe", "agro-fiado-in-overlay" in html)
+    check("stack_engine", "AgroOverlayStack" in stack and "setNested" in stack)
+    check("atalho_nested_esc", "hasNestedLayer" in atalho and "fiado-modal-aberto" in atalho)
 
 
 def test_kpis_runtime() -> None:
@@ -146,11 +160,88 @@ def test_titulo_venda_id_api_shape() -> None:
         .first()
     )
     if not t:
-        check("titulo_amostra", True, "sem títulos — skip shape")
+        check("titulo_amostra", True, "sem titulos — skip shape")
         return
     d = titulo_para_dict(t)
     check("dict_tem_venda_agro_id", "venda_agro_id" in d)
     check("dict_tem_saldo", "saldo_aberto" in d and "numero_documento" in d)
+
+
+def test_http_apis() -> None:
+    print("== HTTP APIs ==")
+    c = Client(HTTP_HOST="127.0.0.1")
+    User = get_user_model()
+    u = User.objects.filter(username="Renan").first() or User.objects.first()
+    if not u:
+        check("http_user", False, "sem usuario")
+        return
+    c.force_login(u)
+
+    r = c.get("/fiado/")
+    body = r.content.decode("utf-8", "replace")
+    check("http_fiado_200", r.status_code == 200)
+    check("http_fiado_kpi", "fiado-kpi-vendido-mes" in body)
+    check("http_fiado_venda_modal", "fiado-modal-venda" in body)
+    check("http_fiado_lista_btn", "Lista fiado" in body or "fiado-cli-modal-fechar" in body)
+
+    r2 = c.get("/api/fiado/resumo/")
+    check("http_resumo_200", r2.status_code == 200)
+    if r2.status_code == 200:
+        j = r2.json()
+        check("http_resumo_ok", j.get("ok") is True and "vendido_mes" in j)
+
+    r3 = c.get("/api/fiado/clientes/")
+    check("http_clientes_200", r3.status_code == 200)
+    if r3.status_code == 200:
+        j3 = r3.json()
+        rows = j3.get("clientes") or []
+        check("http_clientes_lista", isinstance(rows, list))
+        if rows:
+            check("http_cliente_limite_key", "limite_fiado_local" in rows[0])
+
+    tit = (
+        FiadoTituloAgro.objects.exclude(situacao=FiadoTituloAgro.Situacao.CANCELADO)
+        .filter(venda_agro_id__isnull=False)
+        .order_by("-pk")
+        .first()
+    )
+    if tit and tit.cliente_agro_id:
+        r4 = c.get("/api/fiado/titulos/", {"cliente_agro_pk": tit.cliente_agro_id})
+        check("http_titulos_200", r4.status_code == 200)
+        if r4.status_code == 200:
+            ts = r4.json().get("titulos") or []
+            mine = [t for t in ts if t.get("id") == tit.pk]
+            check("http_tit_venda_id", bool(mine and mine[0].get("venda_agro_id")))
+            vid = mine[0].get("venda_agro_id") if mine else None
+            if vid:
+                r5 = c.get(f"/venda/{vid}/", {"agro_fiado_embed": "1"})
+                check("http_venda_embed_200", r5.status_code == 200)
+                vb = r5.content.decode("utf-8", "replace")
+                check(
+                    "http_venda_embed_js",
+                    "agro_fiado_embed" in vb or "agro-venda-fiado-embed" in vb,
+                )
+
+        r6 = c.get("/api/fiado/recibos/", {"cliente_agro_pk": tit.cliente_agro_id})
+        check("http_recibos_200", r6.status_code == 200)
+
+        payload = {
+            "cliente_agro_pk": tit.cliente_agro_id,
+            "limite": float(tit.cliente_agro.limite_fiado_local or 0),
+            "pin": "9973",
+        }
+        r7 = c.post(
+            "/api/fiado/limite/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        check(
+            "http_limite_200",
+            r7.status_code == 200,
+            (r7.content[:120] or b"").decode("utf-8", "replace"),
+        )
+    else:
+        check("http_tit_com_venda", True, "skip — sem titulo com venda")
 
 
 def main() -> int:
@@ -158,6 +249,7 @@ def main() -> int:
     test_arquivos()
     test_kpis_runtime()
     test_titulo_venda_id_api_shape()
+    test_http_apis()
     print()
     if fails:
         print(f"FALHOU: {len(fails)} falha(s), {len(oks)} ok")
