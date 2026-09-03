@@ -1335,6 +1335,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | só `whatsapp_atendimento/index.js` (ponte) — **sem** migrate |
 | **Status** | 🟡 `teste` — reiniciar `iniciar.bat` já aplica na loja se a ponte usar o código do PC; senão cherry + senha |
 
+### WIP — envio com bolha na hora (`WA-SEND-OPTIMIST` · 03/09/2026)
+
+| | |
+| --- | --- |
+| **Problema** | Loja: msg demorava a aparecer na própria tela (poll); cliente já recebia rápido |
+| **Fix** | Bolha **na hora** ao mandar · confirma com resposta da API (sem esperar poll) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` — loja precisa senha (static JS) |
+
 ### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
 
 | | |

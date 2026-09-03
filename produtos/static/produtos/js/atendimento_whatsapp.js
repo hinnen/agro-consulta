@@ -350,6 +350,7 @@
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
+        if (m.pendente && !m.apagada) cls += ' is-enviando';
         var who =
           m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
         var corpoTxt = m.texto || '';
@@ -796,25 +797,70 @@
   var recChunks = [];
   var recObj = null;
 
+  function horaAgoraWa() {
+    var d = new Date();
+    var h = d.getHours();
+    var m = d.getMinutes();
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  }
+
   function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
     if (!convId || (btn && btn.disabled)) return;
     if (btn) btn.disabled = true;
+
+    // Bolha na hora (sensação de enviado) — o Zap do cliente ainda passa pela ponte.
+    var tempId = 'tmp-' + Date.now();
+    var tipo = String(payload.tipo_midia || '');
+    var textoPrev = String(payload.texto || '').trim();
+    if (!textoPrev) {
+      if (tipo === 'image' || tipo === 'sticker') textoPrev = '[imagem]';
+      else if (tipo === 'audio') textoPrev = '[áudio]';
+    }
+    var midiaPrev = '';
+    if ((tipo === 'image' || tipo === 'sticker') && payload.midia_b64) {
+      midiaPrev = 'data:' + (payload.mime || 'image/jpeg') + ';base64,' + payload.midia_b64;
+    }
+    pintarMsgs(
+      [
+        {
+          id: tempId,
+          direcao: 'out',
+          texto: textoPrev,
+          autor: 'Você',
+          hora: horaAgoraWa(),
+          tipo_midia: tipo,
+          midia_url: midiaPrev,
+          pendente: true,
+        },
+      ],
+      true
+    );
+
     fetchJson('/api/atendimento-whatsapp/enviar/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify(payload),
     })
       .then(function (j) {
+        var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tmp) tmp.remove();
         if (!j || !j.ok) {
           window.alert((j && j.erro) || 'Não enviou.');
           if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
           return;
         }
-        pollMsgs();
+        if (j.mensagem) {
+          pintarMsgs([j.mensagem], true);
+          afterId = Math.max(afterId, j.mensagem.id || 0);
+        } else {
+          pollMsgs();
+        }
         carregarLista();
       })
       .catch(function () {
+        var tmp = document.querySelector('[data-msg-id="' + tempId + '"]');
+        if (tmp) tmp.remove();
         window.alert('Falha de rede ao enviar.');
         if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
       })
