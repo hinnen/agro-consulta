@@ -910,9 +910,27 @@
       position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
       padding: 2vh 4vw; background: rgba(15, 23, 42, 0.55);
     }
+    #cf-popup.cf-modal-overlay,
+    #cf-popup-nested.cf-modal-overlay {
+      z-index: 20045;
+      padding: 0;
+      align-items: stretch;
+      justify-content: stretch;
+      background: #0f172a;
+    }
+    #cf-popup-nested.cf-modal-overlay { z-index: 20060; }
+    #cf-popup .cf-modal-panel,
+    #cf-popup-nested .cf-modal-panel {
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+      border-radius: 0;
+      border-width: 0;
+      border-top: 3px solid #10b981;
+    }
     .cf-fiado-wizard { z-index: 20040; }
     .cf-modal-overlay.hidden { display: none !important; }
-    #cf-popup.cf-modal-overlay { z-index: 20045; }
     .cf-modal-panel {
       width: min(92vw, 80rem); height: min(88dvh, 92vh);
       display: flex; flex-direction: column; border-radius: 1rem;
@@ -1348,6 +1366,15 @@
     <iframe id="cf-popup-frame" class="flex-1 min-h-0" title="Consulta de caixa"></iframe>
   </div>
 </div>
+<div id="cf-popup-nested" class="cf-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="cf-popup-nested-title">
+  <div class="cf-modal-panel">
+    <div class="shrink-0 flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 sm:px-4 py-2 bg-emerald-50">
+      <h3 id="cf-popup-nested-title" class="text-sm sm:text-base font-black uppercase text-slate-900 truncate min-w-0"></h3>
+      <button type="button" id="cf-popup-nested-fechar" class="shrink-0 min-h-[44px] px-4 rounded-xl border-2 border-emerald-600 bg-emerald-600 text-white text-xs font-black uppercase hover:bg-emerald-700">Fechar · Esc</button>
+    </div>
+    <iframe id="cf-popup-nested-frame" class="flex-1 min-h-0" title="Camada caixa"></iframe>
+  </div>
+</div>
 <script id="cf-contagem-salva-data" type="application/json">{{ rascunho_json }}</script>
 <script id="cf-cedulas-salva-data" type="application/json">{{ cedulas_json }}</script>
 <script id="cf-turno-data" type="application/json">{{ conferencia_turno_json }}</script>
@@ -1716,6 +1743,9 @@
     try {
       if (window.top !== window.self) {
         window.top.postMessage({ type: 'agro-caixa-modal-layer', open: open }, location.origin);
+        if (open) {
+          window.top.postMessage({ type: 'agro-pdv-overlay-meta', hideChrome: true }, location.origin);
+        }
       }
     } catch (_) {}
   }
@@ -2023,6 +2053,10 @@
   var popupFrame = document.getElementById('cf-popup-frame');
   var popupTitle = document.getElementById('cf-popup-title');
   var popupFechar = document.getElementById('cf-popup-fechar');
+  var popupNested = document.getElementById('cf-popup-nested');
+  var popupNestedFrame = document.getElementById('cf-popup-nested-frame');
+  var popupNestedTitle = document.getElementById('cf-popup-nested-title');
+  var popupNestedFechar = document.getElementById('cf-popup-nested-fechar');
   var conferenciaEstadoUrl = '{{ api_conferencia_estado_url|escapejs }}';
   if (conferenciaEstadoUrl) {
     conferenciaEstadoUrl += (conferenciaEstadoUrl.indexOf('?') >= 0 ? '&' : '?') + 'escopo=loja';
@@ -2113,25 +2147,65 @@
     conferenciaRefreshTimer = setTimeout(atualizarConferenciaCaixa, 120);
   }
 
+  function withEmbedParams(url) {
+    try {
+      var u = new URL(url, window.location.origin);
+      if (!u.searchParams.has('embed')) u.searchParams.set('embed', '1');
+      if (!u.searchParams.has('agro_pdv_overlay')) u.searchParams.set('agro_pdv_overlay', '1');
+      if (!u.searchParams.has('agro_inapp_embed')) u.searchParams.set('agro_inapp_embed', '1');
+      return u.pathname + u.search + u.hash;
+    } catch (_) {
+      return url;
+    }
+  }
+  function stackSet(el, open) {
+    try {
+      if (window.AgroOverlayStack && el) window.AgroOverlayStack.setOpen(el, !!open);
+    } catch (_) {}
+  }
   function abrirPopup(url, titulo, refreshOnClose) {
     if (!popup || !popupFrame) return;
     popupRefreshOnClose = !!refreshOnClose;
     if (popupTitle) popupTitle.textContent = titulo || '';
-    popupFrame.src = url;
+    popupFrame.src = withEmbedParams(url);
     popupFrame.title = titulo || 'Caixa';
     popup.classList.remove('hidden');
     document.body.classList.add('overflow-hidden');
+    stackSet(popup, true);
     syncCaixaModalPause();
   }
   function fecharPopup() {
     if (!popup) return;
+    if (popupNested && !popupNested.classList.contains('hidden')) fecharPopupNested();
     var refresh = popupRefreshOnClose;
     popup.classList.add('hidden');
     if (popupFrame) popupFrame.src = 'about:blank';
     document.body.classList.remove('overflow-hidden');
     popupRefreshOnClose = false;
+    stackSet(popup, false);
     syncCaixaModalPause();
     if (refresh) agendarAtualizarConferencia();
+  }
+  function abrirPopupNested(url, titulo) {
+    if (!popupNested || !popupNestedFrame) return;
+    if (popup && popup.classList.contains('hidden')) {
+      abrirPopup(url, titulo, true);
+      return;
+    }
+    if (popupNestedTitle) popupNestedTitle.textContent = titulo || '';
+    popupNestedFrame.src = withEmbedParams(url);
+    popupNestedFrame.title = titulo || 'Caixa';
+    popupNested.classList.remove('hidden');
+    stackSet(popupNested, true);
+    syncCaixaModalPause();
+  }
+  function fecharPopupNested() {
+    if (!popupNested) return;
+    popupNested.classList.add('hidden');
+    if (popupNestedFrame) popupNestedFrame.src = 'about:blank';
+    stackSet(popupNested, false);
+    syncCaixaModalPause();
+    agendarAtualizarConferencia();
   }
   document.querySelectorAll('.cf-popup-open').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -2143,17 +2217,33 @@
     });
   });
   if (popupFechar) popupFechar.addEventListener('click', fecharPopup);
+  if (popupNestedFechar) popupNestedFechar.addEventListener('click', fecharPopupNested);
   if (popup) {
-    popup.addEventListener('click', function (e) {
-      /* Fundo nao fecha — so X / FECHAR / Esc */
-    });
+    popup.addEventListener('click', function (e) { /* Fundo nao fecha */ });
+  }
+  if (popupNested) {
+    popupNested.addEventListener('click', function (e) { /* Fundo nao fecha */ });
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && popup && !popup.classList.contains('hidden')) fecharPopup();
+    if (e.key !== 'Escape') return;
+    if (popupNested && !popupNested.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharPopupNested();
+      return;
+    }
+    if (popup && !popup.classList.contains('hidden')) {
+      e.preventDefault();
+      fecharPopup();
+    }
   });
   window.addEventListener('message', function (e) {
     if (e.origin !== window.location.origin) return;
-    if (e.data && e.data.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
+    var d = e.data || {};
+    if (d.type === 'agro-caixa-fechar-atualizar') agendarAtualizarConferencia();
+    if (d.type === 'agro-caixa-popup-nested') {
+      abrirPopupNested(String(d.url || ''), String(d.title || 'Caixa'));
+    }
+    if (d.type === 'agro-caixa-popup-nested-close') fecharPopupNested();
   });
 
   var asideWrap = document.getElementById('cf-aside-wrap');

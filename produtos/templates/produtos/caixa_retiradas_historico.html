@@ -258,6 +258,50 @@
   <script src="{% static 'produtos/js/pdv_repasse_vila.js' %}?v={{ agro_pdv_assets_v|default:'1' }}"></script>
   <script>
   (function () {
+    /* Dentro do popup do Fechar caixa: Nova saída / Repasse abrem 2ª camada no pai. */
+    function inCfPopupFrame() {
+      try {
+        if (window.parent === window) return false;
+        return !!(window.parent.document && window.parent.document.getElementById('cf-popup'));
+      } catch (_) {
+        return window.parent !== window;
+      }
+    }
+    function askNested(url, title) {
+      try {
+        window.parent.postMessage(
+          { type: 'agro-caixa-popup-nested', url: url, title: title || 'Caixa' },
+          window.location.origin
+        );
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+    if (!inCfPopupFrame()) return;
+    var nova = document.querySelector('a.crh-nova-saida[href]');
+    if (nova) {
+      nova.addEventListener('click', function (e) {
+        e.preventDefault();
+        askNested(nova.getAttribute('href') || '', 'Nova saída');
+      });
+    }
+    var repasseBtn = document.getElementById('crh-btn-repasse');
+    if (repasseBtn) {
+      repasseBtn.addEventListener(
+        'click',
+        function (e) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          askNested('{% url "repasse_vila" %}?embed=1', 'Repasse Vila → Centro');
+        },
+        true
+      );
+    }
+  })();
+  </script>
+  <script>
+  (function () {
     var API_QUEM = "{% url 'api_rh_caixa_quem_leva' %}";
     var selQuem = document.getElementById('id-quem');
     var selQuemExp = document.getElementById('crh-export-quem');
