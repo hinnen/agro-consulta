@@ -1270,6 +1270,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.52** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa**; loja só em Todas). Topo refeito em **linha única**: `GM + Vendas + período/data + Exportar CSV` na mesma faixa superior, sem segunda linha, e no **overlay** a faixa é puxada mais pra cima (menos padding) para encostar na linha do `Fechar`. Coluna **Ações** com grade fixa: `Ver`, `Imprimir`, `Devolver` e fiscal/reemitir sempre na ponta direita quando existir. **Busca** `q` no servidor: nº venda, cliente, CPF, valor, forma (também combinada), operador, loja, data, hora, cupom NFC-e, produto. |
+| **Migrate** | **NÃO** |
+| **Status** | WIP local — aguarda prova no PC |
+| **Você** | Ctrl+F5 em `/vendas/` · tecla `/` foca a busca · Enter aplica |
+
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
 
 | Campo | Valor |
@@ -1280,6 +1289,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Commit código** | `73c0b2e` · tip **v21.32** |
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
+
+### 📦 WIP LOCAL — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.46** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/fiado/`: número do **Pedido** clicável e botão **Ver** abrindo a **tela completa da venda** em popup; título sem vínculo mostra **Sistema antigo**. Lista fixa de reimpressão saiu da tela e virou botão **Recibos** com modal próprio. **Editar lançamento** ficou quase tela cheia, cobrindo o fundo. |
+| **Migrate** | **NÃO** |
+| **Prova** | `python manage.py check` **OK** |
+| **Status** | WIP local — aguarda prova no PC |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.32**)
 

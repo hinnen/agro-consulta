@@ -1,13 +1,36 @@
 """Catálogo PostgreSQL (``Produto``) — ``AGRO_FONTE_CATALOGO=agro_pg``."""
 from __future__ import annotations
 
+import json
+import os
 import re
 import secrets
+import time
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import Q
 
-from produtos.models import Produto, ProdutoGestaoOverlayAgro
+from produtos.models import Produto, ProdutoCadastroAlteracaoAgro, ProdutoGestaoOverlayAgro
+
+
+def _debug_482fe6(location: str, message: str, data: dict | None = None, *, run_id: str = "", hypothesis_id: str = "") -> None:
+    # #region agent log
+    try:
+        row = {
+            "sessionId": "482fe6",
+            "runId": run_id or "",
+            "hypothesisId": hypothesis_id or "",
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000),
+        }
+        with open(os.path.join(settings.BASE_DIR, "debug-482fe6.log"), "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    # #endregion
 
 _SORT_MAP = {
     "nome": "nome",
@@ -460,6 +483,115 @@ def produto_model_para_detalhe(p: Produto) -> dict:
     aplicar_fiscal_padrao_em_row_detalhe(row)
     ce = ov.cadastro_extras if ov and isinstance(ov.cadastro_extras, dict) else {}
     row["cadastro_extras"] = dict(ce) if ce else {}
+    # Leitura segura 100% Agro: se PG/overlay estiverem em branco, completa do histórico local.
+    # Código antigo do histórico entra como opcional para não perder o novo.
+    try:
+        from produtos.mongo_index_codigos import normalizar_codigos_barras_opcionais
+        hist_rows = list(
+            ProdutoCadastroAlteracaoAgro.objects.filter(
+                produto_externo_id=pid,
+                campo__in=[
+                    "marca",
+                    "categoria",
+                    "subcategoria",
+                    "unidade",
+                    "codigo_barras",
+                    "codigos_barras_opcionais",
+                ],
+            ).order_by("-id")[:80]
+        )
+        hist_por_campo: dict[str, ProdutoCadastroAlteracaoAgro] = {}
+        for h in hist_rows:
+            if h.campo not in hist_por_campo:
+                hist_por_campo[h.campo] = h
+
+        def _hist_text(campo: str) -> str:
+            h = hist_por_campo.get(campo)
+            if h is None:
+                return ""
+            for raw in (h.valor_depois, h.valor_antes):
+                s = str(raw or "").strip()
+                if s and s not in ("[]", "{}", "—", "-", "–"):
+                    return s
+            return ""
+
+        def _hist_codigos_opcionais() -> list[str]:
+            vals: list[str] = []
+            h = hist_por_campo.get("codigos_barras_opcionais")
+            if h is not None:
+                for raw in (h.valor_depois, h.valor_antes):
+                    txt = str(raw or "").strip()
+                    if not txt:
+                        continue
+                    try:
+                        parsed = json.loads(txt)
+                    except Exception:
+                        parsed = txt
+                    vals.extend(normalizar_codigos_barras_opcionais(parsed))
+            hcb = hist_por_campo.get("codigo_barras")
+            if hcb is not None:
+                vals.extend(
+                    normalizar_codigos_barras_opcionais(
+                        [hcb.valor_antes, hcb.valor_depois],
+                        excluir=str(row.get("codigo_barras") or "").strip() or None,
+                    )
+                )
+            return normalizar_codigos_barras_opcionais(
+                vals,
+                excluir=str(row.get("codigo_barras") or "").strip() or None,
+            )
+
+        if hist_por_campo:
+            before_fb = {
+                "marca": str(row.get("marca") or ""),
+                "categoria": str(row.get("categoria") or ""),
+                "subcategoria": str(row.get("subcategoria") or ""),
+                "unidade": str(row.get("unidade") or ""),
+                "codigo_barras": str(row.get("codigo_barras") or ""),
+                "cb_opcionais": list((row.get("cadastro_extras") or {}).get("codigos_barras_opcionais") or []),
+            }
+            for field in ("marca", "categoria", "subcategoria", "unidade"):
+                if not str(row.get(field) or "").strip():
+                    val = _hist_text(field)
+                    if val:
+                        row[field] = val
+            cb_hist = _hist_text("codigo_barras")
+            cb_atual = str(row.get("codigo_barras") or "").strip()
+            if cb_hist and not cb_atual:
+                row["codigo_barras"] = cb_hist
+                cb_atual = cb_hist
+            ce_row = row.get("cadastro_extras") if isinstance(row.get("cadastro_extras"), dict) else {}
+            lista_atual = ce_row.get("codigos_barras_opcionais") if isinstance(ce_row.get("codigos_barras_opcionais"), list) else []
+            lista_hist = _hist_codigos_opcionais()
+            if lista_hist:
+                ce_row["codigos_barras_opcionais"] = normalizar_codigos_barras_opcionais(
+                    list(lista_atual) + list(lista_hist),
+                    excluir=cb_atual or None,
+                )
+                row["cadastro_extras"] = ce_row
+            # #region agent log
+            _debug_482fe6(
+                "produtos/catalogo_agro.py:produto_model_para_detalhe:fallback_hist",
+                "fallback historico aplicado na leitura do detalhe",
+                {
+                    "produto_id": pid,
+                    "before": before_fb,
+                    "after": {
+                        "marca": str(row.get("marca") or ""),
+                        "categoria": str(row.get("categoria") or ""),
+                        "subcategoria": str(row.get("subcategoria") or ""),
+                        "unidade": str(row.get("unidade") or ""),
+                        "codigo_barras": str(row.get("codigo_barras") or ""),
+                        "cb_opcionais": list((row.get("cadastro_extras") or {}).get("codigos_barras_opcionais") or []),
+                    },
+                    "hist_codigo_barras": cb_hist,
+                },
+                run_id="post-fix",
+                hypothesis_id="H2|H5",
+            )
+            # #endregion
+    except Exception:
+        pass
 
     # Custo família (saco) + composição (kit) — sem isso o Salvar apaga o vínculo ao reabrir (agro_pg).
     try:
@@ -600,6 +732,18 @@ def sincronizar_modelo_produto_de_overlay(
     payload = payload or {}
     p = obter_produto_model(pid64)
     if p is not None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
+        # #region agent log
+        _debug_482fe6(
+            "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:skip",
+            "sync produto pulado por payload sem cadastro",
+            {
+                "produto_id": pid64,
+                "origem_historico": str(payload.get("origem_historico") or "")[:32],
+                "payload_keys": sorted([str(k)[:40] for k in payload.keys()])[:20],
+            },
+            hypothesis_id="H4",
+        )
+        # #endregion
         return p
     if p is None and not payload_overlay_deve_sincronizar_produto(payload, custo_payload):
         return None
@@ -752,6 +896,25 @@ def sincronizar_modelo_produto_de_overlay(
         modelo_val = str(getattr(p, "modelo", None) or "").strip()[:200]
 
     cb_cand = ov.codigo_barras.strip() or None
+    # #region agent log
+    _debug_482fe6(
+        "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:defaults",
+        "sync produto calculou defaults",
+        {
+            "produto_id": pid64,
+            "origem_historico": str(payload.get("origem_historico") or "")[:32],
+            "pdv_edicao_rapida": pdv_rapida,
+            "produto_antes_marca": str(p.marca or "")[:120] if p is not None else "",
+            "produto_antes_categoria": str(p.categoria or "")[:200] if p is not None else "",
+            "produto_antes_codigo_barras": str(p.codigo_barras or "")[:80] if p is not None else "",
+            "overlay_marca": str(ov.marca or "")[:120],
+            "overlay_categoria": str(ov.categoria or "")[:200],
+            "overlay_codigo_barras": str(ov.codigo_barras or "")[:80],
+            "cb_cand": str(cb_cand or "")[:80],
+        },
+        hypothesis_id="H1|H2|H3|H4",
+    )
+    # #endregion
     if pdv_rapida:
         defaults = {
             "codigo_interno": codigo_interno[:50],
@@ -844,6 +1007,21 @@ def sincronizar_modelo_produto_de_overlay(
         for k, v in defaults.items():
             setattr(p, k, v)
         p.save()
+    # #region agent log
+    _debug_482fe6(
+        "produtos/catalogo_agro.py:sincronizar_modelo_produto_de_overlay:salvo",
+        "produto postgres salvo apos sync overlay",
+        {
+            "produto_id": pid64,
+            "origem_historico": str(payload.get("origem_historico") or "")[:32],
+            "produto_depois_marca": str(p.marca or "")[:120],
+            "produto_depois_categoria": str(p.categoria or "")[:200],
+            "produto_depois_codigo_barras": str(p.codigo_barras or "")[:80],
+            "produto_depois_codigo_nfe": str(p.codigo_nfe or "")[:64],
+        },
+        hypothesis_id="H1|H2|H3|H4",
+    )
+    # #endregion
     return p
 
 

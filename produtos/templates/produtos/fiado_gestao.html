@@ -47,7 +47,7 @@
       border: 2px solid rgb(251 146 60);
       box-shadow: 0 1px 0 rgb(255 255 255 / 0.6) inset;
     }
-    /* Shell fullscreen — painel 85% centralizado */
+    /* Shell fullscreen — painel quase total para esconder o fundo */
     .fiado-modal-shell {
       padding: 0;
       border: none;
@@ -72,10 +72,10 @@
       display: none;
     }
     .fiado-modal-panel {
-      width: 85vw;
-      height: 88dvh;
-      max-width: 85vw;
-      max-height: 88dvh;
+      width: min(98vw, 118rem);
+      height: 96dvh;
+      max-width: min(98vw, 118rem);
+      max-height: 96dvh;
       background: #fff;
       display: flex;
       flex-direction: column;
@@ -95,6 +95,29 @@
       z-index: 20;
       background: rgb(241 245 249);
       box-shadow: 0 1px 0 rgb(226 232 240);
+    }
+    .fiado-link-pedido {
+      color: rgb(30 64 175);
+      text-decoration: underline;
+      text-underline-offset: 0.14em;
+      cursor: pointer;
+    }
+    .fiado-link-pedido:hover {
+      color: rgb(29 78 216);
+    }
+    .fiado-pill-legado {
+      display: inline-flex;
+      align-items: center;
+      min-height: 2rem;
+      padding: 0 0.6rem;
+      border-radius: 9999px;
+      border: 1px solid rgb(253 230 138);
+      background: rgb(254 249 195);
+      color: rgb(133 77 14);
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
     body.fiado-modal-aberto {
       overflow: hidden !important;
@@ -121,7 +144,8 @@
     }
     .fiado-modal-baixa::backdrop,
     .fiado-modal-editar::backdrop,
-    .fiado-modal-limite::backdrop {
+    .fiado-modal-limite::backdrop,
+    .fiado-modal-recibos::backdrop {
       background: rgb(15 23 42 / 0.45);
     }
     .fiado-submodal-form {
@@ -191,6 +215,23 @@
     }
     .fiado-baixa-btn-parcial:hover {
       background: rgb(254 243 199);
+    }
+    .fiado-recibos-panel {
+      width: min(72rem, 96vw);
+      max-width: 96vw;
+      max-height: 88dvh;
+      padding: clamp(1rem, 2vw, 1.5rem);
+      background: #fff;
+      border-radius: 1rem;
+      border: 2px solid rgb(254 215 170);
+      box-shadow: 0 24px 48px -16px rgb(15 23 42 / 0.28);
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+    }
+    .fiado-recibos-lista {
+      max-height: min(64dvh, 42rem);
+      overflow: auto;
     }
   </style>
 </head>
@@ -304,11 +345,8 @@
       <span id="fiado-tit-sel-info" class="text-xs font-bold text-slate-700 px-2 py-1 rounded-lg bg-white border border-slate-200">0 selecionados</span>
       <button type="button" id="fiado-btn-baixa-sel" disabled class="min-h-[44px] px-4 rounded-xl bg-orange-600 text-white text-xs font-black uppercase shadow-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-orange-700">Baixa selecionados</button>
       <button type="button" id="fiado-btn-baixa-total-cli" class="min-h-[44px] px-4 rounded-xl border-2 border-orange-400 bg-orange-50 text-orange-950 text-xs font-black uppercase hover:bg-orange-100">Baixa total</button>
+      <button type="button" id="fiado-btn-recibos" class="min-h-[44px] px-4 rounded-xl border-2 border-orange-300 bg-white text-orange-900 text-xs font-black uppercase hover:bg-orange-50">Recibos</button>
       <button type="button" id="fiado-btn-atualizar-titulos" class="min-h-[44px] px-4 rounded-xl bg-slate-800 text-white text-xs font-black uppercase ml-auto shrink-0 hover:bg-slate-900">Atualizar</button>
-    </div>
-    <div id="fiado-recibos-box" class="shrink-0 px-4 sm:px-5 py-2 border-b border-slate-100 bg-orange-50/60 hidden">
-      <p class="text-[10px] font-black uppercase text-orange-900 tracking-wide mb-1.5">Pagamentos recentes · reimprimir recibo 80 mm</p>
-      <div id="fiado-recibos-lista" class="flex flex-col gap-1.5 max-h-[7.5rem] overflow-y-auto"></div>
     </div>
     <div class="fiado-tit-scroll px-2 sm:px-3 pb-3">
       <table class="fiado-tit-table w-full text-left min-w-[48rem] bg-white">
@@ -367,31 +405,51 @@
     </div>
   </dialog>
 
-  <dialog id="fiado-modal-editar" class="fiado-modal-editar w-[min(32rem,96vw)]">
-    <form id="fiado-form-editar" class="fiado-submodal-form p-5 space-y-4">
+  <dialog id="fiado-modal-editar" class="fiado-modal-editar">
+    <form id="fiado-form-editar" class="fiado-submodal-form w-[min(98vw,118rem)] max-h-[96dvh] overflow-auto p-5 sm:p-6 space-y-4">
       <h2 class="text-lg font-black uppercase text-slate-900">Editar lançamento</h2>
       <p id="fiado-editar-resumo" class="text-sm font-bold text-slate-600"></p>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Documento
-        <input type="text" id="fiado-editar-doc" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-2 font-bold text-sm min-h-[44px]">
-      </label>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Vencimento
-        <input type="date" id="fiado-editar-venc" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-2 font-bold text-sm min-h-[44px]">
-      </label>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Valor (R$)
-        <input type="text" id="fiado-editar-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
-      </label>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Descrição
-        <input type="text" id="fiado-editar-desc" maxlength="500" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-2 font-semibold text-sm min-h-[44px]">
-      </label>
+      <div class="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(22rem,0.9fr)]">
+        <div class="space-y-4">
+          <label class="block text-[10px] font-black uppercase text-slate-500">
+            Documento
+            <input type="text" id="fiado-editar-doc" maxlength="80" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
+          </label>
+          <label class="block text-[10px] font-black uppercase text-slate-500">
+            Descrição
+            <input type="text" id="fiado-editar-desc" maxlength="500" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-semibold text-sm min-h-[48px]">
+          </label>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block text-[10px] font-black uppercase text-slate-500">
+            Vencimento
+            <input type="date" id="fiado-editar-venc" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
+          </label>
+          <label class="block text-[10px] font-black uppercase text-slate-500">
+            Valor (R$)
+            <input type="text" id="fiado-editar-valor" inputmode="decimal" required class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
+          </label>
+        </div>
+      </div>
       <div class="flex gap-2 justify-end pt-2">
         <button type="button" id="fiado-editar-cancelar" class="min-h-[48px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Cancelar</button>
         <button type="submit" class="min-h-[48px] px-5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase hover:bg-emerald-700">Salvar</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="fiado-modal-recibos" class="fiado-modal-limite fiado-modal-recibos">
+    <div class="fiado-recibos-panel">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-[10px] font-black uppercase text-orange-800 tracking-wide">Pagamentos recentes</p>
+          <h2 class="text-lg sm:text-xl font-black uppercase text-slate-900">Recibos do cliente</h2>
+          <p id="fiado-recibos-resumo" class="text-sm font-bold text-slate-600"></p>
+        </div>
+        <button type="button" id="fiado-recibos-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 bg-white text-xs font-black uppercase hover:bg-slate-50">Fechar</button>
+      </div>
+      <div id="fiado-recibos-lista" class="fiado-recibos-lista flex flex-col gap-1.5"></div>
+    </div>
   </dialog>
 
   <dialog id="fiado-modal-limite" class="fiado-modal-limite w-[min(28rem,96vw)]">
@@ -430,6 +488,7 @@
         buscarCliente: "{% url 'api_fiado_buscar_cliente' %}",
         resumo: "{% url 'api_fiado_resumo' %}",
         importar: "{% url 'api_fiado_importar_planilha' %}",
+        vendaDetalheBase: "{% url 'venda_agro_detalhe' 0 %}",
       },
       podeImportar: {{ pode_importar|yesno:"true,false" }},
     };

@@ -20,9 +20,12 @@
     titSelInfo: document.getElementById('fiado-tit-sel-info'),
     btnBaixaSel: document.getElementById('fiado-btn-baixa-sel'),
     btnBaixaTotalCli: document.getElementById('fiado-btn-baixa-total-cli'),
+    btnRecibos: document.getElementById('fiado-btn-recibos'),
     btnAtualizarTitulos: document.getElementById('fiado-btn-atualizar-titulos'),
-    recibosBox: document.getElementById('fiado-recibos-box'),
     recibosLista: document.getElementById('fiado-recibos-lista'),
+    recibosResumo: document.getElementById('fiado-recibos-resumo'),
+    recibosFechar: document.getElementById('fiado-recibos-fechar'),
+    modalRecibos: document.getElementById('fiado-modal-recibos'),
     modalBaixa: document.getElementById('fiado-modal-baixa'),
     baixaPassoEscolha: document.getElementById('fiado-baixa-passo-escolha'),
     formBaixaParcial: document.getElementById('fiado-form-baixa-parcial'),
@@ -306,15 +309,48 @@
     });
   }
 
-  function renderRecibos(recibos) {
-    if (!el.recibosBox || !el.recibosLista) return;
-    const rows = recibos || [];
-    if (!rows.length) {
-      el.recibosBox.classList.add('hidden');
-      el.recibosLista.innerHTML = '';
+  function vendaDetalheUrl(vendaId) {
+    const base = String(urls.vendaDetalheBase || '').trim();
+    if (!base || !vendaId) return '';
+    return base.replace(/0\/?$/, String(vendaId) + '/');
+  }
+
+  function abrirVendaPopup(vendaId) {
+    const url = vendaDetalheUrl(vendaId);
+    if (!url) {
+      alert('Pedido sem venda vinculada.');
       return;
     }
-    el.recibosBox.classList.remove('hidden');
+    const largura = Math.max(1100, Math.min(window.screen && window.screen.availWidth ? window.screen.availWidth - 80 : 1400, 1500));
+    const altura = Math.max(760, Math.min(window.screen && window.screen.availHeight ? window.screen.availHeight - 80 : 900, 980));
+    const left = window.screenX + Math.max(20, Math.round(((window.outerWidth || largura) - largura) / 2));
+    const top = window.screenY + Math.max(20, Math.round(((window.outerHeight || altura) - altura) / 2));
+    const specs = [
+      'popup=yes',
+      'resizable=yes',
+      'scrollbars=yes',
+      'width=' + largura,
+      'height=' + altura,
+      'left=' + left,
+      'top=' + top,
+    ].join(',');
+    const win = window.open(url, 'fiado_venda_detalhe', specs);
+    if (!win) {
+      window.location.href = url;
+      return;
+    }
+    try {
+      win.focus();
+    } catch (_) {}
+  }
+
+  function renderRecibos(recibos) {
+    if (!el.recibosLista) return;
+    const rows = recibos || [];
+    if (!rows.length) {
+      el.recibosLista.innerHTML = '<p class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm font-bold text-slate-500">Nenhum recibo recente para este cliente.</p>';
+      return;
+    }
     el.recibosLista.innerHTML = rows
       .map(function (r) {
         const recId = r.recibo_id != null ? String(r.recibo_id) : '';
@@ -394,7 +430,11 @@
       return (
         '<tr class="border-t border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
         '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
-        '<td class="font-bold text-slate-900 max-w-[10rem] truncate" title="' + esc(t.numero_documento) + '">' + esc(t.numero_documento || '—') + '</td>' +
+        '<td class="font-bold text-slate-900 max-w-[12rem] truncate" title="' + esc(t.numero_documento) + '">' +
+        (t.venda_agro_id
+          ? '<button type="button" class="fiado-link-pedido text-left font-bold" data-venda-id="' + t.venda_agro_id + '">' + esc(t.numero_documento || '—') + '</button>'
+          : '<span>' + esc(t.numero_documento || '—') + '</span>') +
+        '</td>' +
         '<td class="tabular-nums font-semibold">' + parcela + '</td>' +
         '<td class="font-bold whitespace-nowrap' +
         (sit === 'vencido' || t.vencido ? ' fiado-tit-venc-data' : '') +
@@ -407,6 +447,9 @@
         '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
         '<td class="text-right whitespace-nowrap">' +
         '<button type="button" class="fiado-btn-baixa-tit min-h-[38px] px-2.5 rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button> ' +
+        (t.venda_agro_id
+          ? '<button type="button" class="fiado-btn-ver-tit min-h-[38px] px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-900 text-[10px] font-black uppercase" data-venda-id="' + t.venda_agro_id + '">Ver</button> '
+          : '<span class="fiado-pill-legado">Sistema antigo</span> ') +
         '<button type="button" class="fiado-btn-editar-tit min-h-[38px] px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-[10px] font-black uppercase" data-id="' + t.id + '">Editar</button>' +
         '</td></tr>'
       );
@@ -427,7 +470,9 @@
       const saldo = saldoTitulos(j.titulos);
       if (el.cliModalSaldo) el.cliModalSaldo.textContent = fmtMoeda(saldo);
       clienteModal.saldo = saldo;
-      carregarRecibosCliente(cli);
+      if (el.recibosResumo) {
+        el.recibosResumo.textContent = (cli.nome || 'Cliente') + ' · últimos recibos para reimpressão';
+      }
     } catch (e) {
       if (el.tbodyTitulos) {
         el.tbodyTitulos.innerHTML =
@@ -806,6 +851,11 @@
         });
         return;
       }
+      const bVer = ev.target.closest('.fiado-btn-ver-tit, .fiado-link-pedido');
+      if (bVer) {
+        abrirVendaPopup(parseInt(bVer.getAttribute('data-venda-id'), 10));
+        return;
+      }
       const bEdit = ev.target.closest('.fiado-btn-editar-tit');
       if (bEdit) {
         const id = parseInt(bEdit.getAttribute('data-id'), 10);
@@ -874,6 +924,20 @@
     });
   }
 
+  if (el.btnRecibos) {
+    el.btnRecibos.addEventListener('click', function () {
+      if (!clienteModal || !el.modalRecibos || !el.modalRecibos.showModal) return;
+      if (el.recibosResumo) {
+        el.recibosResumo.textContent = (clienteModal.nome || 'Cliente') + ' · últimos recibos para reimpressão';
+      }
+      if (el.recibosLista) {
+        el.recibosLista.innerHTML = '<p class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-sm font-bold text-slate-500">Carregando recibos…</p>';
+      }
+      el.modalRecibos.showModal();
+      carregarRecibosCliente(clienteModal);
+    });
+  }
+
   if (el.recibosLista) {
     el.recibosLista.addEventListener('click', function (ev) {
       const btn = ev.target.closest('.fiado-btn-reimprimir');
@@ -892,6 +956,11 @@
         recibo_id: Number.isFinite(recId) ? recId : null,
         baixas_ids: baixas,
       });
+    });
+  }
+  if (el.recibosFechar && el.modalRecibos) {
+    el.recibosFechar.addEventListener('click', function () {
+      el.modalRecibos.close();
     });
   }
 
@@ -941,6 +1010,12 @@
   if (el.formEditar) el.formEditar.addEventListener('submit', confirmarEditar);
   if (el.editarCancelar && el.modalEditar) {
     el.editarCancelar.addEventListener('click', function () { el.modalEditar.close(); });
+  }
+  if (el.modalRecibos) {
+    el.modalRecibos.addEventListener('cancel', function (ev) {
+      ev.preventDefault();
+      el.modalRecibos.close();
+    });
   }
   if (el.btnAtualizar) el.btnAtualizar.addEventListener('click', recarregar);
 

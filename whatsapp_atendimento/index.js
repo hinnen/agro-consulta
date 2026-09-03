@@ -163,6 +163,9 @@ const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 const LIVE_MS = 3 * 60 * 1000;
 /** Append = sync; só fila offline bem recente. */
 const APPEND_LIVE_MS = 90 * 1000;
+/** Quarentena pós-conexão: notify nos primeiros segundos = msg velha reenviada. */
+const CONN_QUARANTINE_MS = 15000;
+let connOpenAt = 0;
 /** Só aceita append/histórico antigo quando a loja pediu «Anteriores» neste chat. */
 let histJids = new Set();
 let histAte = 0;
@@ -628,6 +631,7 @@ async function ligar() {
       lastPairing = "";
       const me = (sock.user && (sock.user.id || sock.user.lid)) || "";
       const numero = String(me).split(":")[0].split("@")[0];
+      connOpenAt = Date.now();
       await estado({ status: "conectado", numero, aviso: "" });
       console.log("WhatsApp conectado", numero);
       enviarLidMap();
@@ -726,12 +730,17 @@ async function ligar() {
   });
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify" && type !== "append") return;
+    const emQuarentena = connOpenAt && (Date.now() - connOpenAt < CONN_QUARANTINE_MS);
     for (const m of messages || []) {
       try {
         guardarMsgCache(m);
         const raw = String((m && m.key && m.key.remoteJid) || "");
         const jid = jidDaMensagem(m);
         if (ehMensagemAoVivo(m, type)) {
+          if (emQuarentena && !(m.key && m.key.fromMe)) {
+            console.log("Quarentena: descartada notify de", jid);
+            continue;
+          }
           await enviarEntrada(m, { historico: false });
           continue;
         }
