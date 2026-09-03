@@ -733,7 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
+- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF` · 03/09):** stories não entram no chat. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
 - **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
@@ -1270,14 +1270,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.52** · 03/09)
+### 📦 WIP — cadastro vazio + histórico (`CAD-FALLBACK-HIST` · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa**; loja só em Todas). Topo refeito em **linha única**: `GM + Vendas + período/data + Exportar CSV` na mesma faixa superior, sem segunda linha, e no **overlay** a faixa é puxada mais pra cima (menos padding) para encostar na linha do `Fechar`. Coluna **Ações** com grade fixa: `Ver`, `Imprimir`, `Devolver` e fiscal/reemitir sempre na ponta direita quando existir. **Busca** `q` no servidor: nº venda, cliente, CPF, valor, forma (também combinada), operador, loja, data, hora, cupom NFC-e, produto. |
+| **O quê** | Campos em branco (marca/cat/barras) na leitura do detalhe voltam do **histórico PG**. Barra antiga diferente entra como **opcional**. Sem Mongo. Render MCP OK (API key). |
+| **Leitura produção** | `agro-db` · **22 produtos** mudam na tela · arquivo `conferencia-cadastro-producao-2026-09-03.csv` |
+| **Status** | Lista pronta p/ Renan conferir · **ainda não sobe loja** |
+| **Fora** | Não grava produção; só leitura |
+
+### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.62** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa**; loja só em Todas). No **overlay**, o topo útil sobe para a barra verde: o header interno some e o período/CSV vão para a topbar do PDV. Coluna **Fiscal** saiu; o 4º slot de **Ações** concentra o estado NFC-e: **Reemitir**, **Emitindo...**, **Fiscal** ou **Interno**. Venda **devolvida** usa o próprio slot do botão Devolver com card alinhado. **Busca** `q` no servidor: nº venda, cliente, CPF, valor, forma (também combinada), operador, loja, data, hora, cupom NFC-e, produto. Demo local `?demo_nfce_ui=1` mostra estados visuais sem depender da SEFAZ. |
 | **Migrate** | **NÃO** |
 | **Status** | WIP local — aguarda prova no PC |
-| **Você** | Ctrl+F5 em `/vendas/` · tecla `/` foca a busca · Enter aplica |
+| **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
 
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
 
@@ -1409,6 +1418,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
 - **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
 - **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
+- **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
 - **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)

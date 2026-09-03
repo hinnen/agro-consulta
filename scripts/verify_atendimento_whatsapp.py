@@ -89,6 +89,8 @@ def _static() -> None:
     check("node_so_notify", "ehMensagemAoVivo" in node and "LIVE_MS" in node and "APPEND_LIVE_MS" in node)
     check("util_bot_ao_vivo", "BOT_AO_VIVO_SEG" in util)
     check("node_jid_privado", "ehChatPrivado" in node and "@lid" in node)
+    check("node_status_off", "ehStatusOuGrupo" in node and "status@broadcast" in node)
+    check("util_status_off", "@broadcast" in util and 'return None, "ignorado"' in util)
     check("node_lid_pn", "senderPn" in node and "normalizeMessageContent" in node)
     check("html_bot_guard", "data-agro-no-double-guard" in _read("produtos/templates/produtos/atendimento_whatsapp_bot.html"))
     check("js_bot_save", "wa-bot-save" in _read("produtos/static/produtos/js/atendimento_whatsapp_bot.js"))

@@ -241,9 +241,20 @@ function guardarMsgCache(m) {
   }
 }
 
+function ehStatusOuGrupo(jid) {
+  const j = String(jid || "").toLowerCase();
+  return (
+    j === "status@broadcast" ||
+    j.includes("@broadcast") ||
+    j.includes("@g.us") ||
+    j.includes("@newsletter") ||
+    j.includes("@status")
+  );
+}
+
 function ehChatPrivado(jid) {
   const j = String(jid || "").toLowerCase();
-  if (j.includes("@g.us") || j.includes("@newsletter") || j.includes("@broadcast")) return false;
+  if (ehStatusOuGrupo(j)) return false;
   const num = j.split("@")[0].replace(/\D/g, "");
   if (!num) return false;
   if (j.endsWith("@lid")) return num.length >= 6 && num.length <= 22;
@@ -372,6 +383,7 @@ function jidDaMensagem(m) {
   const key = m && m.key;
   if (!key) return "";
   let jid = String(key.remoteJid || "");
+  if (ehStatusOuGrupo(jid)) return jid;
   const phone = telefoneDeKey(key) || pnDeLid(jid);
   if (jid.endsWith("@lid")) {
     if (phone) {
@@ -527,6 +539,7 @@ async function enviarEntrada(m, extra) {
   if (!m || !(m.message || conteudoDe(m))) return;
   const key = m.key || {};
   const orig = String(key.remoteJid || "");
+  if (ehStatusOuGrupo(orig)) return;
   const lid = orig.endsWith("@lid") ? orig : "";
   let jid = jidDaMensagem(m);
   if (jid.endsWith("@lid")) {
@@ -717,6 +730,7 @@ async function ligar() {
       try {
         guardarMsgCache(m);
         const raw = String((m && m.key && m.key.remoteJid) || "");
+        if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
         if (!histJanelaAberta()) continue;
         if (!historicoPermitido(jid) && !historicoPermitido(raw)) continue;
@@ -735,6 +749,7 @@ async function ligar() {
       try {
         guardarMsgCache(m);
         const raw = String((m && m.key && m.key.remoteJid) || "");
+        if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
         if (ehMensagemAoVivo(m, type)) {
           if (emQuarentena && !(m.key && m.key.fromMe)) {

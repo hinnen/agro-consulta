@@ -864,6 +864,9 @@ def processar_entrada(
     jid_lid: str = "",
 ) -> tuple[WhatsAppMensagemAgro | None, str]:
     jid_n = (jid or "").strip()
+    bruto = f"{jid_n} {jid_lid or ''}".lower()
+    if any(x in bruto for x in ("@broadcast", "@g.us", "@newsletter", "status@")):
+        return None, "ignorado"
     lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
     tel_limpo = _telefone_real(telefone) or _telefone_real(jid_n)
     if lid and not tel_limpo:

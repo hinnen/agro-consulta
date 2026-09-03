@@ -74,6 +74,18 @@ class BotRoteamentoTests(TestCase):
         conv = WhatsAppConversaAgro.objects.get()
         self.assertEqual(conv.loja, "centro")
 
+    def test_status_zap_nao_vira_conversa(self):
+        m, err = processar_entrada(
+            jid="status@broadcast",
+            texto="Almoço diferente hoje",
+            nome="Rafa",
+            telefone="5547999999999",
+            wa_id="status-1",
+        )
+        self.assertIsNone(m)
+        self.assertEqual(err, "ignorado")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+
 
 class ConsultaFiadoWhatsAppTests(TestCase):
     def test_fiado_pelo_zap(self):
