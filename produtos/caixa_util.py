@@ -1815,6 +1815,7 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
         VendaAgro.objects.filter(
             sessao_caixa_id__in=ids,
             devolvida_em__isnull=True,
+            fiado_nota_caixa_conferida_em__isnull=True,
         )
         .select_related("sessao_caixa")
         .order_by("criado_em", "pk")
@@ -1860,6 +1861,7 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
             origem=FiadoTituloAgro.Origem.PDV,
             venda_agro__sessao_caixa_id__in=ids,
             venda_agro__devolvida_em__isnull=True,
+            venda_agro__fiado_nota_caixa_conferida_em__isnull=True,
         )
         .select_related("venda_agro", "venda_agro__sessao_caixa")
         .order_by("criado_em", "pk")
@@ -1867,6 +1869,8 @@ def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
     for titulo in titulos:
         venda = titulo.venda_agro
         if not venda or venda.pk in vistos:
+            continue
+        if getattr(venda, "fiado_nota_caixa_conferida_em", None):
             continue
         valor = valor_fiado_venda_local(venda)
         if valor <= 0:
@@ -1899,7 +1903,8 @@ def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
         return []
     baixas = (
         FiadoBaixaAgro.objects.filter(
-            Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids)
+            Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids),
+            fiado_nota_caixa_conferida_em__isnull=True,
         )
         .select_related("titulo", "sessao_caixa", "movimento_caixa__sessao_caixa")
         .order_by("criado_em", "pk")
@@ -1970,3 +1975,50 @@ def validar_conferencia_fiado_caixa(
         if not ok:
             return err or "Informe PIN válido para pular a conferência de pagamentos fiado."
     return None
+
+
+def _ids_int(raw) -> list[int]:
+    out: list[int] = []
+    for x in raw or []:
+        try:
+            n = int(x)
+        except (TypeError, ValueError):
+            continue
+        if n > 0:
+            out.append(n)
+    return out[:200]
+
+
+def marcar_fiado_conferencia_caixa(
+    sessoes,
+    venda_ids: list[int] | None = None,
+    baixa_ids: list[int] | None = None,
+) -> dict[str, int]:
+    """Grava conferência da caixinha no Postgres — só itens do turno aberto."""
+    from django.db.models import Q
+
+    from produtos.models import FiadoBaixaAgro, VendaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    agora = timezone.now()
+    n_v = 0
+    n_b = 0
+    v_ids = _ids_int(venda_ids)
+    b_ids = _ids_int(baixa_ids)
+    if ids and v_ids:
+        n_v = int(
+            VendaAgro.objects.filter(
+                pk__in=v_ids,
+                sessao_caixa_id__in=ids,
+                fiado_nota_caixa_conferida_em__isnull=True,
+            ).update(fiado_nota_caixa_conferida_em=agora)
+        )
+    if ids and b_ids:
+        n_b = int(
+            FiadoBaixaAgro.objects.filter(
+                Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids),
+                pk__in=b_ids,
+                fiado_nota_caixa_conferida_em__isnull=True,
+            ).update(fiado_nota_caixa_conferida_em=agora)
+        )
+    return {"vendas": n_v, "baixas": n_b}

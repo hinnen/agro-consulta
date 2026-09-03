@@ -517,6 +517,12 @@ class VendaAgro(models.Model):
         db_index=True,
         help_text="PDV pediu cupom fiscal (NFC-e) nesta venda.",
     )
+    fiado_nota_caixa_conferida_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Fechar caixa: nota fiado conferida na caixinha (não pede de novo neste turno).",
+    )
 
     class Meta:
         ordering = ["-criado_em"]
@@ -749,6 +755,12 @@ class FiadoBaixaAgro(models.Model):
     usuario = models.CharField(max_length=150, blank=True, default="")
     observacao = models.CharField(max_length=500, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
+    fiado_nota_caixa_conferida_em = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Fechar caixa: nota paga conferida (retirada da caixinha).",
+    )
 
     class Meta:
         ordering = ["-criado_em"]

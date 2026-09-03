@@ -738,6 +738,11 @@ urlpatterns = [
         views.api_caixa_conferencia_estado,
         name='api_caixa_conferencia_estado',
     ),
+    path(
+        'api/caixa/fiado-conferencia/',
+        views.api_caixa_fiado_conferencia_salvar,
+        name='api_caixa_fiado_conferencia_salvar',
+    ),
     path('api/caixa/movimento/', views.api_caixa_movimento, name='api_caixa_movimento'),
     path('api/caixa/vincular-vendas/', views.api_caixa_vincular_vendas, name='api_caixa_vincular_vendas'),
 
@@ -859,6 +864,11 @@ urlpatterns = [
         'api/atendimento-whatsapp/excluir/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_excluir,
         name='api_atendimento_whatsapp_excluir',
+    ),
+    path(
+        'api/atendimento-whatsapp/excluir-todas/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_excluir_todas,
+        name='api_atendimento_whatsapp_excluir_todas',
     ),
     path(
         'api/atendimento-whatsapp/apagar-mensagem/',

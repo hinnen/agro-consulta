@@ -104,6 +104,7 @@ from .caixa_util import (
     listar_fiado_baixas_conferencia_caixa,
     fiado_conferencia_operacional,
     validar_conferencia_fiado_caixa,
+    marcar_fiado_conferencia_caixa,
     usuario_label_sessao_caixa,
     operador_label_request,
     normalizar_forma_pagamento_caixa,
@@ -11968,6 +11969,28 @@ def api_caixa_conferencia_rascunho_salvar(request):
 
 
 @login_required(login_url="/admin/login/")
+@require_POST
+def api_caixa_fiado_conferencia_salvar(request):
+    """Confirmar notas fiado na caixinha — grava no Postgres (não pede de novo ao reabrir Fechar caixa)."""
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
+    sessoes = list(
+        SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("aberto_em")
+    )
+    alvo = filtrar_sessoes_por_deposito(sessoes, deposito_caixa_browser(request))
+    if not alvo:
+        return JsonResponse({"ok": False, "erro": "Nenhum caixa desta loja aberto."}, status=400)
+    vendas = payload.get("vendas") if isinstance(payload.get("vendas"), list) else []
+    baixas = payload.get("baixas") if isinstance(payload.get("baixas"), list) else []
+    if not vendas and not baixas:
+        return JsonResponse({"ok": False, "erro": "Nada para gravar."}, status=400)
+    n = marcar_fiado_conferencia_caixa(alvo, vendas, baixas)
+    return JsonResponse({"ok": True, "gravados": n})
+
+
+@login_required(login_url="/admin/login/")
 @require_GET
 def api_caixa_conferencia_estado(request):
     """Valores esperados da conferência (atualizar após reforço/retirada/repasse sem recarregar).
@@ -13068,6 +13091,7 @@ def caixa_fechar(request):
             "fiado_baixas_conferencia": fiado_baixas_conferencia,
             "api_rascunho_salvar_url": reverse("api_caixa_conferencia_rascunho_salvar"),
             "api_conferencia_estado_url": reverse("api_caixa_conferencia_estado"),
+            "api_fiado_conferencia_url": reverse("api_caixa_fiado_conferencia_salvar"),
             "caixa_popup_retirada": reverse("caixa_retiradas_historico") + "?embed=1",
             "caixa_popup_reforco": reverse("caixa_painel") + "?painel=reforco&embed=1",
             "caixa_popup_relatorio": reverse("caixa_relatorio") + "?preset=hoje&embed=1",

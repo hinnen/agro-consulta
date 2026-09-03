@@ -14,7 +14,7 @@
         <li>
           <label class="cf-fiado-row is-pendente">
             <span class="cf-fiado-check-wrap">
-              <input form="form-fechar-todos" type="checkbox" name="{{ checkbox_name }}_{{ item.id }}" value="1" class="{{ checkbox_class }} shrink-0" aria-label="Conferir {{ item.cliente_nome }}"{% if item.operacional %} data-fiado-obrig="1"{% endif %}>
+              <input form="form-fechar-todos" type="checkbox" name="{{ checkbox_name }}_{{ item.id }}" value="1" data-fiado-id="{{ item.id }}" class="{{ checkbox_class }} shrink-0" aria-label="Conferir {{ item.cliente_nome }}"{% if item.operacional %} data-fiado-obrig="1"{% endif %}>
               <span class="cf-fiado-check-hint cf-fiado-check-hint--off">Toque para conferir</span>
               <span class="cf-fiado-check-hint cf-fiado-check-hint--on">Conferido</span>
             </span>

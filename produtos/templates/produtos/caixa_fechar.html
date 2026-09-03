@@ -1848,6 +1848,7 @@
   }
   var saveTimer = null;
   var saveUrl = '{{ api_rascunho_salvar_url|escapejs }}';
+  var fiadoConfUrl = '{{ api_fiado_conferencia_url|escapejs }}';
   var statusEl = document.getElementById('cf-contagem-status');
   function mostrarStatusContagem(msg, ok) {
     if (!statusEl) return;
@@ -1947,6 +1948,32 @@
       el.classList.add('hidden');
       syncCaixaModalPause();
     }
+    function idsMarcados(sel) {
+      var out = [];
+      document.querySelectorAll(sel).forEach(function (cb) {
+        if (!cb.checked) return;
+        var n = parseInt(cb.getAttribute('data-fiado-id') || '0', 10);
+        if (n) out.push(n);
+      });
+      return out;
+    }
+    function gravarConferencia(payload) {
+      if (!fiadoConfUrl || !csrfToken()) {
+        return Promise.resolve({ ok: false, erro: 'Sem rota para gravar conferência.' });
+      }
+      return fetch(fiadoConfUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken()
+        },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json(); }).catch(function () {
+        return { ok: false, erro: 'Falha de rede ao gravar conferência.' };
+      });
+    }
     function todosMarcados(sel) {
       var boxes = document.querySelectorAll(sel);
       if (!boxes.length) return true;
@@ -1990,7 +2017,13 @@
         }
         if (puladoVendas) puladoVendas.value = '0';
         if (pinVendas) pinVendas.value = '';
-        aposVendas();
+        gravarConferencia({ vendas: idsMarcados('.cf-fiado-check-assinado') }).then(function (res) {
+          if (!res || !res.ok) {
+            alert((res && res.erro) || 'Não gravou a conferência. Tente de novo.');
+            return;
+          }
+          aposVendas();
+        });
       });
     }
     if (btnPulV) {
@@ -2013,7 +2046,13 @@
         }
         if (puladoBaixas) puladoBaixas.value = '0';
         if (pinBaixas) pinBaixas.value = '';
-        aposBaixas();
+        gravarConferencia({ baixas: idsMarcados('.cf-fiado-check-retirado') }).then(function (res) {
+          if (!res || !res.ok) {
+            alert((res && res.erro) || 'Não gravou a conferência. Tente de novo.');
+            return;
+          }
+          aposBaixas();
+        });
       });
     }
     if (btnPulB) {
