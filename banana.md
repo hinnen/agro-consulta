@@ -1298,14 +1298,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.82** · 03/09)
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.83** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
-| **Hotfix** | Stack **não** força `position:relative` em modal `fixed` — Reemitir NFC-e em `/vendas/` (overlay) voltou compacto |
+| **Hotfix** | Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc no Ver venda** volta à lista (1 nível); Fechar/F1 fecha o painel. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **14/14** · vendas UX **52/52** |
+| **Prova** | `verify_pdv_overlay_stack_path` **16/16** · vendas UX **52/52** |
 | **Status** | 🟡 **pronto para envio à produção** |
 
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
@@ -1329,7 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.82**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.83**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

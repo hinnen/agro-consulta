@@ -1,4 +1,5 @@
 {# Tecla F1 e link «Voltar ao PDV». No painel do balcão (overlay), FECHAR em vez de navegar. #}
+{# Esc: se estiver numa página interna (ex. Ver venda), volta 1 nível; senão fecha o overlay. #}
 <script>
 (function () {
   function inGestaoContext() {
@@ -14,10 +15,20 @@
 
   function inPdvOverlay() {
     try {
-      return new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1';
-    } catch (_) {
-      return false;
-    }
+      if (new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1') return true;
+    } catch (_) {}
+    try {
+      if (
+        window.parent &&
+        window.parent !== window &&
+        window.parent.AgroPdvOverlay &&
+        typeof window.parent.AgroPdvOverlay.isOpen === 'function' &&
+        window.parent.AgroPdvOverlay.isOpen()
+      ) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   function closePdvOverlay() {
@@ -32,6 +43,37 @@
     }
   }
 
+  function overlayQuery() {
+    return 'agro_pdv_overlay=1&agro_inapp_embed=1';
+  }
+
+  function withOverlayParams(href) {
+    try {
+      var u = new URL(href, window.location.origin);
+      if (u.origin !== window.location.origin) return href;
+      u.searchParams.set('agro_pdv_overlay', '1');
+      u.searchParams.set('agro_inapp_embed', '1');
+      return u.pathname + u.search + u.hash;
+    } catch (_) {
+      return href;
+    }
+  }
+
+  /** Esc: detalhe de venda → lista (não fecha o painel do balcão). */
+  function popOverlayInnerPage() {
+    var p = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+    if (!/^\/venda\/\d+$/.test(p)) return false;
+    try {
+      var ref = String(document.referrer || '');
+      if (ref && ref.indexOf('/vendas') >= 0 && window.history.length > 1) {
+        window.history.back();
+        return true;
+      }
+    } catch (_) {}
+    window.location.href = '/vendas/?' + overlayQuery();
+    return true;
+  }
+
   document.addEventListener(
     'click',
     function (e) {
@@ -40,10 +82,16 @@
       if (!a) return;
       try {
         var u = new URL(a.href, window.location.origin);
-        var p = (u.pathname || '').replace(/\/+$/, '') || '/';
-        if (p === '/pdv' || p.indexOf('/pdv/') === 0 || p === '/consulta' || p.indexOf('/consulta/') === 0) {
+        if (u.origin !== window.location.origin) return;
+        var path = (u.pathname || '').replace(/\/+$/, '') || '/';
+        if (path === '/pdv' || path.indexOf('/pdv/') === 0 || path === '/consulta' || path.indexOf('/consulta/') === 0) {
           e.preventDefault();
           closePdvOverlay();
+          return;
+        }
+        /* Mantém flag do overlay nos cliques internos (Ver venda, Lista, Devolver…). */
+        if (!u.searchParams.has('agro_pdv_overlay')) {
+          a.setAttribute('href', withOverlayParams(a.href));
         }
       } catch (_) {}
     },
@@ -91,6 +139,7 @@
       var t = e.target;
       if (isEsc) {
         e.preventDefault();
+        if (popOverlayInnerPage()) return;
         closePdvOverlay();
         return;
       }

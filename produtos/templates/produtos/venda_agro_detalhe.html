@@ -83,7 +83,7 @@
 
       <div class="flex flex-wrap gap-2 shrink-0">
 
-        <a href="{% url 'vendas_lista' %}" class="venda-fiado-hide inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
+        <a href="{% url 'vendas_lista' %}{% if request.GET.agro_pdv_overlay %}?agro_pdv_overlay={{ request.GET.agro_pdv_overlay }}{% if request.GET.agro_inapp_embed %}&agro_inapp_embed={{ request.GET.agro_inapp_embed }}{% endif %}{% endif %}" class="venda-fiado-hide inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
 
         {% if cupom_80mm %}
         <button type="button" id="btn-imprimir-cupom-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white shadow-md hover:bg-sky-700" title="Cupom térmico 80mm (2ª via)">Imprimir cupom</button>
