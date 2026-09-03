@@ -1372,6 +1372,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ---
 
+### 📦 PACOTE PRONTO — Repasse sem vidro nos popups (`REPASSE-STACK-NEST` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Depois de **Confirmar transferência**, os popups (confirmar / 3 OKs) ficavam com vidro na frente e sem clique. Stack congelava o overlay pai (popup é filho). |
+| **Fix** | Se a camada de cima é **filha** da de baixo → sem vidro/`pointer-events:none` no pai. |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_overlay_stack_path` **23/23** · repasse overlay **OK** |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · Repasse → Confirmar → clicar Confirmar / OKs até transferir |
+
 ### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
 
 | Campo | Valor |
@@ -1415,10 +1426,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
-| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). |
+| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). **Repasse Confirmar** (`REPASSE-STACK-NEST`): popup filho sem vidro. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **22/22** · vendas UX **52/52** |
-| **Status** | ✅ **Live v21.84** |
+| **Prova** | `verify_pdv_overlay_stack_path` **23/23** · vendas UX **52/52** |
+| **Status** | 🟡 **pronto para envio à produção** (hotfix nest; base Live v21.84) |
 
 ### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
 
@@ -1464,7 +1475,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
 | **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
 
-### ✅ CHECKLIST ÚNICO — 03/09 · **Live v21.84**
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip pós **v21.84**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `REPASSE-STACK-NEST` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 2 | `PDV-OVERLAY-STACK` (hotfix nest) | 🟡 **pronto para envio à produção** | **NÃO** |
+
+**Live agora:** **v21.84**. Fila só o vidro do Repasse. Sobe **só** com frase + senha (cherry).
+
+### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · fila agora = tip acima
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

@@ -36,6 +36,10 @@ def main() -> int:
     check("overlay_fechar_back_or_close", "backOrClose" in overlay)
     check("overlay_fechar_btn_back", "backOrClose()" in overlay)
     check("stack_hidden_token_not_block", "layerBlocksUi" in stack)
+    check(
+        "stack_nested_child_no_glass",
+        "agro-stack-nested-parent" in stack and "el.contains(top)" in stack_compact,
+    )
     caixa_html = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
     check(
         "caixa_popup_not_nested_token",
@@ -56,7 +60,7 @@ def main() -> int:
     check("wizard_stack", "AgroOverlayStack" in (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8"))
     check("compras_auto", 'data-agro-stack="auto"' in (ROOT / "produtos/templates/produtos/compras.html").read_text(encoding="utf-8"))
 
-    total = 22
+    total = 23
     print(("OK" if fails == 0 else "FAIL") + f" verify_pdv_overlay_stack_path — {total - fails}/{total}")
     return 1 if fails else 0
 

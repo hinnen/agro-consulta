@@ -5,12 +5,14 @@
 (function () {
   'use strict';
 
-  var STYLE_ID = 'agro-overlay-stack-styles-v2';
+  var STYLE_ID = 'agro-overlay-stack-styles-v3';
   var stack = [];
 
   function ensureStyles() {
-    var old = document.getElementById('agro-overlay-stack-styles-v1');
-    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var oldV1 = document.getElementById('agro-overlay-stack-styles-v1');
+    if (oldV1 && oldV1.parentNode) oldV1.parentNode.removeChild(oldV1);
+    var oldV2 = document.getElementById('agro-overlay-stack-styles-v2');
+    if (oldV2 && oldV2.parentNode) oldV2.parentNode.removeChild(oldV2);
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -23,7 +25,9 @@
       'content:"";position:absolute;inset:0;z-index:2147483645;' +
       'background:rgba(15,23,42,.28);pointer-events:none;border-radius:inherit}' +
       '.agro-stack-layer.agro-stack-inactive [data-agro-stack-close],' +
-      '.agro-stack-layer.agro-stack-inactive .agro-stack-close{' +
+      '.agro-stack-layer.agro-stack-inactive .agro-stack-close,' +
+      '.agro-stack-layer.agro-stack-nested-parent [data-agro-stack-close],' +
+      '.agro-stack-layer.agro-stack-nested-parent .agro-stack-close{' +
       'visibility:hidden!important;pointer-events:none!important}';
     document.head.appendChild(st);
   }
@@ -73,11 +77,24 @@
       el.classList.add('agro-stack-layer');
       if (layerBlocksUi(el)) lastVisible = i;
     }
+    var top = lastVisible >= 0 ? stack[lastVisible] : null;
     for (i = 0; i < stack.length; i += 1) {
       el = stack[i];
       if (!el || !el.classList) continue;
-      if (lastVisible >= 0 && i < lastVisible) el.classList.add('agro-stack-inactive');
-      else el.classList.remove('agro-stack-inactive');
+      /* Popup interno (ex.: Confirmar do Repasse) é filho do overlay.
+         Congelar o pai com ::after/vidro cobre o filho e mata o clique. */
+      var nestedInside =
+        !!(top && el !== top && typeof el.contains === 'function' && el.contains(top));
+      if (lastVisible >= 0 && i < lastVisible && !nestedInside) {
+        el.classList.add('agro-stack-inactive');
+        el.classList.remove('agro-stack-nested-parent');
+      } else if (nestedInside) {
+        el.classList.remove('agro-stack-inactive');
+        el.classList.add('agro-stack-nested-parent');
+      } else {
+        el.classList.remove('agro-stack-inactive');
+        el.classList.remove('agro-stack-nested-parent');
+      }
     }
     syncParentChrome();
   }
@@ -109,12 +126,14 @@
     var idx = indexOf(el);
     if (idx < 0) {
       el.classList.remove('agro-stack-inactive');
+      el.classList.remove('agro-stack-nested-parent');
       el.classList.remove('agro-stack-layer');
       el.classList.remove('agro-stack-need-pos');
       return;
     }
     stack.splice(idx, 1);
     el.classList.remove('agro-stack-inactive');
+    el.classList.remove('agro-stack-nested-parent');
     el.classList.remove('agro-stack-layer');
     el.classList.remove('agro-stack-need-pos');
     refresh();
