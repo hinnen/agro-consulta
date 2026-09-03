@@ -1281,7 +1281,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
 | **Prep** | Branch `deploy/prep-wa-atend-0309` |
 
-**Ponte:** após Limpar, msg nova podia ser tratada como histórico e **não criava** chat. Corrigido (notify sempre cria). Local: `iniciar-local.bat` + F5. Fechar Zap Desktop do PC ajuda na prova.
+**Ponte:** local OK (msg/áudio/Limpar). Foto duplicava por poll cruzado — trava `saidaEmVoo`. Pacote WA pós-loja: Limpar, iniciar-local, entrada pós-Limpar, foto 1x. **Loja:** frase + senha (cherry, não merge full `teste`).
 
 ---
 

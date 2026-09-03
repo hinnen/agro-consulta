@@ -207,6 +207,11 @@ def aplicar_nome_cadastro(conv: WhatsAppConversaAgro, *, perfil: str = "", cfg: 
             ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid).only("nome").first()
             if ag is None and (conv.jid_lid or ""):
                 ag = WhatsAppAgendaContatoAgro.objects.filter(jid=conv.jid_lid).only("nome").first()
+            if ag is None and tel:
+                tels = {tel}
+                if len(tel) >= 11:
+                    tels.add(tel[-11:])
+                ag = WhatsAppAgendaContatoAgro.objects.filter(telefone__in=list(tels)).exclude(nome="").only("nome").first()
             hit = ((ag.nome if ag else "") or "").strip()
         elif fonte == "perfil":
             hit = (perfil or "").strip()
@@ -500,7 +505,6 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
 
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
-    juntar_conversas_lid_orfas()
     loja_n = (loja or "").strip().lower()
     qs = WhatsAppConversaAgro.objects.all()
     if loja_n in (
@@ -718,9 +722,9 @@ def _fundir_conversas(manter: WhatsAppConversaAgro, sobra: WhatsAppConversaAgro)
     return manter
 
 
-def _achar_ou_criar_conversa(
+def _achar_conversa(
     *, jid_n: str, telefone: str = "", nome: str = "", jid_lid: str = ""
-) -> WhatsAppConversaAgro:
+) -> WhatsAppConversaAgro | None:
     tel = _telefone_real(telefone) or _telefone_real(jid_n)
     phone_jid = telefone_para_jid(tel) if tel else ""
     lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
@@ -774,6 +778,19 @@ def _achar_ou_criar_conversa(
         if campos:
             base.save(update_fields=campos)
         return base
+    return None
+
+
+def _achar_ou_criar_conversa(
+    *, jid_n: str, telefone: str = "", nome: str = "", jid_lid: str = ""
+) -> WhatsAppConversaAgro:
+    tel = _telefone_real(telefone) or _telefone_real(jid_n)
+    phone_jid = telefone_para_jid(tel) if tel else ""
+    lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
+    canon = (phone_jid or lid or jid_n)[:80]
+    hit = _achar_conversa(jid_n=jid_n, telefone=telefone, nome=nome, jid_lid=jid_lid)
+    if hit is not None:
+        return hit
     conv, _criada = WhatsAppConversaAgro.objects.select_for_update().get_or_create(
         jid=canon,
         defaults={
@@ -796,7 +813,7 @@ def _achar_ou_criar_conversa(
 
 @transaction.atomic
 def aplicar_mapa_lid(pares: dict) -> int:
-    """Recebe { 'xxx@lid': '5513...@s.whatsapp.net' } e junta os chats."""
+    """Recebe { 'xxx@lid': '5513...@s.whatsapp.net' } e junta os chats já existentes."""
     if not isinstance(pares, dict):
         return 0
     n = 0
@@ -804,6 +821,9 @@ def aplicar_mapa_lid(pares: dict) -> int:
         lid = _jid_lid(str(lid_raw or ""))
         tel = _telefone_real(str(phone_raw or ""))
         if not lid or not tel:
+            continue
+        hit = _achar_conversa(jid_n=telefone_para_jid(tel), telefone=tel, jid_lid=lid)
+        if hit is None:
             continue
         _achar_ou_criar_conversa(jid_n=telefone_para_jid(tel), telefone=tel, jid_lid=lid)
         n += 1
@@ -888,7 +908,6 @@ def processar_entrada(
     if lid and not tel_limpo:
         pares = _mapa_lid_disco()
         tel_limpo = _telefone_real(str(pares.get(lid) or pares.get(jid_n) or ""))
-    juntar_conversas_lid_orfas()
     tel_extra = telefone_para_jid(tel_limpo) if tel_limpo else ""
     if tel_extra:
         jid_n = tel_extra
@@ -912,17 +931,28 @@ def processar_entrada(
         return None, "duplicada"
 
     quando = _ts_aware(ts)
+    idade_seg = (timezone.now() - quando).total_seconds() if ts not in (None, "", 0, "0") else 0
     # Rede/reconnect do Zap manda msgs antigas como “ao vivo” → bot disparava sozinho.
-    if not historico and ts not in (None, "", 0, "0"):
-        idade = (timezone.now() - quando).total_seconds()
-        if idade > BOT_AO_VIVO_SEG:
-            historico = True
+    if not historico and idade_seg > BOT_AO_VIVO_SEG:
+        historico = True
     if historico:
         limite = timezone.now() - timedelta(days=DIAS_HISTORICO)
         if quando < limite:
             return None, "ignorado"
 
-    conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
+    # Histórico antigo / eco: não cria chat novo (evita lista voltar após Limpar).
+    # Mensagem recente de cliente: cria mesmo se veio marcada como histórico.
+    if de_mim:
+        conv = _achar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
+        if conv is None:
+            return None, "ignorado"
+    elif historico and idade_seg > BOT_AO_VIVO_SEG:
+        conv = _achar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
+        if conv is None:
+            return None, "ignorado"
+    else:
+        conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=tel_limpo, nome=nome, jid_lid=lid)
+        historico = False
     if not conv.telefone and tel_limpo:
         conv.telefone = tel_limpo[:32]
     if not _telefone_real(conv.telefone):
@@ -1255,19 +1285,8 @@ def abrir_conversa_busca(*, telefone: str, nome: str = "", jid: str = "") -> tup
     jid_n = phone_jid
     if not jid_n:
         return None, "Número inválido."
-    conv = WhatsAppConversaAgro.objects.select_for_update().filter(jid=jid_n[:80]).first()
-    if conv is None:
-        if _novos_loja_24h() >= MAX_NOVOS_DIA:
-            return None, "Limite de conversas novas hoje (20)."
-        conv = WhatsAppConversaAgro.objects.create(
-            jid=jid_n[:80],
-            telefone=jid_para_telefone(jid_n),
-            nome=(nome or "")[:120],
-            loja=WhatsAppConversaAgro.LOJA_PENDENTE,
-            menu_enviado=True,
-            origem_abertura="loja",
-        )
-    if nome and not conv.nome:
+    conv = _achar_ou_criar_conversa(jid_n=jid_n, telefone=telefone or jid_para_telefone(jid_n), nome=nome, jid_lid=lid)
+    if nome and (not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone)):
         conv.nome = nome[:120]
     if not conv.telefone:
         conv.telefone = jid_para_telefone(jid_n)
@@ -1294,6 +1313,18 @@ def buscar_contatos_envio(termo: str, *, limit: int = 20) -> list[dict]:
             return
         seen.add(j)
         conv = WhatsAppConversaAgro.objects.filter(Q(jid=j) | Q(jid_lid=j)).only("id", "loja").first()
+        if conv is None:
+            tel_hit = _telefone_real(telefone) or _telefone_real(j)
+            if tel_hit:
+                conv = (
+                    WhatsAppConversaAgro.objects.filter(
+                        Q(telefone=tel_hit)
+                        | Q(telefone=tel_hit[-11:] if len(tel_hit) >= 11 else tel_hit)
+                        | Q(jid=telefone_para_jid(tel_hit))
+                    )
+                    .only("id", "loja")
+                    .first()
+                )
         out.append(
             {
                 "origem": origem,
@@ -1345,10 +1376,7 @@ def _phone_jid_de_lid(lid: str) -> str:
     )
     if conv and (conv.jid or "").endswith("@s.whatsapp.net"):
         return conv.jid
-    try:
-        data = json.loads(_mapa_lid_disco().read_text(encoding="utf-8"))
-    except Exception:
-        data = {}
+    data = _mapa_lid_disco()
     if isinstance(data, dict):
         for k, v in data.items():
             if _jid_lid(str(k)) == lid_n:
@@ -1482,6 +1510,22 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
         WhatsAppAgendaContatoAgro.objects.update_or_create(
             jid=key, defaults={"telefone": tel_ok, "nome": nome}
         )
+        if nome:
+            q_conv = WhatsAppConversaAgro.objects.filter(Q(jid=key) | Q(jid_lid=key))
+            if tel_ok:
+                dig_ag = re.sub(r"\D+", "", tel_ok)
+                if dig_ag:
+                    q_conv = WhatsAppConversaAgro.objects.filter(
+                        Q(jid=key)
+                        | Q(jid_lid=key)
+                        | Q(telefone=tel_ok)
+                        | Q(telefone=dig_ag)
+                        | Q(telefone=dig_ag[-11:] if len(dig_ag) >= 11 else dig_ag)
+                    )
+            for conv in q_conv:
+                if not conv.nome or _nome_parece_telefone(conv.nome, conv.telefone):
+                    conv.nome = nome[:120]
+                    conv.save(update_fields=["nome"])
         n += 1
     if pedido_id:
         marcar_pedido(int(pedido_id), ok=True)
@@ -1701,6 +1745,13 @@ def excluir_conversa(conversa_id: int) -> tuple[bool, str]:
     if not n:
         return False, "Conversa não encontrada."
     return True, ""
+
+
+def excluir_todas_conversas() -> int:
+    """Some a lista no Agro. Não mexe no Zap do celular."""
+    n = WhatsAppConversaAgro.objects.count()
+    WhatsAppConversaAgro.objects.all().delete()
+    return int(n or 0)
 
 
 def definir_loja(conversa_id: int, loja: str) -> tuple[WhatsAppConversaAgro | None, str]:
