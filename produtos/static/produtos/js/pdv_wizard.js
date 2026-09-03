@@ -10951,7 +10951,10 @@
             });
         };
         if (typeof window.gmSspinGarantirOperador === 'function') {
-            window.gmSspinGarantirOperador(runConfirm, { titulo: 'PIN para confirmar a venda' });
+            window.gmSspinGarantirOperador(runConfirm, {
+                titulo: 'PIN para confirmar a venda',
+                maxFrescoS: 10
+            });
         } else {
             runConfirm();
         }

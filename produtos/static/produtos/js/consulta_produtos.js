@@ -2109,7 +2109,7 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         const pinOk = await new Promise(function (resolve) {
             window.gmSspinGarantirOperador(function () {
                 resolve(true);
-            }, { titulo: 'PIN para confirmar a venda' });
+            }, { titulo: 'PIN para confirmar a venda', maxFrescoS: 10 });
             /* Se abandonar o PIN, a Promise fica pendente — ok (não envia). */
         });
         if (!pinOk) return;

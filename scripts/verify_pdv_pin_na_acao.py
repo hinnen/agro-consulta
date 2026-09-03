@@ -28,6 +28,7 @@ from produtos.pdv_chat_loja_util import criar_mensagem, resolver_autor_chat
 from produtos.pdv_transf_loja_util import (
     PDV_OPERADOR_FRESCO_KEY,
     PDV_OPERADOR_FRESCO_TTL_S,
+    PDV_OPERADOR_FRESCO_VENDA_TTL_S,
     limpar_operador_pdv_sessao,
     marcar_operador_pdv_fresco,
     operador_pdv_esta_fresco,
@@ -140,7 +141,13 @@ def check_static() -> None:
     check("enviarPedidoExec" in pedir_js, "Pedir split envio apos PIN")
     check("postAcaoExec" in pedir_js, "Pedir acao apos PIN")
     check("gmSspinGarantirOperador" in consulta_js, "consulta legado pede garantir")
-    check("PDV_OPERADOR_FRESCO_TTL_S = 45" in transf, "TTL 45s")
+    check("PDV_OPERADOR_FRESCO_TTL_S = 45" in transf, "TTL 45s demais acoes")
+    check("PDV_OPERADOR_FRESCO_VENDA_TTL_S = 10" in transf, "TTL venda 10s")
+    check("maxFrescoS: 10" in wiz_js, "wizard fechar venda maxFrescoS 10")
+    check("maxFrescoS: 10" in consulta_js, "consulta fechar venda maxFrescoS 10")
+    check("maxFrescoS" in sspin, "sspin aceita maxFrescoS")
+    check("ttl_s=" in sspin, "sspin manda ttl_s na API")
+    check('ttl_s' in views and "ttl_s" in views[views.find("def api_pdv_registrar_operador") : views.find("def api_pdv_registrar_operador") + 1200], "API GET/POST aceita ttl_s")
     check("def peek_operador_pdv" in transf, "peek sem renovar")
     check("peek_operador_pdv" in views_transf, "resumo usa peek")
     check("operador_pdv_esta_fresco" in caixa, "venda exige fresco")
@@ -156,6 +163,7 @@ def check_static() -> None:
 def check_runtime() -> None:
     print("--- runtime frescor ---")
     check(PDV_OPERADOR_FRESCO_TTL_S == 45, "TTL constante 45")
+    check(PDV_OPERADOR_FRESCO_VENDA_TTL_S == 10, "TTL venda constante 10")
 
     req = _req()
     ok_p, lab = peek_operador_pdv(req)
@@ -166,6 +174,13 @@ def check_runtime() -> None:
     check(rotulo_usuario_registro_venda(req, {}) == "", "venda sem frescor bloqueia")
     lab_e, err_e = exigir_operador_pin_request(req)
     check(lab_e == "" and "PIN" in err_e, "exigir sem frescor")
+
+    marcar_operador_pdv_fresco(req)
+    check(operador_pdv_esta_fresco(req, 10), "fresco sob TTL venda 10s logo apos PIN")
+    req.session[PDV_OPERADOR_FRESCO_KEY] = time.time() - 11
+    check(not operador_pdv_esta_fresco(req, 10), "apos 11s nao fresco para venda")
+    check(operador_pdv_esta_fresco(req, 45), "ainda fresco sob TTL 45s geral")
+    check(operador_pdv_restante_fresco_s(req, 10) == 0, "restante venda 0 apos 11s")
 
     marcar_operador_pdv_fresco(req)
     check(operador_pdv_esta_fresco(req), "marcar fresco")
