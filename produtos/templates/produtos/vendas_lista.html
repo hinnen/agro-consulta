@@ -217,7 +217,7 @@
 
   {% if nfce_cfg.ativo %}
   <input type="hidden" id="agro-csrf-nfce-vendas" value="{{ csrf_token }}">
-  <div id="modal-nfce-venda" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
+  <div id="modal-nfce-venda" data-agro-stack="auto" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
     <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-amber-300 bg-white shadow-2xl p-4 sm:p-5">
       <h2 class="text-lg font-black text-amber-950" id="modal-nfce-titulo">Cupom fiscal pendente</h2>
       <p class="text-xs font-bold text-slate-600 mt-1" id="modal-nfce-sub"></p>
