@@ -240,23 +240,22 @@
   function aplicarFiltroLista(rows) {
     listaCache = Array.isArray(rows) ? rows.slice() : [];
     pintarContadoresFiltro(listaCache);
-    if (filtroLista === 'nova') {
-      return listaCache.filter(function (c) {
+    if (filtroLista === 'hora') return listaCache;
+    var ordem = filtroLista === 'nova' ? ['nova', 'espera', 'ok'] : ['espera', 'nova', 'ok'];
+    return listaCache
+      .map(function (c, idx) {
         var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
         var st = String(c.status || '');
         if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
-        return st === 'nova';
+        return { c: c, idx: idx, ord: ordem.indexOf(st), st: st };
+      })
+      .sort(function (a, b) {
+        if (a.ord !== b.ord) return a.ord - b.ord;
+        return a.idx - b.idx;
+      })
+      .map(function (x) {
+        return x.c;
       });
-    }
-    if (filtroLista === 'espera') {
-      return listaCache.filter(function (c) {
-        var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
-        var st = String(c.status || '');
-        if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
-        return st === 'espera';
-      });
-    }
-    return listaCache;
   }
 
   function pintarEstadoFiltro() {
@@ -273,11 +272,7 @@
     rows = aplicarFiltroLista(rows);
     if (!rows || !rows.length) {
       var dica =
-        filtroLista === 'nova'
-          ? 'Nenhuma conversa nova nesta aba.'
-          : filtroLista === 'espera'
-            ? 'Nenhuma conversa aguardando resposta nesta aba.'
-            : loja === 'pendente'
+        loja === 'pendente'
           ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
           : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
