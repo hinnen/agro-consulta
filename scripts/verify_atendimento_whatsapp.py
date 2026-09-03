@@ -35,6 +35,7 @@ def _static() -> None:
     views = _read("produtos/views_atendimento_whatsapp.py")
     html = _read("produtos/templates/produtos/atendimento_whatsapp.html")
     composer = _read("produtos/templates/produtos/_wa_composer.html")
+    skin = _read("produtos/templates/produtos/_wa_skin.html")
     html_form = html + composer
     js = _read("produtos/static/produtos/js/atendimento_whatsapp.js")
     dash = _read("produtos/templates/produtos/dashboard_gerencial.html")
@@ -59,7 +60,9 @@ def _static() -> None:
     check("util_vcard", "importar_agenda_vcard" in util and "parse_agenda_vcard" in util)
     check("html_vcf", "wa-vcf-inp" in html)
     check("js_vcf", "agenda-vcf" in js)
-    check("html_enviar", "data-agro-no-double-guard" in html and "wa-send" in html_form)
+    check("html_lista_larga", "minmax(18rem,26rem)" in html)
+    check("js_preview_ico", "htmlPreviewLista" in js && "wa-p-ico" in js)
+    check("skin_hora_direita", "wa-row1" in skin and ".wa-t" in skin)
     check("js_enviar_busy", "btn.disabled = true" in js and ".finally" in js)
     check("js_abrir", "atendimento-whatsapp/abrir/" in js)
     check("js_busca_retry", "buscarTopo(n + 1)" in js)

@@ -156,6 +156,57 @@
     pill('warn', p.pairing_code ? 'Código' : p.aviso || 'Ligando');
   }
 
+  function escapeHtml(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function icoPreview(kind) {
+    var common = ' class="wa-p-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    if (kind === 'audio') {
+      return '<svg' + common + '><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v3"/></svg>';
+    }
+    if (kind === 'sticker') {
+      return '<svg' + common + '><path d="M15.5 3H5a2 2 0 0 0-2 2v14l4-2h10.5a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/><path d="M8 10h.01"/><path d="M12 10h.01"/><path d="M9.5 14c.7.7 1.6 1 2.5 1s1.8-.3 2.5-1"/></svg>';
+    }
+    if (kind === 'image') {
+      return '<svg' + common + '><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="m21 15-4.5-4.5L8 19"/></svg>';
+    }
+    if (kind === 'video') {
+      return '<svg' + common + '><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg>';
+    }
+    if (kind === 'document') {
+      return '<svg' + common + '><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>';
+    }
+    return '';
+  }
+
+  function htmlPreviewLista(preview) {
+    var raw = String(preview || '').replace(/\s+/g, ' ').trim();
+    var low = raw.toLowerCase();
+    var kind = '';
+    var label = raw;
+    if (low === '[áudio]' || low === '[audio]' || low.indexOf('[áudio]') === 0 || low.indexOf('[audio]') === 0) {
+      kind = 'audio';
+      label = 'Áudio';
+    } else if (low === '[figurinha]' || low.indexOf('[figurinha]') === 0) {
+      kind = 'sticker';
+      label = 'Figurinha';
+    } else if (low === '[imagem]' || low.indexOf('[imagem]') === 0) {
+      kind = 'image';
+      label = 'Foto';
+    } else if (low === '[vídeo]' || low === '[video]' || low.indexOf('[vídeo]') === 0 || low.indexOf('[video]') === 0) {
+      kind = 'video';
+      label = 'Vídeo';
+    } else if (low === '[arquivo]' || low.indexOf('[arquivo]') === 0) {
+      kind = 'document';
+      label = 'Arquivo';
+    }
+    return icoPreview(kind) + '<span class="wa-p-txt">' + escapeHtml(label || ' ') + '</span>';
+  }
+
   function pintarLista(rows) {
     var el = $('wa-lista');
     if (!el) return;
@@ -170,8 +221,10 @@
     el.innerHTML = rows
       .map(function (c) {
         var on = Number(c.id) === convId ? ' is-on' : '';
-        var badge = c.nao_lidas ? ' · ' + c.nao_lidas + ' nova' : '';
         var titulo = nomeExibicao(c);
+        var unread = c.nao_lidas
+          ? '<span class="wa-unread">' + escapeHtml(String(c.nao_lidas)) + '</span>'
+          : '';
         return (
           '<button type="button" class="wa-item' +
           on +
@@ -183,24 +236,18 @@
           escapeHtml(titulo) +
           '" data-tel="' +
           escapeHtml(c.telefone || '') +
-          '"><div class="wa-n">' +
+          '"><div class="wa-row1"><div class="wa-n">' +
           escapeHtml(titulo) +
-          badge +
-          '</div><div class="wa-p">' +
-          escapeHtml(c.ultima_preview || '') +
-          ' · ' +
+          '</div><div class="wa-t">' +
           escapeHtml(c.hora || '') +
+          '</div></div><div class="wa-row2"><div class="wa-p">' +
+          htmlPreviewLista(c.ultima_preview || '') +
+          '</div>' +
+          unread +
           '</div></button>'
         );
       })
       .join('');
-  }
-
-  function escapeHtml(s) {
-    return String(s || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
   }
 
   function pintarMsgs(rows, append) {
@@ -756,12 +803,12 @@
               String(c.conversa_id || 0) +
               '" data-loja="' +
               escapeHtml(c.loja || '') +
-              '"><div class="wa-n">' +
+              '"><div class="wa-row1"><div class="wa-n">' +
               escapeHtml(titulo) +
-              '</div><div class="wa-p">' +
+              '</div></div><div class="wa-row2"><div class="wa-p"><span class="wa-p-txt">' +
               escapeHtml(rotuloOrigem(c.origem)) +
               (c.telefone && titulo !== c.telefone ? ' · toque p/ abrir' : '') +
-              '</div></button>'
+              '</span></div></div></button>'
             );
           })
           .join('');

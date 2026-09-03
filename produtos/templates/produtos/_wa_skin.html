@@ -80,11 +80,41 @@
   }
   .wa-skin .wa-badge.is-zero { background: #e2e8f0; color: #64748b; }
   .wa-skin .wa-pane { background: #fff; border: 1px solid #e8eef4; border-radius: 1.1rem; overflow: hidden; }
-  .wa-skin .wa-item { display: block; width: 100%; text-align: left; padding: .7rem .85rem; border-bottom: 1px solid #f1f5f9; background: #fff; }
+  .wa-skin .wa-item {
+    display: block; width: 100%; text-align: left;
+    padding: .65rem .85rem; border-bottom: 1px solid #f1f5f9; background: #fff;
+  }
   .wa-skin .wa-item:hover { background: #f8fafc; }
   .wa-skin .wa-item.is-on { background: #ecfdf5; }
-  .wa-skin .wa-item .wa-n { font-weight: 800; font-size: .9rem; }
-  .wa-skin .wa-item .wa-p { color: #64748b; font-size: .8rem; }
+  .wa-skin .wa-item .wa-row1,
+  .wa-skin .wa-item .wa-row2 {
+    display: flex; align-items: center; gap: .5rem; min-width: 0;
+  }
+  .wa-skin .wa-item .wa-row2 { margin-top: .12rem; }
+  .wa-skin .wa-item .wa-n {
+    flex: 1; min-width: 0; font-weight: 800; font-size: .9rem; color: #0f172a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wa-skin .wa-item .wa-t {
+    flex-shrink: 0; margin-left: auto; font-size: .72rem; font-weight: 700;
+    color: #94a3b8; font-variant-numeric: tabular-nums; letter-spacing: .01em;
+  }
+  .wa-skin .wa-item .wa-p {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: .28rem;
+    color: #64748b; font-size: .8rem; line-height: 1.25;
+    white-space: nowrap; overflow: hidden;
+  }
+  .wa-skin .wa-item .wa-p-txt {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .wa-skin .wa-item .wa-p-ico {
+    flex-shrink: 0; width: .95rem; height: .95rem; color: #64748b; opacity: .92;
+  }
+  .wa-skin .wa-item .wa-unread {
+    flex-shrink: 0; min-width: 1.15rem; height: 1.15rem; padding: 0 .3rem;
+    border-radius: 999px; background: #25d366; color: #064e3b;
+    font-size: .65rem; font-weight: 900; line-height: 1.15rem; text-align: center;
+  }
   .wa-skin #wa-topo-nome {
     border: 0; background: transparent; padding: 0; cursor: pointer;
     text-align: left; color: inherit; font: inherit; font-weight: 800;
