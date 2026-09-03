@@ -13512,6 +13512,20 @@ def api_venda_agro_devolver(request, pk):
                 status=400,
             )
 
+        vale_dev = Dec("0")
+        for row in pagamentos or []:
+            if not isinstance(row, dict):
+                continue
+            if normalizar_forma_pagamento_caixa(str(row.get("forma") or "")) != "Vale crédito":
+                continue
+            vv = parse_valor_moeda_br(row.get("valor"))
+            if vv is not None and vv > 0:
+                vale_dev += vv
+        if vale_dev > Dec("0.009"):
+            from produtos.vale_credito_venda_util import creditar_vale_devolucao
+
+            creditar_vale_devolucao(venda=venda, valor=vale_dev, usuario=user_label)
+
         if soma_fiado > Dec("0.009"):
             ab = abater_valor_fiado_venda(
                 venda,
@@ -28095,6 +28109,9 @@ def _anexar_pdv_patches_resposta_venda(venda: VendaAgro | None, payload: dict) -
     patches = _pdv_patches_saldos_de_baixa_venda(venda)
     if patches:
         payload["pdv_catalog_patches"] = patches
+    saldos = getattr(venda, "_pdv_cliente_saldos", None) if venda is not None else None
+    if saldos:
+        payload["cliente_saldos"] = saldos
     return payload
 
 
@@ -28325,7 +28342,11 @@ def _persistir_venda_agro(
             payload_e_compra_vale_credito,
             valor_compra_vale_credito,
         )
+        from produtos.vale_credito_venda_util import aplicar_movimento_vale_credito_venda
 
+        aplicar_movimento_vale_credito_venda(
+            data, cliente_agro=cli_cb, venda_pk=v.pk, usuario=user_label
+        )
         if payload_e_compra_vale_credito(data, raw_itens) and cli_cb is not None:
             aplicar_vale_pago_apos_venda(
                 cliente=cli_cb,
@@ -28334,6 +28355,14 @@ def _persistir_venda_agro(
                 usuario=user_label,
                 origem_tela="pdv",
             )
+        if cli_cb is not None:
+            cli_cb.refresh_from_db(fields=["saldo_vale_credito", "saldo_cashback"])
+            v._pdv_cliente_saldos = {
+                "pk": cli_cb.pk,
+                "cliente_agro_pk": cli_cb.pk,
+                "saldo_vale_credito": float(cli_cb.saldo_vale_credito or 0),
+                "saldo_cashback": float(cli_cb.saldo_cashback or 0),
+            }
         from produtos.fiado_credito_util import venda_local_tem_fiado
         from produtos.fiado_gestao_util import criar_titulos_de_venda
 
@@ -28899,6 +28928,11 @@ def _validar_cashback_venda_json(data: dict, raw_itens: list):
     ok, msg, info = validar_cashback_payload(data, raw_itens, cliente_agro=cli)
     if not ok:
         return JsonResponse({"ok": False, "erro": msg, "cashback": info}, status=400)
+    from produtos.vale_credito_venda_util import validar_vale_credito_payload
+
+    ok_v, msg_v, info_v = validar_vale_credito_payload(data, cliente_agro=cli)
+    if not ok_v:
+        return JsonResponse({"ok": False, "erro": msg_v, "vale_credito": info_v}, status=400)
     return None
 
 

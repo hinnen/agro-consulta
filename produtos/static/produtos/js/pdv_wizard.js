@@ -11629,6 +11629,9 @@
                 if (!finRes.ok || !finRes.data.ok) {
                     throw new Error((finRes.data && (finRes.data.erro || finRes.data.mensagem)) || 'Falha ao registrar venda após o Point.');
                 }
+                if (finRes.data && finRes.data.cliente_saldos) {
+                    aplicarSaldoClienteNoPdv(finRes.data.cliente_saldos);
+                }
                 var mpPointFormaDivergiu =
                     !!(finRes.data && finRes.data.mp_point_forma_divergencia && finRes.data.mp_point_aviso);
                 if (mpPointFormaDivergiu) {
