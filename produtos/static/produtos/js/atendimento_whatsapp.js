@@ -18,6 +18,9 @@
   var lastUnread = -1;
   var notifyOk = false;
   var ehCel = !!(document.body && document.body.classList.contains('wa-cel'));
+  /** hora | espera | nova — sempre começa em horário ao abrir a tela. */
+  var filtroLista = 'hora';
+  var listaCache = [];
 
   function telaCel(chat) {
     if (!ehCel) return;
@@ -211,12 +214,70 @@
     return icoPreview(kind) + '<span class="wa-p-txt">' + escapeHtml(label || ' ') + '</span>';
   }
 
+  function statsLista(rows) {
+    var out = { nova: 0, espera: 0 };
+    (rows || []).forEach(function (c) {
+      var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
+      var st = String(c.status || '');
+      if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
+      if (st === 'nova') out.nova += 1;
+      else if (st === 'espera') out.espera += 1;
+    });
+    return out;
+  }
+
+  function pintarContadoresFiltro(rows) {
+    var s = statsLista(rows);
+    ['espera', 'nova'].forEach(function (k) {
+      var el = document.querySelector('[data-filtro-n="' + k + '"]');
+      if (!el) return;
+      var v = parseInt(s[k] || 0, 10) || 0;
+      el.textContent = String(v);
+      el.classList.toggle('is-zero', v === 0);
+    });
+  }
+
+  function aplicarFiltroLista(rows) {
+    listaCache = Array.isArray(rows) ? rows.slice() : [];
+    pintarContadoresFiltro(listaCache);
+    if (filtroLista === 'nova') {
+      return listaCache.filter(function (c) {
+        var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
+        var st = String(c.status || '');
+        if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
+        return st === 'nova';
+      });
+    }
+    if (filtroLista === 'espera') {
+      return listaCache.filter(function (c) {
+        var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
+        var st = String(c.status || '');
+        if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
+        return st === 'espera';
+      });
+    }
+    return listaCache;
+  }
+
+  function pintarEstadoFiltro() {
+    document.querySelectorAll('[data-filtro]').forEach(function (b) {
+      var on = (b.getAttribute('data-filtro') || 'hora') === filtroLista;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
   function pintarLista(rows) {
     var el = $('wa-lista');
     if (!el) return;
+    rows = aplicarFiltroLista(rows);
     if (!rows || !rows.length) {
       var dica =
-        loja === 'pendente'
+        filtroLista === 'nova'
+          ? 'Nenhuma conversa nova nesta aba.'
+          : filtroLista === 'espera'
+            ? 'Nenhuma conversa aguardando resposta nesta aba.'
+            : loja === 'pendente'
           ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
           : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
@@ -359,6 +420,12 @@
     );
   }
 
+  function trocarFiltroLista(filtro) {
+    filtroLista = filtro === 'espera' || filtro === 'nova' ? filtro : 'hora';
+    pintarEstadoFiltro();
+    pintarLista(listaCache);
+  }
+
   function pintarXfer() {
     document.querySelectorAll('[data-xfer]').forEach(function (b) {
       var dest = b.getAttribute('data-xfer') || '';
@@ -441,6 +508,12 @@
       $('wa-move').classList.add('hidden');
       telaCel(false);
       carregarLista();
+    });
+  });
+
+  document.querySelectorAll('[data-filtro]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      trocarFiltroLista(b.getAttribute('data-filtro') || 'hora');
     });
   });
 
@@ -1136,6 +1209,7 @@
   });
 
   setTab();
+  pintarEstadoFiltro();
   pedirAviso();
   document.addEventListener('click', pedirAviso, { once: true });
   carregarEstado();
