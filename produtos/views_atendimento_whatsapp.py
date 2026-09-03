@@ -65,6 +65,26 @@ def _bridge_forbidden():
     return JsonResponse({"ok": False, "erro": "Ponte não autorizada."}, status=403)
 
 
+def _autor_wa(request, data: dict | None = None) -> str:
+    """
+    Assinatura na bolha verde: preferir PIN/operador do PDV na sessão.
+    Sem PIN fresco → cai no login do Chrome (admin) só como reserva.
+    """
+    from produtos.caixa_util import operador_label_request, rotulo_usuario_registro_venda
+
+    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
+    if not rot:
+        rot = (operador_label_request(request) or "").strip()
+    if rot:
+        return rot[:120]
+    try:
+        if request.user.is_authenticated:
+            return (request.user.get_full_name() or request.user.get_username() or "")[:120]
+    except Exception:
+        pass
+    return ""
+
+
 @login_required(login_url="/admin/login/")
 def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
@@ -138,12 +158,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     if data.get("reset"):
         bot = resetar_bot(usuario=autor)
         return JsonResponse({"ok": True, "bot": bot})
@@ -207,12 +222,7 @@ def api_atendimento_whatsapp_enviar(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     try:
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
@@ -267,12 +277,7 @@ def api_atendimento_whatsapp_transferir(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     try:
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
@@ -359,12 +364,7 @@ def api_atendimento_whatsapp_novo(request):
     data = _json_body(request)
     if data is None:
         return JsonResponse({"ok": False, "erro": "JSON inválido."}, status=400)
-    autor = ""
-    try:
-        if request.user.is_authenticated:
-            autor = (request.user.get_full_name() or request.user.get_username() or "")[:120]
-    except Exception:
-        autor = ""
+    autor = _autor_wa(request, data)
     tel = str(data.get("telefone") or data.get("jid") or "")
     m, err = abrir_conversa_saida(
         telefone=tel,
