@@ -32,6 +32,8 @@ MAX_HIST_MSGS = 40
 MAX_MIDIA_BYTES = 6_000_000
 MAX_SAIDA_MIDIA_BYTES = 3_000_000
 DIAS_HISTORICO = 7
+# Msg com ts mais velho que isso não dispara bot (anti-replay no reconnect).
+BOT_AO_VIVO_SEG = 5 * 60
 
 CHAVE_PONTE = "default"
 TEXTO_MAX = 4000
@@ -875,6 +877,11 @@ def processar_entrada(
         return None, "duplicada"
 
     quando = _ts_aware(ts)
+    # Rede/reconnect do Zap manda msgs antigas como “ao vivo” → bot disparava sozinho.
+    if not historico and ts not in (None, "", 0, "0"):
+        idade = (timezone.now() - quando).total_seconds()
+        if idade > BOT_AO_VIVO_SEG:
+            historico = True
     if historico:
         limite = timezone.now() - timedelta(days=DIAS_HISTORICO)
         if quando < limite:

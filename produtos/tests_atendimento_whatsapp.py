@@ -358,6 +358,24 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         conv = WhatsAppConversaAgro.objects.get()
         self.assertEqual(conv.nao_lidas, 0)
 
+    def test_msg_antiga_como_ao_vivo_nao_dispara_bot(self):
+        """Reconnect do Zap não pode mandar boas-vindas sozinho."""
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        ts = int((timezone.now() - timedelta(minutes=30)).timestamp())
+        m, err = processar_entrada(
+            jid="5513999000888@s.whatsapp.net",
+            texto="Oi velho replay",
+            wa_id="replay-1",
+            historico=False,
+            ts=ts,
+        )
+        self.assertEqual(err, "")
+        self.assertIsNotNone(m)
+        self.assertEqual(WhatsAppMensagemAgro.objects.filter(direcao="bot").count(), 0)
+
     def test_telefone_jid_e_novo(self):
         from produtos.atendimento_whatsapp_util import abrir_conversa_saida, telefone_para_jid
 

@@ -733,7 +733,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Usabilidade (`WA-UX-AVISO` · 01/09):** **Apagar** conversa · som/aviso no PDV · ícone vermelho **Off** se a ponte cair · foto/áudio no chat · nome do **cadastro** pelo telefone. Migrate **`0114`**.
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
-- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**.
+- **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho.
 - **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** (`WA-AGENDA-VCF`). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
@@ -1390,6 +1390,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Anteriores (`WA-HIST-FIX` · 02/09 · v21.27):** ANT. lia o sync do Zap; LID≠telefone descartava. Agora aceita os dois + mensagens do `messaging-history.set`. **Religar `.bat`**.
 - **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
 - **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
+- **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 

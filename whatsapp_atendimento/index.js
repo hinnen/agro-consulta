@@ -159,7 +159,10 @@ const agenda = new Map();
 const lidParaJid = new Map();
 const msgCache = new Map();
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
-const LIVE_MS = 20 * 60 * 1000;
+/** Mensagem “ao vivo” (dispara bot). Notify antigo no reconnect NÃO conta. */
+const LIVE_MS = 3 * 60 * 1000;
+/** Append = sync; só fila offline bem recente. */
+const APPEND_LIVE_MS = 90 * 1000;
 /** Só aceita append/histórico antigo quando a loja pediu «Anteriores» neste chat. */
 let histJids = new Set();
 let histAte = 0;
@@ -211,15 +214,18 @@ function histJanelaAberta() {
 function tsMs(m) {
   const raw = m && (m.messageTimestamp || m.timestamp);
   const n = Number(raw || 0);
-  if (!n) return Date.now();
+  if (!n) return 0;
   return n > 1e12 ? n : n * 1000;
 }
 
 function ehMensagemAoVivo(m, type) {
+  const quando = tsMs(m);
+  if (!quando) return false;
+  const age = Date.now() - quando;
+  if (age < 0 || age > LIVE_MS) return false;
   if (type === "notify") return true;
-  if (type !== "append") return false;
-  const age = Date.now() - tsMs(m);
-  return age >= 0 && age < LIVE_MS;
+  if (type === "append") return age < APPEND_LIVE_MS;
+  return false;
 }
 
 function guardarMsgCache(m) {
@@ -525,7 +531,7 @@ async function enviarEntrada(m, extra) {
     if (pn) jid = pn;
   }
   if (!ehChatPrivado(jid)) return;
-  const quando = tsMs(m);
+  const quando = tsMs(m) || Date.now();
   const historico = !!(extra && extra.historico);
   if (historico && Date.now() - quando > HIST_MS) return;
   const texto = textoDe(m);
