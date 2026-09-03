@@ -5,15 +5,19 @@
 (function () {
   'use strict';
 
-  var STYLE_ID = 'agro-overlay-stack-styles-v1';
+  var STYLE_ID = 'agro-overlay-stack-styles-v2';
   var stack = [];
 
   function ensureStyles() {
+    var old = document.getElementById('agro-overlay-stack-styles-v1');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
+    /* NÃO forçar position:relative em todo layer — isso sobrescreve Tailwind `fixed`
+       (ex.: modal Reemitir NFC-e em /vendas/) e vira caixa branca enorme no fluxo. */
     st.textContent =
-      '.agro-stack-layer{position:relative}' +
+      '.agro-stack-need-pos{position:relative}' +
       '.agro-stack-layer.agro-stack-inactive{pointer-events:none!important}' +
       '.agro-stack-layer.agro-stack-inactive::after{' +
       'content:"";position:absolute;inset:0;z-index:2147483645;' +
@@ -22,6 +26,15 @@
       '.agro-stack-layer.agro-stack-inactive .agro-stack-close{' +
       'visibility:hidden!important;pointer-events:none!important}';
     document.head.appendChild(st);
+  }
+
+  function needsContainingBlock(el) {
+    try {
+      var p = window.getComputedStyle(el).position;
+      return !p || p === 'static';
+    } catch (_) {
+      return true;
+    }
   }
 
   function syncParentChrome() {
@@ -67,6 +80,8 @@
     }
     stack.push(el);
     el.classList.add('agro-stack-layer');
+    if (needsContainingBlock(el)) el.classList.add('agro-stack-need-pos');
+    else el.classList.remove('agro-stack-need-pos');
     refresh();
   }
 
@@ -76,11 +91,13 @@
     if (idx < 0) {
       el.classList.remove('agro-stack-inactive');
       el.classList.remove('agro-stack-layer');
+      el.classList.remove('agro-stack-need-pos');
       return;
     }
     stack.splice(idx, 1);
     el.classList.remove('agro-stack-inactive');
     el.classList.remove('agro-stack-layer');
+    el.classList.remove('agro-stack-need-pos');
     refresh();
   }
 

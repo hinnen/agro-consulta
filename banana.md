@@ -1298,13 +1298,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.76** · 03/09)
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.81** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
+| **Hotfix** | Stack **não** força `position:relative` em modal `fixed` — Reemitir NFC-e em `/vendas/` (overlay) voltou compacto |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **12/12** |
+| **Prova** | `verify_pdv_overlay_stack_path` **14/14** · vendas UX **52/52** |
 | **Status** | 🟡 **pronto para envio à produção** |
 
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
@@ -1313,7 +1314,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | `/fiado/`: KPIs mês; Limite na linha; cliente tela cheia; Recibos modal; Pedido/**Ver** = overlay em cima (não troca página); Esc/← Lista volta ao fiado (não ao PDV); tabela compacta + fonte maior; top bar some no overlay. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **12/12** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
+| **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **14/14** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Inclui** | `FIADO-TOPBAR-OVERLAY` · hotfixes Esc + Ver overlay |
 
@@ -1328,7 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.79**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.82**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
