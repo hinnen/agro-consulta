@@ -1271,6 +1271,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 Bug loja #16 — pagar com vale não descia o saldo (`PDV-VALE-USADO` · 03/09)
+
+| | |
+| --- | --- |
+| **Relato** | 03/09 · v21.08 · Caixa Centro · pagar com **vale crédito** · o número na tela não mudava (nem após reiniciar o PDV) |
+| **Causa** | A venda **entrava no caixa**, mas o saldo do cliente no Postgres **não era baixado** (só creditava ao *comprar* vale). Por isso não era só visual. |
+| **Fix** | Baixa `saldo_vale_credito` na venda · bloqueia se passar do saldo · devolve o vale se a devolução for na forma Vale crédito · atualiza o número/cache no PDV |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_vale_credito_venda_path.py` **11/11** |
+| **Status** | 🟡 `teste` · loja **não** |
+| **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
+
 ### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · 03/09)
 
 | Campo | Valor |
