@@ -1264,6 +1264,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) |
+| **Antes** | `producao` @ **`9adc305`** · v21.86 |
+| **Pacote** | `REPASSE-STACK-NEST` — Confirmar/3 OKs sem vidro |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-repasse-stack-nest-0309-v21.86` · branch `producao-backup-pre-v2187-repasse-stack-nest-20260903` · `docs/ROLLBACK-REPASSE-STACK-NEST-0309.md` |
+| **Você** | **Ctrl+F5** · badge **v21.87** · Repasse → Confirmar → OKs |
+
+### ✅ CHECKLIST ÚNICO — 03/09b · **Live v21.87**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `REPASSE-STACK-NEST` | ✅ **Live v21.87** | **NÃO** |
+
+**Live agora:** **v21.87**. WhatsApp UI extra / Excel cadastro **fora**.
+
+### Live loja — WhatsApp 1 Zap = 1 SisVale (`WA-DEDUP` · **v21.86**) — 03/09/2026
+
 ### Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
