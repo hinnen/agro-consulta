@@ -30,6 +30,7 @@ def main() -> int:
 
     django.setup()
 
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
     from produtos.tabela_preco_forma_util import (
         arredondar_dezena_centavos,
         preco_com_percentual,
@@ -72,6 +73,10 @@ def main() -> int:
     check(err2 is None, "formas distintas OK")
 
     print("=== PDV preço ===")
+    check(
+        normalizar_forma_pagamento_caixa("cartao") == "Cartão de crédito",
+        "alias cartao → Cartão de crédito",
+    )
     tabelas = [
         {
             "slot": 1,
@@ -123,6 +128,9 @@ def main() -> int:
         encoding="utf-8"
     )
     check("precosTabelasVisiveis" in js, "JS precosTabelasVisiveis")
+    check("JS formaFromMeioEntrega" in js or "function formaFromMeioEntrega" in js, "JS formaFromMeioEntrega")
+    st = (ROOT / "produtos/static/produtos/js/pdv_state.js").read_text(encoding="utf-8")
+    check("syncFormaPorMeioEntrega" in st, "state aplica tabela no meio da entrega")
     check("carregarTabelasGlobais" in js, "JS carregarTabelasGlobais")
     check(
         (ROOT / "produtos/migrations/0104_tabela_preco_forma.py").is_file(),
