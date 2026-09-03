@@ -1288,7 +1288,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | Pacote local pronto · dry-run local = 0 (base local ≠ loja) · **loja ainda não** |
 | **Você** | Conferir HTML · para gravar loja: frase + senha |
 
-### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.70** · 03/09)
+### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.73** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1297,7 +1297,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | WIP local — aguarda prova no PC |
 | **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
 
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.74** · 03/09)
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.75** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
