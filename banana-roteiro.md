@@ -331,3 +331,19 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v20.58.** `producao` @ `751c0d4`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
 **Smoke:** healthz ok · badge **v20.58** · Ctrl+F5. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`.
+
+---
+
+## 19. Checklist único — lote 03/09 (`deploy/prep-checklist-0309` · alvo loja **v21.83**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PIN-VENDA-10S** | 🟡 PREP · prova **78/78** | **NÃO** |
+| 2 | **FIADO-VER-RECIBOS** | 🟡 PREP · prova **63/63** | **NÃO** |
+| 3 | **PDV-OVERLAY-STACK** | 🟡 PREP · prova **22/22** | **NÃO** |
+| 4 | **VENDAS-LISTA-UX** | 🟡 PREP · prova **52/52** | **NÃO** |
+| 5 | **F8-HIST-VENDAS** | 🟡 PREP · prova **11/11** | **NÃO** |
+| 6 | **CAIXA-FIADO-CONF** | 🟡 PREP · prova **30/30** | **SIM** `0123` |
+
+**Status: PREP pronto · aguarda frase + senha.** Base loja **v21.82** (`527be62`). **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md`. **Fora:** WhatsApp extra · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST`.

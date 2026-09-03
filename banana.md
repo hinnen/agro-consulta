@@ -1281,7 +1281,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
 | **Prep** | Branch `deploy/prep-wa-atend-0309` |
 
-**Ponte:** Limpar lista voltava em lote: mapa LID + histórico do Zap **criava** chat de novo. Agora só nasce conversa com mensagem **nova de cliente**. Religar janela preta + F5 no local.
+**Ponte:** após Limpar, msg nova podia ser tratada como histórico e **não criava** chat. Corrigido (notify sempre cria). Local: `iniciar-local.bat` + F5. Fechar Zap Desktop do PC ajuda na prova.
 
 ---
 
@@ -1363,18 +1363,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip **v21.98**)
+### 🚀 PREP deploy loja — lote checklist 03/09 (`deploy/prep-checklist-0309` · **v21.83**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟡 **PREP pronto** — **não** subiu na loja. Próximo chat: pausar vendas + frase + senha |
+| **Loja agora** | **Live v21.82** · `527be62` (WhatsApp menu; PDV **Em breve**) |
+| **Alvo** | **v21.83** · branch `deploy/prep-checklist-0309` |
+| **Pacotes** | `PIN-VENDA-10S` · `FIADO-VER-RECIBOS` · `PDV-OVERLAY-STACK` · `VENDAS-LISTA-UX` · `F8-HIST-VENDAS` · `CAIXA-FIADO-CONF` |
+| **Provas** | PIN **78/78** · fiado **63/63** · overlay **22/22** · vendas **52/52** · F8 **11/11** · caixa-fiado **30/30** · regressão caixa-MP **171/171** · overlay fundo **13/13** · repasse **188/188** |
+| **Migrate** | **SIM** `produtos.0123` |
+| **Não sobe** | WhatsApp extra do `teste` · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · branch `producao-backup-pre-v2183-lote-checklist-20260903` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` |
+| **Você no deploy** | Zap: pausar ~2 min · Ctrl+F5 · badge **v21.83** · PIN+F7 · F8 · Vendas overlay · Fiado Ver · Fechar caixa fiado |
+
+### ✅ CHECKLIST ÚNICO — PREP 03/09 (alvo loja **v21.83**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PIN-VENDA-10S` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 2 | `FIADO-VER-RECIBOS` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 3 | `PDV-OVERLAY-STACK` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 4 | `VENDAS-LISTA-UX` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 5 | `F8-HIST-VENDAS` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 6 | `CAIXA-FIADO-CONF` | 🟡 **pronto para envio à produção** | **SIM** `0123` |
+| 1 | `PIN-VENDA-10S` | 🟡 **PREP** · prova **78/78** | **NÃO** |
+| 2 | `FIADO-VER-RECIBOS` | 🟡 **PREP** · prova **63/63** | **NÃO** |
+| 3 | `PDV-OVERLAY-STACK` | 🟡 **PREP** · prova **22/22** | **NÃO** |
+| 4 | `VENDAS-LISTA-UX` | 🟡 **PREP** · prova **52/52** | **NÃO** |
+| 5 | `F8-HIST-VENDAS` | 🟡 **PREP** · prova **11/11** | **NÃO** |
+| 6 | `CAIXA-FIADO-CONF` | 🟡 **PREP** · prova **30/30** | **SIM** `0123` |
 
-**Live agora:** **v21.82** (WA-ATEND). Fila tip **v21.98**. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro). **Loja: migrate `0123`.**
+**Live agora:** **v21.82**. **Não** merge `teste`. Loja só no próximo chat com frase + senha.
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
