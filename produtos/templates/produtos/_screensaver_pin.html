@@ -798,13 +798,21 @@
   };
 
   /**
-   * Garante operador fresco (~45s no servidor). Mouse NÃO renova.
+   * Garante operador fresco no servidor. Mouse NÃO renova.
+   * opts.maxFrescoS — janela curta (ex.: 10 no fechar venda). Default = TTL do servidor (~45s).
    * Se fresco → renova TTL e chama onSuccess(nome). Senão abre PIN.
    */
   window.gmSspinGarantirOperador = function (onSuccess, opts) {
     opts = opts || {};
     if (typeof onSuccess !== 'function') return;
     var tituloAcao = (opts.titulo || 'Identifique-se').trim();
+    var maxFrescoS = 0;
+    try {
+      maxFrescoS = parseInt(opts.maxFrescoS, 10) || 0;
+    } catch (eTtl) {
+      maxFrescoS = 0;
+    }
+    if (maxFrescoS < 0) maxFrescoS = 0;
     var done = false;
     function finish(nome) {
       if (done) return;
@@ -836,15 +844,21 @@
       };
       openLock(true);
     }
-    fetch(API_OPERADOR, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+    var urlGet = API_OPERADOR;
+    if (maxFrescoS > 0) {
+      urlGet += (urlGet.indexOf('?') >= 0 ? '&' : '?') + 'ttl_s=' + encodeURIComponent(String(maxFrescoS));
+    }
+    fetch(urlGet, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data && data.ok && data.fresco && data.operador) {
+          var bodyRen = { renovar: true };
+          if (maxFrescoS > 0) bodyRen.ttl_s = maxFrescoS;
           return fetch(API_OPERADOR, {
             method: 'POST',
             credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-            body: JSON.stringify({ renovar: true })
+            body: JSON.stringify(bodyRen)
           })
             .then(function (r2) { return r2.json().then(function (d2) { return { ok: r2.ok, data: d2 }; }); })
             .then(function (res) {

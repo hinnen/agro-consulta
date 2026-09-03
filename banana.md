@@ -423,7 +423,7 @@ Cada bloco: **o que Ã© Â· rotas Â· arquivos-chave Â· armadilhas**.
 
 **Regras UX jÃ¡ decididas:**
 
-- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
+- **PIN na ação (31/08 · `PDV-PIN-NA-ACAO` · loja v20.22 · hotfix `PDV-PIN-CHAT-TEMPEDIDO` v20.33 · `PIN-VENDA-10S` 03/09 teste):** consulta/carrinho livres · Confirmar / Pedir / chat pedem PIN · «ainda sou eu» ~45s (Pedir/chat) · **fechar venda ~10s** (só `teste` até subir) · descanso ~3 min · abrir PDV sem PIN · renovar PIN no chat **não** abre popup «tem pedido».
 - **F1** volta ao PDV preservando draft/filtros/scroll.
 - **Estoque Vila (28/07):** atalho na topbar → menu Folha Compras → `/compras/?folha=` com overlay.
 - **Topbar PDV (15/08 · **Mais ⋯** 31/08 · `PDV-TOPBAR-MAIS` v20.34 · **layout** 31/08 · `PDV-TOPBAR-LAYOUT`):** faixa quente padrão = Pedir loja · Vendas · Uso loja · Entregas · Caixa · **Fiado** · Nova venda (Pedir/Uso = cinza slate; **Mais ⋯** laranja destaque). **Mais ⋯** = Saldo Vila · Repasse · Pesar · PIN + **Organizar atalhos** (quente/frio em Postgres `PdvTopbarLayoutAgro` · migrate `0110` · PIN ao salvar). Contagem diária PG (`0107`). **Ícone WhatsApp** na faixa de ações (ao lado de Nova venda) → aviso **Em breve…** (`PDV-WA-TOPBAR-BREVE`).
@@ -1269,6 +1269,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE — PIN fechar venda 10s (`PIN-VENDA-10S` · 03/09) · 🟡 `teste`
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar venda: «ainda sou eu» só **10s** (antes ~45s). Pedir/chat/outras ações: **45s**. Descanso: **3 min**. |
+| **Arquivos** | `pdv_transf_loja_util` · `_screensaver_pin` · `views` operador · `pdv_wizard` · `consulta_produtos` |
+| **Prova** | `scripts/verify_pdv_pin_na_acao.py` **78/78** |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 só `teste` · **fora da loja** (Live ainda v21.08 / 45s na venda) |
+| **Você** | Recarrega `runserver` · **Ctrl+F5** · digita PIN · espera **~12s** · Confirmar venda → pede PIN de novo |
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 

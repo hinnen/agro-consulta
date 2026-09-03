@@ -26372,7 +26372,14 @@ def api_pdv_registrar_operador(request):
     )
 
     if request.method == "GET":
-        restante = operador_pdv_restante_fresco_s(request)
+        ttl_q = request.GET.get("ttl_s")
+        ttl_s = None
+        if ttl_q is not None and str(ttl_q).strip() != "":
+            try:
+                ttl_s = max(1, min(int(ttl_q), 600))
+            except (TypeError, ValueError):
+                ttl_s = None
+        restante = operador_pdv_restante_fresco_s(request, ttl_s)
         fresco = restante > 0
         op = str(request.session.get("pdv_operador_nome") or "").strip() if fresco else ""
         return JsonResponse(
@@ -26381,6 +26388,7 @@ def api_pdv_registrar_operador(request):
                 "operador": op,
                 "fresco": fresco,
                 "restante_s": restante,
+                "ttl_s": int(ttl_s) if ttl_s is not None else None,
             }
         )
 
@@ -26408,13 +26416,20 @@ def api_pdv_registrar_operador(request):
         )
 
     if renovar:
-        if renovar_operador_pdv_fresco(request):
+        ttl_body = data.get("ttl_s")
+        ttl_s = None
+        if ttl_body is not None and str(ttl_body).strip() != "":
+            try:
+                ttl_s = max(1, min(int(ttl_body), 600))
+            except (TypeError, ValueError):
+                ttl_s = None
+        if renovar_operador_pdv_fresco(request, ttl_s):
             return JsonResponse(
                 {
                     "ok": True,
                     "operador": str(request.session.get("pdv_operador_nome") or "").strip()[:120],
                     "fresco": True,
-                    "restante_s": operador_pdv_restante_fresco_s(request),
+                    "restante_s": operador_pdv_restante_fresco_s(request, ttl_s),
                 }
             )
         return JsonResponse(
