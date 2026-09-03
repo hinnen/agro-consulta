@@ -35,6 +35,12 @@ def main() -> int:
     check("overlay_esc_frame_back", "tryFrameBackOne" in overlay)
     check("overlay_fechar_back_or_close", "backOrClose" in overlay)
     check("overlay_fechar_btn_back", "backOrClose()" in overlay)
+    check("stack_hidden_token_not_block", "layerBlocksUi" in stack)
+    caixa_html = (ROOT / "produtos/templates/produtos/caixa_fechar.html").read_text(encoding="utf-8")
+    check(
+        "caixa_popup_not_nested_token",
+        "not(#cf-popup)" in caixa_html and "setNested(outroModal && !popupAberto" in caixa_html,
+    )
     check("overlay_caixa_layer", "agro-caixa-modal-layer" in overlay)
     check("ui_includes_stack", "agro_overlay_stack.js" in ui)
     check("vendas_nfce_modal_fixed", 'id="modal-nfce-venda"' in vendas and 'style="position:fixed"' in vendas)
@@ -47,7 +53,7 @@ def main() -> int:
     check("wizard_stack", "AgroOverlayStack" in (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8"))
     check("compras_auto", 'data-agro-stack="auto"' in (ROOT / "produtos/templates/produtos/compras.html").read_text(encoding="utf-8"))
 
-    total = 18
+    total = 20
     print(("OK" if fails == 0 else "FAIL") + f" verify_pdv_overlay_stack_path — {total - fails}/{total}")
     return 1 if fails else 0
 

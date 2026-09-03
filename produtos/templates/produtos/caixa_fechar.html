@@ -1731,14 +1731,23 @@
   var cedulasFechar = document.getElementById('cf-cedulas-fechar');
   var cedulasFecharX = document.getElementById('cf-cedulas-fechar-x');
   function syncCaixaModalPause() {
-    var open = !!document.querySelector(
-      '.cf-modal-overlay:not(.hidden), #modal-caixa-pin:not(.hidden)'
+    var elPopup = document.getElementById('cf-popup');
+    var elNested = document.getElementById('cf-popup-nested');
+    var popupAberto =
+      (elPopup && !elPopup.classList.contains('hidden')) ||
+      (elNested && !elNested.classList.contains('hidden'));
+    var outroModal = !!document.querySelector(
+      '.cf-modal-overlay:not(.hidden):not(#cf-popup):not(#cf-popup-nested), #modal-caixa-pin:not(.hidden)'
     );
+    var open = popupAberto || outroModal;
     try {
       if (window.gmSspinSetPausado) window.gmSspinSetPausado('caixa-modal', open);
     } catch (_) {}
     try {
-      if (window.AgroOverlayStack) window.AgroOverlayStack.setNested(open, 'caixa-modal');
+      /* Token invisível em cima do #cf-popup travava todos os cliques. PIN/cédulas ainda usam token. */
+      if (window.AgroOverlayStack) {
+        window.AgroOverlayStack.setNested(outroModal && !popupAberto, 'caixa-modal');
+      }
     } catch (_) {}
     try {
       if (window.top !== window.self) {

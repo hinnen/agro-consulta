@@ -50,14 +50,33 @@
     } catch (_) {}
   }
 
+  /** Token hidden (setNested) não pode congelar o popup visível de baixo. */
+  function layerBlocksUi(el) {
+    if (!el) return false;
+    try {
+      if (el.hasAttribute('hidden')) return false;
+      if (el.style && String(el.style.display || '').toLowerCase() === 'none') return false;
+      var st = window.getComputedStyle ? window.getComputedStyle(el) : null;
+      if (st && (st.display === 'none' || st.visibility === 'hidden')) return false;
+    } catch (_) {}
+    return true;
+  }
+
   function refresh() {
     ensureStyles();
     var i;
+    var el;
+    var lastVisible = -1;
     for (i = 0; i < stack.length; i += 1) {
-      var el = stack[i];
+      el = stack[i];
       if (!el || !el.classList) continue;
       el.classList.add('agro-stack-layer');
-      if (i < stack.length - 1) el.classList.add('agro-stack-inactive');
+      if (layerBlocksUi(el)) lastVisible = i;
+    }
+    for (i = 0; i < stack.length; i += 1) {
+      el = stack[i];
+      if (!el || !el.classList) continue;
+      if (lastVisible >= 0 && i < lastVisible) el.classList.add('agro-stack-inactive');
       else el.classList.remove('agro-stack-inactive');
     }
     syncParentChrome();
