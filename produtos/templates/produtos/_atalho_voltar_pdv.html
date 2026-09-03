@@ -50,6 +50,32 @@
     true
   );
 
+  function hasNestedLayer() {
+    try {
+      if (document.querySelector('dialog[open]')) return true;
+    } catch (_) {}
+    try {
+      if (window.AgroOverlayStack && typeof window.AgroOverlayStack.depth === 'function' && window.AgroOverlayStack.depth() > 0) {
+        return true;
+      }
+    } catch (_) {}
+    try {
+      if (document.body && document.body.classList.contains('fiado-modal-aberto')) return true;
+    } catch (_) {}
+    try {
+      if (
+        window.top &&
+        window.top !== window &&
+        window.top.AgroPdvOverlay &&
+        typeof window.top.AgroPdvOverlay.isChromeLocked === 'function' &&
+        window.top.AgroPdvOverlay.isChromeLocked()
+      ) {
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   document.addEventListener('keydown', function (e) {
     if (e.defaultPrevented) return;
     var isF1 = e.code === 'F1' || e.key === 'F1';
@@ -57,9 +83,13 @@
     if (!isF1 && !isEsc) return;
     if (inGestaoContext()) return;
     if (inPdvOverlay()) {
+      /* 2ª camada (cliente fiado, modal caixa…) — Esc/F1 não fecham o overlay inteiro */
+      if (hasNestedLayer()) {
+        if (isF1) e.preventDefault();
+        return;
+      }
       var t = e.target;
       if (isEsc) {
-        /* Esc no iframe do menu Caixa/Vendas deve fechar o overlay (igual F1). */
         e.preventDefault();
         closePdvOverlay();
         return;
