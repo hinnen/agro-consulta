@@ -168,7 +168,7 @@ def _static() -> None:
     check("util_trocar", "def pedir_trocar_whatsapp" in util)
     check("mig_0119", (ROOT / "produtos/migrations/0119_whatsapp_pedido_logout.py").is_file())
     check("html_trocar", 'id="wa-trocar"' in html)
-    check("node_logout", 'p.tipo === "logout"' in node && "sock.logout" in node)
+    check("node_logout", 'p.tipo === "logout"' in node and "sock.logout" in node)
     check("html_pairing", "wa-pair-ok" in html)
     check("js_pairing", "atendimento-whatsapp/pairing/" in js)
     check("node_pairing", "requestPairingCode" in node)
