@@ -270,6 +270,8 @@ class ClienteAgroEventoAgro(models.Model):
         EXCLUIR = "excluir", "Excluir cadastro"
         VALE_MANUAL = "vale_manual", "Vale crédito manual"
         VALE_PAGO = "vale_pago", "Vale crédito pago (caixa)"
+        VALE_USADO = "vale_usado", "Vale crédito usado na venda"
+        VALE_DEVOLUCAO = "vale_devolucao", "Vale crédito devolvido"
 
     tipo = models.CharField(max_length=24, choices=Tipo.choices, db_index=True)
     cliente_agro = models.ForeignKey(
