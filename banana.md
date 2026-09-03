@@ -1275,11 +1275,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Campos em branco (marca/cat/barras) na leitura do detalhe voltam do **histórico PG**. Barra antiga diferente entra como **opcional**. Sem Mongo. Render MCP OK (API key). |
-| **Leitura produção** | `agro-db` · **22 produtos** mudam na tela · arquivo `conferencia-cadastro-producao-2026-09-03.csv` |
+| **Leitura produção** | `agro-db` · **~23 recuperáveis** + **551 vazios** (diagnóstico) · abrir `conferencia-cadastro-producao-2026-09-03.html` no Chrome |
 | **Status** | Lista pronta p/ Renan conferir · **ainda não sobe loja** |
 | **Fora** | Não grava produção; só leitura |
 
-### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.67** · 03/09)
+### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.70** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1287,6 +1287,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | WIP local — aguarda prova no PC |
 | **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
+
+### 📦 PACOTE — fiado topbar overlay (`FIADO-TOPBAR-OVERLAY` · **v21.69** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/fiado/` no overlay: some o header interno. Na barra verde fica **Crédito loja · Fiado**, o texto de ajuda e **Backup JSON** (baixa o arquivo, não abre no iframe). Fora do overlay a faixa continua na página. |
+| **Migrate** | **NÃO** |
+| **Status** | WIP local |
+| **Você** | PDV → Fiado · Ctrl+F5 no PDV e no overlay |
 
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
 
@@ -1303,7 +1312,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/fiado/`: número do **Pedido** clicável e botão **Ver** abrindo a **tela completa da venda** em popup; título sem vínculo mostra **Sistema antigo**. Lista fixa de reimpressão saiu da tela e virou botão **Recibos** com modal próprio. **Editar lançamento** ficou quase tela cheia, cobrindo o fundo. |
+| **O quê** | `/fiado/`: lista compacta no padrão de `/vendas/` (topo fino, overlay sem header duplicado). Número do **Pedido** clicável e botão **Ver** (popup da venda completa); sem vínculo = **Sistema antigo**. Recibos atrás do botão **Recibos**. Coluna **Limite** editável na própria linha (grava `limite_fiado_local`). Modal do cliente **tela cheia** (mesmo tamanho do overlay, sem moldura/top do fiado atrás). Tabela de lançamentos com **linha vertical** + botões em grade. Faixa de cima: **vendido/pago** deste mês e do mês anterior. |
 | **Migrate** | **NÃO** |
 | **Prova** | `python manage.py check` **OK** |
 | **Status** | WIP local — aguarda prova no PC |
@@ -1420,6 +1429,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
 - **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
 - **Ver status (`WA-STATUS-VER` · 03/09):** faixa circular no topo da lista + visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
+- **Ficha (`WA-FICHA-OVERLAY` · 03/09):** **Fechar** da ficha (antes o JS carregava antes do botão). **Abrir cadastro** abre em overlay (não troca a página).
 - **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)

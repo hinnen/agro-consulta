@@ -1,5 +1,10 @@
 {# Faixa de status (stories) + visualizador — estilo WhatsApp #}
-<div id="wa-st-strip" class="wa-st-strip hidden" aria-label="Status dos contatos"></div>
+<div class="wa-st-wrap">
+  <div class="wa-st-label">Status</div>
+  <div id="wa-st-strip" class="wa-st-strip" aria-label="Status dos contatos">
+    <p id="wa-st-empty" class="wa-st-empty">Quando um contato postar, aparece aqui</p>
+  </div>
+</div>
 <div id="wa-st-view" class="wa-st-view hidden" role="dialog" aria-modal="true" aria-label="Status">
   <div class="wa-st-bars" id="wa-st-bars"></div>
   <div class="wa-st-head">

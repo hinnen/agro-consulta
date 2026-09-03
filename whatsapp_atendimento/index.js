@@ -544,20 +544,28 @@ async function baixarMidia(m) {
 function autorDeStatus(m) {
   const key = m && m.key;
   if (!key) return "";
-  let autor = String(key.participant || key.participantAlt || "");
-  if (autor.endsWith("@lid")) {
-    const pn = pnDeLid(autor);
-    if (pn) autor = pn;
+  const cands = [
+    key.participant,
+    key.participantAlt,
+    key.participantPn,
+    key.senderPn,
+    key.remoteJidAlt,
+    telefoneDeKey(key),
+  ];
+  for (const c of cands) {
+    let autor = String(c || "");
+    if (!autor || ehStatusBroadcast(autor)) continue;
+    if (autor.endsWith("@lid")) {
+      const pn = pnDeLid(autor);
+      if (pn) return pn;
+      if (ehChatPrivado(autor)) return autor;
+      continue;
+    }
+    const phone = jidPhoneDeValor(autor);
+    if (phone) return phone;
+    if (ehChatPrivado(autor)) return autor;
   }
-  if (!autor || ehStatusBroadcast(autor)) {
-    const tel = telefoneDeKey(key);
-    if (tel) autor = tel;
-  }
-  if (autor.endsWith("@lid")) {
-    const pn = pnDeLid(autor);
-    if (pn) autor = pn;
-  }
-  return autor;
+  return "";
 }
 
 async function enviarStatus(m) {

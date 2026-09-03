@@ -67,15 +67,6 @@
     </div>
   </div>
 </div>
+{% include "produtos/_wa_ficha.html" %}
 <script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
-<div id="wa-ficha" class="wa-ficha">
-  <div class="wa-ficha-card" role="dialog" aria-modal="true" aria-labelledby="wa-ficha-titulo">
-    <h2 id="wa-ficha-titulo">Contato</h2>
-    <div id="wa-ficha-body"></div>
-    <div class="wa-ficha-actions">
-      <a id="wa-ficha-cadastro" href="#" class="wa-ico pri hidden">Abrir cadastro</a>
-      <button type="button" id="wa-ficha-fechar" class="wa-ico">Fechar</button>
-    </div>
-  </div>
-</div>
 {% endblock %}

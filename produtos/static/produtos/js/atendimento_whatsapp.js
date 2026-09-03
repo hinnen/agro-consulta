@@ -449,11 +449,10 @@
     var el = $('wa-st-strip');
     if (!el) return;
     if (!statusCache.length) {
-      el.classList.add('hidden');
-      el.innerHTML = '';
+      el.innerHTML =
+        '<p id="wa-st-empty" class="wa-st-empty">Quando um contato postar, aparece aqui</p>';
       return;
     }
-    el.classList.remove('hidden');
     var vistos = lerStatusVistos();
     el.innerHTML = statusCache
       .map(function (a, idx) {
@@ -1346,6 +1345,16 @@
     });
   }
 
+  function abrirCadastroOverlay(url) {
+    var href = String(url || '').trim();
+    if (!href || href === '#') return;
+    if (window.AgroPdvOverlay && typeof window.AgroPdvOverlay.open === 'function') {
+      window.AgroPdvOverlay.open(href, 'Cadastro', { force: true });
+      return;
+    }
+    window.location.href = href;
+  }
+
   var topoNome = $('wa-topo-nome');
   if (topoNome) {
     topoNome.addEventListener('click', function () {
@@ -1359,14 +1368,24 @@
       }
     });
   }
-  var fichaFechar = $('wa-ficha-fechar');
-  if (fichaFechar) fichaFechar.addEventListener('click', fecharFicha);
-  var fichaBox = $('wa-ficha');
-  if (fichaBox) {
-    fichaBox.addEventListener('click', function (ev) {
-      if (ev.target === fichaBox) fecharFicha();
-    });
-  }
+  document.addEventListener('click', function (ev) {
+    var fecharBtn = ev.target && ev.target.closest ? ev.target.closest('#wa-ficha-fechar') : null;
+    if (fecharBtn) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      fecharFicha();
+      return;
+    }
+    var cadBtn = ev.target && ev.target.closest ? ev.target.closest('#wa-ficha-cadastro') : null;
+    if (cadBtn) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      abrirCadastroOverlay(cadBtn.getAttribute('href') || cadBtn.href || '');
+      return;
+    }
+    var fichaBox = $('wa-ficha');
+    if (fichaBox && ev.target === fichaBox) fecharFicha();
+  });
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape') {
       if ($('wa-st-view') && !$('wa-st-view').classList.contains('hidden')) {
