@@ -98,6 +98,8 @@ CEDULAS_DENOMINACOES_CAIXA: tuple[dict[str, str], ...] = (
 _FORMA_ALIASES = {
     "dinheiro": "Dinheiro",
     "pix": "PIX",
+    "cartao": "Cartão de crédito",
+    "cartão": "Cartão de crédito",
     "cartao de debito": "Cartão de débito",
     "cartão de débito": "Cartão de débito",
     "cartão débito": "Cartão de débito",
