@@ -698,6 +698,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Planos no lucro do envio (17/08):** botão **Planos** na tela de repasse — marca o que desconta do dinheiro enviado ao Centro (ex. Alimentação); o restante das saídas de caixa da Vila desconta do card **Lucro ficou na Vila**. Grava no Postgres (`RepasseVilaConfigAgro.planos_desconto_centro`). Migrate `0091`.
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 - **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
+- **Fiado caixinha no Fechar caixa (`CAIXA-FIADO-CONF`):** **Confirmar** grava no Postgres (`fiado_nota_caixa_conferida_em`). Reabrir não pede de novo. **Pular + PIN** não grava. Migrate `0123`.
 
 ### 4.12 RH
 
@@ -1280,7 +1281,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
 | **Prep** | Branch `deploy/prep-wa-atend-0309` |
 
-**Ponte:** PC com `whatsapp_atendimento/iniciar.bat` + `.env` `AGRO_WA_BRIDGE_TOKEN`.
+**Ponte:** Limpar lista voltava em lote: mapa LID + histórico do Zap **criava** chat de novo. Agora só nasce conversa com mensagem **nova de cliente**. Religar janela preta + F5 no local.
 
 ---
 
@@ -1338,8 +1339,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Fechar caixa: **Confirmar** na conferência fiado grava no Postgres. Reabrir a tela **não** pede de novo as notas já conferidas. Só aparece venda/pagamento **novo**. |
 | **Migrate** | **SIM** `produtos.0123` |
-| **Prova** | `verify_caixa_fiado_conferencia_path` **8/8** |
-| **Status** | 🟡 **aguarda Ctrl+F5 no PC** |
+| **Prova** | `verify_caixa_fiado_conferencia_path` **30/30** (contratos + validar + PIN 9973 + Pular não grava + API só turno/loja + HTTP login) |
+| **Status** | 🟡 **pronto para envio à produção** |
 
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
 
@@ -1362,7 +1363,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.92**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip **v21.98**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1371,8 +1372,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `PDV-OVERLAY-STACK` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | `VENDAS-LISTA-UX` | 🟡 **pronto para envio à produção** | **NÃO** |
 | 5 | `F8-HIST-VENDAS` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 6 | `CAIXA-FIADO-CONF` | 🟡 **pronto para envio à produção** | **SIM** `0123` |
 
-**Live agora:** **v21.82** (WA-ATEND). Fila tip **v21.90**. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
+**Live agora:** **v21.82** (WA-ATEND). Fila tip **v21.98**. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro). **Loja: migrate `0123`.**
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
