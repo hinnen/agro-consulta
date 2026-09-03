@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body {
       font-family: 'Inter', sans-serif;
       min-height: 100dvh;
@@ -22,7 +22,104 @@
       max-height: 100% !important;
       height: 100% !important;
     }
+    html.agro-vendas-in-overlay .agro-vendas-header-interno {
+      display: none !important;
+    }
     .vendas-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    .vendas-scroll { overflow-x: hidden; overflow-y: auto; }
+    .vendas-tabela { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+    .vendas-tabela th:not(:last-child),
+    .vendas-tabela td:not(:last-child) {
+      border-right: 1px solid rgba(226, 232, 240, 0.95);
+    }
+    .vendas-tabela thead th {
+      border-right-color: rgba(203, 213, 225, 0.85);
+    }
+    /* Larguras fixas: só Cliente engole o que sobra. Total não “inchá” depois do valor. */
+    .vendas-col-id { width: 3.5rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-acoes { width: 26.2rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-data {
+      width: 7.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+    }
+    .vendas-col-loja { width: 5.5rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-pagamento {
+      width: 9.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-col-total {
+      width: 9.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      padding-left: 0.35rem !important;
+      padding-right: 0.4rem !important;
+    }
+    .vendas-col-operador {
+      width: 7rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-col-cliente {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-acoes-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 6.3rem);
+      gap: 0.25rem;
+      align-items: stretch;
+    }
+    .vendas-moeda {
+      display: flex;
+      align-items: baseline;
+      width: 100%;
+      gap: 0.25rem;
+      font-size: 20px;
+    }
+    .vendas-moeda-sym {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .vendas-moeda-val {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      font-weight: 900;
+    }
+    .vendas-moeda--sm .vendas-moeda-sym {
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .vendas-moeda--sm .vendas-moeda-val {
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .vendas-acao-slot {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      width: 100%;
+      padding: 0 0.35rem;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.15;
+      text-transform: uppercase;
+      white-space: nowrap;
+      border-radius: 0.75rem;
+    }
   </style>
   <script>
   (function () {
@@ -30,6 +127,16 @@
       var q = new URLSearchParams(location.search || '');
       if (q.get('agro_pdv_overlay') === '1' || q.get('agro_inapp_embed') === '1') {
         document.documentElement.classList.add('agro-vendas-in-overlay');
+        try {
+          var csvUrl = location.pathname.replace(/\/?$/, '/').replace('/vendas/', '/vendas/exportar-csv/') + location.search;
+          window.top.postMessage({
+            type: 'agro-pdv-overlay-meta',
+            subtitle: '{{ periodo_label|escapejs }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}',
+            showMenu: true,
+            menuHref: csvUrl,
+            menuLabel: 'CSV'
+          }, location.origin);
+        } catch (_) {}
       }
     } catch (_) {}
   })();
@@ -37,70 +144,77 @@
 </head>
 <body class="bg-slate-50 overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
-    <div class="vendas-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="h-9 w-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-          <span class="text-sm font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-[clamp(1.1rem,0.8vw+1rem,1.5rem)] font-black uppercase tracking-tight text-slate-900 leading-tight">Vendas</h1>
-          <p class="text-xs sm:text-sm font-bold text-slate-500 truncate">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
-        </div>
+  <header class="agro-vendas-header-interno border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="vendas-shell px-2.5 sm:px-4 py-1 flex items-center justify-between gap-2">
+      <div class="min-w-0 flex-1 flex items-center gap-2.5 overflow-hidden">
+        <span class="inline-flex items-center justify-center h-6 min-w-[1.9rem] rounded-lg border border-slate-200 bg-white text-[10px] font-black shrink-0">
+          <span class="text-emerald-600">G</span><span class="text-orange-500">M</span>
+        </span>
+        <p class="text-[0.95rem] font-black uppercase tracking-tight text-slate-900 leading-none shrink-0">Vendas</p>
+        <p class="text-[10px] sm:text-[11px] font-bold text-slate-500 leading-none truncate">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
       </div>
-      <div class="flex flex-wrap gap-2 shrink-0">
-        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+      <div class="flex gap-1.5 shrink-0 items-center justify-end">
+        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="inline-flex items-center min-h-[32px] text-[10px] font-black uppercase px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
           Exportar CSV
         </a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[32px] text-[10px] font-black uppercase px-2.5 py-1 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
       </div>
     </div>
   </header>
 
-  <main class="vendas-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 sm:gap-3 overflow-hidden">
+  <main class="vendas-shell flex-1 min-h-0 flex flex-col px-2.5 sm:px-4 pt-1 pb-2 sm:pt-1.5 sm:pb-3 gap-2 overflow-hidden">
     {% if messages %}
     <ul class="shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 space-y-1">
       {% for m in messages %}<li>{{ m }}</li>{% endfor %}
     </ul>
     {% endif %}
 
-    <div class="shrink-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-3 items-stretch">
-      <form method="get" class="rounded-2xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm flex flex-col gap-2" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido · <span class="text-slate-500 normal-case font-bold">/ foca “De”</span></p>
-          <div class="flex flex-wrap gap-1.5">
-            <a href="?preset=hoje&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
-            <a href="?preset=7d&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
-            <a href="?preset=30d&loja={{ filtro_loja }}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
-            <a href="?fiado=1&loja={{ filtro_loja }}{% if preset_ativo %}&preset={{ preset_ativo }}{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_fiado %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
+    <div class="shrink-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+      <form method="get" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm flex flex-col gap-2" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+        <input type="hidden" name="loja" value="{{ filtro_loja }}">
+        {% if filtro_fiado %}<input type="hidden" name="fiado" value="1">{% endif %}
+        {% if request.GET.demo_nfce_ui == '1' %}<input type="hidden" name="demo_nfce_ui" value="1">{% endif %}
+        {% if request.GET.agro_pdv_overlay %}<input type="hidden" name="agro_pdv_overlay" value="{{ request.GET.agro_pdv_overlay }}">{% endif %}
+        {% if request.GET.agro_inapp_embed %}<input type="hidden" name="agro_inapp_embed" value="{{ request.GET.agro_inapp_embed }}">{% endif %}
+        {% if request.GET.agro_app_role %}<input type="hidden" name="agro_app_role" value="{{ request.GET.agro_app_role }}">{% endif %}
+        <div class="flex flex-wrap items-end gap-x-2 gap-y-1.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período</span>
+            <a href="?preset=hoje&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
+            <a href="?preset=7d&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
+            <a href="?preset=30d&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+            <a href="?fiado=1&loja={{ filtro_loja }}{% if preset_ativo %}&preset={{ preset_ativo }}{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_fiado %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
+          </div>
+          <div class="flex flex-wrap items-end gap-1.5">
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
+              <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-2 py-1.5 text-sm font-bold min-h-[40px]">
+            </div>
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-ate">Até</label>
+              <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-2 py-1.5 text-sm font-bold min-h-[40px]">
+            </div>
+            <button type="submit" class="min-h-[40px] px-4 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase">Aplicar</button>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
-          <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide mr-1">Loja</span>
-          <a href="?loja=centro{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Centro</a>
-          <a href="?loja=vila{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Vila Elias</a>
-          <a href="?loja=todas{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Todas</a>
-          <span class="text-[10px] font-bold text-slate-400 ml-1">agora: {{ filtro_loja_label }}</span>
-        </div>
-        <div class="flex flex-wrap items-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
-          <input type="hidden" name="loja" value="{{ filtro_loja }}">
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
-            <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Loja</span>
+            <a href="?loja=centro{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Centro</a>
+            <a href="?loja=vila{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Vila Elias</a>
+            <a href="?loja=todas{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Todas</a>
           </div>
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-ate">Até</label>
-            <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
-          </div>
-          <button type="submit" class="min-h-[42px] px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
-          <p class="w-full xl:w-auto xl:ml-auto text-[10px] text-slate-400 self-center">CSV usa o mesmo período e loja da URL.</p>
+          <label class="flex-1 min-w-[14rem] block">
+            <span class="sr-only">Buscar venda</span>
+            <input type="search" name="q" id="id-q-vendas" value="{{ filtro_q }}" autocomplete="off" placeholder="Buscar: nº, cliente, valor, pagamento, operador, cupom, produto…" title="Busca em número da venda, data, cliente, loja, valor, forma (também combinada), operador, cupom NFC-e e nome do produto. Vários termos = todos têm que casar." class="w-full rounded-xl border-2 border-slate-200 px-3 py-1.5 text-sm font-bold min-h-[40px] placeholder:font-semibold placeholder:text-slate-400">
+          </label>
         </div>
       </form>
 
-      <div class="grid grid-cols-2 gap-2 sm:gap-3 xl:min-w-[18rem]">
-        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex flex-col justify-center">
+      <div class="grid grid-cols-2 gap-2 xl:min-w-[16rem]">
+        <div class="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm flex flex-col justify-center">
           <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas · {{ filtro_loja_label }}</p>
-          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-slate-900 tabular-nums leading-none mt-1">{{ quantidade_vendas }}</p>
+          <p class="text-[clamp(1.2rem,0.8vw+1rem,1.75rem)] font-black text-slate-900 tabular-nums leading-none mt-0.5">{{ quantidade_vendas }}</p>
           {% if quantidade_devolvidas %}
           <p class="text-[10px] font-semibold text-slate-400 mt-1" title="Vendas do período já marcadas devolvida — não entram no total nem no BI">+ {{ quantidade_devolvidas }} devolvida{{ quantidade_devolvidas|pluralize }} no período</p>
           {% endif %}
@@ -110,98 +224,102 @@
           <p class="text-[10px] font-semibold text-rose-600 mt-1" title="Estorno registrado no período; venda original pode ser de outro dia">{{ devolucoes_registradas_qtd }} estorno(s) no período · R$ {{ devolucoes_registradas_valor|floatformat:2 }} (BI já exclui se a venda for de hoje)</p>
           {% endif %}
         </div>
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 shadow-sm flex flex-col justify-center">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-3 py-2 shadow-sm flex flex-col justify-center">
           <p class="text-[10px] font-black uppercase text-emerald-800/70 tracking-wide">Total no período</p>
-          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-emerald-700 tabular-nums leading-none mt-1">R$ {{ total_periodo }}</p>
+          <p class="text-[clamp(1.2rem,0.8vw+1rem,1.75rem)] font-black text-emerald-700 tabular-nums leading-none mt-0.5">R$ {{ total_periodo }}</p>
         </div>
       </div>
     </div>
 
     {% if vendas %}
     <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-      <div class="flex-1 min-h-0 overflow-auto overscroll-contain">
-        <table class="w-full text-sm min-w-[52rem]">
+      <div class="flex-1 min-h-0 vendas-scroll overscroll-contain">
+        <table class="vendas-tabela text-sm">
           <thead class="sticky top-0 z-10">
             <tr class="bg-slate-50 border-b border-slate-200 text-left text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">#</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap min-w-[13.5rem]">Ações</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Data</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Loja</th>
-              <th class="px-3 sm:px-4 py-2.5">Cliente</th>
-              <th class="px-3 sm:px-4 py-2.5">Pagamento</th>
-              <th class="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">Total</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Caixa</th>
-              {% if nfce_cfg.ativo %}<th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Fiscal</th>{% endif %}
-              <th class="px-3 sm:px-4 py-2.5">Operador</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-id">#</th>
+              <th class="px-1 py-1.5 vendas-col-acoes">Ações</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-data">Data</th>
+              {% if filtro_loja == 'todas' %}<th class="px-1 py-1.5 whitespace-nowrap vendas-col-loja">Loja</th>{% endif %}
+              <th class="px-1 py-1.5 vendas-col-cliente">Cliente</th>
+              <th class="px-1 py-1.5 vendas-col-pagamento">Pagamento</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-total">Total</th>
+              <th class="px-1 py-1.5 vendas-col-operador">Operador</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
             {% for v in vendas %}
             <tr class="hover:bg-slate-50/80">
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+              <td class="px-1 py-1.5 whitespace-nowrap vendas-col-id">
                 <span class="font-black text-slate-900 tabular-nums">#{{ v.id }}</span>
-                {% if v.devolvida_em %}
-                <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-rose-100 text-rose-800">Devolvida</span>
-                {% elif v.tem_devolucao_parcial %}
+                {% if v.tem_devolucao_parcial %}
                 <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-100 text-amber-900">Parcial</span>
                 {% endif %}
               </td>
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-                <div class="flex flex-nowrap items-center gap-1.5">
-                  <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
-                  <button type="button" class="js-venda-imprimir-cupom inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-sky-400 bg-sky-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
-                  {% if nfce_cfg.ativo and v.nfce_painel.processando and not v.devolvida_em %}
-                  <button type="button" class="js-venda-nfce-processando inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-sky-300 bg-sky-100 text-[11px] font-black uppercase text-sky-900 shadow-sm cursor-wait" data-venda-id="{{ v.id }}" title="NFC-e sendo emitida em segundo plano">Emitindo…</button>
-                  {% elif nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
-                  <button type="button" class="js-venda-nfce-reemitir inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-amber-400 bg-amber-500 text-[11px] font-black uppercase text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir NFC</button>
-                  {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
-                  <button type="button" class="js-venda-imprimir-fiscal inline-flex items-center justify-center min-h-[44px] min-w-[6rem] px-3 rounded-xl border-2 border-emerald-500 bg-emerald-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Cupom fiscal</button>
-                  {% endif %}
+              <td class="px-1 py-1.5 vendas-col-acoes">
+                <div class="vendas-acoes-grid">
+                  <a href="{% url 'venda_agro_detalhe' v.id %}" class="vendas-acao-slot border-2 border-slate-200 bg-white text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
+                  <button type="button" class="vendas-acao-slot js-venda-imprimir-cupom border-2 border-sky-400 bg-sky-600 text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
                   {% if not v.devolvida_em %}
-                  <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-rose-400 bg-rose-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
+                  <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="vendas-acao-slot border-2 border-rose-400 bg-rose-600 text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
                   {% else %}
-                  <span class="inline-flex items-center min-h-[44px] px-3 text-[10px] font-bold text-slate-400">—</span>
+                  <span class="vendas-acao-slot border-2 border-rose-300 bg-rose-50 text-rose-800 shadow-sm" title="Venda devolvida">Devolvida</span>
+                  {% endif %}
+                  {# Demo UI (local): 1ª linha Fiscal, 2ª Emitindo — visível no topo #}
+                  {% if request.GET.demo_nfce_ui == '1' and forloop.counter == 1 %}
+                  <button type="button" disabled class="vendas-acao-slot border-2 border-emerald-500 bg-emerald-600 text-white shadow-sm cursor-not-allowed opacity-70" title="Demo UI (local)">Fiscal</button>
+                  {% elif request.GET.demo_nfce_ui == '1' and forloop.counter == 2 %}
+                  <button type="button" disabled class="vendas-acao-slot border-2 border-sky-300 bg-sky-100 text-sky-900 shadow-sm cursor-wait opacity-80" title="Demo UI (local)">Emitindo</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.processando and not v.devolvida_em %}
+                  <button type="button" class="vendas-acao-slot js-venda-nfce-processando border-2 border-sky-300 bg-sky-100 text-sky-900 shadow-sm cursor-wait" data-venda-id="{{ v.id }}" title="NFC-e sendo emitida em segundo plano">Emitindo</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
+                  <button type="button" class="vendas-acao-slot js-venda-nfce-reemitir border-2 border-amber-400 bg-amber-500 text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
+                  <button type="button" class="vendas-acao-slot js-venda-imprimir-fiscal border-2 border-emerald-500 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Fiscal</button>
+                  {% else %}
+                  <span class="vendas-acao-slot border border-slate-200 bg-slate-50 text-slate-400">Interno</span>
                   {% endif %}
                 </div>
               </td>
-              <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+              <td class="px-1 py-1.5 tabular-nums whitespace-nowrap text-[14px] font-bold text-slate-800 vendas-col-data">{{ v.criado_em|date:"d/m H:i" }}</td>
+              {% if filtro_loja == 'todas' %}
+              <td class="px-1 py-1.5 whitespace-nowrap vendas-col-loja">
                 {% if v.lista_loja_dep == 'vila' %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-300">{{ v.lista_loja_label }}</span>
                 {% else %}
                 <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-900 border border-emerald-200">{{ v.lista_loja_label }}</span>
                 {% endif %}
               </td>
-              <td class="px-3 sm:px-4 py-2.5 max-w-[12rem] xl:max-w-[16rem] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
-              <td class="px-3 sm:px-4 py-2.5 text-xs max-w-[10rem] xl:max-w-none truncate" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
-              <td class="px-3 sm:px-4 py-2.5 text-right tabular-nums font-black text-slate-900 whitespace-nowrap">
-                {% if v.devolvida_em %}
-                <span class="text-rose-700">R$ 0,00</span>
-                <span class="block text-[10px] font-bold text-slate-400 line-through">R$ {{ v.total|moeda_br }}</span>
-                {% elif v.lista_mostra_restante %}
-                <span>R$ {{ v.lista_total_restante|moeda_br }}</span>
-                <span class="block text-[10px] font-bold text-slate-400 line-through">R$ {{ v.total|moeda_br }}</span>
-                {% else %}
-                R$ {{ v.total|moeda_br }}
-                {% endif %}
-              </td>
-              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
-              {% if nfce_cfg.ativo %}
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-                {% if v.nfce_painel.autorizada %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800" title="NFC-e autorizada">OK</span>
-                {% elif v.nfce_painel.processando %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-sky-100 text-sky-900" title="Emissão em andamento">Emitindo</span>
-                {% elif v.nfce_painel.pendente %}
-                <button type="button" class="js-venda-nfce-erro inline-flex px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-950 border border-amber-300 hover:bg-amber-200 cursor-pointer" data-venda-id="{{ v.id }}" title="Ver detalhe do erro">Sem fiscal · erro</button>
-                {% elif v.nfce_painel.solicitada %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-600">—</span>
-                {% else %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-500">Interno</span>
-                {% endif %}
-              </td>
               {% endif %}
-              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 truncate max-w-[6rem] xl:max-w-[8rem]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
+              <td class="px-1 py-1.5 truncate vendas-col-cliente" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
+              <td class="px-1 py-1.5 text-xs truncate vendas-col-pagamento" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
+              <td class="px-1 py-1.5 vendas-col-total">
+                {% if v.devolvida_em %}
+                <span class="vendas-moeda text-rose-700">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">0,00</span>
+                </span>
+                <span class="vendas-moeda vendas-moeda--sm text-slate-400 line-through mt-0.5">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% elif v.lista_mostra_restante %}
+                <span class="vendas-moeda text-slate-900">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.lista_total_restante|moeda_br }}</span>
+                </span>
+                <span class="vendas-moeda vendas-moeda--sm text-slate-400 line-through mt-0.5">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% else %}
+                <span class="vendas-moeda text-slate-900">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-1 py-1.5 text-[14px] font-bold text-slate-700 truncate vendas-col-operador" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -210,14 +328,14 @@
     </div>
     {% else %}
     <div class="flex-1 min-h-0 rounded-2xl border border-dashed border-slate-200 bg-white/80 flex items-center justify-center">
-      <p class="font-bold text-slate-500 text-base sm:text-lg">Nenhuma venda neste período.</p>
+      <p class="font-bold text-slate-500 text-base sm:text-lg">{% if filtro_q %}Nenhuma venda com essa busca neste período.{% else %}Nenhuma venda neste período.{% endif %}</p>
     </div>
     {% endif %}
   </main>
 
   {% if nfce_cfg.ativo %}
   <input type="hidden" id="agro-csrf-nfce-vendas" value="{{ csrf_token }}">
-  <div id="modal-nfce-venda" data-agro-stack="auto" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
+  <div id="modal-nfce-venda" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
     <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-amber-300 bg-white shadow-2xl p-4 sm:p-5">
       <h2 class="text-lg font-black text-amber-950" id="modal-nfce-titulo">Cupom fiscal pendente</h2>
       <p class="text-xs font-bold text-slate-600 mt-1" id="modal-nfce-sub"></p>
@@ -251,7 +369,7 @@
       const t = e.target && e.target.tagName;
       if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
       e.preventDefault();
-      document.getElementById('id-de')?.focus();
+      document.getElementById('id-q-vendas')?.focus();
     });
     (function () {
       document.querySelectorAll('.js-venda-imprimir-cupom').forEach(function (btn) {
@@ -290,10 +408,16 @@
           modal.classList.add('hidden');
           modal.classList.remove('flex');
           vendaIdAtual = null;
+          try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(modal, false);
+          } catch (_) {}
         }
         function abrir(id, modo) {
           vendaIdAtual = id;
           document.getElementById('modal-nfce-msg').classList.add('hidden');
+          try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(modal, true);
+          } catch (_) {}
           if (window.gmLoadingBar) window.gmLoadingBar.show();
           var ctrlOpen = typeof AbortController !== 'undefined' ? new AbortController() : null;
           var toOpen = setTimeout(function () {

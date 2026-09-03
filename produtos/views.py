@@ -7663,6 +7663,119 @@ def _vendas_qs_periodo(di: date, df: date):
     )
 
 
+def _vendas_tokens_busca(texto: str) -> list[str]:
+    raw = (texto or "").strip()
+    if not raw:
+        return []
+    parts = [p.strip() for p in re.split(r"\s+", raw) if p.strip()]
+    return parts[:12]
+
+
+def _vendas_parse_valor_busca(tok: str) -> Decimal | None:
+    t = (tok or "").strip().lower().replace("r$", "").replace(" ", "")
+    if not t:
+        return None
+    # BR milhar: 1.000 / 1.000,00 · simples: 9,99 · 1000,00 · 9.99
+    if re.fullmatch(r"-?\d{1,3}(\.\d{3})+(,\d{1,2})?", t):
+        t = t.replace(".", "").replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,12}([.,]\d{1,2})?", t):
+        if "," in t:
+            t = t.replace(".", "").replace(",", ".")
+    else:
+        return None
+    try:
+        return Decimal(t).quantize(Decimal("0.01"))
+    except Exception:
+        return None
+
+
+def _vendas_q_um_token(tok: str) -> Q:
+    """Um termo casa em qualquer campo útil da lista (AND entre termos)."""
+    t = (tok or "").strip()
+    if not t:
+        return Q()
+    tl = t.casefold()
+    q = (
+        Q(cliente_nome__icontains=t)
+        | Q(cliente_documento__icontains=t)
+        | Q(forma_pagamento__icontains=t)
+        | Q(pagamentos_json__icontains=t)
+        | Q(usuario_registro__icontains=t)
+        | Q(deposito__icontains=t)
+        | Q(itens__descricao__icontains=t)
+        | Q(itens__codigo__icontains=t)
+        | Q(nfce__chave__icontains=t)
+        | Q(nfce__protocolo__icontains=t)
+    )
+    if tl in ("centro",):
+        q |= Q(deposito="centro")
+    if tl in ("vila", "elias") or "vila" in tl:
+        q |= Q(deposito="vila")
+    if tl in ("todas", "interno", "fiscal", "nfce", "cupom", "ok", "devolvida", "parcial"):
+        if tl == "interno":
+            q |= Q(nfce__isnull=True) | ~Q(nfce__status="autorizada")
+        elif tl in ("fiscal", "nfce", "cupom", "ok"):
+            q |= Q(nfce__status="autorizada")
+        elif tl == "devolvida":
+            q |= Q(devolvida_em__isnull=False)
+        elif tl == "parcial":
+            q |= Q(itens__quantidade_devolvida__gt=0)
+    digits = re.sub(r"\D", "", t)
+    if digits:
+        q |= Q(cliente_documento__icontains=digits)
+        if digits.isdigit():
+            try:
+                n = int(digits)
+                q |= Q(pk=n) | Q(nfce__numero=n)
+            except (TypeError, ValueError):
+                pass
+    val = _vendas_parse_valor_busca(t)
+    if val is not None:
+        q |= Q(total=val)
+    m = re.fullmatch(r"(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?", t)
+    if m:
+        d, mo, yo = int(m.group(1)), int(m.group(2)), m.group(3)
+        try:
+            if yo:
+                y = int(yo)
+                if y < 100:
+                    y += 2000
+                dia = date(y, mo, d)
+                ini, fim = _vendas_periodo_datetime_bounds(dia, dia)
+                q |= Q(criado_em__gte=ini, criado_em__lte=fim)
+            else:
+                q |= Q(criado_em__day=d, criado_em__month=mo)
+        except ValueError:
+            pass
+    hm = re.fullmatch(r"(\d{1,2}):(\d{2})", t)
+    if hm:
+        q |= Q(criado_em__hour=int(hm.group(1)), criado_em__minute=int(hm.group(2)))
+    return q
+
+
+def _vendas_aplicar_busca(qs, texto: str):
+    tokens = _vendas_tokens_busca(texto)
+    if not tokens:
+        return qs
+    for tok in tokens:
+        qs = qs.filter(_vendas_q_um_token(tok))
+    return qs.distinct()
+
+
+def _vendas_keep_query(request, *, q: str = "", fiado: str = "") -> str:
+    d: dict[str, str] = {}
+    qq = (q or "").strip()
+    if qq:
+        d["q"] = qq
+    if (fiado or "").strip() in ("1", "sim"):
+        d["fiado"] = "1"
+    for k in ("agro_pdv_overlay", "agro_inapp_embed", "agro_app_role", "demo_nfce_ui"):
+        v = (request.GET.get(k) or "").strip()
+        if v:
+            d[k] = v
+    return urlencode(d)
+
+
 def _vendas_filtro_loja_from_request(request) -> tuple[str, str | None]:
     """
     Retorna (modo_ui, deposito_filtro).
@@ -11229,6 +11342,8 @@ def vendas_lista(request):
     qs = _vendas_qs_periodo(di, df)
     filtro_loja, dep_filtro = _vendas_filtro_loja_from_request(request)
     qs = _vendas_aplicar_filtro_loja(qs, dep_filtro)
+    filtro_q = (request.GET.get("q") or "").strip()
+    qs = _vendas_aplicar_busca(qs, filtro_q)
     filtro_fiado = (request.GET.get("fiado") or "").strip().lower()
     filtro_fiado_q = Q(forma_pagamento__icontains="fiado") | Q(pagamentos_json__icontains="Fiado")
     if filtro_fiado == "1" or filtro_fiado == "sim":
@@ -11278,6 +11393,8 @@ def vendas_lista(request):
             "preset_ativo": preset_ativo,
             "filtro_fiado": filtro_fiado,
             "filtro_erp_fiado": filtro_erp,
+            "filtro_q": filtro_q,
+            "vendas_keep_qs": _vendas_keep_query(request, q=filtro_q, fiado=""),
             "filtro_loja": filtro_loja,
             "filtro_loja_label": (
                 "Todas as lojas"
