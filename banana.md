@@ -1350,8 +1350,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | --- | --- |
 | **Junto com** | `WA-SEND-OPTIMIST` · `WA-FOTO-RETRY` (ponte) · outras mudanças que Renan for juntando |
 | **1 Foto** | Miniatura menor · clique = tela cheia (Esc/clique fecha) |
-| **2 Nome** | Verde (loja): nome do **usuário logado** (nome completo / login) — **não** é o PIN em si · Branco (cliente): **só horário**, sem «CLIENTE» |
+| **2 Nome** | Verde (loja): **PIN do PDV** (nome do funcionário na sessão) · sem PIN → login Chrome · Branco (cliente): **só horário** |
 | **3 Bolha** | Largura do texto · verde à direita · branco à esquerda (tipo Zap Web) |
+| **Assinatura PIN** | Usa `pdv_operador_nome` / PIN da sessão no **mesmo Chrome** · Zap ainda abre pelo **menu** (ícone do PDV = Em breve) — PIN no PDV antes ajuda |
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` · **não** subir loja até Renan mandar o lote + senha |
 
