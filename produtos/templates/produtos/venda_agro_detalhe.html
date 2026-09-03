@@ -38,6 +38,31 @@
 
     .agro-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
 
+    html.agro-venda-fiado-embed body {
+      font-size: clamp(15px, 0.4vw + 14px, 18px);
+      background: #fff;
+    }
+    html.agro-venda-fiado-embed .agro-shell {
+      max-width: 100%;
+    }
+    html.agro-venda-fiado-embed .venda-fiado-hide {
+      display: none !important;
+    }
+    html.agro-venda-fiado-embed .venda-itens-table {
+      table-layout: fixed;
+      width: 100%;
+      min-width: 0 !important;
+      font-size: clamp(0.98rem, 0.4vw + 0.9rem, 1.15rem);
+    }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-desc { width: auto; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-qtd { width: 6.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-unit { width: 8.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table col.venda-c-tot { width: 8.5rem; }
+    html.agro-venda-fiado-embed .venda-itens-table th,
+    html.agro-venda-fiado-embed .venda-itens-table td {
+      padding: 0.55rem 0.65rem !important;
+    }
+
   </style>
 
 </head>
@@ -58,7 +83,7 @@
 
       <div class="flex flex-wrap gap-2 shrink-0">
 
-        <a href="{% url 'vendas_lista' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
+        <a href="{% url 'vendas_lista' %}" class="venda-fiado-hide inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-orange-300">Lista</a>
 
         {% if cupom_80mm %}
         <button type="button" id="btn-imprimir-cupom-venda" class="inline-flex items-center min-h-[48px] text-sm font-black uppercase px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white shadow-md hover:bg-sky-700" title="Cupom térmico 80mm (2ª via)">Imprimir cupom</button>
@@ -81,7 +106,7 @@
 
         {% endif %}
 
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shrink-0" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="venda-fiado-hide inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shrink-0" %}
 
       </div>
 
@@ -257,7 +282,14 @@
 
       <div class="flex-1 min-h-0 overflow-auto overscroll-contain">
 
-        <table class="w-full text-sm min-w-[36rem]">
+        <table class="venda-itens-table w-full text-sm min-w-[36rem]">
+
+          <colgroup>
+            <col class="venda-c-desc">
+            <col class="venda-c-qtd">
+            <col class="venda-c-unit">
+            <col class="venda-c-tot">
+          </colgroup>
 
           <thead class="sticky top-0 z-10 bg-slate-50">
 
@@ -474,6 +506,33 @@
 
 
 
+  <script>
+  (function () {
+    try {
+      var q = new URLSearchParams(window.location.search || '');
+      if (q.get('agro_fiado_embed') !== '1') return;
+      document.documentElement.classList.add('agro-venda-fiado-embed');
+      function fecharNoFiado() {
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'fiado-venda-overlay-close' }, window.location.origin);
+          }
+        } catch (_) {}
+      }
+      document.addEventListener(
+        'keydown',
+        function (e) {
+          var k = e.key || '';
+          if (k !== 'Escape' && k !== 'F1') return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          fecharNoFiado();
+        },
+        true
+      );
+    } catch (_) {}
+  })();
+  </script>
   {% include "produtos/_atalho_voltar_pdv.html" %}
 
 {{ pagamentos_devolucao_default|json_script:"venda-pagamentos-default" }}

@@ -28,6 +28,10 @@
     recibosResumo: document.getElementById('fiado-recibos-resumo'),
     recibosFechar: document.getElementById('fiado-recibos-fechar'),
     modalRecibos: document.getElementById('fiado-modal-recibos'),
+    modalVenda: document.getElementById('fiado-modal-venda'),
+    vendaFrame: document.getElementById('fiado-venda-frame'),
+    vendaTitulo: document.getElementById('fiado-venda-titulo'),
+    vendaFechar: document.getElementById('fiado-venda-fechar'),
     modalBaixa: document.getElementById('fiado-modal-baixa'),
     baixaPassoEscolha: document.getElementById('fiado-baixa-passo-escolha'),
     formBaixaParcial: document.getElementById('fiado-form-baixa-parcial'),
@@ -354,35 +358,52 @@
   function vendaDetalheUrl(vendaId) {
     const base = String(urls.vendaDetalheBase || '').trim();
     if (!base || !vendaId) return '';
-    return base.replace(/0\/?$/, String(vendaId) + '/');
+    let url = base.replace(/0\/?$/, String(vendaId) + '/');
+    try {
+      const u = new URL(url, window.location.origin);
+      u.searchParams.set('agro_fiado_embed', '1');
+      u.searchParams.set('agro_inapp_embed', '1');
+      if (new URLSearchParams(window.location.search || '').get('agro_pdv_overlay') === '1') {
+        u.searchParams.set('agro_pdv_overlay', '1');
+      }
+      return u.href;
+    } catch (_) {
+      return url;
+    }
   }
 
-  function abrirVendaPopup(vendaId) {
+  function fecharVendaOverlay() {
+    if (el.vendaFrame) {
+      try {
+        el.vendaFrame.src = 'about:blank';
+      } catch (_) {}
+    }
+    if (el.modalVenda && el.modalVenda.open) {
+      el.modalVenda.close();
+    }
+    try {
+      if (window.AgroOverlayStack && el.modalVenda) {
+        window.AgroOverlayStack.setOpen(el.modalVenda, false);
+      }
+    } catch (_) {}
+  }
+
+  function abrirVendaOverlay(vendaId) {
     const url = vendaDetalheUrl(vendaId);
     if (!url) {
       alert('Pedido sem venda vinculada.');
       return;
     }
-    const largura = Math.max(1100, Math.min(window.screen && window.screen.availWidth ? window.screen.availWidth - 80 : 1400, 1500));
-    const altura = Math.max(760, Math.min(window.screen && window.screen.availHeight ? window.screen.availHeight - 80 : 900, 980));
-    const left = window.screenX + Math.max(20, Math.round(((window.outerWidth || largura) - largura) / 2));
-    const top = window.screenY + Math.max(20, Math.round(((window.outerHeight || altura) - altura) / 2));
-    const specs = [
-      'popup=yes',
-      'resizable=yes',
-      'scrollbars=yes',
-      'width=' + largura,
-      'height=' + altura,
-      'left=' + left,
-      'top=' + top,
-    ].join(',');
-    const win = window.open(url, 'fiado_venda_detalhe', specs);
-    if (!win) {
-      window.location.href = url;
+    if (!el.modalVenda || !el.vendaFrame) {
+      window.open(url, '_blank');
       return;
     }
+    if (el.vendaTitulo) el.vendaTitulo.textContent = 'Pedido / venda #' + vendaId;
+    el.vendaFrame.src = url;
+    if (el.modalVenda.showModal) el.modalVenda.showModal();
+    else el.modalVenda.setAttribute('open', '');
     try {
-      win.focus();
+      if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el.modalVenda, true);
     } catch (_) {}
   }
 
@@ -955,7 +976,7 @@
       }
       const bVer = ev.target.closest('.fiado-btn-ver-tit, .fiado-link-pedido');
       if (bVer) {
-        abrirVendaPopup(parseInt(bVer.getAttribute('data-venda-id'), 10));
+        abrirVendaOverlay(parseInt(bVer.getAttribute('data-venda-id'), 10));
         return;
       }
       const bEdit = ev.target.closest('.fiado-btn-editar-tit');
@@ -1065,6 +1086,32 @@
       el.modalRecibos.close();
     });
   }
+
+  if (el.vendaFechar) {
+    el.vendaFechar.addEventListener('click', fecharVendaOverlay);
+  }
+  if (el.modalVenda) {
+    el.modalVenda.addEventListener('cancel', function (ev) {
+      ev.preventDefault();
+      fecharVendaOverlay();
+    });
+    el.modalVenda.addEventListener('close', function () {
+      if (el.vendaFrame) {
+        try {
+          el.vendaFrame.src = 'about:blank';
+        } catch (_) {}
+      }
+      try {
+        if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(el.modalVenda, false);
+      } catch (_) {}
+    });
+  }
+  window.addEventListener('message', function (ev) {
+    try {
+      if (!ev || ev.origin !== window.location.origin) return;
+      if (ev.data && ev.data.type === 'fiado-venda-overlay-close') fecharVendaOverlay();
+    } catch (_) {}
+  });
 
   if (el.cliModalFechar && el.modalCliente) {
     el.cliModalFechar.addEventListener('click', function () {
