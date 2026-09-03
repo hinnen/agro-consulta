@@ -77,8 +77,10 @@
   }
   .wa-skin .wa-tab.is-on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgb(15 23 42 / .08); }
   .wa-skin .wa-badge {
-    display: inline-block; min-width: 1.25rem; margin-left: .2rem; border-radius: 999px;
-    background: #ea580c; color: #fff; font-size: .65rem; padding: .05rem .3rem;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 1.2rem; height: 1.2rem; margin-left: .25rem; padding: 0 .35rem;
+    border-radius: 999px; background: #25d366; color: #fff;
+    font-size: .68rem; font-weight: 900; line-height: 1;
   }
   .wa-skin .wa-badge.is-zero { background: #e2e8f0; color: #64748b; }
   .wa-skin .wa-pane { background: #fff; border: 1px solid #e8eef4; border-radius: 1.1rem; overflow: hidden; }
@@ -113,6 +115,8 @@
     font-variant-numeric: tabular-nums; letter-spacing: .01em;
     white-space: nowrap;
   }
+  .wa-skin .wa-item.has-new .wa-n { color: #0f172a; }
+  .wa-skin .wa-item.has-new .wa-t { color: #25d366; font-weight: 800; }
   .wa-skin .wa-item .wa-p {
     min-width: 0; display: flex; align-items: center; gap: .28rem;
     color: #64748b; font-size: .8rem; line-height: 1.25;
@@ -125,9 +129,12 @@
     flex-shrink: 0; width: .95rem; height: .95rem; color: #64748b; opacity: .92;
   }
   .wa-skin .wa-item .wa-unread {
-    justify-self: end; min-width: 1.15rem; height: 1.15rem; padding: 0 .3rem;
-    border-radius: 999px; background: #25d366; color: #064e3b;
-    font-size: .65rem; font-weight: 900; line-height: 1.15rem; text-align: center;
+    display: inline-flex; align-items: center; justify-content: center;
+    justify-self: end; box-sizing: border-box;
+    min-width: 1.35rem; height: 1.35rem; padding: 0 .35rem;
+    border-radius: 999px; background: #25d366; color: #fff;
+    font-size: .72rem; font-weight: 900; line-height: 1;
+    box-shadow: 0 1px 2px rgb(15 23 42 / .12);
   }
   .wa-skin #wa-topo-nome {
     border: 0; background: transparent; padding: 0; cursor: pointer;

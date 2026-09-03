@@ -220,14 +220,16 @@
     }
     el.innerHTML = rows
       .map(function (c) {
+        var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
         var on = Number(c.id) === convId ? ' is-on' : '';
         var titulo = nomeExibicao(c);
-        var unread = c.nao_lidas
-          ? '<span class="wa-unread">' + escapeHtml(String(c.nao_lidas)) + '</span>'
+        var unread = qNao
+          ? '<span class="wa-unread" title="' + qNao + ' não lida' + (qNao > 1 ? 's' : '') + '">' + escapeHtml(String(qNao)) + '</span>'
           : '';
         return (
           '<button type="button" class="wa-item' +
           on +
+          (qNao ? ' has-new' : '') +
           '" data-id="' +
           c.id +
           '" data-loja="' +

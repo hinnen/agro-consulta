@@ -148,7 +148,7 @@
     </div>
   </div>
 </div>
-<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}"></script>
+<script src="{% static 'produtos/js/atendimento_whatsapp.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
 <script>
 (function () {
   var IOS_KEY = "agro_wa_cel_ios_hint_v1";
