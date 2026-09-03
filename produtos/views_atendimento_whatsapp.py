@@ -19,6 +19,7 @@ from produtos.atendimento_whatsapp_util import (
     definir_loja,
     enviar_loja,
     excluir_conversa,
+    excluir_todas_conversas,
     ficha_contato_conversa,
     transferir_conversa,
     gravar_agenda_zap,
@@ -418,6 +419,13 @@ def api_atendimento_whatsapp_excluir(request):
     if not ok:
         return JsonResponse({"ok": False, "erro": err or "Não apagou."}, status=400)
     return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_excluir_todas(request):
+    n = excluir_todas_conversas()
+    return JsonResponse({"ok": True, "apagadas": n})
 
 
 @login_required(login_url="/admin/login/")

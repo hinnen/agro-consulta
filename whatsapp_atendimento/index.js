@@ -4,6 +4,7 @@
  */
 import { Boom } from "@hapi/boom";
 import makeWASocket, {
+  Browsers,
   DisconnectReason,
   downloadContentFromMessage,
   downloadMediaMessage,
@@ -18,6 +19,7 @@ import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import pino from "pino";
+import QRCode from "qrcode";
 import { repacketizeOggOpusToCode3 } from "./opus_ptt.js";
 
 const require = createRequire(import.meta.url);
@@ -35,6 +37,7 @@ const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
 const LID_FILE = path.join(__dirname, "lid_map.json");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
+let ultimoQrEm = 0;
 let salvarAgendaTimer = 0;
 let enviarAgendaTimer = 0;
 let salvarLidTimer = 0;
@@ -52,7 +55,15 @@ function carregarEnv(fp) {
       if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
         v = v.slice(1, -1);
       }
-      if (k && process.env[k] == null) process.env[k] = v;
+      if (!k) continue;
+      if (process.env.AGRO_WA_ALVO === "local" && (k === "AGRO_WA_DJANGO_URL" || k === "AGRO_WA_BRIDGE_TOKEN")) {
+        continue;
+      }
+      const cur = process.env[k];
+      const padraoBat =
+        (k === "AGRO_WA_DJANGO_URL" && cur === "http://127.0.0.1:8000") ||
+        (k === "AGRO_WA_BRIDGE_TOKEN" && cur === "gm-agro-wa-ponte-local");
+      if (cur == null || cur === "" || padraoBat) process.env[k] = v;
     }
   } catch {
     /* ignore */
@@ -158,6 +169,9 @@ let primeiraLigacao = true;
 const agenda = new Map();
 const lidParaJid = new Map();
 const msgCache = new Map();
+/** Evita mandar a mesma saída 2x se o poll cruzar (foto/áudio demora). */
+const saidaEmVoo = new Set();
+let puxarSaidaRodando = false;
 const HIST_MS = 7 * 24 * 60 * 60 * 1000;
 /** Mensagem “ao vivo” (dispara bot). Notify antigo no reconnect NÃO conta. */
 const LIVE_MS = 3 * 60 * 1000;
@@ -222,12 +236,12 @@ function tsMs(m) {
 }
 
 function ehMensagemAoVivo(m, type) {
+  if (type === "notify") return true;
   const quando = tsMs(m);
-  if (!quando) return false;
+  if (!quando) return type === "append";
   const age = Date.now() - quando;
   if (age < 0 || age > LIVE_MS) return false;
-  if (type === "notify") return true;
-  if (type === "append") return age < APPEND_LIVE_MS;
+  if (type === "append") return age < LIVE_MS;
   return false;
 }
 
@@ -746,7 +760,7 @@ async function ligar() {
     version,
     auth: state,
     logger,
-    browser: ["Agro Consulta", "Chrome", "20.33"],
+    browser: Browsers.ubuntu("Chrome"),
     markOnlineOnConnect: false,
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
@@ -761,6 +775,7 @@ async function ligar() {
     if (myId !== connId) return;
     const { connection, lastDisconnect, qr } = u;
     if (qr) {
+      ultimoQrEm = Date.now();
       const dataUrl = await QRCode.toDataURL(qr, { margin: 1, width: 320 });
       await estado({
         status: "qr",
@@ -887,11 +902,22 @@ async function ligar() {
         }
         if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
-        if (ehMensagemAoVivo(m, type)) {
-          if (emQuarentena && !(m.key && m.key.fromMe)) {
-            console.log("Quarentena: descartada notify de", jid);
+        if (m.key && m.key.fromMe && !histJanelaAberta()) continue;
+        // Cliente escreveu agora: sempre manda ao Agro (após Limpar precisa criar chat).
+        if (type === "notify" && !(m.key && m.key.fromMe)) {
+          const quando = tsMs(m);
+          const idade = quando ? Date.now() - quando : 0;
+          if (emQuarentena && idade > 60000) {
+            console.log("Quarentena: descartada notify antiga de", jid, idade);
             continue;
           }
+          console.log("Entrada ao vivo:", jid, textoDe(m).slice(0, 40));
+          await enviarEntrada(m, { historico: false });
+          continue;
+        }
+        if (ehMensagemAoVivo(m, type)) {
+          if (m.key && m.key.fromMe) continue;
+          console.log("Entrada append:", jid, textoDe(m).slice(0, 40));
           await enviarEntrada(m, { historico: false });
           continue;
         }
@@ -978,6 +1004,10 @@ async function executarPedido(p) {
       }
       if (sock.authState && sock.authState.creds && sock.authState.creds.registered) {
         throw new Error("Já está ligado neste PC. Use Trocar Zap antes.");
+      }
+      const ate = Date.now() + 20000;
+      while (Date.now() < ate && ultimoQrEm === 0) {
+        await new Promise((r) => setTimeout(r, 400));
       }
       const raw = await sock.requestPairingCode(tel);
       const code = String(raw || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
@@ -1246,11 +1276,15 @@ async function enviarAudioZap(dest, aud) {
 }
 
 async function puxarSaida() {
-  if (!sock) return;
+  if (!sock || puxarSaidaRodando) return;
+  puxarSaidaRodando = true;
   try {
     const j = await get("/api/atendimento-whatsapp/bridge/saida/");
     const lista = (j && j.saida) || [];
     for (const item of lista) {
+      const idItem = Number(item && item.id) || 0;
+      if (!idItem || saidaEmVoo.has(idItem)) continue;
+      saidaEmVoo.add(idItem);
       try {
         const tipo = String(item.tipo_midia || "");
         const b64 = String(item.midia_b64 || "");
@@ -1294,6 +1328,8 @@ async function puxarSaida() {
           ids: [item.id],
           erro: String(e.message || e).slice(0, 180),
         });
+      } finally {
+        saidaEmVoo.delete(idItem);
       }
     }
     for (const p of (j && j.pedidos) || []) {
@@ -1305,6 +1341,8 @@ async function puxarSaida() {
     }
   } catch (e) {
     console.error("poll:", e.message || e);
+  } finally {
+    puxarSaidaRodando = false;
   }
 }
 

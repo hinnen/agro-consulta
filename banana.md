@@ -1264,6 +1264,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Live loja — fix WhatsApp Limpar/entrada/foto (**v21.85**) — 03/09/2026
+
+| | |
+| --- | --- |
+| **Loja** | **Live v21.85** · cherry só WA (não merge `teste`) |
+| **O quê** | Limpar lista · msg após limpar · foto sem duplicar · `iniciar-local.bat` |
+| **Migrate** | **NÃO** |
+| **Rollback** | Tag `rollback/pre-wa-fix-0309-v21.84` @ `c165db2` · branch `producao-backup-pre-wa-fix-0309-v21.84` · `docs/ROLLBACK-WA-FIX-0309.md` |
+| **Ponte** | Loja: `iniciar.bat` + `.env` sistvale. Local: `iniciar-local.bat` |
+| **Smoke** | badge **v21.85** · Limpar · 1 oi · 1 foto |
+
 ### 🚀 PREP deploy loja — PIN + orçamento (`prep-pin-orc-0209` · **v21.06**) · **aguarda senha**
 
 | Campo | Valor |

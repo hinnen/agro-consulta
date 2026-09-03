@@ -331,6 +331,27 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertEqual(err, "")
         self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
 
+    def test_excluir_todas_conversas(self):
+        from produtos.atendimento_whatsapp_util import excluir_todas_conversas
+
+        processar_entrada(jid="5513999000222@s.whatsapp.net", texto="Oi", wa_id="limpar-1")
+        processar_entrada(jid="5513999000444@s.whatsapp.net", texto="Oi", wa_id="limpar-2")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 2)
+        n = excluir_todas_conversas()
+        self.assertEqual(n, 2)
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+
+    def test_mapa_lid_nao_cria_conversa_vazia(self):
+        from produtos.atendimento_whatsapp_util import aplicar_mapa_lid, excluir_todas_conversas
+
+        aplicar_mapa_lid({"201812074319879@lid": "5513997851403@s.whatsapp.net"})
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+        processar_entrada(jid="5513997851403@s.whatsapp.net", texto="Oi", wa_id="mapa-1")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 1)
+        excluir_todas_conversas()
+        aplicar_mapa_lid({"201812074319879@lid": "5513997851403@s.whatsapp.net"})
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+
     def test_apagar_mensagem_pendente_local(self):
         from produtos.atendimento_whatsapp_util import pedir_apagar_mensagem
 
@@ -407,6 +428,7 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         from django.utils import timezone
 
         ts = int((timezone.now() - timedelta(days=1)).timestamp())
+        processar_entrada(jid="5513999000111@s.whatsapp.net", texto="Oi", wa_id="hist-0")
         m, err = processar_entrada(
             jid="5513999000111@s.whatsapp.net",
             texto="Oi antigo",
@@ -420,6 +442,22 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         conv = WhatsAppConversaAgro.objects.get()
         self.assertEqual(conv.nao_lidas, 0)
 
+    def test_msg_recente_cria_chat_depois_limpar(self):
+        from produtos.atendimento_whatsapp_util import excluir_todas_conversas
+
+        processar_entrada(jid="5513999000777@s.whatsapp.net", texto="Oi", wa_id="nova-0")
+        excluir_todas_conversas()
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+        m, err = processar_entrada(
+            jid="5513999000777@s.whatsapp.net",
+            texto="Oi de novo",
+            wa_id="nova-1",
+            historico=False,
+        )
+        self.assertEqual(err, "")
+        self.assertIsNotNone(m)
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 1)
+
     def test_msg_antiga_como_ao_vivo_nao_dispara_bot(self):
         """Reconnect do Zap não pode mandar boas-vindas sozinho."""
         from datetime import timedelta
@@ -427,6 +465,7 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         from django.utils import timezone
 
         ts = int((timezone.now() - timedelta(minutes=30)).timestamp())
+        processar_entrada(jid="5513999000888@s.whatsapp.net", texto="Oi", wa_id="replay-0")
         m, err = processar_entrada(
             jid="5513999000888@s.whatsapp.net",
             texto="Oi velho replay",
@@ -542,6 +581,25 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         m, err2 = enviar_loja(conversa_id=conv.pk, texto="Oi", autor="Loja")
         self.assertEqual(err2, "")
         self.assertIsNotNone(m)
+
+    def test_abrir_busca_nao_cria_gemeo_lid(self):
+        from produtos.atendimento_whatsapp_util import abrir_conversa_busca, buscar_contatos_envio
+
+        lid = "201812074319879@lid"
+        processar_entrada(
+            jid=lid,
+            texto="Oi do lid",
+            nome="",
+            wa_id="lid-abrir-1",
+            telefone="5513997851403",
+            jid_lid=lid,
+        )
+        conv, err = abrir_conversa_busca(telefone="13997851403", nome="Renan")
+        self.assertEqual(err, "")
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 1)
+        self.assertEqual(conv.pk, WhatsAppConversaAgro.objects.get().pk)
+        rows = buscar_contatos_envio("13997851403")
+        self.assertTrue(any(int(r.get("conversa_id") or 0) == conv.pk for r in rows))
 
     def test_transferir_centro_vila(self):
         from produtos.atendimento_whatsapp_util import transferir_conversa

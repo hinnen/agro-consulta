@@ -431,7 +431,8 @@
 
   function carregarLista() {
     if ($('wa-busca') && ($('wa-busca').value || '').trim()) return Promise.resolve();
-    return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(loja)).then(
+    var qLoja = separarLojas ? loja : 'todas';
+    return fetchJson('/api/atendimento-whatsapp/conversas/?loja=' + encodeURIComponent(qLoja)).then(
       function (j) {
         if (!j || !j.ok) return;
         pintarLista(j.conversas);
@@ -697,6 +698,17 @@
       rows.forEach(function (m) {
         if (m.direcao === 'in' && m.id > lastSeenIn) lastSeenIn = m.id;
       });
+    });
+    fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (j) {
+      var f = j && j.ficha;
+      if (!f) return;
+      if (f.nome) {
+        convNome = nomeExibicao(f);
+        if (nomeEl) nomeEl.textContent = convNome;
+        pintarTopoAvatar(convNome, convFoto || f.foto_url || '');
+      }
+      if (f.telefone) convTel = f.telefone;
+      if (f.loja) convLoja = f.loja;
     });
     fetch('/api/atendimento-whatsapp/marcar-lida/', {
       method: 'POST',
@@ -1334,6 +1346,37 @@
         telaCel(false);
         carregarLista();
       });
+    });
+  }
+  var btnLimpar = $('wa-limpar-lista');
+  if (btnLimpar) {
+    btnLimpar.addEventListener('click', function () {
+      if (
+        !window.confirm(
+          'Apagar TODAS as conversas da lista neste sistema?\nSó some no SisVale. No celular o Zap fica igual.'
+        )
+      ) {
+        return;
+      }
+      btnLimpar.disabled = true;
+      fetchJson('/api/atendimento-whatsapp/excluir-todas/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: '{}',
+      })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            window.alert((j && j.erro) || 'Não limpou.');
+            return;
+          }
+          limparChatAberto();
+          telaCel(false);
+          carregarLista();
+          carregarEstado();
+        })
+        .finally(function () {
+          btnLimpar.disabled = false;
+        });
     });
   }
 
