@@ -1050,6 +1050,37 @@ async function executarPedido(p) {
       await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
       return;
     }
+    if (p.tipo === "apagar") {
+      const waId = String(p.wa_id || "").trim();
+      if (!waId) throw new Error("Sem ID da mensagem");
+      const jidPed = String(p.jid || "");
+      const jidPhone = String(p.jid_phone || "");
+      const jidLid = String(p.jid_lid || "");
+      const candidatos = [];
+      for (const j of [jidLid, jidPed, jidPhone, pnDeLid(jidPed), lidDePhone(jidPhone || jidPed)]) {
+        const s = String(j || "");
+        if (s && !candidatos.includes(s)) candidatos.push(s);
+      }
+      if (!candidatos.length) throw new Error("Sem destino para apagar");
+      let ok = false;
+      let lastErr = null;
+      for (const jid of candidatos) {
+        try {
+          console.log("apagar msg", waId, "->", jid);
+          await sock.sendMessage(jid, {
+            delete: { remoteJid: jid, fromMe: true, id: waId },
+          });
+          ok = true;
+          break;
+        } catch (e) {
+          lastErr = e;
+          console.error("apagar falhou", jid, e.message || e);
+        }
+      }
+      if (!ok && lastErr) throw lastErr;
+      await post("/api/atendimento-whatsapp/bridge/pedido-ok/", { pedido_id: pid });
+      return;
+    }
   } catch (e) {
     console.error("pedido:", e.message || e);
     await post("/api/atendimento-whatsapp/bridge/pedido-ok/", {

@@ -471,18 +471,31 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         criado_l = timezone.localtime(criado) if criado else None
     except Exception:
         criado_l = criado
+    apagada = bool(getattr(m, "apagada", False))
+    pode = (
+        not apagada
+        and m.direcao in (WhatsAppMensagemAgro.DIRECAO_OUT, WhatsAppMensagemAgro.DIRECAO_BOT)
+        and (bool((m.wa_id or "").strip()) or bool(m.pendente_envio))
+    )
+    texto = "Mensagem apagada" if apagada else (m.texto or "")
+    tipo = "" if apagada else (m.tipo_midia or "")
+    midia = ""
+    if not apagada and m.arquivo:
+        midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
     return {
         "id": int(m.pk),
         "conversa_id": int(m.conversa_id),
         "direcao": m.direcao,
-        "texto": m.texto or "",
+        "texto": texto,
         "autor": m.autor_nome or "",
-        "pendente": bool(m.pendente_envio),
+        "pendente": bool(m.pendente_envio) and not apagada,
         "hora": criado_l.strftime("%H:%M") if criado_l else "",
         "data": criado_l.strftime("%d/%m") if criado_l else "",
         "criado_em": criado.isoformat() if criado else "",
-        "tipo_midia": m.tipo_midia or "",
-        "midia_url": f"/api/atendimento-whatsapp/midia/{int(m.pk)}/" if m.arquivo else "",
+        "tipo_midia": tipo,
+        "midia_url": midia,
+        "apagada": apagada,
+        "pode_apagar": pode,
     }
 
 
@@ -1477,9 +1490,13 @@ def gravar_agenda_zap(itens: list, *, pedido_id: int = 0) -> int:
 
 def listar_pedidos_pendentes(limit: int = 3) -> list[dict]:
     lim = max(1, min(int(limit or 3), 8))
-    qs = WhatsAppPontePedidoAgro.objects.filter(
-        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE
-    ).order_by("id")[:lim]
+    qs = list(
+        WhatsAppPontePedidoAgro.objects.filter(
+            status=WhatsAppPontePedidoAgro.STATUS_PENDENTE
+        ).order_by("id")[:20]
+    )
+    qs.sort(key=lambda p: (0 if p.tipo == WhatsAppPontePedidoAgro.TIPO_APAGAR else 1, p.pk))
+    qs = qs[:lim]
     out = []
     for p in qs:
         payload = p.payload if isinstance(p.payload, dict) else {}
@@ -1501,6 +1518,91 @@ def marcar_pedido(pedido_id: int, *, ok: bool, erro: str = "") -> None:
     p.status = WhatsAppPontePedidoAgro.STATUS_OK if ok else WhatsAppPontePedidoAgro.STATUS_ERRO
     p.erro = (erro or "")[:200]
     p.save(update_fields=["status", "erro"])
+    if ok and p.tipo == WhatsAppPontePedidoAgro.TIPO_APAGAR:
+        payload = p.payload if isinstance(p.payload, dict) else {}
+        try:
+            mid = int(payload.get("mensagem_id") or 0)
+        except (TypeError, ValueError):
+            mid = 0
+        if mid:
+            _marcar_mensagem_apagada(mid)
+
+
+def _marcar_mensagem_apagada(mensagem_id: int) -> None:
+    try:
+        m = WhatsAppMensagemAgro.objects.get(pk=int(mensagem_id))
+    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError):
+        return
+    if m.apagada:
+        return
+    campos = ["apagada", "pendente_envio", "texto", "tipo_midia"]
+    m.apagada = True
+    m.pendente_envio = False
+    m.texto = "Mensagem apagada"
+    m.tipo_midia = ""
+    if m.arquivo:
+        try:
+            m.arquivo.delete(save=False)
+        except Exception:
+            pass
+        m.arquivo = None
+        campos.append("arquivo")
+    m.save(update_fields=campos)
+
+
+def pedir_apagar_mensagem(mensagem_id: int) -> tuple[bool, str]:
+    """Apaga no Zap (pra todos) mensagem enviada pela loja/bot; some também no Agro."""
+    import time
+
+    try:
+        m = WhatsAppMensagemAgro.objects.select_related("conversa").get(pk=int(mensagem_id))
+    except (WhatsAppMensagemAgro.DoesNotExist, TypeError, ValueError):
+        return False, "Mensagem não encontrada."
+    if m.apagada:
+        return True, ""
+    if m.direcao not in (WhatsAppMensagemAgro.DIRECAO_OUT, WhatsAppMensagemAgro.DIRECAO_BOT):
+        return False, "Só dá para apagar mensagem enviada pela loja."
+    if m.pendente_envio and not (m.wa_id or "").strip():
+        _marcar_mensagem_apagada(m.pk)
+        return True, ""
+    wa = (m.wa_id or "").strip()
+    if not wa:
+        return False, "Essa mensagem ainda não tem ID do Zap. Espere uns segundos e tente de novo."
+    conv = m.conversa
+    envio = _jid_envio(conv)
+    recente = WhatsAppPontePedidoAgro.objects.filter(
+        tipo=WhatsAppPontePedidoAgro.TIPO_APAGAR,
+        status=WhatsAppPontePedidoAgro.STATUS_PENDENTE,
+        criado_em__gte=timezone.now() - timedelta(seconds=20),
+    ).first()
+    if recente:
+        prev = recente.payload if isinstance(recente.payload, dict) else {}
+        if int(prev.get("mensagem_id") or 0) == int(m.pk):
+            p = recente
+        else:
+            p = None
+    else:
+        p = None
+    if p is None:
+        p = WhatsAppPontePedidoAgro.objects.create(
+            tipo=WhatsAppPontePedidoAgro.TIPO_APAGAR,
+            jid=envio,
+            payload={
+                "mensagem_id": int(m.pk),
+                "wa_id": wa[:80],
+                "from_me": True,
+                "jid_phone": (conv.jid if (conv.jid or "").endswith("@s.whatsapp.net") else "")[:80],
+                "jid_lid": (_jid_lid(getattr(conv, "jid_lid", "") or "") or "")[:80],
+            },
+        )
+    for _ in range(28):
+        time.sleep(0.45)
+        p.refresh_from_db()
+        if p.status == WhatsAppPontePedidoAgro.STATUS_OK:
+            return True, ""
+        if p.status == WhatsAppPontePedidoAgro.STATUS_ERRO:
+            return False, (p.erro or "WhatsApp não apagou (prazo ou ponte).")[:180]
+    return False, "Demorou — confira se a ponte (.bat) está ligada e tente de novo."
 
 
 def pedir_agenda_zap(termo: str = "") -> tuple[WhatsAppPontePedidoAgro | None, str]:
@@ -1736,7 +1838,7 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     lim = max(1, min(int(limit or 20), 50))
     qs = (
         WhatsAppMensagemAgro.objects.select_related("conversa")
-        .filter(pendente_envio=True)
+        .filter(pendente_envio=True, apagada=False)
         .filter(Q(liberar_envio_em__isnull=True) | Q(liberar_envio_em__lte=timezone.now()))
         .order_by("id")[:lim]
     )

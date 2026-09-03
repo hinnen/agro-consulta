@@ -3538,6 +3538,7 @@ class WhatsAppMensagemAgro(models.Model):
     arquivo = models.FileField(upload_to="whatsapp/%Y/%m/", blank=True)
     autor_nome = models.CharField(max_length=120, blank=True, default="")
     liberar_envio_em = models.DateTimeField(null=True, blank=True, db_index=True)
+    apagada = models.BooleanField(default=False, db_index=True)
     criado_em = models.DateTimeField(default=timezone.now, db_index=True)
 
     class Meta:
@@ -3608,11 +3609,13 @@ class WhatsAppPontePedidoAgro(models.Model):
     TIPO_HISTORICO = "historico"
     TIPO_PAIRING = "pairing"
     TIPO_LOGOUT = "logout"
+    TIPO_APAGAR = "apagar"
     TIPO_CHOICES = (
         (TIPO_CONTATOS, "Agenda"),
         (TIPO_HISTORICO, "Histórico"),
         (TIPO_PAIRING, "Código de ligação"),
         (TIPO_LOGOUT, "Trocar WhatsApp"),
+        (TIPO_APAGAR, "Apagar mensagem"),
     )
     STATUS_PENDENTE = "pendente"
     STATUS_OK = "ok"

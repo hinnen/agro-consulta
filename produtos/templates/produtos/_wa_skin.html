@@ -299,12 +299,28 @@
   }
   .wa-skin #wa-msgs { background: #ece5dd; }
   .wa-skin .wa-b {
+    position: relative;
     max-width: 78%; margin: .4rem .15rem; padding: .5rem .7rem; font-size: .92rem; line-height: 1.35;
     white-space: pre-wrap; box-shadow: 0 1px 1px rgb(15 23 42 / .06);
   }
   .wa-skin .wa-b.in { background: #fff; border-radius: .25rem 1rem 1rem 1rem; }
   .wa-skin .wa-b.out { background: #d9fdd3; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; }
   .wa-skin .wa-b.bot { background: #fff7ed; margin-left: auto; border-radius: 1rem .25rem 1rem 1rem; color: #9a3412; }
+  .wa-skin .wa-b.is-apagada { opacity: .72; font-style: italic; color: #64748b; }
+  .wa-skin .wa-apagada-txt { font-style: italic; font-weight: 600; color: #64748b; }
+  .wa-skin .wa-msg-del {
+    position: absolute; top: .2rem; right: .25rem;
+    width: 1.45rem; height: 1.45rem; border: 0; border-radius: 999px;
+    background: rgb(15 23 42 / .08); color: #b91c1c; font-size: .95rem; font-weight: 900;
+    line-height: 1; cursor: pointer; opacity: 0; transition: opacity .12s;
+  }
+  .wa-skin .wa-b.out:hover .wa-msg-del,
+  .wa-skin .wa-b.bot:hover .wa-msg-del,
+  .wa-skin .wa-msg-del:focus { opacity: 1; }
+  .wa-skin .wa-msg-del:hover { background: #fee2e2; }
+  @media (hover: none) {
+    .wa-skin .wa-msg-del { opacity: .85; }
+  }
   .wa-skin .wa-pic { display: block; max-width: 100%; max-height: 14rem; border-radius: .6rem; margin: .35rem 0; }
   .wa-skin .wa-aud { display: block; width: 100%; max-width: 16rem; margin: .35rem 0; }
   .wa-skin .wa-cfg {

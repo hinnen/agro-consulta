@@ -336,31 +336,42 @@
     var html = (rows || [])
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
+        if (m.apagada) cls += ' is-apagada';
         var who =
           m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
         var corpoTxt = m.texto || '';
-        if (corpoTxt === '[imagem]' || corpoTxt === '[áudio]') corpoTxt = '';
+        if (!m.apagada && (corpoTxt === '[imagem]' || corpoTxt === '[áudio]')) corpoTxt = '';
         var corpo = escapeHtml(corpoTxt);
         var midia = '';
-        if (m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
+        if (!m.apagada && m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
-        } else if (m.midia_url && m.tipo_midia === 'audio') {
+        } else if (!m.apagada && m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
-        } else if (m.tipo_midia === 'image' || m.tipo_midia === 'sticker') {
+        } else if (!m.apagada && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
           midia = '<span class="text-xs text-slate-500">Foto (ainda baixando)</span>';
-        } else if (m.tipo_midia === 'audio') {
+        } else if (!m.apagada && m.tipo_midia === 'audio') {
           midia = '<span class="text-xs text-slate-500">Áudio (ainda baixando)</span>';
+        }
+        var delBtn = '';
+        if (m.pode_apagar) {
+          delBtn =
+            '<button type="button" class="wa-msg-del" data-apagar-msg="' +
+            escapeHtml(String(m.id)) +
+            '" title="Apagar no Zap do cliente">×</button>';
         }
         return (
           '<div class="wa-b ' +
           cls +
+          '" data-msg-id="' +
+          escapeHtml(String(m.id)) +
           '"><div class="text-[10px] font-black uppercase opacity-70">' +
           escapeHtml(who) +
           ' · ' +
           escapeHtml(m.hora || '') +
           '</div>' +
           midia +
-          corpo +
+          (m.apagada ? '<em class="wa-apagada-txt">' + corpo + '</em>' : corpo) +
+          delBtn +
           '</div>'
         );
       })
@@ -1322,6 +1333,43 @@
         limparChatAberto();
         telaCel(false);
         carregarLista();
+      });
+    });
+  }
+
+  var msgsBox = $('wa-msgs');
+  if (msgsBox) {
+    msgsBox.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('[data-apagar-msg]') : null;
+      if (!btn) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var mid = Number(btn.getAttribute('data-apagar-msg') || 0);
+      if (!mid) return;
+      if (
+        !window.confirm(
+          'Apagar esta mensagem no WhatsApp do cliente também? (Como “Apagar para todos”.)'
+        )
+      ) {
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '…';
+      fetchJson('/api/atendimento-whatsapp/apagar-mensagem/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ mensagem_id: mid }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não apagou.');
+          btn.disabled = false;
+          btn.textContent = '×';
+          return;
+        }
+        if (!convId) return;
+        fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (mj) {
+          pintarMsgs((mj && mj.mensagens) || [], false);
+        });
       });
     });
   }

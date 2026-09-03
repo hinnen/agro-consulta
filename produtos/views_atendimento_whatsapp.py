@@ -33,6 +33,7 @@ from produtos.atendimento_whatsapp_util import (
     concluir_atendimento,
     marcar_pedido,
     pedir_agenda_zap,
+    pedir_apagar_mensagem,
     pedir_codigo_pareamento,
     pedir_historico_conversa,
     pedir_trocar_whatsapp,
@@ -414,6 +415,20 @@ def api_atendimento_whatsapp_excluir(request):
     except (TypeError, ValueError):
         cid = 0
     ok, err = excluir_conversa(cid)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err or "Não apagou."}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_apagar_mensagem(request):
+    data = _json_body(request) or {}
+    try:
+        mid = int(data.get("mensagem_id") or 0)
+    except (TypeError, ValueError):
+        mid = 0
+    ok, err = pedir_apagar_mensagem(mid)
     if not ok:
         return JsonResponse({"ok": False, "erro": err or "Não apagou."}, status=400)
     return JsonResponse({"ok": True})

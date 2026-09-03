@@ -331,6 +331,35 @@ class ConsultaFiadoWhatsAppTests(TestCase):
         self.assertEqual(err, "")
         self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
 
+    def test_apagar_mensagem_pendente_local(self):
+        from produtos.atendimento_whatsapp_util import pedir_apagar_mensagem
+
+        processar_entrada(jid="5513999000333@s.whatsapp.net", texto="Oi")
+        conv = WhatsAppConversaAgro.objects.get()
+        m = WhatsAppMensagemAgro.objects.create(
+            conversa=conv,
+            direcao=WhatsAppMensagemAgro.DIRECAO_OUT,
+            texto="erro sem querer",
+            pendente_envio=True,
+            autor_nome="Loja",
+        )
+        ok, err = pedir_apagar_mensagem(m.pk)
+        self.assertTrue(ok)
+        self.assertEqual(err, "")
+        m.refresh_from_db()
+        self.assertTrue(m.apagada)
+        self.assertFalse(m.pendente_envio)
+        self.assertEqual(m.texto, "Mensagem apagada")
+
+    def test_apagar_mensagem_cliente_bloqueado(self):
+        from produtos.atendimento_whatsapp_util import pedir_apagar_mensagem
+
+        processar_entrada(jid="5513999000444@s.whatsapp.net", texto="Oi cliente")
+        m = WhatsAppMensagemAgro.objects.filter(direcao="in").first()
+        ok, err = pedir_apagar_mensagem(m.pk)
+        self.assertFalse(ok)
+        self.assertIn("loja", err.lower())
+
 
 class UrlAtendimentoTests(TestCase):
     def setUp(self):
