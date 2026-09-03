@@ -1270,6 +1270,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
+
+| | |
+| --- | --- |
+| **Loja** | **Live v21.82** · commit `527be62` (cherry em `producao`, **nao** merge full `teste`) |
+| **Pacote** | WhatsApp lojas pelo **menu/gestao** + celular PWA · migrations `0108`–`0122` (grafo: `0107`→`0110`→`0108`→`0109`→`0111`…→`0122`) |
+| **PDV** | Icone WhatsApp continua **Em breve** (nao abre chat) |
+| **Rollback** | Tag `rollback/pre-wa-atend-0309-v21.08` · branch `producao-backup-pre-wa-atend-0309-v21.08` · doc `docs/ROLLBACK-WA-ATEND-0309.md` |
+| **Prep** | Branch `deploy/prep-wa-atend-0309` |
+
+**Ponte:** PC com `whatsapp_atendimento/iniciar.bat` + `.env` `AGRO_WA_BRIDGE_TOKEN`.
+
+---
+
 ### 📦 PACOTE — F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.87** · 03/09)
 
 | Campo | Valor |
