@@ -3560,6 +3560,13 @@ class WhatsAppMensagemAgro(models.Model):
         indexes = [
             models.Index(fields=["conversa", "id"], name="wa_msg_conv_id_idx"),
         ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wa_id"],
+                condition=~models.Q(wa_id=""),
+                name="wa_msg_wa_id_uniq",
+            ),
+        ]
 
     def __str__(self):
         return f"#{self.pk} {self.direcao} {(self.texto or '')[:40]}"

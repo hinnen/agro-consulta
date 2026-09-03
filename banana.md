@@ -1271,6 +1271,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### WIP — WhatsApp msgs duplicadas (`WA-DEDUP-MSG` · 03/09/2026)
+
+| | |
+| --- | --- |
+| **Problema** | 1 msg no Zap virava várias no SisVale (notify×append / corrida / 2 pontes) |
+| **Fix** | Unique `wa_id` (migrate **0124**) · soft eco 4s · ponte só `notify` ao vivo · claim saída 90s · UI não re-appenda |
+| **Status** | 🟡 `teste` — **precisa senha** p/ loja + **migrate** na loja + **reiniciar** `iniciar.bat` (só **uma** janela) |
+| **Smoke** | 1 «aa» do cliente = 1 bolha · 1 envio da loja = 1 no celular |
+
 ### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
 
 | | |

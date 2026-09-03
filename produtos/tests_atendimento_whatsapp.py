@@ -614,3 +614,32 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertTrue(
             WhatsAppMensagemAgro.objects.filter(conversa=dest, direcao="bot", texto__icontains="Vila").exists()
         )
+
+    def test_entrada_mesmo_wa_id_nao_duplica(self):
+        m1, e1 = processar_entrada(
+            jid="5513999000555@s.whatsapp.net", texto="AA", wa_id="dedup-wa-1"
+        )
+        m2, e2 = processar_entrada(
+            jid="5513999000555@s.whatsapp.net", texto="AA", wa_id="dedup-wa-1"
+        )
+        self.assertEqual(e1, "")
+        self.assertIsNotNone(m1)
+        self.assertEqual(e2, "duplicada")
+        self.assertIsNone(m2)
+        self.assertEqual(
+            WhatsAppMensagemAgro.objects.filter(wa_id="dedup-wa-1").count(), 1
+        )
+
+    def test_entrada_mesmo_texto_janela_curta_nao_duplica(self):
+        m1, e1 = processar_entrada(
+            jid="5513999000556@s.whatsapp.net", texto="AE", wa_id="dedup-txt-1"
+        )
+        m2, e2 = processar_entrada(
+            jid="5513999000556@s.whatsapp.net", texto="AE", wa_id="dedup-txt-2"
+        )
+        self.assertEqual(e1, "")
+        self.assertIsNotNone(m1)
+        self.assertEqual(e2, "duplicada")
+        self.assertEqual(
+            WhatsAppMensagemAgro.objects.filter(conversa=m1.conversa, texto="AE").count(), 1
+        )

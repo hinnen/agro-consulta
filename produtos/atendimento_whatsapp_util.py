@@ -12,7 +12,7 @@ from pathlib import Path
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import HttpRequest
 from django.utils import timezone
@@ -986,6 +986,22 @@ def processar_entrada(
         if tipo_n not in ("image", "audio", "sticker") and eco.filter(texto=t).exists():
             return None, "duplicada"
 
+    # Corrida notify×append / duas pontes: mesma msg com wa_id diferente é raro;
+    # mesma conversa+texto+direção em ~4s = eco.
+    if not historico and t:
+        corte_eco = timezone.now() - timedelta(seconds=4)
+        eco_vivo = WhatsAppMensagemAgro.objects.filter(
+            conversa=conv,
+            direcao=WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN,
+            texto=t,
+            criado_em__gte=corte_eco,
+            apagada=False,
+        )
+        if tipo_n:
+            eco_vivo = eco_vivo.filter(tipo_midia=tipo_n)
+        if eco_vivo.exists():
+            return None, "duplicada"
+
     direcao = WhatsAppMensagemAgro.DIRECAO_OUT if de_mim else WhatsAppMensagemAgro.DIRECAO_IN
     msg = WhatsAppMensagemAgro(
         conversa=conv,
@@ -998,7 +1014,10 @@ def processar_entrada(
         tipo_midia=tipo_n,
     )
     anexar_midia(msg, tipo_midia=tipo_n, midia_b64=midia_b64, mime=mime, nome_arquivo=nome_arquivo)
-    msg.save()
+    try:
+        msg.save()
+    except IntegrityError:
+        return None, "duplicada"
     conv.ultima_preview = _preview(t)
     if not historico:
         conv.ultima_em = timezone.now()
@@ -1886,15 +1905,23 @@ def _jid_envio(conv: WhatsAppConversaAgro) -> str:
 
 
 def listar_saida_pendente(limit: int = 20) -> list[dict]:
+    """Reivindica msgs pendentes (lock via liberar_envio_em) — evita 2 pontes mandarem a mesma."""
     lim = max(1, min(int(limit or 20), 50))
-    qs = (
-        WhatsAppMensagemAgro.objects.select_related("conversa")
-        .filter(pendente_envio=True, apagada=False)
-        .filter(Q(liberar_envio_em__isnull=True) | Q(liberar_envio_em__lte=timezone.now()))
-        .order_by("id")[:lim]
-    )
+    agora = timezone.now()
+    lock_ate = agora + timedelta(seconds=90)
+    with transaction.atomic():
+        qs = (
+            WhatsAppMensagemAgro.objects.select_for_update(skip_locked=True)
+            .select_related("conversa")
+            .filter(pendente_envio=True, apagada=False)
+            .filter(Q(liberar_envio_em__isnull=True) | Q(liberar_envio_em__lte=agora))
+            .order_by("id")[:lim]
+        )
+        rows = list(qs)
+        if rows:
+            WhatsAppMensagemAgro.objects.filter(pk__in=[m.pk for m in rows]).update(liberar_envio_em=lock_ate)
     out = []
-    for m in qs:
+    for m in rows:
         tipo = (m.tipo_midia or "").strip().lower()
         item = {
             "id": int(m.pk),
@@ -1937,14 +1964,16 @@ def marcar_enviadas(ids: list[int], *, erro: str = "", wa_id: str = "") -> int:
         return 0
     agora = timezone.now()
     if erro:
+        # Libera de novo após falha (outra ponte / retry em breve).
         return WhatsAppMensagemAgro.objects.filter(id__in=ids, pendente_envio=True).update(
-            pendente_envio=False,
             erro_envio=str(erro)[:200],
+            liberar_envio_em=agora + timedelta(seconds=5),
         )
     campos = {
         "pendente_envio": False,
         "enviado_em": agora,
         "erro_envio": "",
+        "liberar_envio_em": None,
     }
     wid = (wa_id or "").strip()[:80]
     if wid and len(ids) == 1:
