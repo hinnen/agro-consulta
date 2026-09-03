@@ -300,9 +300,14 @@
     separarLojas = on !== false;
     document.querySelectorAll('.wa-tabs').forEach(function (el) {
       el.classList.toggle('hidden', !separarLojas);
+      el.classList.toggle('is-off', !separarLojas);
+      el.setAttribute('aria-hidden', separarLojas ? 'false' : 'true');
     });
     if (!separarLojas) {
       loja = 'todas';
+      try {
+        localStorage.removeItem(TAB_KEY);
+      } catch (e) {}
       var mv = $('wa-move');
       if (mv && !convId) mv.classList.add('hidden');
     } else if (loja === 'todas') {
