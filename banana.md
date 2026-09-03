@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | Bug loja **#15**: vale crédito creditado não atualizava o saldo à direita do PDV (cache do fiado/lista). Agora aplica o saldo na hora e busca de novo no servidor. |
 | **Migrate** | **NÃO** |
-| **Status** | ⏳ no `teste` · loja **não** |
+| **Status** | ⏳ `teste` **v22.02** · loja **não** |
 | **Você** | Ctrl+F5 no PDV · cliente na tela · adicionar vale (manual) · o número **Vale crédito** tem que mudar na hora |
 
 ### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
@@ -1291,6 +1291,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ponte** | **Uma** janela `iniciar.bat` — **reiniciar** após Render verde |
 | **Smoke** | badge **v21.86** · 1 «aa» = 1 bolha |
 | **teste** | mesmo fix em `c9bd6fd` · VERSION teste **22.00** |
+
+### WIP — foto perfil loja (`WA-FOTO-RETRY` · 03/09/2026)
+
+| | |
+| --- | --- |
+| **Problema** | Local OK; loja sem foto — 1ª falha (LID) travava **6 h** |
+| **Fix** | Tenta número `@s.whatsapp.net` antes do LID · retry **15 min** se falhar |
+| **Onde** | só `whatsapp_atendimento/index.js` (ponte) — **sem** migrate |
+| **Status** | 🟡 `teste` — reiniciar `iniciar.bat` já aplica na loja se a ponte usar o código do PC; senão cherry + senha |
 
 ### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
 

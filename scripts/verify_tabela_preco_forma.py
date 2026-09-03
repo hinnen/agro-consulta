@@ -30,6 +30,7 @@ def main() -> int:
 
     django.setup()
 
+    from produtos.caixa_util import normalizar_forma_pagamento_caixa
     from produtos.tabela_preco_forma_util import (
         arredondar_dezena_centavos,
         preco_com_percentual,
@@ -72,6 +73,14 @@ def main() -> int:
     check(err2 is None, "formas distintas OK")
 
     print("=== PDV preço ===")
+    check(
+        normalizar_forma_pagamento_caixa("cartao") == "Cartão de crédito",
+        "alias cartao → Cartão de crédito",
+    )
+    check(
+        normalizar_forma_pagamento_caixa("dinheiro") == "Dinheiro",
+        "alias dinheiro → Dinheiro",
+    )
     tabelas = [
         {
             "slot": 1,
@@ -122,8 +131,14 @@ def main() -> int:
     js = (ROOT / "produtos/static/produtos/js/precos_forma_pagamento.js").read_text(
         encoding="utf-8"
     )
+    st = (ROOT / "produtos/static/produtos/js/pdv_state.js").read_text(encoding="utf-8")
+    wiz = (ROOT / "produtos/static/produtos/js/pdv_wizard.js").read_text(encoding="utf-8")
     check("precosTabelasVisiveis" in js, "JS precosTabelasVisiveis")
     check("carregarTabelasGlobais" in js, "JS carregarTabelasGlobais")
+    check("function formaFromMeioEntrega" in js, "JS formaFromMeioEntrega")
+    check("formaFromMeioEntrega: formaFromMeioEntrega" in js, "JS exporta formaFromMeioEntrega")
+    check("syncFormaPorMeioEntrega" in st, "state aplica tabela no meio da entrega")
+    check("formaFromMeioEntrega('cartao')" in wiz, "print entrega usa forma canônica do cartão")
     check(
         (ROOT / "produtos/migrations/0104_tabela_preco_forma.py").is_file(),
         "migration 0104",

@@ -688,47 +688,91 @@ async function enviarEntrada(m, extra) {
   }
 }
 
-const fotoTentada = new Map();
-const FOTO_TTL_MS = 6 * 60 * 60 * 1000;
+const fotoProximaTentativa = new Map();
+const FOTO_TTL_OK_MS = 6 * 60 * 60 * 1000;
+const FOTO_TTL_FAIL_MS = 15 * 60 * 1000;
 let fotoFila = Promise.resolve();
 
 function agendarFotoPerfil(jid, extra) {
   const j = String(jid || "");
-  if (!ehChatPrivado(j)) return;
-  const last = fotoTentada.get(j) || 0;
-  if (Date.now() - last < FOTO_TTL_MS) return;
-  fotoTentada.set(j, Date.now());
+  const lid = String((extra && extra.jid_lid) || "");
+  if (!ehChatPrivado(j) && !lid.endsWith("@lid")) return;
+  const chave = j || lid;
+  const prox = fotoProximaTentativa.get(chave) || 0;
+  if (Date.now() < prox) return;
+  // trava curta enquanto baixa (anti-spam do poll)
+  fotoProximaTentativa.set(chave, Date.now() + 60 * 1000);
   fotoFila = fotoFila
-    .then(() => enviarFotoPerfil(j, extra || {}))
-    .catch((e) => console.error("foto perfil:", e.message || e));
+    .then(async () => {
+      const ok = await enviarFotoPerfil(j, extra || {});
+      fotoProximaTentativa.set(chave, Date.now() + (ok ? FOTO_TTL_OK_MS : FOTO_TTL_FAIL_MS));
+    })
+    .catch((e) => {
+      console.error("foto perfil:", e.message || e);
+      fotoProximaTentativa.set(chave, Date.now() + FOTO_TTL_FAIL_MS);
+    });
+}
+
+function candidatosFotoPerfil(jid, extra) {
+  const out = [];
+  const seen = new Set();
+  const push = (v) => {
+    const s = String(v || "").trim();
+    if (!s || seen.has(s)) return;
+    if (!ehChatPrivado(s) && !s.endsWith("@lid")) return;
+    seen.add(s);
+    out.push(s);
+  };
+  const tel = (extra && extra.telefone) || telefoneDeJid(jid) || "";
+  const phone = jidPhoneDeValor(tel) || jidPhoneDeValor(jid);
+  if (phone) push(phone);
+  push(jid);
+  const lidExtra = (extra && extra.jid_lid) || (String(jid || "").endsWith("@lid") ? jid : "");
+  if (lidExtra) {
+    push(lidExtra);
+    const pn = pnDeLid(lidExtra);
+    if (pn) push(pn);
+  }
+  return out;
 }
 
 async function enviarFotoPerfil(jid, extra) {
-  if (!sock || typeof sock.profilePictureUrl !== "function") return;
+  if (!sock || typeof sock.profilePictureUrl !== "function") return false;
   let url = "";
-  try {
-    url = await sock.profilePictureUrl(jid, "image");
-  } catch {
-    return;
+  let jidUsado = "";
+  for (const cand of candidatosFotoPerfil(jid, extra)) {
+    try {
+      url = await sock.profilePictureUrl(cand, "image");
+      if (url) {
+        jidUsado = cand;
+        break;
+      }
+    } catch {
+      /* LID costuma falhar; número @s.whatsapp.net costuma ir */
+    }
   }
-  if (!url) return;
+  if (!url) return false;
   let buf = null;
   try {
     const r = await fetch(url);
-    if (!r.ok) return;
+    if (!r.ok) return false;
     buf = Buffer.from(await r.arrayBuffer());
   } catch {
-    return;
+    return false;
   }
-  if (!buf || !buf.length || buf.length > 2500000) return;
+  if (!buf || !buf.length || buf.length > 2500000) return false;
   const mime = String((url.split("?")[0] || "").endsWith(".png") ? "image/png" : "image/jpeg");
+  const tel = (extra && extra.telefone) || telefoneDeJid(jidUsado) || telefoneDeJid(jid) || "";
+  const lid = (extra && extra.jid_lid) || (String(jid || "").endsWith("@lid") ? jid : "");
   await post("/api/atendimento-whatsapp/bridge/foto/", {
-    jid,
-    telefone: (extra && extra.telefone) || telefoneDeJid(jid),
-    jid_lid: (extra && extra.jid_lid) || "",
+    jid: jidPhoneDeValor(jidUsado) || jidPhoneDeValor(jid) || jidUsado || jid,
+    telefone: tel,
+    jid_lid: lid,
     midia_b64: buf.toString("base64"),
     mime,
+    forcar: true,
   });
+  return true;
 }
 
 function semearFotosPerfil() {
