@@ -351,14 +351,30 @@
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
         if (m.pendente && !m.apagada) cls += ' is-enviando';
-        var who =
-          m.direcao === 'out' ? m.autor || 'Loja' : m.direcao === 'bot' ? 'Bot' : 'Cliente';
+        var metaHtml = '';
+        if (m.direcao === 'out') {
+          metaHtml =
+            '<div class="wa-meta">' +
+            escapeHtml(m.autor || 'Loja') +
+            (m.hora ? ' · ' + escapeHtml(m.hora) : '') +
+            '</div>';
+        } else if (m.direcao === 'bot') {
+          metaHtml =
+            '<div class="wa-meta">Bot' + (m.hora ? ' · ' + escapeHtml(m.hora) : '') + '</div>';
+        } else if (m.hora) {
+          metaHtml = '<div class="wa-meta is-hora-so">' + escapeHtml(m.hora) + '</div>';
+        }
         var corpoTxt = m.texto || '';
         if (!m.apagada && (corpoTxt === '[imagem]' || corpoTxt === '[áudio]')) corpoTxt = '';
         var corpo = escapeHtml(corpoTxt);
         var midia = '';
         if (!m.apagada && m.midia_url && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
-          midia = '<img class="wa-pic" alt="" src="' + escapeHtml(m.midia_url) + '" />';
+          midia =
+            '<img class="wa-pic" alt="" src="' +
+            escapeHtml(m.midia_url) +
+            '" data-wa-pic-full="' +
+            escapeHtml(m.midia_url) +
+            '" />';
         } else if (!m.apagada && m.midia_url && m.tipo_midia === 'audio') {
           midia = '<audio class="wa-aud" controls src="' + escapeHtml(m.midia_url) + '"></audio>';
         } else if (!m.apagada && (m.tipo_midia === 'image' || m.tipo_midia === 'sticker')) {
@@ -378,11 +394,8 @@
           cls +
           '" data-msg-id="' +
           escapeHtml(String(m.id)) +
-          '"><div class="text-[10px] font-black uppercase opacity-70">' +
-          escapeHtml(who) +
-          ' · ' +
-          escapeHtml(m.hora || '') +
-          '</div>' +
+          '">' +
+          metaHtml +
           midia +
           (m.apagada ? '<em class="wa-apagada-txt">' + corpo + '</em>' : corpo) +
           delBtn +
@@ -1616,6 +1629,51 @@
       if (ev.target === stView) fecharStatusViewer();
     });
   }
+
+  function garantirPicLite() {
+    var box = document.getElementById('wa-pic-lite');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'wa-pic-lite';
+    box.className = 'wa-pic-lite';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Foto em tela cheia');
+    box.innerHTML = '<img alt="" />';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) {
+      if (ev.target === box || (ev.target && ev.target.tagName === 'IMG')) {
+        box.classList.remove('is-on');
+        box.querySelector('img').removeAttribute('src');
+      }
+    });
+    return box;
+  }
+
+  function abrirPicLite(url) {
+    var src = String(url || '').trim();
+    if (!src) return;
+    var box = garantirPicLite();
+    var img = box.querySelector('img');
+    if (img) img.src = src;
+    box.classList.add('is-on');
+  }
+
+  document.addEventListener('click', function (ev) {
+    var pic = ev.target && ev.target.closest ? ev.target.closest('.wa-pic[data-wa-pic-full]') : null;
+    if (!pic) return;
+    ev.preventDefault();
+    abrirPicLite(pic.getAttribute('data-wa-pic-full') || pic.getAttribute('src') || '');
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    var box = document.getElementById('wa-pic-lite');
+    if (box && box.classList.contains('is-on')) {
+      box.classList.remove('is-on');
+      var img = box.querySelector('img');
+      if (img) img.removeAttribute('src');
+    }
+  });
 
   setTab();
   pintarEstadoFiltro();
