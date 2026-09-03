@@ -1270,6 +1270,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.87** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba **Histórico** do F8: some **Itens mais comprados**. Abre direto em **Últimas vendas**. Top produtos continua no **Resumo**. |
+| **Migrate** | **NÃO** |
+| **Status** | teste — Ctrl+F5 no PDV · F8 · aba Histórico |
+| **Você** | Conferir lista de vendas; +1 nos itens da venda |
+
 ### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
 
 | Campo | Valor |

@@ -204,41 +204,6 @@
         );
     }
 
-    function histCompraMeta(p, inline) {
-        if (!p) return '';
-        var parts = [];
-        if (p.qtd_total != null && p.qtd_total !== '') {
-            parts.push(
-                'Já comprou <span class="font-black text-slate-600">' +
-                    esc(String(p.qtd_total)) +
-                    ' un.</span>'
-            );
-        }
-        if (p.vezes != null && p.vezes !== '') {
-            parts.push('<span class="font-black text-slate-600">' + esc(String(p.vezes)) + '×</span> na loja');
-        }
-        if (!parts.length) return '';
-        var text = parts.join(' · ');
-        if (inline) {
-            return (
-                '<span class="shrink-0 text-[10px] font-bold text-slate-500 sm:text-[11px]">· ' + text + '</span>'
-            );
-        }
-        return (
-            '<p class="mt-0.5 text-[10px] font-bold leading-snug text-slate-500 sm:text-[11px]">' +
-            text +
-            '</p>'
-        );
-    }
-
-    function btnCartCol(codigo, large, disponivel) {
-        return (
-            '<div class="rel-add-gm-col flex shrink-0 items-center border-l border-slate-200 pl-2 sm:pl-3">' +
-            btnCart(codigo, large, disponivel) +
-            '</div>'
-        );
-    }
-
     function topProdutoValCol(valor) {
         return (
             '<div class="rel-top-prod-col rel-top-prod-col--stat">' +
@@ -578,39 +543,7 @@
 
     function renderHistorico(d) {
         var vendas = (d.historico_rapido && d.historico_rapido.vendas) || [];
-        var top = (d.historico_rapido && d.historico_rapido.top_produtos) || [];
         var html = '<div class="pdv-rel-historico space-y-6">';
-
-        html +=
-            '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Itens mais comprados</h3>';
-        if (!top.length) {
-            html += '<p class="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-base font-bold text-slate-500">Sem histórico PDV para este cliente.</p>';
-        } else {
-            html += '<div class="grid gap-3 lg:grid-cols-2">';
-            top.forEach(function (p, i) {
-                html +=
-                    '<article class="flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-white p-4 shadow-sm">' +
-                    '<div class="flex items-start gap-3">' +
-                    '<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white">' +
-                    (i + 1) +
-                    '</span>' +
-                    '<div class="min-w-0 flex-1">' +
-                    '<p class="text-base font-black leading-snug text-slate-900 sm:text-lg">' +
-                    esc(p.descricao) +
-                    '</p>' +
-                    '<p class="mt-1 text-sm font-bold text-slate-600">Cód. <span class="font-mono text-slate-800">' +
-                    esc(p.codigo || '—') +
-                    '</span></p></div></div>' +
-                    '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">' +
-                    '<div class="min-w-0 flex-1 text-sm font-bold text-slate-600">' +
-                    histCompraMeta(p) +
-                    '</div>' +
-                    btnCartCol(p.codigo, true, p.catalogo_disponivel !== false) +
-                    '</div></article>';
-            });
-            html += '</div>';
-        }
-        html += '</section>';
 
         html +=
             '<section><h3 class="mb-3 text-sm font-black uppercase tracking-wide text-slate-700">Últimas vendas</h3>';
