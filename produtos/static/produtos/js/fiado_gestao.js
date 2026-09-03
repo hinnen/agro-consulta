@@ -8,8 +8,10 @@
     busca: document.getElementById('fiado-busca'),
     btnAtualizar: document.getElementById('fiado-btn-atualizar'),
     tbody: document.getElementById('fiado-tbody-clientes'),
-    kpiTotal: document.getElementById('fiado-kpi-total'),
-    kpiClientes: document.getElementById('fiado-kpi-clientes'),
+    kpiVendidoMes: document.getElementById('fiado-kpi-vendido-mes'),
+    kpiVendidoAnt: document.getElementById('fiado-kpi-vendido-ant'),
+    kpiPagoMes: document.getElementById('fiado-kpi-pago-mes'),
+    kpiPagoAnt: document.getElementById('fiado-kpi-pago-ant'),
     modalCliente: document.getElementById('fiado-modal-cliente'),
     cliModalNome: document.getElementById('fiado-cli-modal-nome'),
     cliModalMeta: document.getElementById('fiado-cli-modal-meta'),
@@ -73,6 +75,17 @@
 
   function setModalBodyLock(on) {
     document.body.classList.toggle('fiado-modal-aberto', !!on);
+    try {
+      if (window.top && window.top !== window) {
+        window.top.postMessage(
+          {
+            type: 'agro-pdv-overlay-meta',
+            hideChrome: !!on,
+          },
+          window.location.origin
+        );
+      }
+    } catch (_) {}
   }
 
   function modalClienteAberto() {
@@ -89,6 +102,21 @@
   function fmtMoeda(v) {
     const n = Number(v) || 0;
     return 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function fmtMoedaHtml(v, extraCls) {
+    const n = Number(v) || 0;
+    const val = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (
+      '<span class="fiado-moeda' + (extraCls ? ' ' + extraCls : '') + '">' +
+      '<span class="fiado-moeda-sym">R$</span>' +
+      '<span class="fiado-moeda-val">' + val + '</span></span>'
+    );
+  }
+
+  function fmtLimiteCampo(v) {
+    const n = Number(v) || 0;
+    return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function esc(s) {
@@ -175,6 +203,10 @@
     if (!resumo) return;
     if (el.kpiTotal) el.kpiTotal.textContent = fmtMoeda(resumo.total_saldo_aberto);
     if (el.kpiClientes) el.kpiClientes.textContent = String(resumo.clientes_com_saldo || 0);
+    if (el.kpiVendidoMes && resumo.vendido_mes != null) el.kpiVendidoMes.textContent = fmtMoeda(resumo.vendido_mes);
+    if (el.kpiVendidoAnt && resumo.vendido_mes_anterior != null) el.kpiVendidoAnt.textContent = fmtMoeda(resumo.vendido_mes_anterior);
+    if (el.kpiPagoMes && resumo.pago_mes != null) el.kpiPagoMes.textContent = fmtMoeda(resumo.pago_mes);
+    if (el.kpiPagoAnt && resumo.pago_mes_anterior != null) el.kpiPagoAnt.textContent = fmtMoeda(resumo.pago_mes_anterior);
   }
 
   function atualizarEmptyBanner(resumo) {
@@ -204,12 +236,16 @@
     clientesCache = clientes || [];
     if (!el.tbody) return;
     if (!clientesCache.length) {
-      el.tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum cliente com saldo em aberto.</td></tr>';
+      el.tbody.innerHTML = '<tr><td colspan="9" class="px-4 py-10 text-center text-sm font-bold text-slate-500">Nenhum cliente com saldo em aberto.</td></tr>';
       return;
     }
     el.tbody.innerHTML = clientesCache.map(function (c) {
       const pk = c.cliente_agro_pk;
+      const limiteVal = c.limite_fiado_local != null ? c.limite_fiado_local : (c.limite || 0);
       const destaque = CFG.clientePrePk && pk === CFG.clientePrePk ? ' ring-2 ring-inset ring-orange-300 bg-orange-50' : '';
+      const limiteCel = pk
+        ? '<input type="text" inputmode="decimal" class="fiado-limite-input" value="' + esc(fmtLimiteCampo(limiteVal)) + '" data-pk="' + pk + '" data-original="' + esc(fmtLimiteCampo(limiteVal)) + '" aria-label="Limite do cliente" title="Digite e saia do campo para gravar">'
+        : '<span class="block text-right tabular-nums font-black text-slate-400" title="Cadastro duplicado — use Limite cliente">' + esc(fmtLimiteCampo(limiteVal)) + '</span>';
       return (
         '<tr class="fiado-cli-row border-t border-slate-100' + destaque + '" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '" data-titulos="' + (c.titulos_abertos || 0) + '">' +
         '<td class="font-black text-slate-900 max-w-[16rem] truncate" title="' + esc(c.cliente_nome) + '">' + esc(c.cliente_nome) + '</td>' +
@@ -217,11 +253,11 @@
         '<td class="font-bold whitespace-nowrap">' + esc(c.vencimento_mais_antigo_texto || '—') + '</td>' +
         '<td class="text-right tabular-nums font-semibold">' + fmtMoeda(c.valor_bruto) + '</td>' +
         '<td class="text-right tabular-nums text-slate-600">' + fmtMoeda(c.valor_pago) + '</td>' +
-        '<td class="text-right tabular-nums font-black text-orange-800 text-base">' + fmtMoeda(c.saldo_aberto) + '</td>' +
+        '<td class="text-right tabular-nums font-black text-orange-800">' + fmtMoeda(c.saldo_aberto) + '</td>' +
+        '<td class="text-right">' + limiteCel + '</td>' +
         '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoClass(c.situacao_resumo) + '">' + esc(c.situacao_label) + '</span></td>' +
         '<td class="text-right whitespace-nowrap">' +
-        '<button type="button" class="fiado-btn-baixa min-h-[40px] px-3 rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '">Baixa</button>' +
-        (pk ? ' <button type="button" class="fiado-btn-limite min-h-[40px] px-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-[10px] font-black uppercase" data-pk="' + pk + '" data-limite="' + (c.limite_fiado_local || c.limite || 0) + '" data-nome="' + esc(c.cliente_nome) + '">Limite</button>' : '') +
+        '<button type="button" class="fiado-btn-baixa fiado-acao-slot bg-orange-600 text-white shadow-sm hover:bg-orange-700" data-pk="' + esc(pk || '') + '" data-nome="' + esc(c.cliente_nome) + '" data-codigo="' + esc(c.cliente_codigo || '') + '" data-saldo="' + c.saldo_aberto + '">Baixa</button>' +
         '</td></tr>'
       );
     }).join('');
@@ -427,8 +463,11 @@
       const sit = t.situacao_resumo || t.situacao || '';
       const rowCls =
         sit === 'vencido' || t.vencido ? ' fiado-tit-vencido' : '';
+      const verSlot = t.venda_agro_id
+        ? '<button type="button" class="fiado-btn-ver-tit fiado-acao-slot border-2 border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100" data-venda-id="' + t.venda_agro_id + '">Ver</button>'
+        : '<span class="fiado-pill-legado">Sistema antigo</span>';
       return (
-        '<tr class="border-t border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
+        '<tr class="border-b border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
         '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
         '<td class="font-bold text-slate-900 max-w-[12rem] truncate" title="' + esc(t.numero_documento) + '">' +
         (t.venda_agro_id
@@ -441,17 +480,16 @@
         '">' +
         esc(t.vencimento_texto || '—') +
         '</td>' +
-        '<td class="text-right tabular-nums">' + fmtMoeda(t.valor_bruto) + '</td>' +
-        '<td class="text-right tabular-nums text-slate-600">' + fmtMoeda(t.valor_pago) + '</td>' +
-        '<td class="text-right tabular-nums font-black text-orange-800">' + fmtMoeda(t.saldo_aberto) + '</td>' +
+        '<td class="text-right whitespace-nowrap">' + fmtMoedaHtml(t.valor_bruto) + '</td>' +
+        '<td class="text-right whitespace-nowrap text-slate-600">' + fmtMoedaHtml(t.valor_pago, 'text-slate-600') + '</td>' +
+        '<td class="text-right whitespace-nowrap">' + fmtMoedaHtml(t.saldo_aberto, 'text-orange-800') + '</td>' +
         '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
-        '<td class="text-right whitespace-nowrap">' +
-        '<button type="button" class="fiado-btn-baixa-tit min-h-[38px] px-2.5 rounded-xl bg-orange-600 text-white text-[10px] font-black uppercase" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button> ' +
-        (t.venda_agro_id
-          ? '<button type="button" class="fiado-btn-ver-tit min-h-[38px] px-2.5 rounded-xl border border-sky-200 bg-sky-50 text-sky-900 text-[10px] font-black uppercase" data-venda-id="' + t.venda_agro_id + '">Ver</button> '
-          : '<span class="fiado-pill-legado">Sistema antigo</span> ') +
-        '<button type="button" class="fiado-btn-editar-tit min-h-[38px] px-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-[10px] font-black uppercase" data-id="' + t.id + '">Editar</button>' +
-        '</td></tr>'
+        '<td>' +
+        '<div class="fiado-tit-acoes">' +
+        '<button type="button" class="fiado-btn-baixa-tit fiado-acao-slot bg-orange-600 text-white shadow-sm hover:bg-orange-700" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button>' +
+        verSlot +
+        '<button type="button" class="fiado-btn-editar-tit fiado-acao-slot border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100" data-id="' + t.id + '">Editar</button>' +
+        '</div></td></tr>'
       );
     }).join('');
     atualizarSelecaoUi();
@@ -772,6 +810,42 @@
     });
   }
 
+  async function gravarLimiteNaLinha(inp) {
+    if (!inp || inp.disabled || inp.classList.contains('is-saving')) return;
+    const pk = parseInt(inp.getAttribute('data-pk'), 10);
+    if (!pk) return;
+    const original = inp.getAttribute('data-original') || '';
+    const atual = String(inp.value || '').trim();
+    if (atual === original) return;
+    const valorNum = parseValorMoedaBr(atual);
+    if (valorNum < 0) {
+      alert('Limite não pode ser negativo.');
+      inp.value = original;
+      return;
+    }
+    inp.classList.add('is-saving');
+    inp.disabled = true;
+    try {
+      await salvarLimite(pk, atual || '0');
+      const fmt = fmtLimiteCampo(valorNum);
+      inp.value = fmt;
+      inp.setAttribute('data-original', fmt);
+      inp.classList.add('is-ok');
+      setTimeout(function () { inp.classList.remove('is-ok'); }, 900);
+      const row = clientesCache.find(function (c) { return Number(c.cliente_agro_pk) === pk; });
+      if (row) {
+        row.limite_fiado_local = valorNum;
+        row.limite = valorNum;
+      }
+    } catch (e) {
+      alert(e.message || String(e));
+      inp.value = original;
+    } finally {
+      inp.disabled = false;
+      inp.classList.remove('is-saving');
+    }
+  }
+
   async function buscarClientesLimite(q) {
     if (!el.limiteResultados) return;
     if ((q || '').length < 2) {
@@ -789,6 +863,10 @@
 
   if (el.tbody) {
     el.tbody.addEventListener('click', function (ev) {
+      if (ev.target.closest('.fiado-limite-input')) {
+        ev.stopPropagation();
+        return;
+      }
       const bBaixa = ev.target.closest('.fiado-btn-baixa');
       if (bBaixa) {
         ev.stopPropagation();
@@ -828,6 +906,24 @@
         saldo: parseFloat(row.getAttribute('data-saldo') || '0'),
         titulos: parseInt(row.getAttribute('data-titulos') || '0', 10),
       });
+    });
+    el.tbody.addEventListener('keydown', function (ev) {
+      const inp = ev.target.closest('.fiado-limite-input');
+      if (!inp) return;
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        inp.blur();
+      }
+      if (ev.key === 'Escape') {
+        ev.preventDefault();
+        inp.value = inp.getAttribute('data-original') || '';
+        inp.blur();
+      }
+    });
+    el.tbody.addEventListener('focusout', function (ev) {
+      const inp = ev.target.closest('.fiado-limite-input');
+      if (!inp) return;
+      gravarLimiteNaLinha(inp);
     });
   }
 

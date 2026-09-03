@@ -693,6 +693,49 @@ def resumo_from_clientes_fiado(clientes: list[dict[str, Any]]) -> dict[str, Any]
         "titulos_abertos": titulos,
         "clientes_com_saldo": len(clientes),
         "total_saldo_aberto": float(total.quantize(Decimal("0.01"))),
+        **_kpis_mensais_fiado(),
+    }
+
+
+def _inicio_mes_local(ano: int, mes: int):
+    tz = timezone.get_current_timezone()
+    return timezone.make_aware(datetime(ano, mes, 1, 0, 0, 0), tz)
+
+
+def _kpis_mensais_fiado() -> dict[str, Any]:
+    hoje = timezone.localdate()
+    ini_este = _inicio_mes_local(hoje.year, hoje.month)
+    if hoje.month == 1:
+        ini_ant = _inicio_mes_local(hoje.year - 1, 12)
+    else:
+        ini_ant = _inicio_mes_local(hoje.year, hoje.month - 1)
+    if hoje.month == 12:
+        fim_este = _inicio_mes_local(hoje.year + 1, 1)
+    else:
+        fim_este = _inicio_mes_local(hoje.year, hoje.month + 1)
+
+    def _soma_dec(val) -> float:
+        return float(Decimal(str(val or 0)).quantize(Decimal("0.01")))
+
+    def soma_vendido(ini, fim) -> float:
+        v = (
+            FiadoTituloAgro.objects.exclude(situacao=FiadoTituloAgro.Situacao.CANCELADO)
+            .filter(criado_em__gte=ini, criado_em__lt=fim)
+            .aggregate(t=Coalesce(Sum("valor_bruto"), Decimal("0")))["t"]
+        )
+        return _soma_dec(v)
+
+    def soma_pago(ini, fim) -> float:
+        v = FiadoBaixaAgro.objects.filter(criado_em__gte=ini, criado_em__lt=fim).aggregate(
+            t=Coalesce(Sum("valor"), Decimal("0"))
+        )["t"]
+        return _soma_dec(v)
+
+    return {
+        "vendido_mes": soma_vendido(ini_este, fim_este),
+        "vendido_mes_anterior": soma_vendido(ini_ant, ini_este),
+        "pago_mes": soma_pago(ini_este, fim_este),
+        "pago_mes_anterior": soma_pago(ini_ant, ini_este),
     }
 
 
@@ -713,6 +756,7 @@ def resumo_gestao_fiado() -> dict[str, Any]:
         "titulos_abertos": int(agg["titulos_abertos"] or 0),
         "clientes_com_saldo": len(chaves),
         "total_saldo_aberto": float(total_saldo),
+        **_kpis_mensais_fiado(),
     }
 
 

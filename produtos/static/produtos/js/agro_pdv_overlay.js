@@ -5,14 +5,14 @@
   'use strict';
 
   var ROOT_ID = 'agro-pdv-overlay';
-  var STYLE_ID = 'agro-pdv-overlay-styles-v5';
+  var STYLE_ID = 'agro-pdv-overlay-styles-v6';
   var openFlag = false;
 
   function titleFromUrl(url) {
     try {
       var p = new URL(url, window.location.origin).pathname.toLowerCase();
       if (p.indexOf('/vendas') === 0 || p.indexOf('/venda/') === 0) return 'Consultar vendas';
-      if (p.indexOf('/fiado') === 0) return 'Fiado';
+      if (p.indexOf('/fiado') === 0) return 'Crédito loja · Fiado';
       if (p.indexOf('/caixa') === 0) return 'Caixa';
       if (p.indexOf('/entregas') === 0) return 'Entregas';
       if (p.indexOf('/clientes') === 0) return 'Clientes';
@@ -75,6 +75,8 @@
     if (oldV3) oldV3.remove();
     var oldV4 = document.getElementById('agro-pdv-overlay-styles-v4');
     if (oldV4) oldV4.remove();
+    var oldV5 = document.getElementById('agro-pdv-overlay-styles-v5');
+    if (oldV5) oldV5.remove();
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -89,6 +91,7 @@
       '.agro-pdv-overlay-panel{position:relative;z-index:1;display:flex;flex-direction:column;width:min(98vw,100%);height:min(95vh,100%);max-width:100%;border-radius:1rem;border:3px solid #10b981;background:#f8fafc;box-shadow:0 28px 80px rgba(15,23,42,.35);overflow:hidden}' +
       '.agro-pdv-overlay-panel[data-overlay-size="folha"]{width:min(94vw,64rem);height:min(92vh,52rem);max-width:94vw;max-height:92vh}' +
       '.agro-pdv-overlay-head{display:flex;align-items:center;gap:.55rem;flex-shrink:0;padding:.5rem .75rem;border-bottom:2px solid #e2e8f0;background:linear-gradient(180deg,#fff,#f1f5f9);flex-wrap:nowrap}' +
+      '.agro-pdv-overlay-panel.is-chrome-hidden .agro-pdv-overlay-head{display:none!important}' +
       '.agro-pdv-overlay-brand{flex-shrink:0;width:2.25rem;height:2.25rem;border-radius:.65rem;border:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;box-shadow:0 1px 3px rgba(15,23,42,.08)}' +
       '.agro-pdv-overlay-brand .g{color:#059669}.agro-pdv-overlay-brand .m{color:#f97316}' +
       '.agro-pdv-overlay-titles{flex:1;min-width:0;display:flex;flex-direction:column;gap:.1rem}' +
@@ -204,6 +207,11 @@
         e.preventDefault();
         var href = menuBtn.getAttribute('data-href') || menuBtn.href;
         if (!href || href === '#') return;
+        var lab = (menuBtn.textContent || '').trim().toUpperCase();
+        if (lab === 'CSV' || lab.indexOf('BACKUP') >= 0) {
+          window.open(href, '_blank');
+          return;
+        }
         open(href, 'Caixa', { force: true });
       });
     }
@@ -213,26 +221,31 @@
   function applyMeta(d) {
     var root = document.getElementById(ROOT_ID);
     if (!root || !d) return;
+    var panel = root.querySelector('.agro-pdv-overlay-panel');
     var titleEl = root.querySelector('#agro-pdv-overlay-title-text');
     var subEl = root.querySelector('#agro-pdv-overlay-subtitle-text');
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     var helpBtn = root.querySelector('#agro-pdv-overlay-help');
     var helpPanel = root.querySelector('#agro-pdv-overlay-help-panel');
-    if (titleEl) titleEl.textContent = String(d.title || titleEl.textContent || '');
-    if (subEl) {
+    if (panel && Object.prototype.hasOwnProperty.call(d, 'hideChrome')) {
+      panel.classList.toggle('is-chrome-hidden', !!d.hideChrome);
+    }
+    if (titleEl && d.title != null) titleEl.textContent = String(d.title || '');
+    if (subEl && (d.subtitle != null || d.title != null)) {
       subEl.textContent = String(d.subtitle || '');
       subEl.style.display = d.subtitle ? '' : 'none';
     }
-    if (menuBtn) {
+    if (menuBtn && Object.prototype.hasOwnProperty.call(d, 'showMenu')) {
       if (d.showMenu && d.menuHref) {
         menuBtn.hidden = false;
         menuBtn.setAttribute('data-href', String(d.menuHref));
+        if (d.menuLabel) menuBtn.textContent = String(d.menuLabel);
       } else {
         menuBtn.hidden = true;
         menuBtn.removeAttribute('data-href');
       }
     }
-    if (helpBtn && helpPanel) {
+    if (helpBtn && helpPanel && Object.prototype.hasOwnProperty.call(d, 'showHelp')) {
       var helpHtml = String(d.helpHtml || '').trim();
       if (d.showHelp && helpHtml) {
         helpPanel.innerHTML = helpHtml;
@@ -247,7 +260,14 @@
   }
 
   function resetMeta(title) {
-    applyMeta({ title: title || 'Consulta no balcão', subtitle: '', showMenu: false, showHelp: false, helpHtml: '' });
+    applyMeta({
+      title: title || 'Consulta no balcão',
+      subtitle: '',
+      showMenu: false,
+      showHelp: false,
+      helpHtml: '',
+      hideChrome: false,
+    });
   }
 
   function detectOverlaySize(href) {

@@ -1297,14 +1297,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | WIP local — aguarda prova no PC |
 | **Você** | Ctrl+F5 · demo NFC-e: `/vendas/?demo_nfce_ui=1&preset=30d` (1ª linha Fiscal, 2ª Emitindo) |
 
-### 📦 PACOTE — fiado topbar overlay (`FIADO-TOPBAR-OVERLAY` · **v21.69** · 03/09)
+### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.74** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/fiado/` no overlay: some o header interno. Na barra verde fica **Crédito loja · Fiado**, o texto de ajuda e **Backup JSON** (baixa o arquivo, não abre no iframe). Fora do overlay a faixa continua na página. |
+| **O quê** | `/fiado/`: lista no padrão `/vendas/`; **Pedido**/**Ver** → popup da venda (sem vínculo = Sistema antigo); **Recibos** em modal; coluna **Limite** na linha; KPIs vendido/pago mês + anterior; modal cliente tela cheia; no overlay PDV some header interno + **esconde top bar** (não fecha o fiado no Fechar verde); Backup JSON na barra. |
 | **Migrate** | **NÃO** |
-| **Status** | WIP local |
-| **Você** | PDV → Fiado · Ctrl+F5 no PDV e no overlay |
+| **Prova** | `verify_fiado_ver_recibos_path` **38/38** · check OK · APIs local resumo/clientes/titulos/recibos/limite **200** (venda_agro_id ok) |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Inclui** | `FIADO-TOPBAR-OVERLAY` |
 
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
 
@@ -1317,22 +1318,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### 📦 WIP LOCAL — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.46** · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | `/fiado/`: lista compacta no padrão de `/vendas/` (topo fino, overlay sem header duplicado). Número do **Pedido** clicável e botão **Ver** (popup da venda completa); sem vínculo = **Sistema antigo**. Recibos atrás do botão **Recibos**. Coluna **Limite** editável na própria linha (grava `limite_fiado_local`). Modal do cliente **tela cheia** e, no overlay do PDV, **esconde a top bar** (Fechar verde) pra não fechar o fiado inteiro por engano. Tabela com **linha vertical** + botões em grade. Faixa: **vendido/pago** deste mês e do mês anterior. |
-| **Migrate** | **NÃO** |
-| **Prova** | `python manage.py check` **OK** |
-| **Status** | WIP local — aguarda prova no PC |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.32**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.74**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PIN-VENDA-10S` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 2 | `FIADO-VER-RECIBOS` | 🟡 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** v21.08. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry deste pacote — **não** merge `teste` inteiro).
+**Live agora:** v21.08. **Fora:** WhatsApp. Sobe **só** com frase + senha (cherry — **não** merge `teste` inteiro).
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
