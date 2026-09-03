@@ -1327,7 +1327,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
-| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc no Ver venda** volta à lista (1 nível); Fechar/F1 fecha o painel. |
+| **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc no Ver venda** volta à lista (1 nível); Fechar/F1 fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT (`preventScroll` + z 240). |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_overlay_stack_path` **16/16** · vendas UX **52/52** |
 | **Status** | 🟡 **pronto para envio à produção** |
@@ -1353,7 +1353,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.90**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.91**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
