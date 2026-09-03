@@ -350,7 +350,8 @@
       .map(function (m) {
         var cls = m.direcao === 'out' ? 'out' : m.direcao === 'bot' ? 'bot' : 'in';
         if (m.apagada) cls += ' is-apagada';
-        if (m.pendente && !m.apagada) cls += ' is-enviando';
+        // Opacidade só no rascunho local (tmp-*); pendente_envio no servidor não deixa cinza.
+        if (m.pendente && !m.apagada && String(m.id || '').indexOf('tmp-') === 0) cls += ' is-enviando';
         var metaHtml = '';
         if (m.direcao === 'out') {
           metaHtml =

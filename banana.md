@@ -1350,11 +1350,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | --- | --- |
 | **Junto com** | `WA-SEND-OPTIMIST` · `WA-FOTO-RETRY` (ponte) · outras mudanças que Renan for juntando |
 | **1 Foto** | Miniatura menor · clique = tela cheia (Esc/clique fecha) |
-| **2 Nome** | Verde (loja): **PIN do PDV** (nome do funcionário na sessão) · sem PIN → login Chrome · Branco (cliente): **só horário** |
-| **3 Bolha** | Largura do texto · verde à direita · branco à esquerda (tipo Zap Web) |
-| **Assinatura PIN** | Usa `pdv_operador_nome` / PIN da sessão no **mesmo Chrome** · Zap ainda abre pelo **menu** (ícone do PDV = Em breve) — PIN no PDV antes ajuda |
+| **2 Nome** | Verde: **PIN do PDV** · Branco: **só horário** |
+| **3 Bolha** | Largura do texto · verde à direita (tipo Zap Web) |
+| **4 Fonte** | Corpo ~**+30%** (1.2rem) · meta legível |
+| **5 Cor** | Msg real **não** fica cinza (só rascunho tmp) — pendente_envio não apaga a bolha |
+| **Assinatura PIN** | `pdv_operador_nome` no mesmo Chrome · Zap pelo menu |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **não** subir loja até Renan mandar o lote + senha |
+| **Status** | 🟡 `teste` · subir com o lote + senha |
 
 ### Live loja — WhatsApp atendimento (`WA-ATEND-QR` · **v21.82**) — 03/09/2026
 

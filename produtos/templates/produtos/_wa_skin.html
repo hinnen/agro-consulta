@@ -313,9 +313,9 @@
     width: fit-content;
     max-width: min(78%, 22rem);
     margin: .28rem .15rem;
-    padding: .45rem .65rem .4rem;
-    font-size: .92rem;
-    line-height: 1.35;
+    padding: .5rem .75rem .45rem;
+    font-size: 1.2rem;
+    line-height: 1.4;
     white-space: pre-wrap;
     box-shadow: 0 1px 1px rgb(15 23 42 / .06);
   }
@@ -338,16 +338,17 @@
     margin-left: auto;
   }
   .wa-skin .wa-b.is-apagada { opacity: .72; font-style: italic; color: #64748b; }
-  .wa-skin .wa-b.is-enviando { opacity: .82; }
+  /* Só rascunho tmp_* fica levemente apagado — msg já gravada fica cor normal */
+  .wa-skin .wa-b.is-enviando[data-msg-id^="tmp-"] { opacity: .88; }
   .wa-skin .wa-meta {
-    font-size: .65rem;
+    font-size: .85rem;
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .02em;
-    opacity: .7;
+    opacity: .75;
     margin-bottom: .15rem;
   }
-  .wa-skin .wa-meta.is-hora-so { text-transform: none; font-weight: 700; opacity: .55; }
+  .wa-skin .wa-meta.is-hora-so { text-transform: none; font-weight: 700; opacity: .6; }
   .wa-skin .wa-apagada-txt { font-style: italic; font-weight: 600; color: #64748b; }
   .wa-skin .wa-msg-del {
     position: absolute; top: .2rem; right: .25rem;
