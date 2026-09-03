@@ -20,6 +20,10 @@
   var ehCel = !!(document.body && document.body.classList.contains('wa-cel'));
   /** hora | espera | nova — sempre começa em horário ao abrir a tela. */
   var filtroLista = 'hora';
+  var statusCache = [];
+  var stAutorIdx = 0;
+  var stItemIdx = 0;
+  var ST_VISTOS_KEY = 'agro_wa_status_vistos_v1';
   var listaCache = [];
 
   function telaCel(chat) {
@@ -413,6 +417,170 @@
         pintarLista(j.conversas);
       }
     );
+  }
+
+  function lerStatusVistos() {
+    try {
+      var raw = localStorage.getItem(ST_VISTOS_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr.map(String) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function salvarStatusVisto(id) {
+    if (!id) return;
+    var vistos = lerStatusVistos();
+    var sid = String(id);
+    if (vistos.indexOf(sid) >= 0) return;
+    vistos.push(sid);
+    if (vistos.length > 800) vistos = vistos.slice(-800);
+    try {
+      localStorage.setItem(ST_VISTOS_KEY, JSON.stringify(vistos));
+    } catch (e) {}
+  }
+
+  function nomeStatusAutor(a) {
+    return (a && (a.nome || a.telefone)) || 'Contato';
+  }
+
+  function pintarStatusStrip() {
+    var el = $('wa-st-strip');
+    if (!el) return;
+    if (!statusCache.length) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+    el.classList.remove('hidden');
+    var vistos = lerStatusVistos();
+    el.innerHTML = statusCache
+      .map(function (a, idx) {
+        var nome = nomeStatusAutor(a);
+        var ini = nome.charAt(0).toUpperCase();
+        var temNovo = (a.itens || []).some(function (it) {
+          return vistos.indexOf(String(it.id)) < 0;
+        });
+        var rotulo = nome.split(' ')[0];
+        return (
+          '<button type="button" class="wa-st-item' +
+          (temNovo ? ' is-new' : '') +
+          '" data-st-idx="' +
+          idx +
+          '"><span class="wa-st-ring"><span class="wa-st-av">' +
+          escapeHtml(ini) +
+          '</span></span><span class="wa-st-n">' +
+          escapeHtml(rotulo) +
+          '</span></button>'
+        );
+      })
+      .join('');
+  }
+
+  function pintarStatusViewer() {
+    var autor = statusCache[stAutorIdx];
+    if (!autor) return;
+    var itens = autor.itens || [];
+    var item = itens[stItemIdx];
+    if (!item) return;
+    var nome = nomeStatusAutor(autor);
+    var av = $('wa-st-view-av');
+    var nm = $('wa-st-view-nome');
+    var hr = $('wa-st-view-hora');
+    var cap = $('wa-st-caption');
+    var media = $('wa-st-media');
+    var bars = $('wa-st-bars');
+    if (av) av.textContent = nome.charAt(0).toUpperCase();
+    if (nm) nm.textContent = nome;
+    if (hr) hr.textContent = item.hora || '';
+    if (cap) cap.textContent = item.texto || '';
+    if (bars) {
+      bars.innerHTML = itens
+        .map(function (_it, i) {
+          var cls = 'wa-st-bar';
+          if (i < stItemIdx) cls += ' is-done';
+          else if (i === stItemIdx) cls += ' is-on';
+          return '<div class="' + cls + '"><i></i></div>';
+        })
+        .join('');
+    }
+    if (media) {
+      var html = '';
+      if (item.midia_url && (item.tipo_midia === 'image' || item.tipo_midia === 'video' || !item.tipo_midia)) {
+        if (item.tipo_midia === 'video') {
+          html =
+            '<video controls autoplay playsinline src="' + escapeHtml(item.midia_url) + '"></video>';
+        } else {
+          html = '<img alt="" src="' + escapeHtml(item.midia_url) + '" />';
+        }
+      } else if (item.texto) {
+        html = '<div class="wa-st-txt">' + escapeHtml(item.texto) + '</div>';
+        if (cap) cap.textContent = '';
+      } else {
+        html = '<div class="wa-st-txt">Status</div>';
+      }
+      media.innerHTML = html;
+    }
+    salvarStatusVisto(item.id);
+    pintarStatusStrip();
+  }
+
+  function fecharStatusViewer() {
+    var box = $('wa-st-view');
+    if (box) box.classList.add('hidden');
+    document.body.classList.remove('wa-st-open');
+  }
+
+  function abrirStatusViewer(idxAutor, idxItem) {
+    stAutorIdx = parseInt(idxAutor, 10) || 0;
+    stItemIdx = parseInt(idxItem, 10) || 0;
+    var autor = statusCache[stAutorIdx];
+    if (!autor || !(autor.itens || []).length) return;
+    if (stItemIdx >= autor.itens.length) stItemIdx = 0;
+    var box = $('wa-st-view');
+    if (box) box.classList.remove('hidden');
+    document.body.classList.add('wa-st-open');
+    pintarStatusViewer();
+  }
+
+  function proximoStatusItem() {
+    var autor = statusCache[stAutorIdx];
+    if (!autor) return fecharStatusViewer();
+    if (stItemIdx + 1 < (autor.itens || []).length) {
+      stItemIdx += 1;
+      pintarStatusViewer();
+      return;
+    }
+    if (stAutorIdx + 1 < statusCache.length) {
+      stAutorIdx += 1;
+      stItemIdx = 0;
+      pintarStatusViewer();
+      return;
+    }
+    fecharStatusViewer();
+  }
+
+  function anteriorStatusItem() {
+    if (stItemIdx > 0) {
+      stItemIdx -= 1;
+      pintarStatusViewer();
+      return;
+    }
+    if (stAutorIdx > 0) {
+      stAutorIdx -= 1;
+      var prev = statusCache[stAutorIdx];
+      stItemIdx = Math.max(0, ((prev && prev.itens) || []).length - 1);
+      pintarStatusViewer();
+    }
+  }
+
+  function carregarStatus() {
+    return fetchJson('/api/atendimento-whatsapp/status/').then(function (j) {
+      if (!j || !j.ok) return;
+      statusCache = j.autores || [];
+      pintarStatusStrip();
+    });
   }
 
   function trocarFiltroLista(filtro) {
@@ -1200,8 +1368,38 @@
     });
   }
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape') fecharFicha();
+    if (ev.key === 'Escape') {
+      if ($('wa-st-view') && !$('wa-st-view').classList.contains('hidden')) {
+        fecharStatusViewer();
+        return;
+      }
+      fecharFicha();
+    }
+    if (!$('wa-st-view') || $('wa-st-view').classList.contains('hidden')) return;
+    if (ev.key === 'ArrowRight') proximoStatusItem();
+    if (ev.key === 'ArrowLeft') anteriorStatusItem();
   });
+
+  var stStrip = $('wa-st-strip');
+  if (stStrip) {
+    stStrip.addEventListener('click', function (ev) {
+      var btn = ev.target.closest('[data-st-idx]');
+      if (!btn) return;
+      abrirStatusViewer(btn.getAttribute('data-st-idx'), 0);
+    });
+  }
+  var stX = $('wa-st-view-x');
+  if (stX) stX.addEventListener('click', fecharStatusViewer);
+  var stPrev = $('wa-st-prev');
+  if (stPrev) stPrev.addEventListener('click', anteriorStatusItem);
+  var stNext = $('wa-st-next');
+  if (stNext) stNext.addEventListener('click', proximoStatusItem);
+  var stView = $('wa-st-view');
+  if (stView) {
+    stView.addEventListener('click', function (ev) {
+      if (ev.target === stView) fecharStatusViewer();
+    });
+  }
 
   setTab();
   pintarEstadoFiltro();
@@ -1209,9 +1407,11 @@
   document.addEventListener('click', pedirAviso, { once: true });
   carregarEstado();
   carregarLista();
+  carregarStatus();
   setInterval(function () {
     carregarEstado();
     carregarLista();
+    carregarStatus();
     pollMsgs();
   }, 2500);
 })();

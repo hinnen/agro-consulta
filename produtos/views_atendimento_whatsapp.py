@@ -36,14 +36,16 @@ from produtos.atendimento_whatsapp_util import (
     pedir_historico_conversa,
     pedir_trocar_whatsapp,
     processar_entrada,
+    processar_status,
     aplicar_mapa_lid,
+    listar_status,
     serializar_conversa,
     serializar_mensagem,
     serializar_ponte,
     token_ponte_ok,
     toque_heartbeat,
 )
-from produtos.models import WhatsAppMensagemAgro
+from produtos.models import WhatsAppMensagemAgro, WhatsAppStatusAgro
 
 
 def _json_body(request) -> dict | None:
@@ -448,7 +450,7 @@ def api_atendimento_whatsapp_trocar(request):
     return JsonResponse({"ok": True})
 
 
-def _arquivo_midia_response(m: WhatsAppMensagemAgro) -> FileResponse:
+def _arquivo_midia_response(m) -> FileResponse:
     if not m.arquivo:
         raise Http404("Mídia não encontrada.")
     ctype = "application/octet-stream"
@@ -459,6 +461,10 @@ def _arquivo_midia_response(m: WhatsAppMensagemAgro) -> FileResponse:
             ctype = "image/png"
         elif name.endswith(".webp"):
             ctype = "image/webp"
+    elif m.tipo_midia == "video" or name.endswith((".mp4", ".webm", ".mov")):
+        ctype = "video/mp4"
+        if name.endswith(".webm"):
+            ctype = "video/webm"
     elif m.tipo_midia == "audio" or name.endswith((".ogg", ".opus", ".mp3", ".m4a", ".webm")):
         ctype = "audio/ogg"
         if name.endswith(".mp3"):
@@ -505,6 +511,48 @@ def api_atendimento_whatsapp_bridge_lids(request):
     data = _json_body(request) or {}
     n = aplicar_mapa_lid(data.get("lids") or {})
     return JsonResponse({"ok": True, "n": n})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_status(request):
+    return JsonResponse({"ok": True, "autores": listar_status()})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_status_midia(request, pk: int):
+    try:
+        s = WhatsAppStatusAgro.objects.get(pk=int(pk))
+    except (WhatsAppStatusAgro.DoesNotExist, TypeError, ValueError) as exc:
+        raise Http404("Mídia não encontrada.") from exc
+    return _arquivo_midia_response(s)
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_status(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    _s, err = processar_status(
+        jid=str(data.get("jid") or ""),
+        texto=str(data.get("texto") or ""),
+        nome=str(data.get("nome") or ""),
+        wa_id=str(data.get("wa_id") or ""),
+        ts=data.get("ts"),
+        tipo_midia=str(data.get("tipo_midia") or ""),
+        midia_b64=str(data.get("midia_b64") or ""),
+        mime=str(data.get("mime") or ""),
+        nome_arquivo=str(data.get("nome_arquivo") or ""),
+        telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
+    )
+    if err in ("ignorado", "duplicada"):
+        return JsonResponse({"ok": True, err: True})
+    if err:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True})
 
 
 @csrf_exempt

@@ -288,4 +288,87 @@
   .wa-skin .wa-panel.is-on { display: block; }
   .wa-skin .wa-qr { background: linear-gradient(180deg, #fff7ed, #fff); border: 1px solid #fed7aa; border-radius: 1.1rem; padding: .75rem; text-align: center; }
   .wa-skin .wa-qr img { width: 11rem; height: 11rem; margin: .4rem auto 0; border-radius: .75rem; background: #fff; padding: .4rem; }
+  .wa-skin .wa-st-strip {
+    display: flex; gap: .65rem; overflow-x: auto; padding: .55rem .15rem .35rem;
+    scrollbar-width: thin;
+  }
+  .wa-skin .wa-st-strip.hidden { display: none !important; }
+  .wa-skin .wa-st-item {
+    display: flex; flex-direction: column; align-items: center; gap: .25rem;
+    min-width: 4.1rem; border: 0; background: transparent; cursor: pointer; padding: 0;
+  }
+  .wa-skin .wa-st-ring {
+    display: flex; align-items: center; justify-content: center;
+    width: 3.35rem; height: 3.35rem; border-radius: 999px;
+    background: linear-gradient(135deg, #25d366, #128c7e); padding: 2px;
+  }
+  .wa-skin .wa-st-item:not(.is-new) .wa-st-ring {
+    background: #cbd5e1;
+  }
+  .wa-skin .wa-st-av {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%; border-radius: 999px; background: #e2e8f0;
+    font-size: 1.05rem; font-weight: 900; color: #334155;
+  }
+  .wa-skin .wa-st-n {
+    max-width: 4.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: .68rem; font-weight: 700; color: #64748b;
+  }
+  .wa-skin .wa-st-view {
+    position: fixed; inset: 0; z-index: 120; background: #0b141a;
+    display: flex; flex-direction: column;
+  }
+  .wa-skin .wa-st-view.hidden { display: none !important; }
+  .wa-skin .wa-st-bars {
+    display: flex; gap: 3px; padding: .55rem .75rem 0;
+  }
+  .wa-skin .wa-st-bar {
+    flex: 1; height: 3px; border-radius: 999px; background: rgb(255 255 255 / .28); overflow: hidden;
+  }
+  .wa-skin .wa-st-bar i {
+    display: block; height: 100%; width: 0; background: #fff; border-radius: 999px;
+  }
+  .wa-skin .wa-st-bar.is-done i { width: 100%; }
+  .wa-skin .wa-st-bar.is-on i { width: 55%; }
+  .wa-skin .wa-st-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .65rem .75rem; color: #fff;
+  }
+  .wa-skin .wa-st-head-l { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+  .wa-skin .wa-st-view-av {
+    width: 2.2rem; height: 2.2rem; border-radius: 999px; background: #334155;
+    display: flex; align-items: center; justify-content: center; font-weight: 900; flex-shrink: 0;
+  }
+  .wa-skin .wa-st-view-nome { font-size: .9rem; font-weight: 800; line-height: 1.1; }
+  .wa-skin .wa-st-view-hora { font-size: .72rem; opacity: .75; }
+  .wa-skin .wa-st-view-x {
+    border: 0; background: transparent; color: #fff; font-size: 1.8rem; line-height: 1; cursor: pointer;
+    min-width: 2.5rem; min-height: 2.5rem;
+  }
+  .wa-skin .wa-st-stage {
+    position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center;
+    padding: 0 .25rem;
+  }
+  .wa-skin .wa-st-media {
+    width: 100%; max-width: 36rem; max-height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+  .wa-skin .wa-st-media img,
+  .wa-skin .wa-st-media video {
+    max-width: 100%; max-height: calc(100dvh - 11rem); object-fit: contain; border-radius: .35rem;
+  }
+  .wa-skin .wa-st-media .wa-st-txt {
+    color: #fff; font-size: 1.15rem; font-weight: 600; text-align: center; padding: 1rem;
+    white-space: pre-wrap;
+  }
+  .wa-skin .wa-st-nav {
+    position: absolute; top: 0; bottom: 0; width: 28%; border: 0; background: transparent;
+    color: transparent; cursor: pointer; z-index: 2;
+  }
+  .wa-skin .wa-st-nav-l { left: 0; }
+  .wa-skin .wa-st-nav-r { right: 0; }
+  .wa-skin .wa-st-caption {
+    margin: 0; padding: .75rem 1rem 1.1rem; color: #fff; font-size: .92rem; font-weight: 600;
+    text-align: center; white-space: pre-wrap;
+  }
+  .wa-skin .wa-st-caption:empty { display: none; }
 </style>

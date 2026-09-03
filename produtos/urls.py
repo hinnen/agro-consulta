@@ -881,6 +881,16 @@ urlpatterns = [
         name='api_atendimento_whatsapp_midia',
     ),
     path(
+        'api/atendimento-whatsapp/status/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_status,
+        name='api_atendimento_whatsapp_status',
+    ),
+    path(
+        'api/atendimento-whatsapp/status/midia/<int:pk>/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_status_midia,
+        name='api_atendimento_whatsapp_status_midia',
+    ),
+    path(
         'api/atendimento-whatsapp/bridge/estado/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_estado,
         name='api_atendimento_whatsapp_bridge_estado',
@@ -894,6 +904,11 @@ urlpatterns = [
         'api/atendimento-whatsapp/bridge/entrada/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_entrada,
         name='api_atendimento_whatsapp_bridge_entrada',
+    ),
+    path(
+        'api/atendimento-whatsapp/bridge/status/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_bridge_status,
+        name='api_atendimento_whatsapp_bridge_status',
     ),
     path(
         'api/atendimento-whatsapp/bridge/midia/<int:pk>/',

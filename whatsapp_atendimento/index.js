@@ -241,6 +241,11 @@ function guardarMsgCache(m) {
   }
 }
 
+function ehStatusBroadcast(jid) {
+  const j = String(jid || "").toLowerCase();
+  return j === "status@broadcast" || j.includes("status@");
+}
+
 function ehStatusOuGrupo(jid) {
   const j = String(jid || "").toLowerCase();
   return (
@@ -491,15 +496,21 @@ async function streamParaBuf(stream) {
   return Buffer.concat(chunks);
 }
 
-async function baixarMidia(m) {
+async function baixarMidiaCompleta(m, tipos) {
   const tipo = tipoMidiaDe(m);
-  if (!["image", "audio", "sticker"].includes(tipo)) {
+  const permitidos = tipos || ["image", "audio", "sticker", "video"];
+  if (!permitidos.includes(tipo)) {
     return { tipo, b64: "", mime: mimeDe(m) };
   }
   const inner = conteudoDe(m);
   const node =
-    (inner && (inner.imageMessage || inner.audioMessage || inner.stickerMessage)) || null;
-  const kind = tipo === "sticker" ? "sticker" : tipo;
+    (inner &&
+      (inner.imageMessage ||
+        inner.audioMessage ||
+        inner.stickerMessage ||
+        inner.videoMessage)) ||
+    null;
+  const kind = tipo === "sticker" ? "sticker" : tipo === "video" ? "video" : tipo;
   for (let i = 0; i < 4; i++) {
     try {
       let buf = null;
@@ -524,6 +535,68 @@ async function baixarMidia(m) {
     await new Promise((r) => setTimeout(r, 500 * (i + 1)));
   }
   return { tipo, b64: "", mime: mimeDe(m) };
+}
+
+async function baixarMidia(m) {
+  return baixarMidiaCompleta(m, ["image", "audio", "sticker"]);
+}
+
+function autorDeStatus(m) {
+  const key = m && m.key;
+  if (!key) return "";
+  let autor = String(key.participant || key.participantAlt || "");
+  if (autor.endsWith("@lid")) {
+    const pn = pnDeLid(autor);
+    if (pn) autor = pn;
+  }
+  if (!autor || ehStatusBroadcast(autor)) {
+    const tel = telefoneDeKey(key);
+    if (tel) autor = tel;
+  }
+  if (autor.endsWith("@lid")) {
+    const pn = pnDeLid(autor);
+    if (pn) autor = pn;
+  }
+  return autor;
+}
+
+async function enviarStatus(m) {
+  if (!m || !(m.message || conteudoDe(m))) return;
+  const key = m.key || {};
+  const orig = String(key.remoteJid || "");
+  if (!ehStatusBroadcast(orig)) return;
+  if (key.fromMe) return;
+  let jid = autorDeStatus(m);
+  const lid = String(key.participant || "").endsWith("@lid") ? String(key.participant) : "";
+  if (jid.endsWith("@lid")) {
+    const pn = pnDeLid(jid);
+    if (pn) jid = pn;
+  }
+  if (!ehChatPrivado(jid)) return;
+  const quando = tsMs(m) || Date.now();
+  if (Date.now() - quando > 24 * 60 * 60 * 1000) return;
+  const texto = textoDe(m);
+  const tipo = tipoMidiaDe(m);
+  if (!texto && !tipo) return;
+  const nome = String(m.pushName || "").slice(0, 120);
+  const waId = String((key && key.id) || "");
+  const midia = await baixarMidiaCompleta(m, ["image", "video"]);
+  const tel = telefoneDeJid(jid) || telefoneDeJid(telefoneDeKey(key));
+  await post("/api/atendimento-whatsapp/bridge/status/", {
+    jid,
+    jid_lid: lid,
+    telefone: tel,
+    texto,
+    nome,
+    wa_id: waId,
+    ts: Math.floor(quando / 1000),
+    tipo_midia: midia.tipo || tipo,
+    midia_b64: midia.b64 || "",
+    mime: midia.mime || "",
+    nome_arquivo: String(
+      (conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""
+    ),
+  });
 }
 
 async function baixarSaidaArquivo(id) {
@@ -749,6 +822,10 @@ async function ligar() {
       try {
         guardarMsgCache(m);
         const raw = String((m && m.key && m.key.remoteJid) || "");
+        if (ehStatusBroadcast(raw)) {
+          await enviarStatus(m);
+          continue;
+        }
         if (ehStatusOuGrupo(raw)) continue;
         const jid = jidDaMensagem(m);
         if (ehMensagemAoVivo(m, type)) {

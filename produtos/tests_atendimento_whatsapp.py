@@ -86,6 +86,27 @@ class BotRoteamentoTests(TestCase):
         self.assertEqual(err, "ignorado")
         self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
 
+    def test_status_salva_separado(self):
+        from produtos.atendimento_whatsapp_util import listar_status, processar_status
+        from produtos.models import WhatsAppStatusAgro
+
+        st, err = processar_status(
+            jid="5513999000888@s.whatsapp.net",
+            texto="Bom dia loja",
+            nome="Ana Status",
+            wa_id="st-ana-1",
+            tipo_midia="text",
+        )
+        self.assertEqual(err, "")
+        self.assertIsNotNone(st)
+        self.assertEqual(WhatsAppConversaAgro.objects.count(), 0)
+        self.assertEqual(WhatsAppStatusAgro.objects.count(), 1)
+        rows = listar_status()
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["nome"], "Ana Status")
+        self.assertEqual(len(rows[0]["itens"]), 1)
+        self.assertEqual(rows[0]["itens"][0]["texto"], "Bom dia loja")
+
 
 class ConsultaFiadoWhatsAppTests(TestCase):
     def test_fiado_pelo_zap(self):

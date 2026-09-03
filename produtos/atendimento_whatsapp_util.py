@@ -25,6 +25,7 @@ from produtos.models import (
     WhatsAppMensagemAgro,
     WhatsAppPonteEstadoAgro,
     WhatsAppPontePedidoAgro,
+    WhatsAppStatusAgro,
 )
 
 MAX_NOVOS_DIA = 20
@@ -32,6 +33,7 @@ MAX_HIST_MSGS = 40
 MAX_MIDIA_BYTES = 6_000_000
 MAX_SAIDA_MIDIA_BYTES = 3_000_000
 DIAS_HISTORICO = 7
+STATUS_HORAS = 24
 # Msg com ts mais velho que isso não dispara bot (anti-replay no reconnect).
 BOT_AO_VIVO_SEG = 5 * 60
 
@@ -1787,3 +1789,151 @@ def concluir_atendimento(conversa_id: int) -> tuple[bool, str]:
     if not n:
         return False, "Conversa não encontrada."
     return True, ""
+
+
+def _limpar_status_expirados() -> int:
+    agora = timezone.now()
+    n, _ = WhatsAppStatusAgro.objects.filter(expira_em__lt=agora).delete()
+    return int(n or 0)
+
+
+def serializar_status_item(s: WhatsAppStatusAgro) -> dict:
+    criado = s.criado_em
+    try:
+        criado_l = timezone.localtime(criado) if criado else None
+    except Exception:
+        criado_l = criado
+    return {
+        "id": int(s.pk),
+        "texto": s.texto or "",
+        "tipo_midia": s.tipo_midia or "",
+        "midia_url": f"/api/atendimento-whatsapp/status/midia/{int(s.pk)}/" if s.arquivo else "",
+        "hora": criado_l.strftime("%H:%M") if criado_l else "",
+        "criado_em": criado.isoformat() if criado else "",
+    }
+
+
+def listar_status(*, limit_autores: int = 40) -> list[dict]:
+    """Agrupa status ativos por contato (mais recente primeiro)."""
+    _limpar_status_expirados()
+    agora = timezone.now()
+    lim = max(1, min(int(limit_autores or 40), 80))
+    rows = list(
+        WhatsAppStatusAgro.objects.filter(expira_em__gte=agora)
+        .order_by("-criado_em", "-id")[:400]
+    )
+    por_autor: dict[str, dict] = {}
+    ordem: list[str] = []
+    for s in rows:
+        chave = (s.autor_jid or s.telefone or str(s.pk)).strip().lower()
+        if not chave:
+            continue
+        if chave not in por_autor:
+            if len(ordem) >= lim:
+                continue
+            ordem.append(chave)
+            por_autor[chave] = {
+                "autor_jid": s.autor_jid,
+                "telefone": s.telefone or "",
+                "nome": s.nome or "",
+                "ultima_em": s.criado_em.isoformat() if s.criado_em else "",
+                "itens": [],
+            }
+        bucket = por_autor[chave]
+        if not bucket["nome"] and s.nome:
+            bucket["nome"] = s.nome
+        if not bucket["telefone"] and s.telefone:
+            bucket["telefone"] = s.telefone
+        bucket["itens"].append(serializar_status_item(s))
+    out = []
+    for chave in ordem:
+        bucket = por_autor.get(chave)
+        if not bucket or not bucket["itens"]:
+            continue
+        bucket["itens"].sort(key=lambda x: x.get("criado_em") or "")
+        out.append(bucket)
+    return out
+
+
+def processar_status(
+    *,
+    jid: str,
+    texto: str,
+    nome: str = "",
+    wa_id: str = "",
+    ts=None,
+    tipo_midia: str = "",
+    midia_b64: str = "",
+    mime: str = "",
+    nome_arquivo: str = "",
+    telefone: str = "",
+    jid_lid: str = "",
+) -> tuple[WhatsAppStatusAgro | None, str]:
+    jid_n = (jid or "").strip()
+    lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
+    tel_limpo = _telefone_real(telefone) or _telefone_real(jid_n)
+    if lid and not tel_limpo:
+        pares = _mapa_lid_disco()
+        tel_limpo = _telefone_real(str(pares.get(lid) or pares.get(jid_n) or ""))
+    tel_extra = telefone_para_jid(tel_limpo) if tel_limpo else ""
+    if tel_extra:
+        jid_n = tel_extra
+    elif lid and not jid_eh_chat_privado(jid_n):
+        jid_n = lid
+    if not jid_eh_chat_privado(jid_n) and not lid:
+        return None, "ignorado"
+
+    t = str(texto or "").strip()
+    tipo_n = (tipo_midia or "").strip().lower()[:16]
+    if not t and not tipo_n:
+        return None, "ignorado"
+    if not tipo_n and t:
+        tipo_n = "text"
+    t = t[:TEXTO_MAX]
+    wa = (wa_id or "").strip()[:80]
+    if wa and WhatsAppStatusAgro.objects.filter(wa_id=wa).exists():
+        return None, "duplicada"
+
+    quando = _ts_aware(ts)
+    if (timezone.now() - quando).total_seconds() > STATUS_HORAS * 3600:
+        return None, "ignorado"
+
+    expira = quando + timedelta(hours=STATUS_HORAS)
+    if expira <= timezone.now():
+        return None, "ignorado"
+
+    nome_n = (nome or "").strip()[:120]
+    if not nome_n and tel_limpo:
+        ag = WhatsAppAgendaContatoAgro.objects.filter(
+            Q(telefone__endswith=tel_limpo[-10:]) | Q(jid=jid_n)
+        ).first()
+        if ag and ag.nome:
+            nome_n = ag.nome[:120]
+    if not nome_n and tel_limpo:
+        cli = cliente_agro_por_whatsapp_flex(tel_limpo)
+        if cli and cli.nome:
+            nome_n = cli.nome[:120]
+
+    st = WhatsAppStatusAgro(
+        autor_jid=jid_n[:80],
+        telefone=(tel_limpo or "")[:32],
+        nome=nome_n,
+        jid_lid=(lid or "")[:80],
+        wa_id=wa,
+        texto=t,
+        tipo_midia=tipo_n,
+        criado_em=quando,
+        expira_em=expira,
+    )
+    if midia_b64 or tipo_n in ("image", "video"):
+        err = anexar_midia(
+            st,  # type: ignore[arg-type]
+            tipo_midia=tipo_n,
+            midia_b64=midia_b64,
+            mime=mime,
+            nome_arquivo=nome_arquivo,
+        )
+        if err:
+            return None, err
+    st.save()
+    return st, ""

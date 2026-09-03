@@ -3566,6 +3566,39 @@ class WhatsAppAgendaContatoAgro(models.Model):
         return f"{self.nome or self.telefone or self.jid}"
 
 
+class WhatsAppStatusAgro(models.Model):
+    """Stories/status de contatos — separado do chat 1-a-1 (expira em 24 h)."""
+
+    autor_jid = models.CharField(max_length=80, db_index=True)
+    telefone = models.CharField(max_length=32, blank=True, default="", db_index=True)
+    nome = models.CharField(max_length=120, blank=True, default="")
+    jid_lid = models.CharField(max_length=80, blank=True, default="")
+    wa_id = models.CharField(max_length=80, blank=True, default="", db_index=True)
+    texto = models.TextField(blank=True, default="")
+    tipo_midia = models.CharField(max_length=16, blank=True, default="")
+    arquivo = models.FileField(upload_to="whatsapp/status/%Y/%m/", blank=True)
+    criado_em = models.DateTimeField(default=timezone.now, db_index=True)
+    expira_em = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = "Status WhatsApp"
+        verbose_name_plural = "Status WhatsApp"
+        ordering = ["criado_em", "id"]
+        indexes = [
+            models.Index(fields=["autor_jid", "criado_em"], name="wa_st_autor_cri_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wa_id"],
+                condition=~models.Q(wa_id=""),
+                name="wa_st_wa_id_uniq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"status {self.nome or self.telefone or self.autor_jid}"
+
+
 class WhatsAppPontePedidoAgro(models.Model):
     """Pedido da tela para a ponte (agenda / histórico curto)."""
 
