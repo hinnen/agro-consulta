@@ -202,7 +202,7 @@
     document.body.appendChild(root);
     root.querySelector('#agro-pdv-overlay-close').addEventListener('click', function () {
       if (chromeLocked) return;
-      close();
+      backOrClose();
     });
     root.querySelector('[data-agro-pdv-overlay-dismiss]').addEventListener('click', function () {
       /* Fundo nao fecha — so X / FECHAR / Esc */
@@ -351,7 +351,7 @@
     return openFlag;
   }
 
-  /** Esc no pai: se o iframe está no Ver venda, volta à lista (1 nível). */
+  /** Esc/Fechar no pai: se o iframe está no Ver venda, volta à lista (1 nível). */
   function tryFrameBackOne() {
     var root = document.getElementById(ROOT_ID);
     var frame = root && root.querySelector('#agro-pdv-overlay-frame');
@@ -374,6 +374,11 @@
     }
   }
 
+  function backOrClose() {
+    if (tryFrameBackOne()) return;
+    close();
+  }
+
   function onKeydown(e) {
     if (!openFlag) return;
     var k = e.key || '';
@@ -385,8 +390,11 @@
       }
       e.preventDefault();
       e.stopPropagation();
-      if (k === 'Escape' && tryFrameBackOne()) return;
-      close();
+      if (k === 'F1') {
+        close();
+        return;
+      }
+      backOrClose();
     }
   }
 
