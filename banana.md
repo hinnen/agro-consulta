@@ -1292,7 +1292,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Aba **Histórico** do F8: some **Itens mais comprados**. Abre direto em **Últimas vendas**. Top produtos continua no **Resumo**. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_f8_hist_vendas_path` **11/11** · overlay stack **16/16** · HTTP local **off** |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.84** |
 | **Você** | Ctrl+F5 · F8 · aba Histórico (lista vendas; sem cards) |
 
 ### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
@@ -1320,7 +1320,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | `/vendas/`: sem rolagem lateral (tirou **Caixa** e **Fiscal**). Overlay: header interno some · período/CSV na topbar verde. Ações em grade 4 slots (Ver/Imprimir/Devolver\|Devolvida/NFC-e). Busca `q` no servidor. Colunas fixed · R$ menor · valor 20px · Data sem vazar. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_vendas_lista_ux_path` **52/52** · HTTP local `/vendas/` **200** · busca fiado OK |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.84** |
 | **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
 ### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.84** · 03/09)
@@ -1331,7 +1331,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_overlay_stack_path` **22/22** · vendas UX **52/52** |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.84** |
 
 ### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
 
@@ -1340,7 +1340,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Fechar caixa: **Confirmar** na conferência fiado grava no Postgres. Reabrir a tela **não** pede de novo as notas já conferidas. Só aparece venda/pagamento **novo**. |
 | **Migrate** | **SIM** `produtos.0123` |
 | **Prova** | `verify_caixa_fiado_conferencia_path` **30/30** (contratos + validar + PIN 9973 + Pular não grava + API só turno/loja + HTTP login) |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.84** |
 
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
 
@@ -1349,7 +1349,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | `/fiado/`: KPIs mês; Limite na linha; cliente tela cheia; Recibos modal; Pedido/**Ver** = overlay em cima (não troca página); Esc/← Lista volta ao fiado (não ao PDV); tabela compacta + fonte maior; top bar some no overlay. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **14/14** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.84** |
 | **Inclui** | `FIADO-TOPBAR-OVERLAY` · hotfixes Esc + Ver overlay |
 
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
@@ -1359,36 +1359,36 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Fechar venda: «ainda sou eu» **10s**. Pedir/chat: **45s**. Descanso: **3 min**. |
 | **Prova** | path **78/78** · API local PIN 9973 (ttl 10 vs 45) **OK** · Pedir/chat sem 10s |
 | **Migrate** | **NÃO** |
-| **Commit código** | `73c0b2e` · tip **v21.32** |
-| **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
+| **Commit código** | `73c0b2e` · Live **v21.84** |
+| **Status** | ✅ **Live v21.84** |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### 🚀 PREP deploy loja — lote checklist 03/09 (`deploy/prep-checklist-0309` · **v21.83**) · aguarda senha
+### ✅ Deploy loja — lote checklist 03/09 (`deploy/prep-checklist-0309` · **v21.84**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟡 **PREP pronto** — **não** subiu na loja. Próximo chat: pausar vendas + frase + senha |
-| **Loja agora** | **Live v21.82** · `527be62` (WhatsApp menu; PDV **Em breve**) |
-| **Alvo** | **v21.83** · branch `deploy/prep-checklist-0309` |
+| **Status** | ✅ **enviado / Live v21.84** — healthz **ok** · consulta **200** · badge **21.84** · commit **`c165db2`** |
+| **Antes** | `producao` @ **`527be62`** · v21.82 |
+| **Agora** | `producao` @ **`c165db2`** |
 | **Pacotes** | `PIN-VENDA-10S` · `FIADO-VER-RECIBOS` · `PDV-OVERLAY-STACK` · `VENDAS-LISTA-UX` · `F8-HIST-VENDAS` · `CAIXA-FIADO-CONF` |
-| **Provas** | PIN **78/78** · fiado **63/63** · overlay **22/22** · vendas **52/52** · F8 **11/11** · caixa-fiado **30/30** · regressão caixa-MP **171/171** · overlay fundo **13/13** · repasse **188/188** |
+| **Hotfix** | 1ª tentativa v21.83 falhou no build (rota WA `excluir-todas` sem view). Loja **não** caiu (ficou no v21.82). Tirei a rota e subi **v21.84**. |
 | **Migrate** | **SIM** `produtos.0123` |
 | **Não sobe** | WhatsApp extra do `teste` · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST` |
-| **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · branch `producao-backup-pre-v2183-lote-checklist-20260903` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` |
-| **Você no deploy** | Zap: pausar ~2 min · Ctrl+F5 · badge **v21.83** · PIN+F7 · F8 · Vendas overlay · Fiado Ver · Fechar caixa fiado |
+| **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
+| **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
 
-### ✅ CHECKLIST ÚNICO — PREP 03/09 (alvo loja **v21.83**)
+### ✅ CHECKLIST ÚNICO — 03/09 · **Live v21.84**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PIN-VENDA-10S` | 🟡 **PREP** · prova **78/78** | **NÃO** |
-| 2 | `FIADO-VER-RECIBOS` | 🟡 **PREP** · prova **63/63** | **NÃO** |
-| 3 | `PDV-OVERLAY-STACK` | 🟡 **PREP** · prova **22/22** | **NÃO** |
-| 4 | `VENDAS-LISTA-UX` | 🟡 **PREP** · prova **52/52** | **NÃO** |
-| 5 | `F8-HIST-VENDAS` | 🟡 **PREP** · prova **11/11** | **NÃO** |
-| 6 | `CAIXA-FIADO-CONF` | 🟡 **PREP** · prova **30/30** | **SIM** `0123` |
+| 1 | `PIN-VENDA-10S` | ✅ **Live v21.84** | **NÃO** |
+| 2 | `FIADO-VER-RECIBOS` | ✅ **Live v21.84** | **NÃO** |
+| 3 | `PDV-OVERLAY-STACK` | ✅ **Live v21.84** | **NÃO** |
+| 4 | `VENDAS-LISTA-UX` | ✅ **Live v21.84** | **NÃO** |
+| 5 | `F8-HIST-VENDAS` | ✅ **Live v21.84** | **NÃO** |
+| 6 | `CAIXA-FIADO-CONF` | ✅ **Live v21.84** | **SIM** `0123` |
 
-**Live agora:** **v21.82**. **Não** merge `teste`. Loja só no próximo chat com frase + senha.
+**Live agora:** **v21.84**. WhatsApp extra / cadastro cliente layout / Excel vazio **fora**.
 
 ### PC — disco C: cheio (02/09) · offload Cursor **preparado, ainda não executado**
 
