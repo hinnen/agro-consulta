@@ -307,7 +307,11 @@
           escapeHtml(titulo) +
           '" data-tel="' +
           escapeHtml(c.telefone || '') +
-          '"><div class="wa-row1"><div class="wa-n">' +
+          '"><span class="wa-av">' +
+          (c.foto_url
+            ? '<img alt="" src="' + escapeHtml(c.foto_url) + '" />'
+            : '<span class="wa-av-ini">' + escapeHtml((titulo || '?').charAt(0).toUpperCase()) + '</span>') +
+          '</span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
           escapeHtml(titulo) +
           '</div><div class="wa-t">' +
           escapeHtml(c.hora || '') +
@@ -315,7 +319,7 @@
           htmlPreviewLista(c.ultima_preview || '') +
           '</div>' +
           unread +
-          '</div></button>'
+          '</div></div></button>'
         );
       })
       .join('');
@@ -505,6 +509,7 @@
         .join('');
     }
     if (media) {
+      pararMidiaStatus();
       var html = '';
       if (item.midia_url && (item.tipo_midia === 'image' || item.tipo_midia === 'video' || !item.tipo_midia)) {
         if (item.tipo_midia === 'video') {
@@ -525,7 +530,21 @@
     pintarStatusStrip();
   }
 
+  function pararMidiaStatus() {
+    var media = $('wa-st-media');
+    if (!media) return;
+    media.querySelectorAll('audio, video').forEach(function (el) {
+      try {
+        el.pause();
+        el.removeAttribute('src');
+        if (typeof el.load === 'function') el.load();
+      } catch (e) {}
+    });
+    media.innerHTML = '';
+  }
+
   function fecharStatusViewer() {
+    pararMidiaStatus();
     var box = $('wa-st-view');
     if (box) box.classList.add('hidden');
     document.body.classList.remove('wa-st-open');

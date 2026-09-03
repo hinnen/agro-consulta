@@ -653,6 +653,56 @@ async function enviarEntrada(m, extra) {
     mime: midia.mime || "",
     nome_arquivo: String((conteudoDe(m) && conteudoDe(m).documentMessage && conteudoDe(m).documentMessage.fileName) || ""),
   });
+  if (!historico && !(m.key && m.key.fromMe)) {
+    agendarFotoPerfil(jid, { telefone: tel, jid_lid: lid });
+  }
+}
+
+const fotoTentada = new Map();
+const FOTO_TTL_MS = 6 * 60 * 60 * 1000;
+let fotoFila = Promise.resolve();
+
+function agendarFotoPerfil(jid, extra) {
+  const j = String(jid || "");
+  if (!ehChatPrivado(j)) return;
+  const last = fotoTentada.get(j) || 0;
+  if (Date.now() - last < FOTO_TTL_MS) return;
+  fotoTentada.set(j, Date.now());
+  fotoFila = fotoFila
+    .then(() => enviarFotoPerfil(j, extra || {}))
+    .catch((e) => console.error("foto perfil:", e.message || e));
+}
+
+async function enviarFotoPerfil(jid, extra) {
+  if (!sock || typeof sock.profilePictureUrl !== "function") return;
+  let url = "";
+  try {
+    url = await sock.profilePictureUrl(jid, "image");
+  } catch {
+    return;
+  }
+  if (!url) return;
+  let buf = null;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) return;
+    buf = Buffer.from(await r.arrayBuffer());
+  } catch {
+    return;
+  }
+  if (!buf || !buf.length || buf.length > 2500000) return;
+  const mime = String((url.split("?")[0] || "").endsWith(".png") ? "image/png" : "image/jpeg");
+  await post("/api/atendimento-whatsapp/bridge/foto/", {
+    jid,
+    telefone: (extra && extra.telefone) || telefoneDeJid(jid),
+    jid_lid: (extra && extra.jid_lid) || "",
+    midia_b64: buf.toString("base64"),
+    mime,
+  });
+}
+
+function semearFotosPerfil() {
+  /* fotos pendentes vêm no poll da saída */
 }
 
 async function estado(payload) {
@@ -732,6 +782,7 @@ async function ligar() {
       setTimeout(() => {
         varrerStore();
         enviarAgenda(0).catch(() => {});
+        semearFotosPerfil();
       }, 4000);
     }
     if (connection === "close") {
@@ -1216,6 +1267,10 @@ async function puxarSaida() {
     }
     for (const p of (j && j.pedidos) || []) {
       await executarPedido(p);
+    }
+    for (const f of (j && j.fotos) || []) {
+      if (!f || !f.jid) continue;
+      agendarFotoPerfil(f.jid, { telefone: f.telefone || "", jid_lid: f.jid_lid || "" });
     }
   } catch (e) {
     console.error("poll:", e.message || e);

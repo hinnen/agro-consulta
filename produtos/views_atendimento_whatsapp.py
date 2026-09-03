@@ -27,6 +27,7 @@ from produtos.atendimento_whatsapp_util import (
     listar_mensagens,
     listar_pedidos_pendentes,
     listar_saida_pendente,
+    listar_fotos_pendentes,
     marcar_enviadas,
     marcar_lidas,
     concluir_atendimento,
@@ -37,6 +38,7 @@ from produtos.atendimento_whatsapp_util import (
     pedir_trocar_whatsapp,
     processar_entrada,
     processar_status,
+    gravar_foto_perfil,
     aplicar_mapa_lid,
     listar_status,
     serializar_conversa,
@@ -45,7 +47,7 @@ from produtos.atendimento_whatsapp_util import (
     token_ponte_ok,
     toque_heartbeat,
 )
-from produtos.models import WhatsAppMensagemAgro, WhatsAppStatusAgro
+from produtos.models import WhatsAppConversaAgro, WhatsAppMensagemAgro, WhatsAppStatusAgro
 
 
 def _json_body(request) -> dict | None:
@@ -484,6 +486,43 @@ def api_atendimento_whatsapp_midia(request, pk: int):
     return _arquivo_midia_response(m)
 
 
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_foto(request, pk: int):
+    try:
+        c = WhatsAppConversaAgro.objects.get(pk=int(pk))
+    except (WhatsAppConversaAgro.DoesNotExist, TypeError, ValueError) as exc:
+        raise Http404("Foto não encontrada.") from exc
+    if not c.foto_perfil:
+        raise Http404("Foto não encontrada.")
+    name = (c.foto_perfil.name or "").lower()
+    ctype = "image/jpeg"
+    if name.endswith(".png"):
+        ctype = "image/png"
+    elif name.endswith(".webp"):
+        ctype = "image/webp"
+    return FileResponse(c.foto_perfil.open("rb"), content_type=ctype)
+
+
+@csrf_exempt
+@require_POST
+def api_atendimento_whatsapp_bridge_foto(request):
+    if not token_ponte_ok(request):
+        return _bridge_forbidden()
+    data = _json_body(request) or {}
+    ok, err = gravar_foto_perfil(
+        jid=str(data.get("jid") or ""),
+        telefone=str(data.get("telefone") or ""),
+        jid_lid=str(data.get("jid_lid") or data.get("lid") or ""),
+        midia_b64=str(data.get("midia_b64") or ""),
+        mime=str(data.get("mime") or ""),
+        forcar=bool(data.get("forcar")),
+    )
+    if not ok and err not in ("ignorado",):
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "info": err or ""})
+
+
 @csrf_exempt
 @require_POST
 def api_atendimento_whatsapp_bridge_estado(request):
@@ -605,7 +644,7 @@ def api_atendimento_whatsapp_bridge_saida(request):
         return _bridge_forbidden()
     toque_heartbeat()
     return JsonResponse(
-        {"ok": True, "saida": listar_saida_pendente(), "pedidos": listar_pedidos_pendentes()}
+        {"ok": True, "saida": listar_saida_pendente(), "pedidos": listar_pedidos_pendentes(), "fotos": listar_fotos_pendentes()}
     )
 
 

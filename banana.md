@@ -1279,14 +1279,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | teste — aguarda Ctrl+F5 no PC |
 | **Você** | Abrir cliente no Zap/overlay · editar/salvar · Vale/Excluir/Histórico |
 
-### 📦 WIP — cadastro vazio + histórico (`CAD-FALLBACK-HIST` · 03/09)
+### 📦 WIP — cadastro vazio + Excel/histórico (`CAD-FALLBACK-HIST` · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Campos em branco (marca/cat/barras) na leitura do detalhe voltam do **histórico PG**. Barra antiga diferente entra como **opcional**. Sem Mongo. Render MCP OK (API key). |
-| **Leitura produção** | `agro-db` · **~23 recuperáveis** + **551 vazios** (diagnóstico) · abrir `conferencia-cadastro-producao-2026-09-03.html` no Chrome |
-| **Status** | Lista pronta p/ Renan conferir · **ainda não sobe loja** |
-| **Fora** | Não grava produção; só leitura |
+| **O quê** | Detalhe: vazio → histórico PG → JSON Excel ERP. Comando `recuperar_cadastro_vazios_excel` (dry-run / `--aplicar`) grava só campo vazio. Sem Mongo. |
+| **Produção (leitura)** | Excel: **101 produtos / 264 campos** · HTML `conferencia-cadastro-excel-2026-09-03.html` · JSON `scripts/data/recuperacao_cadastro_excel_2026_09_03.json` |
+| **Status** | Pacote local pronto · dry-run local = 0 (base local ≠ loja) · **loja ainda não** |
+| **Você** | Conferir HTML · para gravar loja: frase + senha |
 
 ### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.70** · 03/09)
 
@@ -1432,6 +1432,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Status do Zap (`WA-STATUS-OFF` · 03/09):** stories (`status@broadcast`) caíam no chat 1-a-1 (foto/legenda) e disparavam boas-vindas. Ponte + Django ignoram. **Religar `.bat`**.
 - **Ver status (`WA-STATUS-VER` · 03/09):** faixa circular no topo da lista + visualizador (foto/vídeo/texto). Migrate **`0120`**. **Religar `.bat`** + Ctrl+F5.
 - **Ficha (`WA-FICHA-OVERLAY` · 03/09):** **Fechar** da ficha (antes o JS carregava antes do botão). **Abrir cadastro** abre em overlay (não troca a página).
+- **Status áudio + foto (`WA-STATUS-AUD` / `WA-FOTO-PERFIL` · 03/09):** Esc/fecha para o áudio/vídeo do status. Lista com foto de perfil (ponte Baileys). Migrate **`0121`**. **Religar `.bat`** + migrate + Ctrl+F5.
 - **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`). **Fila visual (`WA-ESPERA` · 03/09):** verde=nova · laranja=leu sem resposta · neutro=respondeu ou **✓** concluir. Migrate **`0118`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão no topo · migrate **`0119`**.
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)

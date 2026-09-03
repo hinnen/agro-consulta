@@ -412,6 +412,7 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "ultima_em": ult.isoformat() if ult else "",
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
+        "foto_url": f"/api/atendimento-whatsapp/foto/{int(c.pk)}/" if c.foto_perfil else "",
     }
 
 
@@ -1755,6 +1756,29 @@ def listar_saida_pendente(limit: int = 20) -> list[dict]:
     return out
 
 
+def listar_fotos_pendentes(*, limit: int = 25) -> list[dict]:
+    """Conversas recentes sem foto (ou foto velha) — a ponte busca no Zap."""
+    lim = max(1, min(int(limit or 25), 40))
+    corte = timezone.now() - timedelta(days=5)
+    qs = (
+        WhatsAppConversaAgro.objects.filter(Q(foto_perfil="") | Q(foto_em__isnull=True) | Q(foto_em__lt=corte))
+        .order_by("-ultima_em", "-id")[:lim]
+    )
+    out = []
+    for c in qs:
+        jid = (c.jid or "").strip()
+        if not jid_eh_chat_privado(jid) and not (c.jid_lid or ""):
+            continue
+        out.append(
+            {
+                "jid": jid,
+                "jid_lid": (c.jid_lid or "")[:80],
+                "telefone": (c.telefone or "")[:32],
+            }
+        )
+    return out
+
+
 def marcar_enviadas(ids: list[int], *, erro: str = "", wa_id: str = "") -> int:
     if not ids:
         return 0
@@ -1937,3 +1961,70 @@ def processar_status(
             return None, err
     st.save()
     return st, ""
+
+
+def gravar_foto_perfil(
+    *,
+    jid: str = "",
+    telefone: str = "",
+    jid_lid: str = "",
+    midia_b64: str = "",
+    mime: str = "",
+    forcar: bool = False,
+) -> tuple[bool, str]:
+    """Salva foto de perfil do Zap na conversa existente (não cria chat novo)."""
+    jid_n = (jid or "").strip()
+    lid = _jid_lid(jid_lid) or _jid_lid(jid_n)
+    tel_limpo = _telefone_real(telefone) or _telefone_real(jid_n)
+    tel_extra = telefone_para_jid(tel_limpo) if tel_limpo else ""
+    if tel_extra:
+        jid_n = tel_extra
+    elif lid and not jid_eh_chat_privado(jid_n):
+        jid_n = lid
+    if not jid_eh_chat_privado(jid_n) and not lid:
+        return False, "ignorado"
+    raw, err = _b64_para_bytes(midia_b64, teto=MAX_MIDIA_BYTES)
+    if err:
+        return False, err
+    if not raw:
+        return False, "Arquivo vazio."
+    qs = WhatsAppConversaAgro.objects.all()
+    conv = None
+    if jid_n:
+        conv = qs.filter(jid=jid_n).first()
+    if conv is None and lid:
+        conv = qs.filter(jid_lid=lid).first() or qs.filter(jid=lid).first()
+    if conv is None and tel_limpo:
+        conv = qs.filter(telefone__endswith=tel_limpo[-10:]).order_by("-ultima_em", "-id").first()
+    if conv is None:
+        return False, "sem_conversa"
+    if (
+        not forcar
+        and conv.foto_perfil
+        and conv.foto_em
+        and timezone.now() - conv.foto_em < timedelta(days=3)
+    ):
+        return True, "recente"
+    ext = ".jpg"
+    mime_l = (mime or "").lower()
+    if "png" in mime_l:
+        ext = ".png"
+    elif "webp" in mime_l:
+        ext = ".webp"
+    fname = f"pp_{uuid.uuid4().hex[:14]}{ext}"
+    if conv.foto_perfil:
+        try:
+            conv.foto_perfil.delete(save=False)
+        except Exception:
+            pass
+    conv.foto_perfil.save(fname, ContentFile(raw), save=False)
+    conv.foto_em = timezone.now()
+    campos = ["foto_perfil", "foto_em"]
+    if tel_limpo and not conv.telefone:
+        conv.telefone = tel_limpo[:32]
+        campos.append("telefone")
+    if lid and not conv.jid_lid:
+        conv.jid_lid = lid
+        campos.append("jid_lid")
+    conv.save(update_fields=campos)
+    return True, ""
