@@ -1271,7 +1271,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.03** · 03/09)
+### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bug loja **#12**: lançar entrega (dinheiro/cartão) agora liga a tabela de preço da forma. |
+| **Onde** | `/pdv/` etapa Entrega |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_tabela_preco_forma.py` |
+| **Status** | 🟡 `teste` · **não** loja |
+| **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão (ou Dinheiro) · conferir total |
+
+### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.08** · 03/09)
 
 | | |
 | --- | --- |
@@ -1279,7 +1290,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Causa** | PIN da venda (10s) + espera na maquininha / F5. `finalizar` estourava **500 HTML** com o cartão já pago. |
 | **Fix** | Carimba quem cobrou · se o PIN acabar, usa o carimbo · 500 vira JSON e o PDV tenta de novo · PIN 45s se a máquina já cobrou |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v22.03** |
+| **Status** | 🟡 `teste` **v22.08** |
 | **Você** | Ctrl+F5 no PDV · débito Point · esperar na máquina · Confirmar. Tem que gravar sem tela vermelha. |
 
 ### 📦 PACOTE — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · 03/09)
