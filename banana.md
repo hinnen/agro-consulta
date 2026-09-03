@@ -1298,26 +1298,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · tecla `/` foca busca · overlay PDV → Vendas |
 
-### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.75** · 03/09)
+### 📦 PACOTE PRONTO — Overlay empilhado (`PDV-OVERLAY-STACK` · **v21.76** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | 2ª/3ª camada em cima: a de baixo fica **inativa** (sem Fechar/Esc/F1 da barra verde). Motor `AgroOverlayStack` + trava no `AgroPdvOverlay`. Cobre: Fiado, Vendas (NFC-e), Caixa (modais), Clientes/cadastro, Compras (modais), Repasse, Pedir/Uso loja, Transf. forçada, Balança, Entrega wizard, forma pagamento, cadastro/edição rápida. |
-| **Hotfix Esc fiado** | Esc/F1 com cliente aberto **não** fecha o overlay (atalho `_atalho_voltar_pdv`); tabela lançamentos mais compacta + fonte maior · **Ver pedido** abre overlay em cima (não troca a página) |
+| **O quê** | 2ª/3ª camada: de baixo inativa (Fechar/Esc/F1). Motor `AgroOverlayStack` + chromeLocked. Fiado/Vendas/Caixa/Clientes/Compras/Repasse/Pedir/Uso/Transf/Balança/Entrega/pagamento/cadastro rápido. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` · `verify_fiado_ver_recibos_path` · check OK |
+| **Prova** | `verify_pdv_overlay_stack_path` **12/12** |
 | **Status** | 🟡 **pronto para envio à produção** |
-| **Reverter** | `git revert` deste commit (pacote único) |
 
-### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.74** · 03/09)
+### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/fiado/`: lista no padrão `/vendas/`; **Pedido**/**Ver** → popup da venda (sem vínculo = Sistema antigo); **Recibos** em modal; coluna **Limite** na linha; KPIs vendido/pago mês + anterior; modal cliente tela cheia; no overlay PDV some header interno + **esconde top bar** (não fecha o fiado no Fechar verde); Backup JSON na barra. |
+| **O quê** | `/fiado/`: KPIs mês; Limite na linha; cliente tela cheia; Recibos modal; Pedido/**Ver** = overlay em cima (não troca página); Esc/← Lista volta ao fiado (não ao PDV); tabela compacta + fonte maior; top bar some no overlay. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_fiado_ver_recibos_path` **38/38** · check OK · APIs local resumo/clientes/titulos/recibos/limite **200** (venda_agro_id ok) |
+| **Prova** | `verify_fiado_ver_recibos_path` **63/63** · stack **12/12** · check OK · APIs resumo/clientes/titulos/recibos/limite/venda embed **200** |
 | **Status** | 🟡 **pronto para envio à produção** |
-| **Inclui** | `FIADO-TOPBAR-OVERLAY` |
+| **Inclui** | `FIADO-TOPBAR-OVERLAY` · hotfixes Esc + Ver overlay |
 
 ### 📦 PACOTE PRONTO — PIN fechar venda 10s (`PIN-VENDA-10S` · **v21.32** · 03/09)
 
@@ -1330,7 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 **pronto para envio à produção** (loja ainda **v21.08** / 45s na venda) |
 | **Fora** | WhatsApp (`WA-*`) |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.77**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip **v21.79**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
