@@ -1391,7 +1391,7 @@ Grava no Postgres sem login Chrome. Prova **33/33**.
 - **Áudio celular (`WA-AUD-VOIP` · 02/09):** conversão ogg/opus no formato do Zap (voip 48k) + duração; se falhar marca erro (não “finge” enviado). **Religar `.bat`** + teste curto.
 - **Áudio toca no celular (`WA-AUD-CODE3` · 03/09):** bolha chegava mas «arquivo com problema» — Opus do ffmpeg (code 0) → remonta code 3 como o Zap nativo. **Religar `.bat`**.
 - **Bot sozinho (`WA-BOT-REPLAY` · 03/09 · teste v21.33):** reconnect do `.bat` reenviava msgs antigas como “ao vivo” → boas-vindas sem o cliente escrever. Agora: idade da msg (ponte + Django). **Religar `.bat`**.
-- **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`).
+- **Lista estilo Zap (`WA-LISTA-UI` · 03/09):** ícone áudio/figurinha · prévia 1 linha · horário coluna fixa à direita · lista mais larga. Abas Fila/Centro/Vila somem se **Separar lojas** off (`WA-TABS-OFF`). Não lidas = **bolinha verde** só com número (`WA-UNREAD-DOT`).
 
 ### 📦 PACOTE PRONTO — Bot WhatsApp (`WA-BOT-CFG` · 02/09/2026)
 
