@@ -866,11 +866,6 @@ urlpatterns = [
         name='api_atendimento_whatsapp_excluir',
     ),
     path(
-        'api/atendimento-whatsapp/excluir-todas/',
-        views_atendimento_whatsapp.api_atendimento_whatsapp_excluir_todas,
-        name='api_atendimento_whatsapp_excluir_todas',
-    ),
-    path(
         'api/atendimento-whatsapp/apagar-mensagem/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_apagar_mensagem,
         name='api_atendimento_whatsapp_apagar_mensagem',
