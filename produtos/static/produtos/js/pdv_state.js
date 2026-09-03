@@ -720,31 +720,9 @@
         notify();
     }
 
-    function syncFormaPorMeioEntrega() {
-        if (!state.entrega || !state.pagamento) return;
-        if (String(state.entrega.localPagamento || '') !== 'entrega') return;
-        var meio = String(state.entrega.meioNaEntrega || '').trim();
-        var fp = '';
-        if (
-            typeof window.AgroPrecosFormaPagamento !== 'undefined' &&
-            window.AgroPrecosFormaPagamento.formaFromMeioEntrega
-        ) {
-            fp = window.AgroPrecosFormaPagamento.formaFromMeioEntrega(meio);
-        } else if (meio === 'dinheiro') {
-            fp = 'Dinheiro';
-        } else if (meio === 'cartao') {
-            fp = 'Cartão de crédito';
-        }
-        state.pagamento.forma = fp;
-        recalcularPrecosFormaItens(fp);
-    }
-
     function setEntregaField(field, value) {
         if (!state.entrega || !(field in state.entrega)) return;
         state.entrega[field] = value;
-        if (field === 'meioNaEntrega' || field === 'localPagamento') {
-            syncFormaPorMeioEntrega();
-        }
         notify();
     }
 
@@ -753,12 +731,6 @@
         Object.keys(patch).forEach(function (k) {
             if (k in state.entrega) state.entrega[k] = patch[k];
         });
-        if (
-            Object.prototype.hasOwnProperty.call(patch, 'meioNaEntrega') ||
-            Object.prototype.hasOwnProperty.call(patch, 'localPagamento')
-        ) {
-            syncFormaPorMeioEntrega();
-        }
         notify();
     }
 

@@ -3469,15 +3469,28 @@
         if (tabs && tabs.length) {
             var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
             if (!isFinite(padrao)) padrao = 0;
+            var formaAtiva = '';
+            if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+                formaAtiva = window.AgroPrecosFormaPagamento.obterFormaDoState(State.getState()) || '';
+            }
+            var tAtiva = null;
+            if (formaAtiva && window.AgroPrecosFormaPagamento.tabelaParaForma) {
+                tAtiva = window.AgroPrecosFormaPagamento.tabelaParaForma(formaAtiva, item);
+            }
             var html =
                 '<div class="pdv-cart-grupos-hint" aria-label="Preço padrão e tabelas %">' +
-                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço padrão">' +
+                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a' +
+                (!tAtiva ? ' is-selected' : '') +
+                '" title="Preço padrão">' +
                 '<span class="pdv-cart-grupo-tag">P</span>' +
                 escapeHtml(formatMoney(padrao)) +
                 '</span>';
             tabs.forEach(function (tb) {
+                var sel = tAtiva && Number(tAtiva.slot) === Number(tb.slot);
                 html +=
-                    '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="' +
+                    '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b' +
+                    (sel ? ' is-selected' : '') +
+                    '" title="' +
                     escapeHtml(tb.nome + ' · formas: ' + (tb.formas || []).join(', ')) +
                     '">' +
                     '<span class="pdv-cart-grupo-tag">' +
@@ -7547,9 +7560,6 @@
     }
 
     function resetWizardParaNovaVenda() {
-        var usouValePagamento = (State.getState().pagamento.lancamentos || []).some(function (L) {
-            return String(L.forma || '') === 'Vale crédito';
-        });
         closePaymentFormaModal();
         hideMpPointWaitBar();
         if (dom.stepPagamentoRoot) {
@@ -7560,11 +7570,6 @@
             });
         }
         State.reset(false);
-        creditoFiadoCliente = null;
-        creditoFiadoClienteId = '';
-        if (usouValePagamento) {
-            loadWizardClientesCache(true);
-        }
         State.setCurrentStep('produtos');
         openStartModal();
     }
@@ -9091,44 +9096,6 @@
             });
     }
 
-    function aplicarSaldoClienteNoPdv(cli) {
-        if (!cli) return;
-        var pk = cli.cliente_agro_pk != null ? cli.cliente_agro_pk : cli.pk;
-        if (pk == null || pk === '') return;
-        var patch = {
-            cliente_agro_pk: pk,
-            saldo_vale_credito: State.toNumber(cli.saldo_vale_credito),
-            saldo_cashback: State.toNumber(cli.saldo_cashback)
-        };
-        (wizardClientesCache || []).forEach(function (c, i) {
-            if (String(c.cliente_agro_pk) === String(pk) || String(c.pk) === String(pk)) {
-                wizardClientesCache[i] = Object.assign({}, c, patch);
-            }
-        });
-        try {
-            if (wizardClientesCache && wizardClientesCache.length) {
-                localStorage.setItem(
-                    PDV_CLIENTES_LS_KEY,
-                    JSON.stringify({ clientes: wizardClientesCache, saved_at: Date.now() })
-                );
-            }
-        } catch (eLs) {}
-        var st = State.getState();
-        var cur = st.cliente || {};
-        var curPk = cur.cliente_agro_pk != null ? cur.cliente_agro_pk : cur.pk;
-        if (curPk != null && String(curPk) === String(pk)) {
-            State.setCliente(
-                Object.assign({}, cur, patch),
-                st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente'
-            );
-        }
-        if (creditoFiadoCliente) {
-            creditoFiadoCliente.saldo_vale_credito = patch.saldo_vale_credito;
-            creditoFiadoCliente.saldo_cashback = patch.saldo_cashback;
-        }
-        renderProducts(State.getState(), State.getComputed());
-    }
-
     function patchClienteInSearchResults(updated) {
         if (!updated || !dom.quickClientResults) return;
         var clientes = dom.quickClientResults._clientes || [];
@@ -10043,7 +10010,15 @@
         } else if (lp === 'entrega' && meio === 'dinheiro') {
             forma = 'Dinheiro';
         } else if (lp === 'entrega' && meio === 'cartao') {
-            forma = 'Cartão';
+            forma = 'Cartão de crédito';
+            if (
+                window.AgroPrecosFormaPagamento &&
+                window.AgroPrecosFormaPagamento.formaFromMeioEntrega
+            ) {
+                forma =
+                    window.AgroPrecosFormaPagamento.formaFromMeioEntrega('cartao') ||
+                    forma;
+            }
         } else {
             forma = String(formaPagamentoResumoUi(state, computed) || '').trim().slice(0, 40);
         }

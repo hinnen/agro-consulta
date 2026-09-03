@@ -131,11 +131,7 @@ def main() -> None:
     check("cobrar_dinheiro_html", "COBRAR DINHEIRO" in html)
     check("obs_nao_concat_antiga", "maquininha ? 'Maquininha:" not in js)
     check("flags_dinheiro_forma", "forma = 'Dinheiro'" in extract_fn(js, "entregaFlagsPagamentoPrint"))
-    check(
-        "flags_cartao_forma",
-        "forma = 'Cartão de crédito'" in extract_fn(js, "entregaFlagsPagamentoPrint")
-        or "forma = 'Cartao de credito'" in extract_fn(js, "entregaFlagsPagamentoPrint"),
-    )
+    check("flags_cartao_forma", "forma = 'Cartão'" in extract_fn(js, "entregaFlagsPagamentoPrint") or "forma = 'Cartao'" in extract_fn(js, "entregaFlagsPagamentoPrint"))
     check("set_maq_nao_no_troco", "setEntregaField('maquininha', 'nao')" in js)
     check("build_usa_linha_obs", "linhaObsMaquininhaEntrega(state.entrega.maquininha)" in js)
     check("print_usa_linha_obs", "linhaObsMaquininhaEntrega(e.maquininha)" in js)

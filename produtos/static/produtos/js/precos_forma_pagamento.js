@@ -15,35 +15,9 @@
         return '';
     }
 
-    function formaFromMeioEntrega(meio) {
-        var m = String(meio || '').trim().toLowerCase();
-        if (m === 'dinheiro') return 'Dinheiro';
-        if (m !== 'cartao' && m !== 'cartão') return '';
-        var list = (_tabelasCache.tabelas || []).slice().sort(function (a, b) {
-            return toNum(a.slot, 99) - toNum(b.slot, 99);
-        });
-        for (var i = 0; i < list.length; i++) {
-            var t = list[i];
-            if (!t || !t.ativo) continue;
-            var formas = t.formas || [];
-            for (var j = 0; j < formas.length; j++) {
-                var ck = formaCanonKey(formas[j]);
-                if (ck.indexOf('cartao') === 0) return String(formas[j]);
-            }
-        }
-        return 'Cartão de crédito';
-    }
-
     function obterFormaDoState(state) {
         if (state && state.pagamento && state.pagamento.forma) {
             return String(state.pagamento.forma).trim();
-        }
-        if (
-            state &&
-            state.entrega &&
-            String(state.entrega.localPagamento || '') === 'entrega'
-        ) {
-            return formaFromMeioEntrega(state.entrega.meioNaEntrega);
         }
         return obterFormaPagamentoAtual();
     }
@@ -372,7 +346,6 @@
         toNum: toNum,
         obterFormaPagamentoAtual: obterFormaPagamentoAtual,
         obterFormaDoState: obterFormaDoState,
-        formaFromMeioEntrega: formaFromMeioEntrega,
         precoBaseForma: precoBaseForma,
         precosGruposVisiveis: precosGruposVisiveis,
         precosTabelasVisiveis: precosTabelasVisiveis,
