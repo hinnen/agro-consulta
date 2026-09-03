@@ -7560,6 +7560,9 @@
     }
 
     function resetWizardParaNovaVenda() {
+        var usouValePagamento = (State.getState().pagamento.lancamentos || []).some(function (L) {
+            return String(L.forma || '') === 'Vale crédito';
+        });
         closePaymentFormaModal();
         hideMpPointWaitBar();
         if (dom.stepPagamentoRoot) {
@@ -7570,6 +7573,11 @@
             });
         }
         State.reset(false);
+        creditoFiadoCliente = null;
+        creditoFiadoClienteId = '';
+        if (usouValePagamento) {
+            loadWizardClientesCache(true);
+        }
         State.setCurrentStep('produtos');
         openStartModal();
     }
@@ -9096,6 +9104,44 @@
             });
     }
 
+    function aplicarSaldoClienteNoPdv(cli) {
+        if (!cli) return;
+        var pk = cli.cliente_agro_pk != null ? cli.cliente_agro_pk : cli.pk;
+        if (pk == null || pk === '') return;
+        var patch = {
+            cliente_agro_pk: pk,
+            saldo_vale_credito: State.toNumber(cli.saldo_vale_credito),
+            saldo_cashback: State.toNumber(cli.saldo_cashback)
+        };
+        (wizardClientesCache || []).forEach(function (c, i) {
+            if (String(c.cliente_agro_pk) === String(pk) || String(c.pk) === String(pk)) {
+                wizardClientesCache[i] = Object.assign({}, c, patch);
+            }
+        });
+        try {
+            if (wizardClientesCache && wizardClientesCache.length) {
+                localStorage.setItem(
+                    PDV_CLIENTES_LS_KEY,
+                    JSON.stringify({ clientes: wizardClientesCache, saved_at: Date.now() })
+                );
+            }
+        } catch (eLs) {}
+        var st = State.getState();
+        var cur = st.cliente || {};
+        var curPk = cur.cliente_agro_pk != null ? cur.cliente_agro_pk : cur.pk;
+        if (curPk != null && String(curPk) === String(pk)) {
+            State.setCliente(
+                Object.assign({}, cur, patch),
+                st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente'
+            );
+        }
+        if (creditoFiadoCliente) {
+            creditoFiadoCliente.saldo_vale_credito = patch.saldo_vale_credito;
+            creditoFiadoCliente.saldo_cashback = patch.saldo_cashback;
+        }
+        renderProducts(State.getState(), State.getComputed());
+    }
+
     function patchClienteInSearchResults(updated) {
         if (!updated || !dom.quickClientResults) return;
         var clientes = dom.quickClientResults._clientes || [];
@@ -9672,7 +9718,9 @@
                     var hint =
                         res.status === 403
                             ? 'Sessão expirou ou falha de segurança. Recarregue a página (F5) e tente de novo.'
-                            : 'O servidor respondeu com erro (HTTP ' + res.status + '). Tente F5; se persistir, avise o suporte.';
+                            : res.status === 500
+                              ? 'Falha ao gravar. Se a maquininha já cobrou, clique em Confirmar de novo — não envie outro valor.'
+                              : 'O servidor respondeu com erro (HTTP ' + res.status + '). Tente F5; se persistir, avise o suporte.';
                     throw new Error(hint);
                 }
             }
@@ -9690,6 +9738,31 @@
             },
             body: JSON.stringify(payload || {})
         }).then(parseFetchJson);
+    }
+
+    function renovarPinPdvDuranteEsperaMp() {
+        jsonPost('/api/pdv/operador/', { renovar: true, touch: true }).catch(function () {});
+    }
+
+    function postMpPointFinalizar(body) {
+        var attempts = 0;
+        function once() {
+            attempts += 1;
+            return jsonPost(urls.apiPdvMpPointFinalizar, body).then(function (finRes) {
+                if (finRes.ok && finRes.data && finRes.data.ok) return finRes;
+                var retryable =
+                    finRes.status === 500 || !!(finRes.data && finRes.data.retry);
+                if (retryable && attempts < 3 && !(finRes.data && finRes.data.precisa_pin)) {
+                    return new Promise(function (resolve) {
+                        setTimeout(function () {
+                            resolve(once());
+                        }, 600 * attempts);
+                    });
+                }
+                return finRes;
+            });
+        }
+        return once();
     }
 
     function jsonGet(url) {
@@ -9751,6 +9824,9 @@
             }
             var secs = Math.floor((Date.now() - startedAt) / 1000);
             setMpPointWaitStatus('Aguardando maquininha… ' + secs + 's');
+            if (n > 0 && n % 10 === 0) {
+                renovarPinPdvDuranteEsperaMp();
+            }
             if (n >= maxPoll) {
                 return abandonOnTimeoutThenResolveOrReject();
             }
@@ -10930,7 +11006,7 @@
                     throw new Error((criarRes.data && criarRes.data.erro) || 'Falha ao enviar ao terminal MP.');
                 }
                 return pollMpPointUntilPaid(criarRes.data.order_id).then(function () {
-                    return jsonPost(urls.apiPdvMpPointFinalizar, {
+                    return postMpPointFinalizar({
                         order_id: criarRes.data.order_id,
                         erp_payload: buildFiadoBaixaPayload(State.getState(), State.getComputed())
                     }).then(function (finRes) {
@@ -10963,7 +11039,7 @@
         setConfirmButtonsBusy(true);
         if (window.gmLoadingBar) window.gmLoadingBar.show();
         var erpPayload = buildFiadoBaixaPayload(state, computed);
-        jsonPost(urls.apiPdvMpPointFinalizar, {
+        postMpPointFinalizar({
             order_id: orderIds[0],
             erp_payload: erpPayload
         })
@@ -11040,9 +11116,17 @@
             });
         };
         if (typeof window.gmSspinGarantirOperador === 'function') {
+            var jaPagoMp = false;
+            try {
+                jaPagoMp = vendaPrecisaFinalizarMpPoint(State.getState());
+            } catch (eMpPin) {
+                jaPagoMp = false;
+            }
             window.gmSspinGarantirOperador(runConfirm, {
-                titulo: 'PIN para confirmar a venda',
-                maxFrescoS: 10
+                titulo: jaPagoMp
+                    ? 'PIN para gravar a venda (máquina já cobrou)'
+                    : 'PIN para confirmar a venda',
+                maxFrescoS: jaPagoMp ? 45 : 10
             });
         } else {
             runConfirm();
@@ -11113,6 +11197,9 @@
                     window.agroPdvAplicarPatchesRespostaVenda(erpRes.data);
                 } else {
                     agroPdvEnqueuePatchesRespostaVenda(erpRes.data);
+                }
+                if (erpRes.data && erpRes.data.cliente_saldos) {
+                    aplicarSaldoClienteNoPdv(erpRes.data.cliente_saldos);
                 }
                 var erpPendente = !!erpRes.data.erp_pendente;
                 var fiadoAguardaErp = !!erpRes.data.fiado_aguarda_erp;
@@ -11327,7 +11414,7 @@
                 }
                 var bodyFin = { order_id: primaryOrderId };
                 if (erpPayload) bodyFin.erp_payload = erpPayload;
-                return jsonPost(urls.apiPdvMpPointFinalizar, bodyFin);
+                return postMpPointFinalizar(bodyFin);
             })
             .then(function (finRes) {
                 if (!finRes.ok || !finRes.data.ok) {
@@ -11536,7 +11623,7 @@
                 if (pack.jaFinalizado) {
                     return { ok: true, data: { ok: true, venda_id: pack.venda_id } };
                 }
-                return jsonPost(urls.apiPdvMpPointFinalizar, { order_id: pack.order_id });
+                return postMpPointFinalizar({ order_id: pack.order_id });
             })
             .then(function (finRes) {
                 if (!finRes.ok || !finRes.data.ok) {
