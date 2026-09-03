@@ -1332,6 +1332,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_pdv_overlay_stack_path` **22/22** · vendas UX **52/52** |
 | **Status** | 🟡 **pronto para envio à produção** |
 
+### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Fechar caixa: **Confirmar** na conferência fiado grava no Postgres. Reabrir a tela **não** pede de novo as notas já conferidas. Só aparece venda/pagamento **novo**. |
+| **Migrate** | **SIM** `produtos.0123` |
+| **Prova** | `verify_caixa_fiado_conferencia_path` **8/8** |
+| **Status** | 🟡 **aguarda Ctrl+F5 no PC** |
+
 ### 📦 PACOTE PRONTO — Fiado ver pedido + recibos (`FIADO-VER-RECIBOS` · **v21.79** · 03/09)
 
 | Campo | Valor |
