@@ -66,6 +66,7 @@ def test_arquivos() -> None:
     check("js_acoes", "AgroClienteCadastroAcoes" in js and "showDuplicado" in js)
     check("js_wizard_dup", "whatsapp_duplicado" in wizard or "duplicado" in wizard)
     check("js_wizard_vale", "hydrateFromCompraValeCredito" in wizard)
+    check("js_vale_saldo_agora", "aplicarSaldoClienteNoPdv" in wizard and "refreshCreditoFiadoCliente(0, { force: true })" in wizard)
     check("js_vale_sem_nfce", "payload.nfce_emitir = false" in wizard and "isCompraValeCreditoAtiva" in wizard)
     check("js_vale_carrinho", "Limpe o carrinho" in wizard)
     check("js_dup_pin", "showDuplicado" in js and "apiClienteLimparWhatsappPattern" in js and "Digite o PIN" in js)

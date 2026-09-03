@@ -3470,15 +3470,28 @@
         if (tabs && tabs.length) {
             var padrao = parseFloat(item.preco_padrao != null ? item.preco_padrao : item.preco);
             if (!isFinite(padrao)) padrao = 0;
+            var formaAtiva = '';
+            if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaDoState) {
+                formaAtiva = window.AgroPrecosFormaPagamento.obterFormaDoState(State.getState()) || '';
+            }
+            var tAtiva = null;
+            if (formaAtiva && window.AgroPrecosFormaPagamento.tabelaParaForma) {
+                tAtiva = window.AgroPrecosFormaPagamento.tabelaParaForma(formaAtiva, item);
+            }
             var html =
                 '<div class="pdv-cart-grupos-hint" aria-label="Preço padrão e tabelas %">' +
-                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a" title="Preço padrão">' +
+                '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--a' +
+                (!tAtiva ? ' is-selected' : '') +
+                '" title="Preço padrão">' +
                 '<span class="pdv-cart-grupo-tag">P</span>' +
                 escapeHtml(formatMoney(padrao)) +
                 '</span>';
             tabs.forEach(function (tb) {
+                var sel = tAtiva && Number(tAtiva.slot) === Number(tb.slot);
                 html +=
-                    '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b" title="' +
+                    '<span class="pdv-cart-grupo-chip pdv-cart-grupo-chip--b' +
+                    (sel ? ' is-selected' : '') +
+                    '" title="' +
                     escapeHtml(tb.nome + ' · formas: ' + (tb.formas || []).join(', ')) +
                     '">' +
                     '<span class="pdv-cart-grupo-tag">' +
@@ -10073,7 +10086,15 @@
         } else if (lp === 'entrega' && meio === 'dinheiro') {
             forma = 'Dinheiro';
         } else if (lp === 'entrega' && meio === 'cartao') {
-            forma = 'Cartão';
+            forma = 'Cartão de crédito';
+            if (
+                window.AgroPrecosFormaPagamento &&
+                window.AgroPrecosFormaPagamento.formaFromMeioEntrega
+            ) {
+                forma =
+                    window.AgroPrecosFormaPagamento.formaFromMeioEntrega('cartao') ||
+                    forma;
+            }
         } else {
             forma = String(formaPagamentoResumoUi(state, computed) || '').trim().slice(0, 40);
         }

@@ -130,6 +130,7 @@ def limpar_whatsapp_duplicado(
 def _linha_min(c: ClienteAgro) -> dict:
     return {
         "pk": c.pk,
+        "cliente_agro_pk": c.pk,
         "nome": c.nome,
         "whatsapp": c.whatsapp or "",
         "saldo_cashback": float(_q2(c.saldo_cashback)),
