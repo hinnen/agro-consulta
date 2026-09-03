@@ -1271,6 +1271,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bug loja **#15**: vale crédito creditado não atualizava o saldo à direita do PDV (cache do fiado/lista). Agora aplica o saldo na hora e busca de novo no servidor. |
+| **Migrate** | **NÃO** |
+| **Status** | ⏳ no `teste` · loja **não** |
+| **Você** | Ctrl+F5 no PDV · cliente na tela · adicionar vale (manual) · o número **Vale crédito** tem que mudar na hora |
+
 ### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
 | | |
