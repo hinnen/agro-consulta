@@ -8,130 +8,274 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   {% load static %}
-  <style>body { font-family: 'Inter', sans-serif; }</style>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    html.agro-cli-in-overlay,
+    html.agro-cli-in-overlay body {
+      min-height: 100% !important;
+      max-height: 100% !important;
+      height: 100% !important;
+    }
+    html.agro-cli-in-overlay .agro-cli-header-interno {
+      display: none !important;
+    }
+    html.agro-cli-in-overlay .agro-cli-voltar-pdv {
+      display: none !important;
+    }
+    .cli-form-shell {
+      width: 100%;
+      max-width: min(78rem, 100%);
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .cli-form-panel {
+      width: 100%;
+      max-height: none;
+      border-width: 3px;
+    }
+    html.agro-cli-in-overlay .cli-form-panel {
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+      border-bottom: 0;
+      box-shadow: none;
+      min-height: 100%;
+    }
+    .cli-form-title {
+      font-size: clamp(1.25rem, 0.65vw + 1.1rem, 1.75rem);
+      line-height: 1.15;
+    }
+    .cli-form-eyebrow {
+      font-size: clamp(0.72rem, 0.3vw + 0.65rem, 0.9rem);
+    }
+    .cli-form-label {
+      font-size: clamp(0.68rem, 0.25vw + 0.62rem, 0.82rem);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.15rem;
+    }
+    .cli-form-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+    }
+    .cli-form-grid {
+      display: grid;
+      gap: 0.45rem 0.55rem;
+      grid-template-columns: 1fr;
+      width: 100%;
+    }
+    .cli-form-section-title {
+      font-size: clamp(0.85rem, 0.3vw + 0.75rem, 1rem);
+      margin: 0.2rem 0 0;
+      grid-column: 1 / -1;
+    }
+    .cli-form-field { display: block; min-width: 0; }
+    .cli-form-field input,
+    .cli-form-field textarea,
+    .cli-form-field select {
+      min-height: 2.55rem;
+      padding: 0.4rem 0.7rem;
+      font-size: clamp(0.95rem, 0.35vw + 0.85rem, 1.1rem);
+      font-weight: 800;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .cli-form-field textarea {
+      min-height: 4.2rem;
+      resize: vertical;
+    }
+    .cli-form-footer-btn {
+      min-height: 3.4rem;
+      font-size: clamp(0.95rem, 0.4vw + 0.85rem, 1.15rem);
+      font-weight: 900;
+    }
+    @media (min-width: 720px) {
+      .cli-form-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+      .cli-form-f-nome { grid-column: 1 / 4; }
+      .cli-form-f-ref { grid-column: 4 / 7; }
+      .cli-form-f-wa { grid-column: 1 / 3; }
+      .cli-form-f-cpf { grid-column: 3 / 5; }
+      .cli-form-f-plus { grid-column: 5 / 7; }
+      .cli-form-f-vale { grid-column: 1 / 3; }
+      .cli-form-f-cash { grid-column: 3 / 5; }
+      .cli-form-f-fiado { grid-column: 5 / 7; }
+      .cli-form-f-log { grid-column: 1 / 5; }
+      .cli-form-f-num { grid-column: 5 / 7; }
+      .cli-form-f-bai { grid-column: 1 / 3; }
+      .cli-form-f-cid { grid-column: 3 / 5; }
+      .cli-form-f-uf { grid-column: 5 / 6; }
+      .cli-form-f-cep { grid-column: 6 / 7; }
+      .cli-form-f-comp { grid-column: 1 / 4; }
+      .cli-form-f-maps { grid-column: 4 / 7; }
+      .cli-form-f-ativo { grid-column: 1 / -1; }
+    }
+    @media (max-width: 719px) {
+      .cli-form-f-ref,
+      .cli-form-f-plus,
+      .cli-form-f-comp,
+      .cli-form-f-maps {
+        grid-column: 1 / -1;
+      }
+    }
+  </style>
+  <script>
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search || '');
+      if (q.get('agro_pdv_overlay') === '1' || q.get('agro_inapp_embed') === '1') {
+        document.documentElement.classList.add('agro-cli-in-overlay');
+        try {
+          window.top.postMessage({
+            type: 'agro-pdv-overlay-meta',
+            title: 'Cadastro do cliente',
+            subtitle: '{{ titulo|default:"Editar contato e endereço"|escapejs }}',
+            showMenu: false
+          }, location.origin);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  })();
+  </script>
 </head>
 <body class="bg-slate-50 h-full overflow-hidden text-slate-800 flex flex-col">
-  <header class="border-b border-slate-200 bg-white shadow-sm">
-    <div class="max-w-2xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-2">
-      <h1 class="text-lg font-black uppercase text-slate-900 truncate">{{ titulo }}</h1>
+  <header class="agro-cli-header-interno border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="cli-form-shell px-3 sm:px-4 py-2.5 flex flex-wrap justify-between items-center gap-2">
+      <div class="min-w-0">
+        <p class="cli-form-eyebrow font-black uppercase tracking-[0.12em] text-emerald-700">Cliente</p>
+        <h1 class="cli-form-title font-black text-slate-900 truncate">{{ titulo }}</h1>
+      </div>
       <div class="flex flex-wrap items-center gap-2">
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 hover:border-emerald-500 hover:text-emerald-900 shrink-0" %}
+      {% include "produtos/_pdv_voltar_link.html" with link_class="agro-cli-voltar-pdv inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-slate-800 hover:border-emerald-500 hover:text-emerald-900 shrink-0" %}
       <a href="{% url 'clientes_lista' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 text-slate-600 hover:bg-slate-50">Lista</a>
       </div>
     </div>
   </header>
-  <main class="max-w-2xl mx-auto px-4 py-6 flex-1 min-h-0 overflow-y-auto">
+  <main class="cli-form-shell flex-1 min-h-0 flex flex-col px-2 sm:px-3 py-2 sm:py-3 overflow-hidden">
     {% if messages %}
-    <ul class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-900 space-y-1">
+    <ul class="mb-2 shrink-0 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-900 space-y-1">
       {% for m in messages %}<li>{{ m }}</li>{% endfor %}
     </ul>
     {% endif %}
-    <form method="post" class="space-y-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+    <form method="post" class="cli-form-panel flex flex-1 min-h-0 flex-col overflow-hidden rounded-2xl border-emerald-500 bg-white shadow-sm">
       {% csrf_token %}
       {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+      {% if request.GET.agro_pdv_overlay %}<input type="hidden" name="agro_pdv_overlay" value="{{ request.GET.agro_pdv_overlay }}">{% endif %}
+      {% if request.GET.agro_inapp_embed %}<input type="hidden" name="agro_inapp_embed" value="{{ request.GET.agro_inapp_embed }}">{% endif %}
 
-      <div>
-        <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
-        {{ form.nome }}
-        {% if form.nome.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.nome.errors.0 }}</p>{% endif %}
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.whatsapp.id_for_label }}">{{ form.whatsapp.label }}</label>
-          {{ form.whatsapp }}
-          {% if form.whatsapp.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.whatsapp.errors.0 }}</p>{% endif %}
+      <header class="flex shrink-0 items-center justify-between gap-2 border-b-2 border-emerald-100 bg-emerald-50 px-4 py-2.5 sm:px-5 sm:py-3">
+        <div class="min-w-0 flex-1">
+          <p class="cli-form-eyebrow font-black uppercase tracking-[0.12em] text-emerald-800">Editar cadastro</p>
+          <h2 class="cli-form-title min-w-0 truncate font-black text-slate-900">{% if cliente %}{{ cliente.nome }}{% else %}Novo cliente{% endif %}</h2>
         </div>
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
-          {{ form.cpf }}
-          {% if form.cpf.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cpf.errors.0 }}</p>{% endif %}
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.saldo_vale_credito.id_for_label }}">{{ form.saldo_vale_credito.label }}</label>
-          {{ form.saldo_vale_credito }}
-          {% if form.saldo_vale_credito.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_vale_credito.errors.0 }}</p>{% endif %}
-        </div>
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.saldo_cashback.id_for_label }}">{{ form.saldo_cashback.label }}</label>
-          {{ form.saldo_cashback }}
-          {% if form.saldo_cashback.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_cashback.errors.0 }}</p>{% endif %}
-        </div>
-        <div>
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.limite_fiado_local.id_for_label }}">{{ form.limite_fiado_local.label }}</label>
-          {{ form.limite_fiado_local }}
-          {% if form.limite_fiado_local.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.limite_fiado_local.errors.0 }}</p>{% endif %}
-        </div>
-      </div>
+      </header>
 
-      <div class="border-t border-slate-100 pt-4">
-        <h2 class="text-xs font-black uppercase text-slate-400 tracking-wider mb-3">Endereço</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.cep.id_for_label }}">{{ form.cep.label }}</label>
-            {{ form.cep }}
-            {% if form.cep.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cep.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.uf.id_for_label }}">{{ form.uf.label }}</label>
-            {{ form.uf }}
-            {% if form.uf.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.uf.errors.0 }}</p>{% endif %}
-          </div>
-          <div class="col-span-2 sm:col-span-1">
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.cidade.id_for_label }}">{{ form.cidade.label }}</label>
-            {{ form.cidade }}
-            {% if form.cidade.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cidade.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.bairro.id_for_label }}">{{ form.bairro.label }}</label>
-            {{ form.bairro }}
-            {% if form.bairro.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.bairro.errors.0 }}</p>{% endif %}
-          </div>
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.logradouro.id_for_label }}">{{ form.logradouro.label }}</label>
+      <div class="cli-form-body px-3 py-2.5 sm:px-4 sm:py-3">
+        <div class="cli-form-grid">
+          <label class="cli-form-field cli-form-f-nome" for="{{ form.nome.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.nome.label }} <span class="text-red-600">*</span></span>
+            {{ form.nome }}
+            {% if form.nome.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.nome.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-ref" for="{{ form.referencia_rural.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.referencia_rural.label }}</span>
+            {{ form.referencia_rural }}
+            {% if form.referencia_rural.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.referencia_rural.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-wa" for="{{ form.whatsapp.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.whatsapp.label }}</span>
+            {{ form.whatsapp }}
+            {% if form.whatsapp.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.whatsapp.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-cpf" for="{{ form.cpf.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.cpf.label }} <span class="font-semibold normal-case text-slate-400">(opcional · cupom fiscal)</span></span>
+            {{ form.cpf }}
+            {% if form.cpf.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cpf.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-plus" for="{{ form.plus_code.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.plus_code.label }}</span>
+            {{ form.plus_code }}
+            {% if form.plus_code.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.plus_code.errors.0 }}</p>{% endif %}
+          </label>
+
+          <p class="cli-form-section-title font-black uppercase tracking-wide text-slate-600">Saldos e limite</p>
+          <label class="cli-form-field cli-form-f-vale" for="{{ form.saldo_vale_credito.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.saldo_vale_credito.label }}</span>
+            {{ form.saldo_vale_credito }}
+            {% if form.saldo_vale_credito.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_vale_credito.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-cash" for="{{ form.saldo_cashback.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.saldo_cashback.label }}</span>
+            {{ form.saldo_cashback }}
+            {% if form.saldo_cashback.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.saldo_cashback.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-fiado" for="{{ form.limite_fiado_local.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.limite_fiado_local.label }}</span>
+            {{ form.limite_fiado_local }}
+            {% if form.limite_fiado_local.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.limite_fiado_local.errors.0 }}</p>{% endif %}
+          </label>
+
+          <p class="cli-form-section-title font-black uppercase tracking-wide text-slate-600">Endereço</p>
+          <label class="cli-form-field cli-form-f-log" for="{{ form.logradouro.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.logradouro.label }}</span>
             {{ form.logradouro }}
             {% if form.logradouro.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.logradouro.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.numero.id_for_label }}">{{ form.numero.label }}</label>
+          </label>
+          <label class="cli-form-field cli-form-f-num" for="{{ form.numero.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.numero.label }}</span>
             {{ form.numero }}
             {% if form.numero.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.numero.errors.0 }}</p>{% endif %}
-          </div>
-          <div class="sm:col-span-2">
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.complemento.id_for_label }}">{{ form.complemento.label }}</label>
+          </label>
+          <label class="cli-form-field cli-form-f-bai" for="{{ form.bairro.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.bairro.label }}</span>
+            {{ form.bairro }}
+            {% if form.bairro.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.bairro.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-cid" for="{{ form.cidade.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.cidade.label }}</span>
+            {{ form.cidade }}
+            {% if form.cidade.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cidade.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-uf" for="{{ form.uf.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.uf.label }}</span>
+            {{ form.uf }}
+            {% if form.uf.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.uf.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-cep" for="{{ form.cep.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.cep.label }}</span>
+            {{ form.cep }}
+            {% if form.cep.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.cep.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-comp" for="{{ form.complemento.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.complemento.label }}</span>
             {{ form.complemento }}
             {% if form.complemento.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.complemento.errors.0 }}</p>{% endif %}
+          </label>
+          <label class="cli-form-field cli-form-f-maps" for="{{ form.maps_url_manual.id_for_label }}">
+            <span class="cli-form-label block font-black uppercase text-slate-500">{{ form.maps_url_manual.label }}</span>
+            {{ form.maps_url_manual }}
+            {% if form.maps_url_manual.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.maps_url_manual.errors.0 }}</p>{% endif %}
+          </label>
+
+          <div class="cli-form-field cli-form-f-ativo flex items-center gap-2 pt-1">
+            {{ form.ativo }}
+            <label class="text-sm font-bold text-slate-700" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+            {% if form.ativo.errors %}<p class="text-xs text-red-600 font-bold">{{ form.ativo.errors.0 }}</p>{% endif %}
           </div>
+          <p class="text-[10px] text-slate-400 font-semibold" style="grid-column:1/-1">Plus Code + cidade ajudam entrega rural. O resumo em uma linha (busca na lista) é gerado ao salvar.</p>
         </div>
-        <div class="mt-3">
-          <label class="text-[10px] font-black uppercase text-slate-500 block mb-1" for="{{ form.plus_code.id_for_label }}">{{ form.plus_code.label }}</label>
-          {{ form.plus_code }}
-          {% if form.plus_code.errors %}<p class="text-xs text-red-600 font-bold mt-1">{{ form.plus_code.errors.0 }}</p>{% endif %}
-          <p class="text-[10px] text-slate-400 font-semibold mt-1">Para entregas rurais: Plus Code + cidade (ex.: 8X5R+7M9 Jacupiranga, SP).</p>
-        </div>
-        <p class="text-[10px] text-slate-400 font-semibold mt-2">O resumo em uma linha (busca na lista) é gerado ao salvar a partir destes campos.</p>
       </div>
 
-      <div class="flex items-center gap-2 pt-1">
-        {{ form.ativo }}
-        <label class="text-sm font-bold text-slate-700" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
-        {% if form.ativo.errors %}<p class="text-xs text-red-600 font-bold">{{ form.ativo.errors.0 }}</p>{% endif %}
-      </div>
-
-      <div class="flex flex-wrap gap-2 pt-2">
-        <button type="submit" class="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-black uppercase text-sm">Salvar</button>
-        <a href="{% url 'clientes_lista' %}" class="px-4 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-sm text-slate-600">Cancelar</a>
+      <footer class="flex shrink-0 flex-wrap gap-2 border-t-2 border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4 sm:py-3">
         {% if cliente %}
-        <button type="button" id="cli-form-vale" class="px-4 py-3 rounded-xl border-2 border-sky-300 bg-white font-black uppercase text-sm text-sky-800">Vale crédito</button>
-        <button type="button" id="cli-form-hist" class="px-4 py-3 rounded-xl border-2 border-slate-200 bg-white font-black uppercase text-sm text-slate-700">Histórico</button>
-        <button type="button" id="cli-form-excluir" class="px-4 py-3 rounded-xl border-2 border-red-300 bg-white font-black uppercase text-sm text-red-700">Excluir</button>
+        <button type="button" id="cli-form-excluir" class="cli-form-footer-btn px-4 rounded-xl border-2 border-red-300 bg-white uppercase text-red-700 hover:bg-red-50">Excluir</button>
+        <button type="button" id="cli-form-vale" class="cli-form-footer-btn px-4 rounded-xl border-2 border-sky-300 bg-white uppercase text-sky-800 hover:bg-sky-50">Vale crédito</button>
+        <button type="button" id="cli-form-hist" class="cli-form-footer-btn px-4 rounded-xl border-2 border-slate-200 bg-white uppercase text-slate-700 hover:bg-slate-100">Histórico</button>
         {% endif %}
-      </div>
+        <a href="{% url 'clientes_lista' %}" class="cli-form-footer-btn inline-flex items-center justify-center px-4 rounded-xl border-2 border-slate-200 bg-white uppercase text-slate-700 hover:bg-slate-100">Cancelar</a>
+        <button type="submit" class="cli-form-footer-btn flex-1 rounded-xl bg-emerald-600 uppercase text-white shadow-md hover:bg-emerald-700">Salvar</button>
+      </footer>
     </form>
   </main>
 {% include "produtos/includes/cliente_cadastro_acoes.html" %}
@@ -148,9 +292,13 @@
   if (!window.AgroClienteCadastroAcoes) return;
   window.AgroClienteCadastroAcoes.init({
     onAbrirCadastro: function (dup) {
-      if (dup && dup.pk) window.location.href = (boot.urls && boot.urls.clienteEditarPattern)
-        ? String(boot.urls.clienteEditarPattern).replace('__pk__', String(dup.pk))
-        : '/clientes/' + dup.pk + '/editar/';
+      if (dup && dup.pk) {
+        var base = (boot.urls && boot.urls.clienteEditarPattern)
+          ? String(boot.urls.clienteEditarPattern).replace('__pk__', String(dup.pk))
+          : '/clientes/' + dup.pk + '/editar/';
+        var q = window.location.search || '';
+        window.location.href = base + q;
+      }
     },
     onAposMudanca: function (ev) {
       ev = ev || {};

@@ -546,7 +546,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - Sync ERP/Mongo â†’ Agro: `produtos/services_clientes_sync.py`, botÃ£o na lista, comando `sincronizar_clientes_agro`.
 - `**editado_local=True` nÃ£o Ã© sobrescrito** na sync.
 - PDV lista/busca clientes **sÃ³ no Agro** (`api/listar-clientes/`, `api/buscar-clientes/`).
-- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/`.
+- **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
 
@@ -1270,6 +1270,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — cadastro cliente layout PDV (`CLI-FORM-PDV-LAYOUT` · 03/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | `/clientes/…/editar/` (e novo): tela larga no visual do PDV (grade emerald, botões grandes). No overlay some o header interno — usa a barra verde FECHAR. Campos `referencia_rural` + `maps_url_manual` passam a aparecer (já estavam no form; antes sumiam e podiam zerar no save). **Não** mexe save/API/saldos. |
+| **Migrate** | **NÃO** |
+| **Status** | teste — aguarda Ctrl+F5 no PC |
+| **Você** | Abrir cliente no Zap/overlay · editar/salvar · Vale/Excluir/Histórico |
+
 ### 📦 WIP — cadastro vazio + histórico (`CAD-FALLBACK-HIST` · 03/09)
 
 | Campo | Valor |
@@ -1312,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/fiado/`: lista compacta no padrão de `/vendas/` (topo fino, overlay sem header duplicado). Número do **Pedido** clicável e botão **Ver** (popup da venda completa); sem vínculo = **Sistema antigo**. Recibos atrás do botão **Recibos**. Coluna **Limite** editável na própria linha (grava `limite_fiado_local`). Modal do cliente **tela cheia** (mesmo tamanho do overlay, sem moldura/top do fiado atrás). Tabela de lançamentos com **linha vertical** + botões em grade. Faixa de cima: **vendido/pago** deste mês e do mês anterior. |
+| **O quê** | `/fiado/`: lista compacta no padrão de `/vendas/` (topo fino, overlay sem header duplicado). Número do **Pedido** clicável e botão **Ver** (popup da venda completa); sem vínculo = **Sistema antigo**. Recibos atrás do botão **Recibos**. Coluna **Limite** editável na própria linha (grava `limite_fiado_local`). Modal do cliente **tela cheia** e, no overlay do PDV, **esconde a top bar** (Fechar verde) pra não fechar o fiado inteiro por engano. Tabela com **linha vertical** + botões em grade. Faixa: **vendido/pago** deste mês e do mês anterior. |
 | **Migrate** | **NÃO** |
 | **Prova** | `python manage.py check` **OK** |
 | **Status** | WIP local — aguarda prova no PC |
