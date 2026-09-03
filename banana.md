@@ -1268,8 +1268,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) |
+| **Status** | ✅ **enviado / Live v21.87** — cherry só stack nest (**não** merge `teste`) · commit **`53b565a`** |
 | **Antes** | `producao` @ **`9adc305`** · v21.86 |
+| **Agora** | `producao` @ **`53b565a`** |
 | **Pacote** | `REPASSE-STACK-NEST` — Confirmar/3 OKs sem vidro |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-repasse-stack-nest-0309-v21.86` · branch `producao-backup-pre-v2187-repasse-stack-nest-20260903` · `docs/ROLLBACK-REPASSE-STACK-NEST-0309.md` |
