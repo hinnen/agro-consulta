@@ -699,6 +699,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Devolução em dinheiro × maquininha (23/08 · loja v17.84 · `CAIXA-DEVOL-DINHEIRO-MP`):** venda no Point/cartão/Pix **entra** no esperado da maquininha mesmo se devolvida no turno; a saída em **dinheiro** desconta só a gaveta. Contagem **auto** (MP pinpad / fiado / vale / cashback) **copia o esperado** (sem rascunho, sem «Sobra», campo só leitura). Aviso amarelo: «conte a gaveta já sem esse valor». FL-017 (dinheiro+dinheiro) continua: esperado = abertura. Prova `scripts/verify_caixa_devolucao_dinheiro_mp_path.py`.
 - **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
 - **Fiado caixinha no Fechar caixa (`CAIXA-FIADO-CONF`):** **Confirmar** grava no Postgres (`fiado_nota_caixa_conferida_em`). Reabrir não pede de novo. **Pular + PIN** não grava. Migrate `0123`.
+- **Repasse popups (`REPASSE-STACK-NEST`):** Confirmar + 3 OKs = filhos do overlay; stack **não** põe vidro no pai (senão trava o clique). Prova `verify_repasse_stack_nest_path` **35/35**.
 
 ### 4.12 RH
 
@@ -1379,8 +1380,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Depois de **Confirmar transferência**, os popups (confirmar / 3 OKs) ficavam com vidro na frente e sem clique. Stack congelava o overlay pai (popup é filho). |
 | **Fix** | Se a camada de cima é **filha** da de baixo → sem vidro/`pointer-events:none` no pai. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_overlay_stack_path` **23/23** · repasse overlay **OK** |
+| **Prova** | `verify_repasse_stack_nest_path` **35/35** (contratos + sim Node filho sem vidro + sibling congela + stack **23/23** + PIN 9973) |
 | **Status** | 🟡 **pronto para envio à produção** |
+| **Commit** | `b57c63b` · tip **v22.17+** |
 | **Você** | Ctrl+F5 · Repasse → Confirmar → clicar Confirmar / OKs até transferir |
 
 ### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
@@ -1475,14 +1477,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
 | **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip pós **v21.84**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip **v22.18**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `REPASSE-STACK-NEST` | 🟡 **pronto para envio à produção** | **NÃO** |
-| 2 | `PDV-OVERLAY-STACK` (hotfix nest) | 🟡 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** **v21.84**. Fila só o vidro do Repasse. Sobe **só** com frase + senha (cherry).
+**Live agora:** **v21.84**. Fila: vidro do Repasse nos popups pós-Confirmar. Sobe **só** com frase + senha (cherry).
 
 ### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · fila agora = tip acima
 
