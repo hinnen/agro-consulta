@@ -7690,8 +7690,7 @@
         closeEntregaSalvarClienteModal();
         try {
             if (dom.quickClientEditOverlay && !dom.quickClientEditOverlay.classList.contains('hidden')) {
-                dom.quickClientEditOverlay.classList.add('hidden');
-                dom.quickClientEditOverlay.classList.remove('flex');
+                closeQuickClientEditOverlay();
             }
         } catch (eQce) {}
         try {
@@ -8291,10 +8290,19 @@
         dom.quickClientEditOverlay.classList.remove('hidden');
         dom.quickClientEditOverlay.classList.add('flex');
         try {
+            document.documentElement.classList.add('pdv-client-edit-open');
+        } catch (_) {}
+        try {
             if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickClientEditOverlay, true);
         } catch (_) {}
         window.setTimeout(function () {
-            if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
+            if (dom.quickClientEditWhatsapp) {
+                try {
+                    dom.quickClientEditWhatsapp.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickClientEditWhatsapp.focus();
+                }
+            }
         }, 60);
     }
 
@@ -8318,6 +8326,9 @@
             dom.quickClientModal && !dom.quickClientModal.classList.contains('hidden');
         dom.quickClientEditOverlay.classList.add('hidden');
         dom.quickClientEditOverlay.classList.remove('flex');
+        try {
+            document.documentElement.classList.remove('pdv-client-edit-open');
+        } catch (_) {}
         try {
             if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickClientEditOverlay, false);
         } catch (_) {}
@@ -8666,6 +8677,9 @@
         dom.quickProductEditOverlay.classList.add('hidden');
         dom.quickProductEditOverlay.classList.remove('flex');
         try {
+            document.documentElement.classList.remove('pdv-product-edit-open');
+        } catch (_) {}
+        try {
             if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickProductEditOverlay, false);
         } catch (_) {}
         quickProductEditItemId = null;
@@ -8730,6 +8744,9 @@
         dom.quickProductEditOverlay.classList.remove('hidden');
         dom.quickProductEditOverlay.classList.add('flex');
         try {
+            document.documentElement.classList.add('pdv-product-edit-open');
+        } catch (_) {}
+        try {
             if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(dom.quickProductEditOverlay, true);
         } catch (_) {}
         var pattern = String(urls.apiPdvProdutoEdicaoRapidaPattern || '').trim();
@@ -8767,7 +8784,13 @@
                 setQuickProductEditSaldoAgora(item.saldo_centro, item.saldo_vila);
             });
         window.setTimeout(function () {
-            if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
+            if (dom.quickProductEditNome) {
+                try {
+                    dom.quickProductEditNome.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickProductEditNome.focus();
+                }
+            }
         }, 40);
     }
 
@@ -8845,7 +8868,13 @@
                 dom.quickProductEditErro.textContent = 'Informe o nome do produto.';
                 dom.quickProductEditErro.classList.remove('hidden');
             }
-            if (dom.quickProductEditNome) dom.quickProductEditNome.focus();
+            if (dom.quickProductEditNome) {
+                try {
+                    dom.quickProductEditNome.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickProductEditNome.focus();
+                }
+            }
             return;
         }
         var saldoAindaCarregando =
@@ -9187,7 +9216,13 @@
                     'Informe o nome do cliente (mínimo 2 caracteres).';
                 dom.quickClientEditErro.classList.remove('hidden');
             }
-            if (dom.quickClientEditNome) dom.quickClientEditNome.focus();
+            if (dom.quickClientEditNome) {
+                try {
+                    dom.quickClientEditNome.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickClientEditNome.focus();
+                }
+            }
             return;
         }
         var wa = dom.quickClientEditWhatsapp
@@ -9200,7 +9235,13 @@
                     'Informe o WhatsApp com DDD (mínimo 10 dígitos).';
                 dom.quickClientEditErro.classList.remove('hidden');
             }
-            if (dom.quickClientEditWhatsapp) dom.quickClientEditWhatsapp.focus();
+            if (dom.quickClientEditWhatsapp) {
+                try {
+                    dom.quickClientEditWhatsapp.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickClientEditWhatsapp.focus();
+                }
+            }
             return;
         }
         var cpfCheck = pdvValidarCpfOpcional(
@@ -9211,7 +9252,13 @@
                 dom.quickClientEditErro.textContent = cpfCheck.msg || 'CPF inválido.';
                 dom.quickClientEditErro.classList.remove('hidden');
             }
-            if (dom.quickClientEditCpf) dom.quickClientEditCpf.focus();
+            if (dom.quickClientEditCpf) {
+                try {
+                    dom.quickClientEditCpf.focus({ preventScroll: true });
+                } catch (_) {
+                    dom.quickClientEditCpf.focus();
+                }
+            }
             return;
         }
         var url = pattern.replace('__pk__', String(quickClientEditPk));
