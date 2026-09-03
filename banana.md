@@ -1271,6 +1271,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.03** · 03/09)
+
+| | |
+| --- | --- |
+| **Relato** | Geraldinho · Caixa Centro · 31/08 · venda **6682** R$ 101,90 débito Point · máquina cobrou · gravar venda **500** (6x) |
+| **Causa** | PIN da venda (10s) + espera na maquininha / F5. `finalizar` estourava **500 HTML** com o cartão já pago. |
+| **Fix** | Carimba quem cobrou · se o PIN acabar, usa o carimbo · 500 vira JSON e o PDV tenta de novo · PIN 45s se a máquina já cobrou |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` **v22.03** |
+| **Você** | Ctrl+F5 no PDV · débito Point · esperar na máquina · Confirmar. Tem que gravar sem tela vermelha. |
+
 ### 📦 PACOTE — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · 03/09)
 
 | Campo | Valor |

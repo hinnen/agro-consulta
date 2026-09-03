@@ -33,7 +33,9 @@ from .mercado_pago_point import (
     normalizar_mp_point_conta,
 )
 from .caixa_util import (
+    PinOperadorObrigatorioError,
     SessaoCaixaObrigatoriaError,
+    exigir_operador_pin_request,
     exigir_sessao_caixa_para_venda,
     mp_point_host_conta,
     navegador_pode_mp_point_automatico,
@@ -77,8 +79,83 @@ _ERP_PAYLOAD_KEYS = frozenset(
         "client_request_id",
         "observacao",
         "mp_point_conta",
+        "mp_point_operador",
     }
 )
+
+MP_POINT_OPERADOR_KEY = "mp_point_operador"
+
+
+def _mp_point_carimbar_operador(request, erp_payload: dict) -> None:
+    """Guarda quem estava no PIN no momento da cobrança (espera na maquininha > 10s)."""
+    if not isinstance(erp_payload, dict):
+        return
+    rot, _err = exigir_operador_pin_request(request, erp_payload)
+    nome = (rot or "").strip()[:150]
+    if nome:
+        erp_payload[MP_POINT_OPERADOR_KEY] = nome
+
+
+def _mp_point_operador_carimbo(row, erp_data: dict | None = None) -> str:
+    for src in (
+        row.erp_payload if isinstance(getattr(row, "erp_payload", None), dict) else None,
+        erp_data if isinstance(erp_data, dict) else None,
+    ):
+        if not src:
+            continue
+        nome = str(src.get(MP_POINT_OPERADOR_KEY) or "").strip()
+        if nome:
+            return nome[:150]
+    return ""
+
+
+def _mp_point_injetar_operador_carimbo(request, row, erp_data: dict) -> str:
+    """
+    Se o PIN fresco já expirou (espera no Point / F5), usa o nome carimbado na cobrança.
+    Evita 500 após o cartão já ter saído na maquininha.
+    """
+    rot, _err = exigir_operador_pin_request(request, erp_data if isinstance(erp_data, dict) else None)
+    if rot:
+        return rot[:150]
+    stamp = _mp_point_operador_carimbo(row, erp_data)
+    if not stamp:
+        return ""
+    try:
+        from produtos.pdv_transf_loja_util import marcar_operador_pdv_fresco
+
+        request.session["pdv_operador_nome"] = stamp
+        marcar_operador_pdv_fresco(request)
+        if isinstance(erp_data, dict):
+            erp_data[MP_POINT_OPERADOR_KEY] = stamp
+    except Exception:
+        logger.warning("MP Point: falha ao restaurar operador carimbado", exc_info=True)
+    return stamp
+
+
+def _mp_point_persistir_venda_pago(request, row, erp_data, raw_itens, *, erp_sync_status: str):
+    _mp_point_injetar_operador_carimbo(request, row, erp_data)
+    try:
+        return _persistir_venda_agro(
+            request,
+            erp_data,
+            raw_itens,
+            None,
+            None,
+            False,
+            erp_sync_status=erp_sync_status,
+        )
+    except PinOperadorObrigatorioError:
+        if _mp_point_injetar_operador_carimbo(request, row, erp_data):
+            return _persistir_venda_agro(
+                request,
+                erp_data,
+                raw_itens,
+                None,
+                None,
+                False,
+                erp_sync_status=erp_sync_status,
+            )
+        raise
 
 
 def _pdv_decimal_campo(val) -> Decimal:
@@ -546,6 +623,7 @@ def _api_pdv_mp_point_criar_impl(request):
     if not navegador_pode_mp_point_automatico(request, conta=conta):
         return _resposta_mp_point_so_gaveta(conta)
     erp_payload["mp_point_conta"] = conta
+    _mp_point_carimbar_operador(request, erp_payload)
     fiado_cobranca = bool(erp_payload.get("fiado_cobranca") or raw.get("fiado_cobranca"))
 
     if fiado_cobranca:
@@ -715,6 +793,7 @@ def api_pdv_mp_point_confirmar_tranche(request):
             return JsonResponse({"ok": False, "erro": "Payload local inválido."}, status=500)
 
         recon = _mp_point_reconciliar_forma_venda(erp_data, body)
+        _mp_point_carimbar_operador(request, erp_data)
         row.erp_payload = erp_data
         row.status = PdvMercadoPagoPointOrder.Status.PAID
         row.mp_last_status = str(body.get("status") or "")[:48]
@@ -815,6 +894,36 @@ def api_pdv_mp_point_status(request):
 @require_POST
 def api_pdv_mp_point_finalizar(request):
     try:
+        return _api_pdv_mp_point_finalizar_impl(request)
+    except PinOperadorObrigatorioError as e:
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": str(e)
+                or "Pagamento já saiu na maquininha. Digite o PIN para gravar a venda.",
+                "precisa_pin": True,
+                "pagamento_efetivado": True,
+            },
+            status=403,
+        )
+    except Exception:
+        logger.exception("MP Point finalizar: erro interno")
+        return JsonResponse(
+            {
+                "ok": False,
+                "erro": (
+                    "Falha ao gravar a venda. Se a maquininha já cobrou, clique em Confirmar de novo "
+                    "— não envie outro valor ao terminal."
+                ),
+                "pagamento_efetivado": True,
+                "retry": True,
+            },
+            status=500,
+        )
+
+
+def _api_pdv_mp_point_finalizar_impl(request):
+    try:
         raw = json.loads(request.body.decode("utf-8") or "{}")
     except Exception:
         return JsonResponse({"ok": False, "erro": "JSON inválido"}, status=400)
@@ -882,6 +991,9 @@ def api_pdv_mp_point_finalizar(request):
             erp_data = _sanear_erp_payload(erp_override)
         else:
             erp_data = dict(row.erp_payload) if isinstance(row.erp_payload, dict) else {}
+        stamp_op = _mp_point_operador_carimbo(row, erp_data)
+        if stamp_op and isinstance(erp_data, dict):
+            erp_data[MP_POINT_OPERADOR_KEY] = stamp_op
         if not erp_data:
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
             row.save(update_fields=["status", "atualizado_em"])
@@ -1014,13 +1126,11 @@ def api_pdv_mp_point_finalizar(request):
 
         if not getattr(settings, "PDV_VENDA_ERP_ENVIO", False):
             try:
-                venda_local = _persistir_venda_agro(
+                venda_local = _mp_point_persistir_venda_pago(
                     request,
+                    row,
                     erp_data,
                     raw_itens,
-                    None,
-                    None,
-                    False,
                     erp_sync_status=VendaAgro.ErpSyncStatus.ACEITO,
                 )
             except SessaoCaixaObrigatoriaError as e:
@@ -1044,13 +1154,11 @@ def api_pdv_mp_point_finalizar(request):
 
         if getattr(settings, "PDV_ERP_ENVIO_ASSINCRONO", True):
             try:
-                venda_local = _persistir_venda_agro(
+                venda_local = _mp_point_persistir_venda_pago(
                     request,
+                    row,
                     erp_data,
                     raw_itens,
-                    None,
-                    None,
-                    False,
                     erp_sync_status=VendaAgro.ErpSyncStatus.PENDENTE,
                 )
             except SessaoCaixaObrigatoriaError as e:
@@ -1085,6 +1193,7 @@ def api_pdv_mp_point_finalizar(request):
             return JsonResponse({"ok": False, **pe}, status=err.status_code)
 
         try:
+            _mp_point_injetar_operador_carimbo(request, row, erp_data)
             venda_local = _persistir_venda_agro(
                 request,
                 erp_data,
@@ -1094,6 +1203,19 @@ def api_pdv_mp_point_finalizar(request):
                 out["sucesso_erp"],
                 erp_sync_status=out["erp_sync"],
             )
+        except PinOperadorObrigatorioError:
+            if _mp_point_injetar_operador_carimbo(request, row, erp_data):
+                venda_local = _persistir_venda_agro(
+                    request,
+                    erp_data,
+                    out["raw_itens"],
+                    out["status"],
+                    out["res"],
+                    out["sucesso_erp"],
+                    erp_sync_status=out["erp_sync"],
+                )
+            else:
+                raise
         except SessaoCaixaObrigatoriaError as e:
             row.status = PdvMercadoPagoPointOrder.Status.FAILED
             row.save(update_fields=["status", "atualizado_em"])
