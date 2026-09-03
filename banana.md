@@ -1283,12 +1283,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Detalhe: vazio → histórico PG → JSON Excel ERP. Comando `recuperar_cadastro_vazios_excel` (dry-run / `--aplicar`) grava só campo vazio. Sem Mongo. |
-| **Produção (leitura)** | Excel: **101 produtos / 264 campos** · HTML `conferencia-cadastro-excel-2026-09-03.html` · JSON `scripts/data/recuperacao_cadastro_excel_2026_09_03.json` |
-| **Status** | Pacote local pronto · dry-run local = 0 (base local ≠ loja) · **loja ainda não** |
-| **Você** | Conferir HTML · para gravar loja: frase + senha |
+| **O quê** | Vazio → hist PG → Excel. Pacote: marca/cat/forn/unidade + barras (principal + opcionais). NCM fora. Comando `recuperar_cadastro_vazios_excel`. |
+| **Produção (leitura)** | **841 produtos** · marca 96 · cat 91 · forn 336 · und 517 · barras 90 · opcionais 93 · HTML `conferencia-cadastro-excel-2026-09-03.html` |
+| **Status** | Pacote local pronto · **loja ainda não** |
+| **Você** | Conferir HTML · gravar loja = frase + senha |
 
-### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.73** · 03/09)
+### 📦 PACOTE — lista vendas compacta + busca (`VENDAS-LISTA-UX` · **v21.74** · 03/09)
 
 | Campo | Valor |
 | ----- | ----- |

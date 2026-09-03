@@ -475,7 +475,7 @@
       return (
         '<tr class="border-b border-slate-100' + rowCls + '" data-id="' + t.id + '">' +
         '<td><input type="checkbox" class="fiado-tit-chk rounded border-slate-300" data-id="' + t.id + '" aria-label="Selecionar"></td>' +
-        '<td class="font-bold text-slate-900 max-w-[12rem] truncate" title="' + esc(t.numero_documento) + '">' +
+        '<td class="font-bold text-slate-900 truncate" title="' + esc(t.numero_documento) + '">' +
         (t.venda_agro_id
           ? '<button type="button" class="fiado-link-pedido text-left font-bold" data-venda-id="' + t.venda_agro_id + '">' + esc(t.numero_documento || '—') + '</button>'
           : '<span>' + esc(t.numero_documento || '—') + '</span>') +
@@ -489,7 +489,7 @@
         '<td class="text-right whitespace-nowrap">' + fmtMoedaHtml(t.valor_bruto) + '</td>' +
         '<td class="text-right whitespace-nowrap text-slate-600">' + fmtMoedaHtml(t.valor_pago, 'text-slate-600') + '</td>' +
         '<td class="text-right whitespace-nowrap">' + fmtMoedaHtml(t.saldo_aberto, 'text-orange-800') + '</td>' +
-        '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[10px] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
+        '<td><span class="inline-block rounded-lg px-2 py-0.5 text-[0.78rem] font-black uppercase ' + situacaoTituloClass(sit) + '">' + esc(t.situacao_label || '—') + '</span></td>' +
         '<td>' +
         '<div class="fiado-tit-acoes">' +
         '<button type="button" class="fiado-btn-baixa-tit fiado-acao-slot bg-orange-600 text-white shadow-sm hover:bg-orange-700" data-id="' + t.id + '" data-saldo="' + t.saldo_aberto + '" data-doc="' + esc(t.numero_documento || '') + '">Baixa</button>' +
