@@ -552,7 +552,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.35** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.33** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1277,11 +1277,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.35** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** | **NÃO** |
 
 **Live agora:** **v21.88**. Este pacote **ainda não** na loja.
 
-### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.35** · 04/09)
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.34** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1289,7 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
 | **Migrate** | **NÃO** |
 | **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
-| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.35** |
+| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** |
 | **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
@@ -1297,21 +1297,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | | |
 | --- | --- |
-| **Onde** | Produção sistvale — Chat interno PDV (não WhatsApp) |
-| **Causa** | Poll `chat-loja` **4s** × N caixas/abas engolia os **2** workers |
-| **Meio-termo** | `PDV-CHAT-POLL-10S` — fechado **10s** · aberto **2,5s** · abrir/enviar = na hora |
-| **Status** | 🟡 `teste` · loja **não** até frase + senha |
-| **Depois** | Excluir chat interno e tentar solução via WhatsApp (decisão Renan 04/09) |
-
-### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · 04/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Menos ping no servidor com Chat fechado (10s). Aberto continua 2,5s. |
-| **Onde** | `pdv_chat_loja.js` |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` · **não** loja |
-| **Você** | Ctrl+F5 no PDV · Chat fechado: aviso pode demorar até ~10s · aberto: rápido |
+| **Onde** | Produção sistvale (**v21.87**) — não PC local |
+| **Evidência Render ~16:33** | `chat-loja/lista` ~**100 hits / ~80s** · **~18** caixas/abas · quase metade `agro_dual` · Gunicorn **2 workers** |
+| **Patches de ontem** | Overlay/F8/fiado = só ao abrir · **não** explicam ping contínuo |
+| **Hipótese forte** | Poll Chat **4s** × N PDVs enfileira o servidor → venda “meio pesada” |
+| **Próximo** | Aliviar poll no `teste` (Renan autorizar) → loja só c/ senha |
 
 ### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
