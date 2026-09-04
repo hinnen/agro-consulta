@@ -1849,7 +1849,7 @@ def transferir_conversa(
         return None, "Conversa não encontrada."
     if conv.loja == dest:
         return None, "Já está nessa loja."
-    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
     from produtos.atendimento_whatsapp_recursos import recurso_on, salvar_conversa_extras
 
     cfg = carregar_bot()
@@ -1860,16 +1860,17 @@ def transferir_conversa(
     conv.nao_lidas = int(conv.nao_lidas or 0) + 1
     conv.save(update_fields=["loja", "nao_lidas"])
     rotulo = "Centro" if dest == WhatsAppConversaAgro.LOJA_CENTRO else "Vila Elias"
-    txt = (
-        f"Seu atendimento foi passado para a loja *{rotulo}*. "
-        "Eles continuam falando com você por aqui."
-    )
-    _enfileirar_saida(
-        conv,
-        txt,
-        direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
-        autor=(autor or "Loja")[:120],
-    )
+    if cfg_flag(cfg, "xfer_avisar_cliente", default=True):
+        txt = (
+            f"Seu atendimento foi passado para a loja *{rotulo}*. "
+            "Eles continuam falando com você por aqui."
+        )
+        _enfileirar_saida(
+            conv,
+            txt,
+            direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
+            autor=(autor or "Loja")[:120],
+        )
     return conv, ""
 
 

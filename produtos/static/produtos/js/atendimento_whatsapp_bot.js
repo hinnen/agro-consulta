@@ -27,6 +27,7 @@
     'fiado_ligado',
     'fiado_manda_menu',
     'ausencia_ligada',
+    'xfer_avisar_cliente',
     'feat_pdv_abre_zap',
     'feat_pdv_aviso_msg',
     'feat_respostas_prontas',

@@ -1378,6 +1378,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` · **não** loja até Renan + senha |
 | **Como usar** | Bot → Recursos → liga 1 → testa → próximo |
 
+### 📦 PACOTE PRONTO — modal transferência Zap (`WA-XFER-UI` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Janelas próprias (sem `alert` do Chrome) ao passar Centro↔Vila + nota interna |
+| **Bot** | Lojas → **Avisar cliente ao passar** (`xfer_avisar_cliente`, padrão **ligado**) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` |
+| **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
+
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 
 | | |

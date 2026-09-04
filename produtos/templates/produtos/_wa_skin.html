@@ -458,6 +458,48 @@
   .wa-skin .wa-toast.show { display: block; }
   .wa-skin .wa-toast.ok { background: #ecfdf5; color: #047857; }
   .wa-skin .wa-toast.bad { background: #fef2f2; color: #b91c1c; }
+  .wa-dlg {
+    position: fixed; inset: 0; z-index: 90;
+    display: none; align-items: center; justify-content: center;
+    padding: 1rem; background: rgb(15 23 42 / .55);
+  }
+  .wa-dlg.is-on { display: flex; }
+  .wa-dlg-card {
+    width: min(100%, 26rem); border-radius: 1.15rem; background: #fff;
+    padding: 1.15rem 1.2rem 1rem; box-shadow: 0 18px 50px rgb(15 23 42 / .28);
+    border: 1px solid #e2e8f0;
+  }
+  .wa-dlg-tit {
+    margin: 0 0 .45rem; font-size: 1.05rem; font-weight: 900; color: #0f172a; letter-spacing: -.01em;
+  }
+  .wa-dlg-txt {
+    margin: 0 0 .85rem; font-size: .95rem; font-weight: 600; line-height: 1.4; color: #475569;
+  }
+  .wa-dlg-inp {
+    width: 100%; min-height: 2.85rem; margin: 0 0 .85rem; border-radius: .9rem;
+    border: 1px solid #cbd5e1; padding: .55rem .8rem; font-size: 1rem; font-weight: 600;
+    background: #f8fafc; color: #0f172a;
+  }
+  .wa-dlg-inp:focus { outline: 2px solid #86efac; border-color: #059669; background: #fff; }
+  .wa-dlg-inp.hidden,
+  .wa-dlg-actions .hidden { display: none !important; }
+  .wa-dlg-actions { display: flex; gap: .55rem; justify-content: flex-end; flex-wrap: wrap; }
+  .wa-dlg-actions button {
+    min-height: 2.65rem; min-width: 6.5rem; padding: 0 .95rem; border: 0; border-radius: .85rem;
+    font-size: .85rem; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; cursor: pointer;
+  }
+  .wa-dlg-cancel { background: #e2e8f0; color: #334155; }
+  .wa-dlg-ok { background: #059669; color: #fff; }
+  .wa-dlg-ok:hover { background: #047857; }
+  .wa-float-toast {
+    position: fixed; left: 50%; bottom: 1.25rem; z-index: 95; transform: translateX(-50%);
+    max-width: min(92vw, 24rem); padding: .7rem 1rem; border-radius: .95rem;
+    font-size: .92rem; font-weight: 800; box-shadow: 0 10px 30px rgb(15 23 42 / .2);
+    display: none;
+  }
+  .wa-float-toast.show { display: block; }
+  .wa-float-toast.ok { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .wa-float-toast.bad { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
   .wa-skin .wa-panel { display: none; }
   .wa-skin .wa-panel.is-on { display: block; }
   .wa-skin .wa-qr { background: linear-gradient(180deg, #fff7ed, #fff); border: 1px solid #fed7aa; border-radius: 1.1rem; padding: .75rem; text-align: center; }
