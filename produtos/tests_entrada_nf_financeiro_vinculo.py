@@ -109,3 +109,62 @@ class EntradaNfFinanceiroVinculoTests(SimpleTestCase):
         segunda = validar_vinculo_financeiro_entrada_nfe(doc, titulos, doc["extra"]["financeiro_ids"])
         self.assertTrue(primeira["valido"] and segunda["valido"])
         self.assertEqual(Decimal("1070.20") + Decimal("1070.20"), Decimal("2140.40"))
+
+    def test_nota_manual_sem_chave_casa_por_nf_e_nome(self):
+        """Bug loja: CP já lançado, etapa 7 laranja — nota manual perde chave/lote/flag."""
+        from datetime import date
+
+        d = _doc({
+            "financeiro_ui": {
+                "parcelas_manual": [
+                    {"data_vencimento": "2026-09-10", "valor": "318.59"},
+                    {"data_vencimento": "2026-09-21", "valor": "318.59"},
+                    {"data_vencimento": "2026-09-30", "valor": "318.59"},
+                ]
+            },
+        }, status="encerrada")
+        d["extra"].pop("financeiro_lancado", None)
+        d["extra"].pop("financeiro_ids", None)
+        d["extra"].pop("financeiro_lote", None)
+        d["cabecalho"].update({
+            "numero": "51832423432",
+            "serie": "",
+            "emit_nome": "Sn - Pajaro",
+            "emit_fornecedor_id": "",
+            "emit_cnpj": "",
+            "chave": "",
+        })
+        titulos = [
+            titulo(
+                "pg-1",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 10),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+            titulo(
+                "pg-2",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 21),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+            titulo(
+                "pg-3",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 30),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+        ]
+        ids = ["pg-1", "pg-2", "pg-3"]
+        out = validar_vinculo_financeiro_entrada_nfe(d, titulos, ids)
+        self.assertTrue(out["valido"], out)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+        ):
+            self.assertEqual(_titulos_entrada_nfe_ids_do_rascunho(None, d), ids)

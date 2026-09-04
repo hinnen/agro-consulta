@@ -9,7 +9,7 @@ import gzip
 import logging
 import re
 import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -2989,6 +2989,26 @@ def _entrada_nfe_titulo_texto(titulo: dict[str, Any]) -> str:
     return " ".join(str(x or "") for x in partes)
 
 
+def _entrada_nfe_data_iso(value: Any) -> str:
+    """Normaliza vencimento para AAAA-MM-DD (date, ISO ou dd/mm/aaaa)."""
+    if value is None:
+        return ""
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    s = str(value).strip()
+    if not s:
+        return ""
+    s10 = s[:10]
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", s10):
+        return s10
+    m = re.fullmatch(r"(\d{2})/(\d{2})/(\d{4})", s10)
+    if m:
+        return f"{m.group(3)}-{m.group(2)}-{m.group(1)}"
+    return s10
+
+
 def _entrada_nfe_assinatura_parcelas(doc: dict[str, Any]) -> list[tuple[str, Decimal]]:
     extra = doc.get("extra") if isinstance(doc.get("extra"), dict) else {}
     fin = extra.get("financeiro_ui") if isinstance(extra.get("financeiro_ui"), dict) else {}
@@ -3002,7 +3022,7 @@ def _entrada_nfe_assinatura_parcelas(doc: dict[str, Any]) -> list[tuple[str, Dec
         except Exception:
             continue
         if valor > 0:
-            out.append((str(item.get("data_vencimento") or item.get("vencimento") or "")[:10], valor))
+            out.append((_entrada_nfe_data_iso(item.get("data_vencimento") or item.get("vencimento")), valor))
     return sorted(out)
 
 
@@ -3014,7 +3034,7 @@ def _entrada_nfe_assinatura_titulos(titulos: list[dict[str, Any]]) -> list[tuple
         except Exception:
             continue
         if valor > 0:
-            out.append((str(t.get("data_vencimento") or t.get("DataVencimento") or "")[:10], valor))
+            out.append((_entrada_nfe_data_iso(t.get("data_vencimento") or t.get("DataVencimento")), valor))
     return sorted(out)
 
 
@@ -3026,6 +3046,7 @@ def validar_vinculo_financeiro_entrada_nfe(doc: dict[str, Any], titulos: list[di
     nf = _nf_numero_norm(cab.get("numero"))
     chave = _entrada_nfe_digits(cab.get("chave") or doc.get("xml_chave"))
     fornecedor_id = str(cab.get("emit_fornecedor_id") or "").strip()
+    emit_nome = str(cab.get("emit_nome") or "").strip()
     cnpj = _entrada_nfe_digits(cab.get("emit_cnpj"))
     lote = str(extra.get("financeiro_lote") or "").strip().upper()
     encontrados = {_mongo_lancamento_id_str(t) for t in titulos}
@@ -3040,16 +3061,29 @@ def validar_vinculo_financeiro_entrada_nfe(doc: dict[str, Any], titulos: list[di
         digits = _entrada_nfe_digits(texto)
         nf_titulo = _nf_numero_norm(_extrair_nf_numero_lancamento(t))
         cliente_id = str(t.get("ClienteID") or t.get("ClienteId") or t.get("cliente_id") or "").strip()
+        cliente_nome = str(t.get("Cliente") or t.get("cliente") or "").strip()
+        nome_ok = bool(emit_nome and cliente_nome and _entrada_nfe_nomes_fornecedor_batem(emit_nome, cliente_nome))
         ev = {
             "id": _mongo_lancamento_id_str(t),
             "nf": nf_titulo,
             "nf_ok": bool(nf and nf_titulo and nf == nf_titulo),
             "rascunho_ok": bool(rid and rid in texto),
             "chave_ok": bool(chave and len(chave) >= 40 and chave in digits),
-            "fornecedor_forte": bool((fornecedor_id and cliente_id == fornecedor_id) or (cnpj and len(cnpj) >= 11 and cnpj in digits)),
+            "fornecedor_forte": bool(
+                (fornecedor_id and cliente_id == fornecedor_id)
+                or (cnpj and len(cnpj) >= 11 and cnpj in digits)
+                or nome_ok
+            ),
             "lote_ok": bool(lote and _extrair_lote_agro_lancamento(t) == lote),
         }
-        ev["valido"] = ev["rascunho_ok"] or ev["chave_ok"] or (ev["nf_ok"] and ev["fornecedor_forte"] and (parcelas_ok or ev["lote_ok"]))
+        # NF exata + fornecedor (id/CNPJ/nome) basta — nota manual perde chave, lote e flag.
+        # Sem fornecedor, parcelas ou lote Agro ainda comprovam o mesmo número de NF.
+        ev["valido"] = (
+            ev["rascunho_ok"]
+            or ev["chave_ok"]
+            or (ev["nf_ok"] and ev["fornecedor_forte"])
+            or (ev["nf_ok"] and (parcelas_ok or ev["lote_ok"]))
+        )
         evidencias.append(ev)
     valido = bool(evidencias) and all(x["valido"] for x in evidencias)
     return {"valido": valido, "motivo": "comprovado" if valido else "titulo_divergente", "parcelas_ok": parcelas_ok, "evidencias": evidencias}

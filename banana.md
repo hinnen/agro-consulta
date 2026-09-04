@@ -615,7 +615,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
-- **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
+- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava. Abrir a nota religa; **não** gerar de novo se os títulos já existem.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
@@ -1272,6 +1272,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 🩹 Entrada NF — CP já lançado, etapa 7 laranja (`NF-FIN-MANUAL-RELIGA` · **v22.29** · 04/09)
+
+| | |
+| --- | --- |
+| **Relato** | NF **manual** 51832423432 · Sn-Pajaro · 3 parcelas no CP · tela laranja + **Salvar + a pagar** · aviso «não achei conta a pagar» |
+| **Causa** | Casamento forte pedia chave XML **e** lote **e** parcelas. Nota digitada não tem chave; o carimbo some e a tela acha que não lançou |
+| **Fix** | Religa por **número da NF exato** + nome do fornecedor (ou parcelas). Próximos lançamentos gravam o ID da nota na observação |
+| **Não** | Clicar **Salvar + a pagar** de novo se os 3 títulos já estão no Contas a pagar (duplica) |
+| **Migrate** | **NÃO** |
+| **Prova** | `produtos.tests_entrada_nf_financeiro_vinculo` **8/8** |
+| **Status** | 🟡 `teste` **v22.29** · loja **não** |
+| **Você** | Ctrl+F5 · abrir essa nota na Entrada NF · o laranja tem que sumir sozinho |
 
 ### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
 

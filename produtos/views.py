@@ -18791,8 +18791,10 @@ def api_entrada_nota_financeiro(request):
 
         nf_num = str(cab.get("numero") or "").strip()
         base_desc = (f"NF {nf_num} — {pessoa_nome}" if nf_num else pessoa_nome)[:500]
+        rid_obs = str((r_rasc or {}).get("id") or rid_up or "").strip()
+        rid_obs_txt = f" · rascunho {rid_obs}" if rid_obs else ""
         base_obs = (
-            f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
+            f"Entrada NF-e Agro · chave {cab.get('chave') or '—'}{rid_obs_txt} · {cab.get('data_entrada') or ''}"
         )[:500]
 
         pm_raw = fin.get("parcelas_manual")
@@ -19053,8 +19055,10 @@ def api_entrada_nota_financeiro(request):
             empresa_id=empresa_id_fin,
         )
         imp_txt = ((imp_txt or "").strip() or lancamentos_plano_impostos_taxas_variaveis_resolvido())[:200]
+        rid_obs_imp = str((r_rasc or {}).get("id") or rid_up or "").strip()
+        rid_obs_imp_txt = f" · rascunho {rid_obs_imp}" if rid_obs_imp else ""
         base_obs_imp = (
-            f"Entrada NF-e Agro · chave {cab.get('chave') or '—'} · {cab.get('data_entrada') or ''}"
+            f"Entrada NF-e Agro · chave {cab.get('chave') or '—'}{rid_obs_imp_txt} · {cab.get('data_entrada') or ''}"
         )[:500]
         nf_num_l = str(cab.get("numero") or "").strip()
         linhas_fin_nf = [x for x in (linhas_fin or []) if isinstance(x, dict)]
