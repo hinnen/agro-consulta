@@ -1340,7 +1340,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.63**)
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.64**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
