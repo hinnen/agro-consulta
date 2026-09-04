@@ -29262,6 +29262,8 @@ def api_enviar_pedido_erp(request):
             },
             status=502 if out["status"] and out["status"] != 0 else 500,
         )
+    except ValueError as e:
+        return JsonResponse({"ok": False, "erro": str(e)}, status=400)
     except Exception as e:
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 

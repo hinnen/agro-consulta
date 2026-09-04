@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV · cliente · **Adicionar vale** (manual) · número **Vale crédito** sobe na hora |
 
-### 📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` · bug #16 · **v22.63** · 04/09)
+### 📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` · bug #16 · **v22.64** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
