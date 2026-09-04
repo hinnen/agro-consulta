@@ -1280,7 +1280,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Queila sem folha 08 · robô dia 28 **não existia** no Render |
-| **Fix dados** | Folha **2026-08** + título CP venc. **01/09** · R$ 1964,12 |
+| **Fix dados** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ 1964,12 · **Isabela** título 08 venc. **14/09** · R$ 1853 |
 | **Cron loja** | ✅ `crn-dadj0q6q1p3s73dsrd70` · `15 6 * * *` UTC · `producao` · Trigger OK |
 | **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **22/22** (live + dry_run 28 = 6 candidatos) |
 | **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
@@ -1293,7 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Navegador novo pede login · tela **bonita** GM Agro Mais (gradiente laranja→verde + logo) |
 | **Causa** | Painel vinha aberto (`AGRO_PUBLIC_DASHBOARD=true`) · login era o Admin feio |
 | **Fix** | Painel fechado · URL **`/entrar/`** · `LOGIN_URL=/entrar/` |
-| **Onde** | `entrar.html` · `agro_entrar` · `settings.py` · redirects `login_url` |
+| **UI** | Tela **`/entrar/`** · até `/admin/login/` redireciona pra ela (**v22.56**) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 **pronto no teste** · **urgente** |
 | **Você** | Reinicia servidor · janela anônima → `/` → tela de login da marca |
@@ -1312,11 +1312,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.53**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.55**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** | 🟡 **pronto para envio à produção** · **urgente** | **NÃO** |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟡 **pronto no teste** · **urgente** | **NÃO** |
 | 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto para envio à produção** · prova **27/27** | **NÃO** |
 | 3 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
