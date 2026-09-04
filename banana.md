@@ -617,6 +617,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
 - **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava. Abrir a nota religa; **não** gerar de novo se os títulos já existem.
+- **Lista Em andamento vazia (04/09 · `NF-LISTA-ANDAMENTO`):** chip filtrava só as ~25 notas mais novas — nota antiga em Financeiro/Estoque sumia até digitar na busca. Fix: scan fundo + preencher lim com quem casa no filtro.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **PIN etapa 5 (02/09 · `PIN-ET5-CAMPO`):** linha de PIN **sempre visível** acima do botão azul «Registrar estoque»; o POST manda `pin`. Overlay escuro **não** é o caminho desta etapa. Loja **v20.86** ainda **não** tem isso.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
@@ -1274,14 +1275,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.47**)
+### 📦 PACOTE PRONTO — Entrada NF lista «Em andamento» vazia (`NF-LISTA-ANDAMENTO` · **v22.48** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Aba **Em andamento** abria vazia; a nota (ex. MS em Financeiro) só aparecia ao digitar na busca |
+| **Causa** | Lista pegava só ~25 mais novas e filtrava depois — nota antiga em andamento ficava fora |
+| **Fix** | Com filtro de estágio, varre mais fundo e preenche a lista com quem casa no filtro |
+| **Onde** | `nfe_entrada_util.py` (`listar_rascunhos_entrada`) |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_nf_lista_em_andamento_path.py` **VERIFY_OK 6/6** |
+| **Status** | 🟡 **pronto no teste** — validar local · loja só frase+senha |
+| **Você** | Entrada NF → **Em andamento** sem digitar → deve listar a MS / outras abertas |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.48**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
-| 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
-| 3 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
-| 4 | **WA-XFER-PIX-ORC** | 🟡 **pronto para envio à produção** · prova **73/73** | **NÃO** |
+| 1 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto no teste** | **NÃO** |
+| 2 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
+| 3 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
+| 4 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
+| 5 | **WA-XFER-PIX-ORC** | 🟡 **pronto para envio à produção** · prova **73/73** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
 
