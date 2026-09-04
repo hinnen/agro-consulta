@@ -27,7 +27,65 @@
     'fiado_ligado',
     'fiado_manda_menu',
     'ausencia_ligada',
+    'feat_pdv_abre_zap',
+    'feat_pdv_aviso_msg',
+    'feat_respostas_prontas',
+    'feat_xfer_nota',
+    'feat_fiado_pix',
+    'feat_orcamento_zap',
+    'feat_lembrete_fiado',
+    'feat_comprovante_venda',
+    'feat_entrega_status',
+    'feat_pedir_loja_aviso',
+    'feat_lista_espera',
+    'feat_fornecedor_zap',
+    'feat_menu_curto',
+    'feat_audio_texto',
+    'feat_relatorio_dia',
+    'feat_vip_tag',
+    'feat_ponte_backup',
+    'feat_horario_bot',
   ];
+
+  var RECURSOS_UI = [
+    ['feat_pdv_abre_zap', 'PDV abre o Zap', 'Ícone do PDV abre o chat (em vez de «Em breve»).'],
+    ['feat_pdv_aviso_msg', 'Aviso no PDV', 'Som + badge quando chega mensagem nova.'],
+    ['feat_respostas_prontas', 'Respostas prontas', 'Botões de texto rápido no chat.'],
+    ['feat_xfer_nota', 'Nota ao transferir', 'Observação interna ao passar Centro↔Vila.'],
+    ['feat_fiado_pix', 'Fiado + Pix', 'Depois do saldo, bot lembra Pix / pagar na loja.'],
+    ['feat_orcamento_zap', 'Orçamento no Zap', 'Enviar orçamento do PDV pelo chat da loja.'],
+    ['feat_lembrete_fiado', 'Lembrete fiado', 'Avisar cliente marcado (atraso) — sem disparo em massa.'],
+    ['feat_comprovante_venda', 'Comprovante de venda', 'Texto «sua compra» no Zap após venda.'],
+    ['feat_entrega_status', 'Status de entrega', 'Avisar cliente: saiu / a caminho / chegou.'],
+    ['feat_pedir_loja_aviso', 'Pedir loja → Zap', 'Avisa a outra loja quando pedido muda de status.'],
+    ['feat_lista_espera', 'Lista de espera', 'Avisar quando produto sem estoque chegar.'],
+    ['feat_fornecedor_zap', 'Folha p/ fornecedor', 'Atalho de Compras pelo Zap da loja.'],
+    ['feat_menu_curto', 'Menu curto (F·H·A)', 'F fiado · H horário · A atendente.'],
+    ['feat_audio_texto', 'Áudio → texto', 'Transcrever áudio do cliente (quando ligado).'],
+    ['feat_relatorio_dia', 'Relatório do dia', 'Resumo: chats e quem atendeu (PIN).'],
+    ['feat_vip_tag', 'VIP / alerta no chat', 'Marcar cliente (fiado alto, sempre Vila…).'],
+    ['feat_ponte_backup', 'Ponte backup', '2º PC se o 1º cair (só prepara).'],
+    ['feat_horario_bot', 'Horário reforçado', 'Textos de horário mais claros no Bot.'],
+  ];
+
+  function montarRecursos() {
+    var box = $('wa-bot-recursos');
+    if (!box || box.getAttribute('data-ready') === '1') return;
+    box.setAttribute('data-ready', '1');
+    box.innerHTML = RECURSOS_UI.map(function (r) {
+      return (
+        '<label class="wa-sw" title="' +
+        r[2].replace(/"/g, '&quot;') +
+        '"><span><b>' +
+        r[1] +
+        '</b><br/><span class="text-xs font-semibold text-slate-500">' +
+        r[2] +
+        '</span></span><input type="checkbox" name="' +
+        r[0] +
+        '" /></label>'
+      );
+    }).join('');
+  }
 
   var FONTES_NOME = [
     { v: 'cadastro', n: 'Cadastro da loja' },
@@ -158,6 +216,16 @@
       'msg_fora_horario',
       'aviso_fora_minutos',
       'msg_ausencia',
+      'respostas_prontas',
+      'msg_fiado_pix_extra',
+      'msg_menu_curto_extra',
+      'msg_horario_loja',
+      'msg_comprovante_venda',
+      'msg_entrega_saiu',
+      'msg_entrega_caminho',
+      'msg_entrega_chegou',
+      'msg_lembrete_fiado',
+      'msg_lista_espera',
     ].forEach(function (k) {
       var el = f.querySelector('[name="' + k + '"]');
       if (el && bot[k] != null) el.value = bot[k];
@@ -210,6 +278,7 @@
 
   var f = form();
   if (!f) return;
+  montarRecursos();
   montarDias([1, 2, 3, 4, 5, 6]);
   carregar();
   f.addEventListener('submit', function (ev) {

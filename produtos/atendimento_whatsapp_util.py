@@ -140,12 +140,17 @@ def montar_texto_fiado(telefone: str, cfg: dict | None = None) -> str:
         extra = f"\n… e mais {len(linhas) - max_p} parcela(s)."
     corpo = "\n".join(mostrar) + extra
     tpl = str(c.get("msg_fiado_aberto") or BOT_DEFAULT["msg_fiado_aberto"])
-    return (
+    out = (
         tpl.replace("{nome}", nome)
         .replace("{total}", _fmt_rs(total))
         .replace("{linhas}", corpo)
         .replace("{empresa}", str(c.get("nome_empresa") or ""))
     )
+    from produtos.atendimento_whatsapp_recursos import recurso_on
+
+    if recurso_on(c, "feat_fiado_pix"):
+        out += str(c.get("msg_fiado_pix_extra") or BOT_DEFAULT.get("msg_fiado_pix_extra") or "")
+    return out
 
 
 def interpretar_loja(texto: str, cfg: dict | None = None) -> str:
@@ -418,6 +423,9 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "hora": ult_l.strftime("%H:%M") if ult_l else "",
         "data": ult_l.strftime("%d/%m") if ult_l else "",
         "foto_url": f"/api/atendimento-whatsapp/foto/{int(c.pk)}/" if c.foto_perfil else "",
+        "vip": bool((getattr(c, "extras", None) or {}).get("vip")),
+        "nota": str((getattr(c, "extras", None) or {}).get("nota") or "")[:200],
+        "tags": list((getattr(c, "extras", None) or {}).get("tags") or [])[:8],
     }
 
 
@@ -1057,8 +1065,50 @@ def processar_entrada(
             bv = str(cfg.get("msg_boas_vindas") or "").strip()
             if bv:
                 out.append(bv)
-        out.append(str(cfg.get("msg_menu") or MSG_MENU))
+        menu = str(cfg.get("msg_menu") or MSG_MENU)
+        from produtos.atendimento_whatsapp_recursos import recurso_on
+
+        if recurso_on(cfg, "feat_menu_curto"):
+            menu += str(cfg.get("msg_menu_curto_extra") or "")
+        out.append(menu)
         return out
+
+    # Atalhos F / H / A (só se recurso ligado)
+    if not historico and not de_mim and cfg_flag(cfg, "bot_ligado"):
+        from produtos.atendimento_whatsapp_recursos import recurso_on
+
+        if recurso_on(cfg, "feat_menu_curto"):
+            cmd = _sem_acento(t).strip().lower()
+            if cmd in ("h", "horario", "horário", "endereco", "endereço"):
+                from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT as _BD
+
+                tpl = str(cfg.get("msg_horario_loja") or _BD.get("msg_horario_loja") or "")
+                txt_h = (
+                    tpl.replace("{empresa}", str(cfg.get("nome_empresa") or ""))
+                    .replace("{ini}", str(cfg.get("horario_ini") or "08:00"))
+                    .replace("{fim}", str(cfg.get("horario_fim") or "18:00"))
+                )
+                conv.save(update_fields=campos_base)
+                if txt_h:
+                    _enviar_lote_bot(conv, [txt_h], cfg)
+                return msg, ""
+            if cmd in ("a", "atendente", "humano", "pessoa"):
+                conv.aguardando_loja = True
+                campos_a = list(campos_base)
+                if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE:
+                    conv.loja = WhatsAppConversaAgro.LOJA_CENTRO
+                    campos_a.append("loja")
+                conv.save(update_fields=campos_a)
+                _enviar_lote_bot(
+                    conv,
+                    ["Certo! Alguém da loja vai falar com você por aqui."],
+                    cfg,
+                )
+                return msg, ""
+            if cmd in ("f",) and cfg_flag(cfg, "fiado_ligado"):
+                conv.save(update_fields=campos_base)
+                _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
+                return msg, ""
 
     if historico or de_mim or not cfg_flag(cfg, "bot_ligado"):
         conv.save(update_fields=campos_base)
@@ -1788,7 +1838,7 @@ def definir_loja(conversa_id: int, loja: str) -> tuple[WhatsAppConversaAgro | No
 
 @transaction.atomic
 def transferir_conversa(
-    conversa_id: int, loja: str, *, autor: str = ""
+    conversa_id: int, loja: str, *, autor: str = "", nota: str = ""
 ) -> tuple[WhatsAppConversaAgro | None, str]:
     dest = (loja or "").strip().lower()
     if dest not in (WhatsAppConversaAgro.LOJA_CENTRO, WhatsAppConversaAgro.LOJA_VILA):
@@ -1799,6 +1849,13 @@ def transferir_conversa(
         return None, "Conversa não encontrada."
     if conv.loja == dest:
         return None, "Já está nessa loja."
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+    from produtos.atendimento_whatsapp_recursos import recurso_on, salvar_conversa_extras
+
+    cfg = carregar_bot()
+    nota_n = str(nota or "").strip()[:400]
+    if recurso_on(cfg, "feat_xfer_nota") and nota_n:
+        salvar_conversa_extras(conv, {"nota": nota_n, "nota_autor": (autor or "")[:80]})
     conv.loja = dest
     conv.nao_lidas = int(conv.nao_lidas or 0) + 1
     conv.save(update_fields=["loja", "nao_lidas"])
