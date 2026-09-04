@@ -3,7 +3,7 @@
 
   var LS_KEY = 'agro_etiquetas_presets_v1';
   var LS_MIGRATE_FLAG = 'agro_etiquetas_presets_pg_v1';
-  var BUILTIN_IDS = { 'padrao-4x4': 1, gondola: 1 };
+  var BUILTIN_IDS = { 'padrao-4x4': 1, gondola: 1, 'bonus-a6': 1 };
 
   var DEFAULT_PRESET = {
     id: 'padrao-4x4',
@@ -75,29 +75,111 @@
     layout: JSON.parse(JSON.stringify(DEFAULT_GONDOLA_LAYOUT)),
   };
 
-  /** Grade suportada na A4 (90 mm = 2 colunas; 60 mm = 3; sempre 9 linhas). */
-  function calcularGradeA4(larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas) {
-    var pageW = 210;
-    var pageH = 297;
+  /** Bônus / foto A6 — 1 coluna × ~3 linhas (100 × 45 mm). */
+  var DEFAULT_BONUS_A6_PRESET = {
+    id: 'bonus-a6',
+    nome: 'Bônus A6',
+    estilo: 'gondola',
+    folha: 'a6',
+    largura_mm: 100,
+    altura_mm: 45,
+    nome_pt: 12,
+    nome_pt_1: 13,
+    nome_pt_2: 11,
+    nome_pt_3: 9,
+    preco_pt: 28,
+    rs_pt: 14,
+    peso_pt: 9,
+    gm_pt: 9,
+    codigo_pt: 7,
+    rodape_pt: 8,
+    barcode_height: 26,
+    barcode_width: 1.05,
+    texto_rodape: '',
+    impressora: '',
+    show_logo: true,
+    show_nome: true,
+    show_rs: true,
+    show_preco: true,
+    show_peso: true,
+    show_gm: false,
+    cols_folha: 1,
+    rows_folha: 3,
+    borda_mm: 0.5,
+    cores: {
+      faixa_bg: '#1a4d2e',
+      faixa_fg: '#ffffff',
+      fundo: '#ffffff',
+      preco_fg: '#1a4d2e',
+      rs_fg: '#1a4d2e',
+      peso_fg: '#1a4d2e',
+      gm_fg: '#1a4d2e',
+      borda: '#1a4d2e',
+      marca_corte: '#94a3b8',
+    },
+    layout: JSON.parse(JSON.stringify(DEFAULT_GONDOLA_LAYOUT)),
+  };
+
+  function normalizarFolha(folha) {
+    return String(folha || 'a4').toLowerCase() === 'a6' ? 'a6' : 'a4';
+  }
+
+  function dimensoesFolha(folha) {
+    if (normalizarFolha(folha) === 'a6') {
+      return { w: 105, h: 148, css: 'A6', label: 'A6' };
+    }
+    return { w: 210, h: 297, css: 'A4', label: 'A4' };
+  }
+
+  /**
+   * Grade na folha.
+   * A4: 90 mm = 2 colunas; 60 mm = 3; 9 linhas.
+   * A6: 1 coluna; linhas = o que cabe na altura (ex. 100×45 → 3).
+   */
+  function calcularGradeFolha(folha, larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas) {
+    var page = dimensoesFolha(folha);
+    var pageW = page.w;
+    var pageH = page.h;
     var b = Number(bordaMm);
     if (!(b > 0)) b = 0.5;
     var w = Number(larguraMm);
     var h = Number(alturaMm);
-    if (!(w > 0)) w = 90;
-    if (!(h > 0)) h = 30;
+    if (!(w > 0)) w = page.css === 'A6' ? 100 : 90;
+    if (!(h > 0)) h = page.css === 'A6' ? 45 : 30;
     var outerW = w + 2 * b;
     var outerH = h + 2 * b;
-    var largura60 = Math.abs(w - 60) < 0.01;
-    var cols = largura60 ? 3 : Math.max(1, parseInt(colsSalvas, 10) || 2);
-    var rows = Math.max(1, parseInt(rowsSalvas, 10) || 9);
+    var maxCols = Math.max(1, Math.floor((pageW + 0.01) / outerW));
+    var maxRows = Math.max(1, Math.floor((pageH + 0.01) / outerH));
+    var cols;
+    var rows;
+    if (page.css === 'A6') {
+      cols = 1;
+      var rowsWant = parseInt(rowsSalvas, 10);
+      rows = rowsWant > 0 ? Math.min(rowsWant, maxRows) : maxRows;
+    } else {
+      var largura60 = Math.abs(w - 60) < 0.01;
+      cols = largura60 ? Math.min(3, maxCols) : Math.max(1, Math.min(maxCols, parseInt(colsSalvas, 10) || 2));
+      rows = Math.max(1, Math.min(maxRows, parseInt(rowsSalvas, 10) || 9));
+    }
     return {
+      folha: page.css === 'A6' ? 'a6' : 'a4',
+      page_w: pageW,
+      page_h: pageH,
+      page_css: page.css,
+      page_label: page.label,
       cols: cols,
       rows: rows,
       outer_w: Math.round(outerW * 10) / 10,
       outer_h: Math.round(outerH * 10) / 10,
       per_page: cols * rows,
-      cabe_a4: cols * outerW <= pageW && rows * outerH <= pageH,
+      cabe: cols * outerW <= pageW + 0.01 && rows * outerH <= pageH + 0.01,
+      cabe_a4: page.css === 'A4' && cols * outerW <= pageW + 0.01 && rows * outerH <= pageH + 0.01,
     };
+  }
+
+  /** Compat: grade A4 (90 mm = 2 colunas; 60 mm = 3; sempre 9 linhas). */
+  function calcularGradeA4(larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas) {
+    return calcularGradeFolha('a4', larguraMm, alturaMm, bordaMm, colsSalvas, rowsSalvas);
   }
 
   var LOGO_AGRO_URL = '/static/produtos/img/logo_agro_mais.png';
@@ -265,15 +347,16 @@
     var out = clonePreset(p);
     if (!out.estilo) out.estilo = out.id === 'gondola' ? 'gondola' : 'termica';
     if (ehGondola(out)) {
-      out.folha = 'a4';
+      out.folha = normalizarFolha(out.folha);
       /* Força padrão 9×3 cm se ainda no seed antigo 90×35. */
       if (Number(out.largura_mm) === 90 && Number(out.altura_mm) === 35) {
         out.altura_mm = 30;
       }
-      if (!out.largura_mm) out.largura_mm = 90;
-      if (!out.altura_mm) out.altura_mm = 30;
+      if (!out.largura_mm) out.largura_mm = out.folha === 'a6' ? 100 : 90;
+      if (!out.altura_mm) out.altura_mm = out.folha === 'a6' ? 45 : 30;
       if (out.borda_mm == null || !(Number(out.borda_mm) > 0)) out.borda_mm = 0.5;
-      var grade = calcularGradeA4(
+      var grade = calcularGradeFolha(
+        out.folha,
         out.largura_mm,
         out.altura_mm,
         out.borda_mm,
@@ -513,6 +596,10 @@
       return p.id === 'padrao-4x4';
     });
     if (!hasPadrao) list.unshift(clonePreset(DEFAULT_PRESET));
+    var hasBonusA6 = list.some(function (p) {
+      return p.id === 'bonus-a6';
+    });
+    if (!hasBonusA6) list.push(clonePreset(DEFAULT_BONUS_A6_PRESET));
     return list;
   }
 
@@ -755,18 +842,21 @@
   }
 
   function montarHtmlGondola(preset, itens) {
-    var w = Number(preset.largura_mm) || 90;
-    var h = Number(preset.altura_mm) || 30;
+    var folha = normalizarFolha(preset.folha);
+    var page = dimensoesFolha(folha);
+    var w = Number(preset.largura_mm) || (folha === 'a6' ? 100 : 90);
+    var h = Number(preset.altura_mm) || (folha === 'a6' ? 45 : 30);
     var bordaMm = Number(preset.borda_mm);
     if (!(bordaMm > 0)) bordaMm = 0.5;
     /* Borda pra fora: total = útil + 2×borda (ex. 90×30 + 0,5 cada lado → 91×31). */
     var outerW = w + 2 * bordaMm;
     var outerH = h + 2 * bordaMm;
-    var cols = Math.max(1, parseInt(preset.cols_folha, 10) || 2);
-    var rows = Math.max(1, parseInt(preset.rows_folha, 10) || 9);
+    var grade = calcularGradeFolha(folha, w, h, bordaMm, preset.cols_folha, preset.rows_folha);
+    var cols = grade.cols;
+    var rows = grade.rows;
     var perPage = cols * rows;
-    var pageW = 210;
-    var pageH = 297;
+    var pageW = page.w;
+    var pageH = page.h;
     var marginX = Math.max(0, (pageW - cols * outerW) / 2);
     var marginY = Math.max(0, (pageH - rows * outerH) / 2);
     var cores = preset.cores || DEFAULT_GONDOLA_PRESET.cores;
@@ -787,7 +877,9 @@
     });
 
     var css =
-      '@page{size:A4;margin:0}' +
+      '@page{size:' +
+      page.css +
+      ';margin:0}' +
       'html,body{margin:0;padding:0;width:' +
       pageW +
       'mm;background:#fff;zoom:1!important;transform:none!important}' +
@@ -867,7 +959,9 @@
     }
 
     return (
-      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas Gôndola A4</title><style>' +
+      '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Etiquetas Gôndola ' +
+      page.label +
+      '</title><style>' +
       css +
       '</style></head><body>' +
       pages.join('') +
@@ -1129,7 +1223,11 @@
     LS_KEY: LS_KEY,
     DEFAULT_PRESET: DEFAULT_PRESET,
     DEFAULT_GONDOLA_PRESET: DEFAULT_GONDOLA_PRESET,
+    DEFAULT_BONUS_A6_PRESET: DEFAULT_BONUS_A6_PRESET,
     DEFAULT_GONDOLA_LAYOUT: DEFAULT_GONDOLA_LAYOUT,
+    normalizarFolha: normalizarFolha,
+    dimensoesFolha: dimensoesFolha,
+    calcularGradeFolha: calcularGradeFolha,
     calcularGradeA4: calcularGradeA4,
     esc: esc,
     fmtPreco: fmtPreco,

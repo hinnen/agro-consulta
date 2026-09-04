@@ -552,7 +552,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` v22.32.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1272,6 +1272,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+
+### 📦 PACOTE — Etiquetas A6 bônus 1 coluna (`ETQ-A6-BONUS` · **v22.32** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Gôndola: escolha de folha **A4** ou **A6**. A6 = **1 coluna**. Preset seed **Bônus A6** (100×45 mm · 3 por folha). Epson / papel foto. |
+| **Onde** | `/produtos/etiquetas/` · Presets → Folha · preset «Bônus A6» |
+| **Migrate** | **NÃO** |
+| **Prova** | `node scripts/verify_etiquetas_gondola_grade.js` OK |
+| **Status** | 🟡 `teste` **v22.32** · loja **não** |
+| **Você** | Ctrl+F5 · abrir Bônus A6 · imprimir · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
 
 ### WIP — PDV leve lentidão na **loja** · 04/09
 

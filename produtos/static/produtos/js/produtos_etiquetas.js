@@ -279,20 +279,28 @@
   function renderResumoGondola(p) {
     var el = $('etq-resumo-gondola');
     if (!el || !Core.ehGondola(p)) return;
-    var grade = Core.calcularGradeA4(
+    var grade = Core.calcularGradeFolha(
+      p.folha,
       p.largura_mm,
       p.altura_mm,
       p.borda_mm,
       p.cols_folha,
       p.rows_folha
     );
+    var folhaLbl = grade.page_label || (Core.normalizarFolha(p.folha) === 'a6' ? 'A6' : 'A4');
     el.innerHTML =
-      'Impressão: folha <strong class="text-slate-200">A4</strong> · área útil <strong class="text-slate-200">' +
+      'Impressão: folha <strong class="text-slate-200">' +
+      folhaLbl +
+      '</strong> · área útil <strong class="text-slate-200">' +
       fmtMm(p.largura_mm) + ' × ' + fmtMm(p.altura_mm) + ' mm</strong> · borda <strong class="text-slate-200">' +
       fmtMm(Number(p.borda_mm) || 0.5) + ' mm pra fora</strong> (total <strong class="text-slate-200">' +
       fmtMm(grade.outer_w) + ' × ' + fmtMm(grade.outer_h) + ' mm</strong>) · grade <strong class="text-slate-200">' +
       grade.cols + ' × ' + grade.rows + ' = ' + grade.per_page +
-      '</strong> · centralizada na A4 · marcas de corte nos cantos. No Chrome: margens «Nenhuma» + marcar «Gráficos de segundo plano».';
+      '</strong> · centralizada na ' +
+      folhaLbl +
+      ' · marcas de corte nos cantos. No Chrome: papel ' +
+      folhaLbl +
+      ' · margens «Nenhuma» + marcar «Gráficos de segundo plano».';
   }
 
   function renderPresetForm() {
@@ -305,6 +313,7 @@
     var map = {
       'etq-preset-nome': p.nome,
       'etq-preset-estilo': p.estilo || 'termica',
+      'etq-preset-folha': Core.normalizarFolha(p.folha),
       'etq-preset-largura': p.largura_mm,
       'etq-preset-altura': p.altura_mm,
       'etq-preset-nome-pt': p.nome_pt,
@@ -409,8 +418,10 @@
         marca_corte: ($('etq-cor-corte') && $('etq-cor-corte').value) || '#94a3b8',
       };
       p.layout = readLayoutBoxes();
-      p.folha = 'a4';
-      var grade = Core.calcularGradeA4(p.largura_mm, p.altura_mm, p.borda_mm);
+      p.folha = Core.normalizarFolha(
+        ($('etq-preset-folha') && $('etq-preset-folha').value) || p.folha || 'a4'
+      );
+      var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
       p.cols_folha = grade.cols;
       p.rows_folha = grade.rows;
     }
@@ -1418,8 +1429,8 @@
         var p = getPresetAtivo();
         if (Core.ehGondola(p)) {
           p.layout = Core.clonePreset(Core.DEFAULT_GONDOLA_LAYOUT);
-          p.folha = 'a4';
-          var grade = Core.calcularGradeA4(p.largura_mm, p.altura_mm, p.borda_mm);
+          p.folha = Core.normalizarFolha(p.folha);
+          var grade = Core.calcularGradeFolha(p.folha, p.largura_mm, p.altura_mm, p.borda_mm);
           p.cols_folha = grade.cols;
           p.rows_folha = grade.rows;
           var idx = state.storage.presets.findIndex(function (x) {
@@ -1440,6 +1451,24 @@
     var estiloSel = $('etq-preset-estilo');
     if (estiloSel) {
       estiloSel.addEventListener('change', function () {
+        commitPresetFormLive();
+        renderPresetForm();
+      });
+    }
+    var folhaSel = $('etq-preset-folha');
+    if (folhaSel) {
+      folhaSel.addEventListener('change', function () {
+        var p = getPresetAtivo();
+        if (Core.ehGondola(p) && folhaSel.value === 'a6') {
+          if (!(Number(p.largura_mm) > 0) || Number(p.largura_mm) === 90) {
+            var elW = $('etq-preset-largura');
+            if (elW) elW.value = '100';
+          }
+          if (!(Number(p.altura_mm) > 0) || Number(p.altura_mm) === 30) {
+            var elH = $('etq-preset-altura');
+            if (elH) elH.value = '45';
+          }
+        }
         commitPresetFormLive();
         renderPresetForm();
       });
