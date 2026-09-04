@@ -65,7 +65,27 @@ def _bridge_forbidden():
     return JsonResponse({"ok": False, "erro": "Ponte não autorizada."}, status=403)
 
 
-@login_required(login_url="/admin/login/")
+def _autor_wa(request, data: dict | None = None) -> str:
+    """
+    Assinatura na bolha verde: preferir PIN/operador do PDV na sessão.
+    Sem PIN fresco → cai no login do Chrome (admin) só como reserva.
+    """
+    from produtos.caixa_util import operador_label_request, rotulo_usuario_registro_venda
+
+    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
+    if not rot:
+        rot = (operador_label_request(request) or "").strip()
+    if rot:
+        return rot[:120]
+    try:
+        if request.user.is_authenticated:
+            return (request.user.get_full_name() or request.user.get_username() or "")[:120]
+    except Exception:
+        pass
+    return ""
+
+
+@login_required(login_url="/entrar/")
 def atendimento_whatsapp_view(request):
     return render(request, "produtos/atendimento_whatsapp.html", {})
 
@@ -116,24 +136,24 @@ def atendimento_whatsapp_celular_sw(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def atendimento_whatsapp_celular_view(request):
     return render(request, "produtos/atendimento_whatsapp_celular.html", {})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def atendimento_whatsapp_bot_view(request):
     return render(request, "produtos/atendimento_whatsapp_bot.html", {})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_bot_get(request):
     bot = carregar_bot()
     return JsonResponse({"ok": True, "bot": bot, "padrao": BOT_DEFAULT, "avisos": avisos_bot(bot)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_bot_salvar(request):
     data = _json_body(request)
@@ -153,7 +173,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
     return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_estado(request):
     from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
@@ -176,7 +196,7 @@ def api_atendimento_whatsapp_estado(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_conversas(request):
     loja = (request.GET.get("loja") or "").strip().lower()
@@ -187,7 +207,7 @@ def api_atendimento_whatsapp_conversas(request):
     return JsonResponse({"ok": True, "conversas": listar_conversas(loja=loja, limit=limit)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_mensagens(request):
     try:
@@ -209,7 +229,7 @@ def api_atendimento_whatsapp_mensagens(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_enviar(request):
     data = _json_body(request)
@@ -239,7 +259,7 @@ def api_atendimento_whatsapp_enviar(request):
     return JsonResponse({"ok": True, "mensagem": serializar_mensagem(m)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_marcar_lida(request):
     data = _json_body(request) or {}
@@ -253,7 +273,7 @@ def api_atendimento_whatsapp_marcar_lida(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_definir_loja(request):
     data = _json_body(request)
@@ -269,7 +289,7 @@ def api_atendimento_whatsapp_definir_loja(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_transferir(request):
     data = _json_body(request)
@@ -293,14 +313,14 @@ def api_atendimento_whatsapp_transferir(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_contatos(request):
     q = (request.GET.get("q") or "").strip()
     return JsonResponse({"ok": True, "contatos": buscar_contatos_envio(q)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_ficha(request):
     try:
@@ -313,7 +333,7 @@ def api_atendimento_whatsapp_ficha(request):
     return JsonResponse({"ok": True, "ficha": ficha})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_agenda_vcf(request):
     f = request.FILES.get("arquivo") or request.FILES.get("file") or request.FILES.get("vcf")
@@ -347,7 +367,7 @@ def api_atendimento_whatsapp_agenda_vcf(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_abrir(request):
     data = _json_body(request)
@@ -363,7 +383,7 @@ def api_atendimento_whatsapp_abrir(request):
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_novo(request):
     data = _json_body(request)
@@ -394,7 +414,7 @@ def api_atendimento_whatsapp_novo(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_agenda_zap(request):
     _p, err = pedir_agenda_zap()
@@ -403,7 +423,7 @@ def api_atendimento_whatsapp_agenda_zap(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_historico(request):
     data = _json_body(request) or {}
@@ -417,7 +437,7 @@ def api_atendimento_whatsapp_historico(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_excluir(request):
     data = _json_body(request) or {}
@@ -431,14 +451,14 @@ def api_atendimento_whatsapp_excluir(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_excluir_todas(request):
     n = excluir_todas_conversas()
     return JsonResponse({"ok": True, "apagadas": n})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_apagar_mensagem(request):
     data = _json_body(request) or {}
@@ -452,7 +472,7 @@ def api_atendimento_whatsapp_apagar_mensagem(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_concluir(request):
     data = _json_body(request) or {}
@@ -466,7 +486,7 @@ def api_atendimento_whatsapp_concluir(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_pairing(request):
     data = _json_body(request) or {}
@@ -476,7 +496,7 @@ def api_atendimento_whatsapp_pairing(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_trocar(request):
     _p, err = pedir_trocar_whatsapp()
@@ -509,7 +529,7 @@ def _arquivo_midia_response(m) -> FileResponse:
     return FileResponse(m.arquivo.open("rb"), content_type=ctype)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_midia(request, pk: int):
     try:
@@ -519,7 +539,7 @@ def api_atendimento_whatsapp_midia(request, pk: int):
     return _arquivo_midia_response(m)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_foto(request, pk: int):
     try:
@@ -585,13 +605,13 @@ def api_atendimento_whatsapp_bridge_lids(request):
     return JsonResponse({"ok": True, "n": n})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_status(request):
     return JsonResponse({"ok": True, "autores": listar_status()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_status_midia(request, pk: int):
     try:
@@ -728,7 +748,7 @@ def api_atendimento_whatsapp_bridge_pedido_ok(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_atendimento_whatsapp_recursos(request):
     """Flags públicas pro PDV/chat (tudo off até Renan ligar no Bot)."""
@@ -747,7 +767,7 @@ def api_atendimento_whatsapp_recursos(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_atendimento_whatsapp_recurso_acao(request):
     """Ações dos recursos — recusam se a flag estiver off."""

@@ -25,7 +25,7 @@ def _invalidar_cache_dre_planos() -> None:
         logger.debug("invalidar cache DRE planos", exc_info=True)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def planos_conta_config_view(request):
     return render(
@@ -37,7 +37,7 @@ def planos_conta_config_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_planos_conta_seed(request):
     """Carrega a lista padrão (mesma da loja) — não sobrescreve o que já existe."""
@@ -50,7 +50,7 @@ def api_planos_conta_seed(request):
     return JsonResponse({"ok": True, **stats, "total": PlanoContaAgro.objects.count()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_planos_conta_lista(request):
     q = (request.GET.get("q") or "").strip()
@@ -64,7 +64,7 @@ def api_planos_conta_lista(request):
     return JsonResponse({"ok": True, "itens": itens, "total": len(itens)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_planos_conta_salvar(request):
     try:
@@ -162,7 +162,7 @@ def api_planos_conta_salvar(request):
     return JsonResponse({"ok": True, "item": serializar_plano(obj)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_planos_conta_toggle(request, pk: int):
     obj = PlanoContaAgro.objects.filter(pk=pk).first()

@@ -44,7 +44,7 @@ def _sessao_caixa_para_fiado(request):
     return obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(request)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def fiado_gestao(request):
     sessao = obter_sessao_caixa_aberta_request(request)
     resumo = resumo_gestao_fiado()
@@ -77,13 +77,13 @@ def fiado_gestao(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_resumo(request):
     return JsonResponse({"ok": True, **resumo_gestao_fiado()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_clientes(request):
     busca = (request.GET.get("q") or request.GET.get("busca") or "").strip()
@@ -98,7 +98,7 @@ def api_fiado_clientes(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_titulos(request):
     pk_raw = request.GET.get("cliente_agro_pk")
@@ -127,7 +127,7 @@ def api_fiado_titulos(request):
     return JsonResponse({"ok": True, "titulos": titulos})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_cliente_credito(request):
     pk_raw = request.GET.get("cliente_agro_pk")
@@ -148,7 +148,7 @@ def api_fiado_cliente_credito(request):
     return JsonResponse({"ok": True, **cred})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_buscar_cliente(request):
     q = (request.GET.get("q") or "").strip()
@@ -168,7 +168,7 @@ def api_fiado_buscar_cliente(request):
     return JsonResponse({"ok": True, "clientes": out})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_baixa(request):
     try:
@@ -217,7 +217,7 @@ def api_fiado_baixa(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_limite(request):
     try:
@@ -257,7 +257,7 @@ def api_fiado_limite(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_baixa_cliente(request):
     try:
@@ -302,7 +302,7 @@ def api_fiado_baixa_cliente(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_titulo_editar(request):
     try:
@@ -337,7 +337,7 @@ def api_fiado_titulo_editar(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_baixa_selecionados(request):
     try:
@@ -373,7 +373,7 @@ def api_fiado_baixa_selecionados(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_importar_planilha(request):
     if not getattr(request.user, "is_staff", False):
@@ -409,7 +409,7 @@ def api_fiado_importar_planilha(request):
             pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_cobranca_pdv(request):
     modo = str(request.GET.get("modo") or "titulo").strip().lower()
@@ -446,7 +446,7 @@ def api_fiado_cobranca_pdv(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_fiado_baixa_pdv(request):
     try:
@@ -507,7 +507,7 @@ def api_fiado_baixa_pdv(request):
         return JsonResponse({"ok": False, "erro": str(exc)}, status=400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_recibos(request):
     pk_raw = request.GET.get("cliente_agro_pk")
@@ -530,7 +530,7 @@ def api_fiado_recibos(request):
     return JsonResponse({"ok": True, "recibos": rows})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_recibo(request, recibo_id=None):
     segunda = str(request.GET.get("segunda_via") or "").strip() in ("1", "true", "sim")
@@ -560,7 +560,7 @@ def api_fiado_recibo(request, recibo_id=None):
     return JsonResponse({"ok": True, "cupom": cupom, **cupom})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_fiado_backup_export(request):
     payload = export_backup_fiado()

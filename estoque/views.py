@@ -475,7 +475,7 @@ def api_atualizar_pin(request):
         return JsonResponse({'ok': False, 'erro': f'Erro ao atualizar PIN: {exc}'}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 @csrf_protect
 def api_definir_pin_rh(request):
@@ -1954,7 +1954,7 @@ def api_sugestoes_transferencia(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_estoque_sync_health(request):
     """JSON: heartbeat leitura Mongo + build catálogo (ver ``EstoqueSyncHealth``)."""
@@ -1964,7 +1964,7 @@ def api_estoque_sync_health(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_estoque_divergencia_ajustes(request):
     """

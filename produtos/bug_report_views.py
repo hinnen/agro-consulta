@@ -41,7 +41,7 @@ def _versao_app() -> str:
             return ""
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_bug_report_criar(request):
     try:
@@ -99,7 +99,7 @@ def api_bug_report_criar(request):
     return JsonResponse({"ok": True, "id": report.pk, "mensagem": f"Recebido — #{report.pk}", "avisos": avisos})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 @never_cache
 @require_GET
@@ -108,7 +108,7 @@ def bug_reports_lista_view(request):
     return render(request, "produtos/bug_reports_lista.html", {"reports": qs, "total": BugReportAgro.objects.count()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @never_cache
 @require_GET
 def bug_report_detalhe_view(request, pk: int):
@@ -150,7 +150,7 @@ def bug_report_detalhe_view(request, pk: int):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_bug_report_status(request, pk: int):
     report = get_object_or_404(BugReportAgro, pk=pk)
@@ -167,7 +167,7 @@ def api_bug_report_status(request, pk: int):
     return JsonResponse({"ok": True, "id": report.pk, "status": report.status})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def bug_report_print_view(request, pk: int):
     report = get_object_or_404(BugReportAgro, pk=pk)

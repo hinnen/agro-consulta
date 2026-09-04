@@ -269,7 +269,7 @@ def api_catalogo_saldo_produto(request):
         return JsonResponse({"ok": False, "erro": "Falha ao ler saldo"}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @user_passes_test(_staff)
 @require_GET
 def api_catalogo_embalagens_busca(request):
@@ -296,8 +296,8 @@ def api_catalogo_categorias(request):
     return JsonResponse({"ok": True, "categorias": listar_categorias_arvore(so_ativas=True)})
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_staff, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_staff, login_url="/entrar/")
 @require_POST
 def api_catalogo_categoria_criar(request):
     """Cria categoria ou subcategoria sem sair do modal de produto (estilo iFood)."""
@@ -370,8 +370,8 @@ def api_catalogo_categoria_criar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_staff, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_staff, login_url="/entrar/")
 @require_POST
 def api_catalogo_categoria_excluir(request):
     """Exclui categoria (e filhos) criada por engano — limpa vínculos nos produtos."""
@@ -405,8 +405,8 @@ def api_catalogo_categoria_excluir(request):
     )
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_staff, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_staff, login_url="/entrar/")
 @require_POST
 def api_catalogo_categoria_foto(request):
     """Capa e/ou cor do card — qualquer nível da árvore. Aceita JSON ou multipart."""
@@ -542,8 +542,8 @@ def catalogo_categoria_imagem_view(request, pk: int):
     return resp
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_staff, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_staff, login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def catalogo_gestao_view(request):
     cfg = obter_config_catalogo()

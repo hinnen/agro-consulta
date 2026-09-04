@@ -18,14 +18,14 @@ from produtos.dashboard_estoque_financeiro_util import pacote_dashboard_financei
 from produtos.views import _dashboard_periodo_from_request
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @never_cache
 def dashboard_financeiro_restrito(request):
     """Redireciona para aba Estoque & Giro dentro de Indicadores financeiros."""
     return redirect(f"{reverse('dashboard_financeiro_completo')}?aba=estoque")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET"])
 def api_dashboard_financeiro_restrito(request):
     """JSON para aba Estoque & giro (consulta pesada — carrega no browser)."""
@@ -42,7 +42,7 @@ def api_dashboard_financeiro_restrito(request):
     return JsonResponse({"ok": True, **pack})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def dashboard_financeiro_completo(request):
     """Indicadores financeiros gerenciais — dados do SisVale (TituloFinanceiroAgro)."""
     empresas = Empresa.objects.filter(ativo=True).order_by("nome_fantasia")
@@ -123,7 +123,7 @@ def _grafico_gastos_parse_date(raw: str | None) -> date | None:
         return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def grafico_gastos_view(request):
     from produtos.lancamentos_financeiro_pg_util import planos_distintos_pg
     from produtos.mongo_financeiro_util import _grafico_gastos_status_para_lista_planos
@@ -159,7 +159,7 @@ def grafico_gastos_view(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_dados_grafico_gastos(request):
     if request.method == "POST":
@@ -372,7 +372,7 @@ def _grafico_gastos_atalhos_lista() -> list[dict]:
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET"])
 def api_grafico_gastos_atalhos(request):
     atalhos = _grafico_gastos_atalhos_lista()
@@ -381,7 +381,7 @@ def api_grafico_gastos_atalhos(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_grafico_gastos_atalho_salvar(request, slot: int):
     if slot not in (1, 2, 3, 4):
@@ -419,7 +419,7 @@ def api_grafico_gastos_atalho_salvar(request, slot: int):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_grafico_gastos_atalho_padrao(request, slot: int):
     if slot not in (1, 2, 3, 4):
@@ -441,7 +441,7 @@ def api_grafico_gastos_atalho_padrao(request, slot: int):
     return JsonResponse({"ok": True, "slot_padrao": slot})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def classificacao_despesas_lista(request):
     """Lista planos CP classificados (staff) — para Renan conferir fixa/variável/outra."""
     if not getattr(request.user, "is_staff", False):
@@ -493,7 +493,7 @@ def classificacao_despesas_lista(request):
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def painel_unificar_planos_despesa(request):
     """Staff: links simular / aplicar / reverter unificação de planos."""
     if not getattr(request.user, "is_staff", False):
@@ -543,7 +543,7 @@ def painel_unificar_planos_despesa(request):
     return HttpResponse("\n".join(lines), content_type="text/plain; charset=utf-8")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def simulacao_unificar_planos_despesa(request):
     """Staff: simulação só leitura do mapa de unificação de planos."""
     if not getattr(request.user, "is_staff", False):
@@ -571,7 +571,7 @@ def simulacao_unificar_planos_despesa(request):
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def aplicar_unificar_planos_despesa(request):
     """Staff: aplica renomes do mapa (só teste/loja — ambiente do Render atual)."""
     if not getattr(request.user, "is_staff", False):
@@ -632,7 +632,7 @@ def aplicar_unificar_planos_despesa(request):
     return HttpResponse(body, content_type="text/plain; charset=utf-8")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def reverter_unificar_planos_despesa(request):
     """Staff: desfaz o último apply de unificação de planos."""
     if not getattr(request.user, "is_staff", False):

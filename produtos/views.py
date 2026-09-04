@@ -22,6 +22,7 @@ from bson import ObjectId
 from django.conf import settings
 from decouple import config
 from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Prefetch, Q, Sum
 from django.db.models.functions import TruncDate
@@ -333,7 +334,7 @@ logger = logging.getLogger(__name__)
 
 def _dashboard_login_required(view_func):
     """login_required, exceto se settings.AGRO_PUBLIC_DASHBOARD (painel BI só leitura na web)."""
-    protected = login_required(login_url="/admin/login/")(view_func)
+    protected = login_required(login_url="/entrar/")(view_func)
 
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -987,7 +988,7 @@ def _enriquecer_doc_mongo_nome_postgres(doc: dict, pid: str) -> dict:
     return out
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_gestao_facetas(request):
     """Marcas, categorias, subcategorias e fornecedores distintos (Mongo) para filtros da gestão."""
@@ -1102,7 +1103,7 @@ def api_produtos_gestao_facetas(request):
     return JsonResponse({"ok": True, **payload})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_gestao_lista(request):
     """
@@ -1284,7 +1285,7 @@ def api_produtos_gestao_lista(request):
         return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_gestao_ajuste_estoque(request):
     """
@@ -1408,7 +1409,7 @@ def api_produtos_gestao_ajuste_estoque(request):
     return JsonResponse({"ok": True, "produto": row})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_produto_edicao_rapida(request, produto_id: str):
     """Campos essenciais + A/B + saldos para o lápis do carrinho no PDV (leve)."""
@@ -1571,7 +1572,7 @@ def api_pdv_produto_edicao_rapida(request, produto_id: str):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_produto_ajuste_estoque(request):
     """Ajuste rápido de saldo no PDV (Postgres + AjusteRapidoEstoque; Mongo opcional)."""
@@ -1686,7 +1687,7 @@ def api_pdv_produto_ajuste_estoque(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET"])
 def api_pdv_cadastro_rapido_checar(request):
     """Passo 1 do cadastro rápido: EAN já existe? + sugestão internet (opcional)."""
@@ -1743,7 +1744,7 @@ def api_pdv_cadastro_rapido_checar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET"])
 def api_pdv_cadastro_rapido_gm_preview(request):
     """Próximo GM sugerido (sem gravar) — ao abrir o formulário sem bipar."""
@@ -1755,7 +1756,7 @@ def api_pdv_cadastro_rapido_gm_preview(request):
     return JsonResponse({"ok": True, "codigo": c_sys, "codigo_nfe": c_gm})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_cadastro_rapido_criar(request):
     """Cria produto mínimo no balcão, marca pendente conferência e ajusta estoque opcional."""
@@ -2013,7 +2014,7 @@ def api_pdv_cadastro_rapido_criar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET"])
 def api_cadastro_pendentes_pdv(request):
     """Contagem (+ ids) de produtos criados no PDV aguardando conferência."""
@@ -2024,7 +2025,7 @@ def api_cadastro_pendentes_pdv(request):
     return JsonResponse({"ok": True, "n": n, "ids": ids})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_cadastro_pendente_pdv_marcar_conferido(request):
     """Remove a flag pendente_conferencia (após revisar no Cadastro)."""
@@ -2048,7 +2049,7 @@ def api_cadastro_pendente_pdv_marcar_conferido(request):
     return JsonResponse({"ok": True, "n": contar_pendentes_pdv()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_gestao_overlay_salvar(request):
     """Overlay no Agro; ``Produtos/Salvar`` no ERP só com ``{"sincronizar_erp": true}`` no corpo."""
@@ -3476,7 +3477,7 @@ def _api_produtos_gestao_overlay_salvar_core(request):
     return JsonResponse(resp)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_gestao_erp_pendentes(request):
     """Lista ids de produtos com alteração local ainda não confirmada no ERP (fila por usuário)."""
@@ -3487,7 +3488,7 @@ def api_produtos_gestao_erp_pendentes(request):
     return JsonResponse({"ok": True, "ids": ids, "n": len(ids)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_gestao_erp_sincronizar_pendentes(request):
     """Dispara ``Produtos/Salvar`` no ERP para até N itens pendentes (após «Salvar no Agro»)."""
@@ -8228,7 +8229,7 @@ def _dashboard_interno_preview_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return login_required(login_url="/admin/login/")(view_func)(
+            return login_required(login_url="/entrar/")(view_func)(
                 request, *args, **kwargs
             )
         if not _dashboard_interno_preview_permitido(request.user):
@@ -10689,8 +10690,50 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
 
 
 # --- VIEWS DE PÁGINA ---
+def _agro_next_seguro(raw_next: str | None) -> str:
+    n = (raw_next or "").strip()
+    if not n.startswith("/") or n.startswith("//"):
+        return "/"
+    return n
+
+
+@require_http_methods(["GET", "POST"])
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+def agro_entrar(request):
+    """Login da loja — tela GM Agro Mais (substitui /admin/login/ no fluxo do painel)."""
+    next_url = _agro_next_seguro(request.GET.get("next") or request.POST.get("next"))
+    if request.user.is_authenticated:
+        return redirect(next_url)
+
+    erro = ""
+    username = ""
+    if request.method == "POST":
+        username = (request.POST.get("username") or "").strip()
+        password = request.POST.get("password") or ""
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            erro = "Usuário ou senha incorretos."
+        elif not user.is_active:
+            erro = "Este usuário está desativado."
+        else:
+            login(request, user)
+            return redirect(next_url)
+
+    return render(
+        request,
+        "produtos/entrar.html",
+        {"erro": erro, "next": next_url if next_url != "/" else "", "username": username},
+    )
+
+
+@require_http_methods(["GET", "POST"])
+def agro_sair(request):
+    logout(request)
+    return redirect("agro_entrar")
+
+
+@ensure_csrf_cookie
+@login_required(login_url="/entrar/")
 def home(request):
     nav = _home_admin_navegacao()
     u = ""
@@ -10732,7 +10775,7 @@ def home(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def estoque_sincronizacao_view(request):
     """Painel: saúde da leitura Mongo (espelho ERP), alertas e auditoria da camada Agro."""
     return render(request, "produtos/estoque_sincronizacao.html")
@@ -10764,7 +10807,7 @@ def dashboard_gerencial_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def dashboard_gerencial_sincronizar(request):
     di, df, _lbl, _k = _dashboard_periodo_from_request(request)
@@ -10805,7 +10848,7 @@ def dashboard_interno_preview_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def dispenser_a6_studio_view(request):
     """Studio visual do cartaz A6 de dispenser (ainda sem cadastro/preço do sistema)."""
@@ -11026,7 +11069,7 @@ def vendas_hoje_redirect(request):
     return redirect(f"{reverse('vendas_lista')}?preset=hoje")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_cliente_credito_fiado(request):
     from .fiado_credito_util import cliente_ref_valida_para_fiado, resumo_credito_fiado_cliente
@@ -11083,7 +11126,7 @@ def api_pdv_cliente_credito_fiado(request):
     return JsonResponse(cred)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_relacionamento_cliente(request):
     """Painel rascunho F8 — relacionamento / histórico do cliente no PDV."""
@@ -11142,7 +11185,7 @@ def api_pdv_relacionamento_cliente(request):
     return JsonResponse(payload, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_relacionamento_cliente_extras(request):
     """Grava pets, lembretes de saúde e anotações do F8 no ClienteAgro (Postgres)."""
@@ -11195,7 +11238,7 @@ def _vendas_lojas_cmp_ctx(vendido, esperado, *, esperado_dia=None) -> dict:
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def vendas_lojas_resumo(request):
     """Tela simples: faturamento Centro × Vila Elias + total das duas."""
@@ -11338,7 +11381,7 @@ def vendas_lojas_sw(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def vendas_lista(request):
     di, df, label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = _vendas_qs_periodo(di, df)
@@ -11408,7 +11451,7 @@ def vendas_lista(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def vendas_exportar_csv(request):
     di, df, _label = _periodo_vendas_from_request(request, default_preset="hoje")
     qs = _vendas_qs_periodo(di, df)
@@ -11463,7 +11506,7 @@ def vendas_exportar_csv(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def clientes_lista(request):
     from .clientes_sync_web_state import (
         clientes_sync_erp_disponivel,
@@ -11570,7 +11613,7 @@ def _cli_acoes_boot(request, cliente=None, duplicado=None) -> dict:
     }
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def cliente_novo(request):
     duplicado_whatsapp = None
     if request.method == "POST":
@@ -11597,7 +11640,7 @@ def cliente_novo(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def cliente_editar(request, pk):
     cli = get_object_or_404(ClienteAgro, pk=pk)
     duplicado_whatsapp = None
@@ -11630,7 +11673,7 @@ def cliente_editar(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def clientes_sincronizar(request):
     """Última importação de clientes do Mongo + API ERP para ClienteAgro (uso único)."""
@@ -11879,7 +11922,7 @@ def _sincronizar_turno_conferencia_caixa(req, sessoes_operacional):
         req.session.modified = True
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_caixa_conferencia_rascunho(request):
     """Valores contados no fechamento (por forma) — Postgres multi-PC + espelho sessão."""
@@ -11901,7 +11944,7 @@ def api_caixa_conferencia_rascunho(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_caixa_conferencia_rascunho_salvar(request):
     try:
@@ -11969,7 +12012,7 @@ def api_caixa_conferencia_rascunho_salvar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_caixa_fiado_conferencia_salvar(request):
     """Confirmar notas fiado na caixinha — grava no Postgres (não pede de novo ao reabrir Fechar caixa)."""
@@ -11991,7 +12034,7 @@ def api_caixa_fiado_conferencia_salvar(request):
     return JsonResponse({"ok": True, "gravados": n})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_caixa_conferencia_estado(request):
     """Valores esperados da conferência (atualizar após reforço/retirada/repasse sem recarregar).
@@ -12047,7 +12090,7 @@ def api_caixa_conferencia_estado(request):
     return JsonResponse({"ok": True, **estado})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_painel(request):
     from produtos.caixa_util import (
         deposito_operacional_sessao_caixa,
@@ -12199,7 +12242,7 @@ def caixa_painel(request):
     return render(request, "produtos/caixa_painel.html", ctx)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_retiradas_historico(request):
     from produtos.caixa_retiradas_util import listar_quem_retiradas_distintas, listar_retiradas_historico
     from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
@@ -12271,7 +12314,7 @@ def caixa_retiradas_historico(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_caixa_retiradas_export_xlsx(request):
     """Exporta histórico de retiradas/saídas para Excel — filtros e colunas opcionais."""
@@ -12334,7 +12377,7 @@ def api_caixa_retiradas_export_xlsx(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_relatorio(request):
     from produtos.caixa_relatorio_util import montar_relatorio_caixa
     from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
@@ -12396,7 +12439,7 @@ def caixa_relatorio(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_relatorio_conferencias(request):
     from produtos.caixa_relatorio_util import montar_relatorio_conferencias_caixa
     from produtos.pdv_deposito_util import ROTULO_DEPOSITO, normalizar_deposito
@@ -12480,7 +12523,7 @@ def caixa_relatorio_conferencias(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_caixa_assumir_sessao(request):
     """Vincula este navegador a um turno de caixa (outro operador exige PIN)."""
@@ -12527,7 +12570,7 @@ def api_caixa_assumir_sessao(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_caixa_movimento(request):
     """Reforço ou retirada manual no caixa aberto (por forma de pagamento)."""
@@ -12576,7 +12619,7 @@ def api_caixa_movimento(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_caixa_vincular_vendas(request):
     """Associa vendas sem sessão ao caixa aberto (ex.: vendas antes da abertura)."""
@@ -12612,7 +12655,7 @@ def api_caixa_vincular_vendas(request):
     return JsonResponse({"ok": True, "vinculadas": vinculadas})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_saida_view(request):
     """Legado: saída unificada no painel do caixa."""
     from django.http import HttpResponseRedirect
@@ -12620,7 +12663,7 @@ def caixa_saida_view(request):
     return HttpResponseRedirect(reverse("caixa_painel") + "#retirada")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def caixa_abrir(request):
     if _obter_sessao_caixa_aberta(request):
         messages.warning(request, "Já existe um caixa aberto neste navegador. Feche-o antes de abrir outro.")
@@ -12791,7 +12834,7 @@ def caixa_abrir(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def caixa_fechar(request):
     sessoes_qs = (
@@ -13102,7 +13145,7 @@ def caixa_fechar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def venda_agro_detalhe(request, pk):
     v = get_object_or_404(
@@ -13163,7 +13206,7 @@ def venda_agro_detalhe(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_venda_agro_devolver(request, pk):
     """Devolução total ou parcial (itens + frete opcional)."""
@@ -13649,7 +13692,7 @@ def _serializar_folha_saldo_preset(obj: ComprasFolhaSaldoFiltroPreset) -> dict:
     }
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_compras_folha_saldo_presets(request):
     """Lista / cria filtros salvos da Folha de saldo (compartilhados na loja)."""
@@ -13686,7 +13729,7 @@ def api_compras_folha_saldo_presets(request):
     return JsonResponse({"ok": True, "preset": _serializar_folha_saldo_preset(obj)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST", "DELETE"])
 def api_compras_folha_saldo_preset_detail(request, pk: int):
     """Atualiza / define padrão / exclui um filtro salvo."""
@@ -13915,7 +13958,7 @@ def _ctx_produtos_cadastro_erp(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def produtos_cadastro_erp_view(request):
     """Lista do cadastro espelho ERP; clique abre página dedicada de detalhe."""
     q = (request.GET.get("produto") or "").strip()
@@ -13928,7 +13971,7 @@ def produtos_cadastro_erp_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def produtos_cadastro_erp_produto_view(request, produto_id: str):
     """Detalhe de um produto do espelho ERP (tela cheia, sem lista ao lado)."""
     ctx = _ctx_produtos_cadastro_erp(request)
@@ -13938,7 +13981,7 @@ def produtos_cadastro_erp_produto_view(request, produto_id: str):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def produtos_gestao_view(request):
     """Gestão operacional de produtos (espelho Mongo + overlay local + ajuste estoque Agro)."""
     emp = Empresa.objects.first()
@@ -13954,7 +13997,7 @@ def produtos_gestao_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def produtos_etiquetas_view(request):
     """Impressão de etiquetas de preço (4×4 cm, térmica) a partir do cadastro de produtos."""
     return render(
@@ -13978,7 +14021,7 @@ def _serializar_etiqueta_preset(obj: EtiquetaPresetAgro) -> dict:
     return out
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_etiquetas_presets(request):
     """Lista / cria presets de etiqueta (compartilhados na loja — Postgres)."""
@@ -14029,7 +14072,7 @@ def api_etiquetas_presets(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST", "DELETE", "PUT", "PATCH"])
 def api_etiquetas_preset_detail(request, client_key: str):
     """Atualiza ou exclui preset por client_key."""
@@ -14133,7 +14176,7 @@ def _etiquetas_historico_row(h: EtiquetaImpressaoHistoricoAgro, *, incluir_itens
     return row
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_etiquetas_historico_lista(request):
     """Lista jobs de impressão de etiquetas (padrão: últimos 30 dias)."""
@@ -14161,7 +14204,7 @@ def api_etiquetas_historico_lista(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_etiquetas_historico_detalhe(request, pk: int):
     """Detalhe de um job (itens completos para reimpressão)."""
@@ -14169,7 +14212,7 @@ def api_etiquetas_historico_detalhe(request, pk: int):
     return JsonResponse({"ok": True, "job": _etiquetas_historico_row(h, incluir_itens=True)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_historico_salvar(request):
     """Grava job após impressão bem-sucedida."""
@@ -14362,7 +14405,7 @@ def _etiquetas_lote_row(lote: EtiquetaLoteAgro, *, incluir_itens: bool = False) 
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def produtos_etiquetas_lote_view(request):
     """Tela provisória: lote A4 gôndola (18/folha) com progresso no Postgres."""
     return render(
@@ -14376,7 +14419,7 @@ def produtos_etiquetas_lote_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_etiquetas_lote(request):
     """GET lista lotes · POST cria lote (coleta todos os produtos do filtro)."""
@@ -14442,14 +14485,14 @@ def api_etiquetas_lote(request):
     return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_etiquetas_lote_detalhe(request, pk: int):
     lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
     return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_proxima_folha(request, pk: int):
     """Devolve os próximos ≤18 itens para o front imprimir (não avança cursor)."""
@@ -14473,7 +14516,7 @@ def api_etiquetas_lote_proxima_folha(request, pk: int):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_confirmar_folha(request, pk: int):
     """Avança o cursor após o operador confirmar que a folha saiu ok."""
@@ -14505,7 +14548,7 @@ def api_etiquetas_lote_confirmar_folha(request, pk: int):
     return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_desfazer_folha(request, pk: int):
     """Recua o cursor da última folha confirmada."""
@@ -14531,7 +14574,7 @@ def api_etiquetas_lote_desfazer_folha(request, pk: int):
     return JsonResponse({"ok": True, "lote": _etiquetas_lote_row(lote, incluir_itens=True)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_etiquetas_lote_cancelar(request, pk: int):
     lote = get_object_or_404(EtiquetaLoteAgro, pk=pk)
@@ -15058,7 +15101,7 @@ def _ctx_lancamentos_financeiros(modo_contas: str, request=None):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def resumo_financeiro_gerencial_view(request):
     """DRE gerencial (Postgres + consolidação grupo) — leitura de snapshot agregado."""
     from pathlib import Path
@@ -15109,7 +15152,7 @@ def _lancamentos_operador_label(
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_financeiros_view(request):
     """Entrada do módulo — abre direto em Contas a pagar (layout padrão)."""
     ret = (request.GET.get("retorno") or "").strip()
@@ -15150,7 +15193,7 @@ def _emprestimos_defaults_para_template(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_contas_pagar_view(request):
     """Contas a pagar — layout novo (padrão; mesma API Mongo)."""
     return render(
@@ -15165,7 +15208,7 @@ def lancamentos_contas_pagar_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_contas_pagar_classico_view(request):
     """Alias legado (/classico/) — redireciona para o layout padrão de contas a pagar."""
     url = reverse("lancamentos_contas_pagar")
@@ -15176,7 +15219,7 @@ def lancamentos_contas_pagar_classico_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_contas_pagar_teste_view(request):
     """Alias legado (/teste/) — redireciona para o layout padrão."""
     url = reverse("lancamentos_contas_pagar")
@@ -15187,14 +15230,14 @@ def lancamentos_contas_pagar_teste_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_contas_pagar_calendario_view(request):
     """Calendário mensal: total a pagar por vencimento → abre layout teste filtrado."""
     return render(request, "produtos/lancamentos_contas_pagar_calendario.html")
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_contas_receber_view(request):
     """Lista de contas a receber (filtros, export, baixa)."""
     return render(
@@ -15205,7 +15248,7 @@ def lancamentos_contas_receber_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_dre_view(request):
     """DRE simples por plano (Mongo) — tela separada; desligada por LANCAMENTOS_DRE_ATIVO."""
     if not getattr(settings, "LANCAMENTOS_DRE_ATIVO", False):
@@ -15214,7 +15257,7 @@ def lancamentos_dre_view(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_lista(request):
     """Lista paginada: ``?tipo=pagar`` (default) ou ``?tipo=receber``."""
@@ -15224,7 +15267,7 @@ def api_lancamentos_lista(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_log(request):
     """Log de auditoria de um lançamento (Mongo legado ou Postgres)."""
@@ -15252,14 +15295,14 @@ def api_lancamentos_log(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_fluxo_calendario_view(request):
     """Calendário analítico: projeção de fluxo (vendas médias + vencimentos)."""
     return render(request, "produtos/lancamentos_fluxo_calendario.html")
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_contas_pagar_calendario(request):
     """Totais diários a pagar (em aberto) para grade do calendário mensal."""
@@ -15321,7 +15364,7 @@ def api_lancamentos_contas_pagar_calendario(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_planos_distintos(request):
     """Planos de conta distintos no filtro atual (para marcar/desmarcar exclusões)."""
@@ -15375,7 +15418,7 @@ def api_lancamentos_planos_distintos(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_planos_cadastro(request):
     """Lista planos oficiais cadastrados (Postgres)."""
@@ -15392,7 +15435,7 @@ def api_lancamentos_planos_cadastro(request):
     return JsonResponse({"ok": True, "planos": planos})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_planos_cadastro_criar(request):
     """Cadastra plano novo na hora (ex. Nova saída). Não altera títulos."""
@@ -15413,7 +15456,7 @@ def api_lancamentos_planos_cadastro_criar(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_planos_orfaos(request):
     """Grafias em títulos CP que não estão no cadastro nem em alias."""
@@ -15427,7 +15470,7 @@ def api_lancamentos_planos_orfaos(request):
         return JsonResponse({"ok": True, "orfaos": [], "total": 0, "aviso": "cadastro indisponível"})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_planos_mapear(request):
     """Mapeia grafia órfã → plano oficial (só alias; não altera valores/títulos)."""
@@ -15447,7 +15490,7 @@ def api_lancamentos_planos_mapear(request):
 
 
 @never_cache
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST", "DELETE"])
 def api_lancamentos_atalhos_filtro(request):
     """Dois atalhos de filtro por usuário (payload JSON espelha favoritos locais)."""
@@ -15495,7 +15538,7 @@ def api_lancamentos_atalhos_filtro(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_fluxo_calendario(request):
     """JSON: projeção diária (média vendas + títulos a pagar/receber por vencimento)."""
@@ -15548,7 +15591,7 @@ def _mascarar_cnpj(cnpj: str) -> str:
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def entrada_nota_view(request):
     """Entrada de NF-e: manual, XML e Distribuição DF-e (SEFAZ)."""
     empresas_entrada_nfe = listar_empresas_estoque_entrada_nfe()
@@ -15565,7 +15608,7 @@ def entrada_nota_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_sefaz_status(request):
     from produtos.sefaz_dfe_client import (
@@ -15595,7 +15638,7 @@ def api_entrada_nota_sefaz_status(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_parse_xml(request):
     arq = request.FILES.get("arquivo")
@@ -15622,7 +15665,7 @@ def api_entrada_nota_parse_xml(request):
     return JsonResponse({"ok": True, "nota": parsed})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_salvar(request):
     try:
@@ -15670,7 +15713,7 @@ def api_entrada_nota_salvar(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_rascunhos(request):
     _, db = _entrada_nfe_conexao()
@@ -15687,7 +15730,7 @@ def api_entrada_nota_rascunhos(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_auditoria_financeiro(request):
     """
@@ -15722,7 +15765,7 @@ def api_entrada_nota_auditoria_financeiro(request):
     return JsonResponse(out, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_rascunho_obter(request):
     oid = (request.GET.get("id") or "").strip()
@@ -15739,7 +15782,7 @@ def api_entrada_nota_rascunho_obter(request):
     return JsonResponse({"ok": True, "rascunho": doc})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_rascunho_excluir(request):
     try:
@@ -15758,7 +15801,7 @@ def api_entrada_nota_rascunho_excluir(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_rascunho_atualizar(request):
     try:
@@ -15834,7 +15877,7 @@ def api_entrada_nota_rascunho_atualizar(request):
     return JsonResponse(r, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_rascunho_acao(request):
     """Descartar, reabrir, correção sistêmica ou aviso operacional na lista (extra no rascunho). Encerrar manual está desativado."""
@@ -16798,7 +16841,7 @@ def aplicar_estorno_estoque_venda_agro(
     }
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_estoque_agro(request):
     """
@@ -17079,7 +17122,7 @@ def _entrada_nota_mesclar_itens_fornecedor(
     return merged[:lim]
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_fornecedores(request):
     """Fornecedores: Postgres (títulos + catálogo) + Mongo (DtoPessoa) + Agro local.
@@ -17306,7 +17349,7 @@ def _entrada_nfe_hits_mapa_codigos(
     return hits
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_conferir_codigo(request):
     """Confere código bipado como barras/EAN do cadastro (Mongo + overlay Agro; não GM)."""
@@ -17453,9 +17496,9 @@ def api_entrada_nota_conferir_codigo(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_aprovar_wizard(request):
     """Grava carimbo de conferência final com o mesmo PIN usado em estoque / empréstimo (``PerfilUsuario.senha_rapida``)."""
@@ -17526,7 +17569,7 @@ def api_entrada_nota_aprovar_wizard(request):
     return JsonResponse({"ok": True, "id": oid, "custo_catalogo": custo_out})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_reabrir_nota(request):
     """
@@ -18235,7 +18278,7 @@ def _entrada_nfe_aplicar_custos_catalogo_pos_aprovacao(
     return out
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_preview_custo(request):
     """Prévia de custo (média C+V vs NF) para Finalizar — requer rascunho salvo com linhas."""
@@ -18320,7 +18363,7 @@ def api_entrada_nota_preview_custo(request):
     return JsonResponse({"ok": True, "itens": itens, "tipo_entrada": _entrada_nfe_tipo_entrada(extra)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_financeiro(request):
     """
@@ -19087,7 +19130,7 @@ def api_entrada_nota_financeiro(request):
     return JsonResponse(out, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dist_dfe(request):
     from produtos.dfe_inbox_util import dfe_executar_consulta_e_gravar, dfe_inbox_listar
@@ -19161,7 +19204,7 @@ def api_entrada_nota_dist_dfe(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dfe_por_chave(request):
     """Baixa XML pela chave (44 dígitos) e grava na caixa — não mexe no ultNSU."""
@@ -19219,7 +19262,7 @@ def api_entrada_nota_dfe_por_chave(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_dfe_inbox(request):
     """Lista caixa de entrada DF-e do Postgres (sem falar com a SEFAZ)."""
@@ -19244,7 +19287,7 @@ def api_entrada_nota_dfe_inbox(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
     """Parseia XML salvo no PG para «Carregar na grade»."""
@@ -19295,7 +19338,7 @@ def api_entrada_nota_dfe_inbox_detalhe(request, doc_id: int):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
     from produtos.dfe_inbox_util import dfe_inbox_marcar, dfe_inbox_obter
@@ -19310,7 +19353,7 @@ def api_entrada_nota_dfe_inbox_ignorar(request, doc_id: int):
     return JsonResponse(r, status=200 if r.get("ok") else 400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_dfe_inbox_ciencia(request, doc_id: int):
     """Registra Ciência da Operação e tenta baixar o XML completo."""
@@ -19343,7 +19386,7 @@ def api_cron_dfe_consultar_inbox(request):
     return JsonResponse(res, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_entrada_nota_produto_margem(request):
     """Grava margem % (e opcionalmente preço de venda) no espelho Mongo do produto — entrada NF."""
@@ -19489,14 +19532,14 @@ def api_entrada_nota_produto_margem(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_contas_pagar(request):
     """Compatibilidade: sempre contas a pagar."""
     return _api_lancamentos_lista_core(request, True)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_export_csv(request):
     """Exporta CSV com os mesmos filtros da lista (até 5000 linhas)."""
@@ -19692,7 +19735,7 @@ def _lancamentos_financeiro_dados_export(request):
     }
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_export_financeiro_xlsx(request):
     """
@@ -19719,7 +19762,7 @@ def api_lancamentos_export_financeiro_xlsx(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_export_financeiro_pdf(request):
     """
@@ -19753,7 +19796,7 @@ def _lancamentos_pre_corte_admin_ok(request) -> JsonResponse | None:
     return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_congelamento_status(request):
     """Status do checkpoint financeiro (pré-corte ERP)."""
@@ -19768,14 +19811,14 @@ def api_lancamentos_congelamento_status(request):
     return JsonResponse(financeiro_congelamento_status(db))
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_backup_completo_xlsx(request):
     """Backup completo (todos) antes do corte ERP — ZIP com CSV."""
     return _api_lancamentos_backup_zip_resposta(request, somente_abertos=False)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_backup_abertos_xlsx(request):
     """Backup só em aberto (mesmo filtro da lista Lançamentos) — ZIP com CSV."""
@@ -19825,7 +19868,7 @@ def _api_lancamentos_backup_zip_resposta(request, *, somente_abertos: bool):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_backup_ultimo(request):
     """Data/hora do último backup ZIP baixado nesta loja (cache)."""
@@ -19835,7 +19878,7 @@ def api_lancamentos_backup_ultimo(request):
     return JsonResponse({"ok": True, "ultimo": info or None})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_congelar_pre_corte(request):
     """
@@ -19914,7 +19957,7 @@ def _mesclar_opcoes_baixa_com_extras(
     return out, detalhe
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_opcoes_baixa(request):
     """Formas de pagamento e bancos: Mongo (modo ERP ou histórico) + opções extras do usuário.
@@ -19986,7 +20029,7 @@ def api_lancamentos_opcoes_baixa(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_opcoes_baixa_extra_criar(request):
     """Inclui forma ou conta na lista pessoal da baixa."""
@@ -20031,7 +20074,7 @@ def api_lancamentos_opcoes_baixa_extra_criar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_opcoes_baixa_extra_excluir(request, pk: int):
     """Remove opção pessoal da lista da baixa."""
@@ -20042,7 +20085,7 @@ def api_lancamentos_opcoes_baixa_extra_excluir(request, pk: int):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_baixa(request):
     """
@@ -20208,7 +20251,7 @@ def api_lancamentos_baixa(request):
     return JsonResponse(out_j, status=http_st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_baixa_parcial(request):
     """Uma linha selecionada: várias parcelas (valor + forma + banco) até quitar o saldo."""
@@ -20323,7 +20366,7 @@ def api_lancamentos_baixa_parcial(request):
     return JsonResponse(out_j, status=200)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_alterar(request):
     """Edita lançamento em aberto no Mongo (descrição, favorecido, vencimento, plano, valor bruto sem movimento)."""
@@ -20364,7 +20407,7 @@ def api_lancamentos_alterar(request):
     return JsonResponse({"ok": True, "id": r.get("id")})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_excluir(request):
     """Remove lançamento no Mongo somente se manual Agro ou sem vínculo ERP, sem pagamento."""
@@ -20450,7 +20493,7 @@ def _anexar_retirada_turno_caixa_saida(
         return False
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_saida_caixa(request):
     """Registra uma despesa rápida (saída de caixa) com plano de conta — grava como lançamento manual de 1 linha."""
@@ -20842,7 +20885,7 @@ def api_lancamentos_saida_caixa(request):
     return JsonResponse(out, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_dre_resumo(request):
     """Totais por plano de conta no período (base para DRE simples)."""
@@ -20903,7 +20946,7 @@ def api_lancamentos_dre_resumo(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def lancamentos_manual_view(request):
     """Lançamento manual em lote (cabeçalho fixo + linhas de detalhe) gravado no Mongo."""
     return render(request, "produtos/lancamentos_manual.html")
@@ -20962,28 +21005,28 @@ def _emprestimo_tentar_erp_batches(db, resultado_ext: dict) -> tuple[bool | None
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def emprestimos_gestao_view(request):
     """Hub legado — novo fluxo em Contas a pagar; consulta permanece."""
     return redirect(reverse("emprestimos_consulta"))
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def emprestimos_externo_view(request):
     """Legado — cadastro agora pelo botão «Novo empréstimo» em Contas a pagar."""
     return redirect(reverse("lancamentos_contas_pagar"))
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def emprestimos_interno_view(request):
     """Legado (sócio) — cadastro agora pelo botão «Novo empréstimo» em Contas a pagar."""
     return redirect(reverse("lancamentos_contas_pagar"))
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def emprestimos_consulta_view(request):
     return render(
         request,
@@ -20992,13 +21035,13 @@ def emprestimos_consulta_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_emprestimos_defaults(request):
     return JsonResponse({"ok": True, **emprestimo_defaults_para_ui()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_emprestimos_erp_lancamentos(request):
     empresa_id = str(request.GET.get("empresa_id") or "").strip()
@@ -21019,7 +21062,7 @@ def api_emprestimos_erp_lancamentos(request):
     return JsonResponse({"ok": True, "itens": itens, "total": len(itens)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_emprestimos_listar(request):
     raw = (request.GET.get("tipo") or request.GET.get("categoria") or "").strip().lower()
@@ -21070,7 +21113,7 @@ def api_emprestimos_listar(request):
     return JsonResponse({"ok": True, "itens": itens, "filtro_tipo": tipo_filtro or None})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_emprestimos_criar(request):
     try:
@@ -21202,7 +21245,7 @@ def api_emprestimos_criar(request):
     return JsonResponse(out, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_emprestimos_interno_pagamento(request):
     """Pagamento ou devolução ao sócio em empréstimo interno (parcial ou integral ao saldo)."""
@@ -21245,7 +21288,7 @@ def _emprestimos_interno_validar_pin(pin: str) -> tuple[bool, str]:
     return validar_pin_operador(pin)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_emprestimos_interno_pagamento_excluir(request):
     """Exclui um pagamento no interno ou o cadastro inteiro (sem pagamentos), sempre motivo + PIN."""
@@ -21309,7 +21352,7 @@ def api_emprestimos_interno_pagamento_excluir(request):
     return JsonResponse(r, status=200 if r.get("ok") else 400)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_lancamentos_sugestoes(request):
     """Autocomplete: campo=empresa|cliente|plano|forma|banco|grupo|centro&q=
@@ -21365,7 +21408,7 @@ def api_lancamentos_sugestoes(request):
     return JsonResponse({"campo": campo, "itens": itens})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_interpretar_texto(request):
     """Interpreta uma frase curta (pt-BR) e devolve campos para pré-preencher o lote manual."""
@@ -21409,7 +21452,7 @@ def _lancamentos_duplicidades_bloqueadas(erros: list) -> int:
     return n
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_criar_manual_lote(request):
     try:
@@ -21655,7 +21698,7 @@ def api_lancamentos_criar_manual_lote(request):
         )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_lancamentos_definir_recorrente(request):
     try:
@@ -23147,7 +23190,7 @@ def api_buscar_produtos_v2(request):
             delattr(request, "_motor_busca_v2")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def interno_teste_busca_view(request):
     """Tela provisória — compara legado vs motor busca v2."""
     return render(request, "produtos/interno_teste_busca.html", {})
@@ -24112,7 +24155,7 @@ def _montar_produto_cadastro_detalhe(db, client_m, p: dict) -> dict:
     return row
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_overlay_lote_adicionar(request):
     """Cria ou atualiza um lote (mesmo código de lote no mesmo overlay)."""
@@ -24213,7 +24256,7 @@ def _sync_overlay_apos_exclusao_lote(ov: ProdutoGestaoOverlayAgro) -> None:
         ov.save(update_fields=["cadastro_extras", "atualizado_em"])
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_overlay_lote_remover(request, lote_id: int):
     lote = get_object_or_404(EstoqueLote, id=int(lote_id))
@@ -24235,7 +24278,7 @@ def _resolver_deposito_baixa_validade(request, payload: dict) -> str | None:
     return dep if dep in ("centro", "vila") else None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_relatorio_validade_baixa(request):
     """
@@ -24711,7 +24754,7 @@ def api_produtos_cadastro_proximo_cb_loja(request):
     return JsonResponse({"ok": True, "codigo_barras": cb})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_faceta_nova(request):
     """
@@ -24769,7 +24812,7 @@ def api_produtos_cadastro_faceta_nova(request):
     return JsonResponse({"ok": True, "valor": valor, "tipo": tipo, "operador": operador})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_somente_agro_excluir(request):
     """
@@ -24911,7 +24954,7 @@ def api_produtos_somente_agro_excluir(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_gestao_mongo_codigo_sistema_reparar(request):
     """
@@ -25471,7 +25514,7 @@ def api_produtos_cadastro(request):
         return JsonResponse({"ok": False, "erro": str(e), "produtos": []}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_export_xlsx(request):
     """Exporta catálogo (Mongo + overlay) para Excel — edição em lote fase 1."""
@@ -25571,7 +25614,7 @@ def _cadastro_import_job_delete(job_id: str) -> None:
         pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_import_preview(request):
     """Prévia da importação Excel — assíncrona (job_id) ou ?sync=1 na mesma requisição."""
@@ -25667,7 +25710,7 @@ def api_produtos_cadastro_import_preview(request):
                 pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_import_preview_status(request):
     """Status da prévia assíncrona (percentual e resultado)."""
@@ -25705,7 +25748,7 @@ def api_produtos_cadastro_import_preview_status(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_import_aplicar(request):
     """Aplica importação Excel no overlay Agro (+ preços no Mongo) — assíncrona."""
@@ -25827,7 +25870,7 @@ def api_produtos_cadastro_import_aplicar(request):
                 pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_import_historico(request):
     """Lista importações Excel recentes (com opção de desfazer)."""
@@ -25836,7 +25879,7 @@ def api_produtos_cadastro_import_historico(request):
     return JsonResponse({"ok": True, "historico": listar_historico_import_cadastro()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_import_reverter(request):
     """Desfaz uma importação Excel usando o backup salvo."""
@@ -25863,7 +25906,7 @@ def api_produtos_cadastro_import_reverter(request):
 # --- Excel estoque (planilha só de saldos) ---------------------------------
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_estoque_export_xlsx(request):
     """Exporta planilha de estoque com os mesmos filtros da lista do cadastro."""
@@ -25897,7 +25940,7 @@ def api_produtos_cadastro_estoque_export_xlsx(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_estoque_import_preview(request):
     """Prévia da importação Excel de estoque — assíncrona (job_id) ou ?sync=1."""
@@ -25997,7 +26040,7 @@ def api_produtos_cadastro_estoque_import_preview(request):
                 pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_estoque_import_aplicar(request):
     """Aplica ajustes de estoque da planilha — assíncrona."""
@@ -26106,7 +26149,7 @@ def api_produtos_cadastro_estoque_import_aplicar(request):
                 pass
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_cadastro_estoque_import_historico(request):
     from produtos.cadastro_estoque_planilha_util import listar_historico_import_estoque
@@ -26114,7 +26157,7 @@ def api_produtos_cadastro_estoque_import_historico(request):
     return JsonResponse({"ok": True, "historico": listar_historico_import_estoque()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_cadastro_estoque_import_reverter(request):
     import json
@@ -26156,7 +26199,7 @@ def _grupo_agro_para_json(g: ProdutoGrupoAgro) -> dict:
     }
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_grupos_listar(request):
     """Lista grupos locais (nome + preço único + variantes marca/EAN), opcional filtro `q`."""
@@ -26177,14 +26220,14 @@ def api_produtos_grupos_listar(request):
     return JsonResponse({"ok": True, "grupos": grupos})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_produtos_grupo_obter(request, pk: int):
     g = get_object_or_404(ProdutoGrupoAgro.objects.prefetch_related("variantes"), pk=pk)
     return JsonResponse({"ok": True, "grupo": _grupo_agro_para_json(g)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_grupo_salvar(request):
     try:
@@ -26314,7 +26357,7 @@ def api_produtos_grupo_salvar(request):
     return JsonResponse({"ok": True, "grupo": _grupo_agro_para_json(g)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_produtos_grupo_excluir(request, pk: int):
     g = get_object_or_404(ProdutoGrupoAgro, pk=pk)
@@ -29102,7 +29145,7 @@ def _resposta_json_envio_erp_venda(request, v: VendaAgro, out: dict) -> JsonResp
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_venda_agro_cupom(request, pk):
     """JSON do cupom térmico 80mm para reimpressão (NFC-e se autorizada, senão cupom interno)."""
@@ -29148,7 +29191,7 @@ def api_venda_agro_cupom(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_venda_agro_erp_envio_info(request, pk):
     """Dados para modal de confirmação / histórico de envio ERP (fiado)."""
@@ -29159,7 +29202,7 @@ def api_venda_agro_erp_envio_info(request, pk):
     return JsonResponse({"ok": True, "painel": serializar_venda_erp_painel(v)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_venda_agro_reverter_erp(request, pk):
     """Reverte status local de envio ERP (não cancela pedido no ERP)."""
@@ -29190,7 +29233,7 @@ def api_venda_agro_reverter_erp(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_venda_agro_reenviar_erp(request, pk):
     """Envio manual fiado → ERP (Pedidos/Salvar) com confirmação e histórico."""
@@ -30229,7 +30272,7 @@ def api_cron_sincronizar_titulos_financeiro_mongo_pg(request):
     return JsonResponse(out, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_agro_financeiro_pg_conferencia(request):
     """Superuser: compara CP abertos Mongo (dedup) vs Postgres (dedup)."""
@@ -31498,7 +31541,7 @@ def _pdv_resumo_endereco_cliente_rapido(data: dict) -> str:
     return ", ".join(parts)[:500]
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_cliente_rapido(request):
     """Cadastro rápido de ClienteAgro a partir do PDV (popup no carrinho)."""
@@ -31610,7 +31653,7 @@ def _pdv_aplicar_endereco_clienteagro(c: ClienteAgro, data: dict) -> None:
         )[:500]
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_geocode_plus(request):
     """Geocodifica Plus Code / Maps e devolve endereço estruturado para o PDV."""
@@ -31622,7 +31665,7 @@ def api_pdv_geocode_plus(request):
     return JsonResponse(endereco_from_plus_ou_maps(q))
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_cliente_editar(request, pk):
     """Edição resumida de ClienteAgro a partir do pop-up de busca no PDV."""
@@ -32121,7 +32164,7 @@ def api_entrega_registrar(request):
     return JsonResponse({"ok": True, "id": obj.pk, "aguarda_pagamento_pdv": bool(obj.aguarda_pagamento_pdv)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_entregas_pendentes(request):
     loja = normalizar_loja_entrega(request.GET.get("loja"))
@@ -32136,7 +32179,7 @@ def api_pdv_entregas_pendentes(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_entrega_pendente_detalhe(request, pk):
     ent = PedidoEntrega.objects.filter(pk=pk, aguarda_pagamento_pdv=True).first()
@@ -32150,7 +32193,7 @@ def api_pdv_entrega_pendente_detalhe(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_entrega_pendente_assumir(request, pk):
     """Loja (Centro/Vila) assume a entrega — some da outra loja."""
@@ -32174,7 +32217,7 @@ def api_pdv_entrega_pendente_assumir(request, pk):
     return JsonResponse({"ok": True, "entrega": row, "ja_sua": (ent.loja_entrega or "") == loja})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_entrega_pendente_finalizar(request, pk):
     try:
@@ -32212,7 +32255,7 @@ def api_pdv_entrega_pendente_finalizar(request, pk):
     return JsonResponse({"ok": True, "id": ent.pk, "venda_id": ent.venda_agro_id})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_entrega_pendente_cancelar(request, pk):
     try:

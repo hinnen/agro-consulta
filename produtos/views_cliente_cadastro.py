@@ -42,7 +42,7 @@ def _origem(request, data: dict | None = None) -> str:
     return (raw or "pdv")[:32]
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_cliente_whatsapp_duplicado(request):
     digits = extrair_whatsapp_digits(request.GET.get("whatsapp") or request.GET.get("telefone") or "")
@@ -59,7 +59,7 @@ def api_cliente_whatsapp_duplicado(request):
     return JsonResponse({"ok": True, "duplicado": info})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_cliente_limpar_whatsapp(request, pk: int):
     data, err = _json_body(request)
@@ -74,7 +74,7 @@ def api_cliente_limpar_whatsapp(request, pk: int):
     return JsonResponse(out, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_cliente_exclusao_preview(request, pk: int):
     get_object_or_404(ClienteAgro, pk=pk)
@@ -83,7 +83,7 @@ def api_cliente_exclusao_preview(request, pk: int):
     return JsonResponse(out, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_cliente_transferir_saldos(request, pk: int):
     data, err = _json_body(request)
@@ -106,7 +106,7 @@ def api_cliente_transferir_saldos(request, pk: int):
     return JsonResponse(out, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_cliente_excluir(request, pk: int):
     data, err = _json_body(request)
@@ -129,7 +129,7 @@ def api_cliente_excluir(request, pk: int):
     return JsonResponse(out, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_cliente_vale_credito_manual(request, pk: int):
     data, err = _json_body(request)
@@ -146,7 +146,7 @@ def api_cliente_vale_credito_manual(request, pk: int):
     return JsonResponse(out, status=status)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_cliente_eventos(request, pk: int):
     get_object_or_404(ClienteAgro, pk=pk)

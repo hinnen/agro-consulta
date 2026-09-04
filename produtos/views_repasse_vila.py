@@ -81,7 +81,7 @@ def _parse_date(raw) -> date | None:
         return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def repasse_vila_view(request):
     cfg = obter_config()
     hoje = timezone.localdate()
@@ -107,7 +107,7 @@ def repasse_vila_view(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_calc(request):
     dia_raw = _parse_date(request.GET.get("data"))
@@ -129,7 +129,7 @@ def api_repasse_vila_calc(request):
     return JsonResponse(out)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_historico(request):
     hoje = timezone.localdate()
@@ -141,7 +141,7 @@ def api_repasse_vila_historico(request):
     return JsonResponse(historico_mes(ano, mes))
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_acumulado(request):
     dia_raw = _parse_date(request.GET.get("data"))
@@ -151,7 +151,7 @@ def api_repasse_vila_acumulado(request):
     return JsonResponse(listar_acumulado_detalhe(dia))
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_acumulado_ajuste(request):
     payload = _payload(request)
@@ -194,7 +194,7 @@ def api_repasse_vila_acumulado_ajuste(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_acumulado_zerar(request):
     """Zera acumulado — dinheiro já transferido antes da ferramenta."""
@@ -225,7 +225,7 @@ def api_repasse_vila_acumulado_zerar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_repasse_vila_config(request):
     if request.method == "GET":
@@ -299,7 +299,7 @@ def api_repasse_vila_config(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_reserva_log(request):
     try:
@@ -328,7 +328,7 @@ def _operador_payload(request, payload: dict) -> tuple[str, object | None, str]:
     return operador[:120], usuario, ""
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_cofrinho(request):
     dia = _parse_date(request.GET.get("data")) or timezone.localdate()
@@ -336,7 +336,7 @@ def api_repasse_vila_cofrinho(request):
     return JsonResponse(resumo_cofrinho_vila(dia, cofre=cofre))
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_cofrinho_separar(request):
     payload = _payload(request)
@@ -373,7 +373,7 @@ def api_repasse_vila_cofrinho_separar(request):
     })
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_cofrinho_movimento(request):
     payload = _payload(request)
@@ -424,7 +424,7 @@ def api_repasse_vila_cofrinho_movimento(request):
     })
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_cofrinho_estornar(request):
     payload = _payload(request)
@@ -455,7 +455,7 @@ def api_repasse_vila_cofrinho_estornar(request):
     })
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_repasse_vila_meta(request):
     from rh.models import Funcionario
@@ -496,7 +496,7 @@ def api_repasse_vila_meta(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_repasse_vila_confirmar(request):
     payload = _payload(request)

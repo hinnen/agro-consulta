@@ -49,7 +49,7 @@ def _operador(request, payload=None):
     return resolver_operador_pdv(request, pin)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_transf_loja_saldos(request):
     """Saldo Agro (ledger/ajuste) para os produtos da busca — wizard=1 zera isso."""
@@ -77,7 +77,7 @@ def api_pdv_transf_loja_saldos(request):
     return JsonResponse({"ok": True, "saldos": out})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_transf_loja_resumo(request):
     loja = _loja_atual(request)
@@ -92,7 +92,7 @@ def api_pdv_transf_loja_resumo(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_transf_loja_lista(request):
     loja = _loja_atual(request)
@@ -126,7 +126,7 @@ def api_pdv_transf_loja_lista(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_transf_loja_criar(request):
     payload = _payload(request)
@@ -160,7 +160,7 @@ def api_pdv_transf_loja_criar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_transf_loja_acao(request, pk: int):
     payload = _payload(request) or {}
@@ -292,7 +292,7 @@ def api_pdv_transf_loja_acao(request, pk: int):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_transf_loja_ajustar(request):
     """Ajuste rápido de saldo Agro (Centro e/ou Vila) a partir do Pedir loja."""

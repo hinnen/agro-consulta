@@ -121,7 +121,7 @@ def _promocao_form_context(promo: PromocaoAgro | None = None):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def promocoes_lista_view(request):
     busca = (request.GET.get("q") or "").strip()
     qs = PromocaoAgro.objects.all().order_by("-data_inicio", "-pk")
@@ -146,7 +146,7 @@ def promocoes_lista_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def promocoes_nova_view(request):
     return render(
         request,
@@ -156,7 +156,7 @@ def promocoes_nova_view(request):
 
 
 @ensure_csrf_cookie
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 def promocoes_editar_view(request, pk):
     promo = get_object_or_404(PromocaoAgro, pk=pk)
     return render(
@@ -166,7 +166,7 @@ def promocoes_editar_view(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_promocoes_salvar(request):
     try:
@@ -287,7 +287,7 @@ def api_promocoes_salvar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_promocoes_excluir(request, pk: int):
     promo = get_object_or_404(PromocaoAgro, pk=pk)
@@ -296,7 +296,7 @@ def api_promocoes_excluir(request, pk: int):
     return JsonResponse({"ok": True, "nome": nome})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_promocoes_buscar_produto(request):
     q = (request.GET.get("q") or "").strip()

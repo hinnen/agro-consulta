@@ -32,7 +32,7 @@ def _deposito_request(request, data: dict | None = None) -> str:
     ).strip()
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_topbar_clique(request):
     data = _payload(request)
@@ -45,7 +45,7 @@ def api_pdv_topbar_clique(request):
     return JsonResponse({"ok": True})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_topbar_cliques_resumo(request):
     try:
@@ -55,7 +55,7 @@ def api_pdv_topbar_cliques_resumo(request):
     return JsonResponse({"ok": True, "dias": dias, "ranking": resumo_cliques(dias=dias)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def api_pdv_topbar_layout(request):
     if request.method == "GET":

@@ -35,7 +35,7 @@ def _payload(request) -> dict | None:
         return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_uso_loja_meta(request):
     from produtos.pdv_deposito_util import bootstrap_deposito, trava_loja_por_caixa
@@ -73,7 +73,7 @@ def api_pdv_uso_loja_meta(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_uso_loja_confirmar(request):
     payload = _payload(request)
@@ -128,7 +128,7 @@ def api_pdv_uso_loja_confirmar(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_uso_loja_historico(request):
     try:
@@ -150,7 +150,7 @@ def api_pdv_uso_loja_historico(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_pdv_uso_loja_estornar(request, pk: int):
     payload = _payload(request)
