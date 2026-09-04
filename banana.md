@@ -1307,6 +1307,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV · cliente · **Adicionar vale** (manual) · número **Vale crédito** sobe na hora |
 
+### 📦 PACOTE PRONTO — Vale crédito baixa na venda (`PDV-VALE-USADO` · bug #16 · **v22.63** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Pagar com vale **desce o saldo** no cadastro (não era só tela) |
+| **Também** | Trava se passar do saldo · devolver na forma vale **devolve** · número à direita atualiza |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_vale_credito_venda_path.py` **VERIFY_OK 38/38** (fonte + payload + ORM + API PIN 9973 + healthz) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · cliente com vale · pagar **só vale** · o número cai · F5: continua baixo |
+
 ### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
 
 | Campo | Valor |
@@ -1329,7 +1340,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.61**)
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.63**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1337,8 +1348,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro.
+**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro · **bug #13 troca** (não existe pacote) · **BI-DEVOL** já Live (não sobe de novo).
 
 ### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
 
@@ -1491,17 +1503,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 **Live agora:** **v21.87**. WhatsApp UI extra / Excel cadastro **fora**.
 
 
-### 🩹 Bug loja #16 — pagar com vale não descia o saldo (`PDV-VALE-USADO` · 03/09)
-
-| | |
-| --- | --- |
-| **Relato** | 03/09 · v21.08 · Caixa Centro · pagar com **vale crédito** · o número na tela não mudava (nem após reiniciar o PDV) |
-| **Causa** | A venda **entrava no caixa**, mas o saldo do cliente no Postgres **não era baixado** (só creditava ao *comprar* vale). Por isso não era só visual. |
-| **Fix** | Baixa `saldo_vale_credito` na venda · bloqueia se passar do saldo · devolve o vale se a devolução for na forma Vale crédito · atualiza o número/cache no PDV |
-| **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_vale_credito_venda_path.py` **11/11** |
-| **Status** | 🟡 `teste` **v22.11** · loja **não** |
-| **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
+### ~~🩹 Bug loja #16 — pagar com vale~~ · ver topo **PDV-VALE-USADO** (prova **38/38**)
 
 ### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.61**
 
