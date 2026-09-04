@@ -1277,11 +1277,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.33** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** | **NÃO** |
 
 **Live agora:** **v21.88**. Este pacote **ainda não** na loja.
 
-### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.33** · 04/09)
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.34** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1289,7 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
 | **Migrate** | **NÃO** |
 | **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
-| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.33** |
+| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** |
 | **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
