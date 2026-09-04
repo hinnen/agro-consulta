@@ -1275,6 +1275,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
+### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.52** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Queila sem folha 08 · robô dia 28 **não existia** no Render |
+| **Fix dados** | Folha **2026-08** + título CP venc. **01/09** · R$ 1964,12 |
+| **Cron loja** | ✅ `crn-dadj0q6q1p3s73dsrd70` · `15 6 * * *` UTC · `producao` · Trigger OK |
+| **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **22/22** (live + dry_run 28 = 6 candidatos) |
+| **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.52** |
+| **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
+
 ### 📦 PACOTE PRONTO — Login obrigatório no painel (`LOGIN-BI-FECHADO` · **v22.49** · 04/09)
 
 | Campo | Valor |
@@ -1284,7 +1295,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Padrão **False** · `/atalhos/` também exige login |
 | **Onde** | `config/settings.py` · `produtos/views.py` (`home`) · `render.yaml` (comentário) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **pronto no teste** — reiniciar `iniciar.bat` / runserver · loja só frase+senha (ou env `AGRO_PUBLIC_DASHBOARD=false` no Render) |
+| **Status** | 🟡 **pronto para envio à produção** · **urgente** |
 | **Você** | Janela anônima → link da loja → deve cair no login, **sem** BI |
 | **Autorizar loja** | frase + senha na **mesma** mensagem |
 
@@ -1301,18 +1312,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.51**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.52**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** | 🟡 **pronto no teste** · **urgente** | **NÃO** |
+| 1 | **LOGIN-BI-FECHADO** | 🟡 **pronto para envio à produção** · **urgente** | **NÃO** |
 | 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto para envio à produção** · prova **27/27** | **NÃO** |
 | 3 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 5 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
 | 6 | **WA-XFER-PIX-ORC** | 🟡 **pronto para envio à produção** · prova **73/73** | **NÃO** |
+| — | **RH-CRON-ENVIO** | ✅ **Live ops** (cron Render) · prova **22/22** | **NÃO** |
 
-**Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
+**Live agora:** **v21.88**. Fila 1–6 **ainda não** na loja. Sobe **só** com frase + senha (cherry).
 
 ### 📦 PACOTE PRONTO — Zap: transfer + Pix + orçamento loja (`WA-XFER-PIX-ORC` · **v22.47** · 04/09)
 
@@ -1362,14 +1374,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ RH — Queila folha 08/2026 aberta (04/09)
-
-| | |
-| --- | --- |
-| **Sintoma** | Só Queila sem salário 08 (venc. 01/09); outros já tinham 08 |
-| **Causa** | Ficha OK (envio **28**, venc **1**). Robô `agro-rh-envio-cp-automatico` **não existia** no Render — dia 28 não rodou. Os outros abriram 08 **na mão** antes do 28. |
-| **Fix loja** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ **1964,12** · status Aberto · id `6a9b2fe0…` |
-| **Cron** | ✅ `crn-dadj0q6q1p3s73dsrd70` · Trigger Run OK 04/09 · `candidatos=0` (normal: hoje dia **4**, envio deles é **28**) · agenda diária ~03:15 BR |
+### ~~✅ RH — Queila folha 08~~ · ver topo **RH-CRON-ENVIO** v22.52
 
 ### ~~WIP — PDV leve lentidão~~ · fechado → `PDV-CHAT-POLL-10S` (prova 38/38 · fila checklist)
 
