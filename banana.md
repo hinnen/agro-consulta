@@ -1273,18 +1273,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 🩹 Entrada NF — CP já lançado, etapa 7 laranja (`NF-FIN-MANUAL-RELIGA` · **v22.29** · 04/09)
+### 📦 PACOTE PRONTO — religa CP da nota manual (`NF-FIN-MANUAL-RELIGA` · **v22.30**)
 
-| | |
-| --- | --- |
-| **Relato** | NF **manual** 51832423432 · Sn-Pajaro · 3 parcelas no CP · tela laranja + **Salvar + a pagar** · aviso «não achei conta a pagar» |
-| **Causa** | Casamento forte pedia chave XML **e** lote **e** parcelas. Nota digitada não tem chave; o carimbo some e a tela acha que não lançou |
-| **Fix** | Religa por **número da NF exato** + nome do fornecedor (ou parcelas). Próximos lançamentos gravam o ID da nota na observação |
-| **Não** | Clicar **Salvar + a pagar** de novo se os 3 títulos já estão no Contas a pagar (duplica) |
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Nota **digitada** já no Contas a pagar, etapa 7 laranja + **Salvar + a pagar** |
+| **Prova** | `scripts/verify_nf_fin_manual_religa_path.py` **VERIFY_OK 4/4** · django vínculo **12/12** |
 | **Migrate** | **NÃO** |
-| **Prova** | `produtos.tests_entrada_nf_financeiro_vinculo` **8/8** |
-| **Status** | 🟡 `teste` **v22.29** · loja **não** |
-| **Você** | Ctrl+F5 · abrir essa nota na Entrada NF · o laranja tem que sumir sozinho |
+| **Não** | Clicar Salvar CP de novo se os títulos já existem |
+| **Você** | Ctrl+F5 · abrir a nota · o laranja some sozinho |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (04/09 · tip **v22.30**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `NF-FIN-MANUAL-RELIGA` | 📦 **pronto para envio** | **NÃO** |
+
+**Não sobe junto:** WhatsApp extra / PDV extra do `teste`. Loja continua **v21.87** até frase + senha.
 
 ### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
 
