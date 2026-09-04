@@ -267,6 +267,7 @@
     }).then(function (j) {
       if (!j || !j.ok) throw new Error((j && j.erro) || 'Falha');
       preencher(j.bot);
+      if (j.avisos && j.avisos.length) aviso(false, j.avisos[0]);
     }).catch(function (e) {
       aviso(false, e.message || 'Não carregou');
     });
@@ -291,18 +292,41 @@
     ev.preventDefault();
     var btn = $('wa-bot-save');
     if (btn && btn.disabled) return;
+    var dados = coletar();
+    if (dados.feat_fiado_pix && !(String(dados.pix_chave || '').trim())) {
+      aviso(false, 'Cole a Chave Pix na caixa verde (Recursos) antes de salvar.');
+      var nav = $('wa-bot-nav');
+      var box = $('wa-pix-box');
+      if (nav) {
+        var bRec = nav.querySelector('button[data-panel="recursos"]');
+        if (bRec) bRec.click();
+      }
+      if (box) {
+        try {
+          box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (e) {}
+      }
+      var inp = $('id_pix_chave');
+      if (inp) {
+        try {
+          inp.focus();
+        } catch (e2) {}
+      }
+      return;
+    }
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Salvando…';
     }
-    salvar({ bot: coletar() })
+    salvar({ bot: dados })
       .then(function (j) {
         if (!j || !j.ok) {
           aviso(false, (j && j.erro) || 'Não salvou');
           return;
         }
         preencher(j.bot);
-        aviso(true, 'Salvo');
+        if (j.avisos && j.avisos.length) aviso(false, j.avisos[0]);
+        else aviso(true, 'Salvo');
       })
       .catch(function () {
         aviso(false, 'Não salvou');

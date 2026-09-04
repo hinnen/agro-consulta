@@ -1388,7 +1388,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
 
-### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · **v22.23** · 04/09/2026)
+### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · **v22.24** · 04/09/2026)
 
 | | |
 | --- | --- |
@@ -1397,6 +1397,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 Bot · liga recurso · cola chave · no Zap do cliente manda «pix» |
+
+### 📦 PACOTE PRONTO — Pix chave + copiar (`WA-PIX-COPIAR` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **Bug** | Recurso ligado mas `pix_chave` vazia no PG → bot dizia «não configurada» |
+| **Fix** | Caixa verde no topo de Recursos · Salvar bloqueia se falta chave · 2 msgs (intro + chave sozinha p/ Copiar no Zap) |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` |
 
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 

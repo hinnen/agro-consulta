@@ -172,18 +172,22 @@
         <b>Tudo começa desligado.</b> Ligue <b>um por um</b>, teste, e só então o próximo.
         Assim a gente corrige bug sem bagunçar a loja.
       </p>
+      <div id="wa-pix-box" class="mb-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 p-3">
+        <p class="wa-lab" style="margin:0 0 .35rem;color:#047857;font-size:.95rem">Chave Pix (Fiado + Pix)</p>
+        <p class="wa-hint" style="margin:0 0 .55rem">Cole a chave <b>aqui</b> e salve. Sem isso o bot responde que não está configurada.</p>
+        <label class="wa-lab">Chave</label>
+        <input id="id_pix_chave" name="pix_chave" class="wa-inp" autocomplete="off" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+        <label class="wa-lab">Titular (opcional)</label>
+        <input name="pix_titular" class="wa-inp" autocomplete="off" placeholder="Nome que aparece no Pix" />
+        <label class="wa-lab">Palavras que pedem a chave</label>
+        <input name="pix_palavras" class="wa-inp" placeholder="pix, chave pix, manda pix" />
+      </div>
       <div id="wa-bot-recursos" class="flex flex-col gap-2"></div>
       <label class="wa-lab" style="margin-top:1rem">Respostas prontas (separe com | )</label>
       <textarea name="respostas_prontas" rows="3" placeholder="Temos sim|Orçamento já já|…"></textarea>
       <label class="wa-lab">Extra fiado + Pix (depois do saldo)</label>
       <textarea name="msg_fiado_pix_extra" rows="2"></textarea>
-      <label class="wa-lab">Chave Pix (quando o cliente pedir)</label>
-      <input name="pix_chave" class="wa-inp" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
-      <label class="wa-lab">Titular da chave (opcional)</label>
-      <input name="pix_titular" class="wa-inp" placeholder="Nome que aparece no Pix" />
-      <label class="wa-lab">Palavras que pedem a chave <button type="button" class="wa-q" title="Separadas por vírgula. Ex.: pix, chave pix, manda pix">?</button></label>
-      <input name="pix_palavras" class="wa-inp" />
-      <label class="wa-lab">Texto ao mandar a chave <button type="button" class="wa-q" title="{chave} {titular} {titular_linha} {empresa}">?</button></label>
+      <label class="wa-lab">Texto ao mandar a chave (1ª msg; a chave vai sozinha em seguida)</label>
       <textarea name="msg_pix_chave" rows="3"></textarea>
       <label class="wa-lab">Se chave estiver vazia</label>
       <textarea name="msg_pix_sem_chave" rows="2"></textarea>

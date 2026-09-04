@@ -113,21 +113,36 @@ def interpretar_pedido_pix(texto: str, cfg: dict | None = None) -> bool:
 
 
 def montar_texto_pix(cfg: dict | None = None) -> str:
+    """Compat: texto único. Preferir ``montar_lote_pix`` (chave sozinha = fácil copiar)."""
+    lote = montar_lote_pix(cfg)
+    return "\n\n".join(lote) if lote else ""
+
+
+def montar_lote_pix(cfg: dict | None = None) -> list[str]:
+    """
+    1ª msg = explicação · 2ª msg = só a chave (sem *negrito*).
+    No WhatsApp o cliente toca na 2ª e usa Copiar — o mais perto do «botão copiar».
+    """
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
 
     c = cfg if cfg is not None else BOT_DEFAULT
     chave = str(c.get("pix_chave") or "").strip()
     if not chave:
-        return str(c.get("msg_pix_sem_chave") or BOT_DEFAULT.get("msg_pix_sem_chave") or "")
+        sem = str(c.get("msg_pix_sem_chave") or BOT_DEFAULT.get("msg_pix_sem_chave") or "").strip()
+        return [sem] if sem else []
     titular = str(c.get("pix_titular") or "").strip()
     titular_linha = f"Titular: *{titular}*\n" if titular else ""
     tpl = str(c.get("msg_pix_chave") or BOT_DEFAULT.get("msg_pix_chave") or "")
-    return (
-        tpl.replace("{chave}", chave)
+    intro = (
+        tpl.replace("{chave}", "")  # chave vai na 2ª msg
         .replace("{titular}", titular)
         .replace("{titular_linha}", titular_linha)
         .replace("{empresa}", str(c.get("nome_empresa") or "loja"))
+        .strip()
     )
+    if not intro:
+        intro = "Chave Pix — toque na mensagem de baixo e escolha *Copiar*."
+    return [intro, chave]
 
 
 def _fmt_rs(val) -> str:
@@ -1116,9 +1131,9 @@ def processar_entrada(
     # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot)
     if not historico and not de_mim and cfg_flag(cfg, "bot_ligado") and eh_pix:
         conv.save(update_fields=campos_base)
-        txt_pix = montar_texto_pix(cfg)
-        if txt_pix:
-            _enviar_lote_bot(conv, [txt_pix], cfg)
+        lote_pix = montar_lote_pix(cfg)
+        if lote_pix:
+            _enviar_lote_bot(conv, lote_pix, cfg)
         return msg, ""
 
     # Atalhos F / H / A (só se recurso ligado)
