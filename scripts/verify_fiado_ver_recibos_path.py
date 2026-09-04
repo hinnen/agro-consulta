@@ -71,9 +71,12 @@ def test_arquivos() -> None:
     check("kpi_resumo_gestao", "resumo_gestao_fiado" in util and "**_kpis_mensais_fiado()" in util)
     check("kpi_js_atualizar", "kpiVendidoMes" in js and "vendido_mes_anterior" in js)
 
-    check("limite_coluna_th", ">Limite<" in html or ">Limite</th>" in html)
+    check("limite_coluna_th", ">Limite<" in html or "Limite</th>" in html)
+    check("limite_sem_botao_avulso", 'id="fiado-btn-limite-avulso"' not in html)
+    check("limite_sem_modal_avulso", 'id="fiado-modal-limite"' not in html)
+    check("limite_click_js", "fiado-limite-valor" in js and "iniciarEdicaoLimite" in js)
     check("limite_input_js", "fiado-limite-input" in js and "gravarLimiteNaLinha" in js)
-    check("limite_css", ".fiado-limite-input" in html)
+    check("limite_css", ".fiado-limite-valor" in html and ".fiado-limite-input" in html)
 
     check("pedido_link_js", "fiado-link-pedido" in js and "abrirVendaOverlay" in js)
     check("btn_ver_js", "fiado-btn-ver-tit" in js)

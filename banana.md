@@ -549,6 +549,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 - **Editar cadastro (PDV):** modal sem scroll; telefone duplicado = popup no meio (abrir o outro ou **limpar o número** dali, com PIN). **Excluir** (bloqueia fiado em aberto e vínculo RH) + transferir cashback/vale. **Vale crédito:** clicar no saldo ou no cadastro — pagar (entra no caixa) ou manual (sem caixa). Log em `ClienteAgroEventoAgro`. Mesmas ações em `/clientes/…/editar/` — layout largo alinhado ao PDV (`CLI-FORM-PDV-LAYOUT`).
 - IDs Mongo no JSON viram `local:{pk}` para nÃ£o mandar ObjectId ao ERP.
 - Contexto antigo detalhado: `docs/CONTEXTO_SESSAO_CLIENTES_PDV.md`.
+- **Fiado limite (`FIADO-LIMITE-LINHA`):** na lista `/fiado/`, clique no valor da coluna **Limite** para editar (sem botão Limite cliente).
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
@@ -1277,7 +1278,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · tip **v22.41** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · tip **v22.39** | **NÃO** |
 | 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
