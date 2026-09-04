@@ -1388,6 +1388,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
 
+### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Com **Fiado + Pix** ligado: após saldo lembra; se cliente escreve *pix*, bot manda a chave |
+| **Bot** | Recursos → liga **Fiado + Pix** · preenche **Chave Pix** (+ titular opcional) · Salvar |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` |
+| **Você** | Ctrl+F5 Bot · liga recurso · cola chave · no Zap do cliente manda «pix» |
+
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 
 | | |

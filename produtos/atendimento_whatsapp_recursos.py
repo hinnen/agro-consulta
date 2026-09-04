@@ -13,7 +13,7 @@ RECURSOS_CATALOGO: list[tuple[str, str, str]] = [
     ("feat_pdv_aviso_msg", "Aviso no PDV", "Som + badge quando chega mensagem nova."),
     ("feat_respostas_prontas", "Respostas prontas", "Botões de texto rápido no chat."),
     ("feat_xfer_nota", "Nota ao transferir", "Observação interna ao passar Centro↔Vila."),
-    ("feat_fiado_pix", "Fiado + Pix", "Depois do saldo, bot lembra Pix / pagar na loja."),
+    ("feat_fiado_pix", "Fiado + Pix", "Lembra Pix após o saldo; se pedir, manda a chave configurada."),
     ("feat_orcamento_zap", "Orçamento no Zap", "Enviar orçamento do PDV pelo chat da loja."),
     ("feat_lembrete_fiado", "Lembrete fiado", "Avisar cliente marcado (atraso) — sem disparo em massa."),
     ("feat_comprovante_venda", "Comprovante de venda", "Texto «sua compra» no Zap após venda."),
@@ -40,7 +40,20 @@ RECURSOS_DEFAULT.update(
             "Entrega na terça|Já verifico e te retorno"
         ),
         "msg_fiado_pix_extra": (
-            "\n\nPara pagar: passe na loja ou peça a chave Pix por aqui."
+            "\n\nPara pagar: passe na loja ou escreva *pix* para receber a chave."
+        ),
+        "pix_chave": "",
+        "pix_titular": "",
+        "pix_palavras": "pix, chave pix, manda pix, me passa o pix, chave do pix",
+        "msg_pix_chave": (
+            "Chave Pix da *{empresa}*:\n"
+            "*{chave}*\n"
+            "{titular_linha}"
+            "Depois de pagar, avise por aqui ou na loja."
+        ),
+        "msg_pix_sem_chave": (
+            "A chave Pix ainda não está configurada neste bot.\n"
+            "Passe na loja ou peça a um atendente por aqui."
         ),
         "msg_menu_curto_extra": (
             "\n\nAtalhos:\n"

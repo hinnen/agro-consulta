@@ -88,7 +88,46 @@ def interpretar_consulta_fiado(texto: str, cfg: dict | None = None) -> bool:
         return False
     if interpretar_loja(t, c):
         return False
+    if interpretar_pedido_pix(t, c):
+        return False
     return _casa_palavra(t, _palavras(c.get("fiado_palavras") or ""))
+
+
+def interpretar_pedido_pix(texto: str, cfg: dict | None = None) -> bool:
+    """Cliente pediu a chave Pix (só se recurso Fiado+Pix ligado)."""
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, _casa_palavra, _palavras
+    from produtos.atendimento_whatsapp_recursos import recurso_on
+
+    c = cfg if cfg is not None else BOT_DEFAULT
+    if not recurso_on(c, "feat_fiado_pix"):
+        return False
+    t = _sem_acento(" ".join(str(texto or "").strip().lower().split()))
+    if not t:
+        return False
+    if interpretar_loja(t, c):
+        return False
+    palavras = _palavras(c.get("pix_palavras") or BOT_DEFAULT.get("pix_palavras") or "")
+    if not palavras:
+        palavras = _palavras("pix, chave pix, manda pix")
+    return _casa_palavra(t, palavras)
+
+
+def montar_texto_pix(cfg: dict | None = None) -> str:
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+    c = cfg if cfg is not None else BOT_DEFAULT
+    chave = str(c.get("pix_chave") or "").strip()
+    if not chave:
+        return str(c.get("msg_pix_sem_chave") or BOT_DEFAULT.get("msg_pix_sem_chave") or "")
+    titular = str(c.get("pix_titular") or "").strip()
+    titular_linha = f"Titular: *{titular}*\n" if titular else ""
+    tpl = str(c.get("msg_pix_chave") or BOT_DEFAULT.get("msg_pix_chave") or "")
+    return (
+        tpl.replace("{chave}", chave)
+        .replace("{titular}", titular)
+        .replace("{titular_linha}", titular_linha)
+        .replace("{empresa}", str(c.get("nome_empresa") or "loja"))
+    )
 
 
 def _fmt_rs(val) -> str:
@@ -1053,6 +1092,7 @@ def processar_entrada(
     if not fone:
         fone = _telefone_cadastro_por_nome(conv.nome)
     eh_fiado = interpretar_consulta_fiado(t, cfg)
+    eh_pix = interpretar_pedido_pix(t, cfg)
 
     def _ok_loja(escolha: str) -> str:
         if escolha == str(cfg.get("loja2_id") or "vila"):
@@ -1072,6 +1112,14 @@ def processar_entrada(
             menu += str(cfg.get("msg_menu_curto_extra") or "")
         out.append(menu)
         return out
+
+    # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot)
+    if not historico and not de_mim and cfg_flag(cfg, "bot_ligado") and eh_pix:
+        conv.save(update_fields=campos_base)
+        txt_pix = montar_texto_pix(cfg)
+        if txt_pix:
+            _enviar_lote_bot(conv, [txt_pix], cfg)
+        return msg, ""
 
     # Atalhos F / H / A (só se recurso ligado)
     if not historico and not de_mim and cfg_flag(cfg, "bot_ligado"):
