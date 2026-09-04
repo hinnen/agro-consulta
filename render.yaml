@@ -15,7 +15,7 @@ services:
     healthCheckPath: /healthz
     # Produção com domínio próprio: AGRO_CANONICAL_ORIGIN=https://www.example.com.br
     # Redis (opcional): REDIS_URL no mesmo env do web.
-    # Painel fechado: AGRO_PUBLIC_DASHBOARD=false
+    # Painel exige login (padrão). Abrir sem login: AGRO_PUBLIC_DASHBOARD=true
 
   # TESTE — commits do Cursor na branch `teste`.
   - type: web
