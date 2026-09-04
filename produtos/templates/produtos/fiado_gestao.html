@@ -51,6 +51,48 @@
       white-space: nowrap;
       border-radius: 0.75rem;
     }
+    .fiado-limite-cell {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      min-height: 2.5rem;
+    }
+    .fiado-limite-valor {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.35rem;
+      min-width: 6.5rem;
+      min-height: 2.5rem;
+      padding: 0.25rem 0.55rem;
+      border: 2px solid transparent;
+      border-radius: 0.75rem;
+      background: transparent;
+      font-variant-numeric: tabular-nums;
+      font-weight: 900;
+      font-size: 13px;
+      color: rgb(15 23 42);
+      cursor: pointer;
+      text-align: right;
+    }
+    .fiado-limite-valor:hover,
+    .fiado-limite-valor:focus-visible {
+      border-color: rgb(16 185 129);
+      background: rgb(236 253 245);
+      outline: none;
+      box-shadow: 0 0 0 2px rgb(167 243 208 / 0.7);
+    }
+    .fiado-limite-valor::after {
+      content: "✎";
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: rgb(5 150 105);
+      opacity: 0.55;
+    }
+    .fiado-limite-valor:hover::after,
+    .fiado-limite-valor:focus-visible::after {
+      opacity: 1;
+    }
     .fiado-limite-input {
       width: 7.4rem;
       margin-left: auto;
@@ -61,17 +103,18 @@
       font-size: 13px;
       min-height: 2.5rem;
       padding: 0.25rem 0.5rem;
-      border: 2px solid rgb(226 232 240);
+      border: 2px solid rgb(16 185 129);
       border-radius: 0.75rem;
-      background: #fff;
+      background: rgb(236 253 245);
+      box-shadow: 0 0 0 2px rgb(167 243 208 / 0.55);
     }
     .fiado-limite-input:focus {
       outline: none;
-      border-color: rgb(16 185 129);
-      background: rgb(236 253 245);
+      border-color: rgb(5 150 105);
+      background: #fff;
     }
     .fiado-limite-input.is-saving { opacity: 0.65; }
-    .fiado-limite-input.is-ok { border-color: rgb(16 185 129); }
+    .fiado-limite-input.is-ok { border-color: rgb(16 185 129); background: rgb(209 250 229); }
     .fiado-cli-table tbody tr.fiado-cli-row { cursor: pointer; transition: background-color 0.12s ease; }
     .fiado-cli-table tbody tr.fiado-cli-row:hover { background: rgb(255 247 237); }
     .fiado-cli-table tbody tr.fiado-cli-row.fiado-cli-row-ativo {
@@ -493,7 +536,6 @@
 
     <div class="flex flex-wrap gap-2 shrink-0 items-center">
       <input type="search" id="fiado-busca" placeholder="Buscar cliente ou código…" class="flex-1 min-w-[12rem] rounded-xl border-2 border-slate-200 px-3 py-1.5 font-bold text-sm min-h-[40px]" autocomplete="off">
-      <button type="button" id="fiado-btn-limite-avulso" class="min-h-[40px] px-3 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 text-[11px] font-black uppercase">Limite cliente</button>
       <button type="button" id="fiado-btn-atualizar" class="min-h-[40px] px-3 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase">Atualizar</button>
     </div>
 
@@ -508,7 +550,7 @@
               <th class="text-right">Valor</th>
               <th class="text-right">Pago</th>
               <th class="text-right">Saldo</th>
-              <th class="text-right">Limite</th>
+              <th class="text-right" title="Clique no valor da linha para editar o limite">Limite</th>
               <th>Situação</th>
               <th class="text-right">Ações</th>
             </tr>
@@ -677,22 +719,6 @@
       </div>
       <div id="fiado-recibos-lista" class="fiado-recibos-lista flex flex-col gap-1.5"></div>
     </div>
-  </dialog>
-
-  <dialog id="fiado-modal-limite" class="fiado-modal-limite w-[min(28rem,96vw)]">
-    <form id="fiado-form-limite-avulso" class="fiado-submodal-form p-5 space-y-4">
-      <h2 class="text-lg font-black uppercase text-slate-900">Limite fiado</h2>
-      <input type="search" id="fiado-limite-busca" placeholder="Digite nome do cliente…" class="w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-bold text-sm min-h-[48px]">
-      <div id="fiado-limite-resultados" class="max-h-40 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-100"></div>
-      <label class="block text-[10px] font-black uppercase text-slate-500">
-        Limite (R$)
-        <input type="text" id="fiado-limite-avulso-valor" inputmode="decimal" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-4 py-3 font-black text-lg min-h-[48px]">
-      </label>
-      <div class="flex gap-2 justify-end">
-        <button type="button" id="fiado-limite-fechar" class="min-h-[44px] px-4 rounded-xl border-2 border-slate-200 font-black text-xs uppercase">Fechar</button>
-        <button type="submit" class="min-h-[44px] px-5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase">Salvar</button>
-      </div>
-    </form>
   </dialog>
 
   <script>
