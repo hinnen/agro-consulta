@@ -45,11 +45,11 @@ RECURSOS_DEFAULT.update(
         "pix_chave": "",
         "pix_titular": "",
         "pix_palavras": "pix, chave pix, manda pix, me passa o pix, chave do pix",
+        # Intro (1ª msg). A chave vai sozinha na 2ª msg — no Zap dá para Copiar fácil.
         "msg_pix_chave": (
-            "Chave Pix da *{empresa}*:\n"
-            "*{chave}*\n"
+            "Chave Pix da *{empresa}*\n"
             "{titular_linha}"
-            "Depois de pagar, avise por aqui ou na loja."
+            "Toque na *mensagem de baixo* e escolha *Copiar*."
         ),
         "msg_pix_sem_chave": (
             "A chave Pix ainda não está configurada neste bot.\n"

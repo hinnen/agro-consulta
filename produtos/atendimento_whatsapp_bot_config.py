@@ -178,7 +178,7 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
         if k not in fontes:
             fontes.append(k)
     limpo["nome_fontes"] = ",".join(fontes)
-    limpo["pix_chave"] = str(limpo.get("pix_chave") or "").strip()[:120]
+    limpo["pix_chave"] = str(limpo.get("pix_chave") or "").strip()[:200]
     limpo["pix_titular"] = str(limpo.get("pix_titular") or "").strip()[:120]
     limpo["pix_palavras"] = str(limpo.get("pix_palavras") or "").strip()[:400]
     obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=(chave or CHAVE_DEFAULT)[:32])
@@ -186,6 +186,15 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     obj.atualizado_por = (usuario or "")[:120]
     obj.save()
     return limpo
+
+
+def avisos_bot(cfg: dict | None) -> list[str]:
+    """Avisos amigáveis após salvar / ao abrir o Bot."""
+    c = cfg or {}
+    out: list[str] = []
+    if cfg_flag(c, "feat_fiado_pix") and not str(c.get("pix_chave") or "").strip():
+        out.append("Fiado + Pix está ligado, mas a Chave Pix está vazia — cole a chave e salve de novo.")
+    return out
 
 
 def resetar_bot(*, chave: str = CHAVE_DEFAULT, usuario: str = "") -> dict:

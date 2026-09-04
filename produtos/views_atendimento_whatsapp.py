@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
-from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, carregar_bot, resetar_bot, salvar_bot
+from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT, avisos_bot, carregar_bot, resetar_bot, salvar_bot
 from produtos.atendimento_whatsapp_util import (
     atualizar_ponte,
     abrir_conversa_busca,
@@ -129,7 +129,8 @@ def atendimento_whatsapp_bot_view(request):
 @login_required(login_url="/admin/login/")
 @require_GET
 def api_atendimento_whatsapp_bot_get(request):
-    return JsonResponse({"ok": True, "bot": carregar_bot(), "padrao": BOT_DEFAULT})
+    bot = carregar_bot()
+    return JsonResponse({"ok": True, "bot": bot, "padrao": BOT_DEFAULT, "avisos": avisos_bot(bot)})
 
 
 @login_required(login_url="/admin/login/")
@@ -146,10 +147,10 @@ def api_atendimento_whatsapp_bot_salvar(request):
         autor = ""
     if data.get("reset"):
         bot = resetar_bot(usuario=autor)
-        return JsonResponse({"ok": True, "bot": bot})
+        return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
     payload = data.get("bot") if isinstance(data.get("bot"), dict) else data
     bot = salvar_bot(payload, usuario=autor)
-    return JsonResponse({"ok": True, "bot": bot})
+    return JsonResponse({"ok": True, "bot": bot, "avisos": avisos_bot(bot)})
 
 
 @login_required(login_url="/admin/login/")
