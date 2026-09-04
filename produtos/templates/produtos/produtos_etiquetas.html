@@ -412,6 +412,13 @@
           </select>
         </label>
 
+        <label class="block etq-field-gondola"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Folha</span>
+          <select id="etq-preset-folha" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white">
+            <option value="a4">A4 (210×297 · 2/3 colunas)</option>
+            <option value="a6">A6 (105×148 · 1 coluna)</option>
+          </select>
+        </label>
+
         <label class="block"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Impressora</span><select id="etq-preset-impressora" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white"><option value="">(Padrão)</option></select></label>
 
         <label class="block etq-field-termica"><span class="mb-0.5 block text-[10px] font-bold uppercase text-slate-500">Rodapé padrão</span><input id="etq-preset-texto-rodape" type="text" maxlength="80" class="w-full min-h-[36px] rounded-lg border border-slate-600 bg-slate-950 px-2 text-sm text-white" /></label>
@@ -534,9 +541,9 @@ window.AGRO_ETQ_CFG = {
   etqPresetsUrl: "{{ api_etq_presets_url|default:'/api/produtos/etiquetas/presets/'|escapejs }}"
 };
 </script>
-<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=15"></script>
+<script src="{% static 'produtos/js/produtos_etiquetas_core.js' %}?v=16"></script>
 
-<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=15" defer></script>
+<script src="{% static 'produtos/js/produtos_etiquetas.js' %}?v=16" defer></script>
 
 {% endblock %}
 
