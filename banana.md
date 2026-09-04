@@ -1293,20 +1293,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Aba **Em andamento** abria vazia; a nota (ex. MS em Financeiro) só aparecia ao digitar na busca |
-| **Causa** | Lista pegava só ~25 mais novas e filtrava depois — nota antiga em andamento ficava fora |
 | **Fix** | Com filtro de estágio, varre mais fundo e preenche a lista com quem casa no filtro |
 | **Onde** | `nfe_entrada_util.py` (`listar_rascunhos_entrada`) |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_nf_lista_em_andamento_path.py` **VERIFY_OK 6/6** |
-| **Status** | 🟡 **pronto no teste** — validar local · loja só frase+senha |
-| **Você** | Entrada NF → **Em andamento** sem digitar → deve listar a MS / outras abertas |
+| **Prova** | `scripts/verify_nf_lista_em_andamento_path.py` **VERIFY_OK 27/27** (PIN 9973 + HTTP + PG 9 andamento + fixture) |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
+| **Autorizar** | frase + senha na **mesma** mensagem |
 
 ### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.49**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **LOGIN-BI-FECHADO** | 🟡 **pronto no teste** · **urgente** | **NÃO** |
-| 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto no teste** | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto para envio à produção** · prova **27/27** | **NÃO** |
 | 3 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 5 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
