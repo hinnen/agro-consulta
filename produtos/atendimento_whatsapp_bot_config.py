@@ -178,6 +178,9 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
         if k not in fontes:
             fontes.append(k)
     limpo["nome_fontes"] = ",".join(fontes)
+    limpo["pix_chave"] = str(limpo.get("pix_chave") or "").strip()[:120]
+    limpo["pix_titular"] = str(limpo.get("pix_titular") or "").strip()[:120]
+    limpo["pix_palavras"] = str(limpo.get("pix_palavras") or "").strip()[:400]
     obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=(chave or CHAVE_DEFAULT)[:32])
     obj.dados = limpo
     obj.atualizado_por = (usuario or "")[:120]
