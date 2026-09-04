@@ -1274,15 +1274,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.45**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.46**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
-| 3 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** | **NÃO** |
+| 3 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
+
+### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Chat interno PDV: poll **10s** fechado · **2,5s** aberto (menos carga no Render). Abrir/enviar na hora. |
+| **Onde** | `pdv_chat_loja.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_pdv_chat_poll_10s_path.py` **VERIFY_OK 38/38** (PIN 9973 + lista/enviar HTTP) |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Depois** | Excluir chat interno · tentar via WhatsApp |
+| **Você** | Ctrl+F5 PDV · fechado: aviso até ~10s · aberto: rápido |
 
 ### 📦 PACOTE PRONTO — Limite fiado na linha (`FIADO-LIMITE-LINHA` · 04/09)
 
@@ -1315,27 +1327,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix loja** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ **1964,12** · status Aberto · id `6a9b2fe0…` |
 | **Cron** | Criado `crn-dadj0q6q1p3s73dsrd70` · agenda `15 6 * * *` UTC (~03:15 BR) · branch `producao` · **falta** Renan anexar o **mesmo Environment Group** da loja no painel (SECRET_KEY/DATABASE) e Trigger Run uma vez |
 
-### WIP — PDV leve lentidão na **loja** · 04/09
+### ~~WIP — PDV leve lentidão~~ · fechado → `PDV-CHAT-POLL-10S` (prova 38/38 · fila checklist)
 
-| | |
-| --- | --- |
-| **Onde** | Produção sistvale — Chat interno PDV (não WhatsApp) |
-| **Causa** | Poll `chat-loja` **4s** × N caixas engolia os **2** workers |
-| **Feito** | `PDV-CHAT-POLL-10S` — fechado **10s** · aberto **2,5s** · `teste` **v22.38** @ `84ea1bd` |
-| **Loja** | ainda **não** (precisa frase + senha) |
-| **Depois** | Excluir chat interno e tentar solução via WhatsApp (Renan 04/09) |
-
-### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · **v22.38** · 04/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Menos ping com Chat fechado (10s). Aberto continua 2,5s. |
-| **Onde** | `pdv_chat_loja.js` |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v22.38** · **não** loja |
-| **Você** | Ctrl+F5 PDV · fechado: aviso até ~10s · aberto: rápido |
-
-### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.41** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
