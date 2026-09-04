@@ -331,3 +331,20 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: PREP — ainda não na loja.** Loja hoje **v20.56** @ `d30c5ca`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0109c-v20.56` @ `d30c5ca` · branch `producao-backup-pre-v2058-lote-checklist-20260901` · `docs/ROLLBACK-LOTE-CHECKLIST-0109c.md` · **só** frase+senha.  
 **Deploy:** **não** resetar `producao` no `teste`. `reset --hard origin/deploy/prep-checklist-0109c`. **Fora:** `WA-ATEND-QR` · `WA-FIADO-MSG` · `BI-META-C-VILA-RAMP`. PDV/caixa **iguais**.
+
+---
+
+## 20. Checklist único — lote 04/09b (`deploy/prep-checklist-0409` · alvo loja **v21.89**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟢 **PREP** · aguarda senha | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | 🟢 **PREP** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | 🟢 **PREP** · prova **59/59** | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | 🟢 **PREP** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | 🟢 **PREP** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | 🟢 **PREP** | **SIM** `0125` |
+
+**Status: PREP / aguarda senha.** Live ainda **v21.88**. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
+**PDV:** `/consulta/` sem login Django · F7 igual. BI `/` pede `/entrar/`.

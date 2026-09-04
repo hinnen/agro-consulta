@@ -1264,6 +1264,29 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🟢 PREP — lote checklist 04/09b (`deploy/prep-checklist-0409` · alvo loja **v21.89**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto / aguarda frase + senha** — **não** subiu |
+| **Base loja** | Live **v21.88** @ `329f9b5` |
+| **Branch** | `deploy/prep-checklist-0409` |
+| **Migrate** | **SIM** `produtos.0125` (extras Zap) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md` |
+| **Fora** | merge `teste` · Excel cadastro · resto WhatsApp UI |
+| **Você no próximo chat** | lojas **pausam venda ~2 min** · frase + senha **na mesma** mensagem |
+
+| # | Pacote | Prova | Migrate |
+| - | ------ | ----- | ------- |
+| 1 | LOGIN-BI-FECHADO + LOGIN-UI-AGRO | fonte+rotas no PREP · 24/24 no `teste` | NÃO |
+| 2 | NF-LISTA-ANDAMENTO | 27/27 no `teste` | NÃO |
+| 3 | ETQ-A6-BONUS | **59/59** no PREP | NÃO |
+| 4 | FIADO-LIMITE-LINHA | 40/40 no `teste` | NÃO |
+| 5 | PDV-CHAT-POLL-10S | 38/38 no `teste` | NÃO |
+| 6 | WA-XFER-PIX-ORC | contratos+JS no PREP · 73/73 no `teste` | **0125** |
+
+**PDV:** `/consulta/` **não** pede login Django. **F7 igual.** Chat só muda o tempo de aviso. Orçamento ganha botão **Loja** (Zap da loja).
+
 ### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
 | Campo | Valor |
