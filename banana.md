@@ -1286,17 +1286,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
 | **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
 
-### 📦 PACOTE PRONTO — Login obrigatório no painel (`LOGIN-BI-FECHADO` · **v22.49** · 04/09)
+### 📦 PACOTE PRONTO — Login obrigatório no painel (`LOGIN-BI-FECHADO` + `LOGIN-UI-AGRO` · **v22.55** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Link em navegador novo **não** abre o dashboard — pede **usuário e senha** (`/admin/login/`) |
-| **Causa** | `AGRO_PUBLIC_DASHBOARD` vinha **True** (painel aberto) |
-| **Fix** | Padrão **False** · `/atalhos/` também exige login |
-| **Onde** | `config/settings.py` · `produtos/views.py` (`home`) · `render.yaml` (comentário) |
+| **O quê** | Navegador novo pede login · tela **bonita** GM Agro Mais (gradiente laranja→verde + logo) |
+| **Causa** | Painel vinha aberto (`AGRO_PUBLIC_DASHBOARD=true`) · login era o Admin feio |
+| **Fix** | Painel fechado · URL **`/entrar/`** · `LOGIN_URL=/entrar/` |
+| **Onde** | `entrar.html` · `agro_entrar` · `settings.py` · redirects `login_url` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **pronto para envio à produção** · **urgente** |
-| **Você** | Janela anônima → link da loja → deve cair no login, **sem** BI |
+| **Status** | 🟡 **pronto no teste** · **urgente** |
+| **Você** | Reinicia servidor · janela anônima → `/` → tela de login da marca |
 | **Autorizar loja** | frase + senha na **mesma** mensagem |
 
 ### 📦 PACOTE PRONTO — Entrada NF lista «Em andamento» vazia (`NF-LISTA-ANDAMENTO` · **v22.48** · 04/09)
@@ -1312,7 +1312,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.52**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.53**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

@@ -423,20 +423,20 @@ def api_nfce_export_planilha(request):
     return resp
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_venda_agro_nfce_info(request, pk):
     v = get_object_or_404(VendaAgro.objects.select_related("nfce"), pk=pk)
     return JsonResponse({"ok": True, "nfce_painel": painel_nfce_venda(v)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_nfce_status(request):
     return JsonResponse({"ok": True, "nfce": nfce_config_resumo()})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_venda_agro_nfce_cupom(request, pk):
     v = get_object_or_404(VendaAgro.objects.prefetch_related("itens"), pk=pk)
@@ -460,7 +460,7 @@ def api_venda_agro_nfce_cupom(request, pk):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_venda_agro_nfce_emitir(request, pk):
     """Reemitir NFC-e — carimba na hora; trabalho pesado com teto; lock anti-duplo."""
@@ -629,7 +629,7 @@ def _nfce_emitir_json_response(v: VendaAgro, out: dict, st: int):
     return JsonResponse(payload, status=st)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_venda_agro_nfce_cancelar(request, pk):
     v = get_object_or_404(VendaAgro.objects.select_related("nfce"), pk=pk)

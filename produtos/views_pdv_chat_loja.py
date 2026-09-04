@@ -25,7 +25,7 @@ def _payload(request) -> dict | None:
         return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_pdv_chat_loja_lista(request):
     try:
@@ -54,7 +54,7 @@ def api_pdv_chat_loja_lista(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_pdv_chat_loja_enviar(request):
     data = _payload(request)

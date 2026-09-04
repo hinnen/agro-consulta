@@ -218,7 +218,7 @@ def api_ajuste_codigo_pendente_criar(request):
     return JsonResponse({"ok": True, "id": obj.pk})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_POST
 def api_ajuste_codigo_pendente_status(request, pk: int):
     obj = get_object_or_404(AjusteCodigoPendenteAgro, pk=pk)
@@ -259,7 +259,7 @@ def api_ajuste_codigo_pendente_status(request, pk: int):
     return JsonResponse(payload)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 @never_cache
 @require_GET

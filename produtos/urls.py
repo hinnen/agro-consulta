@@ -26,6 +26,8 @@ from . import contagem_ciclica_views
 
 urlpatterns = [
     # --- PÁGINAS ---
+    path("entrar/", views.agro_entrar, name="agro_entrar"),
+    path("sair/", views.agro_sair, name="agro_sair"),
     path("", views.dashboard_gerencial_view, name="home"),
     path("atalhos/", views.home, name="home_atalhos"),
     path(

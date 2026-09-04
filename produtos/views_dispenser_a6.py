@@ -20,7 +20,7 @@ def _json_body(request):
         return None
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_dispenser_biblioteca(request):
     try:
@@ -30,7 +30,7 @@ def api_dispenser_biblioteca(request):
         return JsonResponse({"ok": False, "erro": str(e)}, status=500)
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST", "DELETE"])
 def api_dispenser_midia(request):
     if request.method == "DELETE":
@@ -55,7 +55,7 @@ def api_dispenser_midia(request):
     return JsonResponse({"ok": True, "item": util.midia_to_dict(row)})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST", "DELETE"])
 def api_dispenser_documento(request):
     if request.method == "DELETE":
@@ -88,7 +88,7 @@ def api_dispenser_documento(request):
     return JsonResponse({"ok": True, "nome": row.nome, "tipo": row.tipo})
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_http_methods(["POST"])
 def api_dispenser_migrar(request):
     body = _json_body(request)

@@ -68,7 +68,7 @@ logger = logging.getLogger(__name__)
 
 def gestao_rh_required(view):
     @wraps(view)
-    @login_required(login_url="/admin/login/")
+    @login_required(login_url="/entrar/")
     def _wrapped(request, *args, **kwargs):
         if not usuario_rh_acesso_restrito(request.user):
             return HttpResponseForbidden("Acesso negado à gestão de RH.")
@@ -77,7 +77,7 @@ def gestao_rh_required(view):
     return _wrapped
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def rh_painel(request):
     return render(
@@ -87,7 +87,7 @@ def rh_painel(request):
     )
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def rh_operadores_pins(request):
     funcionarios_outra = ["Matheus", "Estanislau"]
@@ -752,7 +752,7 @@ def rh_importar_vales(request):
     return redirect("rh_conferencia_tecnica")
 
 
-@login_required(login_url="/admin/login/")
+@login_required(login_url="/entrar/")
 @require_GET
 def api_rh_caixa_quem_leva(request):
     """

@@ -41,8 +41,8 @@ def _verificar_senha_admin(request, senha: str) -> bool:
     return bool(user and user.is_superuser)
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_superuser_ok, login_url="/entrar/")
 @require_http_methods(["GET", "POST"])
 def pg_backup_painel(request):
     # Na loja, COUNT em todas as tabelas ao abrir o painel estoura timeout (500).
@@ -130,8 +130,8 @@ def pg_backup_painel(request):
 
     return render(request, "produtos/pg_backup_painel.html", ctx)
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_superuser_ok, login_url="/entrar/")
 @require_GET
 def importar_catalogo_faltantes(request):
     """
@@ -216,8 +216,8 @@ def importar_catalogo_faltantes(request):
     return HttpResponse(body, content_type="text/html; charset=utf-8")
 
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_superuser_ok, login_url="/entrar/")
 @require_GET
 def recuperar_produtos_vendas(request):
     """
@@ -279,8 +279,8 @@ def recuperar_produtos_vendas(request):
     )
     return HttpResponse(body, content_type="text/html; charset=utf-8")
 
-@login_required(login_url="/admin/login/")
-@user_passes_test(_superuser_ok, login_url="/admin/login/")
+@login_required(login_url="/entrar/")
+@user_passes_test(_superuser_ok, login_url="/entrar/")
 @require_GET
 def inspecionar_produto_pg(request):
     """Debug superuser: ?pid=...&pid=... ou ?nome=kitekat"""
