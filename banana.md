@@ -1274,15 +1274,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.46**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.47**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 3 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
+| 4 | **WA-XFER-PIX-ORC** | 🟡 **pronto para envio à produção** · prova **73/73** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
+
+### 📦 PACOTE PRONTO — Zap: transfer + Pix + orçamento loja (`WA-XFER-PIX-ORC` · **v22.47** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | (1) Modal próprio ao passar Centro↔Vila + liga/desliga aviso ao cliente · (2) Fiado+Pix: chave no Bot, 2 msgs texto estáveis · (3) PDV: **Celular** \| **Loja** (orçamento pelo Zap da loja) |
+| **Bot** | Lojas → avisar cliente · Recursos → Fiado+Pix (chave) · Orçamento no Zap |
+| **Ponte** | Reiniciar bat após deploy (legado pix_copy → texto) |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_xfer_pix_orc_path.py` **VERIFY_OK 73/73** (PIN 9973 + HTTP + flags) |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Fora** | Botão Copiar Business (`cta_copy`) — abandonado no QR |
+| **Você** | Ctrl+F5 Bot/PDV/chat · passar loja · pix · orçamento Loja |
+| **Autorizar** | frase + senha na **mesma** mensagem |
 
 ### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · 04/09)
 
@@ -1325,11 +1340,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Sintoma** | Só Queila sem salário 08 (venc. 01/09); outros já tinham 08 |
 | **Causa** | Ficha OK (envio **28**, venc **1**). Robô `agro-rh-envio-cp-automatico` **não existia** no Render — dia 28 não rodou. Os outros abriram 08 **na mão** antes do 28. |
 | **Fix loja** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ **1964,12** · status Aberto · id `6a9b2fe0…` |
-| **Cron** | Criado `crn-dadj0q6q1p3s73dsrd70` · agenda `15 6 * * *` UTC (~03:15 BR) · branch `producao` · **falta** Renan anexar o **mesmo Environment Group** da loja no painel (SECRET_KEY/DATABASE) e Trigger Run uma vez |
+| **Cron** | Criado `crn-dadj0q6q1p3s73dsrd70` · agenda `15 6 * * *` UTC (~03:15 BR) · branch `producao` · env da loja copiado (SECRET/DB/Mongo/financeiro) · deploy `dep-dadj566…` em build · falta Trigger Run de prova |
 
 ### ~~WIP — PDV leve lentidão~~ · fechado → `PDV-CHAT-POLL-10S` (prova 38/38 · fila checklist)
 
-### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.41** · 04/09)
+### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1461,7 +1476,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Janelas próprias (sem `alert` do Chrome) ao passar Centro↔Vila + nota interna |
 | **Bot** | Lojas → **Avisar cliente ao passar** (`xfer_avisar_cliente`, padrão **ligado**) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
 | **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
 
 ### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · **v22.24** · 04/09/2026)
@@ -1471,7 +1486,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Com **Fiado + Pix** ligado: após saldo lembra; se cliente escreve *pix*, bot manda a chave |
 | **Bot** | Recursos → liga **Fiado + Pix** · preenche **Chave Pix** (+ titular opcional) · Salvar |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
 | **Você** | Ctrl+F5 Bot · liga recurso · cola chave · no Zap do cliente manda «pix» |
 
 ### 📦 PACOTE PRONTO — Pix chave + copiar (`WA-PIX-COPIAR` · **v22.25** · 04/09/2026)
@@ -1481,7 +1496,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Bug** | Recurso ligado mas `pix_chave` vazia no PG → bot dizia «não configurada» |
 | **Fix** | Caixa verde no topo de Recursos · Salvar bloqueia se falta chave · 2 msgs (intro + chave sozinha p/ Copiar no Zap) |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
 
 ### 📦 PACOTE PRONTO — Orçamento Zap loja no PDV (`WA-ORC-PDV` · **v22.26** · 04/09/2026)
 
@@ -1490,7 +1505,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | PDV: botão **Celular** (wa.me) + **Loja** (chat da loja) lado a lado |
 | **Bot** | Recursos → **Orçamento no Zap** ligado · ponte ligada |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` |
+| **Status** | ✅ incluso em **\WA-XFER-PIX-ORC\** |
 | **Você** | Ctrl+F5 PDV · cliente c/ telefone · carrinho · Loja |
 
 ### 📦 PACOTE PRONTO — Pix botão Copiar (`WA-PIX-CTA` · **v22.27** · 04/09/2026)
@@ -1511,9 +1526,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Extra** | Chave só-número com espaço invisível (não vira «ligar») |
 | **Ponte** | Reiniciar bat |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` |
-
-### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
+| **Status** | ✅ incluso em **`WA-XFER-PIX-ORC`** (checklist tip) |
 
 | | |
 | --- | --- |
