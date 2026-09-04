@@ -1294,9 +1294,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | `AGRO_PUBLIC_DASHBOARD=false` · `/entrar/` · `LOGIN_URL` · `/admin/login/` → `/entrar/` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_login_bi_fechado_path.py` **VERIFY_OK 24/24** (fonte + Client + PIN 9973 + HTTP) |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP v21.89** · `deploy/prep-checklist-0409` · aguarda senha |
 | **Você** | Janela anônima → `/` → login da marca · Ctrl+F5 |
-| **Autorizar** | frase + senha na **mesma** mensagem |
+| **Autorizar** | próximo chat: pausar vendas + frase + senha **na mesma** mensagem |
 
 ### 📦 PACOTE PRONTO — Entrada NF lista «Em andamento» vazia (`NF-LISTA-ANDAMENTO` · **v22.48** · 04/09)
 
@@ -1307,23 +1307,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `nfe_entrada_util.py` (`listar_rascunhos_entrada`) |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_nf_lista_em_andamento_path.py` **VERIFY_OK 27/27** (PIN 9973 + HTTP + PG 9 andamento + fixture) |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP v21.89** · aguarda senha |
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
-| **Autorizar** | frase + senha na **mesma** mensagem |
+| **Autorizar** | próximo chat: pausar vendas + frase + senha **na mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.57**)
+### 🟢 CHECKLIST ÚNICO — PREP pronto / aguarda senha (04/09b · loja alvo **v21.89**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟡 **pronto para envio à produção** · prova **24/24** | **NÃO** |
-| 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto para envio à produção** · prova **27/27** | **NÃO** |
-| 3 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
-| 4 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
-| 5 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** · prova **38/38** | **NÃO** |
-| 6 | **WA-XFER-PIX-ORC** | 🟡 **pronto para envio à produção** · prova **73/73** | **NÃO** |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟢 **PREP** · prova **24/24** no `teste` | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | 🟢 **PREP** · prova **27/27** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | 🟢 **PREP** · prova **59/59** no PREP | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | 🟢 **PREP** · prova **40/40** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | 🟢 **PREP** · prova **38/38** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | 🟢 **PREP** · prova **73/73** no `teste` | **SIM** `0125` |
 | — | **RH-CRON-ENVIO** | ✅ **Live ops** (cron Render) · prova **22/22** | **NÃO** |
 
-**Live agora:** **v21.88**. Fila 1–6 **ainda não** na loja. Sobe **só** com frase + senha (cherry).
+**Live agora:** **v21.88**. PREP: `deploy/prep-checklist-0409` @ **v21.89**. **Não** merge `teste`. Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
+**PDV:** `/consulta/` **sem** login Django · **F7 igual**. BI `/` pede `/entrar/`. Ponte Zap: reiniciar `.bat` depois do deploy.
 
 ### 📦 PACOTE PRONTO — Zap: transfer + Pix + orçamento loja (`WA-XFER-PIX-ORC` · **v22.47** · 04/09)
 
@@ -1334,10 +1335,10 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Ponte** | Reiniciar bat após deploy (legado pix_copy → texto) |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_wa_xfer_pix_orc_path.py` **VERIFY_OK 73/73** (PIN 9973 + HTTP + flags) |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP v21.89** · aguarda senha |
 | **Fora** | Botão Copiar Business (`cta_copy`) — abandonado no QR |
 | **Você** | Ctrl+F5 Bot/PDV/chat · passar loja · pix · orçamento Loja |
-| **Autorizar** | frase + senha na **mesma** mensagem |
+| **Autorizar** | próximo chat: pausar vendas + frase + senha |
 
 ### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · 04/09)
 
@@ -1347,7 +1348,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `pdv_chat_loja.js` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_pdv_chat_poll_10s_path.py` **VERIFY_OK 38/38** (PIN 9973 + lista/enviar HTTP) |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP v21.89** · aguarda senha |
 | **Depois** | Excluir chat interno · tentar via WhatsApp |
 | **Você** | Ctrl+F5 PDV · fechado: aviso até ~10s · aberto: rápido |
 
@@ -1358,7 +1359,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | `/fiado/`: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_fiado_limite_linha_path` **40/40** (UI + util PG + API POST/negativo/404 + PIN 9973 + restore) · recibos **66/66** |
-| **Status** | 🟡 **pronto para envio à produção** |
+| **Status** | 🟢 **PREP v21.89** · aguarda senha |
 | **Você** | Ctrl+F5 · Fiado · clique no Limite da linha · digite · Enter |
 
 ### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.41** · 04/09)

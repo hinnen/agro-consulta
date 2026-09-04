@@ -348,3 +348,20 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v21.84.** `producao` @ `c165db2`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0309-v21.82` @ `527be62` · branch `producao-backup-pre-v2183-lote-checklist-20260903` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · **só** frase+senha.  
 **Smoke:** healthz ok · consulta **200** · badge **v21.84** · Ctrl+F5. **Fora:** WhatsApp extra · `CLI-FORM-PDV-LAYOUT` · `CAD-FALLBACK-HIST`.
+
+---
+
+## 20. Checklist único — lote 04/09b (`deploy/prep-checklist-0409` · alvo loja **v21.89**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟢 **PREP** · aguarda senha | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | 🟢 **PREP** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | 🟢 **PREP** · prova **59/59** | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | 🟢 **PREP** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | 🟢 **PREP** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | 🟢 **PREP** | **SIM** `0125` |
+
+**Status: PREP / aguarda senha.** Live ainda **v21.88** @ `329f9b5`. **Não** merge `teste`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
+**PDV:** `/consulta/` sem login Django · F7 igual. BI `/` pede `/entrar/`.
