@@ -1,4 +1,4 @@
-﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -552,7 +552,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.33** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.39** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1277,11 +1277,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.39** | **NÃO** |
 
 **Live agora:** **v21.88**. Este pacote **ainda não** na loja.
 
-### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.34** · 04/09)
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.39** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1289,7 +1289,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
 | **Migrate** | **NÃO** |
 | **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
-| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.34** |
+| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.39** |
 | **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
