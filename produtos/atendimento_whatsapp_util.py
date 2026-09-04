@@ -112,12 +112,6 @@ def interpretar_pedido_pix(texto: str, cfg: dict | None = None) -> bool:
     return _casa_palavra(t, palavras)
 
 
-def montar_texto_pix(cfg: dict | None = None) -> str:
-    """Compat: texto único. Preferir ``enfileirar_pix_com_botao``."""
-    lote = montar_lote_pix(cfg)
-    return "\n\n".join(lote) if lote else ""
-
-
 PIX_COPY_SEP = "|||PIX|||"
 
 
@@ -127,12 +121,12 @@ def _intro_pix_limpo(cfg: dict) -> str:
     linhas = [f"Chave Pix da *{empresa}*"]
     if titular:
         linhas.append(f"Titular: *{titular}*")
-    linhas.append("Toque em *Copiar chave Pix* abaixo.")
+    linhas.append("Segure a mensagem de baixo e toque em *Copiar*.")
     return "\n".join(linhas)
 
 
 def montar_lote_pix(cfg: dict | None = None) -> list[str]:
-    """Intro limpa + chave. (Envio real usa botão Copiar via ``pix_copy``.)"""
+    """Intro limpa + chave sozinha (funciona em celular, Web e SisVale)."""
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
 
     c = cfg if cfg is not None else BOT_DEFAULT
@@ -150,33 +144,39 @@ def montar_lote_pix(cfg: dict | None = None) -> list[str]:
         .replace("{empresa}", str(c.get("nome_empresa") or "loja"))
         .strip()
     )
-    # Template antigo/sujo com {número} ou {nome} literal → texto limpo
     if (not intro) or ("{" in intro) or ("}" in intro):
         intro = _intro_pix_limpo(c)
-    return [intro, chave]
+    # Evita o Zap virar telefone clicável (liga em vez de copiar)
+    chave_envio = _chave_pix_anti_link(chave)
+    return [intro, chave_envio]
+
+
+def _chave_pix_anti_link(chave: str) -> str:
+    """Insere espaço invisível em chave só-número pra não virar link de ligar."""
+    c = (chave or "").strip()
+    dig = re.sub(r"\D+", "", c)
+    if dig and dig == re.sub(r"\D+", "", c) and len(dig) >= 10:
+        # zero-width space no meio — ainda dá pra copiar no celular
+        mid = len(dig) // 2
+        return dig[:mid] + "\u200b" + dig[mid:]
+    return c
 
 
 def enfileirar_pix_com_botao(conversa: WhatsAppConversaAgro, cfg: dict | None = None) -> None:
-    """1 msg: texto + botão Copiar (tipo_midia=pix_copy) na ponte."""
+    """2 msgs texto: intro + chave (sem botão Business — quebra no celular)."""
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
 
     c = cfg if cfg is not None else BOT_DEFAULT
     lote = montar_lote_pix(c)
     if not lote:
         return
-    if len(lote) == 1:
-        responder_bot(conversa, lote[0])
-        return
-    intro = _preencher_msg_bot(lote[0], c, conversa)
-    chave = lote[1].strip()
-    texto = f"{intro}\n{PIX_COPY_SEP}\n{chave}"
-    _enfileirar_saida(
-        conversa,
-        texto[:TEXTO_MAX],
-        direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
-        autor="Bot",
-        tipo_midia="pix_copy",
-    )
+    _enviar_lote_bot(conversa, lote, c)
+
+
+def montar_texto_pix(cfg: dict | None = None) -> str:
+    """Compat: texto único."""
+    lote = montar_lote_pix(cfg)
+    return "\n\n".join(lote) if lote else ""
 
 
 def _fmt_rs(val) -> str:
