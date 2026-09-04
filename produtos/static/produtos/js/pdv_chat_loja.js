@@ -7,7 +7,8 @@
 
   var DEVICE_ID_KEY = 'agro_device_id_v1';
   var SEEN_KEY = 'agro_chat_loja_seen_id_v1';
-  var POLL_MS = 4000;
+  /* Fechado 10s (meio-termo: menos carga no Render) · aberto 2,5s (conversa rápida). */
+  var POLL_MS = 10000;
   var POLL_OPEN_MS = 2500;
 
   function boot() {
