@@ -1268,8 +1268,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) |
+| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) · commit **`9266ca8`** |
 | **Antes** | `producao` @ **`55e9b6b`** · v21.87 |
+| **Agora** | `producao` @ **`9266ca8`** |
 | **Pacote** | `NF-FIN-MANUAL-RELIGA` — etapa 7 religa CP da nota digitada |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-nf-fin-manual-religa-v21.87` · branch `producao-backup-pre-v2188-nf-fin-manual-20260904` · `docs/ROLLBACK-NF-FIN-MANUAL-RELIGA-0409.md` |
