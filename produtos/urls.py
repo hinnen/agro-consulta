@@ -961,6 +961,16 @@ urlpatterns = [
         name='api_atendimento_whatsapp_bridge_pedido_ok',
     ),
     path(
+        'api/atendimento-whatsapp/recursos/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_recursos,
+        name='api_atendimento_whatsapp_recursos',
+    ),
+    path(
+        'api/atendimento-whatsapp/recurso-acao/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_recurso_acao,
+        name='api_atendimento_whatsapp_recurso_acao',
+    ),
+    path(
         'api/pdv/topbar-clique/',
         views_pdv_topbar.api_pdv_topbar_clique,
         name='api_pdv_topbar_clique',

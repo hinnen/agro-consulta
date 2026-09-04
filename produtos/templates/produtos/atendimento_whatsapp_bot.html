@@ -28,6 +28,7 @@
     <button type="button" data-panel="lojas">Lojas</button>
     <button type="button" data-panel="fiado">Fiado</button>
     <button type="button" data-panel="ausencia">Ausência</button>
+    <button type="button" data-panel="recursos">Recursos</button>
   </nav>
   <div>
     <p id="wa-bot-msg" class="wa-toast"></p>
@@ -162,6 +163,34 @@
       <label class="wa-sw"><span>Aviso extra ao escolher a loja</span><input type="checkbox" name="ausencia_ligada" /></label>
       <label class="wa-lab">Texto</label>
       <textarea name="msg_ausencia" rows="2"></textarea>
+    </section>
+
+    <section data-panel="recursos" class="wa-panel wa-card">
+      <p class="wa-hint" style="margin-bottom:.75rem">
+        <b>Tudo começa desligado.</b> Ligue <b>um por um</b>, teste, e só então o próximo.
+        Assim a gente corrige bug sem bagunçar a loja.
+      </p>
+      <div id="wa-bot-recursos" class="flex flex-col gap-2"></div>
+      <label class="wa-lab" style="margin-top:1rem">Respostas prontas (separe com | )</label>
+      <textarea name="respostas_prontas" rows="3" placeholder="Temos sim|Orçamento já já|…"></textarea>
+      <label class="wa-lab">Extra fiado + Pix</label>
+      <textarea name="msg_fiado_pix_extra" rows="2"></textarea>
+      <label class="wa-lab">Extra menu curto (F / H / A)</label>
+      <textarea name="msg_menu_curto_extra" rows="3"></textarea>
+      <label class="wa-lab">Texto horário (atalho H)</label>
+      <textarea name="msg_horario_loja" rows="2"></textarea>
+      <label class="wa-lab">Comprovante de venda</label>
+      <textarea name="msg_comprovante_venda" rows="2"></textarea>
+      <label class="wa-lab">Entrega: saiu</label>
+      <textarea name="msg_entrega_saiu" rows="2"></textarea>
+      <label class="wa-lab">Entrega: a caminho</label>
+      <textarea name="msg_entrega_caminho" rows="2"></textarea>
+      <label class="wa-lab">Entrega: chegou</label>
+      <textarea name="msg_entrega_chegou" rows="2"></textarea>
+      <label class="wa-lab">Lembrete fiado</label>
+      <textarea name="msg_lembrete_fiado" rows="2"></textarea>
+      <label class="wa-lab">Lista de espera (chegou)</label>
+      <textarea name="msg_lista_espera" rows="2"></textarea>
     </section>
 
     <div class="wa-foot">

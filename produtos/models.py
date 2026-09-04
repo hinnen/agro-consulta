@@ -3513,6 +3513,8 @@ class WhatsAppConversaAgro(models.Model):
     aviso_fora_em = models.DateTimeField(null=True, blank=True)
     foto_perfil = models.FileField(upload_to="whatsapp/perfil/%Y/%m/", blank=True)
     foto_em = models.DateTimeField(null=True, blank=True)
+    # VIP, nota interna, lista de espera, etc. (recursos WA — ligar no Bot)
+    extras = models.JSONField(default=dict, blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

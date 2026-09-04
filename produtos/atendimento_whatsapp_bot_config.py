@@ -78,6 +78,11 @@ BOT_DEFAULT: dict = {
     "msg_ausencia": "No momento a loja está ocupada. Já já alguém responde por aqui.",
 }
 
+# Recursos extras (pacote WA-REC-OFF) — importados e mesclados; todos False.
+from produtos.atendimento_whatsapp_recursos import RECURSO_IDS, RECURSOS_DEFAULT  # noqa: E402
+
+BOT_DEFAULT.update(copy.deepcopy(RECURSOS_DEFAULT))
+
 BOOL_KEYS = (
     "bot_ligado",
     "horario_ativo",
@@ -91,7 +96,7 @@ BOOL_KEYS = (
     "fiado_ligado",
     "fiado_manda_menu",
     "ausencia_ligada",
-)
+) + tuple(RECURSO_IDS)
 
 
 def _as_bool(v, default: bool = False) -> bool:

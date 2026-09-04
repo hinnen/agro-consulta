@@ -1367,6 +1367,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` — loja precisa senha (static JS) |
 
+### 📦 PACOTE PRONTO — recursos Zap desligados (`WA-REC-OFF` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | 18 recursos (PDV abre Zap, aviso, respostas, fiado+Pix, orçamento, entrega, VIP…) |
+| **Padrão** | **TODOS OFF** — ligar em **Bot → Recursos** um a um |
+| **Migrate** | **SIM — 0125** (`extras` na conversa: VIP/nota/espera) |
+| **APIs** | `/api/atendimento-whatsapp/recursos/` · `/recurso-acao/` |
+| **Status** | 🟡 `teste` · **não** loja até Renan + senha |
+| **Como usar** | Bot → Recursos → liga 1 → testa → próximo |
+
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 
 | | |
@@ -1403,8 +1414,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Se a camada de cima é **filha** da de baixo → sem vidro/`pointer-events:none` no pai. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_repasse_stack_nest_path` **35/35** (contratos + sim Node filho sem vidro + sibling congela + stack **23/23** + PIN 9973) |
-| **Status** | 🟡 **pronto para envio à produção** |
-| **Commit** | `b57c63b` · tip **v22.17+** |
+| **Status** | ✅ **Live v21.87** |
+| **Commit** | loja `53b565a` / `55e9b6b` |
 | **Você** | Ctrl+F5 · Repasse → Confirmar → clicar Confirmar / OKs até transferir |
 
 ### 📦 PACOTE PRONTO - F8 Histórico sem cards (`F8-HIST-VENDAS` · **v21.90** · 03/09)
@@ -1453,7 +1464,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Hotfix** | Caixa: 4 botões tela cheia + Nova saída/Repasse 2ª camada; Esc/Fechar 1 nível. Stack não força `relative` em modal `fixed` (Reemitir NFC-e). **Esc e Fechar no Ver venda** voltam à lista (1 nível); **F1** fecha o painel. **EDITAR cadastro PDV** (v21.91): centro firme + acima do CHAT. **Fechar caixa popup** (v21.95): cliques liberados. **Repasse no Fechar caixa** = overlay do PDV (não a tela de gestão). **Repasse Confirmar** (`REPASSE-STACK-NEST`): popup filho sem vidro. |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_overlay_stack_path` **23/23** · vendas UX **52/52** |
-| **Status** | 🟡 **pronto para envio à produção** (hotfix nest; base Live v21.84) |
+| **Status** | ✅ **Live v21.84** (+ hotfix nest **Live v21.87**) |
 
 ### 📦 PACOTE PRONTO — Fiado caixinha persiste (`CAIXA-FIADO-CONF` · **v21.97** · 03/09)
 
@@ -1499,15 +1510,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Rollback** | tag `rollback/pre-lote-checklist-0309-v21.82` · `docs/ROLLBACK-LOTE-CHECKLIST-0309.md` · volta **v21.82** |
 | **Você** | **Ctrl+F5** · badge **v21.84** · PIN+F7 (10s) · F8 · overlay Vendas · Fiado Ver · Fechar caixa fiado |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (03/09 · tip **v22.18**)
+### ~~✅ CHECKLIST ÚNICO — pronto para envio (03/09 · tip v22.18)~~ · **Live v21.87**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `REPASSE-STACK-NEST` | 🟡 **pronto para envio à produção** | **NÃO** |
+| 1 | `REPASSE-STACK-NEST` | ✅ **Live v21.87** | **NÃO** |
 
-**Live agora:** **v21.84**. Fila: vidro do Repasse nos popups pós-Confirmar. Sobe **só** com frase + senha (cherry).
+**Live agora:** **v21.87**.
 
-### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · fila agora = tip acima
+### ~~✅ CHECKLIST ÚNICO — 03/09 · Live v21.84~~ · ver tip **v21.87** acima
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |

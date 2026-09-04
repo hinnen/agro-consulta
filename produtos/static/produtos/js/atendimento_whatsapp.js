@@ -28,6 +28,8 @@
   var convFoto = '';
   var ST_VISTOS_KEY = 'agro_wa_status_vistos_v1';
   var listaCache = [];
+  var recursosWa = {};
+  var respostasProntas = '';
 
   function telaCel(chat) {
     if (!ehCel) return;
@@ -293,9 +295,12 @@
         var on = Number(c.id) === convId ? ' is-on' : '';
         var clsExtra = st === 'nova' ? ' has-new' : st === 'espera' ? ' has-wait' : '';
         var titulo = nomeExibicao(c);
+        if (c.vip) titulo = '★ ' + titulo;
         var unread = qNao
           ? '<span class="wa-unread" title="' + qNao + ' não lida' + (qNao > 1 ? 's' : '') + '">' + escapeHtml(String(qNao)) + '</span>'
           : '';
+        var preview = c.ultima_preview || '';
+        if (c.nota) preview = '📝 ' + String(c.nota).slice(0, 40) + (preview ? ' · ' + preview : '');
         return (
           '<button type="button" class="wa-item' +
           on +
@@ -321,7 +326,7 @@
           '</div><div class="wa-t">' +
           escapeHtml(c.hora || '') +
           '</div></div><div class="wa-row2"><div class="wa-p">' +
-          htmlPreviewLista(c.ultima_preview || '') +
+          htmlPreviewLista(preview) +
           '</div>' +
           unread +
           '</div></div></button>'
@@ -441,6 +446,9 @@
       if (!j || !j.ok) return;
       pintarStatus(j.ponte);
       pintarBadges(j.nao_lidas);
+      recursosWa = j.recursos || {};
+      respostasProntas = String(j.respostas_prontas || '');
+      pintarQuick();
       if (j.bot && typeof j.bot.separar_lojas === 'boolean') {
         var mudou = j.bot.separar_lojas !== separarLojas || (!j.bot.separar_lojas && loja !== 'todas');
         aplicarSeparacao(j.bot.separar_lojas);
@@ -456,6 +464,39 @@
       }
       lastUnread = tot;
     });
+  }
+
+  function pintarQuick() {
+    var box = $('wa-quick');
+    if (!box) return;
+    if (!recursosWa.feat_respostas_prontas || !convId) {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    var parts = String(respostasProntas || '')
+      .split('|')
+      .map(function (s) {
+        return s.trim();
+      })
+      .filter(Boolean)
+      .slice(0, 8);
+    if (!parts.length) {
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = parts
+      .map(function (t) {
+        return (
+          '<button type="button" class="wa-ico normal-case tracking-normal text-xs" data-wa-quick="' +
+          escapeHtml(t) +
+          '">' +
+          escapeHtml(t.length > 28 ? t.slice(0, 27) + '…' : t) +
+          '</button>'
+        );
+      })
+      .join('');
   }
 
   function carregarLista() {
@@ -720,6 +761,7 @@
       $('wa-move').classList.add('hidden');
     }
     telaCel(true);
+    pintarQuick();
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
       var rows = (j && j.mensagens) || [];
       pintarMsgs(rows, false);
@@ -761,6 +803,10 @@
     pintarTopoAvatar('?', '');
     mostrarBotoesChat(false);
     if ($('wa-msgs')) $('wa-msgs').innerHTML = '';
+    if ($('wa-quick')) {
+      $('wa-quick').classList.add('hidden');
+      $('wa-quick').innerHTML = '';
+    }
     if ($('wa-move')) $('wa-move').classList.add('hidden');
   }
 
@@ -1118,10 +1164,14 @@
       var dest = b.getAttribute('data-xfer') || '';
       var nome = dest === 'vila' ? 'Vila' : 'Centro';
       if (!window.confirm('Passar este atendimento para a ' + nome + '? O cliente é avisado no Zap.')) return;
+      var nota = '';
+      if (recursosWa.feat_xfer_nota) {
+        nota = window.prompt('Nota interna para a outra loja (opcional):', '') || '';
+      }
       fetchJson('/api/atendimento-whatsapp/transferir/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ conversa_id: convId, loja: dest }),
+        body: JSON.stringify({ conversa_id: convId, loja: dest, nota: nota }),
       }).then(function (j) {
         if (!j || !j.ok) {
           window.alert((j && j.erro) || 'Não passou.');
@@ -1135,6 +1185,16 @@
     });
   });
 
+  var quickBox = $('wa-quick');
+  if (quickBox) {
+    quickBox.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-wa-quick]');
+      if (!b || !convId) return;
+      var t = b.getAttribute('data-wa-quick') || '';
+      if (!t) return;
+      enviarPayload({ conversa_id: convId, texto: t }, t);
+    });
+  }
   function mostrarBusca(on) {
     var hits = $('wa-busca-hits');
     var lista = $('wa-lista');

@@ -171,6 +171,7 @@ def api_atendimento_whatsapp_bot_salvar(request):
 @require_GET
 def api_atendimento_whatsapp_estado(request):
     from produtos.atendimento_whatsapp_bot_config import carregar_bot, cfg_flag
+    from produtos.atendimento_whatsapp_recursos import catalogo_para_api, flags_recursos
 
     cfg = carregar_bot()
     return JsonResponse(
@@ -179,6 +180,9 @@ def api_atendimento_whatsapp_estado(request):
             "ponte": serializar_ponte(),
             "nao_lidas": contar_nao_lidas(),
             "bot": {"separar_lojas": cfg_flag(cfg, "separar_lojas")},
+            "recursos": flags_recursos(cfg),
+            "recursos_catalogo": catalogo_para_api(cfg),
+            "respostas_prontas": str(cfg.get("respostas_prontas") or ""),
         }
     )
 
@@ -282,7 +286,9 @@ def api_atendimento_whatsapp_transferir(request):
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
         cid = 0
-    conv, err = transferir_conversa(cid, data.get("loja") or "", autor=autor)
+    conv, err = transferir_conversa(
+        cid, data.get("loja") or "", autor=autor, nota=str(data.get("nota") or "")
+    )
     if err or conv is None:
         return JsonResponse({"ok": False, "erro": err or "Não passou."}, status=400)
     return JsonResponse({"ok": True, "conversa": serializar_conversa(conv)})
@@ -715,4 +721,112 @@ def api_atendimento_whatsapp_bridge_pedido_ok(request):
         pid = 0
     erro = str(data.get("erro") or "")
     marcar_pedido(pid, ok=not bool(erro), erro=erro)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/admin/login/")
+@require_GET
+def api_atendimento_whatsapp_recursos(request):
+    """Flags públicas pro PDV/chat (tudo off até Renan ligar no Bot)."""
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+    from produtos.atendimento_whatsapp_recursos import catalogo_para_api, flags_recursos, relatorio_dia, recurso_on
+
+    cfg = carregar_bot()
+    out = {
+        "ok": True,
+        "recursos": flags_recursos(cfg),
+        "catalogo": catalogo_para_api(cfg),
+        "respostas_prontas": str(cfg.get("respostas_prontas") or ""),
+    }
+    if recurso_on(cfg, "feat_relatorio_dia"):
+        out["relatorio_dia"] = relatorio_dia()
+    return JsonResponse(out)
+
+
+@login_required(login_url="/admin/login/")
+@require_POST
+def api_atendimento_whatsapp_recurso_acao(request):
+    """Ações dos recursos — recusam se a flag estiver off."""
+    from produtos.atendimento_whatsapp_recursos import (
+        acao_comprovante_venda,
+        acao_entrega_status,
+        acao_lembrete_fiado,
+        acao_lista_espera_avisar,
+        acao_marcar_espera,
+        acao_set_vip,
+        recurso_on,
+    )
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+
+    data = _json_body(request) or {}
+    acao = str(data.get("acao") or "").strip().lower()
+    autor = _autor_wa(request, data)
+    cfg = carregar_bot()
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+
+    if acao == "comprovante":
+        ok, err = acao_comprovante_venda(
+            conversa_id=cid,
+            venda=str(data.get("venda") or ""),
+            total=str(data.get("total") or ""),
+            nome=str(data.get("nome") or ""),
+            autor=autor,
+        )
+    elif acao == "entrega":
+        ok, err = acao_entrega_status(
+            conversa_id=cid,
+            status=str(data.get("status") or ""),
+            nome=str(data.get("nome") or ""),
+            autor=autor,
+        )
+    elif acao == "lembrete_fiado":
+        ok, err = acao_lembrete_fiado(conversa_id=cid, autor=autor)
+    elif acao == "espera_marcar":
+        ok, err = acao_marcar_espera(conversa_id=cid, produto=str(data.get("produto") or ""))
+    elif acao == "espera_avisar":
+        ok, err = acao_lista_espera_avisar(
+            conversa_id=cid, produto=str(data.get("produto") or ""), autor=autor
+        )
+    elif acao == "vip":
+        tags = data.get("tags") if isinstance(data.get("tags"), list) else None
+        ok, err = acao_set_vip(conversa_id=cid, vip=bool(data.get("vip")), tags=tags)
+    elif acao == "orcamento":
+        if not recurso_on(cfg, "feat_orcamento_zap"):
+            return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
+        texto = str(data.get("texto") or "").strip()
+        if not texto or cid <= 0:
+            return JsonResponse({"ok": False, "erro": "Conversa e texto do orçamento."}, status=400)
+        m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor)
+        ok, err = (m is not None and not err), (err or "")
+    elif acao == "pedir_loja_aviso":
+        if not recurso_on(cfg, "feat_pedir_loja_aviso"):
+            return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
+        texto = str(data.get("texto") or "Atualização do pedido entre lojas.").strip()
+        if cid <= 0:
+            return JsonResponse({"ok": False, "erro": "Conversa inválida."}, status=400)
+        m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor or "Sistema")
+        ok, err = (m is not None and not err), (err or "")
+    elif acao == "fornecedor":
+        if not recurso_on(cfg, "feat_fornecedor_zap"):
+            return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
+        return JsonResponse(
+            {
+                "ok": True,
+                "aviso": "Recurso ligado — use Compras → WhatsApp; unificação completa no próximo ajuste.",
+            }
+        )
+    elif acao == "audio_texto":
+        if not recurso_on(cfg, "feat_audio_texto"):
+            return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
+        return JsonResponse(
+            {"ok": True, "texto": "", "aviso": "Transcrição ainda não ativa — flag só prepara o caminho."}
+        )
+    else:
+        return JsonResponse({"ok": False, "erro": "Ação desconhecida."}, status=400)
+
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err or "Falhou."}, status=400)
     return JsonResponse({"ok": True})
