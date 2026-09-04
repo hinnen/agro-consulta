@@ -2760,6 +2760,62 @@ def entrada_nfe_busca_params_from_request(request) -> dict[str, str]:
     return out
 
 
+def _entrada_nfe_normalizar_filtro_lista(filtro: str | None) -> str:
+    f = (filtro or "todas").strip().lower()
+    legacy = {
+        "abertas": "em_andamento",
+        "pendencias": "nota_aberta",
+        "prontas": "estoque",
+        "encerradas": "encerrada_legacy",
+        "descartadas": "descartada",
+    }
+    return legacy.get(f, f)
+
+
+def _entrada_nfe_item_casa_filtro_lista(item: dict, filtro: str | None) -> bool:
+    """True se o item serializado entra no chip da lista (filtro pós-bucket)."""
+    f = _entrada_nfe_normalizar_filtro_lista(filtro)
+    if f in ("", "todas"):
+        return True
+    valid_extra = frozenset(
+        {
+            "nota_aberta",
+            "estoque",
+            "financeiro",
+            "finalizar",
+            "concluida",
+            "descartada",
+            "encerrada",
+            "em_andamento",
+            "correcao_sistemica",
+            "estoque_aplicado_legacy",
+            "financeiro_lancado_legacy",
+            "encerrada_legacy",
+        }
+    )
+    if f not in valid_extra:
+        return True
+    eff = str(item.get("entrada_status_efetivo") or "")
+    fin_ok = bool(item.get("entrada_financeiro_lancado"))
+    b = str(item.get("entrada_lista_bucket") or "")
+    if f == "em_andamento":
+        return b in ("nota_aberta", "estoque", "financeiro", "finalizar")
+    if f == "correcao_sistemica":
+        return bool(item.get("entrada_correcao_sistemica")) and b in (
+            "nota_aberta",
+            "estoque",
+            "financeiro",
+            "finalizar",
+        )
+    if f == "estoque_aplicado_legacy":
+        return eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO
+    if f == "financeiro_lancado_legacy":
+        return fin_ok
+    if f == "encerrada_legacy":
+        return eff == ENTRADA_NFE_STATUS_ENCERRADA
+    return f == b
+
+
 def listar_rascunhos_entrada(
     db,
     limit: int = 30,
@@ -2782,7 +2838,15 @@ def listar_rascunhos_entrada(
         lim = min(max(limit, 1), 100)
         busca = busca if isinstance(busca, dict) else {}
         busca_ativa = any(str(busca.get(k) or "").strip() for k in busca)
-        scan_lim = min(500, max(lim * 4, 120)) if busca_ativa else lim
+        f = _entrada_nfe_normalizar_filtro_lista(filtro)
+        # Sem busca + filtro de estágio: precisa varrer além do lim — senão as N
+        # mais novas (muitas «concluída») esvaziam «Em andamento» / Financeiro etc.
+        # e a nota só aparece quando o campo de busca amplia o scan.
+        precisa_scan_largo = busca_ativa or f not in ("", "todas")
+        if precisa_scan_largo:
+            scan_lim = min(800, max(lim * 20, 250))
+        else:
+            scan_lim = lim
         proj: dict[str, Any] = {
             "_id": 1,
             "status": 1,
@@ -2809,70 +2873,18 @@ def listar_rascunhos_entrada(
                 {"$project": {**proj, "_valor_total_nota": 1}},
             ]
         )
-        out = []
+        out: list[dict] = []
         for d in cur:
             if busca_ativa and not _entrada_nfe_rascunho_passa_busca(d, busca):
                 continue
             d = sanear_carimbo_estoque_falso_rascunho(db, d) or d
-            out.append(_serialize_rascunho_leitura(d))
+            item = _serialize_rascunho_leitura(d)
+            if not _entrada_nfe_item_casa_filtro_lista(item, f):
+                continue
+            out.append(item)
             if len(out) >= lim:
                 break
-        f = (filtro or "todas").strip().lower()
-        if f == "todas":
-            return out
-        # Novos filtros (fila exclusiva). Aliases antigos da URL.
-        legacy = {
-            "abertas": "em_andamento",
-            "pendencias": "nota_aberta",
-            "prontas": "estoque",
-            "encerradas": "encerrada_legacy",
-            "descartadas": "descartada",
-        }
-        if f in legacy:
-            f = legacy[f]
-        valid_extra = frozenset(
-            {
-                "nota_aberta",
-                "estoque",
-                "financeiro",
-                "finalizar",
-                "concluida",
-                "descartada",
-                "encerrada",
-                "em_andamento",
-                "correcao_sistemica",
-                "estoque_aplicado_legacy",
-                "financeiro_lancado_legacy",
-                "encerrada_legacy",
-            }
-        )
-        if f not in valid_extra:
-            return out
-        filtrados: list[dict] = []
-        for item in out:
-            eff = str(item.get("entrada_status_efetivo") or "")
-            fin_ok = bool(item.get("entrada_financeiro_lancado"))
-            b = str(item.get("entrada_lista_bucket") or "")
-            if f == "em_andamento":
-                if b in ("nota_aberta", "estoque", "financeiro", "finalizar"):
-                    filtrados.append(item)
-            elif f == "correcao_sistemica":
-                if item.get("entrada_correcao_sistemica") and b in (
-                    "nota_aberta",
-                    "estoque",
-                    "financeiro",
-                    "finalizar",
-                ):
-                    filtrados.append(item)
-            elif f == "estoque_aplicado_legacy" and eff == ENTRADA_NFE_STATUS_ESTOQUE_APLICADO:
-                filtrados.append(item)
-            elif f == "financeiro_lancado_legacy" and fin_ok:
-                filtrados.append(item)
-            elif f == "encerrada_legacy" and eff == ENTRADA_NFE_STATUS_ENCERRADA:
-                filtrados.append(item)
-            elif f == b:
-                filtrados.append(item)
-        return filtrados
+        return out
     except Exception as exc:
         logger.exception("listar_rascunhos_entrada: %s", exc)
         return []
