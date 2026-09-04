@@ -1275,7 +1275,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
+### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.62** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1286,14 +1286,6 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão/Dinheiro · total muda |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.61**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
-
-**Fora deste lote:** WhatsApp extra · Excel cadastro · demais WIP do tip.
-
 ### 📦 PACOTE PRONTO — Repasse confirma com 0,00 (`REPASSE-ZERO-OK` · **v22.61** · 04/09)
 
 | Campo | Valor |
@@ -1302,17 +1294,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Agora** | 0,00 e vazio ok · Centro 0 = só cofres · OKs só no que tem valor · os 3 em 0,00 travam |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_repasse_zero_ok_path` **33/33** (fonte + PIN 9973 Renan + Django 5 casos + GET tela) · overlay **190** · vila **262** |
-| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
+| **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
 
-### ✅ CHECKLIST ÚNICO — 04/09c · **pronto para envio**
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.62**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **REPASSE-ZERO-OK** | 🟡 **pronto para envio** | **NÃO** |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** **v21.89**. Este lote **ainda não** subiu.
-
+**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro.
 
 ### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
 
@@ -1477,7 +1469,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` **v22.11** · loja **não** |
 | **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
 
-### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.61**
+### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.62**
 
 ### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.08** · 03/09)
 
@@ -1490,14 +1482,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` **v22.08** |
 | **Você** | Ctrl+F5 no PDV · débito Point · esperar na máquina · Confirmar. Tem que gravar sem tela vermelha. |
 
-### 📦 PACOTE — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bug loja **#15**: vale crédito creditado não atualizava o saldo à direita do PDV (cache do fiado/lista). Agora aplica o saldo na hora e busca de novo no servidor. |
-| **Migrate** | **NÃO** |
-| **Status** | ⏳ `teste` **v22.02** · loja **não** |
-| **Você** | Ctrl+F5 no PDV · cliente na tela · adicionar vale (manual) · o número **Vale crédito** tem que mudar na hora |
+### ~~📦 PACOTE — Vale crédito no contador~~ → **PACOTE PRONTO** no topo (`PDV-VALE-SALDO-LIVE` · tip **v22.62**)
 
 ### ✅ Live loja — WhatsApp anti-duplicata (`WA-DEDUP-MSG` · **v21.86**) — 03/09/2026
 
