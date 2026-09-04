@@ -1275,7 +1275,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.52** · 04/09)
+### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1283,7 +1283,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix dados** | Folha **2026-08** + título CP venc. **01/09** · R$ 1964,12 |
 | **Cron loja** | ✅ `crn-dadj0q6q1p3s73dsrd70` · `15 6 * * *` UTC · `producao` · Trigger OK |
 | **Prova** | `scripts/verify_rh_envio_cp_automatico_path.py` **22/22** (live + dry_run 28 = 6 candidatos) |
-| **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.52** |
+| **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
 | **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
 
 ### 📦 PACOTE PRONTO — Login obrigatório no painel (`LOGIN-BI-FECHADO` · **v22.49** · 04/09)
