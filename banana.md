@@ -1301,7 +1301,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.49**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.51**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
