@@ -140,10 +140,10 @@ def creditar_vale_devolucao(
     v = _q2(valor)
     if v <= 0 or venda is None:
         return {"ok": False}
-    _erp, _pk, cli = resolver_cliente_fiado(
-        str(getattr(venda, "cliente_id_erp", "") or ""),
-        cliente_agro_pk=None,
-    )
+    cid = str(getattr(venda, "cliente_id_erp", "") or "")
+    _erp, _pk, cli = resolver_cliente_fiado(cid, cliente_agro_pk=None)
+    if cli is None and _erp:
+        cli = ClienteAgro.objects.filter(externo_id=_erp, ativo=True).first()
     if cli is None:
         return {"ok": False, "erro": "Cliente não encontrado para devolver vale."}
     with transaction.atomic():
