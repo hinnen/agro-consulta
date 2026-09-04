@@ -702,6 +702,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Devolução mesma forma MP (bug #8 · 30/08):** se devolver Pix/débito/crédito **Mercado Pago automático** na **mesma forma** (não em dinheiro), a retirada cai na linha «— Mercado Pago» — **não** nas máquinas manuais (Cielo etc.).
 - **Fiado caixinha no Fechar caixa (`CAIXA-FIADO-CONF`):** **Confirmar** grava no Postgres (`fiado_nota_caixa_conferida_em`). Reabrir não pede de novo. **Pular + PIN** não grava. Migrate `0123`.
 - **Repasse popups (`REPASSE-STACK-NEST`):** Confirmar + 3 OKs = filhos do overlay; stack **não** põe vidro no pai (senão trava o clique). Prova `verify_repasse_stack_nest_path` **35/35**.
+- **Repasse 0,00 (`REPASSE-ZERO-OK` · 04/09):** algum dos 3 campos em **0,00** confirma (vazio = 0,00). Levar ao Centro 0 = só cofres. Os 3 OKs pulam o que estiver zerado. Os três em 0,00 continua bloqueado.
 
 ### 4.12 RH
 
@@ -1274,6 +1275,18 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Repasse confirma com 0,00 (`REPASSE-ZERO-OK` · **v22.60** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Confirmar com **algum** dos 3 valores em 0,00 (Salário / Vila Elias / Levar ao Centro) |
+| **Antes** | Levar 0,00 dava «Valor manual inválido»; campo vazio pedia preencher |
+| **Agora** | 0,00 e vazio ok · Centro 0 = só cofres · OKs só no que tem valor · os 3 em 0,00 ainda trava |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_repasse_pdv_overlay_path` **190** · `verify_repasse_vila_path` **257** |
+| **Status** | 🧪 **teste** — aguarda Ctrl+F5 no PC |
+| **Você** | PDV **Repasse** · deixe 1 ou 2 campos em 0,00 · Confirmar |
+
 
 ### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
 
@@ -1378,9 +1391,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
 | **Migrate** | **NÃO** |
 | **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
-| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.39** |
+| **Status** | ✅ **Live v21.89** |
 | **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
-| **Autorizar** | frase + senha na **mesma** mensagem |
 
 ### ~~✅ RH — Queila folha 08~~ · ver topo **RH-CRON-ENVIO** v22.52
 

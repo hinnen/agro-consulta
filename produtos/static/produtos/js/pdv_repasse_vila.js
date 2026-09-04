@@ -54,6 +54,7 @@
   var cofreCheckModal = document.getElementById('pdv-rp-cofre-check-modal');
   var cofreCheckStep = 0;
   var cofreCheckVals = { salario: 0, vilaElias: 0, levar: 0 };
+  var cofreCheckPassosAtivos = [];
   var cofreCheckPending = null;
   var COFRE_CHECK_PASSOS = [
     {
@@ -886,7 +887,7 @@
   }
 
   function renderCofreCheckPasso() {
-    var passo = COFRE_CHECK_PASSOS[cofreCheckStep];
+    var passo = cofreCheckPassosAtivos[cofreCheckStep];
     if (!passo) {
       closeCofreCheckModal(true);
       return;
@@ -896,7 +897,7 @@
     var elS = document.getElementById('pdv-rp-cofre-check-passo');
     if (elP) elP.textContent = passo.pergunta;
     if (elV) elV.textContent = money(cofreCheckVals[passo.key] || 0);
-    if (elS) elS.textContent = (cofreCheckStep + 1) + ' de ' + COFRE_CHECK_PASSOS.length;
+    if (elS) elS.textContent = (cofreCheckStep + 1) + ' de ' + cofreCheckPassosAtivos.length;
     focusSoon(document.getElementById('pdv-rp-cofre-check-ok'));
   }
 
@@ -906,8 +907,16 @@
       vilaElias: Number(opts.vilaElias || 0),
       levar: Number(opts.levar || 0),
     };
+    cofreCheckPassosAtivos = COFRE_CHECK_PASSOS.filter(function (p) {
+      return Number(cofreCheckVals[p.key] || 0) >= 0.009;
+    });
     cofreCheckPending = onDone;
     cofreCheckStep = 0;
+    if (!cofreCheckPassosAtivos.length) {
+      cofreCheckPending = null;
+      if (typeof onDone === 'function') onDone();
+      return;
+    }
     if (cofreCheckModal) {
       try {
         cofreCheckModal.style.pointerEvents = '';
@@ -920,7 +929,7 @@
   function advanceCofreCheck() {
     if (cofreCheckPending == null) return;
     cofreCheckStep += 1;
-    if (cofreCheckStep >= COFRE_CHECK_PASSOS.length) {
+    if (cofreCheckStep >= cofreCheckPassosAtivos.length) {
       closeCofreCheckModal(true);
       return;
     }
@@ -1048,19 +1057,13 @@
       openPinModal();
       return;
     }
-    var rawSal = String((dom.inputCofreSal && dom.inputCofreSal.value) || '').trim();
-    var rawVe = String((dom.inputCofreVe && dom.inputCofreVe.value) || '').trim();
-    var rawLev = String((dom.manual && dom.manual.value) || '').trim();
-    if (!rawSal || !rawVe || !rawLev) {
-      if (dom.status) {
-        dom.status.textContent =
-          'Preencha os 3 valores: Separar Salário · Separar Vila Elias · Levar ao Centro (pode ser 0,00).';
-      }
-      if (!rawSal) focusSoon(dom.inputCofreSal);
-      else if (!rawVe) focusSoon(dom.inputCofreVe);
-      else focusSoon(dom.manual);
-      return;
+    function zeroSeVazio(el) {
+      if (!el) return;
+      if (!String(el.value || '').trim()) el.value = '0,00'; // pode ser 0,00
     }
+    zeroSeVazio(dom.inputCofreSal);
+    zeroSeVazio(dom.inputCofreVe);
+    zeroSeVazio(dom.manual);
     var vSal = parseMoneyInput(dom.inputCofreSal);
     var vVe = parseMoneyInput(dom.inputCofreVe);
     var vLev = parseMoneyInput(dom.manual);
