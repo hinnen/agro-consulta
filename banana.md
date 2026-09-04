@@ -1425,7 +1425,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Template sujo com `{número}` não aparece mais |
 | **Ponte** | Reiniciar `iniciar-local.bat` / `iniciar.bat` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` — se o Zap não mostrar o botão, cai no texto (limitação do app) |
+| **Status** | ❌ **abandonado** — cta_copy quebra no celular («não foi possível carregar») · ver `WA-PIX-PLAIN` |
+
+### 📦 PACOTE PRONTO — Pix texto estável (`WA-PIX-PLAIN` · **v22.28** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Volta a 2 msgs texto (intro + chave). Botão Business não é confiável no Zap QR |
+| **Extra** | Chave só-número com espaço invisível (não vira «ligar») |
+| **Ponte** | Reiniciar bat |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` |
 
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 
