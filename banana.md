@@ -1388,7 +1388,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 · passar atendimento · Bot → Lojas (liga/desliga aviso Zap) |
 
-### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · 04/09/2026)
+### 📦 PACOTE PRONTO — Fiado + Pix chave (`WA-FIADO-PIX-CHAVE` · **v22.23** · 04/09/2026)
 
 | | |
 | --- | --- |
