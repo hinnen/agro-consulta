@@ -164,7 +164,10 @@ def api_atendimento_whatsapp_estado(request):
             "ok": True,
             "ponte": serializar_ponte(),
             "nao_lidas": contar_nao_lidas(),
-            "bot": {"separar_lojas": cfg_flag(cfg, "separar_lojas")},
+            "bot": {
+                "separar_lojas": cfg_flag(cfg, "separar_lojas"),
+                "xfer_avisar_cliente": cfg_flag(cfg, "xfer_avisar_cliente", default=True),
+            },
             "recursos": flags_recursos(cfg),
             "recursos_catalogo": catalogo_para_api(cfg),
             "respostas_prontas": str(cfg.get("respostas_prontas") or ""),

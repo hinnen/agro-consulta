@@ -76,6 +76,8 @@ BOT_DEFAULT: dict = {
     "fiado_manda_menu": True,
     "ausencia_ligada": True,
     "msg_ausencia": "No momento a loja está ocupada. Já já alguém responde por aqui.",
+    # Transferência Centro↔Vila: avisar o cliente no Zap (desligável no Bot)
+    "xfer_avisar_cliente": True,
 }
 
 # Recursos extras (pacote WA-REC-OFF) — importados e mesclados; todos False.
@@ -96,6 +98,7 @@ BOOL_KEYS = (
     "fiado_ligado",
     "fiado_manda_menu",
     "ausencia_ligada",
+    "xfer_avisar_cliente",
 ) + tuple(RECURSO_IDS)
 
 

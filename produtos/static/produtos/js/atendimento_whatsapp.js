@@ -30,6 +30,8 @@
   var listaCache = [];
   var recursosWa = {};
   var respostasProntas = '';
+  var xferAvisarCliente = true;
+  var dlgResolve = null;
 
   function telaCel(chat) {
     if (!ehCel) return;
@@ -109,6 +111,113 @@
       });
     });
   }
+
+  function waToast(msg, ok) {
+    var el = $('wa-float-toast');
+    if (!el) {
+      window.alert(msg);
+      return;
+    }
+    el.textContent = String(msg || '');
+    el.classList.toggle('ok', !!ok);
+    el.classList.toggle('bad', !ok);
+    el.classList.add('show');
+    window.clearTimeout(el._t);
+    el._t = window.setTimeout(function () {
+      el.classList.remove('show');
+    }, 3200);
+  }
+
+  function fecharDlg(val) {
+    var root = $('wa-dlg');
+    if (root) {
+      root.classList.remove('is-on');
+      root.setAttribute('aria-hidden', 'true');
+    }
+    var fn = dlgResolve;
+    dlgResolve = null;
+    if (fn) fn(val);
+  }
+
+  function waDlg(opts) {
+    opts = opts || {};
+    var root = $('wa-dlg');
+    var tit = $('wa-dlg-tit');
+    var txt = $('wa-dlg-txt');
+    var inp = $('wa-dlg-inp');
+    var btnOk = $('wa-dlg-ok');
+    var btnCancel = $('wa-dlg-cancel');
+    if (!root || !tit || !txt || !btnOk || !btnCancel) {
+      if (opts.mode === 'prompt') return Promise.resolve(window.prompt(opts.text || '', opts.value || '') || '');
+      if (opts.mode === 'confirm') return Promise.resolve(window.confirm(opts.text || ''));
+      window.alert(opts.text || '');
+      return Promise.resolve(true);
+    }
+    if (dlgResolve) fecharDlg(opts.mode === 'prompt' ? null : false);
+    return new Promise(function (resolve) {
+      dlgResolve = resolve;
+      tit.textContent = opts.title || 'Atenção';
+      txt.textContent = opts.text || '';
+      var isPrompt = opts.mode === 'prompt';
+      var isAlert = opts.mode === 'alert';
+      if (inp) {
+        inp.classList.toggle('hidden', !isPrompt);
+        inp.value = isPrompt ? String(opts.value || '') : '';
+        if (isPrompt) {
+          window.setTimeout(function () {
+            try {
+              inp.focus();
+              inp.select();
+            } catch (e) {}
+          }, 30);
+        }
+      }
+      btnCancel.classList.toggle('hidden', !!isAlert);
+      btnOk.textContent = opts.okLabel || 'OK';
+      btnCancel.textContent = opts.cancelLabel || 'Cancelar';
+      root.classList.add('is-on');
+      root.setAttribute('aria-hidden', 'false');
+      btnOk.onclick = function () {
+        if (isPrompt) fecharDlg(inp ? String(inp.value || '') : '');
+        else fecharDlg(true);
+      };
+      btnCancel.onclick = function () {
+        fecharDlg(isPrompt ? null : false);
+      };
+      root.onclick = function (ev) {
+        if (ev.target === root && !isAlert) fecharDlg(isPrompt ? null : false);
+      };
+    });
+  }
+
+  function waAlert(msg, title) {
+    return waDlg({ mode: 'alert', title: title || 'Atenção', text: msg });
+  }
+
+  function waConfirm(msg, title) {
+    return waDlg({ mode: 'confirm', title: title || 'Confirmar', text: msg });
+  }
+
+  function waPrompt(msg, def, title) {
+    return waDlg({ mode: 'prompt', title: title || 'Nota', text: msg, value: def || '' });
+  }
+
+  document.addEventListener('keydown', function (ev) {
+    var root = $('wa-dlg');
+    if (!root || !root.classList.contains('is-on')) return;
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      var inp = $('wa-dlg-inp');
+      var isPrompt = inp && !inp.classList.contains('hidden');
+      fecharDlg(isPrompt ? null : false);
+    } else if (ev.key === 'Enter') {
+      var ok = $('wa-dlg-ok');
+      if (ok) {
+        ev.preventDefault();
+        ok.click();
+      }
+    }
+  });
 
   function pintarBadges(n) {
     n = n || {};
@@ -433,6 +542,9 @@
       pintarBadges(j.nao_lidas);
       recursosWa = j.recursos || {};
       respostasProntas = String(j.respostas_prontas || '');
+      if (j.bot && typeof j.bot.xfer_avisar_cliente === 'boolean') {
+        xferAvisarCliente = j.bot.xfer_avisar_cliente;
+      }
       pintarQuick();
       if (j.bot && typeof j.bot.separar_lojas === 'boolean') {
         var mudou = j.bot.separar_lojas !== separarLojas || (!j.bot.separar_lojas && loja !== 'todas');
@@ -1103,24 +1215,40 @@
       if (!convId) return;
       var dest = b.getAttribute('data-xfer') || '';
       var nome = dest === 'vila' ? 'Vila' : 'Centro';
-      if (!window.confirm('Passar este atendimento para a ' + nome + '? O cliente é avisado no Zap.')) return;
-      var nota = '';
-      if (recursosWa.feat_xfer_nota) {
-        nota = window.prompt('Nota interna para a outra loja (opcional):', '') || '';
-      }
-      fetchJson('/api/atendimento-whatsapp/transferir/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ conversa_id: convId, loja: dest, nota: nota }),
-      }).then(function (j) {
-        if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não passou.');
-          return;
-        }
-        limparChatAberto();
-        telaCel(false);
-        carregarEstado();
-        carregarLista();
+      var txt =
+        'Passar este atendimento para a ' +
+        nome +
+        '? ' +
+        (xferAvisarCliente
+          ? 'O cliente é avisado no Zap.'
+          : 'O cliente NÃO recebe aviso no Zap.');
+      waConfirm(txt, 'Passar atendimento').then(function (ok) {
+        if (!ok) return;
+        var pNota = recursosWa.feat_xfer_nota
+          ? waPrompt('Nota interna para a outra loja (opcional):', '', 'Nota interna')
+          : Promise.resolve('');
+        pNota.then(function (nota) {
+          if (nota === null) return;
+          fetchJson('/api/atendimento-whatsapp/transferir/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({
+              conversa_id: convId,
+              loja: dest,
+              nota: String(nota || ''),
+            }),
+          }).then(function (j) {
+            if (!j || !j.ok) {
+              waAlert((j && j.erro) || 'Não passou.', 'Não passou');
+              return;
+            }
+            limparChatAberto();
+            telaCel(false);
+            carregarEstado();
+            carregarLista();
+            waToast('Passou para a ' + nome + '.', true);
+          });
+        });
       });
     });
   });
