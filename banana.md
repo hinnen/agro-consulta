@@ -1275,7 +1275,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.62** · 04/09)
+### 📦 PACOTE PRONTO — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · **v22.62** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Bug loja **#15**: ao **adicionar** vale, o número à direita do PDV ficava no cache |
+| **Causa** | Refresh do crédito **sem force** (reusava saldo velho) · resposta do crédito não ia pro contador |
+| **Fix** | Aplica `cliente` da API na hora · `force` + bust `_t=` · limpa cache após compra de vale |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_vale_saldo_live_path` **22/22** (PIN 9973 · crédito + estorno) · cli **54/54** · vale-usado **11/11** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · cliente · **Adicionar vale** (manual) · número **Vale crédito** sobe na hora |
+
+### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1297,12 +1309,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.62**)
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.61**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro.
 
@@ -1469,18 +1482,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` **v22.11** · loja **não** |
 | **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
 
-### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.62**
+### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.61**
 
-### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.08** · 03/09)
-
-| | |
-| --- | --- |
-| **Relato** | Geraldinho · Caixa Centro · 31/08 · venda **6682** R$ 101,90 débito Point · máquina cobrou · gravar venda **500** (6x) |
-| **Causa** | PIN da venda (10s) + espera na maquininha / F5. `finalizar` estourava **500 HTML** com o cartão já pago. |
-| **Fix** | Carimba quem cobrou · se o PIN acabar, usa o carimbo · 500 vira JSON e o PDV tenta de novo · PIN 45s se a máquina já cobrou |
-| **Migrate** | **NÃO** |
-| **Status** | 🟡 `teste` **v22.08** |
-| **Você** | Ctrl+F5 no PDV · débito Point · esperar na máquina · Confirmar. Tem que gravar sem tela vermelha. |
+### ~~🩹 Bug loja #11 — MP Point 500 após cobrar~~ · ver topo **MP-POINT-FINAL-PIN**
 
 ### ~~📦 PACOTE — Vale crédito no contador~~ → **PACOTE PRONTO** no topo (`PDV-VALE-SALDO-LIVE` · tip **v22.62**)
 

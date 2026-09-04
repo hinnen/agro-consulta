@@ -2902,6 +2902,9 @@
         if (valorFiadoPendente != null && State.toNumber(valorFiadoPendente) > 0.009) {
             q += '&valor_fiado=' + encodeURIComponent(String(valorFiadoPendente).replace('.', ','));
         }
+        if (opts.force) {
+            q += '&_t=' + encodeURIComponent(String(Date.now()));
+        }
         return jsonGet(q)
             .then(function (res) {
                 if (clienteFiadoQueryKey(State.getState()) !== cidKey) {
@@ -7639,6 +7642,7 @@
         var usouValePagamento = (State.getState().pagamento.lancamentos || []).some(function (L) {
             return String(L.forma || '') === 'Vale crédito';
         });
+        var eraCompraVale = isCompraValeCreditoAtiva();
         closePaymentFormaModal();
         hideMpPointWaitBar();
         if (dom.stepPagamentoRoot) {
@@ -7651,7 +7655,7 @@
         State.reset(false);
         creditoFiadoCliente = null;
         creditoFiadoClienteId = '';
-        if (usouValePagamento) {
+        if (usouValePagamento || eraCompraVale) {
             loadWizardClientesCache(true);
         }
         State.setCurrentStep('produtos');
@@ -9219,9 +9223,11 @@
     }
 
     function patchClienteInSearchResults(updated) {
-        if (!updated || !dom.quickClientResults) return;
+        if (!updated) return;
+        aplicarSaldoClienteNoPdv(updated);
+        if (!dom.quickClientResults) return;
         var clientes = dom.quickClientResults._clientes || [];
-        var pk = updated.cliente_agro_pk;
+        var pk = updated.cliente_agro_pk != null ? updated.cliente_agro_pk : updated.pk;
         var idx = -1;
         var i;
         for (i = 0; i < clientes.length; i++) {
@@ -9232,12 +9238,17 @@
         }
         if (idx < 0 && quickClientEditListIdx >= 0) idx = quickClientEditListIdx;
         if (idx >= 0) {
-            clientes[idx] = Object.assign({}, clientes[idx], updated);
+            clientes[idx] = Object.assign({}, clientes[idx], updated, {
+                cliente_agro_pk: pk != null ? pk : clientes[idx].cliente_agro_pk
+            });
             renderClientSearchResults(clientes);
         }
         var st = State.getState();
-        if (st.cliente && String(st.cliente.id) === String(updated.id)) {
-            State.setCliente(updated, st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente');
+        if (st.cliente && updated.id != null && String(st.cliente.id) === String(updated.id)) {
+            State.setCliente(
+                Object.assign({}, st.cliente, updated),
+                st.clienteMode === 'consumidor_final' ? 'consumidor_final' : 'cliente'
+            );
             syncEntregaEnderecoFromCliente();
         }
     }
@@ -9317,7 +9328,12 @@
                     loadWizardClientesCache(true);
                     return;
                 }
-                refreshCreditoFiadoCliente(0, {});
+                if (ev.data && ev.data.cliente) {
+                    aplicarSaldoClienteNoPdv(ev.data.cliente);
+                }
+                refreshCreditoFiadoCliente(0, { force: true }).then(function () {
+                    renderProducts(State.getState(), State.getComputed());
+                });
                 loadWizardClientesCache(true);
                 if (ev.tipo === 'vale_manual') {
                     showPdvAviso('Vale crédito creditado (sem caixa).', {
