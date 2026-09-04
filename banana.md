@@ -552,7 +552,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.39** 🟢 pronto envio.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.41** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
@@ -1277,22 +1277,22 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · \	este\ **v22.34+** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · tip **v22.41** | **NÃO** |
 | 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
 
-### 📦 PACOTE PRONTO — Limite fiado na linha (\FIADO-LIMITE-LINHA\ · 04/09)
+### 📦 PACOTE PRONTO — Limite fiado na linha (`FIADO-LIMITE-LINHA` · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | \/fiado/\: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
+| **O quê** | `/fiado/`: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
 | **Migrate** | **NÃO** |
-| **Prova** | \erify_fiado_limite_linha_path\ **15/15** · recibos path **66/66** |
+| **Prova** | `verify_fiado_limite_linha_path` **15/15** · recibos path **66/66** |
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · Fiado · clique no Limite da linha · digite · Enter |
 
-### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.39** · 04/09)
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.41** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
