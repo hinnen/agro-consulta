@@ -552,7 +552,7 @@ Mesma raiz `48900774` → **mesmo certificado A1 + mesmo CSC**. Cupom segue o **
 
 ### 4.6 Cadastro / gestÃ£o de produtos
 
-- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` v22.32.
+- **Etiquetas `/produtos/etiquetas/`:** presets de layout = **Postgres** (`EtiquetaPresetAgro`) — multi-PC (01/08). localStorage só cache + preset ativo + rodapé. Gôndola: folha **A4** (2/3 col) ou **A6** (1 col · bônus 100×45) — `ETQ-A6-BONUS` **v22.33** 🟢 pronto envio.
 
 **Duas telas â€” nÃ£o confundir:**
 
