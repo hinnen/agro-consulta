@@ -101,10 +101,10 @@ if not AGRO_PDV_ASSETS_V and DEBUG:
         if _pdv_js.is_file():
             AGRO_PDV_ASSETS_V = str(int(_pdv_js.stat().st_mtime))
 
-# Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed) sem exigir login.
-# Padrão True (painel aberto). Para exigir login de novo: AGRO_PUBLIC_DASHBOARD=false no .env / Render.
+# Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed): exige login por padrão.
+# Abrir sem login (só se Renan pedir): AGRO_PUBLIC_DASHBOARD=true no .env / Render.
 # POST de sync ERP continua com login; ?sync=1 na URL só roda se já autenticado.
-AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=True, cast=bool)
+AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=False, cast=bool)
 
 # Após ERP v3: espelho Mongo (agregação no servidor). Default True = alinhado ao gráfico do BI;
 # defina false só se a instância esgotar RAM (worker).

@@ -10690,6 +10690,7 @@ def _dashboard_capri_context(request, *, force_gastos_plano: bool | None = None)
 
 # --- VIEWS DE PÁGINA ---
 @ensure_csrf_cookie
+@login_required(login_url="/admin/login/")
 def home(request):
     nav = _home_admin_navegacao()
     u = ""
