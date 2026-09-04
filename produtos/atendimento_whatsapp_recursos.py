@@ -49,7 +49,7 @@ RECURSOS_DEFAULT.update(
         "msg_pix_chave": (
             "Chave Pix da *{empresa}*\n"
             "{titular_linha}"
-            "Toque na *mensagem de baixo* e escolha *Copiar*."
+            "Toque em *Copiar chave Pix* abaixo."
         ),
         "msg_pix_sem_chave": (
             "A chave Pix ainda não está configurada neste bot.\n"

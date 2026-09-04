@@ -113,16 +113,26 @@ def interpretar_pedido_pix(texto: str, cfg: dict | None = None) -> bool:
 
 
 def montar_texto_pix(cfg: dict | None = None) -> str:
-    """Compat: texto único. Preferir ``montar_lote_pix`` (chave sozinha = fácil copiar)."""
+    """Compat: texto único. Preferir ``enfileirar_pix_com_botao``."""
     lote = montar_lote_pix(cfg)
     return "\n\n".join(lote) if lote else ""
 
 
+PIX_COPY_SEP = "|||PIX|||"
+
+
+def _intro_pix_limpo(cfg: dict) -> str:
+    empresa = str(cfg.get("nome_empresa") or "loja").strip() or "loja"
+    titular = str(cfg.get("pix_titular") or "").strip()
+    linhas = [f"Chave Pix da *{empresa}*"]
+    if titular:
+        linhas.append(f"Titular: *{titular}*")
+    linhas.append("Toque em *Copiar chave Pix* abaixo.")
+    return "\n".join(linhas)
+
+
 def montar_lote_pix(cfg: dict | None = None) -> list[str]:
-    """
-    1ª msg = explicação · 2ª msg = só a chave (sem *negrito*).
-    No WhatsApp o cliente toca na 2ª e usa Copiar — o mais perto do «botão copiar».
-    """
+    """Intro limpa + chave. (Envio real usa botão Copiar via ``pix_copy``.)"""
     from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
 
     c = cfg if cfg is not None else BOT_DEFAULT
@@ -134,15 +144,39 @@ def montar_lote_pix(cfg: dict | None = None) -> list[str]:
     titular_linha = f"Titular: *{titular}*\n" if titular else ""
     tpl = str(c.get("msg_pix_chave") or BOT_DEFAULT.get("msg_pix_chave") or "")
     intro = (
-        tpl.replace("{chave}", "")  # chave vai na 2ª msg
+        tpl.replace("{chave}", "")
         .replace("{titular}", titular)
         .replace("{titular_linha}", titular_linha)
         .replace("{empresa}", str(c.get("nome_empresa") or "loja"))
         .strip()
     )
-    if not intro:
-        intro = "Chave Pix — toque na mensagem de baixo e escolha *Copiar*."
+    # Template antigo/sujo com {número} ou {nome} literal → texto limpo
+    if (not intro) or ("{" in intro) or ("}" in intro):
+        intro = _intro_pix_limpo(c)
     return [intro, chave]
+
+
+def enfileirar_pix_com_botao(conversa: WhatsAppConversaAgro, cfg: dict | None = None) -> None:
+    """1 msg: texto + botão Copiar (tipo_midia=pix_copy) na ponte."""
+    from produtos.atendimento_whatsapp_bot_config import BOT_DEFAULT
+
+    c = cfg if cfg is not None else BOT_DEFAULT
+    lote = montar_lote_pix(c)
+    if not lote:
+        return
+    if len(lote) == 1:
+        responder_bot(conversa, lote[0])
+        return
+    intro = _preencher_msg_bot(lote[0], c, conversa)
+    chave = lote[1].strip()
+    texto = f"{intro}\n{PIX_COPY_SEP}\n{chave}"
+    _enfileirar_saida(
+        conversa,
+        texto[:TEXTO_MAX],
+        direcao=WhatsAppMensagemAgro.DIRECAO_BOT,
+        autor="Bot",
+        tipo_midia="pix_copy",
+    )
 
 
 def _fmt_rs(val) -> str:
@@ -546,6 +580,8 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
     )
     texto = "Mensagem apagada" if apagada else (m.texto or "")
     tipo = "" if apagada else (m.tipo_midia or "")
+    if not apagada and tipo == "pix_copy" and PIX_COPY_SEP in texto:
+        texto = texto.replace(PIX_COPY_SEP, "\n").strip()
     midia = ""
     if not apagada and m.arquivo:
         midia = f"/api/atendimento-whatsapp/midia/{int(m.pk)}/"
@@ -559,7 +595,7 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
         "hora": criado_l.strftime("%H:%M") if criado_l else "",
         "data": criado_l.strftime("%d/%m") if criado_l else "",
         "criado_em": criado.isoformat() if criado else "",
-        "tipo_midia": tipo,
+        "tipo_midia": "" if tipo == "pix_copy" else tipo,
         "midia_url": midia,
         "apagada": apagada,
         "pode_apagar": pode,
@@ -648,7 +684,10 @@ def _enfileirar_saida(
             teto=MAX_SAIDA_MIDIA_BYTES,
         )
     m.save()
-    conversa.ultima_preview = _preview(texto)
+    prev_txt = texto
+    if (tipo_midia or "").strip().lower() == "pix_copy" and PIX_COPY_SEP in texto:
+        prev_txt = texto.replace(PIX_COPY_SEP, " ").strip()
+    conversa.ultima_preview = _preview(prev_txt)
     conversa.ultima_em = agora
     campos = ["ultima_preview", "ultima_em"]
     if direcao == WhatsAppMensagemAgro.DIRECAO_OUT:
@@ -1131,9 +1170,7 @@ def processar_entrada(
     # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot)
     if not historico and not de_mim and cfg_flag(cfg, "bot_ligado") and eh_pix:
         conv.save(update_fields=campos_base)
-        lote_pix = montar_lote_pix(cfg)
-        if lote_pix:
-            _enviar_lote_bot(conv, lote_pix, cfg)
+        enfileirar_pix_com_botao(conv, cfg)
         return msg, ""
 
     # Atalhos F / H / A (só se recurso ligado)
