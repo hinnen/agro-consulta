@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from django.http import JsonResponse
 from django.test import RequestFactory, SimpleTestCase
 
+from produtos.caixa_util import PinOperadorObrigatorioError
 from produtos.models import PdvMercadoPagoPointOrder
 from produtos.views_mp_point import (
     _mp_point_marcar_forcado_liberar,
@@ -240,3 +241,37 @@ class MpPointOperadorCarimboTests(SimpleTestCase):
         )
         self.assertEqual(out.get("mp_point_operador"), "Geraldinho")
         self.assertNotIn("lixo", out)
+
+
+class MpPointFinalizarWrapperTests(SimpleTestCase):
+    def _req(self):
+        req = RequestFactory().post(
+            "/api/pdv/mp-point/finalizar/",
+            data=b"{}",
+            content_type="application/json",
+        )
+        req.session = {}
+        return req
+
+    @patch("produtos.views_mp_point._api_pdv_mp_point_finalizar_impl", side_effect=RuntimeError("boom"))
+    def test_excecao_vira_json_500_retry(self, _impl):
+        from produtos.views_mp_point import api_pdv_mp_point_finalizar
+
+        resp = api_pdv_mp_point_finalizar(self._req())
+        self.assertEqual(resp.status_code, 500)
+        data = json.loads(resp.content.decode("utf-8"))
+        self.assertTrue(data.get("retry"))
+        self.assertTrue(data.get("pagamento_efetivado"))
+        self.assertNotIn("<html", resp.content.decode("utf-8").lower())
+
+    @patch(
+        "produtos.views_mp_point._api_pdv_mp_point_finalizar_impl",
+        side_effect=PinOperadorObrigatorioError("PIN"),
+    )
+    def test_pin_vira_json_403(self, _impl):
+        from produtos.views_mp_point import api_pdv_mp_point_finalizar
+
+        resp = api_pdv_mp_point_finalizar(self._req())
+        data = json.loads(resp.content.decode("utf-8"))
+        self.assertEqual(resp.status_code, 403)
+        self.assertTrue(data.get("precisa_pin"))

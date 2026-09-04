@@ -1275,6 +1275,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Bug loja #13 — cálculo conferido (`BI-DEVOL-*` · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Cálculo** | ✅ **já na loja** (v20.56–v20.86). Devolução cai no **dia do evento**; venda original permanece no dia dela. |
+| **Prova** | `verify_bi_devolucao_dia.py` **43/43** · PIN **9973** · math OK · HTTP home/BI/vendas-lojas/atalhos **200** · healthz **200** |
+| **Dados PC** | 29/08 bruto 5225,37 − devolução 225 = **5000,37** (card = série). Troca de dia: 24/08 venda **fica**; 25/08 abate **120**. |
+| **Troca (A→B)** | ❌ **não existe** — só **Devolver**. **Não** entra no lote de envio. |
+| **Status** | Cálculo **não** sobe de novo. Troca só se você pedir o fluxo. |
+
+### 📦 PACOTE PRONTO — Point grava após cobrar (`MP-POINT-FINAL-PIN` · bug #11 · **v22.61**)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Máquina cobrou e a venda deu 500 (PIN 10s / F5). Carimba quem cobrou · grava com PIN morto · JSON + retry. |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_mp_point_final_pin_path.py` **41/41** · `tests_mp_point_pin_forcar` **OK** · PIN 9973 carimbo **Renan** · healthz 200 |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 PDV · débito Point · espera na máquina · Confirmar sem tela vermelha |
+
 ### 📦 PACOTE PRONTO — Vale crédito no contador na hora (`PDV-VALE-SALDO-LIVE` · **v22.62** · 04/09)
 
 | Campo | Valor |
@@ -1316,6 +1336,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro.
 
