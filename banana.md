@@ -1286,18 +1286,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | ✅ **Live ops** (cron na loja) · prova no `teste` **v22.53** |
 | **Nota** | Dia ≠ 28 → `candidatos=0` é normal |
 
-### 📦 PACOTE PRONTO — Login obrigatório no painel (`LOGIN-BI-FECHADO` + `LOGIN-UI-AGRO` · **v22.55** · 04/09)
+### 📦 PACOTE PRONTO — Login obrigatório + tela GM Agro Mais (`LOGIN-BI-FECHADO` + `LOGIN-UI-AGRO` · **v22.57** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Navegador novo pede login · tela **bonita** GM Agro Mais (gradiente laranja→verde + logo) |
-| **Causa** | Painel vinha aberto (`AGRO_PUBLIC_DASHBOARD=true`) · login era o Admin feio |
-| **Fix** | Painel fechado · URL **`/entrar/`** · `LOGIN_URL=/entrar/` |
-| **UI** | Tela **`/entrar/`** · até `/admin/login/` redireciona pra ela (**v22.56**) |
+| **O quê** | Navegador novo pede login · tela GM Agro Mais (gradiente + logo) · Admin feio redireciona |
+| **Fix** | `AGRO_PUBLIC_DASHBOARD=false` · `/entrar/` · `LOGIN_URL` · `/admin/login/` → `/entrar/` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟡 **pronto no teste** · **urgente** |
-| **Você** | Reinicia servidor · janela anônima → `/` → tela de login da marca |
-| **Autorizar loja** | frase + senha na **mesma** mensagem |
+| **Prova** | `scripts/verify_login_bi_fechado_path.py` **VERIFY_OK 24/24** (fonte + Client + PIN 9973 + HTTP) |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Janela anônima → `/` → login da marca · Ctrl+F5 |
+| **Autorizar** | frase + senha na **mesma** mensagem |
 
 ### 📦 PACOTE PRONTO — Entrada NF lista «Em andamento» vazia (`NF-LISTA-ANDAMENTO` · **v22.48** · 04/09)
 
@@ -1312,11 +1311,11 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Você** | Ctrl+F5 Entrada NF → **Em andamento** sem digitar → lista as abertas |
 | **Autorizar** | frase + senha na **mesma** mensagem |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.55**)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.57**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟡 **pronto no teste** · **urgente** | **NÃO** |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟡 **pronto para envio à produção** · prova **24/24** | **NÃO** |
 | 2 | **NF-LISTA-ANDAMENTO** | 🟡 **pronto para envio à produção** · prova **27/27** | **NÃO** |
 | 3 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
 | 4 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
