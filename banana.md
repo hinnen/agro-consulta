@@ -1407,7 +1407,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` |
 
-### 📦 PACOTE PRONTO — Orçamento Zap loja no PDV (`WA-ORC-PDV` · 04/09/2026)
+### 📦 PACOTE PRONTO — Orçamento Zap loja no PDV (`WA-ORC-PDV` · **v22.26** · 04/09/2026)
 
 | | |
 | --- | --- |
@@ -1416,6 +1416,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 PDV · cliente c/ telefone · carrinho · Loja |
+
+### 📦 PACOTE PRONTO — Pix botão Copiar (`WA-PIX-CTA` · **v22.27** · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | Msg Pix limpa + tentativa de botão **Copiar chave Pix** (cta_copy) na ponte |
+| **Fix** | Template sujo com `{número}` não aparece mais |
+| **Ponte** | Reiniciar `iniciar-local.bat` / `iniciar.bat` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` — se o Zap não mostrar o botão, cai no texto (limitação do app) |
 
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 

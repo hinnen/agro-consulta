@@ -181,6 +181,16 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
     limpo["pix_chave"] = str(limpo.get("pix_chave") or "").strip()[:200]
     limpo["pix_titular"] = str(limpo.get("pix_titular") or "").strip()[:120]
     limpo["pix_palavras"] = str(limpo.get("pix_palavras") or "").strip()[:400]
+    # Template Pix sujo (ex.: {1399…} colado) → volta ao padrão limpo
+    tpl_pix = str(limpo.get("msg_pix_chave") or "")
+    probe = (
+        tpl_pix.replace("{chave}", "x")
+        .replace("{titular}", "x")
+        .replace("{titular_linha}", "x")
+        .replace("{empresa}", "x")
+    )
+    if "{" in probe or "}" in probe or not tpl_pix.strip():
+        limpo["msg_pix_chave"] = str(BOT_DEFAULT.get("msg_pix_chave") or "")
     obj, _ = WhatsAppBotConfigAgro.objects.get_or_create(chave=(chave or CHAVE_DEFAULT)[:32])
     obj.dados = limpo
     obj.atualizado_por = (usuario or "")[:120]

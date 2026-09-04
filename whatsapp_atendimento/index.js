@@ -9,7 +9,9 @@ import makeWASocket, {
   downloadContentFromMessage,
   downloadMediaMessage,
   fetchLatestBaileysVersion,
+  generateWAMessageFromContent,
   normalizeMessageContent,
+  proto,
   useMultiFileAuthState,
 } from "@whiskeysockets/baileys";
 import fs from "node:fs";
@@ -1306,6 +1308,68 @@ async function enviarComRetry(jid, content) {
   throw last;
 }
 
+/** Botão «Copiar» estilo Zap Business (cta_copy). Fallback = texto simples. */
+async function enviarPixComBotao(jid, intro, chave) {
+  const corpo = String(intro || "").trim() || "Chave Pix";
+  const code = String(chave || "").trim();
+  if (!code) {
+    return await enviarComRetry(jid, { text: corpo });
+  }
+  try {
+    const msg = generateWAMessageFromContent(
+      jid,
+      {
+        viewOnceMessage: {
+          message: {
+            messageContextInfo: {
+              deviceListMetadata: {},
+              deviceListMetadataVersion: 2,
+            },
+            interactiveMessage: proto.Message.InteractiveMessage.create({
+              body: proto.Message.InteractiveMessage.Body.create({ text: corpo }),
+              footer: proto.Message.InteractiveMessage.Footer.create({ text: "Pix" }),
+              nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({
+                buttons: [
+                  {
+                    name: "cta_copy",
+                    buttonParamsJson: JSON.stringify({
+                      display_text: "Copiar chave Pix",
+                      id: "pix_copy",
+                      copy_code: code,
+                    }),
+                  },
+                ],
+              }),
+            }),
+          },
+        },
+      },
+      {}
+    );
+    await sock.relayMessage(jid, msg.message, { messageId: msg.key.id });
+    return msg;
+  } catch (e1) {
+    console.error("pix cta_copy:", e1.message || e1);
+  }
+  try {
+    return await enviarComRetry(jid, {
+      text: corpo,
+      interactiveButtons: [
+        {
+          name: "cta_copy",
+          buttonParamsJson: JSON.stringify({
+            display_text: "Copiar chave Pix",
+            copy_code: code,
+          }),
+        },
+      ],
+    });
+  } catch (e2) {
+    console.error("pix interactiveButtons:", e2.message || e2);
+  }
+  return await enviarComRetry(jid, { text: corpo + "\n\n" + code });
+}
+
 async function enviarAudioZap(dest, aud) {
   const base = {
     audio: aud.buf,
@@ -1366,6 +1430,28 @@ async function puxarSaida() {
             });
             continue;
           }
+        } else if (tipo === "pix_copy") {
+          if (!txt.trim()) continue;
+          const sep = "|||PIX|||";
+          let intro = txt;
+          let chave = "";
+          const ix = txt.indexOf(sep);
+          if (ix >= 0) {
+            intro = txt.slice(0, ix).trim();
+            chave = txt.slice(ix + sep.length).trim();
+          } else {
+            chave = txt.trim();
+            intro = "Chave Pix";
+          }
+          const dest = jidParaEnvio(item);
+          console.log("enviando pix_copy ->", dest);
+          const sent = await enviarPixComBotao(dest, intro, chave);
+          const waId = sent && sent.key && sent.key.id;
+          await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+            ids: [item.id],
+            wa_id: waId || "",
+          });
+          continue;
         } else {
           if (!txt.trim()) continue;
           content = { text: txt };
