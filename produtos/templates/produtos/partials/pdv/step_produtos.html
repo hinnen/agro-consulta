@@ -137,15 +137,26 @@
         </div>
       </div>
       <div id="pdv-step1-subtotal-dock" class="pdv-step1-subtotal-dock shrink-0">
-        <button
-          type="button"
-          id="pdv-step1-enviar-whatsapp"
-          class="pdv-step1-enviar-whatsapp mb-1.5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-2.5 py-2.5 text-[11px] font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-emerald-500"
-          title="Enviar orçamento do carrinho pelo WhatsApp do cliente"
-        >
-          <svg class="pdv-step1-enviar-whatsapp-icon shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
-          <span>Enviar</span>
-        </button>
+        <div id="pdv-step1-enviar-whatsapp-row" class="pdv-step1-enviar-whatsapp-row mb-1.5 grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            id="pdv-step1-enviar-whatsapp"
+            class="pdv-step1-enviar-whatsapp flex min-w-0 items-center justify-center gap-1.5 rounded-xl border-2 border-emerald-600 bg-emerald-600 px-1.5 py-2.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-emerald-500"
+            title="Abre o WhatsApp do celular/PC com o orçamento (como antes)"
+          >
+            <svg class="pdv-step1-enviar-whatsapp-icon shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.435 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>
+            <span class="truncate">Celular</span>
+          </button>
+          <button
+            type="button"
+            id="pdv-step1-enviar-whatsapp-loja"
+            class="pdv-step1-enviar-whatsapp-loja flex min-w-0 items-center justify-center gap-1.5 rounded-xl border-2 border-teal-700 bg-teal-700 px-1.5 py-2.5 text-[10px] font-black uppercase tracking-wide text-white shadow-sm transition hover:bg-teal-600"
+            title="Manda o orçamento pelo WhatsApp da loja (Bot → Recursos → Orçamento no Zap)"
+          >
+            <svg class="pdv-step1-enviar-whatsapp-icon shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A3 3 0 0 1 6.553 3h10.894a3 3 0 0 1 2.122.879l1.19 1.19a3.004 3.004 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z" /></svg>
+            <span class="truncate">Loja</span>
+          </button>
+        </div>
         <div class="pdv-wiz-panel pdv-wiz-panel--orange overflow-hidden">
           <div class="pdv-wiz-block pdv-wiz-block--orange flex min-h-0 flex-col border-b-0">
             <div class="pdv-wiz-block-head">

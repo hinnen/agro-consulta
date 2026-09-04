@@ -14,7 +14,7 @@ RECURSOS_CATALOGO: list[tuple[str, str, str]] = [
     ("feat_respostas_prontas", "Respostas prontas", "Botões de texto rápido no chat."),
     ("feat_xfer_nota", "Nota ao transferir", "Observação interna ao passar Centro↔Vila."),
     ("feat_fiado_pix", "Fiado + Pix", "Lembra Pix após o saldo; se pedir, manda a chave configurada."),
-    ("feat_orcamento_zap", "Orçamento no Zap", "Enviar orçamento do PDV pelo chat da loja."),
+    ("feat_orcamento_zap", "Orçamento no Zap", "No PDV: botão «Loja» ao lado do Enviar — manda o orçamento pelo Zap da loja."),
     ("feat_lembrete_fiado", "Lembrete fiado", "Avisar cliente marcado (atraso) — sem disparo em massa."),
     ("feat_comprovante_venda", "Comprovante de venda", "Texto «sua compra» no Zap após venda."),
     ("feat_entrega_status", "Status de entrega", "Avisar cliente: saiu / a caminho / chegou."),
