@@ -1273,16 +1273,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE — Etiquetas A6 bônus 1 coluna (`ETQ-A6-BONUS` · **v22.32** · 04/09)
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09 · `ETQ-A6-BONUS`)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.33** | **NÃO** |
+
+**Live agora:** **v21.88**. Este pacote **ainda não** na loja.
+
+### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.33** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Gôndola: escolha de folha **A4** ou **A6**. A6 = **1 coluna**. Preset seed **Bônus A6** (100×45 mm · 3 por folha). Epson / papel foto. |
-| **Onde** | `/produtos/etiquetas/` · Presets → Folha · preset «Bônus A6» |
+| **O quê** | Gôndola: folha **A4** ou **A6**. A6 = **1 coluna** · preset **Bônus A6** 100×45 mm · **3/folha**. Epson / papel foto. |
+| **Onde** | `/produtos/etiquetas/` · Presets → Folha · «Bônus A6» |
 | **Migrate** | **NÃO** |
-| **Prova** | `node scripts/verify_etiquetas_gondola_grade.js` OK |
-| **Status** | 🟡 `teste` **v22.32** · loja **não** |
-| **Você** | Ctrl+F5 · abrir Bônus A6 · imprimir · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
+| **Provas** | `node scripts/verify_etiquetas_a6_path.js` **59/59** · `verify_etiquetas_gondola_grade.js` OK · Django `tests_etiquetas_presets` **3/3** · página+API local OK (folha a6 no PG) |
+| **Status** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.33** |
+| **Você (loja)** | Ctrl+F5 · Bônus A6 · Chrome papel **A6** · margens nenhuma · gráficos de fundo |
+| **Autorizar** | frase + senha na **mesma** mensagem |
 
 ### WIP — PDV leve lentidão na **loja** · 04/09
 
