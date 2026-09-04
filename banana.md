@@ -1275,17 +1275,43 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Repasse confirma com 0,00 (`REPASSE-ZERO-OK` · **v22.60** · 04/09)
+### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · **v22.61** · 04/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Confirmar com **algum** dos 3 valores em 0,00 (Salário / Vila Elias / Levar ao Centro) |
-| **Antes** | Levar 0,00 dava «Valor manual inválido»; campo vazio pedia preencher |
-| **Agora** | 0,00 e vazio ok · Centro 0 = só cofres · OKs só no que tem valor · os 3 em 0,00 ainda trava |
+| **O quê** | Bug loja **#12**: entrega (dinheiro/cartão) liga a tabela de preço da forma |
+| **Onde** | `/pdv/` etapa Entrega |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_repasse_pdv_overlay_path` **190** · `verify_repasse_vila_path` **257** |
-| **Status** | 🧪 **teste** — aguarda Ctrl+F5 no PC |
-| **Você** | PDV **Repasse** · deixe 1 ou 2 campos em 0,00 · Confirmar |
+| **Prova** | `scripts/verify_pdv_entrega_tabela_forma_path.py` **VERIFY_OK 41/41** (PIN 9973 · HTTP · bug vs fix) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão/Dinheiro · total muda |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.61**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Fora deste lote:** WhatsApp extra · Excel cadastro · demais WIP do tip.
+
+### 📦 PACOTE PRONTO — Repasse confirma com 0,00 (`REPASSE-ZERO-OK` · **v22.61** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Confirmar com **algum** dos 3 valores em 0,00 |
+| **Agora** | 0,00 e vazio ok · Centro 0 = só cofres · OKs só no que tem valor · os 3 em 0,00 travam |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_repasse_zero_ok_path` **33/33** (fonte + PIN 9973 Renan + Django 5 casos + GET tela) · overlay **190** · vila **262** |
+| **Status** | 🟡 **pronto para envio à produção** (aguarda frase + senha) |
+| **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
+
+### ✅ CHECKLIST ÚNICO — 04/09c · **pronto para envio**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **REPASSE-ZERO-OK** | 🟡 **pronto para envio** | **NÃO** |
+
+**Live agora:** **v21.89**. Este lote **ainda não** subiu.
 
 
 ### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
@@ -1451,16 +1477,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` **v22.11** · loja **não** |
 | **Você** | Ctrl+F5 no PDV · cliente com vale · vender e pagar **só vale** · o **Vale crédito** à direita tem que cair · F5 de novo: continua o valor novo |
 
-### 📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA` · 03/09)
-
-| Campo | Valor |
-| ----- | ----- |
-| **O quê** | Bug loja **#12**: lançar entrega (dinheiro/cartão) agora liga a tabela de preço da forma. |
-| **Onde** | `/pdv/` etapa Entrega |
-| **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_tabela_preco_forma.py` |
-| **Status** | 🟡 `teste` · **não** loja |
-| **Você** | Ctrl+F5 no PDV · item com tabela · Entrega → pagar na entrega → Cartão (ou Dinheiro) · conferir total |
+### ~~📦 PACOTE PRONTO — Tabela % na entrega (`PDV-ENTREGA-TABELA-FORMA`)~~ · ver tip **v22.61**
 
 ### 🩹 Bug loja #11 — MP Point 500 após cobrar (`MP-POINT-FINAL-PIN` · **v22.08** · 03/09)
 
