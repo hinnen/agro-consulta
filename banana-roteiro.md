@@ -355,13 +355,13 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | 🟢 **PREP** · aguarda senha | **NÃO** |
-| 2 | **NF-LISTA-ANDAMENTO** | 🟢 **PREP** | **NÃO** |
-| 3 | **ETQ-A6-BONUS** | 🟢 **PREP** · prova **59/59** | **NÃO** |
-| 4 | **FIADO-LIMITE-LINHA** | 🟢 **PREP** | **NÃO** |
-| 5 | **PDV-CHAT-POLL-10S** | 🟢 **PREP** | **NÃO** |
-| 6 | **WA-XFER-PIX-ORC** | 🟢 **PREP** | **SIM** `0125` |
+| 1 | **LOGIN-BI-FECHADO** + **LOGIN-UI-AGRO** | ✅ **Live v21.89** | **NÃO** |
+| 2 | **NF-LISTA-ANDAMENTO** | ✅ **Live v21.89** | **NÃO** |
+| 3 | **ETQ-A6-BONUS** | ✅ **Live v21.89** | **NÃO** |
+| 4 | **FIADO-LIMITE-LINHA** | ✅ **Live v21.89** | **NÃO** |
+| 5 | **PDV-CHAT-POLL-10S** | ✅ **Live v21.89** | **NÃO** |
+| 6 | **WA-XFER-PIX-ORC** | ✅ **Live v21.89** | **SIM** `0125` |
 
-**Status: PREP / aguarda senha.** Live ainda **v21.88** @ `329f9b5`. **Não** merge `teste`.  
-**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
-**PDV:** `/consulta/` sem login Django · F7 igual. BI `/` pede `/entrar/`.
+**Status: enviado / Live v21.89.** `producao` @ `4910c79`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` @ `329f9b5` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v21.89** · Ctrl+F5. **Fora:** Excel cadastro · WhatsApp extra.
