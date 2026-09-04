@@ -1398,7 +1398,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟡 `teste` |
 | **Você** | Ctrl+F5 Bot · liga recurso · cola chave · no Zap do cliente manda «pix» |
 
-### 📦 PACOTE PRONTO — Pix chave + copiar (`WA-PIX-COPIAR` · 04/09/2026)
+### 📦 PACOTE PRONTO — Pix chave + copiar (`WA-PIX-COPIAR` · **v22.25** · 04/09/2026)
 
 | | |
 | --- | --- |
@@ -1406,6 +1406,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Caixa verde no topo de Recursos · Salvar bloqueia se falta chave · 2 msgs (intro + chave sozinha p/ Copiar no Zap) |
 | **Migrate** | **NÃO** |
 | **Status** | 🟡 `teste` |
+
+### 📦 PACOTE PRONTO — Orçamento Zap loja no PDV (`WA-ORC-PDV` · 04/09/2026)
+
+| | |
+| --- | --- |
+| **O quê** | PDV: botão **Celular** (wa.me) + **Loja** (chat da loja) lado a lado |
+| **Bot** | Recursos → **Orçamento no Zap** ligado · ponte ligada |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` |
+| **Você** | Ctrl+F5 PDV · cliente c/ telefone · carrinho · Loja |
 
 ### 📦 PACOTE PRONTO — chat visual WhatsApp (`WA-CHAT-UI` · 03/09/2026)
 

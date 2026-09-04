@@ -652,6 +652,7 @@
         step1BudgetVerMais: document.getElementById('pdv-step1-budget-ver-mais'),
         step1SalvarOrcamentoBtn: document.getElementById('pdv-step1-salvar-orcamento-btn'),
         step1EnviarWhatsappBtn: document.getElementById('pdv-step1-enviar-whatsapp'),
+        step1EnviarWhatsappLojaBtn: document.getElementById('pdv-step1-enviar-whatsapp-loja'),
         topbarEntregasBtn: document.getElementById('pdv-topbar-entregas-btn'),
         topbarEntregasCount: document.getElementById('pdv-topbar-entregas-count'),
         topbarNovaVendaBtn: document.getElementById('pdv-topbar-nova-venda-btn'),
@@ -4188,7 +4189,7 @@
         return true;
     }
 
-    function enviarOrcamentoWhatsappWizard() {
+    function prepararEnvioOrcamentoWhatsapp() {
         var state = State.getState();
         if (!state.itens || !state.itens.length) {
             showPdvAviso('Adicione itens ao carrinho antes de enviar o orçamento.', {
@@ -4196,7 +4197,7 @@
                 tone: 'warn',
                 prominent: true
             });
-            return;
+            return null;
         }
         var semCliente =
             state.clienteMode === 'unset' ||
@@ -4209,7 +4210,7 @@
                 prominent: true
             });
             openQuickClientPicker();
-            return;
+            return null;
         }
         var tel = String((state.cliente && state.cliente.telefone) || '').replace(/\D/g, '');
         if (tel.length < 10) {
@@ -4218,10 +4219,20 @@
                 tone: 'warn',
                 prominent: true
             });
-            return;
+            return null;
         }
-        var txt = montarTextoOrcamentoWhatsappWizard();
-        var telOk = tel;
+        return {
+            tel: tel,
+            nome: String((state.cliente && state.cliente.nome) || '').trim(),
+            txt: montarTextoOrcamentoWhatsappWizard()
+        };
+    }
+
+    function enviarOrcamentoWhatsappWizard() {
+        var prep = prepararEnvioOrcamentoWhatsapp();
+        if (!prep) return;
+        var telOk = prep.tel;
+        var txt = prep.txt;
         var pSave = salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
         var abrirZap = function (gravou) {
             renderRecentBudgetsSnippet();
@@ -4235,7 +4246,7 @@
             }
             showSaleDoneFeedback(
                 gravou
-                    ? 'Orçamento salvo em Orçamentos e enviado no WhatsApp.'
+                    ? 'Orçamento salvo em Orçamentos e aberto no WhatsApp do celular.'
                     : 'WhatsApp aberto. Orçamento pode não ter gravado — confira a lista.',
                 gravou ? 'success' : 'warn',
                 {
@@ -4248,6 +4259,71 @@
             pSave.then(abrirZap);
         } else {
             abrirZap(!!pSave);
+        }
+    }
+
+    function enviarOrcamentoWhatsappLojaWizard() {
+        var prep = prepararEnvioOrcamentoWhatsapp();
+        if (!prep) return;
+        var btn = dom.step1EnviarWhatsappLojaBtn;
+        if (btn) btn.disabled = true;
+        var pSave = salvarOrcamentoWizard({ fromWhatsapp: true, silent: true });
+        var mandar = function (gravou) {
+            renderRecentBudgetsSnippet();
+            return fetch('/api/atendimento-whatsapp/recurso-acao/', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken()
+                },
+                body: JSON.stringify({
+                    acao: 'orcamento',
+                    telefone: prep.tel,
+                    nome: prep.nome,
+                    texto: prep.txt
+                })
+            })
+                .then(function (r) {
+                    return r.json().catch(function () {
+                        return { ok: false, erro: 'Falha de rede' };
+                    });
+                })
+                .then(function (j) {
+                    if (!j || !j.ok) {
+                        showPdvAviso((j && j.erro) || 'Não enviou pelo Zap da loja.', {
+                            title: 'Zap loja',
+                            tone: 'error',
+                            prominent: true
+                        });
+                        return;
+                    }
+                    showSaleDoneFeedback(
+                        gravou
+                            ? 'Orçamento salvo e enviado pelo WhatsApp da loja.'
+                            : 'Enviado pelo Zap da loja. Orçamento pode não ter gravado na lista.',
+                        gravou ? 'success' : 'warn',
+                        {
+                            title: gravou ? 'Salvo e enviado' : 'Zap loja',
+                            placementTop: true
+                        }
+                    );
+                })
+                .catch(function () {
+                    showPdvAviso('Falha de rede ao enviar pelo Zap da loja.', {
+                        title: 'Rede',
+                        tone: 'error',
+                        prominent: true
+                    });
+                })
+                .finally(function () {
+                    if (btn) btn.disabled = false;
+                });
+        };
+        if (pSave && typeof pSave.then === 'function') {
+            pSave.then(mandar);
+        } else {
+            mandar(!!pSave);
         }
     }
 
@@ -14735,6 +14811,9 @@
         }
         if (dom.step1EnviarWhatsappBtn) {
             dom.step1EnviarWhatsappBtn.addEventListener('click', enviarOrcamentoWhatsappWizard);
+        }
+        if (dom.step1EnviarWhatsappLojaBtn) {
+            dom.step1EnviarWhatsappLojaBtn.addEventListener('click', enviarOrcamentoWhatsappLojaWizard);
         }
         if (dom.topbarEntregasBtn) {
             dom.topbarEntregasBtn.addEventListener('click', openEntregasPendentesModal);

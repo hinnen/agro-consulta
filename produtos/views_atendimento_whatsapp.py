@@ -799,12 +799,26 @@ def api_atendimento_whatsapp_recurso_acao(request):
         ok, err = acao_set_vip(conversa_id=cid, vip=bool(data.get("vip")), tags=tags)
     elif acao == "orcamento":
         if not recurso_on(cfg, "feat_orcamento_zap"):
-            return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
+            return JsonResponse(
+                {"ok": False, "erro": "Ligue «Orçamento no Zap» em Bot → Recursos."},
+                status=400,
+            )
         texto = str(data.get("texto") or "").strip()
-        if not texto or cid <= 0:
-            return JsonResponse({"ok": False, "erro": "Conversa e texto do orçamento."}, status=400)
+        if not texto:
+            return JsonResponse({"ok": False, "erro": "Texto do orçamento vazio."}, status=400)
+        if cid <= 0:
+            conv, err_ab = abrir_conversa_busca(
+                telefone=str(data.get("telefone") or ""),
+                nome=str(data.get("nome") or ""),
+                jid=str(data.get("jid") or ""),
+            )
+            if err_ab or conv is None:
+                return JsonResponse({"ok": False, "erro": err_ab or "Não achou o chat."}, status=400)
+            cid = int(conv.pk)
         m, err = enviar_loja(conversa_id=cid, texto=texto, autor=autor)
         ok, err = (m is not None and not err), (err or "")
+        if ok:
+            return JsonResponse({"ok": True, "conversa_id": cid})
     elif acao == "pedir_loja_aviso":
         if not recurso_on(cfg, "feat_pedir_loja_aviso"):
             return JsonResponse({"ok": False, "erro": "Recurso desligado (Bot → Recursos)."}, status=400)
