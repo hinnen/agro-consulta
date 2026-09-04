@@ -1274,12 +1274,13 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09 · tip **v22.45**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · tip **v22.43** | **NÃO** |
-| 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** · tip **v22.43** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** | **NÃO** |
+| 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
+| 3 | **PDV-CHAT-POLL-10S** | 🟡 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
 
@@ -1289,7 +1290,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **O quê** | `/fiado/`: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_fiado_limite_linha_path` **15/15** · recibos path **66/66** |
+| **Prova** | `verify_fiado_limite_linha_path` **40/40** (UI + util PG + API POST/negativo/404 + PIN 9973 + restore) · recibos **66/66** |
 | **Status** | 🟡 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 · Fiado · clique no Limite da linha · digite · Enter |
 
@@ -1310,9 +1311,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | | |
 | --- | --- |
 | **Sintoma** | Só Queila sem salário 08 (venc. 01/09); outros já tinham 08 |
-| **Causa** | Ficha OK (envio **28**, venc **1**). Robô `agro-rh-envio-cp-automatico` **não aparece** nos serviços Render — dia 28 não rodou. Os outros abriram 08 **na mão** antes do 28 (criado_em 01–21/08). |
+| **Causa** | Ficha OK (envio **28**, venc **1**). Robô `agro-rh-envio-cp-automatico` **não existia** no Render — dia 28 não rodou. Os outros abriram 08 **na mão** antes do 28. |
 | **Fix loja** | Folha **2026-08** Queila + título CP venc. **01/09** · R$ **1964,12** · status Aberto · id `6a9b2fe0…` |
-| **Pendente** | Criar/ligar o cron RH no Render (env da loja) pra não depender de abrir na mão |
+| **Cron** | Criado `crn-dadj0q6q1p3s73dsrd70` · agenda `15 6 * * *` UTC (~03:15 BR) · branch `producao` · **falta** Renan anexar o **mesmo Environment Group** da loja no painel (SECRET_KEY/DATABASE) e Trigger Run uma vez |
 
 ### WIP — PDV leve lentidão na **loja** · 04/09
 
