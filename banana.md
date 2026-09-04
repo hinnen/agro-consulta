@@ -615,7 +615,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Nova nota (21/07):** botÃ£o Â«NovaÂ» zera XML/cabeÃ§alho/financeiro/rateio â€” nÃ£o herda a nota anterior (autosave tambÃ©m).
 - **HistÃ³rico C1â€“C3 + NF (18/07):** C1â€“C3 = sÃ³ compras **anteriores**; a NF aberta **nÃ£o** entra (evitava parecer 2 notas: data entrada vs emissÃ£o).
 - **Vínculo XML (30/07 · v12.10):** tabela Postgres `EntradaNfeVinculoAgro` = fonte da verdade multi-PC; «Ler XML» reaproveita cProd (R0151…). Migrate `0069` · backfill `agro_backfill_c_prod_nf_entrada`.
-- **Financeiro desync (2026-06-19 / reforço 29/07):** título já em Contas a pagar mas etapa 7 laranja + «Salvar + a pagar» morto — rascunho perdeu `financeiro_lancado`. Fix: sync ao abrir · botão religa sem reabrir · API não gera 2º lote se achar NF · Reabrir estorna por rastro se ids sumiram. **Não** reabrir e confirmar tudo de novo (duplicava). Limpar duplicatas já feitas em Contas a pagar.
+- **Financeiro desync (2026-06-19 / reforço 29/07 / **04/09** `NF-FIN-MANUAL-RELIGA`):** título já no CP mas etapa 7 laranja + «Salvar + a pagar». Nota **manual** (sem chave XML) não casava. Abrir a nota religa; **não** gerar de novo se os títulos já existem.
 - **Reabrir → estoque de novo (03/08):** ao reabrir, estornar se houver status/`estoque_aplicado_em`/carimbo/`ajuste_ids` (não só `estoque_aplicado`). Autosave não ressuscita carimbo. Lista «reabrir» encerrada chama o mesmo estorno.
 - **Etapa 5 bloqueio falso (29/08 · `NF-ESTOQUE-BLOQUEIO-FALSO`):** confirmar 1–4 **não** é «finalizada com PIN»; caixa amarela só com PIN/financeiro/bucket concluída.
 - **Kardex ao reabrir (03/08):** reabrir **não apaga** a Entrada NF — grava saída `estorno_entrada_nf_agro` («Estorno NF (reabrir)»); ao concluir de novo, nova Entrada NF. `nf_qtd=` no ajuste para qtd confiável.
@@ -1263,6 +1263,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `producao` @ **`55e9b6b`** · v21.87 |
+| **Pacote** | `NF-FIN-MANUAL-RELIGA` — etapa 7 religa CP da nota digitada |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-nf-fin-manual-religa-v21.87` · branch `producao-backup-pre-v2188-nf-fin-manual-20260904` · `docs/ROLLBACK-NF-FIN-MANUAL-RELIGA-0409.md` |
+| **Você** | **Ctrl+F5** · badge **v21.88** · abrir a nota · laranja some · **não** Salvar CP de novo |
+
+### ✅ CHECKLIST ÚNICO — 04/09 · **Live v21.88**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `NF-FIN-MANUAL-RELIGA` | ✅ **Live v21.88** | **NÃO** |
+
+**Live agora:** **v21.88**. WhatsApp extra / PDV extra do `teste` **fora**.
 
 ### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
 

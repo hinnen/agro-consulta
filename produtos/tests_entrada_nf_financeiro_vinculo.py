@@ -1,15 +1,21 @@
 import copy
+import json
+from datetime import date
 from decimal import Decimal
+from types import SimpleNamespace
 from unittest.mock import patch
 
-from django.test import SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase
 
 from produtos.nfe_entrada_util import (
     _titulos_entrada_nfe_ids_do_rascunho,
+    obter_rascunho_entrada,
     sanear_carimbo_financeiro_falso_rascunho,
+    sincronizar_financeiro_rascunho_entrada_nfe,
     validar_vinculo_financeiro_entrada_nfe,
 )
 from produtos.tests_entrada_nf_reabertura_estoque import FakeCollection, RID, _doc
+from produtos.views import api_entrada_nota_financeiro
 
 
 def nota(ids=None):
@@ -47,6 +53,55 @@ def titulo(tid, nf="16266", valor="1070.20", venc="2026-09-09", cliente_id="forn
 
 
 class EntradaNfFinanceiroVinculoTests(SimpleTestCase):
+    def _nota_manual(self):
+        d = _doc({
+            "financeiro_ui": {
+                "parcelas_manual": [
+                    {"data_vencimento": "2026-09-10", "valor": "318.59"},
+                    {"data_vencimento": "2026-09-21", "valor": "318.59"},
+                    {"data_vencimento": "2026-09-30", "valor": "318.59"},
+                ]
+            },
+        }, status="encerrada")
+        d["extra"].pop("financeiro_lancado", None)
+        d["extra"].pop("financeiro_ids", None)
+        d["extra"].pop("financeiro_lote", None)
+        d["cabecalho"].update({
+            "numero": "51832423432",
+            "serie": "",
+            "emit_nome": "Sn - Pajaro",
+            "emit_fornecedor_id": "",
+            "emit_cnpj": "",
+            "chave": "",
+        })
+        titulos = [
+            titulo(
+                "pg-1",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 10),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+            titulo(
+                "pg-2",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 21),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+            titulo(
+                "pg-3",
+                nf="51832423432",
+                valor="318.59",
+                venc=date(2026, 9, 30),
+                cliente_id="",
+                cliente="Sn - Pajaro",
+            ),
+        ]
+        return d, titulos, ["pg-1", "pg-2", "pg-3"]
+
     def test_flag_verdadeira_com_id_inexistente(self):
         out = validar_vinculo_financeiro_entrada_nfe(nota(["sumiu"]), [], ["sumiu"])
         self.assertFalse(out["valido"])
@@ -109,3 +164,127 @@ class EntradaNfFinanceiroVinculoTests(SimpleTestCase):
         segunda = validar_vinculo_financeiro_entrada_nfe(doc, titulos, doc["extra"]["financeiro_ids"])
         self.assertTrue(primeira["valido"] and segunda["valido"])
         self.assertEqual(Decimal("1070.20") + Decimal("1070.20"), Decimal("2140.40"))
+
+    def test_nota_manual_sem_chave_casa_por_nf_e_nome(self):
+        """Bug loja: CP já lançado, etapa 7 laranja — nota manual perde chave/lote/flag."""
+        d, titulos, ids = self._nota_manual()
+        out = validar_vinculo_financeiro_entrada_nfe(d, titulos, ids)
+        self.assertTrue(out["valido"], out)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+        ):
+            self.assertEqual(_titulos_entrada_nfe_ids_do_rascunho(None, d), ids)
+
+    def test_sincronizar_religa_flag_sem_duplicar(self):
+        d, titulos, ids = self._nota_manual()
+        col = FakeCollection(d)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+        ):
+            out = sincronizar_financeiro_rascunho_entrada_nfe(None, RID, usuario="teste")
+        self.assertTrue(out["ok"])
+        self.assertTrue(out["sincronizado"])
+        self.assertEqual(out["ids"], ids)
+        self.assertTrue(col.doc["extra"].get("financeiro_lancado"))
+        self.assertEqual(col.doc["extra"].get("financeiro_ids"), ids)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=titulos),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+        ):
+            segunda = sincronizar_financeiro_rascunho_entrada_nfe(None, RID, usuario="teste")
+        self.assertTrue(segunda["ok"])
+        self.assertTrue(segunda["ja_marcado"])
+        self.assertFalse(segunda["sincronizado"])
+
+    def test_obter_rascunho_expõe_financeiro_lancado_apos_religa(self):
+        d, titulos, ids = self._nota_manual()
+        col = FakeCollection(d)
+        with (
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+            patch("produtos.nfe_entrada_util._enriquecer_linhas_gm_ean_catalogo", side_effect=lambda linhas: linhas),
+        ):
+            out = obter_rascunho_entrada(None, RID)
+        self.assertTrue(out["entrada_financeiro_lancado"])
+        self.assertEqual(out["extra"]["financeiro_ids"], ids)
+
+    def test_api_financeiro_religa_200_nao_insere(self):
+        d, titulos, ids = self._nota_manual()
+        col = FakeCollection(d)
+        factory = RequestFactory()
+        request = factory.post(
+            "/api/entrada-nota/financeiro/",
+            data=json.dumps(
+                {
+                    "rascunho_id": RID,
+                    "cabecalho": d["cabecalho"],
+                    "linhas": d["linhas"],
+                    "financeiro": {"data_competencia": "2026-09-03", "data_vencimento": "2026-09-10"},
+                }
+            ),
+            content_type="application/json",
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True, email="teste@local", pk=1, get_username=lambda: "teste"
+        )
+        with (
+            patch("produtos.views._entrada_nfe_conexao", return_value=(SimpleNamespace(col_c="DtoPessoa"), object())),
+            patch("produtos.views._entrada_nfe_rascunho_db_ok", return_value=True),
+            patch("produtos.views._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.views._object_id_rascunho", return_value=RID),
+            patch("produtos.views.normalizar_cabecalho_emit_fornecedor_entrada_nfe", side_effect=lambda db, colp, cab: cab),
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=titulos),
+            patch("produtos.lancamentos_financeiro_pg_write_util.inserir_lancamentos_manual_lote_dispatch") as inserir,
+        ):
+            response = api_entrada_nota_financeiro(request)
+        self.assertEqual(response.status_code, 200, response.content)
+        body = json.loads(response.content)
+        self.assertTrue(body["ok"])
+        self.assertTrue(body["financeiro"]["ok"])
+        self.assertEqual(body["financeiro"]["ids"], ids)
+        inserir.assert_not_called()
+
+    def test_api_financeiro_sem_titulo_continua_403(self):
+        d, _titulos, _ids = self._nota_manual()
+        col = FakeCollection(d)
+        factory = RequestFactory()
+        request = factory.post(
+            "/api/entrada-nota/financeiro/",
+            data=json.dumps(
+                {
+                    "rascunho_id": RID,
+                    "cabecalho": d["cabecalho"],
+                    "linhas": d["linhas"],
+                    "financeiro": {"data_competencia": "2026-09-03", "data_vencimento": "2026-09-10"},
+                }
+            ),
+            content_type="application/json",
+        )
+        request.user = SimpleNamespace(
+            is_authenticated=True, email="teste@local", pk=1, get_username=lambda: "teste"
+        )
+        with (
+            patch("produtos.views._entrada_nfe_conexao", return_value=(SimpleNamespace(col_c="DtoPessoa"), object())),
+            patch("produtos.views._entrada_nfe_rascunho_db_ok", return_value=True),
+            patch("produtos.views._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.views._object_id_rascunho", return_value=RID),
+            patch("produtos.views.normalizar_cabecalho_emit_fornecedor_entrada_nfe", side_effect=lambda db, colp, cab: cab),
+            patch("produtos.nfe_entrada_util._entrada_nota_rascunho_store", return_value=col),
+            patch("produtos.nfe_entrada_util._object_id_rascunho", return_value=RID),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_ids", return_value=[]),
+            patch("produtos.nfe_entrada_util._entrada_nfe_financeiro_titulos_por_rastro", return_value=[]),
+        ):
+            response = api_entrada_nota_financeiro(request)
+        self.assertEqual(response.status_code, 403)
+        self.assertIn("não achei conta a pagar", json.loads(response.content)["erro"])
