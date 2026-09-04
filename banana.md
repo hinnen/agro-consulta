@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1273,13 +1273,24 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09 · `ETQ-A6-BONUS`)
+### ✅ CHECKLIST ÚNICO — pronto para envio à produção (04/09)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **ETQ-A6-BONUS** | 🟢 **pronto para envio / aguarda senha** · `teste` **v22.39** | **NÃO** |
+| 1 | **ETQ-A6-BONUS** | 🟡 **pronto para envio à produção** · \	este\ **v22.34+** | **NÃO** |
+| 2 | **FIADO-LIMITE-LINHA** | 🟡 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** **v21.88**. Este pacote **ainda não** na loja.
+**Live agora:** **v21.88**. Fila acima **ainda não** na loja. Sobe **só** com frase + senha (cherry).
+
+### 📦 PACOTE PRONTO — Limite fiado na linha (\FIADO-LIMITE-LINHA\ · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | \/fiado/\: remove botão **Limite cliente**. Edita o limite **clicando no valor** da coluna Limite (por cliente). Enter grava · Esc cancela. |
+| **Migrate** | **NÃO** |
+| **Prova** | \erify_fiado_limite_linha_path\ **15/15** · recibos path **66/66** |
+| **Status** | 🟡 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · Fiado · clique no Limite da linha · digite · Enter |
 
 ### 📦 PACOTE PRONTO LOJA — Etiquetas A6 bônus (`ETQ-A6-BONUS` · **v22.39** · 04/09)
 
@@ -1297,11 +1308,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 | | |
 | --- | --- |
-| **Onde** | Produção sistvale (**v21.87**) — não PC local |
-| **Evidência Render ~16:33** | `chat-loja/lista` ~**100 hits / ~80s** · **~18** caixas/abas · quase metade `agro_dual` · Gunicorn **2 workers** |
-| **Patches de ontem** | Overlay/F8/fiado = só ao abrir · **não** explicam ping contínuo |
-| **Hipótese forte** | Poll Chat **4s** × N PDVs enfileira o servidor → venda “meio pesada” |
-| **Próximo** | Aliviar poll no `teste` (Renan autorizar) → loja só c/ senha |
+| **Onde** | Produção sistvale — Chat interno PDV (não WhatsApp) |
+| **Causa** | Poll `chat-loja` **4s** × N caixas engolia os **2** workers |
+| **Feito** | `PDV-CHAT-POLL-10S` — fechado **10s** · aberto **2,5s** · `teste` **v22.38** @ `84ea1bd` |
+| **Loja** | ainda **não** (precisa frase + senha) |
+| **Depois** | Excluir chat interno e tentar solução via WhatsApp (Renan 04/09) |
+
+### 📦 PACOTE PRONTO — Chat PDV poll 10s (`PDV-CHAT-POLL-10S` · **v22.38** · 04/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Menos ping com Chat fechado (10s). Aberto continua 2,5s. |
+| **Onde** | `pdv_chat_loja.js` |
+| **Migrate** | **NÃO** |
+| **Status** | 🟡 `teste` **v22.38** · **não** loja |
+| **Você** | Ctrl+F5 PDV · fechado: aviso até ~10s · aberto: rápido |
 
 ### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
