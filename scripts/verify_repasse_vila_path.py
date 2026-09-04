@@ -73,6 +73,7 @@ check("scripts/verify_repasse_reserva.py", "VERIFY_RESERVA_OK", "salvar_reserva_
 check("scripts/verify_caixa_fechar_repasse_path.py", "VERIFY_FECHAR_REPASSE_OK", "escopo=loja", "notifyParentFecharAtualizar")
 check("scripts/verify_repasse_cofrinho.py", "VERIFY_REPASSE_COFRINHO_OK", "registrar_saldo_inicial_cofrinho", "hoje acumula ontem+hoje = 200", "adiantar/separar a mais abate próximo dia", "fórmula lucro 200 → sal 100 · VE 50 · Centro 50")
 check("scripts/verify_repasse_pdv_overlay_path.py", "VERIFY_REPASSE_PDV_OVERLAY_OK", "focusSoon", "pdv-rp-quem-modal", "Levar ao Centro", "tryConfirmarFlow", "formaPag = 'Dinheiro'", "grid-template-columns", "pdv-rp-input-cofre-sal")
+check("scripts/verify_repasse_zero_ok_path.py", "VERIFY_REPASSE_ZERO_OK_PATH_OK", "if vm == 0:", "zeroSeVazio", "PIN 9973", "Nada a levar")
 
 print(f"checks_ok={oks} fails={len(fails)}")
 for f in fails:
