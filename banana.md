@@ -1273,23 +1273,35 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
 
-### 📦 PACOTE PRONTO — religa CP da nota manual (`NF-FIN-MANUAL-RELIGA` · **v22.30**)
+### WIP — PDV leve lentidão na **loja** · 04/09
+
+| | |
+| --- | --- |
+| **Onde** | Produção sistvale (**v21.87**) — não PC local |
+| **Evidência Render ~16:33** | `chat-loja/lista` ~**100 hits / ~80s** · **~18** caixas/abas · quase metade `agro_dual` · Gunicorn **2 workers** |
+| **Patches de ontem** | Overlay/F8/fiado = só ao abrir · **não** explicam ping contínuo |
+| **Hipótese forte** | Poll Chat **4s** × N PDVs enfileira o servidor → venda “meio pesada” |
+| **Próximo** | Aliviar poll no `teste` (Renan autorizar) → loja só c/ senha |
+
+### ✅ Deploy loja — religa CP nota manual (`NF-FIN-MANUAL-RELIGA` · **v21.88**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Nota **digitada** já no Contas a pagar, etapa 7 laranja + **Salvar + a pagar** |
-| **Prova** | `scripts/verify_nf_fin_manual_religa_path.py` **VERIFY_OK 4/4** · django vínculo **12/12** |
+| **Status** | ✅ **enviado / Live v21.88** — cherry só este pacote (**não** merge `teste`) · commit **`9266ca8`** / tip **`329f9b5`** |
+| **Antes** | `producao` @ **`55e9b6b`** · v21.87 |
+| **Agora** | `producao` @ **`329f9b5`** |
+| **Pacote** | `NF-FIN-MANUAL-RELIGA` — etapa 7 religa CP da nota digitada |
 | **Migrate** | **NÃO** |
-| **Não** | Clicar Salvar CP de novo se os títulos já existem |
-| **Você** | Ctrl+F5 · abrir a nota · o laranja some sozinho |
+| **Rollback** | tag `rollback/pre-nf-fin-manual-religa-v21.87` · branch `producao-backup-pre-v2188-nf-fin-manual-20260904` · `docs/ROLLBACK-NF-FIN-MANUAL-RELIGA-0409.md` |
+| **Você** | **Ctrl+F5** · badge **v21.88** · abrir a nota · laranja some · **não** Salvar CP de novo |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (04/09 · tip **v22.30**)
+### ✅ CHECKLIST ÚNICO — 04/09 · **Live v21.88**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `NF-FIN-MANUAL-RELIGA` | 📦 **pronto para envio** | **NÃO** |
+| 1 | `NF-FIN-MANUAL-RELIGA` | ✅ **Live v21.88** | **NÃO** |
 
-**Não sobe junto:** WhatsApp extra / PDV extra do `teste`. Loja continua **v21.87** até frase + senha.
+**Live agora:** **v21.88**. WhatsApp extra / PDV extra do `teste` **fora**.
 
 ### ✅ Deploy loja — Repasse sem vidro (`REPASSE-STACK-NEST` · **v21.87**) · **Live**
 
