@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.http import HttpResponse
+from django.shortcuts import redirect
 from django.urls import path, include
 from estoque import views as estoque_views
 
@@ -7,6 +8,14 @@ from estoque import views as estoque_views
 def healthz(_request):
     """Resposta mínima para health check do Render (evita GET / pesado no cold start)."""
     return HttpResponse("ok", content_type="text/plain; charset=utf-8")
+
+
+def admin_login_redirect(request):
+    """Admin feio → tela GM Agro Mais (/entrar/), preservando ?next=."""
+    nxt = (request.GET.get("next") or "").strip()
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        return redirect(f"/entrar/?next={nxt}")
+    return redirect("/entrar/")
 
 
 urlpatterns = [
@@ -17,7 +26,9 @@ urlpatterns = [
     path("api/transferencias/", include("transferencias.api.urls")),
     path("pdv/", include("pdv.urls")),
     # Raiz ``/``: ``produtos.urls`` define ``home`` → dashboard gerencial (MPA BI + launchpad).
-    path('', include('produtos.urls')), 
+    path('', include('produtos.urls')),
+    # Antes de admin.site: login do Admin vira a tela da loja.
+    path("admin/login/", admin_login_redirect, name="admin_login_redirect"),
     path('admin/', admin.site.urls),
     path('estoque/api_sugestoes_transferencia/', estoque_views.api_sugestoes_transferencia, name='api_sugestoes_transferencia'),
     path('estoque/api_salvar_config_transferencia/', estoque_views.api_salvar_config_transferencia, name='api_salvar_config_transferencia'),
