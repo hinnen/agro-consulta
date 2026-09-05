@@ -1628,6 +1628,21 @@
       ) {
         return;
       }
+      var ponteOff = !!(
+        $('wa-status') &&
+        String(($('wa-status').textContent || '').trim()).toLowerCase() === 'off'
+      );
+      if (ponteOff) {
+        window.alert(
+          'A ponte está OFF (janela preta fechada).\n\n' +
+            '1) Feche qualquer iniciar.bat\n' +
+            '2) Apague a pasta whatsapp_atendimento\\auth\n' +
+            '3) Abra de novo SÓ UM iniciar.bat\n' +
+            '4) Volte aqui e leia o QR / código\n\n' +
+            'O botão Trocar Zap só funciona com a janela preta ligada.'
+        );
+        return;
+      }
       btnTrocar.disabled = true;
       fetchJson('/api/atendimento-whatsapp/trocar/', {
         method: 'POST',
@@ -1639,8 +1654,15 @@
             window.alert((j && j.erro) || 'Não desligou. Ponte ligada?');
             return;
           }
+          window.alert(
+            'Pedido enviado à ponte.\nEm alguns segundos some o Online e aparece QR/código.\nSe nada mudar, feche o iniciar.bat, apague a pasta auth e ligue de novo.'
+          );
           window.setTimeout(carregarEstado, 1200);
           window.setTimeout(carregarEstado, 3500);
+          window.setTimeout(carregarEstado, 8000);
+        })
+        .catch(function () {
+          window.alert('Falha de rede ao trocar o Zap.');
         })
         .finally(function () {
           btnTrocar.disabled = false;
