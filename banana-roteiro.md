@@ -365,3 +365,23 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: enviado / Live v21.89.** `producao` @ `4910c79`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` @ `329f9b5` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md` · **só** frase+senha.  
 **Smoke:** healthz ok · badge **v21.89** · Ctrl+F5. **Fora:** Excel cadastro · WhatsApp extra.
+
+---
+
+## 21. Checklist único — lote 05/09g (`deploy/prep-checklist-0509g` · alvo loja **v21.91**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-TABELA-FORMA** | 🟢 **PREP** · aguarda senha | **NÃO** |
+| 2 | **REPASSE-ZERO-OK** | 🟢 **PREP** | **NÃO** |
+| 3 | **PDV-VALE-SALDO-LIVE** | 🟢 **PREP** | **NÃO** |
+| 4 | **MP-POINT-FINAL-PIN** | 🟢 **PREP** | **NÃO** |
+| 5 | **PDV-VALE-USADO** | 🟢 **PREP** | **NÃO** |
+| 6 | **PDV-ORC-LISTA-LIVE** | 🟢 **PREP** | **NÃO** |
+| 7 | **WA-LISTA-SEM-PISCA** | 🟢 **PREP** | **NÃO** |
+| 8 | **WA-FACHONA-PRETA** | 🟢 **PREP** · **9/9** | **NÃO** |
+| 9 | **WA-PIN-COMPOSER** | 🟢 **PREP** | **NÃO** |
+| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | 🟢 **PREP** | **SIM** `0126` |
+
+**Status: PREP / aguarda senha.** Live ainda **v21.90** @ `aaff41d`. **Não** merge `teste`. **Não** ligar ponte Zap.  
+**Rollback:** tag `rollback/pre-lote-checklist-0509g-v21.90` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.

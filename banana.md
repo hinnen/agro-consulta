@@ -1333,22 +1333,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.86**)
+### 🟢 CHECKLIST ÚNICO — PREP pronto / aguarda senha (05/09g · loja alvo **v21.91**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `PDV-VALE-SALDO-LIVE` (#15) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 4 | `MP-POINT-FINAL-PIN` (#11) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 5 | `PDV-VALE-USADO` (#16) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 6 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 7 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 8 | `WA-FACHONA-PRETA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 9 | `WA-PIN-COMPOSER` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | 🟢 **pronto para envio à produção** | **SIM** `0126` |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | 🟢 **PREP** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **PREP** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` (#15) | 🟢 **PREP** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (#11) | 🟢 **PREP** · PREP **39/39** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (#16) | 🟢 **PREP** | **NÃO** |
+| 6 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **PREP** | **NÃO** |
+| 7 | `WA-LISTA-SEM-PISCA` | 🟢 **PREP** | **NÃO** |
+| 8 | `WA-FACHONA-PRETA` | 🟢 **PREP** · **9/9** | **NÃO** |
+| 9 | `WA-PIN-COMPOSER` | 🟢 **PREP** | **NÃO** |
+| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | 🟢 **PREP** | **SIM** `0126` |
 
-**Live agora:** **v21.90**. **Ainda fora** os da tabela — sobem juntos com frase+senha.
+**Live agora:** **v21.90**. PREP: `deploy/prep-checklist-0509g` @ **v21.91**. **Não** merge `teste`. Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.  
+**PDV:** F7 balcão **igual**. **Não** ligar `.bat` do Zap neste deploy (lento).
 
 ### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
 
