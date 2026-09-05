@@ -675,6 +675,36 @@
     );
   }
 
+  /**
+   * App Chrome instalado (PDV): se a janela caiu numa tela fora do balcão
+   * (ex. WhatsApp), o Chrome mostra faixa preta «fora do escopo».
+   * Avisa a Gestão para abrir a tela e devolve este atalho ao /pdv/.
+   */
+  function healPdvAppOutOfScope() {
+    if (inEmbed() || inPdvOverlayFrame()) return;
+    if (!isStandaloneApp() && readAppRole() !== 'pdv') return;
+    if (!isPdvHost()) return;
+    if (isPdvPath()) return;
+    if (isWhatsAppCelularPath()) return;
+    var here = '';
+    try {
+      here = String(location.href || '').split('#')[0];
+    } catch (_) {
+      here = '';
+    }
+    if (!here) return;
+    try {
+      pulseGestaoFocus(here);
+    } catch (_) {}
+    try {
+      location.replace(pdvUrl('/pdv/?agro_dual=1&agro_app_role=pdv'));
+    } catch (_) {
+      try {
+        location.href = pdvUrl('/pdv/?agro_dual=1&agro_app_role=pdv');
+      } catch (_) {}
+    }
+  }
+
   readAppRole();
   assignWindowName();
   installCrossAppFocusListeners();
@@ -683,6 +713,9 @@
   installPdvLinkRouter();
   installPdvOverlayBridge();
   installGestaoAppGuard();
+  try {
+    healPdvAppOutOfScope();
+  } catch (_) {}
 
   window.AgroDualWindow = {
     PDV_NAME: PDV_NAME,

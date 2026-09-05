@@ -1276,6 +1276,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Some faixa preta Chrome no Zap (`WA-FACHONA-PRETA` · **v22.71** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Faixa preta URL/título = Chrome «fora do escopo» do app PDV. Zap não navega mais o endereço do atalho; se cair fora, volta ao balcão e manda a tela pra Gestão. |
+| **Onde** | `pdv_topbar_whatsapp.js` · `agro_dual_window.js` · `_agro_open_external.html` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_fachona_preta_path.py` **VERIFY_OK 9/9** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · se a faixa ainda estiver aí, clica o **×** nela · abre Zap pelo **Z** na Gestão (não pelo atalho PDV) |
+
 ### 📦 PACOTE PRONTO — Lista WA sem piscada (`WA-LISTA-SEM-PISCA` · **v22.69** · 05/09)
 
 | Campo | Valor |
@@ -1287,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 no Zap · olha a lista ~10s sem piscada |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09d · tip **v22.69**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09e · tip **v22.71**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1297,6 +1308,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
 | 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
 | 6 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 7 | `WA-FACHONA-PRETA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 8 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **pronto para envio à produção** | **NÃO** |
 
 **Live agora:** **v21.90**. **Ainda fora** os da tabela.
 
@@ -1330,7 +1343,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
 | **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
 | **Estado** | Zap loja **off** de propósito até aliviar carga (`WA-PONTE-LEVE` — pendente) · plano Render **US$ 25** em avaliação |
-| **UI** | `WA-LISTA-SEM-PISCA` · **v22.69** · 🟢 pronto envio (prova 27/27) |
+| **UI** | `WA-LISTA-SEM-PISCA` · **v22.69** · `WA-FACHONA-PRETA` · **v22.71** · 🟢 pronto envio |
 | **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
 
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
