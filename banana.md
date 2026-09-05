@@ -1277,6 +1277,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE PRONTO — Trocar Zap com ponte OFF (WA-TROCAR-FEED · **v22.94** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Botão Trocar Zap sumia na CSS (ficava clicável com Off) e ao confirmar não avisava. Agora some de verdade com Off; se clicar, explica apagar pasta auth; com ponte ON, confirma o pedido. |
+| **Onde** | _wa_skin.html · tendimento_whatsapp.js |
+| **Migrate** | **NÃO** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 · se Off, **não** use Trocar — apague whatsapp_atendimento\\auth e religue o .bat |
+
 ### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.93** · 05/09)
 
 | Campo | Valor |
@@ -1288,7 +1298,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** (teste **v22.93**) |
 | **Você** | Ctrl+F5 · Novo lançamento · preencher demorado · **Finalizar** → teclado PIN → grava |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.93**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.94**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
