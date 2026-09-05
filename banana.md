@@ -1366,17 +1366,15 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 PDV **Repasse** · 1–2 campos em 0,00 · Confirmar |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.64**)
+### ~~✅ CHECKLIST ÚNICO — pronto envio (04/09c · tip **v22.64**)~~ · **superado — ver tip 05/09 v22.66**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
-
-**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro · **bug #13 troca** (não existe pacote) · **BI-DEVOL** já Live (não sobe de novo).
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 ver tip **05/09** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 ver tip **05/09** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 ver tip **05/09** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 ver tip **05/09** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 ver tip **05/09** | **NÃO** |
 
 ### ✅ RH — Queila 08 + cron envio CP (`RH-CRON-ENVIO` · **v22.53** · 04/09)
 
