@@ -1321,7 +1321,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09f · tip **v22.74**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09f · tip **v22.75**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
