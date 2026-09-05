@@ -393,11 +393,11 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **LANC-PIN-TECLADO** | ⏳ PREP · prova **70/70** | **NÃO** |
-| 2 | **WA-TROCAR-FEED** | ⏳ PREP · contrato WA **10/10** | **NÃO** |
-| 3 | **WA-TOPBAR-OVERLAY** | ⏳ PREP · contrato WA **10/10** | **NÃO** |
+| 1 | **LANC-PIN-TECLADO** | ✅ **Live v21.93** | **NÃO** |
+| 2 | **WA-TROCAR-FEED** | ✅ **Live v21.93** | **NÃO** |
+| 3 | **WA-TOPBAR-OVERLAY** | ✅ **Live v21.93** | **NÃO** |
 
-**Status: PREP pronto — aguarda frase+senha.** Branch `deploy/prep-checklist-0509h` @ tip **v21.93**. Base loja **v21.92** (`041e1b5`).  
+**Status: enviado / Live v21.93.** `producao` @ `8884c9c`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0509h-v21.92` @ `041e1b5` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha.  
-**Smoke (após senha):** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.  
-**Não sobe:** merge `teste` · Excel · resto ponte foto/agenda.
+**Smoke:** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.  
+**Não subiu:** merge `teste` · Excel · resto ponte foto/agenda.

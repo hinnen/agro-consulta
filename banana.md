@@ -1277,26 +1277,48 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha
+### ✅ Deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | ⏳ **PREP pronto** — **não** enviado · tip aguarda frase+senha |
-| **Base loja** | Live **v21.92** @ `041e1b5` |
+| **Status** | ✅ **enviado / Live v21.93** — cherry só o lote (**não** merge `teste`) · tip **`8884c9c`** |
+| **Antes** | `producao` @ **`041e1b5`** · v21.92 |
+| **Agora** | `producao` @ **`8884c9c`** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra |
+
+### ✅ CHECKLIST ÚNICO — 05/09h · **Live v21.93**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `LANC-PIN-TECLADO` | ✅ **Live v21.93** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | ✅ **Live v21.93** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | ✅ **Live v21.93** | **NÃO** |
+
+**Live agora:** **v21.93**. Excel cadastro / resto do `teste` **fora**.
+
+### ~~🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha~~ · **Live v21.93**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v21.93** — tip **`8884c9c`** |
+| **Base loja** | era Live **v21.92** @ `041e1b5` |
 | **Branch PREP** | `deploy/prep-checklist-0509h` @ `8884c9c` |
 | **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` |
 | **Migrate** | **NÃO** |
 | **Provas** | LANC **70/70** · WA contrato **10/10** · PDV wizard/caixa/views_pdv **intocados** |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)~~ · **Live v21.93**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `LANC-PIN-TECLADO` | 🟢 **pronto / no PREP** | **NÃO** |
-| 2 | `WA-TROCAR-FEED` | 🟢 **pronto / no PREP** | **NÃO** |
-| 3 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto / no PREP** | **NÃO** |
+| 1 | `LANC-PIN-TECLADO` | ✅ **Live v21.93** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | ✅ **Live v21.93** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | ✅ **Live v21.93** | **NÃO** |
 
-**Live agora:** **v21.92**. Este lote **só sobe** com frase + senha no próximo chat (pausar vendas ~2 min).
+**Live agora:** **v21.93**. Este lote **subiu** com frase + senha (05/09 noite).
+
 
 
 
@@ -1307,7 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | No painel GM do balcão: some a 2ª faixa do Zap; bolinha + número + Trocar + Bot sobem para a barra junto do Fechar. |
 | **Onde** | `agro_pdv_overlay.js` · `atendimento_whatsapp.js` · `_wa_skin.html` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP 0509h** (aguarda senha) |
+| **Status** | ✅ **Live v21.93** |
 | **Você** | Ctrl+F5 no PDV · abre Zap · 1 barra só |
 
 ### 📦 PACOTE PRONTO — Trocar Zap com ponte OFF (WA-TROCAR-FEED · **v22.94** · 05/09)
@@ -1315,9 +1337,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Botão Trocar Zap sumia na CSS (ficava clicável com Off) e ao confirmar não avisava. Agora some de verdade com Off; se clicar, explica apagar pasta auth; com ponte ON, confirma o pedido. |
-| **Onde** | _wa_skin.html · tendimento_whatsapp.js |
+| **Onde** | _wa_skin.html · atendimento_whatsapp.js |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **no PREP 0509h** (aguarda senha) |
+| **Status** | ✅ **Live v21.93** |
 | **Você** | Ctrl+F5 · se Off, **não** use Trocar — apague whatsapp_atendimento\\auth e religue o .bat |
 
 ### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.93** · 05/09)
@@ -1328,14 +1350,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | lancamentos_pin_entrada · Novo lançamento · Contas a pagar · Contas a receber |
 | **Migrate** | **NÃO** |
 | **Prova** | scripts/verify_lanc_pin_teclado_path.py **VERIFY_OK 70/70** (static · gate · PIN **9973** Renan · APIs 403/fresco · HTML teclado) |
-| **Status** | 🟢 **no PREP 0509h** (aguarda senha) · prova 70/70 |
+| **Status** | ✅ **Live v21.93** |
 | **Você** | Ctrl+F5 · Novo lançamento · preencher demorado · **Finalizar** → teclado PIN → grava |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.94**)
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.94**)~~ · **superado — ver PREP 0509h**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | LANC-PIN-TECLADO | 🟢 **pronto para envio à produção** | **NÃO** |
+| 1 | LANC-PIN-TECLADO | 🟢 **no PREP 0509h** | **NÃO** |
 
 
 ### 📦 PACOTE PRONTO — Saudação completa + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · **v22.86** · 05/09)
