@@ -1285,8 +1285,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | model+migrate `0126` · util · views/urls · WA web/celular · bot HTML/JS/config |
 | **Migrate** | **SIM** `produtos.0126_whatsapp_conversa_arquivada` |
 | **Prova** | `scripts/verify_wa_arquivo_saudacao_path.py` **VERIFY_OK 82/82** (contratos · ORM · Client PIN 9973 · HTML) |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Local: migrate · Ctrl+F5 Zap · ✓ some da fila · Resolvidas · Reabrir · Bot Saudação/Arquivo |
+| **Status** | ✅ **Live v21.91** |
+| **Você** | Ctrl+F5 Zap (quando religar) · ✓ some da fila · Resolvidas · Reabrir · Bot Saudação/Arquivo |
 
 ### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.83** · 05/09)
 
@@ -1296,7 +1296,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Visual** | Card claro · campo cede espaço · sem amontoar |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_wa_pin_composer_path.py` **VERIFY_OK 13/13** (fonte + Client PIN **9973** Renan · `_autor_wa` troca · web/celular 200) |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.91** |
 | **Você** | Ctrl+F5 Zap · card **Quem** · clicar · trocar PIN · enviar |
 
 ### 📦 PACOTE PRONTO — Some faixa preta Chrome no Zap (`WA-FACHONA-PRETA` · **v22.71** · 05/09)
@@ -1307,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `pdv_topbar_whatsapp.js` · `agro_dual_window.js` · `_agro_open_external.html` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_wa_fachona_preta_path.py` **VERIFY_OK 9/9** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.91** |
 | **Você** | Ctrl+F5 · se a faixa ainda estiver aí, clica o **×** nela · abre Zap pelo **Z** na Gestão (não pelo atalho PDV) |
 
 ### 📦 PACOTE PRONTO — Lista WA sem piscada (`WA-LISTA-SEM-PISCA` · **v22.69** · 05/09)
@@ -1318,7 +1318,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `/atendimento-whatsapp/` · `atendimento_whatsapp.js` |
 | **Migrate** | **NÃO** |
 | **Prova** | `scripts/verify_wa_lista_sem_pisca_path.py` **VERIFY_OK 27/27** (JS + lógica src + PIN 9973 Client) |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | ✅ **Live v21.91** |
 | **Você** | Ctrl+F5 no Zap · olha a lista ~10s sem piscada |
 
 ### 📦 PACOTE PRONTO — Orçamento lista após salvar (`PDV-ORC-LISTA-LIVE` · **v22.70** · 05/09)
@@ -1330,7 +1330,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Memória no PDV + limpa cota · após OK **repuxa servidor** · ordena por id · data BR antes do `Date` · sem URL **não** mente verde |
 | **Migrate** | **NÃO** |
 | **Prova** | `verify_pdv_orc_lista_live_path` **28/28** (PIN 9973 Renan · POST R$1,30 · GET lista · PG) · `verify_pdv_orcamento_save` **74/74** |
-| **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
+| **Status** | ✅ **Live v21.91** |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
 ### ✅ Deploy loja — lote checklist 05/09g (`deploy/prep-checklist-0509g` · **v21.91**) · **Live**
