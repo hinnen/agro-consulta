@@ -26380,7 +26380,7 @@ def api_login_mobile(request):
         request.session["ajuste_mobile_operador"] = (operador or "")[:120]
         perfil = (
             PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin)
+            .filter(senha_rapida=pin, ativo=True)
             .first()
         )
         uid = getattr(getattr(perfil, "user", None), "pk", None) if perfil else None
@@ -26587,7 +26587,7 @@ def api_ajustar_estoque(request):
     if pin and pin != "SESSAO":
         perfil_pin = (
             PerfilUsuario.objects.select_related("user")
-            .filter(senha_rapida=pin)
+            .filter(senha_rapida=pin, ativo=True)
             .first()
         )
     sessao_ajuste = bool(
@@ -26697,7 +26697,7 @@ def _autorizar_pin_ajuste_request(request) -> tuple[bool, str]:
             return True, ""
         return False, "Sessão de ajuste expirada. Digite o PIN."
     perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin).only("id").first()
+        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).only("id").first()
     )
     if perfil is not None:
         return True, ""

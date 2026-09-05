@@ -104,7 +104,7 @@ def _rotulo_usuario_pin(pin):
     if not pin or pin == "1234":
         return ""
     perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
+        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
         .select_related("user")
         .first()
     )
@@ -167,7 +167,7 @@ def _transferir_entre_depositos_exec(
     if not pular_validacao_pin:
         if pin == "1234":
             return {"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN.", "status": 403}
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return {"ok": False, "erro": "PIN incorreto.", "status": 403}
 
     origem = (origem or "vila").strip().lower()
@@ -412,48 +412,29 @@ def api_buscar_produtos(request):
 @require_GET
 def api_listar_usuarios(request):
     try:
-        perfis = PerfilUsuario.objects.all()
-        
-        # Trava de sobrevivência: Se o Render apagar o banco, cria um usuário automaticamente
-        if not perfis.exists():
+        from base.operador_util import listar_operadores
+
+        incluir_inativos = str(request.GET.get("incluir_inativos") or "").strip() in (
+            "1",
+            "true",
+            "sim",
+        )
+        lista = listar_operadores(incluir_inativos=incluir_inativos)
+        # Compatível com screensaver / telas antigas (só ativos na prática)
+        if not incluir_inativos and not lista:
             from django.contrib.auth.models import User
-            user, _ = User.objects.get_or_create(username='caixa', defaults={'first_name': 'Caixa', 'is_staff': True})
-            PerfilUsuario.objects.get_or_create(user=user, codigo_vendedor='0001', defaults={'senha_rapida': '1234'})
-            perfis = PerfilUsuario.objects.all()
 
-        lista = []
-        for p in perfis:
-            # Tenta descobrir o nome amigável do usuário atrelado ao perfil
-            nome = "Usuário Desconhecido"
-            if hasattr(p, 'user') and p.user:
-                nome = f"{p.codigo_vendedor} - {p.user.get_full_name() or p.user.username}"
-            elif hasattr(p, 'nome'):
-                nome = p.nome
-            else:
-                nome = str(p)
-            pin_raw = (getattr(p, "senha_rapida", None) or "").strip()
-            pin_personalizado = bool(pin_raw) and pin_raw != "1234"
-            nome_curto = ""
-            if hasattr(p, "user") and p.user:
-                from produtos.caixa_util import rotulo_usuario_django
-
-                nome_curto = rotulo_usuario_django(p.user)
-            if not nome_curto:
-                nome_curto = nome
-            lista.append(
-                {
-                    "id": p.id,
-                    "nome": nome,
-                    "nome_curto": nome_curto,
-                    "pin_personalizado": pin_personalizado,
-                }
+            user, _ = User.objects.get_or_create(
+                username="caixa", defaults={"first_name": "Caixa", "is_staff": True}
             )
-        
-        # Ordena a lista em ordem alfabética para facilitar
-        lista.sort(key=lambda x: x['nome'])
-        return JsonResponse({'ok': True, 'usuarios': lista})
+            PerfilUsuario.objects.get_or_create(
+                user=user,
+                defaults={"codigo_vendedor": "0001", "senha_rapida": "1234", "ativo": True},
+            )
+            lista = listar_operadores(incluir_inativos=False)
+        return JsonResponse({"ok": True, "usuarios": lista})
     except Exception as exc:
-        return JsonResponse({'ok': False, 'erro': f'Erro: {exc}'}, status=500)
+        return JsonResponse({"ok": False, "erro": f"Erro: {exc}"}, status=500)
 
 @require_POST
 @csrf_protect
@@ -494,12 +475,16 @@ def api_definir_pin_rh(request):
             return JsonResponse({'ok': False, 'erro': 'Escolha um PIN diferente de 1234.'}, status=400)
 
         try:
-            perfil = PerfilUsuario.objects.get(id=perfil_id)
+            perfil = PerfilUsuario.objects.get(id=perfil_id, ativo=True)
         except PerfilUsuario.DoesNotExist:
-            return JsonResponse({'ok': False, 'erro': 'Perfil não encontrado.'}, status=404)
+            return JsonResponse({'ok': False, 'erro': 'Perfil não encontrado ou inativo.'}, status=404)
+
+        if PerfilUsuario.objects.filter(senha_rapida=novo_pin, ativo=True).exclude(pk=perfil.pk).exists():
+            return JsonResponse({'ok': False, 'erro': 'Este PIN já está em uso. Escolha outro.'}, status=400)
 
         perfil.senha_rapida = novo_pin
-        perfil.save()
+        perfil.primeiro_acesso = False
+        perfil.save(update_fields=["senha_rapida", "primeiro_acesso"])
 
         return JsonResponse({'ok': True, 'mensagem': 'PIN atualizado com sucesso.'})
     except Exception as exc:
@@ -666,7 +651,7 @@ def api_transferir_lote_vila_para_centro(request):
         except ValueError:
             return JsonResponse({"ok": False, "erro": "lote_uuid inválido."}, status=400)
 
-        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
 
         linhas_raw = list(
@@ -761,7 +746,7 @@ def api_transferir_forcado_vila_para_centro(request):
         if not isinstance(data, dict):
             data = {}
         pin = str(data.get("pin") or "").strip()
-        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if pin == "1234" or not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto ou bloqueado."}, status=403)
 
         direcao = str(data.get("direcao") or "vila_centro").strip().lower().replace("-", "_").replace("→", "_")
@@ -1244,7 +1229,7 @@ def api_salvar_config_transferencia(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
@@ -1406,7 +1391,7 @@ def api_atualizar_pedido_transferencia(request):
         pin = str(data.get("pin") or "").strip()
         if pin == "1234":
             return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
@@ -1439,7 +1424,7 @@ def api_adicionar_pedido_transferencia(request):
         pin = str(data.get("pin") or "").strip()
         if pin == "1234":
             return JsonResponse({"ok": False, "erro": "Senha padrão (1234) bloqueada. Troque seu PIN."}, status=403)
-        if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+        if not PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).exists():
             return JsonResponse({"ok": False, "erro": "PIN incorreto."}, status=403)
 
         produto_id = str(data.get("produto_id") or "").strip()[:100]
@@ -1527,7 +1512,7 @@ def api_importar_planilha_transferencia(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
@@ -1656,7 +1641,7 @@ def api_atualizar_medias(request):
         pin = request.POST.get('pin', '').strip()
         if pin == '1234':
             return JsonResponse({'ok': False, 'erro': 'Senha padrão (1234) bloqueada. Troque seu PIN.'}, status=403)
-        perfil = PerfilUsuario.objects.filter(senha_rapida=pin).first()
+        perfil = PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True).first()
         if not perfil:
             return JsonResponse({'ok': False, 'erro': 'PIN INCORRETO'}, status=403)
 
