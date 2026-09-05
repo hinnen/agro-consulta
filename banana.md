@@ -1264,6 +1264,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+﻿### 🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ⏳ **PREP pronto** — **não** enviado · tip aguarda frase+senha |
+| **Base loja** | Live **v21.92** @ `041e1b5` |
+| **Branch PREP** | `deploy/prep-checklist-0509h` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` |
+| **Migrate** | **NÃO** |
+| **Provas** | LANC **70/70** · WA contrato **10/10** · PDV wizard/caixa/views_pdv **intocados** |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `LANC-PIN-TECLADO` | 🟢 **pronto / no PREP** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | 🟢 **pronto / no PREP** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto / no PREP** | **NÃO** |
+
+**Live agora:** **v21.92**. Este lote **só sobe** com frase + senha no próximo chat (pausar vendas ~2 min).
+
+
 ### 🟢 PREP — lote checklist 05/09g (`deploy/prep-checklist-0509g` · alvo loja **v21.91**) · aguarda senha
 
 | Campo | Valor |
