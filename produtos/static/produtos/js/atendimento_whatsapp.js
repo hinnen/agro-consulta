@@ -9,7 +9,7 @@
   var separarLojas = true;
   try {
     var tabSalva = localStorage.getItem(TAB_KEY);
-    if (tabSalva === 'centro' || tabSalva === 'vila' || tabSalva === 'pendente') loja = tabSalva;
+    if (tabSalva === 'centro' || tabSalva === 'vila' || tabSalva === 'pendente' || tabSalva === 'arquivadas' || tabSalva === 'todas') loja = tabSalva;
   } catch (e) {}
   var convId = 0;
   var convLoja = '';
@@ -26,6 +26,7 @@
   var convTel = '';
   var convNome = '';
   var convFoto = '';
+  var convArquivada = false;
   var ST_VISTOS_KEY = 'agro_wa_status_vistos_v1';
   var listaCache = [];
   var recursosWa = {};
@@ -221,13 +222,25 @@
 
   function pintarBadges(n) {
     n = n || {};
-    ['pendente', 'centro', 'vila'].forEach(function (k) {
+    var somaAtivas =
+      (parseInt(n.pendente || 0, 10) || 0) +
+      (parseInt(n.centro || 0, 10) || 0) +
+      (parseInt(n.vila || 0, 10) || 0);
+    n.todas = somaAtivas;
+    ['pendente', 'centro', 'vila', 'arquivadas', 'todas'].forEach(function (k) {
       var el = document.querySelector('[data-badge="' + k + '"]');
       if (!el) return;
       var v = parseInt(n[k] || 0, 10) || 0;
       el.textContent = String(v);
       el.classList.toggle('is-zero', v === 0);
     });
+  }
+
+  function pintarAcoesArquivo() {
+    var ok = $('wa-ok');
+    var reb = $('wa-reabrir');
+    if (ok) ok.classList.toggle('hidden', !!convArquivada);
+    if (reb) reb.classList.toggle('hidden', !convArquivada);
   }
 
   function pintarStatus(p) {
@@ -427,9 +440,11 @@
     rows = aplicarFiltroLista(rows);
     if (!rows || !rows.length) {
       var dica =
-        loja === 'pendente'
-          ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
-          : 'Nenhuma conversa nesta aba.';
+        loja === 'arquivadas'
+          ? 'Nenhuma conversa resolvida. O ✓ no chat arquiva para cá.'
+          : loja === 'pendente'
+            ? 'Fila vazia. Quem já escolheu loja está em Centro ou Vila. Religar o Zap não apaga conversa.'
+            : 'Nenhuma conversa nesta aba.';
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
       return;
     }
@@ -461,6 +476,7 @@
       }
       btn.className = 'wa-item' + (on ? ' is-on' : '') + clsExtra;
       btn.setAttribute('data-loja', c.loja || '');
+      btn.setAttribute('data-arquivada', c.arquivada ? '1' : '0');
       btn.setAttribute('data-status', st);
       btn.setAttribute('data-nome', titulo);
       btn.setAttribute('data-tel', c.telefone || '');
@@ -591,14 +607,25 @@
   function aplicarSeparacao(on) {
     separarLojas = on !== false;
     document.querySelectorAll('.wa-tabs').forEach(function (el) {
-      el.classList.toggle('hidden', !separarLojas);
-      el.classList.toggle('is-off', !separarLojas);
-      el.setAttribute('aria-hidden', separarLojas ? 'false' : 'true');
+      el.classList.remove('hidden', 'is-off');
+      el.setAttribute('aria-hidden', 'false');
+    });
+    document.querySelectorAll('.wa-tab').forEach(function (b) {
+      var l = b.getAttribute('data-loja') || '';
+      if (l === 'arquivadas') {
+        b.classList.remove('hidden');
+        return;
+      }
+      if (l === 'todas') {
+        b.classList.toggle('hidden', separarLojas);
+        return;
+      }
+      b.classList.toggle('hidden', !separarLojas);
     });
     if (!separarLojas) {
-      loja = 'todas';
+      if (loja !== 'arquivadas') loja = 'todas';
       try {
-        localStorage.removeItem(TAB_KEY);
+        localStorage.setItem(TAB_KEY, loja);
       } catch (e) {}
       var mv = $('wa-move');
       if (mv && !convId) mv.classList.add('hidden');
@@ -915,6 +942,7 @@
     afterId = 0;
     var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
     convLoja = (item && item.getAttribute('data-loja')) || loja || '';
+    convArquivada = !!(item && item.getAttribute('data-arquivada') === '1') || loja === 'arquivadas';
     convNome = (item && item.getAttribute('data-nome')) || 'Conversa #' + convId;
     convTel = (item && item.getAttribute('data-tel')) || '';
     convFoto = (item && item.getAttribute('data-foto')) || '';
@@ -922,8 +950,9 @@
     if (nomeEl) nomeEl.textContent = convNome;
     pintarTopoAvatar(convNome, convFoto);
     mostrarBotoesChat(true);
+    pintarAcoesArquivo();
     pintarStatusDoChat();
-    if (separarLojas) {
+    if (separarLojas && !convArquivada) {
       $('wa-move').classList.remove('hidden');
       $('wa-move').classList.add('flex');
       pintarXfer();
@@ -967,11 +996,13 @@
     convTel = '';
     convNome = '';
     convFoto = '';
+    convArquivada = false;
     afterId = 0;
     var nomeEl = $('wa-topo-nome');
     if (nomeEl) nomeEl.textContent = 'Conversa';
     pintarTopoAvatar('?', '');
     mostrarBotoesChat(false);
+    pintarAcoesArquivo();
     if ($('wa-msgs')) $('wa-msgs').innerHTML = '';
     if ($('wa-quick')) {
       $('wa-quick').classList.add('hidden');
@@ -1057,7 +1088,7 @@
           id: tempId,
           direcao: 'out',
           texto: textoPrev,
-          autor: 'Você',
+          autor: nomeOperadorPin() || 'Você',
           hora: horaAgoraWa(),
           tipo_midia: tipo,
           midia_url: midiaPrev,
@@ -1640,9 +1671,31 @@
         body: JSON.stringify({ conversa_id: convId }),
       }).then(function (j) {
         if (!j || !j.ok) {
-          window.alert((j && j.erro) || 'Não concluiu.');
+          window.alert((j && j.erro) || 'Não arquivou.');
           return;
         }
+        limparChatAberto();
+        telaCel(false);
+        carregarEstado();
+        carregarLista();
+      });
+    });
+  }
+  var btnReabrir = $('wa-reabrir');
+  if (btnReabrir) {
+    btnReabrir.addEventListener('click', function () {
+      if (!convId) return;
+      fetchJson('/api/atendimento-whatsapp/reabrir/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ conversa_id: convId }),
+      }).then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não reabriu.');
+          return;
+        }
+        limparChatAberto();
+        telaCel(false);
         carregarEstado();
         carregarLista();
       });
@@ -1930,18 +1983,31 @@
     }
   }
 
+  function nomeCurtoOperador(n) {
+    n = String(n || '').trim();
+    if (!n) return '';
+    var parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return parts[0] || n;
+    // Nome + 1º sobrenome — cabe no card sem amontoar
+    return (parts[0] + ' ' + parts[1]).slice(0, 22);
+  }
+
   function pintarOperadorPin() {
     var btn = $('wa-operador-pin');
+    var nomeEl = $('wa-operador-pin-nome');
     if (!btn) return;
     var n = nomeOperadorPin();
+    var curto = nomeCurtoOperador(n);
+    if (nomeEl) nomeEl.textContent = curto || 'PIN?';
+    else btn.textContent = curto || 'PIN?';
     if (n) {
-      btn.textContent = n;
       btn.classList.remove('is-empty');
-      btn.title = 'PIN: ' + n + ' — clique para trocar';
+      btn.title = 'Assinatura: ' + n + ' — clique para trocar o PIN';
+      btn.setAttribute('aria-label', 'Trocar PIN — agora ' + n);
     } else {
-      btn.textContent = 'PIN?';
       btn.classList.add('is-empty');
       btn.title = 'Ninguém no PIN — clique para identificar';
+      btn.setAttribute('aria-label', 'Identificar com PIN');
     }
   }
 
