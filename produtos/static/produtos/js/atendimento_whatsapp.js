@@ -384,6 +384,43 @@
     });
   }
 
+  function avatarInicialHtml(titulo) {
+    return (
+      '<span class="wa-av-ini">' +
+      escapeHtml((titulo || '?').charAt(0).toUpperCase()) +
+      '</span>'
+    );
+  }
+
+  function garantirAvatar(av, fotoUrl, titulo) {
+    if (!av) return;
+    var foto = String(fotoUrl || '').trim();
+    var img = av.querySelector('img');
+    if (!foto || av.getAttribute('data-foto-fail') === '1') {
+      if (img || !av.querySelector('.wa-av-ini')) {
+        av.innerHTML = avatarInicialHtml(titulo);
+      } else {
+        var ini = av.querySelector('.wa-av-ini');
+        var letra = (titulo || '?').charAt(0).toUpperCase();
+        if (ini && ini.textContent !== letra) ini.textContent = letra;
+      }
+      return;
+    }
+    if (img) {
+      // Não troca src se já é a mesma — evita piscada a cada poll.
+      if (img.getAttribute('src') !== foto) img.setAttribute('src', foto);
+      return;
+    }
+    av.innerHTML = '<img alt="" src="' + escapeHtml(foto) + '" />';
+    img = av.querySelector('img');
+    if (img) {
+      img.addEventListener('error', function () {
+        av.setAttribute('data-foto-fail', '1');
+        av.innerHTML = avatarInicialHtml(titulo);
+      });
+    }
+  }
+
   function pintarLista(rows) {
     var el = $('wa-lista');
     if (!el) return;
@@ -396,52 +433,73 @@
       el.innerHTML = '<p class="p-4 text-sm font-semibold text-slate-400">' + dica + '</p>';
       return;
     }
-    el.innerHTML = rows
-      .map(function (c) {
-        var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
-        var st = String(c.status || '');
-        if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
-        var on = Number(c.id) === convId ? ' is-on' : '';
-        var clsExtra = st === 'nova' ? ' has-new' : st === 'espera' ? ' has-wait' : '';
-        var titulo = nomeExibicao(c);
-        if (c.vip) titulo = '★ ' + titulo;
-        var unread = qNao
-          ? '<span class="wa-unread" title="' + qNao + ' não lida' + (qNao > 1 ? 's' : '') + '">' + escapeHtml(String(qNao)) + '</span>'
-          : '';
-        var preview = c.ultima_preview || '';
-        if (c.nota) preview = '📝 ' + String(c.nota).slice(0, 40) + (preview ? ' · ' + preview : '');
-        return (
-          '<button type="button" class="wa-item' +
-          on +
-          clsExtra +
-          '" data-id="' +
-          c.id +
-          '" data-loja="' +
-          escapeHtml(c.loja || '') +
-          '" data-status="' +
-          escapeHtml(st) +
-          '" data-nome="' +
-          escapeHtml(titulo) +
-          '" data-tel="' +
-          escapeHtml(c.telefone || '') +
-          '" data-foto="' +
-          escapeHtml(c.foto_url || '') +
-          '"><span class="wa-av">' +
-          (c.foto_url
-            ? '<img alt="" src="' + escapeHtml(c.foto_url) + '" />'
-            : '<span class="wa-av-ini">' + escapeHtml((titulo || '?').charAt(0).toUpperCase()) + '</span>') +
-          '</span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n">' +
-          escapeHtml(titulo) +
-          '</div><div class="wa-t">' +
-          escapeHtml(c.hora || '') +
-          '</div></div><div class="wa-row2"><div class="wa-p">' +
-          htmlPreviewLista(preview) +
-          '</div>' +
-          unread +
-          '</div></div></button>'
-        );
-      })
-      .join('');
+    // Atualiza item a item (não recria HTML todo) — senão a foto pisca a cada 2,5s.
+    // appendChild em nó existente só move o botão: a <img> não recarrega.
+    var keep = {};
+    var ordered = [];
+    rows.forEach(function (c) {
+      var id = String(c.id || '');
+      if (!id) return;
+      keep[id] = true;
+      var qNao = parseInt(c.nao_lidas || 0, 10) || 0;
+      var st = String(c.status || '');
+      if (!st) st = qNao ? 'nova' : c.aguardando_loja ? 'espera' : 'ok';
+      var on = Number(c.id) === convId;
+      var clsExtra = st === 'nova' ? ' has-new' : st === 'espera' ? ' has-wait' : '';
+      var titulo = nomeExibicao(c);
+      if (c.vip) titulo = '★ ' + titulo;
+      var preview = c.ultima_preview || '';
+      if (c.nota) preview = '📝 ' + String(c.nota).slice(0, 40) + (preview ? ' · ' + preview : '');
+      var foto = c.foto_url || '';
+      var btn = el.querySelector('.wa-item[data-id="' + id + '"]');
+      if (!btn) {
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-id', id);
+        btn.innerHTML =
+          '<span class="wa-av"></span><div class="wa-item-body"><div class="wa-row1"><div class="wa-n"></div><div class="wa-t"></div></div><div class="wa-row2"><div class="wa-p"></div></div></div>';
+      }
+      btn.className = 'wa-item' + (on ? ' is-on' : '') + clsExtra;
+      btn.setAttribute('data-loja', c.loja || '');
+      btn.setAttribute('data-status', st);
+      btn.setAttribute('data-nome', titulo);
+      btn.setAttribute('data-tel', c.telefone || '');
+      btn.setAttribute('data-foto', foto);
+      garantirAvatar(btn.querySelector('.wa-av'), foto, titulo);
+      var nEl = btn.querySelector('.wa-n');
+      var tEl = btn.querySelector('.wa-t');
+      var pEl = btn.querySelector('.wa-p');
+      if (nEl) nEl.textContent = titulo;
+      if (tEl) tEl.textContent = c.hora || '';
+      if (pEl) pEl.innerHTML = htmlPreviewLista(preview);
+      var row2 = btn.querySelector('.wa-row2');
+      var unreadEl = btn.querySelector('.wa-unread');
+      if (qNao) {
+        if (!unreadEl && row2) {
+          unreadEl = document.createElement('span');
+          unreadEl.className = 'wa-unread';
+          row2.appendChild(unreadEl);
+        }
+        if (unreadEl) {
+          unreadEl.title = qNao + ' não lida' + (qNao > 1 ? 's' : '');
+          unreadEl.textContent = String(qNao);
+        }
+      } else if (unreadEl) {
+        unreadEl.remove();
+      }
+      ordered.push(btn);
+    });
+    Array.prototype.slice.call(el.querySelectorAll('.wa-item')).forEach(function (old) {
+      var oid = old.getAttribute('data-id') || '';
+      if (!keep[oid]) old.remove();
+    });
+    // Tira texto de “fila vazia” se ainda estiver.
+    Array.prototype.slice.call(el.children).forEach(function (ch) {
+      if (!ch.classList || !ch.classList.contains('wa-item')) ch.remove();
+    });
+    ordered.forEach(function (btn) {
+      el.appendChild(btn);
+    });
   }
 
   function pintarMsgs(rows, append) {
