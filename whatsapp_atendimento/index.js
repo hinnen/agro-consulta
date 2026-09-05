@@ -940,7 +940,7 @@ async function ligar() {
       }
     }
   });
-  pollTimer = setInterval(puxarSaida, 2500);
+  pollTimer = setInterval(puxarSaida, 5000);
 }
 
 function varrerStore() {
