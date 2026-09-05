@@ -740,7 +740,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 - **Ligar sem câmera (`WA-PAIR-CODE` · 01/09):** código de 8 dígitos (igual WhatsApp Web) — celular: Aparelhos conectados → Vincular com número. QR continua como opção. Migrate **`0115`**. **Trocar Zap (`WA-TROCAR` · 03/09):** botão desliga a sessão neste PC → novo QR/código. Migrate **`0119`**.
 - **Celular (`WA-CEL` · 02/09):** Menu = **dois botões** (computador Z · celular Y). Bot: desligar flag grava de verdade; aviso fora do horário tem interruptor próprio. **Separar Centro/Vila** dá para desligar no Bot → Lojas. Fora da loja.
 - **Bot (`WA-BOT-CFG` · 02/09):** intervalo do aviso fora do horário · saudação sem as 2 lojas · códigos `{empresa}` `{cliente}` · ordem do nome · áudio sem pergunta. Migrate **`0117`**. **Replay (`WA-BOT-REPLAY` · 03/09):** reconnect não dispara boas-vindas sozinho. **Status (`WA-STATUS-OFF`/`WA-STATUS-VER`/`WA-CHAT-HEAD` · 03/09):** stories fora do chat · chip **Status** no cabeçalho da conversa (só se o contato tiver). Migrate **`0120`**. **Espera visual (`WA-ESPERA` · 03/09):** verde/laranja/✓ · migrate **`0118`**.
-- **Saudação + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · 05/09 · v22.85):** Bot aba **Saudação** (não mais bloco cru no Menu) · **✓** = arquivar → aba **Resolvidas** · **Reabrir** · msg do cliente desarquiva · prefs auto em Bot → **Arquivo** (default OFF, sem cron). Migrate **`0126`**.
+- **Saudação + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · 05/09 · v22.86):** Bot aba **Saudação** (não mais bloco cru no Menu) · **✓** = arquivar → aba **Resolvidas** · **Reabrir** · msg do cliente desarquiva · prefs auto em Bot → **Arquivo** (default OFF, sem cron). Migrate **`0126`**.
 - **Agenda + barra (`WA-AGENDA-LID` · 02/09):** busca pelo nome no Zap/cadastro (não a agenda inteira do celular). Eco do próprio envio não duplica. Áudio vira ogg com ffmpeg-static. Gravando: some o botão verde; envia no microfone vermelho. **Import .vcf** fica em **Bot → Geral** (`WA-VCF-BOT` · 03/09). Lista/topo: só nome se salvo; clique → ficha com telefone (`WA-FICHA-NOME`).
 - **Chat duplicado LID (`WA-LID-UM` · 02/09):** `@lid` e telefone viram **um** chat; fiado usa o número real. Envio ao cliente usa o `@lid`. Foto/áudio vão pelo arquivo, não pela palavra `[imagem]`. Migrate **`0116`**.
 - **Entrada instável (`WA-MSG-LID` · 01/09):** mensagem offline (`append`) era descartada; Zap novo manda `@lid` e a ponte recusava — por isso só caía depois de mandar da loja. Ponte aceita LID + append recente; mapa LID↔telefone fica no PC (`lid_map.json`); Postgres **não** apaga chat ao reiniciar o `.bat`; LID junta no mesmo fio do telefone. Aba Centro/Vila/Fila é lembrada. Salvar bot (ausência) não trava em «Processando».
@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Saudação completa + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · **v22.85** · 05/09)
+### 📦 PACOTE PRONTO — Saudação completa + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · **v22.86** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
@@ -1333,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.85**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.86**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
