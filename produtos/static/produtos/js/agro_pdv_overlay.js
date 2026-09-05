@@ -5,7 +5,7 @@
   'use strict';
 
   var ROOT_ID = 'agro-pdv-overlay';
-  var STYLE_ID = 'agro-pdv-overlay-styles-v7';
+  var STYLE_ID = 'agro-pdv-overlay-styles-v8';
   var openFlag = false;
   var chromeLocked = false;
 
@@ -21,6 +21,7 @@
       if (p.indexOf('/compras') === 0) return 'Compras';
       if (p.indexOf('/entrada-nota') === 0) return 'Entrada NF';
       if (p.indexOf('/produtos/gestao') === 0) return 'Gestão produtos';
+      if (p.indexOf('/atendimento-whatsapp') === 0) return 'WhatsApp';
     } catch (_) {}
     return 'Consulta no balcão';
   }
@@ -80,6 +81,8 @@
     if (oldV5) oldV5.remove();
     var oldV6 = document.getElementById('agro-pdv-overlay-styles-v6');
     if (oldV6) oldV6.remove();
+    var oldV7 = document.getElementById('agro-pdv-overlay-styles-v7');
+    if (oldV7) oldV7.remove();
     if (document.getElementById(STYLE_ID)) return;
     var st = document.createElement('style');
     st.id = STYLE_ID;
@@ -114,6 +117,21 @@
       '#agro-pdv-overlay-menu[hidden]{display:none!important}' +
       '#agro-pdv-overlay-close{flex-shrink:0;min-height:2.65rem;min-width:6.5rem;padding:0 1rem;border-radius:.75rem;border:2px solid #047857;background:linear-gradient(135deg,#10b981,#059669);color:#fff;font-size:.78rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;touch-action:manipulation}' +
       '#agro-pdv-overlay-close:hover{background:linear-gradient(135deg,#34d399,#10b981)}' +
+      '#agro-pdv-overlay-wa{display:none;align-items:center;gap:.4rem;flex-shrink:0;margin-right:.15rem}' +
+      '#agro-pdv-overlay-wa.is-on{display:inline-flex}' +
+      '#agro-pdv-overlay-wa-dot{width:.65rem;height:.65rem;border-radius:999px;background:#94a3b8;flex-shrink:0}' +
+      '#agro-pdv-overlay-wa-dot.on{background:#25d366;box-shadow:0 0 0 3px #dcfce7}' +
+      '#agro-pdv-overlay-wa-dot.wait{background:#f59e0b;box-shadow:0 0 0 3px #fef3c7}' +
+      '#agro-pdv-overlay-wa-dot.off{background:#ef4444;box-shadow:0 0 0 3px #fee2e2}' +
+      '#agro-pdv-overlay-wa-pill{display:inline-flex;align-items:center;min-height:2.15rem;padding:0 .65rem;border-radius:999px;font-size:.72rem;font-weight:800;background:#f1f5f9;color:#334155;max-width:11rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+      '#agro-pdv-overlay-wa-pill.ok{background:#ecfdf5;color:#047857}' +
+      '#agro-pdv-overlay-wa-pill.warn{background:#fff7ed;color:#c2410c}' +
+      '#agro-pdv-overlay-wa-pill.bad{background:#fef2f2;color:#b91c1c}' +
+      '#agro-pdv-overlay-wa-trocar,#agro-pdv-overlay-wa-bot{flex-shrink:0;min-height:2.35rem;padding:0 .7rem;border-radius:.75rem;border:1px solid #e2e8f0;background:#fff;color:#334155;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;cursor:pointer;touch-action:manipulation;text-decoration:none;display:inline-flex;align-items:center}' +
+      '#agro-pdv-overlay-wa-trocar:hover,#agro-pdv-overlay-wa-bot:hover{border-color:#86efac;background:#f0fdf4}' +
+      '#agro-pdv-overlay-wa-bot{border-color:transparent;background:#25d366;color:#fff}' +
+      '#agro-pdv-overlay-wa-bot:hover{filter:brightness(.95);background:#25d366;border-color:transparent}' +
+      '#agro-pdv-overlay-wa-trocar[hidden],#agro-pdv-overlay-wa-bot[hidden]{display:none!important}' +
       '#agro-pdv-overlay-frame{flex:1;min-height:0;width:100%;border:0;background:#fff}' +
       'html.agro-pdv-overlay-open,html.agro-pdv-overlay-open body{overflow:hidden!important}';
     document.head.appendChild(st);
@@ -137,6 +155,52 @@
       helpPanel.classList.remove('is-open');
       helpBtn.setAttribute('aria-expanded', 'false');
     });
+  }
+
+  function ensureWaChromeUi(root) {
+    if (!root) return;
+    var actions = root.querySelector('.agro-pdv-overlay-actions');
+    if (!actions) return;
+    var wa = root.querySelector('#agro-pdv-overlay-wa');
+    if (!wa) {
+      wa = document.createElement('div');
+      wa.id = 'agro-pdv-overlay-wa';
+      wa.setAttribute('aria-label', 'WhatsApp');
+      wa.innerHTML =
+        '<span id="agro-pdv-overlay-wa-dot" class="off" aria-hidden="true"></span>' +
+        '<span id="agro-pdv-overlay-wa-pill">…</span>' +
+        '<button type="button" id="agro-pdv-overlay-wa-trocar" hidden title="Desligar este Zap e ligar outro">Trocar Zap</button>' +
+        '<a href="#" id="agro-pdv-overlay-wa-bot" hidden title="Configurar bot">Bot</a>';
+      var help = root.querySelector('#agro-pdv-overlay-help');
+      if (help) actions.insertBefore(wa, help);
+      else actions.insertBefore(wa, actions.firstChild);
+    }
+    wireWaChrome(root);
+  }
+
+  function wireWaChrome(root) {
+    if (!root || root.getAttribute('data-wa-wired') === '1') return;
+    root.setAttribute('data-wa-wired', '1');
+    var trocar = root.querySelector('#agro-pdv-overlay-wa-trocar');
+    var bot = root.querySelector('#agro-pdv-overlay-wa-bot');
+    if (trocar) {
+      trocar.addEventListener('click', function (e) {
+        e.preventDefault();
+        var frame = root.querySelector('#agro-pdv-overlay-frame');
+        try {
+          if (frame && frame.contentWindow) {
+            frame.contentWindow.postMessage({ type: 'agro-wa-trocar' }, window.location.origin);
+          }
+        } catch (_) {}
+      });
+    }
+    if (bot) {
+      bot.addEventListener('click', function (e) {
+        e.preventDefault();
+        var href = bot.getAttribute('data-href') || bot.getAttribute('href') || '/atendimento-whatsapp/bot/';
+        open(href, 'Bot WhatsApp', { force: true });
+      });
+    }
   }
 
   function ensureHelpUi(root) {
@@ -172,6 +236,7 @@
     var root = document.getElementById(ROOT_ID);
     if (root) {
       ensureHelpUi(root);
+      ensureWaChromeUi(root);
       var staleBug = root.querySelector('#agro-pdv-overlay-bug');
       if (staleBug) staleBug.remove();
       return root;
@@ -191,6 +256,12 @@
       '<span id="agro-pdv-overlay-subtitle-text"></span>' +
       '</div>' +
       '<div class="agro-pdv-overlay-actions">' +
+      '<div id="agro-pdv-overlay-wa" aria-label="WhatsApp">' +
+      '<span id="agro-pdv-overlay-wa-dot" class="off" aria-hidden="true"></span>' +
+      '<span id="agro-pdv-overlay-wa-pill">…</span>' +
+      '<button type="button" id="agro-pdv-overlay-wa-trocar" hidden title="Desligar este Zap e ligar outro">Trocar Zap</button>' +
+      '<a href="#" id="agro-pdv-overlay-wa-bot" hidden title="Configurar bot">Bot</a>' +
+      '</div>' +
       '<button type="button" id="agro-pdv-overlay-help" aria-label="Ajuda" title="Ajuda" aria-expanded="false">?</button>' +
       '<div id="agro-pdv-overlay-help-panel" role="region" aria-label="Orientação"></div>' +
       '<a href="#" id="agro-pdv-overlay-menu" hidden>← Menu</a>' +
@@ -208,6 +279,7 @@
       /* Fundo nao fecha — so X / FECHAR / Esc */
     });
     wireHelp(root);
+    wireWaChrome(root);
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     if (menuBtn) {
       menuBtn.addEventListener('click', function (e) {
@@ -228,12 +300,19 @@
   function applyMeta(d) {
     var root = document.getElementById(ROOT_ID);
     if (!root || !d) return;
+    ensureHelpUi(root);
+    ensureWaChromeUi(root);
     var panel = root.querySelector('.agro-pdv-overlay-panel');
     var titleEl = root.querySelector('#agro-pdv-overlay-title-text');
     var subEl = root.querySelector('#agro-pdv-overlay-subtitle-text');
     var menuBtn = root.querySelector('#agro-pdv-overlay-menu');
     var helpBtn = root.querySelector('#agro-pdv-overlay-help');
     var helpPanel = root.querySelector('#agro-pdv-overlay-help-panel');
+    var waBox = root.querySelector('#agro-pdv-overlay-wa');
+    var waDot = root.querySelector('#agro-pdv-overlay-wa-dot');
+    var waPill = root.querySelector('#agro-pdv-overlay-wa-pill');
+    var waTrocar = root.querySelector('#agro-pdv-overlay-wa-trocar');
+    var waBot = root.querySelector('#agro-pdv-overlay-wa-bot');
     if (panel && Object.prototype.hasOwnProperty.call(d, 'hideChrome')) {
       chromeLocked = !!d.hideChrome;
       panel.classList.toggle('is-chrome-hidden', chromeLocked);
@@ -242,6 +321,31 @@
     if (subEl && (d.subtitle != null || d.title != null)) {
       subEl.textContent = String(d.subtitle || '');
       subEl.style.display = d.subtitle ? '' : 'none';
+    }
+    if (Object.prototype.hasOwnProperty.call(d, 'showWaChrome')) {
+      var onWa = !!d.showWaChrome;
+      if (waBox) waBox.classList.toggle('is-on', onWa);
+      if (!onWa) {
+        if (waTrocar) waTrocar.hidden = true;
+        if (waBot) waBot.hidden = true;
+      }
+    }
+    if (waDot && d.waDot != null) {
+      waDot.className = String(d.waDot || 'off');
+    }
+    if (waPill && d.waStatus != null) {
+      waPill.textContent = String(d.waStatus || '…');
+      waPill.className = '';
+      waPill.id = 'agro-pdv-overlay-wa-pill';
+      var kind = String(d.waStatusKind || '');
+      if (kind === 'ok' || kind === 'warn' || kind === 'bad') waPill.classList.add(kind);
+    }
+    if (waTrocar && Object.prototype.hasOwnProperty.call(d, 'showWaTrocar')) {
+      waTrocar.hidden = !d.showWaTrocar;
+    }
+    if (waBot && Object.prototype.hasOwnProperty.call(d, 'showWaBot')) {
+      waBot.hidden = !d.showWaBot;
+      if (d.botHref) waBot.setAttribute('data-href', String(d.botHref));
     }
     if (menuBtn && Object.prototype.hasOwnProperty.call(d, 'showMenu')) {
       if (d.showMenu && d.menuHref) {
@@ -275,6 +379,11 @@
       showHelp: false,
       helpHtml: '',
       hideChrome: false,
+      showWaChrome: false,
+      showWaTrocar: false,
+      showWaBot: false,
+      waStatus: '',
+      waDot: 'off',
     });
     chromeLocked = false;
   }

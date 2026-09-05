@@ -243,17 +243,44 @@
     if (reb) reb.classList.toggle('hidden', !convArquivada);
   }
 
+  var ehOverlay =
+    /(?:\?|&)agro_pdv_overlay=1(?:&|$)/.test(String(window.location.search || '')) ||
+    !!(window.frameElement && window.parent && window.parent !== window);
+
+  var ultimaStatusTxt = '';
+
+  function syncOverlayChrome(meta) {
+    if (!ehOverlay) return;
+    try {
+      if (!window.parent || window.parent === window) return;
+      var payload = { type: 'agro-pdv-overlay-meta', title: 'WhatsApp' };
+      Object.keys(meta || {}).forEach(function (k) {
+        payload[k] = meta[k];
+      });
+      window.parent.postMessage(payload, window.location.origin);
+    } catch (_) {}
+  }
+
   function pintarStatus(p) {
     var box = $('wa-status');
     var dot = $('wa-dot');
     var qrBox = $('wa-qr-box');
     var img = $('wa-qr-img');
-    if (!box) return;
+    if (!box && !ehOverlay) return;
     p = p || {};
-    function pill(kind, txt, title) {
-      box.textContent = txt;
-      box.className = 'wa-pill' + (kind ? ' ' + kind : '');
-      if (title) box.title = title;
+    var kind = '';
+    var txt = '…';
+    var title = '';
+    var showTrocar = false;
+    function pill(k, t, tit) {
+      kind = k || '';
+      txt = t || '…';
+      title = tit || '';
+      if (box) {
+        box.textContent = txt;
+        box.className = 'wa-pill' + (kind ? ' ' + kind : '');
+        if (title) box.title = title;
+      }
       if (dot) {
         dot.className = 'wa-dot ' + (kind === 'ok' ? 'on' : kind === 'warn' ? 'wait' : 'off');
       }
@@ -263,35 +290,51 @@
       if (qrBox) qrBox.classList.add('hidden');
       var btnTrocarOff = $('wa-trocar');
       if (btnTrocarOff) btnTrocarOff.classList.add('hidden');
-      return;
-    }
-    var btnTrocar = $('wa-trocar');
-    if (btnTrocar) btnTrocar.classList.toggle('hidden', !p.conectada);
-    if (p.conectada) {
-      pill('ok', p.numero ? p.numero : 'Online');
-      if (qrBox) qrBox.classList.add('hidden');
-      return;
-    }
-    if (qrBox) qrBox.classList.remove('hidden');
-    var codeEl = $('wa-pair-code');
-    if (codeEl) {
-      if (p.pairing_code) {
-        codeEl.textContent = String(p.pairing_code).replace(/-/g, '').replace(/(.{4})/g, '$1-').replace(/-$/, '');
-        codeEl.classList.remove('hidden');
+      showTrocar = false;
+    } else {
+      var btnTrocar = $('wa-trocar');
+      showTrocar = !!p.conectada;
+      if (btnTrocar) btnTrocar.classList.toggle('hidden', !showTrocar);
+      if (p.conectada) {
+        pill('ok', p.numero ? p.numero : 'Online');
+        if (qrBox) qrBox.classList.add('hidden');
       } else {
-        codeEl.classList.add('hidden');
+        if (qrBox) qrBox.classList.remove('hidden');
+        var codeEl = $('wa-pair-code');
+        if (codeEl) {
+          if (p.pairing_code) {
+            codeEl.textContent = String(p.pairing_code)
+              .replace(/-/g, '')
+              .replace(/(.{4})/g, '$1-')
+              .replace(/-$/, '');
+            codeEl.classList.remove('hidden');
+          } else {
+            codeEl.classList.add('hidden');
+          }
+        }
+        if (p.qr) {
+          pill('warn', p.pairing_code ? 'Código' : 'QR');
+          if (img) {
+            img.src = p.qr;
+            img.classList.remove('hidden');
+          }
+        } else {
+          if (img) img.classList.add('hidden');
+          pill('warn', p.pairing_code ? 'Código' : p.aviso || 'Ligando');
+        }
       }
     }
-    if (p.qr) {
-      pill('warn', p.pairing_code ? 'Código' : 'QR');
-      if (img) {
-        img.src = p.qr;
-        img.classList.remove('hidden');
-      }
-      return;
-    }
-    if (img) img.classList.add('hidden');
-    pill('warn', p.pairing_code ? 'Código' : p.aviso || 'Ligando');
+    syncOverlayChrome({
+      showWaChrome: true,
+      showWaBot: true,
+      showWaTrocar: showTrocar,
+      waStatus: txt,
+      waStatusKind: kind,
+      waDot: kind === 'ok' ? 'on' : kind === 'warn' ? 'wait' : 'off',
+      botHref: '/atendimento-whatsapp/bot/?agro_pdv_overlay=1',
+      subtitle: '',
+    });
+    ultimaStatusTxt = txt;
   }
 
   function escapeHtml(s) {
@@ -1632,55 +1675,64 @@
       });
     });
   }
+  function executarTrocarZap() {
+    if (
+      !window.confirm(
+        'Desligar este WhatsApp neste PC?\nVai precisar ler o QR ou gerar um código de novo (pode ser outro número).'
+      )
+    ) {
+      return;
+    }
+    var ponteOff = String(ultimaStatusTxt || '').trim().toLowerCase() === 'off';
+    if (
+      !ponteOff &&
+      $('wa-status') &&
+      String(($('wa-status').textContent || '').trim()).toLowerCase() === 'off'
+    ) {
+      ponteOff = true;
+    }
+    if (ponteOff) {
+      window.alert(
+        'A ponte está OFF (janela preta fechada).\n\n' +
+          '1) Feche qualquer iniciar.bat\n' +
+          '2) Apague a pasta whatsapp_atendimento\\auth\n' +
+          '3) Abra de novo SÓ UM iniciar.bat\n' +
+          '4) Volte aqui e leia o QR / código\n\n' +
+          'O botão Trocar Zap só funciona com a janela preta ligada.'
+      );
+      return;
+    }
+    var btnTrocar = $('wa-trocar');
+    if (btnTrocar) btnTrocar.disabled = true;
+    fetchJson('/api/atendimento-whatsapp/trocar/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: '{}',
+    })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          window.alert((j && j.erro) || 'Não desligou. Ponte ligada?');
+          return;
+        }
+        window.alert(
+          'Pedido enviado à ponte.\nEm alguns segundos some o Online e aparece QR/código.\nSe nada mudar, feche o iniciar.bat, apague a pasta auth e ligue de novo.'
+        );
+        window.setTimeout(carregarEstado, 1200);
+        window.setTimeout(carregarEstado, 3500);
+        window.setTimeout(carregarEstado, 8000);
+      })
+      .catch(function () {
+        window.alert('Falha de rede ao trocar o Zap.');
+      })
+      .finally(function () {
+        if (btnTrocar) btnTrocar.disabled = false;
+      });
+  }
+
   var btnTrocar = $('wa-trocar');
   if (btnTrocar) {
     btnTrocar.addEventListener('click', function () {
-      if (
-        !window.confirm(
-          'Desligar este WhatsApp neste PC?\nVai precisar ler o QR ou gerar um código de novo (pode ser outro número).'
-        )
-      ) {
-        return;
-      }
-      var ponteOff = !!(
-        $('wa-status') &&
-        String(($('wa-status').textContent || '').trim()).toLowerCase() === 'off'
-      );
-      if (ponteOff) {
-        window.alert(
-          'A ponte está OFF (janela preta fechada).\n\n' +
-            '1) Feche qualquer iniciar.bat\n' +
-            '2) Apague a pasta whatsapp_atendimento\\auth\n' +
-            '3) Abra de novo SÓ UM iniciar.bat\n' +
-            '4) Volte aqui e leia o QR / código\n\n' +
-            'O botão Trocar Zap só funciona com a janela preta ligada.'
-        );
-        return;
-      }
-      btnTrocar.disabled = true;
-      fetchJson('/api/atendimento-whatsapp/trocar/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: '{}',
-      })
-        .then(function (j) {
-          if (!j || !j.ok) {
-            window.alert((j && j.erro) || 'Não desligou. Ponte ligada?');
-            return;
-          }
-          window.alert(
-            'Pedido enviado à ponte.\nEm alguns segundos some o Online e aparece QR/código.\nSe nada mudar, feche o iniciar.bat, apague a pasta auth e ligue de novo.'
-          );
-          window.setTimeout(carregarEstado, 1200);
-          window.setTimeout(carregarEstado, 3500);
-          window.setTimeout(carregarEstado, 8000);
-        })
-        .catch(function () {
-          window.alert('Falha de rede ao trocar o Zap.');
-        })
-        .finally(function () {
-          btnTrocar.disabled = false;
-        });
+      executarTrocarZap();
     });
   }
   var btnOk = $('wa-ok');
@@ -2055,6 +2107,27 @@
   }
   window.addEventListener('gm-sspin-operador', pintarOperadorPin);
   pintarOperadorPin();
+
+  if (ehOverlay) {
+    document.body.classList.add('wa-in-overlay');
+    var topBar = document.querySelector('.wa-top');
+    if (topBar) topBar.classList.add('hidden');
+    syncOverlayChrome({
+      showWaChrome: true,
+      showWaBot: true,
+      showWaTrocar: false,
+      waStatus: '…',
+      waDot: 'off',
+      botHref: '/atendimento-whatsapp/bot/?agro_pdv_overlay=1',
+    });
+    window.addEventListener('message', function (ev) {
+      try {
+        if (!ev || ev.origin !== location.origin) return;
+        var d = ev.data || {};
+        if (d.type === 'agro-wa-trocar') executarTrocarZap();
+      } catch (_) {}
+    });
+  }
 
   setTab();
   pintarEstadoFiltro();
