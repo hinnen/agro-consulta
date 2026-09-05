@@ -1309,44 +1309,33 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Ctrl+F5 no Zap · olha a lista ~10s sem piscada |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09f · tip **v22.72**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 6 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 7 | `WA-FACHONA-PRETA` | 🟢 **pronto para envio à produção** | **NÃO** |
-| 8 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 9 | `WA-PIN-COMPOSER` | 🟢 **pronto para envio à produção** | **NÃO** |
-
-**Live agora:** **v21.90**. **Ainda fora** os da tabela.
-
-### Conferência bugs loja #11–#16 (05/09 · só prova/código — sem subir)
-
-| # | O quê | Código | Loja agora (v21.90) | Marcar resolvido? |
-| - | ----- | ------ | ------------------- | ----------------- |
-| **11** | Point cobrou / venda 500 | `MP-POINT-FINAL-PIN` prova **40/40** | ❌ **fora** | **Não** — falta senha |
-| **12** | Tabela % na entrega | `PDV-ENTREGA-TABELA-FORMA` prova **41/41** | ❌ **fora** | **Não** — falta senha |
-| **13** | Devolução no cálculo BI | `BI-DEVOL-*` já Live · prova **41/41** (healthz local off) | ✅ cálculo | **Sim o cálculo**. **Troca** (A→B) **não existe** — não marcar o pedido inteiro |
-| **14** | Orçamento não grava no Centro | `PDV-ORC-LISTA-LIVE` **v22.70** (hotfix) · prova **74/74** | ❌ lista Centro ainda bug | **Não** — verde mentia; lista no `localStorage` |
-| **15** | Vale no contador na hora | `PDV-VALE-SALDO-LIVE` prova **17/17** (sem crédito real) | ❌ **fora** | **Não** — falta senha |
-| **16** | Pagar com vale baixa saldo | `PDV-VALE-USADO` prova **37/37** (API+PG) | ❌ **fora** | **Não** — falta senha |
-
 ### 📦 PACOTE PRONTO — Orçamento lista após salvar (`PDV-ORC-LISTA-LIVE` · **v22.70** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Bug** | #14 Centro: **verde** “salvo” mas card ORÇAMENTOS **não** mostra o novo (notebook + PC caixa Centro; Vila/PC Renan OK) |
+| **Bug** | #14 Centro: **verde** “salvo” mas card ORÇAMENTOS **não** mostra o novo (notebook + PC caixa Centro; Vila/PC Renan/anônima OK) |
 | **Causa** | Lista lia só `localStorage` (cheio/falha no Centro) · data `Date()` invertia dia/mês |
 | **Fix** | Memória no PDV + limpa cota · após OK **repuxa servidor** · ordena por id · data BR antes do `Date` · sem URL **não** mente verde |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_pdv_orcamento_save.py` **VERIFY_OK 74/74** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 nos 2 PCs Centro · Salvar · **R$ 1,30** tem que aparecer no card na hora |
+| **Prova** | `verify_pdv_orc_lista_live_path` **28/28** (PIN 9973 Renan · POST R$1,30 · GET lista · PG) · `verify_pdv_orcamento_save` **74/74** |
+| **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
+| **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09f · tip **v22.72**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` (#15) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (#11) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (#16) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 6 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 7 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 8 | `WA-FACHONA-PRETA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 9 | `WA-PIN-COMPOSER` | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Live agora:** **v21.90**. **Ainda fora** os da tabela — sobem juntos com frase+senha.
 
 ### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
 
