@@ -883,6 +883,11 @@ urlpatterns = [
         name='api_atendimento_whatsapp_concluir',
     ),
     path(
+        'api/atendimento-whatsapp/reabrir/',
+        views_atendimento_whatsapp.api_atendimento_whatsapp_reabrir,
+        name='api_atendimento_whatsapp_reabrir',
+    ),
+    path(
         'api/atendimento-whatsapp/pairing/',
         views_atendimento_whatsapp.api_atendimento_whatsapp_pairing,
         name='api_atendimento_whatsapp_pairing',
