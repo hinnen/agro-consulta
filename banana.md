@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -729,7 +729,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). Próximo: `WA-PONTE-LEVE` (poll mais espaçado · menos fotos/agenda).
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **Parcial:** `WA-CHAT-SNAP` + ponte poll **5s** (`WA-PONTE-LEVE` ainda falta fotos/agenda).
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1409,9 +1409,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
 | **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
-| **Estado** | Zap loja **off** de propósito até aliviar carga (`WA-PONTE-LEVE` — pendente) · plano Render **US$ 25** em avaliação |
+| **Estado** | Zap loja **on** de novo (05/09 noite) · parcial `WA-PONTE-LEVE` + `WA-CHAT-SNAP` no `teste` |
 | **UI** | `WA-LISTA-SEM-PISCA` · `WA-FACHONA-PRETA` · `WA-PIN-COMPOSER` · `WA-SAUDACAO-RICH`/`WA-ARQUIVO` · **v22.85** · 🟢 pronto envio |
 | **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
+
+### 📦 PACOTE — troca de chat rápida + ponte mais leve (`WA-CHAT-SNAP` + parcial `WA-PONTE-LEVE`) · 05/09 noite
+
+| Campo | Valor |
+| ----- | ----- |
+| **Problema** | Clicar outro chat demorava · sensação de sistema lento com Zap ligado |
+| **Causa** | Cada clique recarregava **estado + lista** · poll UI tudo a **2,5s** · ponte `puxarSaida` a **2,5s** |
+| **Fix** | Abrir chat = só msgs/ficha (sem reload lista) · gen token anti-atraso · lista/estado a **5s** · ponte a **5s** |
+| **Arquivos** | `atendimento_whatsapp.js` · `whatsapp_atendimento/index.js` |
+| **Ops** | Ctrl+F5 no Zap · **fechar e abrir** `iniciar.bat` (ponte pegar 5s) |
+| **Loja** | Ainda **só no teste** até frase+senha |
 
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 

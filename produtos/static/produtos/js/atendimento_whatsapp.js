@@ -980,7 +980,18 @@
     });
   }
 
+  var convAbreSeq = 0;
+
+  function zerarBadgeItemLista(id) {
+    var btn = document.querySelector('#wa-lista .wa-item[data-id="' + String(id) + '"]');
+    if (!btn) return;
+    var unread = btn.querySelector('.wa-unread');
+    if (unread) unread.remove();
+    btn.classList.remove('has-new');
+  }
+
   function abrirConversa(id) {
+    var seq = ++convAbreSeq;
     convId = Number(id) || 0;
     afterId = 0;
     var item = document.querySelector('#wa-lista [data-id="' + convId + '"]');
@@ -1004,7 +1015,13 @@
     }
     telaCel(true);
     pintarQuick();
+    var msgsEl = $('wa-msgs');
+    if (msgsEl) {
+      msgsEl.innerHTML = '<p class="text-sm font-semibold text-slate-400 px-1 py-2">Carregando…</p>';
+    }
+    zerarBadgeItemLista(convId);
     fetchJson('/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId).then(function (j) {
+      if (seq !== convAbreSeq) return;
       var rows = (j && j.mensagens) || [];
       pintarMsgs(rows, false);
       if (rows.length) afterId = rows[rows.length - 1].id;
@@ -1013,6 +1030,7 @@
       });
     });
     fetchJson('/api/atendimento-whatsapp/ficha/?conversa_id=' + convId).then(function (j) {
+      if (seq !== convAbreSeq) return;
       var f = j && j.ficha;
       if (!f) return;
       if (f.nome) {
@@ -1027,10 +1045,7 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
       body: JSON.stringify({ conversa_id: convId }),
-    }).then(function () {
-      carregarEstado();
-      carregarLista();
-    });
+    }).catch(function () {});
   }
 
   function limparChatAberto() {
@@ -1056,9 +1071,13 @@
 
   function pollMsgs() {
     if (!convId) return Promise.resolve();
+    var idSnap = convId;
+    var seqSnap = convAbreSeq;
+    var afterSnap = afterId;
     return fetchJson(
-      '/api/atendimento-whatsapp/mensagens/?conversa_id=' + convId + '&after_id=' + afterId
+      '/api/atendimento-whatsapp/mensagens/?conversa_id=' + idSnap + '&after_id=' + afterSnap
     ).then(function (j) {
+      if (idSnap !== convId || seqSnap !== convAbreSeq) return;
       var rows = (j && j.mensagens) || [];
       if (!rows.length) return;
       pintarMsgs(rows, true);
@@ -2136,10 +2155,16 @@
   carregarEstado();
   carregarLista();
   carregarStatus();
+  var tickPoll = 0;
   setInterval(function () {
-    carregarEstado();
-    carregarLista();
-    carregarStatus();
+    tickPoll += 1;
+    // Mensagens do chat aberto: a cada 2,5s
     pollMsgs();
+    // Estado/lista/status: a cada 5s (antes tudo junto a 2,5s — pesava o Render)
+    if (tickPoll % 2 === 0) {
+      carregarEstado();
+      carregarLista();
+      carregarStatus();
+    }
   }, 2500);
 })();
