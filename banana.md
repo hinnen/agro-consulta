@@ -1,4 +1,4 @@
-# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
+﻿# BANANA â€” GM Agro / loja Jacupiranga (anexe com `@banana`)
 
 **Loja principal GM Agro** â€” teste Render, produÃ§Ã£o, pacotes, operaÃ§Ã£o diÃ¡ria. O **produto SisVale** no geral estÃ¡ em **`SISTVALE.md`**; a instÃ¢ncia **delivery em branco** estÃ¡ em **`FOOD.md`**.
 
@@ -1288,17 +1288,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** |
 | **Você** | Local: migrate · Ctrl+F5 Zap · ✓ some da fila · Resolvidas · Reabrir · Bot Saudação/Arquivo |
 
-### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.79** · 05/09)
+### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.83** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Card **Quem** + nome do PIN na frente do campo · clique **sempre** abre PIN pra trocar assinatura |
-| **Visual** | Card claro (não pill) · campo de mensagem cede espaço · sem amontoar |
-| **Onde** | `_wa_composer.html` · `_wa_skin.html` · `atendimento_whatsapp.js` |
+| **O quê** | Card **Quem** + nome do PIN · clique **sempre** abre PIN · troca assinatura |
+| **Visual** | Card claro · campo cede espaço · sem amontoar |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_wa_pin_composer_path.py` **VERIFY_OK 14/14** |
+| **Prova** | `verify_wa_pin_composer_path.py` **VERIFY_OK 13/13** (fonte + Client PIN **9973** Renan · `_autor_wa` troca · web/celular 200) |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 Zap · ver card **Quem** · clicar · trocar PIN · enviar |
+| **Você** | Ctrl+F5 Zap · card **Quem** · clicar · trocar PIN · enviar |
 
 ### 📦 PACOTE PRONTO — Some faixa preta Chrome no Zap (`WA-FACHONA-PRETA` · **v22.71** · 05/09)
 
