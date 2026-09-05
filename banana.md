@@ -1264,19 +1264,27 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 🚀 PREP deploy loja — RH-PIN-GESTAO (deploy/prep-rh-pin-gestao-0509 · **v21.90**)
+### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP / enviando** — frase+senha neste chat |
-| **Antes** | origin/producao @ **v21.89** / 4910c79 |
-| **Pacote** | RH-PIN-GESTAO — RH operadores: buscar/cadastrar/vincular/remover PIN · 1234 na 1ª vez |
-| **Migrate** | **SIM** ase.0011 |
-| **Prova** | path **32/32** + short **13/13** no 	este · PIN 9973 OK |
-| **Rollback** | tag 
-ollback/pre-rh-pin-gestao-v21.89 @ 4910c79 · docs/ROLLBACK-RH-PIN-GESTAO-0509.md |
-| **Fora** | demais pacotes do checklist 05/09 (vale/Point/repasse/entrega) |
-| **Você** | Ctrl+F5 · badge **v21.90** · RH Operadores |
+| **Status** | ✅ **enviado / Live v21.90** — cherry só este pacote (**não** merge `teste`) · tip **`d8c7388`** |
+| **Antes** | `origin/producao` @ **v21.89** / `4910c79` |
+| **Agora** | `producao` @ **`d8c7388`** |
+| **Pacote** | `RH-PIN-GESTAO` |
+| **Migrate** | **SIM** `base.0011` (no build Render) |
+| **Rollback** | tag `rollback/pre-rh-pin-gestao-v21.89` @ `4910c79` · branch `producao-backup-pre-v2190-rh-pin-gestao-20260905` · `docs/ROLLBACK-RH-PIN-GESTAO-0509.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.90** · RH Operadores · PIN 9973 |
+
+### ✅ CHECKLIST ÚNICO — enviado produção (05/09 · loja **v21.90**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
+
+**Ainda fora da loja:** `PDV-ENTREGA-TABELA-FORMA` · `REPASSE-ZERO-OK` · `PDV-VALE-SALDO-LIVE` · `MP-POINT-FINAL-PIN` · `PDV-VALE-USADO`.
+
+### ~~🚀 PREP deploy loja — RH-PIN-GESTAO~~ · **superado — Live v21.90**
 
 ### ~~🟢 PREP — lote checklist 04/09b~~ · **superado — já Live v21.89**
 
