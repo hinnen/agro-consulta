@@ -1322,7 +1322,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09f · tip **v22.75**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.79**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1335,6 +1335,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 7 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 8 | `WA-FACHONA-PRETA` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 9 | `WA-PIN-COMPOSER` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | 🟢 **pronto para envio à produção** | **SIM** `0126` |
 
 **Live agora:** **v21.90**. **Ainda fora** os da tabela — sobem juntos com frase+senha.
 
