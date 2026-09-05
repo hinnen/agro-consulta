@@ -1082,6 +1082,25 @@
     try { return (localStorage.getItem('gm_sspin_operador') || '').trim(); } catch (_) { return ''; }
   }
 
+  /** PIN obrigatório → teclado (não alert do Chrome). */
+  function alertOuPinLanc(erro, retryFn) {
+    const msg = String(erro || 'Falha.');
+    if (typeof window.gmLancamentosTratarErroPin === 'function'
+        && window.gmLancamentosTratarErroPin(msg, typeof retryFn === 'function' ? retryFn : function () {})) {
+      return true;
+    }
+    alert(msg);
+    return false;
+  }
+
+  function comOperadorLanc(fn) {
+    if (typeof window.gmLancamentosComOperador === 'function') {
+      window.gmLancamentosComOperador(fn);
+    } else {
+      fn();
+    }
+  }
+
   function payloadLancamentosApi(extra) {
     const body = { ...(extra || {}) };
     const op = getOperadorPin();
@@ -1484,37 +1503,40 @@
   async function excluirLancamentoPorId(id) {
     const sid = String(id || '').trim();
     if (!sid) return;
-    try {
-      const r = await fetch(API_LANC_EXCLUIR, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(payloadLancamentosApi({ id: sid })),
-      });
-      let out = {};
+    const enviar = async () => {
       try {
-        out = await r.json();
+        const r = await fetch(API_LANC_EXCLUIR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(payloadLancamentosApi({ id: sid })),
+        });
+        let out = {};
+        try {
+          out = await r.json();
+        } catch (_) {
+          alert('Resposta inválida do servidor. Atualize a página (Ctrl+F5) e tente de novo.');
+          return;
+        }
+        if (!r.ok || !out.ok) {
+          alertOuPinLanc(out.erro || 'Não foi possível excluir.', enviar);
+          return;
+        }
+        selecionados.delete(sid);
+        refreshSelBar();
+        const ix = rowsAcum.findIndex((row) => String(row.id) === sid);
+        if (ix >= 0) rowsAcum.splice(ix, 1);
+        total = Math.max(0, total - 1);
+        recarregarPreservandoVista();
       } catch (_) {
-        alert('Resposta inválida do servidor. Atualize a página (Ctrl+F5) e tente de novo.');
-        return;
+        alert('Erro de rede.');
       }
-      if (!r.ok || !out.ok) {
-        alert(out.erro || 'Não foi possível excluir.');
-        return;
-      }
-      selecionados.delete(sid);
-      refreshSelBar();
-      const ix = rowsAcum.findIndex((row) => String(row.id) === sid);
-      if (ix >= 0) rowsAcum.splice(ix, 1);
-      total = Math.max(0, total - 1);
-      recarregarPreservandoVista();
-    } catch (_) {
-      alert('Erro de rede.');
-    }
+    };
+    comOperadorLanc(enviar);
   }
 
   function urlEntradaNfe(row) {
@@ -2552,28 +2574,31 @@
     if (ebol) body.boleto_codigo_barras = ebol.value;
     const btn = document.getElementById('sv-edl-salvar');
     btn.disabled = true;
-    try {
-      const r = await fetch(API_LANC_ALTERAR, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(body),
-      });
-      const out = await r.json();
-      if (!out.ok) {
-        alert(out.erro || 'Não foi possível salvar.');
-        return;
+    const enviarEditar = async () => {
+      try {
+        const r = await fetch(API_LANC_ALTERAR, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+          },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alertOuPinLanc(out.erro || 'Não foi possível salvar.', enviarEditar);
+          return;
+        }
+        fecharModal('sv-modal-edit-lanc');
+        recarregarPreservandoVista({ focoId: id });
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        btn.disabled = false;
       }
-      fecharModal('sv-modal-edit-lanc');
-      recarregarPreservandoVista({ focoId: id });
-    } catch (_) {
-      alert('Erro de rede.');
-    } finally {
-      btn.disabled = false;
-    }
+    };
+    comOperadorLanc(enviarEditar);
   });
   document.getElementById('sv-bxp-add').addEventListener('click', () => bxpAddLinha(''));
   document.querySelectorAll('.sv-modal').forEach((m) => {
@@ -2603,33 +2628,39 @@
     }
     const btn = document.getElementById('sv-bx-ok');
     btn.disabled = true;
-    try {
-      const r = await fetch(API_BAIXA, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(body),
-      });
-      const out = await r.json();
-      if (out.erros && out.erros.length) {
-        alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+    const enviarBaixa = async () => {
+      try {
+        const r = await fetch(API_BAIXA, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify(body),
+        });
+        const out = await r.json();
+        if (out && out.ok === false && out.erro) {
+          if (alertOuPinLanc(out.erro, enviarBaixa)) return;
+        }
+        if (out.erros && out.erros.length) {
+          alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+        }
+        if (out.atualizados && out.atualizados.length) {
+          let m = `Pagamento registrado: ${out.atualizados.length} título(s).`;
+          if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+          else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+          if (out.aviso_juros) m += '\nJuros: ' + out.aviso_juros;
+          alert(m);
+          fecharModal('sv-modal-baixa');
+          recarregarPreservandoVista({ limparSelecao: true });
+        } else if (!out.erros || !out.erros.length) {
+          alertOuPinLanc(out.erro || 'Não foi possível baixar.', enviarBaixa);
+        }
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        btn.disabled = false;
       }
-      if (out.atualizados && out.atualizados.length) {
-        let m = `Pagamento registrado: ${out.atualizados.length} título(s).`;
-        if (out.erp_baixa_ok === true) m += '\nERP: ok.';
-        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
-        if (out.aviso_juros) m += '\nJuros: ' + out.aviso_juros;
-        alert(m);
-        fecharModal('sv-modal-baixa');
-        recarregarPreservandoVista({ limparSelecao: true });
-      } else if (!out.erros || !out.erros.length) {
-        alert(out.erro || 'Não foi possível baixar.');
-      }
-    } catch (_) {
-      alert('Erro de rede.');
-    } finally {
-      btn.disabled = false;
-    }
+    };
+    comOperadorLanc(enviarBaixa);
   });
 
   document.getElementById('sv-bxp-ok').addEventListener('click', async () => {
@@ -2661,34 +2692,37 @@
     }
     const btn = document.getElementById('sv-bxp-ok');
     btn.disabled = true;
-    try {
-      const r = await fetch(API_BAIXA_PARCIAL, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
-        body: JSON.stringify(payloadLancamentosApi({
-          lancamento_id: bxpIdAtual,
-          tipo: 'pagar',
-          data_movimento: document.getElementById('sv-bxp-data').value,
-          parcelas,
-        })),
-      });
-      const out = await r.json();
-      if (!out.ok) {
-        alert(out.erro || 'Falha na baixa parcial.');
-        return;
+    const enviarParcial = async () => {
+      try {
+        const r = await fetch(API_BAIXA_PARCIAL, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+          body: JSON.stringify(payloadLancamentosApi({
+            lancamento_id: bxpIdAtual,
+            tipo: 'pagar',
+            data_movimento: document.getElementById('sv-bxp-data').value,
+            parcelas,
+          })),
+        });
+        const out = await r.json();
+        if (!out.ok) {
+          alertOuPinLanc(out.erro || 'Falha na baixa parcial.', enviarParcial);
+          return;
+        }
+        let m = out.quitado ? 'Título quitado.' : 'Parcela registrada — ainda há saldo.';
+        if (out.erp_baixa_ok === true) m += '\nERP: ok.';
+        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+        alert(m);
+        fecharModal('sv-modal-parcial');
+        recarregarPreservandoVista({ focoId: bxpIdAtual });
+      } catch (_) {
+        alert('Erro de rede.');
+      } finally {
+        btn.disabled = false;
       }
-      let m = out.quitado ? 'Título quitado.' : 'Parcela registrada — ainda há saldo.';
-      if (out.erp_baixa_ok === true) m += '\nERP: ok.';
-      else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
-      alert(m);
-      fecharModal('sv-modal-parcial');
-      recarregarPreservandoVista({ focoId: bxpIdAtual });
-    } catch (_) {
-      alert('Erro de rede.');
-    } finally {
-      btn.disabled = false;
-    }
+    };
+    comOperadorLanc(enviarParcial);
   });
 
   document.getElementById('sv-btn-filtros').addEventListener('click', toggleFiltros);

@@ -832,6 +832,25 @@
       return m ? decodeURIComponent(m[2]) : '';
     }
 
+    /** PIN obrigatório → teclado (não alert do Chrome). retryFn reenvia a ação. */
+    function alertOuPinLanc(erro, retryFn) {
+      const msg = String(erro || 'Falha.');
+      if (typeof window.gmLancamentosTratarErroPin === 'function'
+          && window.gmLancamentosTratarErroPin(msg, typeof retryFn === 'function' ? retryFn : function () {})) {
+        return true;
+      }
+      alert(msg);
+      return false;
+    }
+
+    function comOperadorLanc(fn) {
+      if (typeof window.gmLancamentosComOperador === 'function') {
+        window.gmLancamentosComOperador(fn);
+      } else {
+        fn();
+      }
+    }
+
     function hojeISO() {
       const d = new Date();
       const y = d.getFullYear();
@@ -2286,38 +2305,41 @@
         return;
       }
       document.getElementById('bxp-ok').disabled = true;
-      try {
-        const r = await fetch(API_BAIXA_PARCIAL, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({
-            lancamento_id: bxpIdAtual,
-            tipo: tipoAtual,
-            data_movimento: document.getElementById('bxp-data').value,
-            parcelas,
-          }),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Falha na baixa parcial.');
-          return;
+      const enviarBaixaParcial = async () => {
+        try {
+          const r = await fetch(API_BAIXA_PARCIAL, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+              lancamento_id: bxpIdAtual,
+              tipo: tipoAtual,
+              data_movimento: document.getElementById('bxp-data').value,
+              parcelas,
+            }),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Falha na baixa parcial.', enviarBaixaParcial);
+            return;
+          }
+          let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
+          if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
+          else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+          alert(m);
+          document.getElementById('modal-baixa-parcial').classList.add('hidden');
+          selecionados.clear();
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
+        } finally {
+          document.getElementById('bxp-ok').disabled = false;
         }
-        let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
-        if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
-        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
-        alert(m);
-        document.getElementById('modal-baixa-parcial').classList.add('hidden');
-        selecionados.clear();
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      } finally {
-        document.getElementById('bxp-ok').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarBaixaParcial);
     });
 
     document.getElementById('btn-sel-zap-boletos')?.addEventListener('click', async () => {
@@ -2394,36 +2416,43 @@
         }
       }
       document.getElementById('bx-ok').disabled = true;
-      try {
-        const r = await fetch(API_BAIXA, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (out.erros && out.erros.length) {
-          alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+      const enviarBaixaLote = async () => {
+        try {
+          const r = await fetch(API_BAIXA, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (out && out.ok === false && (out.erro || !out.atualizados || !out.atualizados.length)) {
+            const pinMsg = out.erro || (out.erros && out.erros[0] && out.erros[0].erro) || 'Falha na baixa.';
+            if (alertOuPinLanc(pinMsg, enviarBaixaLote)) return;
+          }
+          if (out.erros && out.erros.length) {
+            alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+          }
+          if (out.atualizados && out.atualizados.length) {
+            let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
+            if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
+            else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
+            if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
+            if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
+            alert(m);
+          }
+          document.getElementById('modal-baixa').classList.add('hidden');
+          selecionados.clear();
+          carregar();
+        } catch (e) {
+          alert('Erro de rede na baixa.');
+        } finally {
+          document.getElementById('bx-ok').disabled = false;
         }
-        if (out.atualizados && out.atualizados.length) {
-          let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
-          if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
-          else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
-          if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
-          if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
-          alert(m);
-        }
-        document.getElementById('modal-baixa').classList.add('hidden');
-        selecionados.clear();
-        carregar();
-      } catch (e) {
-        alert('Erro de rede na baixa.');
-      } finally {
-        document.getElementById('bx-ok').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarBaixaLote);
     });
 
     function isoDateFromRowVenc(iso) {
@@ -2461,53 +2490,59 @@
     }
 
     async function definirRecorrenciaLancamento(id, recorrente, intervaloMeses) {
-      try {
-        const body = {
-          id,
-          recorrente: !!recorrente,
-          intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
-        };
-        const r = await fetch(API_RECORRE, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível atualizar a recorrência.');
-          return;
+      const enviar = async () => {
+        try {
+          const body = {
+            id,
+            recorrente: !!recorrente,
+            intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
+          };
+          const r = await fetch(API_RECORRE, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível atualizar a recorrência.', enviar);
+            return;
+          }
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
         }
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      }
+      };
+      comOperadorLanc(enviar);
     }
 
     async function excluirLancamentoPorId(id) {
-      try {
-        const r = await fetch(API_LANC_EXCLUIR, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({ id }),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível excluir.');
-          return;
+      const enviar = async () => {
+        try {
+          const r = await fetch(API_LANC_EXCLUIR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ id }),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível excluir.', enviar);
+            return;
+          }
+          selecionados.delete(id);
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
         }
-        selecionados.delete(id);
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      }
+      };
+      comOperadorLanc(enviar);
     }
 
     function bindGestaoLancamentosClick(container) {
@@ -2742,28 +2777,31 @@
       const ebol = document.getElementById('edl-boleto');
       if (ebol) body.boleto_codigo_barras = ebol.value;
       document.getElementById('edl-salvar').disabled = true;
-      try {
-        const r = await fetch(API_LANC_ALTERAR, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível salvar.');
-          return;
+      const enviarEditar = async () => {
+        try {
+          const r = await fetch(API_LANC_ALTERAR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível salvar.', enviarEditar);
+            return;
+          }
+          document.getElementById('modal-edit-lanc').classList.add('hidden');
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
+        } finally {
+          document.getElementById('edl-salvar').disabled = false;
         }
-        document.getElementById('modal-edit-lanc').classList.add('hidden');
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      } finally {
-        document.getElementById('edl-salvar').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarEditar);
     });
 
     document.addEventListener('keydown', (e) => {
