@@ -1275,16 +1275,31 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE — RH operadores PIN gestão (`RH-PIN-GESTAO` · **v22.65** · 05/09)
+### 📦 PACOTE PRONTO — RH operadores PIN gestão (`RH-PIN-GESTAO` · **v22.66** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Tela `/rh/operadores/`: buscar RH · cadastrar PIN · vincular · remover/reativar · reset 1234 |
-| **Regra** | Novo / reativar / reset = **1234** · 1ª vez no caixa **obriga** trocar (fluxo descanso) |
-| **Migrate** | **SIM** `base.0011` (ativo + vínculo Funcionario) |
-| **Prova** | `scripts/verify_rh_operadores_pin_gestao.py` **13/13** |
-| **Status** | 🟡 **teste** — validar local |
-| **Você** | `migrate` · RH → Operadores · cadastrar o novo · 1234 no descanso → PIN novo |
+| **O quê** | `/rh/operadores/`: buscar RH · cadastrar PIN · vincular · remover/reativar · reset 1234 |
+| **Regra** | Novo / reativar / reset = **1234** · 1ª vez no caixa **obriga** trocar |
+| **Migrate** | **SIM** `base.0011` |
+| **Prova** | `verify_rh_operadores_pin_gestao_path.py` **32/32** (fonte + Client + PIN **9973** Renan) · short **13/13** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | `migrate` · RH → Operadores · cadastrar · 1234 no descanso → PIN novo |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.66**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 6 | `RH-PIN-GESTAO` | 🟢 **pronto para envio à produção** | **SIM** `base.0011` |
+
+**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro · bug #13 troca.
+
+### ~~📦 PACOTE — RH operadores PIN gestão~~ · ver tip **RH-PIN-GESTAO** v22.66
 
 ### Bug loja #13 — cálculo conferido (`BI-DEVOL-*` · 04/09)
 
