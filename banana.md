@@ -1275,18 +1275,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — RH operadores PIN gestão (`RH-PIN-GESTAO` · **v22.66** · 05/09)
+### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/rh/operadores/`: buscar RH · cadastrar PIN · vincular · remover/reativar · reset 1234 |
-| **Regra** | Novo / reativar / reset = **1234** · 1ª vez no caixa **obriga** trocar |
+| **Status** | ✅ **enviado / Live v21.90** — cherry só este pacote · tip **`d8c7388`** / docs **`aaff41d`** |
+| **Antes** | `origin/producao` @ **v21.89** / `4910c79` |
+| **Agora** | `producao` @ **`aaff41d`** |
 | **Migrate** | **SIM** `base.0011` |
-| **Prova** | `verify_rh_operadores_pin_gestao_path.py` **32/32** (fonte + Client + PIN **9973** Renan) · short **13/13** |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | `migrate` · RH → Operadores · cadastrar · 1234 no descanso → PIN novo |
+| **Rollback** | tag `rollback/pre-rh-pin-gestao-v21.89` · `docs/ROLLBACK-RH-PIN-GESTAO-0509.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.90** · RH Operadores |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.66**)
+### ✅ CHECKLIST ÚNICO — enviado produção (05/09 · loja **v21.90**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
+
+**Ainda fora:** `PDV-ENTREGA-TABELA-FORMA` · `REPASSE-ZERO-OK` · `PDV-VALE-SALDO-LIVE` · `MP-POINT-FINAL-PIN` · `PDV-VALE-USADO`.
+
+### ~~📦 PACOTE PRONTO — RH operadores PIN gestão (`RH-PIN-GESTAO`)~~ · **Live v21.90**
+
+### ~~✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.66**)~~ · **parcial — RH-PIN Live; resto fora**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1295,11 +1305,9 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
 | 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
-| 6 | `RH-PIN-GESTAO` | 🟢 **pronto para envio à produção** | **SIM** `base.0011` |
+| 6 | `RH-PIN-GESTAO` | ✅ **Live v21.90** | **SIM** `base.0011` |
 
-**Live agora:** **v21.89**. Este lote **ainda não** subiu. **Fora:** WhatsApp extra · Excel cadastro · bug #13 troca.
-
-### ~~📦 PACOTE — RH operadores PIN gestão~~ · ver tip **RH-PIN-GESTAO** v22.66
+**Live agora:** **v21.90**.
 
 ### Bug loja #13 — cálculo conferido (`BI-DEVOL-*` · 04/09)
 
