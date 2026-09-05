@@ -1277,16 +1277,23 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.91** · 05/09)
+### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.93** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | Finalizar / baixar / editar / excluir: se o PIN venceu (~45s), **abre o teclado** — **não** alert do Chrome «modo descanso». |
 | **Onde** | lancamentos_pin_entrada · Novo lançamento · Contas a pagar · Contas a receber |
 | **Migrate** | **NÃO** |
-| **Prova** | scripts/verify_lanc_pin_teclado_path.py **VERIFY_OK 18/18** |
-| **Status** | 🟢 **pronto para envio** (teste **v22.91**) |
+| **Prova** | scripts/verify_lanc_pin_teclado_path.py **VERIFY_OK 70/70** (static · gate · PIN **9973** Renan · APIs 403/fresco · HTML teclado) |
+| **Status** | 🟢 **pronto para envio à produção** (teste **v22.93**) |
 | **Você** | Ctrl+F5 · Novo lançamento · preencher demorado · **Finalizar** → teclado PIN → grava |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.93**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | LANC-PIN-TECLADO | 🟢 **pronto para envio à produção** | **NÃO** |
+
 
 ### 📦 PACOTE PRONTO — Saudação completa + Resolvidas (`WA-SAUDACAO-RICH` + `WA-ARQUIVO` · **v22.86** · 05/09)
 
