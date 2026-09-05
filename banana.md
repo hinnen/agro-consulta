@@ -1333,23 +1333,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### 🟢 CHECKLIST ÚNICO — PREP pronto / aguarda senha (05/09g · loja alvo **v21.91**)
+### ✅ Deploy loja — lote checklist 05/09g (`deploy/prep-checklist-0509g` · **v21.91**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.91** — cherry só o lote (**não** merge `teste`) · tip **`319404f`** |
+| **Antes** | `producao` @ **`aaff41d`** · v21.90 |
+| **Agora** | `producao` @ **`319404f`** |
+| **Migrate** | **SIM** `0126` (Render no deploy) |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509g-v21.90` @ `aaff41d` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` |
+| **Smoke** | healthz **200** · deploy Render **live** |
+| **Você** | **Ctrl+F5** · badge **v21.91** · F7 · **não** ligar `.bat` do Zap |
+
+### ✅ CHECKLIST ÚNICO — 05/09g · **Live v21.91**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | 🟢 **PREP** | **NÃO** |
-| 2 | `REPASSE-ZERO-OK` | 🟢 **PREP** | **NÃO** |
-| 3 | `PDV-VALE-SALDO-LIVE` (#15) | 🟢 **PREP** | **NÃO** |
-| 4 | `MP-POINT-FINAL-PIN` (#11) | 🟢 **PREP** · PREP **39/39** | **NÃO** |
-| 5 | `PDV-VALE-USADO` (#16) | 🟢 **PREP** | **NÃO** |
-| 6 | `PDV-ORC-LISTA-LIVE` (#14) | 🟢 **PREP** | **NÃO** |
-| 7 | `WA-LISTA-SEM-PISCA` | 🟢 **PREP** | **NÃO** |
-| 8 | `WA-FACHONA-PRETA` | 🟢 **PREP** · **9/9** | **NÃO** |
-| 9 | `WA-PIN-COMPOSER` | 🟢 **PREP** | **NÃO** |
-| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | 🟢 **PREP** | **SIM** `0126` |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` (#12) | ✅ **Live v21.91** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | ✅ **Live v21.91** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` (#15) | ✅ **Live v21.91** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (#11) | ✅ **Live v21.91** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (#16) | ✅ **Live v21.91** | **NÃO** |
+| 6 | `PDV-ORC-LISTA-LIVE` (#14) | ✅ **Live v21.91** | **NÃO** |
+| 7 | `WA-LISTA-SEM-PISCA` | ✅ **Live v21.91** | **NÃO** |
+| 8 | `WA-FACHONA-PRETA` | ✅ **Live v21.91** | **NÃO** |
+| 9 | `WA-PIN-COMPOSER` | ✅ **Live v21.91** | **NÃO** |
+| 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | ✅ **Live v21.91** | **SIM** `0126` |
 
-**Live agora:** **v21.90**. PREP: `deploy/prep-checklist-0509g` @ **v21.91**. **Não** merge `teste`. Rollback: `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.  
-**PDV:** F7 balcão **igual**. **Não** ligar `.bat` do Zap neste deploy (lento).
+**Live agora:** **v21.91**. Excel cadastro / ponte Zap extra do `teste` **fora**.
 
 ### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
 

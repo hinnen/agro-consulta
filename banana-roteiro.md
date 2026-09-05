@@ -372,16 +372,17 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | **PDV-ENTREGA-TABELA-FORMA** | 🟢 **PREP** · aguarda senha | **NÃO** |
-| 2 | **REPASSE-ZERO-OK** | 🟢 **PREP** | **NÃO** |
-| 3 | **PDV-VALE-SALDO-LIVE** | 🟢 **PREP** | **NÃO** |
-| 4 | **MP-POINT-FINAL-PIN** | 🟢 **PREP** | **NÃO** |
-| 5 | **PDV-VALE-USADO** | 🟢 **PREP** | **NÃO** |
-| 6 | **PDV-ORC-LISTA-LIVE** | 🟢 **PREP** | **NÃO** |
-| 7 | **WA-LISTA-SEM-PISCA** | 🟢 **PREP** | **NÃO** |
-| 8 | **WA-FACHONA-PRETA** | 🟢 **PREP** · **9/9** | **NÃO** |
-| 9 | **WA-PIN-COMPOSER** | 🟢 **PREP** | **NÃO** |
-| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | 🟢 **PREP** | **SIM** `0126` |
+| 1 | **PDV-ENTREGA-TABELA-FORMA** | ✅ **Live v21.91** | **NÃO** |
+| 2 | **REPASSE-ZERO-OK** | ✅ **Live v21.91** | **NÃO** |
+| 3 | **PDV-VALE-SALDO-LIVE** | ✅ **Live v21.91** | **NÃO** |
+| 4 | **MP-POINT-FINAL-PIN** | ✅ **Live v21.91** | **NÃO** |
+| 5 | **PDV-VALE-USADO** | ✅ **Live v21.91** | **NÃO** |
+| 6 | **PDV-ORC-LISTA-LIVE** | ✅ **Live v21.91** | **NÃO** |
+| 7 | **WA-LISTA-SEM-PISCA** | ✅ **Live v21.91** | **NÃO** |
+| 8 | **WA-FACHONA-PRETA** | ✅ **Live v21.91** | **NÃO** |
+| 9 | **WA-PIN-COMPOSER** | ✅ **Live v21.91** | **NÃO** |
+| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | ✅ **Live v21.91** | **SIM** `0126` |
 
-**Status: PREP / aguarda senha.** Live ainda **v21.90** @ `aaff41d`. **Não** merge `teste`. **Não** ligar ponte Zap.  
-**Rollback:** tag `rollback/pre-lote-checklist-0509g-v21.90` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.
+**Status: enviado / Live v21.91.** `producao` @ `319404f`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0509g-v21.90` @ `aaff41d` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` · **só** frase+senha.  
+**Smoke:** healthz ok · badge **v21.91** · Ctrl+F5. **Não** ligar ponte Zap.
