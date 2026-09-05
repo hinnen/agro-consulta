@@ -1276,16 +1276,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.72** · 05/09)
+### 📦 PACOTE PRONTO — Nome do PIN na barra do Zap (`WA-PIN-COMPOSER` · **v22.77** · 05/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Na frente do «Digite uma mensagem»: nome de quem está no PIN. Clique → pede PIN de novo. |
-| **Onde** | `_wa_composer.html` · `atendimento_whatsapp.js` · screensaver no Zap web/celular |
+| **O quê** | Card **Quem** + nome do PIN na frente do campo · clique **sempre** abre PIN pra trocar assinatura |
+| **Visual** | Card claro (não pill) · campo de mensagem cede espaço · sem amontoar |
+| **Onde** | `_wa_composer.html` · `_wa_skin.html` · `atendimento_whatsapp.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_wa_pin_composer_path.py` **VERIFY_OK 9/9** |
+| **Prova** | `scripts/verify_wa_pin_composer_path.py` **9/9** (base) · visual card no tip **v22.77** |
 | **Status** | 🟢 **pronto para envio à produção** |
-| **Você** | Ctrl+F5 no Zap · vê o nome · clique e troca o PIN |
+| **Você** | Ctrl+F5 Zap · ver card **Quem** · clicar · trocar PIN · enviar |
 
 ### 📦 PACOTE PRONTO — Some faixa preta Chrome no Zap (`WA-FACHONA-PRETA` · **v22.71** · 05/09)
 

@@ -31,15 +31,19 @@ def main() -> int:
 
     print("WA-PIN-COMPOSER path checks")
     check("composer_btn", 'id="wa-operador-pin"' in composer)
+    check("composer_card_lbl", "wa-op-pin-lbl" in composer and "Quem" in composer)
+    check("composer_card_nome", 'id="wa-operador-pin-nome"' in composer)
     check("composer_antes_input", composer.find("wa-operador-pin") < composer.find('id="wa-input"'))
-    check("skin_op_pin", ".wa-op-pin" in skin)
+    check("skin_op_pin", ".wa-op-pin" in skin and "wa-op-pin-nome" in skin)
+    check("skin_input_cede", "flex: 1 1 0%" in skin or "flex: 1 1 0" in skin)
     check("skin_hide_rec", "is-rec #wa-operador-pin" in skin)
     check("page_sspin", "_screensaver_pin.html" in page)
     check("cel_sspin", "_screensaver_pin.html" in cel)
-    check("js_pintar", "pintarOperadorPin" in js)
+    check("js_pintar", "pintarOperadorPin" in js and "nomeCurtoOperador" in js)
     check("js_trocar", "gmSspinSairEAbrirPin" in js)
     check("js_event", "gm-sspin-operador" in js)
     check("js_ls", "gm_sspin_operador" in js)
+    check("js_autor_pin", "nomeOperadorPin() || 'Você'" in js)
 
     print(f"\nVERIFY_{'OK' if fail == 0 else 'FAIL'} {ok}/{ok + fail}")
     return 0 if fail == 0 else 1
