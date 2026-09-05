@@ -831,6 +831,7 @@
   if (window.AgroDualWindow && window.AgroDualWindow.isPdvHost && window.AgroDualWindow.isPdvHost()) return;
 
   var SIDEBAR_EXPAND_KEY = 'agro_sidebar_expanded_v1';
+  var RESUME_INAPP_TAB_KEY = 'agro_resume_inapp_tab_v1';
 
   function dualWindowMode() {
     return window.AgroDualWindow && typeof window.AgroDualWindow.enabled === 'function' && window.AgroDualWindow.enabled();
@@ -1801,6 +1802,7 @@
         } catch (_) {}
         showWhich('pdv');
       }
+      resumeInAppTabAfterHome();
     } else if (pathLookLikeDashboard(pathNow)) {
       shell.wrapEl.style.display = 'none';
       try {
@@ -1808,12 +1810,49 @@
       } catch (_) {}
       if (pinTab === 'pdv' || pinTab === 'dash') shell.pinnedTabGlow = pinTab;
       showWhich('dash');
+      resumeInAppTabAfterHome();
     } else {
-      /** Primeira tela vira primeira das 3 abas opcionais; remove HTML duplicado após iframe carregar */
-      occupyUserSlotWithUrl(location.href.split('#')[0], 0, true);
+      /**
+       * App instalado do Chrome: URL no topo fora do PDV/BI → faixa preta «fora do escopo».
+       * Volta o endereço para o BI/PDV (escopo) e reabre a tela numa aba iframe.
+       */
+      var curHref = location.href.split('#')[0];
+      var homeInScope = hideGestaoSidebarPdv() || dualWindowMode() ? dashboardHref() : pdvHref();
+      var homePath = '';
+      try {
+        homePath = pathnameNorm(new URL(homeInScope, location.href).pathname);
+      } catch (_) {
+        homePath = '';
+      }
+      if (agroInAppShellDisponivel() && homePath && homePath !== pathnameNorm(pathNow)) {
+        try {
+          sessionStorage.setItem(RESUME_INAPP_TAB_KEY, curHref);
+        } catch (_) {}
+        try {
+          location.replace(homeInScope);
+        } catch (_) {
+          location.href = homeInScope;
+        }
+        return;
+      }
+      occupyUserSlotWithUrl(curHref, 0, true);
     }
 
     hidePresetPick();
+  }
+
+  function resumeInAppTabAfterHome() {
+    var resume = '';
+    try {
+      resume = sessionStorage.getItem(RESUME_INAPP_TAB_KEY) || '';
+      if (resume) sessionStorage.removeItem(RESUME_INAPP_TAB_KEY);
+    } catch (_) {
+      resume = '';
+    }
+    if (!resume) return;
+    try {
+      occupyUserSlotWithUrl(resume, undefined, false);
+    } catch (_) {}
   }
 
   window.__agroInAppAddTab = function (urlStr) {

@@ -110,11 +110,34 @@
     box.setAttribute('aria-hidden', 'true');
   }
 
+  function abrirZapSemSairDoApp() {
+    var href = '/atendimento-whatsapp/';
+    try {
+      if (window.AgroDualWindow && typeof window.AgroDualWindow.navigateGestao === 'function') {
+        window.AgroDualWindow.navigateGestao(href);
+        return;
+      }
+    } catch (_) {}
+    try {
+      if (window.tabManager && typeof window.tabManager.addTab === 'function') {
+        window.tabManager.addTab('WhatsApp', href, 'message-circle');
+        return;
+      }
+    } catch (_) {}
+    try {
+      if (typeof window.__agroInAppAddTab === 'function') {
+        window.__agroInAppAddTab(href);
+        return;
+      }
+    } catch (_) {}
+    window.location.href = href;
+  }
+
   btn.addEventListener('click', function (ev) {
     ev.preventDefault();
     ev.stopPropagation();
     if (recursos.feat_pdv_abre_zap) {
-      window.location.href = '/atendimento-whatsapp/';
+      abrirZapSemSairDoApp();
       return;
     }
     abrirBreve();
