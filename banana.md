@@ -1333,7 +1333,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Status** | 🟢 **pronto para envio à produção** · sobe no lote com os outros |
 | **Você (após loja)** | Ctrl+F5 nos PCs Centro · Salvar · novo valor no card na hora (sem limpar Chrome) |
 
-### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.82**)
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09g · tip **v22.83**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1348,7 +1348,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 9 | `WA-PIN-COMPOSER` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 10 | `WA-SAUDACAO-RICH` + `WA-ARQUIVO` | 🟢 **pronto para envio à produção** | **SIM** `0126` |
 
-**Live agora:** **v21.90**. **Ainda fora** os da tabela — sobem juntos com frase+senha.
+**Live agora:** **v21.90**. Lote da tabela **ainda não** subiu. **Fora:** `WA-PONTE-LEVE` (ponte off de propósito).
 
 ### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
 
