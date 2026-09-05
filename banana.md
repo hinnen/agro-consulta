@@ -729,6 +729,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). Próximo: `WA-PONTE-LEVE` (poll mais espaçado · menos fotos/agenda).
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1274,6 +1275,51 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 PACOTE PRONTO — Lista WA sem piscada (`WA-LISTA-SEM-PISCA` · **v22.69** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Avatar da lista não pisca a cada ~2,5s (atualiza item a item · src igual não recarrega · foto quebrada → letra) |
+| **Onde** | `/atendimento-whatsapp/` · `atendimento_whatsapp.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_lista_sem_pisca_path.py` **VERIFY_OK 27/27** (JS + lógica src + PIN 9973 Client) |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 no Zap · olha a lista ~10s sem piscada |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09d · tip **v22.69**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `PDV-ENTREGA-TABELA-FORMA` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 2 | `REPASSE-ZERO-OK` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 3 | `PDV-VALE-SALDO-LIVE` | 🟢 **pronto para envio à produção** | **NÃO** |
+| 4 | `MP-POINT-FINAL-PIN` (bug #11) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 5 | `PDV-VALE-USADO` (bug #16) | 🟢 **pronto para envio à produção** | **NÃO** |
+| 6 | `WA-LISTA-SEM-PISCA` | 🟢 **pronto para envio à produção** | **NÃO** |
+
+**Live agora:** **v21.90**. **Ainda fora** os da tabela.
+
+### Conferência bugs loja #11–#16 (05/09 · só prova/código — sem subir)
+
+| # | O quê | Código | Loja agora (v21.90) | Marcar resolvido? |
+| - | ----- | ------ | ------------------- | ----------------- |
+| **11** | Point cobrou / venda 500 | `MP-POINT-FINAL-PIN` prova **40/40** | ❌ **fora** | **Não** — falta senha |
+| **12** | Tabela % na entrega | `PDV-ENTREGA-TABELA-FORMA` prova **41/41** | ❌ **fora** | **Não** — falta senha |
+| **13** | Devolução no cálculo BI | `BI-DEVOL-*` já Live · prova **41/41** (healthz local off) | ✅ cálculo | **Sim o cálculo**. **Troca** (A→B) **não existe** — não marcar o pedido inteiro |
+| **14** | Orçamento não grava no Centro | `PDV-ORC-POR-CLIENTE` Live **v21.08+** · prova **68/68** | ✅ código | **Não fechar** — Renan 05/09: **seu PC + notebook Vila OK**; **notebook Centro + PC caixa Centro ainda NÃO** salvam/visualizam o novo |
+| **15** | Vale no contador na hora | `PDV-VALE-SALDO-LIVE` prova **17/17** (sem crédito real) | ❌ **fora** | **Não** — falta senha |
+| **16** | Pagar com vale baixa saldo | `PDV-VALE-USADO` prova **37/37** (API+PG) | ❌ **fora** | **Não** — falta senha |
+
+### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
+
+| Campo | Valor |
+| ----- | ----- |
+| **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
+| **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
+| **Estado** | Zap loja **off** de propósito até aliviar carga (`WA-PONTE-LEVE` — pendente) · plano Render **US$ 25** em avaliação |
+| **UI** | `WA-LISTA-SEM-PISCA` · **v22.69** · 🟢 pronto envio (prova 27/27) |
+| **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
 
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
