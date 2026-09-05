@@ -1817,6 +1817,97 @@
     });
   }
 
+  function garantirPicLite() {
+    var box = document.getElementById('wa-pic-lite');
+    if (box) return box;
+    box = document.createElement('div');
+    box.id = 'wa-pic-lite';
+    box.className = 'wa-pic-lite';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-label', 'Foto em tela cheia');
+    box.innerHTML = '<img alt="" />';
+    document.body.appendChild(box);
+    box.addEventListener('click', function (ev) {
+      if (ev.target === box || (ev.target && ev.target.tagName === 'IMG')) {
+        box.classList.remove('is-on');
+        box.querySelector('img').removeAttribute('src');
+      }
+    });
+    return box;
+  }
+
+  function abrirPicLite(url) {
+    var src = String(url || '').trim();
+    if (!src) return;
+    var box = garantirPicLite();
+    var img = box.querySelector('img');
+    if (img) img.src = src;
+    box.classList.add('is-on');
+  }
+
+  document.addEventListener('click', function (ev) {
+    var pic = ev.target && ev.target.closest ? ev.target.closest('.wa-pic[data-wa-pic-full]') : null;
+    if (!pic) return;
+    ev.preventDefault();
+    abrirPicLite(pic.getAttribute('data-wa-pic-full') || pic.getAttribute('src') || '');
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    var box = document.getElementById('wa-pic-lite');
+    if (box && box.classList.contains('is-on')) {
+      box.classList.remove('is-on');
+      var img = box.querySelector('img');
+      if (img) img.removeAttribute('src');
+    }
+  });
+
+  function nomeOperadorPin() {
+    try {
+      return String(localStorage.getItem('gm_sspin_operador') || '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function pintarOperadorPin() {
+    var btn = $('wa-operador-pin');
+    if (!btn) return;
+    var n = nomeOperadorPin();
+    if (n) {
+      btn.textContent = n;
+      btn.classList.remove('is-empty');
+      btn.title = 'PIN: ' + n + ' — clique para trocar';
+    } else {
+      btn.textContent = 'PIN?';
+      btn.classList.add('is-empty');
+      btn.title = 'Ninguém no PIN — clique para identificar';
+    }
+  }
+
+  function trocarOperadorPin() {
+    if (typeof window.gmSspinSairEAbrirPin === 'function') {
+      window.gmSspinSairEAbrirPin();
+      return;
+    }
+    if (typeof window.gmSspinAbrirEntrada === 'function') {
+      window.gmSspinAbrirEntrada();
+      return;
+    }
+    window.alert('Abra o PIN do modo descanso nesta tela (recarregue a página).');
+  }
+
+  var btnOpPin = $('wa-operador-pin');
+  if (btnOpPin) {
+    btnOpPin.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      trocarOperadorPin();
+    });
+  }
+  window.addEventListener('gm-sspin-operador', pintarOperadorPin);
+  pintarOperadorPin();
+
   setTab();
   pintarEstadoFiltro();
   pedirAviso();
