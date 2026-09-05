@@ -64,13 +64,33 @@ def check_static() -> None:
         "unset e consumidor = mesma pasta",
     )
     idx_save = wiz.find("function salvarOrcamentoWizard")
-    save = wiz[idx_save : idx_save + 2200]
+    save = wiz[idx_save : idx_save + 4500]
     check(idx_save > 0 and "cliente_key: key" in save, "salvar grava cliente_key do estado")
     check("budgetClienteKeyFromState(state)" in save, "salvar usa pasta do cliente da tela")
     check("setConsumidorFinal" in save, "salvar com modal aberto vira consumidor")
+    check(
+        "syncHistoricoOrcamentosCliente(key, { silent: true })" in save
+        and "doneFeedback()" in save,
+        "apos OK repuxa servidor antes do verde",
+    )
+    check(
+        "PDV sem URL de orçamento" in save or "PDV sem URL de orcamento" in save,
+        "sem URL nao mente verde",
+    )
+    check("_orcamentosMem" in wiz, "lista tambem na memoria do PDV")
+    check("sortHistoricoOrcamentosPorId" in wiz, "card ordena por id novo primeiro")
+    idx_fmt = wiz.find("function formatBudgetCardDate")
+    fmt = wiz[idx_fmt : idx_fmt + 700]
+    check(
+        idx_fmt > 0
+        and fmt.find("raw.match") < fmt.find("new Date(raw)")
+        and fmt.find("raw.match") > 0,
+        "data BR antes do Date US",
+    )
     idx_snip = wiz.find("function renderRecentBudgetsSnippet")
-    snip = wiz[idx_snip : idx_snip + 500]
+    snip = wiz[idx_snip : idx_snip + 700]
     check(idx_snip > 0 and "filterHistoricoPorCliente" in snip, "card lateral filtra pelo cliente")
+    check("sortHistoricoOrcamentosPorId" in snip, "card lateral ordena id")
     idx_hist = wiz.find("function openBudgetHistory")
     hist = wiz[idx_hist : idx_hist + 4500]
     check(idx_hist > 0 and "filterHistoricoPorCliente" in hist, "F6 lista filtra pelo cliente")

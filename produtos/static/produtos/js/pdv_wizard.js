@@ -3820,8 +3820,16 @@
 
     var lastBudgetSyncKey = '';
     var _orcamentoSyncSeq = 0;
+    var _orcamentosMem = null;
 
     function readHistoricoOrcamentos() {
+        if (Array.isArray(_orcamentosMem)) {
+            try {
+                return JSON.parse(JSON.stringify(_orcamentosMem));
+            } catch (eMem) {
+                return _orcamentosMem.slice();
+            }
+        }
         try {
             var historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
             return Array.isArray(historico) ? historico : [];
@@ -3831,9 +3839,59 @@
     }
 
     function writeHistoricoOrcamentos(historico) {
+        var list = Array.isArray(historico) ? historico : [];
         try {
-            localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
-        } catch (errW) {}
+            _orcamentosMem = JSON.parse(JSON.stringify(list));
+        } catch (eCopy) {
+            _orcamentosMem = list.slice();
+        }
+        var tryWrite = function (arr) {
+            localStorage.setItem('historicoOrcamentos', JSON.stringify(arr));
+            return true;
+        };
+        try {
+            return tryWrite(list);
+        } catch (errW) {
+            // PCs do Centro com localStorage cheio: verde no save e lista velha.
+            try {
+                var slim = list.slice(0, 40).map(function (item) {
+                    if (!item || typeof item !== 'object') return item;
+                    return {
+                        id: item.id,
+                        orc_barcode: item.orc_barcode,
+                        data: item.data,
+                        cliente: item.cliente,
+                        cliente_key: item.cliente_key,
+                        cliente_mode: item.cliente_mode,
+                        total: item.total,
+                        forma_pagamento: item.forma_pagamento,
+                        entrega: item.entrega,
+                        origem: item.origem,
+                        usuario: item.usuario,
+                        itens: Array.isArray(item.itens)
+                            ? item.itens.map(function (it) {
+                                  return {
+                                      id: it && it.id,
+                                      nome: it && it.nome,
+                                      preco: it && it.preco,
+                                      qtd: it && it.qtd,
+                                      codigo: it && it.codigo,
+                                      codigoGm: it && it.codigoGm
+                                  };
+                              })
+                            : []
+                    };
+                });
+                return tryWrite(slim);
+            } catch (errSlim) {
+                try {
+                    localStorage.removeItem('historicoOrcamentos');
+                    return tryWrite(list.slice(0, 15));
+                } catch (errLast) {
+                    return false;
+                }
+            }
+        }
     }
 
     function mergeOrcamentoIntoHistorico(entry) {
@@ -3964,6 +4022,12 @@
     function formatBudgetCardDate(dataStr) {
         if (!dataStr) return '—';
         var raw = String(dataStr).trim();
+        // BR primeiro — Date("05/09/2026") no Chrome vira maio e troca o dia.
+        var m = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+        if (m) {
+            var y = m[3].length === 4 ? m[3].slice(-2) : m[3];
+            return String(m[1]).padStart(2, '0') + '/' + String(m[2]).padStart(2, '0') + '/' + y;
+        }
         var parsed = new Date(raw);
         if (!isNaN(parsed.getTime())) {
             var dd = String(parsed.getDate()).padStart(2, '0');
@@ -3971,12 +4035,13 @@
             var yy = String(parsed.getFullYear()).slice(-2);
             return dd + '/' + mm + '/' + yy;
         }
-        var m = raw.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-        if (m) {
-            var y = m[3].length === 4 ? m[3].slice(-2) : m[3];
-            return String(m[1]).padStart(2, '0') + '/' + String(m[2]).padStart(2, '0') + '/' + y;
-        }
         return raw.slice(0, 8) || '—';
+    }
+
+    function sortHistoricoOrcamentosPorId(historico) {
+        return (Array.isArray(historico) ? historico.slice() : []).sort(function (a, b) {
+            return Number(b && b.id) - Number(a && a.id);
+        });
     }
 
     function reopenBudgetById(budgetId, onDone) {
@@ -4097,7 +4162,13 @@
         };
         var urlSave = apiPdvOrcamentosUrl();
         if (!urlSave) {
-            doneFeedback();
+            if (!opts.silent) {
+                showPdvAviso('PDV sem URL de orçamento — recarregue (Ctrl+F5).', {
+                    title: 'Orçamento',
+                    tone: 'warn',
+                    prominent: true
+                });
+            }
             return Promise.resolve(false);
         }
         if (dom.step1SalvarOrcamentoBtn) dom.step1SalvarOrcamentoBtn.disabled = true;
@@ -4114,9 +4185,12 @@
             .then(function (res) {
                 if (res && res.data && res.data.ok && res.data.item) {
                     mergeOrcamentoIntoHistorico(res.data.item);
-                    renderRecentBudgetsSnippet();
-                    doneFeedback();
-                    return true;
+                    // Servidor = verdade: repuxa a pasta do cliente (lista não depende só do localStorage).
+                    return syncHistoricoOrcamentosCliente(key, { silent: true }).then(function () {
+                        renderRecentBudgetsSnippet();
+                        doneFeedback();
+                        return true;
+                    });
                 }
                 renderRecentBudgetsSnippet();
                 if (!opts.silent) {
@@ -4335,7 +4409,9 @@
         if (!el) return;
         var state = State.getState();
         var key = budgetClienteKeyFromState(state);
-        var historico = filterHistoricoPorCliente(readHistoricoOrcamentos(), key);
+        var historico = sortHistoricoOrcamentosPorId(
+            filterHistoricoPorCliente(readHistoricoOrcamentos(), key)
+        );
         var slice = historico.slice(0, PDV_BUDGET_CARD_VISIBLE);
         if (dom.step1BudgetVerMais) {
             if (historico.length > PDV_BUDGET_CARD_VISIBLE) {

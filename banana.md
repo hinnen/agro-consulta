@@ -1307,9 +1307,21 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **11** | Point cobrou / venda 500 | `MP-POINT-FINAL-PIN` prova **40/40** | ❌ **fora** | **Não** — falta senha |
 | **12** | Tabela % na entrega | `PDV-ENTREGA-TABELA-FORMA` prova **41/41** | ❌ **fora** | **Não** — falta senha |
 | **13** | Devolução no cálculo BI | `BI-DEVOL-*` já Live · prova **41/41** (healthz local off) | ✅ cálculo | **Sim o cálculo**. **Troca** (A→B) **não existe** — não marcar o pedido inteiro |
-| **14** | Orçamento não grava no Centro | `PDV-ORC-POR-CLIENTE` Live **v21.08+** · prova **68/68** | ✅ código | **Não fechar** — Renan 05/09: **seu PC + notebook Vila OK**; **notebook Centro + PC caixa Centro ainda NÃO** salvam/visualizam o novo |
+| **14** | Orçamento não grava no Centro | `PDV-ORC-LISTA-LIVE` **v22.70** (hotfix) · prova **74/74** | ❌ lista Centro ainda bug | **Não** — verde mentia; lista no `localStorage` |
 | **15** | Vale no contador na hora | `PDV-VALE-SALDO-LIVE` prova **17/17** (sem crédito real) | ❌ **fora** | **Não** — falta senha |
 | **16** | Pagar com vale baixa saldo | `PDV-VALE-USADO` prova **37/37** (API+PG) | ❌ **fora** | **Não** — falta senha |
+
+### 📦 PACOTE PRONTO — Orçamento lista após salvar (`PDV-ORC-LISTA-LIVE` · **v22.70** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Bug** | #14 Centro: **verde** “salvo” mas card ORÇAMENTOS **não** mostra o novo (notebook + PC caixa Centro; Vila/PC Renan OK) |
+| **Causa** | Lista lia só `localStorage` (cheio/falha no Centro) · data `Date()` invertia dia/mês |
+| **Fix** | Memória no PDV + limpa cota · após OK **repuxa servidor** · ordena por id · data BR antes do `Date` · sem URL **não** mente verde |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_pdv_orcamento_save.py` **VERIFY_OK 74/74** |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Você** | Ctrl+F5 nos 2 PCs Centro · Salvar · **R$ 1,30** tem que aparecer no card na hora |
 
 ### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
 
