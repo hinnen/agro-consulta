@@ -17,10 +17,12 @@
 <body class="bg-slate-50 h-full text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
-    <div class="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-lg font-black uppercase text-slate-900">RH · Operadores e PIN</h1>
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Cadastro leve para uso futuro</p>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+          Novo operador = PIN <span class="text-amber-700">1234</span> · 1ª vez no caixa obriga trocar
+        </p>
       </div>
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         <a href="{% url 'rh_painel' %}"
@@ -33,95 +35,184 @@
   </header>
 
   <main class="flex-1 min-h-0">
-    <div class="max-w-5xl mx-auto h-full flex flex-col md:flex-row gap-3 px-3 py-3">
-      <section class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col">
-        <header class="mb-3">
-          <h2 class="text-sm font-black uppercase text-slate-900">SisVale Centro</h2>
-          <p class="text-[11px] text-slate-500 font-semibold">Operadores do caixa. PIN no servidor (todos os PCs). 1ª vez: operador usa 1234 no descanso.</p>
+    <div class="max-w-6xl mx-auto h-full flex flex-col lg:flex-row gap-3 px-3 py-3">
+      <section class="flex-1 min-w-0 rounded-2xl border border-slate-200 bg-white shadow-sm p-4 flex flex-col min-h-0">
+        <header class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-sm font-black uppercase text-slate-900">Operadores do caixa</h2>
+            <p class="text-[11px] text-slate-500 font-semibold">PIN no servidor (todos os PCs). Quem saiu: Remover — a ficha do RH não some.</p>
+          </div>
+          <label class="inline-flex items-center gap-2 text-[11px] font-bold text-slate-600 cursor-pointer select-none">
+            <input type="checkbox" id="rh-incluir-inativos" class="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+            Mostrar saídos
+          </label>
         </header>
         <div class="flex-1 min-h-0 overflow-y-auto hide-scroll">
           <table class="w-full text-xs">
             <thead>
               <tr class="border-b border-slate-200 text-[10px] uppercase text-slate-500">
                 <th class="text-left py-1.5 pr-2 font-black">Nome</th>
+                <th class="text-left py-1.5 px-2 font-black">RH</th>
                 <th class="text-left py-1.5 px-2 font-black">PIN</th>
-                <th class="text-left py-1.5 pl-2 font-black">Status</th>
+                <th class="text-left py-1.5 pl-2 font-black">Ações</th>
               </tr>
             </thead>
-            <tbody class="align-middle" id="rh-tbody">
-            </tbody>
+            <tbody class="align-middle" id="rh-tbody"></tbody>
           </table>
         </div>
       </section>
 
-      <aside class="w-full md:w-64 md:max-w-xs rounded-2xl border border-slate-200 bg-slate-900 text-slate-50 shadow-sm flex flex-col">
+      <aside class="w-full lg:w-80 xl:w-96 rounded-2xl border border-slate-200 bg-slate-900 text-slate-50 shadow-sm flex flex-col min-h-0">
         <div class="px-4 py-3 border-b border-slate-800/80">
-          <p class="text-[11px] font-black uppercase tracking-wide text-emerald-300">Outra empresa</p>
-          <p class="text-[10px] text-slate-200 font-semibold mt-0.5">Funcionários relacionados mas fora da loja Centro.</p>
+          <p class="text-[11px] font-black uppercase tracking-wide text-emerald-300">Cadastrar / vincular</p>
+          <p class="text-[10px] text-slate-300 font-semibold mt-0.5">Busque no RH ou digite um nome avulso.</p>
         </div>
-        <div class="px-4 py-3 flex-1 min-h-0 overflow-y-auto hide-scroll">
-          <ul class="space-y-1 text-xs">
-            {% for nome in funcionarios_outra %}
-            <li class="flex items-center justify-between gap-2">
-              <span class="font-semibold">{{ nome }}</span>
-              <span class="text-[10px] font-bold uppercase text-slate-400">Sem PIN</span>
-            </li>
-            {% endfor %}
-          </ul>
+        <div class="px-4 py-3 space-y-3 flex-1 min-h-0 flex flex-col">
+          <div>
+            <label class="text-[10px] font-black uppercase text-slate-400" for="rh-busca-rh">Buscar funcionário RH</label>
+            <input id="rh-busca-rh" type="search" autocomplete="off" placeholder="Nome…"
+                   class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white placeholder:text-slate-500 outline-none focus:border-emerald-500">
+          </div>
+          <div id="rh-busca-lista" class="flex-1 min-h-0 overflow-y-auto hide-scroll space-y-1.5 text-xs"></div>
+          <div class="border-t border-slate-800 pt-3 space-y-2">
+            <p class="text-[10px] font-black uppercase text-slate-400">Ou nome avulso (sem ficha RH)</p>
+            <div class="flex gap-2">
+              <input id="rh-nome-avulso" type="text" maxlength="120" placeholder="Ex.: Estagiário"
+                     class="flex-1 min-w-0 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2.5 text-sm font-semibold text-white placeholder:text-slate-500 outline-none focus:border-emerald-500">
+              <button type="button" id="rh-btn-avulso"
+                      class="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 text-[10px] font-black uppercase text-white hover:bg-emerald-500">
+                Criar
+              </button>
+            </div>
+          </div>
         </div>
       </aside>
     </div>
   </main>
+
+  {# Modal vincular operador existente a funcionário RH #}
+  <div id="rh-modal-vincular" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4">
+    <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl p-4 space-y-3">
+      <p class="text-sm font-black uppercase text-slate-900">Vincular ao RH</p>
+      <p id="rh-vincular-nome" class="text-xs font-semibold text-slate-600"></p>
+      <input id="rh-vincular-busca" type="search" placeholder="Buscar funcionário…"
+             class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold outline-none focus:border-emerald-500">
+      <div id="rh-vincular-lista" class="max-h-48 overflow-y-auto space-y-1 text-xs"></div>
+      <button type="button" id="rh-vincular-fechar"
+              class="w-full min-h-[44px] rounded-xl border-2 border-slate-200 text-xs font-black uppercase text-slate-700 hover:bg-slate-50">
+        Fechar
+      </button>
+    </div>
+  </div>
+
 {% include "produtos/_atalho_voltar_pdv.html" %}
 {% csrf_token %}
 <script>
 (function () {
-  const API_USU = "{% url 'api_listar_usuarios' %}";
+  const API_LISTA = "{% url 'api_rh_operadores_lista' %}";
+  const API_BUSCA = "{% url 'api_rh_operadores_buscar_rh' %}";
+  const API_CRIAR = "{% url 'api_rh_operador_criar' %}";
+  const API_VINC = "{% url 'api_rh_operador_vincular' %}";
+  const API_OFF = "{% url 'api_rh_operador_desativar' %}";
+  const API_ON = "{% url 'api_rh_operador_reativar' %}";
+  const API_RST = "{% url 'api_rh_operador_reset_1234' %}";
   const API_DEF_PIN = "{% url 'api_definir_pin_rh' %}";
+
+  let vincularPerfilId = null;
+  let buscaTimer = null;
+  let vincTimer = null;
 
   function getCookie(name) {
     const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
     return m ? decodeURIComponent(m[2]) : '';
   }
 
+  function csrfHeaders() {
+    return { 'X-CSRFToken': getCookie('csrftoken') };
+  }
+
+  async function postForm(url, fields) {
+    const form = new FormData();
+    Object.keys(fields || {}).forEach((k) => form.append(k, fields[k]));
+    const r = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: csrfHeaders(),
+      body: form,
+    });
+    return r.json();
+  }
+
+  function esc(s) {
+    return String(s || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function statusHtml(u) {
+    if (!u.ativo) {
+      return '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-slate-200 text-slate-700">Saiu</span>';
+    }
+    if (u.pin_personalizado) {
+      return '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-emerald-100 text-emerald-800">PIN próprio</span>';
+    }
+    return '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-amber-100 text-amber-900">Padrão 1234</span>';
+  }
+
+  function rhBadge(u) {
+    if (u.funcionario && u.funcionario.nome) {
+      const extra = [u.funcionario.loja, u.funcionario.empresa].filter(Boolean).join(' · ');
+      return '<span class="text-emerald-700 font-bold">' + esc(u.funcionario.nome) + '</span>'
+        + (extra ? '<div class="text-[10px] text-slate-400 font-semibold">' + esc(extra) + '</div>' : '');
+    }
+    return '<span class="text-slate-400 font-semibold">Sem vínculo</span>';
+  }
+
   async function carregarUsuarios() {
     const tbody = document.getElementById('rh-tbody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="3" class="py-2 text-[11px] text-slate-400 font-semibold">Carregando usuários…</td></tr>';
+    const incluir = document.getElementById('rh-incluir-inativos')?.checked ? '1' : '0';
+    tbody.innerHTML = '<tr><td colspan="4" class="py-2 text-[11px] text-slate-400 font-semibold">Carregando…</td></tr>';
     try {
-      const r = await fetch(API_USU, { credentials: 'same-origin' });
+      const r = await fetch(API_LISTA + '?incluir_inativos=' + incluir, { credentials: 'same-origin' });
       const data = await r.json();
       if (!data.ok) {
-        tbody.innerHTML = '<tr><td colspan="3" class="py-2 text-[11px] text-red-600 font-semibold">' + (data.erro || 'Erro ao listar usuários.') + '</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="py-2 text-[11px] text-red-600 font-semibold">' + esc(data.erro || 'Erro') + '</td></tr>';
         return;
       }
       const lista = data.usuarios || [];
       if (!lista.length) {
-        tbody.innerHTML = '<tr><td colspan="3" class="py-2 text-[11px] text-slate-400 font-semibold">Nenhum usuário cadastrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="py-2 text-[11px] text-slate-400 font-semibold">Nenhum operador. Cadastre à direita.</td></tr>';
         return;
       }
       tbody.innerHTML = '';
       lista.forEach((u) => {
-        const personalizado = !!u.pin_personalizado;
-        const statusInicial = personalizado
-          ? '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-emerald-100 text-emerald-800">PIN próprio</span>'
-          : '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-amber-100 text-amber-900">Padrão 1234</span>';
         const tr = document.createElement('tr');
-        tr.className = 'border-b border-slate-100 last:border-b-0';
+        tr.className = 'border-b border-slate-100 last:border-b-0' + (u.ativo ? '' : ' opacity-60');
         tr.dataset.perfilId = String(u.id);
-        tr.innerHTML = `
-          <td class="py-1.5 pr-2 font-semibold text-slate-800 whitespace-nowrap">${u.nome}</td>
-          <td class="py-1.5 px-2">
-            <div class="flex items-center gap-2">
+        const pinCell = u.ativo
+          ? `<div class="flex flex-wrap items-center gap-1.5">
               <input type="password" maxlength="4" placeholder="4 dígitos"
-                     class="rh-pin-input w-24 rounded-lg border border-slate-200 px-2 py-1 text-xs font-mono tracking-[0.2em] bg-slate-50"
+                     class="rh-pin-input w-20 rounded-lg border border-slate-200 px-2 py-1 text-xs font-mono tracking-[0.2em] bg-slate-50"
                      inputmode="numeric" autocomplete="new-password">
-              <button type="button" class="rh-salvar inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700">
-                Salvar
-              </button>
+              <button type="button" class="rh-salvar inline-flex items-center px-2 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700">Salvar</button>
             </div>
-          </td>
-          <td class="py-1.5 pl-2 text-[11px] font-bold"><span class="rh-status">${statusInicial}</span></td>
+            <div class="mt-1 rh-status">${statusHtml(u)}</div>`
+          : `<div class="rh-status">${statusHtml(u)}</div>`;
+        const acoes = u.ativo
+          ? `<div class="flex flex-wrap gap-1">
+              <button type="button" class="rh-reset text-[10px] font-black uppercase px-2 py-1 rounded-lg border border-amber-300 text-amber-800 hover:bg-amber-50">1234</button>
+              ${u.funcionario_id ? '' : '<button type="button" class="rh-vincular text-[10px] font-black uppercase px-2 py-1 rounded-lg border border-sky-300 text-sky-800 hover:bg-sky-50">Vincular RH</button>'}
+              <button type="button" class="rh-off text-[10px] font-black uppercase px-2 py-1 rounded-lg border border-rose-300 text-rose-800 hover:bg-rose-50">Remover</button>
+            </div>`
+          : `<button type="button" class="rh-on text-[10px] font-black uppercase px-2 py-1 rounded-lg border border-emerald-300 text-emerald-800 hover:bg-emerald-50">Reativar</button>`;
+        tr.innerHTML = `
+          <td class="py-2 pr-2 font-semibold text-slate-800 whitespace-nowrap">${esc(u.nome)}<div class="text-[10px] text-slate-400 font-bold">#${esc(u.codigo_vendedor)}</div></td>
+          <td class="py-2 px-2">${rhBadge(u)}</td>
+          <td class="py-2 px-2">${pinCell}</td>
+          <td class="py-2 pl-2">${acoes}</td>
         `;
         tbody.appendChild(tr);
       });
@@ -129,55 +220,241 @@
       tbody.querySelectorAll('.rh-salvar').forEach((btn) => {
         btn.addEventListener('click', async () => {
           const row = btn.closest('tr');
-          if (!row) return;
-          const perfilId = row.dataset.perfilId || '';
-          const input = row.querySelector('.rh-pin-input');
-          const statusEl = row.querySelector('.rh-status');
-          const nome = row.querySelector('td')?.textContent || 'usuário';
-          if (!perfilId || !input) return;
-          const val = String(input.value || '').trim();
-          if (!/^\d{4}$/.test(val)) {
-            alert('O PIN deve ter exatamente 4 dígitos numéricos.');
-            return;
-          }
-          if (val === '1234') {
-            alert('Escolha um PIN diferente de 1234.');
-            return;
-          }
-          const form = new FormData();
-          form.append('perfil_id', perfilId);
-          form.append('novo_pin', val);
-          try {
-            const r2 = await fetch(API_DEF_PIN, {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: {
-                'X-CSRFToken': getCookie('csrftoken'),
-              },
-              body: form,
-            });
-            const out = await r2.json();
-            if (out.ok) {
-              if (statusEl) {
-                statusEl.innerHTML =
-                  '<span class="inline-flex items-center rounded-md px-1.5 py-0.5 bg-emerald-100 text-emerald-800">PIN próprio</span>';
-              }
-              input.value = '';
-              alert('PIN salvo no servidor para ' + nome + '.');
-            } else {
-              alert(out.erro || 'Erro ao salvar PIN.');
-            }
-          } catch (_) {
-            alert('Erro de rede ao salvar PIN.');
+          const perfilId = row?.dataset.perfilId || '';
+          const input = row?.querySelector('.rh-pin-input');
+          const statusEl = row?.querySelector('.rh-status');
+          const nome = row?.querySelector('td')?.childNodes[0]?.textContent || 'usuário';
+          const val = String(input?.value || '').trim();
+          if (!/^\d{4}$/.test(val)) { alert('O PIN deve ter exatamente 4 dígitos.'); return; }
+          if (val === '1234') { alert('Escolha um PIN diferente de 1234 (ou use o botão 1234 para resetar).'); return; }
+          const out = await postForm(API_DEF_PIN, { perfil_id: perfilId, novo_pin: val });
+          if (out.ok) {
+            if (statusEl) statusEl.innerHTML = statusHtml({ ativo: true, pin_personalizado: true });
+            if (input) input.value = '';
+            alert('PIN salvo para ' + nome + '.');
+          } else {
+            alert(out.erro || 'Erro ao salvar PIN.');
           }
         });
       });
+
+      tbody.querySelectorAll('.rh-reset').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          const perfilId = row?.dataset.perfilId || '';
+          if (!confirm('Voltar PIN para 1234? A pessoa será obrigada a trocar na próxima vez no caixa.')) return;
+          const out = await postForm(API_RST, { perfil_id: perfilId });
+          alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+          if (out.ok) carregarUsuarios();
+        });
+      });
+
+      tbody.querySelectorAll('.rh-off').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          const perfilId = row?.dataset.perfilId || '';
+          const nome = row?.querySelector('td')?.childNodes[0]?.textContent || 'operador';
+          if (!confirm('Remover ' + nome + ' do caixa? A ficha do RH continua.')) return;
+          const out = await postForm(API_OFF, { perfil_id: perfilId });
+          alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+          if (out.ok) carregarUsuarios();
+        });
+      });
+
+      tbody.querySelectorAll('.rh-on').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const row = btn.closest('tr');
+          const perfilId = row?.dataset.perfilId || '';
+          if (!confirm('Reativar? PIN volta para 1234 e obriga trocar na 1ª vez.')) return;
+          const out = await postForm(API_ON, { perfil_id: perfilId });
+          alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+          if (out.ok) carregarUsuarios();
+        });
+      });
+
+      tbody.querySelectorAll('.rh-vincular').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const row = btn.closest('tr');
+          vincularPerfilId = row?.dataset.perfilId || null;
+          const nome = row?.querySelector('td')?.childNodes[0]?.textContent || '';
+          document.getElementById('rh-vincular-nome').textContent = 'Operador: ' + nome;
+          document.getElementById('rh-vincular-busca').value = '';
+          document.getElementById('rh-vincular-lista').innerHTML = '';
+          document.getElementById('rh-modal-vincular').classList.remove('hidden');
+          document.getElementById('rh-vincular-busca').focus();
+          buscarRhVincular('');
+        });
+      });
     } catch (_) {
-      tbody.innerHTML = '<tr><td colspan="3" class="py-2 text-[11px] text-red-600 font-semibold">Erro ao carregar usuários.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="py-2 text-[11px] text-red-600 font-semibold">Erro ao carregar.</td></tr>';
     }
   }
 
-  document.addEventListener('DOMContentLoaded', carregarUsuarios);
+  function renderBuscaLista(el, funcionarios, mode) {
+    if (!el) return;
+    const lista = funcionarios || [];
+    if (!lista.length) {
+      el.innerHTML = '<p class="text-[11px] text-slate-400 font-semibold py-2">Nenhum resultado.</p>';
+      return;
+    }
+    el.innerHTML = '';
+    lista.forEach((f) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between gap-2 rounded-xl border border-slate-700/80 bg-slate-800/80 px-2.5 py-2';
+      const meta = [f.loja, f.empresa].filter(Boolean).join(' · ');
+      const btnLabel = f.ja_tem_pin ? 'Já tem PIN' : (mode === 'vincular' ? 'Vincular' : 'Cadastrar PIN');
+      row.innerHTML = `
+        <div class="min-w-0">
+          <div class="font-semibold truncate text-slate-100">${esc(f.nome)}</div>
+          ${meta ? '<div class="text-[10px] text-slate-400 font-semibold truncate">' + esc(meta) + '</div>' : ''}
+        </div>
+        <button type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase ${f.ja_tem_pin ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}" ${f.ja_tem_pin ? 'disabled' : ''}>
+          ${btnLabel}
+        </button>
+      `;
+      const btn = row.querySelector('button');
+      if (btn && !f.ja_tem_pin) {
+        btn.addEventListener('click', async () => {
+          if (mode === 'vincular') {
+            if (!vincularPerfilId) return;
+            const out = await postForm(API_VINC, { perfil_id: vincularPerfilId, funcionario_id: f.id });
+            alert(out.ok ? 'Vinculado.' : (out.erro || 'Erro'));
+            if (out.ok) {
+              document.getElementById('rh-modal-vincular').classList.add('hidden');
+              carregarUsuarios();
+            }
+          } else {
+            if (!confirm('Cadastrar ' + f.nome + ' como operador?\nPIN inicial: 1234 (obriga trocar na 1ª vez).')) return;
+            const out = await postForm(API_CRIAR, { funcionario_id: f.id });
+            alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+            if (out.ok) {
+              carregarUsuarios();
+              buscarRhPainel(document.getElementById('rh-busca-rh')?.value || '');
+            }
+          }
+        });
+      }
+      el.appendChild(row);
+    });
+  }
+
+  async function buscarRhPainel(q) {
+    const el = document.getElementById('rh-busca-lista');
+    if (!el) return;
+    el.innerHTML = '<p class="text-[11px] text-slate-400 font-semibold py-2">Buscando…</p>';
+    try {
+      const r = await fetch(API_BUSCA + '?q=' + encodeURIComponent(q || ''), { credentials: 'same-origin' });
+      const data = await r.json();
+      if (!data.ok) {
+        el.innerHTML = '<p class="text-[11px] text-red-400 font-semibold">' + esc(data.erro || 'Erro') + '</p>';
+        return;
+      }
+      // No painel lateral: fundo escuro — ajustar classes no render
+      const lista = data.funcionarios || [];
+      if (!lista.length) {
+        el.innerHTML = '<p class="text-[11px] text-slate-400 font-semibold py-2">Nenhum resultado.</p>';
+        return;
+      }
+      el.innerHTML = '';
+      lista.forEach((f) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 rounded-xl border border-slate-700/80 bg-slate-800/80 px-2.5 py-2';
+        const meta = [f.loja, f.empresa].filter(Boolean).join(' · ');
+        row.innerHTML = `
+          <div class="min-w-0">
+            <div class="font-semibold truncate text-slate-100">${esc(f.nome)}</div>
+            ${meta ? '<div class="text-[10px] text-slate-400 font-semibold truncate">' + esc(meta) + '</div>' : ''}
+          </div>
+          <button type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase ${f.ja_tem_pin ? 'bg-slate-700 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-500'}" ${f.ja_tem_pin ? 'disabled' : ''}>
+            ${f.ja_tem_pin ? 'Já tem PIN' : 'Cadastrar PIN'}
+          </button>
+        `;
+        const btn = row.querySelector('button');
+        if (btn && !f.ja_tem_pin) {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Cadastrar ' + f.nome + '?\nPIN inicial 1234 — 1ª vez no caixa obriga trocar.')) return;
+            const out = await postForm(API_CRIAR, { funcionario_id: f.id });
+            alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+            if (out.ok) {
+              carregarUsuarios();
+              buscarRhPainel(document.getElementById('rh-busca-rh')?.value || '');
+            }
+          });
+        }
+        el.appendChild(row);
+      });
+    } catch (_) {
+      el.innerHTML = '<p class="text-[11px] text-red-400 font-semibold">Erro de rede.</p>';
+    }
+  }
+
+  async function buscarRhVincular(q) {
+    const el = document.getElementById('rh-vincular-lista');
+    if (!el) return;
+    el.innerHTML = '<p class="text-[11px] text-slate-400 font-semibold py-2">Buscando…</p>';
+    try {
+      const r = await fetch(API_BUSCA + '?q=' + encodeURIComponent(q || ''), { credentials: 'same-origin' });
+      const data = await r.json();
+      const lista = (data.funcionarios || []).filter((f) => !f.ja_tem_pin);
+      if (!lista.length) {
+        el.innerHTML = '<p class="text-[11px] text-slate-400 font-semibold py-2">Ninguém livre para vincular.</p>';
+        return;
+      }
+      el.innerHTML = '';
+      lista.forEach((f) => {
+        const row = document.createElement('button');
+        row.type = 'button';
+        row.className = 'w-full text-left rounded-xl border border-slate-200 px-3 py-2 hover:bg-emerald-50';
+        const meta = [f.loja, f.empresa].filter(Boolean).join(' · ');
+        row.innerHTML = '<div class="font-semibold text-slate-800">' + esc(f.nome) + '</div>'
+          + (meta ? '<div class="text-[10px] text-slate-500 font-semibold">' + esc(meta) + '</div>' : '');
+        row.addEventListener('click', async () => {
+          const out = await postForm(API_VINC, { perfil_id: vincularPerfilId, funcionario_id: f.id });
+          alert(out.ok ? 'Vinculado.' : (out.erro || 'Erro'));
+          if (out.ok) {
+            document.getElementById('rh-modal-vincular').classList.add('hidden');
+            carregarUsuarios();
+          }
+        });
+        el.appendChild(row);
+      });
+    } catch (_) {
+      el.innerHTML = '<p class="text-[11px] text-red-600 font-semibold">Erro de rede.</p>';
+    }
+  }
+
+  document.getElementById('rh-busca-rh')?.addEventListener('input', (e) => {
+    clearTimeout(buscaTimer);
+    buscaTimer = setTimeout(() => buscarRhPainel(e.target.value), 250);
+  });
+
+  document.getElementById('rh-vincular-busca')?.addEventListener('input', (e) => {
+    clearTimeout(vincTimer);
+    vincTimer = setTimeout(() => buscarRhVincular(e.target.value), 250);
+  });
+
+  document.getElementById('rh-vincular-fechar')?.addEventListener('click', () => {
+    document.getElementById('rh-modal-vincular').classList.add('hidden');
+  });
+
+  document.getElementById('rh-incluir-inativos')?.addEventListener('change', carregarUsuarios);
+
+  document.getElementById('rh-btn-avulso')?.addEventListener('click', async () => {
+    const nome = String(document.getElementById('rh-nome-avulso')?.value || '').trim();
+    if (nome.length < 2) { alert('Digite o nome.'); return; }
+    if (!confirm('Criar operador "' + nome + '" sem ficha RH?\nPIN inicial 1234.')) return;
+    const out = await postForm(API_CRIAR, { nome: nome });
+    alert(out.ok ? out.mensagem : (out.erro || 'Erro'));
+    if (out.ok) {
+      document.getElementById('rh-nome-avulso').value = '';
+      carregarUsuarios();
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    carregarUsuarios();
+    buscarRhPainel('');
+  });
 })();
 </script>
 </body>

@@ -1275,6 +1275,17 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 📦 PACOTE — RH operadores PIN gestão (`RH-PIN-GESTAO` · **v22.65** · 05/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Tela `/rh/operadores/`: buscar RH · cadastrar PIN · vincular · remover/reativar · reset 1234 |
+| **Regra** | Novo / reativar / reset = **1234** · 1ª vez no caixa **obriga** trocar (fluxo descanso) |
+| **Migrate** | **SIM** `base.0011` (ativo + vínculo Funcionario) |
+| **Prova** | `scripts/verify_rh_operadores_pin_gestao.py` **13/13** |
+| **Status** | 🟡 **teste** — validar local |
+| **Você** | `migrate` · RH → Operadores · cadastrar o novo · 1234 no descanso → PIN novo |
+
 ### Bug loja #13 — cálculo conferido (`BI-DEVOL-*` · 04/09)
 
 | Campo | Valor |

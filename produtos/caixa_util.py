@@ -897,9 +897,17 @@ def _perfil_usuario_por_pin(pin: str):
     if not pin or pin == "1234":
         return None
     return (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
+        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
         .select_related("user")
-        .only("pk", "senha_rapida", "codigo_vendedor", "user__first_name", "user__last_name", "user__username")
+        .only(
+            "pk",
+            "senha_rapida",
+            "codigo_vendedor",
+            "ativo",
+            "user__first_name",
+            "user__last_name",
+            "user__username",
+        )
         .first()
     )
 
@@ -1015,11 +1023,14 @@ def cadastrar_pin_operador_primeira_vez(
     if pin_atual and pin_atual != "1234":
         return False, "", "Este operador já tem PIN. Peça ao RH para alterar."
 
-    if PerfilUsuario.objects.filter(senha_rapida=pin_novo).exclude(pk=perfil.pk).exists():
+    if not getattr(perfil, "ativo", True):
+        return False, "", "Operador inativo. Peça ao RH para reativar."
+    if PerfilUsuario.objects.filter(senha_rapida=pin_novo, ativo=True).exclude(pk=perfil.pk).exists():
         return False, "", "Este PIN já está em uso. Escolha outro."
 
     perfil.senha_rapida = pin_novo
-    perfil.save(update_fields=["senha_rapida"])
+    perfil.primeiro_acesso = False
+    perfil.save(update_fields=["senha_rapida", "primeiro_acesso"])
 
     rot = rotulo_operador_pin(pin_novo)
     if not rot:

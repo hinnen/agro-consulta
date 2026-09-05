@@ -90,11 +90,122 @@ def rh_painel(request):
 @login_required(login_url="/entrar/")
 @ensure_csrf_cookie
 def rh_operadores_pins(request):
-    funcionarios_outra = ["Matheus", "Estanislau"]
-    return render(
-        request,
-        "rh/rh_operadores_pins.html",
-        {"funcionarios_outra": funcionarios_outra},
+    return render(request, "rh/rh_operadores_pins.html", {})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_rh_operadores_lista(request):
+    from base.operador_util import listar_operadores
+
+    incluir = str(request.GET.get("incluir_inativos") or "").strip() in ("1", "true", "sim")
+    return JsonResponse({"ok": True, "usuarios": listar_operadores(incluir_inativos=incluir)})
+
+
+@login_required(login_url="/entrar/")
+@require_GET
+def api_rh_operadores_buscar_rh(request):
+    from base.operador_util import buscar_funcionarios_rh
+
+    q = (request.GET.get("q") or "").strip()
+    return JsonResponse({"ok": True, "funcionarios": buscar_funcionarios_rh(q)})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_criar(request):
+    from base.operador_util import criar_operador
+
+    funcionario_id = request.POST.get("funcionario_id") or ""
+    nome = (request.POST.get("nome") or "").strip()
+    fid = None
+    if str(funcionario_id).strip().isdigit():
+        fid = int(funcionario_id)
+    ok, data, err = criar_operador(nome=nome, funcionario_id=fid)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "usuario": data,
+            "mensagem": "Operador criado com PIN inicial 1234. Na 1ª vez no caixa, a pessoa é obrigada a trocar.",
+        }
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_vincular(request):
+    from base.operador_util import vincular_funcionario
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+        funcionario_id = int(request.POST.get("funcionario_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Dados inválidos."}, status=400)
+    ok, data, err = vincular_funcionario(perfil_id, funcionario_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "usuario": data})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_desativar(request):
+    from base.operador_util import desativar_operador
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = desativar_operador(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse({"ok": True, "mensagem": "Operador removido do caixa (ficha RH intacta)."})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_reativar(request):
+    from base.operador_util import reativar_operador
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = reativar_operador(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "Reativado com PIN 1234. Na 1ª vez no caixa, a pessoa é obrigada a trocar.",
+        }
+    )
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+@csrf_protect
+def api_rh_operador_reset_1234(request):
+    from base.operador_util import resetar_pin_bootstrap
+
+    try:
+        perfil_id = int(request.POST.get("perfil_id") or 0)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Operador inválido."}, status=400)
+    ok, err = resetar_pin_bootstrap(perfil_id)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err}, status=400)
+    return JsonResponse(
+        {
+            "ok": True,
+            "mensagem": "PIN voltou para 1234. Na próxima vez no caixa, a pessoa é obrigada a cadastrar um PIN novo.",
+        }
     )
 
 
