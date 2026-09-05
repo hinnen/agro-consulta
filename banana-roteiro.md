@@ -348,3 +348,23 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 **Status: PREP / aguarda senha.** Live ainda **v21.88**. **Não** merge `teste`.  
 **Rollback:** tag `rollback/pre-lote-checklist-0409-v21.88` · branch `producao-backup-pre-v2189-lote-checklist-20260904` · `docs/ROLLBACK-LOTE-CHECKLIST-0409.md`.  
 **PDV:** `/consulta/` sem login Django · F7 igual. BI `/` pede `/entrar/`.
+
+---
+
+## 21. Checklist único — lote 05/09g (`deploy/prep-checklist-0509g` · alvo loja **v21.91**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **PDV-ENTREGA-TABELA-FORMA** | 🟢 **PREP** | **NÃO** |
+| 2 | **REPASSE-ZERO-OK** | 🟢 **PREP** | **NÃO** |
+| 3 | **PDV-VALE-SALDO-LIVE** | 🟢 **PREP** | **NÃO** |
+| 4 | **MP-POINT-FINAL-PIN** | 🟢 **PREP** · prova PREP **39/39** | **NÃO** |
+| 5 | **PDV-VALE-USADO** | 🟢 **PREP** | **NÃO** |
+| 6 | **PDV-ORC-LISTA-LIVE** | 🟢 **PREP** | **NÃO** |
+| 7 | **WA-LISTA-SEM-PISCA** | 🟢 **PREP** | **NÃO** |
+| 8 | **WA-FACHONA-PRETA** | 🟢 **PREP** · **9/9** | **NÃO** |
+| 9 | **WA-PIN-COMPOSER** | 🟢 **PREP** | **NÃO** |
+| 10 | **WA-SAUDACAO-RICH** + **WA-ARQUIVO** | 🟢 **PREP** | **SIM** `0126` |
+
+**Status: PREP / aguarda senha.** Live ainda **v21.90**. **Não** merge `teste`. **Não** ligar ponte Zap.  
+**Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.
