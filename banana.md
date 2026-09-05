@@ -1264,6 +1264,20 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🟢 PREP — lote checklist 05/09g (`deploy/prep-checklist-0509g` · alvo loja **v21.91**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto / aguarda frase + senha** — **não** subiu |
+| **Base loja** | Live **v21.90** @ `aaff41d` |
+| **Branch** | `deploy/prep-checklist-0509g` |
+| **Migrate** | **SIM** `produtos.0126` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509g-v21.90` · branch `producao-backup-pre-v2191-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md` |
+| **Fora** | merge `teste` · Excel cadastro · `WA-PONTE-LEVE` |
+| **Você no próximo chat** | lojas **pausam venda ~2 min** · frase + senha **na mesma** mensagem |
+
+**PDV:** F7 balcão **igual**. Entrega/Point/vale só mudam o que já quebrava. Zap **não** ligar o `.bat` neste deploy.
+
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
 | Campo | Valor |
