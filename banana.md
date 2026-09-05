@@ -1317,7 +1317,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Botão Trocar Zap sumia na CSS (ficava clicável com Off) e ao confirmar não avisava. Agora some de verdade com Off; se clicar, explica apagar pasta auth; com ponte ON, confirma o pedido. |
 | **Onde** | _wa_skin.html · tendimento_whatsapp.js |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **no PREP 0509h** (aguarda senha) |
 | **Você** | Ctrl+F5 · se Off, **não** use Trocar — apague whatsapp_atendimento\\auth e religue o .bat |
 
 ### 📦 PACOTE PRONTO — PIN Lançamentos abre teclado (LANC-PIN-TECLADO · **v22.93** · 05/09)
@@ -1328,7 +1328,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | lancamentos_pin_entrada · Novo lançamento · Contas a pagar · Contas a receber |
 | **Migrate** | **NÃO** |
 | **Prova** | scripts/verify_lanc_pin_teclado_path.py **VERIFY_OK 70/70** (static · gate · PIN **9973** Renan · APIs 403/fresco · HTML teclado) |
-| **Status** | 🟢 **pronto para envio à produção** (teste **v22.93**) |
+| **Status** | 🟢 **no PREP 0509h** (aguarda senha) · prova 70/70 |
 | **Você** | Ctrl+F5 · Novo lançamento · preencher demorado · **Finalizar** → teclado PIN → grava |
 
 ### ✅ CHECKLIST ÚNICO — pronto envio (05/09 · tip **v22.94**)
