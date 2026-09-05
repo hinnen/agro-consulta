@@ -1401,17 +1401,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | 11 | `WA-TROCAR-FEED` | 🟢 **pronto para envio à produção** | **NÃO** |
 | 12 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto para envio à produção** | **NÃO** |
 
-**Live agora:** **v21.91**. Excel cadastro / ponte Zap extra do `teste` **fora**.
-
-### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
-
-| Campo | Valor |
-| ----- | ----- |
-| **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
-| **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
-| **Estado** | Zap loja **on** de novo (05/09 noite) · parcial `WA-PONTE-LEVE` + `WA-CHAT-SNAP` no `teste` |
-| **UI** | `WA-LISTA-SEM-PISCA` · `WA-FACHONA-PRETA` · `WA-PIN-COMPOSER` · `WA-SAUDACAO-RICH`/`WA-ARQUIVO` · **v22.85** · 🟢 pronto envio |
-| **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
+**Live agora:** **v21.92**. Excel cadastro / ponte Zap extra / `WA-TOPBAR-OVERLAY` do `teste` **fora**.
 
 ### 📦 PACOTE — troca de chat rápida + ponte mais leve (`WA-CHAT-SNAP` + parcial `WA-PONTE-LEVE`) · 05/09 noite
 
@@ -1422,7 +1412,30 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Fix** | Abrir chat = só msgs/ficha (sem reload lista) · gen token anti-atraso · lista/estado a **5s** · ponte a **5s** |
 | **Arquivos** | `atendimento_whatsapp.js` · `whatsapp_atendimento/index.js` |
 | **Ops** | Ctrl+F5 no Zap · **fechar e abrir** `iniciar.bat` (ponte pegar 5s) |
-| **Loja** | Ainda **só no teste** até frase+senha |
+| **Loja** | ✅ **Live v21.92** · tip **`041e1b5`** · rollback `rollback/pre-wa-chat-snap-v21.91` · `docs/ROLLBACK-WA-CHAT-SNAP-0509.md` |
+
+### ✅ Deploy loja — WA-CHAT-SNAP (`deploy/prep-wa-chat-snap-0509` · **v21.92**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v21.92** — cherry só este pacote · tip **`041e1b5`** |
+| **Antes** | `producao` @ **`319404f`** · v21.91 |
+| **Agora** | `producao` @ **`041e1b5`** |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-wa-chat-snap-v21.91` · branch `producao-backup-pre-v2192-wa-chat-snap-20260905` · `docs/ROLLBACK-WA-CHAT-SNAP-0509.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v21.92** · fecha/abre `iniciar.bat` · testar troca de 3 chats |
+
+**Live agora:** **v21.92**. Excel cadastro / `WA-TOPBAR-OVERLAY` / resto do `teste` **fora**.
+
+### ⚠️ WA desligado (05/09 tarde) — PDV lento em todas as lojas
+
+| Campo | Valor |
+| ----- | ----- |
+| **Decisão Renan** | Desativou `iniciar.bat` — PDV Centro/Vila ficava **muito lento** com a ponte ligada |
+| **Causa provável** | Ponte bate no Render a cada **2,5s** (`bridge/saida` + fotos pendentes + agenda ~2000 contatos) · **1 worker** Gunicorn divide com busca do PDV |
+| **Estado** | Zap loja **on** · **v21.92** Live com poll 5s (`WA-CHAT-SNAP`) · ainda falta aliviar fotos/agenda |
+| **UI** | `WA-LISTA-SEM-PISCA` · `WA-FACHONA-PRETA` · `WA-PIN-COMPOSER` · `WA-SAUDACAO-RICH`/`WA-ARQUIVO` · **v21.91+** |
+| **Não confundir** | Chat interno PDV (`PDV-CHAT-POLL-10S`) já Live; aqui é a **ponte WhatsApp** |
 
 ### ✅ Deploy loja — RH-PIN-GESTAO (`deploy/prep-rh-pin-gestao-0509` · **v21.90**) · **Live**
 
