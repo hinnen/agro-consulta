@@ -1277,6 +1277,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### 🚀 PREP deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · aguarda senha
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ⏳ **PREP pronto** — **não** enviado · tip aguarda frase+senha |
+| **Base loja** | Live **v21.92** @ `041e1b5` |
+| **Branch PREP** | `deploy/prep-checklist-0509h` @ `8884c9c` |
+| **Rollback** | tag `rollback/pre-lote-checklist-0509h-v21.92` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` |
+| **Migrate** | **NÃO** |
+| **Provas** | LANC **70/70** · WA contrato **10/10** · PDV wizard/caixa/views_pdv **intocados** |
+
+### ✅ CHECKLIST ÚNICO — pronto envio (05/09h · tip **v21.93** PREP)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `LANC-PIN-TECLADO` | 🟢 **pronto / no PREP** | **NÃO** |
+| 2 | `WA-TROCAR-FEED` | 🟢 **pronto / no PREP** | **NÃO** |
+| 3 | `WA-TOPBAR-OVERLAY` | 🟢 **pronto / no PREP** | **NÃO** |
+
+**Live agora:** **v21.92**. Este lote **só sobe** com frase + senha no próximo chat (pausar vendas ~2 min).
+
+
 
 ### 📦 PACOTE PRONTO — Zap na topbar do balcão (`WA-TOPBAR-OVERLAY` · **v22.96** · 05/09)
 
@@ -1285,7 +1307,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | No painel GM do balcão: some a 2ª faixa do Zap; bolinha + número + Trocar + Bot sobem para a barra junto do Fechar. |
 | **Onde** | `agro_pdv_overlay.js` · `atendimento_whatsapp.js` · `_wa_skin.html` |
 | **Migrate** | **NÃO** |
-| **Status** | 🟢 **pronto para envio à produção** |
+| **Status** | 🟢 **no PREP 0509h** (aguarda senha) |
 | **Você** | Ctrl+F5 no PDV · abre Zap · 1 barra só |
 
 ### 📦 PACOTE PRONTO — Trocar Zap com ponte OFF (WA-TROCAR-FEED · **v22.94** · 05/09)
