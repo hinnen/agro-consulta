@@ -23,6 +23,12 @@
     'aviso_fora_so_texto',
     'separar_lojas',
     'enviar_boas_vindas',
+    'saudacao_so_primeira_do_dia',
+    'saudacao_nao_repetir_hoje',
+    'saudacao_so_em_horario',
+    'saudacao_depois_menu',
+    'arquivo_auto_ligado',
+    'arquivo_auto_nunca_com_nao_lidas',
     'repetir_menu',
     'fiado_ligado',
     'fiado_manda_menu',
@@ -196,6 +202,10 @@
       'nome_empresa',
       'atraso_resposta_seg',
       'atraso_entre_msgs_seg',
+      'saudacao_atraso_seg',
+      'saudacao_midia_url',
+      'arquivo_auto_horas_silencio',
+      'arquivo_auto_apos_ok_horas',
       'horario_ini',
       'horario_fim',
       'ordem',
@@ -366,6 +376,35 @@
       });
     });
   }
+
+  function atualizarPreviaSaudacao() {
+    var ta = $('wa-bv-txt');
+    var prev = $('wa-bv-previa');
+    if (!ta || !prev) return;
+    var empEl = form().querySelector('[name="nome_empresa"]');
+    var emp = (empEl && empEl.value) || 'GM Agro';
+    var h = new Date();
+    var hh = String(h.getHours()).padStart(2, '0') + ':' + String(h.getMinutes()).padStart(2, '0');
+    var t = String(ta.value || '');
+    t = t
+      .replace(/\{empresa\}/g, emp)
+      .replace(/\{cliente\}/g, 'Maria')
+      .replace(/\{nome\}/g, 'Maria')
+      .replace(/\{hora\}/g, hh)
+      .replace(/\{loja\}/g, 'Centro');
+    prev.textContent = t || '—';
+  }
+  var bvTxt = $('wa-bv-txt');
+  if (bvTxt) {
+    bvTxt.addEventListener('input', atualizarPreviaSaudacao);
+  }
+  var empInp = form().querySelector('[name="nome_empresa"]');
+  if (empInp) empInp.addEventListener('input', atualizarPreviaSaudacao);
+  var _preencher = preencher;
+  preencher = function (bot) {
+    _preencher(bot);
+    atualizarPreviaSaudacao();
+  };
 
   var vcfInp = $('wa-vcf-inp');
   var vcfMsg = $('wa-vcf-msg');

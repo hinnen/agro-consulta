@@ -7,7 +7,7 @@ import json
 import re
 import unicodedata
 import uuid
-from datetime import datetime, timedelta, timezone as dt_timezone
+from datetime import datetime, time, timedelta, timezone as dt_timezone
 from pathlib import Path
 
 from django.conf import settings
@@ -514,6 +514,9 @@ def serializar_conversa(c: WhatsAppConversaAgro) -> dict:
         "vip": bool((getattr(c, "extras", None) or {}).get("vip")),
         "nota": str((getattr(c, "extras", None) or {}).get("nota") or "")[:200],
         "tags": list((getattr(c, "extras", None) or {}).get("tags") or [])[:8],
+        "arquivada": bool(getattr(c, "arquivada", False)),
+        "arquivada_em": c.arquivada_em.isoformat() if getattr(c, "arquivada_em", None) else "",
+        "arquivada_por": (getattr(c, "arquivada_por", None) or "")[:120],
     }
 
 
@@ -604,14 +607,17 @@ def serializar_mensagem(m: WhatsAppMensagemAgro) -> dict:
 
 def listar_conversas(*, loja: str, limit: int = 80) -> list[dict]:
     loja_n = (loja or "").strip().lower()
-    qs = WhatsAppConversaAgro.objects.all()
+    lim = max(1, min(int(limit or 80), 200))
+    if loja_n in ("arquivadas", "resolvidas", "arquivo"):
+        qs = WhatsAppConversaAgro.objects.filter(arquivada=True)
+        return [serializar_conversa(c) for c in qs.order_by("-arquivada_em", "-ultima_em", "-id")[:lim]]
+    qs = WhatsAppConversaAgro.objects.filter(arquivada=False)
     if loja_n in (
         WhatsAppConversaAgro.LOJA_PENDENTE,
         WhatsAppConversaAgro.LOJA_CENTRO,
         WhatsAppConversaAgro.LOJA_VILA,
     ):
         qs = qs.filter(loja=loja_n)
-    lim = max(1, min(int(limit or 80), 200))
     return [serializar_conversa(c) for c in qs.order_by("-ultima_em", "-id")[:lim]]
 
 
@@ -632,16 +638,22 @@ def listar_mensagens(*, conversa_id: int, after_id: int = 0, limit: int = 120) -
 def contar_nao_lidas() -> dict:
     from django.db.models import Sum
 
-    base = WhatsAppConversaAgro.objects.values("loja").annotate(n=Sum("nao_lidas"))
+    base = (
+        WhatsAppConversaAgro.objects.filter(arquivada=False)
+        .values("loja")
+        .annotate(n=Sum("nao_lidas"))
+    )
     out = {
         WhatsAppConversaAgro.LOJA_PENDENTE: 0,
         WhatsAppConversaAgro.LOJA_CENTRO: 0,
         WhatsAppConversaAgro.LOJA_VILA: 0,
+        "arquivadas": 0,
     }
     for row in base:
         k = row.get("loja") or ""
         if k in out:
             out[k] = int(row.get("n") or 0)
+    out["arquivadas"] = int(WhatsAppConversaAgro.objects.filter(arquivada=True).count())
     return out
 
 
@@ -931,16 +943,32 @@ def aplicar_mapa_lid(pares: dict) -> int:
     return n
 
 
+def _rotulo_loja_cfg(cfg: dict | None, loja: str) -> str:
+    c = cfg or {}
+    loja_n = (loja or "").strip().lower()
+    if loja_n == str(c.get("loja2_id") or WhatsAppConversaAgro.LOJA_VILA).strip().lower():
+        return str(c.get("loja2_rotulo") or "Vila Elias").strip() or "Vila Elias"
+    if loja_n == str(c.get("loja1_id") or WhatsAppConversaAgro.LOJA_CENTRO).strip().lower():
+        return str(c.get("loja1_rotulo") or "Centro").strip() or "Centro"
+    if loja_n == WhatsAppConversaAgro.LOJA_PENDENTE:
+        return "Fila"
+    return ""
+
+
 def _preencher_msg_bot(txt: str, cfg: dict, conv: WhatsAppConversaAgro | None = None) -> str:
     empresa = str((cfg or {}).get("nome_empresa") or "")
     nome = ((conv.nome if conv else "") or "").strip()
     tel = _telefone_real(conv.telefone) if conv else ""
     if nome and _nome_parece_telefone(nome, tel):
         nome = ""
+    agora = timezone.localtime()
+    loja_lbl = _rotulo_loja_cfg(cfg, conv.loja if conv else "")
     t = str(txt or "")
     t = t.replace("{empresa}", empresa)
     t = t.replace("{cliente}", nome or "cliente")
     t = t.replace("{nome}", nome or "cliente")
+    t = t.replace("{hora}", agora.strftime("%H:%M"))
+    t = t.replace("{loja}", loja_lbl)
     return t[:TEXTO_MAX]
 
 
@@ -1140,6 +1168,8 @@ def processar_entrada(
         "aviso_fora_em",
         "aguardando_loja",
     ]
+    if not de_mim and not historico:
+        campos_base.extend(_desarquivar_por_msg_cliente(conv))
     if not fora_do_horario(cfg) and conv.aviso_fora_em:
         conv.aviso_fora_em = None
     fone = _telefone_real(conv.telefone) or tel_limpo or _telefone_real(conv.jid)
@@ -1153,19 +1183,76 @@ def processar_entrada(
             return str(cfg.get("msg_ok_loja2") or MSG_OK_VILA)
         return str(cfg.get("msg_ok_loja1") or MSG_OK_CENTRO)
 
+    def _marcar_saudacao_hoje() -> None:
+        extras = dict(conv.extras) if isinstance(conv.extras, dict) else {}
+        extras["saudacao_dia"] = timezone.localdate().isoformat()
+        conv.extras = extras
+        if "extras" not in campos_base:
+            campos_base.append("extras")
+
+    def _deve_enviar_saudacao() -> bool:
+        if not cfg_flag(cfg, "enviar_boas_vindas"):
+            return False
+        if cfg_flag(cfg, "saudacao_so_em_horario") and fora_do_horario(cfg):
+            return False
+        extras = conv.extras if isinstance(conv.extras, dict) else {}
+        hoje = timezone.localdate().isoformat()
+        if cfg_flag(cfg, "saudacao_nao_repetir_hoje") and str(extras.get("saudacao_dia") or "") == hoje:
+            return False
+        if cfg_flag(cfg, "saudacao_so_primeira_do_dia"):
+            ini = timezone.make_aware(datetime.combine(timezone.localdate(), time.min))
+            outras = (
+                WhatsAppMensagemAgro.objects.filter(
+                    conversa=conv,
+                    direcao=WhatsAppMensagemAgro.DIRECAO_IN,
+                    criado_em__gte=ini,
+                )
+                .exclude(pk=msg.pk)
+                .exists()
+            )
+            if outras:
+                return False
+        return True
+
+    def _texto_saudacao() -> str:
+        return str(cfg.get("msg_boas_vindas") or "").strip()
+
     def _menu_textos() -> list[str]:
         out = []
-        if cfg_flag(cfg, "enviar_boas_vindas"):
-            bv = str(cfg.get("msg_boas_vindas") or "").strip()
+        if _deve_enviar_saudacao():
+            bv = _texto_saudacao()
             if bv:
                 out.append(bv)
-        menu = str(cfg.get("msg_menu") or MSG_MENU)
-        from produtos.atendimento_whatsapp_recursos import recurso_on
+                _marcar_saudacao_hoje()
+        if cfg_flag(cfg, "saudacao_depois_menu", default=True):
+            menu = str(cfg.get("msg_menu") or MSG_MENU)
+            from produtos.atendimento_whatsapp_recursos import recurso_on
 
-        if recurso_on(cfg, "feat_menu_curto"):
-            menu += str(cfg.get("msg_menu_curto_extra") or "")
-        out.append(menu)
+            if recurso_on(cfg, "feat_menu_curto"):
+                menu += str(cfg.get("msg_menu_curto_extra") or "")
+            out.append(menu)
+        elif not out:
+            # Sem saudação e sem menu após: ainda manda o menu (cliente precisa escolher loja)
+            menu = str(cfg.get("msg_menu") or MSG_MENU)
+            from produtos.atendimento_whatsapp_recursos import recurso_on
+
+            if recurso_on(cfg, "feat_menu_curto"):
+                menu += str(cfg.get("msg_menu_curto_extra") or "")
+            out.append(menu)
         return out
+
+    def _atraso_saudacao_cfg() -> dict:
+        c = dict(cfg)
+        try:
+            sa = max(0, min(120, int(c.get("saudacao_atraso_seg") or 0)))
+        except (TypeError, ValueError):
+            sa = 0
+        if sa > 0:
+            c["atraso_resposta_seg"] = sa
+        return c
+
+    def _enviar_abertura(lote_msgs: list[str]) -> None:
+        _enviar_lote_bot(conv, lote_msgs, _atraso_saudacao_cfg())
 
     # Pedido de chave Pix (Fiado + Pix ligado + chave no Bot)
     if not historico and not de_mim and cfg_flag(cfg, "bot_ligado") and eh_pix:
@@ -1239,15 +1326,18 @@ def processar_entrada(
             conv.save(update_fields=campos)
             _enviar_lote_bot(conv, [montar_texto_fiado(fone, cfg)], cfg)
             return msg, ""
-        if cfg_flag(cfg, "enviar_boas_vindas") and not conv.menu_enviado:
-            bv = str(cfg.get("msg_boas_vindas") or "").strip()
+        if not conv.menu_enviado and _deve_enviar_saudacao():
+            bv = _texto_saudacao()
             if bv:
                 lote.append(bv)
+                _marcar_saudacao_hoje()
             conv.menu_enviado = True
             campos.append("menu_enviado")
+            if "extras" in campos_base and "extras" not in campos:
+                campos.append("extras")
         conv.save(update_fields=campos)
         if lote:
-            _enviar_lote_bot(conv, lote, cfg)
+            _enviar_abertura(lote)
         return msg, ""
 
     escolha = interpretar_loja(t, cfg) if conv.loja == WhatsAppConversaAgro.LOJA_PENDENTE else ""
@@ -1276,6 +1366,8 @@ def processar_entrada(
             campos = list(campos_base)
             if conv.menu_enviado:
                 campos.append("menu_enviado")
+            if "extras" in campos_base and "extras" not in campos:
+                campos.append("extras")
             conv.save(update_fields=campos)
             _enviar_lote_bot(conv, lote, cfg)
             return msg, ""
@@ -1291,9 +1383,12 @@ def processar_entrada(
             return msg, ""
         if not conv.menu_enviado:
             conv.menu_enviado = True
-            conv.save(update_fields=campos_base + ["menu_enviado"])
+            campos_m = list(campos_base) + ["menu_enviado"]
             lote.extend(_menu_textos())
-            _enviar_lote_bot(conv, lote, cfg)
+            if "extras" in campos_base and "extras" not in campos_m:
+                campos_m.append("extras")
+            conv.save(update_fields=campos_m)
+            _enviar_abertura(lote)
             return msg, ""
         conv.save(update_fields=campos_base)
         if cfg_flag(cfg, "repetir_menu"):
@@ -2143,16 +2238,65 @@ def marcar_lidas(conversa_id: int) -> None:
     WhatsAppConversaAgro.objects.filter(pk=int(conversa_id)).update(nao_lidas=0)
 
 
-def concluir_atendimento(conversa_id: int) -> tuple[bool, str]:
-    """✓ — tira a cor de espera mesmo se a última msg for do cliente."""
+def arquivar_conversa(conversa_id: int, *, operador: str = "") -> tuple[bool, str]:
+    """✓ — arquiva (Resolvidas), zera não-lidas e espera."""
     try:
         cid = int(conversa_id)
     except (TypeError, ValueError):
         return False, "Conversa inválida."
-    n = WhatsAppConversaAgro.objects.filter(pk=cid).update(aguardando_loja=False, nao_lidas=0)
-    if not n:
+    try:
+        conv = WhatsAppConversaAgro.objects.get(pk=cid)
+    except WhatsAppConversaAgro.DoesNotExist:
         return False, "Conversa não encontrada."
+    conv.arquivada = True
+    conv.arquivada_em = timezone.now()
+    conv.arquivada_por = (operador or "")[:120]
+    conv.aguardando_loja = False
+    conv.nao_lidas = 0
+    conv.save(
+        update_fields=[
+            "arquivada",
+            "arquivada_em",
+            "arquivada_por",
+            "aguardando_loja",
+            "nao_lidas",
+        ]
+    )
     return True, ""
+
+
+def reabrir_conversa(conversa_id: int) -> tuple[bool, str]:
+    """Tira da aba Resolvidas — volta para a loja que tinha (Fila/Centro/Vila)."""
+    try:
+        cid = int(conversa_id)
+    except (TypeError, ValueError):
+        return False, "Conversa inválida."
+    try:
+        conv = WhatsAppConversaAgro.objects.get(pk=cid)
+    except WhatsAppConversaAgro.DoesNotExist:
+        return False, "Conversa não encontrada."
+    if not conv.arquivada:
+        return True, ""
+    conv.arquivada = False
+    conv.arquivada_em = None
+    conv.arquivada_por = ""
+    conv.save(update_fields=["arquivada", "arquivada_em", "arquivada_por"])
+    return True, ""
+
+
+def _desarquivar_por_msg_cliente(conv: WhatsAppConversaAgro) -> list[str]:
+    """Cliente mandou msg em conversa arquivada → volta à lista ativa."""
+    if not getattr(conv, "arquivada", False):
+        return []
+    conv.arquivada = False
+    conv.arquivada_em = None
+    conv.arquivada_por = ""
+    return ["arquivada", "arquivada_em", "arquivada_por"]
+
+
+def concluir_atendimento(conversa_id: int, *, operador: str = "") -> tuple[bool, str]:
+    """Compat: ✓ agora arquiva (Resolvidas)."""
+    return arquivar_conversa(conversa_id, operador=operador)
 
 
 def _limpar_status_expirados() -> int:

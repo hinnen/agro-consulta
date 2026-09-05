@@ -31,7 +31,8 @@ from produtos.atendimento_whatsapp_util import (
     listar_fotos_pendentes,
     marcar_enviadas,
     marcar_lidas,
-    concluir_atendimento,
+    arquivar_conversa,
+    reabrir_conversa,
     marcar_pedido,
     pedir_agenda_zap,
     pedir_apagar_mensagem,
@@ -480,9 +481,24 @@ def api_atendimento_whatsapp_concluir(request):
         cid = int(data.get("conversa_id") or 0)
     except (TypeError, ValueError):
         cid = 0
-    ok, err = concluir_atendimento(cid)
+    autor = _autor_wa(request, data)
+    ok, err = arquivar_conversa(cid, operador=autor)
     if not ok:
-        return JsonResponse({"ok": False, "erro": err or "Não concluiu."}, status=400)
+        return JsonResponse({"ok": False, "erro": err or "Não arquivou."}, status=400)
+    return JsonResponse({"ok": True})
+
+
+@login_required(login_url="/entrar/")
+@require_POST
+def api_atendimento_whatsapp_reabrir(request):
+    data = _json_body(request) or {}
+    try:
+        cid = int(data.get("conversa_id") or 0)
+    except (TypeError, ValueError):
+        cid = 0
+    ok, err = reabrir_conversa(cid)
+    if not ok:
+        return JsonResponse({"ok": False, "erro": err or "Não reabriu."}, status=400)
     return JsonResponse({"ok": True})
 
 

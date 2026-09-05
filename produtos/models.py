@@ -3515,6 +3515,9 @@ class WhatsAppConversaAgro(models.Model):
     foto_em = models.DateTimeField(null=True, blank=True)
     # VIP, nota interna, lista de espera, etc. (recursos WA — ligar no Bot)
     extras = models.JSONField(default=dict, blank=True)
+    arquivada = models.BooleanField(default=False, db_index=True)
+    arquivada_em = models.DateTimeField(null=True, blank=True)
+    arquivada_por = models.CharField(max_length=120, blank=True, default="")
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -3523,6 +3526,10 @@ class WhatsAppConversaAgro(models.Model):
         ordering = ["-ultima_em", "-id"]
         indexes = [
             models.Index(fields=["loja", "ultima_em"], name="wa_conv_loja_ult_idx"),
+            models.Index(
+                fields=["arquivada", "loja", "ultima_em"],
+                name="wa_conv_arq_loja_ult_idx",
+            ),
         ]
 
     def __str__(self):

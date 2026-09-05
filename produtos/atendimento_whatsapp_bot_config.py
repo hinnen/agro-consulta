@@ -30,6 +30,16 @@ BOT_DEFAULT: dict = {
     "separar_lojas": True,
     "enviar_boas_vindas": True,
     "msg_boas_vindas": "Olá! Bem-vindo à *{empresa}*.",
+    "saudacao_so_primeira_do_dia": False,
+    "saudacao_nao_repetir_hoje": False,
+    "saudacao_so_em_horario": False,
+    "saudacao_atraso_seg": 0,
+    "saudacao_depois_menu": True,
+    "saudacao_midia_url": "",
+    "arquivo_auto_ligado": False,
+    "arquivo_auto_horas_silencio": 24,
+    "arquivo_auto_apos_ok_horas": 12,
+    "arquivo_auto_nunca_com_nao_lidas": True,
     "nome_fontes": "cadastro,agenda,perfil,telefone",
     "ordem": "fiado_depois_loja",
     "msg_menu": (
@@ -94,6 +104,12 @@ BOOL_KEYS = (
     "aviso_fora_so_texto",
     "separar_lojas",
     "enviar_boas_vindas",
+    "saudacao_so_primeira_do_dia",
+    "saudacao_nao_repetir_hoje",
+    "saudacao_so_em_horario",
+    "saudacao_depois_menu",
+    "arquivo_auto_ligado",
+    "arquivo_auto_nunca_com_nao_lidas",
     "repetir_menu",
     "fiado_ligado",
     "fiado_manda_menu",
@@ -157,6 +173,19 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
         limpo["atraso_entre_msgs_seg"] = max(0, min(60, int(limpo.get("atraso_entre_msgs_seg") or 0)))
     except (TypeError, ValueError):
         limpo["atraso_entre_msgs_seg"] = 1
+    try:
+        limpo["saudacao_atraso_seg"] = max(0, min(120, int(limpo.get("saudacao_atraso_seg") or 0)))
+    except (TypeError, ValueError):
+        limpo["saudacao_atraso_seg"] = 0
+    try:
+        limpo["arquivo_auto_horas_silencio"] = max(1, min(720, int(limpo.get("arquivo_auto_horas_silencio") or 24)))
+    except (TypeError, ValueError):
+        limpo["arquivo_auto_horas_silencio"] = 24
+    try:
+        limpo["arquivo_auto_apos_ok_horas"] = max(1, min(720, int(limpo.get("arquivo_auto_apos_ok_horas") or 12)))
+    except (TypeError, ValueError):
+        limpo["arquivo_auto_apos_ok_horas"] = 12
+    limpo["saudacao_midia_url"] = str(limpo.get("saudacao_midia_url") or "").strip()[:500]
     try:
         limpo["aviso_fora_minutos"] = max(0, min(1440, int(limpo.get("aviso_fora_minutos") or 0)))
     except (TypeError, ValueError):

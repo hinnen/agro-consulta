@@ -643,3 +643,49 @@ class ChamarHistoricoWhatsAppTests(TestCase):
         self.assertEqual(
             WhatsAppMensagemAgro.objects.filter(conversa=m1.conversa, texto="AE").count(), 1
         )
+
+
+class ArquivoConversaTests(TestCase):
+    def test_arquivar_some_da_fila_e_reabrir_volta(self):
+        from produtos.atendimento_whatsapp_util import (
+            arquivar_conversa,
+            listar_conversas,
+            reabrir_conversa,
+        )
+
+        processar_entrada(jid="5513999111001@s.whatsapp.net", texto="1", nome="Arq")
+        conv = WhatsAppConversaAgro.objects.get()
+        self.assertEqual(conv.loja, "centro")
+        ok, _ = arquivar_conversa(conv.pk, operador="Renan")
+        self.assertTrue(ok)
+        conv.refresh_from_db()
+        self.assertTrue(conv.arquivada)
+        ids_ativas = {c["id"] for c in listar_conversas(loja="centro")}
+        self.assertNotIn(conv.pk, ids_ativas)
+        ids_arq = {c["id"] for c in listar_conversas(loja="arquivadas")}
+        self.assertIn(conv.pk, ids_arq)
+        ok2, _ = reabrir_conversa(conv.pk)
+        self.assertTrue(ok2)
+        conv.refresh_from_db()
+        self.assertFalse(conv.arquivada)
+        self.assertEqual(conv.loja, "centro")
+        self.assertIn(conv.pk, {c["id"] for c in listar_conversas(loja="centro")})
+
+    def test_msg_cliente_desarquiva(self):
+        from produtos.atendimento_whatsapp_util import arquivar_conversa, listar_conversas
+
+        processar_entrada(jid="5513999111002@s.whatsapp.net", texto="2", nome="Volta")
+        conv = WhatsAppConversaAgro.objects.get()
+        arquivar_conversa(conv.pk, operador="Loja")
+        processar_entrada(
+            jid="5513999111002@s.whatsapp.net", texto="oi de novo", wa_id="reopen-1"
+        )
+        conv.refresh_from_db()
+        self.assertFalse(conv.arquivada)
+        self.assertIn(conv.pk, {c["id"] for c in listar_conversas(loja="vila")})
+
+    def test_arquivo_auto_default_off(self):
+        self.assertFalse(BOT_DEFAULT.get("arquivo_auto_ligado"))
+        self.assertTrue(BOT_DEFAULT.get("arquivo_auto_nunca_com_nao_lidas"))
+        self.assertTrue(BOT_DEFAULT.get("saudacao_depois_menu"))
+        self.assertEqual(int(BOT_DEFAULT.get("saudacao_atraso_seg") or 0), 0)
