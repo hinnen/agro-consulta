@@ -1922,6 +1922,52 @@
     }
   });
 
+  function nomeOperadorPin() {
+    try {
+      return String(localStorage.getItem('gm_sspin_operador') || '').trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function pintarOperadorPin() {
+    var btn = $('wa-operador-pin');
+    if (!btn) return;
+    var n = nomeOperadorPin();
+    if (n) {
+      btn.textContent = n;
+      btn.classList.remove('is-empty');
+      btn.title = 'PIN: ' + n + ' — clique para trocar';
+    } else {
+      btn.textContent = 'PIN?';
+      btn.classList.add('is-empty');
+      btn.title = 'Ninguém no PIN — clique para identificar';
+    }
+  }
+
+  function trocarOperadorPin() {
+    if (typeof window.gmSspinSairEAbrirPin === 'function') {
+      window.gmSspinSairEAbrirPin();
+      return;
+    }
+    if (typeof window.gmSspinAbrirEntrada === 'function') {
+      window.gmSspinAbrirEntrada();
+      return;
+    }
+    window.alert('Abra o PIN do modo descanso nesta tela (recarregue a página).');
+  }
+
+  var btnOpPin = $('wa-operador-pin');
+  if (btnOpPin) {
+    btnOpPin.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      trocarOperadorPin();
+    });
+  }
+  window.addEventListener('gm-sspin-operador', pintarOperadorPin);
+  pintarOperadorPin();
+
   setTab();
   pintarEstadoFiltro();
   pedirAviso();
