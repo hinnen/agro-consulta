@@ -82,11 +82,29 @@ AGRO_CANONICAL_REDIRECT_FROM_RENDER_ENABLED = (
 
 # Render envia este SHA ao build/run; usar em ``?v=`` só no PDV pois lá o static vai sem Manifest.
 AGRO_PDV_ASSETS_V = (os.environ.get("RENDER_GIT_COMMIT") or "").strip()[:12]
+if not AGRO_PDV_ASSETS_V and DEBUG:
+    import subprocess
+    from pathlib import Path
 
-# Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed) sem exigir login.
-# Padrão True (painel aberto). Para exigir login de novo: AGRO_PUBLIC_DASHBOARD=false no .env / Render.
+    try:
+        AGRO_PDV_ASSETS_V = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=BASE_DIR,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
+            .strip()[:12]
+        )
+    except Exception:
+        _pdv_js = Path(BASE_DIR) / "produtos" / "static" / "produtos" / "js" / "pdv_wizard.js"
+        if _pdv_js.is_file():
+            AGRO_PDV_ASSETS_V = str(int(_pdv_js.stat().st_mtime))
+
+# Painel BI (/, /dashboard/gerencial/, HTMX parcial e feed): exige login por padrão.
+# Abrir sem login (só se Renan pedir): AGRO_PUBLIC_DASHBOARD=true no .env / Render.
 # POST de sync ERP continua com login; ?sync=1 na URL só roda se já autenticado.
-AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=True, cast=bool)
+AGRO_PUBLIC_DASHBOARD = config("AGRO_PUBLIC_DASHBOARD", default=False, cast=bool)
 
 # Após ERP v3: espelho Mongo (agregação no servidor). Default True = alinhado ao gráfico do BI;
 # defina false só se a instância esgotar RAM (worker).
@@ -118,9 +136,15 @@ AGRO_DASHBOARD_VENDAS_FONTE = (
     config("AGRO_DASHBOARD_VENDAS_FONTE", default="pdv") or "pdv"
 ).strip().lower()
 
+# F8 Relacionamento — histórico ERP importado (FL-042). false = F8 só VendaAgro (≥ pdv_desde).
+AGRO_REL_HISTORICO_ERP = config("AGRO_REL_HISTORICO_ERP", default=True, cast=bool)
+AGRO_REL_ERP_ATE = (config("AGRO_REL_ERP_ATE", default="2026-05-26") or "2026-05-26").strip()
+AGRO_REL_PDV_DESDE = (config("AGRO_REL_PDV_DESDE", default="2026-05-27") or "2026-05-27").strip()
+
 # Application definition
 
 INSTALLED_APPS = [
+    'config.apps.ConfigConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -154,11 +178,17 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'base.contabilidade_middleware.AgroContabilidadeMiddleware',
     # Idempotência global (header Idempotency-Key / X-Agro-Client-Request-Id ou body client_request_id)
     'base.middleware.AgroIdempotencyMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Mongo ERP off: não exibir a palavra «Mongo» em erros/JSON (Entrada NF / PDV / etc.)
+    'base.agro_sem_mencao_mongo_middleware.AgroSemMencaoMongoMiddleware',
 ]
+
+DATA_UPLOAD_MAX_MEMORY_SIZE = config('DATA_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)  # 10 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = config('FILE_UPLOAD_MAX_MEMORY_SIZE', default=10485760, cast=int)
 
 # --- Idempotência HTTP (duplo clique / retry) — ver base/middleware.py ---
 AGRO_IDEMPOTENCY_ENABLED = config('AGRO_IDEMPOTENCY_ENABLED', default=True, cast=bool)
@@ -166,7 +196,7 @@ AGRO_IDEMPOTENCY_EXEMPT_PREFIXES = tuple(
     p.strip()
     for p in config(
         'AGRO_IDEMPOTENCY_EXEMPT_PREFIXES',
-        default='/admin/,/static/,/media/,/healthz',
+        default='/admin/,/static/,/media/,/healthz,/catalogo/gestao/,/catalogo/api/categorias/',
     ).split(',')
     if p.strip()
 )
@@ -180,6 +210,8 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 # Render / Docker (SAVEINCLOUD): sem manifest evita 500 em runtime se algum asset faltar no manifest pós-collectstatic
 # (o edge costuma devolver 502 quando o worker cai ou responde mal).
 if _on_render or _on_saveincloud:
@@ -195,9 +227,14 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
+                'django.template.context_processors.csrf',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'produtos.context_processors.home_launcher_nav',
+                'produtos.context_processors.agro_emprestimo_dual_ui',
+                'produtos.context_processors.agro_banco_placeholder_ui',
+                'produtos.context_processors.agro_app_build',
+                'produtos.context_processors.agro_display_scale_ui',
             ],
         },
     },
@@ -210,10 +247,15 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 # Produção (Render, SaveinCloud, Docker): injete DATABASE_URL (PostgreSQL) pelo painel; sem ela, fallback SQLite local.
 
+# conn_max_age baixo: evita esgotar slots no Postgres (incidente loja 21/07).
+# Override: DJANGO_CONN_MAX_AGE no painel Render.
+# Local: python-decouple lê .env; dj_database_url só olha os.environ — passar via default.
+_db_conn_max_age = int(os.environ.get("DJANGO_CONN_MAX_AGE", "60") or "60")
+_db_url = (config("DATABASE_URL", default="") or "").strip() or f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+    "default": dj_database_url.config(
+        default=_db_url,
+        conn_max_age=_db_conn_max_age,
         conn_health_checks=True,
     )
 }
@@ -249,8 +291,8 @@ USE_I18N = True
 
 USE_TZ = True
 
-# Auth: páginas com @login_required(login_url="/admin/login/"); após login sem ?next=, ir para o dashboard (mesma URL que ``name="home"``).
-LOGIN_URL = "/admin/login/"
+# Auth: login da loja em /entrar/ (tela GM Agro Mais). Após login sem ?next=, vai ao dashboard.
+LOGIN_URL = "/entrar/"
 LOGIN_REDIRECT_URL = "/"
 
 # Static files (CSS, JavaScript, Images)
@@ -270,6 +312,9 @@ if REDIS_URL:
             'LOCATION': REDIS_URL,
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                # Evita lock Redis segurar request NFC-e/PDV por minutos.
+                'SOCKET_CONNECT_TIMEOUT': 2,
+                'SOCKET_TIMEOUT': 2,
             },
             'KEY_PREFIX': 'agro',
             'TIMEOUT': 600,
@@ -296,18 +341,56 @@ AGRO_CLIENTES_SYNC_ERP_HABILITADO = config(
 # Desvinculação ERP — default legacy (produção inalterada). Staging: ver .env.example
 AGRO_FONTE_CATALOGO = (config('AGRO_FONTE_CATALOGO', default='legacy') or 'legacy').strip().lower()
 AGRO_FONTE_ESTOQUE = (config('AGRO_FONTE_ESTOQUE', default='legacy') or 'legacy').strip().lower()
+# Cadastro rápido PDV — Bluesoft Cosmos (GTIN BR). Token gratuito em cosmos.bluesoft.com.br/api
+AGRO_COSMOS_TOKEN = (config("AGRO_COSMOS_TOKEN", default="") or "").strip()
+AGRO_COSMOS_USER_AGENT = (config("AGRO_COSMOS_USER_AGENT", default="") or "").strip() or (
+    "SisVale-AgroConsulta/1.0"
+)
 AGRO_FONTE_FINANCEIRO = (
     config('AGRO_FONTE_FINANCEIRO', default='legacy') or 'legacy'
 ).strip().lower()
+# Busca Cadastro/PG: mitiga CPU (sem loop fantasma/preço + OR largo). false = comportamento antigo.
+AGRO_BUSCA_LEVE_CPU = config('AGRO_BUSCA_LEVE_CPU', default=True, cast=bool)
 # Contas a pagar/receber: envio Agro → ERP (API Lancamentos/*). false = só grava no Mongo.
 AGRO_FINANCEIRO_ERP_SYNC_HABILITADO = config(
     'AGRO_FINANCEIRO_ERP_SYNC_HABILITADO', default=False, cast=bool
+)
+# Cadastro SisVale: envio/recebimento via API Produtos/Salvar. false = só Agro (overlay + espelho Mongo).
+AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO = config(
+    'AGRO_CADASTRO_PRODUTO_ERP_SYNC_HABILITADO', default=False, cast=bool
 )
 # true após ``manage.py congelar_lancamentos_financeiro_agro`` (títulos marcados AgroFonteVerdade).
 AGRO_FINANCEIRO_MONGO_CONGELADO = config(
     'AGRO_FINANCEIRO_MONGO_CONGELADO', default=False, cast=bool
 )
 AGRO_ERP_PEDIDOS_DRY_RUN = config('AGRO_ERP_PEDIDOS_DRY_RUN', default=False, cast=bool)
+# Staging: true = lê Mongo (espelho ERP) mas não grava preço/financeiro/etc. no Mongo compartilhado.
+AGRO_STAGING_READONLY = config('AGRO_STAGING_READONLY', default=False, cast=bool)
+# Staging: CP lê Postgres após import bootstrap (sem AGRO_FONTE_FINANCEIRO manual).
+AGRO_FINANCEIRO_PG_LEITURA_STAGING = config(
+    'AGRO_FINANCEIRO_PG_LEITURA_STAGING', default=True, cast=bool
+)
+# Staging: URL interna do Postgres da loja — só leitura para snapshot PDV (ver copiar_snapshot_pdv_loja).
+AGRO_SNAPSHOT_FONTE_DATABASE_URL = (config('AGRO_SNAPSHOT_FONTE_DATABASE_URL', default='') or '').strip()
+# Reparo códigos: fonte (staging) → destino (loja). Ver reparar_codigos_catalogo_fonte_destino.
+AGRO_CATALOGO_FONTE_DATABASE_URL = (config('AGRO_CATALOGO_FONTE_DATABASE_URL', default='') or '').strip()
+AGRO_CATALOGO_DEST_DATABASE_URL = (config('AGRO_CATALOGO_DEST_DATABASE_URL', default='') or '').strip()
+# Staging (após snapshot): PDV lê catálogo só do Postgres; estoque/médias ainda podem usar Mongo.
+AGRO_PDV_CATALOGO_SOMENTE_POSTGRES = config(
+    'AGRO_PDV_CATALOGO_SOMENTE_POSTGRES', default=False, cast=bool
+)
+# Modal «Tamanho da tela» (Agro Display Scale) — só ligar onde Renan pedir (ex.: staging).
+AGRO_DISPLAY_SCALE_HABILITADO = config(
+    'AGRO_DISPLAY_SCALE_HABILITADO', default=False, cast=bool
+)
+# Bug report — e-mail automático só se EMAIL_HOST estiver ok.
+AGRO_BUG_REPORT_EMAIL = (config("AGRO_BUG_REPORT_EMAIL", default="renanhinnen@gmail.com") or "").strip()
+EMAIL_HOST = (config("EMAIL_HOST", default="") or "").strip()
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = (config("EMAIL_HOST_USER", default="") or "").strip()
+EMAIL_HOST_PASSWORD = (config("EMAIL_HOST_PASSWORD", default="") or "").strip()
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+DEFAULT_FROM_EMAIL = (config("DEFAULT_FROM_EMAIL", default="") or EMAIL_HOST_USER or "noreply@sistvale.com.br").strip()
 
 CONSULTA_CACHE_TTL = 20
 # Configurações da API Venda ERP
@@ -349,10 +432,14 @@ FINANCEIRO_DEBUG_RESUMO = config('FINANCEIRO_DEBUG_RESUMO', default=False, cast=
 # Saída no caixa (/caixa/saida/): nomes para “quem levou o dinheiro”, separados por vírgula. Vazio = só “Outro”.
 AGRO_SAIDA_CAIXA_FUNCIONARIOS = config('AGRO_SAIDA_CAIXA_FUNCIONARIOS', default='').strip()
 AGRO_SAIDA_CAIXA_EMPRESA_PADRAO = config('AGRO_SAIDA_CAIXA_EMPRESA_PADRAO', default='Agro Mais Centro').strip()
+# Saída no caixa da Vila Elias — nome fantasia no financeiro (Mongo/CP).
+AGRO_SAIDA_CAIXA_EMPRESA_VILA = config(
+    'AGRO_SAIDA_CAIXA_EMPRESA_VILA', default='Agro Mais Vila Elias'
+).strip()
 
 # RH: texto de PlanoDeConta no Mongo para o título único de salário (despesa). Deve existir no ERP.
 AGRO_RH_PLANO_SALARIO_FOLHA = (config("AGRO_RH_PLANO_SALARIO_FOLHA", default="") or "").strip() or (
-    "2.1.1.1.2 — Salários"
+    "Salários"
 )
 # Conta placeholder no ERP (ex.: «ADICIONAR BANCO») até definir banco real — BancoID como string no Mongo/cadastro.
 # Se vazio, o Agro usa um ID legado embutido; defina no .env o ID correto da sua base (veja um DtoLancamento que já use essa conta).
@@ -369,6 +456,9 @@ AGRO_FINANCEIRO_BANCO_PLACEHOLDER_NOME = (
 AGRO_EMPRESTIMO_PLANO_ENTRADA = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_DIVIDA = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA", default="") or "").strip()
 AGRO_EMPRESTIMO_PLANO_JUROS = (config("AGRO_EMPRESTIMO_PLANO_JUROS", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_ENTRADA_INTERNO", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_DIVIDA_INTERNO", default="") or "").strip()
+AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO = (config("AGRO_EMPRESTIMO_PLANO_JUROS_INTERNO", default="") or "").strip()
 # Empréstimos — consulta: nomes de cliente (Mongo) a ocultar na lista, separados por vírgula (normalização case-insensitive).
 AGRO_EMPRESTIMO_EXCLUIR_CLIENTES = (config("AGRO_EMPRESTIMO_EXCLUIR_CLIENTES", default="") or "").strip()
 
@@ -384,8 +474,12 @@ MP_POINT_ACCESS_TOKEN = (config("MP_POINT_ACCESS_TOKEN", default="") or "").stri
 MP_POINT_TERMINAL_ID = (config("MP_POINT_TERMINAL_ID", default="") or "").strip()
 MP_POINT_EXPIRATION = (config("MP_POINT_EXPIRATION", default="PT16M") or "PT16M").strip()
 MP_POINT_PRINT_ON_TERMINAL = (
-    config("MP_POINT_PRINT_ON_TERMINAL", default="no_ticket") or "no_ticket"
+    config("MP_POINT_PRINT_ON_TERMINAL", default="seller_ticket") or "seller_ticket"
 ).strip()
+# Point Vila Elias — conta MP distinta (CNPJ Vila). Liga sozinho quando token + terminal estão preenchidos.
+MP_POINT_VILA_ENABLED = config("MP_POINT_VILA_ENABLED", default=True, cast=bool)
+MP_POINT_VILA_ACCESS_TOKEN = (config("MP_POINT_VILA_ACCESS_TOKEN", default="") or "").strip()
+MP_POINT_VILA_TERMINAL_ID = (config("MP_POINT_VILA_TERMINAL_ID", default="") or "").strip()
 PDV_QR_SICREDI_URL = config("PDV_QR_SICREDI_URL", default="").strip()
 PDV_CHAVE_PIX_SICOB = config("PDV_CHAVE_PIX_SICOB", default="").strip()
 # Venda ERP — POST Pedidos/Salvar: literal exato do status (enum no ERP; maiúsculas importam).
@@ -447,8 +541,24 @@ VENDA_ERP_PEDIDOS_SALVAR_RETRY_PLANO_OBJETO_RETORNO_BUSCA = config(
 PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA = config("PDV_BAIXA_ESTOQUE_AGRO_NA_VENDA", default=True, cast=bool)
 # PDV Wizard: grava venda + baixa estoque na hora; Pedidos/Salvar no ERP roda em thread (libera a tela).
 PDV_ERP_ENVIO_ASSINCRONO = config("PDV_ERP_ENVIO_ASSINCRONO", default=True, cast=bool)
+# Enviar venda PDV ao ERP (Pedidos/Salvar). False = só grava no Agro (padrão loja desvinculada).
+PDV_VENDA_ERP_ENVIO = config("PDV_VENDA_ERP_ENVIO", default=False, cast=bool)
+# Finalização PDV sem consultar Mongo espelho ERP (catálogo/estoque ref/fiscal usam Postgres + defaults).
+AGRO_PDV_VENDA_SEM_MONGO_ERP = config("AGRO_PDV_VENDA_SEM_MONGO_ERP", default=True, cast=bool)
+# true = nunca abre Mongo ERP (loja sem assinatura). false = força tentar. auto = desliga se agro_pg.
+AGRO_MONGO_ERP_DESLIGADO = (config("AGRO_MONGO_ERP_DESLIGADO", default="true") or "true").strip().lower()
+# NFC-e após venda: não esperar SEFAZ na requisição HTTP (emite em thread).
+AGRO_PDV_NFCE_ASSINCRONA = config("AGRO_PDV_NFCE_ASSINCRONA", default=True, cast=bool)
+NFC_E_ENABLED = config("NFC_E_ENABLED", default=False, cast=bool)
 # Depósito da baixa: centro | vila (mesma convenção do PIN / entrada NF).
 PDV_VENDA_ESTOQUE_DEPOSITO = config("PDV_VENDA_ESTOQUE_DEPOSITO", default="centro").strip().lower() or "centro"
+
+# Campanha inauguração Vila (CAMP-VILA-5): fora da data use TEST=1 no .env local; OFF=1 desliga.
+AGRO_CAMPANHA_INAUGURACAO_TEST = config("AGRO_CAMPANHA_INAUGURACAO_TEST", default=False, cast=bool)
+AGRO_CAMPANHA_INAUGURACAO_OFF = config("AGRO_CAMPANHA_INAUGURACAO_OFF", default=False, cast=bool)
+AGRO_CAMPANHA_INAUGURACAO_PCT = config("AGRO_CAMPANHA_INAUGURACAO_PCT", default="5")
+AGRO_CAMPANHA_INAUGURACAO_INICIO = config("AGRO_CAMPANHA_INAUGURACAO_INICIO", default="")
+AGRO_CAMPANHA_INAUGURACAO_FIM = config("AGRO_CAMPANHA_INAUGURACAO_FIM", default="")
 PDV_WIZARD_SALDO_VALE_CREDITO = config("PDV_WIZARD_SALDO_VALE_CREDITO", default="0").strip()
 PDV_WIZARD_SALDO_CASHBACK = config("PDV_WIZARD_SALDO_CASHBACK", default="0").strip()
 # Percentual de cashback gerado na venda quando o produto não tem % no overlay (padrão 1%).
@@ -461,8 +571,25 @@ VENDA_ERP_FORMA_PAGAMENTO_FIADO = config(
 ).strip() or "Crédito Loja"
 # WhatsApp após impressão de cupom de transferência (Vila Elias). Vazio = usa PDV_ENTREGA_WHATSAPP.
 TRANSFERENCIA_WHATSAPP = config('TRANSFERENCIA_WHATSAPP', default='').strip()
+# Ponte QR (uso próprio, sem API Meta). Mesmo valor no iniciar.bat / .env do PC da ponte.
+AGRO_WA_BRIDGE_TOKEN = (config("AGRO_WA_BRIDGE_TOKEN", default="gm-agro-wa-ponte-local") or "").strip()
 # Token para endpoint HTTP do cron de alertas (sem shell). Mantenha forte e secreto.
 ALERTA_VENDAS_CRON_TOKEN = config('ALERTA_VENDAS_CRON_TOKEN', default='').strip()
+# Backup Postgres noturno (FL-048) — só produção; ver pg_backup_nightly.py
+AGRO_PG_BACKUP_NIGHTLY_ENABLED = config("AGRO_PG_BACKUP_NIGHTLY_ENABLED", default=False, cast=bool)
+AGRO_PG_BACKUP_NIGHTLY_ALLOW_STAGING = config(
+    "AGRO_PG_BACKUP_NIGHTLY_ALLOW_STAGING", default=False, cast=bool
+)
+# Upload: none | webhook | s3 (Backblaze B2, AWS S3, etc.)
+AGRO_PG_BACKUP_UPLOAD_MODE = config("AGRO_PG_BACKUP_UPLOAD_MODE", default="").strip().lower()
+AGRO_PG_BACKUP_WEBHOOK_URL = config("AGRO_PG_BACKUP_WEBHOOK_URL", default="").strip()
+AGRO_PG_BACKUP_WEBHOOK_TOKEN = config("AGRO_PG_BACKUP_WEBHOOK_TOKEN", default="").strip()
+AGRO_PG_BACKUP_S3_ENDPOINT = config("AGRO_PG_BACKUP_S3_ENDPOINT", default="").strip()
+AGRO_PG_BACKUP_S3_BUCKET = config("AGRO_PG_BACKUP_S3_BUCKET", default="").strip()
+AGRO_PG_BACKUP_S3_ACCESS_KEY = config("AGRO_PG_BACKUP_S3_ACCESS_KEY", default="").strip()
+AGRO_PG_BACKUP_S3_SECRET_KEY = config("AGRO_PG_BACKUP_S3_SECRET_KEY", default="").strip()
+AGRO_PG_BACKUP_S3_REGION = config("AGRO_PG_BACKUP_S3_REGION", default="us-east-1").strip()
+AGRO_PG_BACKUP_S3_PREFIX = config("AGRO_PG_BACKUP_S3_PREFIX", default="sistvale/pg-backup").strip()
 # Se True, só envia perto da hora cheia (00..tol minutos). Se False, envia 1x por hora em qualquer minuto.
 ALERTA_VENDAS_HORA_CHEIA_ESTRITO = config('ALERTA_VENDAS_HORA_CHEIA_ESTRITO', default=False, cast=bool)
 # Quando estrito=True, tolerância de atraso do scheduler em minutos (0..15).

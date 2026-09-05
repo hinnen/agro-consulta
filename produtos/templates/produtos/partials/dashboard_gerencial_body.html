@@ -1,6 +1,6 @@
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 mb-3">
+<div class="dash-kpi-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 mb-3">
   {% for kpi in kpis %}
-  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% elif kpi.variant == 'validade_duplo' and kpi.vencidos > 0 %}ring-2 ring-red-400/90{% endif %} p-2.5 sm:p-3 group relative overflow-visible">
+  <div class="glass-card kpi-card {% if kpi.variant == 'entregas' %}kpi-warn{% elif kpi.variant == 'validade_duplo' and kpi.vencidos > 0 %}kpi-validade-alerta{% elif kpi.variant == 'validade_duplo' and kpi.vencendo_mes > 0 %}ring-2 ring-amber-300/80{% elif kpi.variant == 'validade_duplo' and kpi.vencendo_mes_conferir > 0 %}ring-2 ring-violet-300/70{% endif %} p-2.5 sm:p-3 group relative overflow-visible">
     <div class="flex justify-between items-start mb-1.5 gap-1.5">
       <div class="flex items-start gap-1 min-w-0">
         <span class="text-[11px] font-black text-slate-600 uppercase tracking-tight leading-tight">
@@ -10,8 +10,8 @@
             Ticket
           {% elif kpi.label == "Perda Validade" %}
             Validade
-          {% elif kpi.label == "Novos Clientes" %}
-            Novos Clientes
+          {% elif kpi.label == "Lucro Líquido" %}
+            Lucro Líquido
           {% elif kpi.label == "Entregas" %}
             Entregas
           {% else %}
@@ -55,40 +55,73 @@
       </div>
     </a>
     {% elif kpi.variant == "ticket_duplo" %}
-    <div class="rounded-lg border border-slate-200 bg-white/80 p-2">
-      <div class="grid grid-cols-4 gap-x-2 gap-y-1 items-center">
-        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Ticket</div>
-        <div class="text-right">
-          <span class="{{ kpi.trend_mes_class }} inline-flex text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">{{ kpi.trend_mes_short }}</span>
+    <div class="rounded-lg border border-slate-200 bg-white/80 p-2 min-w-0">
+      <div class="dash-kpi-ticket-grid">
+        <div class="dash-kpi-ticket-row">
+          <span class="dash-kpi-ticket-lbl">Mês</span>
+          <span class="dash-kpi-ticket-val">{{ kpi.value_mes }}</span>
+          <span class="{{ kpi.trend_mes_class }} dash-kpi-ticket-badge inline-flex text-[9px] font-bold px-1 py-0.5 rounded-md leading-tight">{{ kpi.trend_mes_short }}</span>
         </div>
-        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Hoje</div>
-        <div class="text-right">
-          <span class="{{ kpi.trend_dia_class }} inline-flex text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-md leading-tight">{{ kpi.trend_dia_short }}</span>
+        <div class="dash-kpi-ticket-row">
+          <span class="dash-kpi-ticket-lbl">Hoje</span>
+          <span class="dash-kpi-ticket-val">{{ kpi.value_dia }}</span>
+          <span class="{{ kpi.trend_dia_class }} dash-kpi-ticket-badge inline-flex text-[9px] font-bold px-1 py-0.5 rounded-md leading-tight">{{ kpi.trend_dia_short }}</span>
         </div>
-        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Mês</div>
-        <div class="text-[1.15rem] sm:text-[1.25rem] font-black text-slate-900 tabular-nums leading-none text-right">{{ kpi.value_mes }}</div>
-        <div class="text-[10px] font-black uppercase tracking-wide text-slate-500">Hoje</div>
-        <div class="text-[1.15rem] sm:text-[1.25rem] font-black text-slate-900 tabular-nums leading-none text-right">{{ kpi.value_dia }}</div>
       </div>
     </div>
-    {% elif kpi.variant == "validade_duplo" %}
-    <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40 rounded-lg -m-1 p-1 hover:opacity-95">
-      <div class="grid grid-cols-2 gap-2">
-        <div class="rounded-lg border-2 p-2 min-h-[3.25rem] flex flex-col justify-center {% if kpi.vencidos > 0 %}border-red-500 bg-red-50 shadow-sm shadow-red-200/60{% else %}border-slate-200 bg-slate-50/80{% endif %}">
-          <span class="text-[9px] font-black uppercase tracking-wide {% if kpi.vencidos > 0 %}text-red-800{% else %}text-slate-500{% endif %}">Vencidos</span>
-          <span class="mt-0.5 text-[1.35rem] sm:text-[1.5rem] font-black tabular-nums leading-none {% if kpi.vencidos > 0 %}text-red-700{% else %}text-slate-400{% endif %}">{{ kpi.vencidos }}</span>
-        </div>
-        <div class="rounded-lg border border-sky-200 bg-sky-50/70 p-2 min-h-[3.25rem] flex flex-col justify-center">
-          <span class="text-[9px] font-bold uppercase tracking-wide text-sky-800/80">Vencem no mês</span>
-          <span class="mt-0.5 text-[1.1rem] sm:text-[1.2rem] font-bold tabular-nums leading-none text-sky-700">{{ kpi.vencendo_mes }}</span>
+    {% elif kpi.variant == "lucro_liquido_duplo" %}
+    <a href="{% url 'resumo_financeiro_gerencial' %}" class="block focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 rounded-lg -m-1 p-1 hover:opacity-95 min-w-0" title="Abrir Resumo gerencial">
+      <div class="rounded-lg border border-slate-200 bg-white/80 p-2 min-w-0">
+        <div class="dash-kpi-ticket-grid dash-kpi-liq-grid">
+          <div class="dash-kpi-ticket-row">
+            <span class="dash-kpi-ticket-lbl">Bruto</span>
+            <span class="dash-kpi-ticket-val" style="color: {{ kpi.color_bruto }}">{{ kpi.value_bruto }}</span>
+          </div>
+          <div class="dash-kpi-ticket-row">
+            <span class="dash-kpi-ticket-lbl">Pago</span>
+            <span class="dash-kpi-ticket-val" style="color: {{ kpi.color_pago }}">{{ kpi.value_pago }}</span>
+          </div>
         </div>
       </div>
+    </a>
+    {% elif kpi.variant == "validade_duplo" %}
+    <a href="{{ relatorios_validade_url }}" class="block cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 rounded-lg -m-1 p-1 hover:opacity-95 min-w-0" title="{% if kpi.vencidos > 0 %}Há produto(s) vencido(s) com saldo — clique para conferir{% elif kpi.vencidos_conferir > 0 %}Há vencido(s) sem saldo no sistema — conferir na prateleira{% else %}Abrir relatório de validade{% endif %}">
+      <div class="grid grid-cols-2 gap-1.5 min-w-0">
+        <div class="rounded-lg border-2 p-1.5 min-h-[3rem] flex flex-col justify-center min-w-0 {% if kpi.vencidos > 0 %}border-red-600 bg-red-100 shadow-md shadow-red-300/50 ring-2 ring-red-400/40{% else %}border-slate-200 bg-slate-50/80{% endif %}">
+          <span class="dash-kpi-validade-lbl uppercase {% if kpi.vencidos > 0 %}text-red-900{% else %}text-slate-500{% endif %}">Vencidos</span>
+          <span class="mt-0.5 text-[1.2rem] sm:text-[1.35rem] font-black tabular-nums leading-none {% if kpi.vencidos > 0 %}text-red-800{% else %}text-slate-400{% endif %}">{{ kpi.vencidos }}</span>
+        </div>
+        <div class="rounded-lg border p-1.5 min-h-[3rem] flex flex-col justify-center min-w-0 {% if kpi.vencidos > 0 %}border-red-200 bg-white/70{% elif kpi.vencendo_mes > 0 %}border-amber-300 bg-amber-50/80{% else %}border-sky-200 bg-sky-50/70{% endif %}">
+          <span class="dash-kpi-validade-lbl uppercase {% if kpi.vencidos > 0 %}text-red-800/80{% elif kpi.vencendo_mes > 0 %}text-amber-900/80{% else %}text-sky-800/80{% endif %}" title="Vencem no mês (com saldo)">No mês</span>
+          <span class="mt-0.5 text-[1rem] sm:text-[1.15rem] font-bold tabular-nums leading-none {% if kpi.vencidos > 0 %}text-red-700{% elif kpi.vencendo_mes > 0 %}text-amber-800{% else %}text-sky-700{% endif %}">{{ kpi.vencendo_mes }}</span>
+        </div>
+      </div>
+      {% if kpi.vencidos_conferir > 0 or kpi.vencendo_mes_conferir > 0 %}
+      <div class="mt-1.5 grid grid-cols-2 gap-1.5 min-w-0">
+        <div class="rounded-lg border border-violet-300/80 bg-violet-50/90 p-1 min-h-[2.35rem] flex flex-col justify-center min-w-0" title="Validade passou — saldo zerado no sistema; conferir na prateleira">
+          <span class="dash-kpi-validade-lbl uppercase text-violet-800/90">Conf. venc.</span>
+          <span class="mt-0.5 text-[0.95rem] sm:text-[1.05rem] font-bold tabular-nums leading-none text-violet-900">{{ kpi.vencidos_conferir|default:0 }}</span>
+        </div>
+        <div class="rounded-lg border border-violet-200 bg-violet-50/60 p-1 min-h-[2.35rem] flex flex-col justify-center min-w-0" title="Vence no mês — saldo zerado; estoque furado">
+          <span class="dash-kpi-validade-lbl uppercase text-violet-800/80">Conf. mês</span>
+          <span class="mt-0.5 text-[0.95rem] sm:text-[1.05rem] font-bold tabular-nums leading-none text-violet-800">{{ kpi.vencendo_mes_conferir|default:0 }}</span>
+        </div>
+      </div>
+      {% endif %}
+      {% if kpi.vencidos > 0 %}
+      <span class="kpi-validade-cta" aria-hidden="true">Conferir vencidos →</span>
+      {% elif kpi.vencidos_conferir > 0 %}
+      <span class="kpi-validade-cta text-violet-800" aria-hidden="true">Conferir na loja →</span>
+      {% endif %}
     </a>
     {% elif kpi.variant == "vendas_dia" %}
     <div>
       <div class="font-black text-slate-900 tabular-nums leading-none" style="font-size: clamp(1.15rem, 1.5vw + 0.35rem, 1.95rem);">{% if kpi.prefix %}<span class="text-slate-500">{{ kpi.prefix }}</span> {% endif %}{{ kpi.value }}</div>
       <p class="mt-1.5 text-[11px] sm:text-xs font-bold text-slate-600 tabular-nums leading-tight">
         {{ kpi.qtd_vendas|default:0 }} venda{{ kpi.qtd_vendas|default:0|pluralize }}
+        {% if kpi.devolucoes_hoje_qtd %}
+        <span class="text-rose-700" title="Devoluções registradas hoje — não entram no total acima"> · excl. {{ kpi.devolucoes_hoje_qtd }} dev.</span>
+        {% endif %}
       </p>
     </div>
     {% else %}
@@ -111,8 +144,9 @@
         <details class="relative inline-block text-left">
           <summary class="flex h-6 w-6 cursor-pointer list-none items-center justify-center rounded-full border-2 border-slate-300 bg-slate-100 text-[11px] font-black text-slate-600 shadow-sm hover:border-sky-400 hover:bg-sky-50 hover:text-sky-900 [&::-webkit-details-marker]:hidden" title="O que significa este gráfico?">?</summary>
           <div class="absolute left-0 z-30 mt-1 w-[min(22rem,88vw)] max-h-[55vh] overflow-y-auto rounded-lg border border-slate-200 bg-white p-2.5 text-[10px] font-semibold leading-relaxed text-slate-600 shadow-lg normal-case space-y-1.5" style="font-weight: 600; letter-spacing: 0.02em;">
-            <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.{% if dashboard_vendas_fonte == "pdv" %} <strong>Fonte atual: só PDV</strong> (VendaAgro), para não somar com orçamentos que viram outro pedido no ERP antigo.{% endif %}</p>
-            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong>. Abaixo da meta: vermelho → laranja → amarelo. Acima da meta: tons de azul. Cinza: sem base de meta.</p>
+            <p><span class="text-sky-800 font-extrabold">Barras</span> — faturamento de cada <strong>dia</strong> no período que você selecionou (filtro de cima). Em baixo: data e dia da semana.{% if dashboard_vendas_fonte == "pdv" %} <strong>Fonte: PDV</strong> (VendaAgro). Meses <strong>set/2025–mai/2026</strong> usam também a planilha histórica importada (Centro); jun/2026 em diante só PDV.{% endif %}</p>
+            <p><span class="text-emerald-800 font-extrabold">Total</span> — loja(s) do filtro <strong>Números</strong> ({% if dashboard_loja_filtro_label %}{{ dashboard_loja_filtro_label }}{% else %}Centro + Vila{% endif %}). O gráfico ao lado («por unidade») compara as duas e mostra a <strong>soma das lojas</strong>.</p>
+            <p><span class="text-emerald-800 font-extrabold">Cores</span> — compara o dia com a <strong>meta (C)</strong> (média dos <strong>3 meses</strong> anteriores no mesmo dia da semana e mesma ocorrência no mês). <strong>Vila Elias</strong>: nos primeiros <strong>90 dias</strong> após <strong>20/07/2026</strong> usa a <strong>média dos últimos 14 dias com venda</strong>; depois disso passa sozinha para a mesma Meta C do Centro. Em <strong>Centro + Vila</strong> a meta é a <strong>soma</strong> das duas lojas. Abaixo da meta: vermelho → laranja → amarelo. Acima: tons de azul. Cinza: sem base de meta.</p>
             <p class="text-slate-500 font-semibold">No toque, o lembrete traz ainda o ticket e o desempenho frente à meta, para conferência rápida no balcão.</p>
           </div>
         </details>
@@ -120,18 +154,27 @@
       </h3>
       <span id="dash-total-periodo" class="text-[11px] font-black text-sky-700 bg-sky-100 border border-sky-200 rounded-md px-2 py-1 cursor-help">
         Total: R$ {{ chart_total_periodo }}
+        {% if dashboard_loja_filtro_label %}
+        <span class="text-[9px] font-bold text-slate-500 normal-case">· {{ dashboard_loja_filtro_label }}</span>
+        {% endif %}
       </span>
     </div>
     <div id="main-chart" class="dash-chart-host w-full"></div>
   </div>
 
   <div class="xl:col-span-4 glass-card p-4 sm:p-5">
-    <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide mb-3 flex flex-wrap items-center gap-2">
-      <span>Faturamento por Unidade</span>
-      {% if dashboard_vendas_fonte == "pdv" %}
-      <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
-      {% endif %}
-    </h3>
+    <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+      <h3 class="text-slate-900 font-black uppercase text-xs tracking-wide flex flex-wrap items-center gap-2">
+        <span>Faturamento por Unidade</span>
+        <a href="{% url 'vendas_lojas_resumo' %}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Tela só valores</a>
+        {% if dashboard_vendas_fonte == "pdv" %}
+        <span class="text-[9px] font-bold uppercase text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-md px-1.5 py-0.5">PDV</span>
+        {% endif %}
+      </h3>
+      <span id="dash-total-unidades" class="text-[11px] font-black text-sky-800 bg-sky-100 border border-sky-200 rounded-md px-2 py-1 tabular-nums" title="Soma Centro + Vila Elias no período">
+        Total: R$ —
+      </span>
+    </div>
     <div id="stores-chart" class="dash-chart-host w-full"></div>
   </div>
 </div>
@@ -160,7 +203,7 @@
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'competencia' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="competencia">Competência</button>
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'vencimento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="vencimento">Vencimento</button>
           <button type="button" class="gasto-data-btn px-2 py-1 text-[9px] sm:text-[10px] font-black uppercase rounded-lg border {% if gasto_data_por == 'pagamento' %}period-active border-transparent{% else %}period-inactive{% endif %}" data-gasto-por="pagamento">Pagamento</button>
-          <a href="{{ lancamentos_pagar_url }}" class="ml-1 text-[10px] font-black uppercase text-orange-700 hover:underline">Abrir contas a pagar</a>
+          <a href="{{ lancamentos_pagar_url }}" data-prefetch class="ml-1 text-[10px] font-black uppercase text-orange-700 hover:underline">Abrir contas a pagar</a>
         </div>
       </div>
       <span id="gastos-plano-total-badge" class="text-[11px] font-black text-orange-800 bg-orange-100 border border-orange-200 rounded-md px-2 py-1 shrink-0">
@@ -187,7 +230,7 @@
       </h3>
       <div class="flex flex-wrap items-center gap-2">
         <span class="text-[10px] font-bold text-slate-500 uppercase">Próximos 7 dias</span>
-        <a href="{{ lancamentos_receber_url }}" class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
+        <a href="{{ lancamentos_receber_url }}" data-prefetch class="text-[10px] font-black uppercase text-sky-700 hover:underline">Abrir lançamentos</a>
       </div>
     </div>
     <div class="rounded-xl border border-sky-200 bg-sky-50 p-4">
@@ -203,8 +246,14 @@
         <span class="w-2 h-2 rounded-full bg-red-500"></span> Contas a Pagar
       </h3>
       <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'grafico_gastos' %}" data-prefetch
+           class="inline-flex items-center justify-center min-h-[1.75rem] text-[10px] font-black uppercase tracking-wide text-white px-2.5 py-1 rounded-lg shadow-md transition-all border-2 border-amber-600 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:via-amber-600 hover:to-orange-700 hover:shadow-lg ring-2 ring-orange-300/60"
+           title="Gráfico de gastos por plano de contas">Gráfico gastos</a>
+        <button type="button" data-agro-nova-saida-open data-tipo="pagar"
+                class="text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 px-2.5 py-1 rounded-lg shadow-sm transition-colors cursor-pointer"
+                title="Lançar nova despesa">Nova saída</button>
         <span class="text-[10px] font-bold text-slate-500 uppercase">Pendentes</span>
-        <a href="{{ lancamentos_pagar_url }}" class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
+        <a href="{{ lancamentos_pagar_url }}" data-prefetch class="text-[10px] font-black uppercase text-red-700 hover:underline">Abrir lançamentos</a>
       </div>
     </div>
     <div class="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -294,14 +343,18 @@
       </div>
       {% empty %}
       <div class="text-xs font-semibold text-slate-600 col-span-full py-2 px-1 rounded-lg border border-dashed border-slate-300 bg-slate-50/80">
-        Sem clientes no período {{ top_clientes_mes_anterior_label }}. Atualize <code class="text-[9px]">AGRO_DASHBOARD_TOP_CLIENTES_MES_ANT_JSON</code> com o print da Curva ABC ou aguarde o espelho Mongo (DtoVenda) para esse mês.
+        {% if top_clientes_mes_anterior_fonte == "pdv" or top_clientes_mes_anterior_label %}
+        Sem vendas de cliente identificado em {{ top_clientes_mes_anterior_label|default:"o mês anterior" }} nesta loja.
+        {% else %}
+        Sem clientes no período {{ top_clientes_mes_anterior_label }}.
+        {% endif %}
       </div>
       {% endfor %}
     </div>
   </div>
 </div>
 <p class="mt-2 text-center">
-  <a href="{{ lancamentos_hub_url }}" class="text-[10px] font-black uppercase text-slate-500 hover:text-[#00BFFF]">Hub financeiro</a>
+  <a href="{{ lancamentos_hub_url }}" data-prefetch class="text-[10px] font-black uppercase text-slate-500 hover:text-[#00BFFF]">Hub financeiro</a>
 </p>
 
 <script>
@@ -392,7 +445,7 @@
             : '<span style="font-weight:800;color:' + cMedia + '">-R$ ' + diffAbs + " abaixo da média</span>";
         metaLinha = "R$ " + meta.toFixed(2) + " · " + diffTxt;
       } else {
-        metaLinha = "R$ " + meta.toFixed(2) + " · sem base nos 2 meses anteriores";
+        metaLinha = "R$ " + meta.toFixed(2) + " · sem base nos 3 meses anteriores";
       }
       function pctSpan(v) {
         var cor = perfColor(v);
@@ -605,23 +658,41 @@
     }
 
     var storesPayload = {{ stores_chart_json|safe }};
-    var lojas = (storesPayload && storesPayload.labels) || [];
-    var lojaTotais = (storesPayload && storesPayload.values) || [];
+    var lojas = ((storesPayload && storesPayload.labels) || []).slice();
+    var lojaTotais = ((storesPayload && storesPayload.values) || []).slice();
+    var totalUnidades = 0;
+    for (var si = 0; si < lojaTotais.length; si++) {
+      totalUnidades += Number(lojaTotais[si] || 0);
+    }
+    totalUnidades = Math.round(totalUnidades * 100) / 100;
+    var totalUnidadesBadge = document.getElementById("dash-total-unidades");
+    if (totalUnidadesBadge) {
+      totalUnidadesBadge.textContent = "Total: R$ " + totalUnidades.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+    if (lojas.length) {
+      lojas.push("Total");
+      lojaTotais.push(totalUnidades);
+    }
+    var storeColors = ["#10b981", "#ea580c", "#0369a1", "#7c3aed", "#64748b"];
     var storeEl = document.querySelector("#stores-chart");
-    var storeH = dashChartHeight("#stores-chart");
+    var storeH = Math.max(dashChartHeight("#stores-chart"), lojas.length >= 3 ? 280 : 260);
     if (storeEl) {
       window.__dashStoreChart = new ApexCharts(storeEl, {
         series: [{ name: "Faturamento", data: lojaTotais }],
         chart: { type: "bar", height: storeH, toolbar: { show: false }, background: "transparent" },
-        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: "70%" } },
-        colors: ["#10b981", "#ea580c"],
+        plotOptions: { bar: { horizontal: true, borderRadius: 8, distributed: true, barHeight: lojas.length >= 3 ? "62%" : "70%" } },
+        colors: storeColors.slice(0, Math.max(lojaTotais.length, 1)),
         dataLabels: {
           enabled: true,
           style: { colors: ["#334155"] },
           formatter: function (v) { return "R$ " + Number(v || 0).toFixed(2); }
         },
         xaxis: { categories: lojas, labels: { style: { colors: "#475569" } } },
-        yaxis: { labels: { style: { colors: "#334155" } } },
+        yaxis: { labels: { style: { colors: "#334155", fontWeight: 700 } } },
+        legend: { show: true, position: "bottom", fontSize: "11px", fontWeight: 700, markers: { width: 10, height: 10, radius: 2 } },
         grid: { borderColor: "#e2e8f0", strokeDashArray: 4 },
         tooltip: Object.assign({}, dashTooltip, {
           y: {
@@ -1028,5 +1099,31 @@
     {% endif %}
 
     if (window.lucide) window.lucide.createIcons();
+  })();
+
+  (function agroDashChartPause() {
+    var charts = function () {
+      return [window.__dashMainChart, window.__dashStoreChart, window.__dashGastoChart].filter(Boolean);
+    };
+    window.agroDashPauseCharts = function () {
+      document.documentElement.classList.add('agro-dash-charts-paused');
+      charts().forEach(function (c) {
+        try {
+          if (typeof c.updateOptions === 'function') {
+            c.updateOptions({ chart: { animations: { enabled: false } } }, false, false);
+          }
+        } catch (_) {}
+      });
+    };
+    window.agroDashResumeCharts = function () {
+      document.documentElement.classList.remove('agro-dash-charts-paused');
+      charts().forEach(function (c) {
+        try {
+          if (typeof c.updateOptions === 'function') {
+            c.updateOptions({ chart: { animations: { enabled: true } } }, false, false);
+          }
+        } catch (_) {}
+      });
+    };
   })();
 </script>

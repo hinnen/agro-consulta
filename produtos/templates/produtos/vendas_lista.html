@@ -10,147 +10,316 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>
-    html, body { height: 100%; }
+    html, body { height: 100%; margin: 0; }
     body {
       font-family: 'Inter', sans-serif;
       min-height: 100dvh;
       max-height: 100dvh;
     }
+    /* Overlay do PDV: 100dvh = altura da janela pai, não do iframe → lista some (branco). */
+    html.agro-vendas-in-overlay, html.agro-vendas-in-overlay body {
+      min-height: 100% !important;
+      max-height: 100% !important;
+      height: 100% !important;
+    }
+    html.agro-vendas-in-overlay .agro-vendas-header-interno {
+      display: none !important;
+    }
     .vendas-shell { width: 100%; max-width: min(96rem, 100%); margin-left: auto; margin-right: auto; }
+    .vendas-scroll { overflow-x: hidden; overflow-y: auto; }
+    .vendas-tabela { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
+    .vendas-tabela th:not(:last-child),
+    .vendas-tabela td:not(:last-child) {
+      border-right: 1px solid rgba(226, 232, 240, 0.95);
+    }
+    .vendas-tabela thead th {
+      border-right-color: rgba(203, 213, 225, 0.85);
+    }
+    /* Larguras fixas: só Cliente engole o que sobra. Total não “inchá” depois do valor. */
+    .vendas-col-id { width: 3.5rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-acoes { width: 26.2rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-data {
+      width: 7.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+    }
+    .vendas-col-loja { width: 5.5rem; white-space: nowrap; overflow: hidden; }
+    .vendas-col-pagamento {
+      width: 9.25rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-col-total {
+      width: 9.1rem;
+      white-space: nowrap;
+      overflow: hidden;
+      padding-left: 0.35rem !important;
+      padding-right: 0.4rem !important;
+    }
+    .vendas-col-operador {
+      width: 7rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-col-cliente {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .vendas-acoes-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 6.3rem);
+      gap: 0.25rem;
+      align-items: stretch;
+    }
+    .vendas-moeda {
+      display: flex;
+      align-items: baseline;
+      width: 100%;
+      gap: 0.25rem;
+      font-size: 20px;
+    }
+    .vendas-moeda-sym {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .vendas-moeda-val {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: right;
+      font-size: 20px;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      font-weight: 900;
+    }
+    .vendas-moeda--sm .vendas-moeda-sym {
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .vendas-moeda--sm .vendas-moeda-val {
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .vendas-acao-slot {
+      box-sizing: border-box;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      width: 100%;
+      padding: 0 0.35rem;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.15;
+      text-transform: uppercase;
+      white-space: nowrap;
+      border-radius: 0.75rem;
+    }
   </style>
+  <script>
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search || '');
+      if (q.get('agro_pdv_overlay') === '1' || q.get('agro_inapp_embed') === '1') {
+        document.documentElement.classList.add('agro-vendas-in-overlay');
+        try {
+          var csvUrl = location.pathname.replace(/\/?$/, '/').replace('/vendas/', '/vendas/exportar-csv/') + location.search;
+          window.top.postMessage({
+            type: 'agro-pdv-overlay-meta',
+            subtitle: '{{ periodo_label|escapejs }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}',
+            showMenu: true,
+            menuHref: csvUrl,
+            menuLabel: 'CSV'
+          }, location.origin);
+        } catch (_) {}
+      }
+    } catch (_) {}
+  })();
+  </script>
 </head>
 <body class="bg-slate-50 overflow-hidden text-slate-800 flex flex-col">
 {% include "produtos/_gm_loading_bar.html" %}
-  <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
-    <div class="vendas-shell px-3 sm:px-5 py-2 sm:py-2.5 flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="h-9 w-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-          <span class="text-sm font-black"><span class="text-emerald-600">G</span><span class="text-orange-500">M</span></span>
-        </div>
-        <div class="min-w-0">
-          <h1 class="text-[clamp(1.1rem,0.8vw+1rem,1.5rem)] font-black uppercase tracking-tight text-slate-900 leading-tight">Vendas</h1>
-          <p class="text-xs sm:text-sm font-bold text-slate-500 truncate">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
-        </div>
+  <header class="agro-vendas-header-interno border-b border-slate-200 bg-white shadow-sm shrink-0">
+    <div class="vendas-shell px-2.5 sm:px-4 py-1 flex items-center justify-between gap-2">
+      <div class="min-w-0 flex-1 flex items-center gap-2.5 overflow-hidden">
+        <span class="inline-flex items-center justify-center h-6 min-w-[1.9rem] rounded-lg border border-slate-200 bg-white text-[10px] font-black shrink-0">
+          <span class="text-emerald-600">G</span><span class="text-orange-500">M</span>
+        </span>
+        <p class="text-[0.95rem] font-black uppercase tracking-tight text-slate-900 leading-none shrink-0">Vendas</p>
+        <p class="text-[10px] sm:text-[11px] font-bold text-slate-500 leading-none truncate">{{ periodo_label }} · {{ data_ini|date:"d/m/Y" }} — {{ data_fim|date:"d/m/Y" }}</p>
       </div>
-      <div class="flex flex-wrap gap-2 shrink-0">
-        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
+      <div class="flex gap-1.5 shrink-0 items-center justify-end">
+        <a href="{% url 'vendas_exportar_csv' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="inline-flex items-center min-h-[32px] text-[10px] font-black uppercase px-2.5 py-1 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
           Exportar CSV
         </a>
-        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
+        {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[32px] text-[10px] font-black uppercase px-2.5 py-1 rounded-xl border-2 border-emerald-300 bg-emerald-50 text-emerald-900 shadow-sm hover:bg-emerald-100 transition-colors shrink-0" %}
       </div>
     </div>
   </header>
 
-  <main class="vendas-shell flex-1 min-h-0 flex flex-col px-3 sm:px-5 py-2 sm:py-3 gap-2 sm:gap-3 overflow-hidden">
+  <main class="vendas-shell flex-1 min-h-0 flex flex-col px-2.5 sm:px-4 pt-1 pb-2 sm:pt-1.5 sm:pb-3 gap-2 overflow-hidden">
     {% if messages %}
     <ul class="shrink-0 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-900 space-y-1">
       {% for m in messages %}<li>{{ m }}</li>{% endfor %}
     </ul>
     {% endif %}
 
-    <div class="shrink-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2 sm:gap-3 items-stretch">
-      <form method="get" class="rounded-2xl border border-slate-200 bg-white px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm flex flex-col gap-2" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período rápido · <span class="text-slate-500 normal-case font-bold">/ foca “De”</span></p>
-          <div class="flex flex-wrap gap-1.5">
-            <a href="?preset=hoje" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
-            <a href="?preset=7d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
-            <a href="?preset=30d" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
-            <a href="?fiado=1&amp;erp_fiado=pendente" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_erp_fiado == 'pendente' %}border-orange-500 bg-orange-50 text-orange-900{% else %}border-orange-200 text-orange-800 hover:bg-orange-50{% endif %}" title="Vendas fiado ainda não enviadas ao ERP">Fiado · pendente ERP</a>
-            <a href="?fiado=1" class="px-3 py-1.5 rounded-lg text-xs font-black uppercase border {% if filtro_fiado and filtro_erp_fiado != 'pendente' %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
+    <div class="shrink-0 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-2 items-stretch">
+      <form method="get" class="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm flex flex-col gap-2" id="form-vendas-filtro" onsubmit="if(window.gmLoadingBar)window.gmLoadingBar.show();">
+        <input type="hidden" name="loja" value="{{ filtro_loja }}">
+        {% if filtro_fiado %}<input type="hidden" name="fiado" value="1">{% endif %}
+        {% if request.GET.demo_nfce_ui == '1' %}<input type="hidden" name="demo_nfce_ui" value="1">{% endif %}
+        {% if request.GET.agro_pdv_overlay %}<input type="hidden" name="agro_pdv_overlay" value="{{ request.GET.agro_pdv_overlay }}">{% endif %}
+        {% if request.GET.agro_inapp_embed %}<input type="hidden" name="agro_inapp_embed" value="{{ request.GET.agro_inapp_embed }}">{% endif %}
+        {% if request.GET.agro_app_role %}<input type="hidden" name="agro_app_role" value="{{ request.GET.agro_app_role }}">{% endif %}
+        <div class="flex flex-wrap items-end gap-x-2 gap-y-1.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Período</span>
+            <a href="?preset=hoje&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == 'hoje' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Hoje</a>
+            <a href="?preset=7d&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == '7d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">7 dias</a>
+            <a href="?preset=30d&loja={{ filtro_loja }}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if preset_ativo == '30d' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">30 dias</a>
+            <a href="?fiado=1&loja={{ filtro_loja }}{% if preset_ativo %}&preset={{ preset_ativo }}{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_fiado %}border-sky-500 bg-sky-50 text-sky-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Só fiado</a>
+          </div>
+          <div class="flex flex-wrap items-end gap-1.5">
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
+              <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-2 py-1.5 text-sm font-bold min-h-[40px]">
+            </div>
+            <div>
+              <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-ate">Até</label>
+              <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-2 py-1.5 text-sm font-bold min-h-[40px]">
+            </div>
+            <button type="submit" class="min-h-[40px] px-4 py-1.5 rounded-xl bg-slate-900 text-white text-[11px] font-black uppercase">Aplicar</button>
           </div>
         </div>
-        <div class="flex flex-wrap items-end gap-2 sm:gap-3 pt-2 border-t border-slate-100">
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-de">De</label>
-            <input type="date" name="de" id="id-de" value="{{ data_ini|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Loja</span>
+            <a href="?loja=centro{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'centro' %}border-emerald-500 bg-emerald-50 text-emerald-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Centro</a>
+            <a href="?loja=vila{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'vila' %}border-slate-500 bg-slate-100 text-slate-900{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Vila Elias</a>
+            <a href="?loja=todas{% if preset_ativo %}&preset={{ preset_ativo }}{% else %}&de={{ data_ini|date:'Y-m-d' }}&ate={{ data_fim|date:'Y-m-d' }}{% endif %}{% if filtro_fiado %}&fiado=1{% endif %}{% if vendas_keep_qs %}&{{ vendas_keep_qs }}{% endif %}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-black uppercase border {% if filtro_loja == 'todas' %}border-orange-400 bg-orange-50 text-orange-950{% else %}border-slate-200 text-slate-600 hover:bg-slate-50{% endif %}">Todas</a>
           </div>
-          <div>
-            <label class="text-[10px] font-black uppercase text-slate-500 block mb-0.5" for="id-ate">Até</label>
-            <input type="date" name="ate" id="id-ate" value="{{ data_fim|date:'Y-m-d' }}" class="rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-bold min-h-[42px]">
-          </div>
-          <button type="submit" class="min-h-[42px] px-5 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase">Aplicar</button>
-          <p class="w-full xl:w-auto xl:ml-auto text-[10px] text-slate-400 self-center">CSV usa o mesmo período da URL.</p>
+          <label class="flex-1 min-w-[14rem] block">
+            <span class="sr-only">Buscar venda</span>
+            <input type="search" name="q" id="id-q-vendas" value="{{ filtro_q }}" autocomplete="off" placeholder="Buscar: nº, cliente, valor, pagamento, operador, cupom, produto…" title="Busca em número da venda, data, cliente, loja, valor, forma (também combinada), operador, cupom NFC-e e nome do produto. Vários termos = todos têm que casar." class="w-full rounded-xl border-2 border-slate-200 px-3 py-1.5 text-sm font-bold min-h-[40px] placeholder:font-semibold placeholder:text-slate-400">
+          </label>
         </div>
       </form>
 
-      <div class="grid grid-cols-2 gap-2 sm:gap-3 xl:min-w-[18rem]">
-        <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm flex flex-col justify-center">
-          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas</p>
-          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-slate-900 tabular-nums leading-none mt-1">{{ quantidade_vendas }}</p>
+      <div class="grid grid-cols-2 gap-2 xl:min-w-[16rem]">
+        <div class="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm flex flex-col justify-center">
+          <p class="text-[10px] font-black uppercase text-slate-400 tracking-wide">Vendas · {{ filtro_loja_label }}</p>
+          <p class="text-[clamp(1.2rem,0.8vw+1rem,1.75rem)] font-black text-slate-900 tabular-nums leading-none mt-0.5">{{ quantidade_vendas }}</p>
+          {% if quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-slate-400 mt-1" title="Vendas do período já marcadas devolvida — não entram no total nem no BI">+ {{ quantidade_devolvidas }} devolvida{{ quantidade_devolvidas|pluralize }} no período</p>
+          {% endif %}
+          {% if devolucoes_registradas_qtd and devolucoes_registradas_qtd != quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-rose-600 mt-1" title="Estorno registrado hoje; a venda original pode ser de outro dia">↳ {{ devolucoes_registradas_qtd }} estorno(s) hoje · R$ {{ devolucoes_registradas_valor|floatformat:2 }}</p>
+          {% elif devolucoes_registradas_qtd and not quantidade_devolvidas %}
+          <p class="text-[10px] font-semibold text-rose-600 mt-1" title="Estorno registrado no período; venda original pode ser de outro dia">{{ devolucoes_registradas_qtd }} estorno(s) no período · R$ {{ devolucoes_registradas_valor|floatformat:2 }} (BI já exclui se a venda for de hoje)</p>
+          {% endif %}
         </div>
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-4 py-3 shadow-sm flex flex-col justify-center">
+        <div class="rounded-2xl border border-emerald-200 bg-emerald-50/60 px-3 py-2 shadow-sm flex flex-col justify-center">
           <p class="text-[10px] font-black uppercase text-emerald-800/70 tracking-wide">Total no período</p>
-          <p class="text-[clamp(1.35rem,1vw+1rem,2rem)] font-black text-emerald-700 tabular-nums leading-none mt-1">R$ {{ total_periodo }}</p>
+          <p class="text-[clamp(1.2rem,0.8vw+1rem,1.75rem)] font-black text-emerald-700 tabular-nums leading-none mt-0.5">R$ {{ total_periodo }}</p>
         </div>
       </div>
     </div>
 
     {% if vendas %}
     <div class="flex-1 min-h-0 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
-      <div class="flex-1 min-h-0 overflow-auto overscroll-contain">
-        <table class="w-full text-sm min-w-[52rem]">
+      <div class="flex-1 min-h-0 vendas-scroll overscroll-contain">
+        <table class="vendas-tabela text-sm">
           <thead class="sticky top-0 z-10">
             <tr class="bg-slate-50 border-b border-slate-200 text-left text-[10px] font-black uppercase tracking-wide text-slate-500 shadow-[0_1px_0_0_rgba(226,232,240,1)]">
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">#</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap min-w-[13.5rem]">Ações</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Data</th>
-              <th class="px-3 sm:px-4 py-2.5">Cliente</th>
-              <th class="px-3 sm:px-4 py-2.5">Pagamento</th>
-              <th class="px-3 sm:px-4 py-2.5 text-right whitespace-nowrap">Total</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">Caixa</th>
-              <th class="px-3 sm:px-4 py-2.5 whitespace-nowrap">ERP</th>
-              <th class="px-3 sm:px-4 py-2.5">Operador</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-id">#</th>
+              <th class="px-1 py-1.5 vendas-col-acoes">Ações</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-data">Data</th>
+              {% if filtro_loja == 'todas' %}<th class="px-1 py-1.5 whitespace-nowrap vendas-col-loja">Loja</th>{% endif %}
+              <th class="px-1 py-1.5 vendas-col-cliente">Cliente</th>
+              <th class="px-1 py-1.5 vendas-col-pagamento">Pagamento</th>
+              <th class="px-1 py-1.5 whitespace-nowrap vendas-col-total">Total</th>
+              <th class="px-1 py-1.5 vendas-col-operador">Operador</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 font-semibold text-slate-700">
             {% for v in vendas %}
             <tr class="hover:bg-slate-50/80">
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
+              <td class="px-1 py-1.5 whitespace-nowrap vendas-col-id">
                 <span class="font-black text-slate-900 tabular-nums">#{{ v.id }}</span>
-                {% if v.devolvida_em %}
-                <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-rose-100 text-rose-800">Devolvida</span>
+                {% if v.tem_devolucao_parcial %}
+                <span class="mt-1 block w-fit px-2 py-0.5 rounded-lg text-[9px] font-black uppercase bg-amber-100 text-amber-900">Parcial</span>
                 {% endif %}
               </td>
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-                <div class="flex flex-nowrap items-center gap-1.5">
-                  <a href="{% url 'venda_agro_detalhe' v.id %}" class="inline-flex items-center justify-center min-h-[44px] min-w-[4.5rem] px-3 rounded-xl border-2 border-slate-200 bg-white text-[11px] font-black uppercase text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
-                  <button type="button" class="js-venda-imprimir-cupom inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-sky-400 bg-sky-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
+              <td class="px-1 py-1.5 vendas-col-acoes">
+                <div class="vendas-acoes-grid">
+                  <a href="{% url 'venda_agro_detalhe' v.id %}" class="vendas-acao-slot border-2 border-slate-200 bg-white text-slate-800 hover:border-emerald-400 hover:bg-emerald-50">Ver</a>
+                  <button type="button" class="vendas-acao-slot js-venda-imprimir-cupom border-2 border-sky-400 bg-sky-600 text-white shadow-sm hover:bg-sky-700" data-venda-id="{{ v.id }}" title="Reimprimir cupom 80mm (2ª via)">Imprimir</button>
                   {% if not v.devolvida_em %}
-                  <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="inline-flex items-center justify-center min-h-[44px] min-w-[5.5rem] px-3 rounded-xl border-2 border-rose-400 bg-rose-600 text-[11px] font-black uppercase text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
+                  <a href="{% url 'venda_agro_detalhe' v.id %}?devolver=1" class="vendas-acao-slot border-2 border-rose-400 bg-rose-600 text-white shadow-sm hover:bg-rose-700" title="Estorno: repõe estoque e registra saída no caixa aberto">Devolver</a>
                   {% else %}
-                  <span class="inline-flex items-center min-h-[44px] px-3 text-[10px] font-bold text-slate-400">—</span>
+                  <span class="vendas-acao-slot border-2 border-rose-300 bg-rose-50 text-rose-800 shadow-sm" title="Venda devolvida">Devolvida</span>
                   {% endif %}
-                  {% if v.tem_fiado and not v.devolvida_em %}
-                  {% if v.fiado_aguarda_envio_erp or v.erp_sync_efetivo == 'recusado_erp' or v.erp_sync_efetivo == 'falha_comunicacao' %}
-                  <button type="button" class="js-venda-enviar-erp inline-flex items-center justify-center min-h-[44px] min-w-[6.5rem] px-3 rounded-xl border-2 border-orange-400 bg-orange-500 text-[11px] font-black uppercase text-white shadow-sm hover:bg-orange-600" data-venda-id="{{ v.id }}" title="Enviar manualmente ao ERP">{% if v.fiado_aguarda_envio_erp %}Enviar ERP{% else %}Tentar ERP{% endif %}</button>
-                  {% endif %}
-                  {% if v.enviado_erp and not v.fiado_aguarda_envio_erp %}
-                  <button type="button" class="js-venda-reverter-erp inline-flex items-center justify-center min-h-[44px] px-3 rounded-xl border-2 border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800 hover:bg-slate-50" data-venda-id="{{ v.id }}" title="Volta status local para pendente (não cancela no ERP)">Reverter</button>
-                  {% endif %}
-                  <button type="button" class="js-venda-erp-hist inline-flex items-center justify-center min-h-[44px] px-2.5 rounded-xl border border-slate-200 bg-slate-50 text-[10px] font-black uppercase text-slate-700 hover:bg-white" data-venda-id="{{ v.id }}" title="Histórico de envios ao ERP">Hist.</button>
+                  {# Demo UI (local): 1ª linha Fiscal, 2ª Emitindo — visível no topo #}
+                  {% if request.GET.demo_nfce_ui == '1' and forloop.counter == 1 %}
+                  <button type="button" disabled class="vendas-acao-slot border-2 border-emerald-500 bg-emerald-600 text-white shadow-sm cursor-not-allowed opacity-70" title="Demo UI (local)">Fiscal</button>
+                  {% elif request.GET.demo_nfce_ui == '1' and forloop.counter == 2 %}
+                  <button type="button" disabled class="vendas-acao-slot border-2 border-sky-300 bg-sky-100 text-sky-900 shadow-sm cursor-wait opacity-80" title="Demo UI (local)">Emitindo</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.processando and not v.devolvida_em %}
+                  <button type="button" class="vendas-acao-slot js-venda-nfce-processando border-2 border-sky-300 bg-sky-100 text-sky-900 shadow-sm cursor-wait" data-venda-id="{{ v.id }}" title="NFC-e sendo emitida em segundo plano">Emitindo</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.pendente and not v.devolvida_em %}
+                  <button type="button" class="vendas-acao-slot js-venda-nfce-reemitir border-2 border-amber-400 bg-amber-500 text-white shadow-sm hover:bg-amber-600" data-venda-id="{{ v.id }}" title="Tentar emitir NFC-e novamente">Reemitir</button>
+                  {% elif nfce_cfg.ativo and v.nfce_painel.autorizada %}
+                  <button type="button" class="vendas-acao-slot js-venda-imprimir-fiscal border-2 border-emerald-500 bg-emerald-600 text-white shadow-sm hover:bg-emerald-700" data-venda-id="{{ v.id }}" title="Imprimir DANFE NFC-e">Fiscal</button>
+                  {% else %}
+                  <span class="vendas-acao-slot border border-slate-200 bg-slate-50 text-slate-400">Interno</span>
                   {% endif %}
                 </div>
               </td>
-              <td class="px-3 sm:px-4 py-2.5 tabular-nums whitespace-nowrap text-xs">{{ v.criado_em|date:"d/m/Y H:i" }}</td>
-              <td class="px-3 sm:px-4 py-2.5 max-w-[12rem] xl:max-w-[16rem] truncate" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
-              <td class="px-3 sm:px-4 py-2.5 text-xs max-w-[10rem] xl:max-w-none truncate" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
-              <td class="px-3 sm:px-4 py-2.5 text-right tabular-nums font-black text-slate-900 whitespace-nowrap">R$ {{ v.total|moeda_br }}</td>
-              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">{% if v.sessao_caixa_id %}#{{ v.sessao_caixa_id }}{% else %}—{% endif %}</td>
-              <td class="px-3 sm:px-4 py-2.5 whitespace-nowrap">
-                {% with s=v.erp_sync_efetivo %}
-                {% if v.fiado_aguarda_envio_erp %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-orange-100 text-orange-900" title="Fiado: aguardando envio manual ao ERP">Aguard. ERP</span>
-                {% elif s == 'aceito' %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">{% if v.tem_fiado %}Enviado ERP{% else %}ERP ok{% endif %}</span>
-                {% elif s == 'recusado_erp' %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-rose-100 text-rose-900" title="O ERP respondeu com erro de validação ou negócio.">ERP recusou</span>
+              <td class="px-1 py-1.5 tabular-nums whitespace-nowrap text-[14px] font-bold text-slate-800 vendas-col-data">{{ v.criado_em|date:"d/m H:i" }}</td>
+              {% if filtro_loja == 'todas' %}
+              <td class="px-1 py-1.5 whitespace-nowrap vendas-col-loja">
+                {% if v.lista_loja_dep == 'vila' %}
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-slate-100 text-slate-800 border border-slate-300">{{ v.lista_loja_label }}</span>
                 {% else %}
-                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-amber-100 text-amber-900" title="Falha de rede, HTTP ou resposta inesperada.">Falha envio</span>
+                <span class="inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black uppercase bg-emerald-50 text-emerald-900 border border-emerald-200">{{ v.lista_loja_label }}</span>
                 {% endif %}
-                {% endwith %}
               </td>
-              <td class="px-3 sm:px-4 py-2.5 text-xs text-slate-500 truncate max-w-[6rem] xl:max-w-[8rem]" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
+              {% endif %}
+              <td class="px-1 py-1.5 truncate vendas-col-cliente" title="{{ v.cliente_nome }}">{{ v.cliente_nome }}</td>
+              <td class="px-1 py-1.5 text-xs truncate vendas-col-pagamento" title="{{ v.forma_pagamento|default:'—' }}">{{ v.forma_pagamento|default:"—" }}</td>
+              <td class="px-1 py-1.5 vendas-col-total">
+                {% if v.devolvida_em %}
+                <span class="vendas-moeda text-rose-700">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">0,00</span>
+                </span>
+                <span class="vendas-moeda vendas-moeda--sm text-slate-400 line-through mt-0.5">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% elif v.lista_mostra_restante %}
+                <span class="vendas-moeda text-slate-900">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.lista_total_restante|moeda_br }}</span>
+                </span>
+                <span class="vendas-moeda vendas-moeda--sm text-slate-400 line-through mt-0.5">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% else %}
+                <span class="vendas-moeda text-slate-900">
+                  <span class="vendas-moeda-sym">R$</span>
+                  <span class="vendas-moeda-val">{{ v.total|moeda_br }}</span>
+                </span>
+                {% endif %}
+              </td>
+              <td class="px-1 py-1.5 text-[14px] font-bold text-slate-700 truncate vendas-col-operador" title="{{ v.usuario_registro }}">{{ v.usuario_registro|default:"—" }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -159,43 +328,40 @@
     </div>
     {% else %}
     <div class="flex-1 min-h-0 rounded-2xl border border-dashed border-slate-200 bg-white/80 flex items-center justify-center">
-      <p class="font-bold text-slate-500 text-base sm:text-lg">Nenhuma venda neste período.</p>
+      <p class="font-bold text-slate-500 text-base sm:text-lg">{% if filtro_q %}Nenhuma venda com essa busca neste período.{% else %}Nenhuma venda neste período.{% endif %}</p>
     </div>
     {% endif %}
   </main>
 
-  <div id="modal-erp-envio" class="fixed inset-0 z-[80] hidden items-center justify-center p-3 bg-slate-900/60" role="dialog" aria-modal="true">
-    <div class="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-2 border-slate-200 bg-white shadow-2xl p-4 sm:p-5">
-      <h2 class="text-lg font-black text-slate-900" id="modal-erp-titulo">Envio ao ERP</h2>
-      <p class="text-xs font-bold text-slate-600 mt-1" id="modal-erp-sub"></p>
-      <div class="mt-3 rounded-xl border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-950">
-        Confira cliente e valor antes de enviar. O ERP não é alterado ao reverter — só o status no Agro.
+  {% if nfce_cfg.ativo %}
+  <input type="hidden" id="agro-csrf-nfce-vendas" value="{{ csrf_token }}">
+  <div id="modal-nfce-venda" class="fixed inset-0 z-[85] hidden items-center justify-center p-3 bg-slate-900/60" style="position:fixed" role="dialog" aria-modal="true">
+    <div class="w-full max-w-lg max-h-[min(90dvh,36rem)] h-auto shrink-0 overflow-y-auto rounded-2xl border-2 border-amber-300 bg-white shadow-2xl p-4 sm:p-5">
+      <h2 class="text-lg font-black text-amber-950" id="modal-nfce-titulo">Cupom fiscal pendente</h2>
+      <p class="text-xs font-bold text-slate-600 mt-1" id="modal-nfce-sub"></p>
+      <div class="mt-3 rounded-xl border-2 border-amber-200 bg-amber-50 px-3 py-3">
+        <p class="text-[10px] font-black uppercase text-amber-900 mb-1">Erro / motivo</p>
+        <p class="text-sm font-semibold text-amber-950 leading-snug whitespace-pre-wrap" id="modal-nfce-erro">—</p>
       </div>
-      <dl class="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-700">
-        <dt class="text-slate-500">Cliente</dt><dd id="modal-erp-cliente" class="text-slate-900 col-span-1"></dd>
-        <dt class="text-slate-500">Total</dt><dd id="modal-erp-total" class="text-slate-900 font-black tabular-nums"></dd>
-        <dt class="text-slate-500">Pagamento</dt><dd id="modal-erp-forma" class="text-slate-900"></dd>
-        <dt class="text-slate-500">Status</dt><dd id="modal-erp-status" class="text-slate-900"></dd>
-      </dl>
-      <label class="mt-4 flex items-start gap-2 cursor-pointer">
-        <input type="checkbox" id="modal-erp-confirmar" class="mt-1 w-5 h-5 accent-orange-600 rounded">
-        <span class="text-sm font-bold text-slate-800">Confirmo que conferi os dados e desejo enviar ao ERP.</span>
-      </label>
-      <details class="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-        <summary class="text-xs font-black uppercase text-slate-700 cursor-pointer">Histórico de envios</summary>
-        <ul id="modal-erp-logs" class="mt-2 space-y-2 text-[11px] font-semibold text-slate-700 max-h-40 overflow-y-auto"></ul>
-      </details>
-      <pre id="modal-erp-log-copia" class="mt-2 hidden text-[10px] font-mono bg-slate-900 text-slate-100 p-2 rounded-lg max-h-32 overflow-auto whitespace-pre-wrap"></pre>
-      <div class="mt-4 flex flex-wrap gap-2">
-        <button type="button" id="modal-erp-btn-copiar" class="min-h-[44px] px-3 rounded-xl border border-slate-300 bg-white text-[10px] font-black uppercase text-slate-800">Copiar log</button>
-        <button type="button" id="modal-erp-btn-reverter" class="hidden min-h-[44px] px-3 rounded-xl border-2 border-slate-400 bg-slate-100 text-[10px] font-black uppercase text-slate-900">Reverter envio</button>
-        <span class="flex-1"></span>
-        <button type="button" id="modal-erp-btn-fechar" class="min-h-[44px] px-4 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-600">Fechar</button>
-        <button type="button" id="modal-erp-btn-enviar" class="min-h-[44px] px-4 rounded-xl border-2 border-orange-500 bg-orange-500 text-xs font-black uppercase text-white hover:bg-orange-600">Enviar ao ERP</button>
+      <p class="mt-3 text-xs font-semibold text-slate-600">Corrija cadastro de produto, CPF/CNPJ ou configuração fiscal. Depois use <strong>Reemitir NFC-e</strong>.</p>
+      <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label class="block sm:col-span-2">
+          <span class="text-[10px] font-black uppercase text-slate-500">CPF ou CNPJ do consumidor (opcional)</span>
+          <input type="text" inputmode="numeric" id="modal-nfce-cpf" maxlength="18" class="mt-1 w-full min-h-[44px] rounded-xl border-2 border-slate-200 px-3 text-sm font-bold tabular-nums" placeholder="CPF ou CNPJ">
+        </label>
+        <label class="flex items-center gap-2 sm:col-span-2 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 cursor-pointer">
+          <input type="checkbox" id="modal-nfce-sem-id" class="w-5 h-5 accent-amber-600">
+          <span class="text-sm font-bold text-slate-800">Venda sem identificação do consumidor</span>
+        </label>
       </div>
-      <p id="modal-erp-msg" class="mt-2 text-sm font-bold hidden"></p>
+      <div class="mt-4 flex flex-wrap gap-2 justify-end">
+        <button type="button" id="modal-nfce-fechar" class="min-h-[44px] px-4 rounded-xl border border-slate-200 text-xs font-black uppercase text-slate-600">Fechar</button>
+        <button type="button" id="modal-nfce-reemitir" class="min-h-[44px] px-4 rounded-xl border-2 border-amber-500 bg-amber-500 text-xs font-black uppercase text-white hover:bg-amber-600">Reemitir NFC-e</button>
+      </div>
+      <p id="modal-nfce-msg" class="mt-2 text-sm font-bold hidden"></p>
     </div>
   </div>
+  {% endif %}
 
   <script>
     document.addEventListener('keydown', function (e) {
@@ -203,174 +369,9 @@
       const t = e.target && e.target.tagName;
       if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
       e.preventDefault();
-      document.getElementById('id-de')?.focus();
+      document.getElementById('id-q-vendas')?.focus();
     });
     (function () {
-      function csrf() {
-        var m = document.cookie.match(/csrftoken=([^;]+)/);
-        return m ? decodeURIComponent(m[1]) : '';
-      }
-      var modal = document.getElementById('modal-erp-envio');
-      var vendaIdAtual = null;
-      var painelAtual = null;
-      var modo = 'enviar';
-
-      function fmtMoeda(n) {
-        return 'R$ ' + Number(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      }
-      function escHtml(s) {
-        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      }
-      function renderLogs(logs) {
-        var ul = document.getElementById('modal-erp-logs');
-        ul.innerHTML = '';
-        if (!logs || !logs.length) {
-          ul.innerHTML = '<li class="text-slate-500">Nenhum registro ainda.</li>';
-          return;
-        }
-        logs.forEach(function (lg) {
-          var li = document.createElement('li');
-          var ok = lg.ok ? '✓' : '✗';
-          var ts = (lg.ts || '').replace('T', ' ').slice(0, 19);
-          li.innerHTML = '<span class="font-black">' + ok + ' ' + escHtml(lg.acao) + '</span> · ' + escHtml(ts) +
-            (lg.usuario ? ' · ' + escHtml(lg.usuario) : '') +
-            '<div class="text-slate-600">' + escHtml(lg.mensagem || '') + '</div>';
-          ul.appendChild(li);
-        });
-        var pre = document.getElementById('modal-erp-log-copia');
-        pre.textContent = JSON.stringify(logs, null, 2);
-        pre.classList.add('hidden');
-      }
-      function abrirModal(id, m) {
-        vendaIdAtual = id;
-        modo = m || 'enviar';
-        document.getElementById('modal-erp-confirmar').checked = false;
-        document.getElementById('modal-erp-msg').classList.add('hidden');
-        document.getElementById('modal-erp-btn-enviar').classList.toggle('hidden', modo === 'hist');
-        document.getElementById('modal-erp-titulo').textContent = modo === 'hist' ? 'Histórico ERP · venda #' + id : 'Enviar ao ERP · venda #' + id;
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch('/venda/' + id + '/erp-envio/', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (!d.ok || !d.painel) throw new Error('Não foi possível carregar os dados.');
-            painelAtual = d.painel;
-            document.getElementById('modal-erp-cliente').textContent = d.painel.cliente_nome || '—';
-            document.getElementById('modal-erp-total').textContent = fmtMoeda(d.painel.total);
-            document.getElementById('modal-erp-forma').textContent = d.painel.forma_pagamento || '—';
-            document.getElementById('modal-erp-status').textContent = (d.painel.status_erp && d.painel.status_erp.label) || '—';
-            renderLogs(d.painel.logs || []);
-            var btnRev = document.getElementById('modal-erp-btn-reverter');
-            btnRev.classList.toggle('hidden', !d.painel.pode_reverter_erp);
-            var podeEnv = d.painel.pode_enviar_erp;
-            document.getElementById('modal-erp-btn-enviar').disabled = !podeEnv;
-            if (!podeEnv && modo === 'enviar') {
-              var msg = document.getElementById('modal-erp-msg');
-              msg.textContent = d.painel.msg_enviar_erp || 'Envio não disponível.';
-              msg.className = 'mt-2 text-sm font-bold text-amber-800';
-              msg.classList.remove('hidden');
-            }
-          })
-          .catch(function (err) {
-            alert(err.message || 'Erro ao carregar.');
-            fecharModal();
-          })
-          .finally(function () { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
-      }
-      function fecharModal() {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        vendaIdAtual = null;
-      }
-      document.getElementById('modal-erp-btn-fechar').onclick = fecharModal;
-      modal.addEventListener('click', function (e) { if (e.target === modal) fecharModal(); });
-      document.getElementById('modal-erp-btn-copiar').onclick = function () {
-        var pre = document.getElementById('modal-erp-log-copia');
-        pre.classList.remove('hidden');
-        var txt = pre.textContent || '';
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(txt).then(function () { alert('Log copiado.'); });
-        } else {
-          alert('Selecione e copie o texto do log abaixo.');
-        }
-      };
-      document.getElementById('modal-erp-btn-enviar').onclick = function () {
-        if (!vendaIdAtual) return;
-        if (!document.getElementById('modal-erp-confirmar').checked) {
-          alert('Marque a confirmação antes de enviar.');
-          return;
-        }
-        var btn = document.getElementById('modal-erp-btn-enviar');
-        btn.disabled = true;
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch('/venda/' + vendaIdAtual + '/reenviar-erp/', {
-          method: 'POST',
-          headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ confirmar: true }),
-          credentials: 'same-origin'
-        })
-          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-          .then(function (res) {
-            var msgEl = document.getElementById('modal-erp-msg');
-            msgEl.classList.remove('hidden');
-            if (res.data && res.data.painel) {
-              painelAtual = res.data.painel;
-              renderLogs(res.data.painel.logs || []);
-            }
-            if (res.ok && res.data.ok) {
-              msgEl.textContent = res.data.mensagem || 'Enviado com sucesso.';
-              msgEl.className = 'mt-2 text-sm font-bold text-emerald-800';
-              setTimeout(function () { window.location.reload(); }, 1200);
-              return;
-            }
-            var det = (res.data && res.data.log_ultimo) ? '\n\nDetalhe: ' + JSON.stringify(res.data.log_ultimo) : '';
-            msgEl.textContent = ((res.data && res.data.erro) || 'Falha no envio.') + det;
-            msgEl.className = 'mt-2 text-sm font-bold text-rose-800';
-          })
-          .catch(function () {
-            alert('Falha de rede.');
-          })
-          .finally(function () {
-            btn.disabled = false;
-            if (window.gmLoadingBar) window.gmLoadingBar.hide();
-          });
-      };
-      document.getElementById('modal-erp-btn-reverter').onclick = function () {
-        if (!vendaIdAtual) return;
-        if (!window.confirm('Reverter o envio no Agro? O pedido no ERP não será cancelado automaticamente.')) return;
-        fetch('/venda/' + vendaIdAtual + '/reverter-erp/', {
-          method: 'POST',
-          headers: { 'X-CSRFToken': csrf(), 'Content-Type': 'application/json' },
-          body: JSON.stringify({ confirmar: true }),
-          credentials: 'same-origin'
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (d) {
-            if (!d.ok) throw new Error(d.erro || 'Falha ao reverter.');
-            alert(d.mensagem || 'Revertido.');
-            window.location.reload();
-          })
-          .catch(function (err) { alert(err.message || 'Erro.'); });
-      };
-      document.querySelectorAll('.js-venda-enviar-erp').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var id = btn.getAttribute('data-venda-id');
-          if (id) abrirModal(id, 'enviar');
-        });
-      });
-      document.querySelectorAll('.js-venda-erp-hist').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var id = btn.getAttribute('data-venda-id');
-          if (id) abrirModal(id, 'hist');
-        });
-      });
-      document.querySelectorAll('.js-venda-reverter-erp').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var id = btn.getAttribute('data-venda-id');
-          if (id) abrirModal(id, 'hist');
-        });
-      });
       document.querySelectorAll('.js-venda-imprimir-cupom').forEach(function (btn) {
         btn.addEventListener('click', function () {
           var id = btn.getAttribute('data-venda-id');
@@ -380,6 +381,217 @@
           });
         });
       });
+      document.querySelectorAll('.js-venda-imprimir-fiscal').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = btn.getAttribute('data-venda-id');
+          if (!id || typeof agroCarregarEImprimirCupomVenda !== 'function') return;
+          agroCarregarEImprimirCupomVenda(id, { segunda_via: true }).catch(function (err) {
+            alert(err && err.message ? err.message : 'Não foi possível imprimir o cupom fiscal.');
+          });
+        });
+      });
+      {% if nfce_cfg.ativo %}
+      (function initNfceVendasModal() {
+        var modal = document.getElementById('modal-nfce-venda');
+        if (!modal) return;
+        function getCookie(name) {
+          var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+          return m ? decodeURIComponent(m[1]) : '';
+        }
+        function csrf() {
+          var el = document.getElementById('agro-csrf-nfce-vendas');
+          if (el && el.value) return el.value;
+          return getCookie('csrftoken') || '';
+        }
+        var vendaIdAtual = null;
+        function fechar() {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          vendaIdAtual = null;
+          try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(modal, false);
+          } catch (_) {}
+        }
+        function abrir(id, modo) {
+          vendaIdAtual = id;
+          document.getElementById('modal-nfce-msg').classList.add('hidden');
+          try {
+            if (window.AgroOverlayStack) window.AgroOverlayStack.setOpen(modal, true);
+          } catch (_) {}
+          if (window.gmLoadingBar) window.gmLoadingBar.show();
+          var ctrlOpen = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var toOpen = setTimeout(function () {
+            try { if (ctrlOpen) ctrlOpen.abort(); } catch (eAb) {}
+          }, 12000);
+          fetch('/venda/' + id + '/nfce/', {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal: ctrlOpen ? ctrlOpen.signal : undefined,
+          })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+              if (!d.ok || !d.nfce_painel) throw new Error('Não foi possível carregar dados fiscais.');
+              var p = d.nfce_painel;
+              document.getElementById('modal-nfce-titulo').textContent =
+                modo === 'reemitir' ? 'Reemitir NFC-e · venda #' + id : 'Cupom fiscal pendente · #' + id;
+              modal.classList.remove('hidden');
+              modal.classList.add('flex');
+              document.getElementById('modal-nfce-sub').textContent = p.processando
+                ? 'Cupom em emissão — aguarde ou tente de novo em 1 minuto.'
+                : (p.autorizada ? 'NFC-e já autorizada.' : 'A venda foi registrada; só o cupom fiscal ficou pendente.');
+              var errTxt = p.erro || 'Sem detalhe registrado.';
+              if (/537|desconto difere/i.test(errTxt)) {
+                errTxt += ' — Desconto já foi corrigido no sistema: clique em REEMITIR NFC-E uma vez e aguarde até ~20s.';
+              }
+              document.getElementById('modal-nfce-erro').textContent = errTxt;
+              var cpfIn = document.getElementById('modal-nfce-cpf');
+              var chk = document.getElementById('modal-nfce-sem-id');
+              if (cpfIn) cpfIn.value = p.dest_cpf || '';
+              if (chk) chk.checked = !!p.consumidor_sem_identificacao;
+              var btnRe = document.getElementById('modal-nfce-reemitir');
+              if (btnRe) btnRe.disabled = !p.pode_reemitir || !!p.autorizada || !!p.processando;
+            })
+            .catch(function (err) {
+              var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
+              alert(aborted ? 'Demorou a abrir o painel fiscal — F5 e tente de novo.' : (err.message || 'Erro.'));
+              fechar();
+            })
+            .finally(function () {
+              clearTimeout(toOpen);
+              if (window.gmLoadingBar) window.gmLoadingBar.hide();
+            });
+        }
+        document.getElementById('modal-nfce-fechar').onclick = fechar;
+        modal.addEventListener('click', function (e) { /* Fundo nao fecha — so X / FECHAR / Esc */ void e; });
+        document.getElementById('modal-nfce-reemitir').onclick = function () {
+          if (!vendaIdAtual) return;
+          var cpf = (document.getElementById('modal-nfce-cpf').value || '').replace(/\D/g, '');
+          var semId = document.getElementById('modal-nfce-sem-id').checked;
+          if (!cpf && !semId) {
+            alert('Informe CPF ou CNPJ, ou marque venda sem identificação.');
+            return;
+          }
+          var btn = document.getElementById('modal-nfce-reemitir');
+          if (btn.dataset.busy === '1') return;
+          btn.dataset.busy = '1';
+          btn.disabled = true;
+          if (window.gmLoadingBar) window.gmLoadingBar.show();
+          var msgEl = document.getElementById('modal-nfce-msg');
+          msgEl.classList.remove('hidden');
+          msgEl.textContent = 'Enviando à SEFAZ… (máx. 20s)';
+          msgEl.className = 'mt-2 text-sm font-bold text-amber-800';
+          var finished = false;
+          function terminar(msg, isErr) {
+            if (finished) return;
+            finished = true;
+            btn.dataset.busy = '0';
+            btn.disabled = false;
+            if (window.gmLoadingBar) {
+              window.gmLoadingBar.hide();
+              if (typeof window.gmLoadingBar.reset === 'function') window.gmLoadingBar.reset();
+            }
+            if (msg) {
+              msgEl.classList.remove('hidden');
+              msgEl.textContent = msg;
+              msgEl.className = 'mt-2 text-sm font-bold ' + (isErr ? 'text-rose-800' : 'text-emerald-800');
+            }
+          }
+          var token = csrf();
+          if (!token) {
+            terminar('Falha de segurança (CSRF). F5 e tente de novo.', true);
+            return;
+          }
+          var ctrlEmit = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var hardTimer = setTimeout(function () {
+            try { if (ctrlEmit) ctrlEmit.abort(); } catch (eAb2) {}
+            terminar(
+              'Não respondeu em 20s. Feche, F5 e abra de novo: se o erro começar com «Tentativa», o pedido chegou — espere 1 min e reemitir. Se ainda for 537 antigo, anote a hora.',
+              true
+            );
+          }, 20000);
+          var fetchP;
+          try {
+            fetchP = fetch('/venda/' + vendaIdAtual + '/nfce/emitir/', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'X-CSRFToken': token, 'Content-Type': 'application/json', Accept: 'application/json' },
+              body: JSON.stringify({ nfce_cpf: cpf, nfce_sem_identificacao: semId }),
+              signal: ctrlEmit ? ctrlEmit.signal : undefined,
+            }).then(function (r) {
+              return r.text().then(function (txt) {
+                var d = {};
+                try { d = JSON.parse(txt); } catch (e) {
+                  throw new Error('Resposta inválida do servidor (HTTP ' + r.status + '). F5 e tente de novo.');
+                }
+                return { ok: r.ok, status: r.status, data: d };
+              });
+            });
+          } catch (eFetch) {
+            clearTimeout(hardTimer);
+            terminar((eFetch && eFetch.message) || 'Não foi possível enviar o pedido.', true);
+            return;
+          }
+          fetchP
+            .then(function (res) {
+              clearTimeout(hardTimer);
+              if (finished) return;
+              if (res.data && res.data.processando && res.status === 409) {
+                terminar(res.data.erro || 'Já está emitindo — aguarde 1 minuto e F5.', true);
+                return;
+              }
+              if (res.ok && res.data.ok) {
+                terminar('NFC-e autorizada.', false);
+                var vIdOk = vendaIdAtual;
+                fechar();
+                if (typeof agroEscolherImprimirCupomPosNfce === 'function') {
+                  agroEscolherImprimirCupomPosNfce(vIdOk, {
+                    onDone: function () { window.location.reload(); }
+                  });
+                } else {
+                  setTimeout(function () { window.location.reload(); }, 500);
+                }
+                return;
+              }
+              var err =
+                (res.data && res.data.nfce && res.data.nfce.erro) ||
+                (res.data && res.data.erro) ||
+                'Falha na reemissão.';
+              if (res.data && res.data.nfce_painel && res.data.nfce_painel.erro) {
+                document.getElementById('modal-nfce-erro').textContent = res.data.nfce_painel.erro;
+              }
+              terminar(err, true);
+            })
+            .catch(function (err) {
+              clearTimeout(hardTimer);
+              if (finished) return;
+              var aborted = err && (err.name === 'AbortError' || /abort/i.test(String(err.message || '')));
+              terminar(
+                aborted
+                  ? 'Não respondeu em 20s. F5 e confira se o erro mudou para «Tentativa…».'
+                  : ((err && err.message) || 'Falha de rede — F5 e tente de novo.'),
+                true
+              );
+            });
+        };
+        document.querySelectorAll('.js-venda-nfce-erro').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-venda-id');
+            if (id) abrir(id, 'erro');
+          });
+        });
+        document.querySelectorAll('.js-venda-nfce-processando').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            alert('Cupom fiscal sendo emitido — aguarde alguns segundos e atualize a página (F5).');
+          });
+        });
+        document.querySelectorAll('.js-venda-nfce-reemitir').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var id = btn.getAttribute('data-venda-id');
+            if (id) abrir(id, 'reemitir');
+          });
+        });
+      })();
+      {% endif %}
     })();
   </script>
   <script>window.AGRO_CUPOM_LOGO_URL = "{% static 'produtos/img/logo_termica.png' %}";</script>

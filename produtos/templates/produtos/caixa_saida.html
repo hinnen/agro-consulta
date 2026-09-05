@@ -10,8 +10,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   {% include "produtos/_agro_consulta_ui.html" %}
   <style>body { font-family: 'Inter', sans-serif; }</style>
+  {% include "produtos/includes/caixa_viewport_shell.html" %}
+  {% include "produtos/includes/caixa_pdv_overlay_mode.html" %}
 </head>
-<body class="bg-slate-50 min-h-full text-slate-800 flex flex-col">
+<body class="bg-slate-50 text-slate-800 flex flex-col overflow-hidden min-h-0 h-full">
 {% include "produtos/_gm_loading_bar.html" %}
   <header class="border-b border-slate-200 bg-white shadow-sm shrink-0">
     <div class="max-w-4xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -20,13 +22,13 @@
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Despesa rápida · plano de conta</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-      <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Caixa</a>
-      {% include "produtos/_pdv_voltar_link.html" with link_class="inline-flex items-center justify-center gap-1.5 min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-emerald-200 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 shrink-0" %}
+      <a href="{% url 'caixa_painel' %}" class="inline-flex items-center min-h-[44px] text-xs font-black uppercase px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-emerald-800 hover:bg-slate-50">← Menu</a>
       </div>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-3 pt-3 pb-4 space-y-3 flex-1 w-full flex flex-col sm:flex-row sm:items-stretch sm:gap-3">
+  <main class="max-w-4xl mx-auto px-3 pt-3 pb-4 flex-1 min-h-0 w-full flex flex-col overflow-hidden">
+    <div class="caixa-panel-scroll flex flex-col sm:flex-row sm:items-stretch sm:gap-3 space-y-3 sm:space-y-0">
     <div class="w-full sm:max-w-md rounded-2xl border border-emerald-200 bg-gradient-to-br from-white to-emerald-50/50 shadow-sm p-4 space-y-3">
       <h2 class="text-sm font-black uppercase text-emerald-900">Registro principal</h2>
 
@@ -99,12 +101,15 @@
           <input type="date" id="cx-data" class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2.5 text-sm font-bold focus:border-emerald-500 outline-none">
         </label>
         <label class="block">
-          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (nome fantasia no cadastro)</span>
+          <span class="text-[10px] font-black uppercase text-slate-500">Empresa (lançamento)</span>
           <input type="text" id="cx-empresa" value="{{ empresa_padrao|escape }}" data-empresa-id="{{ empresa_padrao_id|default:'' }}"
-            class="mt-1 w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-semibold focus:border-emerald-500 outline-none">
+            readonly
+            title="Vem do caixa aberto (Centro ou Vila)"
+            class="mt-1 w-full rounded-xl border-2 border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none cursor-default">
         </label>
       </div>
     </details>
+    </div>
   </main>
 
   {% csrf_token %}

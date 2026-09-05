@@ -184,17 +184,34 @@
         }
         var container = document.getElementById('lista-historico-local');
         if (!container) return;
-        var historico = [];
-        try {
-            historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
-        } catch (e) {
-            historico = [];
+        var mh = document.getElementById('modal-historico-vendas');
+        if (mh) {
+            mh.classList.remove('hidden');
+            mh.classList.add('flex');
         }
-        container.innerHTML = '';
-        if (!historico.length) {
-            container.innerHTML =
-                '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo neste navegador.</div>';
-        } else {
+        document.body.classList.add('modal-open');
+        container.innerHTML =
+            '<div class="text-center text-slate-400 py-10 font-bold text-sm">Carregando orçamentos…</div>';
+
+        function bindBtns() {
+            container.querySelectorAll('.home-orc-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = Number(btn.getAttribute('data-orc-id'));
+                    var act = btn.getAttribute('data-action');
+                    if (act === 'consulta') recuperarOrcamentoIrConsulta(id);
+                    else if (act === 'pdv') abrirOrcamentoComoVendaPdv(id);
+                    else if (act === 'del') excluirOrcamentoHistorico(id);
+                });
+            });
+        }
+
+        function paint(historico) {
+            container.innerHTML = '';
+            if (!historico.length) {
+                container.innerHTML =
+                    '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo.</div>';
+                return;
+            }
             historico.forEach(function (h) {
                 var hid = Number(h.id);
                 var u = String((h.usuario != null && h.usuario !== '') ? h.usuario : (h.operador || '')).trim();
@@ -203,6 +220,10 @@
                       escapeHtml(u) +
                       '</span>'
                     : '<span class="text-[9px] font-bold text-slate-400">— usuário</span>';
+                var wa =
+                    String(h.origem || '').toLowerCase() === 'whatsapp'
+                        ? ' <span class="text-emerald-600 font-black" title="Enviado pelo WhatsApp">Zap</span>'
+                        : '';
                 container.innerHTML +=
                     '<div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">' +
                     '<div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">' +
@@ -210,6 +231,7 @@
                     '<div class="font-black text-slate-800 text-sm uppercase leading-snug">' +
                     escapeHtml(h.cliente) +
                     (h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : '') +
+                    wa +
                     '</div>' +
                     '<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">' +
                     '<span>' +
@@ -246,22 +268,47 @@
                     '" data-action="del">Excluir</button>' +
                     '</div></div>';
             });
-            container.querySelectorAll('.home-orc-btn').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var id = Number(btn.getAttribute('data-orc-id'));
-                    var act = btn.getAttribute('data-action');
-                    if (act === 'consulta') recuperarOrcamentoIrConsulta(id);
-                    else if (act === 'pdv') abrirOrcamentoComoVendaPdv(id);
-                    else if (act === 'del') excluirOrcamentoHistorico(id);
+            bindBtns();
+        }
+
+        var local = [];
+        try {
+            local = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
+        } catch (e) {
+            local = [];
+        }
+        if (!Array.isArray(local)) local = [];
+        paint(local.slice(0, 80));
+
+        var url = (URLS && URLS.apiPdvOrcamentos) || '';
+        if (!url) return;
+        fetch(url + '?recentes=1&limite=80', { credentials: 'same-origin' })
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (data) {
+                if (!data || !data.ok || !Array.isArray(data.items)) return;
+                var map = {};
+                local.forEach(function (item) {
+                    if (item && item.id != null) map[String(item.id)] = item;
                 });
-            });
-        }
-        var mh = document.getElementById('modal-historico-vendas');
-        if (mh) {
-            mh.classList.remove('hidden');
-            mh.classList.add('flex');
-        }
-        document.body.classList.add('modal-open');
+                data.items.forEach(function (item) {
+                    if (item && item.id != null) map[String(item.id)] = item;
+                });
+                var merged = Object.keys(map)
+                    .map(function (k) {
+                        return map[k];
+                    })
+                    .sort(function (a, b) {
+                        return Number(b.id) - Number(a.id);
+                    });
+                if (merged.length > 300) merged.length = 300;
+                try {
+                    localStorage.setItem('historicoOrcamentos', JSON.stringify(merged));
+                } catch (eW) {}
+                paint(merged.slice(0, 80));
+            })
+            .catch(function () {});
     }
 
     function fecharHistoricoLocal() {

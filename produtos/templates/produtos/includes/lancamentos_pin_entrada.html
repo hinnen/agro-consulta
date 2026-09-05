@@ -1,0 +1,65 @@
+{# PIN na 1ª entrada no módulo Lançamentos (sessão); depois só no modo descanso (idle). #}
+{% include "produtos/_screensaver_pin.html" with lancamentos_pin_entrada=True %}
+<script>
+(function () {
+  var LS_DESBLOQ = 'gm_lancamentos_desbloqueado';
+
+  function pathLancamentos() {
+    var p = window.location.pathname || '';
+    return p === '/lancamentos' || p.indexOf('/lancamentos/') === 0;
+  }
+
+  function lancamentosJaDesbloqueado() {
+    try {
+      return sessionStorage.getItem(LS_DESBLOQ) === '1';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function pedirPinEntradaModulo() {
+    if (typeof window.gmSspinAbrirEntrada === 'function') {
+      window.gmSspinAbrirEntrada();
+      return;
+    }
+    setTimeout(pedirPinEntradaModulo, 40);
+  }
+
+  function initLancamentosPinEntrada() {
+    if (!pathLancamentos()) return;
+    if (lancamentosJaDesbloqueado()) return;
+    pedirPinEntradaModulo();
+  }
+
+  /**
+   * Erro «Identifique-se com o PIN…» → abre teclado (nunca alert nativo).
+   * onOk roda depois do PIN (ex.: reenviar o POST). Retorna true se tratou.
+   */
+  window.gmLancamentosTratarErroPin = function (erro, onOk) {
+    if (typeof window.gmSspinAbrirSeErroPin !== 'function') return false;
+    try {
+      return !!window.gmSspinAbrirSeErroPin(erro, typeof onOk === 'function' ? onOk : function () {}, {
+        titulo: 'Identifique-se com o PIN'
+      });
+    } catch (_) {
+      return false;
+    }
+  };
+
+  /** Garante PIN fresco no servidor e só então chama fn (gravação / baixa / etc.). */
+  window.gmLancamentosComOperador = function (fn, opts) {
+    if (typeof fn !== 'function') return;
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+      window.gmSspinGarantirOperador(fn, opts || { titulo: 'Identifique-se com o PIN' });
+      return;
+    }
+    fn();
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLancamentosPinEntrada);
+  } else {
+    initLancamentosPinEntrada();
+  }
+})();
+</script>

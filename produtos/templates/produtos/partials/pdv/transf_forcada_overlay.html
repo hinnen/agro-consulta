@@ -1,0 +1,316 @@
+{# PDV — Transferência forçada (espelho Logística; overlay nativo no PDV) #}
+<style>
+  #pdv-tf-overlay {
+    width: min(99vw, 98rem);
+    height: min(92dvh, 56rem);
+    max-height: min(92dvh, 56rem);
+  }
+  #pdv-tf-overlay .tf-grid-head,
+  #pdv-tf-overlay .tf-grid-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.25rem 4.25rem 4.25rem 5.25rem 2.5rem;
+    gap: 0.35rem 0.45rem;
+    align-items: center;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th,
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td {
+    padding: 0.55rem 0.4rem;
+    vertical-align: middle;
+    text-align: left;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(2),
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(2),
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(3),
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(3),
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(4),
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(4) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table col.tf-c-prod { width: auto; }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table col.tf-c-cod { width: 6.5rem; }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table col.tf-c-v { width: 4.5rem; }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table col.tf-c-c { width: 4.5rem; }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table tbody tr {
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table tbody tr:hover {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table tbody tr.tf-hi {
+    background: #d1fae5;
+    border-color: #34d399;
+    box-shadow: inset 0 0 0 1px #34d399;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #f1f5f9;
+    font-size: 0.6875rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td.tf-nome {
+    font-size: 0.9375rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #0f172a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 0;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td.tf-cod {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td.tf-saldo {
+    font-size: 0.875rem;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td.tf-saldo.tf-neg {
+    color: #b45309;
+  }
+  #pdv-tf-overlay.tf-layout-invertido #pdv-tf-painel-carrinho { order: 1; }
+  #pdv-tf-overlay.tf-layout-invertido #pdv-tf-painel-busca { order: 2; }
+  @media (min-width: 1024px) {
+    #pdv-tf-overlay.tf-layout-invertido #pdv-tf-painel-busca {
+      border-right: none;
+      border-left: 1px solid #e2e8f0;
+    }
+    #pdv-tf-overlay.tf-layout-invertido #pdv-tf-painel-carrinho {
+      border-right: 1px solid #e2e8f0;
+    }
+  }
+  @media (max-width: 900px) {
+    #pdv-tf-overlay .tf-grid-head,
+    #pdv-tf-overlay .tf-grid-row {
+      grid-template-columns: minmax(0, 1fr) 4.25rem 5rem 2.5rem;
+    }
+    #pdv-tf-overlay .tf-col-codigo,
+    #pdv-tf-overlay .tf-col-centro,
+    #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table col.tf-c-cod,
+    #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(2),
+    #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(2),
+    #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table th:nth-child(4),
+    #pdv-tf-overlay #pdv-tf-resultados .tf-busca-table td:nth-child(4) { display: none; }
+  }
+
+  /* Direção: botão da loja do PDV em destaque */
+  #pdv-tf-direcao .pdv-tf-dir-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn {
+    width: 100%;
+    border-radius: 0.9rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    border-width: 2px;
+    border-style: solid;
+    cursor: pointer;
+    transition: transform 0.08s ease, filter 0.08s ease;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn:active {
+    transform: scale(0.98);
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--hero {
+    min-height: 7.5rem;
+    padding: 1.75rem 1.25rem;
+    font-size: clamp(1.55rem, 0.85vw + 1.3rem, 2.1rem);
+    line-height: 1.12;
+    letter-spacing: 0.03em;
+    box-shadow: 0 14px 32px -8px rgba(15, 23, 42, 0.4);
+    order: -1;
+    border-width: 3px;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--hero .pdv-tf-dir-atalho {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    opacity: 0.9;
+    text-transform: uppercase;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--sec {
+    min-height: 3.15rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    opacity: 0.95;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--sec .pdv-tf-dir-atalho {
+    display: none;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--vc {
+    border-color: #34d399;
+    background: #059669;
+    color: #fff;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--vc:hover { background: #047857; }
+  #pdv-tf-direcao .pdv-tf-dir-btn--cv {
+    border-color: #38bdf8;
+    background: #0284c7;
+    color: #fff;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--cv:hover { background: #0369a1; }
+  #pdv-tf-direcao .pdv-tf-dir-btn--back {
+    border-color: #e2e8f0;
+    background: #f1f5f9;
+    color: #334155;
+  }
+  #pdv-tf-direcao .pdv-tf-dir-btn--back:hover { background: #e2e8f0; }
+
+  /* Faixa superior: 2 cards de loja + seta */
+  #pdv-tf-overlay .pdv-tf-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    flex-shrink: 0;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 0.75rem 1rem 0.75rem 1.1rem;
+    border-radius: 1rem 1rem 0 0;
+    background: #f8fafc;
+  }
+  #pdv-tf-overlay .pdv-tf-header-dir {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  #pdv-tf-overlay .pdv-tf-loja-card {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.4rem;
+    min-width: 8.5rem;
+    padding: 0.55rem 1.35rem;
+    border-radius: 0.9rem;
+    border: 3px solid transparent;
+    font-size: clamp(1.35rem, 0.7vw + 1.15rem, 1.9rem);
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    line-height: 1;
+    box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.25);
+  }
+  #pdv-tf-overlay .pdv-tf-loja-card--vila {
+    background: #059669;
+    border-color: #047857;
+    color: #fff;
+  }
+  #pdv-tf-overlay .pdv-tf-loja-card--centro {
+    background: #0284c7;
+    border-color: #0369a1;
+    color: #fff;
+  }
+  #pdv-tf-overlay .pdv-tf-dir-seta {
+    flex-shrink: 0;
+    font-size: clamp(1.75rem, 0.9vw + 1.4rem, 2.4rem);
+    font-weight: 900;
+    color: #0f172a;
+    line-height: 1;
+    padding: 0 0.15rem;
+  }
+</style>
+
+{# Backdrop + direção #}
+<div id="pdv-tf-backdrop" class="fixed inset-0 z-[142] hidden bg-slate-950/55 backdrop-blur-[2px]" aria-hidden="true"></div>
+
+<div id="pdv-tf-direcao" class="fixed top-1/2 left-1/2 z-[143] hidden w-11/12 max-w-[min(28rem,96vw)] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-dir-titulo">
+  <div class="rounded-t-2xl border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-sky-50 px-5 pb-4 pt-5 sm:px-6">
+    <h3 id="pdv-tf-dir-titulo" class="text-center text-lg font-black uppercase leading-tight text-emerald-950 sm:text-xl">Transferência forçada</h3>
+    <p class="mt-2 text-center text-sm font-semibold text-slate-600">Qual a direção? · Esc volta · Enter = destaque</p>
+  </div>
+  <div class="pdv-tf-dir-btns p-5 sm:p-6" data-pdv-tf-deposito="">
+    <button type="button" id="pdv-tf-dir-vc" class="pdv-tf-dir-btn pdv-tf-dir-btn--vc pdv-tf-dir-btn--sec">Vila → Centro<span class="pdv-tf-dir-atalho">Enter</span></button>
+    <button type="button" id="pdv-tf-dir-cv" class="pdv-tf-dir-btn pdv-tf-dir-btn--cv pdv-tf-dir-btn--sec">Centro → Vila<span class="pdv-tf-dir-atalho">Enter</span></button>
+    <button type="button" id="pdv-tf-dir-cancelar" class="pdv-tf-dir-btn pdv-tf-dir-btn--back pdv-tf-dir-btn--sec">Voltar</button>
+  </div>
+</div>
+
+{# Overlay principal #}
+<div id="pdv-tf-overlay" class="fixed top-1/2 left-1/2 z-[143] hidden -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl bg-white shadow-2xl tf-dir-vc" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-titulo">
+  <div id="pdv-tf-header" class="pdv-tf-header">
+    <div class="pdv-tf-header-dir" aria-live="polite">
+      <span id="pdv-tf-card-origem" class="pdv-tf-loja-card pdv-tf-loja-card--vila">Vila</span>
+      <span class="pdv-tf-dir-seta" aria-hidden="true">→</span>
+      <span id="pdv-tf-card-destino" class="pdv-tf-loja-card pdv-tf-loja-card--centro">Centro</span>
+      <span id="pdv-tf-titulo" class="sr-only">Vila → Centro</span>
+    </div>
+    <button type="button" id="pdv-tf-fechar" class="shrink-0 inline-flex min-h-[2.75rem] min-w-[2.75rem] items-center justify-center rounded-xl border-2 border-slate-300 bg-white text-3xl font-black leading-none text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-700" aria-label="Fechar · Esc" title="Fechar · Esc">×</button>
+  </div>
+  <div id="pdv-tf-grid-corpo" class="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]">
+    <div id="pdv-tf-painel-busca" class="flex min-h-0 flex-col gap-2 border-b border-slate-200 p-4 sm:p-5 lg:border-b-0 lg:border-r">
+      <div class="flex shrink-0 items-center justify-between gap-2">
+        <label for="pdv-tf-busca" class="text-xs font-black uppercase tracking-wide text-slate-500">1 · Buscar</label>
+        <span id="pdv-tf-busca-status" class="text-xs font-bold tabular-nums text-slate-500"></span>
+      </div>
+      <div class="relative shrink-0">
+        <input id="pdv-tf-busca" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Nome, código ou barras" class="w-full rounded-xl border-2 border-emerald-300 bg-white py-3.5 pl-4 pr-4 text-base font-bold text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 sm:text-lg" />
+      </div>
+      <div id="pdv-tf-resultados" class="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-0" role="listbox" aria-label="Resultados da busca"></div>
+      <details id="pdv-tf-colar-details" class="shrink-0 rounded-xl border border-slate-200 bg-slate-50/90 px-3.5 py-2">
+        <summary class="flex cursor-pointer list-none select-none items-center gap-1.5 text-xs font-black uppercase text-slate-600 [&::-webkit-details-marker]:hidden">
+          <span class="text-slate-400">▸</span> Colar lista
+        </summary>
+        <div class="mt-1.5 space-y-2 border-t border-slate-200 pt-2">
+          <textarea id="pdv-tf-colar" rows="3" class="w-full rounded-lg border-2 border-slate-200 bg-white p-3 font-mono text-sm font-semibold text-slate-800 outline-none focus:border-sky-400" placeholder="código  qtd"></textarea>
+          <button type="button" id="pdv-tf-colar-aplicar" class="w-full rounded-xl bg-sky-600 py-3 text-sm font-black uppercase text-white hover:bg-sky-700">Adicionar ao carrinho</button>
+          <div id="pdv-tf-colar-status" class="text-xs font-semibold text-slate-600"></div>
+        </div>
+      </details>
+    </div>
+    <div id="pdv-tf-painel-carrinho" class="flex min-h-0 flex-col gap-2 bg-white p-4 sm:p-5">
+      <div class="flex shrink-0 items-center justify-between gap-2">
+        <label class="text-xs font-black uppercase tracking-wide text-slate-500">2 · Carrinho <span id="pdv-tf-carrinho-count" class="text-sm tabular-nums text-emerald-700">(0)</span></label>
+        <button type="button" id="pdv-tf-limpar" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black uppercase text-slate-500 hover:text-red-600">Limpar</button>
+      </div>
+      <div id="pdv-tf-carrinho" class="min-h-0 flex-1 overflow-y-auto rounded-xl border border-slate-200 bg-white"></div>
+      <div class="flex shrink-0 flex-col gap-2.5 pt-1 sm:flex-row">
+        <button type="button" id="pdv-tf-cancelar" class="flex-1 rounded-xl bg-slate-100 py-3.5 text-sm font-black uppercase text-slate-700 hover:bg-slate-200">Voltar</button>
+        <button type="button" id="pdv-tf-btn-transferir" class="flex-[1.5] rounded-xl bg-emerald-600 py-3.5 text-sm font-black uppercase text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 disabled:pointer-events-none disabled:opacity-40 sm:text-base" disabled>Transferir Vila→C</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# PIN na confirmação (sempre — tip Renan) #}
+<div id="pdv-tf-pin" class="fixed inset-0 z-[144] hidden items-center justify-center bg-slate-950/60 p-3" role="dialog" aria-modal="true" aria-labelledby="pdv-tf-pin-titulo">
+  <div class="w-full max-w-sm rounded-2xl border-2 border-emerald-400 bg-white p-5 shadow-2xl sm:p-6">
+    <h3 id="pdv-tf-pin-titulo" class="text-center text-lg font-black uppercase text-emerald-950">PIN</h3>
+    <p id="pdv-tf-pin-desc" class="mt-2 text-center text-sm font-semibold text-slate-600">Confirme com seu PIN</p>
+    <input id="pdv-tf-pin-input" type="password" inputmode="numeric" autocomplete="off" maxlength="12" class="mt-4 w-full rounded-xl border-2 border-emerald-400 bg-emerald-50 py-3.5 text-center text-2xl font-black tracking-[0.35em] text-emerald-950 outline-none focus:ring-2 focus:ring-emerald-400/40" placeholder="••••" />
+    <div class="mt-4 flex gap-2">
+      <button type="button" id="pdv-tf-pin-cancelar" class="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-black uppercase text-slate-700 hover:bg-slate-200">Cancelar</button>
+      <button type="button" id="pdv-tf-pin-ok" class="flex-[1.4] rounded-xl bg-emerald-600 py-3 text-sm font-black uppercase text-white hover:bg-emerald-700">Confirmar</button>
+    </div>
+  </div>
+</div>

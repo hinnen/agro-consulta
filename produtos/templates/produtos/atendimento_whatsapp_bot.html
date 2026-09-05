@@ -1,0 +1,252 @@
+{% extends "layouts/base_pdv.html" %}
+{% load static %}
+
+{% block pdv_title %}Bot WhatsApp | SisVale{% endblock %}
+{% block body_class %}bg-slate-100 text-slate-900 wa-skin{% endblock %}
+{% block pdv_shell_class %}min-h-[100dvh] bg-slate-100 flex flex-col{% endblock %}
+{% block pdv_section_class %}flex min-h-0 flex-1 flex-col px-3 py-2 sm:px-4{% endblock %}
+
+{% block pdv_header %}
+{% include "produtos/_wa_skin.html" %}
+<header class="wa-top">
+  <div class="min-w-0 flex-1">
+    <h1 class="wa-title">Bot</h1>
+  </div>
+  <a href="{% url 'atendimento_whatsapp' %}" class="wa-ico">Chat</a>
+  {% include "produtos/_pdv_voltar_link.html" with link_class="wa-ico" %}
+</header>
+{% endblock %}
+
+{% block pdv_content %}
+{% csrf_token %}
+<form id="wa-bot-form" class="wa-cfg pb-4" data-agro-no-double-guard="1">
+  <nav class="wa-nav" id="wa-bot-nav" aria-label="Seções">
+    <button type="button" data-panel="geral" class="is-on">Geral</button>
+    <button type="button" data-panel="tempo">Tempo</button>
+    <button type="button" data-panel="horario">Horário</button>
+    <button type="button" data-panel="saudacao">Saudação</button>
+    <button type="button" data-panel="menu">Menu</button>
+    <button type="button" data-panel="lojas">Lojas</button>
+    <button type="button" data-panel="fiado">Fiado</button>
+    <button type="button" data-panel="arquivo">Arquivo</button>
+    <button type="button" data-panel="ausencia">Ausência</button>
+    <button type="button" data-panel="recursos">Recursos</button>
+  </nav>
+  <div>
+    <p id="wa-bot-msg" class="wa-toast"></p>
+
+    <section data-panel="geral" class="wa-panel wa-card is-on">
+      <label class="wa-sw"><span>Bot ligado</span><input type="checkbox" name="bot_ligado" /></label>
+      <label class="wa-lab" for="id_nome_empresa">Empresa</label>
+      <input id="id_nome_empresa" name="nome_empresa" class="wa-inp" autocomplete="off" />
+      <p class="wa-lab" style="margin-top:1rem">Agenda do celular</p>
+      <p class="wa-hint">Arquivo <b>.vcf</b> dos Contatos (exportar no celular). Serve para achar nome na busca do chat.</p>
+      <div class="mt-2 flex flex-wrap items-center gap-2">
+        <label class="wa-ico cursor-pointer normal-case tracking-normal" title="Importar agenda (.vcf)">
+          Importar agenda
+          <input id="wa-vcf-inp" type="file" accept=".vcf,.vcard,text/vcard,text/x-vcard" class="hidden" />
+        </label>
+        <span id="wa-vcf-msg" class="text-sm font-semibold text-slate-500"></span>
+      </div>
+    </section>
+
+    <section data-panel="tempo" class="wa-panel wa-card">
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">1ª resposta
+            <button type="button" class="wa-q" title="Segundos antes da primeira mensagem do bot. 0 = na hora.">?</button>
+          </label>
+          <input type="number" min="0" max="120" name="atraso_resposta_seg" />
+        </div>
+        <div>
+          <label class="wa-lab">Entre msgs
+            <button type="button" class="wa-q" title="Pausa entre uma mensagem e a seguinte.">?</button>
+          </label>
+          <input type="number" min="0" max="60" name="atraso_entre_msgs_seg" />
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="horario" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Usar horário</span><input type="checkbox" name="horario_ativo" /></label>
+      <label class="wa-sw"><span>Mandar aviso fora do horário</span><input type="checkbox" name="aviso_fora_ligado" /></label>
+      <label class="wa-sw"><span>Fora do horário ainda entra na fila</span><input type="checkbox" name="ainda_atende_fora" /></label>
+      <label class="wa-sw"><span>Só uma vez até a loja abrir de novo</span><input type="checkbox" name="aviso_fora_uma_vez" /></label>
+      <label class="wa-sw"><span>Não avisar se for só foto ou áudio</span><input type="checkbox" name="aviso_fora_so_texto" /></label>
+      <label class="wa-lab">Esperar (minutos) para avisar de novo
+        <button type="button" class="wa-q" title="0 = em toda mensagem. 60 = no máximo 1 aviso por hora neste chat.">?</button>
+      </label>
+      <input type="number" min="0" max="1440" name="aviso_fora_minutos" />
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">Abre</label>
+          <input type="time" name="horario_ini" />
+        </div>
+        <div>
+          <label class="wa-lab">Fecha</label>
+          <input type="time" name="horario_fim" />
+        </div>
+      </div>
+      <p class="wa-lab" style="margin-top:.75rem">Dias</p>
+      <div id="wa-bot-dias" class="flex flex-wrap gap-1.5"></div>
+      <label class="wa-lab" style="margin-top:.75rem">Aviso fora do horário</label>
+      <textarea name="msg_fora_horario" rows="3"></textarea>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> (ordem do nome na aba Menu).</p>
+    </section>
+
+    <section data-panel="saudacao" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Enviar boas-vindas</span><input type="checkbox" name="enviar_boas_vindas" /></label>
+      <label class="wa-sw"><span>Só na 1ª mensagem do dia</span><input type="checkbox" name="saudacao_so_primeira_do_dia" /></label>
+      <label class="wa-sw"><span>Não repetir se já saudou hoje</span><input type="checkbox" name="saudacao_nao_repetir_hoje" /></label>
+      <label class="wa-sw"><span>Só em horário de atendimento</span><input type="checkbox" name="saudacao_so_em_horario" /></label>
+      <label class="wa-sw"><span>Depois da saudação, mandar o menu</span><input type="checkbox" name="saudacao_depois_menu" /></label>
+      <p class="wa-hint">Fora do horário o aviso da aba Horário continua valendo — a saudação não mistura com ele se “só em horário” estiver ligado.</p>
+      <label class="wa-lab">Atraso da saudação (segundos)
+        <button type="button" class="wa-q" title="0 = usa o atraso da aba Tempo. Preencha para atrasar só a boas-vindas.">?</button>
+      </label>
+      <input type="number" min="0" max="120" name="saudacao_atraso_seg" />
+      <label class="wa-lab">Texto das boas-vindas</label>
+      <textarea name="msg_boas_vindas" id="wa-bv-txt" rows="4"></textarea>
+      <p class="wa-hint">Códigos: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b> · <b>{hora}</b> · <b>{loja}</b> (se já escolheu)</p>
+      <label class="wa-lab">Prévia</label>
+      <div id="wa-bv-previa" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700 whitespace-pre-wrap min-h-[3rem]"></div>
+      <label class="wa-lab" style="margin-top:.75rem">Imagem de boas-vindas (URL)</label>
+      <input name="saudacao_midia_url" class="wa-inp" placeholder="https://… (em breve no Zap)" />
+      <p class="wa-hint">Campo pronto. Envio de imagem na saudação entra quando a ponte cobrir nesta entrega — por agora só grava a URL.</p>
+    </section>
+
+    <section data-panel="menu" class="wa-panel wa-card">
+      <label class="wa-lab">Olha primeiro</label>
+      <select name="ordem">
+        <option value="fiado_depois_loja">Fiado, depois loja</option>
+        <option value="loja_primeiro">Loja, depois fiado</option>
+      </select>
+      <label class="wa-sw"><span>Repetir se não escolher</span><input type="checkbox" name="repetir_menu" /></label>
+      <p class="wa-hint">Códigos no menu: <b>{empresa}</b> · <b>{cliente}</b> / <b>{nome}</b>. O bot pega o nome na ordem abaixo. Só o primeiro que achar vale.</p>
+      <label class="wa-lab">Nome do cliente — 1º</label>
+      <select name="nome_fonte_1"></select>
+      <label class="wa-lab">2º</label>
+      <select name="nome_fonte_2"></select>
+      <label class="wa-lab">3º</label>
+      <select name="nome_fonte_3"></select>
+      <label class="wa-lab">4º</label>
+      <select name="nome_fonte_4"></select>
+      <label class="wa-lab">Menu</label>
+      <textarea name="msg_menu" class="wa-long" rows="7"></textarea>
+      <label class="wa-lab">Não escolheu</label>
+      <textarea name="msg_pedir_de_novo" rows="2"></textarea>
+    </section>
+
+    <section data-panel="arquivo" class="wa-panel wa-card">
+      <p class="wa-hint" style="margin-bottom:.75rem">
+        No chat, o <b>✓</b> arquiva para a aba <b>Resolvidas</b>. Cliente que manda msg de novo volta sozinho.
+        Arquivo automático fica <b>desligado</b> até você ligar (ainda sem job automático nesta versão).
+      </p>
+      <label class="wa-sw"><span>Arquivo automático</span><input type="checkbox" name="arquivo_auto_ligado" /></label>
+      <label class="wa-lab">Horas sem resposta do cliente</label>
+      <input type="number" min="1" max="720" name="arquivo_auto_horas_silencio" />
+      <label class="wa-lab">Horas de silêncio após ✓ da loja</label>
+      <input type="number" min="1" max="720" name="arquivo_auto_apos_ok_horas" />
+      <label class="wa-sw"><span>Nunca arquivar se tiver não-lidas</span><input type="checkbox" name="arquivo_auto_nunca_com_nao_lidas" /></label>
+    </section>
+
+    <section data-panel="lojas" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Separar Centro e Vila</span><input type="checkbox" name="separar_lojas" /></label>
+      <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue para uma lista só, sem perguntar 1 ou 2 no Zap.</p>
+      <label class="wa-sw"><span>Avisar cliente ao passar Centro↔Vila</span><input type="checkbox" name="xfer_avisar_cliente" /></label>
+      <p class="wa-lab" style="margin:.35rem 0 .9rem;font-weight:600;text-transform:none;letter-spacing:0">Desligue se a outra loja avisa sozinha — o cliente não recebe msg automática no Zap.</p>
+      <div class="wa-row wa-row-2">
+        <div>
+          <p class="wa-lab" style="color:#047857">Loja 1</p>
+          <label class="wa-lab">Nome</label>
+          <input name="loja1_rotulo" class="wa-inp" />
+          <label class="wa-lab">Palavras <button type="button" class="wa-q" title="Separadas por vírgula. Ex.: 1, centro">?</button></label>
+          <input name="loja1_palavras" class="wa-inp" />
+          <label class="wa-lab">Confirmação</label>
+          <textarea name="msg_ok_loja1" rows="3"></textarea>
+        </div>
+        <div>
+          <p class="wa-lab" style="color:#c2410c">Loja 2</p>
+          <label class="wa-lab">Nome</label>
+          <input name="loja2_rotulo" class="wa-inp" />
+          <label class="wa-lab">Palavras</label>
+          <input name="loja2_palavras" class="wa-inp" />
+          <label class="wa-lab">Confirmação</label>
+          <textarea name="msg_ok_loja2" rows="3"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="fiado" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Consulta por mensagem</span><input type="checkbox" name="fiado_ligado" /></label>
+      <label class="wa-sw"><span>Depois, manda o menu</span><input type="checkbox" name="fiado_manda_menu" /></label>
+      <label class="wa-lab">Palavras</label>
+      <input name="fiado_palavras" class="wa-inp" />
+      <label class="wa-lab">Parcelas na msg</label>
+      <input type="number" min="1" max="20" name="fiado_max_parcelas" />
+      <label class="wa-lab">Com fiado <button type="button" class="wa-q" title="{nome} {total} {linhas}">?</button></label>
+      <textarea name="msg_fiado_aberto" class="wa-long" rows="6"></textarea>
+      <label class="wa-lab">Sem fiado</label>
+      <textarea name="msg_fiado_vazio" rows="2"></textarea>
+      <label class="wa-lab">Sem cadastro</label>
+      <textarea name="msg_fiado_sem_cadastro" rows="2"></textarea>
+      <label class="wa-lab">Número duplicado</label>
+      <textarea name="msg_fiado_varios" rows="2"></textarea>
+    </section>
+
+    <section data-panel="ausencia" class="wa-panel wa-card">
+      <label class="wa-sw"><span>Aviso extra ao escolher a loja</span><input type="checkbox" name="ausencia_ligada" /></label>
+      <label class="wa-lab">Texto</label>
+      <textarea name="msg_ausencia" rows="2"></textarea>
+    </section>
+
+    <section data-panel="recursos" class="wa-panel wa-card">
+      <p class="wa-hint" style="margin-bottom:.75rem">
+        <b>Tudo começa desligado.</b> Ligue <b>um por um</b>, teste, e só então o próximo.
+        Assim a gente corrige bug sem bagunçar a loja.
+      </p>
+      <div id="wa-pix-box" class="mb-3 rounded-xl border-2 border-emerald-400 bg-emerald-50 p-3">
+        <p class="wa-lab" style="margin:0 0 .35rem;color:#047857;font-size:.95rem">Chave Pix (Fiado + Pix)</p>
+        <p class="wa-hint" style="margin:0 0 .55rem">Cole a chave <b>aqui</b> e salve. Sem isso o bot responde que não está configurada.</p>
+        <label class="wa-lab">Chave</label>
+        <input id="id_pix_chave" name="pix_chave" class="wa-inp" autocomplete="off" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+        <label class="wa-lab">Titular (opcional)</label>
+        <input name="pix_titular" class="wa-inp" autocomplete="off" placeholder="Nome que aparece no Pix" />
+        <label class="wa-lab">Palavras que pedem a chave</label>
+        <input name="pix_palavras" class="wa-inp" placeholder="pix, chave pix, manda pix" />
+      </div>
+      <div id="wa-bot-recursos" class="flex flex-col gap-2"></div>
+      <label class="wa-lab" style="margin-top:1rem">Respostas prontas (separe com | )</label>
+      <textarea name="respostas_prontas" rows="3" placeholder="Temos sim|Orçamento já já|…"></textarea>
+      <label class="wa-lab">Extra fiado + Pix (depois do saldo)</label>
+      <textarea name="msg_fiado_pix_extra" rows="2"></textarea>
+      <label class="wa-lab">Texto ao mandar a chave (1ª msg; a chave vai sozinha em seguida)</label>
+      <textarea name="msg_pix_chave" rows="3"></textarea>
+      <label class="wa-lab">Se chave estiver vazia</label>
+      <textarea name="msg_pix_sem_chave" rows="2"></textarea>
+      <label class="wa-lab">Extra menu curto (F / H / A)</label>
+      <textarea name="msg_menu_curto_extra" rows="3"></textarea>
+      <label class="wa-lab">Texto horário (atalho H)</label>
+      <textarea name="msg_horario_loja" rows="2"></textarea>
+      <label class="wa-lab">Comprovante de venda</label>
+      <textarea name="msg_comprovante_venda" rows="2"></textarea>
+      <label class="wa-lab">Entrega: saiu</label>
+      <textarea name="msg_entrega_saiu" rows="2"></textarea>
+      <label class="wa-lab">Entrega: a caminho</label>
+      <textarea name="msg_entrega_caminho" rows="2"></textarea>
+      <label class="wa-lab">Entrega: chegou</label>
+      <textarea name="msg_entrega_chegou" rows="2"></textarea>
+      <label class="wa-lab">Lembrete fiado</label>
+      <textarea name="msg_lembrete_fiado" rows="2"></textarea>
+      <label class="wa-lab">Lista de espera (chegou)</label>
+      <textarea name="msg_lista_espera" rows="2"></textarea>
+    </section>
+
+    <div class="wa-foot">
+      <button type="submit" id="wa-bot-save" class="go">Salvar</button>
+      <button type="button" id="wa-bot-reset" class="ghost">Padrão</button>
+    </div>
+  </div>
+</form>
+<script src="{% static 'produtos/js/atendimento_whatsapp_bot.js' %}?v={{ agro_asset_v|default:agro_build.version|default:'1' }}"></script>
+{% endblock %}

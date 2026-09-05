@@ -43,4 +43,7 @@ class IntegracaoERPAdmin(admin.ModelAdmin):
 
 @admin.register(PerfilUsuario)
 class PerfilUsuarioAdmin(admin.ModelAdmin):
-    list_display = ('codigo_vendedor', 'user', 'senha_rapida')
+    list_display = ("codigo_vendedor", "user", "ativo", "funcionario", "senha_rapida", "primeiro_acesso")
+    list_filter = ("ativo", "primeiro_acesso")
+    search_fields = ("codigo_vendedor", "user__username", "user__first_name", "user__last_name")
+    raw_id_fields = ("user", "funcionario")

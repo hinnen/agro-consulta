@@ -14,9 +14,9 @@
         </div>
     </div>
 
-    <div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[116] hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
-        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200 ring-1 ring-slate-900/5" onclick="event.stopPropagation()">
-            <div class="relative px-5 pt-5 pb-4 bg-gradient-to-br from-orange-500 via-orange-500 to-amber-600">
+    <div id="modal-pdv-entrega-impressao" class="fixed inset-0 z-[116] hidden items-center justify-center p-4 bg-slate-950/70" role="dialog" aria-modal="true" aria-labelledby="mei-titulo">
+        <div class="bg-white w-full max-w-[420px] rounded-2xl shadow-2xl overflow-hidden border border-slate-200" onclick="event.stopPropagation()">
+            <div class="px-5 pt-5 pb-4 bg-orange-600">
                 <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">Impressão</p>
                 <h2 id="mei-titulo" class="text-xl font-black text-white tracking-tight mt-1 leading-snug">O que imprimir?</h2>
             </div>
@@ -27,7 +27,7 @@
             </div>
             <div class="flex gap-3 px-5 pb-5 pt-0">
                 <button type="button" id="mei-cancelar" class="flex-1 py-3.5 rounded-xl border-2 border-slate-200 bg-white text-slate-700 font-black uppercase text-sm tracking-wide hover:bg-slate-50">Cancelar</button>
-                <button type="button" id="mei-imprimir" class="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-black uppercase text-sm tracking-wide shadow-lg hover:brightness-105">Imprimir</button>
+                <button type="button" id="mei-imprimir" class="flex-1 py-3.5 rounded-xl bg-orange-600 text-white font-black uppercase text-sm tracking-wide shadow-md hover:bg-orange-700">Imprimir</button>
             </div>
         </div>
     </div>
@@ -91,7 +91,7 @@
         </div>
     </div>
 
-    <div id="modal-lembretes" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-lembretes-titulo" onclick="if (event.target === this) fecharModalLembretes();">
+    <div id="modal-lembretes" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[106] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-lembretes-titulo">
         <div class="bg-white w-full max-w-[min(36rem,96vw)] rounded-2xl shadow-2xl border border-slate-200 max-h-[90vh] flex flex-col" onclick="event.stopPropagation();">
             <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
                 <h2 id="modal-lembretes-titulo" class="text-lg font-black uppercase text-slate-800 tracking-tight">⏰ Lembretes do caixa</h2>
@@ -115,7 +115,7 @@
         </div>
     </div>
 
-    <div id="modal-pdv-ajuste-estoque" class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm z-[107] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pae-titulo-dep" onclick="if (event.target === this) fecharModalAjustePdv();">
+    <div id="modal-pdv-ajuste-estoque" class="fixed inset-0 bg-slate-900/55 backdrop-blur-sm z-[107] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="pae-titulo-dep">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 flex flex-col" onclick="event.stopPropagation();">
             <div class="px-5 py-4 border-b border-slate-100 flex justify-between items-center gap-3 shrink-0">
                 <h2 id="pae-titulo-dep" class="text-base font-black uppercase text-slate-800 tracking-tight">Ajuste de estoque</h2>
@@ -181,7 +181,7 @@
         </div>
     </div>
 
-    <div id="modal-pdv-cadastro-cliente" class="fixed inset-0 z-[108] hidden items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-cli-titulo" onclick="if (event.target === this) pdvFecharModalCadastroClientePdv();">
+    <div id="modal-pdv-cadastro-cliente" class="fixed inset-0 z-[108] hidden items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="modal-pdv-cli-titulo">
         <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" onclick="event.stopPropagation();">
             <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-2">
                 <h2 id="modal-pdv-cli-titulo" class="text-base font-black uppercase text-slate-900">Novo cliente</h2>

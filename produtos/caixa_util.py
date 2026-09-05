@@ -15,23 +15,108 @@ FORMAS_PAGAMENTO_CAIXA: tuple[str, ...] = (
     "PIX",
     "Cartão de débito",
     "Cartão de crédito",
-    "Crédito parcelado",
+    "Cartão de crédito parcelado",
     "Fiado",
     "Vale crédito",
     "Cashback",
     "Outro",
 )
 
+# Fechar caixa: ordem fixa de conferência (não reordenar por «com movimento»).
+# Linhas «— Mercado Pago» = Point automático (Centro e Vila). Vale/Cashback/Fiado = bloco oculto auto.
+FORMAS_CONFERENCIA_CAIXA: tuple[str, ...] = (
+    "Dinheiro",
+    "PIX",
+    "Cartão de débito",
+    "Cartão de crédito",
+    "Outro",
+    "Pix — Mercado Pago",
+    "Cartão de débito — Mercado Pago",
+    "Cartão de crédito — Mercado Pago",
+    "Vale crédito",
+    "Cashback",
+    "Fiado",
+)
+
+# Formas que existem no caixa mas não pedem contagem na tela Fechar (legado — Fiado agora entra no bloco auto).
+FORMAS_CONFERENCIA_OCULTAS: frozenset[str] = frozenset()
+
+_FORMAS_SPLIT_MP_CONFERENCIA = frozenset(
+    {"PIX", "Cartão de débito", "Cartão de crédito", "Cartão de crédito parcelado"}
+)
+
+# Point automático Centro (pinpad) + Vila (quando credencial preenchida).
+# Renan / Cielo / Sicredi ficam no balde único.
+_MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS = frozenset({"mp_balcao", "pix_mp_qr"})
+_MAQUININHAS_MP_POINT_AUTO_VILA_IDS = frozenset({"mp_vila", "pix_mp_vila"})
+_MAQUININHAS_MP_POINT_AUTO_IDS = (
+    _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS | _MAQUININHAS_MP_POINT_AUTO_VILA_IDS
+)
+
+FORMAS_MP_POINT_AUTO_CONFERENCIA: frozenset[str] = frozenset(
+    {
+        "Pix — Mercado Pago",
+        "Cartão de débito — Mercado Pago",
+        "Cartão de crédito — Mercado Pago",
+    }
+)
+
+FORMAS_AUTO_OCULTAS_FECHAR: frozenset[str] = frozenset(
+    {
+        "Vale crédito",
+        "Cashback",
+        "Fiado",
+    }
+) | FORMAS_MP_POINT_AUTO_CONFERENCIA
+
+_PAGAMENTO_JSON_META_KEYS = (
+    "maquinaId",
+    "maquina_id",
+    "maquinaNome",
+    "cobrarNoPointMp",
+    "cobrar_no_point_mp",
+    "mpBalcaoModo",
+    "rede",
+    "maquinaRede",
+)
+
+CEDULAS_DENOMINACOES_CAIXA: tuple[dict[str, str], ...] = (
+    {"valor": "200", "label": "R$ 200", "img": "produtos/img/cedulas/nota_200.png", "tipo": "nota"},
+    {"valor": "100", "label": "R$ 100", "img": "produtos/img/cedulas/nota_100.png", "tipo": "nota"},
+    {"valor": "50", "label": "R$ 50", "img": "produtos/img/cedulas/nota_50.png", "tipo": "nota"},
+    {"valor": "20", "label": "R$ 20", "img": "produtos/img/cedulas/nota_20.png", "tipo": "nota"},
+    {"valor": "10", "label": "R$ 10", "img": "produtos/img/cedulas/nota_10.png", "tipo": "nota"},
+    {"valor": "5", "label": "R$ 5", "img": "produtos/img/cedulas/nota_5.png", "tipo": "nota"},
+    {"valor": "2", "label": "R$ 2", "img": "produtos/img/cedulas/nota_2.png", "tipo": "nota"},
+    {"valor": "1", "label": "R$ 1", "img": "produtos/img/cedulas/moeda_1.png", "tipo": "moeda"},
+    {"valor": "0.50", "label": "R$ 0,50", "img": "produtos/img/cedulas/moeda_050.png", "tipo": "moeda"},
+    {"valor": "0.25", "label": "R$ 0,25", "img": "produtos/img/cedulas/moeda_025.png", "tipo": "moeda"},
+    {"valor": "0.10", "label": "R$ 0,10", "img": "produtos/img/cedulas/moeda_010.png", "tipo": "moeda"},
+    {"valor": "0.05", "label": "R$ 0,05", "img": "produtos/img/cedulas/moeda_005.png", "tipo": "moeda"},
+)
+
 _FORMA_ALIASES = {
     "dinheiro": "Dinheiro",
     "pix": "PIX",
+    "cartao": "Cartão de crédito",
+    "cartão": "Cartão de crédito",
     "cartao de debito": "Cartão de débito",
     "cartão de débito": "Cartão de débito",
+    "cartão débito": "Cartão de débito",
     "cartao de credito": "Cartão de crédito",
     "cartão de crédito": "Cartão de crédito",
-    "credito parcelado": "Crédito parcelado",
-    "crédito parcelado": "Crédito parcelado",
+    "cartão crédito": "Cartão de crédito",
+    "cartão credíto": "Cartão de crédito",
+    "cartao credito": "Cartão de crédito",
+    "cartao crédito": "Cartão de crédito",
+    "cartao credíto": "Cartão de crédito",
+    "credito parcelado": "Cartão de crédito parcelado",
+    "crédito parcelado": "Cartão de crédito parcelado",
+    "cartão de crédito parcelado": "Cartão de crédito parcelado",
+    "cartao de credito parcelado": "Cartão de crédito parcelado",
     "fiado": "Fiado",
+    "crédito loja": "Fiado",
+    "credito loja": "Fiado",
     "vale credito": "Vale crédito",
     "vale crédito": "Vale crédito",
     "cashback": "Cashback",
@@ -55,17 +140,103 @@ def normalizar_forma_pagamento_caixa(raw: str) -> str:
     txt = str(raw or "").strip()
     if not txt:
         return "Outro"
+    low_full = txt.lower()
+    if "pix" in low_full or (re.search(r"mercado\s+pago", low_full) and "qr" in low_full):
+        return "PIX"
     base = re.sub(r"\s+\d+x\s*$", "", txt, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Mercado Pago.*$", "", base, flags=re.IGNORECASE).strip()
+    base = re.sub(r"\s*Cielo.*$", "", base, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Sicredi.*$", "", base, flags=re.IGNORECASE).strip()
     base = re.sub(r"\s*Sicoob.*$", "", base, flags=re.IGNORECASE).strip()
     key = base.lower()
     if key in _FORMA_ALIASES:
         return _FORMA_ALIASES[key]
+    try:
+        from produtos.fiado_credito_util import forma_pagamento_erp_fiado_label
+
+        if key == forma_pagamento_erp_fiado_label().lower():
+            return "Fiado"
+    except Exception:
+        pass
     for canon in FORMAS_PAGAMENTO_CAIXA:
         if canon.lower() == key or key.startswith(canon.lower()):
             return canon
     return base[:80] if base else "Outro"
+
+
+def agrupar_forma_para_fechamento_caixa(forma: str) -> str:
+    """No fechar caixa, parcelado entra no mesmo balde que crédito à vista."""
+    fn = normalizar_forma_pagamento_caixa(forma)
+    if fn == "Cartão de crédito parcelado":
+        return "Cartão de crédito"
+    return fn
+
+
+def pagamento_linha_eh_mercado_pago(row: dict) -> bool:
+    """Indica cobrança na maquininha Mercado Pago (Point / Pix MP / Renan / Vila)."""
+    if not isinstance(row, dict):
+        return False
+    if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
+        return True
+    if str(row.get("mpBalcaoModo") or "").strip().lower() == "point":
+        return True
+    mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
+    # Point automático + maquininhas manuais Mercado Pago (ex.: Renan)
+    if mid in ("mp_balcao", "pix_mp_qr", "mp_renan", "pix_mp_renan", "mp_vila", "pix_mp_vila") or mid.startswith(
+        "pix_mp"
+    ):
+        return True
+    if mid.startswith("mp_") and mid not in ("mp_loja",):
+        return True
+    rede = str(row.get("rede") or row.get("maquinaRede") or "").strip().lower()
+    return rede == "mp"
+
+
+def pagamento_linha_eh_mp_point_auto(row: dict) -> bool:
+    """Só Point/Pix automático do PDV (interligado) — não Renan/Cielo/Sicredi manuais.
+
+    Vila (`mp_vila`) só entra no split quando a venda gravou o marcador Point
+    (`cobrarNoPointMp` / `mpBalcaoModo=point`). Sem credencial a máquina continua
+    manual e soma no PIX/cartão comum.
+    """
+    if not isinstance(row, dict):
+        return False
+    mid = str(row.get("maquinaId") or row.get("maquina_id") or "").strip().lower()
+    if mid in _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS:
+        return True
+    if row.get("cobrarNoPointMp") or row.get("cobrar_no_point_mp"):
+        return True
+    if str(row.get("mpBalcaoModo") or "").strip().lower() == "point":
+        return True
+    return False
+
+
+def linha_conferencia_caixa_de_pagamento(forma: str, *, mercado_pago: bool) -> str:
+    """Rótulo na conferência do fechar caixa (Point automático vs demais)."""
+    base = agrupar_forma_para_fechamento_caixa(forma)
+    if mercado_pago and base in _FORMAS_SPLIT_MP_CONFERENCIA:
+        if base == "PIX":
+            return "Pix — Mercado Pago"
+        return f"{base} — Mercado Pago"
+    return base
+
+
+def _forma_e_valor_pagamento_row(row: dict) -> tuple[str, Decimal] | None:
+    """Lê forma e valor de uma linha de pagamentos_json (PDV ou venda salva)."""
+    if not isinstance(row, dict):
+        return None
+    fn = normalizar_forma_pagamento_caixa(
+        str(
+            row.get("formaPagamento")
+            or row.get("forma_pagamento")
+            or row.get("forma")
+            or ""
+        )
+    )
+    vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
+    if vp <= 0:
+        return None
+    return fn, vp
 
 
 def pagamentos_json_de_payload(data: dict | None) -> list[dict]:
@@ -90,8 +261,53 @@ def pagamentos_json_de_payload(data: dict | None) -> list[dict]:
         vp = _dec(row.get("valorPagamento", row.get("valor_pagamento", row.get("valor"))))
         if vp <= 0:
             continue
-        out.append({"forma": fn, "valor": float(vp)})
+        item: dict[str, Any] = {"forma": fn, "valor": float(vp)}
+        for mk in _PAGAMENTO_JSON_META_KEYS:
+            mv = row.get(mk)
+            if mv not in (None, "", False):
+                item[mk] = mv
+        out.append(item)
     return out
+
+
+def pagamentos_por_linha_conferencia_venda(
+    venda,
+    *,
+    vendas_mp_point: set[int] | None = None,
+) -> dict[str, Decimal]:
+    """Totais por linha de conferência (forma + split Mercado Pago)."""
+    totais: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    pj = getattr(venda, "pagamentos_json", None)
+    vid = getattr(venda, "pk", None)
+    fallback_mp = bool(vendas_mp_point and vid is not None and int(vid) in vendas_mp_point)
+
+    if isinstance(pj, list) and pj:
+        for row in pj:
+            if not isinstance(row, dict):
+                continue
+            parsed = _forma_e_valor_pagamento_row(row)
+            if not parsed:
+                continue
+            fn, vp = parsed
+            # Split «— Mercado Pago» só para Point automático (pinpad).
+            eh_mp_auto = pagamento_linha_eh_mp_point_auto(row) or (
+                fallback_mp
+                and len(pj) == 1
+                and fn in _FORMAS_SPLIT_MP_CONFERENCIA
+            )
+            linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=eh_mp_auto)
+            totais[linha] += vp
+        if totais:
+            return dict(totais)
+
+    por_forma = pagamentos_por_forma_venda(venda)
+    if fallback_mp and len(por_forma) == 1:
+        fn = next(iter(por_forma))
+        if fn in _FORMAS_SPLIT_MP_CONFERENCIA:
+            return {
+                linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True): por_forma[fn]
+            }
+    return por_forma
 
 
 def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
@@ -100,10 +316,11 @@ def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
     pj = getattr(venda, "pagamentos_json", None)
     if isinstance(pj, list) and pj:
         for row in pj:
-            if not isinstance(row, dict):
+            parsed = _forma_e_valor_pagamento_row(row)
+            if not parsed:
                 continue
-            fn = normalizar_forma_pagamento_caixa(str(row.get("forma") or ""))
-            totais[fn] += _dec(row.get("valor"))
+            fn, vp = parsed
+            totais[fn] += vp
         if totais:
             return dict(totais)
     forma_txt = str(getattr(venda, "forma_pagamento", "") or "").strip()
@@ -120,56 +337,140 @@ def pagamentos_por_forma_venda(venda) -> dict[str, Decimal]:
     return dict(totais)
 
 
-def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
-    """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
-    totais: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    totais["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
+def eh_movimento_retirada_devolucao(obs: str) -> bool:
+    """Retirada gerada por devolução de venda (obs «Devolução venda #…»)."""
+    o = (obs or "").strip().lower()
+    return o.startswith("devolução venda") or o.startswith("devolucao venda")
 
-    vendas = getattr(sessao, "vendas", None)
-    if vendas is not None:
-        for v in vendas.all():
-            if getattr(v, "devolvida_em", None):
-                continue
-            for fn, val in pagamentos_por_forma_venda(v).items():
-                totais[fn] += val
+
+def _pk_venda_devolucao_obs(obs: str) -> int | None:
+    m = re.search(r"#(\d+)", str(obs or ""))
+    if not m:
+        return None
+    try:
+        return int(m.group(1))
+    except (TypeError, ValueError):
+        return None
+
+
+def linha_retirada_devolucao_conferencia(
+    fn_base: str,
+    venda,
+    *,
+    vendas_mp_point: set[int] | None = None,
+) -> str:
+    """Devolução na mesma forma do Point/Pix MP → linha «— Mercado Pago».
+
+    Sem isso, a retirada cai em PIX/débito/crédito manuais (Cielo etc.) e a
+    maquininha automática fica inflada.
+    """
+    fn = agrupar_forma_para_fechamento_caixa(fn_base)
+    if fn not in _FORMAS_SPLIT_MP_CONFERENCIA:
+        return fn
+    linhas = pagamentos_por_linha_conferencia_venda(
+        venda, vendas_mp_point=vendas_mp_point
+    )
+    mp_linha = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+    if _dec(linhas.get(mp_linha, 0)) > 0:
+        return mp_linha
+    return fn
+
+
+def _agregar_resumo_turno_sessao(sessao) -> tuple[dict[str, Decimal], dict[str, Decimal], dict[str, Decimal], dict[str, Decimal]]:
+    """Uma passagem no turno: esperado, vendas, reforços e retiradas por forma.
+
+    Vendas devolvidas do mesmo turno continuam em «vendas»: o dinheiro entrou na
+    forma original (pinpad / Cielo). A saída conta na retirada da devolução
+    (ex.: dinheiro). Assim, venda no Mercado Pago automático + devolução em
+    dinheiro não tira o valor da maquininha nem deixa o caixa de dinheiro alto.
+    Mesma forma nas duas pontas (FL-017): venda + retirada se anulam.
+    Devolução Point/Pix MP na mesma forma (PIX/débito/crédito) desconta a linha
+    «— Mercado Pago», não as máquinas manuais.
+    """
+    esperado: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    reforco_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
+    esperado["Dinheiro"] += _dec(getattr(sessao, "valor_abertura", 0))
+
+    vendas_list: list = []
+    vendas_mp_point: set[int] = set()
+    vendas_by_pk: dict[int, Any] = {}
+    vendas_rel = getattr(sessao, "vendas", None)
+    if vendas_rel is not None:
+        vendas_list = list(vendas_rel.all())
+        if vendas_list:
+            from produtos.models import PdvMercadoPagoPointOrder
+
+            vendas_mp_point = set(
+                PdvMercadoPagoPointOrder.objects.filter(
+                    venda_id__in=[v.pk for v in vendas_list],
+                    status=PdvMercadoPagoPointOrder.Status.FINALIZED,
+                ).values_list("venda_id", flat=True)
+            )
+        for v in vendas_list:
+            pk = getattr(v, "pk", None)
+            if pk is not None:
+                vendas_by_pk[int(pk)] = v
+            for fn_caixa, val in pagamentos_por_linha_conferencia_venda(
+                v, vendas_mp_point=vendas_mp_point
+            ).items():
+                vendas_por[fn_caixa] += val
+                esperado[fn_caixa] += val
 
     movimentos = getattr(sessao, "movimentos", None)
     if movimentos is not None:
-        for m in movimentos.all():
+        mov_list = list(movimentos.all())
+        for m in mov_list:
             fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
+            obs_m = str(getattr(m, "observacao", "") or "")
+            if m.tipo == "reforco" and "[MP_POINT]" in obs_m:
+                fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+            elif (
+                m.tipo == "retirada"
+                and fn in _FORMAS_SPLIT_MP_CONFERENCIA
+            ):
+                if "[MP_POINT]" in obs_m:
+                    fn = linha_conferencia_caixa_de_pagamento(fn, mercado_pago=True)
+                elif eh_movimento_retirada_devolucao(obs_m):
+                    vp = _pk_venda_devolucao_obs(obs_m)
+                    venda_ref = vendas_by_pk.get(vp) if vp is not None else None
+                    if venda_ref is not None:
+                        fn = linha_retirada_devolucao_conferencia(
+                            fn,
+                            venda_ref,
+                            vendas_mp_point=vendas_mp_point,
+                        )
             val = _dec(m.valor)
             if m.tipo == "reforco":
-                totais[fn] += val
+                reforco_por[fn] += val
+                esperado[fn] += val
             elif m.tipo == "retirada":
-                totais[fn] -= val
+                retirada_por[fn] += val
+                esperado[fn] -= val
 
-    return {k: v.quantize(Decimal("0.01")) for k, v in totais.items() if v != 0 or k in FORMAS_PAGAMENTO_CAIXA}
+    q = lambda d: {k: v.quantize(Decimal("0.01")) for k, v in d.items()}
+    esperado_out = {
+        k: v.quantize(Decimal("0.01"))
+        for k, v in esperado.items()
+        if v != 0 or k in FORMAS_CONFERENCIA_CAIXA
+    }
+    return esperado_out, q(vendas_por), q(reforco_por), q(retirada_por)
+
+
+def resumo_esperado_por_forma(sessao) -> dict[str, Decimal]:
+    """Esperado no turno: abertura (Dinheiro) + vendas + reforços − retiradas."""
+    esperado, _, _, _ = _agregar_resumo_turno_sessao(sessao)
+    return esperado
 
 
 def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
     """Lista ordenada para tela: forma, esperado, vendas, reforços, retiradas."""
-    esperado = resumo_esperado_por_forma(sessao)
-    vendas_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    reforco_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-    retirada_por: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
-
-    for v in sessao.vendas.all():
-        if getattr(v, "devolvida_em", None):
-            continue
-        for fn, val in pagamentos_por_forma_venda(v).items():
-            vendas_por[fn] += val
-
-    for m in sessao.movimentos.all():
-        fn = normalizar_forma_pagamento_caixa(m.forma_pagamento)
-        if m.tipo == "reforco":
-            reforco_por[fn] += _dec(m.valor)
-        else:
-            retirada_por[fn] += _dec(m.valor)
-
-    formas = set(FORMAS_PAGAMENTO_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
+    esperado, vendas_por, reforco_por, retirada_por = _agregar_resumo_turno_sessao(sessao)
+    formas = set(FORMAS_CONFERENCIA_CAIXA) | set(esperado.keys()) | set(vendas_por.keys())
     linhas: list[dict[str, Any]] = []
     abertura = _dec(sessao.valor_abertura)
-    for fn in FORMAS_PAGAMENTO_CAIXA:
+    for fn in FORMAS_CONFERENCIA_CAIXA:
         if fn not in formas and fn != "Dinheiro":
             continue
         esp = esperado.get(fn, Decimal("0"))
@@ -190,7 +491,7 @@ def linhas_resumo_caixa(sessao) -> list[dict[str, Any]]:
                 "abertura_dinheiro": abertura if fn == "Dinheiro" else Decimal("0"),
             }
         )
-    extras = sorted(formas - set(FORMAS_PAGAMENTO_CAIXA))
+    extras = sorted((formas - set(FORMAS_CONFERENCIA_CAIXA)) - FORMAS_CONFERENCIA_OCULTAS)
     for fn in extras:
         linhas.append(
             {
@@ -267,14 +568,20 @@ def linhas_conferencia_agregada(sessoes, *, todas_formas: bool = False) -> list[
 
     out: list[dict[str, Any]] = []
     if todas_formas:
-        for fn in FORMAS_PAGAMENTO_CAIXA:
+        for fn in FORMAS_CONFERENCIA_CAIXA:
             out.append(_row(fn, merged.get(fn)))
-        for fn in sorted(set(merged.keys()) - set(FORMAS_PAGAMENTO_CAIXA)):
+        for fn in sorted(set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)):
+            if fn in FORMAS_CONFERENCIA_OCULTAS:
+                continue
             out.append(_row(fn, merged[fn]))
         return out
 
-    ordem = [fn for fn in FORMAS_PAGAMENTO_CAIXA if fn in merged]
-    ordem.extend(sorted(set(merged.keys()) - set(FORMAS_PAGAMENTO_CAIXA)))
+    ordem = [fn for fn in FORMAS_CONFERENCIA_CAIXA if fn in merged]
+    ordem.extend(
+        sorted(
+            (set(merged.keys()) - set(FORMAS_CONFERENCIA_CAIXA)) - FORMAS_CONFERENCIA_OCULTAS
+        )
+    )
     for fn in ordem:
         out.append(_row(fn, merged[fn]))
     return out
@@ -285,6 +592,44 @@ def usuario_label_sessao_caixa(sessao) -> str:
         return "—"
     u = sessao.usuario
     return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
+
+
+def usuario_fechamento_label_sessao_caixa(sessao) -> str:
+    if not getattr(sessao, "usuario_fechamento_id", None):
+        return ""
+    u = sessao.usuario_fechamento
+    return (u.get_full_name() or "").strip() or u.get_username() or f"#{u.pk}"
+
+
+def rotulo_usuarios_sessao_caixa(sessao) -> str:
+    """Texto curto: abriu / fechou para relatório e conferências."""
+    abriu = usuario_label_sessao_caixa(sessao)
+    fechou = usuario_fechamento_label_sessao_caixa(sessao)
+    if fechou:
+        return f"Abriu: {abriu} · Fechou: {fechou}"
+    return f"Abriu: {abriu}"
+
+
+def linha_diferenca_abertura_sessao(sessao) -> dict[str, Any] | None:
+    """Linha para Conferências quando abertura ≠ sugestão do último fechamento."""
+    sug = getattr(sessao, "valor_abertura_sugerido", None)
+    dif = getattr(sessao, "diferenca_abertura", None)
+    if sug is None or dif is None:
+        return None
+    dif_d = _dec(dif).quantize(Decimal("0.01"))
+    if abs(dif_d) < Decimal("0.01"):
+        return None
+    esp = _dec(sug).quantize(Decimal("0.01"))
+    cont = _dec(getattr(sessao, "valor_abertura", 0)).quantize(Decimal("0.01"))
+    return {
+        "forma": "Abertura · Dinheiro",
+        "esperado": esp,
+        "contado": cont,
+        "diferenca": dif_d,
+        "esperado_str": str(esp),
+        "contado_str": str(cont),
+        "diferenca_str": str(dif_d),
+    }
 
 
 def fmt_linhas_caixa_template(linhas) -> list[dict[str, str]]:
@@ -311,8 +656,83 @@ def linha_conferencia_tem_movimento(linha: dict) -> bool:
     return False
 
 
-def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
+def forma_fechamento_auto_ocultavel(forma: str, *, deposito: str | None = None) -> bool:
+    """Linhas auto-preenchidas e recolhidas no Fechar caixa (por loja)."""
+    fn = str(forma or "").strip()
+    if fn in FORMAS_AUTO_OCULTAS_FECHAR:
+        return True
+    return False
+
+
+def _fmt_moeda_aviso_caixa(val: Decimal) -> str:
+    return f"{_dec(val).quantize(Decimal('0.01')):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def resumo_devolucao_dinheiro_maquina(sessoes) -> dict[str, Any]:
+    """Aviso na contagem: devolução em dinheiro de venda no cartão/Pix (maquininha não muda)."""
+    vazio = {"tem": False, "valor": "0.00", "qtd": 0, "texto": ""}
+    if not sessoes:
+        return vazio
+    movs_cash: list[tuple[int, Decimal]] = []
+    vendas_mem: dict[int, Any] = {}
+    for sessao in sessoes:
+        rel_v = getattr(sessao, "vendas", None)
+        if rel_v is not None:
+            for v in rel_v.all():
+                pk = getattr(v, "pk", None)
+                if pk is not None:
+                    vendas_mem[int(pk)] = v
+        rel_m = getattr(sessao, "movimentos", None)
+        if rel_m is None:
+            continue
+        for m in rel_m.all():
+            if getattr(m, "tipo", None) != "retirada":
+                continue
+            if not eh_movimento_retirada_devolucao(getattr(m, "observacao", None)):
+                continue
+            if normalizar_forma_pagamento_caixa(getattr(m, "forma_pagamento", "")) != "Dinheiro":
+                continue
+            vp = _pk_venda_devolucao_obs(getattr(m, "observacao", None))
+            if vp is None:
+                continue
+            movs_cash.append((vp, _dec(m.valor)))
+    if not movs_cash:
+        return vazio
+    faltando = {pk for pk, _val in movs_cash if pk not in vendas_mem}
+    if faltando:
+        from produtos.models import VendaAgro
+
+        for v in VendaAgro.objects.filter(pk__in=faltando):
+            vendas_mem[int(v.pk)] = v
+    total = Decimal("0")
+    qtd = 0
+    for vp, val in movs_cash:
+        venda = vendas_mem.get(vp)
+        if not venda:
+            continue
+        formas = set(pagamentos_por_linha_conferencia_venda(venda).keys())
+        if not formas or formas <= {"Dinheiro"}:
+            continue
+        total += val
+        qtd += 1
+    if total <= 0 or qtd <= 0:
+        return vazio
+    tot_s = str(total.quantize(Decimal("0.01")))
+    br = _fmt_moeda_aviso_caixa(total)
+    texto = (
+        f"Devolução em dinheiro R$ {br} — conte a gaveta já sem esse valor. "
+        "Cartão/Pix da maquininha não muda."
+    )
+    return {"tem": True, "valor": tot_s, "qtd": qtd, "texto": texto}
+
+
+def serializar_estado_conferencia_fechar(
+    sessoes, *, deposito: str | None = None
+) -> dict[str, Any]:
     """JSON para tela Fechar caixa (valores esperados após reforço/retirada)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
     linhas_todos_raw = linhas_conferencia_agregada(sessoes, todas_formas=True)
     tot_esperado_din = Decimal("0")
     for L in linhas_todos_raw:
@@ -325,6 +745,9 @@ def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
         row = dict(L)
         row["idx"] = i
         row["com_movimento"] = linha_conferencia_tem_movimento(L)
+        auto = forma_fechamento_auto_ocultavel(L["forma"], deposito=dep)
+        row["auto_contado"] = auto
+        row["grupo_oculto"] = auto
         linhas.append(row)
     cards: list[dict[str, Any]] = []
     for c in montar_cards_caixas_abertos(sessoes):
@@ -342,6 +765,8 @@ def serializar_estado_conferencia_fechar(sessoes) -> dict[str, Any]:
         "qtd_caixas": len(sessoes),
         "tot_esperado_dinheiro": str(tot_esperado_din.quantize(Decimal("0.01"))),
         "linhas": linhas,
+        "deposito": dep,
+        "aviso_devolucao_dinheiro": resumo_devolucao_dinheiro_maquina(sessoes),
         "cards": cards,
     }
 
@@ -375,25 +800,29 @@ def montar_cards_caixas_abertos(sessoes) -> list[dict[str, Any]]:
 
 
 def obter_sessao_caixa_aberta_request(request):
-    """Sessão de caixa gravada no cookie de sessão do navegador."""
+    """Sessão de caixa gravada no cookie — só se ainda aberta e da mesma loja do aparelho."""
     from produtos.models import SessaoCaixa
 
     sid = request.session.get("pdv_sessao_caixa_id")
     if not sid:
         return None
     try:
-        return SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
+        sessao = SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
     except Exception:
         request.session.pop("pdv_sessao_caixa_id", None)
         return None
+    if not sessao_caixa_compativel_loja_browser(request, sessao):
+        request.session.pop("pdv_sessao_caixa_id", None)
+        request.session.modified = True
+        return None
+    return sessao
 
 
 def adotar_sessao_caixa_unica_aberta(request):
     """
-    Quando há um único caixa aberto (ou um do usuário logado), associa ao navegador.
-    Evita vendas «sem caixa» quando o turno está aberto mas o cookie de sessão não foi setado.
-    Nunca mistura Caixa Teste com Gaveta/Notebook: adoção respeita o ponto do navegador ou só
-    um turno aberto no sistema.
+    Quando há um único caixa aberto da loja deste aparelho, associa ao navegador.
+    A loja (Centro × Vila) vem do depósito do BI — nunca adota caixa da outra loja
+    mesmo se o cookie do ponto ainda disser «gaveta» no PC da Vila.
     """
     from produtos.models import SessaoCaixa
 
@@ -401,20 +830,13 @@ def adotar_sessao_caixa_unica_aberta(request):
     if atual:
         return atual
     ponto_nav = ponto_operacao_browser(request)
+    dep = deposito_caixa_browser(request)
     qs = SessaoCaixa.objects.filter(fechado_em__isnull=True).order_by("-aberto_em")
     if ponto_nav == PONTO_CAIXA_TESTE:
         qs = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
-    elif ponto_nav in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK):
-        qs = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
     else:
-        qs_op = qs.filter(ponto_caixa=PONTO_CAIXA_GAVETA)
-        qs_te = qs.filter(ponto_caixa=PONTO_CAIXA_TESTE)
-        if qs_op.count() == 1 and qs_te.count() == 0:
-            qs = qs_op
-        elif qs_te.count() == 1 and qs_op.count() == 0:
-            qs = qs_te
-        elif qs.count() != 1:
-            return None
+        # Depósito do aparelho manda: Vila só vê vila; Centro só vê gaveta.
+        qs = qs.filter(ponto_caixa=ponto_pai_de_deposito(dep))
     usuario = getattr(request, "user", None)
     if usuario is not None and getattr(usuario, "is_authenticated", False):
         su = qs.filter(usuario=usuario).first()
@@ -439,46 +861,208 @@ def adotar_sessao_caixa_unica_aberta(request):
 
 MSG_CAIXA_FECHADO_VENDA = "Abra o caixa antes de registrar vendas."
 MSG_CAIXA_PIN_ALHEIO = "Informe seu PIN para gerenciar outro caixa."
+MSG_CAIXA_LOJA_ERRADA = (
+    "Este caixa é de outra loja. Fique na loja certa no BI (Centro ou Vila Elias) "
+    "e use o caixa dessa loja."
+)
+MSG_CAIXA_FECHADO_OPERACAO = "Abra o caixa desta loja antes de continuar."
+
+
+def sessao_caixa_compativel_loja_browser(request, sessao) -> bool:
+    """
+    Turno pode operar neste aparelho?
+    Vila ↔ ponto vila · Centro ↔ gaveta/notebook Centro · Teste ↔ só ponto teste.
+    """
+    if sessao is None:
+        return False
+    ponto = normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None))
+    ponto_nav = ponto_operacao_browser(request)
+    if ponto == PONTO_CAIXA_TESTE:
+        return ponto_nav == PONTO_CAIXA_TESTE
+    return deposito_de_ponto_caixa(ponto) == deposito_caixa_browser(request)
+
+
+def validar_sessao_loja_browser(request, sessao) -> tuple[bool, str]:
+    if not sessao:
+        return False, MSG_CAIXA_FECHADO_OPERACAO
+    if not sessao_caixa_compativel_loja_browser(request, sessao):
+        return False, MSG_CAIXA_LOJA_ERRADA
+    return True, ""
+
+
+def _perfil_usuario_por_pin(pin: str):
+    from base.models import PerfilUsuario
+
+    pin = (pin or "").strip()
+    if not pin or pin == "1234":
+        return None
+    return (
+        PerfilUsuario.objects.filter(senha_rapida=pin, ativo=True)
+        .select_related("user")
+        .only(
+            "pk",
+            "senha_rapida",
+            "codigo_vendedor",
+            "ativo",
+            "user__first_name",
+            "user__last_name",
+            "user__username",
+        )
+        .first()
+    )
 
 
 def validar_pin_operador(pin: str) -> tuple[bool, str]:
     """PIN de operador (``PerfilUsuario.senha_rapida``), mesmo critério do estoque / empréstimo."""
-    from base.models import PerfilUsuario
-
     pin = (pin or "").strip()
     if not pin:
         return False, "Informe o PIN."
     if pin == "1234":
         return False, "Senha padrão (1234) bloqueada. Troque seu PIN."
-    if not PerfilUsuario.objects.filter(senha_rapida=pin).exists():
+    if _perfil_usuario_por_pin(pin) is None:
         return False, "PIN incorreto."
     return True, ""
 
 
 def rotulo_operador_pin(pin: str) -> str:
-    from base.models import PerfilUsuario
-
-    pin = (pin or "").strip()
-    if not pin or pin == "1234":
-        return ""
-    perfil = (
-        PerfilUsuario.objects.filter(senha_rapida=pin)
-        .select_related("user")
-        .first()
-    )
+    perfil = _perfil_usuario_por_pin(pin)
     if not perfil:
         return ""
     u = perfil.user
     return (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
 
 
-def usuario_django_de_pin(pin: str):
+def rotulo_usuario_django(user) -> str:
+    """Nome curto do login Django — nunca prioriza e-mail (evita admin@agro.com na tela)."""
+    if user is None or not getattr(user, "is_authenticated", False):
+        return ""
+    nome = (user.get_full_name() or user.first_name or "").strip()
+    if nome:
+        return nome[:150]
+    un = (user.get_username() if hasattr(user, "get_username") else "").strip()
+    if un:
+        return un[:150]
+    email = (getattr(user, "email", None) or "").strip()
+    if email and "@" in email:
+        return email.split("@", 1)[0].strip()[:150]
+    pk = getattr(user, "pk", None)
+    return str(pk)[:150] if pk is not None else ""
+
+
+MSG_PIN_OPERADOR_OBRIGATORIO = (
+    "Identifique-se com o PIN (modo descanso) antes de continuar."
+)
+
+
+def operador_label_request(request) -> str:
+    """
+    Quem está operando agora — **só** PIN / sessão do PIN.
+
+    Ordem: descanso/PDV (``pdv_operador_nome``) → caixa gerido → ajuste mobile.
+    **Não** usa login do Chrome (evita «Geraldo Hinnen» fantasma).
+    Sem PIN na sessão → string vazia (a ação deve exigir PIN).
+    """
+    if request is None:
+        return ""
+    for key in (
+        "pdv_operador_nome",
+        "pdv_caixa_gerido_operador",
+        "ajuste_mobile_operador",
+    ):
+        try:
+            rot = (request.session.get(key) or "").strip()
+        except Exception:
+            rot = ""
+        if rot:
+            return rot[:120]
+    return ""
+
+
+def normalizar_rotulo_operador_exibicao(raw: str) -> str:
+    """Exibição/export — e-mail vira parte local (admin@agro.com → admin)."""
+    s = (raw or "").strip()
+    if not s:
+        return ""
+    if "@" in s and not s.startswith("@"):
+        local = s.split("@", 1)[0].strip()
+        return local or s
+    return s
+
+
+def cadastrar_pin_operador_primeira_vez(
+    perfil_id: str | int,
+    novo_pin: str,
+    *,
+    bootstrap: str = "",
+) -> tuple[bool, str, str]:
+    """
+    Cadastro inicial de PIN (bootstrap 1234). Grava em PerfilUsuario no servidor.
+    Retorno: (ok, rotulo_operador, erro_usuario).
+    """
     from base.models import PerfilUsuario
 
+    if (bootstrap or "").strip() != "1234":
+        return False, "", "Código inválido."
+    pin_novo = (novo_pin or "").strip()
+    if not pin_novo.isdigit() or len(pin_novo) != 4:
+        return False, "", "O PIN deve ter exatamente 4 dígitos."
+    if pin_novo == "1234":
+        return False, "", "Escolha um PIN diferente de 1234."
+    try:
+        pid = int(perfil_id)
+    except (TypeError, ValueError):
+        return False, "", "Operador inválido."
+    if pid <= 0:
+        return False, "", "Operador inválido."
+
+    perfil = PerfilUsuario.objects.filter(pk=pid).select_related("user").first()
+    if not perfil:
+        return False, "", "Operador não encontrado."
+
+    pin_atual = (getattr(perfil, "senha_rapida", None) or "").strip()
+    if pin_atual and pin_atual != "1234":
+        return False, "", "Este operador já tem PIN. Peça ao RH para alterar."
+
+    if not getattr(perfil, "ativo", True):
+        return False, "", "Operador inativo. Peça ao RH para reativar."
+    if PerfilUsuario.objects.filter(senha_rapida=pin_novo, ativo=True).exclude(pk=perfil.pk).exists():
+        return False, "", "Este PIN já está em uso. Escolha outro."
+
+    perfil.senha_rapida = pin_novo
+    perfil.primeiro_acesso = False
+    perfil.save(update_fields=["senha_rapida", "primeiro_acesso"])
+
+    rot = rotulo_operador_pin(pin_novo)
+    if not rot:
+        u = perfil.user
+        rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    if not rot:
+        return False, "", "PIN salvo, mas sem nome no cadastro."
+    return True, rot[:150], ""
+
+
+def operador_label_de_pin(pin: str) -> tuple[bool, str, str]:
+    """
+    Valida PIN (PerfilUsuario.senha_rapida) e devolve rótulo do operador.
+    Retorno: (ok, label, erro_usuario).
+    """
     pin = (pin or "").strip()
     if not pin:
-        return None
-    perfil = PerfilUsuario.objects.filter(senha_rapida=pin).select_related("user").first()
+        return False, "", "Informe o PIN."
+    if pin == "1234":
+        return False, "", "Senha padrão (1234) bloqueada. Troque seu PIN."
+    perfil = _perfil_usuario_por_pin(pin)
+    if perfil is None:
+        return False, "", "PIN incorreto."
+    u = perfil.user
+    rot = (u.get_full_name() or u.first_name or u.username or perfil.codigo_vendedor or "").strip()
+    if not rot:
+        return False, "", "PIN não vinculado a um operador."
+    return True, rot[:150], ""
+
+
+def usuario_django_de_pin(pin: str):
+    perfil = _perfil_usuario_por_pin(pin)
     return perfil.user if perfil else None
 
 
@@ -521,21 +1105,93 @@ def qtd_caixas_abertos() -> int:
 PONTO_CAIXA_GAVETA = "gaveta"
 PONTO_CAIXA_NOTEBOOK = "notebook"
 PONTO_CAIXA_TESTE = "teste"
+PONTO_CAIXA_VILA = "vila"
 
 PONTOS_CAIXA_ABERTURA: tuple[tuple[str, str], ...] = (
-    (PONTO_CAIXA_GAVETA, "Caixa Gaveta"),
+    (PONTO_CAIXA_GAVETA, "Caixa Gaveta (Centro)"),
+    (PONTO_CAIXA_VILA, "Caixa Vila Elias"),
     (PONTO_CAIXA_NOTEBOOK, "Caixa Notebook"),
     (PONTO_CAIXA_TESTE, "Caixa Teste"),
 )
 
+# Pontos “pai” (turno próprio) por loja física
+PONTOS_CAIXA_PAI = frozenset({PONTO_CAIXA_GAVETA, PONTO_CAIXA_VILA})
+
 SESSION_PONTO_OPERACAO_KEY = "pdv_ponto_operacao"
+SESSION_MP_POINT_HOST_KEY = "pdv_mp_point_host"
 
 
 def normalizar_ponto_caixa(valor: str | None) -> str:
     v = (valor or "").strip().lower()
-    if v in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK, PONTO_CAIXA_TESTE):
+    if v in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_NOTEBOOK, PONTO_CAIXA_TESTE, PONTO_CAIXA_VILA):
         return v
     return PONTO_CAIXA_GAVETA
+
+
+def deposito_de_ponto_caixa(ponto: str | None) -> str:
+    """centro | vila — notebook/teste/gaveta → centro; vila → vila."""
+    p = normalizar_ponto_caixa(ponto)
+    if p == PONTO_CAIXA_VILA:
+        return "vila"
+    return "centro"
+
+
+def ponto_pai_de_deposito(deposito: str | None) -> str:
+    """Depósito operacional → ponto pai do caixa (gaveta Centro ou Vila Elias)."""
+    d = str(deposito or "").strip().lower()
+    if d == "vila":
+        return PONTO_CAIXA_VILA
+    return PONTO_CAIXA_GAVETA
+
+
+def deposito_caixa_browser(request) -> str:
+    """Depósito da loja neste aparelho (mesmo seletor do PDV)."""
+    try:
+        from produtos.pdv_deposito_util import resolver_deposito_request
+
+        return resolver_deposito_request(request)
+    except Exception:
+        return "centro"
+
+
+def deposito_operacional_sessao_caixa(request, sessao=None) -> str:
+    """centro|vila da saída: ponto Vila/Gaveta tem prioridade; notebook/teste usam o seletor do aparelho."""
+    ponto = ""
+    if sessao is not None:
+        ponto = str(getattr(sessao, "ponto_caixa", "") or "").strip().lower()
+    if ponto == PONTO_CAIXA_VILA:
+        return "vila"
+    if ponto == PONTO_CAIXA_GAVETA:
+        return "centro"
+    return deposito_caixa_browser(request)
+
+
+def empresa_nome_saida_caixa(deposito: str | None = None) -> str:
+    """Nome fantasia gravado no financeiro na saída/retirada (Centro × Vila)."""
+    from django.conf import settings
+
+    d = str(deposito or "").strip().lower()
+    if d == "vila":
+        return (
+            (getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_VILA", "") or "")
+            .strip()
+            or "Agro Mais Vila Elias"
+        )
+    return (
+        (getattr(settings, "AGRO_SAIDA_CAIXA_EMPRESA_PADRAO", "") or "")
+        .strip()
+        or "Agro Mais Centro"
+    )
+
+
+def sincronizar_deposito_com_ponto_caixa(request, ponto: str) -> None:
+    """Ao abrir caixa, alinha o seletor de loja do PDV com o ponto aberto."""
+    try:
+        from produtos.pdv_deposito_util import gravar_deposito_request
+
+        gravar_deposito_request(request, deposito_de_ponto_caixa(ponto))
+    except Exception:
+        pass
 
 
 def rotulo_ponto_caixa(ponto: str | None) -> str:
@@ -586,13 +1242,28 @@ def formatar_opcao_sessao_caixa(row: dict) -> str:
 
 
 def obter_caixa_gaveta_aberto():
-    """Turno principal da loja (gaveta), obrigatório antes do notebook."""
+    """Turno principal do Centro (gaveta)."""
     from produtos.models import SessaoCaixa
 
     return (
         SessaoCaixa.objects.filter(
             fechado_em__isnull=True,
             ponto_caixa=PONTO_CAIXA_GAVETA,
+        )
+        .select_related("usuario")
+        .order_by("aberto_em")
+        .first()
+    )
+
+
+def obter_caixa_vila_aberto():
+    """Turno principal da Vila Elias."""
+    from produtos.models import SessaoCaixa
+
+    return (
+        SessaoCaixa.objects.filter(
+            fechado_em__isnull=True,
+            ponto_caixa=PONTO_CAIXA_VILA,
         )
         .select_related("usuario")
         .order_by("aberto_em")
@@ -615,12 +1286,16 @@ def obter_caixa_teste_aberto():
 
 
 def sessao_caixa_e_operacional(sessao) -> bool:
-    """Turno da loja (gaveta; notebook usa o PK da gaveta no navegador)."""
+    """Turno de loja (gaveta Centro, Vila Elias; notebook satélite). Não inclui teste."""
     return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) != PONTO_CAIXA_TESTE
 
 
 def sessao_caixa_e_teste(sessao) -> bool:
     return normalizar_ponto_caixa(getattr(sessao, "ponto_caixa", None)) == PONTO_CAIXA_TESTE
+
+
+def sessao_caixa_grupo_deposito(sessao) -> str:
+    return deposito_de_ponto_caixa(getattr(sessao, "ponto_caixa", None))
 
 
 def filtrar_sessoes_operacional(sessoes) -> list:
@@ -631,11 +1306,25 @@ def filtrar_sessoes_teste(sessoes) -> list:
     return [s for s in sessoes if sessao_caixa_e_teste(s)]
 
 
+def filtrar_sessoes_por_deposito(sessoes, deposito: str | None) -> list:
+    """Só turnos pai do depósito (gaveta ou vila) — notebook não cria sessão própria."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    pai = ponto_pai_de_deposito(dep)
+    out = []
+    for s in sessoes or []:
+        p = normalizar_ponto_caixa(getattr(s, "ponto_caixa", None))
+        if p == pai:
+            out.append(s)
+    return out
+
+
 def qtd_caixas_operacional_abertos() -> int:
     from produtos.models import SessaoCaixa
 
     return SessaoCaixa.objects.filter(
-        fechado_em__isnull=True, ponto_caixa=PONTO_CAIXA_GAVETA
+        fechado_em__isnull=True, ponto_caixa__in=list(PONTOS_CAIXA_PAI)
     ).count()
 
 
@@ -647,8 +1336,11 @@ def qtd_caixas_teste_abertos() -> int:
     ).count()
 
 
-def obter_caixa_pai_aberto():
-    """Caixa principal operacional (Caixa Gaveta aberto)."""
+def obter_caixa_pai_aberto(deposito: str | None = None):
+    """Caixa principal do depósito (gaveta Centro ou Vila Elias)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep == "vila":
+        return obter_caixa_vila_aberto()
     return obter_caixa_gaveta_aberto()
 
 
@@ -657,6 +1349,90 @@ def ponto_operacao_browser(request) -> str:
         return normalizar_ponto_caixa(request.session.get(SESSION_PONTO_OPERACAO_KEY))
     except Exception:
         return PONTO_CAIXA_GAVETA
+
+
+def mp_point_host_conta(request) -> str | None:
+    """Conta Point deste navegador: centro | vila | None. Legado: sessão ``1`` = centro."""
+    v = str(request.session.get(SESSION_MP_POINT_HOST_KEY) or "").strip().lower()
+    if v in ("1", "centro", "teste"):
+        return "centro"
+    if v == "vila":
+        return "vila"
+    return None
+
+
+def navegador_pode_mp_point_automatico(request, conta: str | None = None) -> bool:
+    """
+    Point só no PC que abriu o caixa pai daquela loja (Gaveta Centro / Vila / Teste).
+    Notebook não manda cobrança automática (evita aparelho errado).
+    """
+    host = mp_point_host_conta(request)
+    if not host:
+        return False
+    ponto = ponto_operacao_browser(request)
+    if host == "centro":
+        if ponto not in (PONTO_CAIXA_GAVETA, PONTO_CAIXA_TESTE):
+            return False
+        if conta and str(conta).strip().lower() not in ("", "centro"):
+            return False
+        return True
+    if host == "vila":
+        if ponto != PONTO_CAIXA_VILA:
+            return False
+        if conta and str(conta).strip().lower() not in ("", "vila"):
+            return False
+        return True
+    return False
+
+
+def marcar_navegador_host_mp_point(request, conta: str = "centro") -> None:
+    """Marca este navegador como host da maquininha MP (abertura Gaveta Centro / Vila / Teste)."""
+    c = str(conta or "centro").strip().lower()
+    request.session[SESSION_MP_POINT_HOST_KEY] = "vila" if c == "vila" else "centro"
+    request.session.modified = True
+
+
+def limpar_navegador_host_mp_point(request) -> None:
+    if SESSION_MP_POINT_HOST_KEY in request.session:
+        del request.session[SESSION_MP_POINT_HOST_KEY]
+        request.session.modified = True
+
+
+# Só Point/Pix automático Centro — Vila entra na lista só se a conta Vila não estiver ligada.
+# (constantes canônicas no topo: _MAQUININHAS_MP_POINT_AUTO_* )
+
+
+def filtrar_maquininhas_pdv_sem_mp(maquininhas: list | None, ids: frozenset | None = None) -> list:
+    """Remove opções MP automático (notebook / 2º computador / conta desligada)."""
+    drop = ids if ids is not None else _MAQUININHAS_MP_POINT_AUTO_CENTRO_IDS
+    out: list = []
+    for m in maquininhas or []:
+        if not isinstance(m, dict):
+            continue
+        mid = str(m.get("id") or "").strip().lower()
+        if mid in drop:
+            continue
+        out.append(m)
+    return out
+
+
+def filtrar_maquininhas_por_loja(maquininhas: list | None, deposito: str | None) -> list:
+    """Mantém só máquinas da loja (centro|vila). Sem campo ``lojas`` = todas (legado)."""
+    dep = str(deposito or "centro").strip().lower()
+    if dep not in ("centro", "vila"):
+        dep = "centro"
+    out: list = []
+    for m in maquininhas or []:
+        if not isinstance(m, dict):
+            continue
+        lojas = m.get("lojas")
+        if not lojas:
+            out.append(m)
+            continue
+        allowed = {str(x).strip().lower() for x in lojas if str(x).strip()}
+        if dep in allowed:
+            out.append(m)
+    return out
 
 
 def definir_ponto_operacao_browser(request, ponto: str, sessao_id: int | None = None) -> None:
@@ -670,6 +1446,19 @@ def limpar_ponto_operacao_browser(request) -> None:
     if SESSION_PONTO_OPERACAO_KEY in request.session:
         del request.session[SESSION_PONTO_OPERACAO_KEY]
         request.session.modified = True
+    limpar_navegador_host_mp_point(request)
+
+
+def rotulo_caixa_loja_fixo(ponto: str | None) -> str:
+    """Nome fixo da loja no PDV — sem número do turno (muda todo dia)."""
+    p = normalizar_ponto_caixa(ponto)
+    if p == PONTO_CAIXA_VILA:
+        return "Caixa Vila Elias"
+    if p == PONTO_CAIXA_TESTE:
+        return "Caixa Teste"
+    if p == PONTO_CAIXA_NOTEBOOK:
+        return "Caixa Notebook"
+    return "Caixa Centro"
 
 
 def rotulo_caixa_browser(request, sessao=None) -> str:
@@ -681,21 +1470,17 @@ def rotulo_caixa_browser(request, sessao=None) -> str:
         return "Caixa fechado"
     ponto_nav = ponto_operacao_browser(request)
     if ponto_nav == PONTO_CAIXA_NOTEBOOK:
-        gaveta = sessao
-        if isinstance(sessao, SessaoCaixa) and sessao.ponto_caixa != PONTO_CAIXA_GAVETA:
-            gaveta = obter_caixa_gaveta_aberto() or sessao
-        pk = getattr(gaveta, "pk", sessao.pk)
-        return f"Caixa Notebook · Gaveta #{pk}"
-    rotulo = rotulo_ponto_caixa(getattr(sessao, "ponto_caixa", None) or ponto_nav)
-    return f"{rotulo} #{sessao.pk}"
+        return "Caixa Notebook"
+    return rotulo_caixa_loja_fixo(getattr(sessao, "ponto_caixa", None) or ponto_nav)
 
 
 def resolver_sessao_caixa_operacao(
     request, data: dict | None = None, *, permitir_adotar_unico: bool = True
 ) -> tuple[Any | None, str | None, int]:
     """
-  Sessão para movimentos no caixa: turno deste navegador ou outro turno aberto com PIN.
-  Retorna (sessao, mensagem_erro, status_http).
+    Sessão para movimentos no caixa: turno deste navegador (mesma loja) ou outro
+    turno aberto da **mesma loja** com PIN. Nunca Centro↔Vila cruzado.
+    Retorna (sessao, mensagem_erro, status_http).
     """
     data = data if isinstance(data, dict) else {}
     pin = str(data.get("pin") or "").strip()
@@ -713,6 +1498,9 @@ def resolver_sessao_caixa_operacao(
         alvo = obter_sessao_caixa_aberta_por_id(sid)
         if not alvo:
             return None, "Caixa não encontrado ou já fechado.", 400
+        ok_loja, err_loja = validar_sessao_loja_browser(request, alvo)
+        if not ok_loja:
+            return None, err_loja, 403
         if local and int(local.pk) == sid:
             return local, None, 200
         ok, err = validar_pin_operador(pin)
@@ -726,7 +1514,7 @@ def resolver_sessao_caixa_operacao(
         adotado = adotar_sessao_caixa_unica_aberta(request)
         if adotado:
             return adotado, None, 200
-    return None, "Nenhum caixa aberto neste navegador.", 400
+    return None, MSG_CAIXA_FECHADO_OPERACAO, 400
 
 
 def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
@@ -738,34 +1526,50 @@ def exigir_pin_gerir_caixa(request, sessao, pin: str) -> tuple[bool, str]:
 
 def rotulo_usuario_registro_venda(request, data: dict | None = None) -> str:
     """
-    Rótulo do vendedor/operador na venda Agro: operador do PDV (descanso/PIN),
-    não o login Django (ex.: admin).
+    Rótulo do vendedor/operador na venda Agro: **só** PIN fresco.
+
+    Ordem: PIN no payload → sessão com identidade ainda válida (~45s).
+    **Não** usa login Chrome nem nome mandado pelo navegador sem PIN validado.
+    Mouse/consulta **não** estendem o frescor.
     """
     data = data if isinstance(data, dict) else {}
-    for key in ("operador_pdv", "operador", "operador_nome", "vendedor"):
-        val = str(data.get(key) or "").strip()
-        if val:
-            return val[:150]
     pin = str(data.get("pin") or data.get("pin_operador") or "").strip()
     if pin:
+        from produtos.pdv_transf_loja_util import gravar_operador_sessao_pdv
+
+        ok, label, _user, _err = gravar_operador_sessao_pdv(request, pin)
+        if ok and label:
+            return label[:150]
         rot = rotulo_operador_pin(pin)
         if rot:
             return rot[:150]
+        return ""
     try:
-        sess_op = str(request.session.get("pdv_operador_nome") or "").strip()
+        from produtos.pdv_transf_loja_util import (
+            operador_pdv_esta_fresco,
+            renovar_operador_pdv_fresco,
+        )
+
+        if operador_pdv_esta_fresco(request):
+            rot = (operador_label_request(request) or "").strip()
+            if rot:
+                renovar_operador_pdv_fresco(request)
+                return rot[:150]
     except Exception:
-        sess_op = ""
-    if sess_op:
-        return sess_op[:150]
-    u = getattr(request, "user", None)
-    if u is not None and getattr(u, "is_authenticated", False):
-        nome = (u.get_full_name() or u.first_name or "").strip()
-        if nome:
-            return nome[:150]
-        un = (u.get_username() if hasattr(u, "get_username") else str(u.pk)).strip()
-        if un and un.lower() not in ("admin", "administrator", "root"):
-            return un[:150]
+        pass
     return ""
+
+
+def exigir_operador_pin_request(
+    request, data: dict | None = None
+) -> tuple[str, str]:
+    """
+    Retorno: ``(rotulo, erro)``. Se sem PIN fresco → rotulo vazio + mensagem para a UI.
+    """
+    rot = (rotulo_usuario_registro_venda(request, data) or "").strip()
+    if rot:
+        return rot[:150], ""
+    return "", MSG_PIN_OPERADOR_OBRIGATORIO
 
 
 class SessaoCaixaObrigatoriaError(Exception):
@@ -773,6 +1577,13 @@ class SessaoCaixaObrigatoriaError(Exception):
 
     def __init__(self, mensagem: str | None = None):
         super().__init__(mensagem or MSG_CAIXA_FECHADO_VENDA)
+
+
+class PinOperadorObrigatorioError(Exception):
+    """Ação operacional sem PIN do operador na sessão."""
+
+    def __init__(self, mensagem: str | None = None):
+        super().__init__(mensagem or MSG_PIN_OPERADOR_OBRIGATORIO)
 
 
 def exigir_sessao_caixa_para_venda(request, data: dict | None = None):
@@ -785,40 +1596,21 @@ def exigir_sessao_caixa_para_venda(request, data: dict | None = None):
 
 def resolver_sessao_caixa_para_venda(request, data: dict | None = None):
     """
-    Vincula venda ao caixa: sessão do navegador → id enviado pelo PDV → único caixa aberto.
+    Vincula venda ao caixa do aparelho: sessão do navegador → único caixa aberto da loja.
+    Não aceita ``sessao_caixa_id`` solto do cliente (evita bater na loja errada).
     """
-    from produtos.models import SessaoCaixa
-
     sessao = obter_sessao_caixa_aberta_request(request)
     if sessao:
         return sessao
-    raw_id = None
-    if isinstance(data, dict):
-        raw_id = data.get("sessao_caixa_id") or data.get("sessaoCaixaId")
-    if raw_id is not None and str(raw_id).strip() != "":
-        try:
-            sid = int(raw_id)
-        except (TypeError, ValueError):
-            sid = 0
-        if sid > 0:
-            sessao = SessaoCaixa.objects.filter(pk=sid, fechado_em__isnull=True).first()
-            if sessao:
-                request.session["pdv_sessao_caixa_id"] = sessao.pk
-                request.session.modified = True
-                return sessao
     return adotar_sessao_caixa_unica_aberta(request)
 
 
 def registrar_retirada_turno_caixa(request, *, valor, forma_nome: str, observacao: str = ""):
     """Após saída financeira (plano de conta), registra retirada na sessão aberta."""
-    from produtos.models import MovimentoCaixa, SessaoCaixa
+    from produtos.models import MovimentoCaixa
 
-    sid = request.session.get("pdv_sessao_caixa_id")
-    if not sid:
-        return None
-    try:
-        sessao = SessaoCaixa.objects.get(pk=int(sid), fechado_em__isnull=True)
-    except Exception:
+    sessao = obter_sessao_caixa_aberta_request(request)
+    if not sessao:
         return None
     v = _dec(valor)
     if v <= 0:
@@ -994,7 +1786,7 @@ def normalizar_pagamentos_devolucao(
     *,
     total_venda: Decimal,
 ) -> tuple[list[dict[str, Any]] | None, str | None]:
-    """Valida pagamentos informados na devolução; soma deve bater com o total da venda."""
+    """Valida pagamentos informados na devolução; soma deve bater com o total esperado."""
     if not isinstance(raw_list, list) or not raw_list:
         return None, "Informe ao menos uma forma de pagamento para devolver."
     merged: dict[str, Decimal] = defaultdict(lambda: Decimal("0"))
@@ -1010,13 +1802,236 @@ def normalizar_pagamentos_devolucao(
         return None, "Nenhum valor válido nas formas de pagamento."
     soma = sum(merged.values(), Decimal("0")).quantize(Decimal("0.01"))
     tot = _dec(total_venda).quantize(Decimal("0.01"))
-    if abs(soma - tot) > Decimal("0.02"):
+    if abs(soma - tot) > Decimal("0.009"):
         return (
             None,
-            f"A soma devolvida (R$ {soma}) deve ser igual ao total da venda (R$ {tot}).",
+            f"A soma devolvida (R$ {soma}) deve ser igual ao total a devolver (R$ {tot}). "
+            "Não pode sobrar nem faltar centavo.",
         )
     out = [
         {"forma": fn, "valor": float(v.quantize(Decimal("0.01")))}
         for fn, v in merged.items()
     ]
     return out, None
+
+
+def listar_fiado_vendas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
+    """Vendas fiado do turno (uma linha por pedido) para conferência no fechamento."""
+    from produtos.fiado_credito_util import valor_fiado_venda_local, venda_local_tem_fiado
+    from produtos.fiado_gestao_util import criar_titulos_de_venda
+    from produtos.models import FiadoTituloAgro, VendaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    if not ids:
+        return []
+    vendas_qs = (
+        VendaAgro.objects.filter(
+            sessao_caixa_id__in=ids,
+            devolvida_em__isnull=True,
+            fiado_nota_caixa_conferida_em__isnull=True,
+        )
+        .select_related("sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    out: list[dict[str, Any]] = []
+    vistos: set[int] = set()
+    for venda in vendas_qs:
+        if not venda_local_tem_fiado(venda):
+            continue
+        valor = valor_fiado_venda_local(venda)
+        if valor <= 0 or venda.pk in vistos:
+            continue
+        try:
+            criar_titulos_de_venda(venda)
+        except Exception:
+            pass
+        vistos.add(venda.pk)
+        titulo = (
+            FiadoTituloAgro.objects.filter(
+                venda_agro=venda,
+                origem=FiadoTituloAgro.Origem.PDV,
+            )
+            .order_by("pk")
+            .first()
+        )
+        nome = (
+            (titulo.cliente_nome if titulo else "")
+            or getattr(venda, "cliente_nome", "")
+            or ""
+        ).strip() or "Cliente"
+        sessao = getattr(venda, "sessao_caixa", None)
+        out.append(
+            {
+                "id": venda.pk,
+                "cliente_nome": nome,
+                "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    titulos = (
+        FiadoTituloAgro.objects.filter(
+            origem=FiadoTituloAgro.Origem.PDV,
+            venda_agro__sessao_caixa_id__in=ids,
+            venda_agro__devolvida_em__isnull=True,
+            venda_agro__fiado_nota_caixa_conferida_em__isnull=True,
+        )
+        .select_related("venda_agro", "venda_agro__sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    for titulo in titulos:
+        venda = titulo.venda_agro
+        if not venda or venda.pk in vistos:
+            continue
+        if getattr(venda, "fiado_nota_caixa_conferida_em", None):
+            continue
+        valor = valor_fiado_venda_local(venda)
+        if valor <= 0:
+            valor = _dec(titulo.valor_bruto)
+        if valor <= 0:
+            continue
+        vistos.add(venda.pk)
+        sessao = getattr(venda, "sessao_caixa", None)
+        nome = (titulo.cliente_nome or venda.cliente_nome or "Cliente").strip() or "Cliente"
+        out.append(
+            {
+                "id": venda.pk,
+                "cliente_nome": nome,
+                "valor": str(valor.quantize(Decimal("0.01"))),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    return out
+
+
+def listar_fiado_baixas_conferencia_caixa(sessoes) -> list[dict[str, Any]]:
+    """Baixas de fiado recebidas no turno — conferir retirada da nota da caixa de fiados."""
+    from django.db.models import Q
+
+    from produtos.models import FiadoBaixaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    if not ids:
+        return []
+    baixas = (
+        FiadoBaixaAgro.objects.filter(
+            Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids),
+            fiado_nota_caixa_conferida_em__isnull=True,
+        )
+        .select_related("titulo", "sessao_caixa", "movimento_caixa__sessao_caixa")
+        .order_by("criado_em", "pk")
+    )
+    out: list[dict[str, Any]] = []
+    for baixa in baixas:
+        nome = ""
+        if baixa.titulo_id and baixa.titulo:
+            nome = (baixa.titulo.cliente_nome or "").strip()
+        sessao = baixa.sessao_caixa
+        if not sessao and baixa.movimento_caixa_id and baixa.movimento_caixa:
+            sessao = baixa.movimento_caixa.sessao_caixa
+        out.append(
+            {
+                "id": baixa.pk,
+                "cliente_nome": nome or "Cliente",
+                "valor": str(_dec(baixa.valor)),
+                "sessao_label": rotulo_sessao_caixa(sessao) if sessao else "—",
+                "operacional": sessao_caixa_e_operacional(sessao) if sessao else True,
+            }
+        )
+    return out
+
+
+def fiado_conferencia_operacional(
+    vendas: list[dict[str, Any]],
+    baixas: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Itens obrigatórios no fechamento da loja (exclui Caixa Teste)."""
+    v = [row for row in vendas if row.get("operacional", True)]
+    b = [row for row in baixas if row.get("operacional", True)]
+    return v, b
+
+
+def validar_conferencia_fiado_caixa(
+    post,
+    vendas_fiado: list[dict[str, Any]],
+    baixas_fiado: list[dict[str, Any]],
+) -> str | None:
+    pulou_vendas = (post.get("fiado_vendas_pulado") or "").strip() == "1"
+    pulou_baixas = (post.get("fiado_baixas_pulado") or "").strip() == "1"
+
+    if vendas_fiado and not pulou_vendas:
+        for row in vendas_fiado:
+            key = f"fiado_assinado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota fiado de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) está assinada e guardada."
+                )
+    elif vendas_fiado and pulou_vendas:
+        pin = (post.get("fiado_vendas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de vendas fiado."
+
+    if baixas_fiado and not pulou_baixas:
+        for row in baixas_fiado:
+            key = f"fiado_retirado_{row['id']}"
+            if not (post.get(key) or "").strip():
+                return (
+                    f"Marque que a nota paga de {row['cliente_nome']} "
+                    f"(R$ {row['valor']}) foi retirada da caixa de fiados."
+                )
+    elif baixas_fiado and pulou_baixas:
+        pin = (post.get("fiado_baixas_pulo_pin") or post.get("pin") or "").strip()
+        ok, err = validar_pin_operador(pin)
+        if not ok:
+            return err or "Informe PIN válido para pular a conferência de pagamentos fiado."
+    return None
+
+
+def _ids_int(raw) -> list[int]:
+    out: list[int] = []
+    for x in raw or []:
+        try:
+            n = int(x)
+        except (TypeError, ValueError):
+            continue
+        if n > 0:
+            out.append(n)
+    return out[:200]
+
+
+def marcar_fiado_conferencia_caixa(
+    sessoes,
+    venda_ids: list[int] | None = None,
+    baixa_ids: list[int] | None = None,
+) -> dict[str, int]:
+    """Grava conferência da caixinha no Postgres — só itens do turno aberto."""
+    from django.db.models import Q
+
+    from produtos.models import FiadoBaixaAgro, VendaAgro
+
+    ids = [int(s.pk) for s in sessoes if getattr(s, "pk", None)]
+    agora = timezone.now()
+    n_v = 0
+    n_b = 0
+    v_ids = _ids_int(venda_ids)
+    b_ids = _ids_int(baixa_ids)
+    if ids and v_ids:
+        n_v = int(
+            VendaAgro.objects.filter(
+                pk__in=v_ids,
+                sessao_caixa_id__in=ids,
+                fiado_nota_caixa_conferida_em__isnull=True,
+            ).update(fiado_nota_caixa_conferida_em=agora)
+        )
+    if ids and b_ids:
+        n_b = int(
+            FiadoBaixaAgro.objects.filter(
+                Q(sessao_caixa_id__in=ids) | Q(movimento_caixa__sessao_caixa_id__in=ids),
+                pk__in=b_ids,
+                fiado_nota_caixa_conferida_em__isnull=True,
+            ).update(fiado_nota_caixa_conferida_em=agora)
+        )
+    return {"vendas": n_v, "baixas": n_b}

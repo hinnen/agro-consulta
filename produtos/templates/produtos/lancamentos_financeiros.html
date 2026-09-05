@@ -189,9 +189,9 @@
       <nav class="flex flex-wrap items-center gap-1.5 shrink-0 justify-end" aria-label="Atalhos do módulo">
         <a href="{% url 'lancamentos_financeiros' %}" data-prefetch class="gm-lanc-nav-link" title="Escolher contas a pagar ou receber">Lançamentos</a>
         <a href="{% url 'resumo_financeiro_gerencial' %}" data-prefetch class="gm-lanc-nav-link" title="DRE gerencial">Resumo gerencial</a>
-        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo (Postgres)">Indicadores</a>
+        <a href="{% url 'dashboard_financeiro_completo' %}" data-prefetch class="gm-lanc-nav-link" title="Indicadores, comparativo e fluxo">Indicadores</a>
         <a href="{% url 'lancamentos_fluxo_calendario' %}" data-prefetch class="gm-lanc-nav-link">Calendário</a>
-        <a href="{% url 'lancamentos_manual' %}" data-prefetch class="gm-lanc-nav-link gm-lanc-nav-accent">Manual (lote)</a>
+        <button type="button" data-agro-nova-saida-open data-tipo="pagar" class="gm-lanc-nav-link gm-lanc-nav-accent cursor-pointer" title="Novo lançamento de saída (despesa)">Nova saída</button>
         {% if lancamentos_dre_ativo %}
         <a href="{% url 'lancamentos_dre' %}" data-prefetch class="gm-lanc-nav-link" title="DRE por plano">DRE</a>
         {% endif %}
@@ -244,7 +244,7 @@
       <button type="button" id="btn-open-modal-ferramentas" class="flex-none shrink-0 min-h-[44px] min-w-[4.75rem] px-2.5 sm:px-3 py-2 rounded-xl border border-emerald-600 bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-emerald-700 transition-colors text-center" title="CSV, Excel, PDF, WhatsApp, favoritos">Exportar</button>
       {% if modo_contas == 'pagar' %}
       <a href="/lancamentos/contas-pagar/calendario/" data-prefetch class="flex-none shrink-0 min-h-[44px] px-3 sm:px-4 py-2 rounded-xl border-2 border-sky-500 bg-sky-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-sky-700 shadow-md transition-colors text-center" title="Calendário mensal · total a pagar por vencimento">Calendário</a>
-      <a href="/lancamentos/contas-pagar/teste/" data-prefetch class="flex-none shrink-0 min-h-[44px] px-3 sm:px-4 py-2 rounded-xl border-2 border-violet-500 bg-violet-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-violet-700 shadow-md transition-colors text-center" title="Abrir o novo layout de contas a pagar (teste)">Novo layout</a>
+      <a href="{% url 'lancamentos_contas_pagar' %}" id="link-layout-novo-pagar" data-prefetch class="flex-none shrink-0 min-h-[44px] px-3 sm:px-4 py-2 rounded-xl border-2 border-violet-500 bg-violet-600 text-white font-black text-[10px] sm:text-[11px] uppercase hover:bg-violet-700 shadow-md transition-colors text-center" title="Abrir contas a pagar">Contas a pagar</a>
       {% endif %}
     </section>
 
@@ -564,6 +564,21 @@
             <kbd class="gm-kbd border border-white/25 bg-white/10 text-white">F9</kbd>
           </button>
         </div>
+        {% if lancamentos_pre_corte_admin %}
+        <details class="rounded-xl border-2 border-amber-400 bg-amber-50/90 group">
+          <summary class="cursor-pointer list-none px-3 py-2.5 flex items-center justify-between gap-2 select-none [&::-webkit-details-marker]:hidden">
+            <span class="text-[11px] font-black uppercase text-amber-950">Backup de segurança (admin)</span>
+            <span class="text-[10px] font-bold uppercase text-amber-800/80 group-open:hidden">Expandir</span>
+          </summary>
+          <div class="px-3 pb-3 pt-0 space-y-2 border-t border-amber-200/80">
+            <p class="text-[10px] font-semibold text-amber-900/90">ZIP leve: a pagar, a receber (espelho) e fiado PDV. Opção <strong>todos</strong> ou <strong>só em aberto</strong>.</p>
+            <div class="flex flex-wrap gap-2">
+              <a href="{% url 'api_lancamentos_backup_completo_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-700 hover:bg-amber-800 text-white font-black text-[11px] uppercase" download>Backup todos</a>
+              <a href="{% url 'api_lancamentos_backup_abertos_xlsx' %}" class="inline-flex min-h-[44px] items-center px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-black text-[11px] uppercase" download>Backup em aberto</a>
+            </div>
+          </div>
+        </details>
+        {% endif %}
         <div class="flex flex-wrap items-end gap-2 pt-1 border-t border-slate-100/90">
           <label class="block flex-1 min-w-[10rem] max-w-xs">
             <span class="text-[11px] font-black uppercase text-slate-500">Favoritos</span>
@@ -780,6 +795,7 @@
     const LS_ATALHOS = 'gm_fin_atalhos_slots_v1';
     const SEM_PLANO_KEY = '__SEM_PLANO__';
     const modoContas = '{{ modo_contas }}';
+    const CP_DEFAULT_HOJE = modoContas === 'pagar';
 
     const COL_DEFS = [
       { id: 'chk', label: 'Seleção' },
@@ -814,6 +830,25 @@
     function getCookie(name) {
       const m = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
       return m ? decodeURIComponent(m[2]) : '';
+    }
+
+    /** PIN obrigatório → teclado (não alert do Chrome). retryFn reenvia a ação. */
+    function alertOuPinLanc(erro, retryFn) {
+      const msg = String(erro || 'Falha.');
+      if (typeof window.gmLancamentosTratarErroPin === 'function'
+          && window.gmLancamentosTratarErroPin(msg, typeof retryFn === 'function' ? retryFn : function () {})) {
+        return true;
+      }
+      alert(msg);
+      return false;
+    }
+
+    function comOperadorLanc(fn) {
+      if (typeof window.gmLancamentosComOperador === 'function') {
+        window.gmLancamentosComOperador(fn);
+      } else {
+        fn();
+      }
     }
 
     function hojeISO() {
@@ -1229,6 +1264,7 @@
       const p = montarParamsBaseLista();
       p.set('page', String(page));
       p.set('page_size', document.getElementById('f-ps').value);
+      if (page > 1) p.set('skip_totais', '1');
       getExcludedSet().forEach((nome) => {
         p.append('excluir_plano', nome);
       });
@@ -1722,12 +1758,14 @@
 
       lastTotal = data.total || 0;
       lastPageSize = data.page_size || 50;
-      const t = data.totais || {};
-      document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
-      document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
-      document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
-      document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
-      tot.classList.remove('hidden');
+      if (data.totais) {
+        const t = data.totais;
+        document.getElementById('t-qtd').textContent = String(t.quantidade ?? 0);
+        document.getElementById('t-bruto').textContent = brl(t.bruto ?? t.previsto);
+        document.getElementById('t-mov').textContent = brl(t.movimentado ?? t.pago);
+        document.getElementById('t-saldo').textContent = brl(t.saldo_aberto ?? t.a_pagar ?? t.a_receber);
+        tot.classList.remove('hidden');
+      }
 
       tb.innerHTML = '';
       mob.innerHTML = '';
@@ -1757,7 +1795,7 @@
             );
           }
           if (row.pode_excluir) {
-            acoesBtns.push(`<button type="button" class="gm-lanc-ic gm-lanc-ic--del btn-del-lanc" data-id="${esc(row.id)}" title="Excluir no Mongo (só manual ou sem vínculo ERP)" aria-label="Excluir lançamento">${GM_LANC_IC.del}</button>`);
+            acoesBtns.push(`<button type="button" class="gm-lanc-ic gm-lanc-ic--del btn-del-lanc" data-id="${esc(row.id)}" title="Excluir lançamento manual Agro${row.pago ? ' (quitado)' : ''}" aria-label="Excluir lançamento">${GM_LANC_IC.del}</button>`);
           }
           if (tipoAtual === 'pagar' && !row.pago) {
             acoesBtns.push(
@@ -2267,38 +2305,41 @@
         return;
       }
       document.getElementById('bxp-ok').disabled = true;
-      try {
-        const r = await fetch(API_BAIXA_PARCIAL, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({
-            lancamento_id: bxpIdAtual,
-            tipo: tipoAtual,
-            data_movimento: document.getElementById('bxp-data').value,
-            parcelas,
-          }),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Falha na baixa parcial.');
-          return;
+      const enviarBaixaParcial = async () => {
+        try {
+          const r = await fetch(API_BAIXA_PARCIAL, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+              lancamento_id: bxpIdAtual,
+              tipo: tipoAtual,
+              data_movimento: document.getElementById('bxp-data').value,
+              parcelas,
+            }),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Falha na baixa parcial.', enviarBaixaParcial);
+            return;
+          }
+          let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
+          if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
+          else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
+          alert(m);
+          document.getElementById('modal-baixa-parcial').classList.add('hidden');
+          selecionados.clear();
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
+        } finally {
+          document.getElementById('bxp-ok').disabled = false;
         }
-        let m = out.quitado ? 'Baixa concluída (título quitado).' : 'Parcela(s) registradas — ainda há saldo em aberto.';
-        if (out.erp_baixa_ok === true) m += '\nERP: baixa aceita.';
-        else if (out.aviso_api) m += '\nERP: ' + out.aviso_api;
-        alert(m);
-        document.getElementById('modal-baixa-parcial').classList.add('hidden');
-        selecionados.clear();
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      } finally {
-        document.getElementById('bxp-ok').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarBaixaParcial);
     });
 
     document.getElementById('btn-sel-zap-boletos')?.addEventListener('click', async () => {
@@ -2375,36 +2416,43 @@
         }
       }
       document.getElementById('bx-ok').disabled = true;
-      try {
-        const r = await fetch(API_BAIXA, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (out.erros && out.erros.length) {
-          alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+      const enviarBaixaLote = async () => {
+        try {
+          const r = await fetch(API_BAIXA, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (out && out.ok === false && (out.erro || !out.atualizados || !out.atualizados.length)) {
+            const pinMsg = out.erro || (out.erros && out.erros[0] && out.erros[0].erro) || 'Falha na baixa.';
+            if (alertOuPinLanc(pinMsg, enviarBaixaLote)) return;
+          }
+          if (out.erros && out.erros.length) {
+            alert('Alguns títulos não foram baixados:\n' + out.erros.map((e) => `${e.id}: ${e.erro}`).join('\n'));
+          }
+          if (out.atualizados && out.atualizados.length) {
+            let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
+            if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
+            else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
+            if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
+            if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
+            alert(m);
+          }
+          document.getElementById('modal-baixa').classList.add('hidden');
+          selecionados.clear();
+          carregar();
+        } catch (e) {
+          alert('Erro de rede na baixa.');
+        } finally {
+          document.getElementById('bx-ok').disabled = false;
         }
-        if (out.atualizados && out.atualizados.length) {
-          let m = `Baixa registrada: ${out.atualizados.length} título(s) no Agro.`;
-          if (out.erp_baixa_ok === true) m += '\n\nERP: sincronização da baixa aceita.';
-          else if (out.aviso_api) m += '\n\nERP (atenção): ' + out.aviso_api;
-          if (out.juros_id) m += `\n\nJuros: título Mongo ${out.juros_id} (plano Juros de Emprestimos).`;
-          if (out.aviso_juros) m += `\n\nJuros (atenção): ${out.aviso_juros}`;
-          alert(m);
-        }
-        document.getElementById('modal-baixa').classList.add('hidden');
-        selecionados.clear();
-        carregar();
-      } catch (e) {
-        alert('Erro de rede na baixa.');
-      } finally {
-        document.getElementById('bx-ok').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarBaixaLote);
     });
 
     function isoDateFromRowVenc(iso) {
@@ -2442,53 +2490,59 @@
     }
 
     async function definirRecorrenciaLancamento(id, recorrente, intervaloMeses) {
-      try {
-        const body = {
-          id,
-          recorrente: !!recorrente,
-          intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
-        };
-        const r = await fetch(API_RECORRE, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível atualizar a recorrência.');
-          return;
+      const enviar = async () => {
+        try {
+          const body = {
+            id,
+            recorrente: !!recorrente,
+            intervalo_meses: Math.max(1, Math.min(Number(intervaloMeses || 1), 36)),
+          };
+          const r = await fetch(API_RECORRE, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível atualizar a recorrência.', enviar);
+            return;
+          }
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
         }
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      }
+      };
+      comOperadorLanc(enviar);
     }
 
     async function excluirLancamentoPorId(id) {
-      try {
-        const r = await fetch(API_LANC_EXCLUIR, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({ id }),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível excluir.');
-          return;
+      const enviar = async () => {
+        try {
+          const r = await fetch(API_LANC_EXCLUIR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ id }),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível excluir.', enviar);
+            return;
+          }
+          selecionados.delete(id);
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
         }
-        selecionados.delete(id);
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      }
+      };
+      comOperadorLanc(enviar);
     }
 
     function bindGestaoLancamentosClick(container) {
@@ -2503,7 +2557,7 @@
         const del = e.target.closest('.btn-del-lanc');
         if (del && del.dataset.id) {
           e.preventDefault();
-          if (!window.confirm('Excluir este lançamento no Mongo? Esta ação não pode ser desfeita.')) return;
+          if (!window.confirm('Excluir este lançamento? Esta ação não pode ser desfeita.')) return;
           excluirLancamentoPorId(del.dataset.id);
           return;
         }
@@ -2561,7 +2615,8 @@
       document.getElementById('modal-edit-lanc').classList.add('hidden');
     });
     document.getElementById('modal-edit-lanc')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'modal-edit-lanc') {
+      if (false && e.target && e.target.id === 'modal-edit-lanc') {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
         document.getElementById('modal-edit-lanc').classList.add('hidden');
       }
     });
@@ -2597,7 +2652,8 @@
       refreshGavetaFiltrosResumo();
     });
     document.getElementById('modal-filtros-lista')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'modal-filtros-lista') {
+      if (false && e.target && e.target.id === 'modal-filtros-lista') {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
         document.getElementById('modal-filtros-lista').classList.add('hidden');
       }
     });
@@ -2609,7 +2665,8 @@
       document.getElementById('modal-ferramentas-lista').classList.add('hidden');
     });
     document.getElementById('modal-ferramentas-lista')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'modal-ferramentas-lista') {
+      if (false && e.target && e.target.id === 'modal-ferramentas-lista') {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
         document.getElementById('modal-ferramentas-lista').classList.add('hidden');
       }
     });
@@ -2621,7 +2678,8 @@
       document.getElementById('modal-planos-lista')?.classList.add('hidden');
     });
     document.getElementById('modal-planos-lista')?.addEventListener('click', (e) => {
-      if (e.target && e.target.id === 'modal-planos-lista') {
+      if (false && e.target && e.target.id === 'modal-planos-lista') {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
         document.getElementById('modal-planos-lista').classList.add('hidden');
       }
     });
@@ -2719,28 +2777,31 @@
       const ebol = document.getElementById('edl-boleto');
       if (ebol) body.boleto_codigo_barras = ebol.value;
       document.getElementById('edl-salvar').disabled = true;
-      try {
-        const r = await fetch(API_LANC_ALTERAR, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify(body),
-        });
-        const out = await r.json();
-        if (!out.ok) {
-          alert(out.erro || 'Não foi possível salvar.');
-          return;
+      const enviarEditar = async () => {
+        try {
+          const r = await fetch(API_LANC_ALTERAR, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify(body),
+          });
+          const out = await r.json();
+          if (!out.ok) {
+            alertOuPinLanc(out.erro || 'Não foi possível salvar.', enviarEditar);
+            return;
+          }
+          document.getElementById('modal-edit-lanc').classList.add('hidden');
+          carregar();
+        } catch (_) {
+          alert('Erro de rede.');
+        } finally {
+          document.getElementById('edl-salvar').disabled = false;
         }
-        document.getElementById('modal-edit-lanc').classList.add('hidden');
-        carregar();
-      } catch (_) {
-        alert('Erro de rede.');
-      } finally {
-        document.getElementById('edl-salvar').disabled = false;
-      }
+      };
+      comOperadorLanc(enviarEditar);
     });
 
     document.addEventListener('keydown', (e) => {
@@ -2866,9 +2927,12 @@
               if (va) fate.value = va;
               if (vd && !va) fate.value = vd;
               if (va && !vd) fde.value = va;
+            } else if (CP_DEFAULT_HOJE && !mongoFocus) {
+              const t = hojeISO();
+              fde.value = t;
+              fate.value = t;
+              if (fs) fs.value = 'abertos';
             } else {
-              // Sem intervalo na URL: não preencher vencimento (antes era «só hoje», o que escondia
-              // títulos novos com vencimento futuro/p.ex. NF-e). Use «Filtro rápido hoje» se quiser.
               fde.value = '';
               fate.value = '';
             }
@@ -2922,10 +2986,31 @@
         refreshSelBar();
       } else {
         carregarOpcoesBaixa();
-        carregarPlanos().then(() => carregar());
+        carregarPlanos();
+        carregar();
       }
     });
+    (function aplicarRetornoLayoutNovo() {
+      try {
+        const ret = new URLSearchParams(window.location.search || '').get('retorno');
+        const link = document.getElementById('link-layout-novo-pagar');
+        if (ret && link) link.href = ret;
+      } catch (_) {}
+    })();
+    window.agroNovaSaidaOnSuccess = function (info) {
+      if (typeof carregar === 'function') {
+        if (info && info.quitado) {
+          const st = document.getElementById('f-status');
+          if (st) st.value = 'todos';
+        }
+        carregar();
+        return;
+      }
+      if (info && info.origin === 'dashboard') return;
+    };
   </script>
+{% include "produtos/includes/lancamento_nova_saida_modal.html" %}
 {% include "produtos/_atalho_voltar_pdv.html" %}
+{% include "produtos/includes/lancamentos_pin_entrada.html" %}
 </body>
 </html>

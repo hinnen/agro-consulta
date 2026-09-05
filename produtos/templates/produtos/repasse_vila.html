@@ -1,0 +1,1210 @@
+{% extends "layouts/base_admin.html" %}
+{% load static %}
+
+{% block admin_title %}SisVale | Repasse Vila → Centro{% endblock %}
+{% block admin_header_title %}Repasse Vila → Centro{% endblock %}
+{% block admin_header_meta %}Dinheiro da Vila Elias para o Centro{% endblock %}
+
+{% block admin_shell_class %}min-h-screen bg-slate-100 flex flex-col{% endblock %}
+{% block admin_header_inner_class %}w-full max-w-none px-4 sm:px-6 lg:px-8 py-3 sm:py-4{% endblock %}
+{% block admin_section_class %}w-full max-w-none flex-1 min-h-0 px-3 py-2 sm:px-5 lg:px-6 sm:py-3 overflow-y-auto{% endblock %}
+
+{% block admin_header_actions %}
+  <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" class="inline-flex min-h-[2.75rem] items-center justify-center rounded-xl bg-orange-500 px-4 text-sm font-black uppercase text-white shadow hover:bg-orange-600">Transferir</a>
+{% endblock %}
+
+{% block admin_content %}
+{% include "produtos/_gm_loading_bar.html" %}
+{% include "produtos/_agro_consulta_ui.html" %}
+
+<style>
+  .rv-shell {
+    display: grid;
+    gap: 0.85rem;
+    width: 100%;
+    max-width: 100%;
+    min-height: 0;
+  }
+  @media (min-width: 1100px) {
+    .rv-shell { grid-template-columns: minmax(22rem, 0.92fr) minmax(26rem, 1.08fr); gap: 1rem; }
+  }
+  .rv-log-card { grid-column: 1 / -1; }
+  .rv-card {
+    border: 2px solid #cbd5e1;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.85rem 1rem;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+  }
+  .rv-lbl {
+    font-size: clamp(0.62rem, 0.55rem + 0.2vw, 0.72rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    line-height: 1.2;
+  }
+  .rv-val {
+    font-size: clamp(1.15rem, 0.9rem + 0.55vw, 1.55rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+    line-height: 1.15;
+  }
+  .rv-val-lg {
+    font-size: clamp(1.35rem, 1.05rem + 0.7vw, 1.85rem);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .rv-check {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 2.5rem;
+    padding: 0.35rem 0.65rem;
+    border: 2px solid #cbd5e1;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: clamp(0.9rem, 0.82rem + 0.2vw, 1rem);
+    line-height: 1.25;
+  }
+  .rv-check:has(input:checked) { border-color: #059669; background: #ecfdf5; }
+  .rv-check input { width: 1.2rem; height: 1.2rem; accent-color: #059669; flex-shrink: 0; }
+  .rv-metric {
+    border-radius: 0.85rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 0.55rem 0.7rem;
+    min-width: 0;
+  }
+  .rv-day {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    align-items: center;
+    min-height: 2.15rem;
+    padding: 0.3rem 0.65rem;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 700;
+    font-size: clamp(0.9rem, 0.82rem + 0.2vw, 1rem);
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .rv-day:hover { background: #f0fdf4; }
+  .rv-day > span { overflow: hidden; text-overflow: ellipsis; }
+  .rv-day--hoje { background: #ecfdf5; }
+  .rv-day--sel { outline: 2px solid #059669; outline-offset: -2px; background: #d1fae5; }
+  .rv-sum {
+    border-radius: 0.95rem;
+    border: 2px solid #cbd5e1;
+    padding: 0.7rem 0.85rem;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.15rem;
+  }
+  .rv-sum--centro { border-color: #38bdf8; background: #f0f9ff; }
+  .rv-sum--vila { border-color: #34d399; background: #ecfdf5; }
+  details.repasse-help > summary::-webkit-details-marker { display: none; }
+  .rv-fold {
+    border: 2px solid #cbd5e1;
+    border-radius: 0.85rem;
+    background: #f8fafc;
+  }
+  .rv-fold > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.45rem 0.85rem;
+    font-size: clamp(0.78rem, 0.7rem + 0.2vw, 0.88rem);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #0f172a;
+  }
+  .rv-fold > summary::-webkit-details-marker { display: none; }
+  .rv-fold > summary::after {
+    content: '▸';
+    font-size: 1.15rem;
+    color: #64748b;
+    flex-shrink: 0;
+  }
+  .rv-fold[open] > summary::after { content: '▾'; }
+  .rv-fold-body { padding: 0 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.65rem; }
+  .rv-dias-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+    flex: 1;
+    min-height: 12rem;
+    max-height: min(62vh, 36rem);
+  }
+  @media (min-width: 640px) {
+    .rv-dias-grid { grid-template-columns: 1fr 1fr; }
+  }
+  .rv-dias-col {
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    background: #fff;
+    min-height: 0;
+  }
+  .rv-dias-col h3 {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    margin: 0;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+  }
+</style>
+
+<div class="rv-shell">
+  {# —— Config + preview —— #}
+  <section class="rv-card space-y-2.5">
+    <div class="flex items-center justify-between gap-2">
+      <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Configurar envio <span class="text-slate-500 font-bold normal-case text-xs sm:text-sm">· Vila → Centro</span></h2>
+      <div class="flex items-center gap-1 shrink-0">
+        {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+        {% with repasse_help="transferir" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div class="rv-metric">
+        <div class="rv-lbl">Receita (sem fiado)</div>
+        <div class="rv-val text-emerald-800" id="rv-receita">—</div>
+      </div>
+      <div class="rv-metric">
+        <div class="rv-lbl">CMV do dia</div>
+        <div class="rv-val text-slate-800" id="rv-cmv-dia">—</div>
+      </div>
+      <div class="rv-metric">
+        <div class="rv-lbl">Lucro bruto</div>
+        <div class="rv-val text-sky-800" id="rv-lucro-dia">—</div>
+      </div>
+      <div class="rv-metric">
+        <div class="rv-lbl">Fiado pago</div>
+        <div class="rv-val text-orange-800" id="rv-fiado-dia">—</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div class="rv-metric border-sky-200 bg-sky-50">
+        <div class="rv-lbl text-sky-700">Já no Centro (cartão/PIX)</div>
+        <div class="rv-val text-sky-900" id="rv-elet">R$ 0,00</div>
+      </div>
+      <div class="rv-metric">
+        <div class="rv-lbl">Já enviado (dinheiro)</div>
+        <div class="rv-val text-slate-800" id="rv-ja-din">R$ 0,00</div>
+      </div>
+      <div class="rv-metric border-emerald-300 bg-emerald-50">
+        <div class="rv-lbl text-emerald-800">Falta em dinheiro</div>
+        <div class="rv-val text-emerald-900" id="rv-falta">R$ 0,00</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4 items-end">
+      <div class="rv-metric border-amber-200 bg-amber-50">
+        <div class="rv-lbl text-amber-800 flex items-center gap-1">Acumulado (dias anteriores) {% with repasse_help="acumulado" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
+        <div class="rv-val text-amber-950" id="rv-acum">R$ 0,00</div>
+      </div>
+      <div class="rv-metric border-violet-200 bg-violet-50">
+        <div class="rv-lbl text-violet-800">Total sugerido</div>
+        <div class="rv-val text-violet-950" id="rv-total-sug">R$ 0,00</div>
+      </div>
+      <div class="rv-metric border-rose-200 bg-rose-50">
+        <div class="rv-lbl text-rose-800 flex items-center gap-1">Reserva diária do cofrinho (Salário) {% with repasse_help="geral" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <input id="rv-reserva" type="text" inputmode="decimal" autocomplete="off"
+            value="{{ reserva_padrao|default:0|floatformat:2 }}"
+            class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-rose-300 bg-white px-2 text-lg font-black tabular-nums text-rose-950" />
+          <button type="button" id="rv-salvar-reserva" class="min-h-[2.5rem] shrink-0 rounded-lg border-2 border-rose-600 bg-white px-2.5 text-[0.65rem] font-black uppercase text-rose-950">Salvar</button>
+        </div>
+      </div>
+      <div class="rv-metric border-slate-300 bg-slate-50">
+        <div class="rv-lbl text-slate-700">Fundo troco gaveta (alvo)</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <input id="rv-fundo-troco" type="text" inputmode="decimal" autocomplete="off"
+            value="{{ fundo_troco_vila|default:500|floatformat:2 }}"
+            class="min-h-[2.5rem] w-full min-w-0 rounded-lg border-2 border-slate-300 bg-white px-2 text-lg font-black tabular-nums text-slate-950"
+            title="Quanto deve ficar na gaveta após o repasse (só aviso)" />
+        </div>
+      </div>
+      <button type="button" id="rv-btn-acum" class="min-h-[2.75rem] rounded-xl border-2 border-amber-600 bg-amber-50 px-4 text-xs font-black uppercase text-amber-950 hover:bg-amber-100">Ver acumulado</button>
+    </div>
+
+    <details class="rv-fold">
+      <summary>
+        <span>Dia, % e opções</span>
+        <span id="rv-opcoes-hint" class="normal-case tracking-normal font-bold text-slate-500 text-xs sm:text-sm"></span>
+      </summary>
+      <div class="rv-fold-body">
+        <div class="flex flex-wrap items-end gap-x-4 gap-y-2">
+          <label class="block min-w-0">
+            <span class="rv-lbl">Dia do repasse</span>
+            <input id="rv-data" type="date" class="mt-0.5 block min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 text-sm font-black" />
+            <span id="rv-data-hint" class="block text-xs font-bold text-slate-500 mt-0.5">Hoje ou dia que passou</span>
+          </label>
+          <label class="flex flex-wrap items-center gap-2">
+            <span class="rv-lbl shrink-0">% lucro bruto</span>
+            <input id="rv-pct" type="number" min="0" max="100" step="1" value="{{ percentual_padrao|floatformat:0 }}"
+              class="min-h-[2.5rem] w-[4.5rem] rounded-lg border-2 border-slate-300 px-2 text-lg font-black tabular-nums" />
+            <span class="font-black text-slate-600">%</span>
+            <button type="button" id="rv-salvar-pct" class="min-h-[2.5rem] rounded-lg border-2 border-emerald-600 bg-emerald-50 px-3 text-xs font-black uppercase text-emerald-900">Salvar padrão</button>
+            <button type="button" id="rv-btn-planos" class="min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900">Planos</button>
+          </label>
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-todos" checked />
+            <span class="font-black uppercase text-slate-800 text-xs tracking-wide">Marcar todos</span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-cmv" class="rv-linha" data-key="cmv" checked />
+            <span class="flex-1 font-bold text-slate-800">Custo mercadoria <span class="tabular-nums text-emerald-800" id="rv-disp-cmv">R$ 0,00</span></span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-lucro" class="rv-linha" data-key="lucro" checked />
+            <span class="flex-1 font-bold text-slate-800">% lucro bruto <span class="tabular-nums text-sky-800" id="rv-disp-lucro">R$ 0,00</span></span>
+          </label>
+          <p id="rv-desp-hint" class="hidden text-[0.7rem] font-bold text-slate-600 leading-tight px-1">− planos no envio ao Centro: —</p>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-fiado" class="rv-linha" data-key="fiado" checked />
+            <span class="flex-1 font-bold text-slate-800">Fiado pago Vila <span class="tabular-nums text-orange-800" id="rv-disp-fiado">R$ 0,00</span></span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-acumulado" checked />
+            <span class="font-bold text-slate-800">Incluir acumulado no total sugerido</span>
+          </label>
+          <label class="rv-check">
+            <input type="checkbox" id="rv-chk-dia-cheio" />
+            <span class="font-bold text-slate-800">Dia cheio <span class="text-slate-500 font-semibold text-xs">(padrão = só o que falta)</span></span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <div class="rounded-xl border-2 border-emerald-500 bg-emerald-50 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div class="rv-lbl text-emerald-800">Total a levar (dinheiro)</div>
+        <div class="rv-val-lg text-emerald-900" id="rv-total">R$ 0,00</div>
+        <p class="text-[0.7rem] font-bold text-slate-600 leading-tight mt-0.5" id="rv-ja">Já enviado neste dia: —</p>
+      </div>
+      <a href="{% url 'caixa_retiradas_historico' %}?repasse=1" id="rv-btn-transferir"
+         class="inline-flex min-h-[3rem] items-center justify-center rounded-xl bg-orange-500 px-6 text-sm font-black uppercase text-white shadow hover:bg-orange-600">
+        Transferir →
+      </a>
+    </div>
+
+    {% if not caixa_vila_aberto %}
+    <p class="rounded-lg border-2 border-amber-400 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-950">Caixa da Vila fechado — abra antes de transferir.</p>
+    {% endif %}
+    <p id="rv-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+  </section>
+
+  <section class="rv-card space-y-2.5 border-rose-300 bg-rose-50/30" id="rv-cofrinho-card" data-cofre="salario">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base sm:text-lg font-black uppercase text-rose-950">Cofrinho Salário funcionário</h2>
+        <p class="text-xs font-bold text-slate-600">Valor diário configurável · fica na Vila · fora da gaveta e do envelope.</p>
+      </div>
+      <button type="button" id="rv-cofre-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-rose-500 bg-white px-3 text-xs font-black uppercase text-rose-950">Atualizar</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div class="rv-sum border-rose-500 bg-white"><div class="rv-lbl text-rose-800">Saldo</div><div class="rv-val-lg text-rose-950" id="rv-cofre-saldo">R$ {{ cofrinho.saldo|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-prevista">R$ {{ cofrinho.prevista_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-realizada">R$ {{ cofrinho.realizada_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-pendente">R$ {{ cofrinho.pendente_dia|default:0|floatformat:2 }}</div></div>
+    </div>
+    <p id="rv-cofre-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Não separar hoje soma amanhã · separar a mais abate os próximos dias.</p>
+    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+      <button type="button" id="rv-cofre-separar" class="min-h-[2.75rem] rounded-xl bg-rose-600 px-4 text-xs font-black uppercase text-white">Separar</button>
+      <button type="button" id="rv-cofre-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-rose-700 bg-white px-4 text-xs font-black uppercase text-rose-950">Saldo inicial</button>
+      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
+      <label><span class="rv-lbl">Valor</span><input id="rv-cofre-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
+      <button type="button" id="rv-cofre-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
+    </div>
+    <label class="block"><span class="rv-lbl">Motivo / observação</span><input id="rv-cofre-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+    <p id="rv-cofre-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
+    <div id="rv-cofre-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-rose-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div>
+  </section>
+
+  <section class="rv-card space-y-2.5 border-indigo-300 bg-indigo-50/30" id="rv-cofre-ve-card" data-cofre="vila_elias">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div>
+        <h2 class="text-base sm:text-lg font-black uppercase text-indigo-950">Cofre Vila Elias</h2>
+        <p class="text-xs font-bold text-slate-600">Fatia do lucro que não vai ao Centro · automático conforme o % · fora da gaveta.</p>
+      </div>
+      <button type="button" id="rv-cofre-ve-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-indigo-500 bg-white px-3 text-xs font-black uppercase text-indigo-950">Atualizar</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
+      <div class="rv-sum border-indigo-500 bg-white"><div class="rv-lbl text-indigo-800">Saldo</div><div class="rv-val-lg text-indigo-950" id="rv-cofre-ve-saldo">R$ {{ cofre_vila_elias.saldo|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Prevista no dia</div><div class="rv-val" id="rv-cofre-ve-prevista">R$ {{ cofre_vila_elias.prevista_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Realizada no dia</div><div class="rv-val text-emerald-800" id="rv-cofre-ve-realizada">R$ {{ cofre_vila_elias.realizada_dia|default:0|floatformat:2 }}</div></div>
+      <div class="rv-metric"><div class="rv-lbl">Ainda separar</div><div class="rv-val text-orange-800" id="rv-cofre-ve-pendente">R$ {{ cofre_vila_elias.pendente_dia|default:0|floatformat:2 }}</div></div>
+    </div>
+    <p id="rv-cofre-ve-acum-hint" class="text-xs font-bold text-slate-600 leading-tight">Ex.: lucro R$ 200 · 50% → R$ 100 neste cofre · salário R$ 100 · lucro ao Centro R$ 0.</p>
+    <div class="grid grid-cols-1 gap-2 lg:grid-cols-[auto_auto_minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+      <button type="button" id="rv-cofre-ve-separar" class="min-h-[2.75rem] rounded-xl bg-indigo-600 px-4 text-xs font-black uppercase text-white">Separar</button>
+      <button type="button" id="rv-cofre-ve-saldo-inicial" class="min-h-[2.75rem] rounded-xl border-2 border-indigo-700 bg-white px-4 text-xs font-black uppercase text-indigo-950">Saldo inicial</button>
+      <label><span class="rv-lbl">Movimento</span><select id="rv-cofre-ve-tipo" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-black"><option value="retirada">Retirada / uso</option><option value="ajuste_mais">Ajuste · entrada</option><option value="ajuste_menos">Ajuste · saída</option><option value="saldo_inicial">Saldo inicial</option></select></label>
+      <label><span class="rv-lbl">Valor</span><input id="rv-cofre-ve-valor" type="text" inputmode="decimal" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 text-lg font-black" placeholder="0,00"></label>
+      <button type="button" id="rv-cofre-ve-movimentar" class="min-h-[2.75rem] rounded-xl border-2 border-slate-700 bg-slate-800 px-4 text-xs font-black uppercase text-white">Registrar</button>
+    </div>
+    <label class="block"><span class="rv-lbl">Motivo / observação</span><input id="rv-cofre-ve-obs" type="text" maxlength="500" class="mt-1 min-h-[2.75rem] w-full rounded-xl border-2 border-slate-300 bg-white px-3 font-bold" placeholder="Explique para que foi usado ou por que ajustou"></label>
+    <p id="rv-cofre-ve-status" class="min-h-[1rem] text-xs font-black text-slate-700"></p>
+    <div id="rv-cofre-ve-historico" class="max-h-[16rem] overflow-y-auto rounded-xl border-2 border-indigo-200 bg-white divide-y divide-slate-200 text-xs font-bold"></div>
+  </section>
+
+  {# —— Histórico —— #}
+  <section class="rv-card flex flex-col min-h-0 gap-2.5">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Histórico do mês</h2>
+      <div class="flex items-center gap-1.5">
+        <button type="button" id="rv-mes-ant" class="min-h-[2.35rem] min-w-[2.35rem] rounded-lg border-2 border-slate-300 font-black text-lg leading-none" aria-label="Mês anterior">‹</button>
+        <span id="rv-mes-lbl" class="min-w-[7rem] text-center text-sm font-black uppercase text-slate-700 tabular-nums"></span>
+        <button type="button" id="rv-mes-prox" class="min-h-[2.35rem] min-w-[2.35rem] rounded-lg border-2 border-slate-300 font-black text-lg leading-none" aria-label="Próximo mês">›</button>
+        {% with repasse_help="historico" %}{% include "produtos/includes/repasse_help_agents.html" %}{% endwith %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div class="rv-sum rv-sum--centro" title="Soma do dinheiro transferido no mês (repasse)">
+        <div class="rv-lbl text-sky-800" title="Dinheiro levado + cartão/PIX/fiado já no Centro">Enviado ao Centro</div>
+        <div class="rv-val-lg text-sky-950" id="rv-tot-mes">R$ 0,00</div>
+        <p class="text-[0.65rem] font-bold text-sky-700/90 leading-tight">Total em dinheiro no mês</p>
+      </div>
+      <div class="rv-sum rv-sum--vila" title="Lucro bruto da Vila no mês menos o lucro já enviado e as despesas que ficam na Vila">
+        <div class="rv-lbl text-emerald-800">Lucro ficou na Vila</div>
+        <div class="rv-val-lg text-emerald-950" id="rv-lucro-ficou">R$ 0,00</div>
+        <p class="text-[0.65rem] font-bold text-emerald-800/90 leading-tight" id="rv-lucro-ficou-hint">Lucro bruto − lucro enviado − gastos da Vila</p>
+      </div>
+    </div>
+
+    <div id="rv-dias" class="rv-dias-grid"></div>
+  </section>
+
+  <section class="rv-card rv-log-card flex flex-col min-h-0 gap-2 mt-0">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="text-base sm:text-lg font-black uppercase text-slate-900 leading-tight">Log · valor manual</h2>
+      <button type="button" id="rv-log-refresh" class="min-h-[2.35rem] rounded-lg border-2 border-slate-400 bg-white px-3 text-xs font-black uppercase text-slate-800">Atualizar</button>
+    </div>
+    <p class="text-[0.7rem] font-bold text-slate-600 leading-tight">Alterações do valor e cada envio com a conta (lucro → reserva → penúltimo → %). Serve pra achar erro.</p>
+    <div id="rv-log-lista" class="max-h-[14rem] overflow-y-auto rounded-lg border-2 border-slate-200 bg-slate-50 divide-y divide-slate-200 text-xs font-bold text-slate-800"></div>
+  </section>
+</div>
+
+{% include "produtos/_atalho_voltar_pdv.html" %}
+
+<div id="rv-planos-modal" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-900/50 p-3" role="dialog" aria-modal="true" aria-labelledby="rv-planos-title">
+  <div class="w-full max-w-[min(36rem,96vw)] max-h-[min(88dvh,40rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-sky-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-sky-200 bg-sky-50 px-3 py-2">
+      <div class="min-w-0">
+        <h3 id="rv-planos-title" class="text-sm font-black uppercase text-sky-950">Planos no lucro do envio</h3>
+        <p class="text-[0.7rem] font-bold text-sky-800/90 leading-tight">Marcado = desconta do dinheiro que vai ao Centro. Sem marca = sai do que ficou na Vila.</p>
+      </div>
+      <button type="button" id="rv-planos-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="px-3 py-2">
+      <input id="rv-planos-busca" type="search" placeholder="Buscar plano…" class="w-full min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-3 text-sm font-bold" />
+    </div>
+    <div id="rv-planos-lista" class="flex-1 overflow-y-auto px-3 pb-2 space-y-1 min-h-[10rem]"></div>
+    <footer class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2">
+      <p id="rv-planos-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+      <button type="button" id="rv-planos-salvar" class="min-h-[2.6rem] rounded-xl bg-sky-600 px-4 text-sm font-black uppercase text-white">Salvar</button>
+    </footer>
+  </div>
+</div>
+
+<div id="rv-acum-modal" class="hidden fixed inset-0 z-40 items-center justify-center bg-slate-900/50 p-3" role="dialog" aria-modal="true">
+  <div class="w-full max-w-[min(40rem,96vw)] max-h-[min(88dvh,36rem)] flex flex-col overflow-hidden rounded-2xl border-2 border-amber-500 bg-white shadow-2xl">
+    <header class="flex items-center justify-between gap-2 border-b-2 border-amber-200 bg-amber-50 px-3 py-2">
+      <h3 class="text-sm font-black uppercase text-amber-950">Acumulado · dias anteriores</h3>
+      <button type="button" id="rv-acum-fechar" class="min-h-[2.5rem] min-w-[2.5rem] rounded-xl border-2 border-slate-400 bg-white text-xl font-black" aria-label="Fechar">×</button>
+    </header>
+    <div class="px-3 py-2 grid grid-cols-3 gap-2 text-center border-b border-slate-200">
+      <div><div class="rv-lbl text-amber-800">Acumulado</div><div class="font-black tabular-nums" id="rv-acum-modal-saldo">—</div></div>
+      <div><div class="rv-lbl text-emerald-800">Falta hoje</div><div class="font-black tabular-nums" id="rv-acum-modal-falta">—</div></div>
+      <div><div class="rv-lbl text-violet-800">Total sugerido</div><div class="font-black tabular-nums" id="rv-acum-modal-sug">—</div></div>
+    </div>
+    <div id="rv-acum-lista" class="flex-1 overflow-y-auto px-3 py-2 text-sm font-bold text-slate-700 min-h-[8rem]"></div>
+    <footer class="border-t border-slate-200 px-3 py-2 space-y-2">
+      <p class="text-[0.65rem] font-bold text-slate-600">Ajuste manual: positivo = falta levar mais · negativo = desconto/crédito</p>
+      <button type="button" id="rv-acum-zerar" class="w-full min-h-[2.5rem] rounded-lg border-2 border-sky-600 bg-sky-50 px-3 text-xs font-black uppercase text-sky-900 hover:bg-sky-100">Já transferi antes da ferramenta — zerar acumulado</button>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <input type="text" id="rv-acum-valor" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold" placeholder="Valor (+/−)" inputmode="decimal" />
+        <input type="text" id="rv-acum-obs" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 font-bold sm:col-span-2" placeholder="Motivo (obrigatório)" />
+      </div>
+      <div class="flex flex-wrap gap-2 justify-end">
+        <input type="password" id="rv-acum-pin" class="min-h-[2.5rem] rounded-lg border-2 border-slate-300 px-2 max-w-[10rem]" placeholder="PIN" />
+        <button type="button" id="rv-acum-salvar" class="min-h-[2.6rem] rounded-xl bg-amber-600 px-4 text-sm font-black uppercase text-white">Registrar ajuste</button>
+      </div>
+      <p id="rv-acum-status" class="text-xs font-bold text-slate-600 min-h-[1rem]"></p>
+    </footer>
+  </div>
+</div>
+
+{{ calc|json_script:"rv-calc-boot" }}
+{{ hist|json_script:"rv-hist-boot" }}
+{{ planos_repasse|json_script:"rv-planos-boot" }}
+
+<script>
+(function () {
+  'use strict';
+  function money(n) {
+    var v = Number(n || 0);
+    return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function parseMoneyBR(raw) {
+    var s = String(raw || '').trim();
+    if (!s) return 0;
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = Number(s);
+    return isNaN(n) || n < 0 ? 0 : n;
+  }
+  function reservaAtual() {
+    var el = document.getElementById('rv-reserva');
+    if (!el) return Number((state.calc || {}).reserva_vila || 0);
+    return parseMoneyBR(el.value);
+  }
+  function fundoTrocoAtual() {
+    var el = document.getElementById('rv-fundo-troco');
+    if (!el || String(el.value || '').trim() === '') {
+      var c = state.calc || {};
+      if (c.fundo_troco_vila != null) return Number(c.fundo_troco_vila || 0);
+      return 500;
+    }
+    return parseMoneyBR(el.value);
+  }
+  function bootJson(id) {
+    var el = document.getElementById(id);
+    try { return el ? JSON.parse(el.textContent || '{}') : {}; } catch (e) { return {}; }
+  }
+  var state = {
+    calc: bootJson('rv-calc-boot'),
+    hist: bootJson('rv-hist-boot'),
+    ano: null,
+    mes: null,
+  };
+  state.ano = state.hist.ano || (new Date()).getFullYear();
+  state.mes = state.hist.mes || ((new Date()).getMonth() + 1);
+
+  var pctEl = document.getElementById('rv-pct');
+  var dataEl = document.getElementById('rv-data');
+  var dataHint = document.getElementById('rv-data-hint');
+  var chkCmv = document.getElementById('rv-chk-cmv');
+  var chkLucro = document.getElementById('rv-chk-lucro');
+  var chkFiado = document.getElementById('rv-chk-fiado');
+  var chkTodos = document.getElementById('rv-chk-todos');
+  var chkCheio = document.getElementById('rv-chk-dia-cheio');
+  var chkAcum = document.getElementById('rv-chk-acumulado');
+  var statusEl = document.getElementById('rv-status');
+
+  function hojeIso() {
+    var hoje = new Date();
+    return hoje.getFullYear() + '-' + String(hoje.getMonth()+1).padStart(2,'0') + '-' + String(hoje.getDate()).padStart(2,'0');
+  }
+  function minDataIso() {
+    var d = new Date();
+    d.setDate(d.getDate() - 180);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function dataRef() {
+    return (dataEl && dataEl.value) ? String(dataEl.value).slice(0, 10) : hojeIso();
+  }
+  function updateDataHint() {
+    if (!dataHint) return;
+    var d = dataRef();
+    var h = hojeIso();
+    if (d === h) {
+      dataHint.textContent = 'Repasse de hoje';
+      dataHint.className = 'text-xs font-bold text-slate-500';
+    } else {
+      var p = d.split('-');
+      dataHint.textContent = 'Dia passado ' + (p[2]||'') + '/' + (p[1]||'') + '/' + (p[0]||'') + ' · dinheiro sai agora';
+      dataHint.className = 'text-xs font-bold text-amber-800';
+    }
+    var foldHint = document.getElementById('rv-opcoes-hint');
+    if (foldHint) {
+      var parts = d.split('-');
+      foldHint.textContent = (parts[2] || '') + '/' + (parts[1] || '') + ' · ' + (pctEl && pctEl.value ? pctEl.value : '50') + '%';
+    }
+  }
+  if (dataEl) {
+    dataEl.max = hojeIso();
+    dataEl.min = minDataIso();
+    if (!dataEl.value) dataEl.value = hojeIso();
+    updateDataHint();
+  }
+
+  function renderCalc() {
+    var c = state.calc || {};
+    var d = c.disponivel || {};
+    document.getElementById('rv-receita').textContent = money(c.receita_dia);
+    document.getElementById('rv-cmv-dia').textContent = money(c.cmv_dia);
+    document.getElementById('rv-lucro-dia').textContent = money(c.lucro_bruto_dia);
+    document.getElementById('rv-fiado-dia').textContent = money(c.fiado_pago_dia);
+    document.getElementById('rv-disp-cmv').textContent = money(d.cmv);
+    document.getElementById('rv-disp-lucro').textContent = money(d.lucro);
+    var despHint = document.getElementById('rv-desp-hint');
+    if (despHint) {
+      var dc = Number(c.despesas_centro_dia || 0);
+      var nPlanos = (c.planos_desconto_centro || []).length;
+      if (dc > 0 || nPlanos > 0) {
+        despHint.classList.remove('hidden');
+        despHint.textContent = '− planos no envio ao Centro: ' + money(dc) +
+          (nPlanos ? ' · ' + nPlanos + ' plano(s) marcado(s)' : '');
+      } else {
+        despHint.classList.add('hidden');
+      }
+    }
+    document.getElementById('rv-disp-fiado').textContent = money(d.fiado);
+    var elet = document.getElementById('rv-elet');
+    if (elet) elet.textContent = money(c.ja_eletronico);
+    var jaDin = document.getElementById('rv-ja-din');
+    if (jaDin) jaDin.textContent = money((c.ja_enviado || {}).total);
+    var falta = document.getElementById('rv-falta');
+    if (falta) falta.textContent = money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
+    var acum = Number(c.acumulado_anterior || 0);
+    var acumEl = document.getElementById('rv-acum');
+    if (acumEl) acumEl.textContent = money(acum);
+    var sug = Number(c.total_sugerido != null ? c.total_sugerido : (Number(c.falta_dinheiro || d.total || 0) + acum));
+    var reserva = reservaAtual();
+    var sugEl = document.getElementById('rv-total-sug');
+    if (sugEl) sugEl.textContent = money(Math.max(0, sug));
+    var tot = 0;
+    if (chkCmv.checked) tot += Number(d.cmv || 0);
+    if (chkLucro.checked) tot += Number(d.lucro || 0);
+    if (chkFiado.checked) tot += Number(d.fiado || 0);
+    if (chkAcum && chkAcum.checked && acum !== 0) tot = Math.max(0, tot + acum);
+    document.getElementById('rv-total').textContent = money(tot);
+    var ja = c.ja_enviado || {};
+    var reservaApl = Number(c.reserva_aplicada != null ? c.reserva_aplicada : reserva);
+    var jaTxt =
+      'Dinheiro já enviado: ' + money(ja.total) +
+      ' · cartão/PIX no Centro: ' + money(c.ja_eletronico) +
+      ' · falta: ' + money(c.falta_dinheiro != null ? c.falta_dinheiro : d.total);
+    if (reservaApl > 0.009) {
+      jaTxt += ' · manual no lucro: ' + money(reservaApl) +
+        ' → penúltimo ' + money(c.lucro_penultimo_dia) +
+        ' → % ' + money(d.lucro);
+    }
+    if (Number(c.acumulado_bruto || 0) > 0.009 && acum <= 0) {
+      jaTxt += ' · acumulado já coberto por envio';
+    }
+    document.getElementById('rv-ja').textContent = jaTxt;
+  }
+
+  function renderHist() {
+    var h = state.hist || {};
+    document.getElementById('rv-tot-mes').textContent = money(h.total_mes);
+    var ficouEl = document.getElementById('rv-lucro-ficou');
+    if (ficouEl) ficouEl.textContent = money(h.lucro_ficou_vila);
+    var hintEl = document.getElementById('rv-lucro-ficou-hint');
+    if (hintEl) {
+      hintEl.textContent =
+        'Bruto ' + money(h.lucro_bruto_mes) +
+        ' − enviado ' + money(h.lucro_enviado_mes) +
+        ' − gastos Vila ' + money(h.despesas_vila_mes);
+    }
+    var meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    document.getElementById('rv-mes-lbl').textContent = (meses[h.mes] || h.mes) + ' / ' + h.ano;
+    var box = document.getElementById('rv-dias');
+    box.innerHTML = '';
+    var colA = document.createElement('div');
+    colA.className = 'rv-dias-col';
+    colA.innerHTML = '<h3>Dias 1 a 15</h3>';
+    var colB = document.createElement('div');
+    colB.className = 'rv-dias-col';
+    colB.innerHTML = '<h3>Dias 16 a 31</h3>';
+    var hoje = hojeIso();
+    var sel = dataRef();
+    function mkDay(row) {
+      var div = document.createElement('div');
+      var cls = 'rv-day';
+      if (row.data === hoje) cls += ' rv-day--hoje';
+      if (row.data === sel) cls += ' rv-day--sel';
+      div.className = cls;
+      div.title = 'Transferir este dia';
+      div.setAttribute('data-data', row.data);
+      var pct = row.pct_lucro_real == null ? '—' : (Number(row.pct_lucro_real).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + '% lucro');
+      div.innerHTML =
+        '<span class="font-black text-slate-500">' + row.dia + '</span>' +
+        '<span class="tabular-nums">' + money(row.valor) + (row.n ? ' · ' + row.n + '×' : '') + '</span>' +
+        '<span class="text-[0.7rem] font-black uppercase text-sky-800">' + pct + '</span>';
+      div.addEventListener('click', function () {
+        if (row.data > hoje) return;
+        if (dataEl) dataEl.value = row.data;
+        var fold = document.querySelector('.rv-fold');
+        if (fold) fold.open = true;
+        updateDataHint();
+        fetchCalc();
+        syncTransferUrl();
+        renderHist();
+      });
+      return div;
+    }
+    (h.dias || []).forEach(function (row) {
+      if (!row.n && row.valor <= 0 && row.data > hoje) return;
+      var target = Number(row.dia) <= 15 ? colA : colB;
+      target.appendChild(mkDay(row));
+    });
+    box.appendChild(colA);
+    box.appendChild(colB);
+  }
+
+  function fetchCalc() {
+    var pct = pctEl.value || '50';
+    var cheio = chkCheio.checked ? '1' : '0';
+    statusEl.textContent = 'Atualizando…';
+    fetch('/api/repasse-vila/calc/?pct=' + encodeURIComponent(pct) + '&dia_cheio=' + cheio + '&data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) {
+          state.calc = j;
+          renderCalc();
+          if (j.cofrinho) renderCofrinho(j.cofrinho, 'salario');
+          if (j.cofre_vila_elias) renderCofrinho(j.cofre_vila_elias, 'vila_elias');
+          statusEl.textContent = '';
+        }
+        else statusEl.textContent = (j && j.erro) || 'Falha ao calcular';
+      })
+      .catch(function () { statusEl.textContent = 'Falha de rede'; });
+  }
+
+  function fetchHist() {
+    fetch('/api/repasse-vila/historico/?ano=' + state.ano + '&mes=' + state.mes, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) { state.hist = j; renderHist(); }
+      });
+  }
+
+  chkTodos.addEventListener('change', function () {
+    var on = chkTodos.checked;
+    chkCmv.checked = on; chkLucro.checked = on; chkFiado.checked = on;
+    renderCalc();
+  });
+  [chkCmv, chkLucro, chkFiado, chkAcum].forEach(function (el) {
+    if (!el) return;
+    el.addEventListener('change', function () {
+      chkTodos.checked = chkCmv.checked && chkLucro.checked && chkFiado.checked;
+      renderCalc();
+    });
+  });
+  chkCheio.addEventListener('change', fetchCalc);
+  if (dataEl) {
+    dataEl.addEventListener('change', function () {
+      updateDataHint();
+      fetchCalc();
+      syncTransferUrl();
+      renderHist();
+    });
+  }
+  var pctTimer = null;
+  pctEl.addEventListener('input', function () {
+    updateDataHint();
+    clearTimeout(pctTimer);
+    pctTimer = setTimeout(fetchCalc, 350);
+  });
+  function postConfig(payload, okMsg) {
+    statusEl.textContent = 'Salvando…';
+    fetch('/api/repasse-vila/config/', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '' },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        statusEl.textContent = j.ok ? okMsg(j) : (j.erro || 'Erro');
+        if (j.ok) { fetchCalc(); fetchLogReserva(); }
+      })
+      .catch(function () { statusEl.textContent = 'Falha ao salvar'; });
+  }
+  document.getElementById('rv-salvar-pct').addEventListener('click', function () {
+    postConfig(
+      {
+        percentual_lucro_padrao: pctEl.value,
+        reserva_vila: reservaAtual(),
+        fundo_troco_vila: fundoTrocoAtual(),
+      },
+      function (j) { return 'Padrão salvo: ' + j.percentual_lucro_padrao + '%'; }
+    );
+  });
+  var reservaEl = document.getElementById('rv-reserva');
+  if (reservaEl) {
+    reservaEl.addEventListener('input', renderCalc);
+    var btnRes = document.getElementById('rv-salvar-reserva');
+    if (btnRes) {
+      btnRes.addEventListener('click', function () {
+        postConfig(
+          { reserva_vila: reservaAtual(), fundo_troco_vila: fundoTrocoAtual() },
+          function (j) {
+            return (
+              'Salvo · reserva ' +
+              money(j.reserva_vila) +
+              ' · fundo troco ' +
+              money(j.fundo_troco_vila)
+            );
+          }
+        );
+      });
+    }
+  }
+  var fundoEl = document.getElementById('rv-fundo-troco');
+  if (fundoEl) fundoEl.addEventListener('input', renderCalc);
+
+  var planosState = bootJson('rv-planos-boot');
+  if (!Array.isArray(planosState)) planosState = [];
+  var planosModal = document.getElementById('rv-planos-modal');
+  var planosLista = document.getElementById('rv-planos-lista');
+  var planosBusca = document.getElementById('rv-planos-busca');
+  var planosStatus = document.getElementById('rv-planos-status');
+  function csrfToken() {
+    return (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || '';
+  }
+  function abrirPlanos() {
+    if (!planosModal) return;
+    renderPlanosLista();
+    planosModal.classList.remove('hidden');
+    planosModal.classList.add('flex');
+    if (planosBusca) { planosBusca.value = ''; planosBusca.focus(); }
+  }
+  function fecharPlanos() {
+    if (!planosModal) return;
+    planosModal.classList.add('hidden');
+    planosModal.classList.remove('flex');
+  }
+  function renderPlanosLista() {
+    if (!planosLista) return;
+    var q = ((planosBusca && planosBusca.value) || '').trim().toLowerCase();
+    planosLista.innerHTML = '';
+    (planosState || []).forEach(function (p, idx) {
+      var nome = String(p.nome || '');
+      if (q && nome.toLowerCase().indexOf(q) < 0) return;
+      var lab = document.createElement('label');
+      lab.className = 'rv-check';
+      lab.innerHTML = '<input type="checkbox" data-idx="' + idx + '"' + (p.marcado ? ' checked' : '') + ' />' +
+        '<span class="flex-1 font-bold text-slate-800">' + nome.replace(/</g, '') + '</span>';
+      var inp = lab.querySelector('input');
+      inp.addEventListener('change', function () {
+        planosState[idx].marcado = inp.checked;
+      });
+      planosLista.appendChild(lab);
+    });
+    if (!planosLista.children.length) {
+      planosLista.innerHTML = '<p class="text-sm font-bold text-slate-500 px-1 py-2">Nenhum plano nesta busca.</p>';
+    }
+  }
+  var btnPlanos = document.getElementById('rv-btn-planos');
+  if (btnPlanos) btnPlanos.addEventListener('click', abrirPlanos);
+  var btnFecharPlanos = document.getElementById('rv-planos-fechar');
+  if (btnFecharPlanos) btnFecharPlanos.addEventListener('click', fecharPlanos);
+  if (planosModal) {
+    planosModal.addEventListener('click', function (ev) {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  }
+  if (planosBusca) planosBusca.addEventListener('input', renderPlanosLista);
+  var btnSalvarPlanos = document.getElementById('rv-planos-salvar');
+  if (btnSalvarPlanos) {
+    btnSalvarPlanos.addEventListener('click', function () {
+      var nomes = (planosState || []).filter(function (p) { return p.marcado; }).map(function (p) { return p.nome; });
+      if (planosStatus) planosStatus.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/config/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ planos_desconto_centro: nomes }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j && j.ok) {
+            planosState = j.planos || planosState;
+            if (planosStatus) planosStatus.textContent = 'Salvo · ' + nomes.length + ' no envio ao Centro';
+            fetchCalc();
+            fetchHist();
+            setTimeout(fecharPlanos, 500);
+          } else if (planosStatus) planosStatus.textContent = (j && j.erro) || 'Erro';
+        })
+        .catch(function () { if (planosStatus) planosStatus.textContent = 'Falha ao salvar'; });
+    });
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && planosModal && !planosModal.classList.contains('hidden')) {
+      fecharPlanos();
+    }
+    if (ev.key === 'Escape' && acumModal && !acumModal.classList.contains('hidden')) {
+      fecharAcumModal();
+    }
+  });
+
+  var acumModal = document.getElementById('rv-acum-modal');
+  var acumStatus = document.getElementById('rv-acum-status');
+  var acumLista = document.getElementById('rv-acum-lista');
+
+  function fmtDataIso(iso) {
+    if (!iso) return '—';
+    var p = String(iso).slice(0, 10).split('-');
+    return (p[2] || '') + '/' + (p[1] || '') + '/' + (p[0] || '');
+  }
+
+  function renderAcumModal(j) {
+    if (!j || !acumLista) return;
+    document.getElementById('rv-acum-modal-saldo').textContent = money(j.acumulado_anterior);
+    document.getElementById('rv-acum-modal-falta').textContent = money(j.falta_dia);
+    document.getElementById('rv-acum-modal-sug').textContent = money(Math.max(0, j.total_sugerido));
+    acumLista.innerHTML = '';
+    var rows = (j.ajustes || []).concat(j.linhas_dias || []);
+    if (!rows.length) {
+      acumLista.innerHTML = '<p class="text-slate-500 py-4 text-center">Nenhum dia anterior com diferença.</p>';
+      return;
+    }
+    rows.forEach(function (row) {
+      var div = document.createElement('div');
+      div.className = 'py-1.5 border-b border-slate-100 flex flex-wrap justify-between gap-1';
+      var delta = Number(row.delta || 0);
+      var lbl = row.tipo === 'ajuste'
+        ? 'Ajuste · ' + (row.observacao || '')
+        : fmtDataIso(row.data) + ' · alvo ' + money(row.alvo_fisico) + ' · enviado ' + money(row.enviado);
+      div.innerHTML =
+        '<span class="min-w-0 flex-1">' + lbl + '</span>' +
+        '<span class="tabular-nums font-black">' + (delta > 0 ? '+' : '') + money(delta) + '</span>';
+      acumLista.appendChild(div);
+    });
+  }
+
+  function fetchAcumModal() {
+    if (acumStatus) acumStatus.textContent = 'Carregando…';
+    return fetch('/api/repasse-vila/acumulado/?data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) {
+          renderAcumModal(j);
+          if (acumStatus) acumStatus.textContent = '';
+        } else if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Falha';
+      });
+  }
+
+  function abrirAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.remove('hidden');
+    acumModal.classList.add('flex');
+    fetchAcumModal();
+  }
+
+  function fecharAcumModal() {
+    if (!acumModal) return;
+    acumModal.classList.add('hidden');
+    acumModal.classList.remove('flex');
+  }
+
+  var btnAcum = document.getElementById('rv-btn-acum');
+  if (btnAcum) btnAcum.addEventListener('click', abrirAcumModal);
+  var btnAcumFechar = document.getElementById('rv-acum-fechar');
+  if (btnAcumFechar) btnAcumFechar.addEventListener('click', fecharAcumModal);
+  if (acumModal) {
+    acumModal.addEventListener('click', function (ev) {
+      /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
+  }
+  var btnAcumSalvar = document.getElementById('rv-acum-salvar');
+  if (btnAcumSalvar) {
+    btnAcumSalvar.addEventListener('click', function () {
+      var pin = String((document.getElementById('rv-acum-pin') || {}).value || '').trim();
+      var val = String((document.getElementById('rv-acum-valor') || {}).value || '').trim();
+      var obs = String((document.getElementById('rv-acum-obs') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!val) { if (acumStatus) acumStatus.textContent = 'Informe o valor'; return; }
+      if (acumStatus) acumStatus.textContent = 'Salvando…';
+      fetch('/api/repasse-vila/acumulado/ajuste/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ pin: pin, valor: val, observacao: obs, data_calc: dataRef() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Ajuste registrado';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () { if (acumStatus) acumStatus.textContent = 'Falha de rede'; });
+    });
+  }
+  var btnAcumZerar = document.getElementById('rv-acum-zerar');
+  if (btnAcumZerar) {
+    btnAcumZerar.addEventListener('click', function () {
+      var pin = String((document.getElementById('rv-acum-pin') || {}).value || '').trim();
+      if (!pin) { if (acumStatus) acumStatus.textContent = 'Digite o PIN'; return; }
+      if (!window.confirm('Zerar o acumulado? Use se o dinheiro já foi transferido antes da ferramenta.')) return;
+      if (acumStatus) acumStatus.textContent = 'Zerando…';
+      fetch('/api/repasse-vila/acumulado/zerar/', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+        body: JSON.stringify({ pin: pin, data_calc: dataRef() }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j || !j.ok) {
+            if (acumStatus) acumStatus.textContent = (j && j.erro) || 'Erro';
+            return;
+          }
+          if (acumStatus) acumStatus.textContent = 'Acumulado zerado';
+          renderAcumModal(j.acumulado);
+          fetchCalc();
+        })
+        .catch(function () { if (acumStatus) acumStatus.textContent = 'Falha de rede'; });
+    });
+  }
+
+  document.getElementById('rv-mes-ant').addEventListener('click', function () {
+    state.mes -= 1;
+    if (state.mes < 1) { state.mes = 12; state.ano -= 1; }
+    fetchHist();
+  });
+  document.getElementById('rv-mes-prox').addEventListener('click', function () {
+    state.mes += 1;
+    if (state.mes > 12) { state.mes = 1; state.ano += 1; }
+    fetchHist();
+  });
+
+  // Persist prefs for overlay via querystring (+ botão Transferir do header)
+  function syncTransferUrl() {
+    var a = document.getElementById('rv-btn-transferir');
+    if (!a) return;
+    var q = new URLSearchParams();
+    q.set('repasse', '1');
+    q.set('pct', pctEl.value || '50');
+    q.set('cmv', chkCmv.checked ? '1' : '0');
+    q.set('lucro', chkLucro.checked ? '1' : '0');
+    q.set('fiado', chkFiado.checked ? '1' : '0');
+    q.set('cheio', chkCheio.checked ? '1' : '0');
+    q.set('data', dataRef());
+    a.href = '{% url "caixa_retiradas_historico" %}?' + q.toString();
+    document.querySelectorAll('a[href*="caixa/retiradas"][href*="repasse=1"]').forEach(function (el) {
+      if (el !== a) el.href = a.href;
+    });
+  }
+  [pctEl, chkCmv, chkLucro, chkFiado, chkCheio].forEach(function (el) {
+    el.addEventListener('change', syncTransferUrl);
+    el.addEventListener('input', syncTransferUrl);
+  });
+
+  function fetchLogReserva() {
+    var box = document.getElementById('rv-log-lista');
+    if (!box) return;
+    box.innerHTML = '<p class="px-2 py-2 text-slate-500">Carregando…</p>';
+    fetch('/api/repasse-vila/reserva-log/?limit=60', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.ok) {
+          box.innerHTML = '<p class="px-2 py-2 text-rose-700">Falha ao carregar log</p>';
+          return;
+        }
+        var logs = j.logs || [];
+        if (!logs.length) {
+          box.innerHTML = '<p class="px-2 py-2 text-slate-500">Sem registros ainda — salve o valor ou faça um envio.</p>';
+          return;
+        }
+        box.innerHTML = '';
+        logs.forEach(function (L) {
+          var row = document.createElement('div');
+          row.className = 'px-2.5 py-2 space-y-0.5';
+          var det = L.detalhe || {};
+          var extra = '';
+          if (L.tipo === 'aplicado') {
+            extra = ' · bruto ' + money(det.lucro_bruto_dia) +
+              ' − ' + money(det.reserva_aplicada) +
+              ' = penúltimo ' + money(det.lucro_penultimo_dia) +
+              ' · %' + (det.percentual_lucro != null ? det.percentual_lucro : '') +
+              ' → lucro ' + money(det.valor_lucro) +
+              ' · total ' + money(det.valor_total);
+          } else if (L.tipo === 'config') {
+            extra = ' · ' + money(L.valor_antes) + ' → ' + money(L.valor_depois);
+          }
+          row.innerHTML =
+            '<div class="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">' +
+              '<span class="uppercase tracking-wide text-[0.65rem] text-rose-800">' + (L.tipo_label || L.tipo) + '</span>' +
+              '<span class="tabular-nums text-slate-500">' + (L.criado_em || '') + '</span>' +
+            '</div>' +
+            '<div class="leading-snug text-slate-800">' + (L.mensagem || '').replace(/</g, '') + extra + '</div>' +
+            (L.operador ? '<div class="text-slate-500">por ' + String(L.operador).replace(/</g, '') +
+              (L.repasse_id ? ' · envio #' + L.repasse_id : '') + '</div>' : '');
+          box.appendChild(row);
+        });
+      })
+      .catch(function () {
+        box.innerHTML = '<p class="px-2 py-2 text-rose-700">Falha de rede no log</p>';
+      });
+  }
+
+  function cofreEsc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function fetchCofrinho(cofre) {
+    cofre = cofre || 'salario';
+    return fetch('/api/repasse-vila/cofrinho/?cofre=' + encodeURIComponent(cofre) + '&data=' + encodeURIComponent(dataRef()), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok) renderCofrinho(j, cofre); });
+  }
+  function fetchTodosCofres() {
+    return Promise.all([fetchCofrinho('salario'), fetchCofrinho('vila_elias')]);
+  }
+  function postCofre(url, body, cofre) {
+    cofre = cofre || (body && body.cofre) || 'salario';
+    body = Object.assign({}, body || {}, { cofre: cofre });
+    setCofreStatus('Registrando…', cofre);
+    return fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (p) {
+        if (!p.ok || !p.j.ok) { setCofreStatus(p.j.erro || 'Não foi possível registrar.', cofre); return; }
+        setCofreStatus(p.j.criado === false ? 'Já estava registrado — nenhuma duplicação.' : 'Movimento registrado.', cofre);
+        if (p.j.cofrinho) renderCofrinho(p.j.cofrinho, p.j.cofrinho.cofre || cofre);
+        if (p.j.cofre_vila_elias) renderCofrinho(p.j.cofre_vila_elias, 'vila_elias');
+        fetchCalc();
+      }).catch(function () { setCofreStatus('Falha de rede.', cofre); });
+  }
+  function setCofreStatus(msg, cofre) {
+    var id = (cofre === 'vila_elias') ? 'rv-cofre-ve-status' : 'rv-cofre-status';
+    var el = document.getElementById(id);
+    if (el) el.textContent = msg || '';
+  }
+  function renderCofrinho(c, cofre) {
+    c = c || {};
+    cofre = cofre || c.cofre || 'salario';
+    var p = cofre === 'vila_elias' ? 'rv-cofre-ve-' : 'rv-cofre-';
+    var ids = { saldo: p + 'saldo', prevista_dia: p + 'prevista', realizada_dia: p + 'realizada', pendente_dia: p + 'pendente' };
+    Object.keys(ids).forEach(function (k) {
+      var el = document.getElementById(ids[k]);
+      if (el) el.textContent = money(c[k]);
+    });
+    var hint = document.getElementById(p + 'acum-hint');
+    if (hint) {
+      var adi = Number(c.adiantado || 0);
+      var liq = Number(c.pendente_liquido);
+      if (!isFinite(liq)) liq = Number(c.pendente_dia || 0) - adi;
+      if (liq < -0.009) {
+        hint.textContent = 'Excedente ' + money(-liq) + ' — desconta amanhã (acumulado negativo).';
+      } else if (adi > 0.009) {
+        hint.textContent = 'Adiantado ' + money(adi) + ' — abate os próximos dias.';
+      } else {
+        hint.textContent = 'Obrigação ' + money(c.obrigacao_acumulada) + ' · crédito ' + money(c.credito_acumulado);
+      }
+    }
+    var box = document.getElementById(p + 'historico');
+    if (!box) return;
+    var rows = c.movimentos || [];
+    if (!rows.length) {
+      box.innerHTML = '<p class="px-3 py-3 text-slate-500">Sem movimentos.</p>';
+      return;
+    }
+    var cor = cofre === 'vila_elias' ? 'text-indigo-900' : 'text-rose-900';
+    var clsEst = cofre === 'vila_elias' ? 'rv-cofre-ve-estornar' : 'rv-cofre-estornar';
+    box.innerHTML = rows.map(function (m) {
+      var valor = Number(m.valor || 0);
+      var podeEstornar = m.tipo !== 'estorno' && !m.estornado;
+      return '<div class="px-3 py-2 grid gap-1 sm:grid-cols-[minmax(0,1fr)_auto]">' +
+        '<div><div class="flex flex-wrap gap-x-2"><strong class="uppercase ' + cor + '">' + cofreEsc(m.tipo_label) + '</strong><span>' + cofreEsc(m.origem_label) + '</span><span class="text-slate-500">' + cofreEsc(m.criado_em) + '</span></div>' +
+        '<div class="text-slate-700">Ref. ' + cofreEsc(m.data_ref) + ' · ' + cofreEsc(m.operador) + (m.observacao ? ' · ' + cofreEsc(m.observacao) : '') + '</div>' +
+        '<div class="text-slate-500">Saldo ' + money(m.saldo_anterior) + ' → ' + money(m.saldo_posterior) + '</div></div>' +
+        '<div class="flex items-center gap-2"><strong class="tabular-nums ' + (valor >= 0 ? 'text-emerald-800' : 'text-orange-800') + '">' + (valor >= 0 ? '+' : '−') + money(Math.abs(valor)) + '</strong>' +
+        (podeEstornar ? '<button type="button" class="' + clsEst + ' min-h-[2.2rem] rounded-lg border-2 border-slate-400 px-2 text-[0.65rem] font-black uppercase" data-id="' + m.id + '">Estornar</button>' : '') + '</div></div>';
+    }).join('');
+    box.querySelectorAll('.' + clsEst).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var obsId = cofre === 'vila_elias' ? 'rv-cofre-ve-obs' : 'rv-cofre-obs';
+        var obs = String((document.getElementById(obsId) || {}).value || '').trim();
+        if (obs.length < 3) { setCofreStatus('Informe o motivo do estorno.', cofre); return; }
+        postCofre('/api/repasse-vila/cofrinho/estornar/', { movimento_id: btn.dataset.id, observacao: obs }, cofre);
+      });
+    });
+  }
+  var btnCofreSep = document.getElementById('rv-cofre-separar');
+  if (btnCofreSep) btnCofreSep.addEventListener('click', function () {
+    postCofre('/api/repasse-vila/cofrinho/separar/', { data_ref: dataRef(), observacao: 'Separação isolada pela tela de repasse' }, 'salario');
+  });
+  var btnCofreVeSep = document.getElementById('rv-cofre-ve-separar');
+  if (btnCofreVeSep) btnCofreVeSep.addEventListener('click', function () {
+    postCofre('/api/repasse-vila/cofrinho/separar/', { data_ref: dataRef(), observacao: 'Separação Cofre Vila Elias' }, 'vila_elias');
+  });
+  var btnSaldoIni = document.getElementById('rv-cofre-saldo-inicial');
+  if (btnSaldoIni) {
+    btnSaldoIni.addEventListener('click', function () {
+      var tipoEl = document.getElementById('rv-cofre-tipo');
+      if (tipoEl) tipoEl.value = 'saldo_inicial';
+      var valorEl = document.getElementById('rv-cofre-valor');
+      if (valorEl) valorEl.focus();
+      setCofreStatus('Digite o valor já separado e clique em Registrar.', 'salario');
+    });
+  }
+  var btnSaldoIniVe = document.getElementById('rv-cofre-ve-saldo-inicial');
+  if (btnSaldoIniVe) {
+    btnSaldoIniVe.addEventListener('click', function () {
+      var tipoEl = document.getElementById('rv-cofre-ve-tipo');
+      if (tipoEl) tipoEl.value = 'saldo_inicial';
+      var valorEl = document.getElementById('rv-cofre-ve-valor');
+      if (valorEl) valorEl.focus();
+      setCofreStatus('Digite o valor já separado e clique em Registrar.', 'vila_elias');
+    });
+  }
+  function wireMov(prefix, cofre) {
+    var btn = document.getElementById(prefix + 'movimentar');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var tipoUi = String(document.getElementById(prefix + 'tipo').value || 'retirada');
+      var valor = parseMoneyBR(document.getElementById(prefix + 'valor').value);
+      var obs = String(document.getElementById(prefix + 'obs').value || '').trim();
+      if (valor <= 0) { setCofreStatus('Informe um valor maior que zero.', cofre); return; }
+      if (obs.length < 3) { setCofreStatus('Informe o motivo/observação.', cofre); return; }
+      var tipo = 'ajuste';
+      if (tipoUi === 'retirada') tipo = 'retirada';
+      else if (tipoUi === 'saldo_inicial') tipo = 'saldo_inicial';
+      else if (tipoUi === 'ajuste_menos') valor = -valor;
+      var chave = 'cofre-ui:' + cofre + ':' + Date.now() + ':' + Math.random().toString(36).slice(2);
+      postCofre('/api/repasse-vila/cofrinho/movimento/', { tipo: tipo, valor: valor, observacao: obs, data_ref: dataRef(), idempotencia_chave: chave }, cofre);
+    });
+  }
+  wireMov('rv-cofre-', 'salario');
+  wireMov('rv-cofre-ve-', 'vila_elias');
+  var btnCofreRefresh = document.getElementById('rv-cofre-refresh');
+  if (btnCofreRefresh) btnCofreRefresh.addEventListener('click', function () { fetchCofrinho('salario'); });
+  var btnCofreVeRefresh = document.getElementById('rv-cofre-ve-refresh');
+  if (btnCofreVeRefresh) btnCofreVeRefresh.addEventListener('click', function () { fetchCofrinho('vila_elias'); });
+
+  renderCalc();
+  renderHist();
+  syncTransferUrl();
+  fetchCalc();
+  fetchTodosCofres();
+  fetchLogReserva();
+  var btnLog = document.getElementById('rv-log-refresh');
+  if (btnLog) btnLog.addEventListener('click', fetchLogReserva);
+})();
+</script>
+{% endblock %}

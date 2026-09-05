@@ -1,0 +1,5 @@
+#!/bin/sh
+# Sobe VERSION (1.01 -> 1.02) em cada commit nas branches teste/producao.
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT" || exit 0
+python scripts/bump_version.py --hook || exit 1

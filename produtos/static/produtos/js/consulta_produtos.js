@@ -26,14 +26,43 @@
     }
 
     function aplicarPromocaoCarrinhoItem(item) {
-        if (!item || !window.AgroPdvPromocoes || !window.AgroPdvPromocoes.aplicarNoItem) return item;
+        if (!item || item.preco_manual) return item;
         if (item.preco_padrao == null) item.preco_padrao = Number(item.preco || 0);
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma) {
+            return window.AgroPrecosFormaPagamento.aplicarPromocaoDepoisForma(item, forma);
+        }
+        if (!window.AgroPdvPromocoes || !window.AgroPdvPromocoes.aplicarNoItem) return item;
         return window.AgroPdvPromocoes.aplicarNoItem(item);
+    }
+
+    function recalcularPrecosFormaCarrinho() {
+        if (!carrinho.length) return;
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        if (window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.aplicarCarrinho) {
+            window.AgroPrecosFormaPagamento.aplicarCarrinho(carrinho, forma);
+        } else if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(carrinho, forma);
+        } else {
+            carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        }
+        if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
     }
 
     function recalcularPromocoesCarrinho() {
         if (!carrinho.length) return;
-        carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        var forma = window.AgroPrecosFormaPagamento && window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual
+            ? window.AgroPrecosFormaPagamento.obterFormaPagamentoAtual()
+            : '';
+        if (window.AgroPdvPromocoes && window.AgroPdvPromocoes.recalcCarrinhoComForma) {
+            window.AgroPdvPromocoes.recalcCarrinhoComForma(carrinho, forma);
+        } else {
+            carrinho.forEach(aplicarPromocaoCarrinhoItem);
+        }
     }
 
 
@@ -81,10 +110,21 @@ let scannerTimer = null;
 let quantidadeRapida = 1;
 let ultimoProdutoAdicionadoId = null;
 let tempoUltimaAdicao = 0;
+/** Evita F4/F8 do leitor logo após bip (alguns scanners enviam tecla de função). */
+let pdvScannerBloqueioTeclasAte = 0;
 
 let baseProdutos = [];
-const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v2';
+const PDV_CACHE_KEY = 'agro_pdv_catalog_cache_v3';
+const PDV_PATCH_QUEUE_KEY = 'agro_pdv_catalog_patch_queue_v1';
+const PDV_CARRINHO_SESS_KEY = 'agro_pdv_carrinho_sess_v1';
+const PDV_CARRINHO_SESS_TTL_MS = 1000 * 60 * 60 * 12;
 const PDV_CACHE_TTL_MS = 1000 * 60 * 60 * 8;
+const CONSULTA_BUSCA_LIMITE = 60;
+const PDV_FOCUS_DELTA_MIN_MS = 5 * 60 * 1000;
+let pdvCatalogoBootAt = 0;
+let pdvCatalogoLastFocusDeltaAt = 0;
+let pdvCatalogoFocusDeltaBusy = false;
+let pdvStoragePatchTimer = null;
 let cacheClientesPDV = [];
 let frequenciaUso = JSON.parse(localStorage.getItem('freqProdutos') || '{}');
 let catalogoRapidoAtual = [];
@@ -437,7 +477,7 @@ function pdvModalPerguntaEntrega(titulo, texto, eyebrow) {
         };
         if (btnSim) btnSim.onclick = () => finish(true);
         if (btnNao) btnNao.onclick = () => finish(false);
-        root.onclick = (ev) => { if (ev.target === root) finish(false); };
+        root.onclick = (ev) => { /* Fundo nao fecha — so X / FECHAR / Esc */ void ev; };
         root.classList.remove('hidden');
         root.classList.add('flex');
         document.body.classList.add('modal-open');
@@ -480,7 +520,7 @@ function pdvModalEscolhaImpressaoEntrega() {
         }
         if (btnCan) btnCan.onclick = () => finish(null);
         root.onclick = (ev) => {
-            if (ev.target === root) finish(null);
+            /* Fundo nao fecha — so X / FECHAR / Esc */
         };
         root.classList.remove('hidden');
         root.classList.add('flex');
@@ -494,7 +534,9 @@ function pdvModalEscolhaImpressaoEntrega() {
     const bd = document.getElementById('pdv-carrinho-backdrop');
     if (btnAbrir) btnAbrir.addEventListener('click', abrirDrawerCarrinho);
     if (btnFechar) btnFechar.addEventListener('click', fecharDrawerCarrinho);
-    if (bd) bd.addEventListener('click', fecharDrawerCarrinho);
+    if (bd) bd.addEventListener('click', function () {
+        /* Fundo nao fecha — so X / FECHAR / Esc */
+    });
 })();
 
 function pickFirstValue(...valores) {
@@ -619,20 +661,50 @@ function obterValorCampoProduto(produto, tipo) {
 }
 
 function prepararProduto(produto) {
+    const idBruto =
+        produto.id != null && produto.id !== ''
+            ? produto.id
+            : produto.Id != null && produto.Id !== ''
+              ? produto.Id
+              : produto.produto_id;
+    const idNorm = normalizarIdProdutoPdv(idBruto);
     const nome = pickFirstValue(produto.nome, produto.descricao, produto.descricao_completa, produto.nome_produto);
-    const codigo = pickFirstValue(produto.codigo_nfe, produto.codigo_interno, produto.codigo, produto.sku);
+    const codigoNfe = pickFirstValue(produto.codigo_nfe, produto.codigo);
+    const codigoInterno = pickFirstValue(produto.codigo_interno, produto.codigo_interno_agro);
+    const codigo = pickFirstValue(codigoNfe, codigoInterno, produto.codigo, produto.sku);
     const codigoBarras = pickFirstValue(produto.codigo_barras, produto.ean, produto.barras);
     const marca = obterValorCampoProduto(produto, 'marca');
     const fornecedor = obterValorCampoProduto(produto, 'fornecedor');
     const categoria = obterValorCampoProduto(produto, 'categoria');
     const subcategoria = obterValorCampoProduto(produto, 'subcategoria');
-    const buscaTexto = [nome, codigo, codigoBarras, marca, fornecedor, categoria, subcategoria]
+    const codigosBusca = [codigoNfe, codigoInterno, codigo, codigoBarras, produto.referencia, produto.sku];
+    if (Array.isArray(produto.index_codigos)) {
+        produto.index_codigos.slice(0, 80).forEach((c) => codigosBusca.push(c));
+    }
+    const buscaCodigoTokens = [];
+    const addBuscaCod = (v) => {
+        const s = String(v || '').trim();
+        if (!s) return;
+        buscaCodigoTokens.push(normalizarBuscaLocal(s));
+        if (typeof somenteAlnumCodigoBusca === 'function') {
+            const al = somenteAlnumCodigoBusca(s);
+            if (al.length >= 4) buscaCodigoTokens.push(al);
+        }
+        if (typeof variantesLiteraisCodigoGm === 'function' && /^gm/i.test(s)) {
+            variantesLiteraisCodigoGm(s).forEach((vx) => buscaCodigoTokens.push(vx));
+        }
+    };
+    codigosBusca.forEach(addBuscaCod);
+    const buscaTexto = [nome, ...buscaCodigoTokens, marca, fornecedor, categoria, subcategoria]
         .map(normalizarBuscaLocal)
+        .filter(Boolean)
         .join(' ');
     return {
         ...produto,
+        id: idNorm || produto.id,
         nome,
-        codigo_nfe: codigo,
+        codigo_nfe: codigoNfe || codigo,
+        codigo_interno: codigoInterno || produto.codigo_interno || '',
         codigo_barras: codigoBarras,
         marca,
         fornecedor,
@@ -1014,6 +1086,7 @@ function tocarSom(tipo = 'add') {
 }
 
 function mostrarStatusBusca(texto, cor = 'slate') {
+    if (!statusBusca) return;
     statusBusca.classList.remove('hidden', 'text-slate-400', 'text-emerald-600', 'text-orange-500', 'text-red-500');
 
     if (cor === 'emerald') statusBusca.classList.add('text-emerald-600');
@@ -1098,9 +1171,12 @@ function removerSufixoQuantidade(texto) {
 }
 
 function renderizarSugestoes() {
+    if (!similaresContainer) return;
     similaresContainer.innerHTML = '';
-    autoList.innerHTML = '';
-    autoList.classList.add('hidden');
+    if (autoList) {
+        autoList.innerHTML = '';
+        autoList.classList.add('hidden');
+    }
 
     const PLACEHOLDER = (AGRO_PDV_ASSETS.placeholderProduto || '');
     const lapiz = `<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" /></svg>`;
@@ -1268,7 +1344,77 @@ function incrementarFrequencia(id) {
 
 function normalizarIdProdutoPdv(id) {
     if (id === undefined || id === null) return '';
-    return String(id);
+    const s = String(id).trim();
+    if (!s || s === 'undefined' || s === 'null' || s === '[object Object]') return '';
+    return s;
+}
+
+function pdvMarcarJanelaScannerAtiva(ms) {
+    pdvScannerBloqueioTeclasAte = Date.now() + (ms != null && ms > 0 ? ms : 1200);
+}
+
+function pdvTeclasFuncaoBloqueadasPorScanner() {
+    return Date.now() < pdvScannerBloqueioTeclasAte;
+}
+
+function persistirCarrinhoSessao() {
+    try {
+        if (!Array.isArray(carrinho) || !carrinho.length) {
+            sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            return;
+        }
+        const fp = document.getElementById('forma-pagamento-pdv');
+        sessionStorage.setItem(
+            PDV_CARRINHO_SESS_KEY,
+            JSON.stringify({
+                saved_at: Date.now(),
+                itens: carrinho,
+                cliente: typeof nomeClientePdv === 'function' ? nomeClientePdv() : '',
+                cliente_extra: clienteSelecionado,
+                forma_pagamento: fp && fp.value ? fp.value : '',
+            })
+        );
+    } catch (_) {}
+}
+
+function restaurarCarrinhoSessaoSeVazio() {
+    if (Array.isArray(carrinho) && carrinho.length) return false;
+    try {
+        const raw = sessionStorage.getItem(PDV_CARRINHO_SESS_KEY);
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        const at = Number(d && d.saved_at);
+        if (!at || Date.now() - at > PDV_CARRINHO_SESS_TTL_MS) {
+            sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            return false;
+        }
+        const itens = d && d.itens;
+        if (!Array.isArray(itens) || !itens.length) return false;
+        carrinho = itens.map((it) => {
+            const row = Object.assign({}, it);
+            row.id = normalizarIdProdutoPdv(row.id);
+            row.qtd = Math.max(1, Number(row.qtd) || 1);
+            row.preco = Number(row.preco || 0);
+            if (row.preco_padrao == null) row.preco_padrao = row.preco;
+            return row;
+        }).filter((it) => it.id);
+        if (!carrinho.length) return false;
+        if (typeof inputCliente !== 'undefined' && inputCliente && d.cliente) {
+            inputCliente.value = d.cliente;
+        }
+        clienteSelecionado =
+            d.cliente_extra && typeof d.cliente_extra === 'object' ? d.cliente_extra : null;
+        const fp = document.getElementById('forma-pagamento-pdv');
+        if (fp && d.forma_pagamento) fp.value = d.forma_pagamento;
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') {
+            window.recalcularPrecosFormaCarrinho();
+        } else if (typeof atualizarCarrinho === 'function') {
+            atualizarCarrinho();
+        }
+        return true;
+    } catch (_) {
+        return false;
+    }
 }
 
 function metaOpcoesFromProd(p) {
@@ -1277,6 +1423,23 @@ function metaOpcoesFromProd(p) {
         codigo_gm: String(p.codigo_nfe || p.codigo_gm || p.codigo || '').trim(),
         prateleira: String(p.prateleira || '').trim(),
     };
+    if (p.precos_por_forma && typeof p.precos_por_forma === 'object') {
+        out.precos_por_forma = Object.assign({}, p.precos_por_forma);
+    } else if (p.cadastro_extras && p.cadastro_extras.precos_por_forma) {
+        out.precos_por_forma = Object.assign({}, p.cadastro_extras.precos_por_forma);
+    }
+    var modo = p.precos_modo || (p.cadastro_extras && p.cadastro_extras.precos_modo);
+    if (modo) out.precos_modo = String(modo).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+    var pg = p.precos_grupos || (p.cadastro_extras && p.cadastro_extras.precos_grupos);
+    /* Só carrega A/B no carrinho se o modo for grupos — lixo antigo não vira tabela. */
+    if (out.precos_modo === 'grupos' && pg && typeof pg === 'object') {
+        out.precos_grupos = {
+            preco_a: pg.preco_a,
+            preco_b: pg.preco_b,
+            formas_a: Array.isArray(pg.formas_a) ? pg.formas_a.slice() : [],
+            formas_b: Array.isArray(pg.formas_b) ? pg.formas_b.slice() : [],
+        };
+    }
     if (p.auditoria_codigo_bip) {
         out.auditoria_codigo_bip = String(p.auditoria_codigo_bip).trim();
     }
@@ -1285,7 +1448,14 @@ function metaOpcoesFromProd(p) {
 
 function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const idNorm = normalizarIdProdutoPdv(id);
-    if (!idNorm) return;
+    if (!idNorm) {
+        tocarSom('erro');
+        mostrarStatusBusca(
+            'Produto sem ID válido no catálogo — não foi adicionado. Toque em Estoque (sync) ou F5 na página.',
+            'red'
+        );
+        return;
+    }
 
     const carrinhoEstavaVazio = carrinho.length === 0;
 
@@ -1308,13 +1478,22 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     const pr = opcoes.prateleira != null ? String(opcoes.prateleira).trim() : '';
     const aud = opcoes.auditoria_codigo_bip != null ? String(opcoes.auditoria_codigo_bip).trim() : '';
     const precoPadrao = Number(preco || 0);
+    const ppf = opcoes.precos_por_forma;
+    const modoPg = opcoes.precos_modo;
+    const pgMeta = opcoes.precos_grupos;
     if (item) {
         item.qtd += qtd;
         if (item.preco_padrao == null) item.preco_padrao = precoPadrao;
+        if (ppf && typeof ppf === 'object') item.precos_por_forma = Object.assign({}, ppf);
+        if (modoPg) item.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+        if (item.precos_modo === 'grupos' && pgMeta && typeof pgMeta === 'object') {
+            item.precos_grupos = Object.assign({}, pgMeta);
+        } else if (item.precos_modo === 'por_forma') {
+            try { delete item.precos_grupos; } catch (_) { item.precos_grupos = null; }
+        }
         if (cg && !item.codigo_gm) item.codigo_gm = cg;
         if (pr && !item.prateleira) item.prateleira = pr;
         if (aud && !item.auditoria_codigo_bip) item.auditoria_codigo_bip = aud;
-        aplicarPromocaoCarrinhoItem(item);
     } else {
         const linha = {
             id: idNorm,
@@ -1325,10 +1504,15 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
             codigo_gm: cg,
             prateleira: pr,
         };
+        if (ppf && typeof ppf === 'object') linha.precos_por_forma = Object.assign({}, ppf);
+        if (modoPg) linha.precos_modo = String(modoPg).toLowerCase() === 'grupos' ? 'grupos' : 'por_forma';
+        if (linha.precos_modo === 'grupos' && pgMeta && typeof pgMeta === 'object') {
+            linha.precos_grupos = Object.assign({}, pgMeta);
+        }
         if (aud) linha.auditoria_codigo_bip = aud;
-        aplicarPromocaoCarrinhoItem(linha);
         carrinho.push(linha);
     }
+    recalcularPromocoesCarrinho();
 
     atualizarCarrinho();
     tocarSom('add');
@@ -1348,27 +1532,86 @@ function addCarrinho(id, nome, preco, qtd = 1, opcoes = {}) {
     }
 }
 
-function validarItemCarrinhoSilencioso(id, precoLocal) {
-    fetch(`/api/buscar-produto-id/${id}/`)
-        .then(r => r.json())
-        .then(d => {
-            if (!d.erro && d.preco_venda !== precoLocal) {
-                alert(`⚠️ ATUALIZAÇÃO DE SISTEMA:\nO preço do produto "${d.nome}" sofreu alteração no ERP!\n\nDe: ${formatarMoeda(precoLocal)}\nPara: ${formatarMoeda(d.preco_venda)}\n\nO carrinho foi corrigido automaticamente para evitar perdas.`);
-                
-                const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === normalizarIdProdutoPdv(id));
-                if (item) {
-                    item.preco = d.preco_venda;
-                    atualizarCarrinho();
-                }
-                
-                // Atualiza a base em memória
-                const pLocal = baseProdutos.find((p) => normalizarIdProdutoPdv(p.id) === normalizarIdProdutoPdv(id));
-                if (pLocal) pLocal.preco_venda = d.preco_venda;
+function confirmarPrecoServidorPdv(id, precoLocal, opts) {
+    opts = opts || {};
+    const ms = opts.timeoutMs != null ? Number(opts.timeoutMs) : 2000;
+    const idNorm = normalizarIdProdutoPdv(id);
+    const precoCache = Number(precoLocal || 0);
+    if (!idNorm) {
+        return Promise.resolve({ ok: false, preco: precoCache, fonte: 'cache' });
+    }
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    let timer = null;
+    if (ctrl) {
+        timer = setTimeout(function () {
+            try { ctrl.abort(); } catch (e) {}
+        }, Math.max(400, ms));
+    }
+    const url =
+        ((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/') +
+        '?q=' + encodeURIComponent(idNorm) + '&limit=12';
+    return fetch(url, {
+        credentials: 'same-origin',
+        signal: ctrl ? ctrl.signal : undefined,
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            const prods = (d && d.produtos) || [];
+            let hit = prods.find(function (p) {
+                return normalizarIdProdutoPdv(p && p.id) === idNorm;
+            });
+            if (!hit && prods.length === 1) hit = prods[0];
+            if (hit && hit.preco_venda != null && isFinite(Number(hit.preco_venda))) {
+                return {
+                    ok: true,
+                    preco: Number(hit.preco_venda),
+                    nome: hit.nome || '',
+                    fonte: 'servidor',
+                };
             }
-        }).catch(e => console.log('Validação silenciosa falhou ou ignorada:', e));
+            return { ok: false, preco: precoCache, fonte: 'cache' };
+        })
+        .catch(function () {
+            return { ok: false, preco: precoCache, fonte: 'cache' };
+        })
+        .finally(function () {
+            if (timer) clearTimeout(timer);
+        });
+}
+
+function validarItemCarrinhoSilencioso(id, precoLocal) {
+    /* Confirma preço no servidor ao pôr no carrinho; se demorar >2s, mantém cache. Sem alert agressivo. */
+    confirmarPrecoServidorPdv(id, precoLocal, { timeoutMs: 2000 }).then(function (res) {
+        if (!res || !res.ok) return;
+        const novo = Number(res.preco);
+        const antigo = Number(precoLocal || 0);
+        if (!isFinite(novo) || Math.abs(novo - antigo) < 0.005) return;
+        const idNorm = normalizarIdProdutoPdv(id);
+        const item = carrinho.find((i) => normalizarIdProdutoPdv(i.id) === idNorm);
+        if (item) {
+            if (item.preco_manual) return;
+            item.preco = novo;
+            item.preco_padrao = novo;
+            recalcularPromocoesCarrinho();
+            atualizarCarrinho();
+            mostrarStatusBusca(
+                'Preço atualizado: ' + (item.nome || '') + ' → ' + formatarMoeda(novo),
+                'emerald'
+            );
+            setTimeout(esconderStatusBusca, 2200);
+        }
+        const pLocal = baseProdutos.find((p) => normalizarIdProdutoPdv(p.id) === idNorm);
+        if (pLocal) pLocal.preco_venda = novo;
+        try {
+            if (window.AgroPacoteCatalogo && typeof AgroPacoteCatalogo.saveFromServer === 'function') {
+                /* noop leve — merge via busca já cobre; só espelha preço na base */
+            }
+        } catch (e) {}
+    });
 }
 
 function adicionarProdutoComQuantidade(id, nome, preco, qtd = 1, prodRef = null) {
+    if (typeof agroProdutoIdProvaUnificada === 'function' && agroProdutoIdProvaUnificada(id)) return;
     addCarrinho(id, nome, preco, qtd, prodRef ? metaOpcoesFromProd(prodRef) : {});
 }
 
@@ -1385,7 +1628,7 @@ function alterarQtdItem(index, delta) {
         carrinho.splice(index, 1);
         tocarSom('erro');
     } else {
-        aplicarPromocaoCarrinhoItem(item);
+        recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
     if (item && item.qtd >= 1) tocarSom('add');
@@ -1399,7 +1642,7 @@ function definirQtdItem(index, val) {
         tocarSom('erro');
     } else {
         carrinho[index].qtd = n;
-        aplicarPromocaoCarrinhoItem(carrinho[index]);
+        recalcularPromocoesCarrinho();
     }
     atualizarCarrinho();
 }
@@ -1412,9 +1655,14 @@ function removerUltimoItem() {
 }
 
 function limparCarrinho() {
+    if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+    if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) return;
     if (!carrinho.length) return;
     if (!confirm('Limpar todo o orçamento?')) return;
     carrinho = [];
+    try {
+        sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+    } catch (_) {}
     if (inputCliente) {
         inputCliente.value = CLIENTE_PADRAO_PDV;
     }
@@ -1429,19 +1677,27 @@ function limparCarrinho() {
 
 
 function atualizarCarrinho() {
+    if (!Array.isArray(carrinho)) {
+        carrinho = [];
+    }
     const container = document.getElementById('itens-carrinho');
     const badge = document.getElementById('itens-badge');
     const cartShell = document.getElementById('cart-shell');
 
     let total = 0;
     let qtdItens = 0;
-    container.innerHTML = '';
+    if (container) container.innerHTML = '';
 
     carrinho.forEach((item, index) => {
-        total += item.preco * item.qtd;
-        qtdItens += item.qtd;
+        try {
+            const preco = Number(item && item.preco);
+            const qtd = Math.max(0, Number(item && item.qtd) || 0);
+            if (!item || !normalizarIdProdutoPdv(item.id) || qtd <= 0) return;
+            total += (isFinite(preco) ? preco : 0) * qtd;
+            qtdItens += qtd;
 
-        container.innerHTML += `
+            if (!container) return;
+            container.innerHTML += `
             <div class="flex gap-2 py-2 px-2 rounded-lg border border-slate-100 bg-white items-start shadow-sm">
                 <div class="min-w-0 flex-1">
                     <div class="text-slate-900 font-bold text-xs leading-snug line-clamp-2">${escapeHtml(item.nome)}</div>
@@ -1458,13 +1714,17 @@ function atualizarCarrinho() {
                 </div>
             </div>
         `;
+        } catch (errLinha) {
+            console.warn('PDV: falha ao renderizar item do carrinho', index, errLinha);
+        }
     });
 
-    if (!qtdItens) {
+    if (!qtdItens && container) {
         container.innerHTML = '<div class="py-8 text-center text-xs font-bold text-slate-400 px-3">Vazio — busque e Enter para adicionar.</div>';
     }
 
-    document.getElementById('total-geral').innerText = formatarMoeda(total);
+    const totalEl = document.getElementById('total-geral');
+    if (totalEl) totalEl.innerText = formatarMoeda(total);
     const stripTot = document.getElementById('pdv-carrinho-strip-total');
     if (stripTot) stripTot.textContent = formatarMoeda(total);
     const drawerMeta = document.getElementById('pdv-drawer-cart-meta');
@@ -1500,6 +1760,8 @@ function atualizarCarrinho() {
         void shell.offsetWidth;
         shell.classList.add('pulse-fast');
     }
+
+    persistirCarrinhoSessao();
 }
 
 async function irParaCheckout() {
@@ -1537,7 +1799,7 @@ async function irParaCheckout() {
 
 // --- HISTÓRICO LOCAL ---
 function salvarHistoricoLocal(extra) {
-    if (!carrinho.length) return;
+    if (!carrinho.length) return Promise.resolve(null);
     extra = extra || {};
     let historico = [];
     try {
@@ -1566,10 +1828,25 @@ function salvarHistoricoLocal(extra) {
         orc_barcode: pdvCodigoBarrasOrcamento(idOrc),
         data: new Date().toLocaleString('pt-BR'),
         cliente: nomeClientePdv(),
+        cliente_key: (function () {
+            var capk = pdvClienteAgroPkSelecionado();
+            if (capk != null) return 'pk:' + String(capk).trim();
+            var nome = String(nomeClientePdv() || '').trim();
+            if (/consumidor\s+n[aã]o\s+identificado/i.test(nome)) return 'consumidor_final';
+            var tel =
+                clienteSelecionado && clienteSelecionado.telefone
+                    ? String(clienteSelecionado.telefone).replace(/\D/g, '')
+                    : '';
+            return 'tmp:' + nome.toLowerCase() + ':' + tel;
+        })(),
+        cliente_mode: /consumidor\s+n[aã]o\s+identificado/i.test(String(nomeClientePdv() || ''))
+            ? 'consumidor_final'
+            : 'cliente',
         total: document.getElementById('total-geral').innerText,
         itens: JSON.parse(JSON.stringify(carrinho)),
         forma_pagamento: fpEl && fpEl.value ? fpEl.value : '',
         entrega: !!extra.entrega,
+        origem: extra.origem || (extra.fromWhatsapp ? 'whatsapp' : 'manual'),
         usuario: usuarioSalvo || undefined,
         cliente_extra:
             clienteSelecionado && typeof clienteSelecionado === 'object'
@@ -1580,6 +1857,15 @@ function salvarHistoricoLocal(extra) {
     if (historico.length > 20) historico.pop();
     localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
     renderizarHistoricoResumido();
+    return postOrcamentoPdvServidor(novo).then(function (data) {
+        if (data && data.ok && data.item) {
+            var h2 = historico.filter(function (x) { return String(x.id) !== String(data.item.id); });
+            h2.unshift(data.item);
+            localStorage.setItem('historicoOrcamentos', JSON.stringify(h2));
+            renderizarHistoricoResumido();
+        }
+        return data;
+    });
 }
 
 function registrarPedidoEntregaServidor(orcId, extra) {
@@ -1654,7 +1940,7 @@ async function salvarOrcamentoManual() {
                 'Dinheiro'
             );
         }
-        salvarHistoricoLocal({ entrega: comEntrega, orcId });
+        const serverSave = await salvarHistoricoLocal({ entrega: comEntrega, orcId });
         tocarSom('add');
         if (comEntrega) {
             const escImp = await pdvModalEscolhaImpressaoEntrega();
@@ -1673,10 +1959,13 @@ async function salvarOrcamentoManual() {
                 alert((reg && reg.erro) ? reg.erro : 'Não foi possível registrar o pedido no painel Entregas.');
             }
         }
+        const gravou = !!(serverSave && serverSave.ok);
         alert(
             comEntrega
                 ? 'Orçamento salvo com entrega. O pedido foi registrado no painel Entregas (menu). Bipe ' + pdvCodigoBarrasOrcamento(orcId) + ' no buscador para retomar. F6 lista orçamentos.'
-                : 'Orçamento salvo neste navegador. Abra Orçamentos (F6) para listar ou recuperar.'
+                : gravou
+                  ? 'Orçamento salvo. Abra Orçamentos (F6) para listar ou recuperar.'
+                  : 'Orçamento neste PC, mas o servidor não confirmou. Dê Ctrl+F5 e tente de novo.'
         );
     } finally {
         isSavingOrcamento = false;
@@ -1686,18 +1975,18 @@ async function salvarOrcamentoManual() {
 
 function pdvGerarTextoWhatsappOrcamentoCarrinho() {
     const nome = nomeClientePdv();
-    let msg = '🐎🌾 *ORÇAMENTO SISVALE* 🌾🐔\n\n';
+    const sep = '────────────────';
+    let msg = '🐴🌾 *ORÇAMENTO AGROMAIS* 🌾🐔\n\n';
     msg += '👤 *Cliente:* ' + nome + '\n';
+    msg += sep + '\n';
     msg += '🛒 *Itens:*\n';
-    msg += '━━━━━━━━━━━━━━━━━━\n';
     carrinho.forEach(function (i) {
-        msg += '🔸 ' + i.qtd + 'x ' + i.nome + '\n';
-        msg += '   💰 ' + formatarMoeda(i.preco * i.qtd) + '\n';
+        msg += i.qtd + 'x - ' + i.nome + '  ' + formatarMoeda(i.preco * i.qtd) + '\n';
     });
-    msg += '━━━━━━━━━━━━━━━━━━\n';
+    msg += sep + '\n';
     const tot = document.getElementById('total-geral');
     msg += '💵 *TOTAL: ' + (tot ? tot.innerText : '') + '*\n\n';
-    msg += '✨ Obrigado por escolher a *SisVale*!';
+    msg += '✨ Obrigado por escolher a *AGROMAIS*!';
     return msg;
 }
 
@@ -1706,19 +1995,26 @@ function pdvWhatsappOrcamentoCarrinho() {
         tocarSom('erro');
         return alert('Carrinho vazio.');
     }
-    salvarHistoricoLocal();
+    const msg = pdvGerarTextoWhatsappOrcamentoCarrinho();
     let numeroWhatsapp =
         clienteSelecionado && clienteSelecionado.telefone
             ? String(clienteSelecionado.telefone)
             : '5513997673389';
     numeroWhatsapp = numeroWhatsapp.replace(/\D/g, '');
     if (numeroWhatsapp.length === 10 || numeroWhatsapp.length === 11) numeroWhatsapp = '55' + numeroWhatsapp;
-    const msg = pdvGerarTextoWhatsappOrcamentoCarrinho();
-    window.open(
-        'https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg),
-        '_blank',
-        'noopener,noreferrer'
-    );
+    const abrirZap = function () {
+        window.open(
+            'https://api.whatsapp.com/send?phone=' + numeroWhatsapp + '&text=' + encodeURIComponent(msg),
+            '_blank',
+            'noopener,noreferrer'
+        );
+    };
+    const pSave = salvarHistoricoLocal({ origem: 'whatsapp' });
+    if (pSave && typeof pSave.then === 'function') {
+        pSave.then(abrirZap);
+    } else {
+        abrirZap();
+    }
 }
 
 function pdvImprimirOrcamentoCarrinho() {
@@ -1809,6 +2105,15 @@ async function pdvEnviarOrcamentoErpCarrinho() {
     if (!url) {
         return alert('URL do ERP não configurada no bootstrap.');
     }
+    if (typeof window.gmSspinGarantirOperador === 'function') {
+        const pinOk = await new Promise(function (resolve) {
+            window.gmSspinGarantirOperador(function () {
+                resolve(true);
+            }, { titulo: 'PIN para confirmar a venda', maxFrescoS: 10 });
+            /* Se abandonar o PIN, a Promise fica pendente — ok (não envia). */
+        });
+        if (!pinOk) return;
+    }
     salvarHistoricoLocal();
     const payload = { cliente: nomeClientePdv(), itens: carrinho };
     if (clienteSelecionado && clienteSelecionado.id) {
@@ -1825,6 +2130,17 @@ async function pdvEnviarOrcamentoErpCarrinho() {
     }
     const fp = document.getElementById('forma-pagamento-pdv');
     if (fp && fp.value) payload.forma_pagamento = fp.value;
+    try {
+        var depBoot = (AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.pdvDeposito) || {};
+        var dep = String(depBoot.deposito || '').trim().toLowerCase();
+        if (dep !== 'vila' && dep !== 'centro') {
+            var lid = localStorage.getItem('agro_pdv_loja_id');
+            dep = String(lid) === '2' ? 'vila' : 'centro';
+        }
+        payload.deposito = dep;
+    } catch (eDep) {
+        payload.deposito = 'centro';
+    }
     payload.client_request_id =
         typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
@@ -1841,10 +2157,14 @@ async function pdvEnviarOrcamentoErpCarrinho() {
         });
         const data = await res.json();
         if (data.ok) {
+            agroPdvAplicarPatchesRespostaVenda(data);
             const msg = typeof data.mensagem === 'string' ? data.mensagem : JSON.stringify(data.mensagem);
             const vid = data.venda_id != null ? '\nRegistro local: #' + data.venda_id : '';
             alert('✅ ' + msg + vid);
             carrinho = [];
+            try {
+                sessionStorage.removeItem(PDV_CARRINHO_SESS_KEY);
+            } catch (_) {}
             clienteSelecionado = null;
             if (inputCliente) inputCliente.value = CLIENTE_PADRAO_PDV;
             const fp2 = document.getElementById('forma-pagamento-pdv');
@@ -1977,49 +2297,68 @@ async function pdvSalvarClienteRapidoPdv() {
 
 function abrirHistoricoLocal() {
     const container = document.getElementById('lista-historico-local');
-    let historico = [];
-    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
-    container.innerHTML = '';
-    if (historico.length === 0) {
-        container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo neste navegador.</div>';
-    } else {
+    if (!container) return;
+    container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Carregando orçamentos…</div>';
+    document.getElementById('modal-historico-vendas').classList.remove('hidden');
+    document.getElementById('modal-historico-vendas').classList.add('flex');
+    document.body.classList.add('modal-open');
+
+    function paint(historico) {
+        container.innerHTML = '';
+        if (!historico.length) {
+            container.innerHTML = '<div class="text-center text-slate-400 py-10 font-bold text-sm">Nenhum orçamento salvo.</div>';
+            return;
+        }
         historico.forEach(h => {
             const hid = Number(h.id);
             const uRaw = String((h.usuario != null && h.usuario !== '') ? h.usuario : (h.operador || '')).trim();
             const op = uRaw ? escapeHtml(uRaw) : '';
             const opLinha = op
-                ? `<span class="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[7px] font-black uppercase text-slate-600 ring-1 ring-slate-300/60" title="Usuário que salvou o orçamento">👤 ${op}</span>`
+                ? '<span class="inline-flex items-center rounded-md bg-slate-200/70 px-1.5 py-0.5 text-[7px] font-black uppercase text-slate-600 ring-1 ring-slate-300/60" title="Usuário que salvou o orçamento">👤 ' + op + '</span>'
                 : '<span class="text-[9px] font-bold text-slate-400">— usuário</span>';
-            container.innerHTML += `
-                <div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">
-                    <div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">
-                        <div class="min-w-0 flex-1">
-                            <div class="font-black text-slate-800 text-sm uppercase leading-snug">${escapeHtml(h.cliente)}${h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : ''}</div>
-                            <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">
-                                <span>${escapeHtml(h.data)}</span>
-                                <span class="text-slate-300">·</span>
-                                <span>${Number(h.itens && h.itens.length) || 0} itens</span>
-                                ${h.forma_pagamento ? `<span class="text-slate-300">·</span><span>${escapeHtml(h.forma_pagamento)}</span>` : ''}
-                            </div>
-                            <div class="mt-1.5 flex flex-wrap items-center gap-2">${opLinha}</div>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <div class="font-black text-emerald-600 text-lg tabular-nums">${escapeHtml(h.total)}</div>
-                            ${h.orc_barcode ? `<div class="text-[9px] font-mono font-bold text-slate-400 mt-0.5">${escapeHtml(String(h.orc_barcode))}</div>` : ''}
-                        </div>
-                    </div>
-                    <div class="mt-3 flex flex-wrap gap-2">
-                        <button type="button" onclick="recuperarOrcamento(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-sky-400 bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como orçamento</button>
-                        <button type="button" onclick="abrirOrcamentoComoVendaPdv(${hid})" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como venda (PDV)</button>
-                        <button type="button" onclick="excluirOrcamentoHistorico(${hid})" class="flex-1 min-w-[6rem] py-2.5 rounded-xl border-2 border-red-200 bg-white text-red-700 hover:bg-red-50 text-[10px] font-black uppercase tracking-wide">Excluir</button>
-                    </div>
-                </div>
-            `;
+            const wa = String(h.origem || '').toLowerCase() === 'whatsapp'
+                ? ' <span class="text-emerald-600 font-black" title="Enviado pelo WhatsApp">Zap</span>'
+                : '';
+            container.innerHTML +=
+                '<div class="bg-slate-50 border border-slate-200 p-3 sm:p-4 rounded-2xl hover:bg-slate-100/90 transition-colors">' +
+                '<div class="flex flex-wrap items-start justify-between gap-2 gap-y-1">' +
+                '<div class="min-w-0 flex-1">' +
+                '<div class="font-black text-slate-800 text-sm uppercase leading-snug">' + escapeHtml(h.cliente) + (h.entrega ? ' <span class="text-sky-600 font-black">· Entrega</span>' : '') + wa + '</div>' +
+                '<div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-slate-500 font-bold">' +
+                '<span>' + escapeHtml(h.data) + '</span><span class="text-slate-300">·</span><span>' + (Number(h.itens && h.itens.length) || 0) + ' itens</span>' +
+                (h.forma_pagamento ? '<span class="text-slate-300">·</span><span>' + escapeHtml(h.forma_pagamento) + '</span>' : '') +
+                '</div><div class="mt-1.5 flex flex-wrap items-center gap-2">' + opLinha + '</div></div>' +
+                '<div class="text-right shrink-0"><div class="font-black text-emerald-600 text-lg tabular-nums">' + escapeHtml(h.total) + '</div>' +
+                (h.orc_barcode ? '<div class="text-[9px] font-mono font-bold text-slate-400 mt-0.5">' + escapeHtml(String(h.orc_barcode)) + '</div>' : '') +
+                '</div></div><div class="mt-3 flex flex-wrap gap-2">' +
+                '<button type="button" onclick="recuperarOrcamento(' + hid + ')" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-sky-400 bg-sky-500 hover:bg-sky-600 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como orçamento</button>' +
+                '<button type="button" onclick="abrirOrcamentoComoVendaPdv(' + hid + ')" class="flex-1 min-w-[8rem] py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase shadow-sm active:scale-[0.98]">Abrir como venda (PDV)</button>' +
+                '<button type="button" onclick="excluirOrcamentoHistorico(' + hid + ')" class="flex-1 min-w-[6rem] py-2.5 rounded-xl border-2 border-red-200 bg-white text-red-700 hover:bg-red-50 text-[10px] font-black uppercase tracking-wide">Excluir</button>' +
+                '</div></div>';
         });
     }
-    document.getElementById('modal-historico-vendas').classList.remove('hidden');
-    document.getElementById('modal-historico-vendas').classList.add('flex');
-    document.body.classList.add('modal-open');
+
+    let local = [];
+    try { local = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch (e) { local = []; }
+    if (!Array.isArray(local)) local = [];
+    paint(local.slice(0, 80));
+
+    var url = apiPdvOrcamentosUrlConsulta();
+    if (!url) return;
+    fetch(url + '?recentes=1&limite=80', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data || !data.ok || !Array.isArray(data.items)) return;
+            var map = {};
+            local.forEach(function (item) { if (item && item.id != null) map[String(item.id)] = item; });
+            data.items.forEach(function (item) { if (item && item.id != null) map[String(item.id)] = item; });
+            var merged = Object.keys(map).map(function (k) { return map[k]; })
+                .sort(function (a, b) { return Number(b.id) - Number(a.id); });
+            if (merged.length > 300) merged.length = 300;
+            try { localStorage.setItem('historicoOrcamentos', JSON.stringify(merged)); } catch (eW) {}
+            paint(merged.slice(0, 80));
+        })
+        .catch(function () {});
 }
 
 function fecharHistoricoLocal() {
@@ -2030,25 +2369,46 @@ function fecharHistoricoLocal() {
 
 function recuperarOrcamento(id) {
     let historico = [];
-    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { return; }
+    try { historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]'); } catch(e) { historico = []; }
     const h = historico.find(x => Number(x.id) === Number(id));
-    if (h) {
+    function aplicar(orc) {
+        if (!orc) {
+            alert('Orçamento não encontrado.');
+            return;
+        }
         if (carrinho.length > 0 && !confirm("Isso vai substituir o carrinho atual. Deseja continuar?")) return;
-        carrinho = JSON.parse(JSON.stringify(h.itens));
-        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+        carrinho = JSON.parse(JSON.stringify(orc.itens || []));
+        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(orc.cliente)
             ? CLIENTE_PADRAO_PDV
-            : h.cliente;
+            : orc.cliente;
         clienteSelecionado =
-            h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+            orc.cliente_extra && typeof orc.cliente_extra === 'object' ? orc.cliente_extra : null;
         const fpRec = document.getElementById('forma-pagamento-pdv');
-        if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
-            fpRec.value = h.forma_pagamento || '';
+        if (fpRec && Object.prototype.hasOwnProperty.call(orc, 'forma_pagamento')) {
+            fpRec.value = orc.forma_pagamento || '';
         }
         const chkRec = document.getElementById('pdv-orcamento-entrega');
-        if (chkRec) chkRec.checked = !!h.entrega;
-        atualizarCarrinho();
+        if (chkRec) chkRec.checked = !!orc.entrega;
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
         fecharHistoricoLocal();
     }
+    if (h) {
+        aplicar(h);
+        return;
+    }
+    fetchOrcamentoPdvServidor(id).then(function (remote) {
+        if (remote) {
+            try {
+                var h2 = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
+                if (!Array.isArray(h2)) h2 = [];
+                h2 = h2.filter(function (x) { return String(x.id) !== String(remote.id); });
+                h2.unshift(remote);
+                localStorage.setItem('historicoOrcamentos', JSON.stringify(h2));
+            } catch (eM) {}
+        }
+        aplicar(remote);
+    });
 }
 
 function excluirOrcamentoHistorico(id) {
@@ -2084,7 +2444,8 @@ async function abrirOrcamentoComoVendaPdv(id) {
     }
     const chkRec = document.getElementById('pdv-orcamento-entrega');
     if (chkRec) chkRec.checked = !!h.entrega;
-    atualizarCarrinho();
+    if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+    else atualizarCarrinho();
     fecharHistoricoLocal();
     await irParaCheckout();
 }
@@ -2095,34 +2456,50 @@ function recuperarOrcamentoSilenciosoPorId(oid) {
     try {
         historico = JSON.parse(localStorage.getItem('historicoOrcamentos') || '[]');
     } catch (e) {
-        return false;
+        historico = [];
     }
+    const aplicar = (h) => {
+        if (!Array.isArray(h.itens) || !h.itens.length) {
+            mostrarBannerScanner('Orçamento salvo está vazio — não substitui o carrinho.');
+            tocarSom('erro');
+            return false;
+        }
+        if (carrinho.length > 0 && !confirm('Substituir o carrinho pelo orçamento salvo (cód. ' + oid + ')?')) {
+            return false;
+        }
+        carrinho = JSON.parse(JSON.stringify(h.itens));
+        document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
+            ? CLIENTE_PADRAO_PDV
+            : h.cliente;
+        clienteSelecionado =
+            h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
+        const fpRec = document.getElementById('forma-pagamento-pdv');
+        if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
+            fpRec.value = h.forma_pagamento || '';
+        }
+        const chkRec = document.getElementById('pdv-orcamento-entrega');
+        if (chkRec) chkRec.checked = !!h.entrega;
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
+        mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
+        tocarSom('add');
+        focarBuscaProduto();
+        return true;
+    };
     const h = historico.find((x) => Number(x.id) === Number(oid));
-    if (!h) {
-        mostrarBannerScanner('Orçamento não encontrado para este código.');
-        tocarSom('erro');
-        return false;
-    }
-    if (carrinho.length > 0 && !confirm('Substituir o carrinho pelo orçamento salvo (cód. ' + oid + ')?')) {
-        return false;
-    }
-    carrinho = JSON.parse(JSON.stringify(h.itens));
-    document.getElementById('nome-cliente').value = ehClienteGenericoPdv(h.cliente)
-        ? CLIENTE_PADRAO_PDV
-        : h.cliente;
-    clienteSelecionado =
-        h.cliente_extra && typeof h.cliente_extra === 'object' ? h.cliente_extra : null;
-    const fpRec = document.getElementById('forma-pagamento-pdv');
-    if (fpRec && Object.prototype.hasOwnProperty.call(h, 'forma_pagamento')) {
-        fpRec.value = h.forma_pagamento || '';
-    }
-    const chkRec = document.getElementById('pdv-orcamento-entrega');
-    if (chkRec) chkRec.checked = !!h.entrega;
-    atualizarCarrinho();
-    mostrarBannerScanner('Orçamento recuperado — use FECHAR VENDA / F8 para abrir o PDV.');
-    tocarSom('add');
-    focarBuscaProduto();
-    return true;
+    if (h) return aplicar(h);
+    fetchOrcamentoPdvServidor(oid).then(function (remote) {
+        if (!remote) {
+            mostrarBannerScanner('Orçamento não encontrado para este código.');
+            tocarSom('erro');
+            return;
+        }
+        historico = historico.filter((x) => Number(x.id) !== Number(remote.id));
+        historico.unshift(remote);
+        localStorage.setItem('historicoOrcamentos', JSON.stringify(historico));
+        aplicar(remote);
+    });
+    return false;
 }
 
 function gmCsrfTokenParaFetch() {
@@ -2130,6 +2507,55 @@ function gmCsrfTokenParaFetch() {
     if (m && m.getAttribute('content')) return m.getAttribute('content');
     var c = document.cookie.match(/(?:^|; )csrftoken=([^;]*)/);
     return c ? decodeURIComponent(c[1]) : (AGRO_PDV_BOOTSTRAP.csrfToken || '');
+}
+
+function apiPdvOrcamentosUrlConsulta() {
+    try {
+        return AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.urls && AGRO_PDV_BOOTSTRAP.urls.apiPdvOrcamentos
+            ? AGRO_PDV_BOOTSTRAP.urls.apiPdvOrcamentos
+            : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function apiPdvOrcamentoDetalheUrlConsulta(orcId) {
+    var base = apiPdvOrcamentosUrlConsulta();
+    if (!base) return '';
+    return base.replace(/\/?$/, '/') + encodeURIComponent(String(orcId)) + '/';
+}
+
+function fetchOrcamentoPdvServidor(orcId) {
+    var url = apiPdvOrcamentoDetalheUrlConsulta(orcId);
+    if (!url) return Promise.resolve(null);
+    return fetch(url, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { return data && data.ok && data.item ? data.item : null; })
+        .catch(function () { return null; });
+}
+
+function postOrcamentoPdvServidor(entry) {
+    var url = apiPdvOrcamentosUrlConsulta();
+    if (!url) return Promise.resolve(null);
+    return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': gmCsrfTokenParaFetch(),
+        },
+        body: JSON.stringify({ entry: entry }),
+    })
+        .then(function (r) {
+            return r.text().then(function (txt) {
+                try {
+                    return txt ? JSON.parse(txt) : {};
+                } catch (e) {
+                    return { ok: false, erro: 'Servidor não gravou o orçamento.' };
+                }
+            });
+        })
+        .catch(function () { return { ok: false, erro: 'Falha de rede.' }; });
 }
 
 function posicionarSetaBalaoEstoque() {
@@ -2453,7 +2879,7 @@ function salvarLembrete() {
         return;
     }
     const lista = obterLembretes();
-    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: new Date().toISOString().slice(0, 10) });
+    lista.push({ id: String(Date.now()), texto, hora, disparado: false, data: dataLocalHojeLembrete() });
     salvarListaLembretes(lista);
     textoInput.value = '';
     horaInput.value = '';
@@ -2515,22 +2941,49 @@ function dispensarAlertaLembrete() {
     alertaLembreteAtual = null;
 }
 
+function dataLocalHojeLembrete() {
+    const agora = new Date();
+    return (
+        String(agora.getFullYear()) +
+        '-' +
+        String(agora.getMonth() + 1).padStart(2, '0') +
+        '-' +
+        String(agora.getDate()).padStart(2, '0')
+    );
+}
+
+function limparLembretesEntregaCaixa(nomeCliente) {
+    const n = String(nomeCliente || '').trim().toLowerCase();
+    const lista = obterLembretes();
+    const filtrada = lista.filter((x) => {
+        if (String(x.id || '').indexOf('pdv_wiz_ent_') !== 0) return true;
+        if (!n) return false;
+        const cli = String(x.cliente || '').trim().toLowerCase();
+        if (cli) return cli !== n;
+        return String(x.texto || '').toLowerCase().indexOf(n) === -1;
+    });
+    if (filtrada.length !== lista.length) {
+        salvarListaLembretes(filtrada);
+        if (typeof renderizarLembretes === 'function') renderizarLembretes();
+    }
+}
+window.agroLimparLembretesEntregaCaixa = limparLembretesEntregaCaixa;
+
 function verificarLembretes() {
     const agora = new Date();
-    const hoje = agora.toISOString().slice(0, 10);
+    const hoje = dataLocalHojeLembrete();
     const hh = String(agora.getHours()).padStart(2, '0');
     const mm = String(agora.getMinutes()).padStart(2, '0');
     const horaAtual = `${hh}:${mm}`;
     const lista = obterLembretes();
     let alterou = false;
 
-    lista.forEach(item => {
-        if (item.data !== hoje) {
-            item.data = hoje;
-            item.disparado = false;
-            alterou = true;
-        }
-        if (!item.concluido && !item.disparado && item.hora <= horaAtual) {
+    lista.forEach((item) => {
+        if (item.concluido) return;
+        const dataItem = String(item.data || hoje);
+        // Só dispara no dia marcado; apagar entrega = entregue/finalizado/cancelado.
+        if (dataItem !== hoje) return;
+        if (!item.disparado && item.hora <= horaAtual) {
             item.disparado = true;
             alterou = true;
             exibirAlertaLembrete(item);
@@ -2546,8 +2999,13 @@ function verificarLembretes() {
 function buscarProdutos(q, modo = 'normal') {
     clearTimeout(debounceTimer);
 
+    if (modo === 'scanner') {
+        pdvMarcarJanelaScannerAtiva(1500);
+    }
+
     quantidadeRapida = obterQuantidadeRapida(q);
     const termoBruto = removerSufixoQuantidade(q);
+    const termoDiagnostico = String(termoBruto || '').trim().indexOf('#') === 0;
     const rawOrc = String(termoBruto).replace(/\s/g, '').toUpperCase();
     const mOrc = rawOrc.match(/^GMORC(\d{10,20})$/);
     if (mOrc) {
@@ -2566,7 +3024,7 @@ function buscarProdutos(q, modo = 'normal') {
     const termoBusca = normalizarBuscaLocal(termoBruto);
 
     const minChars = modo === 'scanner' ? 1 : 2;
-    const termoCurto = !termoBusca || termoBusca.trim().length < minChars;
+    const termoCurto = !termoBusca || (termoBusca.trim().length < minChars && !termoDiagnostico);
     if (termoCurto && !(pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo)) {
         limparBuscaVisual();
         esconderStatusBusca();
@@ -2577,6 +3035,10 @@ function buscarProdutos(q, modo = 'normal') {
     const delay = modo === 'scanner' ? 0 : (baseProdutos.length > 0 ? 0 : 220);
 
     debounceTimer = setTimeout(() => {
+        if (consultaUsarBuscaServidorPrimeiro(termoBruto, modo)) {
+            executarBuscaAPI(termoBruto, modo);
+            return;
+        }
         if (baseProdutos.length > 0) {
             if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
                 executarBuscaRapidaSoCategoria();
@@ -2584,8 +3046,15 @@ function buscarProdutos(q, modo = 'normal') {
                 executarBuscaLocal(termoBusca, modo);
             }
         } else if (window.AGRO_MANUAL_SYNC_ONLY) {
-            mostrarStatusBusca('Sem catálogo local. Use o botão «Estoque» no topo antes de buscar.', 'orange');
-            limparBuscaVisual();
+            if (termoCurto && pdvRapidoFiltroCategoria && pdvRapidoFiltroCategoria.rotulo) {
+                limparBuscaVisual();
+                esconderStatusBusca();
+            } else if (!termoCurto) {
+                executarBuscaAPI(termoBruto, modo);
+            } else {
+                mostrarStatusBusca('Sem catálogo local. Use «Estoque» no topo ou digite 2+ letras para buscar online.', 'orange');
+                limparBuscaVisual();
+            }
         } else {
             executarBuscaAPI(termoBruto, modo); // Fallback enquanto a base carrega
         }
@@ -2594,6 +3063,22 @@ function buscarProdutos(q, modo = 'normal') {
 
 function filtrarBuscaLocal(termo, modo) {
     return filtrarProdutosBuscaInteligente(baseProdutos, termo, modo);
+}
+
+/** Consulta/orçamento — BCA (Busca Catálogo Agro): servidor primeiro. */
+function consultaUsarBuscaServidorPrimeiro(termoBruto, modo) {
+    if (typeof agroTermoBuscaCatalogoServidor === 'function') {
+        return agroTermoBuscaCatalogoServidor(termoBruto, modo);
+    }
+    if (modo === 'scanner') return false;
+    const bruto = String(termoBruto || '').trim();
+    if (!bruto) return false;
+    if (bruto.toLowerCase() === '#prova' || bruto.indexOf('#') === 0) return true;
+    const norm = normalizarBuscaLocal(bruto);
+    if (norm.length >= 2) return true;
+    if (typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(norm)) return true;
+    if (typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(norm)) return true;
+    return false;
 }
 
 /** Filtro ativo pelos cards «Busca rápida · categoria» (Saco vs Granel). */
@@ -2739,7 +3224,7 @@ function pdvModalEscolhaUnidadeRapido(rotulo) {
         if (bGranel) bGranel.onclick = () => finish('granel');
         if (bCan) bCan.onclick = () => finish(null);
         root.onclick = (ev) => {
-            if (ev.target === root) finish(null);
+            /* Fundo nao fecha — so X / FECHAR / Esc */
         };
         root.classList.remove('hidden');
         root.classList.add('flex');
@@ -2985,8 +3470,8 @@ function encontrarProdutoPorCodigoInternoBalanca(cod4, lista) {
 }
 
 function enriquecerProdutoBusca(p) {
-    const id = String(p.id);
-    const loc = baseProdutos.find(x => String(x.id) === id);
+    const id = normalizarIdProdutoPdv(p.id);
+    const loc = baseProdutos.find((x) => normalizarIdProdutoPdv(x.id) === id);
     const mediaApi = p.media_venda_diaria_30d;
     if (!loc) {
         const bt = p.busca_texto || montarBuscaTextoRapido(p);
@@ -3045,8 +3530,33 @@ function extrairPalavrasParaHighlightDaBusca() {
     return t.split(/\s+/).filter(Boolean);
 }
 
+function pdvPacoteCatalogoConfiavel() {
+    try {
+        if (window.AgroPacoteCatalogo && typeof AgroPacoteCatalogo.getStatus === 'function') {
+            const st = AgroPacoteCatalogo.getStatus();
+            return !!(st && st.level === 'green' && Number(st.n || 0) > 50);
+        }
+    } catch (e) {}
+    return false;
+}
+
 function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
+    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
     if (modo === 'scanner') {
+        const gmSemLocal =
+            !locaisOrdenados.length
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoNorm)
+            && !window.AGRO_MANUAL_SYNC_ONLY;
+        const cbSemLocal =
+            !locaisOrdenados.length
+            && typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termoNorm)
+            && !window.AGRO_MANUAL_SYNC_ONLY;
+        if (gmSemLocal || cbSemLocal) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
+            return;
+        }
         processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, {
             preservarOrdem: true,
         });
@@ -3055,21 +3565,24 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
     if (window.AGRO_MANUAL_SYNC_ONLY) {
         if (locaisOrdenados.length) {
             processarResultadosBusca(locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX), modo, false, { preservarOrdem: true });
+        } else if (termoNorm.length >= 2) {
+            executarBuscaAPI(termoBrutoOriginal, modo);
         } else {
-            mostrarStatusBusca('Sem sugestões locais. Sincronize o catálogo ou refine a busca.', 'orange');
+            mostrarStatusBusca('Sem sugestões locais. Digite 2+ letras para buscar online.', 'orange');
             processarResultadosBusca([], modo, false);
         }
         return;
     }
     clearTimeout(mergeFetchTimer);
     const seq = ++buscaOnlineMergeSeq;
-    const termoNorm = normalizarBuscaLocal(removerSufixoQuantidade(termoBrutoOriginal));
-    const map = new Map();
-    locaisOrdenados.forEach((p) => map.set(String(p.id), p));
-    const ordemLocalIds = locaisOrdenados.map((p) => String(p.id));
-    const idsLocal = new Set(ordemLocalIds);
     const hadLocal = locaisOrdenados.length > 0;
-    if (hadLocal) {
+    const pacoteOk = pdvPacoteCatalogoConfiavel();
+    /* Pacote bom + hits locais: mostra na hora (produtos do dia a dia). Servidor só atualiza cache. */
+    const pintarLocalNaHora = hadLocal && pacoteOk;
+    /* Pacote fraco / sem local: espera servidor até 2s; se demorar, usa local (ou vazio). */
+    const esperarServidor = !pintarLocalNaHora;
+
+    if (pintarLocalNaHora) {
         processarResultadosBusca(
             locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX),
             modo,
@@ -3077,31 +3590,39 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
             { preservarOrdem: true }
         );
     } else {
-        mostrarStatusBusca('Buscando no servidor…', 'slate');
+        mostrarStatusBusca('Buscando…', 'slate');
     }
+
+    const SERVER_WAIT_MS = 2000;
     mergeFetchTimer = setTimeout(() => {
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
-        fetch('/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal))
-            .then((res) => res.json())
+        if (window.gmLoadingBar && esperarServidor) window.gmLoadingBar.show();
+        var fetchOpts = {
+            limit: CONSULTA_BUSCA_LIMITE,
+            preferServer: !!esperarServidor,
+            serverWaitMs: SERVER_WAIT_MS,
+        };
+        var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+            ? fetchAgroBuscaCatalogo(termoBrutoOriginal, fetchOpts)
+            : fetch((window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.api) || '/api/buscar/?q=' + encodeURIComponent(termoBrutoOriginal) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+        fetchBusca
             .then((data) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 if (data.erro) throw new Error(data.erro);
-                const api = data.produtos || [];
-                const apiById = new Map();
-                api.forEach((raw) => {
-                    const id = String(raw.id);
-                    apiById.set(id, raw);
-                    if (!map.has(id)) map.set(id, raw);
-                });
-                const locaisMesclados = ordemLocalIds.map((id) => {
-                    const base = map.get(id);
-                    const apiRow = apiById.get(id);
-                    return apiRow ? { ...base, ...apiRow } : base;
-                }).filter(Boolean);
-                const extrasBrutos = api.filter((raw) => !idsLocal.has(String(raw.id)));
-                const extrasOrd = ordenarSugestoesPdv(extrasBrutos, termoNorm);
+                agroMostrarProvaUnificadaBusca(data);
+                if (pintarLocalNaHora) {
+                    /* Já pintou local: não acrescenta itens (sem pisca). Cache já mergeia no BCA. */
+                    return;
+                }
+                const api = Array.isArray(data.produtos) ? data.produtos : [];
                 const selId = produtoEmDestaque ? String(produtoEmDestaque.id) : null;
-                const final = [...locaisMesclados, ...extrasOrd].slice(0, BUSCA_SUG_LIM_MAX);
+                let final;
+                if (api.length) {
+                    final = ordenarSugestoesPdv(api, termoNorm).slice(0, BUSCA_SUG_LIM_MAX);
+                } else if (hadLocal) {
+                    final = locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX);
+                } else {
+                    final = [];
+                }
                 processarResultadosBusca(final, modo, false, {
                     preservarOrdem: true,
                     manterSelecaoId: selId,
@@ -3110,14 +3631,23 @@ function mesclarBuscaLocalComOnline(termoBrutoOriginal, modo, locaisOrdenados) {
             .catch((err) => {
                 if (seq !== buscaOnlineMergeSeq) return;
                 console.error('Busca online:', err);
-                if (!hadLocal) {
-                    processarResultadosBusca([], modo, false);
-                } else {
+                if (pintarLocalNaHora) {
                     esconderStatusBusca();
+                    return;
+                }
+                if (hadLocal) {
+                    processarResultadosBusca(
+                        locaisOrdenados.slice(0, BUSCA_SUG_LIM_MAX),
+                        modo,
+                        false,
+                        { preservarOrdem: true }
+                    );
+                } else {
+                    processarResultadosBusca([], modo, false);
                 }
             })
             .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
-    }, hadLocal ? 0 : 220);
+    }, pintarLocalNaHora ? 0 : 80);
 }
 
 function executarBuscaLocal(termo, modo) {
@@ -3143,13 +3673,51 @@ function executarBuscaLocal(termo, modo) {
     }
 
     if (modo === 'scanner') {
-        const exato = resultados.find(p => {
+        const matchExatoFn =
+            typeof termoIgualCodigoProdutoExato === 'function'
+                ? termoIgualCodigoProdutoExato
+                : null;
+        const matchBarrasFn =
+            typeof termoIgualCodigoBarrasNumericoExato === 'function'
+                ? termoIgualCodigoBarrasNumericoExato
+                : null;
+        const exatos = resultados.filter((p) => {
+            if (matchExatoFn && matchExatoFn(termo, p)) return true;
+            if (matchBarrasFn && matchBarrasFn(termo, p)) return true;
             const nfe = normalizarBuscaLocal(String(p.codigo_nfe ?? ''));
             const cb = normalizarBuscaLocal(String(p.codigo_barras ?? ''));
-            return nfe === termo || cb === termo || casaCodigoNumericoNoProduto(termo, p);
+            if (nfe === termo || cb === termo) return true;
+            const gmEtiqueta =
+                typeof pareceCodigoGmEtiqueta === 'function' && pareceCodigoGmEtiqueta(termo);
+            if (gmEtiqueta) return false;
+            const cbNumerico =
+                typeof pareceCodigoBarrasNumerico === 'function' && pareceCodigoBarrasNumerico(termo);
+            if (cbNumerico) return false;
+            return casaCodigoNumericoNoProduto(termo, p);
         });
-        if (exato) {
-            processarResultadosBusca([exato], modo, true);
+        if (exatos.length === 1) {
+            processarResultadosBusca([exatos[0]], modo, true);
+            return;
+        }
+        if (exatos.length > 1) {
+            const ordenados = ordenarSugestoesPdv(exatos, termo);
+            processarResultadosBusca([ordenados[0]], modo, true);
+            return;
+        }
+        if (
+            typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termo)
+            && !window.AGRO_MANUAL_SYNC_ONLY
+        ) {
+            executarBuscaAPI(termoBrutoApi || termo, modo);
+            return;
+        }
+        if (
+            typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termo)
+            && !window.AGRO_MANUAL_SYNC_ONLY
+        ) {
+            executarBuscaAPI(termoBrutoApi || termo, modo);
             return;
         }
     }
@@ -3158,13 +3726,31 @@ function executarBuscaLocal(termo, modo) {
     mesclarBuscaLocalComOnline(termoBrutoApi, modo, resultados);
 }
 
+function agroMostrarProvaUnificadaBusca(data) {
+    const p = data && data.prova_unificada;
+    if (p && p.ok) {
+        mostrarStatusBusca('Prova OK · ' + (p.mensagem || (window.AGRO_BUSCA_CATALOGO && AGRO_BUSCA_CATALOGO.nome) || 'BCA'), 'emerald');
+        return;
+    }
+    if (typeof agroStatusTextoBuscaCatalogo === 'function' && data && data.produtos && data.produtos.length) {
+        mostrarStatusBusca(agroStatusTextoBuscaCatalogo(data, data.produtos.length), 'emerald');
+    }
+}
+
 function executarBuscaAPI(termo, modo) {
-    mostrarStatusBusca('Buscando no banco online...', 'slate');
+    mostrarStatusBusca('BCA · buscando no servidor…', 'slate');
     if (window.gmLoadingBar) window.gmLoadingBar.show();
-    fetch("/api/buscar/?q=" + encodeURIComponent(termo))
-        .then(res => res.json())
+    var fetchBusca = typeof fetchAgroBuscaCatalogo === 'function'
+        ? fetchAgroBuscaCatalogo(termo, {
+            limit: CONSULTA_BUSCA_LIMITE,
+            preferServer: true,
+            serverWaitMs: 2000,
+        })
+        : fetch('/api/buscar/?q=' + encodeURIComponent(termo) + '&limit=' + CONSULTA_BUSCA_LIMITE, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    fetchBusca
         .then(data => {
             if (data.erro) throw new Error(data.erro);
+            agroMostrarProvaUnificadaBusca(data);
             processarResultadosBusca(data.produtos || [], modo, data.exact_barcode_match);
         })
         .catch(err => {
@@ -3175,14 +3761,30 @@ function executarBuscaAPI(termo, modo) {
 }
 
 function processarResultadosBusca(produtosEncontrados, modo, matchExato = false, opcoes = {}) {
+    if (
+        matchExato
+        && produtosEncontrados.length === 1
+        && String(produtosEncontrados[0].id || '') === '__prova_unificada__'
+    ) {
+        matchExato = false;
+    }
     if (matchExato && produtosEncontrados.length === 1) {
         const produto = enriquecerProdutoBusca(produtosEncontrados[0]);
+        const pid = normalizarIdProdutoPdv(produto.id);
+        if (!pid) {
+            tocarSom('erro');
+            mostrarStatusBusca(
+                'Código reconhecido, mas o produto está sem ID no catálogo local. Sincronize Estoque (topo) e tente de novo.',
+                'red'
+            );
+            return;
+        }
         flashScanner();
         const precoEtiqueta = !!produto.preco_etiqueta_balanca;
         const avisoPreco = precoEtiqueta ? ' (valor da etiqueta)' : '';
         mostrarBannerScanner(`✅ Código lido • ${quantidadeRapida}x ${produto.nome}${avisoPreco}`);
         addCarrinho(
-            produto.id,
+            pid,
             produto.nome,
             produto.preco_venda,
             quantidadeRapida,
@@ -3196,6 +3798,10 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         );
         mostrarStatusBusca(`Código lido: ${quantidadeRapida}x ${produto.nome}`, 'emerald');
         setTimeout(esconderStatusBusca, 1500);
+        if (modo === 'scanner' && inputBusca) {
+            inputBusca.value = '';
+            limparBuscaVisual();
+        }
         return;
     }
 
@@ -3234,6 +3840,8 @@ function processarResultadosBusca(produtosEncontrados, modo, matchExato = false,
         const vis = sugestoesAtuais.length;
         if (total > vis) {
             mostrarStatusBusca(`${vis} de ${total} produto(s) — toque em “Ver mais” para o restante`, 'slate');
+        } else if (typeof agroStatusTextoBuscaCatalogo === 'function') {
+            mostrarStatusBusca(agroStatusTextoBuscaCatalogo(null, total), 'emerald');
         } else {
             mostrarStatusBusca(`${total} produto(s) encontrado(s)`, 'slate');
         }
@@ -3263,7 +3871,8 @@ inputBusca.addEventListener('input', function(e) {
 
     const textoLimpo = removerSufixoQuantidade(q);
     const pareceCodigoOrc = /^GMORC\d{10,20}$/i.test(String(textoLimpo).replace(/\s/g, ''));
-    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc;
+    const pareceCodigoGm = /^GM[\dA-Za-z-]{3,}$/i.test(String(textoLimpo).replace(/\s/g, ''));
+    const pareceCodigo = /^\d{6,}$/.test(textoLimpo) || pareceCodigoOrc || pareceCodigoGm;
     const digitacaoMuitoRapida = diff < 35;
 
     clearTimeout(scannerTimer);
@@ -3271,6 +3880,7 @@ inputBusca.addEventListener('input', function(e) {
     atualizarCatalogoRapido();
 
     if (digitacaoMuitoRapida || pareceCodigo) {
+        pdvMarcarJanelaScannerAtiva(1500);
         bufferScanner = q.trim();
         scannerTimer = setTimeout(() => {
             buscarProdutos(bufferScanner, 'scanner');
@@ -3386,6 +3996,96 @@ inputBusca.addEventListener('keydown', function(e) {
 
         quantidadeRapida = obterQuantidadeRapida(inputBusca.value);
 
+        const brutoEnter = removerSufixoQuantidade(inputBusca.value);
+        const termoEnter = normalizarBuscaLocal(brutoEnter);
+        if (
+            termoEnter
+            && typeof pareceCodigoGmEtiqueta === 'function'
+            && pareceCodigoGmEtiqueta(termoEnter)
+            && baseProdutos.length
+        ) {
+            pdvMarcarJanelaScannerAtiva(1500);
+            let exatosGm = baseProdutos.filter((p) =>
+                typeof termoIgualCodigoProdutoExato === 'function'
+                    && termoIgualCodigoProdutoExato(termoEnter, p)
+            );
+            if (exatosGm.length > 1) {
+                exatosGm = ordenarSugestoesPdv(exatosGm, termoEnter);
+            }
+            const prodGm = exatosGm[0];
+            if (prodGm) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prodGm, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(
+                        prodGm.id,
+                        prodGm.nome,
+                        prodGm.preco_venda,
+                        quantidadeRapida,
+                        prodGm
+                    );
+                }
+                inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+                quantidadeRapida = 1;
+                return;
+            }
+            if (!window.AGRO_MANUAL_SYNC_ONLY) {
+                pdvMarcarJanelaScannerAtiva(1500);
+                executarBuscaAPI(brutoEnter, 'scanner');
+                return;
+            }
+        }
+        if (
+            termoEnter
+            && typeof pareceCodigoBarrasNumerico === 'function'
+            && pareceCodigoBarrasNumerico(termoEnter)
+            && baseProdutos.length
+        ) {
+            pdvMarcarJanelaScannerAtiva(1500);
+            const matchCbFn =
+                typeof termoIgualCodigoBarrasNumericoExato === 'function'
+                    ? termoIgualCodigoBarrasNumericoExato
+                    : null;
+            const matchGmFn =
+                typeof termoIgualCodigoProdutoExato === 'function'
+                    ? termoIgualCodigoProdutoExato
+                    : null;
+            let exatosCb = baseProdutos.filter(
+                (p) =>
+                    (matchCbFn && matchCbFn(termoEnter, p))
+                    || (matchGmFn && matchGmFn(termoEnter, p))
+            );
+            if (exatosCb.length > 1) {
+                exatosCb = ordenarSugestoesPdv(exatosCb, termoEnter);
+            }
+            const prodCb = exatosCb[0];
+            if (prodCb) {
+                if (pdvMaisVSlotAlvo !== null && pdvMaisVSlotAlvo >= 0) {
+                    atribuirProdutoAoSlotMaisVendidos(prodCb, pdvMaisVSlotAlvo);
+                } else {
+                    adicionarProdutoComQuantidade(
+                        prodCb.id,
+                        prodCb.nome,
+                        prodCb.preco_venda,
+                        quantidadeRapida,
+                        prodCb
+                    );
+                }
+                inputBusca.value = '';
+                limparBuscaVisual();
+                esconderStatusBusca();
+                quantidadeRapida = 1;
+                return;
+            }
+            if (!window.AGRO_MANUAL_SYNC_ONLY) {
+                pdvMarcarJanelaScannerAtiva(1500);
+                executarBuscaAPI(brutoEnter, 'scanner');
+                return;
+            }
+        }
+
         if (itens.length > 0) {
             const idx = indexSelecionado > -1 ? indexSelecionado : 0;
             const prod = sugestoesAtuais[idx];
@@ -3441,9 +4141,31 @@ function filtrarClientesLocais(q) {
 
 const PDV_CLIENTES_LS_KEY = 'agro_pdv_clientes_cache_v1';
 
+function hidratarClientesPdvDoCache() {
+    try {
+        const raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
+        if (!raw) return false;
+        const d = JSON.parse(raw);
+        if (!Array.isArray(d.clientes) || !d.clientes.length) return false;
+        cacheClientesPDV = d.clientes;
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function clientesPdvCacheFresco() {
+    return (
+        window.AgroPdvOfflineCache &&
+        !window.AgroPdvOfflineCache.isStale(PDV_CLIENTES_LS_KEY, window.AgroPdvOfflineCache.TTL.CLIENTES_MS)
+    );
+}
+
 function carregarCacheClientes(opts) {
     const force = opts && opts.force;
+    const silent = opts && opts.silent;
     const msgEl = document.getElementById('cliente-api-msg');
+    const hidratou = hidratarClientesPdvDoCache();
     if (window.AGRO_MANUAL_SYNC_ONLY && !force) {
         try {
             const raw = localStorage.getItem(PDV_CLIENTES_LS_KEY);
@@ -3469,7 +4191,15 @@ function carregarCacheClientes(opts) {
         }
         return;
     }
-    if (window.gmLoadingBar) window.gmLoadingBar.show();
+    if (hidratou && !force && clientesPdvCacheFresco()) {
+        if (msgEl && cacheClientesPDV.length) {
+            msgEl.classList.add('hidden');
+            msgEl.textContent = '';
+        }
+        return;
+    }
+    const silentBg = !!(hidratou && !force);
+    if (!force && !silentBg && window.gmLoadingBar) window.gmLoadingBar.show();
     fetch(AGRO_PDV_URLS.apiListCustomers)
         .then(r => r.json())
         .then(d => {
@@ -3502,9 +4232,8 @@ function carregarCacheClientes(opts) {
                 msgEl.classList.remove('hidden');
             }
         })
-        .finally(() => { if (window.gmLoadingBar) window.gmLoadingBar.hide(); });
+        .finally(() => { if (!silentBg && window.gmLoadingBar) window.gmLoadingBar.hide(); });
 }
-
 if (inputCliente && clienteResults) {
 inputCliente.addEventListener('input', function(e) {
     const q = e.target.value;
@@ -3741,6 +4470,10 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F4') {
         e.preventDefault();
+        if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
+        if (inputBusca && document.activeElement === inputBusca && String(inputBusca.value || '').trim()) {
+            return;
+        }
         limparCarrinho();
     }
     else if (e.key === 'F6') {
@@ -3753,6 +4486,7 @@ document.addEventListener('keydown', function(e) {
     }
     else if (e.key === 'F8') {
         e.preventDefault();
+        if (pdvTeclasFuncaoBloqueadasPorScanner()) return;
         if (carrinho.length) irParaCheckout();
     }
     else if (e.key === 'F9') {
@@ -4272,10 +5006,14 @@ function carregarBaseLocal() {
     const warmed = hidratarCatalogoPdvDoCache();
     if (manual) {
         if (warmed) {
-            mostrarStatusBusca('Catálogo em cache (sem sync automático). Use o botão «Estoque» no topo.', 'emerald');
-            setTimeout(esconderStatusBusca, 4200);
+            sincronizarCatalogoPdvServidor(true).catch(function (err) {
+                if (typeof console !== 'undefined' && console.error) console.error(err);
+            });
         } else {
-            mostrarStatusBusca('Sem cache de produtos. Clique em «Estoque» no topo.', 'orange');
+            mostrarStatusBusca('Baixando catálogo…', 'orange');
+            sincronizarCatalogoPdvServidor(false).catch(function (err) {
+                if (typeof console !== 'undefined' && console.error) console.error(err);
+            });
         }
         return;
     }
@@ -4305,6 +5043,8 @@ function aplicarBasePdv(produtos, statusTxt) {
 
 function salvarCacheCatalogoPdv(payload) {
     try {
+        if (!payload || !Array.isArray(payload.produtos) || !payload.produtos.length) return;
+        if (String(payload.catalog_version || '') === 'catalogo-full-off') return;
         localStorage.setItem(
             PDV_CACHE_KEY,
             JSON.stringify({
@@ -4317,12 +5057,126 @@ function salvarCacheCatalogoPdv(payload) {
     } catch (_) {}
 }
 
+function agroPdvAplicarPatchesRespostaVenda(data) {
+    const patches = data && data.pdv_catalog_patches;
+    if (!Array.isArray(patches) || !patches.length) return false;
+    const ok = aplicarPatchesProdutosPdv(patches);
+    if (!ok) return false;
+    try {
+        const raw = localStorage.getItem(PDV_CACHE_KEY);
+        if (!raw) return ok;
+        const cache = JSON.parse(raw);
+        const map = new Map((cache.produtos || []).map((p) => [String(p.id), p]));
+        patches.forEach((patch) => {
+            if (!patch || patch.id == null) return;
+            const pid = String(patch.id);
+            const prev = map.get(pid);
+            if (prev) map.set(pid, Object.assign({}, prev, patch));
+        });
+        cache.produtos = Array.from(map.values());
+        cache.saved_at = Date.now();
+        localStorage.setItem(PDV_CACHE_KEY, JSON.stringify(cache));
+    } catch (_) {}
+    return ok;
+}
+window.agroPdvAplicarPatchesRespostaVenda = agroPdvAplicarPatchesRespostaVenda;
+
+function aplicarPatchesProdutosPdv(patches) {
+    const rows = Array.isArray(patches) ? patches : [];
+    if (!rows.length || !baseProdutos.length) return false;
+    const map = new Map(baseProdutos.map((p) => [String(p.id), p]));
+    let touched = false;
+    rows.forEach((patch) => {
+        if (!patch || patch.id == null) return;
+        const pid = String(patch.id);
+        const prev = map.get(pid);
+        if (prev) {
+            map.set(pid, prepararProduto(Object.assign({}, prev, patch)));
+            touched = true;
+        }
+    });
+    if (!touched) return false;
+    baseProdutos = Array.from(map.values());
+    if (typeof buildBuscaProdutoIndex === 'function') buildBuscaProdutoIndex(baseProdutos);
+    preencherOpcoesFiltroCatalogo();
+    atualizarCatalogoRapido();
+    setTimeout(atualizarPrecosBotoesTopVendidos, 0);
+    if (typeof pdvRapidoRefreshListaSeAtivo === 'function') setTimeout(pdvRapidoRefreshListaSeAtivo, 0);
+    return true;
+}
+
+function agroPdvAplicarFilaPatchLocal(clearQueue) {
+    if (clearQueue === undefined) clearQueue = true;
+    if (!baseProdutos.length) return false;
+    let items = [];
+    try {
+        const raw = localStorage.getItem(PDV_PATCH_QUEUE_KEY);
+        if (raw) {
+            const q = JSON.parse(raw);
+            if (q && Array.isArray(q.items)) items = q.items;
+        }
+    } catch (_) {}
+    if (!items.length) return false;
+    const patches = items.map((it) => (it && it.patch) ? it.patch : it).filter((p) => p && p.id != null);
+    if (!patches.length) return false;
+    const ok = aplicarPatchesProdutosPdv(patches);
+    if (ok && clearQueue) {
+        try {
+            localStorage.removeItem(PDV_PATCH_QUEUE_KEY);
+        } catch (_) {}
+    }
+    return ok;
+}
+
+function agroPdvCatalogoRefreshNoFoco() {
+    if (document.hidden || !baseProdutos.length) return;
+    if (pdvCatalogoBootAt && Date.now() - pdvCatalogoBootAt < 2500) return;
+
+    agroPdvAplicarFilaPatchLocal(true);
+
+    const now = Date.now();
+    if (now - pdvCatalogoLastFocusDeltaAt < PDV_FOCUS_DELTA_MIN_MS) return;
+    if (pdvCatalogoFocusDeltaBusy) return;
+    pdvCatalogoFocusDeltaBusy = true;
+    pdvCatalogoLastFocusDeltaAt = now;
+    sincronizarCatalogoPdvServidor(true, { silent: true }).finally(function () {
+        pdvCatalogoFocusDeltaBusy = false;
+    });
+}
+
+/** Outra aba (cadastro) gravou patch — aplica só os itens alterados, sem recarregar catálogo inteiro. */
+window.addEventListener('storage', function (ev) {
+    if (ev.key !== PDV_PATCH_QUEUE_KEY && ev.key !== PDV_CACHE_KEY) return;
+    if (!baseProdutos.length) return;
+    clearTimeout(pdvStoragePatchTimer);
+    pdvStoragePatchTimer = setTimeout(function () {
+        if (agroPdvAplicarFilaPatchLocal(true)) return;
+        if (ev.key !== PDV_CACHE_KEY) return;
+        try {
+            const raw = localStorage.getItem(PDV_CACHE_KEY);
+            if (!raw) return;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !Array.isArray(parsed.produtos) || !parsed.produtos.length) return;
+            aplicarBasePdv(parsed.produtos);
+        } catch (_) {}
+    }, 40);
+});
+
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) agroPdvCatalogoRefreshNoFoco();
+});
+window.addEventListener('focus', agroPdvCatalogoRefreshNoFoco);
+window.addEventListener('pageshow', function (ev) {
+    if (ev.persisted) agroPdvCatalogoRefreshNoFoco();
+});
+
 function lerCacheCatalogoPdv() {
     try {
         const raw = localStorage.getItem(PDV_CACHE_KEY);
         if (!raw) return null;
         const p = JSON.parse(raw);
-        if (!p || !Array.isArray(p.produtos)) return null;
+        if (!p || !Array.isArray(p.produtos) || !p.produtos.length) return null;
+        if (String(p.catalog_version || '') === 'catalogo-full-off') return null;
         const age = Date.now() - Number(p.saved_at || 0);
         if (!window.AGRO_MANUAL_SYNC_ONLY && age > PDV_CACHE_TTL_MS) return null;
         return p;
@@ -4364,15 +5218,43 @@ function aplicarDeltaCatalogoPdv(changed, removedIds) {
     }
 }
 
-function sincronizarCatalogoPdvServidor(jahAquecido) {
+function fetchCatalogoPdvLocalCompleto() {
+    /* Freio catalogo-full-off: /local/ e /delta/ vêm vazios — slim PG não é freiado. */
+    return fetch('/api/pdv/catalogo-slim/', { credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            if (d && Array.isArray(d.produtos) && d.produtos.length) return d;
+            return fetch('/api/todos-produtos/local/', { credentials: 'same-origin', cache: 'no-store' })
+                .then(function (r2) { return r2.json(); })
+                .then(function (d2) {
+                    if (d2 && Array.isArray(d2.produtos) && d2.produtos.length) return d2;
+                    return null;
+                })
+                .catch(function () { return null; });
+        })
+        .catch(function () { return null; });
+}
+
+function pdvCatalogBootShow() {
+    if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.show();
+    else if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
+    else if (window.gmLoadingBar) window.gmLoadingBar.show();
+}
+
+function pdvCatalogBootHide() {
+    if (window.AgroPdvCatalogSplash) window.AgroPdvCatalogSplash.hide(0);
+    else if (window.gmLoader) window.gmLoader.hide(180);
+    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+}
+
+function sincronizarCatalogoPdvServidor(jahAquecido, opts) {
+    opts = opts || {};
+    const silent = !!opts.silent;
     return new Promise(function (resolve) {
         function finish() {
             resolve();
         }
-        if (!jahAquecido) {
-            if (window.gmLoader) window.gmLoader.show('🐭 carregando catálogo...');
-            else if (window.gmLoadingBar) window.gmLoadingBar.show();
-        }
+        if (!jahAquecido) pdvCatalogBootShow();
         const cached = lerCacheCatalogoPdv();
         const since = cached && cached.catalog_version ? cached.catalog_version : '';
         const u = new URL('/api/todos-produtos/delta/', window.location.origin);
@@ -4384,8 +5266,7 @@ function sincronizarCatalogoPdvServidor(jahAquecido) {
                     if (!jahAquecido && cached && cached.produtos) {
                         aplicarBasePdv(cached.produtos, `Base local pronta com ${cached.produtos.length} itens`);
                     }
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
@@ -4400,30 +5281,47 @@ function sincronizarCatalogoPdvServidor(jahAquecido) {
                         catalog_updated_at: d.catalog_updated_at || '',
                     };
                     salvarCacheCatalogoPdv(novo);
-                    mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    if (!silent) mostrarStatusBusca(`Catálogo sincronizado (${baseProdutos.length})`, 'emerald');
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
-                if (d && Array.isArray(d.produtos)) {
-                    aplicarBasePdv(d.produtos, `Base local pronta com ${d.produtos.length} itens`);
+                /* Lista cheia só conta se tiver itens; freio catalogo-full-off manda []. */
+                if (d && Array.isArray(d.produtos) && d.produtos.length && String(d.catalog_version || '') !== 'catalogo-full-off') {
+                    aplicarBasePdv(d.produtos, silent ? '' : `Base local pronta com ${d.produtos.length} itens`);
                     salvarCacheCatalogoPdv(d);
-                    if (window.gmLoader) window.gmLoader.hide(180);
-                    else if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                    pdvCatalogBootHide();
                     finish();
                     return;
                 }
-                if (window.gmLoader) window.gmLoader.hide(180);
-                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                finish();
+                fetchCatalogoPdvLocalCompleto().then(function (full) {
+                    if (full && Array.isArray(full.produtos) && full.produtos.length) {
+                        aplicarBasePdv(full.produtos, silent ? '' : `Base local pronta com ${full.produtos.length} itens`);
+                        salvarCacheCatalogoPdv(full);
+                    } else if (!jahAquecido && cached && cached.produtos && cached.produtos.length) {
+                        aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                    } else if (!jahAquecido && !silent) {
+                        mostrarStatusBusca('Catálogo indisponível — tente F5 ou aguarde o ERP.', 'orange');
+                    }
+                    pdvCatalogBootHide();
+                    finish();
+                });
+                return;
             })
             .catch((e) => {
                 console.error('Falha na carga local:', e);
-                if (!jahAquecido) mostrarStatusBusca('Falha de rede; usando cache local.', 'orange');
-                if (window.gmLoader) window.gmLoader.hide(180);
-                else if (window.gmLoadingBar) window.gmLoadingBar.hide();
-                finish();
+                fetchCatalogoPdvLocalCompleto().then(function (full) {
+                    if (full && Array.isArray(full.produtos) && full.produtos.length) {
+                        aplicarBasePdv(full.produtos, `Base local pronta com ${full.produtos.length} itens`);
+                        salvarCacheCatalogoPdv(full);
+                    } else if (cached && cached.produtos && cached.produtos.length) {
+                        aplicarBasePdv(cached.produtos, `Catálogo local carregado (${cached.produtos.length})`);
+                    } else if (!jahAquecido) {
+                        mostrarStatusBusca('Falha de rede; catálogo indisponível.', 'orange');
+                    }
+                    pdvCatalogBootHide();
+                    finish();
+                });
             });
     });
 }
@@ -4522,6 +5420,7 @@ window.addEventListener('load', () => {
     if (inputCliente && !String(inputCliente.value || '').trim()) {
         inputCliente.value = CLIENTE_PADRAO_PDV;
     }
+    restaurarCarrinhoSessaoSeVazio();
     focarBuscaProduto();
     atualizarCarrinho();
     renderizarHistoricoResumido();
@@ -4530,6 +5429,7 @@ window.addEventListener('load', () => {
     renderSlotsMaisVendidosPdv();
     document.getElementById('pdv-mv-importar-ranking')?.addEventListener('click', importarRankingMongoParaSlotsMaisVendidos);
     atualizarCatalogoRapido();
+    pdvCatalogoBootAt = Date.now();
     carregarBaseLocal();
     carregarCacheClientes();
     verificarLembretes();
@@ -4647,6 +5547,48 @@ window.addEventListener('load', () => {
 
 document.addEventListener('DOMContentLoaded', function () {
     if (typeof pdvInicializarCategoriasRapidasPdv === 'function') pdvInicializarCategoriasRapidasPdv();
+    var fp = document.getElementById('forma-pagamento-pdv');
+    if (fp && typeof window.recalcularPrecosFormaCarrinho === 'function') {
+        fp.addEventListener('change', window.recalcularPrecosFormaCarrinho);
+    }
+    try {
+        var urlDep = AGRO_PDV_URLS && AGRO_PDV_URLS.apiPdvDeposito;
+        if (!urlDep) return;
+        var lojaId = String(localStorage.getItem('agro_pdv_loja_id') || '1');
+        var bootDep = ((AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.pdvDeposito) || {}).deposito || 'centro';
+        var want = lojaId === '2' ? 'vila' : 'centro';
+        if (String(bootDep).toLowerCase() === want) return;
+        fetch(urlDep, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': (AGRO_PDV_BOOTSTRAP && AGRO_PDV_BOOTSTRAP.csrfToken) || '',
+            },
+            body: JSON.stringify({ loja_id: lojaId }),
+        })
+            .then(function (r) {
+                return r.json().catch(function () {
+                    return {};
+                });
+            })
+            .then(function (j) {
+                if (!j || !j.ok) return;
+                if (AGRO_PDV_BOOTSTRAP) {
+                    AGRO_PDV_BOOTSTRAP.pdvDeposito = {
+                        deposito: j.deposito,
+                        depositoLabel: j.depositoLabel,
+                        lojaId: j.lojaId,
+                        estoqueAtivoLabel: j.estoqueAtivoLabel,
+                    };
+                }
+                var badge = document.getElementById('pdv-deposito-badge');
+                if (badge && j.estoqueAtivoLabel) {
+                    badge.textContent = j.estoqueAtivoLabel;
+                }
+            })
+            .catch(function () {});
+    } catch (eSync) {}
 });
 
 
@@ -4663,10 +5605,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     } catch (e0) {}
     var el = document.getElementById('pdv-reabrir-draft');
-    if (!el) return;
+    if (!el) {
+        restaurarCarrinhoSessaoSeVazio();
+        return;
+    }
     try {
         var d = JSON.parse(el.textContent);
-        if (!d.itens || !d.itens.length) return;
+        if (!d.itens || !d.itens.length) {
+            restaurarCarrinhoSessaoSeVazio();
+            return;
+        }
         carrinho = d.itens;
         if (typeof inputCliente !== 'undefined' && inputCliente && d.cliente) {
             inputCliente.value = d.cliente;
@@ -4674,9 +5622,13 @@ document.addEventListener('DOMContentLoaded', function () {
         clienteSelecionado = (d.cliente_extra && typeof d.cliente_extra === 'object') ? d.cliente_extra : null;
         var fp = document.getElementById('forma-pagamento-pdv');
         if (fp && d.forma_pagamento) fp.value = d.forma_pagamento;
-        if (typeof atualizarCarrinho === 'function') atualizarCarrinho();
+        if (typeof window.recalcularPrecosFormaCarrinho === 'function') window.recalcularPrecosFormaCarrinho();
+        else atualizarCarrinho();
         if (history.replaceState) history.replaceState(null, '', AGRO_PDV_URLS.pdvRootUrl || window.location.pathname);
-    } catch (x) { console.error(x); }
+    } catch (x) {
+        console.error(x);
+        restaurarCarrinhoSessaoSeVazio();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -4706,6 +5658,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 /** onclick="" nos templates — escopo do IIFE não é global */
 window.limparCarrinho = limparCarrinho;
+window.recalcularPrecosFormaCarrinho = recalcularPrecosFormaCarrinho;
 window.salvarOrcamentoManual = salvarOrcamentoManual;
 window.irParaCheckout = irParaCheckout;
 window.alterarQtdItem = alterarQtdItem;

@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ea580c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Vendas">
+  <title>Vendas por loja | SisVale</title>
+  <link rel="manifest" href="{% url 'vendas_lojas_manifest' %}">
+  <link rel="apple-touch-icon" href="/static/produtos/pwa/vendas-lojas-192.png">
+  {% include "produtos/_head_perf_mpa.html" %}
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --sky: #0369a1;
+      --orange: #c2410c;
+      --green: #059669;
+      --safe-t: env(safe-area-inset-top, 0px);
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-l: env(safe-area-inset-left, 0px);
+      --safe-r: env(safe-area-inset-right, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100dvh;
+      background: #94a3b8;
+      color: var(--ink);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    body { overflow-x: hidden; }
+    .vl-shell {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: max(0.7rem, var(--safe-t)) max(0.9rem, var(--safe-r)) max(0.9rem, var(--safe-b)) max(0.9rem, var(--safe-l));
+      max-width: 28rem;
+      margin: 0 auto;
+      background: #f8fafc;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12), 0 16px 48px rgba(15, 23, 42, 0.18);
+    }
+    @media (max-width: 28rem) {
+      html, body { background: #f8fafc; }
+      .vl-shell { max-width: 100%; box-shadow: none; }
+    }
+    @media (display-mode: standalone) {
+      html, body { background: #f8fafc; }
+      .vl-shell { box-shadow: none; }
+    }
+    .vl-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.65rem;
+      margin-bottom: 0.7rem;
+    }
+    .vl-kicker {
+      margin: 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #ea580c;
+    }
+    .vl-title {
+      margin: 0.1rem 0 0;
+      font-size: clamp(1.45rem, 6vw + 0.35rem, 1.85rem);
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+    }
+    .vl-periodo {
+      margin: 0.2rem 0 0;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .vl-voltar {
+      flex-shrink: 0;
+      min-height: 2.75rem;
+      min-width: 2.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.85rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      color: #334155;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    @media (display-mode: standalone) {
+      .vl-voltar { display: none; }
+    }
+    .vl-filtros, .vl-filtros-extra {
+      display: grid;
+      gap: 0.32rem;
+      margin: 0 0 0.35rem;
+    }
+    .vl-filtros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .vl-filtros-extra { grid-template-columns: 1fr 1fr 1.15fr; margin-bottom: 0.75rem; }
+    .vl-filtro {
+      min-height: 2.75rem;
+      border: 2px solid var(--line);
+      border-radius: 0.85rem;
+      background: #fff;
+      color: #334155;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      touch-action: manipulation;
+    }
+    .vl-filtros .vl-filtro { min-height: 3rem; }
+    .vl-filtro.ativo {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+    }
+    .vl-filtro-cal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .vl-filtro-cal svg { width: 1.05rem; height: 1.05rem; }
+    .vl-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      flex: 1;
+    }
+    .vl-card {
+      background: #fff;
+      border: 2px solid var(--line);
+      border-radius: 1.2rem;
+      padding: 0.85rem 0.95rem 0.9rem;
+      width: 100%;
+      text-align: left;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .vl-card:active { background: #f8fafc; }
+    .vl-card:focus-visible {
+      outline: 3px solid #fdba74;
+      outline-offset: 2px;
+    }
+    .vl-hint {
+      margin: 0.55rem 0 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      text-align: center;
+    }
+    .vl-card h2 {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .vl-card.centro h2 { color: var(--sky); }
+    .vl-card.vila h2 { color: #475569; }
+    .vl-card.total {
+      border-color: #fdba74;
+      background: #fff7ed;
+    }
+    .vl-card.total:active { background: #ffedd5; }
+    .vl-card.total h2 { color: var(--orange); }
+    .vl-valor {
+      margin: 0.2rem 0 0;
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      overflow-wrap: anywhere;
+    }
+    .vl-card.centro .vl-valor,
+    .vl-card.vila .vl-valor {
+      font-size: clamp(2.45rem, 11vw + 0.25rem, 3.45rem);
+      color: var(--ink);
+    }
+    .vl-card.total .vl-valor {
+      font-size: clamp(2.75rem, 12.5vw + 0.3rem, 3.85rem);
+      color: var(--orange);
+    }
+    .vl-rs {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-bottom: 0.1rem;
+    }
+    .vl-card.total .vl-rs { color: #ea580c; }
+    .vl-sheet {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+    }
+    .vl-sheet.aberto { display: block; }
+    .vl-sheet-bg {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .vl-sheet-panel {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      background: #fff;
+      border-radius: 1.4rem 1.4rem 0 0;
+      padding: 0.45rem 1.05rem calc(1.05rem + var(--safe-b));
+      box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.18);
+      max-width: 28rem;
+      margin: 0 auto;
+    }
+    .vl-sheet-handle {
+      width: 2.6rem;
+      height: 0.28rem;
+      border-radius: 99px;
+      background: #cbd5e1;
+      margin: 0.35rem auto 0.85rem;
+    }
+    #vl-media-titulo {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .vl-cal-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .vl-cal-nav h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+    .vl-cal-nav button {
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 0.85rem;
+      border: 2px solid var(--line);
+      background: #fff;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--ink);
+      touch-action: manipulation;
+    }
+    .vl-cal-week {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.2rem;
+      margin-bottom: 0.35rem;
+    }
+    .vl-cal-week span {
+      text-align: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0.2rem 0;
+    }
+    .vl-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.28rem;
+    }
+    .vl-cal-grid button {
+      min-height: 2.85rem;
+      border: 0;
+      border-radius: 0.8rem;
+      background: transparent;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--ink);
+      touch-action: manipulation;
+    }
+    .vl-cal-grid button.outro { color: #cbd5e1; }
+    .vl-cal-grid button:disabled { color: #e2e8f0; }
+    .vl-cal-grid button.hoje {
+      box-shadow: inset 0 0 0 2px #ea580c;
+      color: #c2410c;
+    }
+    .vl-cal-grid button.sel {
+      background: var(--green);
+      color: #fff;
+      box-shadow: none;
+    }
+    .vl-cal-grid button.no-intervalo {
+      background: #ecfdf5;
+      color: #047857;
+    }
+    .vl-cal-grid button.sel-ini,
+    .vl-cal-grid button.sel-fim {
+      background: var(--green);
+      color: #fff;
+      box-shadow: none;
+    }
+    .vl-cal-hint {
+      margin: 0 0 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.35;
+    }
+    .vl-cal-hoje {
+      width: 100%;
+      margin-top: 0.85rem;
+      min-height: 3rem;
+      border-radius: 0.95rem;
+      border: 2px solid #fdba74;
+      background: #fff7ed;
+      color: var(--orange);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      touch-action: manipulation;
+    }
+    .vl-media-k {
+      margin: 0.7rem 0 0;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .vl-media-v {
+      margin: 0.12rem 0 0;
+      font-size: clamp(2.05rem, 9vw + 0.2rem, 2.75rem);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .vl-media-v .vl-rs { font-size: 0.72rem; margin-bottom: 0.05rem; }
+    .vl-media-pct {
+      margin: 0.25rem 0 0;
+      font-size: clamp(1.55rem, 6.5vw + 0.2rem, 2.05rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+    }
+    .vl-media-cmp.acima .vl-media-pct,
+    .vl-media-cmp.acima .vl-media-diff { color: var(--green); }
+    .vl-media-cmp.abaixo .vl-media-pct,
+    .vl-media-cmp.abaixo .vl-media-diff { color: var(--orange); }
+    .vl-media-cmp.igual .vl-media-pct,
+    .vl-media-cmp.igual .vl-media-diff { color: var(--muted); }
+    .vl-media-sem {
+      margin: 0.9rem 0 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .vl-media-nota {
+      margin: 0.65rem 0 0;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #94a3b8;
+      line-height: 1.3;
+    }
+    .vl-media-modos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem;
+      margin: 0.7rem 0 0;
+      padding: 0.22rem;
+      background: #f1f5f9;
+      border-radius: 0.9rem;
+    }
+    .vl-media-modos[hidden] { display: none; }
+    .vl-media-modos button {
+      border: 0;
+      background: transparent;
+      min-height: 2.45rem;
+      border-radius: 0.72rem;
+      padding: 0.3rem 0.4rem;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #64748b;
+      touch-action: manipulation;
+    }
+    .vl-media-modos button.ativo {
+      background: #fff;
+      color: var(--green);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .vl-fiado-tag {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: stretch;
+      gap: 0;
+      margin-top: 0.15rem;
+      padding: 0.55rem 0.65rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 0.95rem;
+      background: #fff;
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      appearance: none;
+      -webkit-appearance: none;
+      text-align: center;
+    }
+    .vl-fiado-tag:active { background: #f8fafc; }
+    .vl-fiado-tag:focus-visible {
+      outline: 3px solid #fdba74;
+      outline-offset: 2px;
+    }
+    .vl-fiado-part {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.12rem;
+      min-width: 0;
+    }
+    .vl-fiado-div {
+      width: 1px;
+      background: #e2e8f0;
+      margin: 0.1rem 0.35rem;
+    }
+    .vl-fiado-k {
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      line-height: 1.1;
+    }
+    .vl-fiado-v {
+      font-size: clamp(0.95rem, 4.2vw + 0.2rem, 1.12rem);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: #334155;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .vl-fiado-explica {
+      margin: 0.75rem 0 0;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.95rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+    }
+    .vl-fiado-explica + .vl-fiado-explica { margin-top: 0.55rem; }
+    .vl-fiado-explica h4 {
+      margin: 0;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .vl-fiado-explica p {
+      margin: 0.35rem 0 0;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #334155;
+      line-height: 1.45;
+    }
+    .vl-fiado-explica strong {
+      font-weight: 900;
+      color: var(--ink);
+    }
+  </style>
+</head>
+<body
+  data-hoje="{{ hoje_iso }}"
+  data-sel="{{ data_iso }}"
+  data-sel-fim="{{ data_fim_iso }}"
+  data-key="{{ periodo_key }}">
+  <div class="vl-shell">
+    <header class="vl-top">
+      <div>
+        <p class="vl-kicker">As duas lojas</p>
+        <h1 class="vl-title">Vendas</h1>
+        <p class="vl-periodo">{{ periodo_label }}</p>
+      </div>
+      <a class="vl-voltar" href="{% url 'relatorios_hub' %}">Voltar</a>
+    </header>
+
+    <form method="get" class="vl-filtros" aria-label="Filtrar período">
+      <button type="submit" name="periodo" value="hoje"
+        class="vl-filtro {% if periodo_key == 'hoje' %}ativo{% endif %}">Dia</button>
+      <button type="submit" name="periodo" value="semana"
+        class="vl-filtro {% if periodo_key == 'semana' %}ativo{% endif %}">Semana</button>
+      <button type="submit" name="periodo" value="mes"
+        class="vl-filtro {% if periodo_key == 'mes' %}ativo{% endif %}">Mês</button>
+      <button type="submit" name="periodo" value="ano"
+        class="vl-filtro {% if periodo_key == 'ano' %}ativo{% endif %}">Ano</button>
+    </form>
+    <form method="get" class="vl-filtros-extra" aria-label="Atalhos de data">
+      <button type="submit" name="periodo" value="ontem"
+        class="vl-filtro {% if periodo_key == 'ontem' %}ativo{% endif %}">Ontem</button>
+      <button type="submit" name="periodo" value="mes_ant"
+        class="vl-filtro {% if periodo_key == 'mes_ant' %}ativo{% endif %}">Mês ant.</button>
+      <button type="button" id="vl-abrir-cal"
+        class="vl-filtro vl-filtro-cal {% if periodo_key == 'dia' or periodo_key == 'intervalo' %}ativo{% endif %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+          <rect x="3.5" y="5" width="17" height="15.5" rx="2.2"></rect>
+          <path d="M8 3.5v3M16 3.5v3M3.5 10h17"></path>
+        </svg>
+        Calendário
+      </button>
+    </form>
+
+    <div class="vl-cards">
+      <button type="button" class="vl-card centro" data-media
+        data-titulo="Centro"
+        data-vendido="{{ centro_fmt }}"
+        data-esperado="{{ centro_esp_fmt }}"
+        data-diff="{{ centro_diff_fmt }}"
+        data-pct="{{ centro_pct_fmt }}"
+        data-sentido="{{ centro_sentido }}"
+        data-esperado-dia="{{ centro_esp_dia_fmt }}"
+        data-diff-dia="{{ centro_diff_dia_fmt }}"
+        data-pct-dia="{{ centro_pct_dia_fmt }}"
+        data-sentido-dia="{{ centro_sentido_dia }}">
+        <h2>Centro</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ centro_fmt }}</p>
+      </button>
+      <button type="button" class="vl-card vila" data-media
+        data-titulo="Vila Elias"
+        data-vendido="{{ vila_fmt }}"
+        data-esperado="{{ vila_esp_fmt }}"
+        data-diff="{{ vila_diff_fmt }}"
+        data-pct="{{ vila_pct_fmt }}"
+        data-sentido="{{ vila_sentido }}"
+        data-esperado-dia="{{ vila_esp_dia_fmt }}"
+        data-diff-dia="{{ vila_diff_dia_fmt }}"
+        data-pct-dia="{{ vila_pct_dia_fmt }}"
+        data-sentido-dia="{{ vila_sentido_dia }}">
+        <h2>Vila Elias</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ vila_fmt }}</p>
+      </button>
+      <button type="button" class="vl-card total" data-media
+        data-titulo="Total das duas lojas"
+        data-vendido="{{ total_fmt }}"
+        data-esperado="{{ total_esp_fmt }}"
+        data-diff="{{ total_diff_fmt }}"
+        data-pct="{{ total_pct_fmt }}"
+        data-sentido="{{ total_sentido }}"
+        data-esperado-dia="{{ total_esp_dia_fmt }}"
+        data-diff-dia="{{ total_diff_dia_fmt }}"
+        data-pct-dia="{{ total_pct_dia_fmt }}"
+        data-sentido-dia="{{ total_sentido_dia }}">
+        <h2>Total das duas lojas</h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span>{{ total_fmt }}</p>
+      </button>
+      <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
+        <span class="vl-fiado-part">
+          <span class="vl-fiado-k">Sem fiado</span>
+          <span class="vl-fiado-v">R$ {{ sem_fiado_fmt }}</span>
+        </span>
+        <span class="vl-fiado-div" aria-hidden="true"></span>
+        <span class="vl-fiado-part">
+          <span class="vl-fiado-k">c/ fiado quitado</span>
+          <span class="vl-fiado-v">R$ {{ sem_fiado_quit_fmt }}</span>
+        </span>
+      </button>
+    </div>
+    <p class="vl-hint">Toque para a média</p>
+  </div>
+
+  <div id="vl-sheet" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-label="Escolher intervalo">
+      <div class="vl-sheet-handle"></div>
+      <p id="vl-cal-hint" class="vl-cal-hint">Toque o 1º dia · depois o 2º</p>
+      <div class="vl-cal-nav">
+        <button type="button" id="vl-cal-prev" aria-label="Mês anterior">‹</button>
+        <h3 id="vl-cal-titulo">—</h3>
+        <button type="button" id="vl-cal-next" aria-label="Próximo mês">›</button>
+      </div>
+      <div class="vl-cal-week">
+        <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div id="vl-cal-grid" class="vl-cal-grid"></div>
+      <button type="button" class="vl-cal-hoje" id="vl-cal-hoje">Ir para hoje</button>
+    </div>
+  </div>
+
+  <div id="vl-sheet-fiado" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar-fiado></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-fiado-titulo">
+      <div class="vl-sheet-handle"></div>
+      <h3 id="vl-fiado-titulo">Sem fiado e c/ fiado quitado</h3>
+      <div class="vl-fiado-explica">
+        <h4>Sem fiado — R$ {{ sem_fiado_fmt }}</h4>
+        <p>
+          Vendas do período <strong>sem a parte fiado</strong> (dinheiro, cartão, pix e outras formas).
+          Se a venda foi mista, só entra o que não foi fiado.
+          Devoluções abatidas no <strong>dia em que foram feitas</strong>, também só na parte não-fiado.
+        </p>
+      </div>
+      <div class="vl-fiado-explica">
+        <h4>c/ fiado quitado — R$ {{ sem_fiado_quit_fmt }}</h4>
+        <p>
+          Igual ao «Sem fiado», mais o que os clientes <strong>pagaram de fiados antigos</strong>
+          neste período (quitados no caixa ou PDV), mesmo que a venda fiado foi em outro dia.
+        </p>
+      </div>
+      <button type="button" class="vl-cal-hoje" data-fechar-fiado>Fechar</button>
+    </div>
+  </div>
+
+  <div id="vl-sheet-media" class="vl-sheet" hidden>
+    <div class="vl-sheet-bg" data-fechar-media></div>
+    <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-media-titulo">
+      <div class="vl-sheet-handle"></div>
+      <h3 id="vl-media-titulo">—</h3>
+      <p class="vl-media-k">Vendido</p>
+      <p class="vl-media-v"><span class="vl-rs">R$</span><span id="vl-media-vendido">0,00</span></p>
+      <p class="vl-media-k">Média esperada</p>
+      <p class="vl-media-v"><span class="vl-rs">R$</span><span id="vl-media-esperado">0,00</span></p>
+      <div id="vl-media-modos" class="vl-media-modos"{% if not mostra_toggle_media %} hidden{% endif %}>
+        <button type="button" data-media-modo="agora" class="ativo">Até agora</button>
+        <button type="button" data-media-modo="dia">Dia todo</button>
+      </div>
+      <div id="vl-media-cmp" class="vl-media-cmp">
+        <p class="vl-media-k">Diferença</p>
+        <p class="vl-media-v vl-media-diff"><span class="vl-rs">R$</span><span id="vl-media-diff">0,00</span></p>
+        <p class="vl-media-pct" id="vl-media-pct"></p>
+      </div>
+      <p id="vl-media-sem" class="vl-media-sem" hidden>Ainda não tem média para este período.</p>
+      <p class="vl-media-nota" id="vl-media-nota">O que já deveria ter saído até agora</p>
+      <button type="button" class="vl-cal-hoje" data-fechar-media>Fechar</button>
+    </div>
+  </div>
+
+  <form id="vl-goto-intervalo" method="get" hidden>
+    <input type="hidden" name="periodo" value="intervalo">
+    <input type="hidden" name="data" id="vl-goto-data" value="">
+    <input type="hidden" name="data_fim" id="vl-goto-data-fim" value="">
+  </form>
+
+  <script>
+  (function () {
+    var MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+    var hoje = new Date(document.body.getAttribute("data-hoje") + "T12:00:00");
+    var selIni = new Date((document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
+    var selFim = new Date((document.body.getAttribute("data-sel-fim") || document.body.getAttribute("data-sel") || document.body.getAttribute("data-hoje")) + "T12:00:00");
+    var view = new Date(selIni.getTime());
+    view.setDate(1);
+    var sheet = document.getElementById("vl-sheet");
+    var grid = document.getElementById("vl-cal-grid");
+    var titulo = document.getElementById("vl-cal-titulo");
+    var calHint = document.getElementById("vl-cal-hint");
+    var pickIni = null;
+
+    function iso(d) {
+      return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+    }
+    function parseIso(s) {
+      return new Date(s + "T12:00:00");
+    }
+    function sameDay(a, b) {
+      return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+    }
+    function atualizarHint(segundo) {
+      if (!calHint) return;
+      calHint.textContent = segundo
+        ? "Agora toque o 2º dia"
+        : "Toque o 1º dia · depois o 2º";
+    }
+    function limitesSelecao() {
+      var key = document.body.getAttribute("data-key") || "";
+      if (pickIni) return { ini: pickIni, fim: pickIni };
+      if (key === "intervalo") return { ini: selIni, fim: selFim };
+      if (key === "dia") return { ini: selIni, fim: selIni };
+      return null;
+    }
+    function noIntervalo(d, ini, fim) {
+      var t = d.getTime();
+      var lo = Math.min(ini.getTime(), fim.getTime());
+      var hi = Math.max(ini.getTime(), fim.getTime());
+      return t >= lo && t <= hi;
+    }
+    function abrir() {
+      pickIni = null;
+      atualizarHint(false);
+      sheet.hidden = false;
+      sheet.classList.add("aberto");
+      desenhar();
+    }
+    function fechar() {
+      sheet.classList.remove("aberto");
+      sheet.hidden = true;
+      pickIni = null;
+    }
+    function irIntervalo(d0, d1) {
+      var a = d0.getTime() <= d1.getTime() ? d0 : d1;
+      var b = d0.getTime() <= d1.getTime() ? d1 : d0;
+      document.getElementById("vl-goto-data").value = iso(a);
+      document.getElementById("vl-goto-data-fim").value = iso(b);
+      document.getElementById("vl-goto-intervalo").submit();
+    }
+    function desenhar() {
+      var y = view.getFullYear(), m = view.getMonth();
+      titulo.textContent = MESES[m] + " " + y;
+      var bounds = limitesSelecao();
+      var first = new Date(y, m, 1);
+      var startPad = (first.getDay() + 6) % 7;
+      var days = new Date(y, m + 1, 0).getDate();
+      var html = "";
+      var i;
+      for (i = 0; i < startPad; i++) html += "<button type='button' class='outro' disabled></button>";
+      for (i = 1; i <= days; i++) {
+        var d = new Date(y, m, i, 12);
+        var cls = [];
+        if (sameDay(d, hoje)) cls.push("hoje");
+        if (bounds) {
+          var ini = bounds.ini;
+          var fim = bounds.fim;
+          if (sameDay(ini, fim) && sameDay(d, ini)) cls.push("sel");
+          else {
+            if (sameDay(d, ini)) cls.push("sel-ini");
+            if (sameDay(d, fim)) cls.push("sel-fim");
+            if (!sameDay(ini, fim) && noIntervalo(d, ini, fim)) cls.push("no-intervalo");
+          }
+        }
+        var dis = d > hoje ? " disabled" : "";
+        html += "<button type='button' class='" + cls.join(" ") + "'" + dis + " data-iso='" + iso(d) + "'>" + i + "</button>";
+      }
+      grid.innerHTML = html;
+      document.getElementById("vl-cal-next").disabled = (y > hoje.getFullYear()) || (y === hoje.getFullYear() && m >= hoje.getMonth());
+    }
+    document.getElementById("vl-abrir-cal").addEventListener("click", abrir);
+    sheet.querySelector("[data-fechar]").addEventListener("click", fechar);
+    document.getElementById("vl-cal-prev").addEventListener("click", function () {
+      view.setMonth(view.getMonth() - 1);
+      desenhar();
+    });
+    document.getElementById("vl-cal-next").addEventListener("click", function () {
+      view.setMonth(view.getMonth() + 1);
+      desenhar();
+    });
+    document.getElementById("vl-cal-hoje").addEventListener("click", function () {
+      window.location.href = "?periodo=hoje";
+    });
+    grid.addEventListener("click", function (ev) {
+      var btn = ev.target.closest("button[data-iso]");
+      if (!btn || btn.disabled) return;
+      var d = parseIso(btn.getAttribute("data-iso"));
+      if (!pickIni) {
+        pickIni = d;
+        atualizarHint(true);
+        desenhar();
+        return;
+      }
+      irIntervalo(pickIni, d);
+    });
+    var sheetMedia = document.getElementById("vl-sheet-media");
+    var mediaBtn = null;
+    var LS_MODO = "vl_media_modo_v1";
+    function modoSalvo() {
+      try {
+        var m = localStorage.getItem(LS_MODO);
+        if (m === "dia") return "dia";
+      } catch (e) {}
+      return "agora";
+    }
+    function gravarModo(m) {
+      try { localStorage.setItem(LS_MODO, m); } catch (e) {}
+    }
+    function pintarModos(modo) {
+      document.querySelectorAll("[data-media-modo]").forEach(function (b) {
+        b.classList.toggle("ativo", b.getAttribute("data-media-modo") === modo);
+      });
+    }
+    function textoPct(sentido, p) {
+      if (sentido === "igual") return "Na média";
+      if (!p) return sentido === "acima" ? "Acima" : "Abaixo";
+      if (sentido === "acima") return "+" + p + "% acima";
+      if (sentido === "abaixo") return p + "% abaixo";
+      return "";
+    }
+    function aplicarMedia(btn, modo) {
+      var suf = modo === "dia" ? "-dia" : "";
+      var sentido = btn.getAttribute("data-sentido" + suf) || btn.getAttribute("data-sentido") || "sem";
+      document.getElementById("vl-media-esperado").textContent =
+        btn.getAttribute("data-esperado" + suf) || btn.getAttribute("data-esperado") || "0,00";
+      var cmp = document.getElementById("vl-media-cmp");
+      var sem = document.getElementById("vl-media-sem");
+      var pct = document.getElementById("vl-media-pct");
+      cmp.className = "vl-media-cmp " + sentido;
+      if (sentido === "sem") {
+        cmp.hidden = true;
+        sem.hidden = false;
+        pct.textContent = "";
+      } else {
+        cmp.hidden = false;
+        sem.hidden = true;
+        document.getElementById("vl-media-diff").textContent =
+          btn.getAttribute("data-diff" + suf) || btn.getAttribute("data-diff") || "0,00";
+        pct.textContent = textoPct(sentido, btn.getAttribute("data-pct" + suf) || btn.getAttribute("data-pct") || "");
+      }
+      document.getElementById("vl-media-nota").textContent = modo === "dia"
+        ? "Média do período inteiro (igual o BI)"
+        : "O que já deveria ter saído até agora";
+    }
+    function abrirMedia(btn) {
+      mediaBtn = btn;
+      var modos = document.getElementById("vl-media-modos");
+      var modo = modos.hidden ? "agora" : modoSalvo();
+      document.getElementById("vl-media-titulo").textContent = btn.getAttribute("data-titulo") || "";
+      document.getElementById("vl-media-vendido").textContent = btn.getAttribute("data-vendido") || "0,00";
+      pintarModos(modo);
+      aplicarMedia(btn, modo);
+      sheetMedia.hidden = false;
+      sheetMedia.classList.add("aberto");
+    }
+    function fecharMedia() {
+      sheetMedia.classList.remove("aberto");
+      sheetMedia.hidden = true;
+      mediaBtn = null;
+    }
+    document.querySelectorAll("[data-media]").forEach(function (btn) {
+      btn.addEventListener("click", function () { abrirMedia(btn); });
+    });
+    document.querySelectorAll("[data-media-modo]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var modo = b.getAttribute("data-media-modo") || "agora";
+        gravarModo(modo);
+        pintarModos(modo);
+        if (mediaBtn) aplicarMedia(mediaBtn, modo);
+      });
+    });
+    sheetMedia.querySelectorAll("[data-fechar-media]").forEach(function (el) {
+      el.addEventListener("click", fecharMedia);
+    });
+    var sheetFiado = document.getElementById("vl-sheet-fiado");
+    function abrirFiado() {
+      sheetFiado.hidden = false;
+      sheetFiado.classList.add("aberto");
+    }
+    function fecharFiado() {
+      sheetFiado.classList.remove("aberto");
+      sheetFiado.hidden = true;
+    }
+    document.getElementById("vl-abrir-fiado").addEventListener("click", abrirFiado);
+    sheetFiado.querySelectorAll("[data-fechar-fiado]").forEach(function (el) {
+      el.addEventListener("click", fecharFiado);
+    });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
+    }
+  })();
+  </script>
+</body>
+</html>

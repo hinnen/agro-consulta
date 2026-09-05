@@ -90,6 +90,10 @@ def calcular_cashback_gerado_itens(
         pid = str(i.get("id") or "").strip()[:64]
         if not pid:
             continue
+        from produtos.cliente_operacoes_util import item_id_e_servico_pdv
+
+        if item_id_e_servico_pdv(pid):
+            continue
         qtd = _dec(i.get("qtd"))
         vu = _dec(i.get("preco"))
         if qtd <= 0 or vu < 0:
@@ -143,8 +147,10 @@ def validar_cashback_payload(
             if usado > 0:
                 return False, "Cashback exige cliente cadastrado (não use consumidor final).", info
             return True, "", info
-        if usado > 0 or gerado > 0:
+        if usado > 0:
             return False, "Cashback exige cliente cadastrado.", info
+        if gerado > 0:
+            return True, "", info
         return True, "", info
     saldo = _dec(cliente_agro.saldo_cashback)
     if usado > saldo + Decimal("0.009"):

@@ -1,0 +1,251 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Entrar · GM Agro Mais</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --agro-orange: #f97316;
+      --agro-amber: #fbbf24;
+      --agro-sun: #fde68a;
+      --agro-green: #16a34a;
+      --agro-green-deep: #15803d;
+      --agro-ink: #1c1917;
+      --agro-card: rgba(255, 255, 255, 0.94);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: "Nunito", system-ui, sans-serif;
+      color: var(--agro-ink);
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+        max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 90% 70% at 12% 18%, rgba(253, 224, 71, 0.55), transparent 55%),
+        radial-gradient(ellipse 80% 60% at 88% 12%, rgba(74, 222, 128, 0.35), transparent 50%),
+        radial-gradient(ellipse 70% 50% at 70% 90%, rgba(22, 163, 74, 0.45), transparent 55%),
+        linear-gradient(155deg, #fb923c 0%, #f97316 28%, #ea580c 52%, #16a34a 88%, #15803d 100%);
+      overflow: hidden;
+      position: relative;
+    }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 28rem;
+      height: 28rem;
+      left: -8rem;
+      bottom: -10rem;
+      background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%);
+    }
+    body::after {
+      width: 22rem;
+      height: 22rem;
+      right: -6rem;
+      top: -8rem;
+      background: radial-gradient(circle, rgba(253,230,138,0.35), transparent 70%);
+    }
+    .agro-field {
+      position: fixed;
+      inset: auto 0 0 0;
+      height: 22%;
+      background:
+        repeating-linear-gradient(
+          95deg,
+          transparent 0 14px,
+          rgba(255,255,255,0.06) 14px 16px
+        ),
+        linear-gradient(180deg, transparent, rgba(21, 128, 61, 0.35));
+      pointer-events: none;
+      z-index: 0;
+    }
+    .shell {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 26rem);
+    }
+    .card {
+      background: var(--agro-card);
+      backdrop-filter: blur(10px);
+      border-radius: 1.5rem;
+      border: 2px solid rgba(255, 255, 255, 0.65);
+      box-shadow:
+        0 1.5rem 3rem rgba(67, 20, 7, 0.28),
+        0 0 0 1px rgba(249, 115, 22, 0.12);
+      padding: 1.75rem 1.5rem 1.5rem;
+      animation: agro-in 0.45s ease-out;
+    }
+    @keyframes agro-in {
+      from { opacity: 0; transform: translateY(0.75rem) scale(0.98); }
+      to { opacity: 1; transform: none; }
+    }
+    .brand {
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+    .brand-mark {
+      width: 7.25rem;
+      height: 7.25rem;
+      margin: 0 auto 0.85rem;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 30%, #fff7ed, #ffedd5 55%, #fdba74);
+      box-shadow:
+        0 0.5rem 1.25rem rgba(234, 88, 12, 0.35),
+        inset 0 0 0 3px rgba(255,255,255,0.55);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .brand-mark img {
+      width: 92%;
+      height: auto;
+      display: block;
+    }
+    .brand-title {
+      margin: 0;
+      font-size: clamp(1.65rem, 5vw, 2rem);
+      font-weight: 900;
+      letter-spacing: 0.02em;
+      line-height: 1.05;
+    }
+    .brand-title .agro {
+      background: linear-gradient(180deg, #fbbf24 0%, #f97316 45%, #ea580c 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .brand-title .mais {
+      color: #1c1917;
+    }
+    .brand-title .mais .flame {
+      background: linear-gradient(180deg, #fde68a, #f97316);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .brand p {
+      margin: 0.45rem 0 0;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #57534e;
+      letter-spacing: 0.01em;
+    }
+    .erro {
+      margin: 0 0 1rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 0.85rem;
+      border: 2px solid #fca5a5;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-size: 0.9rem;
+      font-weight: 800;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.9rem;
+    }
+    label span {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #78716c;
+    }
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      min-height: 3.15rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 0.9rem;
+      border: 2px solid #d6d3d1;
+      background: #fff;
+      font: inherit;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--agro-ink);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus {
+      border-color: var(--agro-orange);
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.22);
+    }
+    button[type="submit"] {
+      width: 100%;
+      min-height: 3.35rem;
+      margin-top: 0.35rem;
+      border: 0;
+      border-radius: 0.95rem;
+      background: linear-gradient(180deg, #22c55e, var(--agro-green-deep));
+      color: #fff;
+      font: inherit;
+      font-size: 1.05rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      box-shadow: 0 0.55rem 1.1rem rgba(21, 128, 61, 0.35);
+      transition: transform 0.12s, filter 0.12s;
+    }
+    button[type="submit"]:hover { filter: brightness(1.05); }
+    button[type="submit"]:active { transform: translateY(1px); }
+    .foot {
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.88);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="agro-field" aria-hidden="true"></div>
+  <div class="shell">
+    <div class="card">
+      <div class="brand">
+        <div class="brand-mark">
+          <img src="{% static 'produtos/img/logo_agro_mais.png' %}" width="120" height="120" alt="">
+        </div>
+        <h1 class="brand-title"><span class="agro">AGRO</span> <span class="mais">M<span class="flame">A</span>IS</span></h1>
+        <p>Sua casa de ração com um toque a mais</p>
+      </div>
+
+      {% if erro %}
+      <p class="erro" role="alert">{{ erro }}</p>
+      {% endif %}
+
+      <form method="post" autocomplete="on">
+        {% csrf_token %}
+        {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+        <label>
+          <span>Usuário</span>
+          <input type="text" name="username" value="{{ username }}" required autofocus
+            autocapitalize="none" autocomplete="username" spellcheck="false">
+        </label>
+        <label>
+          <span>Senha</span>
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit">Entrar</button>
+      </form>
+    </div>
+    <p class="foot">SisVale · GM Agro Mais</p>
+  </div>
+</body>
+</html>

@@ -15,16 +15,18 @@ Documento de contexto para humanos e para assistentes de IA. O Cursor pode carre
 
 ### 1.1 TESTE vs PRODUÇÃO (obrigatório para o assistente)
 
-Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
+Dois ambientes fixos — detalhes em `**docs/DEPLOY-AMBIENTES.md`**.
 
-| Ambiente | Branch | Render |
-| -------- | ------ | ------ |
-| **TESTE** | `teste` | agro-consulta-staging |
-| **PRODUÇÃO** | `producao` | Sistvale - Produção |
+
+| Ambiente     | Branch     | Render                |
+| ------------ | ---------- | --------------------- |
+| **TESTE**    | `teste`    | agro-consulta-staging |
+| **PRODUÇÃO** | `producao` | Sistvale - Produção   |
+
 
 - Cursor: commit/push **só** em `teste`.
 - Produção: merge `teste` → `producao` **só** quando o usuário pedir.
-- **`main` não entra no deploy.** Ver `docs/DEPLOY-AMBIENTES.md`.
+- `**main` não entra no deploy.** Ver `docs/DEPLOY-AMBIENTES.md`.
 
 ---
 
@@ -48,32 +50,32 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Páginas (MPA / templates):**
 
 
-| Caminho                          | Nome (name)                    | Nota                                          |
-| -------------------------------- | ------------------------------ | --------------------------------------------- |
-| `/`                              | `home`                         | Dashboard gerencial (BI + launchpad); alias `/dashboard/gerencial/` (`dashboard_gerencial`) |
-| `/consulta/`                     | `consulta_produtos`            | PDV legado MPA (busca / orçamentos)           |
-| `/historico/`                    | `historico_ajustes`            |                                               |
-| `/transferencias/`               | `sugestao_transferencia`       |                                               |
-| `/entregas/`                     | `entregas_painel`              | APIs sob `/entregas/api/...`                  |
-| `/ajuste-mobile/`                | `ajuste_mobile`                |                                               |
-| `/compras/`                      | `compras_view`                 | Pedido fornecedor, WhatsApp                   |
-| `/compras/relatorio-a4/`         | `compras_relatorio_a4`         | Relatório A4 por fornecedor (página dedicada; link direto, mobile) |
+| Caminho                                  | Nome (name)                            | Nota                                                                                        |
+| ---------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `/`                                      | `home`                                 | **Tela inicial** — SisVale BI (dashboard gerencial); grade clássica em `/atalhos/` (`home_atalhos`) |
+| `/consulta/`                             | `consulta_produtos`                    | PDV legado MPA (busca / orçamentos)                                                         |
+| `/historico/`                            | `historico_ajustes`                    |                                                                                             |
+| `/transferencias/`                       | `sugestao_transferencia`               |                                                                                             |
+| `/entregas/`                             | `entregas_painel`                      | APIs sob `/entregas/api/...`                                                                |
+| `/ajuste-mobile/`                        | `ajuste_mobile`                        |                                                                                             |
+| `/compras/`                              | `compras_view`                         | Pedido fornecedor, WhatsApp                                                                 |
+| `/compras/relatorio-a4/`                 | `compras_relatorio_a4`                 | Relatório A4 por fornecedor (página dedicada; link direto, mobile)                          |
 | `/compras/relatorio-planilha-categoria/` | `compras_relatorio_planilha_categoria` | Lista por **categoria** · impressão A4 ou A6; sem coluna GM; «Contagem» e «Pedir» em branco |
-| `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade` | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria |
-| `/entrada-nota/`                 | `entrada_nota`                 |                                               |
-| `/lancamentos/`                  | `lancamentos_financeiros`      | Contas a pagar/receber                        |
-| `/financeiro/resumo-gerencial/`  | `resumo_financeiro_gerencial`  |                                               |
-| `/lancamentos/dre/`              | `lancamentos_dre`              |                                               |
-| `/lancamentos/contas-pagar/`     | `lancamentos_contas_pagar`     |                                               |
-| `/lancamentos/novo-manual/`      | `lancamentos_manual`           |                                               |
-| `/lancamentos/fluxo-calendario/` | `lancamentos_fluxo_calendario` |                                               |
-| `/estoque/sincronizacao/`        | `estoque_sincronizacao`        | Saúde leitura Mongo + divergência camada Agro |
-| `/pdv/checkout/`                 | `pdv_checkout`                 |                                               |
-| `/vendas/`                       | `vendas_lista`                 |                                               |
-| `/venda/<pk>/`                   | `venda_agro_detalhe`           |                                               |
-| `/clientes/` …                   | `clientes_`*, `cliente_*`      |                                               |
-| `/rh/`                           | `rh_painel`                    |                                               |
-| `/caixa/` …                      | `caixa_*`                      | Painel, saída, abrir, fechar                  |
+| `/compras/relatorio-planilha-unidade/`   | `compras_relatorio_planilha_unidade`   | Lista por **unidade** · mesmo layout e opções de papel que a planilha por categoria         |
+| `/entrada-nota/`                         | `entrada_nota`                         |                                                                                             |
+| `/lancamentos/`                          | `lancamentos_financeiros`              | Contas a pagar/receber                                                                      |
+| `/financeiro/resumo-gerencial/`          | `resumo_financeiro_gerencial`          |                                                                                             |
+| `/lancamentos/dre/`                      | `lancamentos_dre`                      |                                                                                             |
+| `/lancamentos/contas-pagar/`             | `lancamentos_contas_pagar`             |                                                                                             |
+| `/lancamentos/novo-manual/`              | `lancamentos_manual`                   |                                                                                             |
+| `/lancamentos/fluxo-calendario/`         | `lancamentos_fluxo_calendario`         |                                                                                             |
+| `/estoque/sincronizacao/`                | `estoque_sincronizacao`                | Saúde leitura Mongo + divergência camada Agro                                               |
+| `/pdv/checkout/`                         | `pdv_checkout`                         |                                                                                             |
+| `/vendas/`                               | `vendas_lista`                         |                                                                                             |
+| `/venda/<pk>/`                           | `venda_agro_detalhe`                   |                                                                                             |
+| `/clientes/` …                           | `clientes_`*, `cliente_*`              |                                                                                             |
+| `/rh/`                                   | `rh_painel`                            |                                                                                             |
+| `/caixa/` …                              | `caixa_*`                              | Painel, saída, abrir, fechar                                                                |
 
 
 **APIs (amostra; lista completa no arquivo):** `api/buscar/`, `api/lancamentos/`, export CSV/XLSX/PDF financeiro, `api/pdv/`*, `api/entrada-nota/*`, `api/ajustar/`, etc.
@@ -82,18 +84,19 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 
 ## 4. Partials e UI compartilhada (templates)
 
-- `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`**.
+- `**produtos/templates/produtos/_agro_consulta_ui.html`** — tipografia/densidade GM Agro; inclui `**_agro_open_external.html`** e `**_agro_display_scale.html`** (escala global — §11).
 - `**_agro_open_external.html`** — `agroAbrirUrlExterna`, uso de `window.agroShell.openExternal` no Electron; monkey-patch de `window.open` para WhatsApp/Maps/Waze/goo.gl.
 - `**_head_perf_mpa.html`** — performance MPA onde usado.
 - `**_gm_loading_bar.html`** — barra de loading em algumas telas.
-- `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` — textos longos de ajuda em Lançamentos (filtros / busca na lista), espelhados na **§10**; na tela ficam em bloco **«?»** (`<details>`), no padrão do RH (`rh_help_agents.html`).
+- `**produtos/templates/produtos/includes/lancamentos_help_agents.html`** — textos longos de ajuda em Lançamentos (filtros / busca na lista), espelhados na **§10**; na tela ficam em bloco **«?»** (`<details>`), no padrão do RH (`rh_help_agents.html`).
 
 ---
 
 ## 5. Padrão visual e UX (loja)
 
-- Telas **14" / 17" / 19"**: layout **compacto**, legível, sem depender de resolução alta. **APROVEITAR BEM A TELA,POR SER PEQUENA E SE TRATAR DE IDOSOS QUE IRÃO USAR É BEM DIFICIL DE ENXENGAR NATURAMENTE JÁ, ENTÃO PRECISA SER BEM APROVEITADA PARA MELHOR LEITURA.**
-- **Contraste e legibilidade** (incl. idosos): fonte clara e GRANDE , botões grandes, ações previsíveis, sem sustos visuais.
+- **Agro Display Scale (§11):** calibração **uma vez por computador/navegador** — modal na 1ª visita; depois escala global no `<html>` (75–150 %). **Não** usar zoom do Chrome (Ctrl +/-) como referência de layout.
+- Telas **14" / 17" / 19"**: layout **compacto**, legível. **APROVEITAR BEM A TELA** — operadores idosos; fonte clara, botões grandes, contraste alto.
+- **Contraste e legibilidade**: ações previsíveis, sem sustos visuais.
 - **Teclado e scanner** primeiro; mouse como apoio; **mínimo de cliques**.
 - Tela **limpa**; textos longos só em tooltip, modal “Ajuda” ou “?”.
 - Paleta **emerald / orange / slate**, cards simples, hierarquia forte.
@@ -101,8 +104,8 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - **Barra de estoque** (PDV): atualização manual + horário da última atualização + automático em standby quando a tela tiver isso.
 - **“Voltar ao PDV (F1)”** visível nas telas possíveis.
 - Ao voltar ao PDV: **preservar contexto** (draft, filtros, lista, scroll).
-- **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); **tipografia e espaçamentos fluidos** (`clamp` com `vw` + `rem` na shell) e **colunas da grade por largura útil** (`container-type: inline-size` + `@container`), para o layout **acompanhar o zoom** sem empilhar cards; em **zoom muito alto**, se necessário há **rolagem só na área da grade** (sem sobreposição).
-- **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), **`100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
+- **Home administrativa (launcher):** sem **rolagem da página** (`overflow: hidden` no viewport, `100dvh` / `min-h-0` com flex); tipografia fluida (`clamp` + `rem`); grade com `container-type: inline-size` + `@container`. O **ajuste fino de tamanho** para cada monitor fica no **Agro Display Scale**, não no zoom do navegador.
+- **Caixa (painel, abrir, fechar, relatório):** pensado para monitor **16:9** — shell larga (`.caixa-shell`, até ~96rem), `**100dvh`** com `overflow: hidden` no body, conteúdo em **grade horizontal** (não coluna estreita `max-w-lg`); fechamento em lote à esquerda + caixas individuais à direita (`caixa_fechar.html`). Referência: `caixa_painel.html`, `caixa_fechar.html`.
 
 ---
 
@@ -117,13 +120,20 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 
 ## 7. Decisões e implementações já registradas (changelog resumido)
 
+**Repasse Vila — cofrinho físico acumulado (28/08/2026)**
+
+- O **cofrinho da Vila** é um saldo acumulado próprio no PostgreSQL, separado do caixa normal e do indicador histórico **Lucro ficou**. A reserva diária mantém vigência funcional em **18/08/2026** e continua entrando **antes dos 50%** na fórmula do lucro; não há segundo desconto no total sugerido.
+- A separação pode ocorrer junto do repasse ou isoladamente. Cada evento gera movimento rastreável e idempotente com saldo anterior/posterior, operador, data, origem e vínculos com caixa/repasse. Retirada, ajuste e estorno exigem operador e motivo; o saldo não pode ficar negativo.
+- Ao fechar o caixa da Vila, a reserva pendente é abatida do esperado em dinheiro e aparece em aviso destacado como valor que permanece na loja fora da gaveta normal. Repetir fechamento, separação ou requisição não duplica o valor.
+- O backend impede repasse em dinheiro que consuma a reserva diária quando a opção de separar junto estiver marcada. Tela `/repasse-vila/`, overlay do PDV e APIs `api/repasse-vila/cofrinho/*`. Modelos: `RepasseVilaConfigAgro.saldo_reserva_vila` e `RepasseVilaReservaMovimentoAgro`; migration `produtos.0100`.
+
 **Compras (`compras.html` + JS inline)**  
 
 - Sugestão de compra em destaque no **card**; horizonte em dias **independente** do período da média (média em `<details>` “Métricas avançadas”).  
 - Opção **descontar ou não** estoque total **C+V** (localStorage).  
 - F5 / textos: **atualizar métricas**; não confundir com horizonte da sugestão.
-- **Relatório A4:** também em **`/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras entra pelo menu **«Folha Compras»** → **«Página só fornecedor»**.
-- **Planilha impressa por categoria / unidade:** **`/compras/relatorio-planilha-categoria/`** e **`/compras/relatorio-planilha-unidade/`** — escolha A4 ou A6; lista sem coluna código (GM); colunas **Contagem** e **Pedir** vazias; **corpo da tabela** em tipografia grande (nome da 1ª coluna ~+20 % sobre a base anterior; demais colunas ~+35 % para leitura física). Quantidades «últ. pedido / compra» e «vendida desde última» calculadas por produto com **último evento de compra** no Mongo ERP (`_ultimas_compras_por_produto_ids`) + **DtoVenda** depois dessa data. Cabeçalho de impressão só com filtro e data gerada (legenda no rodapé). **Categoria e unidade: só seleção na lista** (sem digitar); `GET api/compras/relatorio-dim/?tipo=…&completa=1` monta options (scan Mongo maior + overlay). Filtro por **unidade** considera Mongo (`Unidade`, `SiglaUnidade`, campos de estoque) **e** a unidade salva no **overlay** PostgreSQL (como a coluna UNIDADE da gestão). APIs `api/compras/relatorio-dim/`, `api/compras/relatorio-categoria/`, `api/compras/relatorio-unidade/`. Na tela Compras: menu **«Folha Compras»** no cabeçalho agrupa fornecedor (modal + página dedicada), categoria e unidade; **painel ancorado à esquerda** do botão, **rótulos dos itens alinhados à esquerda** (leitura contínua, telas compactas).
+- **Relatório A4:** também em `**/compras/relatorio-a4/`** (`compras_relatorio_a4`) — mesma lógica do modal na tela Compras; layout pensado para **celular** (área segura, toques grandes, lista rolável). Na Compras entra pelo menu **«Folha Compras»** → **«Página só fornecedor»**.
+- **Planilha impressa por categoria / unidade:** `**/compras/relatorio-planilha-categoria/`** e `**/compras/relatorio-planilha-unidade/**` — escolha A4 ou A6; lista sem coluna código (GM); colunas **Contagem** e **Pedir** vazias; **corpo da tabela** em tipografia grande (nome da 1ª coluna ~+20 % sobre a base anterior; demais colunas ~+35 % para leitura física). Quantidades «últ. pedido / compra» e «vendida desde última» calculadas por produto com **último evento de compra** no Mongo ERP (`_ultimas_compras_por_produto_ids`) + **DtoVenda** depois dessa data. Cabeçalho de impressão só com filtro e data gerada (legenda no rodapé). **Categoria e unidade: só seleção na lista** (sem digitar); `GET api/compras/relatorio-dim/?tipo=…&completa=1` monta options (scan Mongo maior + overlay). Filtro por **unidade** considera Mongo (`Unidade`, `SiglaUnidade`, campos de estoque) **e** a unidade salva no **overlay** PostgreSQL (como a coluna UNIDADE da gestão). APIs `api/compras/relatorio-dim/`, `api/compras/relatorio-categoria/`, `api/compras/relatorio-unidade/`. Na tela Compras: menu **«Folha Compras»** no cabeçalho agrupa fornecedor (modal + página dedicada), categoria e unidade; **painel ancorado à esquerda** do botão, **rótulos dos itens alinhados à esquerda** (leitura contínua, telas compactas).
 
 **Entrada NF — assistente (7 passos)** 
 
@@ -138,9 +148,13 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Gestão / cadastro de produtos — lentidão após entrada NF (investigação aberta)**  
 
 - **Sintoma:** primeira abertura aceitável; depois de **entrada de nota** e voltar à **gestão de produtos**, carga muito longa (minutos em casos extremos). Usuário reportou persistência após otimizações iniciais.  
-- **Duas telas:** (1) **SisVale cadastro** `produtos_cadastro_erp.html` + `cadastro_erp_panel.js` → API **`api_produtos_cadastro`** em `produtos/views.py` (lista/busca Mongo **sem** saldo). (2) **Gestão operacional** `produtos_gestao.html` → **`api_produtos_gestao_lista`** (+ **`api_produtos_gestao_facetas`** no load). Não misturar as rotas ao depurar.  
-- **Já feito (código):** projeção slim em **`api_produtos_gestao_lista`** e em **`motor_de_busca_agro`** quando usado pela gestão; **`_CADASTRO_LISTA_MONGO_PROJ`** em **`api_produtos_cadastro`** (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
-- **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar **`api_produtos_gestao_facetas`** (vários `distinct` no Mongo); **`explain`** / índices em **`Nome`**, **`CadastroInativo`**, campos de **sort** do cadastro; pool **`obter_conexao_mongo`**; cache Redis.
+- **Duas telas:** (1) **SisVale cadastro** `produtos_cadastro_erp.html` + `cadastro_erp_panel.js` → API `**api_produtos_cadastro`** em `produtos/views.py` (lista/busca Mongo **sem** saldo). (2) **Gestão operacional** `produtos_gestao.html` → `**api_produtos_gestao_lista`** (+ `**api_produtos_gestao_facetas**` no load). Não misturar as rotas ao depurar.  
+- **Já feito (código):** projeção slim em `**api_produtos_gestao_lista`** e em `**motor_de_busca_agro**` quando usado pela gestão; `**_CADASTRO_LISTA_MONGO_PROJ**` em `**api_produtos_cadastro**` (find + motor); após propagar preços da NF, fila «pendentes ERP» em **batch** (`_erp_produto_pendentes_extend_batch`); no painel ERP, **lista + badge pendentes** em paralelo (`cadastro_erp_panel.js`).  
+- **Se ainda estiver lento, próximo passo:** medir no browser/rede **qual URL** trava (`api_produtos_cadastro`, `api_produtos_gestao_facetas`, `api_produtos_gestao_erp_pendentes`, etc.); revisar `**api_produtos_gestao_facetas`** (vários `distinct` no Mongo); `**explain**` / índices em `**Nome**`, `**CadastroInativo**`, campos de **sort** do cadastro; pool `**obter_conexao_mongo`**; cache Redis.
+
+**Cadastro ERP — planilha Excel (fase 1)** 
+
+- Tela `**/produtos/cadastro-erp/`** (lista): botões **Excel ↓** / **Excel ↑** / **Histórico**. Export: modal escolhe colunas e categorias; painel **~80 % da viewport** (`cadastro-export-modal-panel`). `GET **/api/produtos/cadastro/export-xlsx/**` (`cols`, `categorias`, `inativos`). Import assíncrono com barra de progresso; **Histórico** + **Desfazer** (`CadastroPlanilhaImportHistoricoAgro`). Grava **overlay Agro** + preços no **Mongo**; **célula vazia não altera**; coluna **ID** oculta e travada no Excel; **Código GM** editável na planilha (overlay `codigo_nfe`). Layout lista: **§11** (`cadastro-erp-layout` em `produtos_cadastro_erp.html`) — referência 1366×720, 1440×900, 2560×1440 via **Agro Display Scale** (Chrome app), não zoom Ctrl+/-. Lógica: `produtos/cadastro_planilha_util.py`.
 
 **PDF financeiro (`produtos/lancamentos_financeiro_pdf.py`)**  
 
@@ -148,6 +162,18 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - Sem coluna Observações; **QUAL CONTA** em branco; **Plano conta** sem grupo; coluna **Forma de pagamento**.  
 - **Valor bruto** em fonte maior; quitação parcial → **bruto + linha Saldo**.  
 - Tabela “Anotações e conferência” mais larga.
+
+**Fechar caixa — devolução em dinheiro de venda no cartão/Pix (MP automático)**
+
+- A venda devolvida no mesmo turno **continua** no esperado da forma original (pinpad ainda tem o valor).
+- A retirada da devolução cai na forma em que o dinheiro saiu (ex.: **Dinheiro**).
+- Na **contagem**, linhas auto (MP pinpad / fiado / vale / cashback) **sempre** copiam o esperado (sem rascunho antigo, sem «Sobra»). Aviso amarelo na gaveta: «Devolução em dinheiro R$ … — conte a gaveta já sem esse valor».
+- Antes, o FL-017 zerava a venda e ainda ignorava a retirada do mesmo turno: MP automático “sobrava” e o dinheiro não caía. `produtos/caixa_util.py` (`_agregar_resumo_turno_sessao`).
+
+**Fechar caixa — refresh após retirada / repasse (Vila)** 
+
+- A tela abre o lote só da loja do aparelho. Depois de retirada/reforço/repasse, o refresh (`api_caixa_conferencia_estado`) também filtra por depósito (`escopo=loja`). Sem isso, Centro + Vila somavam no esperado — e no repasse o −X da Vila + +X do Centro se anulavam.
+- O overlay do repasse avisa a tela de fechar (`agro-caixa-fechar-atualizar`) ao confirmar, não só ao fechar o iframe.
 
 **Caixa — Gaveta / Notebook / Teste**  
 
@@ -168,7 +194,6 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 **Dashboard gerencial — gastos por plano de conta** (oculto na home; `AGRO_DASHBOARD_GASTOS_PLANO=true` no `.env` para todos verem)
 
 - **Prévia só admin:** `/interno/preview-gastos-bi/` (`dashboard_interno_preview`) — sem link no menu; 404 para quem não for superuser ou usuário listado em `AGRO_DASHBOARD_PREVIEW_USERNAMES` (vírgula no `.env`).
-
 - Um gráfico de **barras verticais**: cada coluna = plano de conta (total no período do filtro de cima).
 - Filtro **Competência / Vencimento / Pagamento** troca só o gráfico (cache JSON dos 3 modos no load; sem reload da página).
 - Com mais de 10 planos: paginação discreta (**‹ ›** e **N/M** ao lado do gráfico).
@@ -191,9 +216,25 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 
 - Botão **Cancelar** no extrato (`rh_funcionario_vale_cancelar`): `cancelado=True`, recalcula folhas abertas, tenta `sincronizar_valores_titulo_salario_mongo` na competência do vale. Alternativa: **Admin** Django em *Vales / adiantamentos*.
 
+**PDV — Pedir loja (transferência entre lojas)** 
+
+- Só no wizard `/pdv/`: botão **Pedir loja** (rosa) na topbar + overlay (não mexe em `/consulta/` nem em `/transferencias/` Logística).
+- Layout **PC primeiro**: modal largo (~64rem), grade busca|carrinho no monitor; celular continua tela cheia. Observação sempre visível. Tirar item com ×.
+- Pedido 1 produto ou vários; lista **pendente** na loja de origem; o mesmo botão ganha **badge**.
+- Status: Pedir / Aceitar / Pronto = só fila. **Transferir** move estoque Agro (saldo negativo ok).
+- PIN/usuário gravado em cada etapa; usa o PIN já logado no PDV (sem redigitar). WhatsApp = fase 2.
+- Migrate: `estoque.0018_solicitacao_transferencia_pdv`. Rollback: `docs/ROLLBACK-PDV-PEDIR-LOJA.md`.
+
 **Empréstimo interno (sócio) — pagamento em contas a pagar**  
 
 - Cadastro do aporte continua só em `AgroEmprestimo`. Cada pagamento em **Consulta → Gerenciar** (`registrar_pagamento_emprestimo_interno_agro`) gera `DtoLancamento` quitado (plano dívida padrão, marca `EMP-INT` nas observações). Exclusão do pagamento remove o título vinculado. Na lista de Lançamentos use situação **Quitados** ou **Todos** (não aparece em **Em aberto**).
+
+**Agro Display Scale — tamanho da tela por aparelho (§11)**  
+
+- Modal na **1ª abertura** em qualquer tela que inclua `_agro_consulta_ui.html`; fator salvo em `localStorage` (`agro_display_scale_v1`, `agro_display_scale_configured_v1`).
+- Escala aplicada no `<html>` (`zoom` + `data-agro-scale` + `--agro-display-scale`); vale para PDV, caixa, lançamentos, etc. no **mesmo navegador**.
+- Reabrir ajuste: botão **Aa** discreto no canto superior direito (telas sem atalho próprio), na **barra do BI** (`/` — ao lado da versão) ou na **home de atalhos** (`/atalhos/` — ao relógio).
+- JS: `produtos/static/produtos/js/agro_display_scale.js` · include: `_agro_display_scale.html`.
 
 ---
 
@@ -203,6 +244,7 @@ Dois ambientes fixos — detalhes em **`docs/DEPLOY-AMBIENTES.md`**.
 - Atualizar **§3** se `produtos/urls.py` ganhar rotas importantes (ou referenciar “ver arquivo”).
 - Atualizar **§9** quando mudar textos de ajuda do RH em tela (manter alinhado a `rh/templates/rh/includes/rh_help_agents.html`).
 - Atualizar **§10** quando mudar textos de ajuda de **Lançamentos** em tela (manter alinhado a `produtos/templates/produtos/includes/lancamentos_help_agents.html`).
+- Atualizar **§11** quando mudar calibração de escala ou contrato de layout escalável.
 - Evitar duplicar **cada** template aqui — manter mapa enxuto.
 
 ---
@@ -233,20 +275,21 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ### 9.4 Passo 2 — Conta a pagar no financeiro
 
-- Opcional: faz o salário da competência aparecer nas **contas a pagar** (Mongo) com **data de vencimento** em Lançamentos.
+- Opcional: faz o salário da competência aparecer nas **contas a pagar** (Postgres) com **data de vencimento** em Lançamentos.
 - Cada **vale** (ficha ou caixa) é **pagamento parcial** do mesmo título; não cria outra despesa de “vale”.
-- **Forma de pagamento** pode ficar em **branco** até quitar; **conta/banco** é obrigatória para gerar o título.
-- Conta placeholder tipo **«ADICIONAR BANCO»** aparece no **topo** da lista quando configurada (`AGRO_FINANCEIRO_BANCO_PLACEHOLDER_ID` no `.env` se o ID do ERP for diferente do padrão embutido).
+- **Forma** e **conta/banco** podem ficar em **branco** (placeholder ADICIONAR CONTA) até quitar.
+- **Envio automático** (ficha → Editar): `dia_envio_cp_auto` (1–28; 0=off) gera o título do **mês anterior** nesse dia; `dia_vencimento_salario` (1–28) = vencimento no mês do envio. Cron: `manage.py rh_envio_cp_automatico` / `/api/cron/rh-envio-cp-automatico/`.
+- Quando vales + baixas no CP atingem o bruto do título, o status da folha passa a **Pago** (parcial → **Pago parcial**).
 
-### 9.5 Passo 2 — Ajuda técnica (plano Mongo)
+### 9.5 Passo 2 — Ajuda técnica (plano)
 
-- Plano do título: variável de ambiente `**AGRO_RH_PLANO_SALARIO_FOLHA`** (texto igual ao cadastro no ERP/Mongo).
+- Plano do título: variável de ambiente `**AGRO_RH_PLANO_SALARIO_FOLHA**` (texto igual ao cadastro no ERP/Mongo).
 - Quando já existe lançamento, o **ID** do título é exibido na própria tela (ajuda técnica).
 
 ### 9.6 Passo 3 — Encerrar e correções
 
-- **Fechar** e **Marcar pago** são só **controle interno** do RH; não substituem pagamento no banco nem baixa no ERP.
-- **Reabrir folha** volta para Aberto e zera valor pago de controle se estava Pago.
+- **Fechar** e **Marcar pago** são controle interno do RH; o status **Pago** também sobe sozinho quando o título no CP fica quitado.
+- **Reabrir folha** volta para Aberto; pagamentos reais (caixa/CP) permanecem.
 - **Excluir competência** só sem título de salário vinculado no financeiro.
 
 ### 9.7 Ficha — onde estão salário e vales
@@ -273,12 +316,50 @@ Textos longos nas telas **Fechamento de folha** e **Ficha do funcionário** fica
 
 ## 10. Ajuda em tela — Lançamentos / filtros (fonte para o `?`)
 
-Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fica no bloco **«?»** (`<details>`). O HTML canônico está em `**produtos/templates/produtos/includes/lancamentos_help_agents.html**` (slug `filtros_busca_lista`); esta seção espelha o conteúdo para humanos e para `@AGENTS.md`.
+Texto longo da **busca na lista** (modal Filtros em Contas a pagar / receber) fica no bloco **«?»** (`<details>`). O HTML canônico está em `**produtos/templates/produtos/includes/lancamentos_help_agents.html`** (slug `filtros_busca_lista`); esta seção espelha o conteúdo para humanos e para `@AGENTS.md`.
 
 ### 10.0 Busca na lista
 
-- Separe termos com **espaço**; cada termo pode cair em favorecido, descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs ou **valor** (bruto, pago ou saldo em aberto; use vírgula decimal ou R$).
+- Separe termos com **espaço**; cada termo pode cair em favorecido (inclui código no nome, ex. `Renan Hinnen 1403`), descrição, documento, plano, grupo, forma, banco, empresa, centro de custo, observações, IDs, **valor** (bruto, pago ou saldo; com ou sem vírgula / R$; número puro também casa no texto), **número da NF** (ex. `013962` na descrição), **data** (vencimento, competência ou pagamento, ex. `15/07/2026`), **boleto** (código de barras / linha digitável), **parcela** (`2/6` ou «parcela 2») e **CPF/CNPJ** com ou sem pontuação. Quem lançou: só com **e-mail** (com `@`).
 
 ---
 
-*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH; §10 ajuda Lançamentos (filtros).*
+## 11. Agro Display Scale — tamanho da tela (monitores diferentes)
+
+Cada loja/computador pode ter resolução e polegadas diferentes. Em vez de pedir zoom manual no Chrome, o sistema guarda **um fator de escala por navegador** e aplica em **todas** as telas.
+
+### 11.0 O que é
+
+- **Tela inicial do sistema:** `/` — dashboard **SisVale BI** (`dashboard_gerencial.html`). A grade clássica de atalhos fica em `/atalhos/` (`home_atalhos`).
+- **Include:** `produtos/templates/produtos/_agro_display_scale.html` (puxado por `_agro_consulta_ui.html`).
+- **JS:** `produtos/static/produtos/js/agro_display_scale.js` · API global `window.AgroDisplayScale`.
+- **Persistência:** `localStorage` — chaves `agro_display_scale_v1` (número 0,75–1,5) e `agro_display_scale_configured_v1` (`"1"` após confirmar).
+- **Aplicação:** `document.documentElement.style.zoom`, atributo `data-agro-scale`, variável CSS `--agro-display-scale`.
+- **1ª visita:** calcula automaticamente o **maior zoom seguro** (testa a tela real — cards, botões, barra do BI) e abre modal só para **Confirmar**. **Reabrir:** **Aa** na barra do BI · **Aa** em `/atalhos/` · **Aa** no canto nas demais telas. Botão **Recalcular ideal** refaz a medição; o slider só permite ir **até** o máximo seguro (diminuir se quiser menor).
+
+### 11.1 Regras para novas telas e refactors (assistência)
+
+Ao pedir alteração de layout, o usuário pode escrever **`@AGENTS.md`** ou citar **“padrão Agro Display Scale”**. O assistente deve:
+
+1. Desenvolver em **escala 100 %** (referência de design) — **não** usar Ctrl +/- do Chrome para “arrumar”.
+2. Preferir **`rem`**, **`clamp()`**, **`%`**, **`min()`/`max()`** — evitar `font-size` / alturas críticas só em **`px` fixo**.
+3. **Não** adicionar `zoom` local por tela (escala é **global** no `<html>`).
+4. Botões e campos devem **crescer e encolher proporcionalmente** com o fator salvo (fontes, padding em `rem`, `min-height` em `rem`).
+5. Se precisar ler a escala no CSS: `calc(... * var(--agro-display-scale, 1))`.
+6. Telas legadas com `px` fixo podem ser migradas aos poucos; priorizar PDV, caixa e home.
+
+**Frase curta para o chat:** *“Layout no padrão Agro Display Scale (§11).”*
+
+### 11.2 Operacional (loja)
+
+- **Configurar:** abrir o sistema (BI em `/`) → o sistema **calcula sozinho** o tamanho ideal → **Confirmar**. **Cada computador** calibra uma vez (mesma resolução em 24" e 27" = **mesmo limite em pixels**; o 24" parece menor fisicamente).
+- **Corrigir / trocar de PC:** **Aa** → **Recalcular ideal** → **Confirmar**.
+- **Reset técnico (suporte):** no console do navegador, apagar `agro_display_scale_configured_v1` e recarregar.
+
+### 11.3 Electron
+
+- Mesma lógica via `localStorage` do Chromium embutido; **não** depender de `setZoomFactor` do Electron em paralelo (conflita com o fator Agro).
+
+---
+
+*Última revisão estrutural: documento inicial + mapa de rotas a partir de `produtos/urls.py` e `config/urls.py`; §9 ajuda RH; §10 ajuda Lançamentos (filtros); §11 Agro Display Scale.*

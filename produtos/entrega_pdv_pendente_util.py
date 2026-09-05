@@ -3,8 +3,18 @@
 from __future__ import annotations
 
 from django.db.models import Q
+from django.utils import timezone
 
 from produtos.models import PedidoEntrega, SessaoCaixa
+
+LOJAS_ENTREGA = frozenset({"centro", "vila"})
+
+
+def normalizar_loja_entrega(raw) -> str:
+    v = str(raw or "").strip().lower()
+    if v in LOJAS_ENTREGA:
+        return v
+    return ""
 
 
 def queryset_entregas_aguardando_pagamento_pdv():
@@ -20,18 +30,72 @@ def queryset_entregas_bloqueando_fechamento_caixa():
     )
 
 
-def contar_entregas_pendentes_pdv(*, sessao_caixa_id=None) -> int:
-    qs = queryset_entregas_aguardando_pagamento_pdv()
-    if sessao_caixa_id:
-        try:
-            sid = int(sessao_caixa_id)
-            qs = qs.filter(Q(sessao_caixa_id=sid) | Q(sessao_caixa__isnull=True))
-        except (TypeError, ValueError):
-            pass
+def filtrar_qs_por_loja(qs, loja: str | None):
+    """Sem dono (vazio) OU dono = loja do PDV."""
+    loja_n = normalizar_loja_entrega(loja)
+    if not loja_n:
+        return qs
+    return qs.filter(Q(loja_entrega="") | Q(loja_entrega=loja_n))
+
+
+def _sessao_caixa_label_entrega(ent: PedidoEntrega) -> str:
+    """Caixa #N + operador do PIN/venda — não o login Django que abriu o turno."""
+    op = (getattr(ent, "operador", None) or "").strip()
+    if not op:
+        op = (getattr(ent, "loja_assumida_por", None) or "").strip()
+    if ent.sessao_caixa_id:
+        label = f"Caixa #{ent.sessao_caixa_id}"
+        if op:
+            label += f" — {op[:40]}"
+        return label
+    if op:
+        return op[:40]
+    return "Sem caixa vinculado"
+
+
+def _itens_resumo(ent: PedidoEntrega) -> list[dict]:
+    raw = ent.itens_json if isinstance(ent.itens_json, list) else []
+    out = []
+    for linha in raw[:40]:
+        if not isinstance(linha, dict):
+            continue
+        out.append(
+            {
+                "produto_id": str(linha.get("produto_id") or linha.get("id") or ""),
+                "codigo_gm": str(
+                    linha.get("codigo_gm") or linha.get("codigoGm") or linha.get("codigo") or ""
+                )[:40],
+                "codigo": str(linha.get("codigo") or "")[:40],
+                "nome": str(linha.get("nome") or "")[:200],
+                "qtd": linha.get("qtd") if linha.get("qtd") is not None else linha.get("quantidade"),
+                "preco": linha.get("preco"),
+                "total": linha.get("total"),
+                "unidade": str(linha.get("unidade") or "UN")[:20],
+                "prateleira": str(linha.get("prateleira") or "")[:40],
+            }
+        )
+    return out
+
+
+def contar_entregas_pendentes_pdv(
+    *,
+    apenas_caixas_abertos: bool = True,
+    loja: str | None = None,
+) -> int:
+    """Conta pendências visíveis no PDV (mesmo critério do bloqueio ao fechar caixa)."""
+    if apenas_caixas_abertos:
+        qs = queryset_entregas_bloqueando_fechamento_caixa()
+    else:
+        qs = queryset_entregas_aguardando_pagamento_pdv()
+    qs = filtrar_qs_por_loja(qs, loja)
     return qs.count()
 
 
 def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool = False) -> dict:
+    loja = (ent.loja_entrega or "").strip()
+    origem = (ent.origem or "").strip()
+    tem_estado = isinstance(ent.pdv_wizard_state, dict) and bool(ent.pdv_wizard_state)
+    itens = _itens_resumo(ent)
     row = {
         "id": ent.pk,
         "cliente_nome": ent.cliente_nome or "",
@@ -43,68 +107,137 @@ def serializar_entrega_pendente_pdv(ent: PedidoEntrega, *, incluir_estado: bool 
         "retomar_codigo": (ent.retomar_codigo or "").strip()
         or (f"GMORC{ent.orc_local_id}" if ent.orc_local_id else f"ENT{ent.pk}"),
         "sessao_caixa_id": ent.sessao_caixa_id,
+        "origem": origem,
+        "loja_entrega": loja,
+        "loja_assumida_em": ent.loja_assumida_em.isoformat() if ent.loja_assumida_em else "",
+        "loja_assumida_por": (ent.loja_assumida_por or "").strip(),
+        "endereco_linha": (ent.endereco_linha or "").strip(),
+        "plus_code": (ent.plus_code or "").strip(),
+        "referencia_rural": (ent.referencia_rural or "").strip(),
+        "maps_url_manual": (ent.maps_url_manual or "").strip(),
+        "troco_precisa": bool(getattr(ent, "troco_precisa", False)),
+        "itens": itens,
+        "pode_assumir": not loja,
+        "pode_imprimir": bool(itens),
+        "pode_retomar": tem_estado,
+        "eh_catalogo": origem == "catalogo",
     }
     if incluir_estado:
         row["pdv_wizard_state"] = ent.pdv_wizard_state if isinstance(ent.pdv_wizard_state, dict) else {}
     return row
 
 
-def listar_entregas_pendentes_pdv(*, limite: int = 80, sessao_caixa_id=None) -> list[dict]:
-    qs = (
-        queryset_entregas_aguardando_pagamento_pdv()
-        .select_related("sessao_caixa")
-        .order_by("criado_em")
-    )
-    if sessao_caixa_id:
-        try:
-            sid = int(sessao_caixa_id)
-            qs = qs.filter(Q(sessao_caixa_id=sid) | Q(sessao_caixa__isnull=True))
-        except (TypeError, ValueError):
-            pass
-    return [serializar_entrega_pendente_pdv(e) for e in qs[:limite]]
-
-
-def listar_entregas_bloqueando_fechamento_caixa(*, limite: int = 50) -> list[dict]:
-    qs = (
-        queryset_entregas_bloqueando_fechamento_caixa()
-        .select_related("sessao_caixa", "sessao_caixa__usuario")
-        .order_by("criado_em")
-    )
+def listar_entregas_pendentes_pdv(
+    *,
+    limite: int = 80,
+    apenas_caixas_abertos: bool = True,
+    loja: str | None = None,
+) -> list[dict]:
+    """Lista pendências do PDV — filtradas pela loja (sem dono OU dono = loja)."""
+    if apenas_caixas_abertos:
+        qs = queryset_entregas_bloqueando_fechamento_caixa()
+    else:
+        qs = queryset_entregas_aguardando_pagamento_pdv()
+    qs = filtrar_qs_por_loja(qs, loja)
+    qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by("criado_em")
     out = []
     for ent in qs[:limite]:
         row = serializar_entrega_pendente_pdv(ent)
-        if ent.sessao_caixa_id:
-            u = ent.sessao_caixa.usuario if ent.sessao_caixa else None
-            row["sessao_caixa_label"] = f"Caixa #{ent.sessao_caixa_id}"
-            if u:
-                row["sessao_caixa_label"] += (
-                    " — "
-                    + ((u.get_full_name() or "").strip() or u.get_username() or "")
-                )
-        else:
-            row["sessao_caixa_label"] = "Sem caixa vinculado"
+        row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
         out.append(row)
     return out
 
 
-def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> SessaoCaixa | None:
-    from produtos.caixa_util import obter_sessao_caixa_aberta_request
+def listar_entregas_bloqueando_fechamento_caixa(
+    *,
+    limite: int = 50,
+    sessao_ids: list[int] | None = None,
+    loja: str | None = None,
+) -> list[dict]:
+    """
+    Pendências que impedem fechar caixa.
+    Com ``sessao_ids``: só o lote que está fechando —
+    · entrega com caixa #104 (Centro) não trava a Vila;
+    · catálogo SEM DONO (sem loja) não trava ninguém;
+    · catálogo já Assumido pela loja (sem sessão) trava essa loja.
+    """
+    if sessao_ids is not None:
+        ids: list[int] = []
+        for x in sessao_ids:
+            try:
+                ids.append(int(x))
+            except (TypeError, ValueError):
+                continue
+        if not ids:
+            return []
+        loja_n = normalizar_loja_entrega(loja)
+        q = Q(sessao_caixa_id__in=ids)
+        if loja_n:
+            q |= Q(sessao_caixa_id__isnull=True, loja_entrega=loja_n)
+        qs = queryset_entregas_bloqueando_fechamento_caixa().filter(q)
+        qs = qs.select_related("sessao_caixa", "sessao_caixa__usuario").order_by(
+            "criado_em"
+        )
+        out = []
+        for ent in qs[:limite]:
+            row = serializar_entrega_pendente_pdv(ent)
+            row["sessao_caixa_label"] = _sessao_caixa_label_entrega(ent)
+            out.append(row)
+        return out
+    return listar_entregas_pendentes_pdv(limite=limite, apenas_caixas_abertos=True)
 
-    raw = None
-    if body and body.get("sessao_caixa_id") is not None:
-        raw = body.get("sessao_caixa_id")
-    if raw is None and request is not None:
-        try:
-            raw = request.session.get("pdv_sessao_caixa_id")
-        except Exception:
-            raw = None
-    if raw is not None and str(raw).strip() != "":
-        try:
-            return SessaoCaixa.objects.filter(pk=int(raw), fechado_em__isnull=True).first()
-        except (TypeError, ValueError):
-            pass
+
+def assumir_entrega_loja(
+    entrega_id: int,
+    *,
+    loja: str,
+    username: str = "",
+) -> tuple[PedidoEntrega | None, str | None]:
+    """
+    Define dono Centro/Vila. Retorna (pedido, erro).
+    Se já tiver outro dono → erro conflito.
+    """
+    loja_n = normalizar_loja_entrega(loja)
+    if not loja_n:
+        return None, "Informe a loja (centro ou vila)."
+    ent = PedidoEntrega.objects.filter(pk=entrega_id).exclude(
+        status=PedidoEntrega.Status.CANCELADO
+    ).first()
+    if not ent:
+        return None, "Entrega não encontrada."
+    atual = (ent.loja_entrega or "").strip()
+    if atual and atual != loja_n:
+        return None, f"Já assumida pela loja {atual}."
+    if atual == loja_n:
+        return ent, None
+    ent.loja_entrega = loja_n
+    ent.loja_assumida_em = timezone.now()
+    ent.loja_assumida_por = (username or "")[:120]
+    ent.save(
+        update_fields=[
+            "loja_entrega",
+            "loja_assumida_em",
+            "loja_assumida_por",
+            "atualizado_em",
+        ]
+    )
+    return ent, None
+
+
+def resolver_sessao_caixa_entrega_pdv(request, body: dict | None = None) -> SessaoCaixa | None:
+    from produtos.caixa_util import (
+        adotar_sessao_caixa_unica_aberta,
+        obter_sessao_caixa_aberta_request,
+        sessao_caixa_compativel_loja_browser,
+    )
+
+    # Só o turno deste aparelho/loja — ignora sessao_caixa_id de outra loja no body.
     if request is not None:
-        return obter_sessao_caixa_aberta_request(request)
+        s = obter_sessao_caixa_aberta_request(request) or adotar_sessao_caixa_unica_aberta(
+            request
+        )
+        if s and sessao_caixa_compativel_loja_browser(request, s):
+            return s
     return None
 
 
@@ -118,12 +251,50 @@ def marcar_entrega_pendente_fechada(
         return None
     ent.aguarda_pagamento_pdv = False
     ent.pdv_wizard_state = {}
-    update_fields = ["aguarda_pagamento_pdv", "pdv_wizard_state", "atualizado_em"]
+    ent.status = PedidoEntrega.Status.ENTREGUE
+    if not ent.hora_entrega:
+        ent.hora_entrega = timezone.now()
+    update_fields = [
+        "aguarda_pagamento_pdv",
+        "pdv_wizard_state",
+        "status",
+        "hora_entrega",
+        "atualizado_em",
+    ]
     if venda_agro_id:
         ent.venda_agro_id = int(venda_agro_id)
         update_fields.append("venda_agro_id")
     ent.save(update_fields=update_fields)
     return ent
+
+
+def tentar_vincular_entrega_pendente_apos_venda(data: dict | None, venda_id: int | None) -> None:
+    """Legado — encerramento fica no PDV (api_pdv_entrega_pendente_finalizar após a venda)."""
+
+
+def finalizar_entregas_pagas_pendentes_ao_fechar_caixa(sessao_ids: list[int]) -> int:
+    """Entregas pagas na loja (venda fechada) permanecem pendentes até o fechamento do caixa."""
+    ids = [int(x) for x in sessao_ids if x is not None]
+    if not ids:
+        return 0
+    agora = timezone.now()
+    qs = (
+        PedidoEntrega.objects.filter(
+            status=PedidoEntrega.Status.PENDENTE,
+            aguarda_pagamento_pdv=False,
+            venda_agro_id__isnull=False,
+        )
+        .filter(Q(sessao_caixa_id__in=ids) | Q(venda_agro__sessao_caixa_id__in=ids))
+        .only("pk", "status", "hora_entrega")
+    )
+    n = 0
+    for ent in qs.iterator():
+        ent.status = PedidoEntrega.Status.ENTREGUE
+        if not ent.hora_entrega:
+            ent.hora_entrega = agora
+        ent.save(update_fields=["status", "hora_entrega", "atualizado_em"])
+        n += 1
+    return n
 
 
 def cancelar_entrega_pendente_pdv(entrega_id: int, *, motivo: str = "") -> PedidoEntrega | None:

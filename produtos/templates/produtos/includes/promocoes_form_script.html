@@ -7,6 +7,9 @@
     cfg.apiSalvar = cfg.apiSalvar || '/api/promocoes/salvar/';
     cfg.apiBuscar = cfg.apiBuscar || '/api/promocoes/buscar-produto/';
     var LIMITE_EXIBIR = 12;
+    var AUTO_BUSCA_MS = 320;
+    var GM_BUSCA_MS = 180;
+    var SCAN_DEBOUNCE_MS = 90;
 
     var elData = document.getElementById('promo-initial-data');
     var state = { produtos: [] };
@@ -32,6 +35,11 @@
         permanente: document.getElementById('promo-permanente'),
         wrapQtdX: document.getElementById('wrap-qtd-x'),
         wrapPrecoY: document.getElementById('wrap-preco-y'),
+        precoYT1: document.getElementById('promo-preco-y-t1'),
+        precoYT2: document.getElementById('promo-preco-y-t2'),
+        wrapPrecoYT1: document.getElementById('wrap-preco-y-t1'),
+        wrapPrecoYT2: document.getElementById('wrap-preco-y-t2'),
+        regraVsTabela: document.getElementById('promo-regra-vs-tabela'),
         labelQtdX: document.getElementById('label-qtd-x'),
         colPrecoPromo: document.getElementById('col-preco-promo'),
         busca: document.getElementById('promo-busca-produto'),
@@ -55,6 +63,62 @@
     var buscando = false;
     var selIdx = -1;
     var etapaAtual = 1;
+    var autoBuscaTimer = null;
+    var scanTimer = null;
+
+    function ehCodigoBarras(q) {
+        var t = String(q || '').trim();
+        if (/^GM/i.test(t)) return false;
+        return /^\d{8,14}$/.test(t);
+    }
+
+    function normalizarCodigoGm(q) {
+        return String(q || '').trim().toUpperCase();
+    }
+
+    /** GM1769, GM1507-30, gm123, ou numérico curto (sem ser EAN 8–14 dígitos). */
+    function ehCodigoGm(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^GM\d+(-\d+)?$/i.test(t)) return true;
+        if (/^\d{1,7}$/.test(t)) return true;
+        return false;
+    }
+
+    /** Parcial: G, GM, GM17, GM1507-, 176… — dispara autocomplete. */
+    function ehCodigoGmParcial(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^G(M(\d*(-?\d*)?)?)?$/.test(t)) return true;
+        if (/^\d{1,7}$/.test(t)) return true;
+        return false;
+    }
+
+    function codigoGmCompleto(q) {
+        var t = normalizarCodigoGm(q);
+        if (/^GM\d{3,}(-\d+)?$/.test(t)) return true;
+        if (/^\d{4,7}$/.test(t)) return true;
+        return false;
+    }
+
+    function codigoProdutoMatch(p, q) {
+        var c = normalizarCodigoGm(p.codigo || '');
+        var qq = normalizarCodigoGm(q);
+        if (!c || !qq) return false;
+        if (c === qq) return true;
+        var cNum = c.replace(/^GM/, '');
+        var qNum = qq.replace(/^GM/, '');
+        return cNum === qNum;
+    }
+
+    function limparTimersBusca() {
+        if (autoBuscaTimer) {
+            clearTimeout(autoBuscaTimer);
+            autoBuscaTimer = null;
+        }
+        if (scanTimer) {
+            clearTimeout(scanTimer);
+            scanTimer = null;
+        }
+    }
 
     function fmtMoney(n) {
         return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -73,7 +137,8 @@
         dom.msg.textContent = text;
         dom.msg.style.display = 'block';
         dom.msg.classList.remove('hidden', 'border-emerald-200', 'bg-emerald-50', 'text-emerald-900', 'border-red-200', 'bg-red-50', 'text-red-900');
-        dom.msg.classList.add(ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900');
+        if (ok) dom.msg.classList.add('border-emerald-200', 'bg-emerald-50', 'text-emerald-900');
+        else dom.msg.classList.add('border-red-200', 'bg-red-50', 'text-red-900');
     }
 
     function setStatus(text) {
@@ -180,11 +245,13 @@
         var valorDireto = tipoAtual() === 'valor_direto';
         if (dom.wrapQtdX) dom.wrapQtdX.style.display = valorDireto ? 'none' : '';
         if (dom.wrapPrecoY) dom.wrapPrecoY.style.display = valorDireto ? 'none' : '';
+        if (dom.wrapPrecoYT1) dom.wrapPrecoYT1.style.display = valorDireto ? 'none' : '';
+        if (dom.wrapPrecoYT2) dom.wrapPrecoYT2.style.display = valorDireto ? 'none' : '';
         if (dom.labelQtdX) {
             dom.labelQtdX.textContent = tipoAtual() === 'acima_unidades' ? 'Acima de X unidades' : 'Leve X unidades';
         }
         if (dom.colPrecoPromo) {
-            dom.colPrecoPromo.textContent = valorDireto ? 'Informe preço promo' : 'Preço promo: critério';
+            dom.colPrecoPromo.textContent = valorDireto ? 'Padrão / T1 / T2' : 'Regra vs tabela';
         }
         renderListaProdutos();
     }
@@ -202,6 +269,12 @@
         if (dom.tipo) dom.tipo.value = state.tipo || 'leve_pague';
         if (dom.qtdX && state.qtd_x != null) dom.qtdX.value = String(state.qtd_x).replace('.', ',');
         if (dom.precoY && state.preco_y != null) dom.precoY.value = String(state.preco_y).replace('.', ',');
+        if (dom.precoYT1 && state.preco_y_t1 != null) dom.precoYT1.value = String(state.preco_y_t1).replace('.', ',');
+        if (dom.precoYT2 && state.preco_y_t2 != null) dom.precoYT2.value = String(state.preco_y_t2).replace('.', ',');
+        if (dom.regraVsTabela) dom.regraVsTabela.value = state.regra_vs_tabela || 'maior';
+        if (!state.resolucoes_vs_tabela || typeof state.resolucoes_vs_tabela !== 'object') {
+            state.resolucoes_vs_tabela = {};
+        }
         if (dom.inicio) dom.inicio.value = state.data_inicio || '';
         if (dom.fim) dom.fim.value = state.data_fim || '';
         if (dom.permanente) dom.permanente.checked = !!state.permanente;
@@ -337,12 +410,34 @@
         }
 
         var html = '';
+        if (!valorDireto && n) {
+            html +=
+                '<div class="px-3 py-2 flex flex-wrap gap-2 bg-orange-50 border-b border-orange-200">' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-slate-800 text-white" data-regra="maior">Todos → maior</button>' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-emerald-700 text-white" data-regra="promo">Todos → promo</button>' +
+                '<button type="button" class="promo-massa-regra text-[10px] font-black uppercase px-3 py-2 rounded-lg bg-orange-600 text-white" data-regra="tabela">Todos → tabela %</button>' +
+                '</div>';
+        }
         state.produtos.forEach(function (p, idx) {
+            var pid = String(p.produto_externo_id || '');
+            var regraItem = (state.resolucoes_vs_tabela && state.resolucoes_vs_tabela[pid]) || '';
             var precoPromoCell = valorDireto
-                ? '<input type="text" inputmode="decimal" data-idx="' + idx + '" aria-label="Preço promocional" ' +
-                  'class="promo-preco-prod w-full rounded-lg border-2 border-emerald-300 px-3 py-2 font-black text-base min-h-[48px]" value="' +
-                  (p.preco_promocional != null ? String(p.preco_promocional).replace('.', ',') : '') + '">'
-                : '<span class="text-sm font-bold text-slate-500">Pelo critério</span>';
+                ? '<div class="grid grid-cols-3 gap-1 w-full">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="padrao" aria-label="Preço promocional padrão" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-emerald-300 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="Padrão" value="' +
+                  (p.preco_promocional != null ? String(p.preco_promocional).replace('.', ',') : '') + '">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="t1" aria-label="Preço promocional T1" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-orange-200 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="T1" value="' +
+                  (p.preco_promocional_t1 != null ? String(p.preco_promocional_t1).replace('.', ',') : '') + '">' +
+                  '<input type="text" inputmode="decimal" data-idx="' + idx + '" data-campo="t2" aria-label="Preço promocional T2" ' +
+                  'class="promo-preco-prod w-full rounded-lg border-2 border-orange-200 px-2 py-2 font-black text-xs min-h-[44px]" placeholder="T2" value="' +
+                  (p.preco_promocional_t2 != null ? String(p.preco_promocional_t2).replace('.', ',') : '') + '"></div>'
+                : '<select data-regra-pid="' + pid + '" class="promo-regra-item w-full rounded-lg border-2 border-slate-200 px-2 py-2 text-[10px] font-black uppercase min-h-[44px]">' +
+                  '<option value=""' + (!regraItem ? ' selected' : '') + '>Padrão promo</option>' +
+                  '<option value="maior"' + (regraItem === 'maior' ? ' selected' : '') + '>Maior</option>' +
+                  '<option value="promo"' + (regraItem === 'promo' ? ' selected' : '') + '>Promo</option>' +
+                  '<option value="tabela"' + (regraItem === 'tabela' ? ' selected' : '') + '>Tabela %</option>' +
+                  '</select>';
             html +=
                 '<div class="promo-prod-row border-b border-slate-100 last:border-0 bg-white">' +
                 '<p class="text-sm font-black text-slate-800">' + (p.codigo || '—') + '</p>' +
@@ -366,18 +461,131 @@
         dom.lista.querySelectorAll('.promo-preco-prod').forEach(function (inp) {
             inp.addEventListener('change', function () {
                 var i = parseInt(inp.getAttribute('data-idx'), 10);
-                if (state.produtos[i]) state.produtos[i].preco_promocional = parseMoney(inp.value);
+                if (!state.produtos[i]) return;
+                var campo = inp.getAttribute('data-campo') || 'padrao';
+                var val = parseMoney(inp.value);
+                if (campo === 't1') state.produtos[i].preco_promocional_t1 = val;
+                else if (campo === 't2') state.produtos[i].preco_promocional_t2 = val;
+                else state.produtos[i].preco_promocional = val;
+            });
+        });
+        dom.lista.querySelectorAll('.promo-regra-item').forEach(function (sel) {
+            sel.addEventListener('change', function () {
+                var pid = sel.getAttribute('data-regra-pid');
+                if (!pid) return;
+                if (!state.resolucoes_vs_tabela) state.resolucoes_vs_tabela = {};
+                var v = sel.value;
+                if (!v) delete state.resolucoes_vs_tabela[pid];
+                else state.resolucoes_vs_tabela[pid] = v;
+            });
+        });
+        dom.lista.querySelectorAll('.promo-massa-regra').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var r = btn.getAttribute('data-regra');
+                if (!state.resolucoes_vs_tabela) state.resolucoes_vs_tabela = {};
+                state.produtos.forEach(function (p) {
+                    var id = String(p.produto_externo_id || '');
+                    if (id) state.resolucoes_vs_tabela[id] = r;
+                });
+                renderListaProdutos();
             });
         });
         renderResultadosBusca();
     }
 
+    function avancarSelecaoProximoDisponivel() {
+        for (var i = 0; i < sugestoesVisiveis.length; i++) {
+            if (!produtoJaNaLista(sugestoesVisiveis[i].produto_externo_id)) {
+                selIdx = i;
+                marcarSelecao();
+                return;
+            }
+        }
+        selIdx = -1;
+        marcarSelecao();
+    }
+
+    function contarDisponiveisBusca() {
+        return sugestoesVisiveis.filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        }).length;
+    }
+
+    function statusAposAdd(codigo) {
+        var restantes = contarDisponiveisBusca();
+        if (ultimaBusca && restantes > 0) {
+            setStatus(
+                'Adicionado <strong>' + (codigo || '') + '</strong> · ainda <strong>' +
+                restantes + '</strong> na lista «' + ultimaBusca + '».'
+            );
+            return;
+        }
+        if (ultimaBusca && restantes === 0) {
+            setStatus('Todos os itens de «' + ultimaBusca + '» já estão na promoção.');
+            return;
+        }
+        setStatus('Adicionado <strong>' + (codigo || '') + '</strong>.');
+    }
+
+    function limparCampoBusca() {
+        if (dom.busca) dom.busca.value = '';
+        ultimaBusca = '';
+        sugestoesCache = [];
+        sugestoesVisiveis = [];
+        totalEncontrados = 0;
+        selIdx = -1;
+        renderResultadosBusca();
+        focoBusca();
+    }
+
+    function tentarAutoAdicionarBusca(q, items) {
+        var disp = (items || []).filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        });
+        if (disp.length === 1) {
+            incluirProduto(disp[0], { limparBusca: true });
+            return true;
+        }
+        if (ehCodigoBarras(q) && disp.length > 1) {
+            setStatus('Vários itens para «' + q + '» — escolha na lista.');
+        }
+        return false;
+    }
+
+    function tentarAutoAdicionarGm(q, items) {
+        if (!ehCodigoGm(q) && !/^GM/i.test(q)) return false;
+        var disp = (items || []).filter(function (p) {
+            return !produtoJaNaLista(p.produto_externo_id);
+        });
+        var exatos = disp.filter(function (p) {
+            return codigoProdutoMatch(p, q);
+        });
+        if (exatos.length === 1) {
+            incluirProduto(exatos[0], { limparBusca: true });
+            return true;
+        }
+        if (codigoGmCompleto(q) && disp.length === 1) {
+            incluirProduto(disp[0], { limparBusca: true });
+            return true;
+        }
+        return false;
+    }
+
+    function minLenBusca(q) {
+        if (ehCodigoBarras(q)) return 8;
+        if (ehCodigoGmParcial(q)) return 2;
+        return 2;
+    }
+
     function buscarProdutos(opts) {
         opts = opts || {};
         var q = dom.busca ? dom.busca.value.trim() : '';
-        if (q.length < 2) {
-            setStatus('Digite ao menos <strong>2 caracteres</strong>.');
-            if (!opts.silent) showMsg('Digite ao menos 2 caracteres.', false);
+        var minLen = minLenBusca(q);
+        if (q.length < minLen) {
+            if (!opts.silent) {
+                setStatus('Digite nome, <strong>GM</strong> ou bip o código de barras.');
+                showMsg('Digite ao menos 2 caracteres (nome ou código GM) ou bip o código de barras.', false);
+            }
             return Promise.resolve([]);
         }
         if (buscando) return Promise.resolve(sugestoesVisiveis.slice());
@@ -385,11 +593,11 @@
         buscando = true;
         ultimaBusca = q;
         selIdx = -1;
-        setStatus('Buscando…');
-        if (dom.resultados) {
+        if (!opts.autocomplete) setStatus('Buscando…');
+        if (dom.resultados && !opts.autocomplete) {
             dom.resultados.innerHTML = '<p class="px-4 py-10 text-center text-base font-bold text-slate-500">Buscando…</p>';
         }
-        if (window.gmLoadingBar) window.gmLoadingBar.show();
+        if (window.gmLoadingBar && !opts.autocomplete) window.gmLoadingBar.show();
 
         return fetch(cfg.apiBuscar + '?q=' + encodeURIComponent(q), {
             credentials: 'same-origin',
@@ -418,6 +626,16 @@
                 selIdx = sugestoesVisiveis.length ? 0 : -1;
                 renderListaProdutos();
 
+                if (opts.autoAddBarcode || (ehCodigoBarras(q) && !opts.autocomplete)) {
+                    if (tentarAutoAdicionarBusca(q, items)) {
+                        return sugestoesVisiveis;
+                    }
+                } else if (opts.autoAddGm || (ehCodigoGm(q) && codigoGmCompleto(q))) {
+                    if (tentarAutoAdicionarGm(q, items)) {
+                        return sugestoesVisiveis;
+                    }
+                }
+
                 if (!items.length) {
                     setStatus('Nenhum produto para «' + q + '».');
                 } else if (items.length === 1 && !produtoJaNaLista(items[0].produto_externo_id)) {
@@ -435,16 +653,17 @@
                 totalEncontrados = 0;
                 renderListaProdutos();
                 setStatus('Erro na busca.');
-                showMsg(err && err.message ? err.message : 'Falha ao buscar.', false);
+                if (!opts.silent) showMsg(err && err.message ? err.message : 'Falha ao buscar.', false);
                 return [];
             })
             .finally(function () {
                 buscando = false;
-                if (window.gmLoadingBar) window.gmLoadingBar.hide();
+                if (window.gmLoadingBar && !opts.autocomplete) window.gmLoadingBar.hide();
             });
     }
 
-    function incluirProduto(p) {
+    function incluirProduto(p, opts) {
+        opts = opts || {};
         if (!p) return false;
         var pid = String(p.produto_externo_id || '').trim();
         if (!pid) {
@@ -462,16 +681,21 @@
             preco_padrao: Number(p.preco_padrao || 0),
             preco_promocional: tipoAtual() === 'valor_direto' ? Number(p.preco_padrao || 0) : null,
         });
+        var codigo = p.codigo || pid;
         renderListaProdutos();
-        showMsg('Adicionado: ' + (p.codigo || pid), true);
-        setStatus('Adicionado <strong>' + (p.codigo || pid) + '</strong>. Próximo item…');
-        if (dom.busca) dom.busca.value = '';
-        ultimaBusca = '';
-        sugestoesCache = [];
-        sugestoesVisiveis = [];
-        selIdx = -1;
+        showMsg('Adicionado: ' + codigo, true);
+
+        if (opts.limparBusca) {
+            limparTimersBusca();
+            limparCampoBusca();
+            setStatus('Adicionado <strong>' + codigo + '</strong>. Próximo item…');
+            return true;
+        }
+
         renderResultadosBusca();
-        focoBusca();
+        avancarSelecaoProximoDisponivel();
+        statusAposAdd(codigo);
+        if (dom.busca) dom.busca.focus();
         return true;
     }
 
@@ -492,10 +716,42 @@
             showMsg('Use ↑↓ e Enter, ou clique na linha.', false);
             return;
         }
-        buscarProdutos().then(function (items) {
+        buscarProdutos({
+            autoAddBarcode: ehCodigoBarras(q),
+            autoAddGm: ehCodigoGm(q) || /^GM/i.test(q),
+        }).then(function (items) {
             var disp = items.filter(function (p) { return !produtoJaNaLista(p.produto_externo_id); });
-            if (disp.length === 1) incluirProduto(disp[0]);
+            if (disp.length === 1 && (ehCodigoBarras(q) || codigoGmCompleto(q))) {
+                incluirProduto(disp[0], { limparBusca: true });
+            }
         });
+    }
+
+    function agendarBuscaInput() {
+        if (etapaAtual !== 2 || !dom.busca) return;
+        var q = dom.busca.value.trim();
+        limparTimersBusca();
+        if (ehCodigoBarras(q) && q.length >= 8) {
+            scanTimer = setTimeout(function () {
+                buscarProdutos({ autoAddBarcode: true, silent: true });
+            }, SCAN_DEBOUNCE_MS);
+            return;
+        }
+        if (q.length < minLenBusca(q)) {
+            ultimaBusca = '';
+            sugestoesCache = [];
+            sugestoesVisiveis = [];
+            totalEncontrados = 0;
+            selIdx = -1;
+            setStatus('GM, nome ou barras — autocomplete · Barras bipa direto.');
+            renderResultadosBusca();
+            return;
+        }
+        var delay = ehCodigoGmParcial(q) ? GM_BUSCA_MS : AUTO_BUSCA_MS;
+        var addGm = codigoGmCompleto(q);
+        autoBuscaTimer = setTimeout(function () {
+            buscarProdutos({ silent: true, autocomplete: true, autoAddGm: addGm });
+        }, delay);
     }
 
     function moverSelecao(delta) {
@@ -516,6 +772,10 @@
             tipo: tipoAtual(),
             qtd_x: dom.qtdX ? dom.qtdX.value.trim() : null,
             preco_y: dom.precoY ? dom.precoY.value.trim() : null,
+            preco_y_t1: dom.precoYT1 ? dom.precoYT1.value.trim() : null,
+            preco_y_t2: dom.precoYT2 ? dom.precoYT2.value.trim() : null,
+            regra_vs_tabela: dom.regraVsTabela ? dom.regraVsTabela.value : 'maior',
+            resolucoes_vs_tabela: state.resolucoes_vs_tabela || {},
             data_inicio: dom.inicio ? dom.inicio.value : '',
             data_fim: permanente ? '' : dom.fim ? dom.fim.value : '',
             permanente: permanente,
@@ -529,6 +789,8 @@
                     nome_produto: p.nome_produto,
                     preco_padrao: p.preco_padrao,
                     preco_promocional: p.preco_promocional,
+                    preco_promocional_t1: p.preco_promocional_t1,
+                    preco_promocional_t2: p.preco_promocional_t2,
                 };
             }),
         };
@@ -565,6 +827,9 @@
                     return;
                 }
                 showMsg('Promoção salva.', true);
+                try {
+                    localStorage.setItem('agro_pdv_promocoes_bump_v1', String(Date.now()));
+                } catch (eBump) {}
                 if (res.data.redirect) window.location.assign(res.data.redirect);
             })
             .catch(function (err) {
@@ -584,21 +849,33 @@
         });
     }
 
+    if (dom.tipo) dom.tipo.addEventListener('change', syncTipoUi);
+    if (dom.permanente) dom.permanente.addEventListener('change', syncPermanenteUi);
+    bindClick('promo-btn-continuar', continuarParaProdutos);
+    bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
+    bindClick('promo-btn-salvar', salvar);
+
     if (!dom.busca || !dom.lista || !dom.resultados) {
-        showMsg('Erro ao iniciar. Recarregue (Ctrl+F5).', false);
+        showMsg('Erro na busca de produtos. Recarregue (Ctrl+F5).', false);
     } else {
-        if (dom.tipo) dom.tipo.addEventListener('change', syncTipoUi);
-        if (dom.permanente) dom.permanente.addEventListener('change', syncPermanenteUi);
         bindClick('promo-btn-buscar', function () { buscarProdutos(); });
-        bindClick('promo-btn-salvar', salvar);
-        bindClick('promo-btn-continuar', continuarParaProdutos);
-        bindClick('promo-btn-voltar-etapa', function () { irParaEtapa(1); });
 
         dom.busca.setAttribute('autocomplete', 'off');
+        dom.busca.addEventListener('input', agendarBuscaInput);
         dom.busca.addEventListener('keydown', function (e) {
             if (etapaAtual !== 2) return;
             if (e.key === 'Enter') {
                 e.preventDefault();
+                limparTimersBusca();
+                var q = dom.busca ? dom.busca.value.trim() : '';
+                if (ehCodigoBarras(q)) {
+                    buscarProdutos({ autoAddBarcode: true });
+                    return;
+                }
+                if (ehCodigoGm(q) || /^GM/i.test(q)) {
+                    buscarProdutos({ autoAddGm: true });
+                    return;
+                }
                 confirmarBuscaOuAdicionar();
             } else if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -607,6 +884,7 @@
                 e.preventDefault();
                 moverSelecao(-1);
             } else if (e.key === 'Escape') {
+                limparTimersBusca();
                 dom.busca.value = '';
                 ultimaBusca = '';
                 sugestoesVisiveis = [];

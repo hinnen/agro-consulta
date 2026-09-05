@@ -1,0 +1,61 @@
+{# Viewport caixa no iframe PDV (~95%): altura 100% do iframe, não 100dvh do device. #}
+<style>
+  /* Região rolável dentro do flex chain (menu, saldo, relatório, etc.) */
+  .caixa-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.caixa-pdv-overlay-doc,
+  html.caixa-pdv-overlay-doc body {
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode {
+    display: flex;
+    flex-direction: column;
+    min-height: 0 !important;
+    max-height: 100% !important;
+  }
+
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode > main,
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode main.caixa-shell,
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode main.cx-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Fechar caixa — .cf-page em vez de main direto no body */
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode > .cf-page {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 100% !important;
+    height: 100% !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode .cf-page {
+    min-height: 0 !important;
+  }
+
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode .cf-main {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html.caixa-pdv-overlay-doc body.caixa-pdv-overlay-mode .cf-top {
+    flex-shrink: 0;
+  }
+</style>

@@ -149,3 +149,37 @@ class LancamentoFinanceiro(models.Model):
             models.Index(fields=["grupo_ref"]),
             models.Index(fields=["empresa", "loja", "data_competencia"]),
         ]
+
+
+class GraficoGastosAtalhoAgro(models.Model):
+    """Atalhos globais (4 slots) do gráfico gastos por plano — Postgres Agro."""
+
+    slot = models.PositiveSmallIntegerField(unique=True)
+    nome = models.CharField(max_length=80, blank=True, default="")
+    payload = models.JSONField(default=dict, blank=True)
+    eh_padrao = models.BooleanField(
+        default=False,
+        help_text="Ao abrir o gráfico, aplica este atalho automaticamente (só um por vez).",
+    )
+    atualizado_por = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="grafico_gastos_atalhos",
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "grafico_gastos_atalho_agro"
+        verbose_name = "Atalho gráfico gastos"
+        verbose_name_plural = "Atalhos gráfico gastos"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(slot__gte=1) & models.Q(slot__lte=4),
+                name="grafico_gastos_atalho_slot_1_4",
+            )
+        ]
+
+    def __str__(self):
+        return f"Slot {self.slot}: {self.nome or '(vazio)'}"
