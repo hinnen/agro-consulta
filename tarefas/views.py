@@ -18,6 +18,7 @@ from .pin_util import (
     operador_da_sessao,
 )
 from .services import (
+    PRIORIDADE_LABEL,
     STATUS_LABEL,
     adicionar_comentario,
     atualizar_tarefa,
@@ -25,6 +26,12 @@ from .services import (
     mudar_status,
     tarefa_para_dict,
 )
+
+PRIORIDADE_COR = {
+    TarefaAgro.Prioridade.ALTA: "prio-alta",
+    TarefaAgro.Prioridade.MEDIA: "prio-media",
+    TarefaAgro.Prioridade.BAIXA: "prio-baixa",
+}
 
 STATUS_ORDEM = [
     TarefaAgro.Status.DECIDIR,
@@ -102,10 +109,11 @@ def tarefas_logout(request):
 @require_GET
 @exigir_operador_html
 def tarefas_lista(request):
-    qs = TarefaAgro.objects.all().order_by("ordem", "-atualizado_em", "pk")
+    qs = list(TarefaAgro.objects.all().order_by("ordem", "-atualizado_em", "pk"))
     grupos = []
     for st in STATUS_ORDEM:
         itens = [t for t in qs if t.status == st]
+        itens.sort(key=lambda t: (t.prioridade_rank(), t.ordem, -(t.atualizado_em.timestamp() if t.atualizado_em else 0), t.pk))
         grupos.append(
             {
                 "status": st,
@@ -136,6 +144,7 @@ def tarefas_nova(request):
         {
             "operador": operador_da_sessao(request),
             "status_choices": TarefaAgro.Status.choices,
+            "prioridade_choices": TarefaAgro.Prioridade.choices,
             "loja_choices": TarefaAgro.Loja.choices,
             "hub_url": reverse("vendas_lojas_hub"),
         },
@@ -157,9 +166,12 @@ def tarefas_detalhe(request, pk: int):
             "comentarios": comentarios,
             "eventos": eventos,
             "status_choices": TarefaAgro.Status.choices,
+            "prioridade_choices": TarefaAgro.Prioridade.choices,
             "loja_choices": TarefaAgro.Loja.choices,
             "status_label": STATUS_LABEL.get(t.status, t.status),
             "status_cor": STATUS_COR.get(t.status, ""),
+            "prioridade_label": PRIORIDADE_LABEL.get(t.prioridade, t.prioridade),
+            "prioridade_cor": PRIORIDADE_COR.get(t.prioridade, ""),
             "hub_url": reverse("vendas_lojas_hub"),
         },
     )
@@ -175,6 +187,7 @@ def api_tarefa_criar(request):
             titulo=str(data.get("titulo") or ""),
             descricao=str(data.get("descricao") or ""),
             status=str(data.get("status") or TarefaAgro.Status.DECIDIR),
+            prioridade=str(data.get("prioridade") or TarefaAgro.Prioridade.MEDIA),
             loja=str(data.get("loja") or TarefaAgro.Loja.GERAL),
             responsavel=str(data.get("responsavel") or ""),
             quem=quem,
@@ -199,6 +212,7 @@ def api_tarefa_atualizar(request, pk: int):
             descricao=None if data.get("descricao") is None else str(data.get("descricao")),
             loja=None if data.get("loja") is None else str(data.get("loja")),
             responsavel=None if data.get("responsavel") is None else str(data.get("responsavel")),
+            prioridade=None if data.get("prioridade") is None else str(data.get("prioridade")),
             quem=quem,
         )
     except ValueError as exc:

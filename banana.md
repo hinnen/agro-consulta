@@ -1264,6 +1264,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+<<<<<<< HEAD
 ### ✅ Deploy loja — TAREFAS-UI-STATUS (`deploy/prep-tarefas-ui-status-0609` · **v23.19**) · **Live**
 
 | Campo | Valor |
@@ -1298,6 +1299,34 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** |
 | **Rollback** | tag `rollback/pre-vl-hub-tarefas-v23.07` · branch `producao-backup-pre-v2318-vl-hub-tarefas-20260906` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.18** · app Vendas → 2 botões → Tarefas → PIN |
+=======
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09e · tip **v23.20**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `TAREFAS-PRIORIDADE` | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0004` |
+
+**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19**.
+
+### 📦 PACOTE PRONTO — Prioridade nas tarefas (`TAREFAS-PRIORIDADE` · **v23.20** · 06/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **O quê** | Prioridade **alta / média / baixa** · badge na lista · criar/editar · ordena alta→baixa dentro do status |
+| **Migrate** | **SIM** `tarefas.0004` (campo novo, default média — seguro) |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **74/74** (PIN 9973 → Renan) |
+| **Tip** | `teste` **v23.20** |
+| **Risco loja aberta** | **Baixo** — só `/vendas/lojas/tarefas/` · **não** mexe PDV/caixa/venda |
+| **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
+| **Você** | Ctrl+F5 → Tarefas → prioridade |
+
+### ✅ Deploy loja — TAREFAS-UI-STATUS · **Live v23.19**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v23.19** @ `a3a22ff` / código `15c67a5` |
+| **Migrate** | **SIM** `tarefas.0003` (já na loja) |
+>>>>>>> c4b03f5 (feat(tarefas): prioridade alta/média/baixa (TAREFAS-PRIORIDADE))
 
 ### ✅ CHECKLIST ÚNICO — 06/09c · **Live v23.18**
 

@@ -5,8 +5,8 @@ from .models import TarefaAgro, TarefaComentarioAgro, TarefaEventoAgro
 
 @admin.register(TarefaAgro)
 class TarefaAgroAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "status", "loja", "atualizado_por_nome", "atualizado_em")
-    list_filter = ("status", "loja")
+    list_display = ("titulo", "status", "prioridade", "loja", "atualizado_por_nome", "atualizado_em")
+    list_filter = ("status", "prioridade", "loja")
     search_fields = ("titulo", "descricao", "seed_key")
 
 

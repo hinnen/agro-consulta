@@ -26,7 +26,10 @@
       {% if g.itens %}
         {% for t in g.itens %}
         <a class="tf-card" href="{% url 'tarefas_detalhe' t.pk %}">
-          <span class="badge-st {{ g.cor }}">{{ g.label }}</span>
+          <span class="tf-badges">
+            <span class="badge-st {{ g.cor }}">{{ g.label }}</span>
+            <span class="badge-prio {% if t.prioridade == 'alta' %}prio-alta{% elif t.prioridade == 'baixa' %}prio-baixa{% else %}prio-media{% endif %}">{{ t.get_prioridade_display }}</span>
+          </span>
           <h3>{{ t.titulo }}</h3>
           {% if t.descricao %}<p>{{ t.descricao|truncatechars:140 }}</p>{% endif %}
         </a>
