@@ -692,8 +692,26 @@ def api_atendimento_whatsapp_bridge_saida(request):
     if not token_ponte_ok(request):
         return _bridge_forbidden()
     toque_heartbeat()
+    from produtos.atendimento_whatsapp_bot_config import carregar_bot
+
+    cfg = carregar_bot()
+    try:
+        poll_seg = max(2, min(15, int(cfg.get("poll_saida_seg") or 5)))
+    except (TypeError, ValueError):
+        poll_seg = 5
+    sync_hora = str(cfg.get("sync_agenda_fotos_hora") or "00:00").strip()[:5] or "00:00"
+    # Fotos em massa só quando a ponte pede (?fotos=1) no sync diário — evita engasgar o PDV
+    incluir_fotos = str(request.GET.get("fotos") or "").strip() in ("1", "true", "sim")
+    fotos = listar_fotos_pendentes() if incluir_fotos else []
     return JsonResponse(
-        {"ok": True, "saida": listar_saida_pendente(), "pedidos": listar_pedidos_pendentes(), "fotos": listar_fotos_pendentes()}
+        {
+            "ok": True,
+            "saida": listar_saida_pendente(),
+            "pedidos": listar_pedidos_pendentes(),
+            "fotos": fotos,
+            "poll_seg": poll_seg,
+            "sync_agenda_fotos_hora": sync_hora,
+        }
     )
 
 

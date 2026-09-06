@@ -35,12 +35,18 @@ const TOKEN = process.env.AGRO_WA_BRIDGE_TOKEN || "gm-agro-wa-ponte-local";
 const AUTH = path.join(__dirname, "auth");
 const AGENDA_FILE = path.join(__dirname, "contatos_agenda.json");
 const LID_FILE = path.join(__dirname, "lid_map.json");
+const SYNC_FILE = path.join(__dirname, "last_agenda_foto_sync.txt");
 const LOCK_FILE = path.join(__dirname, ".ponte.lock");
 const logger = pino({ level: "silent" });
 let ultimoQrEm = 0;
 let salvarAgendaTimer = 0;
 let enviarAgendaTimer = 0;
 let salvarLidTimer = 0;
+let pollSegAtual = 5;
+let syncHoraCfg = "00:00";
+let syncRodando = false;
+let pollQuerFotos = false;
+let syncCheckTimer = 0;
 
 function carregarEnv(fp) {
   try {
@@ -464,11 +470,79 @@ function salvarAgendaDebounced() {
 }
 
 function agendarEnvioAgenda() {
-  if (enviarAgendaTimer) clearTimeout(enviarAgendaTimer);
-  enviarAgendaTimer = setTimeout(() => {
-    enviarAgendaTimer = 0;
-    enviarAgenda(0).catch(() => {});
-  }, 4000);
+  /* WA-PONTE-LEVE: agenda sobe 1×/dia (sync madrugada), não a cada contato. */
+}
+
+function ymdLocal(d = new Date()) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function lerUltimoSyncYmd() {
+  try {
+    return fs.readFileSync(SYNC_FILE, "utf8").trim().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+function gravarSyncYmd(ymd) {
+  try {
+    fs.writeFileSync(SYNC_FILE, String(ymd || "") + "\n", "utf8");
+  } catch (e) {
+    console.error("sync file:", e.message || e);
+  }
+}
+
+function minutosAgora(d = new Date()) {
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function parseHoraCfg(s) {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(s || "00:00").trim());
+  if (!m) return 0;
+  const hh = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const mm = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  return hh * 60 + mm;
+}
+
+function precisaSyncAgendaFotos() {
+  const hoje = ymdLocal();
+  if (lerUltimoSyncYmd() === hoje) return false;
+  return minutosAgora() >= parseHoraCfg(syncHoraCfg);
+}
+
+function ajustarPollSaida(seg) {
+  const n = Math.max(2, Math.min(15, Number(seg) || 5));
+  if (pollTimer && n === pollSegAtual) return;
+  pollSegAtual = n;
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => {
+    puxarSaida().catch(() => {});
+  }, pollSegAtual * 1000);
+  console.log("Poll saída:", pollSegAtual, "s");
+}
+
+async function rodarSyncAgendaFotos() {
+  if (syncRodando || !sock) return;
+  if (!precisaSyncAgendaFotos()) return;
+  syncRodando = true;
+  console.log("Sync diário agenda+fotos… hora cfg", syncHoraCfg);
+  try {
+    await enviarAgenda(0, "", { completo: true });
+    pollQuerFotos = true;
+    gravarSyncYmd(ymdLocal());
+    setTimeout(() => {
+      pollQuerFotos = false;
+      console.log("Janela de fotos do sync diário encerrada.");
+    }, 3 * 60 * 1000);
+  } catch (e) {
+    console.error("sync diário:", e.message || e);
+  } finally {
+    syncRodando = false;
+  }
 }
 
 function guardarContato(c) {
@@ -856,9 +930,14 @@ async function ligar() {
       enviarLidMap();
       setTimeout(() => {
         varrerStore();
-        enviarAgenda(0).catch(() => {});
-        semearFotosPerfil();
+        // WA-PONTE-LEVE: não despeja agenda/fotos no connect — só sync 1×/dia
+        rodarSyncAgendaFotos().catch(() => {});
       }, 4000);
+      if (!syncCheckTimer) {
+        syncCheckTimer = setInterval(() => {
+          rodarSyncAgendaFotos().catch(() => {});
+        }, 60 * 1000);
+      }
     }
     if (connection === "close") {
       if (myId !== connId) return;
@@ -984,7 +1063,7 @@ async function ligar() {
       }
     }
   });
-  pollTimer = setInterval(puxarSaida, 5000);
+  ajustarPollSaida(pollSegAtual);
 }
 
 function varrerStore() {
@@ -1014,9 +1093,11 @@ function semAcento(s) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-async function enviarAgenda(pedidoId, filtro) {
+async function enviarAgenda(pedidoId, filtro, opts) {
   const f = semAcento(filtro);
+  const completo = !!(opts && opts.completo) && !f;
   const itens = [];
+  const teto = completo ? 5000 : 400;
   for (const [jid, v] of agenda.entries()) {
     const lid = jid.endsWith("@lid") ? jid : "";
     const phone = jid.endsWith("@s.whatsapp.net") ? jid : pnDeLid(jid);
@@ -1027,9 +1108,17 @@ async function enviarAgenda(pedidoId, filtro) {
     const dig = String(filtro || "").replace(/\D/g, "");
     if (f && !semAcento(nome).includes(f) && !(dig && tel.includes(dig))) continue;
     itens.push({ jid: dest, jid_lid: lid, nome, telefone: tel });
-    if (itens.length >= 400) break;
+    if (itens.length >= teto) break;
   }
-  console.log("Agenda Zap:", agenda.size, "filtro:", f || "(todos)", "enviados:", itens.length);
+  console.log(
+    "Agenda Zap:",
+    agenda.size,
+    "filtro:",
+    f || "(todos)",
+    "enviados:",
+    itens.length,
+    completo ? "(sync completo)" : ""
+  );
   if (!itens.length && !pedidoId) return;
   const lote = 80;
   for (let i = 0; i < Math.max(itens.length, 1); i += lote) {
@@ -1333,7 +1422,10 @@ async function puxarSaida() {
   if (!sock || puxarSaidaRodando) return;
   puxarSaidaRodando = true;
   try {
-    const j = await get("/api/atendimento-whatsapp/bridge/saida/");
+    const qs = pollQuerFotos ? "?fotos=1" : "";
+    const j = await get("/api/atendimento-whatsapp/bridge/saida/" + qs);
+    if (j && j.poll_seg != null) ajustarPollSaida(j.poll_seg);
+    if (j && j.sync_agenda_fotos_hora) syncHoraCfg = String(j.sync_agenda_fotos_hora);
     const lista = (j && j.saida) || [];
     for (const item of lista) {
       const idItem = Number(item && item.id) || 0;

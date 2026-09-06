@@ -65,6 +65,22 @@
           <input type="number" min="0" max="60" name="atraso_entre_msgs_seg" />
         </div>
       </div>
+      <p class="wa-lab" style="margin-top:1rem">Ponte (PC)</p>
+      <p class="wa-hint">Mensagem do <b>cliente</b> chega na hora. Este tempo é só pra mensagem que a <b>loja manda</b> sair pro Zap — e pra não pesar o PDV.</p>
+      <div class="wa-row wa-row-2">
+        <div>
+          <label class="wa-lab">Checar saída (seg)
+            <button type="button" class="wa-q" title="A cada quantos segundos a ponte pergunta se tem mensagem da loja pra enviar. 2–15. Padrão 5.">?</button>
+          </label>
+          <input type="number" min="2" max="15" name="poll_saida_seg" />
+        </div>
+        <div>
+          <label class="wa-lab">Atualizar agenda/fotos
+            <button type="button" class="wa-q" title="1 vez por dia, neste horário (PC da ponte ligado). De dia não reenvia contatos/fotos.">?</button>
+          </label>
+          <input type="time" name="sync_agenda_fotos_hora" />
+        </div>
+      </div>
     </section>
 
     <section data-panel="horario" class="wa-panel wa-card">

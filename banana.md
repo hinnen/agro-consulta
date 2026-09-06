@@ -729,7 +729,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **Parcial:** `WA-CHAT-SNAP` + ponte poll **5s**. **Decisão 06/09 (`WA-PONTE-LEVE`):** contatos + fotos **já salvos no PG**; sync em massa **só 00:00** (PC da ponte ligado); de dia **não** reenvia agenda/fotos; msgs do cliente continuam na hora (socket); poll de **saída** (loja→cliente) fica curto.
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável 2–15s · msgs cliente na hora · de dia sem reenvio.
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1277,15 +1277,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 WIP — Ponte leve (`WA-PONTE-LEVE` · 06/09)
+### ✅ PACOTE PRONTO — Ponte leve (`WA-PONTE-LEVE` · tip **v23.09** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **Problema** | Zap ligado → PDV lento em todas as lojas (Renan desligou de novo) |
-| **Decisão** | Contatos + fotos **salvos no PG** · sync em massa **só 00:00** (madrugada) · de dia **não** reenvia lote |
-| **Msgs** | Cliente → loja: **na hora** (socket) · loja → cliente: poll configurável nas **configurações do Bot** (default curto; Renan 06/09) |
-| **Ops** | PC da ponte precisa estar **ligado à meia-noite**; se off, roda no 1º ligar após 00:00 (ou próximo dia) |
-| **Status** | 🟡 **combinado** — aguarda implementação / PREP |
+| **O quê** | Agenda+fotos **1×/dia** (hora no Bot, padrão **00:00**) · de dia **não** reenvia · poll saída **2–15s** no Bot → Tempo · msgs do cliente na hora |
+| **Onde** | `atendimento_whatsapp_bot_config` · Bot Tempo · `bridge/saida` · `whatsapp_atendimento/index.js` |
+| **Migrate** | **NÃO** |
+| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 33/33** |
+| **Status** | 🟢 **pronto para envio à produção** (ainda **só teste**) |
+| **Ops** | Fechar/abrir `iniciar.bat` · Bot → Tempo · Salvar · PC ligado à meia-noite |
 
 ### 📦 PACOTE PRONTO — Vendas lojas previsão mês (`VL-PREV-MES` · tip **v23.06** · 06/09)
 
@@ -1299,11 +1300,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Commits** | `39ee80d` · `616f182` · `8b0d702` · `338abb7` |
 | **Você** | `/vendas/lojas/` · **Ctrl+F5** · totais na hora · previsão completa em seguida |
 
-### ✅ CHECKLIST ÚNICO — pronto para envio (06/09 · tip **v23.06**)
+### ✅ CHECKLIST ÚNICO — pronto para envio (06/09 · tip **v23.09**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
 | 1 | `VL-PREV-MES` (previsão + aviso + fonte + async) | 🟢 **pronto envio** | **NÃO** |
+| 2 | `WA-PONTE-LEVE` (sync 00:00 + poll no Bot) | 🟢 **pronto envio** | **NÃO** |
 
 **Loja agora:** Live **v21.93**. Este lote **ainda não** subiu — só frase + senha.
 

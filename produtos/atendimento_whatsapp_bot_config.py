@@ -14,6 +14,10 @@ BOT_DEFAULT: dict = {
     "nome_empresa": "GM Agro",
     "atraso_resposta_seg": 2,
     "atraso_entre_msgs_seg": 2,
+    # Poll da ponte: saída loja→cliente (entrada do cliente = socket, na hora)
+    "poll_saida_seg": 5,
+    # Sync em massa agenda+fotos (1×/dia no PC da ponte, após este horário)
+    "sync_agenda_fotos_hora": "00:00",
     "horario_ativo": True,
     "horario_ini": "08:00",
     "horario_fim": "18:00",
@@ -173,6 +177,19 @@ def salvar_bot(dados: dict, *, chave: str = CHAVE_DEFAULT, usuario: str = "") ->
         limpo["atraso_entre_msgs_seg"] = max(0, min(60, int(limpo.get("atraso_entre_msgs_seg") or 0)))
     except (TypeError, ValueError):
         limpo["atraso_entre_msgs_seg"] = 1
+    try:
+        limpo["poll_saida_seg"] = max(2, min(15, int(limpo.get("poll_saida_seg") or 5)))
+    except (TypeError, ValueError):
+        limpo["poll_saida_seg"] = 5
+    sh = str(limpo.get("sync_agenda_fotos_hora") or "00:00").strip()
+    if len(sh) == 5 and sh[2] == ":" and sh[:2].isdigit() and sh[3:].isdigit():
+        hh, mm = int(sh[:2]), int(sh[3:])
+        if 0 <= hh <= 23 and 0 <= mm <= 59:
+            limpo["sync_agenda_fotos_hora"] = f"{hh:02d}:{mm:02d}"
+        else:
+            limpo["sync_agenda_fotos_hora"] = "00:00"
+    else:
+        limpo["sync_agenda_fotos_hora"] = "00:00"
     try:
         limpo["saudacao_atraso_seg"] = max(0, min(120, int(limpo.get("saudacao_atraso_seg") or 0)))
     except (TypeError, ValueError):

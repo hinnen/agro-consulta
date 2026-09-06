@@ -202,6 +202,8 @@
       'nome_empresa',
       'atraso_resposta_seg',
       'atraso_entre_msgs_seg',
+      'poll_saida_seg',
+      'sync_agenda_fotos_hora',
       'saudacao_atraso_seg',
       'saudacao_midia_url',
       'arquivo_auto_horas_silencio',
