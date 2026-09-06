@@ -1277,6 +1277,14 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09d · tip teste)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `TAREFAS-UI-STATUS` | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0003` |
+
+**Já Live:** `VL-HUB-TAREFAS` **v23.18**.
+
 ### 📦 PACOTE PRONTO — Tarefas UI + 2 status (`TAREFAS-UI-STATUS` · tip teste · 06/09)
 
 | Campo | Valor |
