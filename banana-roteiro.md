@@ -369,3 +369,28 @@ Excel ↓ do cadastro: colunas opcionais **Últ. / 2º / 3º fornecedor** (Entra
 
 **Status: PREP / aguarda senha.** Live ainda **v21.90**. **Não** merge `teste`. **Não** ligar ponte Zap.  
 **Rollback:** `docs/ROLLBACK-LOTE-CHECKLIST-0509g.md`.
+
+---
+
+## 22. Checklist único — lote 05/09h (`deploy/prep-checklist-0509h` · alvo loja **v21.93**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **LANC-PIN-TECLADO** | ✅ **Live v21.93** | **NÃO** |
+| 2 | **WA-TROCAR-FEED** | ✅ **Live v21.93** | **NÃO** |
+| 3 | **WA-TOPBAR-OVERLAY** | ✅ **Live v21.93** | **NÃO** |
+
+**Status: enviado / Live v21.93.** `producao` @ `8884c9c`.  
+**Rollback:** tag `rollback/pre-lote-checklist-0509h-v21.92` @ `041e1b5` · branch `producao-backup-pre-v2193-lote-checklist-20260905` · `docs/ROLLBACK-LOTE-CHECKLIST-0509h.md` · **só** frase+senha.  
+**Smoke:** Ctrl+F5 · badge **v21.93** · PDV F7 · Lançamentos PIN velho → teclado · Zap balcão 1 barra.
+
+---
+
+## 23. Checklist único — VL-HUB-TAREFAS (loja **v23.18**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | **VL-HUB-TAREFAS** | ✅ **Live v23.18** | **SIM** `tarefas.0001` + `0002` |
+
+**Status: enviado / Live v23.18.** Prova `verify_vl_hub_tarefas_path.py` **55/55**.  
+**Rollback:** tag `rollback/pre-vl-hub-tarefas-v23.07` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha.
