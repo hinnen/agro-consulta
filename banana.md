@@ -1286,7 +1286,8 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **PIN** | Mesmo PIN da loja; nome em toda alteração |
 | **Migrate** | **SIM** `tarefas.0001` + `0002` (seed) |
 | **Prova** | `verify_tarefas_pendencias_path.py` **15/15** · `verify_vendas_lojas_resumo_path.py` **184/184** |
-| **Você** | PC local → `/vendas/lojas/` → Tarefas → PIN → conferir lista seed |
+| **Tip** | `teste` **v23.16** @ `fa3d0a4` |
+| **Você** | PC local → migrate → `/vendas/lojas/` → Tarefas → PIN → conferir lista seed |
 | **Status** | no `teste` — **não** loja sem frase+senha |
 
 ### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
