@@ -462,4 +462,21 @@ def vendas_lojas_previsao_mes_lojas(*, hoje: date, agora: datetime) -> dict:
             "mes_ini": c["mes_ini"],
             "mes_fim": c["mes_fim"],
         },
+        "aviso_cedo": vendas_lojas_previsao_aviso_cedo(
+            agora=agora, fonte_total=fonte
+        ),
     }
+
+
+def vendas_lojas_previsao_aviso_cedo(*, agora: datetime, fonte_total: str) -> bool:
+    """
+    True se ainda é cedo demais pra confiar no número (manhã ou início do mês).
+    Só aviso na tela — não muda a conta.
+    """
+    if fonte_total in ("media", "sem_meta"):
+        return True
+    if fonte_total == "fechado":
+        return False
+    # Antes de ~11h20 (35 % do expediente 7h30–18h30) o ritmo ainda oscila muito.
+    return vendas_lojas_fracao_expediente(agora) < Decimal("0.35")
+

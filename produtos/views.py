@@ -11296,6 +11296,7 @@ def vendas_lojas_resumo(request):
         prev_v = _vendas_lojas_prev_ctx(prev["vila"])
         prev_t = _vendas_lojas_prev_ctx(prev["total"])
         mes_lbl = hoje.strftime("%m/%Y")
+        prev_aviso_cedo = bool(prev.get("aviso_cedo"))
     except Exception:
         logging.getLogger(__name__).exception("vendas_lojas_resumo previsao mes")
         z = {
@@ -11308,6 +11309,7 @@ def vendas_lojas_resumo(request):
         }
         prev_c = prev_v = prev_t = z
         mes_lbl = hoje.strftime("%m/%Y")
+        prev_aviso_cedo = True
     return render(
         request,
         "produtos/vendas_lojas_resumo.html",
@@ -11367,6 +11369,7 @@ def vendas_lojas_resumo(request):
             "prev_vila_ritmo_fmt": prev_v["ritmo_pct_fmt"],
             "prev_centro_fonte": prev_c["fonte"],
             "prev_vila_fonte": prev_v["fonte"],
+            "prev_aviso_cedo": prev_aviso_cedo,
         },
     )
 

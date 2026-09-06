@@ -71,6 +71,7 @@ def test_arquivos() -> None:
     check("tpl_prev_card", "vl-abrir-prev" in tpl and "Previsão mês" in tpl)
     check("tpl_prev_sheet", "vl-sheet-prev" in tpl and "prev_total_fmt" in tpl)
     check("tpl_prev_lojas", "prev_centro_fmt" in tpl and "prev_vila_fmt" in tpl)
+    check("tpl_prev_aviso", "prev_aviso_cedo" in tpl and "Ainda é cedo" in tpl)
     check("tpl_filtro_dia", 'value="hoje"' in tpl)
     check("tpl_filtro_semana", 'value="semana"' in tpl)
     check("tpl_filtro_mes", 'value="mes"' in tpl)
@@ -136,6 +137,7 @@ def test_arquivos() -> None:
     check("util_meta_modos", "def vendas_lojas_meta_c_modos" in util)
     check("util_prev_mes", "def vendas_lojas_previsao_mes" in util)
     check("util_prev_lojas", "def vendas_lojas_previsao_mes_lojas" in util)
+    check("util_prev_aviso", "def vendas_lojas_previsao_aviso_cedo" in util)
     check("util_ultimo_dia", "def vendas_lojas_ultimo_dia_mes" in util)
     check("util_fracao", "def vendas_lojas_fracao_expediente" in util)
     check("util_expediente", "VL_EXPEDIENTE_INI" in util and "VL_EXPEDIENTE_FIM" in util)
@@ -362,6 +364,21 @@ def test_previsao_mes() -> None:
             hoje=date(2026, 9, 30), agora=datetime(2026, 9, 30, 19, 0), deposito="centro"
         )
         check("prev_mes_fechado", fim["fonte"] == "fechado" and fim["previsao"] == Decimal("280000.00"))
+
+    from produtos.vendas_lojas_util import vendas_lojas_previsao_aviso_cedo
+
+    check(
+        "aviso_manha",
+        vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 9, 0), fonte_total="ritmo") is True,
+    )
+    check(
+        "aviso_tarde_off",
+        vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 14, 0), fonte_total="ritmo") is False,
+    )
+    check(
+        "aviso_fonte_media",
+        vendas_lojas_previsao_aviso_cedo(agora=datetime(2026, 9, 6, 14, 0), fonte_total="media") is True,
+    )
 
 
 def test_fiado_math() -> None:
