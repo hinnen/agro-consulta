@@ -1270,28 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.06** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
-| **Agora** | `producao` tip PREP **v23.06** |
-| **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
-| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
-| **Migrate** | **NÃO** |
-| **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
-| **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
-
-### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `VL-PREV-MES` | ✅ **Live v23.06** | **NÃO** |
-
-**Ainda fora:** `WA-PONTE-LEVE` · Excel / resto do `teste`.
-
-### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
-
-| Campo | Valor |
-| ----- | ----- |
-| **Status** | ✅ **enviado / Live v23.06** — cherry só este pacote (**não** merge `teste`) |
-| **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
-| **Agora** | `producao` tip PREP **v23.06** |
+| **Agora** | `producao` @ **`d0732d0`** |
 | **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
 | **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
 | **Migrate** | **NÃO** |
