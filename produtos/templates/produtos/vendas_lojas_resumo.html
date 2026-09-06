@@ -550,7 +550,8 @@
   data-hoje="{{ hoje_iso }}"
   data-sel="{{ data_iso }}"
   data-sel-fim="{{ data_fim_iso }}"
-  data-key="{{ periodo_key }}">
+  data-key="{{ periodo_key }}"
+  data-extras-url="{{ extras_url }}">
   <div class="vl-shell">
     <header class="vl-top">
       <div>
@@ -631,31 +632,29 @@
       </button>
       <button type="button" class="vl-card prev" id="vl-abrir-prev"
         aria-label="Previsão do mês das duas lojas">
-        <h2>Previsão mês · {{ prev_mes_lbl }}</h2>
-        <p class="vl-valor"><span class="vl-rs">R$</span>{{ prev_total_fmt }}</p>
+        <h2>Previsão mês · <span id="vl-prev-mes-lbl">{{ prev_mes_lbl }}</span></h2>
+        <p class="vl-valor"><span class="vl-rs">R$</span><span id="vl-prev-total">{{ prev_total_fmt }}</span></p>
         <div class="vl-prev-lojas">
           <div class="vl-prev-loja">
             <span>Centro</span>
-            <strong>R$ {{ prev_centro_fmt }}</strong>
+            <strong>R$ <span id="vl-prev-centro">{{ prev_centro_fmt }}</span></strong>
           </div>
           <div class="vl-prev-loja">
             <span>Vila</span>
-            <strong>R$ {{ prev_vila_fmt }}</strong>
+            <strong>R$ <span id="vl-prev-vila">{{ prev_vila_fmt }}</span></strong>
           </div>
         </div>
-        {% if prev_aviso_cedo %}
-        <p class="vl-prev-aviso">Ainda é cedo — o número pode mudar ao longo do dia</p>
-        {% endif %}
+        <p class="vl-prev-aviso" id="vl-prev-aviso" hidden>Ainda é cedo — o número pode mudar ao longo do dia</p>
       </button>
       <button type="button" class="vl-fiado-tag" id="vl-abrir-fiado" aria-label="Ver o que é sem fiado e c/ fiado quitado">
         <span class="vl-fiado-part">
           <span class="vl-fiado-k">Sem fiado</span>
-          <span class="vl-fiado-v">R$ {{ sem_fiado_fmt }}</span>
+          <span class="vl-fiado-v">R$ <span id="vl-fiado-sem">{{ sem_fiado_fmt }}</span></span>
         </span>
         <span class="vl-fiado-div" aria-hidden="true"></span>
         <span class="vl-fiado-part">
           <span class="vl-fiado-k">c/ fiado quitado</span>
-          <span class="vl-fiado-v">R$ {{ sem_fiado_quit_fmt }}</span>
+          <span class="vl-fiado-v">R$ <span id="vl-fiado-quit">{{ sem_fiado_quit_fmt }}</span></span>
         </span>
       </button>
     </div>
@@ -686,7 +685,7 @@
       <div class="vl-sheet-handle"></div>
       <h3 id="vl-fiado-titulo">Sem fiado e c/ fiado quitado</h3>
       <div class="vl-fiado-explica">
-        <h4>Sem fiado — R$ {{ sem_fiado_fmt }}</h4>
+        <h4>Sem fiado — R$ <span id="vl-fiado-sheet-sem">{{ sem_fiado_fmt }}</span></h4>
         <p>
           Vendas do período <strong>sem a parte fiado</strong> (dinheiro, cartão, pix e outras formas).
           Se a venda foi mista, só entra o que não foi fiado.
@@ -694,7 +693,7 @@
         </p>
       </div>
       <div class="vl-fiado-explica">
-        <h4>c/ fiado quitado — R$ {{ sem_fiado_quit_fmt }}</h4>
+        <h4>c/ fiado quitado — R$ <span id="vl-fiado-sheet-quit">{{ sem_fiado_quit_fmt }}</span></h4>
         <p>
           Igual ao «Sem fiado», mais o que os clientes <strong>pagaram de fiados antigos</strong>
           neste período (quitados no caixa ou PDV), mesmo que a venda fiado foi em outro dia.
@@ -708,34 +707,21 @@
     <div class="vl-sheet-bg" data-fechar-prev></div>
     <div class="vl-sheet-panel" role="dialog" aria-modal="true" aria-labelledby="vl-prev-titulo">
       <div class="vl-sheet-handle"></div>
-      <h3 id="vl-prev-titulo">Previsão do mês · {{ prev_mes_lbl }}</h3>
-      {% if prev_aviso_cedo %}
-      <p class="vl-prev-aviso">Ainda é cedo — o número pode mudar ao longo do dia</p>
-      {% endif %}
+      <h3 id="vl-prev-titulo">Previsão do mês · <span id="vl-prev-sheet-mes">{{ prev_mes_lbl }}</span></h3>
+      <p class="vl-prev-aviso" id="vl-prev-sheet-aviso" hidden>Ainda é cedo — o número pode mudar ao longo do dia</p>
       <p class="vl-media-k">Se continuar neste ritmo</p>
-      <p class="vl-media-v"><span class="vl-rs">R$</span>{{ prev_total_fmt }}</p>
+      <p class="vl-media-v"><span class="vl-rs">R$</span><span id="vl-prev-sheet-total">{{ prev_total_fmt }}</span></p>
       <div class="vl-fiado-explica">
-        <h4>Centro — R$ {{ prev_centro_fmt }}</h4>
-        <p>
-          Já vendeu R$ {{ prev_centro_vendido_fmt }} neste mês.
-          {% if prev_centro_ritmo_fmt %}Ritmo {{ prev_centro_ritmo_fmt }}% da média.{% elif prev_centro_fonte == "media" %}Ainda cedo — usa a média do mês.{% elif prev_centro_fonte == "fechado" %}Mês fechado = o que vendeu.{% else %}Sem média ainda.{% endif %}
-        </p>
+        <h4>Centro — R$ <span id="vl-prev-sheet-centro">{{ prev_centro_fmt }}</span></h4>
+        <p id="vl-prev-sheet-centro-txt">Carregando…</p>
       </div>
       <div class="vl-fiado-explica">
-        <h4>Vila — R$ {{ prev_vila_fmt }}</h4>
-        <p>
-          Já vendeu R$ {{ prev_vila_vendido_fmt }} neste mês.
-          {% if prev_vila_ritmo_fmt %}Ritmo {{ prev_vila_ritmo_fmt }}% da média.{% elif prev_vila_fonte == "media" %}Ainda cedo — usa a média do mês.{% elif prev_vila_fonte == "fechado" %}Mês fechado = o que vendeu.{% else %}Sem média ainda.{% endif %}
-        </p>
+        <h4>Vila — R$ <span id="vl-prev-sheet-vila">{{ prev_vila_fmt }}</span></h4>
+        <p id="vl-prev-sheet-vila-txt">Carregando…</p>
       </div>
       <div class="vl-fiado-explica">
         <h4>Como calcula</h4>
-        <p>
-          Vendido no mês (R$ {{ prev_total_vendido_fmt }}) ÷ o que já deveria ter saído até agora
-          (R$ {{ prev_total_meta_agora_fmt }}) × média do mês inteiro (R$ {{ prev_total_meta_fmt }}).
-          {% if prev_total_ritmo_fmt %} Ritmo agora: <strong>{{ prev_total_ritmo_fmt }}%</strong> da média.{% endif %}
-          Mesma Meta C do BI · atualiza sozinho a cada venda.
-        </p>
+        <p id="vl-prev-sheet-como">Carregando…</p>
       </div>
       <button type="button" class="vl-cal-hoje" data-fechar-prev>Fechar</button>
     </div>
@@ -992,6 +978,85 @@
     sheetPrev.querySelectorAll("[data-fechar-prev]").forEach(function (el) {
       el.addEventListener("click", fecharPrev);
     });
+
+    function aplicarMediaAttrs(btn, bloco) {
+      if (!btn || !bloco) return;
+      btn.setAttribute("data-esperado", bloco.esp || "");
+      btn.setAttribute("data-diff", bloco.diff || "");
+      btn.setAttribute("data-pct", bloco.pct || "");
+      btn.setAttribute("data-sentido", bloco.sentido || "sem");
+      btn.setAttribute("data-esperado-dia", bloco.esp_dia || "");
+      btn.setAttribute("data-diff-dia", bloco.diff_dia || "");
+      btn.setAttribute("data-pct-dia", bloco.pct_dia || "");
+      btn.setAttribute("data-sentido-dia", bloco.sentido_dia || "sem");
+    }
+    function textoRitmoLoja(bloco) {
+      if (!bloco) return "—";
+      var base = "Já vendeu R$ " + (bloco.vendido_fmt || "0,00") + " neste mês. ";
+      if (bloco.ritmo_pct_fmt) return base + "Ritmo " + bloco.ritmo_pct_fmt + "% da média.";
+      if (bloco.fonte === "media") return base + "Ainda cedo — usa a média do mês.";
+      if (bloco.fonte === "fechado") return base + "Mês fechado = o que vendeu.";
+      return base + "Sem média ainda.";
+    }
+    function carregarExtras() {
+      var base = document.body.getAttribute("data-extras-url") || "/api/vendas/lojas/extras/";
+      var qs = window.location.search || "";
+      fetch(base + qs, { credentials: "same-origin", headers: { Accept: "application/json" } })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data || !data.ok) return;
+          var media = data.media || {};
+          var cards = document.querySelectorAll("[data-media]");
+          if (cards[0]) aplicarMediaAttrs(cards[0], media.centro);
+          if (cards[1]) aplicarMediaAttrs(cards[1], media.vila);
+          if (cards[2]) aplicarMediaAttrs(cards[2], media.total);
+          var modos = document.getElementById("vl-media-modos");
+          if (modos) modos.hidden = !media.mostra_toggle;
+          var fiado = data.fiado || {};
+          var elSem = document.getElementById("vl-fiado-sem");
+          var elQuit = document.getElementById("vl-fiado-quit");
+          if (elSem) elSem.textContent = fiado.sem_fiado_fmt || "0,00";
+          if (elQuit) elQuit.textContent = fiado.sem_fiado_quit_fmt || "0,00";
+          var sheetSem = document.getElementById("vl-fiado-sheet-sem");
+          var sheetQuit = document.getElementById("vl-fiado-sheet-quit");
+          if (sheetSem) sheetSem.textContent = fiado.sem_fiado_fmt || "0,00";
+          if (sheetQuit) sheetQuit.textContent = fiado.sem_fiado_quit_fmt || "0,00";
+          var prev = data.prev || {};
+          var tot = prev.total || {};
+          var cen = prev.centro || {};
+          var vil = prev.vila || {};
+          function setTxt(id, v) {
+            var el = document.getElementById(id);
+            if (el) el.textContent = v == null ? "" : String(v);
+          }
+          setTxt("vl-prev-mes-lbl", prev.mes_lbl || "");
+          setTxt("vl-prev-sheet-mes", prev.mes_lbl || "");
+          setTxt("vl-prev-total", tot.previsao_fmt || "0,00");
+          setTxt("vl-prev-centro", cen.previsao_fmt || "0,00");
+          setTxt("vl-prev-vila", vil.previsao_fmt || "0,00");
+          setTxt("vl-prev-sheet-total", tot.previsao_fmt || "0,00");
+          setTxt("vl-prev-sheet-centro", cen.previsao_fmt || "0,00");
+          setTxt("vl-prev-sheet-vila", vil.previsao_fmt || "0,00");
+          setTxt("vl-prev-sheet-centro-txt", textoRitmoLoja(cen));
+          setTxt("vl-prev-sheet-vila-txt", textoRitmoLoja(vil));
+          var como = "Vendido no mês (R$ " + (tot.vendido_fmt || "0,00") +
+            ") ÷ o que já deveria ter saído até agora (R$ " + (tot.meta_agora_fmt || "0,00") +
+            ") × média do mês inteiro (R$ " + (tot.meta_fmt || "0,00") + ").";
+          if (tot.ritmo_pct_fmt) {
+            como += " Ritmo agora: " + tot.ritmo_pct_fmt + "% da média.";
+          }
+          como += " Mesma Meta C do BI · atualiza sozinho a cada venda.";
+          setTxt("vl-prev-sheet-como", como);
+          var aviso = !!prev.aviso_cedo;
+          var a1 = document.getElementById("vl-prev-aviso");
+          var a2 = document.getElementById("vl-prev-sheet-aviso");
+          if (a1) a1.hidden = !aviso;
+          if (a2) a2.hidden = !aviso;
+        })
+        .catch(function () {});
+    }
+    carregarExtras();
+
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("{% url 'vendas_lojas_sw' %}", { scope: "/vendas/lojas/" }).catch(function () {});
     }

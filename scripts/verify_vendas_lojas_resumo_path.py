@@ -62,6 +62,11 @@ def test_arquivos() -> None:
     check("view_get", "@require_GET" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_nocache", "@never_cache" in views.split("def vendas_lojas_resumo")[0][-400:])
     check("view_usa_totais", "vendas_lojas_totais" in view_fn)
+    check("view_sem_meta_sync", "vendas_lojas_meta_c_modos" not in view_fn)
+    check("view_sem_prev_sync", "vendas_lojas_previsao_mes_lojas" not in view_fn)
+    check("view_extras_url", "extras_url" in view_fn or "api_vendas_lojas_extras" in view_fn)
+    check("api_extras_def", "def api_vendas_lojas_extras" in views)
+    check("url_extras", "api/vendas/lojas/extras/" in urls)
     check("view_sem_bi_loja", "_dashboard_vendas_por_loja" not in view_fn)
     check("view_sem_mongo_serie", "_dashboard_mongo_vendas_serie" not in view_fn)
     check("hub_link", "vendas_lojas_resumo" in hub)
@@ -71,7 +76,7 @@ def test_arquivos() -> None:
     check("tpl_prev_card", "vl-abrir-prev" in tpl and "Previsão mês" in tpl)
     check("tpl_prev_sheet", "vl-sheet-prev" in tpl and "prev_total_fmt" in tpl)
     check("tpl_prev_lojas", "prev_centro_fmt" in tpl and "prev_vila_fmt" in tpl)
-    check("tpl_prev_aviso", "prev_aviso_cedo" in tpl and "Ainda é cedo" in tpl)
+    check("tpl_prev_aviso", "vl-prev-aviso" in tpl and "Ainda é cedo" in tpl)
     check("tpl_filtro_dia", 'value="hoje"' in tpl)
     check("tpl_filtro_semana", 'value="semana"' in tpl)
     check("tpl_filtro_mes", 'value="mes"' in tpl)
@@ -109,17 +114,22 @@ def test_arquivos() -> None:
     check("util_vila_iexact", 'deposito__iexact="vila"' in util)
     check("util_centro_exclude_vila", "exclude(deposito__iexact=" in util)
     check("util_soma_total", "centro + vila" in util)
-    check("view_pass_fiado", "sem_fiado_fmt" in view_fn and "sem_fiado_quit_fmt" in view_fn)
+    check("view_pass_fiado", "sem_fiado_fmt" in view_fn)
     check("view_pass_data_fim", "data_fim_iso" in view_fn or "data_fim" in views)
     check("tpl_fiado_tag", "vl-fiado-tag" in tpl and "Sem fiado" in tpl)
     check("tpl_fiado_quit_label", "c/ fiado quitado" in tpl)
     check("tpl_fiado_sheet", "vl-sheet-fiado" in tpl)
     check("tpl_intervalo_form", "vl-goto-intervalo" in tpl and "data_fim" in tpl)
-    check("view_usa_meta", "vendas_lojas_meta_c_modos" in view_fn)
-    check("view_usa_prev", "vendas_lojas_previsao_mes_lojas" in view_fn)
+    check("tpl_extras_js", "carregarExtras" in tpl and "data-extras-url" in tpl)
+    api_fn = _fn_src("produtos/views.py", "api_vendas_lojas_extras")
+    check("api_usa_meta", "vendas_lojas_meta_c_modos" in api_fn)
+    check("api_usa_prev", "vendas_lojas_previsao_mes_lojas" in api_fn)
+    check("api_meta_soma_lojas", "dia_c + dia_v" in api_fn or "agora_c + agora_v" in api_fn)
+    check("view_usa_meta", "vendas_lojas_meta_c_modos" in api_fn)
+    check("view_usa_prev", "vendas_lojas_previsao_mes_lojas" in api_fn)
     check("view_pass_prev", "prev_total_fmt" in view_fn and "prev_mes_lbl" in view_fn)
-    check("view_meta_centro", '"centro"' in view_fn or "'centro'" in view_fn)
-    check("view_meta_vila", '"vila"' in view_fn or "'vila'" in view_fn)
+    check("view_meta_centro", '"centro"' in api_fn or "'centro'" in api_fn)
+    check("view_meta_vila", '"vila"' in api_fn or "'vila'" in api_fn)
     check("view_pass_sentido", "centro_sentido" in view_fn and "vila_sentido" in view_fn)
     check("view_pass_esp", "centro_esp_fmt" in view_fn and "total_esp_fmt" in view_fn)
     check("view_pass_esp_dia", "centro_esp_dia_fmt" in view_fn and "mostra_toggle_media" in view_fn)
@@ -135,6 +145,7 @@ def test_arquivos() -> None:
     check("util_cmp_agora", "def vendas_lojas_cmp_meta_agora" in util)
     check("util_meta_soma", "def vendas_lojas_meta_c_soma" in util)
     check("util_meta_modos", "def vendas_lojas_meta_c_modos" in util)
+    check("util_meta_modos_serie", "def vendas_lojas_meta_c_modos_de_serie" in util)
     check("util_prev_mes", "def vendas_lojas_previsao_mes" in util)
     check("util_prev_lojas", "def vendas_lojas_previsao_mes_lojas" in util)
     check("util_prev_aviso", "def vendas_lojas_previsao_aviso_cedo" in util)
@@ -298,9 +309,15 @@ def test_fracao_expediente() -> None:
 
 def test_previsao_mes() -> None:
     print("== Previsão do mês (tempo real) ==")
+    import os
     from datetime import date, datetime
     from decimal import Decimal
     from unittest.mock import patch
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
 
     from produtos.vendas_lojas_util import (
         vendas_lojas_previsao_mes,
@@ -313,22 +330,21 @@ def test_previsao_mes() -> None:
     check("ultimo_dez", vendas_lojas_ultimo_dia_mes(date(2026, 12, 10)) == date(2026, 12, 31))
 
     hoje = date(2026, 9, 6)
-    agora = datetime(2026, 9, 6, 13, 0)
+    agora = datetime(2026, 9, 6, 19, 0)  # expediente fechado → meta até dia 6 = 100%
+
+    def _fake_serie(ini, fim, deposito=None):
+        # 30 dias: meta diária 10k centro / 4k vila → mês 300k / 120k
+        n = (fim - ini).days + 1
+        val = 10000.0 if deposito != "vila" else 4000.0
+        return [val] * n
 
     def _fake_total(ini, fim, deposito=None):
-        return Decimal("50000.00") if deposito != "vila" else Decimal("20000.00")
-
-    def _fake_meta_soma(ini, fim, deposito=None):
-        return Decimal("300000.00") if deposito != "vila" else Decimal("120000.00")
-
-    def _fake_modos(ini, fim, deposito, *, hoje, agora):
-        base = Decimal("100000.00") if deposito != "vila" else Decimal("40000.00")
-        return base, base, True
+        # 6 dias × metade da meta diária → ritmo 50 %
+        return Decimal("30000.00") if deposito != "vila" else Decimal("12000.00")
 
     with (
         patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", side_effect=_fake_total),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", side_effect=_fake_meta_soma),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos),
+        patch("produtos.views._dashboard_serie_meta_c_vendas", side_effect=_fake_serie),
     ):
         c = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
         check("prev_fonte_ritmo", c["fonte"] == "ritmo")
@@ -341,24 +357,29 @@ def test_previsao_mes() -> None:
             str(lojas["total"]["previsao"]),
         )
 
-    def _fake_modos_cedo(ini, fim, deposito, *, hoje, agora):
-        return Decimal("300000.00"), Decimal("1000.00"), True
+    def _fake_serie_cedo(ini, fim, deposito=None):
+        n = (fim - ini).days + 1
+        # Só 1º dia com valor; resto 0 → meta_ate muito baixa
+        out = [0.0] * n
+        out[0] = 300000.0
+        return out
 
     with (
         patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", return_value=Decimal("800.00")),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", return_value=Decimal("300000.00")),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos_cedo),
+        patch("produtos.views._dashboard_serie_meta_c_vendas", side_effect=_fake_serie_cedo),
     ):
-        cedo = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
+        cedo = vendas_lojas_previsao_mes(
+            hoje=date(2026, 9, 1), agora=datetime(2026, 9, 1, 6, 50), deposito="centro"
+        )
         check("prev_cedo_media", cedo["fonte"] == "media" and cedo["previsao"] == Decimal("300000.00"))
 
-    def _fake_modos_fim(ini, fim, deposito, *, hoje, agora):
-        return Decimal("300000.00"), Decimal("300000.00"), False
+    def _fake_serie_fim(ini, fim, deposito=None):
+        n = (fim - ini).days + 1
+        return [10000.0] * n
 
     with (
         patch("produtos.vendas_lojas_util.vendas_lojas_total_deposito", return_value=Decimal("280000.00")),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_soma", return_value=Decimal("300000.00")),
-        patch("produtos.vendas_lojas_util.vendas_lojas_meta_c_modos", side_effect=_fake_modos_fim),
+        patch("produtos.views._dashboard_serie_meta_c_vendas", side_effect=_fake_serie_fim),
     ):
         fim = vendas_lojas_previsao_mes(
             hoje=date(2026, 9, 30), agora=datetime(2026, 9, 30, 19, 0), deposito="centro"
@@ -460,6 +481,17 @@ def test_http() -> None:
         check("http_intervalo_label", "01/08/2026" in b2 and "15/08/2026" in b2)
         check("http_prev_card", "vl-abrir-prev" in body and "Previsão mês" in body)
         check("http_prev_sheet", "vl-sheet-prev" in body)
+        check("http_extras_url", "data-extras-url" in body and "carregarExtras" in body)
+        r3 = c.get("/api/vendas/lojas/extras/?periodo=hoje", follow=True)
+        check("http_extras_200", r3.status_code == 200, str(r3.status_code))
+        try:
+            import json
+            j = json.loads(r3.content.decode("utf-8", "replace"))
+            check("http_extras_ok", j.get("ok") is True)
+            check("http_extras_prev", isinstance(j.get("prev"), dict))
+            check("http_extras_media", isinstance(j.get("media"), dict))
+        except Exception as e:
+            check("http_extras_json", False, str(e))
         hub = c.get(reverse("relatorios_hub"), follow=True)
         check("http_hub_link", "/vendas/lojas/" in hub.content.decode("utf-8", "replace"))
 

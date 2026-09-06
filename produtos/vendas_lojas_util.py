@@ -267,6 +267,31 @@ def vendas_lojas_meta_c_soma(
     return _q2(sum(float(x or 0) for x in serie))
 
 
+def vendas_lojas_meta_c_modos_de_serie(
+    serie,
+    data_ini: date,
+    data_fim: date,
+    *,
+    hoje: date,
+    agora: datetime,
+) -> tuple[Decimal, Decimal, bool]:
+    """(dia_todo, ate_agora, mostra_toggle) a partir de uma série Meta C já calculada."""
+    serie = list(serie or [])
+    dia_todo = _q2(sum(float(x or 0) for x in serie))
+    inclui_hoje = data_ini <= hoje <= data_fim
+    if not inclui_hoje:
+        return dia_todo, dia_todo, False
+    idx = (hoje - data_ini).days
+    if idx < 0 or idx >= len(serie):
+        return dia_todo, dia_todo, False
+    frac = vendas_lojas_fracao_expediente(agora)
+    hoje_val = _q2(serie[idx])
+    resto = (dia_todo - hoje_val).quantize(Decimal("0.01"))
+    ate_agora = (resto + (hoje_val * frac)).quantize(Decimal("0.01"))
+    mostra_toggle = frac < Decimal("1")
+    return dia_todo, ate_agora, mostra_toggle
+
+
 def vendas_lojas_meta_c_modos(
     data_ini: date,
     data_fim: date,
@@ -283,19 +308,9 @@ def vendas_lojas_meta_c_modos(
 
     dep = deposito if deposito in ("centro", "vila") else None
     serie = _dashboard_serie_meta_c_vendas(data_ini, data_fim, deposito=dep)
-    dia_todo = _q2(sum(float(x or 0) for x in serie))
-    inclui_hoje = data_ini <= hoje <= data_fim
-    if not inclui_hoje:
-        return dia_todo, dia_todo, False
-    idx = (hoje - data_ini).days
-    if idx < 0 or idx >= len(serie):
-        return dia_todo, dia_todo, False
-    frac = vendas_lojas_fracao_expediente(agora)
-    hoje_val = _q2(serie[idx])
-    resto = (dia_todo - hoje_val).quantize(Decimal("0.01"))
-    ate_agora = (resto + (hoje_val * frac)).quantize(Decimal("0.01"))
-    mostra_toggle = frac < Decimal("1")
-    return dia_todo, ate_agora, mostra_toggle
+    return vendas_lojas_meta_c_modos_de_serie(
+        serie, data_ini, data_fim, hoje=hoje, agora=agora
+    )
 
 
 def vendas_lojas_cmp_meta(vendido, esperado) -> dict:
@@ -363,23 +378,34 @@ def vendas_lojas_previsao_mes(
     hoje: date,
     agora: datetime,
     deposito: str | None = None,
+    serie_mes=None,
 ) -> dict:
     """
     Previsão do mês civil em tempo real (Centro, Vila ou as duas).
 
     ritmo = vendido_mês ÷ média esperada até agora (Meta C + expediente).
-    previsão = vendido + (meta_mês − meta_até_agora) × ritmo
-             = vendido × meta_mês ÷ meta_até_agora.
+    previsão = vendido × meta_mês ÷ meta_até_agora.
 
     Cedo demais (< 2 % da meta do mês) → usa a meta do mês (sem ritmo).
     Mês já fechado (último dia após expediente) → previsão = vendido.
+    ``serie_mes`` opcional evita recalcular a Meta C do mês inteiro.
     """
+    from produtos.views import _dashboard_serie_meta_c_vendas
+
     mes_ini = hoje.replace(day=1)
     mes_fim = vendas_lojas_ultimo_dia_mes(hoje)
+    dep = deposito if deposito in ("centro", "vila") else None
     vendido = _q2(vendas_lojas_total_deposito(mes_ini, hoje, deposito))
-    meta_mes = _q2(vendas_lojas_meta_c_soma(mes_ini, mes_fim, deposito))
-    _dia_hoje, meta_ate_agora, _ = vendas_lojas_meta_c_modos(
-        mes_ini, hoje, deposito, hoje=hoje, agora=agora
+    if serie_mes is None:
+        serie_mes = _dashboard_serie_meta_c_vendas(mes_ini, mes_fim, deposito=dep)
+    else:
+        serie_mes = list(serie_mes)
+    meta_mes = _q2(sum(float(x or 0) for x in serie_mes))
+    # Até agora = só dias 1…hoje da mesma série (não puxa outra Meta C).
+    n_ate = (hoje - mes_ini).days + 1
+    serie_ate = serie_mes[: max(0, n_ate)]
+    _dia_hoje, meta_ate_agora, _ = vendas_lojas_meta_c_modos_de_serie(
+        serie_ate, mes_ini, hoje, hoje=hoje, agora=agora
     )
     meta_ate_agora = _q2(meta_ate_agora)
 
@@ -429,8 +455,18 @@ def vendas_lojas_previsao_mes(
 
 def vendas_lojas_previsao_mes_lojas(*, hoje: date, agora: datetime) -> dict:
     """Previsão do mês: Centro, Vila e total (soma das duas previsões)."""
-    c = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="centro")
-    v = vendas_lojas_previsao_mes(hoje=hoje, agora=agora, deposito="vila")
+    from produtos.views import _dashboard_serie_meta_c_vendas
+
+    mes_ini = hoje.replace(day=1)
+    mes_fim = vendas_lojas_ultimo_dia_mes(hoje)
+    serie_c = _dashboard_serie_meta_c_vendas(mes_ini, mes_fim, deposito="centro")
+    serie_v = _dashboard_serie_meta_c_vendas(mes_ini, mes_fim, deposito="vila")
+    c = vendas_lojas_previsao_mes(
+        hoje=hoje, agora=agora, deposito="centro", serie_mes=serie_c
+    )
+    v = vendas_lojas_previsao_mes(
+        hoje=hoje, agora=agora, deposito="vila", serie_mes=serie_v
+    )
     total_prev = _q2(c["previsao"] + v["previsao"])
     total_vend = _q2(c["vendido"] + v["vendido"])
     total_meta = _q2(c["meta_mes"] + v["meta_mes"])
