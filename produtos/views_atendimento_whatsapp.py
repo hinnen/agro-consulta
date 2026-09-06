@@ -696,7 +696,7 @@ def api_atendimento_whatsapp_bridge_saida(request):
 
     cfg = carregar_bot()
     try:
-        poll_seg = max(2, min(15, int(cfg.get("poll_saida_seg") or 5)))
+        poll_seg = max(3, min(15, int(cfg.get("poll_saida_seg") or 5)))
     except (TypeError, ValueError):
         poll_seg = 5
     sync_hora = str(cfg.get("sync_agenda_fotos_hora") or "00:00").strip()[:5] or "00:00"

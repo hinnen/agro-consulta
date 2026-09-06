@@ -2326,14 +2326,14 @@ def serializar_status_item(s: WhatsAppStatusAgro) -> dict:
     }
 
 
-def listar_status(*, limit_autores: int = 40) -> list[dict]:
+def listar_status(*, limit_autores: int = 20) -> list[dict]:
     """Agrupa status ativos por contato (mais recente primeiro)."""
     _limpar_status_expirados()
     agora = timezone.now()
-    lim = max(1, min(int(limit_autores or 40), 80))
+    lim = max(1, min(int(limit_autores or 20), 40))
     rows = list(
         WhatsAppStatusAgro.objects.filter(expira_em__gte=agora)
-        .order_by("-criado_em", "-id")[:400]
+        .order_by("-criado_em", "-id")[:120]
     )
     por_autor: dict[str, dict] = {}
     ordem: list[str] = []

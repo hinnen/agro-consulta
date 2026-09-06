@@ -1424,7 +1424,12 @@
     ev.preventDefault();
     var inp = $('wa-input');
     var t = (inp.value || '').trim();
-    if (!t || !convId || enviandoMsg) return;
+    if (!convId) {
+      window.alert('Abra uma conversa na lista antes de enviar.');
+      return;
+    }
+    if (!t) return;
+    if (enviandoMsg) return;
     inp.value = '';
     atualizarBarra();
     enviarPayload({ conversa_id: convId, texto: t }, t);
@@ -2169,10 +2174,13 @@
     tickPoll += 1;
     // Mensagens do chat aberto: a cada 2,5s
     pollMsgs();
-    // Estado/lista/status: a cada 5s (antes tudo junto a 2,5s — pesava o Render)
+    // Lista/estado: a cada 5s
     if (tickPoll % 2 === 0) {
       carregarEstado();
       carregarLista();
+    }
+    // Status (stories) é pesado (~40kb) — a cada 30s, nao a cada 5s
+    if (tickPoll % 12 === 0) {
       carregarStatus();
     }
   }, 2500);

@@ -515,7 +515,7 @@ function precisaSyncAgendaFotos() {
 }
 
 function ajustarPollSaida(seg) {
-  const n = Math.max(2, Math.min(15, Number(seg) || 5));
+  const n = Math.max(3, Math.min(15, Number(seg) || 5));
   if (pollTimer && n === pollSegAtual) return;
   pollSegAtual = n;
   if (pollTimer) clearInterval(pollTimer);
@@ -1442,7 +1442,13 @@ async function puxarSaida() {
         if (tipo === "image" || tipo === "audio") {
           let buf = await baixarSaidaArquivo(item.id);
           if (!buf && b64) buf = Buffer.from(b64, "base64");
-          if (!buf || !buf.length) continue;
+          if (!buf || !buf.length) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "arquivo midia vazio",
+            });
+            continue;
+          }
           if (tipo === "image") {
             content = { image: buf, caption, mimetype: String(item.mime || "image/jpeg") };
           } else {
@@ -1462,7 +1468,13 @@ async function puxarSaida() {
           }
         } else if (tipo === "pix_copy") {
           /* legado: botão cta_copy quebrava no celular — manda texto limpo */
-          if (!txt.trim()) continue;
+          if (!txt.trim()) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "pix vazio",
+            });
+            continue;
+          }
           const sep = "|||PIX|||";
           let intro = txt;
           let chave = "";
@@ -1486,7 +1498,13 @@ async function puxarSaida() {
           });
           continue;
         } else {
-          if (!txt.trim()) continue;
+          if (!txt.trim()) {
+            await post("/api/atendimento-whatsapp/bridge/saida-ok/", {
+              ids: [item.id],
+              erro: "texto vazio",
+            });
+            continue;
+          }
           content = { text: txt };
         }
         const sent = await enviarComRetry(jidParaEnvio(item), content);

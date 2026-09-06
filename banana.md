@@ -729,7 +729,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável 2–15s · msgs cliente na hora · de dia sem reenvio.
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **`WA-PONTE-LEVE` (06/09 · v23.09):** agenda+fotos sync **1×/dia** (Bot → Tempo, padrão 00:00) · poll saída configurável **3–15s** (mín. 3; 2 engasga) · msgs cliente na hora · de dia sem reenvio. **06/09 noite:** status stories a cada **30s** (antes 5s ~40kb).
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1312,6 +1312,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Depois** | Na loja: Trocar Zap de volta pro **3389** |
 | **Status** | auth limpa; aguarda QR do 1403 |
 
+### WIP — Zap recebe / não envia + lento (06/09 noite)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Diagnóstico** | Ponte **conectado** no **1403** · 24h: **2 in / 1 bot / 0 out** · **zero** `POST /enviar/` no Render · Bot **poll=2s** (engasga PDV) · UI puxava **status ~40kb a cada 5s** |
+| **Código (`teste`)** | Status poll **30s** · poll saída mínimo **3s** · ponte não trava msg vazia/mídia vazia sem `saida-ok` · alerta se enviar sem chat aberto |
+| **Você agora (sem deploy)** | Bot → Tempo → **Checar saída = 5** → Salvar · fechar/abrir `iniciar.bat` · **Ctrl+F5** no Zap · abrir chat → digitar → Enviar · se aparecer alerta, me manda o texto |
+| **Loja** | Correção UI/ponte ainda **só no teste** — sobe loja só com frase+senha |
+| **Status** | aguarda teste Renan + se quer subir pacote |
+
 ### WIP — Zap sem msg (06/09 · após WA-PONTE-LEVE)
 
 | Campo | Valor |
@@ -1319,7 +1329,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Causa** | Sessão Zap corrompida (`Bad MAC`) — ponte **conectado**, agenda ok, mas **0 msgs** no banco |
 | **Você** | **Trocar Zap** → QR uma vez → fechar/abrir `iniciar.bat` → teste celular↔loja |
 | **Código** | `teste` **v23.14** — ponte não engasga com busca; sync 45s após connect |
-| **Status** | aguarda Renan religar QR |
+| **Status** | parcial — msgs **in** voltaram; **out** humano ainda 0 |
 
 ### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
