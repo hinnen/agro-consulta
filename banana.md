@@ -1277,24 +1277,32 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09d · tip **v23.19**)
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09e · tip **v23.20**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `TAREFAS-UI-STATUS` | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0003` |
+| 1 | `TAREFAS-PRIORIDADE` | 🟢 **pronto para envio à produção** | **SIM** `tarefas.0004` |
 
-**Já Live:** `VL-HUB-TAREFAS` **v23.18**.
+**Já Live:** `VL-HUB-TAREFAS` **v23.18** · `TAREFAS-UI-STATUS` **v23.19**.
 
-### 📦 PACOTE PRONTO — Tarefas UI + 2 status (`TAREFAS-UI-STATUS` · **v23.19** · 06/09)
+### 📦 PACOTE PRONTO — Prioridade nas tarefas (`TAREFAS-PRIORIDADE` · **v23.20** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lista maior · blocos por status · **Adiado permanente** (penúltimo) · **Cancelados** (último) |
-| **Migrate** | **SIM** `tarefas.0003` |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **67/67** (PIN 9973 → Renan) |
-| **Tip** | `teste` **v23.19** |
+| **O quê** | Prioridade **alta / média / baixa** · badge na lista · criar/editar · ordena alta→baixa dentro do status |
+| **Migrate** | **SIM** `tarefas.0004` (campo novo, default média — seguro) |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **74/74** (PIN 9973 → Renan) |
+| **Tip** | `teste` **v23.20** |
+| **Risco loja aberta** | **Baixo** — só `/vendas/lojas/tarefas/` · **não** mexe PDV/caixa/venda |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 → Tarefas |
+| **Você** | Ctrl+F5 → Tarefas → prioridade |
+
+### ✅ Deploy loja — TAREFAS-UI-STATUS · **Live v23.19**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **Live v23.19** @ `a3a22ff` / código `15c67a5` |
+| **Migrate** | **SIM** `tarefas.0003` (já na loja) |
 
 ### ✅ Deploy loja — VL-HUB-TAREFAS · **Live v23.18**
 

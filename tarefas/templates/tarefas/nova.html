@@ -25,6 +25,13 @@
   {% endfor %}
 </select>
 
+<label class="tf-lab" for="prioridade">Prioridade</label>
+<select class="tf-field" id="prioridade">
+  {% for val, lab in prioridade_choices %}
+  <option value="{{ val }}" {% if val == "media" %}selected{% endif %}>{{ lab }}</option>
+  {% endfor %}
+</select>
+
 <label class="tf-lab" for="loja">Loja</label>
 <select class="tf-field" id="loja">
   {% for val, lab in loja_choices %}
@@ -49,6 +56,7 @@ document.getElementById("btnSalvar").addEventListener("click", async function ()
       titulo: document.getElementById("titulo").value,
       descricao: document.getElementById("descricao").value,
       status: document.getElementById("status").value,
+      prioridade: document.getElementById("prioridade").value,
       loja: document.getElementById("loja").value,
       responsavel: document.getElementById("responsavel").value,
     });

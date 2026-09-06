@@ -129,6 +129,22 @@
     .badge-st.azul { background: var(--azul); }
     .badge-st.slate { background: var(--slate); }
     .badge-st.cinza { background: var(--cinza); color: #0f172a; }
+    .tf-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .badge-prio {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      padding: 0.26rem 0.5rem;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #f8fafc;
+      color: #334155;
+    }
+    .badge-prio.prio-alta { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .badge-prio.prio-media { background: #fffbeb; border-color: #fde68a; color: #a16207; }
+    .badge-prio.prio-baixa { background: #f1f5f9; border-color: #cbd5e1; color: #475569; }
 
     .tf-grupo {
       background: var(--card);

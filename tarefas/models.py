@@ -18,12 +18,23 @@ class TarefaAgro(models.Model):
         VILA = "vila", "Vila Elias"
         AMBAS = "ambas", "Centro e Vila"
 
+    class Prioridade(models.TextChoices):
+        ALTA = "alta", "Alta"
+        MEDIA = "media", "Média"
+        BAIXA = "baixa", "Baixa"
+
     titulo = models.CharField(max_length=200)
     descricao = models.TextField(blank=True, default="")
     status = models.CharField(
         max_length=24,
         choices=Status.choices,
         default=Status.DECIDIR,
+        db_index=True,
+    )
+    prioridade = models.CharField(
+        max_length=8,
+        choices=Prioridade.choices,
+        default=Prioridade.MEDIA,
         db_index=True,
     )
     loja = models.CharField(
@@ -44,6 +55,15 @@ class TarefaAgro(models.Model):
         ordering = ["ordem", "-atualizado_em", "pk"]
         verbose_name = "Tarefa / pendência"
         verbose_name_plural = "Tarefas / pendências"
+
+    PRIORIDADE_ORDEM = {
+        "alta": 0,
+        "media": 1,
+        "baixa": 2,
+    }
+
+    def prioridade_rank(self) -> int:
+        return int(self.PRIORIDADE_ORDEM.get(self.prioridade, 9))
 
     def __str__(self) -> str:
         return self.titulo

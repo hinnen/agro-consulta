@@ -61,11 +61,15 @@ def main() -> int:
     check("pin_ui", "PIN" in pin_tpl and "tarefas_pin" in pin_tpl)
     check("lista_trocar_pin", "Trocar PIN" in lista_tpl and "tarefas_logout" in lista_tpl)
     check("detalhe_status_comentario", "btnStatus" in det_tpl and "btnComentar" in det_tpl)
+    check("detalhe_prioridade", "btnPrioridade" in det_tpl and "prioridade" in det_tpl)
     check("migrate_models", "TarefaAgro" in man and "TarefaComentarioAgro" in man and "TarefaEventoAgro" in man)
     check("migrate_seed", "equipe-centro-vila" in seed_m and "guabi-precos" in seed_m)
     models_py = (ROOT / "tarefas/models.py").read_text(encoding="utf-8")
     check("status_adiado_perm", "adiado_permanente" in models_py)
     check("status_cancelado", 'CANCELADO = "cancelado"' in models_py)
+    check("prioridade_model", 'class Prioridade' in models_py and 'ALTA = "alta"' in models_py)
+    mig4 = (ROOT / "tarefas/migrations/0004_tarefaagro_prioridade.py").read_text(encoding="utf-8")
+    check("migrate_prioridade", "prioridade" in mig4 and 'default="media"' in mig4)
     views_py = (ROOT / "tarefas/views.py").read_text(encoding="utf-8")
     check("ordem_penultimo_perm", "ADIADO_PERM" in views_py and views_py.find("ADIADO_PERM") < views_py.find("CANCELADO"))
     check("lista_grupos_ui", "tf-grupo" in lista_tpl)
@@ -142,6 +146,7 @@ def main() -> int:
                     "titulo": titulo,
                     "descricao": "Criada pelo verify detalhado.",
                     "status": "decidir",
+                    "prioridade": "alta",
                     "loja": "geral",
                 }
             ),
@@ -160,9 +165,23 @@ def main() -> int:
         check("criar_id", bool(tid), str(tid))
         t = TarefaAgro.objects.filter(pk=tid).first() if tid else None
         check("criar_db", t is not None and t.titulo == titulo)
+        check("criar_prioridade_alta", bool(t and t.prioridade == "alta"), getattr(t, "prioridade", ""))
         check("criar_por_nome", bool(t and t.criado_por_nome == operador), getattr(t, "criado_por_nome", ""))
         ev_criada = TarefaEventoAgro.objects.filter(tarefa_id=tid, tipo="criada").first() if tid else None
         check("evento_criada", ev_criada is not None and ev_criada.autor_nome == operador)
+
+        csrf = _csrf(c) or csrf
+        pr = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/atualizar/",
+            data=json.dumps({"prioridade": "baixa"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        j_pr = json.loads(pr.content.decode("utf-8", "replace"))
+        check("prioridade_ok", pr.status_code == 200 and j_pr.get("ok") is True, str(j_pr))
+        t.refresh_from_db()
+        check("prioridade_db", t.prioridade == "baixa")
 
         csrf = _csrf(c) or csrf
         st = c.post(

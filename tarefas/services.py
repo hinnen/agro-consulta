@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import TarefaAgro, TarefaComentarioAgro, TarefaEventoAgro
 
 STATUS_LABEL = dict(TarefaAgro.Status.choices)
+PRIORIDADE_LABEL = dict(TarefaAgro.Prioridade.choices)
 
 
 def _evento(tarefa: TarefaAgro, *, tipo: str, quem: str, detalhe: str = "") -> TarefaEventoAgro:
@@ -25,6 +26,7 @@ def criar_tarefa(
     titulo: str,
     descricao: str = "",
     status: str = TarefaAgro.Status.DECIDIR,
+    prioridade: str = TarefaAgro.Prioridade.MEDIA,
     loja: str = TarefaAgro.Loja.GERAL,
     responsavel: str = "",
     quem: str,
@@ -34,6 +36,8 @@ def criar_tarefa(
         raise ValueError("Informe o título.")
     if status not in STATUS_LABEL:
         status = TarefaAgro.Status.DECIDIR
+    if prioridade not in PRIORIDADE_LABEL:
+        prioridade = TarefaAgro.Prioridade.MEDIA
     if loja not in dict(TarefaAgro.Loja.choices):
         loja = TarefaAgro.Loja.GERAL
     quem = (quem or "").strip()[:150]
@@ -41,13 +45,22 @@ def criar_tarefa(
         titulo=titulo[:200],
         descricao=(descricao or "").strip(),
         status=status,
+        prioridade=prioridade,
         loja=loja,
         responsavel=(responsavel or "").strip()[:120],
         criado_por_nome=quem,
         atualizado_por_nome=quem,
         concluido_em=timezone.now() if status == TarefaAgro.Status.CONCLUIDO else None,
     )
-    _evento(t, tipo=TarefaEventoAgro.Tipo.CRIADA, quem=quem, detalhe=f"Status: {STATUS_LABEL.get(status, status)}")
+    _evento(
+        t,
+        tipo=TarefaEventoAgro.Tipo.CRIADA,
+        quem=quem,
+        detalhe=(
+            f"Status: {STATUS_LABEL.get(status, status)} · "
+            f"Prioridade: {PRIORIDADE_LABEL.get(prioridade, prioridade)}"
+        ),
+    )
     return t
 
 
@@ -59,6 +72,7 @@ def atualizar_tarefa(
     descricao: str | None = None,
     loja: str | None = None,
     responsavel: str | None = None,
+    prioridade: str | None = None,
     quem: str,
 ) -> TarefaAgro:
     quem = (quem or "").strip()[:150]
@@ -79,6 +93,11 @@ def atualizar_tarefa(
     if responsavel is not None and responsavel.strip()[:120] != (tarefa.responsavel or ""):
         mudancas.append("responsável")
         tarefa.responsavel = responsavel.strip()[:120]
+    if prioridade is not None and prioridade in PRIORIDADE_LABEL and prioridade != tarefa.prioridade:
+        mudancas.append(
+            f"prioridade ({PRIORIDADE_LABEL.get(tarefa.prioridade)} → {PRIORIDADE_LABEL.get(prioridade)})"
+        )
+        tarefa.prioridade = prioridade
     if not mudancas:
         return tarefa
     tarefa.atualizado_por_nome = quem
@@ -90,6 +109,13 @@ def atualizar_tarefa(
         detalhe="Alterou: " + ", ".join(mudancas),
     )
     return tarefa
+
+
+@transaction.atomic
+def mudar_prioridade(tarefa: TarefaAgro, *, prioridade: str, quem: str) -> TarefaAgro:
+    if prioridade not in PRIORIDADE_LABEL:
+        raise ValueError("Prioridade inválida.")
+    return atualizar_tarefa(tarefa, prioridade=prioridade, quem=quem)
 
 
 @transaction.atomic
@@ -148,6 +174,8 @@ def tarefa_para_dict(t: TarefaAgro) -> dict:
         "descricao": t.descricao or "",
         "status": t.status,
         "status_label": STATUS_LABEL.get(t.status, t.status),
+        "prioridade": t.prioridade,
+        "prioridade_label": PRIORIDADE_LABEL.get(t.prioridade, t.prioridade),
         "loja": t.loja,
         "loja_label": dict(TarefaAgro.Loja.choices).get(t.loja, t.loja),
         "responsavel": t.responsavel or "",
