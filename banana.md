@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.17+**)
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09 · tip **v23.18**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1293,7 +1293,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Onde** | `tarefas/` · hub `vendas_lojas_hub.html` · painel em `/vendas/lojas/painel/` |
 | **Migrate** | **SIM** `tarefas.0001` + `0002` |
 | **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** (PIN 9973 → Renan) · vendas-lojas **184/184** |
-| **Tip** | `teste` desde **v23.16** @ `fa3d0a4` (+ prova detalhada neste commit) |
+| **Tip** | `teste` **v23.18** @ `30ff008` (feature desde **v23.16**) |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
 | **Você** | Ctrl+F5 no app Vendas → 2 botões → Tarefas → PIN |
 
