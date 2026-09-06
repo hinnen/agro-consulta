@@ -1264,25 +1264,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
-### 🚀 PREP deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · aguarda push
+### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
 | Campo | Valor |
 | ----- | ----- |
-| **Status** | 🟢 **PREP pronto** — cherry só este pacote (**não** merge `teste`) |
+| **Status** | ✅ **enviado / Live v23.07** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.06** / `c39d7a2` |
-| **Alvo** | loja **v23.07** |
+| **Agora** | `producao` @ **`f5d65d0`** |
 | **Pacote** | `WA-PONTE-LEVE` (sync agenda/fotos 1×/dia · poll Bot · fotos só `?fotos=1`) |
 | **Fora** | Excel / resto do `teste` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** (PIN 9973) no `teste` |
+| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** (PIN 9973) |
 | **Rollback** | tag `rollback/pre-wa-ponte-leve-v23.06` @ `c39d7a2` · branch `producao-backup-pre-v2307-wa-ponte-leve-20260906` · `docs/ROLLBACK-WA-PONTE-LEVE-0609.md` · **só** frase+senha |
-| **Você pós-live** | **Ctrl+F5** · badge **v23.07** · fechar/abrir `iniciar.bat` · Bot → Tempo → Salvar |
+| **Você** | **Ctrl+F5** · badge **v23.07** · **fechar/abrir** `iniciar.bat` · Bot → Tempo → Salvar |
 
-### ✅ CHECKLIST ÚNICO — 06/09b · PREP **v23.07**
+### ✅ CHECKLIST ÚNICO — 06/09b · **Live v23.07**
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
-| 1 | `WA-PONTE-LEVE` | 🟢 **no PREP / sobe agora** | **NÃO** |
+| 1 | `WA-PONTE-LEVE` | ✅ **Live v23.07** | **NÃO** |
 
 **Já Live:** `VL-PREV-MES` **v23.06**. Excel / resto **fora**.
 
