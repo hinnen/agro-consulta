@@ -206,6 +206,40 @@ def main() -> int:
         check("detalhe_titulo", titulo in bd)
         check("detalhe_comentario", "Comentário de prova" in bd)
         check("detalhe_timeline", "Linha do tempo" in bd)
+        check("detalhe_tem_adiado_perm", "Adiado permanente" in bd or "adiado_permanente" in bd)
+        check("detalhe_tem_cancelado", "Cancelados" in bd or "cancelado" in bd)
+
+        csrf = _csrf(c) or csrf
+        st_perm = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/status/",
+            data=json.dumps({"status": "adiado_permanente"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        j_perm = json.loads(st_perm.content.decode("utf-8", "replace"))
+        check("status_perm_ok", st_perm.status_code == 200 and j_perm.get("ok") is True, str(j_perm))
+        t.refresh_from_db()
+        check("status_perm_db", t.status == "adiado_permanente")
+
+        csrf = _csrf(c) or csrf
+        st_canc = c.post(
+            f"/vendas/lojas/tarefas/api/{tid}/status/",
+            data=json.dumps({"status": "cancelado"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=csrf,
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        j_canc = json.loads(st_canc.content.decode("utf-8", "replace"))
+        check("status_cancel_ok", st_canc.status_code == 200 and j_canc.get("ok") is True, str(j_canc))
+        t.refresh_from_db()
+        check("status_cancel_db", t.status == "cancelado")
+
+        r_lista2 = c.get("/vendas/lojas/tarefas/")
+        bl2 = r_lista2.content.decode("utf-8", "replace")
+        check("lista_bloco_grupo", "tf-grupo" in bl2)
+        check("lista_mostra_cancelados", "Cancelados" in bl2)
+        check("lista_mostra_adiado_perm", "Adiado permanente" in bl2)
 
         csrf = _csrf(c) or csrf
         conc = c.post(

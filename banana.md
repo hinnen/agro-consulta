@@ -1277,7 +1277,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### ✅ CHECKLIST ÚNICO — pronto envio (06/09d · tip teste)
+### ✅ CHECKLIST ÚNICO — pronto envio (06/09d · tip **v23.19**)
 
 | # | Pacote | Status | Migrate |
 | - | ------ | ------ | ------- |
@@ -1285,15 +1285,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 **Já Live:** `VL-HUB-TAREFAS` **v23.18**.
 
-### 📦 PACOTE PRONTO — Tarefas UI + 2 status (`TAREFAS-UI-STATUS` · tip teste · 06/09)
+### 📦 PACOTE PRONTO — Tarefas UI + 2 status (`TAREFAS-UI-STATUS` · **v23.19** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | Lista maior / moderna · blocos por status · **Adiado permanente** (penúltimo) · **Cancelados** (último) |
+| **O quê** | Lista maior · blocos por status · **Adiado permanente** (penúltimo) · **Cancelados** (último) |
 | **Migrate** | **SIM** `tarefas.0003` |
-| **Prova** | `verify_vl_hub_tarefas_path.py` **59/59** |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **67/67** (PIN 9973 → Renan) |
+| **Tip** | `teste` **v23.19** |
 | **Status** | 🟢 **pronto para envio à produção** — **só** frase + senha |
-| **Você** | Ctrl+F5 → Tarefas → conferir blocos e novos status no detalhe |
+| **Você** | Ctrl+F5 → Tarefas |
 
 ### ✅ Deploy loja — VL-HUB-TAREFAS · **Live v23.18**
 
