@@ -100,7 +100,7 @@
       justify-content: center;
     }
     @media (display-mode: standalone) {
-      .vl-voltar { display: none; }
+      /* Mantém Início visível — hub Vendas/Tarefas */
     }
     .vl-filtros, .vl-filtros-extra {
       display: grid;
@@ -559,7 +559,7 @@
         <h1 class="vl-title">Vendas</h1>
         <p class="vl-periodo">{{ periodo_label }}</p>
       </div>
-      <a class="vl-voltar" href="{% url 'relatorios_hub' %}">Voltar</a>
+      <a class="vl-voltar" href="{% url 'vendas_lojas_hub' %}">Início</a>
     </header>
 
     <form method="get" class="vl-filtros" aria-label="Filtrar período">

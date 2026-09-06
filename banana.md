@@ -1264,6 +1264,26 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### ✅ Deploy loja — VL-HUB-TAREFAS (`deploy/prep-vl-hub-tarefas-0609` · **v23.18**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.18** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.07** / `4c59e54` |
+| **Pacote** | `VL-HUB-TAREFAS` — hub Vendas/Tarefas no PWA · PIN · seed Agro Mais |
+| **Migrate** | **SIM** `tarefas.0001` + `0002` |
+| **Prova** | `verify_vl_hub_tarefas_path.py` **55/55** |
+| **Rollback** | tag `rollback/pre-vl-hub-tarefas-v23.07` · branch `producao-backup-pre-v2318-vl-hub-tarefas-20260906` · `docs/ROLLBACK-VL-HUB-TAREFAS-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.18** · app Vendas → 2 botões → Tarefas → PIN |
+
+### ✅ CHECKLIST ÚNICO — 06/09c · **Live v23.18**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-HUB-TAREFAS` | ✅ **Live v23.18** | **SIM** `tarefas.0001`+`0002` |
+
+**Loja agora:** Live **v23.18**. Excel / resto do `teste` **fora**.
+
 ### ✅ Deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · **Live**
 
 | Campo | Valor |

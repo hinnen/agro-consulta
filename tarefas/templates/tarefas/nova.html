@@ -1,0 +1,62 @@
+{% extends "tarefas/base.html" %}
+{% block title %}Nova tarefa{% endblock %}
+{% block body %}
+<div class="tf-top">
+  <div>
+    <p class="tf-kicker">Pendências</p>
+    <h1 class="tf-title">Nova</h1>
+  </div>
+  <div class="tf-ops">
+    <a class="tf-btn" href="{% url 'tarefas_lista' %}">Lista</a>
+  </div>
+</div>
+<p class="tf-who">Criando como <strong>{{ operador }}</strong></p>
+
+<label class="tf-lab" for="titulo">Título</label>
+<input class="tf-field" id="titulo" maxlength="200" placeholder="Ex.: Equipe — sábados">
+
+<label class="tf-lab" for="descricao">Detalhe</label>
+<textarea class="tf-field" id="descricao" placeholder="O que precisa ser feito…"></textarea>
+
+<label class="tf-lab" for="status">Status</label>
+<select class="tf-field" id="status">
+  {% for val, lab in status_choices %}
+  <option value="{{ val }}">{{ lab }}</option>
+  {% endfor %}
+</select>
+
+<label class="tf-lab" for="loja">Loja</label>
+<select class="tf-field" id="loja">
+  {% for val, lab in loja_choices %}
+  <option value="{{ val }}">{{ lab }}</option>
+  {% endfor %}
+</select>
+
+<label class="tf-lab" for="responsavel">Responsável (opcional)</label>
+<input class="tf-field" id="responsavel" maxlength="120" placeholder="Nome">
+
+<div class="tf-fab">
+  <button type="button" id="btnSalvar">Salvar</button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById("btnSalvar").addEventListener("click", async function () {
+  const btn = this;
+  btn.disabled = true;
+  try {
+    const j = await window.tfPost("{% url 'api_tarefa_criar' %}", {
+      titulo: document.getElementById("titulo").value,
+      descricao: document.getElementById("descricao").value,
+      status: document.getElementById("status").value,
+      loja: document.getElementById("loja").value,
+      responsavel: document.getElementById("responsavel").value,
+    });
+    location.href = j.url || "{% url 'tarefas_lista' %}";
+  } catch (e) {
+    alert(e.message || "Erro");
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}
