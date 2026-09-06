@@ -1270,6 +1270,7 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | ----- | ----- |
 | **Status** | ✅ **enviado / Live v23.19** — cherry só este pacote (**não** merge `teste`) |
 | **Antes** | `origin/producao` @ **v23.18** / `3ba41db` |
+| **Agora** | `producao` @ **`15c67a5`** |
 | **Pacote** | `TAREFAS-UI-STATUS` — UI blocos · Adiado permanente · Cancelados |
 | **Migrate** | **SIM** `tarefas.0003` (AlterField leve — só choices/tamanho) |
 | **Prova** | `verify_vl_hub_tarefas_path.py` **68/68** |
