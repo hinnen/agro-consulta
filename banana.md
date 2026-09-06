@@ -729,7 +729,7 @@ Env opcional: `AGRO_NOVO_PRODUTO_COD_MIN` (piso da sequÃªncia; padrÃ£o **401
 
 - Uso próprio · **QR no celular** (não API Meta) · 1 número · bot pergunta **Centro ou Vila** · duas filas no Agro.
 - Ponte Node: `whatsapp_atendimento/iniciar.bat` (PC ligado). Postgres = conversas.
-- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **Parcial:** `WA-CHAT-SNAP` + ponte poll **5s** (`WA-PONTE-LEVE` ainda falta fotos/agenda).
+- **05/09 Renan:** desligou a ponte — deixava o **PDV de todas as lojas lento** (carga no Render). **Parcial:** `WA-CHAT-SNAP` + ponte poll **5s**. **Decisão 06/09 (`WA-PONTE-LEVE`):** contatos + fotos **já salvos no PG**; sync em massa **só 00:00** (PC da ponte ligado); de dia **não** reenvia agenda/fotos; msgs do cliente continuam na hora (socket); poll de **saída** (loja→cliente) fica curto.
 - Sem disparo em massa. **Entrada loja:** menu/gestão → **WhatsApp computador (Z)**. **PDV** = ícone **Em breve…** (`PDV-WA-TOPBAR-BREVE`) — **não** abre o chat (combinado Renan 03/09). Ponte no PC (`iniciar.bat`).
 - Token `.env`: `AGRO_WA_BRIDGE_TOKEN`. Migrate `0108`+`0109`+**`0111`**+**`0112`**+**`0113`**. Pacote `WA-ATEND-QR`.
 - **Consulta fiado (`WA-FIADO-MSG`):** cliente escreve *fiado* (ou *quanto eu devo*) no mesmo Zap da loja; o bot responde o aberto pelo número do cadastro. Sem migrate extra. **Ainda fora da loja** (junto do chat QR).
@@ -1276,6 +1276,16 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 ---
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
+
+### 📦 WIP — Ponte leve (`WA-PONTE-LEVE` · 06/09)
+
+| Campo | Valor |
+| ----- | ----- |
+| **Problema** | Zap ligado → PDV lento em todas as lojas (Renan desligou de novo) |
+| **Decisão** | Contatos + fotos **salvos no PG** · sync em massa **só 00:00** (madrugada) · de dia **não** reenvia lote |
+| **Msgs** | Cliente → loja: **na hora** (socket) · loja → cliente: poll curto (não espaçar demais) |
+| **Ops** | PC da ponte precisa estar **ligado à meia-noite**; se off, roda no 1º ligar após 00:00 (ou próximo dia) |
+| **Status** | 🟡 **combinado** — aguarda implementação / PREP |
 
 ### 📦 PACOTE PRONTO — Vendas lojas previsão mês (`VL-PREV-MES` · tip **v23.06** · 06/09)
 
