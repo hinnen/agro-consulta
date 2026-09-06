@@ -1127,9 +1127,16 @@
     return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
   }
 
+  var enviandoMsg = false;
+
   function enviarPayload(payload, textoVolta) {
     var btn = $('wa-send');
-    if (!convId || (btn && btn.disabled)) return;
+    if (!convId) return;
+    if (enviandoMsg) {
+      if (textoVolta && $('wa-input') && !$('wa-input').value) $('wa-input').value = textoVolta;
+      return;
+    }
+    enviandoMsg = true;
     if (btn) btn.disabled = true;
 
     // Bolha na hora (sensação de enviado) — o Zap do cliente ainda passa pela ponte.
@@ -1188,6 +1195,7 @@
         if (textoVolta && $('wa-input')) $('wa-input').value = textoVolta;
       })
       .finally(function () {
+        enviandoMsg = false;
         if (btn) btn.disabled = false;
         atualizarBarra();
       });
@@ -1416,8 +1424,9 @@
     ev.preventDefault();
     var inp = $('wa-input');
     var t = (inp.value || '').trim();
-    if (!t || !convId) return;
+    if (!t || !convId || enviandoMsg) return;
     inp.value = '';
+    atualizarBarra();
     enviarPayload({ conversa_id: convId, texto: t }, t);
   });
 
