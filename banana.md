@@ -1277,6 +1277,19 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
+### Conferência bugs #11–#16 pós-loja (06/09 · Live **v21.91+** / tip loja **v21.93**)
+
+| # | Pacote | Na loja? | Prova agora | Marcar resolvido? |
+| - | ------ | -------- | ----------- | ----------------- |
+| **11** | `MP-POINT-FINAL-PIN` | ✅ desde **v21.91** | **41/41** | **Sim** (Ctrl+F5 se Point) |
+| **12** | `PDV-ENTREGA-TABELA-FORMA` | ✅ **v21.91** | **41/41** | **Sim** |
+| **13** | `BI-DEVOL-*` (cálculo) | ✅ há tempo | **43/43** | **Sim o cálculo**. **Troca** A→B **não existe** — não feche se o pedido era troca |
+| **14** | `PDV-ORC-LISTA-LIVE` | ✅ **v21.91** · JS loja tem `_orcamentosMem` | **28/28** | **Sim** (Ctrl+F5 nos PCs Centro) |
+| **15** | `PDV-VALE-SALDO-LIVE` | ✅ **v21.91** | **17/17** | **Sim** |
+| **16** | `PDV-VALE-USADO` | ✅ **v21.91** | **38/38** | **Sim** |
+
+**Smoke loja:** healthz **ok** · `pdv_wizard.js` produção com fix #14.
+
 ### ✅ PACOTE PRONTO — Ponte leve (`WA-PONTE-LEVE` · tip **v23.09** · 06/09)
 
 | Campo | Valor |
