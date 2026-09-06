@@ -1297,30 +1297,42 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **O quê** | Agenda+fotos **1×/dia** (hora no Bot, padrão **00:00**) · de dia **não** reenvia · poll saída **2–15s** no Bot → Tempo · msgs do cliente na hora |
 | **Onde** | `atendimento_whatsapp_bot_config` · Bot Tempo · `bridge/saida` · `whatsapp_atendimento/index.js` |
 | **Migrate** | **NÃO** |
-| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 33/33** |
+| **Prova** | `scripts/verify_wa_ponte_leve_path.py` **VERIFY_OK 74/74** (static · clamp · PIN **9973** · bot API · bridge saida fotos opt-in) |
 | **Status** | 🟢 **pronto para envio à produção** (ainda **só teste**) |
 | **Ops** | Fechar/abrir `iniciar.bat` · Bot → Tempo · Salvar · PC ligado à meia-noite |
 
-### 📦 PACOTE PRONTO — Vendas lojas previsão mês (`VL-PREV-MES` · tip **v23.06** · 06/09)
+### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | ✅ **enviado / Live v23.06** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
+| **Agora** | `producao` @ **`d0732d0`** |
+| **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
+| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
+| **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
+
+### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06** (+ WA ainda no teste)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-PREV-MES` (previsão + aviso + fonte + async) | ✅ **Live v23.06** | **NÃO** |
+| 2 | `WA-PONTE-LEVE` (sync 00:00 + poll no Bot) | 🟢 **pronto envio** (só teste) | **NÃO** |
+
+**Loja agora:** Live **v23.06**. WhatsApp leve **ainda fora**.
+
+### ~~📦 PACOTE PRONTO — Vendas lojas previsão mês~~ (`VL-PREV-MES` · **Live v23.06**)
 
 | Campo | Valor |
 | ----- | ----- |
 | **O quê** | `/vendas/lojas/`: card **Previsão mês** (Centro+Vila+total) · mês fechado pelo ritmo vs Meta C · aviso «ainda é cedo» · fonte menor que o Total |
 | **Perf** | 1º paint só totais · média/previsão/fiado async `/api/vendas/lojas/extras/` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_resumo_path.py` **179/179** · PIN **9973** · HTTP página+extras **200** · soma Centro+Vila=total · ritmo OK |
-| **Status** | 🟢 **pronto para envio à produção** |
-| **Commits** | `39ee80d` · `616f182` · `8b0d702` · `338abb7` |
-| **Você** | `/vendas/lojas/` · **Ctrl+F5** · totais na hora · previsão completa em seguida |
-
-### ✅ CHECKLIST ÚNICO — pronto para envio (06/09 · tip **v23.09**)
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `VL-PREV-MES` (previsão + aviso + fonte + async) | 🟢 **pronto envio** | **NÃO** |
-| 2 | `WA-PONTE-LEVE` (sync 00:00 + poll no Bot) | 🟢 **pronto envio** | **NÃO** |
-
-**Loja agora:** Live **v21.93**. Este lote **ainda não** subiu — só frase + senha.
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **179/179** · PIN **9973** |
+| **Status** | ✅ **Live v23.06** @ `d0732d0` |
+| **Commits teste** | `39ee80d` · `616f182` · `8b0d702` · `338abb7` |
 
 ### ✅ Deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · **Live**
 
