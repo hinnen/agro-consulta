@@ -1277,19 +1277,25 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÃ‡ÃƒO
 
-### 📦 PACOTE PRONTO — Previsão do mês em Vendas lojas (`VL-PREV-MES` · **v23.03+** · 06/09)
+### 📦 PACOTE PRONTO — Vendas lojas previsão mês (`VL-PREV-MES` · tip **v23.06** · 06/09)
 
 | Campo | Valor |
 | ----- | ----- |
-| **O quê** | `/vendas/lojas/`: card verde **Previsão mês** (total + Centro/Vila) · toque abre detalhe do ritmo |
-| **Cálculo** | vendido no mês ÷ Meta C até agora × Meta C do mês · cedo demais (<2%) = meta · mês fechado = vendido |
-| **Aviso** | faixa amarela «Ainda é cedo…» de manhã / início do mês |
-| **UI** | valor da previsão **menor** que Centro/Vila · Total laranja continua o destaque |
-| **Perf** | 1º paint só totais · média/previsão/fiado em `/api/vendas/lojas/extras/` (`VL-PREV-FAST`) |
+| **O quê** | `/vendas/lojas/`: card **Previsão mês** (Centro+Vila+total) · mês fechado pelo ritmo vs Meta C · aviso «ainda é cedo» · fonte menor que o Total |
+| **Perf** | 1º paint só totais · média/previsão/fiado async `/api/vendas/lojas/extras/` |
 | **Migrate** | **NÃO** |
-| **Prova** | `verify_vendas_lojas_resumo_path.py` |
-| **Status** | 🟡 **teste** · aguarda prova local |
+| **Prova** | `verify_vendas_lojas_resumo_path.py` **179/179** · PIN **9973** · HTTP página+extras **200** · soma Centro+Vila=total · ritmo OK |
+| **Status** | 🟢 **pronto para envio à produção** |
+| **Commits** | `39ee80d` · `616f182` · `8b0d702` · `338abb7` |
 | **Você** | `/vendas/lojas/` · **Ctrl+F5** · totais na hora · previsão completa em seguida |
+
+### ✅ CHECKLIST ÚNICO — pronto para envio (06/09 · tip **v23.06**)
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `VL-PREV-MES` (previsão + aviso + fonte + async) | 🟢 **pronto envio** | **NÃO** |
+
+**Loja agora:** Live **v21.93**. Este lote **ainda não** subiu — só frase + senha.
 
 ### ✅ Deploy loja — lote checklist 0509h (`deploy/prep-checklist-0509h` · **v21.93**) · **Live**
 
