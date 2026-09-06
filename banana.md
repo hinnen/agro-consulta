@@ -1264,6 +1264,28 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 
 ## CHECKPOINT DE ATUALIZAÇÃO
 
+### 🚀 PREP deploy loja — WA-PONTE-LEVE (`deploy/prep-wa-ponte-leve-0609` · **v23.07**) · aguarda push
+
+| Campo | Valor |
+| ----- | ----- |
+| **Status** | 🟢 **PREP pronto** — cherry só este pacote (**não** merge `teste`) |
+| **Antes** | `origin/producao` @ **v23.06** / `c39d7a2` |
+| **Alvo** | loja **v23.07** |
+| **Pacote** | `WA-PONTE-LEVE` (sync agenda/fotos 1×/dia · poll Bot · fotos só `?fotos=1`) |
+| **Fora** | Excel / resto do `teste` |
+| **Migrate** | **NÃO** |
+| **Prova** | `verify_wa_ponte_leve_path.py` **74/74** (PIN 9973) no `teste` |
+| **Rollback** | tag `rollback/pre-wa-ponte-leve-v23.06` @ `c39d7a2` · branch `producao-backup-pre-v2307-wa-ponte-leve-20260906` · `docs/ROLLBACK-WA-PONTE-LEVE-0609.md` · **só** frase+senha |
+| **Você pós-live** | **Ctrl+F5** · badge **v23.07** · fechar/abrir `iniciar.bat` · Bot → Tempo → Salvar |
+
+### ✅ CHECKLIST ÚNICO — 06/09b · PREP **v23.07**
+
+| # | Pacote | Status | Migrate |
+| - | ------ | ------ | ------- |
+| 1 | `WA-PONTE-LEVE` | 🟢 **no PREP / sobe agora** | **NÃO** |
+
+**Já Live:** `VL-PREV-MES` **v23.06**. Excel / resto **fora**.
+
 ### ✅ Deploy loja — VL-PREV-MES (`deploy/prep-vl-prev-mes-0609` · **v23.06**) · **Live**
 
 | Campo | Valor |
@@ -1272,18 +1294,12 @@ Rotas: `backup-completo.xlsx` Â· `backup-abertos.zip` Â· `congelamento-statu
 | **Antes** | `origin/producao` @ **v21.93** / `8884c9c` |
 | **Agora** | `producao` @ **`d0732d0`** |
 | **Pacote** | `VL-PREV-MES` (previsão mês + aviso + fonte + async) |
-| **Fora** | `WA-PONTE-LEVE` · resto do `teste` |
+| **Fora** | (era `WA-PONTE-LEVE` — sobe no PREP v23.07) |
 | **Migrate** | **NÃO** |
 | **Rollback** | tag `rollback/pre-vl-prev-mes-v21.93` @ `8884c9c` · branch `producao-backup-pre-v2306-vl-prev-mes-20260906` · `docs/ROLLBACK-VL-PREV-MES-0609.md` · **só** frase+senha |
 | **Você** | **Ctrl+F5** · badge **v23.06** · `/vendas/lojas/` · totais na hora · previsão em seguida |
 
-### ✅ CHECKLIST ÚNICO — 06/09 · **Live v23.06**
-
-| # | Pacote | Status | Migrate |
-| - | ------ | ------ | ------- |
-| 1 | `VL-PREV-MES` | ✅ **Live v23.06** | **NÃO** |
-
-**Ainda fora:** `WA-PONTE-LEVE` · Excel / resto do `teste`.
+### ~~✅ CHECKLIST ÚNICO — 06/09 · Live v23.06~~ · **ver PREP 06/09b**
 
 ### ~~🚀 PREP deploy loja — lote checklist 0509h~~ · **Live v21.93** (base deste deploy)
 
